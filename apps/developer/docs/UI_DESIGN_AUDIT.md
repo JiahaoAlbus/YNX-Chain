@@ -41,7 +41,7 @@ fallback, dates, numbers and plural rules are unit-tested.
 
 Source commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551` extends the API Studio surface with 12-locale labels, approval semantics, dynamic validation states and bounded localized error classes. Arabic applies RTL to interaction surfaces while source, JSON, response and URL fields remain LTR. Bottom-panel navigation now uses tablist/tab/tabpanel semantics, one roving tab stop and ArrowLeft, ArrowRight, Home and End navigation. The API output is a focusable polite live region, and mobile rules wrap long translated actions at the 390px target.
 
-These current-source properties are covered by static/runtime tests. The screenshots below were captured for the earlier 2026-07-18 package checkpoint and do not by themselves prove that commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551` is installed, publicly deployed or visually recaptured.
+These current-source properties are covered by static/runtime tests and are installed in the separately verified macOS arm64 package source `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`. The screenshots below were captured for the earlier 2026-07-18 checkpoint and do not by themselves prove that the current source was visually recaptured, installed on Windows or publicly deployed.
 
 ## Screenshot evidence
 

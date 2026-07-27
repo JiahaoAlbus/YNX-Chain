@@ -42,7 +42,7 @@ The Developer owner accepts these local invariants for source commit `8f352d0159
 8. Localized human messages preserve stable machine error codes for cross-product consumers.
 9. Arabic RTL is scoped to interaction surfaces; source, JSON and URL fields remain LTR.
 10. Keyboard tab navigation follows a deterministic tablist contract and output announcements use a polite live region.
-11. Existing desktop artifacts predate this source checkpoint and do not prove current-source API Studio installation.
+11. Current-source API Studio installation is accepted locally for macOS arm64 package source `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`; Windows remains unaccepted at current source and retains only historical evidence.
 
 ## Conflict handling
 

@@ -22,6 +22,14 @@
 5. **Static accessibility tests are `testedLocal`, not installed or public proof.** Installed-browser, screen-reader, zoom and visual evidence remain required.
 6. **Validation scanners must not treat a missing scanner binary as success.** `rg` remains preferred; the fallback distinguishes findings, clean results and scanner execution failure.
 
+## 2026-07-27 — macOS artifact provenance
+
+1. **Packaging refuses tracked uncommitted Developer changes.** The package source must be a recoverable Git commit, not an ambient dirty tree.
+2. **Package provenance is embedded, not inferred from external notes.** The App contains source commit, Git tree, runtime checkpoint, source commit date, platform/signing class and SBOM SHA-256.
+3. **The final ZIP hash remains external evidence.** It cannot be embedded in itself without a circular digest; `ARTIFACT_MANIFEST.json` and `product-release.json` record the verified bytes and SHA-256.
+4. **Current-source installation is platform-specific.** macOS arm64 is true; Windows x64 remains false until a current workflow build and cold-start run succeed.
+5. **Ad-hoc signing is not production signing.** The package remains a local unsigned Testnet Preview with no Team ID, Developer ID or notarization.
+
 ## Safety decisions
 
 - No private key, signing material, credential value or production secret may be requested in chat, written to repository state, or exposed to the browser.

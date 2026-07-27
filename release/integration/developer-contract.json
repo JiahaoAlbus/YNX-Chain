@@ -11,7 +11,7 @@
   "source": {
     "branch": "codex/final-developer",
     "commit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-    "generatedAt": "2026-07-27T14:34:57Z"
+    "generatedAt": "2026-07-27T15:04:04Z"
   },
   "walletBinding": {
     "productClientId": "ynx-developer-v1",
@@ -39,8 +39,14 @@
     "browserCredentialResolution": false,
     "implementedLocal": true,
     "testedLocal": true,
-    "currentSourceInstalledLocal": false,
-    "historicalArtifactSourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+    "currentSourceInstalledLocal": true,
+    "installedPlatforms": {
+      "macosArm64": true,
+      "windowsX64": false
+    },
+    "macosArtifactSourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+    "macosArtifactSha256": "55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9",
+    "historicalWindowsArtifactSourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
     "requestFlow": [
       "import",
       "validate",
@@ -226,6 +232,13 @@
     "validationGates": {
       "command": "make no-placeholder-check && make secret-scan",
       "result": "passed through verified grep fallback because rg was unavailable"
+    },
+    "macosCurrentSourcePackage": {
+      "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+      "sha256": "55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9",
+      "bytes": 38450127,
+      "signingClass": "adhoc-no-team-id",
+      "result": "embedded provenance, extracted resource self-test, GUI cold launch, bundled server observation and child cleanup passed"
     }
   },
   "releaseStatus": {

@@ -2,9 +2,9 @@
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
   "branch": "codex/final-developer",
-  "commit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+  "commit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
   "version": "0.2.0",
-  "sourceCheckpoint": "api-studio-i18n-a11y-2026-07-27",
+  "sourceCheckpoint": "macos-current-source-provenance-2026-07-27",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -28,7 +28,11 @@
     "apiStudio": {
       "implementedLocal": true,
       "testedLocal": true,
-      "installedLocal": false,
+      "installedLocal": true,
+      "installedPlatforms": {
+        "macosArm64": true,
+        "windowsX64": false
+      },
       "integratedCentral": false,
       "deployedStaging": false,
       "deployedPublic": false,
@@ -41,7 +45,8 @@
         "liveCheck": "passed",
         "sameOriginProxy": "passed",
         "placeholderGate": "passed with grep fallback because rg was unavailable",
-        "credentialLeakGate": "passed with grep fallback because rg was unavailable"
+        "credentialLeakGate": "passed with grep fallback because rg was unavailable",
+        "macosCurrentSourcePackage": "embedded provenance, extracted self-test, ad-hoc classification, cold launch, bundled server observation and child cleanup passed"
       },
       "capabilities": [
         "OpenAPI 3.0/3.1 JSON import and validation",
@@ -63,14 +68,21 @@
     }
   },
   "sha256": {
-    "macosArm64UnsignedZip": "60f5e420e7a64e1db937809946f7d4706fdf718f781f039289d4b3f95b7b8836",
+    "macosArm64UnsignedZip": "55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9",
     "windowsX64UnsignedZip": "2899026250ecbbb28fc853cba291565bf792902b301f24280858cf4eb9098991"
   },
   "bytes": {
-    "macosArm64UnsignedZip": 38437737,
+    "macosArm64UnsignedZip": 38450127,
     "windowsX64UnsignedZip": 106319108
   },
-  "artifactSourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+  "artifactSourceCommits": {
+    "macosArm64UnsignedZip": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+    "windowsX64UnsignedZip": "c6b4affc03b3255100516c34483096f445c46753"
+  },
+  "artifactRuntimeCheckpoints": {
+    "macosArm64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+    "windowsX64UnsignedZip": "c6b4affc03b3255100516c34483096f445c46753"
+  },
   "signingClass": {
     "macos": "adhoc-no-team-id",
     "windows": "unsigned-no-authenticode"
@@ -84,8 +96,14 @@
     {
       "surface": "macos-arm64-testnet-preview",
       "class": "local-extracted-zip",
-      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
-      "result": "resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed"
+      "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+      "sourceTree": "a0c61afe7ba9e209eab326dcc02fc6568de201d8",
+      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+      "artifactSha256": "55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9",
+      "artifactBytes": 38450127,
+      "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
+      "provenanceEmbedded": true,
+      "result": "embedded source/tree/runtime/SBOM provenance, resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed"
     },
     {
       "surface": "windows-x64-testnet-preview",
@@ -109,9 +127,10 @@
     "No central Wallet registry/provider integration or real Wallet-signed deployment was performed.",
     "No provider-backed AI generation was performed because no operator provider credential/configuration was supplied.",
     "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
-    "The existing macOS and Windows 0.2.0 package evidence predates the current API Studio localization and accessibility source checkpoint; current-source API Studio is not claimed installed in those artifacts.",
+    "Current-source API Studio is installed and cold-launched only in the local macOS arm64 unsigned Testnet Preview; this is not public hosting, Gatekeeper distribution, notarization or production signing.",
+    "The Windows x64 package evidence remains tied to historical source commit c6b4affc03b3255100516c34483096f445c46753 and does not prove current-source API Studio installation.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The pinned chain compiler response truthfully reports deterministic analyzer output unless a matching production solc artifact exists; no arbitrary EVM or remote public verification claim is made."
   ],
-  "generatedAt": "2026-07-27T14:34:57Z"
+  "generatedAt": "2026-07-27T15:04:04Z"
 }

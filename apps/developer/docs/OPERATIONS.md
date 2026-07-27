@@ -6,7 +6,11 @@ authenticated same-origin proxy equivalents and a version/health endpoint before
 bundle.
 
 Build the unsigned local macOS package with `scripts/package-local-macos.sh` and
-verify the extracted artifact with `scripts/verify-local-macos-package.sh`.
+verify the extracted artifact with `scripts/verify-local-macos-package.sh`. The
+packager refuses tracked uncommitted Developer changes and embeds source commit,
+Git tree, runtime checkpoint, platform/signing class and SBOM SHA-256. Record the
+final ZIP SHA-256 and bytes externally because a package cannot embed its own
+non-circular final digest.
 Windows packaging and cold launch run on a real Windows host through
 `developer-windows.yml`; use its JSON evidence and artifact checksum, never the
 macOS structural source check, for Windows claims.

@@ -7,18 +7,33 @@
 - Branch: `codex/final-developer`
 - Current phase: `FREEZE`
 - Runtime checkpoint: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
+- Current package-source checkpoint: `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`
 - Long-term goal: Active
 
-## Completed slice
+## Completed slices
 
-Closed the API Studio localization and accessibility implementation gap without weakening its security boundary:
+### API Studio i18n and accessibility
 
-- all API Studio labels, approval semantics, dynamic states and fail-closed error classes are available in the 12 supported locales;
-- Arabic RTL applies to the interaction surfaces while source, JSON and URL fields remain LTR;
-- API output remains a focusable polite live region and generated evidence is not overwritten by locale changes;
-- bottom-panel tabs implement tablist/tab/tabpanel semantics, roving tabindex and ArrowLeft/ArrowRight/Home/End navigation;
-- 390px rules collapse API grids and permit long translated controls to wrap;
-- placeholder and secret gates no longer report false success when `rg` is unavailable; the verified `grep` fallback distinguishes match, no-match and scanner failure.
+- 12 supported locales cover API Studio labels, approval semantics, dynamic states and bounded fail-closed error classes.
+- Arabic uses RTL interaction layout while source, JSON, output and URL fields remain LTR.
+- Stable machine error codes remain visible.
+- Bottom-panel navigation implements tablist/tab/tabpanel semantics, roving tabindex and ArrowLeft/ArrowRight/Home/End navigation.
+- API output is a focusable polite live region.
+- 390px rules collapse grids and wrap translated controls.
+- Placeholder and credential-leak gates fail closed when the preferred scanner is unavailable.
+
+### Current-source macOS package
+
+- Packaging refuses tracked uncommitted Developer changes.
+- Package embeds exact source commit, Git tree, runtime checkpoint, source commit date, platform/signing class and SBOM hash.
+- Source commit: `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`.
+- Source tree: `a0c61afe7ba9e209eab326dcc02fc6568de201d8`.
+- Runtime checkpoint: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`.
+- ZIP SHA-256: `55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9`.
+- ZIP bytes: `38450127`.
+- Embedded SBOM SHA-256: `801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12`.
+- Signing class: `adhoc-no-team-id`; local unsigned Testnet Preview only.
+- Extracted provenance, resource self-test, strict signature classification, GUI cold start, bundled server observation and child cleanup passed.
 
 ## Verified tests
 
@@ -34,25 +49,27 @@ Closed the API Studio localization and accessibility implementation gap without 
 - `make no-placeholder-check` — passed through the no-`rg` fallback
 - `make secret-scan` — passed through the no-`rg` fallback
 - `make static-check` — passed
+- `cd apps/developer && bash scripts/package-local-macos.sh` — passed from a clean pushed commit
+- `cd apps/developer && bash scripts/verify-local-macos-package.sh` — embedded provenance, extracted install, cold start and cleanup passed
 
-## Protected checkpoint
+## Protected checkpoints
 
-- Runtime commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`.
-- `origin/codex/final-developer` contains the runtime commit.
-- Local SHA equals upstream SHA; ahead/behind is `0/0`.
-- Product status remains `ACTIVE`; this checkpoint is not product completion.
+- Runtime commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551` pushed.
+- Evidence record commit `3519c5c608e8f9a011e2d39eb9be858710eae499` pushed.
+- Provenance gate commit `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca` pushed.
+- Local SHA equaled upstream SHA at the package-source checkpoint before artifact generation.
+- Product remains `ACTIVE`; local unsigned packaging is not public or production completion.
 
 ## Next autonomous engineering slice
 
-Rebuild the macOS package from runtime source commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551`, then verify archive extraction, install path, bundled service launch, cold start, shutdown cleanup, artifact hash/bytes/SBOM/provenance and truthful unsigned signing class. Do not promote an older package or claim production signing.
+Trigger the existing Windows workflow against `codex/final-developer`, verify that the current-source WPF/WebView2 x64 package builds on `windows-latest`, extracts, self-tests, cold-launches, starts the bundled server, cleans child processes, emits exact hash/bytes/provenance, and remains `unsigned-no-authenticode`. Do not reuse the historical run as current-source proof.
 
 ## Subsequent priorities
 
-1. Current-source Windows CI package and portable cold-start verification.
-2. Installed-browser keyboard, screen-reader, zoom/dynamic-text and 390px visual evidence.
-3. Accepted host broker plus one official provider sandbox vector.
-4. Data Fabric redacted audit events and Monitor integration.
-5. Canonical Wallet product/deployment acceptance.
-6. Real Wallet-signed YNX Testnet deployment and Explorer proof.
-7. SLO/capacity and unit-economics measurement.
-8. Public staging, immutable artifacts, SEO/public evidence and release gates.
+1. Installed-browser keyboard, screen-reader, zoom/dynamic-text and 390px visual evidence.
+2. Accepted host broker plus one official provider sandbox vector.
+3. Data Fabric redacted audit events and Monitor integration.
+4. Canonical Wallet product/deployment acceptance.
+5. Real Wallet-signed YNX Testnet deployment and Explorer proof.
+6. SLO/capacity and unit-economics measurement.
+7. Public staging, immutable artifacts, SEO/public evidence and release gates.

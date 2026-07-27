@@ -2,11 +2,12 @@
 
 ## Release truth
 
-- Source commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
-- Status: implemented and tested locally in the Web IDE source checkpoint
+- Runtime source commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
+- macOS package source commit: `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`
+- Status: implemented and tested locally in the Web IDE; installed and cold-launched in the current-source macOS arm64 unsigned Testnet Preview
 - Central credential broker: not integrated
 - Public sandbox endpoint: not deployed
-- Desktop artifact inclusion: not claimed; existing macOS and Windows package evidence predates this checkpoint
+- Desktop artifact inclusion: verified for macOS arm64 only; the Windows package remains at historical source commit `c6b4affc03b3255100516c34483096f445c46753`
 
 ## Implemented workflow
 
@@ -84,5 +85,5 @@ These are adapter contracts, not claims of provider credentials, connectivity, s
 2. Connect one official provider sandbox through the broker without exposing credential values to browser JavaScript.
 3. Add request/response audit persistence with Data Fabric ownership accepted.
 4. Capture installed-browser keyboard, screen-reader, zoom/dynamic-text and 390px visual evidence for the current source checkpoint.
-5. Rebuild and verify current macOS and Windows artifacts before claiming API Studio is installed in desktop packages.
+5. Trigger and verify a current-source Windows build before claiming API Studio is installed on Windows; macOS arm64 current-source installation is already verified as unsigned Testnet Preview.
 6. Deploy a public or restricted HTTPS staging surface before changing any deployment state.

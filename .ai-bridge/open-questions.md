@@ -13,7 +13,7 @@ These questions are recorded for the owning product threads. They are not reques
 
 ## Questions answerable locally next
 
-- Can the macOS unsigned package be rebuilt from source commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551` and pass extracted install, cold-start and cleanup verification?
-- Do current package scripts bind artifact hash, bytes, SBOM and provenance to the exact source commit without inheriting stale evidence?
+- Can the current `codex/final-developer` Windows workflow complete a real WPF/WebView2 x64 build, portable extraction, self-test, cold launch and cleanup against the current source commit?
+- Does the Windows package embed equivalent source/tree/runtime/SBOM provenance and emit exact bytes/hash without inheriting historical evidence?
 - Which installed-browser keyboard, screen-reader, zoom/dynamic-text and 390px visual checks can be automated locally?
 - Which Quant SDK and CLI components already exist and can be safely recovered instead of recreated?

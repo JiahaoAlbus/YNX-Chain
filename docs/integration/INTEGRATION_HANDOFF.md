@@ -67,10 +67,12 @@ Review the host broker implementation boundary, origin policy, response limits, 
 - `cd apps/developer && npm run desktop:sandbox-check` — 2 passed
 - `make no-placeholder-check` and `make secret-scan` — passed through the verified no-`rg` fallback
 - `make static-check` — passed
+- `cd apps/developer && bash scripts/package-local-macos.sh` — current-source package built from clean pushed commit `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`
+- `cd apps/developer && bash scripts/verify-local-macos-package.sh` — embedded provenance, extracted resource self-test, strict ad-hoc classification, cold launch, bundled server observation and child cleanup passed
 
 ## Truth boundary
 
-`implementedLocal=true` and `testedLocal=true` are supported for source commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551`. Central integration, staging/public deployment, hosted downloads, production signing, and store release remain false. Existing macOS and Windows package evidence was produced from commit `c6b4affc03b3255100516c34483096f445c46753`; current-source API Studio is not claimed installed in those artifacts.
+`implementedLocal=true` and `testedLocal=true` are supported for runtime commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551`. Current-source API Studio `installedLocal=true` is supported on macOS arm64 by package source commit `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`, ZIP SHA-256 `55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9` and extracted provenance/cold-start evidence. Windows current-source installation remains false; its existing evidence is tied to `c6b4affc03b3255100516c34483096f445c46753`. Central integration, staging/public deployment, hosted downloads, production signing and store release remain false.
 
 ## Next integration action
 

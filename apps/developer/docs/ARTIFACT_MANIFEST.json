@@ -2,16 +2,22 @@
   "schemaVersion": 1,
   "productId": "ynx-developer-v1",
   "version": "0.2.0",
+  "generatedAt": "2026-07-27T15:04:04Z",
   "artifacts": [
     {
       "name": "ynx-developer-testnet-preview-macos-unsigned.zip",
       "surface": "macOS arm64",
       "path": "apps/developer/.ynx-developer-local/ynx-developer-testnet-preview-macos-unsigned.zip",
-      "sha256": "60f5e420e7a64e1db937809946f7d4706fdf718f781f039289d4b3f95b7b8836",
-      "bytes": 38437737,
+      "sha256": "55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9",
+      "bytes": 38450127,
+      "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+      "sourceTree": "a0c61afe7ba9e209eab326dcc02fc6568de201d8",
+      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+      "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
+      "provenanceEmbedded": true,
       "signingClass": "adhoc-no-team-id",
       "hosted": false,
-      "evidence": "Extracted resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed on macOS."
+      "evidence": "Current-source package embedded exact source/tree/runtime/SBOM provenance; extracted resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed on macOS."
     },
     {
       "name": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
@@ -19,7 +25,9 @@
       "path": "apps/developer/.ynx-developer-windows/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
       "sha256": "2899026250ecbbb28fc853cba291565bf792902b301f24280858cf4eb9098991",
       "bytes": 106319108,
-      "signingClass": "unsigned",
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "currentSource": false,
+      "signingClass": "unsigned-no-authenticode",
       "hosted": false,
       "evidence": "Windows workflow run 29658166198 compiled and packaged the WPF/WebView2 App on windows-latest, extracted the portable ZIP, passed resource self-test, cold-launched the real App, observed bundled node.exe running server.mjs, closed the main window and verified child cleanup. The CI artifact expires after 14 days and is not a public immutable download."
     }

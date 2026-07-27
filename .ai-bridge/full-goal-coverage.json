@@ -9,8 +9,8 @@
     "owner": "11-developer"
   },
   "phase": "FREEZE",
-  "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-  "lastUpdated": "2026-07-27T14:34:57Z",
+  "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+  "lastUpdated": "2026-07-27T15:04:04Z",
   "allowedStatuses": [
     "notStarted",
     "inProgress",
@@ -54,10 +54,12 @@
         "Runtime API Studio slice committed as 3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
         "FREEZE records committed as 9ae9f7d29c87991fcbeafc27f6d3e636ab93a43a",
         "API Studio i18n/accessibility and fail-closed scan gates committed and pushed as 8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+        "API Studio evidence records committed and pushed as 3519c5c608e8f9a011e2d39eb9be858710eae499",
+        "macOS embedded-provenance package gates committed and pushed as 9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
         "origin/codex/final-developer created and upstream tracking established",
-        "Local SHA and upstream SHA matched at 8f352d0159eef0ab60fb6411e949cfcf3aafb551"
+        "Local SHA and upstream SHA matched at 9bcb984d475a39cc9fcd7e46fbb00adaee0421ca"
       ],
-      "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+      "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
       "tests": [
         "Developer client 22 passed",
         "Developer Web 17 passed",
@@ -65,14 +67,15 @@
         "Web build passed",
         "Live check passed",
         "Same-origin proxy check passed",
-        "No-placeholder and secret scans executed through the grep fallback and passed"
+        "No-placeholder and secret scans executed through the grep fallback and passed",
+        "Current-source macOS package embedded provenance and passed extracted cold-start verification"
       ],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "11-developer",
       "nextAction": "Verify Local SHA equals Remote SHA after each subsequent commit.",
-      "lastUpdated": "2026-07-27T14:34:57Z"
+      "lastUpdated": "2026-07-27T15:04:04Z"
     },
     {
       "id": "DEV-IDE-001",
@@ -307,24 +310,29 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": [
-        "macOS unsigned Testnet Preview package and extracted cold-start proof"
+        "Current-source macOS arm64 unsigned Testnet Preview built from commit 9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+        "Package embeds source tree a0c61afe7ba9e209eab326dcc02fc6568de201d8, runtime checkpoint 8f352d0159eef0ab60fb6411e949cfcf3aafb551 and SBOM SHA-256 801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
+        "ZIP SHA-256 55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9 and 38450127 bytes",
+        "Extracted package provenance, resources, signature class, GUI cold start, bundled server and child cleanup verified"
       ],
-      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
       "tests": [
+        "embedded source/tree/runtime/SBOM provenance verification",
         "resource self-test",
-        "strict ad-hoc classification",
+        "strict ad-hoc classification with no Team ID",
         "GUI cold start",
+        "bundled server process verification",
         "child cleanup"
       ],
-      "artifact": "macOS arm64 unsigned ZIP, historical 0.2.0 checkpoint",
+      "artifact": "macOS arm64 unsigned ZIP 55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9, 38450127 bytes, local only",
       "publicProof": null,
       "blockedBy": [
-        "current source rebuild for API Studio",
-        "Developer ID and notarization for production class"
+        "Developer ID and notarization for production class",
+        "immutable public artifact hosting"
       ],
       "owner": "11-developer",
-      "nextAction": "Rebuild and verify a current-source unsigned preview before claiming API Studio installed locally.",
-      "lastUpdated": "2026-07-27T06:26:30Z"
+      "nextAction": "Obtain production signing/notarization and immutable hosting only after Security/SRE release approval; keep the current package classified as local unsigned Testnet Preview.",
+      "lastUpdated": "2026-07-27T15:04:04Z"
     },
     {
       "id": "DEV-DESKTOP-WIN-001",

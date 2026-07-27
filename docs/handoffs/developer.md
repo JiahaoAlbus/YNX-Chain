@@ -13,9 +13,10 @@ This section supersedes stale branch, test-count and current-source statements b
 - Validation gates no longer report false success when `rg` is unavailable; the verified fallback distinguishes findings, clean results and scanner execution failure.
 - Current verification: Developer client 22 passed; Developer Web 17 passed; static claim/workflow check, standalone Web build, browser module syntax, live compile, same-origin proxy, desktop sandbox 2/2, Windows source boundary and repaired validation gates passed.
 - Contract-first records include `release/integration/developer-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/integration/DEPENDENCY_ACCEPTANCE.md` and `.ai-bridge/full-goal-coverage.json`.
-- Current-source API Studio is implemented-local and tested-local, but not installed in the existing desktop artifacts, not centrally integrated, not staged/public, not download-hosted, not production-signed and not store-released.
-- Historical macOS and Windows 0.2.0 artifacts remain tied to `c6b4affc03b3255100516c34483096f445c46753`; they must not be used as evidence that current-source API Studio is installed.
-- Current phase is `FREEZE`. The next autonomous slice is a current-source macOS package rebuild with extracted install, cold-start, cleanup, hash, bytes, SBOM, provenance and truthful unsigned signing evidence.
+- The current-source macOS arm64 unsigned Testnet Preview was built from `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`, embedded source tree/runtime/SBOM provenance, and passed extracted resource self-test, strict ad-hoc/no-Team-ID classification, GUI cold launch, bundled server observation and child cleanup. ZIP SHA-256 is `55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9`, 38,450,127 bytes.
+- Current-source API Studio is implemented-local, tested-local and installed-local on macOS arm64 only; it is not centrally integrated, staged/public, download-hosted, production-signed or store-released.
+- Windows 0.2.0 artifact evidence remains tied to `c6b4affc03b3255100516c34483096f445c46753`; it must not be used as current-source API Studio installation evidence.
+- Current phase is `FREEZE`. The next autonomous slice is a current-source Windows CI build with portable extraction, cold-start, cleanup, hash, bytes, provenance and truthful unsigned signing evidence.
 
 ## 2026-07-18 YNX AI Build and real Windows proof correction
 
