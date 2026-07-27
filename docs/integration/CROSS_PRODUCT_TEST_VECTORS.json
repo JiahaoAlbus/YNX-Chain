@@ -1,0 +1,176 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "11-developer",
+  "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+  "vectors": [
+    {
+      "id": "developer-api-001",
+      "name": "Oracle template preview",
+      "owners": [
+        "11-developer",
+        "19-oracle-market-data"
+      ],
+      "input": {
+        "template": "oracle",
+        "operationId": "getOraclePrice",
+        "path": {
+          "symbol": "YNXT-USD"
+        },
+        "credentialReferences": {
+          "providerReference": "credential-ref:oracle/testnet"
+        }
+      },
+      "expected": {
+        "method": "GET",
+        "pathEndsWith": "/v1/oracle/prices/YNXT-USD",
+        "approvalRequired": true,
+        "credentialValuesPresent": false
+      },
+      "status": "tested-local"
+    },
+    {
+      "id": "developer-api-002",
+      "name": "Inline credential rejection",
+      "owners": [
+        "11-developer",
+        "30-security-sre"
+      ],
+      "input": {
+        "template": "oracle",
+        "credentialReferences": {}
+      },
+      "expectedError": "credential_reference_required",
+      "status": "tested-local"
+    },
+    {
+      "id": "developer-api-003",
+      "name": "External OpenAPI reference rejection",
+      "owners": [
+        "11-developer",
+        "30-security-sre"
+      ],
+      "input": {
+        "externalReferenceClass": "https-json-schema"
+      },
+      "expectedError": "external_reference_rejected",
+      "status": "tested-local"
+    },
+    {
+      "id": "developer-api-004",
+      "name": "Unapproved sandbox request rejection",
+      "owners": [
+        "11-developer"
+      ],
+      "input": {
+        "approved": false
+      },
+      "expectedError": "api_sandbox_approval_required",
+      "status": "tested-local"
+    },
+    {
+      "id": "developer-api-005",
+      "name": "Unreviewed origin rejection",
+      "owners": [
+        "11-developer",
+        "30-security-sre"
+      ],
+      "input": {
+        "targetOrigin": "https://unreviewed.invalid"
+      },
+      "expectedError": "api_origin_not_allowed",
+      "status": "contract-ready-test-pending"
+    },
+    {
+      "id": "developer-api-006",
+      "name": "Host broker unavailable",
+      "owners": [
+        "11-developer",
+        "30-security-sre"
+      ],
+      "input": {
+        "securedRequest": true,
+        "hostBroker": false
+      },
+      "expectedError": "credential_broker_unavailable",
+      "status": "tested-local"
+    },
+    {
+      "id": "developer-api-007",
+      "name": "Host broker sandbox success",
+      "owners": [
+        "11-developer",
+        "30-security-sre",
+        "29-integration"
+      ],
+      "input": {
+        "securedRequest": true,
+        "hostBroker": "reviewed-fixture",
+        "responseClass": "sandbox-json"
+      },
+      "expected": {
+        "responseInspector": "ynx.api-studio.response-inspector.v1",
+        "credentialValuesPersisted": false
+      },
+      "status": "tested-local-fixture-not-central"
+    },
+    {
+      "id": "developer-api-008",
+      "name": "Provider rate limit",
+      "owners": [
+        "11-developer",
+        "26-data-fabric",
+        "30-security-sre"
+      ],
+      "input": {
+        "simulation": "rate-limit"
+      },
+      "expected": {
+        "status": 429,
+        "error": "provider_rate_limited",
+        "retryAfterSeconds": 60
+      },
+      "status": "tested-local"
+    },
+    {
+      "id": "developer-api-009",
+      "name": "Data Fabric audit event acceptance",
+      "owners": [
+        "11-developer",
+        "26-data-fabric",
+        "29-integration"
+      ],
+      "input": {
+        "events": [
+          "developer.api.spec.validated",
+          "developer.api.request.previewed",
+          "developer.api.sandbox.completed",
+          "developer.api.sandbox.failed"
+        ]
+      },
+      "expected": {
+        "schemaVersion": "integration-frozen",
+        "redacted": true,
+        "credentialValuesPresent": false
+      },
+      "status": "pending-owner-acceptance"
+    },
+    {
+      "id": "developer-api-010",
+      "name": "Current desktop artifact truth",
+      "owners": [
+        "11-developer",
+        "30-security-sre"
+      ],
+      "input": {
+        "currentSourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+        "artifactSourceCommit": "c6b4affc03b3255100516c34483096f445c46753"
+      },
+      "expected": {
+        "apiStudioInstalledInExistingDesktopArtifacts": false,
+        "productionSigned": false,
+        "downloadHosted": false
+      },
+      "status": "verified-truth-boundary"
+    }
+  ]
+}

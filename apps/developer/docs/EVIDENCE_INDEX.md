@@ -8,6 +8,10 @@
 - Optional ACP sidecar: `desktop/grok-build-sidecar.mjs`
 - Wallet-only compile/deploy/receipt/source-match clients:
   `packages/developer-client/src`
+- API Studio OpenAPI validation, request preview, host-broker boundary,
+  failure simulation and generation: `API_STUDIO.md`
+- API Studio core tests: `packages/developer-client/test/api-studio.test.js`
+- API Studio Web boundary tests: `apps/developer/test/api-studio-ui.test.js`
 
 ## Visual evidence
 

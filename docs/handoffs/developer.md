@@ -1,5 +1,19 @@
 # YNX Developer handoff
 
+## 2026-07-27 API Studio runtime and FREEZE checkpoint
+
+This section supersedes stale branch, test-count and current-source statements below while preserving historical desktop artifact evidence at its original source commit.
+
+- Current runtime source commit: `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d` on `codex/final-developer`.
+- Added a real fail-closed API Studio to the existing Web IDE, not a static dashboard. It imports and validates OpenAPI 3.0/3.1 JSON, rejects external references, validates operations/parameters/security, creates reviewed request previews, requires explicit approval, enforces HTTPS-or-localhost and an origin allowlist, bounds response inspection, simulates 429/timeout/provider/network failures, generates TypeScript clients and emits adapter manifests.
+- Browser state stores only opaque `credential-ref:` identifiers. Secured requests require an injected host credential broker; browser JavaScript never resolves credential values.
+- Reviewed non-affiliation templates exist for WalletConnect, Bridge, Card, Search, Storage, Mail, Shipping and Oracle. A template does not claim provider credentials, connectivity, settlement or production activation.
+- Current verification: Developer client 22 passed; Developer Web 16 passed; static claim/workflow check passed; standalone Web build passed; browser module syntax passed.
+- Contract-first records now include `release/integration/developer-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/integration/DEPENDENCY_ACCEPTANCE.md` and `.ai-bridge/full-goal-coverage.json`.
+- API Studio is implemented-local and tested-local, but not installed in the existing desktop artifacts, not centrally integrated, not staged/public, not download-hosted, not production-signed and not store-released.
+- Historical macOS and Windows 0.2.0 artifacts remain tied to `c6b4affc03b3255100516c34483096f445c46753`; they must not be used as evidence that API Studio is installed.
+- Current phase is `FREEZE`. The next autonomous slice is API Studio 12-locale, Arabic RTL, keyboard/focus and 390px interaction evidence, followed by current-source desktop rebuilds.
+
 ## 2026-07-18 YNX AI Build and real Windows proof correction
 
 This section supersedes older Windows-source-only, package hash, version, UI and

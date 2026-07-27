@@ -1,5 +1,16 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-07-27 current-source checkpoint
+
+- Added a fail-closed API Studio with OpenAPI 3.0/3.1 JSON validation, reviewed request previews, explicit approval, origin controls, bounded response inspection, deterministic provider-failure simulations, TypeScript client generation and adapter manifests.
+- Added reviewed non-affiliation templates for WalletConnect, Bridge, Card, Search, Storage, Mail, Shipping and Oracle.
+- Added a credential-reference-only host broker boundary. Browser JavaScript never resolves credential values.
+- Added contract-first handoff, dependency acceptance, ten cross-product vectors and a machine-readable full-goal coverage matrix.
+- Verified 22 Developer client tests, 16 Developer Web tests, static claim/workflow checks, standalone Web build and browser module syntax.
+- API Studio is not claimed installed in the historical macOS/Windows artifacts. Central integration, staging/public deployment, hosted downloads and production signing remain false.
+
+## 2026-07-18 package checkpoint
+
 - Added YNX AI Build plan/review/apply/revert/audit state machine, permission
   matrix, tool timeline, persistence and checkpoint recovery.
 - Added optional exact-pinned Grok Build ACP sidecar verification and

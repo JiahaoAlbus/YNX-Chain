@@ -1,10 +1,17 @@
 {
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
-  "branch": "codex/ecosystem-developer",
-  "commit": "c6b4affc03b3255100516c34483096f445c46753",
+  "branch": "codex/final-developer",
+  "commit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
   "version": "0.2.0",
-  "surfaces": ["web-ide", "macos-arm64-testnet-preview", "windows-x64-testnet-preview", "ynx-ai-build"],
+  "sourceCheckpoint": "api-studio-2026-07-27",
+  "surfaces": [
+    "web-ide",
+    "api-studio",
+    "macos-arm64-testnet-preview",
+    "windows-x64-testnet-preview",
+    "ynx-ai-build"
+  ],
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": true,
@@ -17,6 +24,36 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
+  "featureStatus": {
+    "apiStudio": {
+      "implementedLocal": true,
+      "testedLocal": true,
+      "installedLocal": false,
+      "integratedCentral": false,
+      "deployedStaging": false,
+      "deployedPublic": false,
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": {
+        "developerClient": "22 passed",
+        "developerWeb": "16 passed",
+        "staticCheck": "passed",
+        "webBuild": "passed"
+      },
+      "capabilities": [
+        "OpenAPI 3.0/3.1 JSON import and validation",
+        "external reference rejection",
+        "operation and parameter validation",
+        "credential-reference-only request preview",
+        "explicit approval and origin allowlist",
+        "host credential broker boundary",
+        "bounded response inspector",
+        "429, timeout, provider-unavailable and network-failure simulation",
+        "TypeScript client generation",
+        "adapter manifest generation",
+        "WalletConnect, Bridge, Card, Search, Storage, Mail, Shipping and Oracle templates"
+      ]
+    }
+  },
   "sha256": {
     "macosArm64UnsignedZip": "60f5e420e7a64e1db937809946f7d4706fdf718f781f039289d4b3f95b7b8836",
     "windowsX64UnsignedZip": "2899026250ecbbb28fc853cba291565bf792902b301f24280858cf4eb9098991"
@@ -25,6 +62,7 @@
     "macosArm64UnsignedZip": 38437737,
     "windowsX64UnsignedZip": 106319108
   },
+  "artifactSourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
   "signingClass": {
     "macos": "adhoc-no-team-id",
     "windows": "unsigned-no-authenticode"
@@ -38,11 +76,13 @@
     {
       "surface": "macos-arm64-testnet-preview",
       "class": "local-extracted-zip",
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
       "result": "resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed"
     },
     {
       "surface": "windows-x64-testnet-preview",
       "class": "windows-ci-portable-extract",
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
       "result": "compile, package, resource self-test, WPF cold launch, bundled server observation and child cleanup passed",
       "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29658166198"
     }
@@ -51,7 +91,8 @@
     "status": "not-integrated",
     "walletRegistry": "exact ynx-developer-v1 binding is delivered in the handoff but is not merged/deployed centrally",
     "aiGateway": "Developer uses bounded POST-body transport; canonical main remains outside this branch",
-    "walletDeploymentProvider": "not present; UI fails closed and never uses a local key or unsigned deploy bypass"
+    "walletDeploymentProvider": "not present; UI fails closed and never uses a local key or unsigned deploy bypass",
+    "apiCredentialBroker": "host contract is implemented and tested, but no central broker or provider credential is connected"
   },
   "knownLimitations": [
     "No public Web staging or public deployment URL exists.",
@@ -59,8 +100,10 @@
     "No Developer ID, notarization, Authenticode, signed installer, signed updater or store release exists.",
     "No central Wallet registry/provider integration or real Wallet-signed deployment was performed.",
     "No provider-backed AI generation was performed because no operator provider credential/configuration was supplied.",
+    "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
+    "The existing macOS and Windows 0.2.0 package evidence predates the API Studio source checkpoint; API Studio is not claimed installed in those artifacts.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The pinned chain compiler response truthfully reports deterministic analyzer output unless a matching production solc artifact exists; no arbitrary EVM or remote public verification claim is made."
   ],
-  "generatedAt": "2026-07-18T19:43:29Z"
+  "generatedAt": "2026-07-27T06:26:30Z"
 }

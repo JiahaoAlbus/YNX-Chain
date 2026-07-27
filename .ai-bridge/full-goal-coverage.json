@@ -1,0 +1,774 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": {
+    "number": 11,
+    "name": "YNX Developer / AI Build",
+    "slug": "developer",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/11-developer",
+    "branch": "codex/final-developer",
+    "owner": "11-developer"
+  },
+  "phase": "FREEZE",
+  "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+  "lastUpdated": "2026-07-27T06:26:30Z",
+  "allowedStatuses": [
+    "notStarted",
+    "inProgress",
+    "implementedLocal",
+    "testedLocal",
+    "integratedCentral",
+    "testnetVerified",
+    "publicVerified",
+    "externalBlocked",
+    "notApplicable",
+    "verifiedComplete"
+  ],
+  "items": [
+    {
+      "id": "DEV-RECOVER-001",
+      "category": "recovery",
+      "requirement": "Recover the latest Developer worktree state without discarding historical or dirty成果.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "Exact Worktree and branch matched through CodexPro",
+        "Initial workspace was clean",
+        "Historical Developer handoff and release records were reviewed"
+      ],
+      "sourceCommit": "23f9adc",
+      "tests": [],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [],
+      "owner": "11-developer",
+      "nextAction": "Continue checking recovery sources before importing any older branch or artifact.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-PROTECT-001",
+      "category": "git-protection",
+      "requirement": "Protect each verified engineering slice with a commit and remote recovery point.",
+      "applicability": "required",
+      "status": "implementedLocal",
+      "evidence": [
+        "Runtime API Studio slice committed as 3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [
+        "Developer client 22 passed",
+        "Developer Web 16 passed",
+        "Static check passed",
+        "Web build passed"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "target remote branch not yet verified"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Commit release records, push codex/final-developer, and verify local SHA equals remote SHA.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-IDE-001",
+      "category": "web-ide",
+      "requirement": "Deliver workspace, file tree, editor, tabs, search/replace boundary, diagnostics, problems, tasks, tests, source review, build, RPC console, recovery and keyboard-first operation.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "apps/developer",
+        "packages/developer-client",
+        "docs/handoffs/developer.md"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "Existing Developer client and Web suites",
+        "Current Developer Web suite 16 passed"
+      ],
+      "artifact": "standalone Web build generated locally",
+      "publicProof": null,
+      "blockedBy": [],
+      "owner": "11-developer",
+      "nextAction": "Expand language-server, debug and remote-workspace depth only after integration gates.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-API-001",
+      "category": "api-studio",
+      "requirement": "Import and validate OpenAPI, generate typed clients, execute reviewed sandbox requests, inspect responses, simulate errors and provide official connector templates.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "packages/developer-client/src/api-studio.js",
+        "apps/developer/docs/API_STUDIO.md",
+        "release/integration/developer-contract.json"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [
+        "packages/developer-client/test/api-studio.test.js: 4 passed",
+        "apps/developer/test/api-studio-ui.test.js: 2 passed",
+        "Developer client total: 22 passed",
+        "Developer Web total: 16 passed"
+      ],
+      "artifact": "current Web source checkpoint only",
+      "publicProof": null,
+      "blockedBy": [
+        "30-security-sre host broker acceptance",
+        "29-integration contract freeze",
+        "provider owner sandbox adapter"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Freeze the host broker and execute one official provider sandbox vector.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-API-002",
+      "category": "api-studio-security",
+      "requirement": "Keep credential values outside browser JavaScript and fail closed on external references, inline credentials, unapproved targets and oversized responses.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "credential-ref-only state",
+        "globalThis.ynxCredentialBroker boundary",
+        "negative tests and cross-product vectors"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [
+        "external reference rejection",
+        "credential reference requirement",
+        "approval requirement",
+        "host broker fixture",
+        "failure simulations"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "30-security-sre acceptance"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Add reviewed broker audit/redaction fixtures after Security owner acceptance.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-WALLET-001",
+      "category": "wallet-auth",
+      "requirement": "Use canonical product-scoped Wallet/Auth and bind product, bundle, callback, device, account, ordered scopes, nonce and expiry.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "DeveloperWalletSession implementation",
+        "exact binding in developer-contract.json"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "Wallet POST challenge/completion",
+        "replay and tamper rejection",
+        "memory-only session"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "02-wallet-auth central registry acceptance"
+      ],
+      "owner": "02-wallet-auth",
+      "nextAction": "Run accepted central Wallet registry and revoke vectors.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-DEPLOY-001",
+      "category": "wallet-only-deployment",
+      "requirement": "Build artifact review, simulation/test evidence, Wallet review, signed intent, Wallet signing/submission, receipt and Explorer verification without Developer private-key custody.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "WalletDeployment state machine",
+        "bounded compiler and receipt/source-match clients"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "confirmation/provider/receipt required",
+        "local evidence never promoted to remote proof"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "02-wallet-auth deployment provider",
+        "29-integration accepted signed transaction path",
+        "public Explorer verification"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Execute one real Wallet-signed Testnet deployment after central provider acceptance.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-AI-001",
+      "category": "ai-build",
+      "requirement": "Implement Intent→Plan→Context Review→Explore→Edit→Diff→Test→Build→Fix→Package→Deployment Review→Checkpoint→Apply/Revert→Audit.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "AIBuildRun and persistence",
+        "Web AI Build workflow"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "plan/context/write/diff/checkpoint/resume/audit",
+        "one-time permission reuse rejection"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "14-ai canonical Gateway acceptance for provider-backed execution"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Run one provider-backed reviewed build after canonical Gateway configuration exists.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-AI-002",
+      "category": "ai-permissions",
+      "requirement": "Require independent read, write, execute, network, package, credential-reference, Git and deploy permissions with audit and bounded scope.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "AI_BUILD_PERMISSIONS",
+        "AI Build permission tests"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "permission mandatory",
+        "one-time grants cannot be reused",
+        "unapproved context rejected"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [],
+      "owner": "11-developer",
+      "nextAction": "Add Data Fabric canonical audit events after schema acceptance.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-GROK-001",
+      "category": "grok-build",
+      "requirement": "Pin and isolate official Grok Build source, license, checksum, build requirements and ACP/stdio adapter without false affiliation or runtime claims.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "GROK_BUILD_SOURCE_MANIFEST.json",
+        "GROK_BUILD_INTEGRATION.md",
+        "desktop/grok-build-sidecar.mjs"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "pinned stdio lifecycle",
+        "shell-free execution",
+        "permission broker default denial"
+      ],
+      "artifact": "upstream source and binary not bundled",
+      "publicProof": null,
+      "blockedBy": [
+        "Rust/Cargo/DotSlash build environment if upstream binary build is pursued"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Build the pinned upstream source in a reproducible environment or retain adapter-only truth.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-QUANT-001",
+      "category": "quant-tooling",
+      "requirement": "Provide Python strategy SDK, TypeScript monitoring SDK, Paper Broker, Exchange/DEX adapters, dataset import, backtest CLI, package builder, mandate/risk schema and simulator tooling without implementing a second Quant Engine.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "General JS/Python SDKs and chain tooling exist",
+        "No complete product-owned Quant developer suite was verified in this checkpoint"
+      ],
+      "sourceCommit": null,
+      "tests": [],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "08-quant-lab canonical SDK and schemas",
+        "07-exchange and 27-dex adapter contracts"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Inventory current Quant-related files and implement the first accepted SDK/CLI slice against 08 Quant contract.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-DESKTOP-MAC-001",
+      "category": "macos",
+      "requirement": "Deliver a real macOS desktop package with sandboxed commands, install/extract, cold start, child cleanup, signing class and artifact hash truth.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "macOS unsigned Testnet Preview package and extracted cold-start proof"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "resource self-test",
+        "strict ad-hoc classification",
+        "GUI cold start",
+        "child cleanup"
+      ],
+      "artifact": "macOS arm64 unsigned ZIP, historical 0.2.0 checkpoint",
+      "publicProof": null,
+      "blockedBy": [
+        "current source rebuild for API Studio",
+        "Developer ID and notarization for production class"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Rebuild and verify a current-source unsigned preview before claiming API Studio installed locally.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-DESKTOP-WIN-001",
+      "category": "windows",
+      "requirement": "Deliver a real Windows WPF/WebView2 x64 build, portable install, cold start, child cleanup, signing class and artifact hash truth.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "Windows CI run 29658166198",
+        "portable package evidence"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "Windows compile",
+        "resource self-test",
+        "cold launch",
+        "child cleanup"
+      ],
+      "artifact": "Windows x64 unsigned ZIP, expiring CI artifact",
+      "publicProof": null,
+      "blockedBy": [
+        "current source Windows rebuild",
+        "Authenticode for production class",
+        "immutable hosting"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Trigger current-source Windows CI after target branch push and verify package evidence.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-WEB-001",
+      "category": "web-pwa",
+      "requirement": "Deliver standalone Web IDE/PWA with truthful Empty, Loading, Success, Failure, Offline, Permission, Expired and Recovery states.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "Web Product source and build",
+        "UI audit and state evidence for prior checkpoint"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [
+        "Developer Web 16 passed",
+        "standalone Web build passed"
+      ],
+      "artifact": "local Web build only",
+      "publicProof": null,
+      "blockedBy": [
+        "current API Studio browser interaction evidence",
+        "public/staging hosting"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Capture current API Studio interaction, RTL, keyboard and 390px evidence.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-I18N-001",
+      "category": "internationalization",
+      "requirement": "Support 12 languages, Arabic RTL, runtime errors, dynamic states, dates and numbers across Developer surfaces.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "Existing critical IDE and AI vocabulary has 12-locale tests",
+        "New API Studio labels are currently English-only"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [
+        "Existing locale completeness and Arabic RTL tests passed"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [],
+      "owner": "11-developer",
+      "nextAction": "Add API Studio labels, errors and dynamic states to all 12 locales and rerun RTL/390px tests.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-A11Y-001",
+      "category": "accessibility",
+      "requirement": "Provide keyboard access, screen-reader labels, focus, contrast, large text, reduced motion, Light/Dark and 390px layout.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "Existing IDE landmarks and responsive CSS",
+        "API Studio controls have labels and mobile single-column CSS"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [
+        "Static UI boundary tests passed"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [],
+      "owner": "11-developer",
+      "nextAction": "Run interactive keyboard, focus, screen-reader and viewport audit for API Studio.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-STORAGE-001",
+      "category": "data-lifecycle",
+      "requirement": "Version project state, migrations, rollback migration, backup/restore, export/delete, retention and service-exit paths.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "IndexedDB versioned project persistence",
+        "project export/import",
+        "checkpoint/revert"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "persistence/restart",
+        "export/import",
+        "checkpoint/revert"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [],
+      "owner": "11-developer",
+      "nextAction": "Add explicit migration/rollback fixtures and a full backup/restore drill for project and audit data.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-OBS-001",
+      "category": "observability",
+      "requirement": "Implement structured logs, metrics, traces, request/error/audit IDs, health/version, alerts, incident and Monitor integration.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "Local command and AI audit structures exist",
+        "No accepted canonical API Studio Data Fabric/Monitor event integration"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "26-data-fabric event schema",
+        "13-monitor integration"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Implement accepted redacted API Studio audit events and health/version evidence.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-SECURITY-001",
+      "category": "security",
+      "requirement": "Maintain threat model, security boundaries, credential redaction, command/network sandbox and no private-key custody.",
+      "applicability": "required",
+      "status": "testedLocal",
+      "evidence": [
+        "AI_BUILD_SECURITY.md",
+        "API_STUDIO.md",
+        "desktop sandbox tests",
+        "Wallet-only boundary tests"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [
+        "sandbox network/write rejection",
+        "credential-reference-only API tests",
+        "Wallet private-key boundary"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "30-security-sre external review"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Run repository security gates and request versioned host-broker review.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-SUPPLY-001",
+      "category": "supply-chain",
+      "requirement": "Provide SBOM, notices, dependency review, secret scan, build allowlist, provenance and reproducible artifact evidence.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "sbom.cdx.json",
+        "THIRD_PARTY_NOTICES.md",
+        "Grok source manifest",
+        "historical artifact manifests"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "historical secret scan and preflight recorded"
+      ],
+      "artifact": "historical unsigned desktop artifacts",
+      "publicProof": null,
+      "blockedBy": [],
+      "owner": "11-developer",
+      "nextAction": "Regenerate SBOM/provenance and run secret/dependency checks for the current API Studio checkpoint.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-SLO-001",
+      "category": "performance-capacity",
+      "requirement": "Create SLO capacity evidence with p50/p95/p99, throughput, concurrency, queue, storage growth, provider latency, cold start, error rate and RTO/RPO.",
+      "applicability": "required",
+      "status": "notStarted",
+      "evidence": [],
+      "sourceCommit": null,
+      "tests": [],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [],
+      "owner": "11-developer",
+      "nextAction": "Create bounded benchmark harness and SLO_CAPACITY_PLAN.md using measured results.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-ECON-001",
+      "category": "unit-economics",
+      "requirement": "Create transparent unit economics for active users, AI/provider costs, build/storage costs, free quota, service revenue and sustainability.",
+      "applicability": "required",
+      "status": "notStarted",
+      "evidence": [],
+      "sourceCommit": null,
+      "tests": [],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "14-ai provider pricing",
+        "16-resource-market metering",
+        "26-data-fabric billing schema"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Create UNIT_ECONOMICS.md with explicit unknowns and no invented prices.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-BUILDER-001",
+      "category": "builder-economy",
+      "requirement": "Support transparent plugin/template/API revenue share, bounties, grants, referrals and open-source sponsorship from real usage or budget.",
+      "applicability": "required",
+      "status": "notStarted",
+      "evidence": [],
+      "sourceCommit": null,
+      "tests": [],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "26-data-fabric billing ledger",
+        "17-tokenomics economic policy",
+        "31-governance grants policy"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Define a contract-first builder revenue manifest without creating payment or token authority in Developer.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-INTEGRATION-001",
+      "category": "integration-contract",
+      "requirement": "Maintain Developer Integration Contract, Handoff, Cross-product Test Vectors and Dependency Acceptance.",
+      "applicability": "required",
+      "status": "implementedLocal",
+      "evidence": [
+        "release/integration/developer-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [
+        "JSON validation pending final record check"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "29-integration freeze",
+        "owner acceptance"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Validate records, commit and submit the exact contract to owners.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-TESTNET-001",
+      "category": "testnet",
+      "requirement": "Complete a real DApp/contract/API build, bug fix, Wallet deployment and Explorer verification on YNX Testnet.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "Real local chain compile/read-only RPC evidence exists",
+        "No real Wallet-signed deployment or public Explorer proof in this branch"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "live local compiler/RPC check"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "02-wallet-auth provider",
+        "public Testnet endpoint",
+        "12-explorer public verification"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Run a Wallet-signed SampleEVMWriteCounter deployment after central acceptance.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-PUBLIC-001",
+      "category": "public-deployment",
+      "requirement": "Provide public or staging Web IDE, HTTPS health/version, public evidence and canonical /developer micro-site.",
+      "applicability": "required",
+      "status": "notStarted",
+      "evidence": [
+        "product-release.json correctly records no public URLs"
+      ],
+      "sourceCommit": null,
+      "tests": [],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "hosting/DNS authority",
+        "28-website integration",
+        "30-security-sre release approval"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Prepare deployable static/server package and operator input request only after all autonomous staging work is complete.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-ARTIFACT-001",
+      "category": "artifacts",
+      "requirement": "Host immutable current-source Web/macOS/Windows artifacts with SHA-256, bytes, signing class, minimum OS, install and cold-start evidence.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "Historical macOS and Windows unsigned artifacts have hash/bytes/install evidence",
+        "Current API Studio source is not included in those artifacts"
+      ],
+      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "tests": [
+        "historical install/cold-start checks"
+      ],
+      "artifact": "historical unsigned artifacts only",
+      "publicProof": null,
+      "blockedBy": [
+        "current-source package rebuild",
+        "immutable artifact hosting",
+        "production signing assets for production class"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Rebuild current macOS package and trigger Windows package workflow after push.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-SEO-001",
+      "category": "public-metadata",
+      "requirement": "Publish current product metadata, canonical route, title, description, H1, FAQ, icon/screenshots, support/privacy/security/status URLs and structured data suggestions.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "product-release.json updated",
+        "No verified current public-product-metadata package in this checkpoint"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "current screenshots",
+        "support/privacy/security/status URLs",
+        "28-website acceptance"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Create current public-product-metadata.json after UI evidence and route facts are verified.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-EVIDENCE-001",
+      "category": "evidence",
+      "requirement": "Maintain feature completion evidence, evidence index, UI audit, migration compatibility, observability, release notes and operations records tied to exact commits.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "apps/developer/docs/EVIDENCE_INDEX.md",
+        "apps/developer/docs/API_STUDIO.md",
+        "existing UI/operations/release documents"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "current API Studio visual evidence",
+        "current artifact evidence",
+        "public evidence"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Update release notes/handoff and create current UI/accessibility evidence.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-KPI-001",
+      "category": "product-kpi",
+      "requirement": "Define activation, retention, task completion, crash-free session, support load, abuse rate, provider cost, margin candidate, Testnet usage, conversion and kill/scale decisions.",
+      "applicability": "required",
+      "status": "notStarted",
+      "evidence": [],
+      "sourceCommit": null,
+      "tests": [],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "public/staging telemetry and Data Fabric schema"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Define privacy-preserving KPI schema without fake user or usage data.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    },
+    {
+      "id": "DEV-RELEASE-001",
+      "category": "final-release",
+      "requirement": "Run final tests/build/security/migration/restore/public checks, freeze handoff, push, verify remote SHA and clean workspace.",
+      "applicability": "required",
+      "status": "inProgress",
+      "evidence": [
+        "Current targeted tests and Web build passed",
+        "Release record truth updated locally"
+      ],
+      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "tests": [
+        "targeted tests passed"
+      ],
+      "artifact": null,
+      "publicProof": null,
+      "blockedBy": [
+        "full preflight",
+        "remote push verification",
+        "central integration",
+        "Testnet/public/artifact gates"
+      ],
+      "owner": "11-developer",
+      "nextAction": "Finish the current protected checkpoint; long-term goal remains active.",
+      "lastUpdated": "2026-07-27T06:26:30Z"
+    }
+  ],
+  "summary": {
+    "verifiedComplete": 0,
+    "publicVerified": 0,
+    "testnetVerified": 0,
+    "integratedCentral": 0,
+    "testedLocal": 13,
+    "implementedLocal": 2,
+    "inProgress": 11,
+    "notStarted": 5,
+    "externalBlocked": 0,
+    "notApplicable": 0,
+    "goalStatus": "active"
+  }
+}

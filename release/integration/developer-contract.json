@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "ynx-developer-integration-v1",
+  "product": {
+    "number": 11,
+    "id": "ynx-developer-v1",
+    "name": "YNX Developer / YNX AI Build",
+    "slug": "developer",
+    "owner": "11-developer"
+  },
+  "source": {
+    "branch": "codex/final-developer",
+    "commit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+    "generatedAt": "2026-07-27T06:26:30Z"
+  },
+  "walletBinding": {
+    "productClientId": "ynx-developer-v1",
+    "bundleId": "com.ynxweb4.developer.testnetpreview",
+    "callback": "ynxdeveloper://wallet-auth/callback",
+    "chain": "ynx_6423-1",
+    "evmChainId": 6423,
+    "scopes": [
+      "account:read",
+      "developer:deploy"
+    ],
+    "status": "delivered-not-accepted-centrally",
+    "owner": "02-wallet-auth"
+  },
+  "apiStudio": {
+    "contractVersion": "1.0.0",
+    "module": "packages/developer-client/src/api-studio.js",
+    "supportedOpenAPI": [
+      "3.0.x JSON",
+      "3.1.x JSON"
+    ],
+    "maxSpecBytes": 524288,
+    "maxResponseBytes": 262144,
+    "credentialReferencePrefix": "credential-ref:",
+    "browserCredentialResolution": false,
+    "requestFlow": [
+      "import",
+      "validate",
+      "select-operation",
+      "preview",
+      "approve",
+      "host-broker-send",
+      "inspect"
+    ],
+    "hostBroker": {
+      "injectionPoint": "globalThis.ynxCredentialBroker",
+      "method": "send",
+      "input": {
+        "request": "ynx.api-studio.request-preview.v1",
+        "allowedOrigin": "reviewed origin string",
+        "timeoutMs": "positive integer"
+      },
+      "output": "Fetch-compatible Response",
+      "mustNotReturnCredentialValues": true,
+      "status": "implemented-local-not-accepted"
+    },
+    "templates": [
+      {
+        "id": "walletconnect",
+        "owner": "02-wallet-auth"
+      },
+      {
+        "id": "bridge",
+        "owner": "21-bridge"
+      },
+      {
+        "id": "card",
+        "owner": "06-card"
+      },
+      {
+        "id": "search",
+        "owner": "23-search"
+      },
+      {
+        "id": "storage",
+        "owner": "20-cloud"
+      },
+      {
+        "id": "mail",
+        "owner": "25-mail"
+      },
+      {
+        "id": "shipping",
+        "owner": "09-shop"
+      },
+      {
+        "id": "oracle",
+        "owner": "19-oracle-market-data"
+      }
+    ],
+    "failClosedErrors": [
+      "external_reference_rejected",
+      "openapi_version_unsupported",
+      "openapi_parameter_required",
+      "openapi_header_not_declared",
+      "inline_credential_rejected",
+      "credential_reference_required",
+      "api_sandbox_approval_required",
+      "api_origin_not_allowed",
+      "credential_broker_unavailable",
+      "api_sandbox_timeout",
+      "api_sandbox_network_failed",
+      "api_response_too_large"
+    ],
+    "negativeScenarios": [
+      "provider_rate_limited",
+      "provider_timeout",
+      "provider_unavailable",
+      "provider_network_failed"
+    ]
+  },
+  "proposedEvents": [
+    {
+      "name": "developer.api.spec.validated",
+      "authority": "11-developer",
+      "canonicalOwner": "26-data-fabric",
+      "status": "candidate-not-frozen"
+    },
+    {
+      "name": "developer.api.request.previewed",
+      "authority": "11-developer",
+      "canonicalOwner": "26-data-fabric",
+      "status": "candidate-not-frozen"
+    },
+    {
+      "name": "developer.api.sandbox.completed",
+      "authority": "11-developer",
+      "canonicalOwner": "26-data-fabric",
+      "status": "candidate-not-frozen"
+    },
+    {
+      "name": "developer.api.sandbox.failed",
+      "authority": "11-developer",
+      "canonicalOwner": "26-data-fabric",
+      "status": "candidate-not-frozen"
+    }
+  ],
+  "dependencies": [
+    {
+      "owner": "02-wallet-auth",
+      "requirement": "accept exact product registration and Wallet-only deployment provider",
+      "status": "pending"
+    },
+    {
+      "owner": "14-ai",
+      "requirement": "accept Developer POST-body AI workflow and provider status semantics",
+      "status": "pending"
+    },
+    {
+      "owner": "26-data-fabric",
+      "requirement": "freeze audit event schema and retention boundary",
+      "status": "pending"
+    },
+    {
+      "owner": "29-integration",
+      "requirement": "freeze this contract and cross-product test vectors",
+      "status": "pending"
+    },
+    {
+      "owner": "30-security-sre",
+      "requirement": "review host credential broker, artifact and public release boundaries",
+      "status": "pending"
+    }
+  ],
+  "tests": {
+    "developerClient": {
+      "command": "cd packages/developer-client && npm test",
+      "result": "22 passed"
+    },
+    "developerWeb": {
+      "command": "cd apps/developer && npm test",
+      "result": "16 passed"
+    },
+    "staticCheck": {
+      "command": "cd apps/developer && npm run check",
+      "result": "passed"
+    },
+    "webBuild": {
+      "command": "cd apps/developer && npm run build",
+      "result": "passed"
+    }
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
