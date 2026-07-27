@@ -42,8 +42,9 @@ do
 done
 
 for required in \
-  'sequence=primary,singapore,silicon-valley,seoul' \
+  'deployment_sequence="primary,singapore,silicon-valley,seoul"' \
   'YNX_READ_AVAILABILITY_REPLICATION_INTERVAL:-2s' \
+  'YNX_READ_AVAILABILITY_START_ROLE:-primary' \
   'SILICON_VALLEY_PRIVATE_HOST:-10.77.42.3' \
   'SEOUL_PRIVATE_HOST:-10.77.42.4' \
   'ProxyCommand=ssh' \
@@ -54,4 +55,6 @@ do
 done
 
 DEPLOY_DRY_RUN=1 bash scripts/deploy/deploy-read-availability.sh
+YNX_READ_AVAILABILITY_START_ROLE=silicon-valley DEPLOY_DRY_RUN=1 bash scripts/deploy/deploy-read-availability.sh |
+  grep -Fq 'sequence=silicon-valley,seoul'
 echo "read-availability-check passed: chain reads are lock-independent, indexer catch-up is batched, and four-node scoped rollback deployment is ready"
