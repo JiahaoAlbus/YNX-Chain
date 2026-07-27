@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "product": "YNX Finance",
   "contractVersion": "finance-read-v1",
-  "sourceCommit": null,
+  "sourceCommit": "b7147cee87275a3d7b0b452aae29bfbd93667dff",
   "vectors": [
     {
       "id": "FIN-WALLET-PRODUCT-TAMPER",

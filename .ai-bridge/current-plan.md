@@ -2,7 +2,7 @@
 
 ## Current stage
 
-PROTECT. The source-truth and activity-cursor runtime slice is implemented and locally verified. It must be committed, pushed and matched to the remote SHA before the next runtime slice.
+FREEZE. The source-truth and activity-cursor runtime slice is protected at `b7147cee87275a3d7b0b452aae29bfbd93667dff`, and the remote branch matches. The local Finance read contract is now versioned; central dependency acceptance remains pending direct owner contracts and Testnet evidence.
 
 ## Protected scope
 

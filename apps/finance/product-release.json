@@ -96,7 +96,7 @@
     "mobileCheck": "passed: TypeScript, 6/6 tests, Android/iOS Hermes export",
     "dependencyAudit": "blocked: 1 high and 10 moderate advisories",
     "fullGoPreflight": "failed outside Finance ownership: consensus key-permission tests, missing IDE contract artifact, Faucet and Trust signer-permission tests; internal/finance passed",
-    "sourceCommit": null
+    "sourceCommit": "b7147cee87275a3d7b0b452aae29bfbd93667dff"
   },
   "knownLimitations": [
     "Central Finance registry, persistent Gateway deployment and installed Wallet approval are not complete.",

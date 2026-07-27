@@ -5,7 +5,7 @@
   "productSlug": "finance",
   "owner": "24-finance",
   "sourceBranch": "codex/final-finance",
-  "sourceCommit": null,
+  "sourceCommit": "b7147cee87275a3d7b0b452aae29bfbd93667dff",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,

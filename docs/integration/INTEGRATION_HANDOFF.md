@@ -4,6 +4,7 @@
 
 - Product owner: `24-finance`
 - Branch: `codex/final-finance`
+- Protected implementation commit: `b7147cee87275a3d7b0b452aae29bfbd93667dff`
 - Contract: `release/integration/finance-contract.json`
 - Product identity: `ynx-finance-v1` / `com.ynxweb4.finance`
 - Network: `ynx_6423-1`; native Testnet asset: `YNXT`
