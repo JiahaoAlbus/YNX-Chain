@@ -469,7 +469,12 @@ func TestOracleMonitoringPackageAndDeploymentDryRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, required := range []string{"prometheus-check.yml", `sed "s#/etc/ynx/prometheus/oracle-alerts.yml#$work/oracle-alerts.yml#"`} {
+	for _, required := range []string{
+		"prometheus-check.yml",
+		`sudo cp /etc/ynx/prometheus/ynx-alerts.yml "$work/ynx-alerts.yml"`,
+		`s#/etc/ynx/prometheus/ynx-alerts.yml#$work/ynx-alerts.yml#`,
+		`s#/etc/ynx/prometheus/oracle-alerts.yml#$work/oracle-alerts.yml#`,
+	} {
 		if !strings.Contains(string(deploymentScript), required) {
 			t.Fatalf("Oracle monitoring candidate config validation missing %q", required)
 		}
