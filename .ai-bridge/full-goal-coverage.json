@@ -7,8 +7,8 @@
   "branch": "codex/final-tokenomics",
   "phase": "INTEGRATE",
   "goalState": "active",
-  "sourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
-  "lastUpdated": "2026-07-27T06:33:12Z",
+  "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+  "lastUpdated": "2026-07-27T14:14:52Z",
   "items": [
     {
       "id": "ECON-BOUNDARY-001",
@@ -367,32 +367,32 @@
       "category": "artifact-installation",
       "requirement": "Installable or runnable CLI/server artifacts with immutable hash, bytes, signing class, provenance and cold-start evidence where applicable.",
       "applicability": "required-for-cli-server",
-      "status": "implementedLocal",
-      "evidence": ["cmd/ynx-economics-runtime", "cmd/ynx-economics-local-testnet-evidence", "release/reproducible-build-evidence.json"],
-      "sourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
-      "tests": ["make economics-local-candidate-check"],
-      "artifact": null,
+      "status": "testedLocal",
+      "evidence": ["scripts/release/build-economics-testnet-cli.mjs", "scripts/verify/economics-testnet-cli-artifact-check.mjs", "release/economics-testnet-cli-artifact.json", "product-release.json#artifactCandidate"],
+      "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+      "tests": ["make economics-testnet-cli-artifact-check", "make economics-testnet-cli-artifact-evidence", "make static-check", "make no-placeholder-check"],
+      "artifact": "release/economics-testnet-cli-artifact.json",
       "publicProof": null,
       "blockedBy": ["hosted immutable artifact service", "production signing authority"],
       "owner": "17 Economics",
-      "nextAction": "Build a versioned unsigned Testnet CLI bundle and record install/cold-start evidence without marking it production-signed.",
-      "lastUpdated": "2026-07-27T06:33:12Z"
+      "nextAction": "Retain the verified unsigned Testnet package and add immutable hosting and signing evidence only when those external services are approved.",
+      "lastUpdated": "2026-07-27T14:14:52Z"
     },
     {
       "id": "ECON-GIT-001",
       "category": "git-recovery",
       "requirement": "Commit, push or verified recovery bundle, exact SHA, clean or accurately recorded dirty state and non-destructive recovery instructions.",
       "applicability": "required",
-      "status": "testedLocal",
-      "evidence": ["release/recovery/ynxt-economics-f14d002.manifest.json", "release/recovery/README.md"],
-      "sourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
-      "tests": ["git bundle verify release/recovery/ynxt-economics-f14d002.bundle"],
+      "status": "inProgress",
+      "evidence": ["release/recovery/ynxt-economics-f14d002.manifest.json", "release/recovery/README.md", "origin/codex/final-tokenomics@175eaec4b04f22bdb5aa2652bb7d69921beb6e06"],
+      "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+      "tests": ["git bundle verify release/recovery/ynxt-economics-f14d002.bundle", "git ls-remote --heads origin refs/heads/codex/final-tokenomics"],
       "artifact": "release/recovery/ynxt-economics-f14d002.bundle",
       "publicProof": null,
-      "blockedBy": ["remote Git service currently returning HTTP 502"],
+      "blockedBy": [],
       "owner": "17 Economics",
-      "nextAction": "Retry push in a later bounded checkpoint and verify local SHA equals remote SHA.",
-      "lastUpdated": "2026-07-27T06:33:12Z"
+      "nextAction": "Commit and push the active shared-Testnet acceptance slice, then verify Local SHA equals Remote SHA and a clean worktree.",
+      "lastUpdated": "2026-07-27T14:14:52Z"
     }
   ]
 }

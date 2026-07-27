@@ -2,8 +2,10 @@
   "schemaVersion": 1,
   "releaseId": "ynxt-economics-local-testnet-evidence-2026-07-27",
   "product": "YNXT Economics",
-  "asOf": "2026-07-27T06:33:12Z",
-  "sourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
+  "asOf": "2026-07-27T14:14:52Z",
+  "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+  "runtimeSourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
+  "artifactBuilderSourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
   "publicMetadataSourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
   "releaseClass": "local_testnet_evidence_candidate",
   "goalState": "active",
@@ -19,7 +21,7 @@
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": false,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -32,6 +34,7 @@
     "make economics-integration-adapter-check",
     "make economics-integration-store-check",
     "make economics-local-testnet-evidence-check",
+    "make economics-testnet-cli-artifact-check",
     "make staking-risk-runtime-check",
     "make economics-local-candidate-check",
     "make economics-public-ui-check",
@@ -77,7 +80,39 @@
       "sourceCommit": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21"
     }
   ],
-  "installationEvidence": null,
+  "artifactCandidate": {
+    "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+    "target": "darwin/arm64",
+    "binaries": [
+      "ynx-economics-runtime",
+      "ynx-staking-risk-runtime",
+      "ynx-economics-integration-store",
+      "ynx-economics-local-testnet-evidence"
+    ],
+    "builder": "scripts/release/build-economics-testnet-cli.mjs",
+    "verification": "scripts/verify/economics-testnet-cli-artifact-check.mjs",
+    "doubleBuildVerified": true,
+    "transientInstallVerified": true,
+    "coldStartVerified": true,
+    "persistedEvidence": true,
+    "evidence": "release/economics-testnet-cli-artifact.json",
+    "packageHash": "sha256:22a3fbdebbda790cf319ee9e725b01872107689afd9ca229655c66dd7e68958b",
+    "signingClass": "unsigned_local_testnet_cli",
+    "removalVerified": true,
+    "productionSigned": false,
+    "downloadHosted": false
+  },
+  "installationEvidence": {
+    "path": "release/economics-testnet-cli-artifact.json",
+    "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+    "artifactId": "ynxt-economics-testnet-cli-darwin-arm64",
+    "target": "darwin/arm64",
+    "packageHash": "sha256:22a3fbdebbda790cf319ee9e725b01872107689afd9ca229655c66dd7e68958b",
+    "signingClass": "unsigned_local_testnet_cli",
+    "installedLocal": true,
+    "transient": true,
+    "removalVerified": true
+  },
   "stagingEvidence": null,
   "publicEvidence": null,
   "productionSigningEvidence": null,
@@ -93,7 +128,6 @@
     "contract audits and governed candidate activation",
     "unresolved High vulnerability in development-only Hardhat adm-zip chain",
     "external DAST, hosted CI provenance and artifact signing",
-    "remote Git push returned HTTP 502 on three attempts; verified recovery bundle exists",
     "full go test is blocked by three existing umask-sensitive key-permission tests outside Economics ownership"
   ]
 }

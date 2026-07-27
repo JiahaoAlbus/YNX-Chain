@@ -14,15 +14,26 @@ assert.equal(contract.schemaVersion, 1);
 assert.equal(integration.sourceCommit, request.sourceCommit);
 assert.equal(integration.sourceCommit, metadata.sourceCommit);
 assert.equal(integration.sourceCommit, contract.sourceCommit);
-assert.equal(release.sourceCommit, contract.localTestnetEvidence.sourceCommit);
-assert.equal(release.localTestnetEvidence.sourceCommit, release.sourceCommit);
+assert.equal(release.runtimeSourceCommit, contract.localTestnetEvidence.sourceCommit);
+assert.equal(release.localTestnetEvidence.sourceCommit, release.runtimeSourceCommit);
+assert.equal(release.sourceCommit, release.artifactBuilderSourceCommit);
 assert.match(integration.sourceCommit, /^[0-9a-f]{40}$/);
 assert.match(release.sourceCommit, /^[0-9a-f]{40}$/);
 execFileSync("git", ["cat-file", "-e", `${integration.sourceCommit}^{commit}`]);
 execFileSync("git", ["cat-file", "-e", `${release.sourceCommit}^{commit}`]);
+assert.equal(release.states.installedLocal, true, "persisted CLI installation evidence must promote only installedLocal");
+for (const key of ["integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"]) {
+  assert.equal(release.states[key], false, `${key} cannot be promoted by local installation evidence`);
+}
 for (const key of ["installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"]) {
   assert.equal(integration.states[key], false, `${key} cannot be promoted without direct evidence`);
 }
+const installation = JSON.parse(readFileSync(release.installationEvidence.path, "utf8"));
+assert.equal(installation.sourceCommit, release.sourceCommit);
+assert.equal(installation.artifact.packageHash, release.installationEvidence.packageHash);
+assert.equal(installation.releaseTruth.installedLocal, true);
+assert.equal(installation.releaseTruth.productionSigned, false);
+assert.equal(installation.releaseTruth.downloadHosted, false);
 assert.equal(integration.currentAuthority.feeBurnActive, false);
 assert.equal(integration.currentAuthority.dynamicIssuanceActive, false);
 assert.equal(integration.currentAuthority.stakingRewardsActive, false);

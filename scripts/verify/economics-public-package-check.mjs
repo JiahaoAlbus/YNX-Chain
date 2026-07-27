@@ -18,9 +18,30 @@ assert.deepEqual(metadata.product.canonicalRoutes, ["/ynxt", "/economics"]);
 assert.deepEqual(metadata.locales, ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "ru", "ar", "id"]);
 assert.equal(release.states.implementedLocal, true);
 assert.equal(release.states.testedLocal, true);
-for (const key of ["installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"]) {
-  assert.equal(release.states[key], false, `${key} must remain false without direct evidence`);
+assert.equal(release.states.installedLocal, true, "installedLocal requires persisted direct evidence");
+for (const key of ["integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"]) {
+  assert.equal(release.states[key], false, `${key} must remain false without persisted direct evidence`);
 }
+assert.equal(release.artifactCandidate.sourceCommit, release.sourceCommit);
+assert.equal(release.artifactCandidate.target, "darwin/arm64");
+assert.equal(release.artifactCandidate.doubleBuildVerified, true);
+assert.equal(release.artifactCandidate.transientInstallVerified, true);
+assert.equal(release.artifactCandidate.coldStartVerified, true);
+assert.equal(release.artifactCandidate.persistedEvidence, true);
+assert.equal(release.artifactCandidate.productionSigned, false);
+assert.equal(release.artifactCandidate.downloadHosted, false);
+for (const requiredPath of [release.artifactCandidate.builder, release.artifactCandidate.verification, release.artifactCandidate.evidence]) {
+  assert.equal(fs.existsSync(path.join(root, requiredPath)), true, `missing artifact candidate path: ${requiredPath}`);
+}
+const installation = readJSON(release.installationEvidence.path);
+assert.equal(installation.sourceCommit, release.sourceCommit);
+assert.equal(installation.artifact.id, release.installationEvidence.artifactId);
+assert.equal(installation.artifact.packageHash, release.installationEvidence.packageHash);
+assert.equal(installation.artifact.signingClass, release.installationEvidence.signingClass);
+assert.equal(installation.releaseTruth.installedLocal, true);
+assert.equal(installation.installation.removalVerified, true);
+assert.equal(installation.releaseTruth.downloadHosted, false);
+assert.equal(installation.releaseTruth.productionSigned, false);
 
 const releaseCommit = spawnSync("git", ["cat-file", "-e", `${release.sourceCommit}^{commit}`], { cwd: root });
 assert.equal(releaseCommit.status, 0, "release sourceCommit must identify an existing commit");
