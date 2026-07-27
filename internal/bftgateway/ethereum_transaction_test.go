@@ -303,6 +303,108 @@ func TestGatewayMapsBoundedEthereumDynamicFeeTransfer(t *testing.T) {
 	}
 }
 
+func TestGatewayBroadcastsDynamicFeeTransferRequiresCommittedEvidence(t *testing.T) {
+	senderKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 63))
+	recipientKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 64))
+	recipient, err := consensus.NativeAddress(recipientKey.PubKey().SerializeCompressed())
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, ethereumTx, err := consensus.NewEthereumDynamicFeeTransfer(senderKey, 6423, 0, 2, 5, recipient, 125)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cometHash := consensus.SignedTransactionHash(payload)
+	cometHashUpper := strings.ToUpper(strings.TrimPrefix(cometHash, "0x"))
+	blockHash := strings.Repeat("6", 64)
+	appHash := strings.Repeat("7", 64)
+	dataHash := strings.Repeat("8", 64)
+	blockTime := time.Date(2026, 7, 27, 13, 0, 0, 0, time.UTC)
+	baseReceipt := consensus.BFTEVMReceipt{
+		TxHash: ethereumTx.Hash, From: ethereumTx.From, To: ethereumTx.To,
+		Action: consensus.EthereumDynamicFeeTransferType, Status: "success", EncodedResult: "0x",
+		Logs: []consensus.BFTEVMLog{}, BlockHeight: 21,
+	}
+	baseReceipt.AuditHash = consensus.BFTEVMReceiptAuditHash(baseReceipt)
+	mismatchedReceipt := baseReceipt
+	mismatchedReceipt.To = ethereumTx.From
+	mismatchedReceipt.AuditHash = consensus.BFTEVMReceiptAuditHash(mismatchedReceipt)
+
+	tests := []struct {
+		name         string
+		receipt      consensus.BFTEVMReceipt
+		broadcastGas string
+		committedGas string
+		wantError    string
+	}{
+		{name: "valid committed evidence", receipt: baseReceipt, broadcastGas: "21000", committedGas: "21000"},
+		{name: "receipt recipient mismatch", receipt: mismatchedReceipt, broadcastGas: "21000", committedGas: "21000", wantError: "committed Ethereum receipt evidence is invalid"},
+		{name: "broadcast gas mismatch", receipt: baseReceipt, broadcastGas: "20999", committedGas: "21000", wantError: "CometBFT evidence does not match broadcast result"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			receiptPayload, err := json.Marshal(test.receipt)
+			if err != nil {
+				t.Fatal(err)
+			}
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch r.URL.Path {
+				case "/broadcast_tx_commit":
+					if r.URL.Query().Get("tx") != fmt.Sprintf("0x%x", payload) {
+						t.Errorf("unexpected EIP-1559 broadcast payload: %s", r.URL.RawQuery)
+					}
+					_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+						"check_tx": map[string]any{"code": 0}, "tx_result": map[string]any{"code": 0, "gas_used": test.broadcastGas},
+						"hash": cometHashUpper, "height": "21",
+					}})
+				case "/abci_query":
+					path, _ := strconv.Unquote(r.URL.Query().Get("path"))
+					if path != "/evm/receipts/"+ethereumTx.Hash {
+						t.Errorf("unexpected EIP-1559 ABCI query path: %s", path)
+					}
+					_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{
+						"code": 0, "height": "21", "value": base64.StdEncoding.EncodeToString(receiptPayload),
+					}}})
+				case "/block":
+					_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+						"block_id": map[string]any{"hash": strings.ToUpper(blockHash)},
+						"block": map[string]any{
+							"header": map[string]any{
+								"height": "21", "time": blockTime, "proposer_address": strings.Repeat("9", 40),
+								"app_hash": strings.ToUpper(appHash), "data_hash": strings.ToUpper(dataHash),
+								"last_block_id": map[string]any{"hash": strings.Repeat("5", 64)},
+							},
+							"data": map[string]any{"txs": []string{base64.StdEncoding.EncodeToString(payload)}},
+						},
+					}})
+				case "/block_results":
+					_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+						"height": "21", "txs_results": []map[string]any{{"code": 0, "log": consensus.EthereumDynamicFeeTransferType, "gas_used": test.committedGas}},
+					}})
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer upstream.Close()
+			gateway, err := New(Config{CometRPCURL: upstream.URL})
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := gateway.broadcastSignedTransaction(context.Background(), payload)
+			if test.wantError != "" {
+				if err == nil || !strings.Contains(err.Error(), test.wantError) {
+					t.Fatalf("invalid committed EIP-1559 evidence was accepted: result=%+v err=%v", result, err)
+				}
+				return
+			}
+			if err != nil || !result.Committed || result.Height != 21 || result.Transaction.Hash != ethereumTx.Hash || result.Transaction.Type != consensus.EthereumDynamicFeeTransferType || result.CometHash != strings.ToLower(cometHashUpper) {
+				t.Fatalf("valid committed EIP-1559 evidence was rejected: result=%+v err=%v", result, err)
+			}
+		})
+	}
+}
+
 func TestGatewayRejectsTamperedEthereumReceiptAuditEvidence(t *testing.T) {
 	senderKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 53))
 	recipientKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 54))

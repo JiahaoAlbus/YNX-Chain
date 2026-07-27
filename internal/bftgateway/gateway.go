@@ -840,13 +840,21 @@ func (g *Gateway) broadcastSignedTransaction(ctx context.Context, payload []byte
 	if err != nil {
 		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: validationStatus, Message: err.Error()}
 	}
+	envelopeType, err := consensus.TransactionEnvelopeType(payload)
+	if err != nil {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadRequest, Message: err.Error()}
+	}
 	cometHash := consensus.SignedTransactionHash(payload)
 	var upstream cometBroadcast
 	if err := g.client.get(ctx, "/broadcast_tx_commit", url.Values{"tx": {"0x" + fmt.Sprintf("%x", payload)}}, &upstream); err != nil {
 		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: err.Error()}
 	}
 	if upstream.Error != nil {
-		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: cometError(upstream.Error)}
+		message := cometError(upstream.Error)
+		if strings.Contains(strings.ToLower(message), "tx already exists in cache") {
+			return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusUnprocessableEntity, Message: "CometBFT rejected duplicate signed transaction (" + envelopeType + "): " + message}
+		}
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: message}
 	}
 	if upstream.Result.CheckTx.Code != 0 || upstream.Result.TxResult.Code != 0 {
 		message := strings.TrimSpace(upstream.Result.CheckTx.Log + " " + upstream.Result.TxResult.Log)
@@ -865,6 +873,27 @@ func (g *Gateway) broadcastSignedTransaction(ctx context.Context, payload []byte
 	mapped, err := g.transactionAtHeight(ctx, externalHash, height)
 	if err != nil {
 		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: err.Error()}
+	}
+	if envelopeType == consensus.EthereumLegacyTransferType || envelopeType == consensus.EthereumAccessListTransferType || envelopeType == consensus.EthereumDynamicFeeTransferType {
+		committed, receiptMapped, found, err := g.committedEthereumTransaction(ctx, externalHash)
+		if err != nil {
+			return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "committed Ethereum evidence validation failed: " + err.Error()}
+		}
+		if !found {
+			return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "committed Ethereum receipt evidence is missing"}
+		}
+		committedHeight, parseErr := strconv.ParseUint(committed.Height, 10, 64)
+		broadcastGas, broadcastGasErr := parseCometGas(upstream.Result.TxResult.GasUsed)
+		committedGas, committedGasErr := parseCometGas(committed.TxResult.GasUsed)
+		if parseErr != nil || committedHeight != height || broadcastGasErr != nil || committedGasErr != nil || broadcastGas != committedGas ||
+			!strings.EqualFold(strings.TrimPrefix(cometHash, "0x"), committed.Hash) || !bytes.Equal(committed.Tx, payload) {
+			return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "committed Ethereum CometBFT evidence does not match broadcast result"}
+		}
+		if receiptMapped.Hash != mapped.Hash || receiptMapped.Type != mapped.Type || receiptMapped.From != mapped.From || receiptMapped.To != mapped.To ||
+			receiptMapped.Amount != mapped.Amount || receiptMapped.Fee != mapped.Fee || receiptMapped.Nonce != mapped.Nonce ||
+			receiptMapped.BlockHash != mapped.BlockHash || receiptMapped.BlockNum != mapped.BlockNum {
+			return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "committed Ethereum receipt evidence does not match broadcast transaction"}
+		}
 	}
 	return BroadcastResponse{Transaction: mapped, Committed: true, Height: height, CometHash: strings.ToLower(upstream.Result.Hash), TruthfulStatus: "cometbft-broadcast-commit"}, nil
 }

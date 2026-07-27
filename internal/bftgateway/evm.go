@@ -676,6 +676,12 @@ func (g *Gateway) committedEthereumTransaction(ctx context.Context, hash string)
 	if err != nil {
 		return cometTx{}, chain.Transaction{}, false, err
 	}
+	if evidence.AppHash == "" || !blockHashPattern.MatchString(evidence.AppHash) {
+		return cometTx{}, chain.Transaction{}, false, errors.New("committed Ethereum block is missing a valid AppHash")
+	}
+	if len(evidence.RawTransactions) > 0 && (evidence.DataHash == "" || !blockHashPattern.MatchString(evidence.DataHash)) {
+		return cometTx{}, chain.Transaction{}, false, errors.New("committed Ethereum block is missing a valid data hash")
+	}
 	var results cometBlockResults
 	if err := g.client.get(ctx, "/block_results", url.Values{"height": {strconv.FormatUint(height, 10)}}, &results); err != nil {
 		return cometTx{}, chain.Transaction{}, false, err

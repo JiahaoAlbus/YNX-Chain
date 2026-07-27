@@ -73,6 +73,7 @@ comet_bin="$(go tool -n cometbft)"
 "$work/ynx-consensus-lab" \
   -ephemeral \
   -local-fixture \
+  -fixture-balance 200000 \
   -output "$network" \
   -base-p2p-port "$base_p2p" \
   -base-rpc-port "$base_rpc" \
@@ -309,9 +310,81 @@ assert_account() {
     });' "$expected_balance" "$expected_nonce"
 }
 for index in 0 1 2 3; do
-  assert_account "$index" "$fixture_signer" 874 1
+  assert_account "$index" "$fixture_signer" 199874 1
   assert_account "$index" "$fixture_recipient" 125 0
 done
+
+dynamic_recipient="0x2222222222222222222222222222222222222222"
+dynamic_tx_json="$("$work/ynx-consensus-tx" \
+  -key "$network/fixture-signer.key" \
+  -chain-id 6423 \
+  -to "$dynamic_recipient" \
+  -amount 125 \
+  -nonce 1 \
+  -envelope eip1559 \
+  -format json \
+  -max-priority-fee-per-gas 2 \
+  -max-fee-per-gas 5)"
+dynamic_payload_hex="$(printf '%s' "$dynamic_tx_json" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).payloadHex))')"
+dynamic_tx_hash="$(printf '%s' "$dynamic_tx_json" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).hash))')"
+dynamic_comet_hash="$(printf '%s' "$dynamic_tx_json" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).cometHash))')"
+dynamic_fee="$(printf '%s' "$dynamic_tx_json" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(String(JSON.parse(s).fee)))')"
+[[ "$dynamic_fee" == "42000" ]] || { echo "unexpected EIP-1559 effective fee $dynamic_fee" >&2; exit 1; }
+dynamic_tx_base64="$(node -e 'const value=process.argv[1];if(!/^0x[0-9a-f]+$/.test(value)||value.length%2!==0)process.exit(1);process.stdout.write(Buffer.from(value.slice(2),"hex").toString("base64"));' "$dynamic_payload_hex")"
+dynamic_broadcast_payload="$(node -e 'process.stdout.write(JSON.stringify({jsonrpc:"2.0",id:2,method:"broadcast_tx_commit",params:{tx:process.argv[1]}}))' "$dynamic_tx_base64")"
+dynamic_broadcast_result="$(rpc_post 0 "$dynamic_broadcast_payload")"
+dynamic_tx_height="$(printf '%s' "$dynamic_broadcast_result" | node -e '
+  let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{
+    const data=JSON.parse(s); if (data.error) throw new Error(JSON.stringify(data.error));
+    if (Number(data.result.check_tx.code) !== 0 || Number(data.result.tx_result.code) !== 0) throw new Error(`EIP-1559 transaction failed: ${s}`);
+    const expected=process.argv[1].replace(/^0x/,"").toLowerCase();
+    const observed=String(data.result.hash).replace(/^0x/,"").toLowerCase();
+    if (observed !== expected) throw new Error(`Comet hash ${observed} != ${expected}`);
+    console.log(Number(data.result.height));
+  });' "$dynamic_comet_hash")"
+for index in 0 1 2 3; do wait_height "$index" "$dynamic_tx_height"; done
+dynamic_block_hash="$(assert_same_block "$dynamic_tx_height" 0 1 2 3)"
+dynamic_state_height=$((dynamic_tx_height + 1))
+for index in 0 1 2 3; do wait_height "$index" "$dynamic_state_height"; done
+dynamic_app_hash="$(assert_same_app_hash "$dynamic_state_height" 0 1 2 3)"
+for index in 0 1 2 3; do
+  assert_account "$index" "$fixture_signer" 157749 2
+  assert_account "$index" "$fixture_recipient" 125 0
+  assert_account "$index" "$dynamic_recipient" 125 0
+done
+
+dynamic_receipt_value=""
+for index in 0 1 2 3; do
+  receipt_request="$(node -e 'process.stdout.write(JSON.stringify({jsonrpc:"2.0",id:3,method:"abci_query",params:{path:"/evm/receipts/"+process.argv[1]}}))' "$dynamic_tx_hash")"
+  receipt_response="$(rpc_post "$index" "$receipt_request")"
+  receipt_value="$(printf '%s' "$receipt_response" | node -e '
+    let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{
+      const response=JSON.parse(s).result.response;
+      if (Number(response.code) !== 0) throw new Error(response.log || "receipt query failed");
+      const receipt=JSON.parse(Buffer.from(response.value,"base64").toString("utf8"));
+      if (receipt.transactionHash !== process.argv[1] || receipt.from !== process.argv[2] || receipt.to !== process.argv[3] || receipt.action !== "ethereum_dynamic_fee_transfer" || receipt.status !== "success" || Number(receipt.blockHeight) !== Number(process.argv[4]) || !/^[0-9a-f]{64}$/.test(receipt.auditHash)) {
+        throw new Error(`unexpected EIP-1559 receipt: ${JSON.stringify(receipt)}`);
+      }
+      process.stdout.write(response.value);
+    });' "$dynamic_tx_hash" "$fixture_signer" "$dynamic_recipient" "$dynamic_tx_height")"
+  if [[ -z "$dynamic_receipt_value" ]]; then
+    dynamic_receipt_value="$receipt_value"
+  elif [[ "$receipt_value" != "$dynamic_receipt_value" ]]; then
+    echo "EIP-1559 receipt evidence differs across validators" >&2
+    exit 1
+  fi
+done
+
+dynamic_replay_result="$(rpc_post 0 "$dynamic_broadcast_payload")"
+dynamic_replay_rejection="$(printf '%s' "$dynamic_replay_result" | node -e '
+  let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{
+    const data=JSON.parse(s);
+    const failure=data.error ?? {checkCode:Number(data.result?.check_tx?.code ?? 0),checkLog:data.result?.check_tx?.log ?? "",deliverCode:Number(data.result?.tx_result?.code ?? 0),deliverLog:data.result?.tx_result?.log ?? ""};
+    const text=JSON.stringify(failure);
+    const rejected=Boolean(data.error) || failure.checkCode !== 0 || failure.deliverCode !== 0;
+    if (!rejected || !/(nonce|replay|already exists|cache|mempool)/i.test(text)) throw new Error(`EIP-1559 replay was not rejected by replay protection: ${s}`);
+    process.stdout.write("nonce-or-mempool-replay-rejected");
+  });')"
 
 before_stop="$(node_height 0)"
 stop_process "${node_pids[3]}"; node_pids[3]=""
@@ -346,8 +419,9 @@ for index in 0 1 2; do wait_height "$index" "$recovery_target"; done
 recovery_hash="$(assert_same_block "$recovery_target" 0 1 2 3)"
 recovery_app_hash="$(assert_same_app_hash "$recovery_target" 0 1 2 3)"
 for index in 0 1 2 3; do
-  assert_account "$index" "$fixture_signer" 874 1
+  assert_account "$index" "$fixture_signer" 157749 2
   assert_account "$index" "$fixture_recipient" 125 0
+  assert_account "$index" "$dynamic_recipient" 125 0
 done
 
 replay_result="$(rpc_post 3 "$broadcast_payload")"
@@ -374,7 +448,7 @@ done
 
 source_commit="$(git rev-parse --short=12 HEAD)"
 generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-node - "$evidence_path" "$manifest" "$source_commit" "$generated_at" "$initial_height" "$initial_hash" "$initial_app_hash" "$tx_height" "$tx_hash" "$tx_block_hash" "$tx_state_height" "$tx_app_hash" "$three_validator_height" "$three_validator_hash" "$three_validator_app_hash" "$recovery_target" "$recovery_hash" "$recovery_app_hash" "$replay_rejection" "$backup_height" "$backup_sha256" "$backup_bytes" "$backup_rejoin_target" "$backup_rejoin_hash" "$backup_rejoin_app_hash" "$restored_state_height" <<'NODE'
+node - "$evidence_path" "$manifest" "$source_commit" "$generated_at" "$initial_height" "$initial_hash" "$initial_app_hash" "$tx_height" "$tx_hash" "$tx_block_hash" "$tx_state_height" "$tx_app_hash" "$three_validator_height" "$three_validator_hash" "$three_validator_app_hash" "$recovery_target" "$recovery_hash" "$recovery_app_hash" "$replay_rejection" "$backup_height" "$backup_sha256" "$backup_bytes" "$backup_rejoin_target" "$backup_rejoin_hash" "$backup_rejoin_app_hash" "$restored_state_height" "$dynamic_tx_height" "$dynamic_tx_hash" "$dynamic_comet_hash" "$dynamic_block_hash" "$dynamic_state_height" "$dynamic_app_hash" "$dynamic_fee" "$dynamic_replay_rejection" "$dynamic_recipient" <<'NODE'
 const fs = require("fs");
 const path = require("path");
 const [
@@ -383,11 +457,12 @@ const [
   txHeight, txHash, txBlockHash, txAppHashHeight, txAppHash,
   threeValidatorHeight, threeValidatorBlockHash, threeValidatorAppHash,
   recoveryHeight, recoveryBlockHash, recoveryAppHash, replayClass,
-  backupHeight, backupSha256, backupBytes, backupRejoinHeight, backupRejoinBlockHash, backupRejoinAppHash, restoredStateHeight
+  backupHeight, backupSha256, backupBytes, backupRejoinHeight, backupRejoinBlockHash, backupRejoinAppHash, restoredStateHeight,
+  dynamicTxHeight, dynamicEthereumHash, dynamicCometHash, dynamicBlockHash, dynamicStateHeight, dynamicAppHash, dynamicFee, dynamicReplayClass, dynamicRecipient
 ] = process.argv.slice(2);
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const report = {
-  schema: "ynx-consensus-quorum-evidence/v1",
+  schema: "ynx-consensus-quorum-evidence/v2",
   generatedAt,
   sourceCommit,
   mode: "local-ephemeral-four-validator",
@@ -414,6 +489,24 @@ const report = {
       replayedToCurrentState: true
     },
     transaction: { height: Number(txHeight), txHash, blockHash: txBlockHash, appHashHeight: Number(txAppHashHeight), appHash: txAppHash, allNodeAccountQueriesEqual: true },
+    dynamicFeeTransaction: {
+      height: Number(dynamicTxHeight),
+      ethereumHash: dynamicEthereumHash,
+      cometHash: dynamicCometHash,
+      blockHash: dynamicBlockHash,
+      appHashHeight: Number(dynamicStateHeight),
+      appHash: dynamicAppHash,
+      recipient: dynamicRecipient,
+      value: 125,
+      baseFeePerGas: 0,
+      maxPriorityFeePerGas: 2,
+      maxFeePerGas: 5,
+      effectiveFeeYNXT: Number(dynamicFee),
+      allNodeAccountQueriesEqual: true,
+      allNodeReceiptEvidenceEqual: true,
+      replayRejected: true,
+      replayClass: dynamicReplayClass
+    },
     oneValidatorStopped: { height: Number(threeValidatorHeight), blockHash: threeValidatorBlockHash, appHash: threeValidatorAppHash, minimumPrecommits: 3 },
     validatorRecovered: { height: Number(recoveryHeight), blockHash: recoveryBlockHash, appHash: recoveryAppHash, allNodeAccountQueriesEqual: true },
     replayRejected: true,
@@ -421,7 +514,7 @@ const report = {
   }
 };
 fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
-fs.writeFileSync(evidencePath, `${JSON.stringify(report, null, 2)}\n`);
+fs.writeFileSync(evidencePath, `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
 NODE
 
 printf 'consensus-quorum-check passed: initialHeight=%s initialHash=%s txHeight=%s txHash=%s txBlockHash=%s threeValidatorHeight=%s threeValidatorHash=%s recoveryHeight=%s recoveryHash=%s validators=4\n' \
@@ -430,3 +523,5 @@ printf 'consensus state evidence: initialAppHash=%s txAppHashHeight=%s txAppHash
   "$initial_app_hash" "$tx_state_height" "$tx_app_hash" "$three_validator_app_hash" "$recovery_app_hash" "$replay_rejection"
 printf 'consensus recovery evidence: backupHeight=%s backupSha256=%s backupBytes=%s restoredStateHeight=%s recoveryHeight=%s rollbackReplay=true\n' \
   "$backup_height" "$backup_sha256" "$backup_bytes" "$restored_state_height" "$recovery_target"
+printf 'consensus EIP-1559 evidence: height=%s ethereumHash=%s cometHash=%s blockHash=%s appHashHeight=%s appHash=%s fee=%s replay=%s\n' \
+  "$dynamic_tx_height" "$dynamic_tx_hash" "$dynamic_comet_hash" "$dynamic_block_hash" "$dynamic_state_height" "$dynamic_app_hash" "$dynamic_fee" "$dynamic_replay_rejection"
