@@ -1,6 +1,6 @@
 # Feature completion evidence
 
-Evidence date: 2026-07-27. Baseline commit: `c7e4445598a74e60aa0ed05b9580790527bf71be`. Source candidate: `42cac5dc809505e88a94e190e1f4f34e0ec245f1`. Local evidence is source-candidate-bound but remains nonpublic candidate evidence.
+Evidence date: 2026-07-27. Baseline commit: `c7e4445598a74e60aa0ed05b9580790527bf71be`. Source candidate: `0bcaef6905136dcb1aceb2704a32120611be628f`. Local evidence is source-candidate-bound but remains nonpublic candidate evidence.
 
 | Requirement | Current result | Direct evidence | Remaining proof |
 | --- | --- | --- | --- |
@@ -11,6 +11,7 @@ Evidence date: 2026-07-27. Baseline commit: `c7e4445598a74e60aa0ed05b9580790527b
 | Pricing modes | Implemented and locally tested | fixed/reservation/long-term quotes plus sealed reverse and split batch procurement; deadline, self-dealing, price ceiling, full-fill, commitment digest and deterministic price/quality/provider tie-break tests | public fairness monitoring and real-provider auction evidence |
 | Quote through settlement | Implemented and locally tested | strict lifecycle test and receipt reconciliation test | central Wallet/Gateway and public chain receipt |
 | Settlement replay rejection | Implemented and locally tested | `TestSettlementReceiptRejectsTransactionReplayAndNormalizesReference`; blank authority rejection; normalized transaction reference; case-insensitive duplicate transaction-hash rejection across receipts | authoritative public chain receipt and central settlement-authority integration |
+| Frozen integration contract and errors | Implemented and locally tested | `resource-market-integration-v1`; stable settlement/capacity/proof error codes; `TestMarketErrorCodeContract`; `TestResourceIntegrationContractAndVectorsStayAligned`; cross-product replay, reconciliation, premature-settlement, tamper and no-fake-refund vectors | central owner acceptance and deployed shared-Testnet execution |
 | Signed metering | Locally implemented and tested | expiring Ed25519 worker-key registry, canonical payload preview, tamper/revoke tests and receipt reconciliation | remote worker identity ceremony and public workload proof |
 | Failure, retry and refund | Implemented and locally tested | `TestProviderFailureRetryRefundBondAndAppeal` | authoritative refund transaction receipt |
 | Bond, notice and appeal | Implemented and locally tested | capped bond and independent appeal tests | insurance policy and legal review |

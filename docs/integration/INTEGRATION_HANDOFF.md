@@ -5,7 +5,7 @@
 - Product owner: `16-resource-market`
 - Contract: `release/integration/resource-market-contract.json`
 - Contract version: `resource-market-integration-v1`
-- Implementation source: `26c189a8999ed4020132bebc4325348c2312fd31`
+- Implementation source: `0bcaef6905136dcb1aceb2704a32120611be628f`
 - Current phase: `FREEZE → INTEGRATE`
 - Current product status: local candidate; not centrally integrated, staged, public, production-signed or store-released.
 

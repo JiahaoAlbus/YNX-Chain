@@ -5,9 +5,9 @@
   "productSlug": "resource-market",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market",
   "branch": "codex/final-resource-market",
-  "stage": "FREEZE",
+  "stage": "INTEGRATE",
   "goalStatus": "active",
-  "updatedAt": "2026-07-27T09:30:00Z",
+  "updatedAt": "2026-07-27T10:55:00Z",
   "entries": [
     {
       "id": "RM-CORE-001",
@@ -287,14 +287,14 @@
       "requirement": "Integrate canonical Wallet/Auth, Chain settlement, Data Fabric billing, Explorer proof, Monitor alerts, Trust appeal and Website public entry without reimplementing their authority.",
       "applicability": "applicable",
       "status": "externalBlocked",
-      "evidence": ["apps/resource-market/integration/central-integration-manifest.json", "apps/resource-market/integration/canonical-wallet-registry.json", "docs/handoffs/integration/trust-resource-central.patch.json"],
-      "sourceCommit": "beca120f3e5e9552f7d9f1bc62aac217f6026b33",
-      "tests": ["node scripts/verify-trust-resource-wallet-vectors.mjs"],
-      "artifact": "integration manifest and test vectors",
+      "evidence": ["release/integration/resource-market-contract.json", "docs/integration/INTEGRATION_HANDOFF.md", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json", "docs/integration/DEPENDENCY_ACCEPTANCE.md", "apps/resource-market/integration/central-integration-manifest.json", "apps/resource-market/integration/canonical-wallet-registry.json", "docs/handoffs/integration/trust-resource-central.patch.json"],
+      "sourceCommit": "0bcaef6905136dcb1aceb2704a32120611be628f",
+      "tests": ["go test ./internal/resourceproduct ./internal/resourcemarket", "go test -race -count=1 ./internal/resourceproduct ./internal/resourcemarket", "node scripts/verify-trust-resource-wallet-vectors.mjs"],
+      "artifact": "frozen integration contract, handoff, dependency acceptance and cross-product vectors",
       "publicProof": null,
-      "blockedBy": ["02-wallet-auth", "01-chain-core", "26-data-fabric", "12-explorer", "13-monitor", "15-trust-center", "28-website", "29-integration"],
+      "blockedBy": ["02-wallet-auth", "01-chain-core", "26-data-fabric", "12-explorer", "13-monitor", "15-trust-center central acceptance", "28-website", "29-integration"],
       "owner": "29-integration",
-      "nextAction": "Submit the existing contract, patch manifest and vectors to Integration and verify merged central behavior.",
+      "nextAction": "Merge the frozen contract and vectors into the central owners, then execute them against deployed Testnet services.",
       "lastUpdated": "2026-07-27"
     },
     {
