@@ -1,0 +1,204 @@
+{
+  "schemaVersion": "ynx.docs.integration.v1",
+  "contractId": "ynx-docs-v1",
+  "status": "candidateForCentralFreeze",
+  "owner": {
+    "productId": "35",
+    "product": "YNX Docs",
+    "slug": "docs"
+  },
+  "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+  "stateSchemaVersion": 2,
+  "network": {
+    "chainId": "ynx_6423-1",
+    "authority": "YNX Chain Core"
+  },
+  "walletBindings": {
+    "web": {
+      "requestingProduct": "docs",
+      "productClientId": "com.ynx.docs.web",
+      "bundleId": "com.ynx.docs.web",
+      "callback": "/docs/auth/callback",
+      "deviceAlgorithm": "wallet-bridge-defined",
+      "sessionRequestExpiresSeconds": 300
+    },
+    "mobile": {
+      "requestingProduct": "docs",
+      "productClientId": "ynx-docs-mobile-v1",
+      "bundleId": "com.ynxweb4.docs",
+      "callback": "ynxdocs://wallet-auth/callback",
+      "deviceAlgorithm": "p256-sha256",
+      "sessionRequestExpiresSeconds": 300
+    },
+    "requiredScopes": [
+      "ai.use",
+      "audit.read",
+      "docs.comment",
+      "docs.edit",
+      "docs.read",
+      "files.read",
+      "files.write",
+      "permissions.manage"
+    ],
+    "failClosedVectors": [
+      "wrong-product",
+      "wrong-client-id",
+      "wrong-bundle-id",
+      "wrong-callback",
+      "wrong-chain-id",
+      "wrong-device-key",
+      "duplicate-nonce",
+      "scope-widening",
+      "expired-approval",
+      "revoked-session"
+    ]
+  },
+  "authorityBoundary": {
+    "documentPlaintext": "Cloud/Object Store only; never canonical chain state",
+    "documentVersion": "YNX Docs service",
+    "identityAndSession": "YNX Wallet/Auth and App Gateway",
+    "objectBytesAndRetention": "YNX Cloud/Object Store",
+    "aiOutput": "advisory draft until explicit user review decision",
+    "trustEvidence": "YNX Trust after accepted evidence ingestion",
+    "billingLedger": "YNX Data Fabric after accepted canonical event ingestion",
+    "publicStatus": "YNX Website/Integration/SRE after deployment proof"
+  },
+  "objectModel": {
+    "idFields": ["objectId", "parentId", "version"],
+    "kinds": ["folder", "doc"],
+    "currentWritePrimitive": "server-serialized optimistic revision",
+    "conflictCondition": "baseVersion does not equal current object version",
+    "conflictResponse": {
+      "httpStatus": 409,
+      "bodyFields": ["error", "current"]
+    },
+    "duplicateSemantics": {
+      "owner": "requesting actor",
+      "versionsCopied": "current version only, renumbered to 1",
+      "copied": ["visible untrashed subtree", "current content references"],
+      "notCopied": ["ACL grants", "share links", "comments", "trash state", "star state"],
+      "persistenceFailure": "complete in-memory rollback"
+    }
+  },
+  "commentModel": {
+    "rootThread": "threadId equals root comment id",
+    "reply": "parentId identifies an existing comment and threadId identifies the root",
+    "anchor": {
+      "unit": "Unicode rune index",
+      "fields": ["start", "end", "quote"],
+      "validation": "server reads the exact version and derives the quote; mismatch fails"
+    },
+    "resolution": "editor may resolve or reopen a root thread",
+    "resolvedThreadReply": "rejected until reopen"
+  },
+  "exportModel": {
+    "formats": ["text", "markdown", "html", "json"],
+    "pdf": "not implemented or claimed",
+    "exactVersion": true,
+    "responseEvidenceHeaders": [
+      "X-YNX-Source-SHA256",
+      "X-Content-SHA256",
+      "X-YNX-Document-Version"
+    ],
+    "auditFields": ["version", "format", "sourceHash", "exportHash", "bytes"]
+  },
+  "httpApi": {
+    "basePath": "/api/v1",
+    "health": "GET /health",
+    "routes": [
+      {"method": "POST", "path": "/session", "scope": null},
+      {"method": "DELETE", "path": "/session", "scope": "authenticated"},
+      {"method": "GET", "path": "/objects", "scope": "files.read"},
+      {"method": "POST", "path": "/objects", "scope": "docs.edit for kind=doc"},
+      {"method": "GET", "path": "/objects/{id}", "scope": "docs.read for doc"},
+      {"method": "PATCH", "path": "/objects/{id}", "scope": "docs.edit for doc/subtree"},
+      {"method": "POST", "path": "/objects/{id}/duplicate", "scope": "docs.edit for doc/subtree"},
+      {"method": "GET", "path": "/objects/{id}/content", "scope": "docs.read for doc"},
+      {"method": "PUT", "path": "/objects/{id}/document", "scope": "docs.edit"},
+      {"method": "GET", "path": "/objects/{id}/versions", "scope": "docs.read"},
+      {"method": "POST", "path": "/objects/{id}/versions/{version}/restore", "scope": "docs.edit"},
+      {"method": "GET", "path": "/objects/{id}/export", "scope": "docs.read"},
+      {"method": "GET", "path": "/objects/{id}/comments", "scope": "docs.read"},
+      {"method": "POST", "path": "/objects/{id}/comments", "scope": "docs.comment"},
+      {"method": "POST", "path": "/objects/{id}/comments/{thread}/resolution", "scope": "docs.comment and editor role"},
+      {"method": "POST", "path": "/objects/{id}/presence", "scope": "docs.read"},
+      {"method": "GET", "path": "/objects/{id}/grants", "scope": "permissions.manage"},
+      {"method": "POST", "path": "/objects/{id}/grants", "scope": "permissions.manage"},
+      {"method": "DELETE", "path": "/objects/{id}/grants/{grant}", "scope": "permissions.manage"},
+      {"method": "POST", "path": "/objects/{id}/links", "scope": "permissions.manage"},
+      {"method": "GET", "path": "/objects/{id}/links", "scope": "permissions.manage"},
+      {"method": "DELETE", "path": "/objects/{id}/links/{link}", "scope": "permissions.manage"},
+      {"method": "POST", "path": "/objects/{id}/access-requests", "scope": "docs.read for doc"},
+      {"method": "GET", "path": "/objects/{id}/access-requests", "scope": "permissions.manage"},
+      {"method": "POST", "path": "/access-requests/{request}/decision", "scope": "permissions.manage"},
+      {"method": "GET", "path": "/audit", "scope": "audit.read"},
+      {"method": "GET", "path": "/ai/status", "scope": "ai.use"},
+      {"method": "POST", "path": "/ai/jobs", "scope": "ai.use plus docs.read for every selected document"},
+      {"method": "GET", "path": "/ai/jobs/{job}", "scope": "ai.use"},
+      {"method": "POST", "path": "/ai/jobs/{job}/cancel", "scope": "ai.use"},
+      {"method": "POST", "path": "/ai/jobs/{job}/review", "scope": "ai.use"}
+    ]
+  },
+  "canonicalEvents": [
+    "session.create",
+    "session.revoke",
+    "object.create",
+    "object.update",
+    "object.duplicate",
+    "object.star",
+    "document.save",
+    "document.export",
+    "version.restore",
+    "permission.grant",
+    "permission.revoke",
+    "link.create",
+    "link.revoke",
+    "access.request",
+    "access.approve",
+    "access.deny",
+    "comment.create",
+    "comment.resolve",
+    "comment.reopen",
+    "ai.consent",
+    "ai.started",
+    "ai.result",
+    "ai.canceled",
+    "ai.applied",
+    "ai.rejected"
+  ],
+  "errorSemantics": [
+    {"httpStatus": 400, "meaning": "invalid request or invalid state transition"},
+    {"httpStatus": 401, "meaning": "missing, expired or revoked product session"},
+    {"httpStatus": 403, "meaning": "wrong product, missing scope or insufficient object role"},
+    {"httpStatus": 404, "meaning": "object, version, thread, link or request not found"},
+    {"httpStatus": 409, "meaning": "optimistic document version conflict", "fields": ["error", "current"]},
+    {"httpStatus": 413, "meaning": "quota or bounded payload exceeded"},
+    {"httpStatus": 503, "meaning": "required provider or authority unavailable"}
+  ],
+  "trustEvidence": {
+    "fields": ["actor", "action", "objectId", "hash", "at", "details"],
+    "plaintextAllowed": false,
+    "publicVerificationClaim": false
+  },
+  "dependencies": [
+    {"owner": "YNX 02", "capability": "Wallet/Auth and product session", "acceptance": "pending"},
+    {"owner": "YNX 20", "capability": "Cloud/Object Store", "acceptance": "pending"},
+    {"owner": "YNX 14", "capability": "AI Gateway", "acceptance": "pending"},
+    {"owner": "YNX 15", "capability": "Trust evidence and appeal", "acceptance": "pending"},
+    {"owner": "YNX 26", "capability": "Data Fabric and Billing Ledger", "acceptance": "pending"},
+    {"owner": "YNX 29", "capability": "contract freeze and shared Testnet", "acceptance": "pending"},
+    {"owner": "YNX 30", "capability": "release, artifact, backup and public gate", "acceptance": "pending"},
+    {"owner": "YNX 28", "capability": "Website /docs publication", "acceptance": "pending"}
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

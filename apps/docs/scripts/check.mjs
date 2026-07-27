@@ -5,4 +5,5 @@ const js=await readFile(new URL('../web/app-secure.js',import.meta.url),'utf8');
 for(const required of ['<main','aria-live','conflict recovery','sign in with ynx wallet']) if(!html.toLowerCase().includes(required)) throw new Error(`missing ${required}`);
 for(const required of ['prefers-reduced-motion','#002fa7']) if(!css.toLowerCase().includes(required)) throw new Error(`missing ${required}`);
 for(const required of ['baseVersion','localStorage','presence','citations']) if(!js.includes(required)) throw new Error(`missing workflow ${required}`);
-console.log('YNX Docs static, accessibility and recovery checks passed');
+await import('./check-release.mjs');
+console.log('YNX Docs static, accessibility, recovery and release-truth checks passed');

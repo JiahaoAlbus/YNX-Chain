@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "ynx.docs.test-vectors.v1",
+  "product": "YNX Docs",
+  "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+  "status": "localVectorsReadyCentralExecutionPending",
+  "vectors": [
+    {
+      "id": "DOCS-AUTH-WEB-VALID",
+      "owners": ["YNX 35", "YNX 02", "YNX 29"],
+      "precondition": "Fresh nonce and unexpired Wallet approval for the Web binding.",
+      "input": {
+        "product": "docs",
+        "clientId": "com.ynx.docs.web",
+        "bundleId": "com.ynx.docs.web",
+        "callback": "/docs/auth/callback",
+        "chainId": "ynx_6423-1"
+      },
+      "expected": {"sessionCreated": true, "httpStatus": 200, "event": "session.create"},
+      "localEvidence": ["internal/cloud/service_test.go", "apps/docs/tests/client.test.mjs"]
+    },
+    {
+      "id": "DOCS-AUTH-MOBILE-VALID",
+      "owners": ["YNX 35", "YNX 02", "YNX 29"],
+      "precondition": "Fresh nonce, matching P-256 device key and unexpired Wallet approval.",
+      "input": {
+        "requestingProduct": "docs",
+        "productClientId": "ynx-docs-mobile-v1",
+        "bundleId": "com.ynxweb4.docs",
+        "callback": "ynxdocs://wallet-auth/callback",
+        "chainId": "ynx_6423-1",
+        "productDeviceAlgorithm": "p256-sha256"
+      },
+      "expected": {"approvalAccepted": true, "scopeSubsetOnly": true},
+      "localEvidence": ["apps/docs/mobile/src/wallet.test.ts"]
+    },
+    {
+      "id": "DOCS-AUTH-WRONG-PRODUCT",
+      "owners": ["YNX 35", "YNX 02", "YNX 29"],
+      "precondition": "A valid Cloud session exists for the same actor.",
+      "input": {"sessionProduct": "cloud", "operation": "GET Docs object content"},
+      "expected": {"httpStatus": 403, "contentReturned": false, "auditLeak": false},
+      "localEvidence": ["TestDocsHTTPProductBoundaryThreadsAndExportEvidence"]
+    },
+    {
+      "id": "DOCS-AUTH-REPLAY",
+      "owners": ["YNX 35", "YNX 02"],
+      "precondition": "One Wallet assertion nonce has already created a session.",
+      "input": {"reuseSameAssertion": true},
+      "expected": {"secondSessionCreated": false, "failClosed": true},
+      "localEvidence": ["internal/cloud/service_test.go"]
+    },
+    {
+      "id": "DOCS-AUTH-SCOPE-WIDEN",
+      "owners": ["YNX 35", "YNX 02"],
+      "precondition": "Wallet approval grants a strict subset of Docs scopes.",
+      "input": {"attemptedAdditionalScope": "permissions.manage"},
+      "expected": {"accepted": false, "failClosed": true},
+      "localEvidence": ["apps/docs/mobile/src/wallet.test.ts", "internal/cloud/service_test.go"]
+    },
+    {
+      "id": "DOCS-SAVE-CONFLICT",
+      "owners": ["YNX 35", "YNX 20"],
+      "precondition": "Document current version is 2.",
+      "input": {"baseVersion": 1, "content": "stale edit"},
+      "expected": {"httpStatus": 409, "currentVersion": 2, "serverContentChanged": false},
+      "localEvidence": ["internal/cloud/service_test.go", "apps/docs/tests/client.test.mjs"]
+    },
+    {
+      "id": "DOCS-OFFLINE-RECOVERY",
+      "owners": ["YNX 35"],
+      "precondition": "Local draft was created against version 1; server advanced to version 2 while offline.",
+      "input": {"reconnect": true},
+      "expected": {"silentOverwrite": false, "explicitConflictDialog": true, "localCopyOption": true},
+      "localEvidence": ["apps/docs/web/app-secure.js", "apps/docs/tests/client.test.mjs"]
+    },
+    {
+      "id": "DOCS-DUPLICATE-ACL-ISOLATION",
+      "owners": ["YNX 35", "YNX 20"],
+      "precondition": "Source folder has an editor grant and a comment thread.",
+      "input": {"duplicateFolder": true},
+      "expected": {"copyOwner": "requesting actor", "sourceAclCopied": false, "commentsCopied": false, "currentContentCopied": true},
+      "localEvidence": ["TestDocsObjectOperationsThreadsAndExports"]
+    },
+    {
+      "id": "DOCS-DUPLICATE-PERSISTENCE-FAILURE",
+      "owners": ["YNX 35", "YNX 20"],
+      "precondition": "State persistence fails after clone planning.",
+      "input": {"duplicateFolder": true, "forcePersistFailure": true},
+      "expected": {"apiSuccess": false, "objectCountChanged": false, "versionCountChanged": false, "auditCountChanged": false},
+      "localEvidence": ["TestDuplicateObjectRollsBackWhenPersistenceFails"]
+    },
+    {
+      "id": "DOCS-COMMENT-ANCHOR-TAMPER",
+      "owners": ["YNX 35"],
+      "precondition": "Version 1 begins with the text Hello.",
+      "input": {"start": 0, "end": 5, "quote": "Wrong"},
+      "expected": {"commentCreated": false, "error": "invalid"},
+      "localEvidence": ["TestDocsObjectOperationsThreadsAndExports"]
+    },
+    {
+      "id": "DOCS-COMMENT-RESOLVED-REPLY",
+      "owners": ["YNX 35"],
+      "precondition": "The root thread is resolved.",
+      "input": {"replyToRoot": true},
+      "expected": {"replyCreated": false, "reopenRequired": true},
+      "localEvidence": ["TestDocsObjectOperationsThreadsAndExports"]
+    },
+    {
+      "id": "DOCS-EXPORT-EVIDENCE",
+      "owners": ["YNX 35", "YNX 15", "YNX 26"],
+      "precondition": "Document version 1 exists and is readable.",
+      "input": {"format": "html", "version": 1},
+      "expected": {
+        "httpStatus": 200,
+        "htmlEscaped": true,
+        "headers": ["X-YNX-Source-SHA256", "X-Content-SHA256", "X-YNX-Document-Version"],
+        "event": "document.export",
+        "plaintextInTrustPayload": false
+      },
+      "localEvidence": ["TestDocsObjectOperationsThreadsAndExports", "TestDocsHTTPProductBoundaryThreadsAndExportEvidence"]
+    },
+    {
+      "id": "DOCS-AI-CLOUD-CONTEXT-DENY",
+      "owners": ["YNX 35", "YNX 14", "YNX 02"],
+      "precondition": "Cloud session has ai.use and owns the document.",
+      "input": {"sessionProduct": "cloud", "objectIds": ["Docs document"]},
+      "expected": {"httpStatus": 403, "providerCalled": false, "documentContentSent": false},
+      "localEvidence": ["TestDocsHTTPProductBoundaryThreadsAndExportEvidence"]
+    },
+    {
+      "id": "DOCS-AI-SELECTED-VERSION-REVIEW",
+      "owners": ["YNX 35", "YNX 14", "YNX 26"],
+      "precondition": "Docs session explicitly consents to one selected document version.",
+      "input": {"mode": "revise", "contexts": ["objectId@version"], "consent": true},
+      "expected": {"resultStatus": "review", "documentChangedBeforeApproval": false, "approveRejectAvailable": true, "costEstimatePresent": true},
+      "localEvidence": ["internal/cloud/service_test.go", "apps/docs/web/app-secure.js"]
+    },
+    {
+      "id": "DOCS-MIGRATION-V1-V2",
+      "owners": ["YNX 35", "YNX 30"],
+      "precondition": "Integrity-valid schema v1 state contains a legacy comment without threadId.",
+      "input": {"restartWithCurrentBinary": true},
+      "expected": {"loadSucceeds": true, "schemaVersion": 2, "threadIdEqualsCommentId": true, "migrationPersisted": true},
+      "localEvidence": ["TestCloudStateV1MigratesCommentThreadsToV2"]
+    },
+    {
+      "id": "DOCS-TRUST-PAYLOAD-FIELDS",
+      "owners": ["YNX 35", "YNX 15"],
+      "precondition": "Remote Trust endpoint accepts evidence.",
+      "input": {"actor": "ynx1…", "action": "document.export", "objectId": "obj_docs", "hash": "sha256"},
+      "expected": {"distinctJsonFields": ["actor", "action", "objectId", "hash"], "plaintextPresent": false},
+      "localEvidence": ["TestRemoteContractsFailClosedAndBindEvidence", "go vet ./internal/cloud"]
+    }
+  ]
+}

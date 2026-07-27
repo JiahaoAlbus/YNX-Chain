@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "ynx.public-product-metadata.v1",
+  "product": "YNX Docs",
+  "aliases": ["Docs", "YNX Documents"],
+  "slug": "docs",
+  "canonicalRoute": "/docs",
+  "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+  "website": {
+    "websitePublished": false,
+    "deployedPublic": false,
+    "runtimePublicUrl": null,
+    "downloadHosted": false
+  },
+  "seo": {
+    "title": "YNX Docs — Private, versioned documents with explicit collaboration control",
+    "metaDescription": "Create and edit versioned documents with offline recovery, permission controls, auditable exports and review-first AI assistance.",
+    "h1": "Documents that stay under your control",
+    "canonicalPath": "/docs",
+    "robots": "index,follow"
+  },
+  "positioning": "YNX Docs is an independent document editing and collaboration product. Document bodies remain in Cloud/Object Store; only necessary permission, version-hash, audit and settlement evidence may be recorded by accepted YNX services.",
+  "features": [
+    "Wallet-gated document and folder access",
+    "Version-aware autosave and explicit conflict recovery",
+    "Offline drafts with no silent overwrite",
+    "Rename, move and duplicate with permission isolation",
+    "Version history and restore-as-new-version",
+    "Version-bound comment threads and resolution",
+    "Share grants, expiring links and revocation services",
+    "Text, Markdown, HTML and JSON export with source/output hashes",
+    "Review-first AI drafts limited to selected document versions",
+    "Audit and Trust evidence without document plaintext"
+  ],
+  "risksAndLimits": [
+    "Current release status is local development, not a public Runtime.",
+    "PDF export is not currently claimed.",
+    "Shared Testnet, central integration, hosted downloads and production signing are not yet verified.",
+    "AI availability, provider, model and cost depend on accepted AI Gateway status; no result is applied without user review.",
+    "Document bodies are not claimed to be stored on-chain."
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "platforms": [
+    {"name": "Web", "status": "testedLocal", "download": null},
+    {"name": "Android", "status": "localBundleOnly", "download": null},
+    {"name": "iOS", "status": "localBundleOnly", "download": null}
+  ],
+  "artifacts": [],
+  "screenshots": [],
+  "logo": null,
+  "icon": null,
+  "links": {
+    "support": null,
+    "privacy": null,
+    "security": null,
+    "status": null
+  },
+  "faq": [
+    {
+      "question": "Does YNX Docs store document text on-chain?",
+      "answer": "No. Document bodies and versions are designed for Cloud/Object Store. Accepted YNX services may retain permission, version-hash, audit or settlement evidence without document plaintext."
+    },
+    {
+      "question": "What happens when two devices edit the same document?",
+      "answer": "YNX Docs compares the client's base version with the current server version. A mismatch opens explicit conflict recovery instead of silently overwriting either edit."
+    },
+    {
+      "question": "Can AI read every file in my Drive?",
+      "answer": "No. Docs AI requests are limited to document versions the user explicitly selects and consents to send. Results remain drafts until approved or rejected."
+    },
+    {
+      "question": "Which export formats are available?",
+      "answer": "The current local runtime supports Text, Markdown, HTML and JSON exports with source and output hash evidence. PDF is not yet claimed."
+    },
+    {
+      "question": "Is YNX Docs publicly available now?",
+      "answer": "No. The product is implemented and tested locally, but central integration, public deployment, hosted downloads and production signing are not yet verified."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "YNX Docs",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, Android, iOS",
+    "urlPath": "/docs",
+    "releaseStatus": "Development"
+  },
+  "websiteIntegration": {
+    "owner": "YNX 28",
+    "freezeOwner": "YNX 29",
+    "releaseVerifier": "YNX 30",
+    "instructions": "Publish only after validating this file and retaining the distinction between the Website page and the Docs Runtime. Do not synthesize download links or public deployment claims."
+  }
+}

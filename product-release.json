@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "ynx.product-release.v1",
+  "productId": "35",
+  "product": "YNX Docs",
+  "slug": "docs",
+  "releaseChannel": "development",
+  "goalStatus": "ACTIVE",
+  "phase": "PROTECT",
+  "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+  "stateSchemaVersion": 2,
+  "contract": {
+    "id": "ynx-docs-v1",
+    "path": "release/integration/docs-contract.json",
+    "status": "candidateForCentralFreeze"
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "websitePublished": false
+  },
+  "platforms": {
+    "web": {
+      "implementedLocal": true,
+      "testedLocal": true,
+      "pwaInstallVerified": false,
+      "deployedPublic": false,
+      "publicUrl": null
+    },
+    "android": {
+      "implementedLocal": true,
+      "bundleExportedLocal": true,
+      "installedLocal": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "artifact": null
+    },
+    "ios": {
+      "implementedLocal": true,
+      "bundleExportedLocal": true,
+      "installedLocal": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "artifact": null
+    },
+    "macos": {
+      "applicability": "pending product decision",
+      "implementedLocal": false
+    },
+    "windows": {
+      "applicability": "pending product decision",
+      "implementedLocal": false
+    }
+  },
+  "supportedExportFormats": ["text", "markdown", "html", "json"],
+  "unsupportedOrUnverified": [
+    "PDF export",
+    "central owner acceptance",
+    "shared Testnet E2E",
+    "public Runtime",
+    "hosted downloads",
+    "device installation and cold start",
+    "production signing",
+    "store release",
+    "backup/restore drill",
+    "SBOM and provenance",
+    "artifact scan",
+    "complete Web 12-locale coverage",
+    "manual accessibility audit",
+    "capacity and unit-economics measurements"
+  ],
+  "verification": {
+    "passed": [
+      "go test ./internal/cloud -count=1",
+      "go test -race ./internal/cloud -count=1",
+      "go vet ./internal/cloud",
+      "npm --prefix apps/docs test",
+      "npm --prefix apps/docs run check",
+      "pnpm run check in apps/docs/mobile",
+      "git diff --check"
+    ],
+    "blocked": [
+      {
+        "command": "go test ./...",
+        "scope": "repository-wide",
+        "docsPackagePassed": true,
+        "failures": [
+          "consensus transaction key-permission expectation",
+          "missing Devtools contract artifact in bftgateway/consensus",
+          "faucet key-permission expectation",
+          "Trust signer-permission expectation"
+        ],
+        "owner": "central module owners"
+      }
+    ]
+  },
+  "artifacts": [],
+  "sbom": null,
+  "provenance": null,
+  "signingClass": "none",
+  "publicProof": [],
+  "externalInputs": [
+    "central contract acceptance",
+    "shared Testnet endpoints and deployment permission",
+    "release signing and hosting path",
+    "Website publication acceptance",
+    "support/privacy/security/status canonical URLs"
+  ],
+  "nextAction": "Freeze the candidate integration contract, then implement restart/backup/restore and central Testnet adapters before any public or release status is promoted."
+}
