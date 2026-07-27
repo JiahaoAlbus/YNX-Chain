@@ -55,6 +55,8 @@ func TestResourceIntegrationContractAndVectorsStayAligned(t *testing.T) {
 		"RESOURCE_ACTION_REJECTED",
 		"RESOURCE_CAPACITY_UNAVAILABLE",
 		"RESOURCE_STATE_TRANSITION_INVALID",
+		"RESOURCE_METER_WINDOW_INVALID",
+		"RESOURCE_METER_LIMIT",
 		"RESOURCE_PROOF_REJECTED",
 		"RESOURCE_SETTLEMENT_STATE_INVALID",
 		"RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED",
@@ -98,5 +100,13 @@ func TestResourceIntegrationContractAndVectorsStayAligned(t *testing.T) {
 	engineReconcile := errors.New("receipt amounts do not reconcile to signed metering")
 	if got := marketErrorCode("confirm_settlement", engineReconcile); got != byID["RM-SETTLEMENT-RECONCILE-001"] {
 		t.Fatalf("runtime reconciliation code=%s vector code=%s", got, byID["RM-SETTLEMENT-RECONCILE-001"])
+	}
+	meterOverlap := errors.New("meter interval overlaps previously accepted usage")
+	if got := marketErrorCode("record_usage", meterOverlap); got != byID["RM-METER-OVERLAP-001"] {
+		t.Fatalf("runtime meter-window code=%s vector code=%s", got, byID["RM-METER-OVERLAP-001"])
+	}
+	meterLimit := errors.New("cumulative metered quantity exceeds ordered units")
+	if got := marketErrorCode("record_usage", meterLimit); got != byID["RM-METER-LIMIT-001"] {
+		t.Fatalf("runtime meter-limit code=%s vector code=%s", got, byID["RM-METER-LIMIT-001"])
 	}
 }

@@ -211,6 +211,79 @@ func TestSettlementReceiptRejectsTransactionReplayAndNormalizesReference(t *test
 	}
 }
 
+func TestSegmentedMeteringRejectsOverlapAndCumulativeOverrun(t *testing.T) {
+	now := time.Date(2026, 7, 27, 11, 0, 0, 0, time.UTC)
+	e, err := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := provider(t, e, "provider-segmented", "Segmented Provider", "region", 100)
+	offer, err := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "cpu_compute", Unit: "vcpu-second", Pricing: "fixed", Currency: "YNXT-testnet", UnitPrice: 2, Capacity: 100, MinUnits: 1, MaxUnits: 100, Source: evidence(now, "capacity_proof"), ExpiresAt: now.Add(time.Hour)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	quote, err := e.CreateQuote("segmented-buyer", offer.ID, 100, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	order, err := e.AcceptIntent("segmented-buyer", quote.ID, Digest(map[string]string{"quoteId": quote.ID, "buyer": "segmented-buyer"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	order, err = e.Reserve(p.Wallet, order.ID, "reservation-proof")
+	if err != nil {
+		t.Fatal(err)
+	}
+	order, err = e.StartService(p.Wallet, order.ID, "service-start-proof")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	firstSource := evidence(now.Add(40*time.Second), "signed_meter")
+	firstIntegrity := signedMeter(t, e, p, order, quote, now, now.Add(40*time.Second), 40, firstSource, "segmented-worker-a")
+	first, err := e.RecordUsage(p.Wallet, order.ID, now, now.Add(40*time.Second), 40, firstIntegrity, firstSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Quantity != 40 || first.ProviderNet != 80 || first.ProtocolFee != 2 || first.GrossCost != 82 {
+		t.Fatalf("first meter=%+v", first)
+	}
+	if _, err = e.PrepareMeter(p.Wallet, order.ID, now.Add(20*time.Second), now.Add(50*time.Second), 10, evidence(now.Add(50*time.Second), "signed_meter")); err == nil || !strings.Contains(err.Error(), "overlaps") {
+		t.Fatalf("overlapping meter window was not rejected: %v", err)
+	}
+	if _, err = e.PrepareMeter(p.Wallet, order.ID, now.Add(40*time.Second), now.Add(101*time.Second), 61, evidence(now.Add(101*time.Second), "signed_meter")); err == nil || !strings.Contains(err.Error(), "exceeds") {
+		t.Fatalf("cumulative meter overrun was not rejected: %v", err)
+	}
+	if _, err = e.PrepareMeter(p.Wallet, order.ID, now.Add(-time.Second), now.Add(time.Second), 1, evidence(now.Add(time.Second), "signed_meter")); err == nil || !strings.Contains(err.Error(), "service start") {
+		t.Fatalf("pre-service meter was not rejected: %v", err)
+	}
+
+	secondSource := evidence(now.Add(100*time.Second), "signed_meter")
+	secondIntegrity := signedMeter(t, e, p, order, quote, now.Add(40*time.Second), now.Add(100*time.Second), 60, secondSource, "segmented-worker-b")
+	second, err := e.RecordUsage(p.Wallet, order.ID, now.Add(40*time.Second), now.Add(100*time.Second), 60, secondIntegrity, secondSource)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.Quantity != 60 || second.ProviderNet != 120 || second.ProtocolFee != 3 || second.GrossCost != 123 {
+		t.Fatalf("second meter=%+v", second)
+	}
+	order, err = e.CompleteService(p.Wallet, order.ID, "completion-proof")
+	if err != nil {
+		t.Fatal(err)
+	}
+	order, err = e.MarkSettlementPending("segmented-buyer", order.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipt, err := e.ConfirmSettlement("chain-receipt-indexer", order.ID, Receipt{Asset: "YNXT-testnet", TransactionHash: "0xsegmented", Evidence: "receipt-proof", GrossCost: 205, ProviderNet: 200, ProtocolFee: 5, Source: evidence(now.Add(101*time.Second), "chain_receipt")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if receipt.GrossCost != 205 || receipt.ProviderNet != 200 || receipt.ProtocolFee != 5 {
+		t.Fatalf("segmented receipt=%+v", receipt)
+	}
+}
+
 func TestFailClosedTransitionsAndCapacity(t *testing.T) {
 	now := time.Now().UTC()
 	e, _ := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return now })

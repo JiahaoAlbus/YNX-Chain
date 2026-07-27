@@ -562,8 +562,11 @@ func (e *Engine) PrepareMeter(providerWallet, orderID string, start, end time.Ti
 	o, ok := e.data.Orders[orderID]
 	p := e.data.Providers[o.ProviderID]
 	q := e.data.Quotes[o.QuoteID]
-	if !ok || p.Wallet != providerWallet || o.Status != "service_started" || !end.After(start) || quantity <= 0 || quantity > o.Units || !validSource(source) {
+	if !ok || p.Wallet != providerWallet || !validSource(source) {
 		return MeterSigningRequest{}, errors.New("provider-owned active service, bounded interval, quantity and source required")
+	}
+	if _, _, err := e.validateMeterWindowLocked(o, start, end, quantity); err != nil {
+		return MeterSigningRequest{}, err
 	}
 	raw, err := MeterPayloadJSON(o, q, start, end, quantity, source)
 	if err != nil {
@@ -575,6 +578,42 @@ func (e *Engine) PrepareMeter(providerWallet, orderID string, start, end time.Ti
 	}
 	sum := sha256.Sum256(raw)
 	return MeterSigningRequest{Payload: payload, CanonicalJSON: string(raw), SHA256: hex.EncodeToString(sum[:]), Algorithm: "Ed25519", IntegrityFormat: "ed25519:<workerKeyId>:<base64url-signature>"}, nil
+}
+
+func (e *Engine) serviceStartedAtLocked(order Order) (time.Time, bool) {
+	for _, audit := range e.data.Audit {
+		if audit.Target == order.ID && audit.Action == "service_started" {
+			return audit.At.UTC(), true
+		}
+	}
+	return time.Time{}, false
+}
+
+func (e *Engine) validateMeterWindowLocked(order Order, start, end time.Time, quantity int64) (int64, int64, error) {
+	if order.Status != "service_started" && order.Status != "metered_usage" {
+		return 0, 0, errors.New("active metered service required")
+	}
+	start, end = start.UTC(), end.UTC()
+	serviceStartedAt, ok := e.serviceStartedAtLocked(order)
+	if !ok || !end.After(start) || start.Before(serviceStartedAt) {
+		return 0, 0, errors.New("meter interval must begin at or after evidenced service start")
+	}
+	var totalQuantity, totalFee int64
+	for _, meterID := range order.MeterIDs {
+		meter, exists := e.data.Meters[meterID]
+		if !exists || meter.OrderID != order.ID {
+			return 0, 0, errors.New("meter lineage is incomplete or mismatched")
+		}
+		if start.Before(meter.End) && end.After(meter.Start) {
+			return 0, 0, errors.New("meter interval overlaps previously accepted usage")
+		}
+		totalQuantity += meter.Quantity
+		totalFee += meter.ProtocolFee
+	}
+	if quantity <= 0 || totalQuantity > order.Units || quantity > order.Units-totalQuantity {
+		return 0, 0, errors.New("cumulative metered quantity exceeds ordered units")
+	}
+	return totalQuantity, totalFee, nil
 }
 
 func (e *Engine) PublishOffer(actor string, o Offer) (Offer, error) {
@@ -1005,8 +1044,12 @@ func (e *Engine) RecordUsage(providerWallet, orderID string, start, end time.Tim
 	p := e.data.Providers[o.ProviderID]
 	q := e.data.Quotes[o.QuoteID]
 	parts := strings.SplitN(integrity, ":", 3)
-	if !ok || p.Wallet != providerWallet || o.Status != "service_started" || !end.After(start) || quantity <= 0 || quantity > o.Units || len(parts) != 3 || parts[0] != "ed25519" || !validSource(source) {
+	if !ok || p.Wallet != providerWallet || len(parts) != 3 || parts[0] != "ed25519" || !validSource(source) {
 		return Meter{}, errors.New("active service, bounded usage interval, Ed25519 evidence and source required")
+	}
+	priorQuantity, priorFee, err := e.validateMeterWindowLocked(o, start, end, quantity)
+	if err != nil {
+		return Meter{}, err
 	}
 	worker, keyOK := e.data.WorkerKeys[parts[1]]
 	publicKey, keyErr := base64.RawURLEncoding.DecodeString(worker.PublicKey)
@@ -1018,7 +1061,11 @@ func (e *Engine) RecordUsage(providerWallet, orderID string, start, end time.Tim
 	cost := quantity * q.UnitPrice
 	fee := int64(0)
 	if o.Units > 0 {
-		fee = q.ProtocolFee * quantity / o.Units
+		cumulativeFee := q.ProtocolFee * (priorQuantity + quantity) / o.Units
+		fee = cumulativeFee - priorFee
+		if fee < 0 {
+			return Meter{}, errors.New("meter fee lineage is invalid")
+		}
 	}
 	m := Meter{ID: e.next("meter"), OrderID: o.ID, Buyer: o.Buyer, ProviderID: o.ProviderID, Resource: o.Resource, Unit: o.Unit, IntegrityEvidence: "verified Ed25519 worker signature", Status: "metered_usage", Start: start.UTC(), End: end.UTC(), Quantity: quantity, Rate: q.UnitPrice, GrossCost: cost + fee, ProviderNet: cost, ProtocolFee: fee, Source: source, WorkerKeyID: worker.ID, Signature: parts[2]}
 	e.data.Meters[m.ID] = m

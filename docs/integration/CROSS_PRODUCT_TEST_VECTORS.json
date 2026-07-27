@@ -72,6 +72,28 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "RM-METER-OVERLAP-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "At least one signed usage interval is already accepted for the order.",
+      "action": "Submit another interval that overlaps any accepted interval or begins before evidenced service start.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_METER_WINDOW_INVALID",
+      "expectedState": "no additional meter or billing event; accepted usage remains unchanged",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-METER-LIMIT-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "The order already contains one or more accepted signed usage segments.",
+      "action": "Submit a segment that makes cumulative usage exceed ordered units or breaks cumulative fee lineage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_METER_LIMIT",
+      "expectedState": "no additional meter; cumulative quantity and fee totals remain bounded",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "RM-FAILURE-NO-FAKE-REFUND-001",
       "category": "failure-dispute",
       "owners": ["15-trust-center", "16-resource-market", "26-data-fabric"],

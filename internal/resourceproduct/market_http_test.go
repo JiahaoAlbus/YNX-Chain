@@ -47,6 +47,8 @@ func TestMarketErrorCodeContract(t *testing.T) {
 		{"confirm_settlement", errors.New("wrong order status"), "RESOURCE_SETTLEMENT_STATE_INVALID"},
 		{"verify_provider", errors.New("resource_verifier role required"), "RESOURCE_ROLE_REQUIRED"},
 		{"reserve", errors.New("available capacity required"), "RESOURCE_CAPACITY_UNAVAILABLE"},
+		{"record_usage", errors.New("meter interval overlaps previously accepted usage"), "RESOURCE_METER_WINDOW_INVALID"},
+		{"record_usage", errors.New("cumulative metered quantity exceeds ordered units"), "RESOURCE_METER_LIMIT"},
 		{"record_usage", errors.New("meter proof replay rejected"), "RESOURCE_PROOF_REJECTED"},
 	}
 	for _, tc := range cases {

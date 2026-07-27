@@ -300,7 +300,11 @@ func marketErrorCode(action string, err error) string {
 		return "RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED"
 	case action == "settlement_pending" || action == "confirm_settlement":
 		return "RESOURCE_SETTLEMENT_STATE_INVALID"
-	case strings.Contains(message, "replay") || strings.Contains(message, "tamper"):
+	case strings.Contains(message, "meter interval") || strings.Contains(message, "service start") || strings.Contains(message, "meter lineage"):
+		return "RESOURCE_METER_WINDOW_INVALID"
+	case strings.Contains(message, "cumulative metered quantity") || strings.Contains(message, "meter fee lineage"):
+		return "RESOURCE_METER_LIMIT"
+	case strings.Contains(message, "replay") || strings.Contains(message, "tamper") || strings.Contains(message, "worker meter signature"):
 		return "RESOURCE_PROOF_REJECTED"
 	case strings.Contains(message, "capacity"):
 		return "RESOURCE_CAPACITY_UNAVAILABLE"

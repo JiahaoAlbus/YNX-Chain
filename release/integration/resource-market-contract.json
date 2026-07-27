@@ -122,6 +122,7 @@
     "signatureAlgorithm": "Ed25519",
     "requiredBindings": ["orderId", "buyer", "providerId", "resource", "unit", "start", "end", "quantity", "rate", "source"],
     "workerKeyRules": ["provider-owned", "active", "not expired", "not revoked", "payload exact", "signature verified"],
+    "usageWindowRules": ["starts at or after evidenced service start", "non-overlapping intervals", "cumulative quantity does not exceed ordered units", "cumulative protocol-fee allocation preserves quote rounding"],
     "receiptReconciliation": ["grossCost", "providerNet", "protocolFee", "refund bounded by grossCost"]
   },
   "canonicalEvents": [
@@ -148,6 +149,8 @@
     "RESOURCE_ACTION_REJECTED": "The requested action violates a product invariant or required evidence is absent.",
     "RESOURCE_CAPACITY_UNAVAILABLE": "Verified unreserved capacity is insufficient or capacity evidence is invalid.",
     "RESOURCE_STATE_TRANSITION_INVALID": "The requested transition does not match the current authoritative local lifecycle state.",
+    "RESOURCE_METER_WINDOW_INVALID": "The usage interval predates evidenced service start, overlaps accepted usage or has incomplete lineage.",
+    "RESOURCE_METER_LIMIT": "Cumulative signed usage or fee lineage exceeds the ordered boundary.",
     "RESOURCE_PROOF_REJECTED": "A replayed, tampered, expired, revoked or mismatched proof was rejected.",
     "RESOURCE_SETTLEMENT_STATE_INVALID": "Settlement was requested outside the completed-service and settlement-pending sequence.",
     "RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED": "Authoritative settlement identity, asset, transaction, source or evidence is absent.",
@@ -187,6 +190,8 @@
       "RM-SETTLEMENT-RECONCILE-001",
       "RM-SETTLEMENT-REPLAY-001",
       "RM-METER-TAMPER-001",
+      "RM-METER-OVERLAP-001",
+      "RM-METER-LIMIT-001",
       "RM-FAILURE-NO-FAKE-REFUND-001"
     ]
   },

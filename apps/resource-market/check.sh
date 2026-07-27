@@ -5,7 +5,8 @@ TMP="$(mktemp -d)"
 cleanup(){ kill "${PID:-}" 2>/dev/null || true; wait "${PID:-}" 2>/dev/null || true; rm -rf "$TMP"; }
 trap cleanup EXIT
 cd "$ROOT"
-YNX_RESOURCE_MARKET_DEV_HEADER_AUTH=1 YNX_RESOURCE_MARKET_ADDR=127.0.0.1:16441 YNX_RESOURCE_MARKET_STORE="$TMP/state.json" YNX_RESOURCE_MARKET_ENGINE_STORE="$TMP/market.json" go run ./apps/resource-market >"$TMP/server.log" 2>&1 & PID=$!
+go build -o "$TMP/resource-market" ./apps/resource-market
+YNX_RESOURCE_MARKET_DEV_HEADER_AUTH=1 YNX_RESOURCE_MARKET_ADDR=127.0.0.1:16441 YNX_RESOURCE_MARKET_STORE="$TMP/state.json" YNX_RESOURCE_MARKET_ENGINE_STORE="$TMP/market.json" "$TMP/resource-market" >"$TMP/server.log" 2>&1 & PID=$!
 for _ in {1..300}; do curl -fsS http://127.0.0.1:16441/health >/dev/null 2>&1 && break; sleep .1; done
 curl -fsS http://127.0.0.1:16441/health | jq -e '.status == "ready" and .checks.marketEngineInitialized == "pass" and .coverage == "local process initialization only"' >/dev/null
 curl -fsS http://127.0.0.1:16441/version | jq -e '.marketSchemaVersion == 5 and .releaseClass == "unreleased-local-candidate"' >/dev/null
