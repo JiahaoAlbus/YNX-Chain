@@ -53,14 +53,31 @@ const artifacts = required.map(([name, role]) => {
 
 const coldStart = JSON.parse(fs.readFileSync(path.join(publishDir, `${release}-cold-start-evidence.json`), "utf8"));
 const archive = artifacts.find((artifact) => artifact.role === "linux-amd64-archive");
+const requiredColdStartChecks = [
+  "archiveIntegrity",
+  "extractedManifestIntegrity",
+  "executableELFInventory",
+  "daemonHealth",
+  "runtimeIdentity",
+  "metrics",
+  "operatorSurface",
+  "unauthorizedWriteRejected",
+  "fileIntegrityAudit",
+  "backupRestore",
+  "workerProcessLoad",
+  "payBridgeProcessLoad",
+];
 if (
   coldStart.schema !== "ynx-data-fabric-cold-start-evidence/v1"
   || coldStart.commit !== commit
   || coldStart.release !== release
   || coldStart.target?.os !== "linux"
   || coldStart.target?.architecture !== "amd64"
+  || (coldStart.environment !== "linux-runtime" && coldStart.environment !== "contract-test")
   || coldStart.status !== "verified"
   || coldStart.archiveSha256 !== archive.sha256
+  || requiredColdStartChecks.some((check) => coldStart.checks?.[check] !== true)
+  || (coldStart.environment === "linux-runtime" && (!Array.isArray(coldStart.binaries) || coldStart.binaries.length !== 4))
 ) {
   throw new Error("cold-start evidence is not bound to the release archive");
 }

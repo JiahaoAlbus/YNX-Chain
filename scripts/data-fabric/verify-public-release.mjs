@@ -84,12 +84,29 @@ if (
 ) fail("signed public release does not preserve the verified Testnet candidate identity");
 
 const coldStart = JSON.parse(fs.readFileSync(path.join(publishDir, `${expectedRelease}-cold-start-evidence.json`), "utf8"));
+const requiredColdStartChecks = [
+  "archiveIntegrity",
+  "extractedManifestIntegrity",
+  "executableELFInventory",
+  "daemonHealth",
+  "runtimeIdentity",
+  "metrics",
+  "operatorSurface",
+  "unauthorizedWriteRejected",
+  "fileIntegrityAudit",
+  "backupRestore",
+  "workerProcessLoad",
+  "payBridgeProcessLoad",
+];
 if (
   coldStart.schema !== "ynx-data-fabric-cold-start-evidence/v1"
   || coldStart.commit !== expectedCommit
   || coldStart.release !== expectedRelease
+  || (coldStart.environment !== "linux-runtime" && coldStart.environment !== "contract-test")
   || coldStart.status !== "verified"
   || coldStart.archiveSha256 !== archive.sha256
+  || requiredColdStartChecks.some((check) => coldStart.checks?.[check] !== true)
+  || (coldStart.environment === "linux-runtime" && (!Array.isArray(coldStart.binaries) || coldStart.binaries.length !== 4))
 ) fail("public release cold-start evidence is invalid");
 
 const receipt = JSON.parse(fs.readFileSync(hostingReceiptPath, "utf8"));

@@ -25,6 +25,7 @@ runtime_paths=(
   scripts/data-fabric/deploy-testnet.sh
   scripts/data-fabric/install-testnet-release.sh
   scripts/data-fabric/extract-public-testnet-release.mjs
+  scripts/data-fabric/generate-cold-start-evidence.sh
   scripts/data-fabric/package-public-testnet-release.mjs
   scripts/data-fabric/package-public-testnet-release.sh
   scripts/data-fabric/promote-public-release.sh
@@ -38,6 +39,7 @@ runtime_paths=(
   scripts/data-fabric/verify-public-testnet-release.mjs
   scripts/data-fabric/verify-public-release.mjs
   scripts/data-fabric/write-public-release.mjs
+  scripts/data-fabric/write-cold-start-evidence.mjs
   scripts/data-fabric/write-testnet-release-manifest.mjs
   scripts/data-fabric/write-testnet-provenance.mjs
   scripts/data-fabric/verify-testnet-release.mjs

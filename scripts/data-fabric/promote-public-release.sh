@@ -38,6 +38,8 @@ if [[ "${YNX_DATA_FABRIC_PUBLIC_RELEASE_TEST_MODE:-0}" == "1" ]]; then
 else
   [[ "${YNX_DATA_FABRIC_PUBLIC_RELEASE_APPROVED:-}" == "yes" ]] || { echo "YNX_DATA_FABRIC_PUBLIC_RELEASE_APPROVED=yes is required" >&2; exit 1; }
   ynx_require_clean_worktree
+  jq -e '.environment == "linux-runtime" and .status == "verified"' "$YNX_DATA_FABRIC_COLD_START_EVIDENCE_FILE" >/dev/null ||
+    { echo "production promotion requires verified Linux runtime cold-start evidence" >&2; exit 1; }
 fi
 signer_command="$YNX_DATA_FABRIC_SECURE_SIGNER_COMMAND"
 public_key="$YNX_DATA_FABRIC_SIGNING_PUBLIC_KEY"

@@ -15,7 +15,9 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$WORK/bin" "$WORK/config" "$WORK/data"
+binary_mode="host-build"
 if [[ -n "${YNX_DATA_FABRIC_BIN_DIR:-}" ]]; then
+  binary_mode="packaged"
   for command in ynx-data-fabricd ynx-data-fabric-worker ynx-data-fabricctl; do
     [[ -x "$YNX_DATA_FABRIC_BIN_DIR/$command" ]] || { echo "packaged binary is not executable: $command" >&2; exit 1; }
     cp "$YNX_DATA_FABRIC_BIN_DIR/$command" "$WORK/bin/$command"
@@ -35,7 +37,8 @@ chmod 600 "$WORK/config/event-keys.json"
 : > "$WORK/data/events.jsonl"
 chmod 600 "$WORK/data/events.jsonl"
 
-SOURCE_COMMIT=$(git -C "$ROOT" rev-parse HEAD)
+SOURCE_COMMIT="${YNX_DATA_FABRIC_SMOKE_SOURCE_COMMIT:-$(git -C "$ROOT" rev-parse HEAD)}"
+SOURCE_RELEASE="${YNX_DATA_FABRIC_SMOKE_SOURCE_RELEASE:-data-fabric-local-smoke}"
 "$WORK/bin/ynx-data-fabricd" \
 	--store=file \
 	--broker=file \
@@ -46,7 +49,7 @@ SOURCE_COMMIT=$(git -C "$ROOT" rev-parse HEAD)
   --privacy-key "$WORK/config/privacy.key" \
   --introspection-url http://127.0.0.1:18095/app/session/introspect \
   --source-commit "$SOURCE_COMMIT" \
-  --source-release data-fabric-local-smoke > "$WORK/daemon.log" 2>&1 &
+  --source-release "$SOURCE_RELEASE" > "$WORK/daemon.log" 2>&1 &
 DAEMON_PID=$!
 
 ready=false
@@ -85,11 +88,37 @@ DAEMON_PID=""
   --event-keys "$WORK/config/event-keys.json" \
   --output "$WORK/backup" \
   --source-commit "$SOURCE_COMMIT" \
-  --source-release data-fabric-local-smoke | jq -e '.integrity == "verified" and .eventCount == 0 and .eventLogCount == 0' >/dev/null
+  --source-release "$SOURCE_RELEASE" | jq -e '.integrity == "verified" and .eventCount == 0 and .eventLogCount == 0' >/dev/null
 "$WORK/bin/ynx-data-fabricctl" restore \
   --backup "$WORK/backup" \
   --target-state "$WORK/restored/state.json" \
   --target-event-log "$WORK/restored/events.jsonl" \
   --event-keys "$WORK/config/event-keys.json" | jq -e '.status == "restored-and-verified"' >/dev/null
 "$WORK/bin/ynx-data-fabricctl" verify --state "$WORK/restored/state.json" --event-log "$WORK/restored/events.jsonl" --event-keys "$WORK/config/event-keys.json" | jq -e '.status == "verified"' >/dev/null
+if [[ -n "${YNX_DATA_FABRIC_SMOKE_RECEIPT_OUTPUT:-}" ]]; then
+  [[ "$YNX_DATA_FABRIC_SMOKE_RECEIPT_OUTPUT" == /* && ! -e "$YNX_DATA_FABRIC_SMOKE_RECEIPT_OUTPUT" ]] ||
+    { echo "smoke receipt output must be a new absolute path" >&2; exit 1; }
+  jq -n \
+    --arg commit "$SOURCE_COMMIT" \
+    --arg release "$SOURCE_RELEASE" \
+    --arg binaryMode "$binary_mode" \
+    --arg verifiedAt "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+    '{
+      schema:"ynx-data-fabric-smoke-receipt/v1",
+      commit:$commit,
+      release:$release,
+      binaryMode:$binaryMode,
+      verifiedAt:$verifiedAt,
+      checks:{
+        daemonHealth:true,
+        runtimeIdentity:true,
+        metrics:true,
+        operatorSurface:true,
+        unauthorizedWriteRejected:true,
+        fileIntegrityAudit:true,
+        backupRestore:true
+      }
+    }' >"$YNX_DATA_FABRIC_SMOKE_RECEIPT_OUTPUT"
+  chmod 0600 "$YNX_DATA_FABRIC_SMOKE_RECEIPT_OUTPUT"
+fi
 printf 'YNX Data Fabric local cold-start smoke passed\n'
