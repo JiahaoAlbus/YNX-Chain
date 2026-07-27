@@ -3,7 +3,11 @@ set -euo pipefail
 
 repo_root=$(cd "$(dirname "$0")/../../.." && pwd)
 cd "$repo_root"
-commit=$(git rev-parse HEAD)
+commit_ref=${YNX_QUANT_SOURCE_COMMIT:-HEAD}
+if ! commit=$(git rev-parse --verify "${commit_ref}^{commit}"); then
+  echo "Invalid Quant desktop source commit: $commit_ref" >&2
+  exit 1
+fi
 output=${YNX_QUANT_DESKTOP_OUTPUT:-dist/quant-desktop}
 mac_app="$output/macos/YNX Quant Lab.app"
 windows_dir="$output/windows/YNX Quant Lab"
@@ -17,13 +21,13 @@ cp apps/quant-lab/desktop/Info.plist "$mac_app/Contents/Info.plist"
 cp -R apps/quant-lab/web/. "$mac_app/Contents/Resources/web/"
 cp -R apps/quant-lab/web/. "$windows_dir/web/"
 
-CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o "$mac_app/Contents/MacOS/ynx-quant-desktop" ./cmd/ynx-quant-desktop
-CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w -X github.com/JiahaoAlbus/YNX-Chain/internal/quantlab.BuildCommit=$commit" -o "$mac_app/Contents/MacOS/ynx-quantd" ./cmd/ynx-quantd
-CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o "$mac_app/Contents/MacOS/ynx-quant-web" ./cmd/ynx-quant-web
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$mac_app/Contents/MacOS/ynx-quant-desktop" ./cmd/ynx-quant-desktop
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -buildvcs=false -trimpath -ldflags="-s -w -X github.com/JiahaoAlbus/YNX-Chain/internal/quantlab.BuildCommit=$commit" -o "$mac_app/Contents/MacOS/ynx-quantd" ./cmd/ynx-quantd
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$mac_app/Contents/MacOS/ynx-quant-web" ./cmd/ynx-quant-web
 
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o "$windows_dir/ynx-quant-desktop.exe" ./cmd/ynx-quant-desktop
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w -X github.com/JiahaoAlbus/YNX-Chain/internal/quantlab.BuildCommit=$commit" -o "$windows_dir/ynx-quantd.exe" ./cmd/ynx-quantd
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o "$windows_dir/ynx-quant-web.exe" ./cmd/ynx-quant-web
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$windows_dir/ynx-quant-desktop.exe" ./cmd/ynx-quant-desktop
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -buildvcs=false -trimpath -ldflags="-s -w -X github.com/JiahaoAlbus/YNX-Chain/internal/quantlab.BuildCommit=$commit" -o "$windows_dir/ynx-quantd.exe" ./cmd/ynx-quantd
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -buildvcs=false -trimpath -ldflags="-s -w" -o "$windows_dir/ynx-quant-web.exe" ./cmd/ynx-quant-web
 
 signing_class=unsigned
 if command -v codesign >/dev/null 2>&1; then

@@ -43,6 +43,34 @@ jq -e '.productId == "ynx-quant-lab" and .implementedLocal == true and .deployed
 jq -e '.productId == "ynx-quant-lab" and (.downloads | type == "array")' apps/quant-lab/public-product-metadata.json >/dev/null
 jq -e '.productId == "ynx-quant-lab" and .artifactChecks.scanner == "ynx-archive-safety-v1" and .containerScanPassed == false and .externalVulnerabilityScanPassed == false' apps/quant-lab/security-verification.json >/dev/null
 
+release_source=$(jq -r '.sourceCommit' apps/quant-lab/product-release.json)
+if ! [[ "$release_source" =~ ^[0-9a-f]{40}$ ]] || ! git cat-file -e "${release_source}^{commit}" 2>/dev/null; then
+  echo "Quant product-release sourceCommit is not a resolvable full commit" >&2
+  exit 1
+fi
+if ! git merge-base --is-ancestor "$release_source" HEAD; then
+  echo "Quant product-release sourceCommit is not an ancestor of HEAD" >&2
+  exit 1
+fi
+artifact_source_paths=(
+  go.mod
+  go.sum
+  apps/quant-lab/web
+  apps/quant-lab/desktop/Info.plist
+  apps/quant-lab/scripts/build-desktop-candidates.sh
+  cmd/ynx-quantd
+  cmd/ynx-quant-web
+  cmd/ynx-quant-desktop
+  internal/buildinfo
+  internal/quantapp
+  internal/quantlab
+)
+if ! git diff --quiet "$release_source"..HEAD -- "${artifact_source_paths[@]}"; then
+  echo "Quant desktop release record is stale: artifact inputs changed after sourceCommit" >&2
+  git diff --name-only "$release_source"..HEAD -- "${artifact_source_paths[@]}" >&2
+  exit 1
+fi
+
 go test ./internal/quantlab ./internal/quantworker ./internal/quantpackage ./internal/quantapp ./internal/quantcli \
   ./cmd/ynx-quantd ./cmd/ynx-quant-worker ./cmd/ynx-quant-paperd \
   ./cmd/ynx-quant-riskd ./cmd/ynx-quant-web ./cmd/ynx-quant-cli
@@ -78,7 +106,7 @@ docker compose -f apps/quant-lab/compose.yaml config --quiet
 ruby -e 'require "yaml"; YAML.load_stream(File.read("apps/quant-lab/k8s/quant-candidate.yaml"))'
 
 if [[ "${YNX_BUILD_DESKTOP_CANDIDATES:-1}" == "1" ]]; then
-  apps/quant-lab/scripts/build-desktop-candidates.sh >/dev/null
+  YNX_QUANT_SOURCE_COMMIT="$release_source" apps/quant-lab/scripts/build-desktop-candidates.sh >/dev/null
 fi
 
 desktop_output=${YNX_QUANT_DESKTOP_OUTPUT:-dist/quant-desktop}
@@ -103,7 +131,7 @@ fi
 
 if [[ "${YNX_REQUIRE_DOCKER_BUILD:-0}" == "1" ]]; then
   docker build -f apps/quant-lab/Dockerfile \
-    --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" \
+    --build-arg SOURCE_COMMIT="$release_source" \
     -t ynx-quant:testnet-local .
 fi
 
