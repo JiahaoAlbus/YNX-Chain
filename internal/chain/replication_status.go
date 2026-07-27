@@ -40,9 +40,13 @@ func (d *Devnet) BeginReplicationAttempt() {
 	}
 	now := time.Now().UTC()
 	latest := d.blocks[len(d.blocks)-1]
-	d.replicationRuntime.Status = "syncing"
-	d.replicationRuntime.CatchingUp = true
-	d.replicationRuntime.Fresh = false
+	// A background verification must not revoke the last completed healthy
+	// result. Any fetch or apply failure transitions the runtime to degraded.
+	if d.replicationRuntime.Status != "synced" {
+		d.replicationRuntime.Status = "syncing"
+		d.replicationRuntime.CatchingUp = true
+		d.replicationRuntime.Fresh = false
+	}
 	d.replicationRuntime.LocalHeight = latest.Height
 	d.replicationRuntime.LocalBlockHash = latest.Hash
 	d.replicationRuntime.Attempts++

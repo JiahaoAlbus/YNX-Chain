@@ -307,6 +307,11 @@ func TestReplicationRuntimeStatusLifecycle(t *testing.T) {
 	if synced.Status != "synced" || synced.CatchingUp || !synced.Fresh || synced.LocalHeight != synced.SourceHeight || synced.LocalBlockHash != synced.SourceBlockHash || synced.Successes != 1 || synced.Failures != 1 || synced.ConsecutiveFailures != 0 || synced.LastSuccessAt == nil || synced.LastSnapshotAt == nil || synced.LastError != "" {
 		t.Fatalf("unexpected synced replication status: %+v", synced)
 	}
+	devnet.BeginReplicationAttempt()
+	checking := devnet.NodeIdentity().Replication
+	if checking.Status != "synced" || checking.CatchingUp || !checking.Fresh || checking.Attempts != 2 {
+		t.Fatalf("healthy background replication check revoked last success: %+v", checking)
+	}
 
 	devnet.mu.Lock()
 	old := time.Now().UTC().Add(-time.Minute)
