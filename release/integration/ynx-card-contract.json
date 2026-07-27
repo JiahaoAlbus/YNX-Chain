@@ -5,7 +5,7 @@
     "id": "ynx-card",
     "name": "YNX Card",
     "owner": "06-card",
-    "sourceCommit": "bdd5ca02ad42b712db66a5173ecfad09340aa42c",
+    "sourceCommit": "13f90c5f6dae6fb002560574b4c481b5e1477f9d",
     "branch": "codex/final-card"
   },
   "network": {
@@ -65,6 +65,7 @@
   },
   "issuerProvider": {
     "interfaceVersion": 1,
+    "capabilitySchema": "ynx.card.provider.capabilities.v1",
     "methods": [
       "Health",
       "CheckEligibility",
@@ -79,7 +80,23 @@
     "productionProvider": null,
     "productionStatus": "not_selected",
     "providerEventDomain": "YNX_CARD_PROVIDER_EVENT_V1",
-    "providerEventTypes": ["authorization", "reversal", "clearing", "decline", "refund"]
+    "providerEventTypes": ["authorization", "reversal", "clearing", "decline", "refund"],
+    "providerEventVerification": {
+      "keyIdHeader": "X-YNX-Provider-Key-ID",
+      "legacyDefaultKeyId": "default",
+      "maximumOverlappingVerificationKeys": 4,
+      "timestampPastWindowSeconds": 300,
+      "timestampFutureSkewSeconds": 30,
+      "unknownOrRetiredKey": "reject_unauthorized",
+      "tamperedBody": "reject_unauthorized"
+    },
+    "providerEventRelationships": {
+      "clearing": "authorization",
+      "reversal": "authorization",
+      "refund": "clearing",
+      "sameProviderCardRequired": true,
+      "outOfOrderBehavior": "conflict_without_consuming_event_id_then_retry"
+    }
   },
   "canonicalStates": {
     "application": ["provider_unavailable", "pending_review", "rejected", "issued_sandbox"],
