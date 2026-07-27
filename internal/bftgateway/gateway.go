@@ -92,27 +92,28 @@ type Health struct {
 }
 
 type Status struct {
-	Network              string    `json:"network"`
-	Slug                 string    `json:"slug"`
-	ChainID              int64     `json:"chainId"`
-	NativeCoinName       string    `json:"nativeCoinName"`
-	NativeCurrencySymbol string    `json:"nativeCurrencySymbol"`
-	Decimals             int       `json:"decimals"`
-	PublicNetwork        bool      `json:"publicNetwork"`
-	Height               uint64    `json:"height"`
-	LatestBlockHash      string    `json:"latestBlockHash"`
-	LatestBlockTime      time.Time `json:"latestBlockTime"`
-	EarliestBlockHeight  uint64    `json:"earliestBlockHeight"`
-	EarliestBlockHash    string    `json:"earliestBlockHash"`
-	EarliestBlockTime    time.Time `json:"earliestBlockTime"`
-	ValidatorCount       int       `json:"validatorCount"`
-	PendingTxCount       int       `json:"pendingTxCount"`
-	TruthfulStatus       string    `json:"truthfulStatus"`
-	ConsensusEngine      string    `json:"consensusEngine"`
-	CometChainID         string    `json:"cometChainId"`
-	PublicCutoverReady   bool      `json:"publicCutoverReady"`
-	MigrationHeight      uint64    `json:"migrationHeight,omitempty"`
-	MigrationBlockHash   string    `json:"migrationBlockHash,omitempty"`
+	Network              string         `json:"network"`
+	Slug                 string         `json:"slug"`
+	ChainID              int64          `json:"chainId"`
+	NativeCoinName       string         `json:"nativeCoinName"`
+	NativeCurrencySymbol string         `json:"nativeCurrencySymbol"`
+	Decimals             int            `json:"decimals"`
+	PublicNetwork        bool           `json:"publicNetwork"`
+	Height               uint64         `json:"height"`
+	LatestBlockHash      string         `json:"latestBlockHash"`
+	LatestBlockTime      time.Time      `json:"latestBlockTime"`
+	EarliestBlockHeight  uint64         `json:"earliestBlockHeight"`
+	EarliestBlockHash    string         `json:"earliestBlockHash"`
+	EarliestBlockTime    time.Time      `json:"earliestBlockTime"`
+	ValidatorCount       int            `json:"validatorCount"`
+	PendingTxCount       int            `json:"pendingTxCount"`
+	TruthfulStatus       string         `json:"truthfulStatus"`
+	ConsensusEngine      string         `json:"consensusEngine"`
+	CometChainID         string         `json:"cometChainId"`
+	PublicCutoverReady   bool           `json:"publicCutoverReady"`
+	MigrationHeight      uint64         `json:"migrationHeight,omitempty"`
+	MigrationBlockHash   string         `json:"migrationBlockHash,omitempty"`
+	Build                buildinfo.Info `json:"build"`
 }
 
 type cometStatus struct {
@@ -451,6 +452,7 @@ func (g *Gateway) status(ctx context.Context) (Status, error) {
 		PublicCutoverReady:   g.publicCutoverReady(),
 		MigrationHeight:      g.migrationHeight,
 		MigrationBlockHash:   g.migrationBlockHash,
+		Build:                g.build,
 	}, nil
 }
 

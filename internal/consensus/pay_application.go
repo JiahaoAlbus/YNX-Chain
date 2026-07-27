@@ -321,6 +321,10 @@ func payWebhookAuditHash(v BFTPayWebhook) string {
 	return recordAuditHash("YNX_PAY_WEBHOOK_AUDIT_V1", v)
 }
 func payEventAuditHash(v BFTPayEvent) string {
+	return BFTPayEventAuditHash(v)
+}
+
+func BFTPayEventAuditHash(v BFTPayEvent) string {
 	v.AuditHash = ""
 	return recordAuditHash("YNX_PAY_EVENT_AUDIT_V1", v)
 }

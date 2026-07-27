@@ -212,6 +212,43 @@ type BFTPayIdempotency struct {
 	TxHash         string `json:"txHash"`
 }
 
+func ValidateBFTPayEvent(event BFTPayEvent) error {
+	if !payIDPattern.MatchString(event.ID) || event.ID != ApplicationActionRecordID("pay-event", event.TxHash) {
+		return errors.New("BFT Pay event ID does not match its committed transaction")
+	}
+	switch event.Type {
+	case "payment_intent.created", "invoice.issued", "invoice.paid", "refund.recorded", "refund.completed", "webhook.signed":
+	default:
+		return fmt.Errorf("unsupported BFT Pay event type %q", event.Type)
+	}
+	if !payIDPattern.MatchString(event.IntentID) || !payIDPattern.MatchString(event.ObjectID) {
+		return errors.New("BFT Pay event object identity is invalid")
+	}
+	if !IsNativeAddress(event.Signer) || !payNamePattern.MatchString(event.Merchant) {
+		return errors.New("BFT Pay event signer or merchant is invalid")
+	}
+	if event.Currency != "YNXT" || len(event.IdempotencyKey) < 3 || len(event.IdempotencyKey) > 128 || strings.TrimSpace(event.IdempotencyKey) != event.IdempotencyKey {
+		return errors.New("BFT Pay event currency or idempotency authority is invalid")
+	}
+	if event.BlockHeight <= 0 || !payNativeTransactionHashPattern.MatchString(event.TxHash) || event.CreatedAt.IsZero() || event.CreatedAt.Location() != time.UTC {
+		return errors.New("BFT Pay event commit authority is invalid")
+	}
+	if !payHashPattern.MatchString(event.AuditHash) || event.AuditHash != BFTPayEventAuditHash(event) {
+		return errors.New("BFT Pay event audit proof is invalid")
+	}
+	if (event.Type == "invoice.issued" || event.Type == "invoice.paid" || event.Type == "refund.recorded" || event.Type == "refund.completed") && event.Amount <= 0 {
+		return errors.New("BFT Pay financial event amount is invalid")
+	}
+	if event.Type == "invoice.paid" || event.Type == "refund.completed" {
+		if !payIDPattern.MatchString(event.InvoiceID) || !payIDPattern.MatchString(event.SettlementID) ||
+			!IsNativeAddress(event.PayoutAddress) || !IsNativeAddress(event.Payer) ||
+			!payNativeTransactionHashPattern.MatchString(event.TransactionHash) {
+			return errors.New("BFT Pay completion event lacks committed transfer authority")
+		}
+	}
+	return nil
+}
+
 func isPayAction(action string) bool {
 	switch action {
 	case ActionPayIntentCreate, ActionPayInvoiceCreate, ActionPayInvoiceSettle, ActionPayRefundCreate, ActionPayRefundComplete, ActionPayWebhookRecord:
