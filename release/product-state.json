@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-oracle-market-data",
-  "sourceCommit": "f71d5ca5c2ede28477fbadff36701a9f040e311f",
+  "sourceCommit": "1d17e520186a500f5c9ab04ee88769637d88fc59",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": true,
@@ -23,7 +23,9 @@
     "Owner-only Oracle Web deployment remains access-controlled and returns HTTP 401 to unauthenticated requests.",
     "Public limited-source Testnet is deployed at https://oracle-testnet.43.153.202.237.sslip.io from commit f71d5ca5c2ede28477fbadff36701a9f040e311f with a publicly trusted Let's Encrypt certificate.",
     "Remote HTTPS/SNI smoke passed for /version, degraded /health, /v1/providers, fail-closed /v1/prices, and non-public /internal/v1/observations; atomic rollback to 80d85e4d43067d8e48c67cc8874efcd46a629c3d was also verified before redeployment. Evidence is release/evidence/oracle-public-testnet-f71d5ca.json.",
-    "DEX multi-block TWAP, stablecoin reserve attestation and ratio derivation, official provider workers, and limited-source Testnet activation are implemented and tested."
+    "DEX multi-block TWAP, stablecoin reserve attestation and ratio derivation, official provider workers, and limited-source Testnet activation are implemented and tested.",
+    "TypeScript consumer SDK commit 6e811f7 compiled successfully and passed 18 canonical vector, schema, derivation, transport, and response-bound tests.",
+    "Fail-closed consumer CLI commit 1d17e520186a500f5c9ab04ee88769637d88fc59 passed race tests with the Go SDK and refuses to print unsafe prices."
   ],
   "repositoryPreflight": {
     "command": "go test ./...",

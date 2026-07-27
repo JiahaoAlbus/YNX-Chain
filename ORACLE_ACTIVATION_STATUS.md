@@ -3,18 +3,19 @@
 **Product ID**: ynx-oracle-market-data  
 **Version**: 0.1.0-testnet  
 **Branch**: codex/final-oracle-market-data  
-**Last Commit**: df817b6 (docs: bind release evidence commit)  
-**Status Date**: 2026-07-23
+**Last Commit**: 1d17e52 (feat: fail-closed consumer CLI; follows TypeScript SDK 6e811f7)  
+**Status Date**: 2026-07-27
 
 ## Executive Summary
 
-The unified YNX Oracle & Market Data infrastructure is **fully implemented and locally tested** but **not yet activated for public testnet** due to three blocking dependencies:
+The unified YNX Oracle & Market Data core runtime is **implemented and locally tested**, and a **limited-source public Testnet control plane** is deployed. It intentionally publishes no authoritative prices because the source gate is 0/3. Final Founder-grade delivery remains active rather than complete because:
 
-1. **No active price providers** — Legal/licensing approval required for Coinbase, Kraken, Bitstamp; YNXT/YUSD_TEST market coverage gap
-2. **No public API deployment** — Oracle daemon requires operator-supplied registry and HMAC key (intentional fail-closed)
-3. **No central integration** — Chain/Exchange/DEX/Quant/Finance consumers await owner acceptance and integration
+1. **No active approved price providers** — legal/licensing approval, independent reporter custody, and YNXT/YUSD_TEST coverage remain external blockers.
+2. **No central integration acceptance** — Chain/Exchange/DEX/Quant/Finance and other consumers have not returned exact-commit acceptance evidence.
+3. **The Oracle Web is not public and downloadable artifacts are not hosted or production-signed**.
+4. **Autonomous release work remains** — current-commit artifact provenance, package evidence, accessibility audit, and evidence synchronization are still in progress.
 
-All core engineering work is complete and verified. The product cannot proceed to public testnet without resolving the three blockers above.
+The public API deployment is real but deliberately degraded and fail-closed. It is not an authoritative price release, and `released` remains `false`.
 
 ---
 
@@ -78,26 +79,27 @@ ok  	github.com/JiahaoAlbus/YNX-Chain/sdk/oracle/go	2.536s
 
 ### 2. Public Deployment
 
-**Status**: Private deployment only; public API unavailable
+**Status**: Limited-source public API deployed; authoritative prices, public Web, and hosted artifacts remain unavailable
 
 **Current State**:
-- Oracle Web deployed at `https://ynx-oracle-control.jeohuang.chatgpt.site/oracle`
-- Access: **owner_only** (HTTP 401 for unauthenticated requests)
-- Oracle daemon (ynx-oracled): Not publicly deployed
-- Container built locally: `tmp/oracle-release-a/ynx-oracled`, `tmp/oracle-release-b/ynx-oracled`
-- No hosted/signed/store artifacts
+- Public API: `https://oracle-testnet.43.153.202.237.sslip.io`
+- API source mode: **limited**, with degraded HTTP 503 health at 0/3 sources and fail-closed price responses
+- Oracle Web: `https://ynx-oracle-control.jeohuang.chatgpt.site/oracle`
+- Oracle Web access: **owner_only** (HTTP 401 for unauthenticated requests)
+- Public deployment source commit: `f71d5ca5c2ede28477fbadff36701a9f040e311f`
+- Current candidate source commit: `1d17e520186a500f5c9ab04ee88769637d88fc59`
+- No hosted, production-signed, or store artifacts
 
 **Required Actions**:
-- [ ] Provision production infrastructure (compute, network, monitoring)
-- [ ] Generate and secure HMAC state integrity key (`YNX_ORACLE_STATE_HMAC_KEY_HEX`)
-- [ ] Deploy ynx-oracled with approved provider registry
-- [ ] Establish public HTTPS endpoint with proper TLS
-- [ ] Configure CORS for Oracle Web origin
-- [ ] Set up structured logging, metrics export, health monitoring
-- [ ] Integrate with central Gateway rate limits and service admission
-- [ ] Document public endpoint URLs in release record
-- [ ] Run remote smoke tests and load baseline
-- [ ] Make Oracle Web publicly accessible (remove 401 gate)
+- [x] Establish limited-source public HTTPS endpoint with trusted TLS
+- [x] Verify remote `/version`, degraded `/health`, provider status, and fail-closed price behavior
+- [ ] Activate an approved provider registry and secure reporter signers
+- [ ] Deploy the current candidate commit after release/provenance gates pass
+- [ ] Configure and verify Oracle Web CORS against the public API
+- [ ] Integrate central Gateway rate limits and service admission
+- [ ] Run current-commit load, failover, restore, and rollback baselines
+- [ ] Make Oracle Web publicly accessible
+- [ ] Host immutable server, CLI, and SDK artifacts with hashes and provenance
 
 **Current Release Record**: `release/product-release.json`
 ```json
@@ -236,37 +238,36 @@ ok  	github.com/JiahaoAlbus/YNX-Chain/sdk/oracle/go	2.536s
 
 ## Next Actions
 
-### Immediate (This Thread)
-1. Create provider licensing strategy document
-2. Create deployment runbook with specific commands
-3. Prepare consumer integration packets for delivery
+### Immediate autonomous work
+1. Package current-commit `ynx-oracled`, `ynx-oracle-cli`, Go SDK, and TypeScript SDK outputs deterministically.
+2. Generate current-commit SHA-256, byte size, SBOM, provenance, minimum-runtime, install, and cold-start evidence.
+3. Run direct keyboard, screen-reader, Arabic RTL, large-text, reduced-motion, light/dark, and 390px browser audits.
+4. Synchronize the coverage matrix, feature evidence, release notes, and Release Record after each verified slice.
 
-### Owner Dependencies
-- **Foundation Legal**: Execute provider data license agreements
-- **Foundation Ops**: Provision infrastructure, deploy Oracle daemon
-- **Chain Core Owner**: Implement consensus module, return acceptance vector
-- **Exchange Owner**: Implement index/mark/funding adapter, return drill evidence
-- **DEX Owner**: Implement pool publisher + TWAP consumer, return vectors
-- **Other Product Owners**: Implement adapters per handoff contracts, return evidence
+### Owner dependencies
+- **Foundation Legal**: Execute provider data-license agreements and confirm benchmark, valuation, redistribution, and retention rights.
+- **Foundation Operations**: Provide approved provider access, secure reporter/HMAC custody, and deployment authority without exposing secrets in chat.
+- **Chain Core Owner**: Implement the deterministic system module and return exact-commit acceptance vectors.
+- **Exchange Owner**: Implement index/mark/funding consumption and return liquidation/failover evidence.
+- **DEX Owner**: Implement pool publishing and TWAP consumption, including reorg vectors.
+- **Other Product Owners**: Implement adapters and return exact-commit acceptance evidence.
+- **Website/Security/Integration Owners**: Publish the public Web and immutable artifacts, approve release security, and freeze the shared protocol.
 
-### Success Criteria
-- ≥3 active independent providers with confirmed legal rights and YNXT coverage
-- Public HTTPS Oracle API endpoint responding to health/version/prices queries
-- ≥1 central consumer integrated with acceptance evidence
-- Oracle Web publicly accessible with live endpoint queries working
-- Release record updated: `providerCountActive ≥ 3`, `released: true`
+### Final success criteria
+- At least three active independent providers with confirmed rights, coverage, health, and separately controlled reporter identities.
+- Authoritative prices published only after source, freshness, divergence, failover, and manipulation gates pass.
+- Central consumers integrated with exact-commit acceptance evidence.
+- Oracle Web publicly accessible and bound to the live API with truthful degraded/failure states.
+- Immutable server, CLI, and SDK artifacts hosted with hashes, SBOM, provenance, signing class, and cold-start evidence.
+- Explorer/Monitor evidence, restore/load/failover drills, full preflight, clean worktree, and Local SHA = Remote SHA.
+- Release record updated to `released: true` only after every applicable gate passes.
 
 ---
 
 ## Conclusion
 
-The YNX Oracle & Market Data infrastructure represents a **complete, production-ready implementation** of a secure, multi-source price oracle with robust aggregation, integrity controls, and consumer contracts. All engineering work is finished and verified.
+The YNX Oracle & Market Data core is a substantial **locally tested Testnet candidate**, and its limited-source public control plane is real and publicly verifiable. It is deliberately degraded at 0/3 approved sources and does not publish authoritative prices.
 
-**The product cannot activate** until:
-1. Provider licenses are executed and active registry is created
-2. Public infrastructure is deployed with production secrets
-3. At least one central consumer integrates and returns acceptance evidence
+The product is **not complete**. Autonomous artifact, accessibility, evidence, and current-commit release work remains, while provider activation, central consumer acceptance, public Web access, hosting/signing authority, and final security/integration approval require external owners.
 
-This is an **externally-blocked activation**, not an incomplete implementation. The engineering package is ready for handoff to legal, operations, and product owners.
-
-**Status**: `implementedLocal=true`, `testedLocal=true`, `installedLocal=true`; all deployment/integration states `false` pending blocker resolution.
+**Status**: `implementedLocal=true`, `testedLocal=true`, `installedLocal=true`, `integratedCentral=false`, `deployedPublic=true` only for the limited-source control plane, `downloadHosted=false`, `productionSigned=false`, `storeReleased=false`, and `released=false`. The long-term goal remains `active`.

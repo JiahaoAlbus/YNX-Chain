@@ -9,6 +9,8 @@
   `config/oracle/provider-candidates.json`
 - Consumer schemas: `integration/oracle/v1/`,
   `docs/integration/oracle-consumers.json`
+- Consumer implementations: `sdk/oracle/go/`, `sdk/oracle/typescript/`,
+  `cmd/ynx-oracle-cli/`
 - Cross-product acceptance: `integration/oracle/v1/consumer-handoff.json`,
   `integration/oracle/v1/consumer-test-vectors.json`
 - Migration/backup: `MIGRATION_COMPATIBILITY.md`, `OPERATIONS.md`
@@ -19,10 +21,13 @@
 - Release truth: `release/product-state.json`,
   `release/operator-inputs.request.json`
 
-Test commands are enumerated in `FEATURE_COMPLETION_EVIDENCE.md` and the
-requirement matrix. Public-access URLs, CI run IDs, container digests,
-screenshots, remote restore drill results, and Explorer/Monitor evidence remain absent and are not
-represented as complete.
+Test commands are enumerated in `FEATURE_COMPLETION_EVIDENCE.md`, the
+requirement matrix, and `.ai-bridge/full-goal-coverage.json`. The limited-source
+public API URL and remote smoke evidence are recorded in
+`release/evidence/oracle-public-testnet-f71d5ca.json`. Current-commit hosted
+artifacts, production signatures, browser accessibility evidence, central
+acceptance receipts, live restore/failover measurements, and Explorer/Monitor
+proof remain absent and are not represented as complete.
 
 The owner-only Web deployment is recorded in `release/product-release.json`.
 Its unauthenticated HTTP 401 proves access control, not public availability.

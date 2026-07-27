@@ -1,17 +1,46 @@
 # YNX Oracle and Market Data — Testnet Candidate Notes
 
-This candidate adds a signed, versioned Oracle control plane; strict scalar and
-structured market-data contracts; robust multi-source aggregation; durable
-integrity, correction, replay, migration, emergency controls, observability;
-Go consumer validation; container packaging; and an independent multilingual
-Oracle Web/PWA.
+## Current candidate — 2026-07-27
 
-It is not a public Testnet release. No approved YNX market-data providers,
-reporter production signers, public Oracle API, Explorer/Monitor evidence,
-container publication, or central consumer integration currently exists.
-Every provider candidate remains inactive and values must fail closed until at
-least three independent approved sources satisfy policy.
+The candidate provides a signed, versioned Oracle control plane; strict scalar
+and structured market-data contracts; robust multi-source aggregation; durable
+integrity, correction, replay, migration, emergency controls, and observability;
+Go and TypeScript consumer validation; a fail-closed consumer CLI; container
+packaging; and an independent multilingual Oracle Web/PWA.
 
-Breaking/compatibility details and rollback procedures are in
-`MIGRATION_COMPATIBILITY.md`. Operators must complete the machine-readable
-input request before deployment.
+Consumer portability advanced in two protected checkpoints:
+
+- `6e811f74c3d68aa70d3216fea9682e932f9a3e73` adds the strict TypeScript SDK. It compiled successfully and passed 18 canonical-vector, schema, derivation, transport, and response-bound tests.
+- `1d17e520186a500f5c9ab04ee88769637d88fc59` adds `ynx-oracle-cli`. Go race tests passed, and the CLI emits no price until market, type, policy version, freshness, confidence, coverage, lineage, and derivation checks pass.
+
+A real limited-source public Testnet control plane is deployed at
+`https://oracle-testnet.43.153.202.237.sslip.io` from deployment commit
+`f71d5ca5c2ede28477fbadff36701a9f040e311f`. It intentionally reports degraded
+health at 0/3 approved sources and publishes no authoritative price. This does
+not make the current candidate deployed, hosted, production-signed, centrally
+integrated, or released.
+
+The Oracle Web remains owner-only and returns HTTP 401 to unauthenticated
+requests. Current-commit server, CLI, and SDK artifacts have not yet been
+packaged with complete provenance or hosted at immutable public URLs.
+
+## Release boundary
+
+This remains a `testnet-candidate`, not a final public Testnet release. Final
+activation requires:
+
+- at least three independent approved providers with confirmed benchmark,
+  valuation, redistribution, and retention rights;
+- secure reporter and state-integrity key custody;
+- exact-commit acceptance from Chain, Exchange, DEX, Quant, Finance, Pay,
+  Explorer, Monitor, Bridge, Gateway, Wallet/Auth, and Integration owners as
+  applicable;
+- public Oracle Web access and live API binding;
+- current-commit artifact hashes, SBOM, provenance, signing class, installation,
+  cold-start, restore, load, and failover evidence;
+- Security/SRE and Integration release acceptance.
+
+Every provider candidate remains inactive. Consumers must fail closed until the
+three-source and quality policies are directly satisfied. Breaking and rollback
+details are in `MIGRATION_COMPATIBILITY.md`; required external inputs are listed
+without secrets in `release/operator-inputs.request.json`.
