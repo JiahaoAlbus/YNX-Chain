@@ -13,5 +13,9 @@
 9. Issuer adapters must satisfy `ynx.card.provider.capabilities.v1` before service startup. Missing, malformed or unsafe secure-display/sensitive-data capabilities fail closed. Implemented at `8cd6a721b0ffe007ddaa5855337aa2dfc26c0d9b`.
 10. Provider webhook verification supports a bounded overlap of at most four explicit Key IDs. Unknown or retired Key IDs, tampered bodies and expired timestamps fail closed; no secret material is logged or persisted.
 11. Clearing and reversal must reference a prior authorization on the same provider Card, and refund must reference a prior clearing. Out-of-order delivery returns a retryable conflict without consuming the provider event ID.
-12. `13f90c5f6dae6fb002560574b4c481b5e1477f9d` is the latest protected Card runtime source. Card tests, Race and Vet pass at this commit.
+12. `13f90c5f6dae6fb002560574b4c481b5e1477f9d` protects the provider-event verification runtime. Card tests, Race and Vet pass at that commit.
 13. Repository-wide Go failures in Chain/Trust/Faucet and missing Solidity artifacts are recorded as central-repository blockers. This thread will not modify those other owners merely to manufacture a green Card result.
+14. Card backup data uses the independent `YNX_CARD_BACKUP_V1` HMAC domain and `ynx.card.backup.v1` envelope. Backup destinations are absolute, non-overwriting, 0600, file- and directory-synced, and bounded to 64 MiB for verification.
+15. Restore verifies the complete backup before touching primary state. A valid primary creates a rollback backup; a corrupt primary is preserved byte-for-byte as a quarantine artifact with SHA-256; a missing primary uses explicit cold restore.
+16. The bounded v0-to-v1 migration fixture proves migration and rollback mechanics but is not represented as a historically deployed production schema.
+17. `01415dc4413dd8d4e33756a52682ca0f2a6675ec` is the latest protected Card runtime source. Card tests, Race, Vet and the operator admin binary build pass at this commit.

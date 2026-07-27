@@ -1,6 +1,6 @@
 {
   "schemaVersion": "ynx.card.cross-product-vectors.v1",
-  "sourceCommit": "13f90c5f6dae6fb002560574b4c481b5e1477f9d",
+  "sourceCommit": "01415dc4413dd8d4e33756a52682ca0f2a6675ec",
   "contract": "release/integration/ynx-card-contract.json",
   "vectors": [
     {
@@ -120,6 +120,35 @@
       "input": {"workflow": "card_decline_explanation", "permission": "allow_once", "reviewDecision": "apply"},
       "expected": {"draftStatus": "reviewed", "cardStateChanged": false, "controlsChanged": false},
       "localEvidence": ["TestSandboxLifecycleControlsEventsDisputeAndAI"]
+    },
+    {
+      "id": "CARD-BACKUP-TAMPER-001",
+      "ownerPair": ["06-card", "30-security-sre"],
+      "purpose": "Reject a backup whose payload or integrity binding changes before restore.",
+      "mutation": "change backup payload bytes or sign with an untrusted integrity key",
+      "expected": {"accepted": false, "primaryStateChanged": false, "rollbackArtifactCreated": false},
+      "localEvidence": ["TestBackupRestoreRollbackAndTamper", "TestBackupLegacyMigrationRollbackAndValidation"]
+    },
+    {
+      "id": "CARD-RESTORE-ROLLBACK-001",
+      "ownerPair": ["06-card", "30-security-sre"],
+      "purpose": "Create a verified rollback backup before replacing a valid primary and restore it exactly.",
+      "expected": {"rollbackCreated": true, "rollbackMode": "0600", "originalSnapshotRecoverable": true},
+      "localEvidence": ["TestBackupRestoreRollbackAndTamper", "TestBackupLegacyMigrationRollbackAndValidation"]
+    },
+    {
+      "id": "CARD-RESTORE-CORRUPT-PRIMARY-001",
+      "ownerPair": ["06-card", "30-security-sre"],
+      "purpose": "Preserve corrupt primary bytes before restoring a verified backup.",
+      "expected": {"quarantineCreated": true, "quarantineExactBytes": true, "quarantineSha256Returned": true, "fakeRollbackManifest": false},
+      "localEvidence": ["TestOfflineRestoreFromCorruptAndMissingPrimary", "TestAdminBackupVerifyAndCorruptPrimaryRestore"]
+    },
+    {
+      "id": "CARD-RESTORE-MISSING-PRIMARY-001",
+      "ownerPair": ["06-card", "30-security-sre"],
+      "purpose": "Cold restore a verified backup when no primary state exists.",
+      "expected": {"restored": true, "rollbackArtifactCreated": false, "primaryStateVerifies": true},
+      "localEvidence": ["TestOfflineRestoreFromCorruptAndMissingPrimary"]
     },
     {
       "id": "CARD-DATA-FABRIC-ENVELOPE-001",

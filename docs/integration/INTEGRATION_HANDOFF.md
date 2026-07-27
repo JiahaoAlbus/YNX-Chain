@@ -3,7 +3,7 @@
 ## Authority
 
 - Product owner: `06-card`
-- Source commit: `13f90c5f6dae6fb002560574b4c481b5e1477f9d`
+- Source commit: `01415dc4413dd8d4e33756a52682ca0f2a6675ec`
 - Recovery provenance: `bdd5ca02ad42b712db66a5173ecfad09340aa42c`
 - Canonical contract: `release/integration/ynx-card-contract.json`
 - Product identity: `ynx-card` / `ynx-card-v1` / `com.ynxweb4.card`
@@ -38,6 +38,9 @@ Google Pay, production signing, store release or public deployment.
   nonce and expiry.
 - Atomic integrity-protected persistence, restart recovery, concurrent
   idempotency and tamper rejection.
+- Versioned `ynx.card.backup.v1` backup verification, verified rollback,
+  bounded migration compatibility, corrupt-primary quarantine and missing-primary
+  cold restore through `ynx-card-product-admin`.
 - Truthful `/health`, fail-closed `/ready` and `/version` endpoints.
 - Android/iOS Expo source, 12 locales and Arabic RTL.
 - Product-local security gate rejecting signing material, private-key/token
@@ -48,6 +51,9 @@ Google Pay, production signing, store release or public deployment.
 - `go test ./internal/cardproduct/...` — passed.
 - `go test -race ./internal/cardproduct/...` — passed.
 - `go vet ./internal/cardproduct/...` — passed.
+- `go build ./internal/cardproduct/cmd/ynx-card-product-admin` — passed.
+- Backup/restore drills cover tamper rejection, verified rollback, bounded migration,
+  corrupt-primary quarantine and missing-primary cold restore.
 - `npm test` in `apps/card` — 8/8 passed at the recovery checkpoint.
 - `npm run typecheck` in `apps/card` — passed at the recovery checkpoint.
 - `npm run bundle-check` in `apps/card` — Android and iOS Hermes exports passed
@@ -100,8 +106,8 @@ approved secret infrastructure, never Git or chat.
 
 ## Open engineering gates
 
-1. Backup/restore, export/delete, retention and rollback migration drill.
-2. Structured logs, request/error IDs, metrics and traces.
+1. Account-scoped export/delete, retention enforcement, encrypted off-host backup policy and timed RPO/RTO evidence.
+2. Structured logs, request/error/audit IDs, metrics and traces.
 3. Android native unsigned build/install/cold-start/deep-link evidence.
 4. iOS Simulator native build/install/callback evidence.
 5. Threat model, SBOM, dependency/license review and DAST.

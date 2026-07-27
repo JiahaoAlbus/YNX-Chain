@@ -1,6 +1,6 @@
 # YNX Card Dependency Acceptance
 
-Source commit: `13f90c5f6dae6fb002560574b4c481b5e1477f9d`
+Source commit: `01415dc4413dd8d4e33756a52682ca0f2a6675ec`
 
 No dependency below is represented as centrally accepted or deployed merely
 because a local adapter or test exists.
