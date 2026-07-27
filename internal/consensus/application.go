@@ -43,11 +43,13 @@ type transactionError struct {
 type executionState struct {
 	accounts                   []chain.ConsensusAccount
 	feeEvents                  []BFTFeeEvent
+	nativeTransfers            []BFTNativeTransfer
 	permissions                []BFTAIPermission
 	actions                    []BFTAIAction
 	auditEvents                []BFTAIAuditEvent
 	payIntents                 []BFTPayIntent
 	payInvoices                []BFTPayInvoice
+	paySettlements             []BFTPaySettlement
 	payRefunds                 []BFTPayRefund
 	payWebhooks                []BFTPayWebhook
 	payEvents                  []BFTPayEvent
@@ -294,6 +296,8 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/intents/"), a.committed.PayIntents, func(v BFTPayIntent) string { return v.ID }, "Pay intent")
 	case strings.HasPrefix(req.Path, "/pay/invoices/"):
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/invoices/"), a.committed.PayInvoices, func(v BFTPayInvoice) string { return v.ID }, "Pay invoice")
+	case strings.HasPrefix(req.Path, "/pay/settlements/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/settlements/"), a.committed.PaySettlements, func(v BFTPaySettlement) string { return v.ID }, "Pay settlement")
 	case strings.HasPrefix(req.Path, "/pay/refunds/"):
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/refunds/"), a.committed.PayRefunds, func(v BFTPayRefund) string { return v.ID }, "Pay refund")
 	case strings.HasPrefix(req.Path, "/pay/webhooks/"):
@@ -537,8 +541,8 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 
 func (a *Application) cloneExecutionState() executionState {
 	return executionState{
-		accounts: cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
-		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
+		accounts: cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), nativeTransfers: append([]BFTNativeTransfer(nil), a.committed.NativeTransfers...), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
+		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), paySettlements: append([]BFTPaySettlement(nil), a.committed.PaySettlements...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
 		resourcePools: cloneBFTResourcePools(a.committed.ResourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), a.committed.ResourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(a.committed.ResourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), a.committed.ResourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), a.committed.ResourceSponsorAudit...),
 		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), trustLabels: cloneTrustLabels(a.committed.TrustLabels), trustEvidence: cloneTrustEvidence(a.committed.TrustEvidence), trackingReviews: cloneTrackingReviews(a.committed.TrackingReviews), transparency: cloneTransparencyEntries(a.committed.Transparency),
@@ -605,6 +609,8 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	accounts[feeIndex].Balance += tx.Fee
 	state.accounts = accounts
 	state.feeEvents = append(state.feeEvents, newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
+	receipt := BFTNativeTransfer{TransactionHash: SignedTransactionHash(payload), From: tx.From, To: tx.To, Amount: tx.Amount, Fee: tx.Fee, BlockHeight: height, CommittedAt: blockTime.UTC()}
+	state.nativeTransfers = insertPayRecord(state.nativeTransfers, receipt, func(v BFTNativeTransfer) string { return v.TransactionHash })
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
 }
 

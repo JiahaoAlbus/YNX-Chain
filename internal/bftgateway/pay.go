@@ -40,10 +40,31 @@ func (g *Gateway) handlePayMutation(w http.ResponseWriter, r *http.Request) {
 		expected = consensus.ActionPayRefundCreate
 	case "/pay/webhook-signatures":
 		expected = consensus.ActionPayWebhookRecord
+	default:
+		if strings.HasPrefix(r.URL.Path, "/pay/invoices/") && strings.HasSuffix(r.URL.Path, "/settle") {
+			expected = consensus.ActionPayInvoiceSettle
+		}
+		if strings.HasPrefix(r.URL.Path, "/pay/refunds/") && strings.HasSuffix(r.URL.Path, "/complete") {
+			expected = consensus.ActionPayRefundComplete
+		}
 	}
 	if tx.Action != expected {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "signed Pay action does not match requested route"})
 		return
+	}
+	switch tx.Action {
+	case consensus.ActionPayInvoiceSettle:
+		var input consensus.PaySettlementPayload
+		if json.Unmarshal(tx.Payload, &input) != nil || input.InvoiceID != r.PathValue("id") {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "signed Pay settlement invoiceId does not match requested route"})
+			return
+		}
+	case consensus.ActionPayRefundComplete:
+		var input consensus.PayRefundCompletionPayload
+		if json.Unmarshal(tx.Payload, &input) != nil || input.RefundID != r.PathValue("id") {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "signed Pay completion refundId does not match requested route"})
+			return
+		}
 	}
 	if _, err := g.broadcastApplicationAction(r.Context(), raw, tx); err != nil {
 		var txErr *gatewayTransactionError
@@ -72,11 +93,30 @@ func (g *Gateway) handlePayMutation(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusCreated, record)
+	case consensus.ActionPayInvoiceSettle:
+		id := consensus.ApplicationActionRecordID("pay-settlement", txHash)
+		var input consensus.PaySettlementPayload
+		_ = json.Unmarshal(tx.Payload, &input)
+		var record consensus.BFTPaySettlement
+		if err := g.queryABCIJSON(r.Context(), "/pay/settlements/"+id, &record); err != nil || record.ID != id || record.InvoiceID != input.InvoiceID || record.Signer != tx.Signer || record.TxHash != txHash || record.TransactionHash != input.TransactionHash || record.Status != "paid" {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed Pay settlement evidence mismatch"})
+			return
+		}
+		writeJSON(w, http.StatusCreated, record)
 	case consensus.ActionPayRefundCreate:
 		id := consensus.ApplicationActionRecordID("pay-refund", txHash)
 		var record consensus.BFTPayRefund
 		if err := g.queryABCIJSON(r.Context(), "/pay/refunds/"+id, &record); err != nil || record.ID != id || record.Signer != tx.Signer || record.TxHash != txHash {
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed Pay refund evidence mismatch"})
+			return
+		}
+		writeJSON(w, http.StatusCreated, record)
+	case consensus.ActionPayRefundComplete:
+		var input consensus.PayRefundCompletionPayload
+		_ = json.Unmarshal(tx.Payload, &input)
+		var record consensus.BFTPayRefund
+		if err := g.queryABCIJSON(r.Context(), "/pay/refunds/"+input.RefundID, &record); err != nil || record.ID != input.RefundID || record.Signer != tx.Signer || record.CompletionTxHash != txHash || record.TransactionHash != input.TransactionHash || record.Status != "completed" {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed Pay refund completion evidence mismatch"})
 			return
 		}
 		writeJSON(w, http.StatusCreated, record)
@@ -99,6 +139,28 @@ func (g *Gateway) handlePayIntent(w http.ResponseWriter, r *http.Request) {
 func (g *Gateway) handlePayInvoice(w http.ResponseWriter, r *http.Request) {
 	var v consensus.BFTPayInvoice
 	g.handlePayLookup(w, r, r.PathValue("id"), "/pay/invoices/", &v, func() bool { return v.ID == r.PathValue("id") })
+}
+func (g *Gateway) handlePaySettlement(w http.ResponseWriter, r *http.Request) {
+	var v consensus.BFTPaySettlement
+	g.handlePayLookup(w, r, r.PathValue("id"), "/pay/settlements/", &v, func() bool { return v.ID == r.PathValue("id") })
+}
+func (g *Gateway) handlePayInvoiceSettlement(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	if !aiRecordIDPattern.MatchString(id) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical Pay invoice ID is required"})
+		return
+	}
+	var invoice consensus.BFTPayInvoice
+	if err := g.queryABCIJSON(r.Context(), "/pay/invoices/"+id, &invoice); err != nil || invoice.ID != id || invoice.SettlementID == "" {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Pay invoice settlement not found"})
+		return
+	}
+	var settlement consensus.BFTPaySettlement
+	if err := g.queryABCIJSON(r.Context(), "/pay/settlements/"+invoice.SettlementID, &settlement); err != nil || settlement.ID != invoice.SettlementID || settlement.InvoiceID != id {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "ABCI Pay settlement evidence mismatch"})
+		return
+	}
+	writeJSON(w, http.StatusOK, settlement)
 }
 func (g *Gateway) handlePayRefund(w http.ResponseWriter, r *http.Request) {
 	var v consensus.BFTPayRefund

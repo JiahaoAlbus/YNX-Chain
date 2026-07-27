@@ -17,9 +17,14 @@ import (
 
 func TestGatewayCommitsAndQueriesSignedPayWorkflow(t *testing.T) {
 	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 91))
+	payerKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 92))
 	signer, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	payer, _ := consensus.NativeAddress(payerKey.PubKey().SerializeCompressed())
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	if _, err := devnet.Faucet(signer, 100); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet(payer, 100); err != nil {
 		t.Fatal(err)
 	}
 	devnet.ProduceBlock()
@@ -84,6 +89,42 @@ func TestGatewayCommitsAndQueriesSignedPayWorkflow(t *testing.T) {
 	getJSON(t, server.URL+"/pay/webhook-signatures/"+eventID, &lookup)
 	if lookup.EventID != eventID {
 		t.Fatalf("unexpected webhook lookup: %+v", lookup)
+	}
+
+	payment, err := consensus.NewSignedTransfer(payerKey, 6423, signer, 50, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	paymentRaw, _ := consensus.EncodeSignedTransaction(payment)
+	postSignedAction(t, server.URL+"/transactions/broadcast", paymentRaw, http.StatusOK, nil)
+	paymentHash := consensus.SignedTransactionHash(paymentRaw)
+	settle := consensus.PaySettlementPayload{Merchant: merchant, InvoiceID: invoiceRecord.ID, Payer: payer, TransactionHash: paymentHash, IdempotencyKey: "settlement-key"}
+	settle.RequestHash = consensus.PaySettlementRequestHash(settle.Merchant, settle.InvoiceID, settle.Payer, settle.TransactionHash, settle.IdempotencyKey)
+	settleRaw := signedPay(t, key, consensus.ActionPayInvoiceSettle, settle, 5)
+	var settlement consensus.BFTPaySettlement
+	postSignedAction(t, server.URL+"/pay/invoices/"+invoiceRecord.ID+"/settle", settleRaw, http.StatusCreated, &settlement)
+	if settlement.InvoiceID != invoiceRecord.ID || settlement.Payer != payer || settlement.TransactionHash != paymentHash || settlement.Status != "paid" {
+		t.Fatalf("unexpected committed settlement: %+v", settlement)
+	}
+	var settlementLookup consensus.BFTPaySettlement
+	getJSON(t, server.URL+"/pay/invoices/"+invoiceRecord.ID+"/settlement", &settlementLookup)
+	if settlementLookup.ID != settlement.ID {
+		t.Fatalf("invoice settlement lookup mismatch: %+v", settlementLookup)
+	}
+
+	refundTransfer, err := consensus.NewSignedTransfer(key, 6423, payer, 10, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	refundTransferRaw, _ := consensus.EncodeSignedTransaction(refundTransfer)
+	postSignedAction(t, server.URL+"/transactions/broadcast", refundTransferRaw, http.StatusOK, nil)
+	complete := consensus.PayRefundCompletionPayload{Merchant: merchant, RefundID: refundRecord.ID, TransactionHash: consensus.SignedTransactionHash(refundTransferRaw), IdempotencyKey: "completion-key"}
+	complete.RequestHash = consensus.PayRefundCompletionRequestHash(complete.Merchant, complete.RefundID, complete.TransactionHash, complete.IdempotencyKey)
+	completeRaw := signedPay(t, key, consensus.ActionPayRefundComplete, complete, 7)
+	var completed consensus.BFTPayRefund
+	postSignedAction(t, server.URL+"/pay/refunds/"+refundRecord.ID+"/complete", completeRaw, http.StatusCreated, &completed)
+	if completed.Status != "completed" || completed.SettlementID != settlement.ID || completed.TransactionHash != complete.TransactionHash {
+		t.Fatalf("unexpected committed refund completion: %+v", completed)
 	}
 }
 
