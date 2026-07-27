@@ -4,7 +4,7 @@
 
 - Branch: `codex/final-pay`
 - Recovery base HEAD: `27b811cabcf16b663a085652412be01561195629`
-- Current checkpoint commit: `6477a42b0b96761a74b676c4f18f2e987b628a3d`
+- Current checkpoint commit: `a405604714645df1084ed9e06cc7d7b6f9a4d4b0`
 - Earlier preserved baseline: `ffb528b4971b5849ffb151a018263daf5c0e2cb0`
 - Canonical Wallet dependency: `@ynx-chain/wallet-auth@1.0.0`, vendored from
   `efe827f467107e23482289a5b1f69ac9ff83e694`; tarball SHA-256
@@ -68,7 +68,11 @@ and fails closed for a different payer. Public reads redact the payer account
 while retaining the signed hash for independent verification; the authenticated
 merchant state retains the raw account for audit and reconciliation.
 The aggregate Split state is derived from the authoritative child Invoice
-states and cannot become committed from a claim, UI event or webhook.
+states and cannot become committed from a claim, UI event or webhook. The Pay
+app at `a405604714645df1084ed9e06cc7d7b6f9a4d4b0` now exposes the complete local
+consumer flow: strict Invoice/Split lookup, QR and deep links, signed plan review,
+12-language and Arabic RTL share selection, secure pending-claim recovery,
+automatic continuation after Wallet authentication, and child Invoice v4 review.
 
 Canonical integration files are now:
 
@@ -85,8 +89,9 @@ Canonical integration files are now:
   emitted a non-fatal `LC_DYSYMTAB` warning.
 - Split signature, tamper, replay, scope, wrong-payer, public-redaction,
   merchant-audit and aggregate-state tests passed.
-- `npm run check` in `apps/pay`: TypeScript passed, 10/10 tests passed,
-  and Android/iOS Hermes bundles exported with Invoice v4 and Split parsing.
+- `npm run check` in `apps/pay`: TypeScript passed, 11/11 tests passed,
+  and Android/iOS Hermes bundles exported with Invoice v4, strict Split reference
+  parsing, secure claim recovery and Wallet-auth continuation.
 - `make pay-api-check` and `bash internal/payproduct/smoke.sh`: passed.
 - `go test ./... -count=1` is not fully green because unchanged
   Consensus/Faucet/Trust permission tests fail in this host environment and

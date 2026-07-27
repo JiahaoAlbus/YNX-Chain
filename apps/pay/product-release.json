@@ -3,8 +3,8 @@
   "productId": "pay",
   "name": "YNX Pay",
   "branch": "codex/final-pay",
-  "commit": "6477a42b0b96761a74b676c4f18f2e987b628a3d",
-  "version": "1.1.0",
+  "commit": "a405604714645df1084ed9e06cc7d7b6f9a4d4b0",
+  "version": "1.2.0",
   "releaseClass": "local-candidate",
   "phase": "FREEZE",
   "goalStatus": "active",
@@ -12,7 +12,7 @@
   "capabilities": {
     "authoritativeInvoiceSettlement": "testedLocal",
     "tip": "testedLocal",
-    "splitPayment": "testedLocal",
+    "splitPayment": "testedLocal-consumer-flow",
     "recurringDraft": "testedLocal-non-executing",
     "refund": "testedLocal",
     "dispute": "implementedLocal",
@@ -68,7 +68,7 @@
       "cwd": "apps/pay",
       "result": "pass",
       "verifiedAt": "2026-07-27",
-      "details": "TypeScript passed, 10 tests passed, and Android/iOS Hermes bundles exported."
+      "details": "TypeScript passed, 11 tests passed, and Android/iOS Hermes bundles exported. Split lookup, QR/deep links, secure claim recovery, Wallet sign-in resume, localized share selection and Invoice v4 handoff are covered locally."
     },
     {
       "command": "bash internal/payproduct/smoke.sh",
