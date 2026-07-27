@@ -1,6 +1,6 @@
 # Merchant product API contract
 
-Contract date: 2026-07-22. The implementation source of truth is
+Contract date: 2026-07-27. The implementation source of truth is
 `internal/payproduct/server.go`; this document describes the current v1 HTTP
 surface and does not claim a deployed endpoint.
 
@@ -42,6 +42,10 @@ surface and does not claim a deployed endpoint.
 | `POST /v1/merchant/webhook/rotate` | merchant session | `webhook` | 200 | Rotate server-side secret; browser never receives it |
 | `POST /v1/merchant/webhooks/{id}/retry` | merchant session | `webhook` | 200 | Retry persisted merchant-owned delivery |
 | `GET /v1/merchant/reconciliation.csv` | merchant session | `reconcile` | 200 | Download schema-v1 CSV with authoritative settlement evidence |
+| `GET /v1/merchant/data-rights` | merchant session | `data-manage` (owner) | 200 | Read retention policy and merchant-scoped deletion request history |
+| `GET /v1/merchant/data-export` | merchant session | `data-manage` (owner) | 200 | Download schema-v1 tenant-scoped JSON export with runtime authorization material redacted |
+| `POST /v1/merchant/data-deletion-requests` | merchant session | `data-manage` (owner) | 201 | Create idempotent, audited cooling-off/retention-blocked request; never deletes automatically |
+| `POST /v1/merchant/data-deletion-requests/{id}/cancel` | merchant session | `data-manage` (owner) | 200 | Cancel a merchant-owned request before execution authority exists |
 | `GET /v1/merchant/providers/catalog` | merchant session | `read` | 200 | Read versioned official-provider catalog metadata |
 | `PUT /v1/merchant/providers` | merchant session | `provider-manage` | 200 | Register opaque server-side credential reference |
 | `POST /v1/merchant/providers/{id}/test` | merchant session | `provider-test` | 200 | Persist adapter-supplied probe evidence; never invent health |
@@ -61,6 +65,23 @@ surface and does not claim a deployed endpoint.
 
 Unknown roles and permissions fail closed and are covered by fuzz, fault and
 100,000-iteration soak tests.
+
+## Merchant data export schema v1 and deletion requests
+
+The export response declares `X-YNX-Data-Export-Schema: 1` and includes only the
+authenticated merchant's profile, members, catalog, invoices, refunds, disputes,
+webhook records, AI runs, provider records, data requests and audit trail.
+Merchant secret hashes/ciphers, console sessions, Gateway replay state,
+idempotency/nonces, provider credential references and webhook signatures are
+excluded or redacted. The export does not claim deletion of third-party provider
+or immutable public-chain data.
+
+Deletion requests require the exact merchant ID, an 8–500 character reason and
+an idempotency key. Requests enter `cooling_off` for 168 hours or
+`retention_blocked` when financial evidence, open cases, pending deliveries or
+provider disposition remain unresolved. The request and cancel routes are
+audited and never perform automatic deletion; execution requires an accepted
+retention policy and explicit operator authority.
 
 Webhook delivery never follows redirects or environment proxies. The production
 transport validates every DNS answer, rejects mixed public/private answers and

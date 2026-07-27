@@ -16,16 +16,17 @@
 
 ## External blockers
 
-- `git push origin codex/final-merchant-console` returned upstream HTTP 502 on three bounded attempts.
 - No deployment authority, DNS or public policy/status URLs are available in this worktree.
 - No funded secure signer path or approved provider secret-manager references are available.
+- Irreversible merchant-data disposition requires an accepted legal retention/deletion policy, explicit operator authority and provider-specific completion evidence.
+- GitHub API inspection currently has one recorded TLS handshake timeout; retry is required before claiming Actions/Releases/Artifacts status.
 
 ## Autonomous questions to resolve in code
 
-1. Define and implement merchant data export/delete/retention with legal-hold-safe semantics.
-2. Define signed Quant/Billing evidence ingestion without inventing the central schema.
+1. Determine whether an exact accepted Quant/Billing evidence schema exists in this repository; implement only a strict owner-contract adapter, never a guessed central authority.
+2. Implement approved deletion execution/legal-hold/provider-evidence/orderly-shutdown states while preserving immutable/public-chain and required financial records.
 3. Complete payment-link/QR, search, pagination and confirmed bulk-operation contracts.
 4. Complete authenticated operational translations and accessibility acceptance.
 5. Build reproducible capacity/load evidence and durable telemetry export.
 
-These are implementation questions, not reasons to ask the Founder for ordinary engineering decisions.
+The scoped export and deletion request/cancel state machine are implemented and tested at `b0934a0`; they are not irreversible deletion proof. These are implementation questions, not reasons to ask the Founder for ordinary engineering decisions.

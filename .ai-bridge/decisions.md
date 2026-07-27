@@ -9,4 +9,7 @@
 5. Payment commitment remains controlled by exact central Pay evidence; webhooks, UI state and AI output cannot mark an invoice paid.
 6. Provider health must come from actual server-side adapter probes; catalog metadata is not production integration.
 7. Quant performance fees require signed realized-net-PnL/high-water-mark ledger evidence; frontend or manager statements are rejected.
-8. Push HTTP 502 is an infrastructure blocker. A verified Git bundle is accepted only as recovery protection, not as remote synchronization.
+8. Historical push HTTP 502 failures are closed for the current checkpoint: runtime commit `b0934a0` is synchronized remotely. The prior Git bundle remains recovery history, not deployment evidence.
+9. Merchant data export is owner-only, tenant-scoped and must exclude runtime authorization, session, replay, provider credential and webhook authentication material.
+10. Deletion request routes never perform irreversible deletion. They require exact merchant confirmation, idempotency, a 168-hour cooling-off period, deterministic retention blockers and audit; execution requires an accepted policy and explicit operator authority.
+11. Snapshot v3 is required for merchant data requests. v1/v2 forward migration is supported; rollback after v3 writes requires a compatible pre-v3 backup to prevent silent field loss.

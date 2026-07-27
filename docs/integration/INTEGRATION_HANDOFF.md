@@ -3,11 +3,11 @@
 Status: **Active / FREEZE**  
 Owner: `05-merchant-console`  
 Contract: `release/integration/merchant-console-contract.json`  
-Runtime source commit: `1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9`
+Runtime source commit: `b0934a09df9d2dbea67abb596ad84154ab168312`
 
 ## What is locally authoritative
 
-The Merchant Console owns merchant membership/RBAC, short merchant-console sessions after canonical Wallet/Gateway completion, merchant-scoped operational state, provider connection references, webhook operations, reconciliation export, merchant presentation of authoritative settlement evidence, and reviewable AI drafts.
+The Merchant Console owns merchant membership/RBAC, short merchant-console sessions after canonical Wallet/Gateway completion, merchant-scoped operational state, provider connection references, webhook operations, reconciliation export, owner-only merchant data export/deletion-request controls, merchant presentation of authoritative settlement evidence, and reviewable AI drafts.
 
 It does **not** own Wallet identity, central session issuance, chain finality, central Pay settlement, Quant PnL/high-water-mark facts, Trust decisions, Billing Ledger facts, protocol economics, public deployment or shared-Testnet acceptance.
 
@@ -33,6 +33,7 @@ Any product, client, bundle, callback, chain, scope, device, digest, nonce, time
 - Refund/dispute records: tested locally; they never move funds.
 - Webhook signature, retry, redirect/SSRF/DNS-rebinding containment: tested locally.
 - Reconciliation schema v1: golden-tested locally.
+- Merchant data export schema v1, owner-only permission, tenant isolation, runtime-material redaction, v1/v2→v3 migration and audited cooling-off/blocker/cancel deletion requests: tested locally.
 - Provider registry and server-side probe evidence: tested locally; official adapters are not yet complete.
 - Backup/restore/rollback, observability, release metadata and reproducible web bundle: tested locally.
 
@@ -59,8 +60,8 @@ Any product, client, bundle, callback, chain, scope, device, digest, nonce, time
 
 ## Recovery state
 
-Repeated pushes remained blocked by upstream HTTP 502. A verified recovery bundle exists at `release/recovery/merchant-console-accd603.bundle`, SHA-256 `1af965dcb1a47bedb7b2144c444dc1974d2b293f66d2ff36b1b1d12f7401ab78`; it contains runtime commit `1f7963c` and FREEZE commit `accd603` and requires base `60f8607`. This is recovery evidence, not remote synchronization.
+The final branch is remotely synchronized through runtime commit `b0934a09df9d2dbea67abb596ad84154ab168312`. The prior verified bundle at `release/recovery/merchant-console-accd603.bundle` remains historical recovery evidence only; Git synchronization is not shared-Testnet, artifact-hosting or deployment proof.
 
 ## Next integration action
 
-Validate `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, submit the contract to 29 Integration, then implement the highest-priority autonomous gaps: official sandbox adapters, signed Quant/Billing evidence ingestion, data rights state machines, operational search/pagination/bulk confirmation, full authenticated i18n/a11y, and reproducible capacity evidence.
+Validate `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, submit the contract to 29 Integration, then implement the highest-priority autonomous gaps: signed Quant/Billing evidence ingestion, approved deletion execution/legal-hold/shutdown controls, official sandbox adapters, operational search/pagination/bulk confirmation, full authenticated i18n/a11y, and reproducible capacity evidence.

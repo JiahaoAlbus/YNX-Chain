@@ -4,13 +4,15 @@
 - Stage: `FREEZE`
 - Goal: `Active`
 - Workspace/branch: exact match verified
-- Local HEAD: `accd603c8b43b42b1ef9bc77442610f3ad81c547`
-- Remote HEAD: `60f860791a09e41a3bf0509184d5a91ea926e985`
-- Ahead: 2 protected commits, plus current recovery-evidence binding changes
-- Runtime tests: `go test -race ./internal/payproduct ./internal/payproduct/cmd/ynx-pay-productd` passed
-- Frontend baseline: `npm test` passed 12/12 before the runtime slice
-- Push: three bounded attempts failed with upstream HTTP 502
-- Recovery: verified 26,410-byte bundle for `accd603`, SHA-256 `1af965dcb1a47bedb7b2144c444dc1974d2b293f66d2ff36b1b1d12f7401ab78`
+- Runtime HEAD: `b0934a09df9d2dbea67abb596ad84154ab168312`
+- Remote runtime HEAD: `b0934a09df9d2dbea67abb596ad84154ab168312`
+- Runtime push: succeeded
+- Runtime tests: `go test ./internal/payproduct/...` passed
+- Runtime race tests: `go test -race ./internal/payproduct/...` passed
+- Full repository gate: failed only in unrelated consensus/BFT/faucet/trust areas because of a missing bounded-IDE artifact and darwin permission-mode assertions; Merchant Console remained green
+- Data rights: owner-only schema-v1 export and audited request/cancel state machine tested locally; irreversible execution remains intentionally unavailable pending accepted policy/operator authority
+- Snapshot: v3; v1 and v2 migration tested, future versions rejected
+- Evidence checkpoint: dirty and under review; not yet committed/pushed
 - Central integration: false
-- Staging/public/hosted/signed/store release: false
-- Immediate action: commit the bound recovery evidence, retry push, then implement the next autonomous runtime gap
+- Testnet/staging/public/hosted/signed/store release: false
+- Immediate action: validate JSON, review evidence diff, commit/push, verify Local SHA = Remote SHA, then continue the next autonomous runtime gap

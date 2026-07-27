@@ -7,7 +7,7 @@
     "slug": "merchant-console",
     "name": "YNX Merchant Console",
     "owner": "05-merchant-console",
-    "sourceCommit": "1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9",
+    "sourceCommit": "b0934a09df9d2dbea67abb596ad84154ab168312",
     "branch": "codex/final-merchant-console"
   },
   "network": {
@@ -28,7 +28,7 @@
     "failClosed": true
   },
   "roles": {
-    "owner": ["read", "invoice", "reconcile", "case", "webhook", "ai-run", "ai-review", "members", "provider-manage", "provider-test"],
+    "owner": ["read", "invoice", "reconcile", "case", "webhook", "ai-run", "ai-review", "members", "provider-manage", "provider-test", "data-manage"],
     "finance": ["read", "invoice", "reconcile", "case", "ai-run", "ai-review"],
     "developer": ["read", "webhook", "provider-manage", "provider-test"],
     "support": ["read", "case", "ai-run"],
@@ -62,6 +62,10 @@
       {"method": "POST", "path": "/v1/merchant/webhook/rotate", "permission": "webhook"},
       {"method": "POST", "path": "/v1/merchant/webhooks/{id}/retry", "permission": "webhook"},
       {"method": "GET", "path": "/v1/merchant/reconciliation.csv", "permission": "reconcile"},
+      {"method": "GET", "path": "/v1/merchant/data-rights", "permission": "data-manage"},
+      {"method": "GET", "path": "/v1/merchant/data-export", "permission": "data-manage", "schemaVersion": 1},
+      {"method": "POST", "path": "/v1/merchant/data-deletion-requests", "permission": "data-manage"},
+      {"method": "POST", "path": "/v1/merchant/data-deletion-requests/{id}/cancel", "permission": "data-manage"},
       {"method": "GET", "path": "/v1/merchant/providers/catalog", "permission": "read"},
       {"method": "PUT", "path": "/v1/merchant/providers", "permission": "provider-manage"},
       {"method": "POST", "path": "/v1/merchant/providers/{id}/test", "permission": "provider-test"},
@@ -95,6 +99,8 @@
     "provider.configure",
     "provider.test",
     "provider.disable",
+    "merchant.data.deletion.request",
+    "merchant.data.deletion.cancel",
     "ai.result",
     "ai.review"
   ],
@@ -106,6 +112,8 @@
     "Refund and dispute routes create reviewable records only and never move funds.",
     "Browser clients never receive provider credentials, webhook secret material, merchant signing keys or long-lived bearer tokens.",
     "AI output cannot execute payment, refund, payout, secret rotation, role change or settlement mutation.",
+    "Merchant data rights are owner-only; exports are tenant-scoped and exclude authorization, session, replay, provider credential and webhook authentication material.",
+    "Deletion requests require exact merchant confirmation, idempotency, a seven-day cooling-off period and retention blockers; request routes never delete data automatically or claim provider/public-chain deletion.",
     "Unknown economic values remain unavailable and are never inferred from frontend or manager assertions."
   ],
   "dependencies": [
@@ -123,8 +131,9 @@
     {"owner": "30-security-sre", "contract": "release, provenance, hosting, backup and incident standards", "state": "localPartial"}
   ],
   "migration": {
-    "snapshotCurrent": 2,
+    "snapshotCurrent": 3,
     "snapshotV1Migration": "testedLocal",
+    "snapshotV2Migration": "testedLocal",
     "futureSchemaPolicy": "reject",
     "reconciliationSchema": 1,
     "rollbackEvidence": "local-only"

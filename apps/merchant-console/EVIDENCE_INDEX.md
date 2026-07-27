@@ -22,9 +22,17 @@
 - Provider catalog covers all nine required categories and requires source/version/environment/capability metadata.
 - Provider tests prove raw credential-shaped input rejection, server-side evidence-only health, persisted unavailable state, cross-state disable, and no success without an adapter.
 - Capital tests prove all 14 services carry Provider/cost/risk/term/non-guarantee disclosure and that missing cost/reserve/net values remain null/unavailable.
-- Snapshot v1 migrates to v2 with an initialized Provider map; unsupported future versions fail closed.
+- Snapshot v1 and v2 migrate to v3 with initialized Provider and merchant data-request maps; unsupported future versions fail closed.
 - Re-run fuzz totals: RBAC 42,125 executions, Webhook 17,790 executions, Settlement 50,809 executions after seed coverage; all passed.
 - Frontend CycloneDX SBOM and path-sanitized Go dependency inventory are recorded under `artifacts/sbom/`.
+
+## Merchant data rights verification (source `b0934a09df9d2dbea67abb596ad84154ab168312`)
+
+- Owner-only `data-manage` gates data-rights overview, schema-v1 export, deletion request and cancellation routes; all other roles fail closed.
+- Export tests prove merchant-tenant isolation and redact secret hashes/ciphers, session/replay/idempotency state, provider credential references and webhook signatures.
+- Deletion requests require exact merchant confirmation, bounded reason and idempotency; unresolved financial evidence, cases, webhooks and providers produce deterministic retention blockers.
+- The 168-hour cooling-off and cancel paths are audited; request routes never perform automatic deletion or claim third-party/public-chain deletion.
+- `go test ./internal/payproduct/...` and `go test -race ./internal/payproduct/...` passed. Full `go test ./...` remains red only in unrelated owner areas: missing bounded-IDE contract artifact and darwin permission-mode checks in consensus/faucet/trust.
 
 ## Recovery drill (source `53adf12dde18c4e6d0ca3602a528d3efe8c19aef`)
 
@@ -51,8 +59,8 @@
 - Runtime commit `1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9` adds `/version` and release-correlation headers for commit, release, build time and process start time.
 - `TestVersionExposesAuditableReleaseMetadata` and `go test -race ./internal/payproduct ./internal/payproduct/cmd/ynx-pay-productd` passed.
 - The unique integration contract, full-goal coverage matrix, cross-product test vectors and dependency acceptance handoff parse as valid JSON where applicable.
-- Repeated origin pushes returned upstream HTTP 502. The verified bundle `release/recovery/merchant-console-accd603.bundle` contains runtime commit `1f7963c` and FREEZE commit `accd603`, requires base `60f8607`, is 26,410 bytes and has SHA-256 `1af965dcb1a47bedb7b2144c444dc1974d2b293f66d2ff36b1b1d12f7401ab78`.
-- Scope limitation: the bundle is local recovery evidence; it is not remote synchronization, shared-Testnet integration or deployment proof.
+- The final branch is remotely synchronized through data-rights runtime commit `b0934a09df9d2dbea67abb596ad84154ab168312`. The earlier verified bundle remains historical recovery evidence for commits `1f7963c` and `accd603`.
+- Scope limitation: remote Git synchronization is not shared-Testnet integration, artifact hosting or deployment proof.
 
 ## Focused UI, RTL and accessibility verification
 

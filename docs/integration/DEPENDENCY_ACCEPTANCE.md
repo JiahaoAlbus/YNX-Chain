@@ -2,7 +2,8 @@
 
 Date: 2026-07-27  
 Contract: `ynx.integration.merchant-console.v1`  
-Status: **local adapter acceptance only; central acceptance pending**
+Status: **local adapter acceptance only; central acceptance pending**  
+Merchant runtime source: `b0934a09df9d2dbea67abb596ad84154ab168312`
 
 ## Acceptance policy
 
@@ -46,6 +47,7 @@ Each central owner must provide:
 - Shared Testnet deployment and funded secure signer path are unavailable in this worktree.
 - Quant/Billing Ledger signed fee evidence contract is not accepted.
 - Public receiver, deployment authority, DNS and public policy/status URLs are unavailable.
-- Three bounded pushes of commit `1f7963c` returned upstream HTTP 502; a verified recovery bundle exists.
+- Approved merchant-data deletion execution requires accepted legal retention policy, explicit operator authority and provider-specific disposition evidence; local request/export controls intentionally stop before irreversible action.
+- Runtime commit `b0934a0` is synchronized to the final branch; Git synchronization does not satisfy central/Testnet/public acceptance.
 
 These blockers do not justify mock production or alternate central implementations. Merchant work continues on independent adapters, tests, migrations, recovery, UI failure states and evidence.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contractId": "ynx.integration.merchant-console.v1",
-  "sourceCommit": "1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9",
+  "sourceCommit": "b0934a09df9d2dbea67abb596ad84154ab168312",
   "status": "local-vectors-tested-central-execution-pending",
   "vectors": [
     {
@@ -98,6 +98,25 @@
       "expectedColumns": ["invoice_id", "central_invoice_id", "merchant_id", "amount_ynxt", "fee_ynxt", "status", "transaction_hash", "block_number", "created_at", "expires_at"],
       "localTest": "TestReconciliationCSVGoldenSchemaAndEvidenceFields",
       "centralState": "pending-staging-records"
+    },
+    {
+      "id": "MC-DATA-001",
+      "owners": ["05-merchant-console", "30-security-sre"],
+      "purpose": "Export only the authenticated merchant tenant while excluding runtime authorization and provider authentication material.",
+      "expectedHeaders": {"Content-Type": "application/json", "X-YNX-Data-Export-Schema": "1", "Cache-Control": "no-store"},
+      "forbiddenValues": ["merchant secret hashes/ciphers", "console session tokens/hashes", "Gateway replay state", "idempotency/nonces", "provider credential references", "webhook signatures", "foreign merchant records"],
+      "expected": ["owner-only", "tenant-scoped", "deterministic sorting", "versioned policy and redaction list"],
+      "localTests": ["TestMerchantDataExportRedactsRuntimeMaterialAndRequiresOwner", "TestMerchantDataRightsHTTPRoutesRequireOwnerSessionAndKeepStatePrivate"],
+      "centralState": "not-required-for-local-export; pending-security-sre-acceptance"
+    },
+    {
+      "id": "MC-DATA-002",
+      "owners": ["05-merchant-console", "30-security-sre", "operator-legal"],
+      "purpose": "Create or cancel a deletion request without executing irreversible deletion before accepted authority exists.",
+      "mutations": ["wrong merchant confirmation", "non-owner role", "idempotency payload conflict", "competing active request", "open financial record", "open refund/dispute", "pending webhook", "active provider"],
+      "expected": ["168-hour cooling off or deterministic retention_blocked state", "audit entries", "no automatic deletion", "no claim that provider/public-chain data was deleted"],
+      "localTests": ["TestMerchantDeletionRequestIsIdempotentBlockedAndCancelable", "TestMerchantDeletionWithoutObligationsUsesCoolingOff", "TestLegacySnapshotsMigrateAndFutureVersionFails"],
+      "centralState": "pending-accepted-policy-and-operator-authority"
     },
     {
       "id": "MC-QUANT-001",

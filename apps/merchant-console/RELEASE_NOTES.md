@@ -5,7 +5,7 @@
 - Restored canonical Wallet/Gateway Merchant Console authentication, five-role RBAC, invoices, webhooks, reconciliation, settlements, refunds/disputes and bounded AI workflows.
 - Added RBAC/Webhook/Settlement fuzz, fault, soak and benchmark coverage.
 - Added a versioned nine-category Provider Hub with server-side probe evidence and fail-closed health.
-- Added snapshot v1-to-v2 migration and future-version rejection tests.
+- Added snapshot v1/v2-to-v3 migration, merchant data-request persistence and future-version rejection tests.
 - Added read-only capital capability and transparent settlement waterfall APIs/UI without invented cost or merchant-net values.
 - Replaced fixed health success with direct liveness/store evidence and unverified dependency readiness.
 - Added frontend CycloneDX SBOM and backend module inventory.
@@ -18,6 +18,7 @@
 - Added exact-source two-run production-bundle byte reproducibility evidence with explicit same-host/cache limitations.
 - Added a public `/version` endpoint and release-correlation headers carrying commit, release, build time and process start time; local race tests bind the response to source commit `1f7963c`.
 - Added the versioned Merchant Console integration contract, full-goal coverage matrix, cross-product test vectors and dependency acceptance handoff without claiming central acceptance.
-- Added a verified Git recovery bundle for runtime commit `1f7963c`; three bounded origin pushes returned upstream HTTP 502, so remote synchronization remains false.
+- Added owner-only schema-v1 merchant data export with tenant isolation and runtime-material redaction, plus audited exact-confirmation/idempotent deletion request/cancel controls with 168-hour cooling off and fail-closed retention blockers. Irreversible deletion remains unavailable pending accepted policy/operator authority.
+- Synchronized the final branch through runtime commit `b0934a09df9d2dbea67abb596ad84154ab168312`; the earlier verified Git bundle remains historical recovery evidence, not deployment proof.
 
 No staging/public deployment, official provider success, stablecoin settlement, hosted download or production signature is claimed by this release.

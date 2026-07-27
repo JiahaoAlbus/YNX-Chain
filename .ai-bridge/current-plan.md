@@ -2,29 +2,31 @@
 
 Stage: **FREEZE**  
 Goal status: **Active**  
-Latest runtime commit: `1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9`  
-Remote: `60f860791a09e41a3bf0509184d5a91ea926e985` (push blocked by three upstream HTTP 502 responses)
+Latest runtime commit: `b0934a09df9d2dbea67abb596ad84154ab168312`  
+Remote runtime checkpoint: `b0934a09df9d2dbea67abb596ad84154ab168312` (push succeeded)
 
 ## Completed checkpoint
 
-- Recovered the exact product worktree/branch and confirmed a clean protected baseline.
-- Added auditable `/version` output and release metadata headers to all API responses.
-- Added build-time linker inputs and deterministic started-at metadata.
-- Added race-tested release metadata acceptance.
-- Created a verified recovery bundle for runtime commit `1f7963c`.
-- Created the full-goal coverage matrix, integration contract, handoff, test vectors and dependency acceptance ledger.
+- Recovered the exact product worktree/branch and confirmed no concurrent writer.
+- Preserved and reviewed the existing Merchant Data Rights dirty slice.
+- Added owner-only `data-manage` authorization and four authenticated data-rights routes.
+- Added schema-v1 tenant export with runtime/session/replay/provider/webhook authentication redaction.
+- Added versioned retention policy, exact-confirmation/idempotent deletion request, 168-hour cooling off, deterministic retention blockers, cancellation and audit.
+- Upgraded persistent snapshot schema to v3, migrated v1/v2, rejected future schemas, and included data requests in backup/restore counts.
+- `go test ./internal/payproduct/...` and `go test -race ./internal/payproduct/...` passed.
+- Runtime commit `b0934a0` was pushed to `origin/codex/final-merchant-console`.
+- Full-repository `go test ./...` remains red only in unrelated owner areas: missing bounded-IDE contract artifact and darwin permission-mode checks in consensus/faucet/trust.
 
-## Next autonomous engineering slice
+## Immediate checkpoint actions
 
-1. Validate all new JSON documents and rerun focused runtime/frontend tests.
-2. Bind API contract, release record and evidence ledgers to runtime commit `1f7963c`.
-3. Commit the FREEZE checkpoint, regenerate a bundle that contains both runtime and FREEZE commits, and retry push with bounded attempts.
-4. Continue the highest-priority runtime gap that does not require central credentials: signed Quant/Billing evidence ingestion **or** merchant data export/delete/retention state machines. Prefer the former only after the contract shape is exact; otherwise implement data-rights state machines first.
-5. Keep `integratedCentral`, deployment, hosting, signing and store states false until direct evidence exists.
+1. Validate updated contract/release/coverage JSON and review all evidence diffs.
+2. Commit and push the evidence checkpoint; verify exact Local SHA = Remote SHA and clean status.
+3. Retry GitHub Actions/Releases/Artifacts inspection with bounded network attempts.
+4. Continue the highest-priority autonomous runtime gap: signed Quant/Billing evidence acceptance only if an exact owner contract exists; otherwise implement operational search/filter/pagination and confirmed bulk-operation contracts.
+5. Keep `integratedCentral`, Testnet, deployment, hosting, signing and store states false until direct evidence exists.
 
-## Do not do
+## Boundaries
 
-- Do not modify another worktree.
-- Do not create alternate Wallet/Auth, Pay, Quant, Trust, Billing Ledger or Integration authorities.
-- Do not request secrets in chat.
-- Do not mark local tests as shared-Testnet or public evidence.
+- Do not modify another worktree or replace central Wallet/Auth, Pay, Quant, Trust, Billing Ledger or Integration authority.
+- Do not request or expose secrets.
+- Do not represent local tests, Git synchronization or unsigned bundles as shared-Testnet/public/production evidence.
