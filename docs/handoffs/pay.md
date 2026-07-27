@@ -2,8 +2,10 @@
 
 ## Source and status
 
-- Branch: `codex/ecosystem-pay`
-- Preserved baseline: `ffb528b4971b5849ffb151a018263daf5c0e2cb0`
+- Branch: `codex/final-pay`
+- Recovery base HEAD: `27b811cabcf16b663a085652412be01561195629`
+- Current checkpoint commit: `WORKTREE_PENDING_COMMIT`
+- Earlier preserved baseline: `ffb528b4971b5849ffb151a018263daf5c0e2cb0`
 - Canonical Wallet dependency: `@ynx-chain/wallet-auth@1.0.0`, vendored from
   `efe827f467107e23482289a5b1f69ac9ff83e694`; tarball SHA-256
   `3feb86824135d5143e4e72e506d4efef9f530d3d931081c15500f16b1347bf2f`.
@@ -54,7 +56,44 @@ rejects replays. Secrets are encrypted at rest and never included in browser
 snapshots or audit details. AI output cannot sign, pay, refund, approve a case,
 change payout or rotate secrets; owner/finance approval is separately audited.
 
-## Verification completed on 2026-07-19
+## Split Payment checkpoint on 2026-07-27
+
+Split is no longer a documentation-only or unavailable capability. The Pay
+service now persists a merchant-signed plan containing 2–20 immutable positive
+shares. A canonical Wallet/Gateway session with `pay:settlement:submit` claims a
+share and creates one authoritative child Invoice v4. The signed v4 material
+binds `splitPaymentId`, `splitShareId` and an irreversible
+`expectedPayerHash`; central settlement still compares the private raw account
+and fails closed for a different payer. Public reads redact the payer account
+while retaining the signed hash for independent verification; the authenticated
+merchant state retains the raw account for audit and reconciliation.
+The aggregate Split state is derived from the authoritative child Invoice
+states and cannot become committed from a claim, UI event or webhook.
+
+Canonical integration files are now:
+
+- `release/integration/pay-contract.json`
+- `docs/integration/INTEGRATION_HANDOFF.md`
+- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- `.ai-bridge/full-goal-coverage.json`
+
+## Verification completed on 2026-07-27
+
+- `go test ./internal/payproduct/... -count=1`: passed.
+- `go test -race ./internal/payproduct/... -count=1`: passed; the macOS linker
+  emitted a non-fatal `LC_DYSYMTAB` warning.
+- Split signature, tamper, replay, scope, wrong-payer, public-redaction,
+  merchant-audit and aggregate-state tests passed.
+- `npm run check` in `apps/pay`: TypeScript passed, 10/10 tests passed,
+  and Android/iOS Hermes bundles exported with Invoice v4 and Split parsing.
+- `make pay-api-check` and `bash internal/payproduct/smoke.sh`: passed.
+- `go test ./... -count=1` is not fully green because unchanged
+  Consensus/Faucet/Trust permission tests fail in this host environment and
+  unchanged IDE tests require a missing generated contract artifact. The Pay
+  package passed in that repository-wide run.
+
+## Historical verification completed on 2026-07-19
 
 - `go test -race ./internal/payproduct/... ./internal/cardproduct/... -count=1`
 - `go test ./... -count=1`

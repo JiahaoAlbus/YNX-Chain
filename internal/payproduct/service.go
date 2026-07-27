@@ -297,6 +297,10 @@ type InvoiceInput struct {
 }
 
 func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input InvoiceInput) (Invoice, error) {
+	return s.createInvoice(ctx, merchant, input, nil)
+}
+
+func (s *Service) createInvoice(ctx context.Context, merchant Merchant, input InvoiceInput, binding *SplitInvoiceBinding) (Invoice, error) {
 	s.mutation.Lock()
 	defer s.mutation.Unlock()
 	key, err := validKey(input.IdempotencyKey)
@@ -335,7 +339,7 @@ func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input In
 	}
 	amount := baseAmount + input.TipAmount
 	scope := "invoice:" + merchant.ID
-	if existing, ok, err := s.idempotentInvoice(scope, key, hashJSON(input)); err != nil {
+	if existing, ok, err := s.idempotentInvoice(scope, key, invoiceRequestHash(input, binding)); err != nil {
 		return Invoice{}, err
 	} else if ok {
 		return existing, nil
@@ -358,6 +362,13 @@ func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input In
 	}
 	createdAt := s.now()
 	invoice := Invoice{Version: InvoiceVersion, ID: "inv_" + hashString(central.ID, merchant.ID)[:20], CentralID: central.ID, IntentID: intent.ID, MerchantID: merchant.ID, MerchantName: merchant.DisplayName, PayoutAddress: merchant.PayoutAddress, CatalogItemID: itemID, Description: description, BaseAmount: baseAmount, TipAmount: input.TipAmount, Amount: amount, Asset: NativeAsset, Network: ChainID, Fee: NativeFeeYNXT, FeeBreakdown: FeeBreakdown{NetworkFee: NativeFeeYNXT, MerchantNet: amount, Source: "ynx-pay-fee-policy", AsOf: createdAt, Version: 1}, Status: "pending", ExpiresAt: expiry, CreatedAt: createdAt, SignatureKeyID: merchant.ID + "-invoice-v1", SigningPublicKey: merchant.InvoiceSigningPublicKey, SignatureAlgorithm: "ed25519"}
+	if binding != nil {
+		invoice.Version = 4
+		invoice.SplitPaymentID = binding.SplitPaymentID
+		invoice.SplitShareID = binding.SplitShareID
+		invoice.ExpectedPayer = binding.ExpectedPayer
+		invoice.ExpectedPayerHash = hashString("YNX_PAY_EXPECTED_PAYER_V1", binding.ExpectedPayer)
+	}
 	privateText, err := s.open(merchant.InvoiceSigningPrivateCipher)
 	if err != nil {
 		return Invoice{}, errors.New("merchant invoice signing key unavailable")
@@ -367,7 +378,7 @@ func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input In
 		return Invoice{}, errors.New("merchant invoice signing key invalid")
 	}
 	invoice.Signature = hex.EncodeToString(ed25519.Sign(ed25519.PrivateKey(privateKey), invoiceSigningMaterial(invoice)))
-	err = s.idempotentUpdate("invoice", merchant.ID, key, hashJSON(input), invoice.ID, func(data *Snapshot) error {
+	err = s.idempotentUpdate("invoice", merchant.ID, key, invoiceRequestHash(input, binding), invoice.ID, func(data *Snapshot) error {
 		data.Invoices[invoice.ID] = invoice
 		appendAudit(data, merchant.ID, merchant.ID, "invoice.create", invoice.ID, "committed", "central invoice "+central.ID, s.now())
 		return nil
@@ -426,7 +437,7 @@ func (s *Service) SubmitSettlement(ctx context.Context, id, payer, tx, key strin
 	return s.acceptSettlement(invoice, merchant, settlement)
 }
 func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.PaySettlement) (Invoice, error) {
-	if v.Status != "paid" || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != merchant.CentralMerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 || !identifierRE.MatchString(v.IdempotencyKey) {
+	if v.Status != "paid" || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != merchant.CentralMerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || (invoice.ExpectedPayer != "" && (v.Payer != invoice.ExpectedPayer || invoice.ExpectedPayerHash != hashString("YNX_PAY_EXPECTED_PAYER_V1", invoice.ExpectedPayer))) || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 || !identifierRE.MatchString(v.IdempotencyKey) {
 		return Invoice{}, errors.New("authoritative settlement evidence is incomplete or mismatched")
 	}
 	invoice.Status = "committed"
@@ -758,6 +769,11 @@ func (s *Service) SnapshotForMerchant(merchantID string) (Snapshot, error) {
 				out.RecurringDrafts[k] = v
 			}
 		}
+		for k, v := range data.SplitPayments {
+			if v.MerchantID == merchantID {
+				out.SplitPayments[k] = v
+			}
+		}
 		for _, v := range data.Audit {
 			if v.MerchantID == merchantID {
 				out.Audit = append(out.Audit, v)
@@ -838,7 +854,11 @@ func invoiceSigningMaterial(v Invoice) []byte {
 	if v.Version == 2 {
 		return []byte(strings.Join(append([]string{"YNX_PAY_INVOICE_V2"}, append(base, v.ExpiresAt.UTC().Format(time.RFC3339Nano), v.CreatedAt.UTC().Format(time.RFC3339Nano), v.SignatureKeyID, v.SigningPublicKey, v.SignatureAlgorithm)...), "|"))
 	}
-	return []byte(strings.Join(append([]string{"YNX_PAY_INVOICE_V3"}, append(base, fmt.Sprint(v.BaseAmount), fmt.Sprint(v.TipAmount), v.ExpiresAt.UTC().Format(time.RFC3339Nano), v.CreatedAt.UTC().Format(time.RFC3339Nano), v.SignatureKeyID, v.SigningPublicKey, v.SignatureAlgorithm)...), "|"))
+	v3 := append(base, fmt.Sprint(v.BaseAmount), fmt.Sprint(v.TipAmount), v.ExpiresAt.UTC().Format(time.RFC3339Nano), v.CreatedAt.UTC().Format(time.RFC3339Nano), v.SignatureKeyID, v.SigningPublicKey, v.SignatureAlgorithm)
+	if v.Version == 3 {
+		return []byte(strings.Join(append([]string{"YNX_PAY_INVOICE_V3"}, v3...), "|"))
+	}
+	return []byte(strings.Join(append([]string{"YNX_PAY_INVOICE_V4"}, append(v3, v.SplitPaymentID, v.SplitShareID, v.ExpectedPayerHash)...), "|"))
 }
 func appendAudit(data *Snapshot, merchant, actor, action, object, outcome, detail string, at time.Time) {
 	data.Audit = append(data.Audit, AuditEntry{ID: "aud_" + hashString(merchant, action, object, at.Format(time.RFC3339Nano))[:20], MerchantID: merchant, Actor: actor, Action: action, ObjectID: object, Outcome: outcome, Detail: detail, At: at})

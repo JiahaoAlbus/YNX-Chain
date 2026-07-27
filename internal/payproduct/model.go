@@ -71,6 +71,10 @@ type Invoice struct {
 	Description        string              `json:"description,omitempty"`
 	BaseAmount         int64               `json:"baseAmount,omitempty"`
 	TipAmount          int64               `json:"tipAmount,omitempty"`
+	SplitPaymentID     string              `json:"splitPaymentId,omitempty"`
+	SplitShareID       string              `json:"splitShareId,omitempty"`
+	ExpectedPayer      string              `json:"expectedPayer,omitempty"`
+	ExpectedPayerHash  string              `json:"expectedPayerHash,omitempty"`
 	Amount             int64               `json:"amount"`
 	Asset              string              `json:"asset"`
 	Network            string              `json:"network"`
@@ -268,6 +272,37 @@ type UserOperationReceipt struct {
 	SourceVersion     int       `json:"sourceVersion"`
 }
 
+type SplitShare struct {
+	ID           string     `json:"id"`
+	Label        string     `json:"label"`
+	Amount       int64      `json:"amount"`
+	PayerAccount string     `json:"payerAccount,omitempty"`
+	InvoiceID    string     `json:"invoiceId,omitempty"`
+	Status       string     `json:"status"`
+	ClaimedAt    *time.Time `json:"claimedAt,omitempty"`
+}
+
+type SplitPayment struct {
+	Version            int          `json:"version"`
+	ID                 string       `json:"id"`
+	MerchantID         string       `json:"merchantId"`
+	MerchantName       string       `json:"merchantName"`
+	PayoutAddress      string       `json:"payoutAddress"`
+	Description        string       `json:"description"`
+	TotalAmount        int64        `json:"totalAmount"`
+	Asset              string       `json:"asset"`
+	Network            string       `json:"network"`
+	Status             string       `json:"status"`
+	Shares             []SplitShare `json:"shares"`
+	ExpiresAt          time.Time    `json:"expiresAt"`
+	CreatedAt          time.Time    `json:"createdAt"`
+	UpdatedAt          time.Time    `json:"updatedAt"`
+	Signature          string       `json:"signature"`
+	SignatureKeyID     string       `json:"signatureKeyId"`
+	SigningPublicKey   string       `json:"signingPublicKey"`
+	SignatureAlgorithm string       `json:"signatureAlgorithm"`
+}
+
 type Snapshot struct {
 	Version         int                               `json:"version"`
 	Merchants       map[string]Merchant               `json:"merchants"`
@@ -286,6 +321,7 @@ type Snapshot struct {
 	BridgeTransfers map[string]BridgeTransfer         `json:"bridgeTransfers"`
 	RouteQuotes     map[string]PaymentRouteQuote      `json:"routeQuotes"`
 	RecurringDrafts map[string]RecurringDraft         `json:"recurringDrafts"`
+	SplitPayments   map[string]SplitPayment           `json:"splitPayments"`
 	Audit           []AuditEntry                      `json:"audit"`
 }
 

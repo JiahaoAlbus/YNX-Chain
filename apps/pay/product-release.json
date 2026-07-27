@@ -1,10 +1,33 @@
 {
+  "schemaVersion": 2,
   "productId": "pay",
   "name": "YNX Pay",
-  "branch": "codex/ecosystem-pay",
+  "branch": "codex/final-pay",
   "commit": "WORKTREE_PENDING_COMMIT",
-  "version": "1.0.0",
-  "surfaces": ["android", "ios"],
+  "version": "1.1.0",
+  "releaseClass": "local-candidate",
+  "phase": "FREEZE",
+  "goalStatus": "active",
+  "surfaces": ["api", "merchant-web", "android", "ios"],
+  "capabilities": {
+    "authoritativeInvoiceSettlement": "testedLocal",
+    "tip": "testedLocal",
+    "splitPayment": "testedLocal",
+    "recurringDraft": "testedLocal-non-executing",
+    "refund": "testedLocal",
+    "dispute": "implementedLocal",
+    "webhookRetryAndDeadLetter": "testedLocal",
+    "sponsorship": "testedLocal-provider-unconfigured",
+    "stableSettlement": "externalBlocked",
+    "bridgeEntry": "testedLocal-provider-unconfigured"
+  },
+  "contracts": {
+    "canonical": "release/integration/pay-contract.json",
+    "handoff": "docs/integration/INTEGRATION_HANDOFF.md",
+    "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+    "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+    "coverage": ".ai-bridge/full-goal-coverage.json"
+  },
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
@@ -17,12 +40,68 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
-  "sha256": {"androidApk": "14698734aef4d1d5b4b33eedae328d3fcfd37c161a949bd2a89ff3419bc15a44"},
-  "bytes": {"androidApk": 102623957},
-  "signingClass": {"android": "debug/test certificate", "ios": "unsigned Simulator CI"},
-  "minOS": {"androidSdk": 24, "ios": "16.4"},
-  "installEvidence": ["evidence/android/anr-emulator-failure.png (failure evidence; not an install pass)"],
-  "centralIntegration": "Registry/proxy request is docs/integration/pay-card-wallet-registry.json; not present on central main and not deployed.",
-  "knownLimitations": ["Fresh authoritative Testnet payment is blocked on central Gateway deployment.", "Current rebuilt APK has no clean post-build cold-launch proof because the emulator system died.", "No local Xcode, production signing, hosted download or store release."],
-  "generatedAt": "2026-07-19T04:00:00+08:00"
+  "sha256": {},
+  "bytes": {},
+  "signingClass": {
+    "android": "no current source-bound artifact",
+    "ios": "no current source-bound artifact"
+  },
+  "minOS": {
+    "androidSdk": 24,
+    "ios": "16.4"
+  },
+  "installEvidence": [],
+  "localVerification": [
+    {
+      "command": "go test ./internal/payproduct/... -count=1",
+      "result": "pass",
+      "verifiedAt": "2026-07-27"
+    },
+    {
+      "command": "go test -race ./internal/payproduct/... -count=1",
+      "result": "pass",
+      "verifiedAt": "2026-07-27",
+      "warning": "non-fatal macOS linker LC_DYSYMTAB warning"
+    },
+    {
+      "command": "npm run check",
+      "cwd": "apps/pay",
+      "result": "pass",
+      "verifiedAt": "2026-07-27",
+      "details": "TypeScript passed, 10 tests passed, and Android/iOS Hermes bundles exported."
+    },
+    {
+      "command": "bash internal/payproduct/smoke.sh",
+      "result": "pass",
+      "verifiedAt": "2026-07-27",
+      "details": "Go Pay, Merchant Console 7 tests/build, Pay tests/typecheck and Android/iOS bundles passed."
+    },
+    {
+      "command": "make pay-api-check",
+      "result": "pass",
+      "verifiedAt": "2026-07-27"
+    },
+    {
+      "command": "go test ./... -count=1",
+      "result": "fail-outside-pay",
+      "verifiedAt": "2026-07-27",
+      "details": "Pay package passed. Unchanged Consensus/Faucet/Trust permission tests failed in the current host environment and unchanged IDE tests lacked a generated contract artifact."
+    }
+  ],
+  "centralIntegration": "Contract and vectors are ready locally; central Wallet registry, App Gateway routes and owner acceptance are not deployed or verified.",
+  "historicalEvidence": {
+    "androidApkSha256": "14698734aef4d1d5b4b33eedae328d3fcfd37c161a949bd2a89ff3419bc15a44",
+    "androidApkBytes": 102623957,
+    "signingClass": "debug/test certificate",
+    "sourceBoundToCurrentCommit": false,
+    "installFailureEvidence": "evidence/android/anr-emulator-failure.png"
+  },
+  "knownLimitations": [
+    "Fresh authoritative Testnet payment, two-account Split flow, sponsorship receipt and refund proof are blocked on accepted central Gateway/Testnet deployment.",
+    "No current source-bound Android/iOS install and cold-launch evidence.",
+    "No public service URL, hosted immutable artifact, production signature or store release.",
+    "Quant high-water-mark billing evidence validator, full migration/restore drill, deployed observability and capacity/unit-economics measurements remain incomplete.",
+    "Stablecoin and Bridge production-capable providers remain unavailable until approved owner/provider contracts exist."
+  ],
+  "generatedAt": "2026-07-27T11:20:00+01:00"
 }

@@ -41,9 +41,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/invoices/{id}/route-quotes", s.routeQuote)
 	s.mux.HandleFunc("POST /v1/route-quotes/{id}/select", s.routeSelect)
 	s.mux.HandleFunc("POST /v1/bridge-transfers/{id}/refresh", s.bridgeRefresh)
+	s.mux.HandleFunc("GET /v1/split-payments/{id}", s.splitPayment)
+	s.mux.HandleFunc("POST /v1/split-payments/{id}/shares/{shareId}/claim", s.claimSplitShare)
 	s.mux.HandleFunc("GET /v1/merchant/state", s.merchantState)
 	s.mux.HandleFunc("POST /v1/merchant/catalog", s.catalog)
 	s.mux.HandleFunc("POST /v1/merchant/invoices", s.createInvoice)
+	s.mux.HandleFunc("POST /v1/merchant/split-payments", s.createSplitPayment)
 	s.mux.HandleFunc("POST /v1/merchant/recurring-drafts", s.createRecurringDraft)
 	s.mux.HandleFunc("PUT /v1/merchant/webhook", s.webhook)
 	s.mux.HandleFunc("POST /v1/merchant/webhook/rotate", s.rotate)
@@ -105,6 +108,7 @@ func (s *Server) merchantMember(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) invoice(w http.ResponseWriter, r *http.Request) {
 	out, err := s.service.Invoice(r.Context(), r.PathValue("id"))
+	out = publicInvoice(out)
 	respond(w, 200, out, err)
 }
 func (s *Server) settlement(w http.ResponseWriter, r *http.Request) {
@@ -297,6 +301,44 @@ func (s *Server) createInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := s.service.CreateInvoice(r.Context(), p.Merchant, in)
+	respond(w, 201, out, err)
+}
+func (s *Server) createSplitPayment(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "invoice")
+	if !ok {
+		return
+	}
+	var in SplitPaymentInput
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.CreateSplitPayment(p.Merchant, in)
+	respond(w, 201, out, err)
+}
+func (s *Server) splitPayment(w http.ResponseWriter, r *http.Request) {
+	out, err := s.service.SplitPayment(r.Context(), r.PathValue("id"))
+	out = publicSplitPayment(out)
+	respond(w, 200, out, err)
+}
+func (s *Server) claimSplitShare(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	if err != nil {
+		writeError(w, 413, "request body exceeds limit")
+		return
+	}
+	session, err := s.service.VerifyPayGateway(r, body)
+	if err != nil {
+		writeError(w, 401, err.Error())
+		return
+	}
+	var in struct {
+		IdempotencyKey string `json:"idempotencyKey"`
+	}
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.ClaimSplitShare(r.Context(), session, r.PathValue("id"), r.PathValue("shareId"), in.IdempotencyKey)
+	out = publicSplitPayment(out)
 	respond(w, 201, out, err)
 }
 func (s *Server) createRecurringDraft(w http.ResponseWriter, r *http.Request) {
