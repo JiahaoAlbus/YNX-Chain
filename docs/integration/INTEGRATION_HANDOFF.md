@@ -59,7 +59,7 @@ Any product, client, bundle, callback, chain, scope, device, digest, nonce, time
 
 ## Recovery state
 
-Three bounded pushes of runtime commit `1f7963c` returned upstream HTTP 502. A verified recovery bundle exists at `release/recovery/merchant-console-1f7963c.bundle`, SHA-256 `5fd0082dfbde40c335d07a68a7e5004ea745f4319c21cf3a4b8d6aed84d8e91e`. This is recovery evidence, not remote synchronization.
+Repeated pushes remained blocked by upstream HTTP 502. A verified recovery bundle exists at `release/recovery/merchant-console-accd603.bundle`, SHA-256 `1af965dcb1a47bedb7b2144c444dc1974d2b293f66d2ff36b1b1d12f7401ab78`; it contains runtime commit `1f7963c` and FREEZE commit `accd603` and requires base `60f8607`. This is recovery evidence, not remote synchronization.
 
 ## Next integration action
 

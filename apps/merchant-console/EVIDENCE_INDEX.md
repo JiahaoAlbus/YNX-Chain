@@ -51,7 +51,7 @@
 - Runtime commit `1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9` adds `/version` and release-correlation headers for commit, release, build time and process start time.
 - `TestVersionExposesAuditableReleaseMetadata` and `go test -race ./internal/payproduct ./internal/payproduct/cmd/ynx-pay-productd` passed.
 - The unique integration contract, full-goal coverage matrix, cross-product test vectors and dependency acceptance handoff parse as valid JSON where applicable.
-- Three bounded origin pushes returned upstream HTTP 502. The verified bundle `release/recovery/merchant-console-1f7963c.bundle` contains runtime commit `1f7963c`, requires base `60f8607`, is 2,324 bytes and has SHA-256 `5fd0082dfbde40c335d07a68a7e5004ea745f4319c21cf3a4b8d6aed84d8e91e`.
+- Repeated origin pushes returned upstream HTTP 502. The verified bundle `release/recovery/merchant-console-accd603.bundle` contains runtime commit `1f7963c` and FREEZE commit `accd603`, requires base `60f8607`, is 26,410 bytes and has SHA-256 `1af965dcb1a47bedb7b2144c444dc1974d2b293f66d2ff36b1b1d12f7401ab78`.
 - Scope limitation: the bundle is local recovery evidence; it is not remote synchronization, shared-Testnet integration or deployment proof.
 
 ## Focused UI, RTL and accessibility verification

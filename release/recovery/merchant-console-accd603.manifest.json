@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Merchant Console",
+  "branch": "codex/final-merchant-console",
+  "createdAt": "2026-07-27",
+  "reason": "Origin synchronization remained blocked by upstream HTTP 502 after the runtime and FREEZE checkpoints.",
+  "bundle": {
+    "path": "release/recovery/merchant-console-accd603.bundle",
+    "bytes": 26410,
+    "sha256": "1af965dcb1a47bedb7b2144c444dc1974d2b293f66d2ff36b1b1d12f7401ab78",
+    "containedHead": "accd603c8b43b42b1ef9bc77442610f3ad81c547",
+    "requiredBase": "60f860791a09e41a3bf0509184d5a91ea926e985",
+    "verification": "git bundle verify succeeded"
+  },
+  "containedCheckpoints": [
+    {
+      "commit": "1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9",
+      "subject": "feat(merchant): expose auditable release metadata",
+      "verification": "go test -race ./internal/payproduct ./internal/payproduct/cmd/ynx-pay-productd"
+    },
+    {
+      "commit": "accd603c8b43b42b1ef9bc77442610f3ad81c547",
+      "subject": "chore(merchant): freeze integration contract and goal coverage",
+      "verification": "7 JSON documents parsed, 6 JSONL records parsed, Go race passed, frontend 12/12 passed, production bundle built"
+    }
+  ],
+  "recovery": [
+    "Start from a repository containing base commit 60f860791a09e41a3bf0509184d5a91ea926e985.",
+    "Verify the bundle SHA-256 before use.",
+    "Run git bundle verify on the bundle.",
+    "Fetch or clone the contained HEAD into the intended Merchant Console branch without force-updating unrelated worktrees.",
+    "Run the recorded runtime, JSON, frontend and production-build checks before any merge or deployment."
+  ],
+  "limitations": [
+    "This bundle protects the substantive runtime and FREEZE commits; the commit that tracks this bundle and manifest is not recursively contained.",
+    "This is recovery evidence, not remote synchronization, deployment, central integration or public-Testnet evidence."
+  ]
+}
