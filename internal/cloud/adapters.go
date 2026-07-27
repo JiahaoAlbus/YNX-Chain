@@ -36,6 +36,10 @@ type DirectUploadStore interface {
 	VerifyDirect(context.Context, string, string, int64) (DirectUploadVerification, error)
 }
 
+type LifecycleObjectStore interface {
+	Transition(context.Context, StorageTransitionRequest) (StorageTransitionResult, error)
+}
+
 type LocalObjectStore struct{ Root string }
 
 func (s LocalObjectStore) Put(_ context.Context, hash string, body []byte) (string, error) {
@@ -221,6 +225,47 @@ func (s RemoteObjectStore) VerifyDirect(ctx context.Context, ref, hash string, s
 	}
 	if !out.Verified || out.Hash != hash || out.Size != size || out.ScanStatus != "accepted" {
 		return DirectUploadVerification{}, errors.New("direct upload verification binding mismatch")
+	}
+	return out, nil
+}
+
+func (s RemoteObjectStore) Transition(ctx context.Context, in StorageTransitionRequest) (StorageTransitionResult, error) {
+	if err := validRemote(s.BaseURL, s.Token); err != nil {
+		return StorageTransitionResult{}, err
+	}
+	if in.TransitionID == "" || !validObjectScope(in.Scope) || in.Ref == "" || len(in.Hash) != 64 || !validStorageClass(in.From) || !validStorageClass(in.To) || in.From == in.To {
+		return StorageTransitionResult{}, ErrInvalid
+	}
+	payload, _ := json.Marshal(in)
+	u := strings.TrimRight(s.BaseURL, "/") + "/objects/" + url.PathEscape(in.Ref) + "/lifecycle"
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, u, bytes.NewReader(payload))
+	req.Header.Set("Authorization", "Bearer "+s.Token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := s.client().Do(req)
+	if err != nil {
+		return StorageTransitionResult{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return StorageTransitionResult{}, fmt.Errorf("object store lifecycle returned %d", resp.StatusCode)
+	}
+	var out StorageTransitionResult
+	decoder := json.NewDecoder(io.LimitReader(resp.Body, 32<<10))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&out); err != nil {
+		return StorageTransitionResult{}, err
+	}
+	if out.TransitionID != in.TransitionID || out.Ref == "" || out.Hash != in.Hash || out.From != in.From || out.To != in.To || out.Status != "completed" || out.ProviderEvidence == "" || out.AsOf.IsZero() {
+		return StorageTransitionResult{}, errors.New("object store lifecycle response binding mismatch")
+	}
+	if in.CopyRequired && out.Ref == in.Ref {
+		return StorageTransitionResult{}, errors.New("object store lifecycle failed to isolate a shared blob")
+	}
+	if out.ReadMode != StorageReadImmediate && out.ReadMode != StorageReadRestoreRequired {
+		return StorageTransitionResult{}, errors.New("object store lifecycle read mode is invalid")
+	}
+	if out.To != StorageClassArchive && out.ReadMode != StorageReadImmediate {
+		return StorageTransitionResult{}, errors.New("non-archive storage class cannot require restore")
 	}
 	return out, nil
 }

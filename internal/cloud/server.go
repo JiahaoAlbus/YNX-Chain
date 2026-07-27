@@ -227,6 +227,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/v1/objects/{id}/document", s.auth(s.saveDocument))
 	mux.HandleFunc("GET /api/v1/objects/{id}/versions", s.auth(s.versions))
 	mux.HandleFunc("POST /api/v1/objects/{id}/versions/{version}/restore", s.auth(s.restoreVersion))
+	mux.HandleFunc("POST /api/v1/objects/{id}/storage-class", s.auth(s.transitionStorageClass))
+	mux.HandleFunc("GET /api/v1/storage-transitions", s.auth(s.storageTransitions))
+	mux.HandleFunc("POST /api/v1/storage-transitions/{transition}/retry", s.auth(s.retryStorageTransition))
 	mux.HandleFunc("POST /api/v1/objects/{id}/star", s.auth(s.star))
 	mux.HandleFunc("POST /api/v1/objects/{id}/trash", s.auth(s.trash))
 	mux.HandleFunc("POST /api/v1/objects/{id}/restore", s.auth(s.restore))
@@ -632,6 +635,41 @@ func (s *Server) restoreVersion(w http.ResponseWriter, r *http.Request, a Sessio
 	}
 	obj, e := s.service.RestoreVersion(a.Account, r.PathValue("id"), n)
 	writeResult(w, obj, e)
+}
+func (s *Server) transitionStorageClass(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProductScope(w, a, "files.write", "documents.write") {
+		return
+	}
+	var req struct {
+		Target StorageClass `json:"target"`
+	}
+	if !decode(w, r, &req, 1024) {
+		return
+	}
+	transition, err := s.service.TransitionStorageClass(r.Context(), a.Account, a.Product, r.PathValue("id"), req.Target)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, transition)
+}
+func (s *Server) storageTransitions(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProductScope(w, a, "files.read", "documents.read") {
+		return
+	}
+	transitions, err := s.service.StorageTransitions(a.Account, a.Product, r.URL.Query().Get("objectId"))
+	writeResult(w, transitions, err)
+}
+func (s *Server) retryStorageTransition(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProductScope(w, a, "files.write", "documents.write") {
+		return
+	}
+	transition, err := s.service.RetryStorageTransition(r.Context(), a.Account, a.Product, r.PathValue("transition"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, transition)
 }
 func (s *Server) star(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.write", "documents.write") {

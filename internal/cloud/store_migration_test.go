@@ -71,6 +71,12 @@ func TestV2ToCurrentProductMigrationAndLegacyRollbackHash(t *testing.T) {
 	if s.state.SchemaVersion != CurrentStateSchemaVersion || s.state.Objects["doc"].Product != "docs" || s.state.Objects["file"].Product != "cloud" || s.state.Usage == nil {
 		t.Fatalf("migration: %#v", s.state.Objects)
 	}
+	for _, id := range []string{"doc", "file"} {
+		object := s.state.Objects[id]
+		if object.StorageClass != "" || object.StorageClassVersion != 0 || object.StorageReadMode != "" || object.StorageClassUpdatedAt != nil {
+			t.Fatalf("metadata-only migration invented lifecycle state for %s: %#v", id, object)
+		}
+	}
 	if _, err := os.Stat(path + ".v2.bak"); err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +177,7 @@ func TestV4ToCurrentStorageTimeMigrationDoesNotInventHistory(t *testing.T) {
 	}
 }
 
-func TestV5ToV6ErasureReceiptMigrationStartsEmpty(t *testing.T) {
+func TestV5ToCurrentErasureReceiptMigrationStartsEmpty(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "state.json")
 	state := newState()
@@ -188,7 +194,7 @@ func TestV5ToV6ErasureReceiptMigrationStartsEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.state.SchemaVersion != 6 || s.state.DataErasures == nil || len(s.state.DataErasures) != 0 {
+	if s.state.SchemaVersion != CurrentStateSchemaVersion || s.state.DataErasures == nil || len(s.state.DataErasures) != 0 || s.state.StorageTransitions == nil {
 		t.Fatalf("v5 erasure migration invented receipts: schema=%d receipts=%#v", s.state.SchemaVersion, s.state.DataErasures)
 	}
 	backup, err := os.ReadFile(path + ".v5.bak")
