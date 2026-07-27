@@ -4,15 +4,18 @@
 
 This section supersedes stale branch, test-count and current-source statements below while preserving historical desktop artifact evidence at its original source commit.
 
-- Current runtime source commit: `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d` on `codex/final-developer`.
+- Current runtime source commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551` on `codex/final-developer`.
 - Added a real fail-closed API Studio to the existing Web IDE, not a static dashboard. It imports and validates OpenAPI 3.0/3.1 JSON, rejects external references, validates operations/parameters/security, creates reviewed request previews, requires explicit approval, enforces HTTPS-or-localhost and an origin allowlist, bounds response inspection, simulates 429/timeout/provider/network failures, generates TypeScript clients and emits adapter manifests.
 - Browser state stores only opaque `credential-ref:` identifiers. Secured requests require an injected host credential broker; browser JavaScript never resolves credential values.
 - Reviewed non-affiliation templates exist for WalletConnect, Bridge, Card, Search, Storage, Mail, Shipping and Oracle. A template does not claim provider credentials, connectivity, settlement or production activation.
-- Current verification: Developer client 22 passed; Developer Web 16 passed; static claim/workflow check passed; standalone Web build passed; browser module syntax passed.
-- Contract-first records now include `release/integration/developer-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/integration/DEPENDENCY_ACCEPTANCE.md` and `.ai-bridge/full-goal-coverage.json`.
-- API Studio is implemented-local and tested-local, but not installed in the existing desktop artifacts, not centrally integrated, not staged/public, not download-hosted, not production-signed and not store-released.
-- Historical macOS and Windows 0.2.0 artifacts remain tied to `c6b4affc03b3255100516c34483096f445c46753`; they must not be used as evidence that API Studio is installed.
-- Current phase is `FREEZE`. The next autonomous slice is API Studio 12-locale, Arabic RTL, keyboard/focus and 390px interaction evidence, followed by current-source desktop rebuilds.
+- API Studio labels, approval semantics, dynamic states and bounded error classes are translated across all 12 supported locales. Arabic uses RTL interaction layout while source, JSON, response and URL fields remain LTR; stable machine error codes remain visible.
+- Bottom-panel navigation implements tablist/tab/tabpanel semantics with roving focus and ArrowLeft/ArrowRight/Home/End navigation. API output is a focusable polite live region, and 390px rules wrap long translated controls.
+- Validation gates no longer report false success when `rg` is unavailable; the verified fallback distinguishes findings, clean results and scanner execution failure.
+- Current verification: Developer client 22 passed; Developer Web 17 passed; static claim/workflow check, standalone Web build, browser module syntax, live compile, same-origin proxy, desktop sandbox 2/2, Windows source boundary and repaired validation gates passed.
+- Contract-first records include `release/integration/developer-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/integration/DEPENDENCY_ACCEPTANCE.md` and `.ai-bridge/full-goal-coverage.json`.
+- Current-source API Studio is implemented-local and tested-local, but not installed in the existing desktop artifacts, not centrally integrated, not staged/public, not download-hosted, not production-signed and not store-released.
+- Historical macOS and Windows 0.2.0 artifacts remain tied to `c6b4affc03b3255100516c34483096f445c46753`; they must not be used as evidence that current-source API Studio is installed.
+- Current phase is `FREEZE`. The next autonomous slice is a current-source macOS package rebuild with extracted install, cold-start, cleanup, hash, bytes, SBOM, provenance and truthful unsigned signing evidence.
 
 ## 2026-07-18 YNX AI Build and real Windows proof correction
 

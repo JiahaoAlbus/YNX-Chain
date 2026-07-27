@@ -6,52 +6,50 @@
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/11-developer`
 - Branch: `codex/final-developer`
 - Current phase: `FREEZE`
-- Runtime checkpoint: `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d`
+- Runtime checkpoint: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
 - Long-term goal: Active
 
 ## Completed slice
 
-Implemented a fail-closed API Studio as a real Developer runtime surface:
+Closed the API Studio localization and accessibility implementation gap without weakening its security boundary:
 
-- OpenAPI 3.0/3.1 JSON validation;
-- external-reference rejection;
-- operation/parameter/security validation;
-- reviewed request preview and explicit approval;
-- credential-reference-only browser state;
-- injected host credential broker boundary;
-- reviewed origin allowlist;
-- bounded response inspection;
-- 429, timeout, provider-unavailable and network-failure simulation;
-- TypeScript client and adapter manifest generation;
-- reviewed templates for WalletConnect, Bridge, Card, Search, Storage, Mail, Shipping and Oracle;
-- responsive Web IDE panel and tests.
+- all API Studio labels, approval semantics, dynamic states and fail-closed error classes are available in the 12 supported locales;
+- Arabic RTL applies to the interaction surfaces while source, JSON and URL fields remain LTR;
+- API output remains a focusable polite live region and generated evidence is not overwritten by locale changes;
+- bottom-panel tabs implement tablist/tab/tabpanel semantics, roving tabindex and ArrowLeft/ArrowRight/Home/End navigation;
+- 390px rules collapse API grids and permit long translated controls to wrap;
+- placeholder and secret gates no longer report false success when `rg` is unavailable; the verified `grep` fallback distinguishes match, no-match and scanner failure.
 
 ## Verified tests
 
 - `cd packages/developer-client && npm test` — 22 passed
-- `cd apps/developer && npm test` — 16 passed
+- `cd apps/developer && npm test` — 17 passed
+- `cd apps/developer && node --check app.js` — passed
 - `cd apps/developer && npm run check` — passed
 - `cd apps/developer && npm run build` — passed
-- `cd apps/developer && node --check app.js` — passed
+- `cd apps/developer && npm run live-check` — passed
+- `cd apps/developer && npm run proxy-check` — passed
+- `cd apps/developer && npm run desktop:sandbox-check` — 2 passed
+- `cd apps/developer && npm run desktop:windows-source-check` — passed without a Windows build claim
+- `make no-placeholder-check` — passed through the no-`rg` fallback
+- `make secret-scan` — passed through the no-`rg` fallback
+- `make static-check` — passed
 
 ## Protected checkpoint
 
-- Machine-readable records validated.
-- Repository handoff and release notes updated.
-- Targeted tests and static checks rerun successfully.
-- Runtime commit: `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d`.
-- FREEZE record commit: `9ae9f7d29c87991fcbeafc27f6d3e636ab93a43a`.
-- Target branch `origin/codex/final-developer` created and upstream tracking established.
-- Recheck Local SHA equals Remote SHA after this status update is committed.
+- Runtime commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`.
+- `origin/codex/final-developer` contains the runtime commit.
+- Local SHA equals upstream SHA; ahead/behind is `0/0`.
+- Product status remains `ACTIVE`; this checkpoint is not product completion.
 
 ## Next autonomous engineering slice
 
-Add full 12-locale API Studio vocabulary and runtime errors, Arabic RTL verification, keyboard/focus checks, and 390px interaction evidence. Do not begin central provider execution until the host broker contract is accepted by Security/SRE and Integration.
+Rebuild the macOS package from runtime source commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551`, then verify archive extraction, install path, bundled service launch, cold start, shutdown cleanup, artifact hash/bytes/SBOM/provenance and truthful unsigned signing class. Do not promote an older package or claim production signing.
 
 ## Subsequent priorities
 
-1. Current-source macOS package rebuild and extracted cold-start verification.
-2. Current-source Windows CI package and portable cold-start verification.
+1. Current-source Windows CI package and portable cold-start verification.
+2. Installed-browser keyboard, screen-reader, zoom/dynamic-text and 390px visual evidence.
 3. Accepted host broker plus one official provider sandbox vector.
 4. Data Fabric redacted audit events and Monitor integration.
 5. Canonical Wallet product/deployment acceptance.

@@ -2,9 +2,9 @@
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
   "branch": "codex/final-developer",
-  "commit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+  "commit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
   "version": "0.2.0",
-  "sourceCheckpoint": "api-studio-2026-07-27",
+  "sourceCheckpoint": "api-studio-i18n-a11y-2026-07-27",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -32,12 +32,16 @@
       "integratedCentral": false,
       "deployedStaging": false,
       "deployedPublic": false,
-      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "tests": {
         "developerClient": "22 passed",
-        "developerWeb": "16 passed",
+        "developerWeb": "17 passed",
         "staticCheck": "passed",
-        "webBuild": "passed"
+        "webBuild": "passed",
+        "liveCheck": "passed",
+        "sameOriginProxy": "passed",
+        "placeholderGate": "passed with grep fallback because rg was unavailable",
+        "credentialLeakGate": "passed with grep fallback because rg was unavailable"
       },
       "capabilities": [
         "OpenAPI 3.0/3.1 JSON import and validation",
@@ -50,7 +54,11 @@
         "429, timeout, provider-unavailable and network-failure simulation",
         "TypeScript client generation",
         "adapter manifest generation",
-        "WalletConnect, Bridge, Card, Search, Storage, Mail, Shipping and Oracle templates"
+        "WalletConnect, Bridge, Card, Search, Storage, Mail, Shipping and Oracle templates",
+        "12-locale API Studio labels, approval semantics, dynamic states and bounded error classes",
+        "Arabic RTL interaction layout with LTR source, JSON and URL fields",
+        "keyboard tablist navigation with ArrowLeft, ArrowRight, Home and End",
+        "390px responsive controls and focusable polite output announcements"
       ]
     }
   },
@@ -101,9 +109,9 @@
     "No central Wallet registry/provider integration or real Wallet-signed deployment was performed.",
     "No provider-backed AI generation was performed because no operator provider credential/configuration was supplied.",
     "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
-    "The existing macOS and Windows 0.2.0 package evidence predates the API Studio source checkpoint; API Studio is not claimed installed in those artifacts.",
+    "The existing macOS and Windows 0.2.0 package evidence predates the current API Studio localization and accessibility source checkpoint; current-source API Studio is not claimed installed in those artifacts.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The pinned chain compiler response truthfully reports deterministic analyzer output unless a matching production solc artifact exists; no arbitrary EVM or remote public verification claim is made."
   ],
-  "generatedAt": "2026-07-27T06:26:30Z"
+  "generatedAt": "2026-07-27T14:34:57Z"
 }

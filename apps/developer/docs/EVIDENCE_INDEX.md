@@ -12,6 +12,9 @@
   failure simulation and generation: `API_STUDIO.md`
 - API Studio core tests: `packages/developer-client/test/api-studio.test.js`
 - API Studio Web boundary tests: `apps/developer/test/api-studio-ui.test.js`
+- Current runtime source checkpoint: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
+- Current targeted verification: Developer client 22/22, Developer Web 17/17, browser syntax, static claim/workflow, standalone Web build, live compile, same-origin proxy, desktop sandbox 2/2 and Windows source boundary.
+- Validation-gate evidence: `scripts/validate/no-placeholder-check.sh` and `scripts/validate/secret-scan.sh` execute a verified fallback when `rg` is unavailable; scanner execution errors fail closed.
 
 ## Visual evidence
 

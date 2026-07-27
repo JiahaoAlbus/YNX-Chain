@@ -4,7 +4,7 @@
 
 - Product owner: `11-developer`
 - Branch: `codex/final-developer`
-- Runtime source commit: `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d`
+- Runtime source commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
 - Contract version: `ynx-developer-integration-v1` / `1.0.0`
 - Current phase: `FREEZE`
 
@@ -30,7 +30,7 @@ No dependency below is treated as accepted merely because an adapter, template, 
 
 ## Developer-side acceptance already complete
 
-The Developer owner accepts these local invariants for source commit `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d`:
+The Developer owner accepts these local invariants for source commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551`:
 
 1. OpenAPI imports are JSON-only and bounded.
 2. External references are rejected rather than fetched implicitly.
@@ -39,7 +39,10 @@ The Developer owner accepts these local invariants for source commit `3cc6bd3e9d
 5. Every sandbox request requires a reviewed preview and explicit approval.
 6. Only reviewed origins may be contacted.
 7. Provider failures remain failures.
-8. Existing desktop artifacts predate this source checkpoint and do not prove API Studio installation.
+8. Localized human messages preserve stable machine error codes for cross-product consumers.
+9. Arabic RTL is scoped to interaction surfaces; source, JSON and URL fields remain LTR.
+10. Keyboard tab navigation follows a deterministic tablist contract and output announcements use a polite live region.
+11. Existing desktop artifacts predate this source checkpoint and do not prove current-source API Studio installation.
 
 ## Conflict handling
 

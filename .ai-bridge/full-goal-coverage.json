@@ -9,8 +9,8 @@
     "owner": "11-developer"
   },
   "phase": "FREEZE",
-  "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
-  "lastUpdated": "2026-07-27T06:26:30Z",
+  "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+  "lastUpdated": "2026-07-27T14:34:57Z",
   "allowedStatuses": [
     "notStarted",
     "inProgress",
@@ -53,21 +53,26 @@
       "evidence": [
         "Runtime API Studio slice committed as 3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
         "FREEZE records committed as 9ae9f7d29c87991fcbeafc27f6d3e636ab93a43a",
-        "origin/codex/final-developer created and upstream tracking established"
+        "API Studio i18n/accessibility and fail-closed scan gates committed and pushed as 8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+        "origin/codex/final-developer created and upstream tracking established",
+        "Local SHA and upstream SHA matched at 8f352d0159eef0ab60fb6411e949cfcf3aafb551"
       ],
-      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "tests": [
         "Developer client 22 passed",
-        "Developer Web 16 passed",
+        "Developer Web 17 passed",
         "Static check passed",
-        "Web build passed"
+        "Web build passed",
+        "Live check passed",
+        "Same-origin proxy check passed",
+        "No-placeholder and secret scans executed through the grep fallback and passed"
       ],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "11-developer",
       "nextAction": "Verify Local SHA equals Remote SHA after each subsequent commit.",
-      "lastUpdated": "2026-07-27T06:26:30Z"
+      "lastUpdated": "2026-07-27T14:34:57Z"
     },
     {
       "id": "DEV-IDE-001",
@@ -379,42 +384,50 @@
       "category": "internationalization",
       "requirement": "Support 12 languages, Arabic RTL, runtime errors, dynamic states, dates and numbers across Developer surfaces.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
-        "Existing critical IDE and AI vocabulary has 12-locale tests",
-        "New API Studio labels are currently English-only"
+        "API Studio labels, approval semantics, dynamic validation states and fail-closed error classes are translated across all 12 supported locales",
+        "Arabic applies RTL to API Studio, panel tabs and dialogs while code, JSON and URL fields remain LTR",
+        "Localized runtime output preserves machine-readable error codes and does not overwrite generated API evidence on locale changes"
       ],
-      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "tests": [
-        "Existing locale completeness and Arabic RTL tests passed"
+        "Developer client locale completeness and Arabic RTL test passed within 22/22 suite",
+        "Developer Web localization, RTL and responsive boundary test passed within 17/17 suite",
+        "Standalone Web build and live check passed"
       ],
-      "artifact": null,
+      "artifact": "local standalone Web build from runtime source commit 8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "publicProof": null,
       "blockedBy": [],
       "owner": "11-developer",
-      "nextAction": "Add API Studio labels, errors and dynamic states to all 12 locales and rerun RTL/390px tests.",
-      "lastUpdated": "2026-07-27T06:26:30Z"
+      "nextAction": "Capture installed-browser screenshots and assistive-technology interaction evidence before promoting beyond testedLocal.",
+      "lastUpdated": "2026-07-27T14:34:57Z"
     },
     {
       "id": "DEV-A11Y-001",
       "category": "accessibility",
       "requirement": "Provide keyboard access, screen-reader labels, focus, contrast, large text, reduced motion, Light/Dark and 390px layout.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
-        "Existing IDE landmarks and responsive CSS",
-        "API Studio controls have labels and mobile single-column CSS"
+        "Bottom panel implements tablist/tab/tabpanel semantics with roving tabindex and ArrowLeft/ArrowRight/Home/End navigation",
+        "API Studio output is a focusable polite live region and failure simulation has an explicit screen-reader label",
+        "Arabic RTL applies to interaction surfaces while source code and structured data remain LTR",
+        "390px-oriented mobile rules collapse API Studio grids and allow long translated actions to wrap",
+        "Existing visible focus, large text, Light/Dark and reduced-motion rules remain active"
       ],
-      "sourceCommit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
+      "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "tests": [
-        "Static UI boundary tests passed"
+        "Developer Web keyboard, RTL, reduced-motion and 390px static gate passed within 17/17 suite",
+        "Desktop sandbox denial 2/2 passed",
+        "Windows source boundary check passed without claiming a Windows build"
       ],
-      "artifact": null,
+      "artifact": "local standalone Web build from runtime source commit 8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "publicProof": null,
       "blockedBy": [],
       "owner": "11-developer",
-      "nextAction": "Run interactive keyboard, focus, screen-reader and viewport audit for API Studio.",
-      "lastUpdated": "2026-07-27T06:26:30Z"
+      "nextAction": "Run installed-browser keyboard, screen-reader, zoom/dynamic-text and 390px visual audits before higher release status.",
+      "lastUpdated": "2026-07-27T14:34:57Z"
     },
     {
       "id": "DEV-STORAGE-001",
@@ -763,9 +776,9 @@
     "publicVerified": 0,
     "testnetVerified": 0,
     "integratedCentral": 0,
-    "testedLocal": 14,
+    "testedLocal": 16,
     "implementedLocal": 1,
-    "inProgress": 11,
+    "inProgress": 9,
     "notStarted": 5,
     "externalBlocked": 0,
     "notApplicable": 0,

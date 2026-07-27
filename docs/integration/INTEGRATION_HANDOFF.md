@@ -4,7 +4,7 @@
 
 - Product: `11-developer`
 - Branch: `codex/final-developer`
-- Runtime source commit: `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d`
+- Runtime source commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
 - Contract: `release/integration/developer-contract.json`
 - Current phase: `FREEZE`
 
@@ -13,6 +13,8 @@
 YNX Developer now includes a real API Studio surface backed by a framework-independent client module. It imports and validates OpenAPI 3.0/3.1 JSON, creates bounded operation previews, requires explicit approval, delegates secured network execution to a host credential broker, inspects bounded responses, simulates provider failures, generates TypeScript clients, and produces adapter manifests.
 
 The Web UI includes reviewed templates for WalletConnect, Bridge, Card, Search, Storage, Mail, Shipping, and Oracle. Templates identify the canonical product owner and explicitly do not claim provider affiliation, credentials, connectivity, settlement, or production activation.
+
+The current checkpoint also localizes API Studio labels, approval semantics, dynamic states and bounded error classes across all 12 supported locales. Arabic applies RTL to the interaction surface while source, JSON and URL fields remain LTR. Bottom-panel navigation exposes the tab keyboard model, and API output is a focusable polite live region. Stable machine error codes remain unchanged for cross-product consumers.
 
 ## Security invariants
 
@@ -56,14 +58,19 @@ Review the host broker implementation boundary, origin policy, response limits, 
 ## Test evidence
 
 - `cd packages/developer-client && npm test` — 22 passed
-- `cd apps/developer && npm test` — 16 passed
+- `cd apps/developer && npm test` — 17 passed
 - `cd apps/developer && npm run check` — passed
 - `cd apps/developer && npm run build` — passed
 - `cd apps/developer && node --check app.js` — passed
+- `cd apps/developer && npm run live-check` — passed
+- `cd apps/developer && npm run proxy-check` — passed
+- `cd apps/developer && npm run desktop:sandbox-check` — 2 passed
+- `make no-placeholder-check` and `make secret-scan` — passed through the verified no-`rg` fallback
+- `make static-check` — passed
 
 ## Truth boundary
 
-`implementedLocal=true` and `testedLocal=true` are supported for the current source checkpoint. Central integration, staging/public deployment, hosted downloads, production signing, and store release remain false. Existing macOS and Windows package evidence was produced from commit `c6b4affc03b3255100516c34483096f445c46753`; API Studio is not claimed installed in those artifacts.
+`implementedLocal=true` and `testedLocal=true` are supported for source commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551`. Central integration, staging/public deployment, hosted downloads, production signing, and store release remain false. Existing macOS and Windows package evidence was produced from commit `c6b4affc03b3255100516c34483096f445c46753`; current-source API Studio is not claimed installed in those artifacts.
 
 ## Next integration action
 

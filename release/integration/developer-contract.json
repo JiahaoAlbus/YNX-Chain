@@ -10,8 +10,8 @@
   },
   "source": {
     "branch": "codex/final-developer",
-    "commit": "3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d",
-    "generatedAt": "2026-07-27T06:26:30Z"
+    "commit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+    "generatedAt": "2026-07-27T14:34:57Z"
   },
   "walletBinding": {
     "productClientId": "ynx-developer-v1",
@@ -37,6 +37,10 @@
     "maxResponseBytes": 262144,
     "credentialReferencePrefix": "credential-ref:",
     "browserCredentialResolution": false,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "currentSourceInstalledLocal": false,
+    "historicalArtifactSourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
     "requestFlow": [
       "import",
       "validate",
@@ -106,6 +110,30 @@
       "api_sandbox_network_failed",
       "api_response_too_large"
     ],
+    "localization": {
+      "supportedLocales": [
+        "en",
+        "zh-CN",
+        "zh-TW",
+        "ja",
+        "ko",
+        "es",
+        "fr",
+        "de",
+        "pt",
+        "ru",
+        "ar",
+        "id"
+      ],
+      "stableMachineErrorCodes": true,
+      "localizedHumanMessages": true,
+      "arabicDirection": "rtl-interaction-ltr-source-json-url"
+    },
+    "accessibility": {
+      "bottomPanelKeyboardModel": "tablist-roving-tabindex-arrow-home-end",
+      "outputAnnouncement": "focusable-polite-live-region",
+      "mobileViewportTargetPx": 390
+    },
     "negativeScenarios": [
       "provider_rate_limited",
       "provider_timeout",
@@ -173,7 +201,7 @@
     },
     "developerWeb": {
       "command": "cd apps/developer && npm test",
-      "result": "16 passed"
+      "result": "17 passed"
     },
     "staticCheck": {
       "command": "cd apps/developer && npm run check",
@@ -182,6 +210,22 @@
     "webBuild": {
       "command": "cd apps/developer && npm run build",
       "result": "passed"
+    },
+    "liveCheck": {
+      "command": "cd apps/developer && npm run live-check",
+      "result": "passed"
+    },
+    "sameOriginProxy": {
+      "command": "cd apps/developer && npm run proxy-check",
+      "result": "passed"
+    },
+    "desktopSandbox": {
+      "command": "cd apps/developer && npm run desktop:sandbox-check",
+      "result": "2 passed"
+    },
+    "validationGates": {
+      "command": "make no-placeholder-check && make secret-scan",
+      "result": "passed through verified grep fallback because rg was unavailable"
     }
   },
   "releaseStatus": {

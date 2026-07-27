@@ -6,8 +6,11 @@
 - Added reviewed non-affiliation templates for WalletConnect, Bridge, Card, Search, Storage, Mail, Shipping and Oracle.
 - Added a credential-reference-only host broker boundary. Browser JavaScript never resolves credential values.
 - Added contract-first handoff, dependency acceptance, ten cross-product vectors and a machine-readable full-goal coverage matrix.
-- Verified 22 Developer client tests, 16 Developer Web tests, static claim/workflow checks, standalone Web build and browser module syntax.
-- API Studio is not claimed installed in the historical macOS/Windows artifacts. Central integration, staging/public deployment, hosted downloads and production signing remain false.
+- Added all API Studio labels, approval semantics, dynamic states and bounded error classes across the 12 supported locales; Arabic uses RTL interaction layout while source, JSON and URL fields remain LTR.
+- Added tablist/tab/tabpanel semantics, roving focus, ArrowLeft/ArrowRight/Home/End navigation, a focusable polite output region and 390px wrapping rules.
+- Repaired placeholder and credential-leak gates so a missing `rg` binary cannot produce false success; the verified fallback now distinguishes findings, clean results and scanner execution failure.
+- Verified 22 Developer client tests, 17 Developer Web tests, static claim/workflow checks, standalone Web build, browser module syntax, live compile, same-origin proxy and desktop sandbox boundaries.
+- Current-source API Studio is not claimed installed in the historical macOS/Windows artifacts. Central integration, staging/public deployment, hosted downloads and production signing remain false.
 
 ## 2026-07-18 package checkpoint
 

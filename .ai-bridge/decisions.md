@@ -13,6 +13,15 @@
 9. **Historical desktop evidence remains attached to its historical source commit.** API Studio is not marked installed in the existing macOS or Windows artifacts.
 10. **Current release truth remains local.** Central, staging, public, hosted, signed and store states stay false without direct evidence.
 
+## 2026-07-27 — API Studio localization and accessibility
+
+1. **Localized failures retain the machine error code.** Human-facing text maps to a bounded localized class while the stable code remains visible for support and audit correlation.
+2. **Locale changes may translate empty-state text but must not overwrite generated previews, responses, manifests or validation evidence.**
+3. **Arabic RTL is scoped to interaction surfaces.** Source code, JSON, structured output and URL fields remain LTR for technical correctness.
+4. **Bottom-panel navigation follows the tab keyboard model.** One tab is in the tab order; ArrowLeft/ArrowRight/Home/End move and activate focus.
+5. **Static accessibility tests are `testedLocal`, not installed or public proof.** Installed-browser, screen-reader, zoom and visual evidence remain required.
+6. **Validation scanners must not treat a missing scanner binary as success.** `rg` remains preferred; the fallback distinguishes findings, clean results and scanner execution failure.
+
 ## Safety decisions
 
 - No private key, signing material, credential value or production secret may be requested in chat, written to repository state, or exposed to the browser.

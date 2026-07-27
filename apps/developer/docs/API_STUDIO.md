@@ -2,7 +2,7 @@
 
 ## Release truth
 
-- Source commit: `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d`
+- Source commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
 - Status: implemented and tested locally in the Web IDE source checkpoint
 - Central credential broker: not integrated
 - Public sandbox endpoint: not deployed
@@ -37,6 +37,14 @@ YAML is not silently parsed. It must be converted to reviewed JSON so the exact 
 
 The browser stores only opaque `credential-ref:` identifiers. It never resolves credential values. A secured request can execute only through an injected host broker implementing the reviewed `send` boundary. Without that broker, the UI returns `credential_broker_unavailable` and remains fail closed.
 
+## Localization and accessibility
+
+API Studio labels, approval semantics, local validation states and bounded error classes are available in English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, German, Portuguese, Russian, Arabic and Indonesian. Machine-readable error codes remain visible while the human explanation is localized.
+
+Arabic applies RTL to interactive labels, controls, panel tabs and dialogs. Source code, JSON, response output and URL fields remain LTR. The bottom tool area uses tablist/tab/tabpanel semantics with a roving tab stop and ArrowLeft, ArrowRight, Home and End navigation. API output is a focusable polite live region, and the 390px layout collapses grids and wraps long translated actions.
+
+Changing locale translates an untouched empty state only; it does not replace generated previews, responses, client code, manifests or validation evidence.
+
 ## Connector templates
 
 Reviewed, non-affiliation templates are provided for:
@@ -60,16 +68,21 @@ These are adapter contracts, not claims of provider credentials, connectivity, s
 - UI boundary tests: `apps/developer/test/api-studio-ui.test.js`
 - Test results:
   - Developer client: 22 passed
-  - Developer Web: 16 passed
+  - Developer Web: 17 passed
   - Static claim/workflow check: passed
   - Standalone Web build: passed
   - Browser module syntax check: passed
+  - Live compile check: passed
+  - Same-origin proxy check: passed
+  - Placeholder and credential-leak gates: passed through the verified no-`rg` fallback
+  - Desktop command sandbox: 2 passed
+  - Windows source boundary: passed without claiming a Windows package build
 
 ## Remaining gates
 
 1. Freeze the host credential-broker contract with Security/SRE and Integration.
 2. Connect one official provider sandbox through the broker without exposing credential values to browser JavaScript.
 3. Add request/response audit persistence with Data Fabric ownership accepted.
-4. Run Browser interaction and accessibility evidence for the new panel.
+4. Capture installed-browser keyboard, screen-reader, zoom/dynamic-text and 390px visual evidence for the current source checkpoint.
 5. Rebuild and verify current macOS and Windows artifacts before claiming API Studio is installed in desktop packages.
 6. Deploy a public or restricted HTTPS staging surface before changing any deployment state.
