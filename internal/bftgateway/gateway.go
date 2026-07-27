@@ -1392,6 +1392,14 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
 			return
 		}
+	case "eth_getStorageAt":
+		var code int
+		var err error
+		result, code, err = g.evmCommittedContractStorage(r.Context(), request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
 	case "eth_call", "eth_estimateGas":
 		var code int
 		var err error

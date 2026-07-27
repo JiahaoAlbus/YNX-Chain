@@ -286,7 +286,8 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":38,"method":"eth_getTransactionByBlockHashAndIndex","params":["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":26,"method":"eth_sendRawTransaction","params":["0x0"]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":27,"method":"eth_sendRawTransaction","params":["0x%x"]}`, wrongChainPayload), -32003)
-	resp, err = http.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":3,"method":"eth_getStorageAt","params":[]}`))
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":44,"method":"eth_getStorageAt","params":[]}`, -32602)
+	resp, err = http.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":3,"method":"eth_getProof","params":[]}`))
 	if err != nil {
 		t.Fatal(err)
 	}

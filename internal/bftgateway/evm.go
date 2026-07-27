@@ -28,6 +28,7 @@ const (
 var (
 	evmAddressPattern = regexp.MustCompile(`^0x[0-9a-f]{40}\z`)
 	evmTopicPattern   = regexp.MustCompile(`^0x[0-9a-f]{64}\z`)
+	evmWordPattern    = regexp.MustCompile(`^0x[0-9a-f]{64}\z`)
 )
 
 func evmFeeSuggestionResult(method string, raw json.RawMessage) (string, error) {
@@ -278,6 +279,39 @@ func (g *Gateway) evmCommittedContractCode(ctx context.Context, raw json.RawMess
 	return contract.DeployedBytecode, 0, nil
 }
 
+func (g *Gateway) evmCommittedContractStorage(ctx context.Context, raw json.RawMessage) (any, int, error) {
+	var params []json.RawMessage
+	if err := json.Unmarshal(raw, &params); err != nil || len(params) != 3 {
+		return nil, -32602, errors.New("eth_getStorageAt requires an address, storage position, and block tag")
+	}
+	var address string
+	if err := json.Unmarshal(params[0], &address); err != nil || !isCanonicalEVMAddress(address) {
+		return nil, -32602, errors.New("canonical lowercase contract address is required")
+	}
+	position, err := parseCanonicalEVMStoragePosition(params[1])
+	if err != nil {
+		return nil, -32602, err
+	}
+	if code, err := g.requireCurrentCommittedTag(ctx, params[2]); err != nil {
+		return nil, code, err
+	}
+	contract, found, err := g.committedContract(ctx, address)
+	if err != nil {
+		return nil, -32603, err
+	}
+	if !found || contract.RuntimeStorage == nil {
+		return "0x" + strings.Repeat("0", 64), 0, nil
+	}
+	value, found := contract.RuntimeStorage[position]
+	if !found {
+		return "0x" + strings.Repeat("0", 64), 0, nil
+	}
+	if !evmWordPattern.MatchString(value) {
+		return nil, -32603, errors.New("ABCI bounded contract storage evidence is invalid")
+	}
+	return value, 0, nil
+}
+
 func (g *Gateway) evmCommittedContractCall(ctx context.Context, method string, raw json.RawMessage) (any, int, error) {
 	var params []json.RawMessage
 	if err := json.Unmarshal(raw, &params); err != nil || len(params) < 1 || len(params) > 2 {
@@ -347,7 +381,31 @@ func (g *Gateway) committedContract(ctx context.Context, address string) (consen
 	if err != nil || bytecodeHash != contract.DeployedBytecodeHash || !isCanonicalEVMData(contract.DeployedBytecode, 1, 12<<10) {
 		return consensus.BFTContract{}, false, errors.New("ABCI bounded contract artifact identity is invalid")
 	}
+	for slot, value := range contract.RuntimeStorage {
+		if !evmWordPattern.MatchString(slot) || !evmWordPattern.MatchString(value) {
+			return consensus.BFTContract{}, false, errors.New("ABCI bounded contract storage evidence is invalid")
+		}
+	}
 	return contract, true, nil
+}
+
+func parseCanonicalEVMStoragePosition(raw json.RawMessage) (string, error) {
+	var position string
+	if err := json.Unmarshal(raw, &position); err != nil {
+		return "", errors.New("canonical lowercase storage position is required")
+	}
+	if position == "0x0" {
+		return "0x" + strings.Repeat("0", 64), nil
+	}
+	if len(position) < 3 || len(position) > 66 || !strings.HasPrefix(position, "0x") || position[2] == '0' {
+		return "", errors.New("canonical lowercase storage position is required")
+	}
+	for _, value := range position[2:] {
+		if (value < '0' || value > '9') && (value < 'a' || value > 'f') {
+			return "", errors.New("canonical lowercase storage position is required")
+		}
+	}
+	return "0x" + strings.Repeat("0", 64-len(position[2:])) + position[2:], nil
 }
 
 func parseBoundedEVMCallObject(raw json.RawMessage) (string, string, error) {

@@ -79,11 +79,16 @@ func TestGatewayCommitsBoundedIDEAndReturnsEVMLogs(t *testing.T) {
 
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":10,"method":"eth_getCode","params":["`+deployed.Contract.Address+`","latest"]}`, bytecode)
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":11,"method":"eth_getCode","params":["0x0000000000000000000000000000000000000000","latest"]}`, "0x")
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":17,"method":"eth_getStorageAt","params":["`+deployed.Contract.Address+`","0x0","latest"]}`, "0x"+strings.Repeat("0", 63)+"c")
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":18,"method":"eth_getStorageAt","params":["`+deployed.Contract.Address+`","0x1","latest"]}`, "0x"+strings.Repeat("0", 64))
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":19,"method":"eth_getStorageAt","params":["0x0000000000000000000000000000000000000000","0x0","latest"]}`, "0x"+strings.Repeat("0", 64))
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":12,"method":"eth_call","params":[{"to":"`+deployed.Contract.Address+`","data":"0x06661abd","from":"`+signer+`","gas":"0x10000","value":"0x0"},"finalized"]}`, "0x"+strings.Repeat("0", 63)+"c")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":13,"method":"eth_estimateGas","params":[{"to":"`+deployed.Contract.Address+`","input":"0x06661abd"}]}`, "0x1")
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":14,"method":"eth_getCode","params":["`+deployed.Contract.Address+`","`+hexEVMQuantity(uint64(deployed.Receipt.BlockHeight))+`"]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":15,"method":"eth_call","params":[{"to":"`+deployed.Contract.Address+`","data":"0x06661abd","value":"0x1"},"latest"]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":16,"method":"eth_call","params":[{"to":"`+deployed.Contract.Address+`","data":"0x06661abd","stateOverride":{}},"latest"]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":20,"method":"eth_getStorageAt","params":["`+deployed.Contract.Address+`","0x00","latest"]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":21,"method":"eth_getStorageAt","params":["`+deployed.Contract.Address+`","0x0","`+hexEVMQuantity(uint64(deployed.Receipt.BlockHeight))+`"]}`, -32602)
 
 	receipt := assertRPCObject(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":1,"method":"eth_getTransactionReceipt","params":["`+executed.Receipt.TxHash+`"]}`)
 	if receipt["contractAddress"] != nil || receipt["to"] != deployed.Contract.Address || len(receipt["logs"].([]any)) != 1 || receipt["logsBloom"] == "0x"+strings.Repeat("0", 512) {
