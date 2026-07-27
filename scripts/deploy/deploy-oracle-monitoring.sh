@@ -125,8 +125,10 @@ fi
   cd "$work"
   "$promtool" test rules oracle-alerts.test.yml
 )
+sed "s#/etc/ynx/prometheus/oracle-alerts.yml#$work/oracle-alerts.yml#" \
+  "$work/prometheus-with-rules.yml" >"$work/prometheus-check.yml"
+"$promtool" check config "$work/prometheus-check.yml"
 sudo install -o root -g ynx-prometheus -m 0640 "$work/oracle-alerts.yml" "$rules"
-"$promtool" check config "$work/prometheus-with-rules.yml"
 sudo install -d -o root -g ynx-prometheus -m 0750 /var/lib/ynx-prometheus/config-backups
 sudo install -o root -g ynx-prometheus -m 0640 "$config" \
   "/var/lib/ynx-prometheus/config-backups/prometheus-before-oracle-${commit}.yml"

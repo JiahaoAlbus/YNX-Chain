@@ -465,6 +465,15 @@ func TestOracleMonitoringPackageAndDeploymentDryRun(t *testing.T) {
 		strings.Contains(string(scrape), "0.0.0.0") {
 		t.Fatalf("Oracle monitoring scrape must use one loopback-only target:\n%s", scrape)
 	}
+	deploymentScript, err := os.ReadFile(filepath.Join(root, "scripts", "deploy", "deploy-oracle-monitoring.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"prometheus-check.yml", `sed "s#/etc/ynx/prometheus/oracle-alerts.yml#$work/oracle-alerts.yml#"`} {
+		if !strings.Contains(string(deploymentScript), required) {
+			t.Fatalf("Oracle monitoring candidate config validation missing %q", required)
+		}
+	}
 	key := filepath.Join(t.TempDir(), "ssh-key")
 	if err := os.WriteFile(key, []byte("isolated dry-run fixture\n"), 0o600); err != nil {
 		t.Fatal(err)
