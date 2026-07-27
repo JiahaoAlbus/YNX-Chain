@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { login, request, type Session } from "./api";
+import { can, login, request, type Session } from "./api";
 import { localeNames, locales, type Locale, useI18n } from "./i18n";
 
 interface Probe {
@@ -24,6 +24,7 @@ interface Alert {
   acknowledgedBy?: string;
 }
 interface Incident {
+  schemaVersion: number;
   id: string;
   title: string;
   severity: string;
@@ -32,6 +33,21 @@ interface Incident {
   source: string;
   evidence: string[];
   notes: string[];
+  owner?: string;
+  timeline?: Array<{
+    id: string;
+    at: string;
+    actor: string;
+    action: string;
+    summary: string;
+    evidence: string[];
+  }>;
+  postmortem?: {
+    summary: string;
+    rootCause: string;
+    correctiveActions: string[];
+    evidence: string[];
+  };
 }
 interface Overview {
   checkedAt: string;
@@ -77,6 +93,12 @@ function storedSession() {
 }
 function short(value?: string, size = 12) {
   return value ? `${value.slice(0, size)}…` : "Unavailable";
+}
+function roleLabel(role: string) {
+  return role
+    .split("_")
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 export function App() {
@@ -193,7 +215,7 @@ export function App() {
         </nav>
         <div className="rail-foot">
           <span>{session.principal.username}</span>
-          <strong>{t(role)}</strong>
+          <strong>{roleLabel(role)}</strong>
           <button onClick={logout}>{t("signOut")}</button>
         </div>
       </aside>
@@ -778,7 +800,7 @@ function IncidentView({
         eyebrow="Operator-owned case log"
         title="Incidents"
         action={
-          role === "operator" ? (
+          can(session, "incident:create") ? (
             <button onClick={() => setOpen(true)}>Record incident</button>
           ) : undefined
         }
@@ -806,10 +828,16 @@ function IncidentView({
                 <h3>{i.title}</h3>
                 <p>
                   {i.source} · {new Date(i.openedAt).toLocaleString()}
+                  {i.owner ? ` · Owner: ${i.owner}` : " · Unassigned"}
                 </p>
               </div>
               <span>{i.status}</span>
               <button onClick={() => onSelect(i)}>AI evidence summary</button>
+              <IncidentLifecycleControls
+                incident={i}
+                session={session}
+                onRefresh={onRefresh}
+              />
             </article>
           ))}
         </div>
@@ -817,6 +845,225 @@ function IncidentView({
     </section>
   );
 }
+const incidentNextAction: Record<string, { action: string; label: string } | undefined> = {
+  open: { action: "acknowledge", label: "Acknowledge incident" },
+  acknowledged: { action: "investigate", label: "Start investigation" },
+  investigating: { action: "mitigate", label: "Record mitigation" },
+  mitigated: { action: "begin_recovery", label: "Begin recovery verification" },
+  recovery_verifying: { action: "verify_recovery", label: "Verify recovery" },
+  resolved: { action: "reopen", label: "Reopen incident" },
+  postmortem_complete: { action: "reopen", label: "Reopen incident" },
+};
+
+function IncidentLifecycleControls({
+  incident,
+  session,
+  onRefresh,
+}: {
+  incident: Incident;
+  session: Session;
+  onRefresh: () => void;
+}) {
+  const [owner, setOwner] = useState(incident.owner || "");
+  const [summary, setSummary] = useState("");
+  const [evidence, setEvidence] = useState("");
+  const [postmortemSummary, setPostmortemSummary] = useState("");
+  const [rootCause, setRootCause] = useState("");
+  const [correctiveAction, setCorrectiveAction] = useState("");
+  const [postmortemEvidence, setPostmortemEvidence] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const next = incidentNextAction[incident.status];
+  const mayTransition =
+    next &&
+    (next.action === "verify_recovery"
+      ? can(session, "incident:recovery_verify")
+      : can(session, "incident:manage"));
+
+  async function run(task: () => Promise<unknown>) {
+    setBusy(true);
+    setError("");
+    try {
+      await task();
+      setSummary("");
+      setEvidence("");
+      onRefresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Incident action failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function assign(e: FormEvent) {
+    e.preventDefault();
+    await run(() =>
+      request(`/ops/incidents/${encodeURIComponent(incident.id)}/assign`, session, {
+        method: "POST",
+        body: JSON.stringify({ owner, evidence: evidence ? [evidence] : [] }),
+      }),
+    );
+  }
+
+  async function transition(e: FormEvent) {
+    e.preventDefault();
+    if (!next) return;
+    await run(() =>
+      request(
+        `/ops/incidents/${encodeURIComponent(incident.id)}/actions/${next.action}`,
+        session,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            summary,
+            evidence: evidence ? [evidence] : [],
+          }),
+        },
+      ),
+    );
+  }
+
+  async function completePostmortem(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await request(
+        `/ops/incidents/${encodeURIComponent(incident.id)}/postmortem`,
+        session,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            summary: postmortemSummary,
+            rootCause,
+            correctiveActions: [correctiveAction],
+            evidence: [postmortemEvidence],
+          }),
+        },
+      );
+      setPostmortemSummary("");
+      setRootCause("");
+      setCorrectiveAction("");
+      setPostmortemEvidence("");
+      onRefresh();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Postmortem failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function exportEvidence() {
+    setBusy(true);
+    setError("");
+    try {
+      const data = await request<Record<string, unknown>>(
+        `/ops/incidents/${encodeURIComponent(incident.id)}/export`,
+        session,
+      );
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${incident.id}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Export failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="incident-lifecycle">
+      <div className="incident-meta">
+        <span>Schema v{incident.schemaVersion}</span>
+        <span>{incident.timeline?.length || 0} timeline entries</span>
+        <button type="button" onClick={exportEvidence} disabled={busy}>
+          Export evidence
+        </button>
+      </div>
+      {can(session, "incident:manage") && (
+        <form className="incident-action" onSubmit={assign}>
+          <label>
+            Owner
+            <input
+              value={owner}
+              onChange={(event) => setOwner(event.target.value)}
+              placeholder="On-call owner"
+              required
+            />
+          </label>
+          <button disabled={busy || owner === incident.owner}>Assign</button>
+        </form>
+      )}
+      {mayTransition && next && (
+        <form className="incident-action" onSubmit={transition}>
+          <label>
+            Transition summary
+            <input
+              value={summary}
+              onChange={(event) => setSummary(event.target.value)}
+              required
+              placeholder="What changed and why"
+            />
+          </label>
+          <label>
+            Evidence
+            <input
+              value={evidence}
+              onChange={(event) => setEvidence(event.target.value)}
+              required={next.action === "verify_recovery"}
+              placeholder="URL, hash or audit reference"
+            />
+          </label>
+          <button disabled={busy}>{next.label}</button>
+        </form>
+      )}
+      {incident.status === "resolved" && can(session, "incident:postmortem") && (
+        <form className="incident-postmortem" onSubmit={completePostmortem}>
+          <label>
+            Postmortem summary
+            <textarea
+              value={postmortemSummary}
+              onChange={(event) => setPostmortemSummary(event.target.value)}
+              required
+            />
+          </label>
+          <label>
+            Root cause
+            <textarea
+              value={rootCause}
+              onChange={(event) => setRootCause(event.target.value)}
+              required
+            />
+          </label>
+          <label>
+            Corrective action
+            <input
+              value={correctiveAction}
+              onChange={(event) => setCorrectiveAction(event.target.value)}
+              required
+            />
+          </label>
+          <label>
+            Evidence
+            <input
+              value={postmortemEvidence}
+              onChange={(event) => setPostmortemEvidence(event.target.value)}
+              required
+            />
+          </label>
+          <button disabled={busy}>Complete postmortem</button>
+        </form>
+      )}
+      {error && <span className="form-error" role="alert">{error}</span>}
+    </div>
+  );
+}
+
 function IncidentForm({
   session,
   done,
@@ -917,7 +1164,7 @@ function AlertView({
                 <a href={a.evidenceUrl}>{a.evidenceUrl}</a>
               </div>
               <time>{new Date(a.lastObservedAt).toLocaleString()}</time>
-              {role === "operator" && a.state === "firing" && (
+              {can(session, "alert:acknowledge") && a.state === "firing" && (
                 <div className="approval">
                   <input
                     aria-label={`Approval phrase for ${a.source}`}
@@ -967,7 +1214,7 @@ function BackupView({
         Monitor records verified backup evidence; it does not claim or execute a
         backup.
       </p>
-      {role === "operator" && (
+      {can(session, "backup:record") && (
         <div className="approval">
           <input
             value={evidence}
@@ -1021,7 +1268,7 @@ function RollbackView({
         A proposal never executes rollback. Central infrastructure ownership
         remains required after explicit operator approval.
       </div>
-      {role === "operator" && (
+      {can(session, "rollback:propose") && (
         <div className="approval-stack">
           <label>
             Reason

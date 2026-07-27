@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "test": "tsx --test src/*.test.ts server/*.test.ts",
     "test:a11y": "tsx --test src/accessibility.test.ts",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --config playwright.managed.config.ts",
     "smoke": "tsx scripts/real-service-smoke.ts"
   },
   "dependencies": {
