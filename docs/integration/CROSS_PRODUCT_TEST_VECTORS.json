@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "57a13bacaaf1",
+  "sourceCommit": "fdb005c936fc",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,
@@ -601,13 +601,62 @@
       "expectedRpcCode": -32602
     },
     {
-      "id": "evm-fee-history-unavailable-reject",
+      "id": "evm-fee-history-committed-positive-max-gas-accept",
       "owner": "chain-core",
       "operation": "eth_feeHistory",
-      "inputSource": "internal/bftgateway/fee_suggestion_test.go",
+      "inputSource": "internal/bftgateway/fee_history_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "retained-committed-blocks",
+        "valid-app-hash-and-data-hash",
+        "block-results-gas-used",
+        "positive-committed-consensus-max-gas",
+        "zero-base-fee-array",
+        "evidence-derived-gas-used-ratio"
+      ]
+    },
+    {
+      "id": "evm-fee-history-retained-range-clamp-accept",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "internal/bftgateway/fee_history_test.go",
+      "mutation": "request-more-blocks-than-the-retained-committed-range",
+      "expected": "accept",
+      "requiredEvidence": [
+        "oldest-block-equals-earliest-retained-height",
+        "base-fee-array-length-is-returned-block-count-plus-one",
+        "no-pruned-block-fabrication"
+      ]
+    },
+    {
+      "id": "evm-fee-history-reward-percentiles-reject",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "internal/bftgateway/fee_history_test.go",
+      "mutation": "request-a-non-empty-reward-percentile-array",
       "expected": "reject",
-      "errorClass": "unsupported-method",
-      "expectedRpcCode": -32601
+      "errorClass": "unsupported-reward-estimate",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-fee-history-non-positive-max-gas-reject",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "internal/bftgateway/fee_history_test.go",
+      "mutation": "CometBFT-committed-consensus-max-gas-is-zero-or-negative",
+      "expected": "reject",
+      "errorClass": "truthful-history-unavailable",
+      "expectedRpcCode": -32004
+    },
+    {
+      "id": "evm-fee-history-gas-evidence-mismatch-reject",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "internal/bftgateway/fee_history_test.go",
+      "mutation": "block-results-gas-used-exceeds-committed-consensus-max-gas",
+      "expected": "reject",
+      "errorClass": "committed-evidence-mismatch",
+      "expectedRpcCode": -32603
     },
     {
       "id": "consensus-signer-cli-bounded-envelopes-accept",

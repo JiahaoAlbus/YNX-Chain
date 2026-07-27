@@ -1,6 +1,6 @@
 {
   "schema": "ynx-product-release/v1",
-  "generatedAt": "2026-07-27T12:12:35Z",
+  "generatedAt": "2026-07-27T12:50:00Z",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -9,9 +9,9 @@
     "canonicalRoute": "/chain"
   },
   "source": {
-    "implementationCommit": "57a13bacaaf1",
+    "implementationCommit": "fdb005c936fc",
     "committedStateVersion": 11,
-    "contractVersion": "1.8.0",
+    "contractVersion": "1.9.0",
     "releaseRecordVersion": 1
   },
   "network": {
@@ -66,6 +66,7 @@
     "evm-eip2930-empty-access-list-value-transfer-and-dual-hash-identity",
     "evm-eip1559-zero-base-fee-value-transfer-and-dual-hash-identity",
     "evm-zero-base-fee-minimum-gas-price-suggestions",
+    "evm-committed-zero-base-fee-history",
     "bounded-ethereum-signer-cli-and-json-evidence",
     "configurable-local-consensus-fixture-balance",
     "local-four-validator-eip1559-commit-and-rollback-proof",
@@ -82,7 +83,7 @@
     "StreamBFT remains a local shadow candidate and is not eligible for cutover.",
     "Wallet/Auth Product Session integration is not frozen or accepted centrally.",
     "Ethereum compatibility accepts only chain-bound EIP-155 legacy type-0, EIP-2930 type-0x01 empty-access-list and EIP-1559 type-0x02 zero-base-fee value transfers with exactly 21000 gas; non-empty access lists, contract creation, calldata and a dynamic base-fee market are not supported.",
-    "eth_gasPrice and eth_maxPriorityFeePerGas return the protocol minimum accepted value 0x1; they are not market forecasts, and eth_feeHistory remains unsupported.",
+    "eth_gasPrice and eth_maxPriorityFeePerGas return the protocol minimum accepted value 0x1; eth_feeHistory returns only retained committed zero-base-fee history when CometBFT exposes a positive committed max_gas, rejects reward-percentile estimates, and returns -32004 rather than fabricating gasUsedRatio when max_gas is non-positive.",
     "The signer CLI and four-validator EIP-1559 proofs are local tooling and local ephemeral evidence, not public deployment or production signing.",
     "No owner production signer, public BFT cutover approval, or independent public proof is recorded."
   ],
@@ -93,6 +94,7 @@
     ".ai-bridge/full-goal-coverage.json",
     "release/integration/chain-core-contract.json",
     "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-    "scripts/verify/consensus-eip1559-commit-check.sh"
+    "scripts/verify/consensus-eip1559-commit-check.sh",
+    "scripts/verify/bft-evm-fee-history-check.sh"
   ]
 }

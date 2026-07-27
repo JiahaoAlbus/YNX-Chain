@@ -1,38 +1,32 @@
 # Next Action
 
-Current implementation baseline: `57a13bacaaf1`.
+Current implementation baseline: `fdb005c936fc`.
 
-Completed local Testnet proof:
+Completed local Testnet slice:
 
 - bounded EIP-155, EIP-2930 and zero-base-fee EIP-1559 value-transfer profiles;
 - truthful minimum fee suggestions through `eth_gasPrice` and `eth_maxPriorityFeePerGas`;
-- secure multi-envelope signer CLI and configurable positive local fixture balance;
-- committed-broadcast rebinding to CometBFT block membership, AppHash/DataHash, gas result and audited receipt;
-- four-validator EIP-1559 Gateway commit proof, equal AppHash/account/receipt evidence, wrong-chain and replay rejection;
-- quorum v2 backup/restore/rollback replay proof including dynamic-fee state.
+- committed `eth_feeHistory` from retained CometBFT blocks, `block_results` gas and positive exact-height consensus `max_gas`;
+- zero base-fee arrays and evidence-derived `gasUsedRatio`, with no reward-percentile estimates or dynamic fee-market claim;
+- secure multi-envelope signer tooling, committed-broadcast evidence binding and local four-validator EIP-1559 commit/rollback proof;
+- Release Record and Integration Contract v1.9.0 plus 70 unique vectors bound to `fdb005c936fc`, with every unsupported public or production state false.
 
-Current single action: freeze Integration Contract v1.8.0 and 66 unique cross-product vectors against `57a13bacaaf1`, commit and push the evidence checkpoint, and keep every unsupported public or production state false.
+Current single action:
 
-Files in the current slice:
-
-- `release/product-release.json`
-- `release/integration/chain-core-contract.json`
-- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
-- `docs/integration/INTEGRATION_HANDOFF.md`
-- `FEATURE_COMPLETION_EVIDENCE.md` and `EVIDENCE_INDEX.md`
-- `scripts/verify/integration-contract-check.mjs`
-- `docs/acceptance/PROJECT_STATE.md` and `docs/acceptance/NEXT_ACTION.md`
-- `.ai-bridge/current-plan.md`, `.ai-bridge/agent-status.md`, `.ai-bridge/decisions.md`, `.ai-bridge/execution-log.jsonl` and `.ai-bridge/full-goal-coverage.json`
+1. Configure a disposable local four-validator CometBFT network with a positive consensus `max_gas`.
+2. Commit one bounded type-0x02 transfer through the Gateway.
+3. Query `eth_feeHistory` for the committed range and bind `oldestBlock`, zero `baseFeePerGas`, `gasUsedRatio` and next-block base fee to exact block, `block_results` and `consensus_params` evidence.
+4. Exercise non-positive `max_gas`, tampered gas usage, mismatched consensus-parameter height, pending/pruned history and non-empty reward-percentile rejection.
+5. Preserve `-32004` for truthful history unavailability, `-32603` for inconsistent committed evidence and all false central/public/production release flags.
 
 Validation commands:
 
-- `make integration-contract-check`
-- `make bft-evm-fee-suggestion-check`
-- `make bft-evm-dynamic-fee-transfer-check`
-- `make consensus-eip1559-commit-check`
+- `make bft-evm-fee-history-check`
+- the new local four-validator fee-history evidence gate
 - `make consensus-quorum-check`
-- `go test -race ./internal/bftgateway`
+- `go test -race ./internal/consensus ./internal/bftgateway ./internal/mutationfreeze`
 - `go test ./cmd/... ./internal/...`
+- `make integration-contract-check`
 - `make static-check`
 - `make objective-state-check`
 - `make no-placeholder-check`
@@ -40,15 +34,9 @@ Validation commands:
 
 Completion standard:
 
-- v1.8.0 records, Handoff, `.ai-bridge` and 66 vectors bind to `57a13bacaaf1`;
-- committed state remains v11, ABCI application version 17 and snapshot format 1;
-- public, central, staging, hosted, signed and store flags remain false;
+- exact committed fee-history evidence is reproducible from a disposable four-validator network with positive `max_gas`;
+- negative evidence paths fail closed without fabricated history;
 - Commit and Push complete, Local SHA equals Remote SHA and the worktree is clean.
-
-Next runtime slice:
-
-- implement `eth_feeHistory` only from committed block evidence and only with truthful zero base-fee values;
-- otherwise keep the method unsupported rather than fabricate market evidence.
 
 Explicitly not doing:
 

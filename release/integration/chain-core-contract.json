@@ -2,8 +2,8 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "57a13bacaaf1",
-  "contractVersion": "1.8.0",
+  "sourceCommit": "fdb005c936fc",
+  "contractVersion": "1.9.0",
   "stateSchema": {
     "committedStateVersion": 11,
     "applicationVersion": 17,
@@ -128,6 +128,7 @@
       "eth_blockNumber",
       "eth_gasPrice",
       "eth_maxPriorityFeePerGas",
+      "eth_feeHistory",
       "eth_getBlockByNumber",
       "eth_getBlockByHash",
       "eth_getBlockTransactionCountByNumber",
@@ -198,8 +199,22 @@
       "maxPriorityFeePerGasResponse": "0x1",
       "params": "omitted-or-empty-array-only",
       "marketEstimate": false,
-      "historicalFeeHistory": false,
-      "ethFeeHistorySupported": false,
+      "historicalFeeHistory": "conditional-retained-committed-only",
+      "ethFeeHistorySupported": true,
+      "dynamicBaseFeeMarket": false
+    },
+    "feeHistoryProfile": {
+      "blockCount": "canonical-hex-quantity-1-to-1024",
+      "newestBlock": "retained-committed-block-only",
+      "retainedRangeClamped": true,
+      "baseFeePerGas": 0,
+      "gasUsedSource": "CometBFT block_results",
+      "gasLimitSource": "CometBFT committed consensus_params block.max_gas",
+      "positiveMaxGasRequired": true,
+      "nonPositiveMaxGasRpcCode": -32004,
+      "rewardPercentiles": "omitted-or-empty-array-only",
+      "rewardEstimatesAvailable": false,
+      "pendingAvailable": false,
       "dynamicBaseFeeMarket": false
     },
     "signerCliProfile": {
@@ -234,6 +249,7 @@
     "rejectionCodes": {
       "invalidParams": -32602,
       "transactionRejected": -32003,
+      "feeHistoryUnavailable": -32004,
       "upstreamOrEvidenceFailure": -32603
     }
   },

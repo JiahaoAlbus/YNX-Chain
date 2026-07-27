@@ -46,6 +46,7 @@ const signerCliSource = readFileSync("cmd/ynx-consensus-tx/main.go", "utf8");
 const consensusLabSource = readFileSync("cmd/ynx-consensus-lab/main.go", "utf8");
 const quorumCheckSource = readFileSync("scripts/verify/consensus-quorum-check.sh", "utf8");
 const eip1559CommitCheckSource = readFileSync("scripts/verify/consensus-eip1559-commit-check.sh", "utf8");
+const feeHistoryCheckSource = readFileSync("scripts/verify/bft-evm-fee-history-check.sh", "utf8");
 
 requireValue(release.schema === "ynx-product-release/v1", "unexpected product release schema");
 requireValue(contract.schema === "ynx-integration-contract/v1", "unexpected contract schema");
@@ -81,7 +82,7 @@ requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplet
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
 }
-requireValue(contract.contractVersion === "1.8.0", "unexpected Chain Core contract version");
+requireValue(contract.contractVersion === "1.9.0", "unexpected Chain Core contract version");
 requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
 requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
 requireValue(contract.evmRpc.historicalContractState === false, "EVM RPC cannot claim historical contract state");
@@ -92,7 +93,7 @@ requireValue(contract.evmRpc.boundedCallStateOverrides === false, "bounded EVM c
 for (const method of contract.evmRpc.methods) {
   requireValue(gatewaySource.includes(`case \"${method}\"`) || gatewaySource.includes(`\"${method}\"`), `runtime EVM method missing: ${method}`);
 }
-for (const implementation of ["evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedBlockTransactionResult", "evmCommittedAccountResult", "evmCommittedContractCode", "evmCommittedContractCall", "evmCommittedResult"]) {
+for (const implementation of ["evmFeeHistory", "evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedBlockTransactionResult", "evmCommittedAccountResult", "evmCommittedContractCode", "evmCommittedContractCall", "evmCommittedResult"]) {
   requireValue(evmSource.includes(`func (g *Gateway) ${implementation}`), `runtime EVM implementation missing: ${implementation}`);
 }
 for (const fragment of ["EthereumLegacyTransferType", "EthereumAccessListTransferType", "EthereumDynamicFeeTransferType", "EthereumTransferGasLimit", "EthereumCompatibilityBaseFeePerGas", "DecodeEthereumLegacyTransaction", "DecodeEthereumAccessListTransaction", "DecodeEthereumDynamicFeeTransaction", "DecodeEthereumValueTransfer", "func (tx EthereumLegacyTransaction) Verify", "func (tx EthereumAccessListTransaction) Verify", "func (tx EthereumDynamicFeeTransaction) Verify", "func (tx EthereumValueTransfer) MaximumGasFee"]) {
@@ -112,8 +113,14 @@ requireValue(dynamicFeeProfile.accessList === "empty-only" && dynamicFeeProfile.
 requireValue(dynamicFeeProfile.maximumFeeExposureRequired === true && dynamicFeeProfile.maximumAffordabilityCheck === "value-plus-maxFeePerGas-times-gasLimit" && dynamicFeeProfile.finalDebit === "value-plus-effectiveGasPrice-times-gasLimit" && dynamicFeeProfile.dynamicBaseFeeMarket === false && dynamicFeeProfile.burn === false && dynamicFeeProfile.signatureRecovery === true && dynamicFeeProfile.yParity === true && dynamicFeeProfile.dualHashIdentity === true && dynamicFeeProfile.receiptAuditValidation === true, "bounded EIP-1559 evidence profile drift");
 const feeSuggestionProfile = contract.evmRpc.feeSuggestionProfile;
 requireValue(feeSuggestionProfile.minimumAcceptedGasPrice === 1 && feeSuggestionProfile.gasPriceResponse === "0x1" && feeSuggestionProfile.maxPriorityFeePerGasResponse === "0x1", "minimum gas price suggestion drift");
-requireValue(feeSuggestionProfile.params === "omitted-or-empty-array-only" && feeSuggestionProfile.marketEstimate === false && feeSuggestionProfile.historicalFeeHistory === false && feeSuggestionProfile.ethFeeHistorySupported === false && feeSuggestionProfile.dynamicBaseFeeMarket === false, "fee suggestion truth boundary drift");
+requireValue(feeSuggestionProfile.params === "omitted-or-empty-array-only" && feeSuggestionProfile.marketEstimate === false && feeSuggestionProfile.historicalFeeHistory === "conditional-retained-committed-only" && feeSuggestionProfile.ethFeeHistorySupported === true && feeSuggestionProfile.dynamicBaseFeeMarket === false, "fee suggestion truth boundary drift");
+const feeHistoryProfile = contract.evmRpc.feeHistoryProfile;
+requireValue(feeHistoryProfile.blockCount === "canonical-hex-quantity-1-to-1024" && feeHistoryProfile.newestBlock === "retained-committed-block-only" && feeHistoryProfile.retainedRangeClamped === true, "fee history range boundary drift");
+requireValue(feeHistoryProfile.baseFeePerGas === 0 && feeHistoryProfile.gasUsedSource === "CometBFT block_results" && feeHistoryProfile.gasLimitSource === "CometBFT committed consensus_params block.max_gas" && feeHistoryProfile.positiveMaxGasRequired === true && feeHistoryProfile.nonPositiveMaxGasRpcCode === -32004, "fee history evidence boundary drift");
+requireValue(feeHistoryProfile.rewardPercentiles === "omitted-or-empty-array-only" && feeHistoryProfile.rewardEstimatesAvailable === false && feeHistoryProfile.pendingAvailable === false && feeHistoryProfile.dynamicBaseFeeMarket === false, "fee history unsupported feature boundary drift");
 requireValue(ethereumTransactionSource.includes("EthereumMinimumGasPrice") && evmSource.includes("evmFeeSuggestionResult"), "fee suggestion runtime binding missing");
+requireValue(evmSource.includes("committedBlockGasLimit") && evmSource.includes('"/consensus_params"') && evmSource.includes("evmFeeHistoryUnavailable") && gatewaySource.includes('case "eth_feeHistory"'), "fee history runtime binding missing");
+requireValue(feeHistoryCheckSource.includes("positive CometBFT consensus max_gas") && feeHistoryCheckSource.includes("fails closed"), "fee history verification gate drift");
 const signerCliProfile = contract.evmRpc.signerCliProfile;
 requireValue(signerCliProfile.command === "ynx-consensus-tx" && JSON.stringify(signerCliProfile.envelopes) === JSON.stringify(["ynx", "eip155", "eip2930", "eip1559"]), "signer CLI envelope profile drift");
 requireValue(JSON.stringify(signerCliProfile.outputFormats) === JSON.stringify(["raw", "json"]) && signerCliProfile.keyFilePermissions === "0600" && signerCliProfile.privateKeyOutput === false && signerCliProfile.dualHashEvidence === true, "signer CLI security or evidence profile drift");
@@ -141,6 +148,7 @@ requireValue(evmSource.includes("consensus.ValidateBFTEVMReceipt(receipt)"), "co
 requireValue(evmSource.includes("consensus.ValidateBFTEVMReceipt(ideReceipt)"), "JSON-RPC receipt audit validation missing");
 requireValue(contract.evmRpc.rejectionCodes.invalidParams === -32602, "EVM invalid-parameter code drift");
 requireValue(contract.evmRpc.rejectionCodes.transactionRejected === -32003, "EVM transaction-rejection code drift");
+requireValue(contract.evmRpc.rejectionCodes.feeHistoryUnavailable === -32004, "EVM fee-history-unavailable code drift");
 requireValue(contract.evmRpc.rejectionCodes.upstreamOrEvidenceFailure === -32603, "EVM upstream/evidence code drift");
 requireValue(evmSource.includes("validateCommittedBlockLookupTagSyntax"), "EVM block lookup syntax gate missing");
 requireValue(gatewaySource.includes("result, code, err = g.evmCommittedBlockTransactionResult"), "EVM block lookup RPC code propagation missing");
@@ -247,7 +255,11 @@ for (const required of [
   "evm-gas-price-minimum-suggestion-accept",
   "evm-max-priority-fee-minimum-suggestion-accept",
   "evm-fee-suggestion-invalid-params-reject",
-  "evm-fee-history-unavailable-reject",
+  "evm-fee-history-committed-positive-max-gas-accept",
+  "evm-fee-history-retained-range-clamp-accept",
+  "evm-fee-history-reward-percentiles-reject",
+  "evm-fee-history-non-positive-max-gas-reject",
+  "evm-fee-history-gas-evidence-mismatch-reject",
   "consensus-signer-cli-bounded-envelopes-accept",
   "consensus-lab-configurable-fixture-balance-accept",
   "consensus-four-validator-eip1559-commit-rollback-accept",
