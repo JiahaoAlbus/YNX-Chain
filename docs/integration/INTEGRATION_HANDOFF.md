@@ -5,7 +5,7 @@
 - Product owner: `16-resource-market`
 - Contract: `release/integration/resource-market-contract.json`
 - Contract version: `resource-market-integration-v1`
-- Implementation source: `03a9898bff2ba7c7ec014f5531fa168b78192359`
+- Implementation source: `a940d2efa824bd9f43522ed792c9a563b55e1e11`
 - Current phase: `FREEZE → INTEGRATE`
 - Current product status: local candidate; not centrally integrated, staged, public, production-signed or store-released.
 
@@ -40,6 +40,7 @@ A quote, accepted intent, reservation, service start, meter, service completion,
 The product returns a stable `code` with `errorId`, `requestId` and `traceId`. Settlement integrations must preserve at least:
 
 - `RESOURCE_SELF_DEALING_REJECTED`
+- `RESOURCE_AMOUNT_OUT_OF_RANGE`
 - `RESOURCE_CAPACITY_UNAVAILABLE`
 - `RESOURCE_METER_WINDOW_INVALID`
 - `RESOURCE_METER_LIMIT`

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "contractVersion": "resource-market-integration-v1",
   "product": "ynx-resource-market",
-  "sourceCommit": "03a9898bff2ba7c7ec014f5531fa168b78192359",
+  "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
   "vectors": [
     {
       "id": "RM-AUTH-WRONG-PRODUCT-001",

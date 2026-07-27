@@ -4,7 +4,7 @@
   "name": "YNX Resource Market",
   "branch": "codex/final-resource-market",
   "sourceBaselineCommit": "c7e4445598a74e60aa0ed05b9580790527bf71be",
-  "candidateSourceCommit": "03a9898bff2ba7c7ec014f5531fa168b78192359",
+  "candidateSourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
   "workingTreeDirty": false,
   "version": "0.3.0-candidate",
   "surfaces": ["web", "api", "android-debug-source", "ios-source"],
@@ -42,6 +42,8 @@
     "offerScopedCapacityReservationTested": true,
     "providerSelfDealingRejected": true,
     "schemaSixReservationMigrationTested": true,
+    "checkedAmountArithmeticTested": true,
+    "amountOverflowMutationRejected": true,
     "smokeHarnessLeavesNoListener": true,
     "publicSettlementReceiptVerified": false
   },
@@ -63,7 +65,7 @@
     "The Android debug client implements the canonical SDK response callback, central challenge request, Android Keystore P-256 device proof and replay-resistant per-request Product Session proofs. Missing Wallet handler and malformed callbacks fail closed; live completion remains unproven until central routes are merged.",
     "No live central Wallet/Gateway or authoritative public settlement endpoint is connected.",
     "A current Android debug APK is installed and cold-started on an Android 16 emulator; iOS installation, production signature, public deployment and hosted download are not proven.",
-    "Local measured capacity evidence covers matching reads; offer-scoped reservation and release integrity are locally tested but do not establish public or settlement capacity."
+    "Local measured capacity evidence covers matching reads; offer-scoped reservation, release integrity and fail-closed amount overflow are locally tested but do not establish public or settlement capacity."
   ],
-  "generatedAt": "2026-07-27T14:48:29Z"
+  "generatedAt": "2026-07-27T15:25:35Z"
 }

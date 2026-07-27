@@ -4,15 +4,14 @@
 - Branch: `codex/final-resource-market`
 - Stage: `INTEGRATE`
 - Goal status: `ACTIVE`
-- Runtime source: `03a9898bff2ba7c7ec014f5531fa168b78192359`
+- Runtime source: `a940d2efa824bd9f43522ed792c9a563b55e1e11`
 - Runtime remote status: pushed and verified equal on `origin/codex/final-resource-market`
-- Evidence synchronization timestamp: `2026-07-27T14:48:29Z`
+- Evidence synchronization timestamp: `2026-07-27T15:25:35Z`
 
 ## Verified gates for the protected runtime source
 
-- `go test -count=1 ./internal/resourcemarket ./internal/resourceproduct`
+- `go test -count=1 ./internal/resourcemarket ./internal/resourceproduct ./apps/resource-market`
 - `go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct`
-- `go test -count=1 ./apps/resource-market`
 - `go vet ./internal/resourcemarket ./internal/resourceproduct ./apps/resource-market`
 - `./apps/resource-market/check.sh`
 - Integration Contract and cross-product vector JSON parse
