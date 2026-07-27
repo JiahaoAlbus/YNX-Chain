@@ -19,6 +19,13 @@ Current single action:
 4. Exercise non-positive `max_gas`, tampered gas usage, mismatched consensus-parameter height, pending/pruned history and non-empty reward-percentile rejection.
 5. Preserve `-32004` for truthful history unavailability, `-32603` for inconsistent committed evidence and all false central/public/production release flags.
 
+Files in the current slice:
+
+- `internal/consensus/network.go` and the local genesis fixture path for positive consensus `max_gas`;
+- `scripts/verify/consensus-fee-history-commit-check.sh` as a new reproducible local evidence gate;
+- targeted consensus/Gateway tests and machine evidence for committed fee-history binding;
+- Integration Contract, vectors and `.ai-bridge` only after the runtime proof is committed.
+
 Validation commands:
 
 - `make bft-evm-fee-history-check`
