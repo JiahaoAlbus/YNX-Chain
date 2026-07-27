@@ -1,6 +1,6 @@
 # YNX Shop integration handoff
 
-Source commit: `ef97eadea90e2b6f4f24225c52e6093b5d5de567`  
+Source commit: `4267fdbf3ff581043bafef5c357d915f1904b964`  
 Contract: `release/integration/ynx-shop-contract.json`  
 Test vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`  
 Status: Candidate for 29 Integration freeze; not centrally integrated or current-source deployed.
@@ -50,7 +50,7 @@ The privacy source is tested locally across Commerce, Web and native static cont
 
 ## Release truth
 
-Existing Staging and hosted artifacts are evidence for source `38e2f68deb91d5f26e5aeec2318e260cd0742115`. Current source `ef97eadea90e2b6f4f24225c52e6093b5d5de567` is implemented and tested locally but is not current-source installed, centrally integrated, staged, public, hosted, production signed or store released.
+Existing Staging and hosted artifacts are evidence for source `38e2f68deb91d5f26e5aeec2318e260cd0742115`. Current source `4267fdbf3ff581043bafef5c357d915f1904b964` is implemented and tested locally but is not current-source installed, centrally integrated, staged, public, hosted, production signed or store released.
 
 ## Acceptance sequence
 

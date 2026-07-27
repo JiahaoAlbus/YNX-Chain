@@ -2,17 +2,19 @@
 
 Status: Active
 Stage: FREEZE → INTEGRATE
-Source commit: `ef97eadea90e2b6f4f24225c52e6093b5d5de567`
+Source commit: `4267fdbf3ff581043bafef5c357d915f1904b964`
 
 ## Completed checkpoints
 
 - `4cd59fcb11e11d221defa88d20ac0d50b7663b99`: buyer data export/deletion, retention boundary, Web/Android/iOS controls and tests.
 - `77d047076537fffb4290d9389516c73f3a4cbede`: fail-closed validation when scanner dependencies are absent.
 - `ef97eadea90e2b6f4f24225c52e6093b5d5de567`: Node fallback for secret scanning; real secret and placeholder scans pass.
+- `5ce3ae56d14b73c4d5b0c64deaa27e6353b224c3`: integration contract, release record, public metadata and full-goal coverage frozen for current truth.
+- `4267fdbf3ff581043bafef5c357d915f1904b964`: Web/PWA privacy controls and dynamic export/delete states localized across all twelve locales; Arabic RTL framework retained.
 
 ## Next autonomous actions
 
-1. Localize the new privacy controls across the twelve supported locales and verify Arabic RTL.
+1. Localize Android and iOS privacy controls across the twelve supported locales and verify Arabic RTL; Web/PWA is tested locally.
 2. Add versioned persistence migration/rollback and old-client vectors for privacy records.
 3. Add Shop-specific SLO/load evidence, unit economics and observability counters.
 4. Package current Web/API artifacts with hashes and provenance.

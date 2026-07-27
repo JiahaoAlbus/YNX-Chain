@@ -4,7 +4,7 @@
   "officialName": "YNX Shop",
   "alternateNames": ["YNX Web4 Shop", "YNX Marketplace"],
   "owner": "09-shop",
-  "sourceCommit": "ef97eadea90e2b6f4f24225c52e6093b5d5de567",
+  "sourceCommit": "4267fdbf3ff581043bafef5c357d915f1904b964",
   "canonicalRoute": "/shop",
   "canonicalUrl": "https://ynxweb4.com/shop",
   "stagingUrl": "https://web4.ynxweb4.com/shop-staging/",
@@ -33,7 +33,7 @@
     "Trust evidence and appeal links without asset-control authority",
     "Buyer data export and deletion with terminal-order retention rules",
     "Web/PWA plus Android and iOS source surfaces",
-    "Twelve-locale framework with Arabic RTL support"
+    "Twelve-locale Web/PWA privacy controls with Arabic RTL support"
   ],
   "risksAndLimitations": [
     "YNXT and all Shop flows are Testnet-only and have no represented real-world monetary value.",
@@ -42,6 +42,7 @@
     "Current privacy and validation changes are not deployed on the existing Staging service.",
     "Tax and carrier integrations are unavailable; manual shipment status is not provider-verified.",
     "Android and iOS current-source build/install evidence requires platform build hosts.",
+    "Android and iOS privacy action copy is not yet localized across all twelve locales.",
     "Production signing and app-store release have not occurred."
   ],
   "privacy": {

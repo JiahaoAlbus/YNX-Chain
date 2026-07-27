@@ -4,7 +4,7 @@ Updated: 2026-07-27
 
 Current branch: `codex/final-shop`
 
-Current protected source: `ef97eadea90e2b6f4f24225c52e6093b5d5de567`
+Current protected source: `4267fdbf3ff581043bafef5c357d915f1904b964`
 
 Prior Staging/artifact source: `38e2f68deb91d5f26e5aeec2318e260cd0742115`
 
@@ -12,7 +12,7 @@ Minimum preserved baseline: `ef0456a6111ed9bc59fcd6c34d9a8739713e0865`
 
 ## 2026-07-27 current checkpoint
 
-Current source adds authenticated buyer data export and deletion across Commerce API, Web/PWA, Android source and iOS source. Deletion fails closed while any order is non-terminal; terminal orders are pseudonymized while authoritative public-chain settlement and integrity evidence remains unchanged. The current source also repairs false-green Placeholder and Secret gates by using a bounded Node scanner when ripgrep is absent.
+Current source adds authenticated buyer data export and deletion across Commerce API, Web/PWA, Android source and iOS source. Deletion fails closed while any order is non-terminal; terminal orders are pseudonymized while authoritative public-chain settlement and integrity evidence remains unchanged. The current source also repairs false-green Placeholder and Secret gates by using a bounded Node scanner when ripgrep is absent, and localizes Web/PWA privacy labels plus dynamic export/delete states across all twelve locales while preserving Arabic RTL.
 
 Current-source local verification passes for Commerce race tests, buyer Web tests/build, native static contracts, scanner unit tests, Placeholder scan and Secret scan. Android compilation is blocked on this host by the absent Android SDK path. iOS compilation is blocked because only Command Line Tools, not full Xcode, is active. The full repository Go suite currently has unrelated shared baseline failures in three macOS permission assertions and two missing generated-contract consumers; Commerce itself passes.
 

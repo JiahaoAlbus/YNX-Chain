@@ -1,6 +1,6 @@
 # YNX Shop dependency acceptance
 
-Source commit: `ef97eadea90e2b6f4f24225c52e6093b5d5de567`
+Source commit: `4267fdbf3ff581043bafef5c357d915f1904b964`
 
 | Dependency | Owner | Local adapter | Central/public acceptance | Required evidence |
 |---|---|---:|---:|---|

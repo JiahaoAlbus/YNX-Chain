@@ -1,6 +1,6 @@
 # YNX Shop evidence index
 
-Current source commit: `ef97eadea90e2b6f4f24225c52e6093b5d5de567`
+Current source commit: `4267fdbf3ff581043bafef5c357d915f1904b964`
 
 Privacy runtime commit: `4cd59fcb11e11d221defa88d20ac0d50b7663b99`
 
@@ -54,8 +54,9 @@ The current-run transcript is authoritative for install and launch. The current 
 ## Current-source automated verification
 
 - Commerce race suite: `go test -race ./internal/commerce/... -count=1` — pass.
-- Buyer Web: `npm --prefix apps/shop test` — pass, 3 tests.
+- Buyer Web: `npm --prefix apps/shop test` — pass, 5 tests including twelve-locale privacy copy.
 - Buyer Web build: `npm --prefix apps/shop run build` — pass.
+- Buyer Web smoke: `npm --prefix apps/shop run smoke` — `/health`, `/api/capabilities` and `/api/products` pass.
 - Native contracts/locales/privacy: `npm --prefix apps/shop run native:verify` — pass.
 - Validation scanner unit suite: `node --test scripts/validate/scan-regex.test.mjs` — pass, 2 tests.
 - Placeholder gate: `make no-placeholder-check` — pass through the Node fallback because ripgrep is absent.
@@ -72,7 +73,7 @@ The current-run transcript is authoritative for install and launch. The current 
 
 ## Preserved prior Staging runtime evidence
 
-This section is evidence for source `38e2f68deb91d5f26e5aeec2318e260cd0742115`, not the current `ef97ead` source.
+This section is evidence for source `38e2f68deb91d5f26e5aeec2318e260cd0742115`, not the current `4267fdb` source.
 
 - `/health` and `/version` return commit `38e2f68deb91d5f26e5aeec2318e260cd0742115`, version `0.2.0-testnet-preview`, and `integrityProtected:true`.
 - Buyer and Seller paths return HTTP/2 200 through the existing Web4 TLS host.
