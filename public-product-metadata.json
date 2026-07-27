@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "productId": "com.ynx.calendar",
+  "name": "YNX Calendar",
+  "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
+  "canonicalRoute": "/calendar",
+  "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+  "title": "YNX Calendar — Private scheduling with explicit approval",
+  "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
+  "h1": "Your time, clearly under your control",
+  "summary": "YNX Calendar is an independent scheduling product for events, recurring plans, invitations, RSVP, reminders, sharing, conflict review and offline recovery. Calendar changes and AI drafts remain previews until the user approves them.",
+  "brand": {
+    "primaryColor": "#002FA7",
+    "backgroundColor": "#FFFFFF",
+    "style": "clear, restrained, task-focused",
+    "icon": {
+      "publicPath": "/products/calendar/icon.svg",
+      "status": "proposed-unhosted"
+    },
+    "logo": {
+      "publicPath": "/products/calendar/logo.svg",
+      "status": "proposed-unhosted"
+    }
+  },
+  "websitePublished": false,
+  "deployedPublic": false,
+  "deployedStaging": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "runtimeStatus": "local-tested-not-publicly-deployed",
+  "features": [
+    "Event preview, approval, edit, cancel and recovery",
+    "Daily, weekly, monthly and yearly recurrence",
+    "Timezone-aware scheduling with DST-safe local time",
+    "Single-occurrence cancellation and modification schema",
+    "YNX-handle invitations and RSVP",
+    "Owner, editor and viewer sharing",
+    "Recurring conflict detection with explicit override",
+    "Local reminders, audit, export and account deletion",
+    "Offline mutation recovery",
+    "AI drafts with provider, model, cost and approval boundaries",
+    "12-language localization with Arabic RTL",
+    "Web, Android, iOS and macOS-oriented delivery surfaces"
+  ],
+  "releaseNotes": [
+    "The current source adds recurrence schema version 1, yearly rules, ByDay, ByMonthDay, DST-safe expansion and single-occurrence exceptions.",
+    "Android builds now resolve a supported JDK and Android SDK or fail closed with a clear error.",
+    "Current source passes Calendar unit, Race, Web, browser, Android build, iOS parse/lint and service smoke gates."
+  ],
+  "risksAndLimitations": [
+    "Current source has no public runtime deployment.",
+    "Current-source mobile and desktop packages are not yet hosted or install-proved.",
+    "Wallet/Auth, Mail, AI, Data Fabric and shared Testnet acceptance are pending.",
+    "Invitation and reminder delivery is currently local Calendar state, not accepted Mail or push delivery.",
+    "Occurrence-only and this-and-following mutation APIs are still incomplete.",
+    "No production signing, notarization or store release is claimed."
+  ],
+  "statusLabels": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "downloads": {
+    "currentSource": [],
+    "historicalPreview": {
+      "available": true,
+      "classification": "older test-only preview; not proof of current source",
+      "sourceCommit": "e227c4f0505537b19f4588ea26478c54518f0a4c",
+      "tag": "ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f"
+    }
+  },
+  "screenshots": [
+    {
+      "id": "calendar-desktop",
+      "publicPath": "/products/calendar/screenshots/calendar-desktop.png",
+      "status": "local-proof-unhosted",
+      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "alt": "YNX Calendar desktop scheduling interface"
+    },
+    {
+      "id": "calendar-mobile",
+      "publicPath": "/products/calendar/screenshots/calendar-mobile.png",
+      "status": "local-proof-unhosted",
+      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "alt": "YNX Calendar mobile scheduling interface"
+    }
+  ],
+  "routes": {
+    "support": "/support/calendar",
+    "privacy": "/privacy/calendar",
+    "security": "/security/calendar",
+    "status": "/status/calendar"
+  },
+  "locales": [
+    "en",
+    "zh-CN",
+    "zh-TW",
+    "ja",
+    "ko",
+    "es",
+    "fr",
+    "de",
+    "pt",
+    "ru",
+    "ar",
+    "id"
+  ],
+  "faq": [
+    {
+      "question": "Does YNX Calendar change events automatically?",
+      "answer": "No. Event changes and conflict overrides require explicit user approval. AI can draft or explain, but it cannot invite, RSVP, cancel or reschedule on its own."
+    },
+    {
+      "question": "How does recurring scheduling handle timezones?",
+      "answer": "Recurring events use IANA timezones and preserve local wall time across daylight-saving transitions. Invalid month dates are skipped rather than silently moved."
+    },
+    {
+      "question": "Can I invite other people?",
+      "answer": "Local Calendar state supports approved YNX-handle invitations and accept, tentative or decline responses. Accepted Mail delivery integration is still pending."
+    },
+    {
+      "question": "Is YNX Calendar publicly deployed?",
+      "answer": "Not yet. The current source is locally tested, but no public runtime, current-source hosted download, production signature or store release is claimed."
+    },
+    {
+      "question": "Are older preview downloads the current release?",
+      "answer": "No. Historical test-only preview packages were built from an older source commit and do not include the current recurrence implementation."
+    },
+    {
+      "question": "Can I export or delete my Calendar data?",
+      "answer": "Local account export and deletion flows exist. Release-grade retention, migration, backup and restore evidence is still being completed."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "type": "SoftwareApplication",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "Web, Android, iOS, macOS",
+    "offers": null,
+    "releaseStatus": "DevelopmentRelease",
+    "featureListSource": "features",
+    "faqSource": "faq"
+  },
+  "websiteHandoff": {
+    "consumer": "28-website",
+    "requiredReviewers": ["29-integration", "30-security-platform"],
+    "publishConditions": [
+      "host approved icon, logo and screenshots",
+      "preserve false runtime and release states until direct proof exists",
+      "distinguish current source from historical preview downloads",
+      "publish canonical, support, privacy, security and status routes",
+      "record Website deployment commit and public probes"
+    ]
+  },
+  "generatedAt": "2026-07-27T14:39:45Z"
+}
