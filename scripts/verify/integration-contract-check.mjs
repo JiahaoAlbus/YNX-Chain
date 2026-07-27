@@ -35,6 +35,7 @@ const vectors = readJSON("docs/integration/CROSS_PRODUCT_TEST_VECTORS.json");
 const metadata = readJSON("chain-metadata/ynx-testnet.json");
 const stateSource = readFileSync("internal/consensus/state.go", "utf8");
 const applicationSource = readFileSync("internal/consensus/application.go", "utf8");
+const ethereumTransactionSource = readFileSync("internal/consensus/ethereum_transaction.go", "utf8");
 const snapshotSource = readFileSync("internal/consensus/snapshot.go", "utf8");
 const gatewaySource = readFileSync("internal/bftgateway/gateway.go", "utf8");
 const evmSource = readFileSync("internal/bftgateway/evm.go", "utf8");
@@ -59,13 +60,13 @@ requireValue(contract.networkIdentity.evmChainIdHex === "0x1917", "hex EVM chain
 requireValue(contract.networkIdentity.nativeAsset === metadata.nativeCurrency.symbol, "contract and metadata native asset differ");
 requireValue(stateSource.includes("const CommittedStateVersion = 11"), "runtime committed-state version drift");
 requireValue(stateSource.includes('calculateHashFor("YNX_ABCI_STATE_V11", CommittedStateVersion)'), "runtime AppHash domain drift");
-requireValue(applicationSource.includes("ApplicationVersion   = 14"), "runtime ABCI application version drift");
+requireValue(applicationSource.includes("ApplicationVersion   = 15"), "runtime ABCI application version drift");
 for (const method of ["ListSnapshots", "OfferSnapshot", "LoadSnapshotChunk", "ApplySnapshotChunk"]) {
   requireValue(snapshotSource.includes(`func (a *Application) ${method}`), `runtime state sync method missing: ${method}`);
 }
 requireValue(snapshotSource.includes("stateSyncSnapshotMaxBytes         = 64 << 20"), "runtime state sync size bound drift");
 requireValue(contract.stateSchema.committedStateVersion === 11, "contract committed-state version drift");
-requireValue(contract.stateSchema.applicationVersion === 14, "contract ABCI application version drift");
+requireValue(contract.stateSchema.applicationVersion === 15, "contract ABCI application version drift");
 requireValue(contract.stateSchema.appHashDomain === "YNX_ABCI_STATE_V11", "contract AppHash domain drift");
 requireValue(contract.stateSchema.stateSyncSnapshotFormat === 1, "contract state sync format drift");
 requireValue(contract.stateSchema.stateSyncSnapshotMaxBytes === 67108864, "contract state sync size bound drift");
@@ -76,7 +77,7 @@ requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplet
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
 }
-requireValue(contract.contractVersion === "1.4.0", "unexpected Chain Core contract version");
+requireValue(contract.contractVersion === "1.5.0", "unexpected Chain Core contract version");
 requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
 requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
 requireValue(contract.evmRpc.historicalContractState === false, "EVM RPC cannot claim historical contract state");
@@ -90,6 +91,15 @@ for (const method of contract.evmRpc.methods) {
 for (const implementation of ["evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedBlockTransactionResult", "evmCommittedAccountResult", "evmCommittedContractCode", "evmCommittedContractCall", "evmCommittedResult"]) {
   requireValue(evmSource.includes(`func (g *Gateway) ${implementation}`), `runtime EVM implementation missing: ${implementation}`);
 }
+for (const fragment of ["EthereumLegacyTransferType", "EthereumTransferGasLimit", "DecodeEthereumLegacyTransaction", "func (tx EthereumLegacyTransaction) Verify"]) {
+  requireValue(ethereumTransactionSource.includes(fragment), `bounded EIP-155 runtime evidence missing: ${fragment}`);
+}
+const legacyProfile = contract.evmRpc.ethereumLegacyTransactionProfile;
+requireValue(legacyProfile.transactionType === "0x0" && legacyProfile.chainId === 6423 && legacyProfile.gasLimit === 21000, "bounded EIP-155 identity or gas profile drift");
+requireValue(legacyProfile.contractCreation === false && legacyProfile.calldata === false && legacyProfile.accessLists === false && legacyProfile.typedTransactions === false, "bounded EIP-155 unsupported feature boundary drift");
+requireValue(legacyProfile.signatureRecovery === true && legacyProfile.dualHashIdentity === true && legacyProfile.receiptAuditValidation === true, "bounded EIP-155 evidence profile drift");
+requireValue(evmSource.includes("consensus.ValidateBFTEVMReceipt(receipt)"), "committed Ethereum receipt audit validation missing");
+requireValue(evmSource.includes("consensus.ValidateBFTEVMReceipt(ideReceipt)"), "JSON-RPC receipt audit validation missing");
 requireValue(contract.evmRpc.rejectionCodes.invalidParams === -32602, "EVM invalid-parameter code drift");
 requireValue(contract.evmRpc.rejectionCodes.transactionRejected === -32003, "EVM transaction-rejection code drift");
 requireValue(contract.evmRpc.rejectionCodes.upstreamOrEvidenceFailure === -32603, "EVM upstream/evidence code drift");
@@ -147,6 +157,11 @@ for (const vector of vectors.vectors) {
 for (const required of [
   "native-transfer-valid-accept",
   "native-transfer-replay-reject",
+  "evm-eip155-legacy-value-transfer-accept",
+  "evm-eip155-wrong-chain-reject",
+  "evm-eip155-malformed-or-typed-reject",
+  "evm-eip155-replay-reject",
+  "evm-receipt-audit-tamper-reject",
   "evm-committed-block-evidence-accept",
   "evm-block-transaction-count-index-accept",
   "evm-block-transaction-pending-or-missing-null-accept",

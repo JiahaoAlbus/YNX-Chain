@@ -1,12 +1,11 @@
 # Agent Status
 
 - Workspace and branch match Product 01 exactly: `/Users/huangjiahao/Desktop/YNX Final Worktrees/01-chain-core` on `codex/final-chain-core`; CodexPro server modes are bash `full`, write `workspace`, tool `full`.
-- Network-interruption Dirty Changes were read and protected. The existing partial EVM error-code propagation was completed rather than overwritten or restarted.
-- Runtime commit `7935cedb57ab752b3acc5097303cad672f6f96f1` is pushed to `origin/codex/final-chain-core`; Local and Remote SHA matched immediately after push.
-- EVM block-transaction lookup behavior now distinguishes invalid parameters (`-32602`) from CometBFT or committed-evidence failures (`-32603`) and preserves JSON-RPC `null` for pending, missing and out-of-range results.
-- Seven machine-readable lookup vectors are frozen in `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json` and source-bound to `7935cedb57ab`.
-- `scripts/verify/integration-contract-check.mjs` validates contract v1.4.0, runtime code propagation, rejection-code identity and all required vectors; `scripts/verify/bft-evm-receipt-check.sh` executes the failure-classification test and binds the vector IDs.
-- Passed for the vector/evidence slice: machine JSON parse, `make integration-contract-check` with 40 vectors, `make bft-evm-receipt-check`, `go test -race ./internal/bftgateway`, `go test ./cmd/... ./internal/...`, `make static-check`, `make objective-state-check`, `make no-placeholder-check` and `make secret-scan`.
-- Release Record, Integration Contract, Handoff, Project State and full-goal coverage remain bound to implementation baseline `7935cedb57ab`; contract version remains `1.4.0` and committed state remains v11 / ABCI v14.
+- The network-interruption Dirty Change in `internal/consensus/ide_application.go` was read, protected and completed rather than overwritten. No reset, clean or force push was used.
+- Bounded EIP-155 runtime commit `5469ed2` is pushed to `origin/codex/final-chain-core`. It accepts only chain-6423 legacy type-0 value transfers with recovered secp256k1 sender, zero-based account nonce, empty calldata, no contract creation and exactly 21000 gas.
+- Receipt evidence hardening commit `328ba67b72844d9c8902dffe3a61fae57be2392a` is pushed. ABCI EVM receipts must pass canonical audit-hash and structural validation and match CometBFT transaction hash, block height, sender, recipient and action evidence.
+- Ethereum Keccak transaction identity and CometBFT SHA-256 transaction identity remain separate and verified. Typed EIP-2718 envelopes, access lists, contract creation, calldata and EIP-1559 fee semantics remain unsupported.
+- Release Record, Integration Contract v1.5.0, Handoff, full-goal coverage and 45 cross-product vectors are source-bound to runtime baseline `328ba67b7284`; committed state remains v11, ABCI application version is 15 and State Sync snapshot format remains 1.
+- Evidence gates passed: machine JSON parsing, `make integration-contract-check`, `make bft-evm-legacy-transfer-check`, `make bft-evm-receipt-check`, race tests for consensus and BFT Gateway, full command/internal regression, static check, objective-state check, placeholder check and secret scan.
 - Current source is not the authoritative public runtime. `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` and `storeReleased` remain false.
-- Current evidence slice is ready for final review, Commit and Push. Next runtime action is standard Ethereum signed transaction envelope compatibility with exact chain, signature, replay, execution and receipt proof; no Ethereum RLP, EIP-155 or EIP-1559 claim exists yet.
+- Next runtime action after the evidence checkpoint is an exact EIP-2718/EIP-2930/EIP-1559 compatibility audit; no typed-envelope support is claimed.

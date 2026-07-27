@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "7935cedb57ab",
+  "sourceCommit": "328ba67b7284",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,
@@ -38,6 +38,61 @@
       "mutation": "replace-chain-id",
       "expected": "reject",
       "errorClass": "wrong-chain"
+    },
+    {
+      "id": "evm-eip155-legacy-value-transfer-accept",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "chain-id-6423",
+        "secp256k1-sender-recovery",
+        "zero-based-account-nonce",
+        "exact-21000-gas-limit",
+        "ethereum-keccak-and-comet-sha256-dual-identity",
+        "committed-audited-receipt"
+      ]
+    },
+    {
+      "id": "evm-eip155-wrong-chain-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "sign-the-envelope-for-a-chain-id-other-than-6423",
+      "expected": "reject",
+      "errorClass": "wrong-chain",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip155-malformed-or-typed-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "use-non-canonical-RLP-or-an-EIP-2718-typed-envelope",
+      "expected": "reject",
+      "errorClass": "unsupported-or-malformed-envelope",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip155-replay-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "resubmit-the-identical-EIP-155-envelope-after-commit",
+      "expected": "reject",
+      "errorClass": "nonce-replay",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-receipt-audit-tamper-reject",
+      "owner": "chain-core",
+      "operation": "eth_getTransactionReceipt",
+      "inputSource": "internal/bftgateway/ethereum_transaction_test.go",
+      "mutation": "change-receipt-address-or-content-without-recomputing-the-committed-audit-hash",
+      "expected": "reject",
+      "errorClass": "committed-evidence-mismatch",
+      "expectedRpcCode": -32603
     },
     {
       "id": "evm-committed-block-evidence-accept",

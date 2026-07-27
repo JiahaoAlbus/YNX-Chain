@@ -2,11 +2,11 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "7935cedb57ab",
-  "contractVersion": "1.4.0",
+  "sourceCommit": "328ba67b7284",
+  "contractVersion": "1.5.0",
   "stateSchema": {
     "committedStateVersion": 11,
-    "applicationVersion": 14,
+    "applicationVersion": 15,
     "appHashDomain": "YNX_ABCI_STATE_V11",
     "stateSyncSnapshotFormat": 1,
     "stateSyncSnapshotMaxBytes": 67108864
@@ -66,6 +66,11 @@
       "type": "application_action",
       "version": 1,
       "source": "internal/consensus/action_transaction.go"
+    },
+    {
+      "type": "ethereum_legacy_eip155_value_transfer",
+      "version": 1,
+      "source": "internal/consensus/ethereum_transaction.go"
     }
   ],
   "routeClasses": {
@@ -127,7 +132,19 @@
       "eth_getTransactionReceipt",
       "eth_getLogs"
     ],
-    "signedTransactionEnvelope": "YNX canonical transfer/v1 encoded as 0x data",
+    "signedTransactionEnvelope": "YNX canonical transfer/v1 or bounded Ethereum legacy EIP-155 type-0 value transfer encoded as 0x data",
+    "ethereumLegacyTransactionProfile": {
+      "transactionType": "0x0",
+      "chainId": 6423,
+      "gasLimit": 21000,
+      "contractCreation": false,
+      "calldata": false,
+      "accessLists": false,
+      "typedTransactions": false,
+      "signatureRecovery": true,
+      "dualHashIdentity": true,
+      "receiptAuditValidation": true
+    },
     "committedOnly": true,
     "historicalAccountState": false,
     "historicalContractState": false,

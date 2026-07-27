@@ -9,7 +9,8 @@
 - Snapshot persistence must complete before in-memory state changes; persistence failure aborts without partial restore.
 - Local backup/rollback evidence may use disposable validator keys, but no local drill may set remote or public recovery status true.
 - EVM block transaction count and transaction-by-block-index methods are committed-state read compatibility backed by CometBFT evidence; they do not imply Ethereum execution equivalence.
-- `eth_sendRawTransaction` currently accepts the canonical signed YNX native JSON envelope encoded as hex, not standard Ethereum RLP or EIP-1559 envelopes; release records must not claim native Ethereum raw transaction compatibility until implemented and proven.
+- `eth_sendRawTransaction` accepts the canonical signed YNX envelope and a bounded chain-6423 EIP-155 legacy type-0 value transfer with exact sender recovery, zero-based nonce and 21000-gas semantics. Typed EIP-2718 envelopes, access lists, contract creation, calldata and EIP-1559 fees remain unsupported and must not be claimed.
+- Every ABCI-returned EVM receipt must pass canonical audit-hash and structural validation, then match CometBFT transaction hash, block height, sender, recipient and action evidence before a gateway returns it.
 - Unrelated concurrent dirty work in `internal/indexer/indexer.go` was protected and excluded from the EVM slice staging and commit; it was reviewed, tested and committed separately as `bf08b68`.
 - Indexer checkpoint and WAL files are local authority state and must fail closed on unsafe permissions, non-regular files, unknown fields, trailing data, block/transaction invariant mismatch, conflicting duplicate WAL records or caller-visible mutable aliases.
 - Exact checkpoint/WAL overlap after an atomic checkpoint but before WAL deletion is a valid recovery window and must not be rejected when the block record is identical.

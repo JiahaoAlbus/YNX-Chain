@@ -1,6 +1,6 @@
 {
   "schema": "ynx-product-release/v1",
-  "generatedAt": "2026-07-27T08:16:52Z",
+  "generatedAt": "2026-07-27T10:01:30Z",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -9,9 +9,9 @@
     "canonicalRoute": "/chain"
   },
   "source": {
-    "implementationCommit": "7935cedb57ab",
+    "implementationCommit": "328ba67b7284",
     "committedStateVersion": 11,
-    "contractVersion": "1.4.0",
+    "contractVersion": "1.5.0",
     "releaseRecordVersion": 1
   },
   "network": {
@@ -62,6 +62,8 @@
     "evm-block-transaction-count-and-index-lookup",
     "evm-account-balance-and-nonce-rpc",
     "evm-signed-ynxt-broadcast",
+    "evm-eip155-legacy-value-transfer-and-dual-hash-identity",
+    "evm-committed-receipt-audit-validation",
     "evm-committed-transaction-receipt-and-logs",
     "evm-committed-bounded-contract-code-call-and-resource-estimate",
     "sponsored-user-operation-bundler-end-to-end",
@@ -73,6 +75,7 @@
     "The public topology is not four-validator CometBFT voting.",
     "StreamBFT remains a local shadow candidate and is not eligible for cutover.",
     "Wallet/Auth Product Session integration is not frozen or accepted centrally.",
+    "Ethereum compatibility accepts only chain-bound EIP-155 legacy type-0 value transfers with exactly 21000 gas; typed transactions, access lists, contract creation and calldata are not supported.",
     "No owner production signer, public BFT cutover approval, or independent public proof is recorded."
   ],
   "evidence": [
