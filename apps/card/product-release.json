@@ -2,7 +2,7 @@
   "productId": "ynx-card",
   "name": "YNX Card",
   "branch": "codex/final-card",
-  "commit": "PENDING_RECOVERY_CHECKPOINT",
+  "commit": "bdd5ca02ad42b712db66a5173ecfad09340aa42c",
   "recoveredFromCommit": "c20beda",
   "version": "1.0.0-testnet-preview",
   "surfaces": [

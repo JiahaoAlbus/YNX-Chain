@@ -24,13 +24,15 @@ biometric gate before revealing even safe details, 12 locales and Arabic RTL.
 It does not claim a BIN, real issuer relationship, fiat balance, spendable card,
 Apple Pay or Google Pay support.
 
-Verification: Card race tests pass; 8 TypeScript tests pass; Android/iOS Hermes
-exports pass; Android lint vital and release assembly pass. Current APK SHA-256
-is `647f00816df9b85ad8a2f41fbd560e5c4de363763dc65e87966a2f9de1389912`,
-77801211 bytes, debug/test certificate, minimum SDK 24. A previous APK installed
-and rendered, but the current rebuilt APK lacks a clean post-build cold-launch
-proof because the shared emulator system repeatedly died during package install.
-Accordingly current `installedLocal` remains false.
+Current verification at source commit
+`bdd5ca02ad42b712db66a5173ecfad09340aa42c`: Card Go tests pass; 8/8
+TypeScript tests pass; TypeScript checking passes; Android/iOS Hermes exports
+pass; and the Card-local signing/secret/PAN scan passes. The Android native
+release assembly command did not return a Gradle result because three MCP calls
+failed with an upstream `502`; it is therefore unverified, not failed or passed.
+The historical debug-signed APK hash is superseded and is not a current artifact.
+No current APK install or post-build cold-launch proof exists, so
+`installedLocal` remains false.
 
 Central registry/proxy deployment, product API staging, current install proof,
 visual matrix and hosted artifacts remain open. No release-complete claim is

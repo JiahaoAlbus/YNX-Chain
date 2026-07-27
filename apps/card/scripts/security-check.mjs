@@ -9,6 +9,11 @@ const scanRoots = [
   resolve(repositoryRoot, "docs/handoffs/card.md"),
   resolve(repositoryRoot, "docs/evidence/pay-card-index.md"),
   resolve(repositoryRoot, "docs/integration/pay-card-wallet-registry.json"),
+  resolve(repositoryRoot, "docs/integration/INTEGRATION_HANDOFF.md"),
+  resolve(repositoryRoot, "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"),
+  resolve(repositoryRoot, "docs/integration/DEPENDENCY_ACCEPTANCE.md"),
+  resolve(repositoryRoot, "release/integration/ynx-card-contract.json"),
+  resolve(repositoryRoot, ".ai-bridge/full-goal-coverage.json"),
 ];
 const ignoredDirectories = new Set(["node_modules", "dist", "build", ".gradle", ".expo"]);
 const binaryExtensions = new Set([".png", ".webp", ".jpg", ".jpeg", ".jar", ".tgz"]);
