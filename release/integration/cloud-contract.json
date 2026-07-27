@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "ynx.cloud.integration.v1",
+  "productNumber": 20,
+  "productId": "cloud",
+  "owner": "20-cloud",
+  "sourceCommit": "6e101f99137c44e51f824770a477bd6149ba5e05",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423
+  },
+  "service": {
+    "binary": "ynx-cloudd",
+    "defaultPort": 8092,
+    "publicLiveness": "GET /health/live",
+    "authenticatedReadiness": "GET /api/v1/ready",
+    "apiBase": "/api/v1",
+    "container": "infra/docker/ynx-cloudd.Dockerfile"
+  },
+  "auth": {
+    "owner": "02-wallet-auth",
+    "verification": "POST /v1/wallet-auth/sessions/verify",
+    "failurePolicy": "fail-closed",
+    "cloudScopes": ["ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"],
+    "nativeTuple": {
+      "productClientId": "ynx-cloud-mobile-v1",
+      "bundleId": "com.ynxweb4.cloud",
+      "callback": "ynxcloud://wallet-auth/callback"
+    },
+    "reviewState": "pending-central-review",
+    "enabled": false
+  },
+  "canonicalEvents": [
+    "cloud.object.created",
+    "cloud.object.versioned",
+    "cloud.object.restored",
+    "cloud.share.created",
+    "cloud.share.revoked",
+    "cloud.object.trashed",
+    "cloud.object.deleted",
+    "cloud.account.erasure.requested",
+    "cloud.account.erasure.updated",
+    "cloud.ai.job.reviewed"
+  ],
+  "errorSemantics": {
+    "unauthenticated": 401,
+    "scopeOrProductBoundary": 403,
+    "notFound": 404,
+    "conflict": 409,
+    "retentionOrExitLock": 423,
+    "quotaOrValidation": 422,
+    "rateLimit": 429,
+    "providerOrCentralUnavailable": 503
+  },
+  "dependencies": [
+    {"owner": "02-wallet-auth", "status": "pending-review"},
+    {"owner": "14-ai", "status": "adapter-tested-provider-unconfigured"},
+    {"owner": "15-trust-center", "status": "adapter-tested-remote-unconfigured"},
+    {"owner": "16-resource-market", "status": "capacity-contract-pending"},
+    {"owner": "26-data-fabric", "status": "canonical-event-acceptance-pending"},
+    {"owner": "29-integration", "status": "shared-testnet-acceptance-pending"},
+    {"owner": "30-security-sre", "status": "container-and-release-review-pending"}
+  ],
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "migration": "apps/cloud/MIGRATION_COMPATIBILITY.md",
+  "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "externalInputs": "apps/cloud/release/operator-inputs.request.json"
+}

@@ -19,4 +19,5 @@
 - Artifact: `ARTIFACT_MANIFEST.json` and `release/YNX-Cloud-1.0.0-testnet-preview.apk`.
 - UI/a11y/RTL: `UI_DESIGN_AUDIT.md`, Web static tests, and native i18n audit.
 - iOS: `.github/workflows/cloud-docs-ios-simulator.yml` is runnable on a full-Xcode GitHub macOS runner. Local iOS evidence is absent and is not claimed.
+- Container candidate: `infra/docker/ynx-cloudd.Dockerfile`, its bounded Docker context, `infra/docker/cloud-compose.yml`, `tests/container.test.mjs`, `CONTAINER_OPERATIONS.md`, and the Cloud security workflow define non-root/read-only/capability-dropped build and cold-start gates. Local Compose parsing passed; the local Docker daemon was unavailable, so an image build is not claimed until CI evidence exists.
 - Staging/public/download: absent; corresponding release booleans remain false.

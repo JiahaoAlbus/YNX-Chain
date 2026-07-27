@@ -1,0 +1,6 @@
+{"at":"2026-07-27","phase":"RECOVER","event":"workspace-match","workspace":"/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud","branch":"codex/final-cloud","result":"matched-product-20"}
+{"at":"2026-07-27","phase":"PROTECT","event":"container-delivery","commit":"6e101f99137c44e51f824770a477bd6149ba5e05","result":"implemented-local"}
+{"at":"2026-07-27","phase":"PROTECT","event":"tests","result":"passed","commands":["go test ./internal/cloud ./apps/cloud/cmd/ynx-cloudd","npm test --prefix apps/cloud","npm run check --prefix apps/cloud","npm run security --prefix apps/cloud","npm run smoke --prefix apps/cloud","docker compose -f infra/docker/cloud-compose.yml config"]}
+{"at":"2026-07-27","phase":"PROTECT","event":"docker-build","result":"not-run","reason":"local Docker daemon unavailable"}
+{"at":"2026-07-27","phase":"PROTECT","event":"push","attempts":3,"result":"failed","reason":"upstream 502 or empty reply"}
+{"at":"2026-07-27","phase":"PROTECT","event":"recovery-bundle","result":"verified","bundle":".ai-bridge/recovery/ynx-cloud-6e101f9.bundle","sha256":"9c9a6f2f8ebd41140d912b1b55dac872b24c0330bcdde1c13f462d541f0b27fd"}

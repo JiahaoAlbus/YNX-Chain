@@ -25,6 +25,7 @@ Evidence baseline: local source commit `f05fc3faa5665d917b9f8a8aa0b8678ab04b0728
 | Security and supply chain | partial | local | threat model, security boundaries, deterministic 468-component CycloneDX inventory, script allowlist, Go vet/secret/lock/artifact gate, local APK provenance record, CI workflow | external SAST/DAST/penetration report, container scan when image exists, fresh reproducible build, production attestation/signing |
 | Rate limit and backpressure | yes, single-process | local | deterministic forwarded-IP, reset, saturation, retry and metric tests | distributed limiter and measured tuning |
 | State migration and rollback | partial | local | legacy v1/v2/v3/v4/v5 fixtures, byte-identical backups, product, usage, storage-time and schema-v6 erasure-receipt migrations, current→legacy rollback hash and tamper tests | previous-binary and remote drill evidence |
+| Docker/Server delivery | yes, candidate | config/local | non-root multi-stage image, bounded per-Dockerfile context, read-only least-privilege Compose profile, 3 container contract tests, Compose parse, and CI cold-start gate at `6e101f9` | exact image build/cold-start CI result; image scan; hosted immutable image |
 | Public `/cloud` Testnet | no | no | none | domain, deployment, remote smoke |
 
 No row marked “local” proves staging, public deployment, production durability, production signing, or store release.

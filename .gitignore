@@ -26,3 +26,4 @@ __pycache__/
 *.log
 tmp/
 .ynx-smoke/
+.ai-bridge/recovery/*.bundle

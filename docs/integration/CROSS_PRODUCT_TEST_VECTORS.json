@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "product": "cloud",
+  "sourceCommit": "6e101f99137c44e51f824770a477bd6149ba5e05",
+  "vectors": [
+    {
+      "id": "cloud-wallet-valid-session",
+      "owners": ["02-wallet-auth", "20-cloud"],
+      "input": "accepted exact Cloud product/client/bundle/callback/device/scopes envelope",
+      "expected": "short Cloud session bound to exact account, product and ordered scopes"
+    },
+    {
+      "id": "cloud-wallet-cross-product-reject",
+      "owners": ["02-wallet-auth", "20-cloud"],
+      "input": "Docs client or bundle used for a Cloud request",
+      "expected": "reject; no local session"
+    },
+    {
+      "id": "cloud-wallet-replay-reject",
+      "owners": ["02-wallet-auth", "20-cloud"],
+      "input": "same completion digest submitted twice",
+      "expected": "first accepted when valid; replay rejected"
+    },
+    {
+      "id": "cloud-ai-selected-version-only",
+      "owners": ["14-ai", "20-cloud"],
+      "input": "approved job referencing one object and one version",
+      "expected": "only selected bytes and bounded metadata are sent; no account-wide context"
+    },
+    {
+      "id": "cloud-ai-provider-unavailable",
+      "owners": ["14-ai", "20-cloud"],
+      "input": "AI upstream unavailable or quota exhausted",
+      "expected": "honest failed job; object bytes, ACL and versions unchanged"
+    },
+    {
+      "id": "cloud-resource-metering",
+      "owners": ["16-resource-market", "20-cloud", "26-data-fabric"],
+      "input": "verified storage and delivered egress observations",
+      "expected": "versioned usage event with provider facts; quote or reservation is not settlement"
+    },
+    {
+      "id": "cloud-share-revoke",
+      "owners": ["20-cloud", "26-data-fabric"],
+      "input": "create expiring scoped link, resolve once, revoke, resolve again",
+      "expected": "authorized first resolution; post-revoke resolution rejected; canonical audit events retained"
+    },
+    {
+      "id": "cloud-retention-erasure",
+      "owners": ["15-trust-center", "20-cloud"],
+      "input": "product-account erasure while an object is under active retention",
+      "expected": "atomic fail-closed rejection with retained reason; no partial logical deletion"
+    },
+    {
+      "id": "cloud-provider-failure-recovery",
+      "owners": ["20-cloud", "30-security-sre"],
+      "input": "provider becomes unavailable during upload or delete",
+      "expected": "no false success; durable pending/failure state, retry path and audit correlation"
+    },
+    {
+      "id": "cloud-backup-restore",
+      "owners": ["20-cloud", "30-security-sre"],
+      "input": "verified recovery bundle restored into a new empty destination",
+      "expected": "all manifest hashes match; known object downloads and metadata are identical before cutover"
+    }
+  ]
+}

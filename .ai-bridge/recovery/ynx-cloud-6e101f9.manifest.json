@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Cloud",
+  "branch": "codex/final-cloud",
+  "remoteBase": "fa408b03c9a748017544acdce6eb953fd4ed542b",
+  "localHead": "6e101f99137c44e51f824770a477bd6149ba5e05",
+  "bundle": ".ai-bridge/recovery/ynx-cloud-6e101f9.bundle",
+  "bytes": 5108,
+  "sha256": "9c9a6f2f8ebd41140d912b1b55dac872b24c0330bcdde1c13f462d541f0b27fd",
+  "verification": "git bundle verify passed",
+  "pushAttempts": 3,
+  "pushStatus": "failed-upstream-502-empty-reply",
+  "recovery": [
+    "Verify the SHA-256 before use.",
+    "Fetch the bundle ref into a clone that contains remoteBase.",
+    "Review commit 6e101f99137c44e51f824770a477bd6149ba5e05 before merging or pushing.",
+    "Never force-push or reset over newer work."
+  ]
+}
