@@ -4,8 +4,8 @@
   "release": "0.2.0-candidate",
   "releaseClass": "documentation-candidate",
   "network": "YNX Testnet",
-  "asOf": "2026-07-26T21:16:43+08:00",
-  "sourceCommit": "2b7a8643694425b1fadd954c5c11bfcd5eb33e38",
+  "asOf": "2026-07-27T10:55:18+08:00",
+  "sourceCommit": "9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -13,7 +13,7 @@
     "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": true,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   },
@@ -21,10 +21,10 @@
     "implementedLocal": "The named documentation package, 12-class authoritative fact index, schemas, conflict report, evidence records, 12 locale records and integration manifest exist in the source package.",
     "testedLocal": "The public disclosure gate, integrated documentation compliance check, placeholder rejection, credential-pattern scan and objective-state check passed for the recorded source commit.",
     "installedLocal": "The Website build consumes the content bundle, but this state is reserved for a standalone installed deliverable and remains false.",
-    "integratedCentral": "Website PR https://github.com/JiahaoAlbus/YNX-Chain-website/pull/1 merged the verified content bundle into Website main at aee12104cae241c612ce32e1d60eb213f14bcdb9; Website CI run 30203356668 passed.",
+    "integratedCentral": "Website PRs https://github.com/JiahaoAlbus/YNX-Chain-website/pull/1 and https://github.com/JiahaoAlbus/YNX-Chain-website/pull/2 integrated and refreshed the verified content bundle; Website main contains ae9a9f0f2047e1451f7519276cc24b9acb3c4b33 and CI run 30204766792 passed.",
     "deployedStaging": "No direct staging deployment evidence exists for this documentation package.",
-    "deployedPublic": "Direct production-browser verification on 2026-07-26 rendered the canonical authority article, Support, Privacy, Security and Status routes. https://www.ynxweb4.com/what-is-ynx-chain exposes canonical metadata, TechArticle JSON-LD and bundle source 2b7a86436944; details are recorded in release/evidence/website-public-acceptance-2026-07-26.json.",
-    "downloadHosted": "The public artifact manifest exposes the candidate digest and byte count, but the referenced ZIP has no admitted public download URL; false remains.",
+    "deployedPublic": "Direct production verification rendered the canonical authority article, Docs, Support, Privacy, Security and Status routes. https://www.ynxweb4.com/what-is-ynx-chain exposes canonical metadata, TechArticle JSON-LD and bundle source 9f9efcb84b59; details are recorded in release/evidence/website-public-acceptance-2026-07-26.json.",
+    "downloadHosted": "Website PR https://github.com/JiahaoAlbus/YNX-Chain-website/pull/3 merged immutable package hosting at 285aeaaf1661e890775e779e5abedb7eb6deedaa; CI run 30205219081 passed. Direct HTTP 200 retrieval returned application/zip, 129546 bytes, SHA-256 f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246 and Cache-Control public, max-age=31536000, immutable.",
     "productionSigned": "No production signature or certificate-chain evidence exists.",
     "storeReleased": "No store release applies to this documentation candidate; false remains for cross-product schema consistency."
   },

@@ -117,11 +117,36 @@ if (index) {
     }
     expect(release.states?.implementedLocal === true, `${records.release} implementedLocal must remain evidence-bound true`);
     expect(release.states?.testedLocal === true, `${records.release} testedLocal must remain evidence-bound true`);
-    for (const key of releaseStateKeys.filter((key) => !["implementedLocal", "testedLocal", "integratedCentral", "deployedPublic"].includes(key))) {
+    for (const key of releaseStateKeys.filter((key) => !["implementedLocal", "testedLocal", "integratedCentral", "deployedPublic", "downloadHosted"].includes(key))) {
       expect(release.states?.[key] === false, `${records.release} ${key} must remain false without stronger evidence`);
     }
     expect(release.states?.integratedCentral === true, `${records.release} integratedCentral must match Website owner acceptance evidence`);
     expect(release.states?.deployedPublic === true, `${records.release} deployedPublic must match direct production-route evidence`);
+    const hostedEvidence = (release.stateEvidence?.downloadHosted ?? [])
+      .map((evidencePath) => readJson(evidencePath))
+      .find((record) => {
+        const manifest = record?.publicRuntime?.artifactManifest;
+        const archive = record?.publicRuntime?.hostedArchive;
+        return (
+          manifest?.downloadHosted === true &&
+          manifest?.productionSigned === false &&
+          manifest?.immutable === true &&
+          typeof manifest?.downloadUrl === "string" &&
+          manifest.downloadUrl.startsWith("https://") &&
+          /^[0-9a-f]{64}$/.test(manifest?.sha256 ?? "") &&
+          Number.isSafeInteger(manifest?.bytes) &&
+          archive?.httpStatus === 200 &&
+          archive?.contentType === "application/zip" &&
+          archive?.contentLength === manifest.bytes &&
+          archive?.sha256 === manifest.sha256 &&
+          archive?.url?.includes(`sha256-${manifest.sha256}/`) &&
+          archive?.cacheControl === "public, max-age=31536000, immutable" &&
+          archive?.contentDisposition === "attachment" &&
+          !Number.isNaN(Date.parse(archive?.observedAt ?? ""))
+        );
+      });
+    expect(Boolean(hostedEvidence), `${records.release} downloadHosted requires direct immutable HTTP artifact evidence`);
+    expect(release.states?.downloadHosted === Boolean(hostedEvidence), `${records.release} downloadHosted must match direct immutable HTTP artifact evidence`);
   }
 
   const claims = readJson(records.claims);
