@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "ynx-cross-product-test-vectors/v1",
+  "product": "ynx-trust-center",
+  "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356",
+  "network": "YNX Testnet",
+  "vectors": [
+    {
+      "id": "TRUST-AUTH-VALID-SESSION",
+      "owners": ["02-wallet-auth", "15-trust-center", "29-integration"],
+      "precondition": "A product-scoped session is approved for ynx-trust-center-v1 with the exact device and ordered Trust scopes.",
+      "action": "Call a protected evidence read using the exact session and device.",
+      "expected": "The central Gateway forwards the request and Trust records only hashes/metadata in its authority audit."
+    },
+    {
+      "id": "TRUST-AUTH-WRONG-DEVICE",
+      "owners": ["02-wallet-auth", "15-trust-center", "29-integration"],
+      "precondition": "A valid session exists for device A.",
+      "action": "Replay the token from device B.",
+      "expected": "401 fail closed; no authority request and no local conclusion."
+    },
+    {
+      "id": "TRUST-INVALID-NATIVE-ASSET-CONTROL",
+      "owners": ["15-trust-center", "01-chain-core", "29-integration"],
+      "precondition": "A sourced evidence record is available.",
+      "action": "Submit a request to freeze, seize, blacklist, confiscate or transfer native YNXT.",
+      "expected": "rejected_illegal; a reviewer cannot override it to valid; no chain mutation is emitted."
+    },
+    {
+      "id": "TRUST-INVALID-OVERBROAD-SCOPE",
+      "owners": ["15-trust-center", "29-integration"],
+      "precondition": "A request targets all accounts, the entire network or an equivalent unbounded scope.",
+      "action": "Submit and then attempt to review the request as valid.",
+      "expected": "rejected_overbroad; valid override is rejected."
+    },
+    {
+      "id": "TRUST-EVIDENCE-NOT-VISIBLE",
+      "owners": ["15-trust-center"],
+      "precondition": "Evidence is marked invisible to the subject.",
+      "action": "Use it in a local conclusion workflow.",
+      "expected": "422 fail closed; no case conclusion is persisted."
+    },
+    {
+      "id": "TRUST-REVIEW-ROLE-SEPARATION",
+      "owners": ["15-trust-center"],
+      "precondition": "A reporter owns the case and a reviewer issued the initial decision.",
+      "action": "The owner reviews their own request or the initial reviewer resolves its appeal.",
+      "expected": "403; independent review boundaries remain intact."
+    },
+    {
+      "id": "TRUST-APPEAL-CORRECTION",
+      "owners": ["15-trust-center", "29-integration"],
+      "precondition": "A subject has a valid labelled case and submits new visible evidence.",
+      "action": "An independent appeal reviewer resolves it as false_positive.",
+      "expected": "Case status becomes corrected, active label is disabled, notice is issued and transparency correction count increases."
+    },
+    {
+      "id": "TRUST-STATE-OFFLINE-TAMPER",
+      "owners": ["15-trust-center", "30-security-sre-release"],
+      "precondition": "A version-2 sealed Trust state exists.",
+      "action": "Modify one persisted field without recomputing the integrity seal and restart.",
+      "expected": "Startup fails with an integrity mismatch before admitting state."
+    },
+    {
+      "id": "TRUST-STATE-V1-MIGRATION",
+      "owners": ["15-trust-center", "30-security-sre-release"],
+      "precondition": "A decodable version-1 Trust state exists.",
+      "action": "Start the new release.",
+      "expected": "The state is preserved and atomically rewritten as version 2 with a valid SHA-256 seal and mode 0600."
+    },
+    {
+      "id": "TRUST-CENTRAL-UNAVAILABLE",
+      "owners": ["15-trust-center", "29-integration"],
+      "precondition": "The central Gateway or authoritative Trust API is unavailable.",
+      "action": "Call an authoritative evidence, governance, validity, appeal or transparency route.",
+      "expected": "503 retry-safe unavailable response; no local success, label, enforcement or decision is substituted."
+    },
+    {
+      "id": "TRUST-AI-NO-MUTATION",
+      "owners": ["14-ai", "15-trust-center", "29-integration"],
+      "precondition": "A user explicitly selects allowed context and approves an AI explanation.",
+      "action": "Run the AI workflow and then compare the case state.",
+      "expected": "AI output is stored as explanation only; case, evidence, decision, label, appeal and asset state are unchanged."
+    },
+    {
+      "id": "TRUST-TRANSPARENCY-PRIVACY",
+      "owners": ["15-trust-center", "28-website"],
+      "precondition": "Cases and appeals exist.",
+      "action": "Request the public aggregate transparency report.",
+      "expected": "Counts and method are returned without identities or evidence payloads."
+    }
+  ]
+}

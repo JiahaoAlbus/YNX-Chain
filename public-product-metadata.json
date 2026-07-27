@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "ynx-public-product-metadata/v1",
+  "product": {
+    "name": "YNX Trust Center",
+    "aliases": ["YNX Trust", "Trust Center"],
+    "slug": "trust-center",
+    "canonicalRoute": "/trust-center",
+    "canonicalUrlCandidate": "https://ynxweb4.com/trust-center",
+    "title": "YNX Trust Center | Evidence, Appeals and Transparency",
+    "metaDescription": "Review sourced evidence, request validity, appeals, corrections and transparency through a due-process-first YNX Testnet product.",
+    "h1": "Evidence and due process, without hidden asset control",
+    "status": "local-candidate",
+    "statusAsOf": "2026-07-27",
+    "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356"
+  },
+  "directAnswer": "YNX Trust Center is the YNX Testnet product for request validity, sourced evidence, independent review, appeals, corrections and aggregate transparency. It cannot freeze, seize, blacklist or transfer native YNXT and AI cannot issue a final decision or punishment.",
+  "features": [
+    "Bounded evidence intake with source and digest",
+    "Illegal and overbroad request rejection",
+    "Independent human review and notice",
+    "Appeal and false-positive correction",
+    "Finite sourced labels and expiry",
+    "Aggregate transparency reporting",
+    "Product-scoped Wallet session adapter",
+    "Tamper-evident persistent state"
+  ],
+  "riskAndStatus": [
+    "Shared-Testnet central Gateway registration is not complete.",
+    "No public deployment, hosted download, production signing or store release is claimed.",
+    "AI is an explanation and drafting layer only.",
+    "Testnet records and assets have no mainnet or production status."
+  ],
+  "faq": [
+    {
+      "question": "Can Trust Center freeze or seize YNXT?",
+      "answer": "No. Native YNXT control requests are rejected by the Trust workflow."
+    },
+    {
+      "question": "Can AI decide a case?",
+      "answer": "No. AI may summarize selected context or draft an appeal, but independent human review remains required."
+    },
+    {
+      "question": "Is the product publicly deployed?",
+      "answer": "No. The current release is locally implemented and tested, while central integration and public deployment remain blocked."
+    }
+  ],
+  "platforms": {
+    "web": "testedLocal",
+    "android": "implementedLocal",
+    "ios": "implementedLocal",
+    "server": "testedLocal"
+  },
+  "downloads": [],
+  "urls": {
+    "support": null,
+    "privacy": null,
+    "security": null,
+    "status": null
+  },
+  "structuredDataSuggestion": {
+    "types": ["SoftwareApplication", "WebApplication", "FAQPage"],
+    "applicationCategory": "SecurityApplication",
+    "operatingSystem": "Web, Android, iOS",
+    "isAccessibleForFree": true,
+    "releaseNotesSource": "RELEASE_NOTES.md"
+  },
+  "websiteOwnerActions": [
+    "Verify the canonical route before publishing.",
+    "Publish support, privacy, security and status URLs only after those routes exist.",
+    "Do not expose branch names, local paths, internal hosts or unverified release claims."
+  ]
+}

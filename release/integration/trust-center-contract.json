@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "ynx-trust-center-integration/v1",
+  "owner": "15-trust-center",
+  "consumerOwner": "29-integration",
+  "product": "ynx-trust-center",
+  "clientId": "ynx-trust-center-v1",
+  "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356",
+  "network": {
+    "name": "YNX Testnet",
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeAsset": "YNXT"
+  },
+  "auth": {
+    "challengeRoute": "/app/session/challenges",
+    "verifyRoute": "/app/session/challenges/{id}/verify",
+    "revokeRoute": "/app/session/revoke",
+    "headers": {
+      "client": "X-YNX-Client",
+      "session": "X-YNX-App-Session",
+      "device": "X-YNX-Device-ID"
+    },
+    "requiredScopes": [
+      "trust:evidence:write",
+      "trust:evidence:read",
+      "trust:appeal",
+      "trust:transparency"
+    ],
+    "binding": [
+      "network",
+      "clientId",
+      "account",
+      "deviceId",
+      "orderedScopes",
+      "expiry",
+      "revocation"
+    ],
+    "failClosedCases": [
+      "missing session",
+      "wrong device",
+      "expired session",
+      "revoked session",
+      "wrong client",
+      "scope widening",
+      "central Gateway unavailable"
+    ]
+  },
+  "authoritativeRoutes": [
+    {
+      "method": "POST",
+      "productRoute": "/api/authority/evidence",
+      "centralRoute": "/app/trust/evidence",
+      "scope": "trust:evidence:write"
+    },
+    {
+      "method": "GET",
+      "productRoute": "/api/authority/evidence/{id}",
+      "centralRoute": "/app/trust/evidence/{id}",
+      "scope": "trust:evidence:read"
+    },
+    {
+      "method": "POST",
+      "productRoute": "/api/authority/governance/requests",
+      "centralRoute": "/app/governance/requests",
+      "scope": "trust:evidence:write"
+    },
+    {
+      "method": "GET",
+      "productRoute": "/api/authority/governance/requests/{id}",
+      "centralRoute": "/app/governance/requests/{id}",
+      "scope": "trust:evidence:read"
+    },
+    {
+      "method": "POST",
+      "productRoute": "/api/authority/governance/requests/{id}/review",
+      "centralRoute": "/app/governance/requests/{id}/review",
+      "scope": "trust:evidence:write"
+    },
+    {
+      "method": "POST",
+      "productRoute": "/api/authority/governance/requests/{id}/reject",
+      "centralRoute": "/app/governance/requests/{id}/reject",
+      "scope": "trust:evidence:write"
+    },
+    {
+      "method": "POST",
+      "productRoute": "/api/authority/appeals",
+      "centralRoute": "/app/trust/appeals",
+      "scope": "trust:appeal"
+    },
+    {
+      "method": "GET",
+      "productRoute": "/api/authority/appeals/{id}",
+      "centralRoute": "/app/trust/appeals/{id}",
+      "scope": "trust:appeal"
+    },
+    {
+      "method": "POST",
+      "productRoute": "/api/authority/appeals/{id}/resolve",
+      "centralRoute": "/app/trust/appeals/{id}/resolve",
+      "scope": "trust:appeal"
+    },
+    {
+      "method": "GET",
+      "productRoute": "/api/authority/transparency",
+      "centralRoute": "/app/governance/transparency",
+      "scope": "trust:transparency"
+    },
+    {
+      "method": "GET",
+      "productRoute": "/api/authority/validity-rules",
+      "centralRoute": "/app/governance/request-validity-rules",
+      "scope": "trust:evidence:read"
+    }
+  ],
+  "canonicalEvents": [
+    "trust.evidence.submitted",
+    "trust.request.rejected_illegal",
+    "trust.request.rejected_overbroad",
+    "trust.request.reviewed",
+    "trust.appeal.opened",
+    "trust.appeal.resolved",
+    "trust.case.corrected",
+    "trust.label.expired",
+    "trust.transparency.generated"
+  ],
+  "errorSemantics": [
+    {
+      "code": "TRUST_AUTH_REQUIRED",
+      "httpStatus": 401,
+      "meaning": "A valid product-scoped Wallet session and device binding are required."
+    },
+    {
+      "code": "TRUST_SCOPE_DENIED",
+      "httpStatus": 403,
+      "meaning": "The actor or session lacks the exact Trust scope or role."
+    },
+    {
+      "code": "TRUST_REQUEST_INVALID",
+      "httpStatus": 422,
+      "meaning": "Evidence, request validity, review or appeal invariants failed."
+    },
+    {
+      "code": "TRUST_REPLAY_CONFLICT",
+      "httpStatus": 409,
+      "meaning": "An idempotency key was reused with changed input or a terminal action was repeated."
+    },
+    {
+      "code": "TRUST_AUTHORITY_UNAVAILABLE",
+      "httpStatus": 503,
+      "meaning": "The canonical Gateway or authoritative Trust API is unavailable; no local success is substituted."
+    }
+  ],
+  "persistence": {
+    "formatVersion": 2,
+    "integrity": "sha256-sealed canonical JSON snapshot",
+    "verification": "constant-time comparison before state admission",
+    "legacyMigration": "version 1 is atomically resealed as version 2 after successful decoding",
+    "stateMode": "0600"
+  },
+  "health": {
+    "route": "/health",
+    "requiredFields": [
+      "ok",
+      "service",
+      "persistent",
+      "stateFormatVersion",
+      "tamperEvidentPersistence",
+      "authMode",
+      "centralGatewayConfigured",
+      "aiProviderConfigured",
+      "truthBoundary"
+    ]
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "externalInputs": [
+    "canonical Gateway client registration",
+    "route and scope approval",
+    "shared-Testnet authoritative endpoints",
+    "deployment authority",
+    "production signing assets"
+  ]
+}

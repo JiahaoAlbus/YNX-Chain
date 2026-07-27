@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "ynx-product-release/v1",
+  "productNumber": 15,
+  "productName": "YNX Trust Center",
+  "productSlug": "trust-center",
+  "releaseStatus": "active",
+  "phase": "FREEZE",
+  "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356",
+  "sourceBranch": "codex/final-trust-center",
+  "asOf": "2026-07-27",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "runtime": {
+    "web": true,
+    "server": true,
+    "androidSource": true,
+    "iosSource": true,
+    "stateFormatVersion": 2,
+    "tamperEvidentPersistence": true,
+    "centralClientId": "ynx-trust-center-v1",
+    "walletCallback": "ynxtrust://auth/callback"
+  },
+  "verifiedTests": [
+    {
+      "command": "go test -race ./internal/trustproduct ./apps/trust-center",
+      "result": "pass"
+    },
+    {
+      "command": "go test ./internal/trustgateway ./internal/trustproduct ./apps/trust-center",
+      "result": "pass"
+    },
+    {
+      "command": "./apps/trust-center/check.sh",
+      "result": "pass"
+    }
+  ],
+  "repositoryPreflight": {
+    "command": "go test ./...",
+    "result": "failed",
+    "productRegression": false,
+    "observedBlockers": [
+      "Generated Solidity artifacts are absent from this worktree.",
+      "Unrelated permission-fixture tests in other product packages are sensitive to host umask behavior."
+    ]
+  },
+  "releaseEvidence": [
+    "internal/trustproduct/service.go",
+    "internal/trustproduct/service_test.go",
+    "internal/trustproduct/http.go",
+    "internal/trustgateway/gateway_test.go",
+    ".ai-bridge/full-goal-coverage.json"
+  ],
+  "externalBlockers": [
+    {
+      "owner": "29-integration",
+      "requirement": "Register ynx-trust-center-v1, scopes and authoritative routes in the canonical central Gateway."
+    },
+    {
+      "owner": "founder-release-operator",
+      "requirement": "Provide healthy install targets, production signing assets and store accounts."
+    },
+    {
+      "owner": "28-website",
+      "requirement": "Publish the canonical product route, hosted artifacts and public evidence only after integration gates pass."
+    }
+  ],
+  "nextAutonomousAction": "Implement a subject-scoped Trust data export manifest and a hashed backup/restore drill, then rerun current-commit UI, i18n and security gates.",
+  "completionClaim": false
+}
