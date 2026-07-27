@@ -1,7 +1,7 @@
 {
   "schemaVersion": "ynx-cross-product-test-vectors/v1",
   "product": "ynx-trust-center",
-  "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356",
+  "sourceCommit": "d31811280ba741026c74a836a212f78fe88c172a",
   "network": "YNX Testnet",
   "vectors": [
     {
@@ -80,6 +80,34 @@
       "precondition": "A user explicitly selects allowed context and approves an AI explanation.",
       "action": "Run the AI workflow and then compare the case state.",
       "expected": "AI output is stored as explanation only; case, evidence, decision, label, appeal and asset state are unchanged."
+    },
+    {
+      "id": "TRUST-SCOPE-EXACT-EXPORT",
+      "owners": ["02-wallet-auth", "15-trust-center", "29-integration"],
+      "precondition": "One session has only trust:evidence:read and another has only trust:evidence:write.",
+      "action": "Call GET /api/export with each session, then retry with wildcard, duplicate and unknown scopes.",
+      "expected": "Only the exact read-scoped session succeeds; insufficient or widened scope fails closed without export bytes."
+    },
+    {
+      "id": "TRUST-SUBJECT-EXPORT-ISOLATION",
+      "owners": ["15-trust-center", "29-integration"],
+      "precondition": "Two subjects have unrelated cases and the authenticated subject has one AI preparation record.",
+      "action": "Export the authenticated subject's Trust record.",
+      "expected": "The export contains only that subject's cases/AI/audit and omits other subjects, central sessions, token hashes, replay internals and persistence seals."
+    },
+    {
+      "id": "TRUST-BACKUP-RESTORE-ROLLBACK",
+      "owners": ["15-trust-center", "30-security-sre-release"],
+      "precondition": "A mode-0600 version-2 Trust state is backed up, then the live state receives a later mutation.",
+      "action": "Restore the immutable backup to a clean path and cold start the service.",
+      "expected": "Manifest hash/bytes/counts and nested state seal verify; restored subject state equals the earlier checkpoint and the later mutation is absent."
+    },
+    {
+      "id": "TRUST-BACKUP-FAIL-CLOSED",
+      "owners": ["15-trust-center", "30-security-sre-release"],
+      "precondition": "A backup is permissive, tampered, malformed, symlinked or targets an existing store.",
+      "action": "Attempt restore.",
+      "expected": "Restore fails before target creation or overwrite; no partially admitted Trust state exists."
     },
     {
       "id": "TRUST-TRANSPARENCY-PRIVACY",

@@ -4,7 +4,7 @@
   "consumerOwner": "29-integration",
   "product": "ynx-trust-center",
   "clientId": "ynx-trust-center-v1",
-  "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356",
+  "sourceCommit": "d31811280ba741026c74a836a212f78fe88c172a",
   "network": {
     "name": "YNX Testnet",
     "cosmosChainId": "ynx_6423-1",
@@ -45,6 +45,15 @@
       "central Gateway unavailable"
     ]
   },
+  "productLocalRoutes": [
+    {
+      "method": "GET",
+      "productRoute": "/api/export",
+      "scope": "trust:evidence:read",
+      "schema": "ynx-trust-subject-export/v1",
+      "privacyBoundary": "records owned by or concerning the authenticated account; central sessions, replay internals, persistence seals and other subjects omitted"
+    }
+  ],
   "authoritativeRoutes": [
     {
       "method": "POST",
@@ -156,7 +165,12 @@
     "integrity": "sha256-sealed canonical JSON snapshot",
     "verification": "constant-time comparison before state admission",
     "legacyMigration": "version 1 is atomically resealed as version 2 after successful decoding",
-    "stateMode": "0600"
+    "stateMode": "0600",
+    "backupSchema": "ynx-trust-backup/v1",
+    "backupCLI": "ynx-trust-backup create|restore",
+    "backupPolicy": "immutable new mode-0600 destination with state hash, byte count, manifest counts and envelope seal",
+    "restorePolicy": "strict schema/product/source-mode/state-seal/session-binding/count verification; never overwrite; cold start required",
+    "truthBoundary": "SHA-256 proves byte consistency, not external signing, encryption, remote custody or attestation"
   },
   "health": {
     "route": "/health",

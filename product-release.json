@@ -5,7 +5,7 @@
   "productSlug": "trust-center",
   "releaseStatus": "active",
   "phase": "FREEZE",
-  "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356",
+  "sourceCommit": "d31811280ba741026c74a836a212f78fe88c172a",
   "sourceBranch": "codex/final-trust-center",
   "asOf": "2026-07-27",
   "states": {
@@ -22,20 +22,27 @@
   "runtime": {
     "web": true,
     "server": true,
+    "backupCLI": true,
     "androidSource": true,
     "iosSource": true,
     "stateFormatVersion": 2,
     "tamperEvidentPersistence": true,
+    "subjectScopedExport": true,
+    "verifiedBackupRestore": true,
     "centralClientId": "ynx-trust-center-v1",
     "walletCallback": "ynxtrust://auth/callback"
   },
   "verifiedTests": [
     {
-      "command": "go test -race ./internal/trustproduct ./apps/trust-center",
+      "command": "go test -race ./internal/trustproduct ./cmd/ynx-trust-backup",
       "result": "pass"
     },
     {
-      "command": "go test ./internal/trustgateway ./internal/trustproduct ./apps/trust-center",
+      "command": "go vet ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center",
+      "result": "pass"
+    },
+    {
+      "command": "go test ./internal/trustgateway ./internal/trustproduct ./apps/trust-center ./cmd/ynx-trust-backup",
       "result": "pass"
     },
     {
@@ -48,21 +55,40 @@
     "result": "failed",
     "productRegression": false,
     "observedBlockers": [
-      "Generated Solidity artifacts are absent from this worktree.",
-      "Unrelated permission-fixture tests in other product packages are sensitive to host umask behavior."
+      "Generated Solidity devtool artifacts are absent from this worktree.",
+      "Permission-fixture tests in cmd/ynx-consensus-tx and internal/faucet are sensitive to the host filesystem permission behavior."
     ]
   },
+  "githubEvidence": {
+    "branchExists": true,
+    "upstreamConfigured": true,
+    "localRemoteShaMatch": true,
+    "branchActionsRuns": false,
+    "trustRelease": false,
+    "trustArtifact": false
+  },
   "releaseEvidence": [
-    "internal/trustproduct/service.go",
-    "internal/trustproduct/service_test.go",
-    "internal/trustproduct/http.go",
-    "internal/trustgateway/gateway_test.go",
+    "internal/trustproduct/authority_test.go",
+    "internal/trustproduct/export.go",
+    "internal/trustproduct/export_test.go",
+    "internal/trustproduct/backup.go",
+    "internal/trustproduct/backup_test.go",
+    "cmd/ynx-trust-backup/main.go",
+    "cmd/ynx-trust-backup/main_test.go",
     ".ai-bridge/full-goal-coverage.json"
   ],
   "externalBlockers": [
     {
       "owner": "29-integration",
-      "requirement": "Register ynx-trust-center-v1, scopes and authoritative routes in the canonical central Gateway."
+      "requirement": "Register ynx-trust-center-v1, exact scopes and authoritative routes in the canonical central Gateway, then execute shared-Testnet vectors."
+    },
+    {
+      "owner": "legal-privacy-owner",
+      "requirement": "Freeze retention, deletion and mandatory audit-preservation policy before destructive lifecycle implementation."
+    },
+    {
+      "owner": "30-security-sre-release",
+      "requirement": "Approve encrypted remote backup custody, independent restore evidence, release provenance and deployment controls."
     },
     {
       "owner": "founder-release-operator",
@@ -70,9 +96,9 @@
     },
     {
       "owner": "28-website",
-      "requirement": "Publish the canonical product route, hosted artifacts and public evidence only after integration gates pass."
+      "requirement": "Publish the canonical product route, hosted artifacts and public evidence only after integration and release gates pass."
     }
   ],
-  "nextAutonomousAction": "Implement a subject-scoped Trust data export manifest and a hashed backup/restore drill, then rerun current-commit UI, i18n and security gates.",
+  "nextAutonomousAction": "Generate a reproducible Trust server/CLI bundle with SBOM, provenance, hashes, dependency/license/secret scans and unsigned local install/cold-start evidence.",
   "completionClaim": false
 }

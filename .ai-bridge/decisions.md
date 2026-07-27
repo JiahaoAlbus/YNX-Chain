@@ -23,3 +23,15 @@ Treat stored-but-unenforced central Wallet scopes as the next highest-priority s
 ## D-006 Cross-product ownership
 
 Submit contracts, vectors and handoff to canonical owners. Do not modify Wallet/Auth, Integration, Governance, Website or Security worktrees from product 15.
+
+## D-007 Subject export boundary
+
+Expose a read-scoped export only for records owned by or concerning the authenticated account. Omit central session bindings, replay internals, persistence seals and other subjects; never expose an auditor-wide bulk export through the subject route.
+
+## D-008 Recovery immutability
+
+Backups and restored stores are new mode-`0600` files created without overwrite. Verify envelope identity/hash, embedded snapshot integrity, persisted Wallet bindings and manifest counts before writing a restored store, then prove cold-start admission.
+
+## D-009 Integrity truth boundary
+
+SHA-256 backup and state seals prove byte consistency and detect corruption or partial tampering; they are not an external signature, hardware attestation or substitute for restricted storage, encryption and independent audit.

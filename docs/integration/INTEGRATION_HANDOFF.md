@@ -5,15 +5,15 @@
 - Product: `15 | YNX Trust Center`
 - Product client: `ynx-trust-center-v1`
 - Source branch: `codex/final-trust-center`
-- Runtime source commit: `4e78f47e9b2dedee71c12adf9790374412b45356`
+- Runtime source commit: `d31811280ba741026c74a836a212f78fe88c172a`
 - Current phase: `FREEZE`
 - Goal status: `Active`
 
-This handoff describes a locally implemented and tested candidate. It does not claim central integration, Testnet deployment, public hosting, production signing or store release.
+This handoff describes a locally implemented and tested candidate. It does not claim central integration, shared-Testnet execution, public hosting, production signing, store release or independent audit.
 
 ## Product boundary
 
-YNX Trust Center owns request-validity checks, bounded evidence presentation, independent review workflow, notice, appeal, correction, finite sourced labels and aggregate transparency. It is not an asset controller, punishment engine, custody service or AI judge.
+YNX Trust Center owns request-validity checks, bounded evidence presentation, independent review workflow, notice, appeal, correction, finite sourced labels, subject export and aggregate transparency. It is not an asset controller, punishment engine, custody service or AI judge.
 
 Native YNXT freeze, seizure, blacklist, confiscation or transfer requests are rejected. Actual product or chain actions remain owned by their canonical product, Chain Core and Governance boundaries.
 
@@ -21,94 +21,95 @@ Native YNXT freeze, seizure, blacklist, confiscation or transfer requests are re
 
 | Owner | Dependency | Required state |
 |---|---|---|
-| 02 Wallet/Auth | Product-scoped session, device binding, ordered scopes, expiry and revoke | Accepted contract and shared-Testnet registration |
+| 02 Wallet/Auth | Product-scoped session, exact device binding, exact scopes, expiry and revoke | Accepted contract and shared-Testnet registration |
 | 14 AI | Explanation-only provider route with explicit consent and no mutation tools | Provider-backed evidence, optional for core due process |
 | 26 Data Fabric | Canonical Trust events and billing-neutral audit ingestion | Contract acceptance |
 | 28 Website | `/trust-center` route, public metadata, support/privacy/security/status links | Publish only after release gates |
 | 29 Integration | Canonical Gateway registration, route mapping and shared-Testnet vectors | Required before `integratedCentral=true` |
-| 30 Security/SRE | Backup/restore, artifact provenance, release and deployment controls | Required before public release |
+| 30 Security/SRE | Encrypted remote custody, independent restore, artifact provenance and deployment controls | Required before public release |
 | 31 Governance | Authoritative request/review/appeal/transparency state | Required for shared-Testnet authority |
+| Legal/Privacy | Retention, deletion and mandatory audit-preservation policy | Required before destructive lifecycle implementation |
 
-## Frozen product contract
-
-The machine-readable contract is:
+## Frozen machine-readable contract
 
 - `release/integration/trust-center-contract.json`
+- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 
-The contract freezes:
+The contract freezes the client ID, session/device headers, exact least-privilege scopes, central route mapping, subject-export boundary, canonical event candidates, fail-closed error semantics, state format v2, backup schema and truthful release states.
 
-- client ID and Wallet callback;
-- session/device/client headers;
-- least-privilege Trust scopes;
-- product-to-central route mapping;
-- canonical event candidates;
-- fail-closed error semantics;
-- state format v2 integrity requirements;
-- health response requirements;
-- truthful nine-stage release state.
+## Exact Wallet scope enforcement
 
-## Persistence and recovery change
+Runtime commit `f042dd5b20833497333477bd99cf9d7542eceb38` enforces required Trust scopes on product-local and authoritative proxy routes.
 
-Runtime commit `4e78f47e9b2dedee71c12adf9790374412b45356` upgrades the product-local Trust snapshot from version 1 to version 2.
+- wildcard, duplicate, blank, whitespace-mutated and unknown scopes are rejected;
+- wrong product, wrong device, expiry and revoke remain fail closed;
+- read-only and write-only sessions cannot cross route boundaries;
+- `GET /api/export` requires exactly `trust:evidence:read`.
 
-Version 2:
+Central integration must not widen these scopes or introduce a compatibility wildcard.
 
-- computes a SHA-256 integrity seal over the canonical JSON snapshot with the seal field blanked;
-- verifies the seal before admitting persisted state;
-- compares seals in constant time;
-- rejects offline field modification on restart;
-- preserves and atomically reseals a decodable version-1 snapshot;
-- writes mode-`0600` state;
-- reports `stateFormatVersion=2` and `tamperEvidentPersistence=true` through `/health`.
+## Subject export
 
-This is local tamper evidence, not a signature by an external trust anchor and not a substitute for encrypted backups, remote attestation or independent audit.
+Runtime commit `77ad082036a866c9730f8ca3694d977fa56cc171` adds `GET /api/export` with schema `ynx-trust-subject-export/v1`.
+
+The export includes only cases owned by or concerning the authenticated account plus that account's AI and relevant audit records. It omits other subjects, central session bindings, token hashes, replay internals and persistence seals. The response is `no-store` and attachment-scoped. Deletion and retention remain policy-gated and are not claimed complete.
+
+## Persistence and recovery
+
+Runtime commit `d31811280ba741026c74a836a212f78fe88c172a` adds schema `ynx-trust-backup/v1` and `ynx-trust-backup create|restore`.
+
+Create:
+
+- reads an admitted version-2 Trust state;
+- emits manifest state SHA-256, exact byte count, record counts and sequence;
+- seals the backup envelope;
+- creates a new mode-`0600` regular file in a private directory;
+- never stores plaintext Wallet session tokens and never overwrites an existing path.
+
+Restore:
+
+- rejects non-regular, symlinked or non-`0600` backup sources;
+- verifies schema/product identity, manifest hash/bytes/counts, envelope seal, nested state seal and persisted Wallet bindings;
+- creates only a new mode-`0600` store and never overwrites;
+- requires a successful independent cold start.
+
+The local SHA-256 seals prove byte consistency. They are not external signatures, encryption, remote custody, hardware attestation or independent audit.
 
 ## Verification at this checkpoint
 
 Passed:
 
 ```text
-go test -race ./internal/trustproduct ./apps/trust-center
-go test ./internal/trustgateway ./internal/trustproduct ./apps/trust-center
+go test -race ./internal/trustproduct ./cmd/ynx-trust-backup
+go vet ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center
+go test ./internal/trustgateway ./internal/trustproduct ./apps/trust-center ./cmd/ynx-trust-backup
 ./apps/trust-center/check.sh
 ```
 
-The repository-wide `go test ./...` did not pass because generated Solidity artifacts are absent and unrelated product permission fixtures are sensitive to the host `umask`. No Trust product regression was observed. The Trust Gateway permission fixture in this branch was made deterministic with an explicit unsafe-mode `chmod` and now passes.
+Repository-wide `go test ./...` remains red outside the Trust slice because generated Solidity devtool artifacts are absent and two unrelated permission fixtures fail on the host filesystem behavior. Trust packages and the new CLI pass; the repository preflight is not represented as green.
 
-## Shared-Testnet vectors
+## GitHub evidence truth
 
-Integration must execute:
+At this checkpoint:
 
-- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- final branch exists and tracks `origin/codex/final-trust-center`;
+- local and remote SHA match `d31811280ba741026c74a836a212f78fe88c172a`;
+- no branch-specific Actions run exists;
+- no Trust Release exists;
+- no Trust Artifact exists.
 
-The minimum acceptance set includes:
-
-1. exact product/device/session binding;
-2. wrong-device rejection;
-3. illegal native-asset-control rejection;
-4. overbroad-scope rejection;
-5. evidence visibility requirement;
-6. reviewer and appeal-reviewer separation;
-7. false-positive correction;
-8. offline state-tamper rejection;
-9. version-1 migration;
-10. central-authority unavailable behavior;
-11. AI no-mutation proof;
-12. privacy-preserving transparency output.
-
-## Known open security item
-
-The product currently persists central session scopes, but the next autonomous slice must enforce required scopes on every product-local and authoritative proxy route. Integration must not accept this candidate as centrally integrated until route-level scope enforcement and negative tests pass.
+Therefore install, central integration, staging, public deployment, hosted download, production signing and store release remain false.
 
 ## Required Integration actions
 
-1. Review and freeze `ynx-trust-center-v1` in the canonical product registry.
-2. Approve only the scopes in the machine-readable contract; no wildcard scope.
+1. Freeze `ynx-trust-center-v1` in the canonical product registry.
+2. Approve only the exact scopes in the contract; no wildcard or implicit widening.
 3. Route the frozen `/app/trust/**` and `/app/governance/**` paths to canonical owners.
-4. Run all cross-product vectors against the shared Testnet.
-5. Preserve fail-closed behavior when any authority dependency is unavailable.
-6. Record exact source/release commits, request IDs, transaction or event evidence, and recovery evidence.
-7. Do not set `integratedCentral`, `deployedPublic` or any signing/store state without direct evidence.
+4. Execute every vector in `CROSS_PRODUCT_TEST_VECTORS.json`, including export isolation and recovery vectors.
+5. Preserve explicit 503 fail-closed behavior when any authority dependency is unavailable.
+6. Return exact source/deployed commits, request/error/audit IDs, health/version output and rollback evidence.
+7. Keep all release-state booleans evidence-backed and independent.
 
 ## Current release truth
 
