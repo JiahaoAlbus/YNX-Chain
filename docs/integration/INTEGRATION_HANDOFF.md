@@ -4,7 +4,7 @@
 **Owner:** `08-quant-lab`  
 **Contract:** `release/integration/ynx-quant-lab-contract.json`  
 **Runtime source:** `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`  
-**Evidence checkpoint:** `760a9559d142796b812ca8972805eac12d997363`  
+**Evidence checkpoint:** `9ef357d6b32f25a132d7d72a4157b5d8c575d9e9`  
 **State:** Owner proposal; central acceptance and shared Testnet verification pending  
 **Environment:** YNX Testnet only; live funds disabled
 
