@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "revision": 7,
   "sources": {
     "ynx-docs": {
@@ -30,6 +30,11 @@
         "snippets": true,
         "aiRetrieval": true
       },
+      "dataPolicy": {
+        "version": "1.0.0",
+        "allowedClasses": ["public-docs"],
+        "defaultClass": "public-docs"
+      },
       "retentionDays": 365,
       "remedies": {
         "removalUrl": "https://docs.ynxweb4.com/removal",
@@ -57,6 +62,7 @@
       "url": "https://docs.ynxweb4.com/wallet/safety",
       "title": "Review every Wallet authorization",
       "text": "Wallet authorization requires an exact product, callback, scope, account, network and expiry review. The browser never signs and cannot report completion before Gateway verification.",
+      "dataClass": "public-docs",
       "contentType": "text/html",
       "publishedAt": "2026-07-16T08:00:00.000Z",
       "fetchedAt": "2026-07-17T10:00:00.000Z",
@@ -71,6 +77,7 @@
       "url": "https://docs.ynxweb4.com/browser/private-boundary",
       "title": "Private browsing boundaries",
       "text": "Private browsing excludes local YNX history, crash recovery, permission persistence and AI context. Websites, networks, the operating system and downloaded files may still retain activity.",
+      "dataClass": "public-docs",
       "contentType": "text/html",
       "publishedAt": "2026-07-15T08:00:00.000Z",
       "fetchedAt": "2026-07-17T10:00:00.000Z",

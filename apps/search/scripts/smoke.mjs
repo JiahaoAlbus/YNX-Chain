@@ -23,12 +23,14 @@ const source = await store.registerSource({
   permittedUse: "index-snippet-link",
   storageRight: true,
   snippetRight: true,
-  aiRetrievalRight: true,
+  aiRetrievalRight: false,
   retentionDays: 365,
   languages: ["en"],
   freshnessSloSeconds: 3600,
   maxRequestsPerMinute: 30,
   backoffSeconds: 60,
+  allowedDataClasses: ["public-docs"],
+  defaultDataClass: "public-docs",
   removalUrl: "https://docs.example/removal",
   correctionUrl: "https://docs.example/correction",
 });
@@ -62,9 +64,18 @@ try {
   if (!indexStatus.sources[0]?.authorization?.referenceDigest) throw new Error("public source status omitted evidence digest");
 
   const result = await (await fetch(`${origin}/api/search?q=origin%20permission`)).json();
-  if (result.total !== 1 || result.results[0].sourceUrl !== "https://docs.example/permission" || result.inference !== false || !result.results[0].indexReceiptDigest) {
+  if (result.total !== 1 || result.results[0].sourceUrl !== "https://docs.example/permission" || result.results[0].dataClass !== "public-docs" || result.dataPolicyVersion !== "1.0.0" || result.inference !== false || !result.results[0].indexReceiptDigest) {
     throw new Error("search citation/index receipt smoke failed");
   }
+
+  const aiPreviewResponse = await fetch(`${origin}/api/ai/prepare`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin },
+    body: JSON.stringify({ query: "origin permission", filters: { aiRetrievalOnly: false } }),
+  });
+  if (!aiPreviewResponse.ok) throw new Error("AI retrieval policy smoke failed");
+  const aiPreview = await aiPreviewResponse.json();
+  if (aiPreview.sources.length !== 0) throw new Error("AI retrieval policy was overridden by user filters");
 
   const cross = await fetch(`${origin}/api/privacy/clear`, {
     method: "POST",

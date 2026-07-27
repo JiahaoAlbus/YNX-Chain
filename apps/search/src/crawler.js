@@ -98,6 +98,7 @@ export async function indexRegisteredSource(
       url: responseUrl.href,
       title: contentType === "text/html" ? titleOf(body, source.url) : source.label,
       text,
+      dataClass: source.dataPolicy.defaultClass,
       contentType,
       fetchedAt: now.toISOString(),
     });

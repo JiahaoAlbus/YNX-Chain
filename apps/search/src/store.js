@@ -4,20 +4,21 @@ import { dirname } from "node:path";
 import { canonicalDigest, validateIndexReceipt } from "../../../packages/web4-permissions/src/index.js";
 import { validateOutboundUrlSyntax } from "./network.js";
 import { ENTITY_REGISTRY, inferQueryIntent, normalizeEntityQuery, resolveEntities } from "./entities.js";
+import { SEARCH_DATA_POLICY, assertPublicIndexContent, validateAllowedDataClasses, validateDocumentDataClass } from "./data-policy.js";
 
-const EMPTY = { version: 3, revision: 0, sources: {}, documents: {}, cases: {}, aiAudit: [], privacyAudit: [], walletChallenges: {} };
+const EMPTY = { version: 4, revision: 0, sources: {}, documents: {}, cases: {}, aiAudit: [], privacyAudit: [], walletChallenges: {} };
 function migrateDatabase(input) {
   const db = { ...structuredClone(EMPTY), ...input };
-  if ((input?.version ?? 0) < 3) {
+  if ((input?.version ?? 0) < 4) {
     for (const source of Object.values(db.sources)) {
-      if (!source.authorization || !source.robots || !source.crawlPolicy || !source.dataRights) {
+      if (!source.authorization || !source.robots || !source.crawlPolicy || !source.dataRights || !source.dataPolicy?.allowedClasses?.length || !source.dataPolicy?.defaultClass) {
         source.enabled = false;
         source.indexingStatus = "disabled";
-        source.migrationRequired = "source-registry-v3";
-        source.lastError = "source registry v3 migration requires renewed governance review";
+        source.migrationRequired = "source-registry-v4";
+        source.lastError = "source registry v4 migration requires explicit public data-class review";
       }
     }
-    db.version = 3;
+    db.version = 4;
   }
   return db;
 }
@@ -27,7 +28,7 @@ const words = value => (value.toLocaleLowerCase().match(/[\p{L}\p{N}]{2,}/gu) ??
 const idFor = value => createHash("sha256").update(value).digest("hex");
 const countTerm = (values, term) => values.reduce((count, value) => count + (value === term ? 1 : 0), 0);
 const authorityScore = source => ({ "ynx-official": 8, "authorized-public": 5, "external-provider": 3 }[source.sourceType] ?? 0);
-const qualityScore = source => [source.authorization?.referenceDigest, source.terms?.url, source.remedies?.removalUrl, source.remedies?.correctionUrl, source.languages?.length, source.dataRights?.storage].filter(Boolean).length;
+const qualityScore = source => [source.authorization?.referenceDigest, source.terms?.url, source.remedies?.removalUrl, source.remedies?.correctionUrl, source.languages?.length, source.dataRights?.storage, source.dataPolicy?.allowedClasses?.length].filter(Boolean).length;
 
 function freshnessScore(document, nowMs) {
   const timestamp = Date.parse(document.publishedAt ?? document.fetchedAt ?? document.indexedAt);
@@ -81,6 +82,9 @@ export function validateSource(input) {
   if (!permittedScope.length || permittedScope.length > 20) throw new Error("permitted scope required");
   const languages = [...new Set((input.languages ?? []).map(value => requiredText(value, "language", 2, 35)))];
   if (!languages.length || languages.length > 24) throw new Error("source languages required");
+  const allowedDataClasses = validateAllowedDataClasses(input.allowedDataClasses);
+  const defaultDataClass = requiredText(input.defaultDataClass, "default data class", 3, 80);
+  if (!allowedDataClasses.includes(defaultDataClass)) throw new Error("default data class must be allowed by source policy");
   const permittedUse = input.permittedUse ?? "index-snippet-link";
   if (!["metadata-only", "index-snippet-link", "index-fulltext-link"].includes(permittedUse)) throw new Error("invalid permitted use");
   const retentionDays = Number(input.retentionDays);
@@ -116,6 +120,11 @@ export function validateSource(input) {
       snippets: input.snippetRight !== false,
       aiRetrieval: input.aiRetrievalRight === true,
     },
+    dataPolicy: {
+      version: SEARCH_DATA_POLICY.version,
+      allowedClasses: allowedDataClasses,
+      defaultClass: defaultDataClass,
+    },
     retentionDays,
     remedies: {
       removalUrl: governanceUrl(input.removalUrl, "removal URL"),
@@ -133,16 +142,35 @@ export class SearchStore {
   async mutate(operation){const run=this.queue.catch(()=>{}).then(async()=>{const db=await read(this.path);const result=await operation(db);await write(this.path,db);return result});this.queue=run.then(()=>undefined,()=>undefined);return run}
   async registerSource(input){const source=validateSource(input);return this.mutate(db=>{db.sources[source.id]={...source,indexingStatus:"registered",lastAttemptAt:null,lastIndexedAt:null,nextEligibleAt:null,lastError:null,documentCount:db.sources[source.id]?.documentCount??0};return db.sources[source.id]})}
   async setSourceStatus(id,status,details={}){if(!['registered','checking-robots','indexing','ready','blocked-by-robots','backoff','failed','disabled'].includes(status))throw new Error("invalid indexing status");return this.mutate(db=>{if(!db.sources[id])throw new Error("source not found");Object.assign(db.sources[id],{indexingStatus:status,...details});return db.sources[id]})}
-  async indexDocument(sourceId,input){return this.mutate(db=>{const source=db.sources[sourceId];if(!source||!source.enabled)throw new Error("enabled source required");const url=new URL(input.url);if(url.origin!==source.origin)throw new Error("document origin is outside registered source");const text=String(input.text??"").replace(/\s+/g," ").trim();if(text.length<20||text.length>2_000_000)throw new Error("document text size invalid");const title=String(input.title??url.pathname).slice(0,300),indexedAt=this.clock(),fetchedAt=input.fetchedAt??indexedAt,id=idFor(url.href),contentDigest=createHash("sha256").update(text).digest("hex");const receipt=validateIndexReceipt({version:"1",sourceId,sourceUrl:url.href,authorizationRef:source.authorization.referenceDigest,robotsDecision:source.robots.policy==="respect"?"allowed":"override-with-evidence",contentDigest,fetchedAt,indexedAt,revision:(db.revision??0)+1,status:"ready"});db.documents[id]={id,sourceId,url:url.href,title,text,language:input.language??source.languages[0]??null,contentType:input.contentType??"text/html",publishedAt:input.publishedAt??null,fetchedAt,indexedAt,contentDigest,indexReceipt:{...receipt,digest:canonicalDigest("YNX_INDEX_RECEIPT_V1",receipt)},terms:words(`${title} ${text}`)};source.documentCount=Object.values(db.documents).filter(d=>d.sourceId===sourceId).length;source.lastIndexedAt=indexedAt;source.indexingStatus="ready";source.lastError=null;return db.documents[id]})}
-  async search(query,{page=1,pageSize=10,sourceId=null,freshnessDays=null,contentType=null,language=null,aiRetrievalOnly=false}={}){
+  async indexDocument(sourceId,input){
+    return this.mutate(db=>{
+      const source=db.sources[sourceId];
+      if(!source||!source.enabled)throw new Error("enabled source required");
+      const url=new URL(input.url);
+      if(url.origin!==source.origin)throw new Error("document origin is outside registered source");
+      const text=String(input.text??"").replace(/\s+/g," ").trim();
+      if(text.length<20||text.length>2_000_000)throw new Error("document text size invalid");
+      const title=String(input.title??url.pathname).slice(0,300);
+      const dataClass=validateDocumentDataClass(source,input.dataClass??source.dataPolicy.defaultClass);
+      assertPublicIndexContent(`${title}\n${url.href}\n${text}`);
+      const indexedAt=this.clock(),fetchedAt=input.fetchedAt??indexedAt,id=idFor(url.href),contentDigest=createHash("sha256").update(text).digest("hex");
+      const receipt=validateIndexReceipt({version:"1",sourceId,sourceUrl:url.href,authorizationRef:source.authorization.referenceDigest,robotsDecision:source.robots.policy==="respect"?"allowed":"override-with-evidence",contentDigest,fetchedAt,indexedAt,revision:(db.revision??0)+1,status:"ready"});
+      db.documents[id]={id,sourceId,url:url.href,title,text,dataClass,language:input.language??source.languages[0]??null,contentType:input.contentType??"text/html",publishedAt:input.publishedAt??null,fetchedAt,indexedAt,contentDigest,indexReceipt:{...receipt,digest:canonicalDigest("YNX_INDEX_RECEIPT_V1",receipt)},terms:words(`${title} ${text}`)};
+      source.documentCount=Object.values(db.documents).filter(d=>d.sourceId===sourceId).length;
+      source.lastIndexedAt=indexedAt;source.indexingStatus="ready";source.lastError=null;
+      return db.documents[id]
+    })
+  }
+  async search(query,{page=1,pageSize=10,sourceId=null,freshnessDays=null,contentType=null,language=null,dataClass=null,aiRetrievalOnly=false}={}){
     const q=String(query??"").trim();
     if(q.length<1||q.length>256)throw new Error("query length invalid");
     if(!Number.isInteger(page)||page<1||page>1000)throw new Error("invalid page");
     if(!Number.isInteger(pageSize)||pageSize<1||pageSize>50)throw new Error("invalid page size");
+    const dataClassFilter=dataClass?validateAllowedDataClasses([dataClass])[0]:null;
     const terms=words(q),normalizedQuery=normalizeEntityQuery(q),entityMatches=resolveEntities(q),queryIntent=inferQueryIntent(q,entityMatches);
     await this.queue;
     const db=await read(this.path),clockMs=Date.parse(this.clock()),nowMs=Number.isFinite(clockMs)?clockMs:Date.now(),cutoff=freshnessDays?nowMs-freshnessDays*86400000:null;
-    const candidates=Object.values(db.documents).filter(doc=>{const source=db.sources[doc.sourceId];return source?.enabled===true&&(!aiRetrievalOnly||source.dataRights?.aiRetrieval===true)&&(!sourceId||doc.sourceId===sourceId)&&(!contentType||doc.contentType===contentType)&&(!language||doc.language===language||source.languages?.includes(language))&&(!cutoff||Date.parse(doc.publishedAt??doc.fetchedAt)>=cutoff)}).map(doc=>{
+    const candidates=Object.values(db.documents).filter(doc=>{const source=db.sources[doc.sourceId];return source?.enabled===true&&(!aiRetrievalOnly||source.dataRights?.aiRetrieval===true)&&(!sourceId||doc.sourceId===sourceId)&&(!contentType||doc.contentType===contentType)&&(!language||doc.language===language||source.languages?.includes(language))&&(!dataClassFilter||doc.dataClass===dataClassFilter)&&(!cutoff||Date.parse(doc.publishedAt??doc.fetchedAt)>=cutoff)}).map(doc=>{
       const source=db.sources[doc.sourceId],titleTerms=words(doc.title),normalizedDocument=normalizeEntityQuery(`${doc.title} ${doc.text}`);
       const factors={
         lexical:terms.reduce((score,term)=>score+countTerm(doc.terms,term),0),
@@ -173,14 +201,15 @@ export class SearchStore {
     return{
       query:q,
       retrieval:"explainable-ranked-index",
-      retrievalVersion:"2",
+      retrievalVersion:"3",
       inference:false,
       queryIntent,
       entityRegistryVersion:ENTITY_REGISTRY.version,
       entityMatches:entityMatches.map(({aliases,...entity})=>({...entity,source:"ynx-entity-registry",asOf:ENTITY_REGISTRY.effectiveAt})),
       correction:{applied:false,suggestion:null,policy:ENTITY_REGISTRY.correctionPolicy},
       vectorRetrieval:{status:"candidate-disabled",scoreUsed:false},
-      appliedFilters:{sourceId,freshnessDays,contentType,language,aiRetrievalOnly},
+      dataPolicyVersion:SEARCH_DATA_POLICY.version,
+      appliedFilters:{sourceId,freshnessDays,contentType,language,dataClass:dataClassFilter,aiRetrievalOnly},
       page,pageSize,total:candidates.length,totalPages:Math.ceil(candidates.length/pageSize),
       results:candidates.slice(start,start+pageSize).map(({doc,source,factors,score})=>({
         resultType:"indexed-document",
@@ -188,6 +217,7 @@ export class SearchStore {
         sourceUrl:doc.url,
         sourceLabel:source.label??doc.sourceId,
         sourceScope:source.permittedScope,
+        dataClass:doc.dataClass,
         language:doc.language,
         freshness:{publishedAt:doc.publishedAt,fetchedAt:doc.fetchedAt,indexedAt:doc.indexedAt},
         indexReceiptDigest:doc.indexReceipt?.digest??null,
