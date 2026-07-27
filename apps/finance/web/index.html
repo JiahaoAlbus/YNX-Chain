@@ -33,6 +33,7 @@
           <div class="balance-card"><div><span class="eyebrow light">READ-ONLY PORTFOLIO</span><p class="account" id="account">—</p></div><div class="balance-row"><div><span>Available evidence</span><strong id="balance">— YNXT</strong><small id="balance-source">Waiting for Explorer</small></div><div><span>Staked on-chain</span><strong id="staked">— YNXT</strong><small>No fiat conversion inferred</small></div></div></div>
           <div class="section-head"><div><span class="eyebrow">Current attention</span><h2>Evidence and alerts</h2></div><button class="ghost" id="refresh">Refresh sources</button></div>
           <div id="alerts" class="alert-list"></div>
+          <article class="panel"><div class="panel-head"><div><h3>Cross-product evidence</h3><small>Owner contracts remain unavailable until their exact read-only schemas are frozen and accepted.</small></div><span class="micro">FAIL CLOSED</span></div><div id="read-sources" class="rows"></div></article>
           <div class="grid two"><article class="panel"><div class="panel-head"><h3>Recent owned activity</h3><a href="#activity">View all</a></div><div id="recent-activity" class="rows"></div></article><article class="panel"><div class="panel-head"><h3>Pay receipts</h3><span class="micro">Pay API</span></div><div id="recent-receipts" class="rows"></div></article></div>
         </section>
 
@@ -51,5 +52,6 @@
     </main>
   </div>
   <script src="/app.js" defer></script>
+  <script src="/read-sources.js" defer></script>
 </body>
 </html>

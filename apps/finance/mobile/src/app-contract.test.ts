@@ -8,8 +8,9 @@ const wallet=readFileSync(new URL('./wallet.ts',import.meta.url),'utf8');
 const i18n=readFileSync(new URL('./i18n.ts',import.meta.url),'utf8');
 
 test('native client exposes the complete read-only Finance workflow',()=>{
-  for(const path of ['/api/overview','/api/activity/','/api/monthly-review','/api/export?format=','/api/privacy','/api/audit','/api/account','/api/ai/jobs'])assert.ok(api.includes(path),path);
+  for(const path of ['/api/overview','/api/sources','/api/activity/','/api/monthly-review','/api/export?format=','/api/privacy','/api/audit','/api/account','/api/ai/jobs'])assert.ok(api.includes(path),path);
   assert.ok(app.includes("'/api/notes'"),'/api/notes');
+  for(const token of ['t.crossProductEvidence','t.ownerContractsPending','t.ownerActionNotConfigured','t.readOnlyOwnerApproval'])assert.ok(app.includes(token),token);
   for(const copy of ['Pay receipts','Open dispute evidence','Security signals','Copy CSV activity','Support & audit','Recovery: retry live sources','Delete private Finance data'])assert.ok(app.includes(copy),copy);
 });
 

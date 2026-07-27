@@ -19,6 +19,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if err := upstreams.ConfigureReadSourceActions(finance.ReadSourceActionConfig{
+		ExchangeURL:  os.Getenv("YNX_FINANCE_EXCHANGE_ACTION_URL"),
+		DEXURL:       os.Getenv("YNX_FINANCE_DEX_ACTION_URL"),
+		QuantURL:     os.Getenv("YNX_FINANCE_QUANT_ACTION_URL"),
+		EconomicsURL: os.Getenv("YNX_FINANCE_ECONOMICS_ACTION_URL"),
+	}); err != nil {
+		log.Fatal(err)
+	}
 	auth, err := finance.NewAuthenticator(required("YNX_FINANCE_WALLET_GATEWAY_URL"), required("YNX_FINANCE_INTERNAL_KEY"), "ynx-finance-v1", "com.ynxweb4.finance")
 	if err != nil {
 		log.Fatal(err)

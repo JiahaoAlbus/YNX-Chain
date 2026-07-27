@@ -1,4 +1,6 @@
-export type SourceStatus={available:boolean;source:string;coverage?:string;error?:string};
+export type SourceStatus={available:boolean;source:string;version?:string;asOf?:string;asOfKind?:string;coverage?:string;syncStatus:string;error?:string};
+export type ReadSourceAction={label:string;url?:string;configured:boolean;owner:string;opensOwnerProduct:boolean;requiresOwnerApproval:boolean};
+export type ReadSource={id:string;name:string;owner:string;capability:string;consumerEnvelopeVersion:string;ownerContractAccepted:boolean;readOnly:boolean;status:SourceStatus;action:ReadSourceAction;forbiddenCapabilities:string[]};
 export type Activity={id:string;type:string;direction:string;from?:string;to?:string;amountYnxt:number;feeYnxt:number;timestamp:string;blockNumber:number;categoryId?:string;source:string};
 export type PayReceipt={id:string;status:string;payer?:string;merchant?:string;amountYnxt:number;transactionHash?:string;createdAt:string;disputeUrl?:string;truthfulStatus:string};
 export type Category={id:string;name:string;color:string};
@@ -9,7 +11,7 @@ export type BudgetProgress={budgetId:string;spentYnxt:number;remainingYnxt:numbe
 export type Privacy={includePayInStatements:boolean;allowAiActivityContext:boolean;alertsEnabled:boolean};
 export type AIJob={id:string;kind:string;recordIds:string[];provider:string;model:string;estimatedCost:string;status:string;progress?:string;result?:Record<string,unknown>;error?:string;decision?:string};
 export type Support={helpUrl:string;privacyUrl:string;disputeUrl:string};
-export type Overview={portfolio:{account:string;network:string;symbol:string;balanceYnxt:number;stakedYnxt:number;activity:Activity[];payReceipts:PayReceipt[];explorerStatus:SourceStatus;payStatus:SourceStatus;asOf:string;readOnly:boolean};profile:{categories:Category[];budgets:Budget[];reminders:Reminder[];notes:Note[];privacy:Privacy;aiJobs:AIJob[]};budgetProgress:BudgetProgress[];alerts:Array<Record<string,unknown>>;support:Support;boundaries:Record<string,unknown>};
+export type Overview={portfolio:{account:string;network:string;symbol:string;balanceYnxt:number;stakedYnxt:number;activity:Activity[];payReceipts:PayReceipt[];explorerStatus:SourceStatus;payStatus:SourceStatus;readSources:Record<string,ReadSource>;asOf:string;readOnly:boolean};profile:{categories:Category[];budgets:Budget[];reminders:Reminder[];notes:Note[];privacy:Privacy;aiJobs:AIJob[]};budgetProgress:BudgetProgress[];alerts:Array<Record<string,unknown>>;support:Support;boundaries:Record<string,unknown>};
 
 export class FinanceAPI{
   constructor(readonly base:string,readonly session:string){}
@@ -20,6 +22,7 @@ export class FinanceAPI{
   }
   async call<T=unknown>(path:string,init?:RequestInit):Promise<T>{const response=await this.response(path,init);return (response.status===204?null:await response.json()) as T}
   overview(){return this.call<Overview>('/api/overview')}
+  sources(){return this.call<{consumerEnvelopeVersion:string;readOnly:boolean;integrationState:string;sources:Record<string,ReadSource>}>('/api/sources')}
   statement(){const now=new Date();return this.call<Record<string,unknown>>(`/api/statements?year=${now.getUTCFullYear()}&month=${now.getUTCMonth()+1}`)}
   monthlyReview(){const now=new Date();return this.call<Record<string,unknown>>(`/api/monthly-review?year=${now.getUTCFullYear()}&month=${now.getUTCMonth()+1}`)}
   async export(format:'json'|'csv'){const response=await this.response(`/api/export?format=${format}`);return format==='json'?JSON.stringify(await response.json(),null,2):response.text()}

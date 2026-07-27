@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -74,12 +75,22 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	if _, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: "too-short"}); err == nil || !strings.Contains(err.Error(), "cursor signing key") {
 		t.Fatalf("short cursor key was not rejected: %v", err)
 	}
-	server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey})
+	server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey, WebDir: filepath.Join("..", "..", "apps", "finance", "web")})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ts := httptest.NewServer(server.Handler())
 	defer ts.Close()
+
+	assetResponse, err := http.Get(ts.URL + "/read-sources.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assetRaw, readErr := io.ReadAll(assetResponse.Body)
+	assetResponse.Body.Close()
+	if readErr != nil || assetResponse.StatusCode != http.StatusOK || !strings.Contains(string(assetRaw), "owner-contract-pending") {
+		t.Fatalf("Web read-source renderer is unavailable: status=%d readErr=%v", assetResponse.StatusCode, readErr)
+	}
 
 	var overview map[string]any
 	requestJSON(t, ts.URL+"/api/overview", http.MethodGet, nil, session.Token, "", 200, &overview)
@@ -94,6 +105,23 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	payStatus := p["payStatus"].(map[string]any)
 	if payStatus["version"] != "finance-pay-events-v1" || payStatus["syncStatus"] != "authorized-response" || payStatus["asOf"] == "" {
 		t.Fatalf("Pay provenance and sync evidence are incomplete: %#v", payStatus)
+	}
+	readSources := p["readSources"].(map[string]any)
+	if len(readSources) != 4 {
+		t.Fatalf("cross-product source registry is incomplete: %#v", readSources)
+	}
+	for _, id := range []string{"exchange", "dex", "quant", "economics"} {
+		source := readSources[id].(map[string]any)
+		status := source["status"].(map[string]any)
+		action := source["action"].(map[string]any)
+		if source["ownerContractAccepted"] != false || source["readOnly"] != true || status["available"] != false || status["syncStatus"] != "owner-contract-pending" || action["configured"] != false {
+			t.Fatalf("source %s did not remain fail-closed: %#v", id, source)
+		}
+	}
+	var sourceRegistry map[string]any
+	requestJSON(t, ts.URL+"/api/sources", http.MethodGet, nil, session.Token, "", 200, &sourceRegistry)
+	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "owner-contracts-pending" {
+		t.Fatalf("source registry endpoint is not truthful: %#v", sourceRegistry)
 	}
 	var category Category
 	requestJSON(t, ts.URL+"/api/categories", http.MethodPost, map[string]any{"name": "Essentials", "color": "#002FA7", "idempotencyKey": "category-test-key-0001"}, session.Token, "https://finance.example", 201, &category)

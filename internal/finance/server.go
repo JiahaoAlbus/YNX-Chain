@@ -56,6 +56,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/auth/logout", s.protected("", s.logout))
 	s.mux.HandleFunc("GET /api/overview", s.protected("finance.portfolio.read", s.overview))
 	s.mux.HandleFunc("GET /api/portfolio", s.protected("finance.portfolio.read", s.portfolio))
+	s.mux.HandleFunc("GET /api/sources", s.protected("finance.portfolio.read", s.sources))
 	s.mux.HandleFunc("GET /api/activity", s.protected("finance.portfolio.read", s.activityPage))
 	s.mux.HandleFunc("GET /api/profile", s.protected("finance.portfolio.read", s.profile))
 	s.mux.HandleFunc("POST /api/categories", s.protected("finance.profile.write", s.createCategory))
@@ -80,6 +81,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.web)
 	s.mux.HandleFunc("GET /auth/callback", s.web)
 	s.mux.HandleFunc("GET /app.js", s.web)
+	s.mux.HandleFunc("GET /read-sources.js", s.web)
 	s.mux.HandleFunc("GET /styles.css", s.web)
 	s.mux.HandleFunc("GET /manifest.webmanifest", s.web)
 }
@@ -169,6 +171,15 @@ func (s *Server) overview(w http.ResponseWriter, r *http.Request, session Sessio
 func (s *Server) portfolio(w http.ResponseWriter, r *http.Request, session Session) {
 	state := s.service.Store.Account(session.Account)
 	writeJSON(w, http.StatusOK, s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications))
+}
+
+func (s *Server) sources(w http.ResponseWriter, _ *http.Request, _ Session) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"consumerEnvelopeVersion": ReadSourceEnvelopeVersion,
+		"readOnly":                true,
+		"sources":                 s.service.Upstreams.ReadSources(time.Now().UTC()),
+		"integrationState":        "owner-contracts-pending",
+	})
 }
 
 func (s *Server) activityPage(w http.ResponseWriter, r *http.Request, session Session) {
@@ -561,7 +572,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/app.js": "app.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest"}[r.URL.Path]
+	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/app.js": "app.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)
 		return

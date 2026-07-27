@@ -144,17 +144,18 @@ type PayReceipt struct {
 }
 
 type Portfolio struct {
-	Account        string       `json:"account"`
-	Network        string       `json:"network"`
-	Symbol         string       `json:"symbol"`
-	BalanceYNXT    int64        `json:"balanceYnxt"`
-	StakedYNXT     int64        `json:"stakedYnxt"`
-	Activity       []Activity   `json:"activity"`
-	PayReceipts    []PayReceipt `json:"payReceipts"`
-	ExplorerStatus SourceStatus `json:"explorerStatus"`
-	PayStatus      SourceStatus `json:"payStatus"`
-	ReadOnly       bool         `json:"readOnly"`
-	AsOf           time.Time    `json:"asOf"`
+	Account        string                          `json:"account"`
+	Network        string                          `json:"network"`
+	Symbol         string                          `json:"symbol"`
+	BalanceYNXT    int64                           `json:"balanceYnxt"`
+	StakedYNXT     int64                           `json:"stakedYnxt"`
+	Activity       []Activity                      `json:"activity"`
+	PayReceipts    []PayReceipt                    `json:"payReceipts"`
+	ExplorerStatus SourceStatus                    `json:"explorerStatus"`
+	PayStatus      SourceStatus                    `json:"payStatus"`
+	ReadSources    map[string]ReadSourceDescriptor `json:"readSources"`
+	ReadOnly       bool                            `json:"readOnly"`
+	AsOf           time.Time                       `json:"asOf"`
 }
 
 type SourceStatus struct {
