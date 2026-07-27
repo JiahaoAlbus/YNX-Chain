@@ -38,6 +38,7 @@ func TestGatewayBroadcastsAndLooksUpBoundedEthereumLegacyTransfer(t *testing.T) 
 		Action: consensus.EthereumLegacyTransferType, Status: "success", EncodedResult: "0x",
 		Logs: []consensus.BFTEVMLog{}, BlockHeight: 17,
 	}
+	receipt.AuditHash = consensus.BFTEVMReceiptAuditHash(receipt)
 	receiptPayload, err := json.Marshal(receipt)
 	if err != nil {
 		t.Fatal(err)
@@ -139,6 +140,51 @@ func TestGatewayBroadcastsAndLooksUpBoundedEthereumLegacyTransfer(t *testing.T) 
 	mappedReceipt := receiptObject.(map[string]any)
 	if mappedReceipt["transactionHash"] != ethereumTx.Hash || mappedReceipt["gasUsed"] != "0x5208" || mappedReceipt["effectiveGasPrice"] != "0x2" || mappedReceipt["status"] != "0x1" {
 		t.Fatalf("unexpected Ethereum JSON-RPC receipt: %+v", mappedReceipt)
+	}
+}
+
+func TestGatewayRejectsTamperedEthereumReceiptAuditEvidence(t *testing.T) {
+	senderKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 53))
+	recipientKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 54))
+	recipient, err := consensus.NativeAddress(recipientKey.PubKey().SerializeCompressed())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ethereumTx, err := consensus.NewEthereumLegacyTransfer(senderKey, 6423, 0, 1, recipient, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipt := consensus.BFTEVMReceipt{
+		TxHash: ethereumTx.Hash, From: ethereumTx.From, To: ethereumTx.To,
+		Action: consensus.EthereumLegacyTransferType, Status: "success", EncodedResult: "0x",
+		Logs: []consensus.BFTEVMLog{}, BlockHeight: 17,
+	}
+	receipt.AuditHash = consensus.BFTEVMReceiptAuditHash(receipt)
+	receipt.To = ethereumTx.From
+	receiptPayload, err := json.Marshal(receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/tx":
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"code": -32603, "message": "tx not found"}})
+		case "/abci_query":
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{
+				"code": 0, "height": "17", "value": base64.StdEncoding.EncodeToString(receiptPayload),
+			}}})
+		default:
+			t.Fatalf("tampered receipt reached unexpected upstream path %s", r.URL.Path)
+		}
+	}))
+	defer upstream.Close()
+	gateway, err := New(Config{CometRPCURL: upstream.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, found, err := gateway.committedTransaction(context.Background(), ethereumTx.Hash); err == nil || found || !strings.Contains(err.Error(), "audit mismatch") {
+		t.Fatalf("tampered receipt audit evidence was accepted: found=%v err=%v", found, err)
 	}
 }
 

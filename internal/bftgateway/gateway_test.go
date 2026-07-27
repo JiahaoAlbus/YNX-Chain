@@ -405,8 +405,9 @@ func TestGatewayBroadcastsAndResolvesEthereumLegacyTransferByEthereumHash(t *tes
 	receipt := consensus.BFTEVMReceipt{
 		TxHash: ethereumTx.Hash, From: ethereumTx.From, To: ethereumTx.To,
 		Action: consensus.EthereumLegacyTransferType, Status: "success", EncodedResult: "0x",
-		Logs: []consensus.BFTEVMLog{}, BlockHeight: 17, AuditHash: strings.Repeat("e", 64),
+		Logs: []consensus.BFTEVMLog{}, BlockHeight: 17,
 	}
+	receipt.AuditHash = consensus.BFTEVMReceiptAuditHash(receipt)
 	receiptPayload, _ := json.Marshal(receipt)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

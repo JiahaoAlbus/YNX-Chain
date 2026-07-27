@@ -58,7 +58,10 @@ func (g *Gateway) evmCommittedResult(ctx context.Context, method string, raw jso
 		}
 		var ideReceipt consensus.BFTEVMReceipt
 		if err := g.queryABCIJSON(ctx, "/evm/receipts/"+hash, &ideReceipt); err == nil {
-			if ideReceipt.TxHash != hash || uint64(ideReceipt.BlockHeight) != tx.BlockNum {
+			if err := consensus.ValidateBFTEVMReceipt(ideReceipt); err != nil {
+				return nil, fmt.Errorf("ABCI EVM receipt evidence is invalid: %w", err)
+			}
+			if ideReceipt.TxHash != hash || uint64(ideReceipt.BlockHeight) != tx.BlockNum || ideReceipt.From != tx.From || ideReceipt.To != tx.To || ideReceipt.Action != tx.Type {
 				return nil, errors.New("ABCI IDE receipt does not match CometBFT transaction evidence")
 			}
 			logs, err := g.evmReceiptLogs(ctx, ideReceipt, tx, upstream.Index)
@@ -638,9 +641,10 @@ func (g *Gateway) committedEthereumTransaction(ctx context.Context, hash string)
 		}
 		return cometTx{}, chain.Transaction{}, false, err
 	}
-	if receipt.TxHash != hash || receipt.Action != consensus.EthereumLegacyTransferType || receipt.BlockHeight <= 0 || receipt.Status != "success" ||
-		!consensus.IsNativeAddress(receipt.From) || !consensus.IsNativeAddress(receipt.To) || receipt.From == receipt.To ||
-		receipt.ContractAddress != "" || receipt.EncodedResult != "0x" || receipt.OpcodeStepCount != 0 || len(receipt.StorageWrites) != 0 || len(receipt.Logs) != 0 {
+	if err := consensus.ValidateBFTEVMReceipt(receipt); err != nil {
+		return cometTx{}, chain.Transaction{}, false, fmt.Errorf("committed Ethereum receipt evidence is invalid: %w", err)
+	}
+	if receipt.TxHash != hash || receipt.Action != consensus.EthereumLegacyTransferType {
 		return cometTx{}, chain.Transaction{}, false, errors.New("committed Ethereum receipt evidence is invalid")
 	}
 	height := uint64(receipt.BlockHeight)

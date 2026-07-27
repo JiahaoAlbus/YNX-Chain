@@ -179,6 +179,55 @@ func bftEVMReceiptAuditHash(value BFTEVMReceipt) string {
 	value.AuditHash = ""
 	return recordAuditHash("YNX_BFT_EVM_RECEIPT_AUDIT_V1", value)
 }
+
+// BFTEVMReceiptAuditHash returns the canonical audit hash used for committed
+// EVM receipt evidence. It is exported so read gateways can independently
+// verify ABCI-returned evidence instead of trusting a decoded JSON object.
+func BFTEVMReceiptAuditHash(value BFTEVMReceipt) string {
+	return bftEVMReceiptAuditHash(value)
+}
+
+// ValidateBFTEVMReceipt verifies one receipt independently of the surrounding
+// committed-state collection. Collection ordering and cross-record linkage are
+// still checked by validateIDECommittedState.
+func ValidateBFTEVMReceipt(receipt BFTEVMReceipt) error {
+	if !validResourceTxHash(receipt.TxHash) {
+		return errors.New("committed EVM receipt transaction hash is invalid")
+	}
+	if !IsNativeAddress(receipt.From) || receipt.Status != "success" || receipt.BlockHeight <= 0 {
+		return errors.New("committed EVM receipt is incomplete")
+	}
+	if expected := bftEVMReceiptAuditHash(receipt); receipt.AuditHash != expected {
+		return fmt.Errorf("committed EVM receipt audit mismatch: expected %s", expected)
+	}
+	switch receipt.Action {
+	case ActionIDEContractDeploy:
+		if receipt.To != "" || !IsNativeAddress(receipt.ContractAddress) {
+			return errors.New("committed IDE deployment receipt has invalid addresses")
+		}
+	case ActionIDEContractCall:
+		if !IsNativeAddress(receipt.To) || receipt.ContractAddress != "" {
+			return errors.New("committed IDE call receipt has invalid addresses")
+		}
+	case EthereumLegacyTransferType:
+		if !IsNativeAddress(receipt.To) || receipt.From == receipt.To || receipt.ContractAddress != "" || receipt.EncodedResult != "0x" || receipt.OpcodeStepCount != 0 || len(receipt.StorageWrites) != 0 || len(receipt.Logs) != 0 {
+			return errors.New("committed Ethereum transfer receipt is outside the bounded value-transfer profile")
+		}
+	default:
+		return errors.New("committed EVM receipt has unsupported action")
+	}
+	for _, log := range receipt.Logs {
+		if !IsNativeAddress(log.Address) || log.TxHash != receipt.TxHash || log.BlockHeight != receipt.BlockHeight || !ideDataPattern.MatchString(log.Data) || log.AuditHash != bftEVMLogAuditHash(log) {
+			return errors.New("committed EVM receipt log evidence mismatch")
+		}
+		for _, topic := range log.Topics {
+			if !ideWordPattern.MatchString(topic) {
+				return errors.New("committed EVM receipt log topic is not canonical")
+			}
+		}
+	}
+	return nil
+}
 func bftEVMLogAuditHash(value BFTEVMLog) string {
 	value.AuditHash = ""
 	return recordAuditHash("YNX_BFT_EVM_LOG_AUDIT_V1", value)
@@ -208,37 +257,13 @@ func validateIDECommittedState(state CommittedState) error {
 	receipts := make(map[string]BFTEVMReceipt, len(state.EVMReceipts))
 	expectedLogs := make(map[string]int)
 	for _, receipt := range state.EVMReceipts {
-		if !validResourceTxHash(receipt.TxHash) {
-			return errors.New("committed IDE EVM receipt transaction hash is invalid")
-		}
 		if previous != "" && receipt.TxHash <= previous {
 			return errors.New("committed IDE EVM receipts are not uniquely sorted")
 		}
-		if !IsNativeAddress(receipt.From) || receipt.Status != "success" || receipt.BlockHeight <= 0 {
-			return errors.New("committed IDE EVM receipt is incomplete")
-		}
-		if expected := bftEVMReceiptAuditHash(receipt); receipt.AuditHash != expected {
-			return fmt.Errorf("committed IDE EVM receipt audit mismatch: expected %s", expected)
-		}
-		if receipt.Action == ActionIDEContractDeploy {
-			if receipt.To != "" || !IsNativeAddress(receipt.ContractAddress) {
-				return errors.New("committed IDE deployment receipt has invalid addresses")
-			}
-		} else if receipt.Action == ActionIDEContractCall {
-			if !IsNativeAddress(receipt.To) || receipt.ContractAddress != "" {
-				return errors.New("committed IDE call receipt has invalid addresses")
-			}
-		} else if receipt.Action == EthereumLegacyTransferType {
-			if !IsNativeAddress(receipt.To) || receipt.ContractAddress != "" || receipt.EncodedResult != "0x" || receipt.OpcodeStepCount != 0 || len(receipt.StorageWrites) != 0 || len(receipt.Logs) != 0 {
-				return errors.New("committed Ethereum transfer receipt is outside the bounded value-transfer profile")
-			}
-		} else {
-			return errors.New("committed IDE receipt has unsupported action")
+		if err := ValidateBFTEVMReceipt(receipt); err != nil {
+			return err
 		}
 		for _, log := range receipt.Logs {
-			if log.TxHash != receipt.TxHash || log.BlockHeight != receipt.BlockHeight || !ideDataPattern.MatchString(log.Data) || log.AuditHash != bftEVMLogAuditHash(log) {
-				return errors.New("committed IDE receipt log evidence mismatch")
-			}
 			expectedLogs[log.AuditHash]++
 		}
 		receipts[receipt.TxHash], previous = receipt, receipt.TxHash

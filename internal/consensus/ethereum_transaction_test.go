@@ -94,6 +94,24 @@ func TestEthereumLegacyTransferRejectsUnsupportedOrNonCanonicalEnvelopes(t *test
 	}
 }
 
+func TestValidateBFTEVMReceiptRejectsTamperedLegacyTransferEvidence(t *testing.T) {
+	receipt := BFTEVMReceipt{
+		TxHash: "0x" + strings.Repeat("a", 64),
+		From:   "0x" + strings.Repeat("1", 40),
+		To:     "0x" + strings.Repeat("2", 40),
+		Action: EthereumLegacyTransferType, Status: "success", EncodedResult: "0x",
+		Logs: []BFTEVMLog{}, BlockHeight: 7,
+	}
+	receipt.AuditHash = BFTEVMReceiptAuditHash(receipt)
+	if err := ValidateBFTEVMReceipt(receipt); err != nil {
+		t.Fatalf("valid receipt rejected: %v", err)
+	}
+	receipt.To = receipt.From
+	if err := ValidateBFTEVMReceipt(receipt); err == nil {
+		t.Fatal("tampered self-transfer receipt was accepted")
+	}
+}
+
 func TestApplicationExecutesEthereumLegacyTransferAndRejectsReplay(t *testing.T) {
 	senderKey := deterministicPrivateKey(31)
 	sender := mustNativeAddress(t, senderKey)
