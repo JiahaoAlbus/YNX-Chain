@@ -48,10 +48,11 @@ func (e DeletionPendingError) Error() string {
 }
 
 type Service struct {
-	mu      sync.Mutex
-	cfg     Config
-	state   persistentState
-	cancels map[string]context.CancelFunc
+	mu              sync.Mutex
+	cfg             Config
+	state           persistentState
+	cancels         map[string]context.CancelFunc
+	lifecycleActive map[string]bool
 }
 
 func New(cfg Config) (*Service, error) {
@@ -95,7 +96,7 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	service := &Service{cfg: cfg, state: state, cancels: map[string]context.CancelFunc{}}
+	service := &Service{cfg: cfg, state: state, cancels: map[string]context.CancelFunc{}, lifecycleActive: map[string]bool{}}
 	if service.state.IntegrityHash == "" {
 		if err := saveState(cfg.StatePath, &service.state); err != nil {
 			return nil, err
@@ -347,7 +348,8 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 		}
 	}
 	now := s.cfg.Now()
-	obj := Object{ID: newID("obj"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption, Artifact: req.Artifact}
+	storageClass, storageClassVersion, storageReadMode := initialStorageState(req.Kind)
+	obj := Object{ID: newID("obj"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption, Artifact: req.Artifact, StorageClass: storageClass, StorageClassVersion: storageClassVersion, StorageReadMode: storageReadMode}
 	if req.Kind != KindFolder {
 		h := hashBytes(req.Content)
 		path, err := s.putObjectBlob(ctx, actor, req.Product, h, req.Content)
@@ -362,7 +364,7 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 			return Object{}, errors.New("storage quota exceeded")
 		}
 		s.settleStorageLocked(actor, obj.Product)
-		s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now}}
+		s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate}}
 	}
 	s.state.Objects[obj.ID] = obj
 	if obj.Kind != KindFolder {
@@ -678,10 +680,10 @@ func (s *Service) CompleteDirectUpload(ctx context.Context, actor, id string) (O
 		return Object{}, err
 	}
 	now := s.cfg.Now()
-	obj := Object{ID: newID("obj"), Product: u.Product, Owner: actor, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Size: u.ExpectedSize, Hash: u.ExpectedHash, Version: 1, CreatedAt: now, UpdatedAt: now, Encryption: u.Encryption, Artifact: u.Artifact, ScanStatus: verified.ScanStatus}
+	obj := Object{ID: newID("obj"), Product: u.Product, Owner: actor, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Size: u.ExpectedSize, Hash: u.ExpectedHash, Version: 1, CreatedAt: now, UpdatedAt: now, Encryption: u.Encryption, Artifact: u.Artifact, ScanStatus: verified.ScanStatus, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate}
 	s.settleStorageLocked(actor, obj.Product)
 	s.state.Objects[obj.ID] = obj
-	s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: obj.Hash, Size: obj.Size, MIME: obj.MIME, BlobPath: u.ProviderRef, Author: actor, CreatedAt: now}}
+	s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: obj.Hash, Size: obj.Size, MIME: obj.MIME, BlobPath: u.ProviderRef, Author: actor, CreatedAt: now, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate}}
 	s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
 	u.Status = "completed"
 	u.UpdatedAt = now
@@ -768,8 +770,12 @@ func (s *Service) SaveDocument(ctx context.Context, actor, id string, req SaveDo
 	obj.MIME = "text/plain"
 	obj.UpdatedAt = now
 	obj.ScanStatus = "accepted"
+	obj.StorageClass = StorageClassHot
+	obj.StorageClassVersion = 1
+	obj.StorageReadMode = StorageReadImmediate
+	obj.StorageClassUpdatedAt = nil
 	s.state.Objects[id] = obj
-	s.state.Versions[id] = append(s.state.Versions[id], Version{ObjectID: id, Number: obj.Version, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now})
+	s.state.Versions[id] = append(s.state.Versions[id], Version{ObjectID: id, Number: obj.Version, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate})
 	s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
 	if err := s.persist("document.save", actor, id, map[string]any{"version": obj.Version, "hash": h}); err != nil {
 		return Object{}, err
@@ -942,6 +948,9 @@ func (s *Service) Content(actor, id string, version int) (Object, []byte, error)
 	}
 	for _, v := range versions {
 		if v.Number == version {
+			if normalizedVersionReadMode(v) == StorageReadRestoreRequired {
+				return obj, nil, ErrArchiveRestoreRequired
+			}
 			b, err := s.cfg.ObjectStore.Get(context.Background(), v.BlobPath, v.Hash)
 			return obj, b, err
 		}
@@ -983,8 +992,12 @@ func (s *Service) RestoreVersion(actor, id string, number int) (Object, error) {
 	obj.Size = source.Size
 	obj.MIME = source.MIME
 	obj.UpdatedAt = s.cfg.Now()
+	obj.StorageClass = normalizedVersionStorageClass(*source)
+	obj.StorageClassVersion = normalizedVersionStorageClassVersion(*source)
+	obj.StorageReadMode = normalizedVersionReadMode(*source)
+	obj.StorageClassUpdatedAt = source.StorageClassUpdatedAt
 	s.state.Objects[id] = obj
-	s.state.Versions[id] = append(s.state.Versions[id], Version{ObjectID: id, Number: obj.Version, Hash: source.Hash, Size: source.Size, MIME: source.MIME, BlobPath: source.BlobPath, Author: actor, CreatedAt: obj.UpdatedAt})
+	s.state.Versions[id] = append(s.state.Versions[id], Version{ObjectID: id, Number: obj.Version, Hash: source.Hash, Size: source.Size, MIME: source.MIME, BlobPath: source.BlobPath, Author: actor, CreatedAt: obj.UpdatedAt, StorageClass: obj.StorageClass, StorageClassVersion: obj.StorageClassVersion, StorageReadMode: obj.StorageReadMode, StorageClassUpdatedAt: obj.StorageClassUpdatedAt})
 	if err := s.persist("version.restore", actor, id, map[string]any{"sourceVersion": number, "version": obj.Version}); err != nil {
 		return Object{}, err
 	}
@@ -1041,6 +1054,9 @@ func (s *Service) DeleteObject(actor, id string) error {
 	if obj.Owner != actor || obj.TrashedAt == nil {
 		return ErrDenied
 	}
+	if s.storageTransitionUnresolvedLocked(id) {
+		return errors.New("storage lifecycle transition must finish or be retried before permanent deletion")
+	}
 	if obj.Artifact != nil && obj.Artifact.Retention == "legal-hold" {
 		return errors.New("legal hold prevents deletion")
 	}
@@ -1074,6 +1090,11 @@ func (s *Service) DeleteObject(actor, id string) error {
 	for key, presence := range s.state.Presence {
 		if presence.ObjectID == id {
 			delete(s.state.Presence, key)
+		}
+	}
+	for key, transition := range s.state.StorageTransitions {
+		if transition.ObjectID == id {
+			delete(s.state.StorageTransitions, key)
 		}
 	}
 	removedVersions := append([]Version(nil), s.state.Versions[id]...)
@@ -1205,7 +1226,7 @@ func (s *Service) ExportOwnedData(ctx context.Context, actor, product string) ([
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	manifest := ExportManifest{SchemaVersion: 1, Authority: "YNX Cloud owner metadata and verified object bytes", Source: "ynx-cloudd", AsOf: s.cfg.Now(), Owner: actor, Product: product, Objects: []Object{}, Versions: []Version{}, Grants: []Grant{}, Audit: []AuditEvent{}, Files: []ExportFile{}}
+	manifest := ExportManifest{SchemaVersion: 1, Authority: "YNX Cloud owner metadata and verified object bytes", Source: "ynx-cloudd", AsOf: s.cfg.Now(), Owner: actor, Product: product, Objects: []Object{}, Versions: []Version{}, Grants: []Grant{}, StorageTransitions: []StorageTransition{}, Audit: []AuditEvent{}, Files: []ExportFile{}}
 	owned := map[string]bool{}
 	for _, obj := range s.state.Objects {
 		if obj.Owner == actor && obj.Product == product {
@@ -1219,6 +1240,12 @@ func (s *Service) ExportOwnedData(ctx context.Context, actor, product string) ([
 			manifest.Grants = append(manifest.Grants, g)
 		}
 	}
+	for _, transition := range s.state.StorageTransitions {
+		if transition.Owner == actor && transition.Product == product && owned[transition.ObjectID] {
+			manifest.StorageTransitions = append(manifest.StorageTransitions, transition)
+		}
+	}
+	sort.Slice(manifest.StorageTransitions, func(i, j int) bool { return manifest.StorageTransitions[i].ID < manifest.StorageTransitions[j].ID })
 	for _, e := range s.state.Audit {
 		if auditProduct(e, s.state.Objects) == product && (e.Actor == actor || owned[e.ObjectID]) {
 			manifest.Audit = append(manifest.Audit, e)
@@ -1312,6 +1339,9 @@ func (s *Service) EraseProductData(ctx context.Context, actor, product string) (
 	for id, obj := range s.state.Objects {
 		if obj.Owner != actor || obj.Product != product {
 			continue
+		}
+		if s.storageTransitionUnresolvedLocked(id) {
+			return DataErasureReceipt{}, errors.New("storage lifecycle transition must finish or be retried before product data erasure")
 		}
 		if obj.Artifact != nil && obj.Artifact.Retention == "legal-hold" {
 			return DataErasureReceipt{}, errors.New("legal hold prevents product data erasure")
@@ -1465,6 +1495,12 @@ func (s *Service) EraseProductData(ctx context.Context, actor, product string) (
 			addTarget(upload.ProviderRef, upload.ExpectedHash)
 			delete(s.state.DirectUploads, id)
 			deleted["directUploads"]++
+		}
+	}
+	for id, transition := range s.state.StorageTransitions {
+		if transition.Owner == actor && transition.Product == product {
+			delete(s.state.StorageTransitions, id)
+			deleted["storageTransitions"]++
 		}
 	}
 	for id, deletion := range s.state.BlobDeletions {

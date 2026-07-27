@@ -20,6 +20,19 @@ const (
 	KindDoc    ObjectKind = "doc"
 )
 
+type StorageClass string
+
+const (
+	StorageClassHot     StorageClass = "hot"
+	StorageClassCold    StorageClass = "cold"
+	StorageClassArchive StorageClass = "archive"
+)
+
+const (
+	StorageReadImmediate       = "immediate"
+	StorageReadRestoreRequired = "restore-required"
+)
+
 type Encryption struct {
 	ClientSide     bool   `json:"clientSide"`
 	Algorithm      string `json:"algorithm,omitempty"`
@@ -28,23 +41,27 @@ type Encryption struct {
 }
 
 type Object struct {
-	ID         string     `json:"id"`
-	Product    string     `json:"product"`
-	Owner      string     `json:"owner"`
-	ParentID   string     `json:"parentId,omitempty"`
-	Kind       ObjectKind `json:"kind"`
-	Name       string     `json:"name"`
-	MIME       string     `json:"mime,omitempty"`
-	Size       int64      `json:"size"`
-	Hash       string     `json:"hash,omitempty"`
-	Version    int        `json:"version"`
-	Starred    bool       `json:"starred"`
-	TrashedAt  *time.Time `json:"trashedAt,omitempty"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updatedAt"`
-	Encryption Encryption `json:"encryption"`
-	ScanStatus string     `json:"scanStatus,omitempty"`
-	Artifact   *Artifact  `json:"artifact,omitempty"`
+	ID                    string       `json:"id"`
+	Product               string       `json:"product"`
+	Owner                 string       `json:"owner"`
+	ParentID              string       `json:"parentId,omitempty"`
+	Kind                  ObjectKind   `json:"kind"`
+	Name                  string       `json:"name"`
+	MIME                  string       `json:"mime,omitempty"`
+	Size                  int64        `json:"size"`
+	Hash                  string       `json:"hash,omitempty"`
+	Version               int          `json:"version"`
+	Starred               bool         `json:"starred"`
+	TrashedAt             *time.Time   `json:"trashedAt,omitempty"`
+	CreatedAt             time.Time    `json:"createdAt"`
+	UpdatedAt             time.Time    `json:"updatedAt"`
+	Encryption            Encryption   `json:"encryption"`
+	ScanStatus            string       `json:"scanStatus,omitempty"`
+	Artifact              *Artifact    `json:"artifact,omitempty"`
+	StorageClass          StorageClass `json:"storageClass,omitempty"`
+	StorageClassVersion   int          `json:"storageClassVersion,omitempty"`
+	StorageReadMode       string       `json:"storageReadMode,omitempty"`
+	StorageClassUpdatedAt *time.Time   `json:"storageClassUpdatedAt,omitempty"`
 }
 
 type Artifact struct {
@@ -127,6 +144,49 @@ type DirectUpload struct {
 	ExpiresAt    time.Time  `json:"expiresAt"`
 }
 
+type StorageTransition struct {
+	ID               string       `json:"id"`
+	Product          string       `json:"product"`
+	Owner            string       `json:"owner"`
+	ObjectID         string       `json:"objectId"`
+	Version          int          `json:"version"`
+	Ref              string       `json:"ref"`
+	ResultRef        string       `json:"resultRef,omitempty"`
+	Hash             string       `json:"hash"`
+	From             StorageClass `json:"from"`
+	To               StorageClass `json:"to"`
+	CopyRequired     bool         `json:"copyRequired"`
+	Status           string       `json:"status"`
+	ReadMode         string       `json:"readMode,omitempty"`
+	ProviderEvidence string       `json:"providerEvidence,omitempty"`
+	Attempts         int          `json:"attempts"`
+	RequestedAt      time.Time    `json:"requestedAt"`
+	UpdatedAt        time.Time    `json:"updatedAt"`
+	LastError        string       `json:"lastError,omitempty"`
+}
+
+type StorageTransitionRequest struct {
+	TransitionID string       `json:"transitionId"`
+	Scope        string       `json:"scope"`
+	Ref          string       `json:"ref"`
+	Hash         string       `json:"hash"`
+	From         StorageClass `json:"from"`
+	To           StorageClass `json:"to"`
+	CopyRequired bool         `json:"copyRequired"`
+}
+
+type StorageTransitionResult struct {
+	TransitionID     string       `json:"transitionId"`
+	Ref              string       `json:"ref"`
+	Hash             string       `json:"hash"`
+	From             StorageClass `json:"from"`
+	To               StorageClass `json:"to"`
+	Status           string       `json:"status"`
+	ReadMode         string       `json:"readMode"`
+	ProviderEvidence string       `json:"providerEvidence"`
+	AsOf             time.Time    `json:"asOf"`
+}
+
 type DirectUploadRequest struct {
 	Scope string `json:"scope"`
 	Hash  string `json:"hash"`
@@ -148,14 +208,18 @@ type DirectUploadVerification struct {
 }
 
 type Version struct {
-	ObjectID  string    `json:"objectId"`
-	Number    int       `json:"number"`
-	Hash      string    `json:"hash"`
-	Size      int64     `json:"size"`
-	MIME      string    `json:"mime"`
-	BlobPath  string    `json:"blobPath"`
-	Author    string    `json:"author"`
-	CreatedAt time.Time `json:"createdAt"`
+	ObjectID              string       `json:"objectId"`
+	Number                int          `json:"number"`
+	Hash                  string       `json:"hash"`
+	Size                  int64        `json:"size"`
+	MIME                  string       `json:"mime"`
+	BlobPath              string       `json:"blobPath"`
+	Author                string       `json:"author"`
+	CreatedAt             time.Time    `json:"createdAt"`
+	StorageClass          StorageClass `json:"storageClass,omitempty"`
+	StorageClassVersion   int          `json:"storageClassVersion,omitempty"`
+	StorageReadMode       string       `json:"storageReadMode,omitempty"`
+	StorageClassUpdatedAt *time.Time   `json:"storageClassUpdatedAt,omitempty"`
 }
 
 type Grant struct {
@@ -300,25 +364,26 @@ type PendingWalletChallenge struct {
 }
 
 type persistentState struct {
-	SchemaVersion    int                               `json:"schemaVersion"`
-	Objects          map[string]Object                 `json:"objects"`
-	Versions         map[string][]Version              `json:"versions"`
-	Grants           map[string]Grant                  `json:"grants"`
-	Links            map[string]ShareLink              `json:"links"`
-	AccessRequests   map[string]AccessRequest          `json:"accessRequests"`
-	Comments         map[string][]Comment              `json:"comments"`
-	Presence         map[string]Presence               `json:"presence"`
-	AIJobs           map[string]AIJob                  `json:"aiJobs"`
-	Sessions         map[string]Session                `json:"sessions"`
-	WalletChallenges map[string]PendingWalletChallenge `json:"walletChallenges"`
-	Nonces           map[string]time.Time              `json:"nonces"`
-	Audit            []AuditEvent                      `json:"audit"`
-	MultipartUploads map[string]MultipartUpload        `json:"multipartUploads"`
-	BlobDeletions    map[string]BlobDeletion           `json:"blobDeletions"`
-	DirectUploads    map[string]DirectUpload           `json:"directUploads"`
-	Usage            map[string]UsageCounters          `json:"usage"`
-	DataErasures     map[string]DataErasureReceipt     `json:"dataErasures"`
-	IntegrityHash    string                            `json:"integrityHash"`
+	SchemaVersion      int                               `json:"schemaVersion"`
+	Objects            map[string]Object                 `json:"objects"`
+	Versions           map[string][]Version              `json:"versions"`
+	Grants             map[string]Grant                  `json:"grants"`
+	Links              map[string]ShareLink              `json:"links"`
+	AccessRequests     map[string]AccessRequest          `json:"accessRequests"`
+	Comments           map[string][]Comment              `json:"comments"`
+	Presence           map[string]Presence               `json:"presence"`
+	AIJobs             map[string]AIJob                  `json:"aiJobs"`
+	Sessions           map[string]Session                `json:"sessions"`
+	WalletChallenges   map[string]PendingWalletChallenge `json:"walletChallenges"`
+	Nonces             map[string]time.Time              `json:"nonces"`
+	Audit              []AuditEvent                      `json:"audit"`
+	MultipartUploads   map[string]MultipartUpload        `json:"multipartUploads"`
+	BlobDeletions      map[string]BlobDeletion           `json:"blobDeletions"`
+	DirectUploads      map[string]DirectUpload           `json:"directUploads"`
+	StorageTransitions map[string]StorageTransition      `json:"storageTransitions,omitempty"`
+	Usage              map[string]UsageCounters          `json:"usage"`
+	DataErasures       map[string]DataErasureReceipt     `json:"dataErasures"`
+	IntegrityHash      string                            `json:"integrityHash"`
 }
 
 type ListOptions struct {
@@ -362,17 +427,18 @@ type ExportFile struct {
 }
 
 type ExportManifest struct {
-	SchemaVersion int          `json:"schemaVersion"`
-	Authority     string       `json:"authority"`
-	Source        string       `json:"source"`
-	AsOf          time.Time    `json:"asOf"`
-	Owner         string       `json:"owner"`
-	Product       string       `json:"product"`
-	Objects       []Object     `json:"objects"`
-	Versions      []Version    `json:"versions"`
-	Grants        []Grant      `json:"grants"`
-	Audit         []AuditEvent `json:"audit"`
-	Files         []ExportFile `json:"files"`
+	SchemaVersion      int                 `json:"schemaVersion"`
+	Authority          string              `json:"authority"`
+	Source             string              `json:"source"`
+	AsOf               time.Time           `json:"asOf"`
+	Owner              string              `json:"owner"`
+	Product            string              `json:"product"`
+	Objects            []Object            `json:"objects"`
+	Versions           []Version           `json:"versions"`
+	Grants             []Grant             `json:"grants"`
+	StorageTransitions []StorageTransition `json:"storageTransitions,omitempty"`
+	Audit              []AuditEvent        `json:"audit"`
+	Files              []ExportFile        `json:"files"`
 }
 
 type ConflictError struct{ Current Object }

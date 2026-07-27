@@ -13,10 +13,10 @@ import (
 	"time"
 )
 
-const CurrentStateSchemaVersion = 6
+const CurrentStateSchemaVersion = 7
 
 func newState() persistentState {
-	return persistentState{SchemaVersion: CurrentStateSchemaVersion, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}, BlobDeletions: map[string]BlobDeletion{}, DirectUploads: map[string]DirectUpload{}, Usage: map[string]UsageCounters{}, DataErasures: map[string]DataErasureReceipt{}}
+	return persistentState{SchemaVersion: CurrentStateSchemaVersion, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}, BlobDeletions: map[string]BlobDeletion{}, DirectUploads: map[string]DirectUpload{}, StorageTransitions: map[string]StorageTransition{}, Usage: map[string]UsageCounters{}, DataErasures: map[string]DataErasureReceipt{}}
 }
 
 func loadState(path string) (persistentState, error) {
@@ -45,11 +45,17 @@ func loadState(path string) (persistentState, error) {
 		normalize(&state)
 		migrateObjectProducts(&state)
 		state.SchemaVersion = CurrentStateSchemaVersion
+		if err := validateLifecycleState(state); err != nil {
+			return persistentState{}, fmt.Errorf("validate migrated storage lifecycle state: %w", err)
+		}
 		if err := saveState(path, &state); err != nil {
 			return persistentState{}, fmt.Errorf("persist v%d to v%d migration: %w", from, CurrentStateSchemaVersion, err)
 		}
 	} else {
 		normalize(&state)
+		if err := validateLifecycleState(state); err != nil {
+			return persistentState{}, fmt.Errorf("validate storage lifecycle state: %w", err)
+		}
 	}
 	return state, nil
 }
@@ -395,6 +401,38 @@ func normalize(s *persistentState) {
 	}
 	if s.DirectUploads == nil {
 		s.DirectUploads = map[string]DirectUpload{}
+	}
+	if s.StorageTransitions == nil {
+		s.StorageTransitions = map[string]StorageTransition{}
+	}
+	for objectID, versions := range s.Versions {
+		for index, version := range versions {
+			if version.StorageClass == "" {
+				version.StorageClass = StorageClassHot
+			}
+			if version.StorageClassVersion == 0 {
+				version.StorageClassVersion = 1
+			}
+			if version.StorageReadMode == "" {
+				version.StorageReadMode = StorageReadImmediate
+			}
+			versions[index] = version
+		}
+		s.Versions[objectID] = versions
+	}
+	for id, object := range s.Objects {
+		if object.Kind == KindFolder {
+			continue
+		}
+		if _, version, err := currentVersionIndex(*s, object); err == nil {
+			syncObjectStorageSummary(&object, version)
+		} else if metadataOnlyWithoutVersion(*s, object) {
+			object.StorageClass = ""
+			object.StorageClassVersion = 0
+			object.StorageReadMode = ""
+			object.StorageClassUpdatedAt = nil
+		}
+		s.Objects[id] = object
 	}
 	if s.Usage == nil {
 		s.Usage = map[string]UsageCounters{}
