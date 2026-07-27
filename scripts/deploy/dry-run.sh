@@ -115,6 +115,7 @@ YNX_APP_GATEWAY_DEPLOY_ENABLED=true
 YNX_APP_GATEWAY_HTTP_ADDR=127.0.0.1:6437
 YNX_WALLET_GATEWAY_DEPLOY_ENABLED=true
 YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1:6439
+YNX_WALLET_GATEWAY_ALLOWED_ORIGINS=https://www.ynxweb4.com,https://ynxweb4.com
 YNX_APP_GATEWAY_ALLOWED_ORIGINS=https://www.ynx.test,https://ynx.test
 EMAIL_PROVIDER=dry-run-mail
 EMAIL_API_KEY=dry-run-email-key
@@ -185,6 +186,7 @@ grep -Fq "YNX_APP_GATEWAY_CHALLENGE_TTL=5m" "$release_dir/config/ynx-app-gateway
 grep -Fq "YNX_APP_GATEWAY_SESSION_TTL=30m" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing bounded session TTL"; exit 1; }
 grep -Fq "YNX_WALLET_GATEWAY_DEPLOY_ENABLED=true" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing independent deploy gate"; exit 1; }
 grep -Fq "YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1:6439" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing listen address"; exit 1; }
+grep -Fq "YNX_WALLET_GATEWAY_ALLOWED_ORIGINS=https://www.ynxweb4.com,https://ynxweb4.com" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing exact browser origins"; exit 1; }
 grep -Fq "YNX_WALLET_GATEWAY_STATE_PATH=/var/lib/ynx-chain/wallet-gateway/state.json" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing state path"; exit 1; }
 grep -Fq "wallet-gateway/packages/wallet-auth/central-registry.json" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing immutable registry"; exit 1; }
 app_gateway_origins="$(set -a; source "$release_dir/config/ynx-app-gatewayd.env"; printf '%s' "$YNX_APP_GATEWAY_ALLOWED_ORIGINS")"

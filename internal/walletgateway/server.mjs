@@ -37,9 +37,11 @@ const ROUTES = new Set([
   "/v1/wallet/mandates/emergency-exit",
 ]);
 const PROOF_HEADER = "x-ynx-product-session-proof";
+const PREFLIGHT_HEADERS = new Set(["content-type", PROOF_HEADER]);
 
 export class WalletGatewayHost {
   #registry;
+  #allowedOrigins;
   #kernel;
   #statePath;
   #persist;
@@ -54,11 +56,12 @@ export class WalletGatewayHost {
     persistenceFailures: 0,
   };
 
-  constructor({ registry, statePath, build = {}, persist = persistState, startedAt = new Date(), now = () => new Date() }) {
+  constructor({ registry, statePath, allowedOrigins = [], build = {}, persist = persistState, startedAt = new Date(), now = () => new Date() }) {
     if (!isAbsolute(statePath) || statePath === "/") {
       throw new Error("wallet Gateway state path must be an absolute file path");
     }
     this.#registry = parseCentralRegistryDocument(registry);
+    this.#allowedOrigins = normalizeAllowedOrigins(allowedOrigins);
     this.#statePath = statePath;
     this.#persist = persist;
     this.#startedAt = validDate(startedAt);
@@ -105,6 +108,21 @@ export class WalletGatewayHost {
   async #handle(request, response) {
     const requestID = randomUUID();
     response.setHeader("X-Request-ID", requestID);
+    const origins = request.headersDistinct?.origin ?? [];
+    if (origins.length > 1) {
+      return writeHostError(response, 403, "ORIGIN_NOT_ALLOWED", "Browser origin is not allowed");
+    }
+    const origin = origins[0]?.trim() ?? "";
+    if (origin) {
+      if (!this.#allowedOrigins.has(origin)) {
+        return writeHostError(response, 403, "ORIGIN_NOT_ALLOWED", "Browser origin is not allowed");
+      }
+      response.setHeader("Access-Control-Allow-Origin", origin);
+      response.setHeader("Vary", "Origin");
+    }
+    if (request.method === "OPTIONS") {
+      return this.#preflight(request, response, origin);
+    }
     if (request.method === "GET" && request.url === "/health") {
       return this.#health(response);
     }
@@ -183,6 +201,30 @@ export class WalletGatewayHost {
     response.end(result.body);
   }
 
+  #preflight(request, response, origin) {
+    if (!origin || !ROUTES.has(request.url)) {
+      return writeHostError(response, 403, "PREFLIGHT_NOT_ALLOWED", "Browser preflight is not allowed");
+    }
+    if (request.headers["access-control-request-method"]?.trim().toUpperCase() !== "POST") {
+      return writeHostError(response, 403, "PREFLIGHT_NOT_ALLOWED", "Browser preflight method is not allowed");
+    }
+    const requestedHeaders = (request.headers["access-control-request-headers"] ?? "")
+      .split(",")
+      .map(value => value.trim().toLowerCase())
+      .filter(Boolean);
+    if (requestedHeaders.length === 0 || requestedHeaders.some(header => !PREFLIGHT_HEADERS.has(header))) {
+      return writeHostError(response, 403, "PREFLIGHT_NOT_ALLOWED", "Browser preflight headers are not allowed");
+    }
+    response.writeHead(204, {
+      "Access-Control-Allow-Headers": "Content-Type, X-YNX-Product-Session-Proof",
+      "Access-Control-Allow-Methods": "POST",
+      "Access-Control-Max-Age": "600",
+      "Cache-Control": "no-store",
+      "X-Request-ID": response.getHeader("X-Request-ID"),
+    });
+    response.end();
+  }
+
   #health(response) {
     const snapshot = this.#kernel.snapshot();
     writeJSON(response, 200, {
@@ -239,6 +281,24 @@ export function createWalletGatewayServer(options) {
 
 export function loadRegistry(path) {
   return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function normalizeAllowedOrigins(origins) {
+  if (!Array.isArray(origins) || new Set(origins).size !== origins.length) {
+    throw new Error("wallet Gateway allowed origins must be a unique array");
+  }
+  for (const origin of origins) {
+    let parsed;
+    try {
+      parsed = new URL(origin);
+    } catch {
+      throw new Error("wallet Gateway allowed origin is invalid");
+    }
+    if (parsed.protocol !== "https:" || parsed.origin !== origin || parsed.username || parsed.password) {
+      throw new Error("wallet Gateway allowed origins must be exact HTTPS origins");
+    }
+  }
+  return new Set(origins);
 }
 
 function loadState(path, registry) {

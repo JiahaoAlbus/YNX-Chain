@@ -35,6 +35,7 @@ YNX_APP_GATEWAY_HTTP_ADDR="${YNX_APP_GATEWAY_HTTP_ADDR:-127.0.0.1:6437}"
 YNX_APP_GATEWAY_ALLOWED_ORIGINS="${YNX_APP_GATEWAY_ALLOWED_ORIGINS:-https://${WEBSITE_DOMAIN:-www.ynxweb4.com},https://ynxweb4.com}"
 YNX_WALLET_GATEWAY_DEPLOY_ENABLED="${YNX_WALLET_GATEWAY_DEPLOY_ENABLED:-false}"
 YNX_WALLET_GATEWAY_HTTP_ADDR="${YNX_WALLET_GATEWAY_HTTP_ADDR:-127.0.0.1:6439}"
+YNX_WALLET_GATEWAY_ALLOWED_ORIGINS="${YNX_WALLET_GATEWAY_ALLOWED_ORIGINS:-${YNX_APP_GATEWAY_ALLOWED_ORIGINS}}"
 
 required=(
   TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN REST_DOMAIN INDEXER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
@@ -112,7 +113,7 @@ case "$YNX_WALLET_GATEWAY_DEPLOY_ENABLED" in
   *) echo "YNX_WALLET_GATEWAY_DEPLOY_ENABLED must be true or false"; exit 1 ;;
 esac
 if [[ "$YNX_WALLET_GATEWAY_DEPLOY_ENABLED" == "true" ]]; then
-  wallet_gateway_required=(YNX_WALLET_GATEWAY_HTTP_ADDR)
+  wallet_gateway_required=(YNX_WALLET_GATEWAY_HTTP_ADDR YNX_WALLET_GATEWAY_ALLOWED_ORIGINS)
   ynx_require_env "${wallet_gateway_required[@]}"
   ynx_reject_unsafe_env_values "${wallet_gateway_required[@]}"
 fi
@@ -223,6 +224,7 @@ ynx_write_kv_env "$work/config/ynx-app-gatewayd.env" \
 cat > "$work/config/ynx-wallet-gatewayd.env" <<EOF
 YNX_WALLET_GATEWAY_DEPLOY_ENABLED=${YNX_WALLET_GATEWAY_DEPLOY_ENABLED}
 YNX_WALLET_GATEWAY_HTTP_ADDR=${YNX_WALLET_GATEWAY_HTTP_ADDR}
+YNX_WALLET_GATEWAY_ALLOWED_ORIGINS=${YNX_WALLET_GATEWAY_ALLOWED_ORIGINS}
 YNX_WALLET_GATEWAY_STATE_PATH=/var/lib/ynx-chain/wallet-gateway/state.json
 YNX_WALLET_GATEWAY_REGISTRY_PATH=/opt/ynx-chain/releases/${release}/wallet-gateway/packages/wallet-auth/central-registry.json
 YNX_WALLET_GATEWAY_RUNTIME=/opt/ynx-chain/releases/${release}/wallet-gateway/cmd/ynx-wallet-gatewayd/main.mjs

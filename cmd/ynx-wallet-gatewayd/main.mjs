@@ -12,11 +12,13 @@ const statePath = process.env.YNX_WALLET_GATEWAY_STATE_PATH ?? "/var/lib/ynx-cha
 const registryPath = process.env.YNX_WALLET_GATEWAY_REGISTRY_PATH
   ?? resolve(repositoryRoot, "packages/wallet-auth/central-registry.json");
 const { host, port } = parseAddress(process.env.YNX_WALLET_GATEWAY_HTTP_ADDR ?? "127.0.0.1:6439");
+const allowedOrigins = parseAllowedOrigins(process.env.YNX_WALLET_GATEWAY_ALLOWED_ORIGINS ?? "");
 
 mkdirSync(dirname(statePath), { recursive: true, mode: 0o700 });
 const runtime = createWalletGatewayServer({
   registry: loadRegistry(registryPath),
   statePath,
+  allowedOrigins,
   build: {
     commit: process.env.YNX_BUILD_COMMIT,
     release: process.env.YNX_BUILD_RELEASE,
@@ -43,4 +45,23 @@ function parseAddress(value) {
     throw new Error("YNX_WALLET_GATEWAY_HTTP_ADDR must be host:port");
   }
   return { host: match[1], port };
+}
+
+function parseAllowedOrigins(value) {
+  const origins = value.split(",").map(origin => origin.trim()).filter(Boolean);
+  if (origins.length === 0 || new Set(origins).size !== origins.length) {
+    throw new Error("YNX_WALLET_GATEWAY_ALLOWED_ORIGINS must contain unique HTTPS origins");
+  }
+  for (const origin of origins) {
+    let parsed;
+    try {
+      parsed = new URL(origin);
+    } catch {
+      throw new Error("YNX_WALLET_GATEWAY_ALLOWED_ORIGINS contains an invalid origin");
+    }
+    if (parsed.protocol !== "https:" || parsed.origin !== origin || parsed.username || parsed.password) {
+      throw new Error("YNX_WALLET_GATEWAY_ALLOWED_ORIGINS must contain exact HTTPS origins");
+    }
+  }
+  return origins;
 }

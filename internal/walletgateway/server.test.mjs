@@ -113,6 +113,63 @@ test("host rejects aliases, media type widening and malformed proof headers", as
   assert.equal((await malformed.json()).error.code, "INVALID_PROOF_HEADER");
 });
 
+test("host permits only exact browser origins and bounded Wallet preflight", async t => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-wallet-gateway-cors-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const runtime = await startHost({
+    registry: loadRegistry(registryPath),
+    statePath: join(directory, "state.json"),
+    allowedOrigins: ["https://www.ynxweb4.com", "https://ynxweb4.com"],
+  });
+  t.after(() => runtime.server.close());
+
+  const accepted = await fetch(`${runtime.url}/v1/wallet/sessions`, {
+    method: "OPTIONS",
+    headers: {
+      origin: "https://www.ynxweb4.com",
+      "access-control-request-method": "POST",
+      "access-control-request-headers": "Content-Type, X-YNX-Product-Session-Proof",
+    },
+  });
+  assert.equal(accepted.status, 204);
+  assert.equal(accepted.headers.get("access-control-allow-origin"), "https://www.ynxweb4.com");
+  assert.equal(accepted.headers.get("access-control-allow-methods"), "POST");
+  assert.equal(accepted.headers.get("access-control-allow-headers"), "Content-Type, X-YNX-Product-Session-Proof");
+  assert.equal(accepted.headers.get("vary"), "Origin");
+
+  for (const headers of [
+    {
+      origin: "https://evil.example",
+      "access-control-request-method": "POST",
+      "access-control-request-headers": "Content-Type",
+    },
+    {
+      origin: "https://www.ynxweb4.com",
+      "access-control-request-method": "DELETE",
+      "access-control-request-headers": "Content-Type",
+    },
+    {
+      origin: "https://www.ynxweb4.com",
+      "access-control-request-method": "POST",
+      "access-control-request-headers": "Authorization",
+    },
+  ]) {
+    const rejected = await fetch(`${runtime.url}/v1/wallet/sessions`, { method: "OPTIONS", headers });
+    assert.equal(rejected.status, 403);
+  }
+
+  const request = await fetch(`${runtime.url}/v1/wallet/sessions`, {
+    method: "POST",
+    headers: {
+      origin: "https://www.ynxweb4.com",
+      "content-type": "application/json",
+    },
+    body: "{}",
+  });
+  assert.equal(request.status, 400);
+  assert.equal(request.headers.get("access-control-allow-origin"), "https://www.ynxweb4.com");
+});
+
 test("host fails startup on persisted wrapper tamper", async t => {
   const directory = mkdtempSync(join(tmpdir(), "ynx-wallet-gateway-tamper-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
