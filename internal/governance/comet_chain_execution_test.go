@@ -36,6 +36,7 @@ func TestCometChainExecutionClientBroadcastsAndReadsCanonicalRecord(t *testing.T
 	}
 	recordJSON, _ := json.Marshal(record)
 	var broadcastCalls, queryCalls int
+	currentRaw := raw
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
@@ -43,16 +44,18 @@ func TestCometChainExecutionClientBroadcastsAndReadsCanonicalRecord(t *testing.T
 			_, _ = w.Write([]byte(`{"result":{"node_info":{"network":"ynx_6423-1"},"sync_info":{"latest_block_height":"12","catching_up":false}}}`))
 		case "/broadcast_tx_commit":
 			broadcastCalls++
-			if r.URL.Query().Get("tx") != "0x"+fmt.Sprintf("%x", raw) {
+			if r.URL.Query().Get("tx") != "0x"+fmt.Sprintf("%x", currentRaw) {
 				t.Errorf("unexpected broadcast transaction")
 			}
-			_, _ = fmt.Fprintf(w, `{"result":{"check_tx":{"code":0,"log":""},"tx_result":{"code":0,"log":""},"hash":%q,"height":"11"}}`, strings.TrimPrefix(consensus.ApplicationActionHash(raw), "0x"))
+			_, _ = fmt.Fprintf(w, `{"result":{"check_tx":{"code":0,"log":""},"tx_result":{"code":0,"log":""},"hash":%q,"height":"11"}}`, strings.TrimPrefix(consensus.ApplicationActionHash(currentRaw), "0x"))
 		case "/abci_query":
 			queryCalls++
 			if r.URL.Query().Get("path") != `"/governance/executions/`+intent.ProposalID+`"` {
 				t.Errorf("unexpected ABCI path %q", r.URL.Query().Get("path"))
 			}
 			_, _ = fmt.Fprintf(w, `{"result":{"response":{"code":0,"log":"","height":"12","value":%q}}}`, base64.StdEncoding.EncodeToString(recordJSON))
+		case "/block":
+			_, _ = fmt.Fprintf(w, `{"result":{"block_id":{"hash":%q},"block":{"header":{"height":"11"}}}}`, strings.Repeat("a", 64))
 		default:
 			http.NotFound(w, r)
 		}
@@ -66,12 +69,25 @@ func TestCometChainExecutionClientBroadcastsAndReadsCanonicalRecord(t *testing.T
 	if err = client.BroadcastGovernanceAction(context.Background(), raw); err != nil {
 		t.Fatal(err)
 	}
+	verifyIntent := consensus.GovernanceExecutionVerifyPayload{
+		ProposalID: intent.ProposalID, BeginTxHash: record.BeginTxHash, ActionHash: intent.ActionHash,
+		ManifestHash: intent.ManifestHash, Outcome: "verified", StateRoot: strings.Repeat("a", 64), EvidenceHash: strings.Repeat("b", 64),
+	}
+	verifyTx, _ := consensus.NewSignedApplicationAction(key, 6423, consensus.ActionGovernanceExecutionVerify, verifyIntent, 2)
+	currentRaw, _ = consensus.EncodeSignedApplicationAction(verifyTx)
+	if err = client.BroadcastGovernanceAction(context.Background(), currentRaw); err != nil {
+		t.Fatal(err)
+	}
 	got, found, err := client.GovernanceExecution(context.Background(), intent.ProposalID)
 	if err != nil || !found || got.BeginTxHash != record.BeginTxHash || got.ProposalID != intent.ProposalID {
 		t.Fatalf("canonical query failed: %+v found=%v err=%v", got, found, err)
 	}
-	if broadcastCalls != 1 || queryCalls != 1 {
+	if broadcastCalls != 2 || queryCalls != 1 {
 		t.Fatalf("unexpected RPC calls: broadcast=%d query=%d", broadcastCalls, queryCalls)
+	}
+	blockHash, err := client.GovernanceBlockHash(context.Background(), 11)
+	if err != nil || blockHash != "0x"+strings.Repeat("a", 64) {
+		t.Fatalf("canonical block lookup failed: %q err=%v", blockHash, err)
 	}
 }
 

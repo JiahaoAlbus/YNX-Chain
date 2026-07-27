@@ -73,6 +73,20 @@ type cometGovernanceStatus struct {
 	Error *cometRPCError `json:"error,omitempty"`
 }
 
+type cometGovernanceBlock struct {
+	Result struct {
+		BlockID struct {
+			Hash string `json:"hash"`
+		} `json:"block_id"`
+		Block struct {
+			Header struct {
+				Height string `json:"height"`
+			} `json:"header"`
+		} `json:"block"`
+	} `json:"result"`
+	Error *cometRPCError `json:"error,omitempty"`
+}
+
 func NewCometChainExecutionClient(rawURL string, expectedChain int64, timeout time.Duration, upstream *http.Client) (*CometChainExecutionClient, error) {
 	baseURL, err := validateCometRPCURL(rawURL)
 	if err != nil {
@@ -158,8 +172,8 @@ func (c *CometChainExecutionClient) BroadcastGovernanceAction(ctx context.Contex
 		return ErrInvalid
 	}
 	tx, err := consensus.DecodeSignedApplicationAction(raw)
-	if err != nil || tx.Action != consensus.ActionGovernanceExecutionBegin || tx.Verify(c.expectedChain) != nil {
-		return fmt.Errorf("%w: canonical governance begin action required", ErrInvalid)
+	if err != nil || (tx.Action != consensus.ActionGovernanceExecutionBegin && tx.Action != consensus.ActionGovernanceExecutionVerify) || tx.Verify(c.expectedChain) != nil {
+		return fmt.Errorf("%w: canonical governance execution action required", ErrInvalid)
 	}
 	if err = c.ensureNetwork(ctx); err != nil {
 		return err
@@ -185,6 +199,28 @@ func (c *CometChainExecutionClient) BroadcastGovernanceAction(ctx context.Contex
 		return errors.New("CometBFT returned an invalid governance execution height")
 	}
 	return nil
+}
+
+func (c *CometChainExecutionClient) GovernanceBlockHash(ctx context.Context, height int64) (string, error) {
+	if c == nil || c.client == nil || height <= 0 {
+		return "", ErrInvalid
+	}
+	if err := c.ensureNetwork(ctx); err != nil {
+		return "", err
+	}
+	var response cometGovernanceBlock
+	if err := c.get(ctx, "/block", url.Values{"height": {strconv.FormatInt(height, 10)}}, &response); err != nil {
+		return "", err
+	}
+	if response.Error != nil {
+		return "", cometResponseError(response.Error)
+	}
+	returnedHeight, err := strconv.ParseInt(response.Result.Block.Header.Height, 10, 64)
+	hash := strings.ToLower(strings.TrimSpace(response.Result.BlockID.Hash))
+	if err != nil || returnedHeight != height || !validHash(hash) {
+		return "", errors.New("CometBFT returned inconsistent governance verification block evidence")
+	}
+	return "0x" + hash, nil
 }
 
 func (c *CometChainExecutionClient) ensureNetwork(ctx context.Context) error {

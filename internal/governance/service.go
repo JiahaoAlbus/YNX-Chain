@@ -538,7 +538,7 @@ func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 
 // BeginExecution reserves an exact execution intent but never infers that
 // Chain Core accepted it. Canonical submission must be completed through
-// ConfirmChainExecution after post-commit reconciliation.
+// confirmChainExecution after post-commit reconciliation.
 func (s *Service) BeginExecution(id, manifestHash string, now time.Time) (Proposal, error) {
 	_, proposal, err := s.PrepareChainExecution(id, manifestHash, now)
 	return proposal, err
@@ -615,7 +615,7 @@ func (s *Service) markExecutionSubmittedLocked(p *Proposal, record *TimelockReco
 	return nil
 }
 
-func (s *Service) VerifyExecution(id string, receipt ExecutionReceipt, rollbackReceipt *ExecutionReceipt, now time.Time) (Proposal, error) {
+func (s *Service) verifyExecutionReceipt(id string, receipt ExecutionReceipt, rollbackReceipt *ExecutionReceipt, now time.Time) (Proposal, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	p, err := s.mutable(id, now)
@@ -705,7 +705,7 @@ func (s *Service) VerifyExecution(id string, receipt ExecutionReceipt, rollbackR
 	return clone(p), nil
 }
 
-func (s *Service) VerifyRollback(id string, rollbackReceipt ExecutionReceipt, now time.Time) (Proposal, error) {
+func (s *Service) verifyRollbackReceipt(id string, rollbackReceipt ExecutionReceipt, now time.Time) (Proposal, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	p, err := s.mutable(id, now)

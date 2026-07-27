@@ -64,7 +64,7 @@ func TestCanonicalStateMachineSuccessfulExecutionSequence(t *testing.T) {
 		t.Fatalf("submission was confused with execution: status=%s", p.Status)
 	}
 	receipt := NewExecutionReceipt("0x"+strings.Repeat("1", 64), 77, "0x"+strings.Repeat("2", 64), "0x"+strings.Repeat("3", 64), manifest, "verified", p.ExecuteAfter.Add(time.Minute))
-	if p, err = s.VerifyExecution(p.ID, receipt, nil, p.ExecuteAfter.Add(time.Minute)); err != nil {
+	if p, err = s.verifyExecutionReceipt(p.ID, receipt, nil, p.ExecuteAfter.Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if p.Status != StatusVerified {
@@ -129,7 +129,7 @@ func TestFailedExecutionRemainsFailedUntilVerifiedRollback(t *testing.T) {
 	passTestCanary(t, s, p, manifest)
 	p = submitTestChainExecution(t, s, p, manifest, p.ExecuteAfter)
 	failed := NewExecutionReceipt("0x"+strings.Repeat("4", 64), 88, "0x"+strings.Repeat("5", 64), "0x"+strings.Repeat("6", 64), manifest, "failed", p.ExecuteAfter.Add(time.Minute))
-	if p, err = s.VerifyExecution(p.ID, failed, nil, p.ExecuteAfter.Add(time.Minute)); err != nil {
+	if p, err = s.verifyExecutionReceipt(p.ID, failed, nil, p.ExecuteAfter.Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if p.Status != StatusExecutionFailed || proposalReached(&p, StatusRolledBack) {
@@ -137,13 +137,13 @@ func TestFailedExecutionRemainsFailedUntilVerifiedRollback(t *testing.T) {
 	}
 	rollbackManifest := strings.Repeat("c", 64)
 	rollback := NewExecutionReceipt("0x"+strings.Repeat("7", 64), 89, "0x"+strings.Repeat("8", 64), "0x"+strings.Repeat("9", 64), rollbackManifest, "verified_rollback", p.ExecuteAfter.Add(2*time.Minute))
-	if p, err = s.VerifyRollback(p.ID, rollback, p.ExecuteAfter.Add(2*time.Minute)); err != nil {
+	if p, err = s.verifyRollbackReceipt(p.ID, rollback, p.ExecuteAfter.Add(2*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if p.Status != StatusRolledBack || !proposalReached(&p, StatusRollbackPending) {
 		t.Fatalf("rollback not verified: status=%s", p.Status)
 	}
-	if _, err = s.VerifyRollback(p.ID, rollback, p.ExecuteAfter.Add(3*time.Minute)); !errors.Is(err, ErrNotReady) {
+	if _, err = s.verifyRollbackReceipt(p.ID, rollback, p.ExecuteAfter.Add(3*time.Minute)); !errors.Is(err, ErrNotReady) {
 		t.Fatalf("duplicate rollback accepted: %v", err)
 	}
 }

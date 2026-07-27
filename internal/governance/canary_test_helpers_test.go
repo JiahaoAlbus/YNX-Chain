@@ -71,7 +71,7 @@ func submitTestChainExecution(t *testing.T, service *Service, proposal Proposal,
 		LatestExecution: intent.LatestExecution, SubmittedAt: now.UTC(), SubmittedHeight: 10,
 		BeginTxHash: "0x" + strings.Repeat("a", 64), AuditHash: strings.Repeat("b", 64),
 	}
-	out, err := service.ConfirmChainExecution(proposal.ID, intent, record, now)
+	out, err := service.confirmChainExecution(proposal.ID, intent, record, now)
 	if err != nil {
 		t.Fatal(err)
 	}

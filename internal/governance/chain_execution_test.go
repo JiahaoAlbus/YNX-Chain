@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -56,7 +57,16 @@ func (c *inProcessChainExecutionClient) BroadcastGovernanceAction(ctx context.Co
 		return ErrForbidden
 	}
 	_, err = c.app.Commit(ctx, &abcitypes.RequestCommit{})
+	c.height++
+	c.blockTime = c.blockTime.Add(time.Minute)
 	return err
+}
+
+func (c *inProcessChainExecutionClient) GovernanceBlockHash(_ context.Context, height int64) (string, error) {
+	if height <= 0 || height >= c.height {
+		return "", ErrNotFound
+	}
+	return "0x" + fmt.Sprintf("%064x", height), nil
 }
 
 func TestCanonicalChainExecutionAdapterReservesCommitsReconcilesAndConfirms(t *testing.T) {
@@ -108,10 +118,11 @@ func TestCanonicalChainExecutionAdapterReservesCommitsReconcilesAndConfirms(t *t
 	}
 	auth := &testAuth{principal: Principal{
 		Account: "execution-operator", Product: "governance", DeviceID: "device-1", SessionID: "session-1",
-		Roles: map[string]bool{"executor": true}, Scopes: map[Scope]bool{ScopeBridge: true},
+		Roles: map[string]bool{"executor": true, "verifier": true}, Scopes: map[Scope]bool{ScopeBridge: true},
 	}}
 	statePath := filepath.Join(t.TempDir(), "governance-state.json")
-	server, err := NewServerWithExecutionOwner(service, auth, owner, statePath, func() time.Time { return proposal.ExecuteAfter })
+	runtimeNow := proposal.ExecuteAfter
+	server, err := NewServerWithExecutionOwner(service, auth, owner, statePath, func() time.Time { return runtimeNow })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,6 +163,56 @@ func TestCanonicalChainExecutionAdapterReservesCommitsReconcilesAndConfirms(t *t
 	reconciled, err := owner.Submit(context.Background(), intent, retryRaw)
 	if err != nil || reconciled.BeginTxHash != record.BeginTxHash || client.broadcast != 1 {
 		t.Fatalf("committed submission was not reconciled without rebroadcast: %+v broadcasts=%d err=%v", reconciled, client.broadcast, err)
+	}
+
+	runtimeNow = proposal.ExecuteAfter.Add(time.Minute)
+	stateRoot, evidenceHash := strings.Repeat("8", 64), strings.Repeat("9", 64)
+	prepareBody, _ := json.Marshal(map[string]string{"outcome": "verified", "stateRoot": stateRoot, "evidenceHash": evidenceHash})
+	prepareRequest := httptest.NewRequest(http.MethodPost, "/governance/proposals/"+proposal.ID+"/verify/prepare", bytes.NewReader(prepareBody))
+	prepareRecorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(prepareRecorder, prepareRequest)
+	if prepareRecorder.Code != http.StatusOK {
+		t.Fatalf("verification prepare failed: status=%d body=%s", prepareRecorder.Code, prepareRecorder.Body.String())
+	}
+	var prepared struct {
+		Data struct {
+			Intent consensus.GovernanceExecutionVerifyPayload `json:"intent"`
+		} `json:"data"`
+	}
+	if err = json.Unmarshal(prepareRecorder.Body.Bytes(), &prepared); err != nil || prepared.Data.Intent.BeginTxHash != record.BeginTxHash {
+		t.Fatalf("invalid signable verification intent: %+v err=%v", prepared, err)
+	}
+	verifyTx, err := consensus.NewSignedApplicationAction(key, migration.Network.ChainID, consensus.ActionGovernanceExecutionVerify, prepared.Data.Intent, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifyRaw, _ := consensus.EncodeSignedApplicationAction(verifyTx)
+	verifyBody, _ := json.Marshal(map[string]any{"outcome": "verified", "stateRoot": stateRoot, "evidenceHash": evidenceHash, "signedAction": json.RawMessage(verifyRaw)})
+	verifyRequest := httptest.NewRequest(http.MethodPost, "/governance/proposals/"+proposal.ID+"/verify", bytes.NewReader(verifyBody))
+	verifyRecorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(verifyRecorder, verifyRequest)
+	if verifyRecorder.Code != http.StatusOK || client.broadcast != 2 {
+		t.Fatalf("canonical verification failed: status=%d body=%s broadcasts=%d", verifyRecorder.Code, verifyRecorder.Body.String(), client.broadcast)
+	}
+	verified, err := service.Get(proposal.ID)
+	if err != nil || verified.Status != StatusVerified || verified.ExecutionReceipt == nil ||
+		verified.ExecutionReceipt.TxHash != consensus.ApplicationActionHash(verifyRaw) ||
+		verified.ExecutionReceipt.StateRoot != stateRoot || verified.ExecutionReceipt.BlockHash == "" {
+		t.Fatalf("canonical receipt was not confirmed: %+v err=%v", verified, err)
+	}
+	restored, err = Load(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restoredProposal, _ = restored.Get(proposal.ID)
+	if restoredProposal.Status != StatusVerified || restoredProposal.ExecutionReceipt == nil {
+		t.Fatalf("verified execution was not persisted: %+v", restoredProposal)
+	}
+	retryVerifyTx, _ := consensus.NewSignedApplicationAction(key, migration.Network.ChainID, consensus.ActionGovernanceExecutionVerify, prepared.Data.Intent, 3)
+	retryVerifyRaw, _ := consensus.EncodeSignedApplicationAction(retryVerifyTx)
+	reconciledVerification, _, err := owner.Verify(context.Background(), prepared.Data.Intent, retryVerifyRaw)
+	if err != nil || reconciledVerification.Status != "verified" || client.broadcast != 2 {
+		t.Fatalf("verification reconciliation rebroadcast or failed: %+v broadcasts=%d err=%v", reconciledVerification, client.broadcast, err)
 	}
 }
 
@@ -220,5 +281,79 @@ func TestCanonicalChainExecutionAdapterRejectsSignerPayloadAndMissingOwner(t *te
 	stored, _ := unintegrated.Get(unintegratedProposal.ID)
 	if stored.Status != StatusExecutionReady {
 		t.Fatalf("missing Chain Core owner advanced beyond the persisted reservation: %+v", stored)
+	}
+}
+
+func TestCanonicalChainFailureAndRollbackProduceIndependentGovernanceReceipts(t *testing.T) {
+	now := time.Date(2026, 7, 27, 10, 0, 0, 0, time.UTC)
+	service := testService(t)
+	proposal := proposalAtTimelock(t, service, now)
+	manifest := strings.Repeat("a", 64)
+	passTestCanary(t, service, proposal, manifest)
+	beginIntent, _, err := service.PrepareChainExecution(proposal.ID, manifest, proposal.ExecuteAfter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := secp256k1.PrivKeyFromBytes(bytes.Repeat([]byte{0x74}, 32))
+	signer, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	_, _ = devnet.Faucet(signer, 100)
+	devnet.ProduceBlock()
+	migration, _ := devnet.ExportConsensusMigrationState()
+	app, _ := consensus.NewApplication(migration)
+	client := &inProcessChainExecutionClient{app: app, height: int64(migration.Height) + 1, blockTime: proposal.ExecuteAfter}
+	owner, _ := NewCanonicalChainExecutionAdapter(migration.Network.ChainID, signer, client)
+	beginTx, _ := consensus.NewSignedApplicationAction(key, migration.Network.ChainID, consensus.ActionGovernanceExecutionBegin, beginIntent, 1)
+	beginRaw, _ := consensus.EncodeSignedApplicationAction(beginTx)
+	beginRecord, err := owner.Submit(context.Background(), beginIntent, beginRaw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proposal, err = service.confirmChainExecution(proposal.ID, beginIntent, beginRecord, proposal.ExecuteAfter)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	failureIntent, err := service.PrepareChainVerification(proposal.ID, "failed", strings.Repeat("b", 64), strings.Repeat("c", 64))
+	if err != nil {
+		t.Fatal(err)
+	}
+	failureTx, _ := consensus.NewSignedApplicationAction(key, migration.Network.ChainID, consensus.ActionGovernanceExecutionVerify, failureIntent, 2)
+	failureRaw, _ := consensus.EncodeSignedApplicationAction(failureTx)
+	failedRecord, failureBlock, err := owner.Verify(context.Background(), failureIntent, failureRaw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proposal, err = service.confirmChainVerification(proposal.ID, failureIntent, failedRecord, failureBlock, proposal.ExecuteAfter.Add(time.Minute))
+	if err != nil || proposal.Status != StatusExecutionFailed || proposal.ExecutionReceipt == nil ||
+		proposal.ExecutionReceipt.Outcome != "failed" || proposal.ExecutionReceipt.TxHash != failedRecord.FailureTxHash {
+		t.Fatalf("canonical failure receipt missing: %+v err=%v", proposal, err)
+	}
+
+	rollbackIntent, err := service.PrepareChainVerification(proposal.ID, "rolled_back", strings.Repeat("d", 64), strings.Repeat("e", 64))
+	if err != nil || rollbackIntent.RollbackManifest != expectedRollbackManifestHash(&proposal) ||
+		rollbackIntent.RollbackManifest == proposal.ExecutionHash {
+		t.Fatalf("rollback intent is not bound to the approved plan: %+v err=%v", rollbackIntent, err)
+	}
+	tampered := rollbackIntent
+	tampered.RollbackManifest = strings.Repeat("f", 64)
+	tamperedTx, _ := consensus.NewSignedApplicationAction(key, migration.Network.ChainID, consensus.ActionGovernanceExecutionVerify, tampered, 3)
+	tamperedRaw, _ := consensus.EncodeSignedApplicationAction(tamperedTx)
+	if _, _, err = owner.Verify(context.Background(), rollbackIntent, tamperedRaw); err == nil {
+		t.Fatal("changed rollback manifest was accepted")
+	}
+	rollbackTx, _ := consensus.NewSignedApplicationAction(key, migration.Network.ChainID, consensus.ActionGovernanceExecutionVerify, rollbackIntent, 3)
+	rollbackRaw, _ := consensus.EncodeSignedApplicationAction(rollbackTx)
+	rolledBackRecord, rollbackBlock, err := owner.Verify(context.Background(), rollbackIntent, rollbackRaw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proposal, err = service.confirmChainVerification(proposal.ID, rollbackIntent, rolledBackRecord, rollbackBlock, proposal.ExecuteAfter.Add(2*time.Minute))
+	if err != nil || proposal.Status != StatusRolledBack || proposal.RollbackReceipt == nil ||
+		proposal.RollbackReceipt.Outcome != "verified_rollback" ||
+		proposal.RollbackReceipt.ManifestHash != rollbackIntent.RollbackManifest ||
+		proposal.ExecutionReceipt.TxHash != rolledBackRecord.FailureTxHash ||
+		proposal.RollbackReceipt.TxHash != rolledBackRecord.VerifyTxHash {
+		t.Fatalf("independent failure/rollback receipts missing: %+v err=%v", proposal, err)
 	}
 }

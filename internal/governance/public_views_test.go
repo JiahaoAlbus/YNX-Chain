@@ -37,7 +37,7 @@ func TestPublicViewsAreDerivedFromCanonicalProposalState(t *testing.T) {
 		t.Fatalf("execution submission view invalid: %+v", s.PublicExecutions())
 	}
 	receipt := NewExecutionReceipt("0x"+strings.Repeat("1", 64), 91, "0x"+strings.Repeat("2", 64), "0x"+strings.Repeat("3", 64), manifest, "verified", p.ExecuteAfter.Add(time.Minute))
-	if _, err = s.VerifyExecution(p.ID, receipt, nil, p.ExecuteAfter.Add(time.Minute)); err != nil {
+	if _, err = s.verifyExecutionReceipt(p.ID, receipt, nil, p.ExecuteAfter.Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	executions := s.PublicExecutions()

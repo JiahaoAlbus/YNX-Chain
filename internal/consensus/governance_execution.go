@@ -57,7 +57,13 @@ type BFTGovernanceExecution struct {
 	VerifiedHeight      int64      `json:"verifiedHeight,omitempty"`
 	VerifyTxHash        string     `json:"verifyTxHash,omitempty"`
 	StateRoot           string     `json:"stateRoot,omitempty"`
+	OutcomeEvidenceHash string     `json:"outcomeEvidenceHash,omitempty"`
 	RollbackManifest    string     `json:"rollbackManifestHash,omitempty"`
+	FailedAt            *time.Time `json:"failedAt,omitempty"`
+	FailedHeight        int64      `json:"failedHeight,omitempty"`
+	FailureTxHash       string     `json:"failureTxHash,omitempty"`
+	FailureStateRoot    string     `json:"failureStateRoot,omitempty"`
+	FailureEvidenceHash string     `json:"failureEvidenceHash,omitempty"`
 	AuditHash           string     `json:"auditHash"`
 }
 
@@ -168,16 +174,34 @@ func (a *Application) applyProtocolGovernanceAction(state executionState, raw []
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("governance execution begin record not found"))
 		}
 		record := state.governanceExecutions[index]
-		if record.Status != "submitted" || record.Signer != tx.Signer || record.BeginTxHash != p.BeginTxHash ||
+		if record.Status == "failed" && p.Outcome == "rolled_back" && !hasGovernanceFailureEvidence(record) && hasLegacyGovernanceTerminalEvidence(record) {
+			record.FailedAt, record.FailedHeight = record.VerifiedAt, record.VerifiedHeight
+			record.FailureTxHash, record.FailureStateRoot, record.FailureEvidenceHash = record.VerifyTxHash, record.StateRoot, record.EvidenceHash
+			record.VerifiedAt, record.VerifiedHeight, record.VerifyTxHash = nil, 0, ""
+			record.StateRoot, record.OutcomeEvidenceHash = "", ""
+		}
+		validTransition := record.Status == "submitted" && (p.Outcome == "verified" || p.Outcome == "failed") ||
+			record.Status == "failed" && p.Outcome == "rolled_back"
+		if !validTransition || record.Signer != tx.Signer || record.BeginTxHash != p.BeginTxHash ||
 			record.ActionHash != p.ActionHash || record.ManifestHash != p.ManifestHash {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("governance execution verification does not match its immutable begin binding"))
 		}
-		if height <= record.SubmittedHeight {
+		previousHeight := record.SubmittedHeight
+		if record.Status == "failed" {
+			previousHeight = record.FailedHeight
+		}
+		if height <= previousHeight {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("governance execution verification requires a later committed block"))
 		}
-		record.Status, record.EvidenceHash, record.StateRoot = p.Outcome, p.EvidenceHash, p.StateRoot
-		record.RollbackManifest, record.VerifiedAt = p.RollbackManifest, timePointer(blockTime)
-		record.VerifiedHeight, record.VerifyTxHash = height, txHash
+		record.Status = p.Outcome
+		if p.Outcome == "failed" {
+			record.FailedAt, record.FailedHeight = timePointer(blockTime), height
+			record.FailureTxHash, record.FailureStateRoot, record.FailureEvidenceHash = txHash, p.StateRoot, p.EvidenceHash
+		} else {
+			record.StateRoot, record.OutcomeEvidenceHash = p.StateRoot, p.EvidenceHash
+			record.RollbackManifest, record.VerifiedAt = p.RollbackManifest, timePointer(blockTime)
+			record.VerifiedHeight, record.VerifyTxHash = height, txHash
+		}
 		record.AuditHash = governanceExecutionHash(record)
 		state.governanceExecutions[index] = record
 		status = record.Status
@@ -249,14 +273,26 @@ func validateGovernanceExecutionCommittedState(state CommittedState) error {
 			return errors.New("committed governance execution is incomplete, unsorted, or tampered")
 		}
 		if value.Status == "submitted" {
-			if value.VerifiedAt != nil || value.VerifiedHeight != 0 || value.VerifyTxHash != "" || value.StateRoot != "" || value.RollbackManifest != "" {
+			if hasGovernanceSuccessEvidence(value) || hasGovernanceFailureEvidence(value) || hasLegacyGovernanceTerminalEvidence(value) {
 				return errors.New("submitted governance execution contains terminal evidence")
 			}
-		} else if value.Status != "verified" && value.Status != "failed" && value.Status != "rolled_back" {
+		} else if value.Status == "verified" {
+			if (!hasGovernanceSuccessEvidence(value) && !hasLegacyGovernanceTerminalEvidence(value)) || hasGovernanceFailureEvidence(value) || value.RollbackManifest != "" {
+				return errors.New("verified governance execution evidence is incomplete")
+			}
+		} else if value.Status == "failed" {
+			if (!hasGovernanceFailureEvidence(value) && !hasLegacyGovernanceTerminalEvidence(value)) || hasGovernanceSuccessEvidence(value) || value.RollbackManifest != "" {
+				return errors.New("failed governance execution evidence is incomplete")
+			}
+		} else if value.Status == "rolled_back" {
+			legacy := hasLegacyGovernanceTerminalEvidence(value) && validGovernanceHash(value.RollbackManifest)
+			current := hasGovernanceFailureEvidence(value) && hasGovernanceSuccessEvidence(value) &&
+				validGovernanceHash(value.RollbackManifest) && value.VerifiedHeight > value.FailedHeight
+			if !legacy && !current {
+				return errors.New("rolled-back governance execution evidence is incomplete")
+			}
+		} else {
 			return errors.New("committed governance execution status is invalid")
-		} else if value.VerifiedAt == nil || value.VerifiedHeight <= value.SubmittedHeight || !validGovernanceTxHash(value.VerifyTxHash) ||
-			!validGovernanceHash(value.StateRoot) || (value.Status == "rolled_back") != validGovernanceHash(value.RollbackManifest) {
-			return errors.New("terminal governance execution evidence is incomplete")
 		}
 		previousID = value.ProposalID
 	}
@@ -271,4 +307,23 @@ func validateGovernanceExecutionCommittedState(state CommittedState) error {
 		previousHash = value.AuditHash
 	}
 	return nil
+}
+
+func hasGovernanceSuccessEvidence(value BFTGovernanceExecution) bool {
+	return value.VerifiedAt != nil && value.VerifiedHeight > value.SubmittedHeight &&
+		validGovernanceTxHash(value.VerifyTxHash) && validGovernanceHash(value.StateRoot) &&
+		validGovernanceHash(value.OutcomeEvidenceHash)
+}
+
+func hasGovernanceFailureEvidence(value BFTGovernanceExecution) bool {
+	return value.FailedAt != nil && value.FailedHeight > value.SubmittedHeight &&
+		validGovernanceTxHash(value.FailureTxHash) && validGovernanceHash(value.FailureStateRoot) &&
+		validGovernanceHash(value.FailureEvidenceHash)
+}
+
+func hasLegacyGovernanceTerminalEvidence(value BFTGovernanceExecution) bool {
+	return value.OutcomeEvidenceHash == "" && value.FailedAt == nil && value.FailedHeight == 0 &&
+		value.FailureTxHash == "" && value.FailureStateRoot == "" && value.FailureEvidenceHash == "" &&
+		value.VerifiedAt != nil && value.VerifiedHeight > value.SubmittedHeight &&
+		validGovernanceTxHash(value.VerifyTxHash) && validGovernanceHash(value.StateRoot)
 }

@@ -146,6 +146,84 @@ func TestGovernanceExecutionFailsClosedOnWindowBindingSignerReplayAndTamper(t *t
 	}
 }
 
+func TestGovernanceExecutionFailureThenRollbackPreservesBothReceipts(t *testing.T) {
+	key := deterministicPrivateKey(154)
+	signer := mustNativeAddress(t, key)
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	_, _ = devnet.Faucet(signer, 100)
+	devnet.ProduceBlock()
+	migration, _ := devnet.ExportConsensusMigrationState()
+	statePath := filepath.Join(t.TempDir(), "state.json")
+	app, _ := NewPersistentApplication(migration, statePath)
+	blockTime := time.Date(2026, 7, 27, 11, 0, 0, 0, time.UTC)
+	begin := GovernanceExecutionBeginPayload{
+		ProposalID: strings.Repeat("1", 64), ActionHash: strings.Repeat("2", 64), ManifestHash: strings.Repeat("3", 64),
+		GovernanceAuditHash: strings.Repeat("4", 64), TimelockAuditHash: strings.Repeat("5", 64),
+		CanaryAuditHash: strings.Repeat("6", 64), EvidenceHash: strings.Repeat("7", 64), Scope: "protocol.upgrade",
+		EarliestExecution: blockTime.Add(-time.Minute), LatestExecution: blockTime.Add(time.Hour),
+	}
+	beginRaw := mustGovernanceExecutionAction(t, key, ActionGovernanceExecutionBegin, begin, 1)
+	height := int64(migration.Height) + 1
+	commitGovernanceExecutionBlock(t, app, height, blockTime, beginRaw)
+	failure := GovernanceExecutionVerifyPayload{
+		ProposalID: begin.ProposalID, BeginTxHash: ApplicationActionHash(beginRaw), ActionHash: begin.ActionHash,
+		ManifestHash: begin.ManifestHash, Outcome: "failed", StateRoot: strings.Repeat("8", 64), EvidenceHash: strings.Repeat("9", 64),
+	}
+	failureRaw := mustGovernanceExecutionAction(t, key, ActionGovernanceExecutionVerify, failure, 2)
+	commitGovernanceExecutionBlock(t, app, height+1, blockTime.Add(time.Minute), failureRaw)
+	var failed BFTGovernanceExecution
+	queryJSON(t, app, "/governance/executions/"+begin.ProposalID, &failed)
+	if failed.Status != "failed" || failed.EvidenceHash != begin.EvidenceHash || failed.FailureTxHash != ApplicationActionHash(failureRaw) ||
+		failed.FailureStateRoot != failure.StateRoot || failed.FailureEvidenceHash != failure.EvidenceHash ||
+		failed.VerifiedAt != nil || failed.StateRoot != "" {
+		t.Fatalf("failure evidence was not preserved independently: %+v", failed)
+	}
+	var legacyState CommittedState
+	queryJSON(t, app, "/state", &legacyState)
+	legacy := legacyState.GovernanceExecutions[0]
+	legacy.EvidenceHash, legacy.VerifiedAt, legacy.VerifiedHeight = legacy.FailureEvidenceHash, legacy.FailedAt, legacy.FailedHeight
+	legacy.VerifyTxHash, legacy.StateRoot = legacy.FailureTxHash, legacy.FailureStateRoot
+	legacy.FailedAt, legacy.FailedHeight, legacy.FailureTxHash, legacy.FailureStateRoot, legacy.FailureEvidenceHash = nil, 0, "", "", ""
+	legacy.AuditHash = governanceExecutionHash(legacy)
+	legacyState.GovernanceExecutions[0] = legacy
+	legacyState.AppHash, _ = legacyState.calculateHash()
+	if err := legacyState.Validate(migration); err != nil {
+		t.Fatalf("published v8 terminal record no longer loads: %v", err)
+	}
+
+	illegalSuccess := failure
+	illegalSuccess.Outcome, illegalSuccess.StateRoot, illegalSuccess.EvidenceHash = "verified", strings.Repeat("a", 64), strings.Repeat("b", 64)
+	assertGovernanceExecutionRejected(t, app, mustGovernanceExecutionAction(t, key, ActionGovernanceExecutionVerify, illegalSuccess, 3), "success after failure")
+
+	rollback := failure
+	rollback.Outcome, rollback.StateRoot, rollback.EvidenceHash = "rolled_back", strings.Repeat("c", 64), strings.Repeat("d", 64)
+	rollback.RollbackManifest = strings.Repeat("e", 64)
+	rollbackRaw := mustGovernanceExecutionAction(t, key, ActionGovernanceExecutionVerify, rollback, 3)
+	commitGovernanceExecutionBlock(t, app, height+2, blockTime.Add(2*time.Minute), rollbackRaw)
+	var restored BFTGovernanceExecution
+	queryJSON(t, app, "/governance/executions/"+begin.ProposalID, &restored)
+	if restored.Status != "rolled_back" || restored.FailureTxHash != failed.FailureTxHash ||
+		restored.VerifyTxHash != ApplicationActionHash(rollbackRaw) || restored.StateRoot != rollback.StateRoot ||
+		restored.OutcomeEvidenceHash != rollback.EvidenceHash || restored.RollbackManifest != rollback.RollbackManifest {
+		t.Fatalf("rollback did not preserve failure and recovery evidence: %+v", restored)
+	}
+	var audit []BFTGovernanceExecutionAudit
+	queryJSON(t, app, "/governance/execution-audit", &audit)
+	if len(audit) != 3 || audit[1].Status != "failed" || audit[2].Status != "rolled_back" ||
+		audit[2].PreviousHash != audit[1].AuditHash {
+		t.Fatalf("failure/rollback audit chain invalid: %+v", audit)
+	}
+	restarted, err := NewPersistentApplication(migration, statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var afterRestart BFTGovernanceExecution
+	queryJSON(t, restarted, "/governance/executions/"+begin.ProposalID, &afterRestart)
+	if string(mustJSON(t, afterRestart)) != string(mustJSON(t, restored)) {
+		t.Fatal("failure/rollback evidence changed after restart")
+	}
+}
+
 func mustGovernanceExecutionAction(t *testing.T, key *secp256k1.PrivateKey, action string, input any, nonce uint64) []byte {
 	t.Helper()
 	tx, err := NewSignedApplicationAction(key, 6423, action, input, nonce)

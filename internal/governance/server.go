@@ -100,6 +100,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /governance/proposals/{id}/canary/complete", s.protected("verifier", s.completeCanary))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/execute/prepare", s.protected("executor", s.prepareExecution))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/execute", s.protected("executor", s.execute))
+	s.mux.HandleFunc("POST /governance/proposals/{id}/verify/prepare", s.protected("verifier", s.prepareVerification))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/verify", s.protected("verifier", s.verify))
 	s.mux.HandleFunc("GET /governance/emergencies", s.listEmergencies)
 	s.mux.HandleFunc("GET /governance/emergencies/{id}", s.getEmergency)
@@ -524,22 +525,57 @@ func (s *Server) execute(w http.ResponseWriter, r *http.Request, p Principal) {
 		writeError(w, http.StatusBadGateway, "canonical Chain Core execution submission failed")
 		return
 	}
-	out, err := s.service.ConfirmChainExecution(r.PathValue("id"), intent, record, s.now())
+	out, err := s.service.confirmChainExecution(r.PathValue("id"), intent, record, s.now())
 	s.mutation(w, http.StatusOK, out, err)
 }
 func (s *Server) verify(w http.ResponseWriter, r *http.Request, p Principal) {
 	if !s.authorizedProposal(w, r.PathValue("id"), p) {
 		return
 	}
+	if s.executionOwner == nil {
+		writeError(w, http.StatusServiceUnavailable, "canonical Chain Core execution owner is not configured")
+		return
+	}
 	var in struct {
-		Receipt         ExecutionReceipt  `json:"receipt"`
-		RollbackReceipt *ExecutionReceipt `json:"rollbackReceipt"`
+		Outcome      string          `json:"outcome"`
+		StateRoot    string          `json:"stateRoot"`
+		EvidenceHash string          `json:"evidenceHash"`
+		SignedAction json.RawMessage `json:"signedAction"`
 	}
 	if !decode(w, r, &in) {
 		return
 	}
-	out, err := s.service.VerifyExecution(r.PathValue("id"), in.Receipt, in.RollbackReceipt, s.now())
+	intent, err := s.service.PrepareChainVerification(r.PathValue("id"), in.Outcome, in.StateRoot, in.EvidenceHash)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	record, blockHash, err := s.executionOwner.Verify(r.Context(), intent, in.SignedAction)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "canonical Chain Core execution verification failed")
+		return
+	}
+	out, err := s.service.confirmChainVerification(r.PathValue("id"), intent, record, blockHash, s.now())
 	s.mutation(w, http.StatusOK, out, err)
+}
+func (s *Server) prepareVerification(w http.ResponseWriter, r *http.Request, p Principal) {
+	if !s.authorizedProposal(w, r.PathValue("id"), p) {
+		return
+	}
+	var in struct {
+		Outcome      string `json:"outcome"`
+		StateRoot    string `json:"stateRoot"`
+		EvidenceHash string `json:"evidenceHash"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	intent, err := s.service.PrepareChainVerification(r.PathValue("id"), in.Outcome, in.StateRoot, in.EvidenceHash)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeSource(w, http.StatusOK, map[string]any{"intent": intent}, s.now())
 }
 func (s *Server) createEmergency(w http.ResponseWriter, r *http.Request, p Principal) {
 	var in EmergencyInput

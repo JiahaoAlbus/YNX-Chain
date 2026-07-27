@@ -22,7 +22,7 @@ func executeInput(t *testing.T, s *Service, in ProposalInput, now time.Time) Pro
 	passTestCanary(t, s, p, manifest)
 	p = submitTestChainExecution(t, s, p, manifest, p.ExecuteAfter)
 	receipt := NewExecutionReceipt("0x"+strings.Repeat("b", 64), 30, "0x"+strings.Repeat("c", 64), "0x"+strings.Repeat("d", 64), manifest, "verified", p.ExecuteAfter.Add(time.Minute))
-	p, err = s.VerifyExecution(p.ID, receipt, nil, p.ExecuteAfter.Add(time.Minute))
+	p, err = s.verifyExecutionReceipt(p.ID, receipt, nil, p.ExecuteAfter.Add(time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}

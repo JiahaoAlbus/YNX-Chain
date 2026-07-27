@@ -100,7 +100,7 @@ func TestUpgradeExecutionPersistsExactManifestAndReceipt(t *testing.T) {
 	proposal = submitTestChainExecution(t, service, proposal, strings.Repeat("a", 64), proposal.ExecuteAfter)
 	receipt := NewExecutionReceipt("0x"+strings.Repeat("1", 64), 31, "0x"+strings.Repeat("2", 64), "0x"+strings.Repeat("3", 64), strings.Repeat("a", 64), "verified", proposal.ExecuteAfter.Add(time.Minute))
 	var err error
-	proposal, err = service.VerifyExecution(proposal.ID, receipt, nil, proposal.ExecuteAfter.Add(time.Minute))
+	proposal, err = service.verifyExecutionReceipt(proposal.ID, receipt, nil, proposal.ExecuteAfter.Add(time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,12 +167,12 @@ func TestFailedUpgradePersistsVerifiedRollbackCorrelation(t *testing.T) {
 	proposal = submitTestChainExecution(t, service, proposal, strings.Repeat("a", 64), proposal.ExecuteAfter)
 	failed := NewExecutionReceipt("0x"+strings.Repeat("4", 64), 41, "0x"+strings.Repeat("5", 64), "0x"+strings.Repeat("6", 64), strings.Repeat("a", 64), "failed", proposal.ExecuteAfter.Add(time.Minute))
 	var err error
-	proposal, err = service.VerifyExecution(proposal.ID, failed, nil, proposal.ExecuteAfter.Add(time.Minute))
+	proposal, err = service.verifyExecutionReceipt(proposal.ID, failed, nil, proposal.ExecuteAfter.Add(time.Minute))
 	if err != nil || proposal.Status != StatusExecutionFailed {
 		t.Fatalf("failed execution: %+v %v", proposal, err)
 	}
 	rollback := NewExecutionReceipt("0x"+strings.Repeat("7", 64), 42, "0x"+strings.Repeat("8", 64), "0x"+strings.Repeat("9", 64), strings.Repeat("c", 64), "verified_rollback", proposal.ExecuteAfter.Add(2*time.Minute))
-	proposal, err = service.VerifyRollback(proposal.ID, rollback, proposal.ExecuteAfter.Add(2*time.Minute))
+	proposal, err = service.verifyRollbackReceipt(proposal.ID, rollback, proposal.ExecuteAfter.Add(2*time.Minute))
 	if err != nil || proposal.Status != StatusRolledBack {
 		t.Fatalf("verified rollback: %+v %v", proposal, err)
 	}
