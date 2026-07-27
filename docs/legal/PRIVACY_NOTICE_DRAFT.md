@@ -2,12 +2,12 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.0-candidate |
-| Effective date | Not effective; draft dated 2026-07-22 |
-| Evidence source commit | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
+| Version | 0.1.1-candidate |
+| Effective date | Not effective; draft dated 2026-07-27 |
+| Source commit | `fa47d06f6c1c0e1447447ad193b332f3bd458662` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 0.1.0-candidate |
 | Review status | Draft for privacy counsel; controller/entity, contacts, jurisdictions, lawful bases and final data map not approved |
 
 ## Important notice
@@ -160,6 +160,9 @@ exist before effectiveness.
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-27): Normalized the complete document metadata tuple; the
+  draft remains non-effective and all controller, jurisdiction, lawful-basis, data-map
+  and counsel approvals remain absent.
 - 0.1.0-candidate (2026-07-22): Initial scope, data, source, purpose, blockchain,
   AI, sharing, transfer, retention, security, rights, children, automated decision,
   tracking, incident and acceptance-gap draft.

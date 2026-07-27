@@ -129,6 +129,139 @@
         "release/evidence/document-metadata-2026-07-27.json",
         "release/evidence/website-public-acceptance-2026-07-26.json"
       ]
+    },
+    {
+      "id": "streambft-specification",
+      "path": "docs/whitepaper/STREAMBFT_SPECIFICATION.md",
+      "authorityClass": "consensus-specification",
+      "metadata": {
+        "Version": "0.1.2-candidate",
+        "Effective date": "2026-07-27",
+        "Source commit": "fa47d06f6c1c0e1447447ad193b332f3bd458662",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.1.1-candidate",
+        "Review status": "Engineering specification; independent consensus and security review required"
+      },
+      "changeLogVersion": "0.1.2-candidate",
+      "publicEvidence": [
+        "release/facts/network.json",
+        "release/facts/authoritative-facts.json"
+      ]
+    },
+    {
+      "id": "execution-local-fee-markets",
+      "path": "docs/whitepaper/EXECUTION_AND_LOCAL_FEE_MARKETS.md",
+      "authorityClass": "execution-fee-markets",
+      "metadata": {
+        "Version": "0.1.2-candidate",
+        "Effective date": "2026-07-27",
+        "Source commit": "fa47d06f6c1c0e1447447ad193b332f3bd458662",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.1.1-candidate",
+        "Review status": "Engineering and economic draft; independent review required"
+      },
+      "changeLogVersion": "0.1.2-candidate",
+      "publicEvidence": [
+        "release/facts/economics.json",
+        "release/facts/authoritative-facts.json"
+      ]
+    },
+    {
+      "id": "treasury-revenue-burn",
+      "path": "docs/economics/TREASURY_REVENUE_BURN.md",
+      "authorityClass": "treasury-disclosure",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "2026-07-27",
+        "Source commit": "fa47d06f6c1c0e1447447ad193b332f3bd458662",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Accounting-policy candidate; not a Treasury statement or audit"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/economics.json",
+        "release/facts/claims.json"
+      ]
+    },
+    {
+      "id": "stablecoin-reserve-redemption",
+      "path": "docs/stablecoin/STABLECOIN_RESERVE_REDEMPTION.md",
+      "authorityClass": "stablecoin-framework",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "2026-07-27",
+        "Source commit": "fa47d06f6c1c0e1447447ad193b332f3bd458662",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Framework and gap disclosure; issuer, reserve, redemption, custody and legal approval absent"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/economics.json",
+        "release/facts/claims.json"
+      ]
+    },
+    {
+      "id": "proof-of-solvency",
+      "path": "docs/economics/PROOF_OF_SOLVENCY.md",
+      "authorityClass": "solvency-framework",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "2026-07-27",
+        "Source commit": "fa47d06f6c1c0e1447447ad193b332f3bd458662",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Framework only; no solvency attestation is claimed"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/evidence.json",
+        "release/facts/claims.json"
+      ]
+    },
+    {
+      "id": "privacy-notice-draft",
+      "path": "docs/legal/PRIVACY_NOTICE_DRAFT.md",
+      "authorityClass": "privacy-draft",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "Not effective; draft dated 2026-07-27",
+        "Source commit": "fa47d06f6c1c0e1447447ad193b332f3bd458662",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Draft for privacy counsel; controller/entity, contacts, jurisdictions, lawful bases and final data map not approved"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/compliance.json",
+        "docs/legal/LEGAL_REVIEW_PACKET.md"
+      ]
+    },
+    {
+      "id": "acceptable-use-policy-draft",
+      "path": "docs/legal/ACCEPTABLE_USE_POLICY_DRAFT.md",
+      "authorityClass": "acceptable-use-draft",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "Not effective; draft dated 2026-07-27",
+        "Source commit": "fa47d06f6c1c0e1447447ad193b332f3bd458662",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Draft for counsel and abuse/safety review; enforcement authority and appeal process not approved"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/compliance.json",
+        "docs/legal/LEGAL_REVIEW_PACKET.md"
+      ]
     }
   ]
 }

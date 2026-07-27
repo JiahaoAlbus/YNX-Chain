@@ -2,12 +2,12 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.0-candidate |
-| Effective date | Not effective; draft dated 2026-07-22 |
-| Evidence source commit | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
+| Version | 0.1.1-candidate |
+| Effective date | Not effective; draft dated 2026-07-27 |
+| Source commit | `fa47d06f6c1c0e1447447ad193b332f3bd458662` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 0.1.0-candidate |
 | Review status | Draft for counsel and abuse/safety review; enforcement authority and appeal process not approved |
 
 ## Scope
@@ -87,5 +87,8 @@ Reports must not contain seed phrases, private keys or complete secrets.
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-27): Normalized the complete document metadata tuple; the
+  draft remains non-effective and enforcement authority, appeal mechanics, contacts and
+  counsel/abuse-safety approval remain absent.
 - 0.1.0-candidate (2026-07-22): Initial security, financial, content, automation,
   AI, enforcement, appeal and reporting draft with explicit authority gaps.

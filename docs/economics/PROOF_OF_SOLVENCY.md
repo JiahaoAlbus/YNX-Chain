@@ -2,12 +2,13 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.0-candidate |
-| Effective date | 2026-07-22 |
-| Accepted central source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
+| Version | 0.1.1-candidate |
+| Effective date | 2026-07-27 |
+| Source commit | `fa47d06f6c1c0e1447447ad193b332f3bd458662` |
+| Accepted runtime source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 0.1.0-candidate |
 | Review status | Framework only; no solvency attestation is claimed |
 
 ## Direct answer
@@ -144,6 +145,9 @@ withdrawals, profitability or zero risk.
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-27): Normalized the complete document metadata tuple while
+  preserving the accepted runtime source and the explicit absence of any solvency
+  attestation.
 - 0.1.0-candidate (2026-07-22): Defined a non-claiming solvency framework for
   scope, assets, liabilities, liquidity, stablecoins, bridges, vaults, privacy,
   publication and current evidence gaps.

@@ -11,6 +11,13 @@ const allowedAuthorityClasses = new Set([
   "legal-draft",
   "brand-guidance",
   "website-integration-handoff",
+  "consensus-specification",
+  "execution-fee-markets",
+  "treasury-disclosure",
+  "stablecoin-framework",
+  "solvency-framework",
+  "privacy-draft",
+  "acceptable-use-draft",
 ]);
 
 function normalize(value) {

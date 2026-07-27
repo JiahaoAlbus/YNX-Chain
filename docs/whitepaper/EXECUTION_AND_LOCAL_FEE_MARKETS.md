@@ -2,13 +2,14 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.1-candidate |
-| Effective date | 2026-07-22 |
-| Source commit | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
+| Version | 0.1.2-candidate |
+| Effective date | 2026-07-27 |
+| Source commit | `fa47d06f6c1c0e1447447ad193b332f3bd458662` |
+| Accepted runtime source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
 | Fee-ledger and shadow-market candidate reviewed | `9c2d39799b9eef0be06e3b04d4ffe2e9087cc5b8` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 0.1.1-candidate |
 | Review status | Engineering and economic draft; independent review required |
 
 ## Direct answer
@@ -306,6 +307,9 @@ or risk limits.
 
 ## Change log
 
+- 0.1.2-candidate (2026-07-27): Normalized the complete document metadata tuple while
+  preserving separate accepted-runtime and fee-ledger/shadow-market candidate sources
+  and all non-activation limitations.
 - 0.1.1-candidate (2026-07-22): Added the newer fixed-fee ledger and disabled
   StreamBFT per-lane market as explicitly non-central candidate evidence.
 - 0.1.0-candidate (2026-07-22): Documented authoritative execution, current

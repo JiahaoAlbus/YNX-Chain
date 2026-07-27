@@ -2,13 +2,14 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.0-candidate |
-| Effective date | 2026-07-22 |
-| Accepted central source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
+| Version | 0.1.1-candidate |
+| Effective date | 2026-07-27 |
+| Source commit | `fa47d06f6c1c0e1447447ad193b332f3bd458662` |
+| Accepted runtime source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
 | Economic candidate reviewed | `ff01dcee4c93acfb138dcde91f7605e408b706d5` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 0.1.0-candidate |
 | Review status | Accounting-policy candidate; not a Treasury statement or audit |
 
 ## Direct answer
@@ -122,6 +123,9 @@ policy changes.
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-27): Normalized the complete document metadata tuple while
+  preserving separate accepted-runtime and economics-candidate sources and all audit,
+  Treasury, burn and buyback limitations.
 - 0.1.0-candidate (2026-07-22): Defined current boundaries, accounting terms,
   candidate allocation, required ledger and Treasury authority, buyback controls,
   financial reporting, governance and release-state truth.
