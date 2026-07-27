@@ -15,6 +15,7 @@ import {
   signGatewayChallenge,
 } from "../src/index.js";
 import { CanonicalWalletGatewayNodeHost, encodeGatewayProofHeader } from "../src/gateway-node-host.js";
+import * as packageRoot from "../src/index.js";
 import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_SECRET, request } from "./fixtures.mjs";
 
 const BUILD={buildTime:"2026-07-27T12:00:00.000Z",release:"wallet-auth-test",sourceCommit:"a".repeat(40)};
@@ -129,4 +130,13 @@ test("Node host isolates a failed structured-event sink and reports the drop",as
     const metrics=await (await fetch(`${base}/metrics`)).text();
     assert.match(metrics,/ynx_wallet_gateway_events_dropped_total 1/);
   });
+});
+
+test("package root exports the canonical Node host observability surface",()=>{
+  assert.equal(packageRoot.CanonicalWalletGatewayNodeHost,CanonicalWalletGatewayNodeHost);
+  assert.equal(packageRoot.CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION,1);
+  assert.equal(packageRoot.CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION,1);
+  assert.equal(packageRoot.CANONICAL_GATEWAY_PROOF_HEADER,"x-ynx-product-session-proof");
+  assert.equal(packageRoot.encodeGatewayProofHeader,encodeGatewayProofHeader);
+  assert.equal(typeof packageRoot.decodeGatewayProofHeader,"function");
 });

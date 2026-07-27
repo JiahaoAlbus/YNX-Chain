@@ -17,4 +17,5 @@ export * from "./intent.js";
 export * from "./session-proof.js";
 export * from "./gateway-adapter.js";
 export * from "./gateway-http.js";
+export * from "./gateway-node-host.js";
 export * from "./bundler.js";
