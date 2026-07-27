@@ -1,6 +1,6 @@
 # YNX Seller Console Evidence Index
 
-Source commit: `pending-checkpoint`
+Source commit: `62d5a1833b9a901a339dc267ef78779ba793a095`
 
 | Evidence ID | Claim | Direct evidence | Status |
 |---|---|---|---|

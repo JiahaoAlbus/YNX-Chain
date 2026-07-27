@@ -3,3 +3,5 @@
 {"at":"2026-07-27T06:18:35Z","stage":"FREEZE","action":"targeted-tests","result":"passed","commands":["go test ./internal/commerce","npm test in apps/seller-console","npm run build in apps/seller-console"]}
 {"at":"2026-07-27T06:18:35Z","stage":"FREEZE","action":"local-http-smoke","result":"passed-local-only","paths":["/health","/api/capabilities"],"boundary":"existing local service; not current-source deployment proof"}
 {"at":"2026-07-27T06:18:35Z","stage":"FREEZE","action":"truthful-release-sync","result":"updated","currentDeployedStaging":false,"currentDownloadHosted":false,"historicalCommit":"38e2f68"}
+{"at":"2026-07-27T06:18:35Z","stage":"PROTECT","action":"source-checkpoint","result":"committed","commit":"62d5a1833b9a901a339dc267ef78779ba793a095","tests":"passed"}
+{"at":"2026-07-27T06:18:35Z","stage":"PROTECT","action":"evidence-binding","result":"ready-to-commit","sourceCommit":"62d5a1833b9a901a339dc267ef78779ba793a095"}

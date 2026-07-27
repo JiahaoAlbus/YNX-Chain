@@ -4,15 +4,18 @@
 
 `FREEZE` — canonical Seller RBAC and central integration boundaries are being frozen before shared Testnet integration.
 
-## Protected slice in progress
+## Protected source checkpoint
 
-1. Replace the legacy broad `manager` role with canonical least-privilege roles.
-2. Migrate Snapshot v2 `manager` records to Snapshot v3 `admin`.
-3. Reject legacy and unknown roles for new assignments.
-4. Apply fail-closed permission checks across catalog, inventory, fulfillment, finance, support and read paths.
-5. Freeze integration contract, test vectors, dependency acceptance, coverage and truthful release status.
-6. Run targeted Go, Web, build and HTTP smoke verification.
-7. Commit and push the independent `codex/final-seller-console` branch.
+Source commit `62d5a1833b9a901a339dc267ef78779ba793a095` contains:
+
+1. Replacement of the legacy broad `manager` role with canonical least-privilege roles.
+2. Snapshot v2 `manager` to Snapshot v3 `admin` migration.
+3. Rejection of legacy and unknown roles for new assignments.
+4. Fail-closed permission checks across catalog, inventory, fulfillment, finance, support and read paths.
+5. Frozen integration contract, test vectors, dependency acceptance, coverage and truthful release status.
+6. Passing targeted Go, Web, build and local HTTP smoke verification.
+
+The independent branch must be pushed and local/remote SHA equality verified before the next source slice begins.
 
 ## Exact next engineering slice
 

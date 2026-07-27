@@ -1,7 +1,7 @@
 # YNX Seller Console Feature Completion Evidence
 
 Version: `0.3.0-testnet-preview`  
-Source commit: `pending-checkpoint`  
+Source commit: `62d5a1833b9a901a339dc267ef78779ba793a095`  
 Stage: `FREEZE`  
 Goal: `Active`
 
@@ -47,4 +47,4 @@ Verified commands:
 
 ## Evidence binding
 
-This document, `product-release.json`, the full-goal coverage matrix and integration contract must be rebound from `pending-checkpoint` to the first protected commit, then committed again so the evidence refers to an immutable source checkpoint.
+This document, `product-release.json`, the full-goal coverage matrix and integration contract are bound to source checkpoint `62d5a1833b9a901a339dc267ef78779ba793a095`; this evidence-binding update is committed separately so the referenced source checkpoint remains immutable.

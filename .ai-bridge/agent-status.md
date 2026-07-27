@@ -5,7 +5,7 @@
 - Branch: `codex/final-seller-console`
 - Stage: `FREEZE`
 - Goal: `Active`
-- Source checkpoint: `pending-checkpoint`
+- Source checkpoint: `62d5a1833b9a901a339dc267ef78779ba793a095`
 
 ## Completed in this slice
 
@@ -25,10 +25,10 @@
 - Seller `npm run build`: passed.
 - Seller `npm run smoke`: `/health` and `/api/capabilities` passed against an existing local service.
 
-## Remaining dirty state
+## Checkpoint state
 
-Expected until the checkpoint is committed: source, tests, coverage, evidence, integration and release files from this slice.
+The immutable tested source checkpoint is `62d5a1833b9a901a339dc267ef78779ba793a095`. Evidence, release and integration records are bound to that source checkpoint in a separate commit. The branch must remain clean and local/remote equality must be verified before the next source slice.
 
 ## Next action
 
-Commit the tested slice, bind evidence files to the immutable commit SHA, commit the evidence binding, push `codex/final-seller-console`, and verify local SHA equals remote SHA.
+Implement owner-only role revocation with immutable audit evidence and a fail-closed Wallet/Auth session-invalidation adapter, then update the coverage matrix and cross-product vectors.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "ynx-seller-console",
-  "sourceCommit": "pending-checkpoint",
+  "sourceCommit": "62d5a1833b9a901a339dc267ef78779ba793a095",
   "vectors": [
     {
       "id": "SC-AUTH-ACCEPT-001",

@@ -3,7 +3,7 @@
   "productId": "ynx-seller-console",
   "name": "YNX Seller Console",
   "branch": "codex/final-seller-console",
-  "commit": "pending-checkpoint",
+  "commit": "62d5a1833b9a901a339dc267ef78779ba793a095",
   "version": "0.3.0-testnet-preview",
   "goalStatus": "active",
   "stage": "FREEZE",
