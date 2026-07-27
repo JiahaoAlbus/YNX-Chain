@@ -3,7 +3,7 @@
   "contractId": "ynx-oracle-market-data-v1",
   "productId": "ynx-oracle-market-data",
   "owner": "19 Oracle & Market Data",
-  "sourceCommit": "66c110adf43a713af67f88b2381c5ae2e66e4e6d",
+  "sourceCommit": "80d85e4d43067d8e48c67cc8874efcd46a629c3d",
   "versions": {
     "schema": "ynx.oracle.v1",
     "aggregationPolicy": "weighted-median-mad-v1",
@@ -142,15 +142,19 @@
     "fullRepositoryFailures": [
       "permissive key permission fixtures in consensus, faucet, and trust packages",
       "missing SampleEVMWriteCounter contract artifact in BFT and consensus tests"
-    ]
+    ],
+    "publicTestnetSmokeResult": "passed-limited-source-fail-closed",
+    "publicTestnetUrl": "https://oracle-testnet.43.153.202.237.sslip.io",
+    "publicTestnetSourceCommit": "80d85e4d43067d8e48c67cc8874efcd46a629c3d",
+    "publicTestnetEvidence": "release/evidence/oracle-public-testnet-80d85e4.json"
   },
   "releaseState": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": true,
     "integratedCentral": false,
-    "deployedStaging": false,
-    "deployedPublic": false,
+    "deployedStaging": true,
+    "deployedPublic": true,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false

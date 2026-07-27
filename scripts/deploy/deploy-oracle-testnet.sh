@@ -274,7 +274,7 @@ EOF
 output_dir="tmp/deploy"
 mkdir -p "$output_dir"
 tarball="$output_dir/${release}-linux-${target_arch}.tar.gz"
-tar -C "$stage" -czf "$tarball" "$release"
+COPYFILE_DISABLE=1 tar --no-xattrs -C "$stage" -czf "$tarball" "$release"
 chmod 0600 "$tarball"
 tarball_sha="$(shasum -a 256 "$tarball" | awk '{print $1}')"
 printf 'Oracle release bundle: %s\nSHA-256: %s\n' "$tarball" "$tarball_sha"
@@ -291,6 +291,7 @@ units_joined=""
 if (( ${#provider_units[@]} > 0 )); then
   units_joined="${provider_units[*]}"
 fi
+rollback_command="set -e; previous=\$(sudo cat /var/lib/ynx-oracle/previous-release); if printf '%s\n' \"\$previous\" | grep -Eq '^/opt/ynx-oracle/releases/ynx-oracle-[0-9a-f]{40}$' && sudo test -d \"\$previous\"; then sudo rm -f /opt/ynx-oracle/current.previous; sudo ln -s \"\$previous\" /opt/ynx-oracle/current.previous; sudo mv -Tf /opt/ynx-oracle/current.previous /opt/ynx-oracle/current; test \"\$(readlink -f /opt/ynx-oracle/current)\" = \"\$previous\"; sudo systemctl restart ynx-oracled.service $units_joined; fi"
 
 ynx_ssh "hostname >/dev/null && command -v systemctl >/dev/null && command -v caddy >/dev/null && command -v jq >/dev/null"
 ynx_scp "$tarball" "$remote_tar"
@@ -303,12 +304,13 @@ while IFS= read -r signer_path; do
 done < <(jq -r '.providers[].signerPath' "$deployment_manifest")
 
 ynx_ssh "set -e; sudo rm -rf '$remote_release'; sudo mkdir -p '$remote_release'; sudo tar -xzf '$remote_tar' --strip-components=1 -C '$remote_release'; cd '$remote_release'; sha256sum -c SHA256SUMS; sudo chown -R root:root '$remote_release'; sudo chmod 0755 '$remote_release/bin/'*"
-ynx_ssh "set -e; previous=\$(readlink -f /opt/ynx-oracle/current 2>/dev/null || true); sudo ln -sfn '$remote_release' /opt/ynx-oracle/current; sudo install -m 0644 '$remote_release/systemd/ynx-oracled.service' /etc/systemd/system/ynx-oracled.service; for unit in $units_joined; do sudo install -m 0644 \"'$remote_release'/systemd/\$unit\" \"/etc/systemd/system/\$unit\"; done; sudo install -d -o root -g root -m 0755 /etc/caddy/conf.d; sudo install -m 0644 '$remote_release/caddy/ynx-oracle.caddy' /etc/caddy/conf.d/ynx-oracle.caddy; sudo grep -Eq '^[[:space:]]*import[[:space:]]+(/etc/caddy/)?conf\\.d/\\*\\.caddy' /etc/caddy/Caddyfile; sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile; printf '%s' \"\$previous\" | sudo tee /var/lib/ynx-oracle/previous-release >/dev/null"
+ynx_ssh "set -e; previous=''; if sudo test -L /opt/ynx-oracle/current; then candidate=\$(readlink -f /opt/ynx-oracle/current 2>/dev/null || true); if printf '%s\n' \"\$candidate\" | grep -Eq '^/opt/ynx-oracle/releases/ynx-oracle-[0-9a-f]{40}$' && sudo test -d \"\$candidate\"; then previous=\"\$candidate\"; fi; fi; sudo rm -f /opt/ynx-oracle/current.next; sudo ln -s '$remote_release' /opt/ynx-oracle/current.next; sudo mv -Tf /opt/ynx-oracle/current.next /opt/ynx-oracle/current; test \"\$(readlink -f /opt/ynx-oracle/current)\" = '$remote_release'; sudo install -m 0644 '$remote_release/systemd/ynx-oracled.service' /etc/systemd/system/ynx-oracled.service; for unit in $units_joined; do sudo install -m 0644 \"'$remote_release'/systemd/\$unit\" \"/etc/systemd/system/\$unit\"; done; sudo install -d -o root -g root -m 0755 /etc/caddy/conf.d; sudo install -m 0644 '$remote_release/caddy/ynx-oracle.caddy' /etc/caddy/conf.d/ynx-oracle.caddy; sudo grep -Eq '^[[:space:]]*import[[:space:]]+(/etc/caddy/)?conf\\.d/\\*\\.caddy' /etc/caddy/Caddyfile; sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile; printf '%s' \"\$previous\" | sudo tee /var/lib/ynx-oracle/previous-release >/dev/null"
 
 ynx_ssh "set -e; sudo bash -lc 'set -a; source \"$remote_env\"; set +a; runuser -u ynx-oracle --preserve-environment -- /opt/ynx-oracle/current/bin/ynx-oracled --state /var/lib/ynx-oracle/state.json --providers /opt/ynx-oracle/current/config/providers.json --nonce-domain \"$ORACLE_NONCE_DOMAIN\" --public-origin \"$ORACLE_PUBLIC_ORIGIN\" --check-config'; while IFS=\$'\\t' read -r id adapter symbol market scale interval signer; do sudo -u ynx-oracle /opt/ynx-oracle/current/bin/ynx-oracle-provider --providers /opt/ynx-oracle/current/config/providers.json --provider-id \"\$id\" --adapter \"\$adapter\" --symbol \"\$symbol\" --market \"\$market\" --scale \"\$scale\" --oracle http://127.0.0.1:6470 --signer \"\$signer\" --sequence-state \"/var/lib/ynx-oracle/providers/\$id.sequence\" --nonce-domain \"$ORACLE_NONCE_DOMAIN\" --interval \"\${interval}s\" --check-config; done < <(jq -r '.providers[] | [.id,.adapter,.symbol,.market,(.scale|tostring),(.intervalSeconds|tostring),.signerPath] | @tsv' /opt/ynx-oracle/current/config/provider-deployment.json)"
 ynx_ssh "set -e; expected=' $units_joined '; for unit in \$(systemctl list-unit-files --no-legend 'ynx-oracle-provider-*.service' 2>/dev/null | awk '{print \$1}'); do case \"\$expected\" in *\" \$unit \"*) ;; *) sudo systemctl disable --now \"\$unit\" ;; esac; done; sudo systemctl daemon-reload; sudo systemctl enable ynx-oracled.service $units_joined; sudo systemctl restart ynx-oracled.service; for unit in $units_joined; do sudo systemctl restart \"\$unit\"; done; sudo systemctl reload caddy"
 
 if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+  ynx_ssh "$rollback_command"
   printf 'Oracle Testnet deployment dry run passed: release=%s source_mode=%s\n' "$release" "$source_mode"
   exit 0
 fi
@@ -319,7 +321,7 @@ else
   test_market="$(jq -r '.candidates[0].assetMarketCoverage[0]' "$ORACLE_PROVIDER_REGISTRY")"
 fi
 if ! bash scripts/verify/oracle-testnet-smoke.sh "https://$ORACLE_API_DOMAIN" "$commit" "$test_market" "$source_mode"; then
-  ynx_ssh "set -e; previous=\$(sudo cat /var/lib/ynx-oracle/previous-release); if test -n \"\$previous\" && sudo test -d \"\$previous\"; then sudo ln -sfn \"\$previous\" /opt/ynx-oracle/current; sudo systemctl restart ynx-oracled.service $units_joined; fi"
+  ynx_ssh "$rollback_command"
   echo "Oracle public smoke failed; previous release was restored when available" >&2
   exit 1
 fi

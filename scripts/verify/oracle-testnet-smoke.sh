@@ -6,6 +6,7 @@ expected_commit="${2:-${ORACLE_EXPECTED_COMMIT:-}}"
 market="${3:-${ORACLE_TEST_MARKET:-}}"
 source_mode="${4:-${ORACLE_SOURCE_MODE:-authoritative}}"
 evidence_out="${ORACLE_EVIDENCE_OUT:-}"
+resolve_ip="${ORACLE_RESOLVE_IP:-}"
 
 [[ "$base" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?$ ]] || {
   echo "Oracle public URL must be an HTTPS origin" >&2
@@ -23,9 +24,22 @@ case "$source_mode" in
   authoritative | limited) ;;
   *) echo "Oracle source mode must be authoritative or limited" >&2; exit 1 ;;
 esac
+if [[ -n "$resolve_ip" && ! "$resolve_ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+  echo "ORACLE_RESOLVE_IP must be an IPv4 address" >&2
+  exit 1
+fi
 command -v curl >/dev/null
 command -v jq >/dev/null
 curl_tls=(--proto '=https' --tlsv1.2 --max-redirs 0 --connect-timeout 10 --max-time 20)
+if [[ -n "$resolve_ip" ]]; then
+  resolve_authority="${base#https://}"
+  resolve_host="${resolve_authority%%:*}"
+  resolve_port="${resolve_authority##*:}"
+  if [[ "$resolve_port" == "$resolve_authority" ]]; then
+    resolve_port=443
+  fi
+  curl_tls+=(--resolve "$resolve_host:$resolve_port:$resolve_ip")
+fi
 if [[ -n "${ORACLE_CA_CERT:-}" ]]; then
   [[ -f "$ORACLE_CA_CERT" && ! -L "$ORACLE_CA_CERT" ]] || {
     echo "ORACLE_CA_CERT must be a regular non-symlink file" >&2

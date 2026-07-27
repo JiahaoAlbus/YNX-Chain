@@ -317,6 +317,11 @@ func TestLimitedSourceTestnetPackageAndPublicSmoke(t *testing.T) {
 	if !strings.Contains(string(dryRunOutput), "deployment dry run passed") || !strings.Contains(string(dryRunOutput), "source_mode=limited") {
 		t.Fatalf("limited-source deployment dry run truth missing:\n%s", dryRunOutput)
 	}
+	for _, required := range []string{"current.next", "current.previous", "candidate=", "previous="} {
+		if !strings.Contains(string(dryRunOutput), required) {
+			t.Fatalf("limited-source deployment rollback guard missing %q:\n%s", required, dryRunOutput)
+		}
+	}
 	candidateData, err := os.ReadFile(registryPath)
 	if err != nil {
 		t.Fatal(err)
@@ -408,7 +413,7 @@ func TestLimitedSourceTestnetPackageAndPublicSmoke(t *testing.T) {
 		tlsServer.URL, expectedCommit, "BTC/USD", "limited",
 	)
 	smoke.Dir = root
-	smoke.Env = append(os.Environ(), "ORACLE_CA_CERT="+certificatePath)
+	smoke.Env = append(os.Environ(), "ORACLE_CA_CERT="+certificatePath, "ORACLE_RESOLVE_IP=127.0.0.1")
 	if output, err := smoke.CombinedOutput(); err != nil {
 		t.Fatalf("limited-source public smoke failed: %v\n%s", err, output)
 	}

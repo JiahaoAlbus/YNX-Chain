@@ -3,7 +3,7 @@
   "productId": "ynx-oracle-market-data",
   "channel": "testnet-candidate",
   "version": "0.1.0-testnet",
-  "sourceCommit": "66c110adf43a713af67f88b2381c5ae2e66e4e6d",
+  "sourceCommit": "80d85e4d43067d8e48c67cc8874efcd46a629c3d",
   "schema": "ynx.oracle.v1",
   "aggregationPolicyVersion": "weighted-median-mad-v1",
   "derivativesPolicyVersion": "index-funding-mark-v1",
@@ -14,12 +14,30 @@
     "index price derivation",
     "funding reference derivation",
     "mark price derivation",
+    "DEX multi-block TWAP derivation",
+    "stablecoin reserve attestation and reserve-ratio derivation",
+    "official provider adapter workers",
     "correction lineage",
     "historical replay",
-    "fail-closed public health and version"
+    "fail-closed public health and version",
+    "limited-source public Testnet mode"
   ],
-  "artifacts": [],
-  "publicApi": null,
+  "artifacts": [
+    "release/evidence/oracle-public-testnet-80d85e4.json"
+  ],
+  "publicApi": {
+    "url": "https://oracle-testnet.43.153.202.237.sslip.io",
+    "access": "public",
+    "deploymentStatus": "succeeded",
+    "sourceCommit": "80d85e4d43067d8e48c67cc8874efcd46a629c3d",
+    "sourceMode": "limited",
+    "healthHttpStatus": 503,
+    "healthStatus": "degraded",
+    "activeProviderCount": 0,
+    "requiredProviderCount": 3,
+    "authoritativePrices": false,
+    "evidence": "release/evidence/oracle-public-testnet-80d85e4.json"
+  },
   "oracleWeb": {
     "url": "https://ynx-oracle-control.jeohuang.chatgpt.site/oracle",
     "access": "owner_only",

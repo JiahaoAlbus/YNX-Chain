@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-oracle-market-data",
-  "sourceCommit": "66c110adf43a713af67f88b2381c5ae2e66e4e6d",
+  "sourceCommit": "80d85e4d43067d8e48c67cc8874efcd46a629c3d",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": true,
   "integratedCentral": false,
-  "deployedStaging": false,
-  "deployedPublic": false,
+  "deployedStaging": true,
+  "deployedPublic": true,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
@@ -20,7 +20,10 @@
     "v1/v2 to v3 storage migration and local backup/restore drills were previously recorded as passing.",
     "CycloneDX server and production-Web SBOMs are committed.",
     "Pinned non-root container was previously recorded as built, started read-only, failed closed at 0/3 active sources, and passing a high/critical Trivy scan.",
-    "Owner-only Oracle Web deployment remains access-controlled and returns HTTP 401 to unauthenticated requests."
+    "Owner-only Oracle Web deployment remains access-controlled and returns HTTP 401 to unauthenticated requests.",
+    "Public limited-source Testnet is deployed at https://oracle-testnet.43.153.202.237.sslip.io from commit 80d85e4d43067d8e48c67cc8874efcd46a629c3d with a publicly trusted Let's Encrypt certificate.",
+    "Remote HTTPS/SNI smoke passed for /version, degraded /health, /v1/providers, fail-closed /v1/prices, and non-public /internal/v1/observations; evidence is release/evidence/oracle-public-testnet-80d85e4.json.",
+    "DEX multi-block TWAP, stablecoin reserve attestation and ratio derivation, official provider workers, and limited-source Testnet activation are implemented and tested."
   ],
   "repositoryPreflight": {
     "command": "go test ./...",
@@ -33,10 +36,10 @@
   },
   "limitations": [
     "No approved active provider covers YNXT/YUSD_TEST and no production reporter signer is configured.",
-    "No staging or public Oracle API deployment, Explorer evidence, or Monitor evidence is available.",
+    "The public Testnet is intentionally limited-source and publishes no authoritative price until at least three approved independent providers and reporter signers are active.",
+    "Explorer evidence and Monitor evidence are not yet available.",
     "The Oracle Web deployment is owner-only and does not satisfy public /oracle availability.",
     "The local container is not hosted, registry-addressable, or production-signed.",
-    "Cross-product and Chain Core integration has not been accepted.",
-    "DEX multi-block TWAP runtime, Stablecoin reserve-attestation integration, and shared Testnet evidence remain incomplete."
+    "Cross-product and Chain Core integration has not been accepted."
   ]
 }

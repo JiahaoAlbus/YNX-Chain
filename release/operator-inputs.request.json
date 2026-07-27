@@ -2,24 +2,30 @@
   "schemaVersion": 1,
   "productId": "ynx-oracle-market-data",
   "requestedAt": "2026-07-27T03:17:46Z",
-  "status": "required_for_limited_source_public_testnet_activation",
+  "status": "limited_source_public_testnet_activated",
   "activationMode": "limited",
   "inputs": [
     {
       "id": "public_service",
-      "required": true,
+      "required": false,
+      "satisfied": true,
+      "evidence": "release/evidence/oracle-public-testnet-80d85e4.json",
       "request": "Provide the approved Oracle Testnet server host/user, an SSH key path available outside chat, the Oracle API hostname with DNS pointed to that server, and Caddy ingress authority. Deployment variables: SERVER_HOST, SERVER_USER, SSH_KEY_PATH, ORACLE_API_DOMAIN.",
       "secret": true
     },
     {
       "id": "oracle_state_integrity_key",
-      "required": true,
+      "required": false,
+      "satisfied": true,
+      "evidence": "Provisioned owner-only on the Testnet host; value was not transmitted or committed.",
       "request": "Provision /etc/ynx-oracle/oracle.env on the server as owner-only mode 0600 with YNX_ORACLE_STATE_HMAC_KEY_HEX containing at least 32 random bytes encoded as hex. Do not transmit the value in chat or commit it.",
       "secret": true
     },
     {
       "id": "oracle_web_origin",
-      "required": true,
+      "required": false,
+      "satisfied": true,
+      "evidence": "Exact HTTPS Oracle Web origin is configured at the public API boundary.",
       "request": "Provide the approved HTTPS Oracle Web origin for exact read-only CORS. Deployment variable: ORACLE_PUBLIC_ORIGIN.",
       "secret": false
     },
