@@ -2,37 +2,44 @@
 
 Stage: `FREEZE`  
 Goal status: `ACTIVE`  
-Runtime source commit: `9e6aea94087d02c76ee9002df8b92b3f7d55df9b`
+Runtime source commit: `937cf10f387bd1d31d86652ab06d74bc6185f35c`
 
 ## Protected slice
 
-Owner-only Seller role revocation is implemented and pushed. Local authority is removed immediately, central Wallet invalidation is store-scoped and receipt-bound, regrant is blocked until confirmed, and Snapshot v5 persists revocation, Audit, and append-only Seller Outbox evidence transactionally.
+The Seller team authority lifecycle is implemented and pushed:
 
-Local verification passed:
+- Owner-created invitations are bound to store, target native Wallet account, assignable role and 15-minute-to-7-day expiry.
+- Invitation identifiers are not authentication credentials; only the exact authenticated target account may accept once.
+- Wrong-account access returns not found, replay fails, cancellation is permanent, and expired invitations cannot grant authority.
+- Direct role update applies only to an existing member; first-time authority must use invitation acceptance.
+- Invitation, role, Audit and versioned local Outbox changes share one persistence transaction and roll back together.
+- Snapshot v6 preserves invitations, roles, revocations and Seller events across restart.
+
+Verified against runtime commit `937cf10f387bd1d31d86652ab06d74bc6185f35c`:
 
 - `go test ./internal/commerce`
 - `go test -race ./internal/commerce`
+- `go vet ./internal/commerce`
 - `npm test` in `apps/seller-console`
 - `npm run build` in `apps/seller-console`
 
-Repository-wide `go test ./...` remains red only in non-Seller ownership areas recorded in the Integration Handoff. Do not modify those products from this worktree.
+Repository-wide `go test ./...` was attempted and remains red only in the previously recorded non-Seller ownership areas. Do not modify those products from this worktree.
 
 ## Exact next implementation slice
 
-Complete the remaining local portion of `SC-RBAC-003`: persisted Seller team invitations.
+Close the highest-priority independent data-safety gap for Snapshot v6.
 
-1. Add an owner-created invitation record bound to store, target native account, canonical assignable role, creator, created time, expiry, status, and one-time acceptance identifier.
-2. Reject owner/self invitations, unknown roles, duplicate active invitations, expired invitations, wrong-account acceptance, replayed acceptance, and acceptance after cancel/revoke.
-3. Acceptance must use the authenticated canonical Wallet account already provided by Seller product sessions; do not add a parallel bearer, password, seed, or browser-held signing secret.
-4. Persist invitation create/cancel/accept Audit and versioned local Outbox events in the same transaction as role assignment.
-5. Bump and test Snapshot migration only if the persisted schema changes; include restart, tamper, rollback-on-persist-failure, Race, API, and UI failure-state tests.
-6. Update the frozen contract, cross-product vectors, coverage matrix, release facts, and handoff to the exact implementation commit.
-7. Commit, push, and verify Local SHA = Remote SHA before selecting the next uncovered requirement.
+1. Reject persisted snapshots newer than the runtime's supported schema instead of normalizing them downward.
+2. Add an explicit, bounded Snapshot v6 export/downgrade path for operator-controlled rollback that preserves legacy-compatible roles and rejects any state that cannot be represented safely.
+3. Ensure the normal runtime never silently drops invitations, revocations, Audit or Outbox data during rollback.
+4. Add migration, downgrade refusal, representability, tamper, restart and backup/restore tests.
+5. Update `MIGRATION_COMPATIBILITY.md`, Integration Contract, vectors, coverage and release facts to the exact implementation commit.
+6. Run Commerce, Race, Vet and relevant restore gates; review, commit, push and verify Local SHA = Remote SHA.
 
 ## External acceptance still required
 
-- Owner 02: Seller registry plus store-scoped authorization-revocation contract.
-- Owner 26: canonical ingestion of the two Seller revocation Outbox events.
+- Owner 02: Seller product registration and store-scoped authorization revocation.
+- Owner 26: canonical acceptance of Seller role, invitation and revocation Outbox events.
 - Owner 29: shared Testnet contract freeze and end-to-end execution.
 
-These dependencies do not block the invitation implementation or other independent Seller work.
+These dependencies do not block Snapshot v6 downgrade safety or other independent Seller work.

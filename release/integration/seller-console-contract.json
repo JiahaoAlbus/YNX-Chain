@@ -8,7 +8,7 @@
     "slug": "seller-console",
     "owner": "10-seller-console",
     "sourceBranch": "codex/final-seller-console",
-    "sourceCommit": "9e6aea94087d02c76ee9002df8b92b3f7d55df9b"
+    "sourceCommit": "937cf10f387bd1d31d86652ab06d74bc6185f35c"
   },
   "releaseStatus": {
     "implementedLocal": true,
@@ -90,8 +90,10 @@
       "viewer": ["seller.read", "finance.read", "team.read", "audit.read"]
     },
     "invariants": [
-      "Only owner may assign roles.",
-      "Owner cannot be assigned through the role API.",
+      "Only owner may create, cancel or update Seller team authority.",
+      "First-time membership requires one-time acceptance by the invitation's exact canonical Wallet account.",
+      "The direct role-update API applies only to an existing member and cannot bypass invitation acceptance.",
+      "Owner cannot be assigned through invitations or the role API.",
       "Unknown roles and unknown permissions fail closed.",
       "Catalog cannot change inventory.",
       "Inventory cannot edit or publish catalog content.",
@@ -103,18 +105,32 @@
       "A revoked account cannot be regranted until the store-scoped Wallet invalidation receipt is confirmed.",
       "Mismatched or unavailable Wallet receipts never become confirmed."
     ],
+    "teamInvitations": {
+      "owner": "10-seller-console",
+      "identityOwner": "02-wallet-auth",
+      "statuses": ["pending", "accepted", "cancelled", "expired"],
+      "minimumExpiryMinutes": 15,
+      "maximumExpiryMinutes": 10080,
+      "acceptanceBinding": ["invitationId", "storeId", "targetAccount", "role", "expiresAt", "authenticated Wallet account"],
+      "acceptanceIsOneTime": true,
+      "invitationIdIsAuthenticationCredential": false,
+      "wrongAccountResponse": "not found",
+      "firstMembershipViaInvitationOnly": true,
+      "cancelIsPermanent": true
+    },
     "migration": {
       "fromSnapshotVersion": 2,
-      "toSnapshotVersion": 5,
+      "toSnapshotVersion": 6,
       "steps": [
         {"snapshotVersion": 3, "change": "manager roles canonicalize to admin"},
         {"snapshotVersion": 4, "change": "seller role revocation records are initialized"},
-        {"snapshotVersion": 5, "change": "append-only Seller integration events are initialized"}
+        {"snapshotVersion": 5, "change": "append-only Seller integration events are initialized"},
+        {"snapshotVersion": 6, "change": "Seller team invitations are initialized"}
       ],
       "legacyRole": "manager",
       "canonicalReplacement": "admin",
       "newRequestsAcceptLegacyRole": false,
-      "rollbackBoundary": "Binaries that do not understand Snapshot v5 revocations and Seller integration events must not write a v5 state file."
+      "rollbackBoundary": "Binaries that do not understand Snapshot v6 invitations, revocations and Seller integration events must not write a v6 state file."
     }
   },
   "apis": [
@@ -122,9 +138,13 @@
     {"method": "POST", "path": "/api/seller/stores", "authority": "authenticated seller account"},
     {"method": "PUT", "path": "/api/seller/stores/{id}", "authority": "owner"},
     {"method": "POST", "path": "/api/seller/stores/{id}/activate", "authority": "owner"},
-    {"method": "GET", "path": "/api/seller/stores/{id}/roles", "authority": "team.read", "returns": ["roles", "revocations", "events", "actorRole"]},
-    {"method": "PUT", "path": "/api/seller/stores/{id}/roles", "authority": "owner"},
+    {"method": "GET", "path": "/api/seller/stores/{id}/roles", "authority": "team.read", "returns": ["roles", "revocations", "invitations", "events", "actorRole"]},
+    {"method": "PUT", "path": "/api/seller/stores/{id}/roles", "authority": "owner", "constraint": "existing member only"},
     {"method": "POST", "path": "/api/seller/stores/{id}/roles/{account}/revoke", "authority": "owner", "localEffect": "immediate", "centralEffect": "confirmed, unavailable or rejected"},
+    {"method": "GET", "path": "/api/seller/invitations", "authority": "authenticated canonical Seller Wallet account", "visibility": "target account only"},
+    {"method": "POST", "path": "/api/seller/stores/{id}/invitations", "authority": "owner", "effect": "pending invitation only"},
+    {"method": "POST", "path": "/api/seller/invitations/{invitation}/accept", "authority": "exact target canonical Wallet account", "effect": "one-time role assignment"},
+    {"method": "POST", "path": "/api/seller/stores/{id}/invitations/{invitation}/cancel", "authority": "owner", "effect": "permanent cancellation"},
     {"method": "GET", "path": "/api/seller/products", "authority": "seller.read"},
     {"method": "POST", "path": "/api/seller/products", "authority": "catalog.write"},
     {"method": "PUT", "path": "/api/seller/products/{id}", "authority": "catalog.write"},
@@ -157,10 +177,14 @@
   },
   "localIntegrationOutbox": {
     "owner": "10-seller-console",
-    "snapshotVersion": 5,
+    "snapshotVersion": 6,
     "appendOnly": true,
     "deliveryState": "persistedLocalPendingDataFabricAcceptance",
     "events": [
+      {
+        "name": "ynx.seller.role.updated.v1",
+        "fields": ["id", "source", "storeId", "account", "actor", "previousRole", "role", "status", "schemaVersion", "occurredAt"]
+      },
       {
         "name": "ynx.seller.role.revoked.v1",
         "fields": ["id", "source", "storeId", "account", "actor", "revocationId", "previousRole", "sessionStatus", "schemaVersion", "occurredAt"]
@@ -168,6 +192,22 @@
       {
         "name": "ynx.seller.authorization.revocation.updated.v1",
         "fields": ["id", "source", "storeId", "account", "actor", "revocationId", "previousRole", "sessionStatus", "sessionRevocationId", "sessionCount", "schemaVersion", "occurredAt"]
+      },
+      {
+        "name": "ynx.seller.team.invitation.created.v1",
+        "fields": ["id", "source", "storeId", "account", "actor", "invitationId", "role", "status", "expiresAt", "schemaVersion", "occurredAt"]
+      },
+      {
+        "name": "ynx.seller.team.invitation.accepted.v1",
+        "fields": ["id", "source", "storeId", "account", "actor", "invitationId", "role", "status", "expiresAt", "schemaVersion", "occurredAt"]
+      },
+      {
+        "name": "ynx.seller.team.invitation.cancelled.v1",
+        "fields": ["id", "source", "storeId", "account", "actor", "invitationId", "role", "status", "expiresAt", "schemaVersion", "occurredAt"]
+      },
+      {
+        "name": "ynx.seller.team.invitation.expired.v1",
+        "fields": ["id", "source", "storeId", "account", "actor", "invitationId", "role", "status", "expiresAt", "schemaVersion", "occurredAt"]
       }
     ],
     "centralCanonicalOwner": "26-data-fabric",
@@ -179,7 +219,12 @@
     "seller.store.created",
     "seller.store.activated",
     "seller.role.assigned",
+    "seller.role.updated",
     "seller.role.revoked",
+    "seller.team.invitation.created",
+    "seller.team.invitation.accepted",
+    "seller.team.invitation.cancelled",
+    "seller.team.invitation.expired",
     "seller.catalog.created",
     "seller.catalog.updated",
     "seller.catalog.published",
@@ -224,6 +269,7 @@
   "testCommands": [
     "go test ./internal/commerce",
     "go test -race ./internal/commerce",
+    "go vet ./internal/commerce",
     "npm test (apps/seller-console)",
     "npm run build (apps/seller-console)",
     "npm run smoke (apps/seller-console)"

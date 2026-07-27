@@ -8,9 +8,9 @@ Reason: the product goal requires separate Catalog, Inventory, Fulfillment, Fina
 
 ## D-002 — Backward migration without dual protocol
 
-Snapshot v2 `manager` values migrate once to canonical `admin`. Current state persists as Snapshot v5, which additionally initializes Seller role-revocation records and append-only Seller integration events. Public APIs and UI expose only the canonical role set.
+Snapshot v2 `manager` values migrate once to canonical `admin`. Current state persists as Snapshot v6, which additionally initializes Seller role-revocation records, Wallet-account-bound invitations, and append-only Seller integration events. Public APIs and UI expose only the canonical role set.
 
-Reason: preserve historical user state without maintaining two long-lived role protocols, while keeping revocation and event evidence versioned.
+Reason: preserve historical user state without maintaining two long-lived role protocols, while keeping invitation, revocation and event evidence versioned.
 
 ## D-003 — Fail closed on unknown authority
 
@@ -32,4 +32,10 @@ Reason: a provider outage must not preserve Seller access, and a forged or misma
 
 ## D-007 — Transactional local Outbox without central ownership claims
 
-Role revocation and authorization-invalidation updates append versioned Seller integration events in the same persistence transaction as the role, revocation, and audit state. Persistence failure rolls back all of them. These records are candidates for Owner 26 Data Fabric ingestion, not proof of canonical ingestion.
+Role updates, team invitation transitions, role revocation, and authorization-invalidation updates append versioned Seller integration events in the same persistence transaction as the role, invitation, revocation, and audit state. Persistence failure rolls back all of them. These records are candidates for Owner 26 Data Fabric ingestion, not proof of canonical ingestion.
+
+## D-008 — First membership requires canonical Wallet acceptance
+
+An invitation is bound to a store, target native Wallet account, assignable role and expiry. The invitation ID is not an authentication credential. Only the exact authenticated target account may accept once; wrong-account access returns not found. The direct role-update API only changes an existing member and cannot create first-time authority.
+
+Reason: prevent owners, leaked identifiers, browser state or replayed requests from silently granting authority without target-account consent.

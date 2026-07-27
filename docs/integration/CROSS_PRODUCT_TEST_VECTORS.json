@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "ynx-seller-console",
-  "sourceCommit": "9e6aea94087d02c76ee9002df8b92b3f7d55df9b",
+  "sourceCommit": "937cf10f387bd1d31d86652ab06d74bc6185f35c",
   "vectors": [
     {
       "id": "SC-AUTH-ACCEPT-001",
@@ -32,6 +32,29 @@
       "owner": "02-wallet-auth with 10-seller-console adapter validation",
       "mutations": ["wrong request id", "wrong account", "wrong product", "wrong bundle", "wrong resource type", "wrong store id", "missing revocation id", "negative session count", "zero or future revokedAt", "provider unavailable", "provider rejected"],
       "expected": ["receipt never becomes confirmed", "local role remains revoked", "regrant remains blocked", "state is unavailable or rejected", "no unrelated Seller authority is revoked"]
+    },
+    {
+      "id": "SC-RBAC-INVITE-001",
+      "category": "rbac-team-invitation",
+      "owner": "10-seller-console with canonical identity from 02-wallet-auth",
+      "preconditions": ["owner is authenticated with a valid Seller product session", "target is a distinct native Wallet account", "role is assignable", "expiry is 15 to 10080 minutes"],
+      "action": "Owner creates an invitation and the exact target Wallet account accepts it once before expiry.",
+      "expected": ["invitation starts pending", "invitation id alone grants no authority", "target sees only its own invitations", "acceptance assigns the bound role once", "role, invitation, audit and Outbox persist atomically"]
+    },
+    {
+      "id": "SC-RBAC-INVITE-REJECT-001",
+      "category": "rbac-team-invitation-negative",
+      "owner": "10-seller-console",
+      "mutations": ["non-owner create", "owner self invite", "owner role invite", "legacy manager role", "too-short expiry", "too-long expiry", "duplicate active invite", "wrong target account", "replayed acceptance", "accept after cancellation", "accept after expiry", "unconfirmed prior role revocation", "direct first-time role PUT", "persistence failure"],
+      "expected": ["fail closed", "wrong account receives not found", "no authority is granted", "no invitation existence oracle", "persistence failure rolls back role, invitation, audit and Outbox"]
+    },
+    {
+      "id": "SC-RBAC-ROLE-UPDATE-001",
+      "category": "rbac-role-update",
+      "owner": "10-seller-console",
+      "preconditions": ["target previously accepted a Wallet-bound invitation", "owner is authenticated"],
+      "action": "Owner updates the existing member to another assignable role.",
+      "expected": ["first-time membership cannot use this path", "previous and new roles are recorded", "ynx.seller.role.updated.v1 is persisted atomically", "persistence failure restores the previous role"]
     },
     {
       "id": "SC-RBAC-CATALOG-001",
@@ -85,8 +108,8 @@
       "id": "SC-RBAC-LEGACY-001",
       "category": "migration",
       "owner": "10-seller-console",
-      "input": "Snapshot v2 contains role manager and no revocation or Seller event collections.",
-      "expected": ["state migrates to Snapshot v5", "manager is stored as admin", "revocation and Seller event collections are initialized", "new role API rejects manager"]
+      "input": "Snapshot v2 contains role manager and no revocation, invitation or Seller event collections.",
+      "expected": ["state migrates to Snapshot v6", "manager is stored as admin", "revocation, invitation and Seller event collections are initialized", "new role and invitation APIs reject manager"]
     },
     {
       "id": "SC-PAY-SETTLEMENT-001",
@@ -121,8 +144,8 @@
       "id": "SC-DATA-FABRIC-001",
       "category": "canonical-events",
       "owner": "26-data-fabric",
-      "action": "Consume the persisted ynx.seller.role.revoked.v1 and ynx.seller.authorization.revocation.updated.v1 outbox records with source, schema version, event id, actor, store, account, revocation id and explicit session status.",
-      "expected": ["idempotent ingest", "event fields remain bound to the local revocation record", "unavailable or rejected is never normalized to confirmed", "canonical event owner retained", "billing facts not recalculated by Seller Console"]
+      "action": "Consume the persisted role-update, role-revocation, authorization-revocation and Seller team-invitation Outbox records with source, schema version, event id, actor, store, account and their exact role, invitation or revocation bindings.",
+      "expected": ["idempotent ingest", "event fields remain bound to the local role, invitation or revocation record", "unavailable or rejected is never normalized to confirmed", "invitation pending, accepted, cancelled and expired remain distinct", "canonical event owner retained", "billing facts not recalculated by Seller Console"]
     },
     {
       "id": "SC-PROVIDER-OUTAGE-001",
@@ -135,8 +158,8 @@
       "id": "SC-RECOVERY-001",
       "category": "backup-restore",
       "owner": "10-seller-console",
-      "action": "Create HMAC-protected state, revoke a Seller role, record a confirmed authorization invalidation, create backup, tamper with primary state, restore the verified backup and reopen.",
-      "expected": ["tampered state fails closed", "only a verified backup restores", "Snapshot v5 roles, revocations, append-only Seller events and audit records survive"]
+      "action": "Create HMAC-protected state, create and accept a Seller invitation, update and revoke the role, record a confirmed authorization invalidation, create backup, tamper with primary state, restore the verified backup and reopen.",
+      "expected": ["tampered state fails closed", "only a verified backup restores", "Snapshot v6 roles, invitations, revocations, append-only Seller events and audit records survive"]
     }
   ]
 }
