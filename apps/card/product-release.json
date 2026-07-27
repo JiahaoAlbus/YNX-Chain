@@ -2,8 +2,9 @@
   "productId": "ynx-card",
   "name": "YNX Card",
   "branch": "codex/final-card",
-  "commit": "bdd5ca02ad42b712db66a5173ecfad09340aa42c",
+  "commit": "13f90c5f6dae6fb002560574b4c481b5e1477f9d",
   "recoveredFromCommit": "c20beda",
+  "recoveryCheckpoint": "bdd5ca02ad42b712db66a5173ecfad09340aa42c",
   "version": "1.0.0-testnet-preview",
   "surfaces": [
     "android",
@@ -19,13 +20,14 @@
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
+  "websitePublished": false,
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
   "artifactHashes": {},
   "artifactBytes": {},
   "signingClass": {
-    "android": "unsigned unless operator supplies all YNX_CARD_RELEASE_* variables",
+    "android": "unsigned unless operator supplies all YNX_CARD_RELEASE_* variables through an approved signing path",
     "ios": "unsigned Simulator/source only"
   },
   "minOS": {
@@ -33,16 +35,22 @@
     "ios": "16.4"
   },
   "verification": {
-    "go": "go test ./internal/cardproduct/... passed",
-    "mobileTests": "8/8 passed",
-    "typecheck": "passed",
-    "expoBundle": "Android and iOS Hermes export passed",
-    "cardSecurityCheck": "passed",
-    "androidNativeReleaseBuild": "not verified; three MCP upstream 502 failures returned no Gradle result"
+    "cardGoTests": "go test ./internal/cardproduct/... passed",
+    "cardRace": "go test -race ./internal/cardproduct/... passed",
+    "cardVet": "go vet ./internal/cardproduct/... passed",
+    "providerCapabilityContract": "passed at 8cd6a721b0ffe007ddaa5855337aa2dfc26c0d9b",
+    "providerEventNegativeVectors": "tamper, expiry, replay, ordering, relation and key rotation passed at 13f90c5f6dae6fb002560574b4c481b5e1477f9d",
+    "mobileTests": "8/8 passed at the recovery checkpoint",
+    "typecheck": "passed at the recovery checkpoint",
+    "expoBundle": "Android and iOS Hermes export passed at the recovery checkpoint",
+    "cardSecurityCheck": "passed at the recovery checkpoint",
+    "repositoryWideGoTest": "not green because unrelated central packages require missing Solidity artifacts or reject current host key-permission semantics; Card packages passed",
+    "androidNativeReleaseBuild": "not verified; three earlier MCP upstream 502 failures returned no Gradle result"
   },
   "centralIntegration": "Canonical Card identity and Gateway assertion bindings are implemented locally; central registry/proxy acceptance and deployment are not evidenced.",
   "knownLimitations": [
     "Sandbox or unavailable issuer only; no BIN, real processor, fiat balance or spendable-card claim.",
+    "No official provider-specific webhook signature or secure-display integration is selected.",
     "No current native APK install/cold-launch evidence.",
     "No staging, production signing, hosted download, store release or external security review.",
     "Issuer credential and legal/provider agreement remain external inputs for a real issuer sandbox."

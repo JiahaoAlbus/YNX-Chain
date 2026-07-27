@@ -1,6 +1,6 @@
 {
   "schemaVersion": "ynx.card.cross-product-vectors.v1",
-  "sourceCommit": "bdd5ca02ad42b712db66a5173ecfad09340aa42c",
+  "sourceCommit": "13f90c5f6dae6fb002560574b4c481b5e1477f9d",
   "contract": "release/integration/ynx-card-contract.json",
   "vectors": [
     {
@@ -67,7 +67,40 @@
       "ownerPair": ["06-card", "provider-adapter"],
       "purpose": "Reject a provider event whose body changes after signature generation.",
       "mutation": "change amount, currency, providerCardId or occurredAt without resigning",
-      "expected": {"accepted": false, "httpStatus": 401, "persisted": false}
+      "expected": {"accepted": false, "httpStatus": 401, "persisted": false},
+      "localEvidence": ["TestProviderEventTamperExpiryOrderingAndKeyRotation"]
+    },
+    {
+      "id": "CARD-PROVIDER-EXPIRY-001",
+      "ownerPair": ["06-card", "provider-adapter"],
+      "purpose": "Reject an otherwise valid signature outside the accepted webhook timestamp window.",
+      "mutation": "set the signed timestamp older than 300 seconds or more than 30 seconds in the future",
+      "expected": {"accepted": false, "httpStatus": 401, "persisted": false},
+      "localEvidence": ["TestProviderEventTamperExpiryOrderingAndKeyRotation"]
+    },
+    {
+      "id": "CARD-PROVIDER-ORDER-001",
+      "ownerPair": ["06-card", "provider-adapter"],
+      "purpose": "Reject clearing or reversal before the referenced authorization, then accept a retry after the authorization arrives.",
+      "mutation": "deliver clearing or reversal before its related authorization",
+      "expected": {"initialAccepted": false, "initialHttpStatus": 409, "eventIdConsumed": false, "retryAcceptedAfterParent": true},
+      "localEvidence": ["TestProviderEventTamperExpiryOrderingAndKeyRotation"]
+    },
+    {
+      "id": "CARD-PROVIDER-RELATION-001",
+      "ownerPair": ["06-card", "provider-adapter"],
+      "purpose": "Require same-card canonical provider event relationships.",
+      "mutation": "reference the wrong event type, wrong provider card, a later parent or the event itself",
+      "expected": {"accepted": false, "httpStatus": 409, "persisted": false},
+      "localEvidence": ["TestProviderEventTamperExpiryOrderingAndKeyRotation"]
+    },
+    {
+      "id": "CARD-PROVIDER-KEY-ROTATION-001",
+      "ownerPair": ["06-card", "provider-adapter", "30-security-sre"],
+      "purpose": "Allow a bounded old/new verification-key overlap and reject unknown or retired Key IDs.",
+      "input": {"keyIdHeader": "X-YNX-Provider-Key-ID", "maximumOverlappingKeys": 4},
+      "expected": {"oldKeyAcceptedDuringOverlap": true, "newKeyAccepted": true, "unknownKeyAccepted": false, "retiredKeyAccepted": false},
+      "localEvidence": ["TestProviderEventTamperExpiryOrderingAndKeyRotation", "TestDecodeProviderEventKeySet"]
     },
     {
       "id": "CARD-READY-UNAVAILABLE-001",

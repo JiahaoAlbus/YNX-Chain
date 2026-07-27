@@ -3,7 +3,8 @@
 ## Authority
 
 - Product owner: `06-card`
-- Source commit: `bdd5ca02ad42b712db66a5173ecfad09340aa42c`
+- Source commit: `13f90c5f6dae6fb002560574b4c481b5e1477f9d`
+- Recovery provenance: `bdd5ca02ad42b712db66a5173ecfad09340aa42c`
 - Canonical contract: `release/integration/ynx-card-contract.json`
 - Product identity: `ynx-card` / `ynx-card-v1` / `com.ynxweb4.card`
 - Callback: `ynxcard://wallet-auth/callback`
@@ -17,11 +18,20 @@ Google Pay, production signing, store release or public deployment.
 
 - Provider-neutral issuer interface with honest `unavailable` and deterministic
   `sandbox` implementations.
+- Versioned issuer capability contract `ynx.card.provider.capabilities.v1`; unsafe
+  secure-display, sensitive-data or incomplete lifecycle/event capabilities stop
+  service initialization.
 - Application, issued-sandbox, activate, freeze, unfreeze, replace and close
   lifecycle.
 - Spend, online, international, ATM, MCC and country controls.
 - Signed and replay-protected authorization, clearing, reversal, decline and
   refund provider events.
+- Provider event Key ID verification with a bounded four-key rotation overlap;
+  unknown, retired or malformed keys, body tamper and expired timestamps fail
+  closed.
+- Clearing and reversal require an existing same-card authorization; refund
+  requires an existing same-card clearing. Out-of-order events return conflict
+  without consuming the provider event ID, so a valid retry can recover.
 - Dispute creation, notifications and review-only AI drafts.
 - Canonical Wallet/Gateway request binding with exact product, client, bundle,
   callback, account, device, ordered scopes, digest, method, path, body hash,
@@ -36,12 +46,18 @@ Google Pay, production signing, store release or public deployment.
 ## Verification at the source commit
 
 - `go test ./internal/cardproduct/...` — passed.
-- `npm test` in `apps/card` — 8/8 passed.
-- `npm run typecheck` in `apps/card` — passed.
-- `npm run bundle-check` in `apps/card` — Android and iOS Hermes exports passed.
-- `npm run security-check` in `apps/card` — passed.
-- Android native Gradle release build — not verified in this checkpoint because
-  three MCP calls returned upstream `502` without a Gradle result.
+- `go test -race ./internal/cardproduct/...` — passed.
+- `go vet ./internal/cardproduct/...` — passed.
+- `npm test` in `apps/card` — 8/8 passed at the recovery checkpoint.
+- `npm run typecheck` in `apps/card` — passed at the recovery checkpoint.
+- `npm run bundle-check` in `apps/card` — Android and iOS Hermes exports passed
+  at the recovery checkpoint.
+- `npm run security-check` in `apps/card` — passed at the recovery checkpoint.
+- Repository-wide `go test ./...` — not green because unrelated central packages
+  require missing Solidity artifacts or reject current host key-permission
+  semantics. Card-owned packages passed; no cross-owner source was modified.
+- Android native Gradle release build — not verified because three earlier MCP
+  calls returned upstream `502` without a Gradle result.
 
 ## Required owner actions
 
@@ -84,17 +100,15 @@ approved secret infrastructure, never Git or chat.
 
 ## Open engineering gates
 
-1. Versioned provider capability contract and conformance suite.
-2. Out-of-order event reconciliation and provider key rotation.
-3. Backup/restore and rollback migration drill.
-4. Structured logs, request/error IDs, metrics and traces.
-5. Android native unsigned build/install/cold-start/deep-link evidence.
-6. iOS Simulator native build/install/callback evidence.
-7. Threat model, SBOM, dependency/license review and DAST.
-8. SLO/capacity measurements and unit-economics disclosure.
-9. Central integration, staging, hosted artifacts and public evidence.
-10. Official issuer sandbox selection and credentials only after autonomous
-    adapter work is complete.
+1. Backup/restore, export/delete, retention and rollback migration drill.
+2. Structured logs, request/error IDs, metrics and traces.
+3. Android native unsigned build/install/cold-start/deep-link evidence.
+4. iOS Simulator native build/install/callback evidence.
+5. Threat model, SBOM, dependency/license review and DAST.
+6. SLO/capacity measurements and unit-economics disclosure.
+7. Central integration, staging, hosted artifacts and public evidence.
+8. Official issuer sandbox selection and provider-specific signature mapping;
+   credentials are requested only after autonomous adapter work is complete.
 
 ## Release truth
 
