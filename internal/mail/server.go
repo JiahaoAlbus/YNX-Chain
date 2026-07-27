@@ -24,7 +24,14 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	build = buildinfo.Normalize(build)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/health", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "product": ProductID, "internet_delivery": false, "build": build})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"ok":                true,
+			"product":           ProductID,
+			"internet_delivery": false,
+			"internet_bridge":   service.InternetBridgeStatus(),
+			"delivery_truth":    "provider acceptance and mail-server delivery are distinct; user read is never inferred from provider engagement",
+			"build":             build,
+		})
 	})
 	mux.HandleFunc("POST /v1/auth/challenges", s.challenge)
 	mux.HandleFunc("POST /v1/auth/sessions", s.signIn)
@@ -43,6 +50,7 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("POST /v1/reports", s.report)
 	mux.HandleFunc("GET /v1/reports", s.cases)
 	mux.HandleFunc("POST /v1/messages/{id}/retry", s.retry)
+	mux.HandleFunc("POST /v1/providers/resend/webhook", s.resendWebhook)
 	mux.HandleFunc("POST /v1/reports/{id}/appeal", s.appeal)
 	mux.HandleFunc("POST /v1/ai/jobs", s.beginAI)
 	mux.HandleFunc("POST /v1/ai/jobs/{id}/approve", s.approveAI)
@@ -120,7 +128,7 @@ func (s *Server) deleteDraft(w http.ResponseWriter, r *http.Request) {
 	respond(w, map[string]bool{"deleted": err == nil}, err)
 }
 func (s *Server) send(w http.ResponseWriter, r *http.Request) {
-	out, err := s.service.SendDraft(bearer(r), r.PathValue("id"))
+	out, err := s.service.SendDraftContext(r.Context(), bearer(r), r.PathValue("id"))
 	respond(w, out, err)
 }
 func (s *Server) move(w http.ResponseWriter, r *http.Request) {
@@ -154,8 +162,28 @@ func (s *Server) retry(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &v, 1024) {
 		return
 	}
-	out, err := s.service.RetryDelivery(bearer(r), r.PathValue("id"), v.Recipient)
+	out, err := s.service.RetryDeliveryContext(r.Context(), bearer(r), r.PathValue("id"), v.Recipient)
 	respond(w, out, err)
+}
+func (s *Server) resendWebhook(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 256<<10)
+	raw, err := io.ReadAll(r.Body)
+	if err != nil || len(raw) == 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_webhook", "detail": "bounded raw webhook payload is required"})
+		return
+	}
+	duplicate, matched, event, err := s.service.HandleInternetWebhook(r.Header, raw)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_webhook", "detail": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"accepted":   true,
+		"duplicate":  duplicate,
+		"matched":    matched,
+		"provider":   event.Provider,
+		"event_type": event.Type,
+	})
 }
 func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 	var v struct{ MessageID, Reason string }

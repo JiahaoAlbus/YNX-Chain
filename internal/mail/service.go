@@ -38,6 +38,7 @@ type Service struct {
 	store    *Store
 	verifier WalletVerifier
 	ai       AIGateway
+	bridge   InternetBridge
 	signer   ed25519.PrivateKey
 	now      func() time.Time
 	random   io.Reader
@@ -46,13 +47,24 @@ type Service struct {
 }
 
 func NewService(store *Store, verifier WalletVerifier, ai AIGateway, signer ed25519.PrivateKey) (*Service, error) {
+	return NewServiceWithInternetBridge(store, verifier, ai, nil, signer)
+}
+
+func NewServiceWithInternetBridge(store *Store, verifier WalletVerifier, ai AIGateway, bridge InternetBridge, signer ed25519.PrivateKey) (*Service, error) {
 	if store == nil || verifier == nil {
 		return nil, errors.New("mail store and wallet verifier are required")
 	}
 	if len(signer) != ed25519.PrivateKeySize {
 		return nil, errors.New("mail sender identity key is required")
 	}
-	return &Service{store: store, verifier: verifier, ai: ai, signer: signer, now: time.Now, random: rand.Reader, cancels: map[string]context.CancelFunc{}}, nil
+	return &Service{store: store, verifier: verifier, ai: ai, bridge: bridge, signer: signer, now: time.Now, random: rand.Reader, cancels: map[string]context.CancelFunc{}}, nil
+}
+
+func (s *Service) InternetBridgeStatus() InternetBridgeStatus {
+	if s.bridge == nil {
+		return InternetBridgeStatus{Provider: "none"}
+	}
+	return s.bridge.Status()
 }
 
 func (s *Service) SenderPublicKey() string {
@@ -384,8 +396,13 @@ func (s *Service) SaveDraft(token string, draft Draft) (Draft, error) {
 }
 
 func (s *Service) SendDraft(token, draftID string) (Message, error) {
+	return s.SendDraftContext(context.Background(), token, draftID)
+}
+
+func (s *Service) SendDraftContext(ctx context.Context, token, draftID string) (Message, error) {
 	now := s.now().UTC()
 	var out Message
+	var internetRecipients []string
 	err := s.store.update(func(st *State) error {
 		sess, err := s.session(st, token)
 		if err != nil {
@@ -406,10 +423,21 @@ func (s *Service) SendDraft(token, draftID string) (Message, error) {
 			return ErrUnauthorized
 		}
 		message := Message{ID: s.id("message"), ThreadID: threadID, SenderID: sender.ID, SenderHandle: sender.Handle, To: append([]string{}, draft.To...), Subject: draft.Subject, Body: draft.Body, Attachments: draft.Attachments, CreatedAt: now}
+		bridgeStatus := s.InternetBridgeStatus()
 		for _, recipient := range draft.To {
-			delivery := Delivery{Recipient: recipient, State: DeliveryFailed, UpdatedAt: now}
-			if strings.Contains(strings.TrimPrefix(recipient, "@"), "@") || strings.Contains(recipient, ":") {
-				delivery.Reason = "internet_mail_delivery_not_supported"
+			delivery := Delivery{Recipient: recipient, Channel: "ynx_native", State: DeliveryFailed, UpdatedAt: now}
+			if isInternetAddress(recipient) {
+				delivery.Channel = "internet_provider"
+				delivery.Provider = bridgeStatus.Provider
+				delivery.Attempt = 1
+				if bridgeStatus.SubmissionConfigured {
+					delivery.State = DeliveryQueued
+					internetRecipients = append(internetRecipients, recipient)
+				} else {
+					delivery.Reason = "internet_provider_not_configured"
+				}
+			} else if !handlePattern.MatchString(recipient) {
+				delivery.Reason = "invalid_recipient"
 			} else if recipientUser, found := userByHandle(st, recipient); !found {
 				delivery.Reason = "unknown_ynx_recipient"
 			} else if st.Blocks[recipientUser.ID][sess.UserID] {
@@ -437,7 +465,16 @@ func (s *Service) SendDraft(token, draftID string) (Message, error) {
 		out = message
 		return nil
 	})
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	for _, recipient := range internetRecipients {
+		out, err = s.submitInternetDelivery(ctx, out, recipient)
+		if err != nil {
+			return out, err
+		}
+	}
+	return out, nil
 }
 
 func (s *Service) VerifySender(message Message) bool {
@@ -557,7 +594,12 @@ func (s *Service) Unblock(token, handle string) error {
 }
 
 func (s *Service) RetryDelivery(token, messageID, recipient string) (Message, error) {
+	return s.RetryDeliveryContext(context.Background(), token, messageID, recipient)
+}
+
+func (s *Service) RetryDeliveryContext(ctx context.Context, token, messageID, recipient string) (Message, error) {
 	var out Message
+	var retryInternet bool
 	now := s.now().UTC()
 	err := s.store.update(func(st *State) error {
 		sess, e := s.session(st, token)
@@ -573,22 +615,42 @@ func (s *Service) RetryDelivery(token, messageID, recipient string) (Message, er
 		}
 		index := -1
 		for i, d := range message.Deliveries {
-			if d.Recipient == recipient && d.State == DeliveryFailed {
+			if d.Recipient == recipient && (d.State == DeliveryFailed || d.State == DeliveryBounced) {
 				index = i
 				break
 			}
 		}
 		if index < 0 {
-			return errors.New("failed delivery not found")
+			return errors.New("retryable delivery not found")
 		}
 		delivery := message.Deliveries[index]
-		if strings.Contains(strings.TrimPrefix(recipient, "@"), "@") || strings.Contains(recipient, ":") {
-			delivery.Reason = "internet_mail_delivery_not_supported"
+		if isInternetAddress(recipient) {
+			status := s.InternetBridgeStatus()
+			delivery.Channel = "internet_provider"
+			delivery.Provider = status.Provider
+			delivery.ProviderMessageID = ""
+			delivery.ProviderEventAt = time.Time{}
+			delivery.LastProviderEvent = ""
+			delivery.Attempt++
+			if delivery.Attempt < 1 {
+				delivery.Attempt = 1
+			}
+			if status.SubmissionConfigured {
+				delivery.State = DeliveryQueued
+				delivery.Reason = ""
+				retryInternet = true
+			} else {
+				delivery.State = DeliveryFailed
+				delivery.Reason = "internet_provider_not_configured"
+			}
+		} else if !handlePattern.MatchString(recipient) {
+			delivery.Reason = "invalid_recipient"
 		} else if target, found := userByHandle(st, recipient); !found {
 			delivery.Reason = "unknown_ynx_recipient"
 		} else if st.Blocks[target.ID][sess.UserID] {
 			delivery.Reason = "recipient_blocked_sender"
 		} else {
+			delivery.Channel = "ynx_native"
 			delivery.State = DeliveryDelivered
 			delivery.Reason = ""
 			st.Mailboxes = append(st.Mailboxes, MailboxItem{MessageID: message.ID, OwnerID: target.ID, Folder: "inbox", CreatedAt: now})
@@ -600,7 +662,10 @@ func (s *Service) RetryDelivery(token, messageID, recipient string) (Message, er
 		out = message
 		return nil
 	})
-	return out, err
+	if err != nil || !retryInternet {
+		return out, err
+	}
+	return s.submitInternetDelivery(ctx, out, recipient)
 }
 
 func (s *Service) Report(token, messageID, reason string) (AbuseReport, error) {

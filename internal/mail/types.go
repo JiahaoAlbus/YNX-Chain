@@ -96,16 +96,26 @@ type Draft struct {
 type DeliveryState string
 
 const (
-	DeliveryQueued    DeliveryState = "queued"
-	DeliveryDelivered DeliveryState = "delivered"
-	DeliveryFailed    DeliveryState = "failed"
+	DeliveryQueued           DeliveryState = "queued"
+	DeliveryProviderAccepted DeliveryState = "provider_accepted"
+	DeliveryProviderDelayed  DeliveryState = "provider_delayed"
+	DeliveryDelivered        DeliveryState = "delivered"
+	DeliveryBounced          DeliveryState = "bounced"
+	DeliveryComplained       DeliveryState = "complained"
+	DeliveryFailed           DeliveryState = "failed"
 )
 
 type Delivery struct {
-	Recipient string        `json:"recipient"`
-	State     DeliveryState `json:"state"`
-	Reason    string        `json:"reason,omitempty"`
-	UpdatedAt time.Time     `json:"updated_at"`
+	Recipient         string        `json:"recipient"`
+	Channel           string        `json:"channel"`
+	State             DeliveryState `json:"state"`
+	Reason            string        `json:"reason,omitempty"`
+	Provider          string        `json:"provider,omitempty"`
+	ProviderMessageID string        `json:"provider_message_id,omitempty"`
+	ProviderEventAt   time.Time     `json:"provider_event_at,omitempty"`
+	LastProviderEvent string        `json:"last_provider_event,omitempty"`
+	Attempt           int           `json:"attempt,omitempty"`
+	UpdatedAt         time.Time     `json:"updated_at"`
 }
 
 type Message struct {
@@ -189,6 +199,7 @@ type State struct {
 	Blocks         map[string]map[string]bool `json:"blocks"`
 	Reports        map[string]AbuseReport     `json:"reports"`
 	AIJobs         map[string]AIJob           `json:"ai_jobs"`
+	ProviderEvents map[string]ProviderEvent   `json:"provider_events"`
 	Rate           map[string][]time.Time     `json:"rate"`
 	Audit          []AuditEntry               `json:"audit"`
 }

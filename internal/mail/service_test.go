@@ -181,7 +181,7 @@ func TestPersistentDeliveryThreadSearchAndSignature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(message.Deliveries) != 2 || message.Deliveries[0].State != DeliveryDelivered || message.Deliveries[1].State != DeliveryFailed || message.Deliveries[1].Reason != "internet_mail_delivery_not_supported" {
+	if len(message.Deliveries) != 2 || message.Deliveries[0].State != DeliveryDelivered || message.Deliveries[1].State != DeliveryFailed || message.Deliveries[1].Reason != "internet_provider_not_configured" {
 		t.Fatalf("unexpected delivery states: %+v", message.Deliveries)
 	}
 	if !svc.VerifySender(message) {

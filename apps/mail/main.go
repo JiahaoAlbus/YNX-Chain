@@ -32,7 +32,13 @@ func main() {
 	fatal(err)
 	verifier := mailservice.RemoteWalletVerifier{BaseURL: os.Getenv("YNX_WALLET_VERIFY_URL")}
 	ai := mailservice.RemoteAI{BaseURL: os.Getenv("YNX_AI_GATEWAY_URL"), Token: os.Getenv("YNX_AI_GATEWAY_TOKEN")}
-	service, err := mailservice.NewService(store, verifier, ai, signer)
+	internetBridge := mailservice.ResendBridge{
+		BaseURL:       os.Getenv("YNX_MAIL_RESEND_API_URL"),
+		APIKey:        os.Getenv("YNX_MAIL_RESEND_API_KEY"),
+		From:          os.Getenv("YNX_MAIL_RESEND_FROM"),
+		WebhookSecret: os.Getenv("YNX_MAIL_RESEND_WEBHOOK_SECRET"),
+	}
+	service, err := mailservice.NewServiceWithInternetBridge(store, verifier, ai, internetBridge, signer)
 	fatal(err)
 	webFS, err := fs.Sub(assets, "web")
 	fatal(err)
