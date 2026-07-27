@@ -27,7 +27,9 @@ const (
 	ActionAIProposalReject    = "ai_action_reject"
 	ActionPayIntentCreate     = "pay_intent_create"
 	ActionPayInvoiceCreate    = "pay_invoice_create"
+	ActionPayInvoiceSettle    = "pay_invoice_settle"
 	ActionPayRefundCreate     = "pay_refund_create"
+	ActionPayRefundComplete   = "pay_refund_complete"
 	ActionPayWebhookRecord    = "pay_webhook_record"
 	ActionGovernanceCreate    = "governance_request_create"
 	ActionGovernanceReview    = "governance_request_review"
@@ -55,7 +57,9 @@ var supportedApplicationActions = map[string]struct{}{
 	ActionAIProposalReject:    {},
 	ActionPayIntentCreate:     {},
 	ActionPayInvoiceCreate:    {},
+	ActionPayInvoiceSettle:    {},
 	ActionPayRefundCreate:     {},
+	ActionPayRefundComplete:   {},
 	ActionPayWebhookRecord:    {},
 	ActionGovernanceCreate:    {},
 	ActionGovernanceReview:    {},

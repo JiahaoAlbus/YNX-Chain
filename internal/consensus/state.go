@@ -11,11 +11,22 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
 const CommittedStateVersion = 7
+
+type BFTNativeTransfer struct {
+	TransactionHash string    `json:"transactionHash"`
+	From            string    `json:"from"`
+	To              string    `json:"to"`
+	Amount          int64     `json:"amount"`
+	Fee             int64     `json:"fee"`
+	BlockHeight     int64     `json:"blockHeight"`
+	CommittedAt     time.Time `json:"committedAt"`
+}
 
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
@@ -27,11 +38,13 @@ type CommittedState struct {
 	Initialized                bool                            `json:"initialized"`
 	Height                     int64                           `json:"height"`
 	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
+	NativeTransfers            []BFTNativeTransfer             `json:"nativeTransfers,omitempty"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
 	AIActions                  []BFTAIAction                   `json:"aiActions"`
 	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
 	PayIntents                 []BFTPayIntent                  `json:"payIntents"`
 	PayInvoices                []BFTPayInvoice                 `json:"payInvoices"`
+	PaySettlements             []BFTPaySettlement              `json:"paySettlements,omitempty"`
 	PayRefunds                 []BFTPayRefund                  `json:"payRefunds"`
 	PayWebhooks                []BFTPayWebhook                 `json:"payWebhooks"`
 	PayEvents                  []BFTPayEvent                   `json:"payEvents"`
@@ -67,11 +80,13 @@ type committedStateHashDocument struct {
 	ChainID                    int64                           `json:"chainId"`
 	MigrationStateHash         string                          `json:"migrationStateHash"`
 	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
+	NativeTransfers            []BFTNativeTransfer             `json:"nativeTransfers,omitempty"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
 	AIActions                  []BFTAIAction                   `json:"aiActions"`
 	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
 	PayIntents                 []BFTPayIntent                  `json:"payIntents"`
 	PayInvoices                []BFTPayInvoice                 `json:"payInvoices"`
+	PaySettlements             []BFTPaySettlement              `json:"paySettlements,omitempty"`
 	PayRefunds                 []BFTPayRefund                  `json:"payRefunds"`
 	PayWebhooks                []BFTPayWebhook                 `json:"payWebhooks"`
 	PayEvents                  []BFTPayEvent                   `json:"payEvents"`
@@ -108,11 +123,13 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		Initialized:                false,
 		Height:                     int64(migration.Height),
 		Accounts:                   cloneAccounts(migration.Accounts),
+		NativeTransfers:            []BFTNativeTransfer{},
 		AIPermissions:              []BFTAIPermission{},
 		AIActions:                  []BFTAIAction{},
 		AIAuditEvents:              []BFTAIAuditEvent{},
 		PayIntents:                 []BFTPayIntent{},
 		PayInvoices:                []BFTPayInvoice{},
+		PaySettlements:             []BFTPaySettlement{},
 		PayRefunds:                 []BFTPayRefund{},
 		PayWebhooks:                []BFTPayWebhook{},
 		PayEvents:                  []BFTPayEvent{},
@@ -151,11 +168,13 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		Initialized:                true,
 		Height:                     height,
 		Accounts:                   cloneAccounts(execution.accounts),
+		NativeTransfers:            append([]BFTNativeTransfer(nil), execution.nativeTransfers...),
 		AIPermissions:              cloneAIPermissions(execution.permissions),
 		AIActions:                  cloneAIActions(execution.actions),
 		AIAuditEvents:              append([]BFTAIAuditEvent(nil), execution.auditEvents...),
 		PayIntents:                 append([]BFTPayIntent(nil), execution.payIntents...),
 		PayInvoices:                append([]BFTPayInvoice(nil), execution.payInvoices...),
+		PaySettlements:             append([]BFTPaySettlement(nil), execution.paySettlements...),
 		PayRefunds:                 append([]BFTPayRefund(nil), execution.payRefunds...),
 		PayWebhooks:                append([]BFTPayWebhook(nil), execution.payWebhooks...),
 		PayEvents:                  append([]BFTPayEvent(nil), execution.payEvents...),
@@ -242,6 +261,13 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 		previous = account.Address
 	}
 	previous = ""
+	for _, transfer := range s.NativeTransfers {
+		if !payNativeTransactionHashPattern.MatchString(transfer.TransactionHash) || (previous != "" && transfer.TransactionHash <= previous) || !IsNativeAddress(transfer.From) || !IsNativeAddress(transfer.To) || transfer.Amount <= 0 || transfer.Fee != 1 || transfer.BlockHeight <= 0 || (!transfer.CommittedAt.IsZero() && transfer.CommittedAt.Location() != time.UTC) {
+			return errors.New("committed native transfer receipts must be complete and sorted")
+		}
+		previous = transfer.TransactionHash
+	}
+	previous = ""
 	for _, permission := range s.AIPermissions {
 		if permission.ID == "" || (previous != "" && permission.ID <= previous) || !IsNativeAddress(permission.Signer) || permission.SessionID == "" || permission.Requester == "" || permission.Scope == "" || permission.Purpose == "" || permission.Status != "active" || permission.CreatedAt.IsZero() || !permission.ExpiresAt.After(permission.CreatedAt) || permission.BlockHeight <= 0 || permission.TxHash == "" || permission.AuditHash == "" {
 			return errors.New("committed AI permissions must be complete and sorted by unique ID")
@@ -307,11 +333,13 @@ func (s CommittedState) calculateHash() (string, error) {
 		ChainID:                    s.ChainID,
 		MigrationStateHash:         s.MigrationStateHash,
 		Accounts:                   s.Accounts,
+		NativeTransfers:            s.NativeTransfers,
 		AIPermissions:              s.AIPermissions,
 		AIActions:                  s.AIActions,
 		AIAuditEvents:              s.AIAuditEvents,
 		PayIntents:                 s.PayIntents,
 		PayInvoices:                s.PayInvoices,
+		PaySettlements:             s.PaySettlements,
 		PayRefunds:                 s.PayRefunds,
 		PayWebhooks:                s.PayWebhooks,
 		PayEvents:                  s.PayEvents,
@@ -348,30 +376,93 @@ func (s CommittedState) calculateHash() (string, error) {
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
+	return len(s.NativeTransfers)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PaySettlements)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
 }
 
 func validatePayCommittedState(s CommittedState) error {
 	previous := ""
 	for _, value := range s.PayIntents {
-		if !payIDPattern.MatchString(value.ID) || (previous != "" && value.ID <= previous) || !IsNativeAddress(value.Signer) || value.Merchant == "" || value.Amount <= 0 || value.Currency != "YNXT" || value.Status != "created" || value.CreatedAt.IsZero() || value.IdempotencyKey == "" || !payHashPattern.MatchString(value.RequestHash) || value.BlockHeight <= 0 || value.TxHash == "" || value.AuditHash == "" {
+		if !payIDPattern.MatchString(value.ID) || (previous != "" && value.ID <= previous) || !IsNativeAddress(value.Signer) || value.Merchant == "" || value.Amount <= 0 || value.Currency != "YNXT" || !intentPayStatus(value.Status) || value.CreatedAt.IsZero() || value.IdempotencyKey == "" || !payHashPattern.MatchString(value.RequestHash) || value.BlockHeight <= 0 || value.TxHash == "" || value.AuditHash == "" {
 			return errors.New("committed Pay intents must be complete and sorted")
 		}
 		previous = value.ID
 	}
 	previous = ""
 	for _, value := range s.PayInvoices {
-		if !payIDPattern.MatchString(value.ID) || (previous != "" && value.ID <= previous) || !payIDPattern.MatchString(value.IntentID) || !IsNativeAddress(value.Signer) || value.Merchant == "" || value.Amount <= 0 || value.Currency != "YNXT" || value.Status != "issued" || value.CreatedAt.IsZero() || !value.DueAt.After(value.CreatedAt) || value.IdempotencyKey == "" || !payHashPattern.MatchString(value.RequestHash) || value.BlockHeight <= 0 || value.TxHash == "" || value.AuditHash == "" {
+		if !payIDPattern.MatchString(value.ID) || (previous != "" && value.ID <= previous) || !payIDPattern.MatchString(value.IntentID) || !IsNativeAddress(value.Signer) || (value.PayoutAddress != "" && value.PayoutAddress != value.Signer) || value.Merchant == "" || value.Amount <= 0 || value.Currency != "YNXT" || !invoicePayStatus(value.Status) || value.CreatedAt.IsZero() || !value.DueAt.After(value.CreatedAt) || value.IdempotencyKey == "" || !payHashPattern.MatchString(value.RequestHash) || value.BlockHeight <= 0 || value.TxHash == "" || value.AuditHash == "" {
 			return errors.New("committed Pay invoices must be complete and sorted")
+		}
+		if value.Status != "issued" && (!IsNativeAddress(value.Payer) || !payIDPattern.MatchString(value.SettlementID) || !payNativeTransactionHashPattern.MatchString(value.TransactionHash) || value.SettledAt == nil || value.SettledAt.IsZero()) {
+			return errors.New("settled Pay invoice authority is incomplete")
+		}
+		previous = value.ID
+	}
+	previous = ""
+	for _, value := range s.PaySettlements {
+		if !payIDPattern.MatchString(value.ID) || (previous != "" && value.ID <= previous) || !payIDPattern.MatchString(value.IntentID) || !payIDPattern.MatchString(value.InvoiceID) || !IsNativeAddress(value.Signer) || value.PayoutAddress != value.Signer || !IsNativeAddress(value.Payer) || value.Merchant == "" || value.Amount <= 0 || value.Currency != "YNXT" || !settlementStatus(value.Status) || !payNativeTransactionHashPattern.MatchString(value.TransactionHash) || value.CreatedAt.IsZero() || value.IdempotencyKey == "" || !payHashPattern.MatchString(value.RequestHash) || value.BlockHeight <= 0 || !payNativeTransactionHashPattern.MatchString(value.TxHash) || value.AuditHash == "" {
+			return errors.New("committed Pay settlements must be complete and sorted")
 		}
 		previous = value.ID
 	}
 	previous = ""
 	for _, value := range s.PayRefunds {
-		if !payIDPattern.MatchString(value.ID) || (previous != "" && value.ID <= previous) || !payIDPattern.MatchString(value.IntentID) || !IsNativeAddress(value.Signer) || value.Merchant == "" || value.Amount <= 0 || value.Currency != "YNXT" || value.Status != "recorded" || value.CreatedAt.IsZero() || value.IdempotencyKey == "" || !payHashPattern.MatchString(value.RequestHash) || value.BlockHeight <= 0 || value.TxHash == "" || value.AuditHash == "" {
+		if !payIDPattern.MatchString(value.ID) || (previous != "" && value.ID <= previous) || !payIDPattern.MatchString(value.IntentID) || !IsNativeAddress(value.Signer) || value.Merchant == "" || value.Amount <= 0 || value.Currency != "YNXT" || (value.Status != "recorded" && value.Status != "completed") || value.CreatedAt.IsZero() || value.IdempotencyKey == "" || !payHashPattern.MatchString(value.RequestHash) || value.BlockHeight <= 0 || value.TxHash == "" || value.AuditHash == "" {
 			return errors.New("committed Pay refunds must be complete and sorted")
 		}
+		if value.Status == "completed" && (!payIDPattern.MatchString(value.InvoiceID) || !payIDPattern.MatchString(value.SettlementID) || value.PayoutAddress != value.Signer || !IsNativeAddress(value.Payer) || !payNativeTransactionHashPattern.MatchString(value.TransactionHash) || value.CompletedAt == nil || value.CompletedAt.IsZero() || value.CompletionIdempotencyKey == "" || !payHashPattern.MatchString(value.CompletionRequestHash) || value.CompletionBlockHeight <= 0 || !payNativeTransactionHashPattern.MatchString(value.CompletionTxHash)) {
+			return errors.New("completed Pay refund authority is incomplete")
+		}
 		previous = value.ID
+	}
+	claimedTransfers := make(map[string]string, len(s.PaySettlements)+len(s.PayRefunds))
+	completedBySettlement := make(map[string]int64, len(s.PaySettlements))
+	for _, settlement := range s.PaySettlements {
+		_, invoice, invoiceExists := findPayRecord(s.PayInvoices, settlement.InvoiceID, func(v BFTPayInvoice) string { return v.ID })
+		_, transfer, transferExists := findPayRecord(s.NativeTransfers, settlement.TransactionHash, func(v BFTNativeTransfer) string { return v.TransactionHash })
+		if !invoiceExists || invoice.IntentID != settlement.IntentID || invoice.SettlementID != settlement.ID || invoice.Status != settlement.Status || invoice.Payer != settlement.Payer || invoice.PayoutAddress != settlement.PayoutAddress || invoice.TransactionHash != settlement.TransactionHash || invoice.Amount != settlement.Amount || invoice.Currency != settlement.Currency {
+			return errors.New("committed Pay settlement contradicts its invoice")
+		}
+		if !transferExists || transfer.From != settlement.Payer || transfer.To != settlement.PayoutAddress || transfer.Amount != settlement.Amount || transfer.Fee != 1 || transfer.BlockHeight <= invoice.BlockHeight {
+			return errors.New("committed Pay settlement contradicts its native transfer")
+		}
+		if prior := claimedTransfers[settlement.TransactionHash]; prior != "" {
+			return errors.New("committed Pay transfer is claimed more than once")
+		}
+		claimedTransfers[settlement.TransactionHash] = settlement.ID
+	}
+	for _, refund := range s.PayRefunds {
+		if refund.Status != "completed" {
+			continue
+		}
+		_, settlement, settlementExists := findPayRecord(s.PaySettlements, refund.SettlementID, func(v BFTPaySettlement) string { return v.ID })
+		_, transfer, transferExists := findPayRecord(s.NativeTransfers, refund.TransactionHash, func(v BFTNativeTransfer) string { return v.TransactionHash })
+		if !settlementExists || refund.IntentID != settlement.IntentID || refund.InvoiceID != settlement.InvoiceID || refund.Signer != settlement.Signer || refund.Merchant != settlement.Merchant || refund.PayoutAddress != settlement.PayoutAddress || refund.Payer != settlement.Payer || refund.Currency != settlement.Currency {
+			return errors.New("completed Pay refund contradicts its settlement")
+		}
+		if !transferExists || transfer.From != settlement.PayoutAddress || transfer.To != settlement.Payer || transfer.Amount != refund.Amount || transfer.Fee != 1 || transfer.BlockHeight <= refund.BlockHeight || transfer.BlockHeight <= settlement.BlockHeight {
+			return errors.New("completed Pay refund contradicts its native transfer")
+		}
+		if prior := claimedTransfers[refund.TransactionHash]; prior != "" {
+			return errors.New("committed Pay transfer is claimed more than once")
+		}
+		claimedTransfers[refund.TransactionHash] = refund.ID
+		if refund.Amount > math.MaxInt64-completedBySettlement[settlement.ID] {
+			return errors.New("completed Pay refund total overflows")
+		}
+		completedBySettlement[settlement.ID] += refund.Amount
+	}
+	for _, settlement := range s.PaySettlements {
+		completed := completedBySettlement[settlement.ID]
+		expectedStatus := "paid"
+		if completed > 0 {
+			expectedStatus = "partially_refunded"
+		}
+		if completed == settlement.Amount {
+			expectedStatus = "refunded"
+		}
+		if completed > settlement.Amount || settlement.Status != expectedStatus {
+			return errors.New("committed Pay settlement refund status is inconsistent")
+		}
 	}
 	previous = ""
 	for _, value := range s.PayWebhooks {
@@ -398,6 +489,18 @@ func validatePayCommittedState(s CommittedState) error {
 		previous = value.ID
 	}
 	return nil
+}
+
+func intentPayStatus(value string) bool {
+	return value == "created" || value == "paid" || value == "partially_refunded" || value == "refunded"
+}
+
+func invoicePayStatus(value string) bool {
+	return value == "issued" || value == "paid" || value == "partially_refunded" || value == "refunded"
+}
+
+func settlementStatus(value string) bool {
+	return value == "paid" || value == "partially_refunded" || value == "refunded"
 }
 
 func loadCommittedState(path string, migration chain.ConsensusMigrationState) (CommittedState, error) {
