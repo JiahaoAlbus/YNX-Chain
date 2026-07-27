@@ -1,6 +1,6 @@
 {
   "schema": "ynx-product-release/v1",
-  "generatedAt": "2026-07-27T12:50:00Z",
+  "generatedAt": "2026-07-27T13:38:17Z",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -9,9 +9,9 @@
     "canonicalRoute": "/chain"
   },
   "source": {
-    "implementationCommit": "fdb005c936fc",
+    "implementationCommit": "5c08b24462a2",
     "committedStateVersion": 11,
-    "contractVersion": "1.9.0",
+    "contractVersion": "1.10.0",
     "releaseRecordVersion": 1
   },
   "network": {
@@ -70,6 +70,7 @@
     "bounded-ethereum-signer-cli-and-json-evidence",
     "configurable-local-consensus-fixture-balance",
     "local-four-validator-eip1559-commit-and-rollback-proof",
+    "local-four-validator-positive-max-gas-fee-history-proof",
     "evm-committed-receipt-audit-validation",
     "evm-committed-transaction-receipt-and-logs",
     "evm-committed-bounded-contract-code-call-and-resource-estimate",

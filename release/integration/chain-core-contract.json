@@ -2,8 +2,8 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "fdb005c936fc",
-  "contractVersion": "1.9.0",
+  "sourceCommit": "5c08b24462a2",
+  "contractVersion": "1.10.0",
   "stateSchema": {
     "committedStateVersion": 11,
     "applicationVersion": 17,
@@ -215,7 +215,16 @@
       "rewardPercentiles": "omitted-or-empty-array-only",
       "rewardEstimatesAvailable": false,
       "pendingAvailable": false,
-      "dynamicBaseFeeMarket": false
+      "dynamicBaseFeeMarket": false,
+      "localFourValidatorProof": {
+        "consensusMaxGas": 42000,
+        "committedGasUsed": 21000,
+        "gasUsedRatio": 0.5,
+        "transactionType": "0x2",
+        "validatorCount": 4,
+        "public": false,
+        "productionSigned": false
+      }
     },
     "signerCliProfile": {
       "command": "ynx-consensus-tx",

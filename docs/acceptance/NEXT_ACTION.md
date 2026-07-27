@@ -1,48 +1,38 @@
 # Next Action
 
-Current implementation baseline: `fdb005c936fc`.
+Current implementation baseline: `5c08b24462a2`.
 
 Completed local Testnet slice:
 
-- bounded EIP-155, EIP-2930 and zero-base-fee EIP-1559 value-transfer profiles;
-- truthful minimum fee suggestions through `eth_gasPrice` and `eth_maxPriorityFeePerGas`;
-- committed `eth_feeHistory` from retained CometBFT blocks, `block_results` gas and positive exact-height consensus `max_gas`;
-- zero base-fee arrays and evidence-derived `gasUsedRatio`, with no reward-percentile estimates or dynamic fee-market claim;
-- secure multi-envelope signer tooling, committed-broadcast evidence binding and local four-validator EIP-1559 commit/rollback proof;
-- Release Record and Integration Contract v1.9.0 plus 70 unique vectors bound to `fdb005c936fc`, with every unsupported public or production state false.
+- committed `eth_feeHistory` from retained CometBFT blocks, exact `block_results` gas and positive exact-height consensus `max_gas`;
+- real disposable four-validator proof with `max_gas=42000`, a committed bounded type-0x02 transfer using 21000 gas, zero base fees, `gasUsedRatio=0.5` and an empty reward row;
+- equal block/AppHash/account evidence and false public/production flags;
+- Release Record and Integration Contract v1.10.0 plus 71 unique vectors bound to `5c08b24462a2`.
 
 Current single action:
 
-1. Configure a disposable local four-validator CometBFT network with a positive consensus `max_gas`.
-2. Commit one bounded type-0x02 transfer through the Gateway.
-3. Query `eth_feeHistory` for the committed range and bind `oldestBlock`, zero `baseFeePerGas`, `gasUsedRatio` and next-block base fee to exact block, `block_results` and `consensus_params` evidence.
-4. Exercise non-positive `max_gas`, tampered gas usage, mismatched consensus-parameter height, pending/pruned history and non-empty reward-percentile rejection.
-5. Preserve `-32004` for truthful history unavailability, `-32603` for inconsistent committed evidence and all false central/public/production release flags.
+1. Commit and push the v1.10.0 evidence freeze.
+2. Verify Local SHA equals Remote SHA and the worktree is clean.
+3. Continue the next autonomous TESTNET compatibility or recovery gap without widening public claims.
 
 Files in the current slice:
 
-- `internal/consensus/network.go` and the local genesis fixture path for positive consensus `max_gas`;
-- `scripts/verify/consensus-fee-history-commit-check.sh` as a new reproducible local evidence gate;
-- targeted consensus/Gateway tests and machine evidence for committed fee-history binding;
-- Integration Contract, vectors and `.ai-bridge` only after the runtime proof is committed.
+- Release Record, Integration Contract, cross-product vectors and Handoff;
+- acceptance evidence and `.ai-bridge` state bound to runtime `5c08b24462a2`.
 
 Validation commands:
 
-- `make bft-evm-fee-history-check`
-- the new local four-validator fee-history evidence gate
-- `make consensus-quorum-check`
-- `go test -race ./internal/consensus ./internal/bftgateway ./internal/mutationfreeze`
-- `go test ./cmd/... ./internal/...`
 - `make integration-contract-check`
-- `make static-check`
+- `make consensus-fee-history-check`
 - `make objective-state-check`
+- `make static-check`
 - `make no-placeholder-check`
 - `make secret-scan`
 
 Completion standard:
 
-- exact committed fee-history evidence is reproducible from a disposable four-validator network with positive `max_gas`;
-- negative evidence paths fail closed without fabricated history;
+- v1.10.0 records and 71 vectors bind to `5c08b24462a2`;
+- all unsupported public and production flags remain false;
 - Commit and Push complete, Local SHA equals Remote SHA and the worktree is clean.
 
 Explicitly not doing:

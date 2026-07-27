@@ -47,6 +47,7 @@ const consensusLabSource = readFileSync("cmd/ynx-consensus-lab/main.go", "utf8")
 const quorumCheckSource = readFileSync("scripts/verify/consensus-quorum-check.sh", "utf8");
 const eip1559CommitCheckSource = readFileSync("scripts/verify/consensus-eip1559-commit-check.sh", "utf8");
 const feeHistoryCheckSource = readFileSync("scripts/verify/bft-evm-fee-history-check.sh", "utf8");
+const consensusFeeHistoryCheckSource = readFileSync("scripts/verify/consensus-fee-history-check.sh", "utf8");
 
 requireValue(release.schema === "ynx-product-release/v1", "unexpected product release schema");
 requireValue(contract.schema === "ynx-integration-contract/v1", "unexpected contract schema");
@@ -82,7 +83,7 @@ requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplet
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
 }
-requireValue(contract.contractVersion === "1.9.0", "unexpected Chain Core contract version");
+requireValue(contract.contractVersion === "1.10.0", "unexpected Chain Core contract version");
 requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
 requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
 requireValue(contract.evmRpc.historicalContractState === false, "EVM RPC cannot claim historical contract state");
@@ -121,6 +122,9 @@ requireValue(feeHistoryProfile.rewardPercentiles === "omitted-or-empty-array-onl
 requireValue(ethereumTransactionSource.includes("EthereumMinimumGasPrice") && evmSource.includes("evmFeeSuggestionResult"), "fee suggestion runtime binding missing");
 requireValue(evmSource.includes("committedBlockGasLimit") && evmSource.includes('"/consensus_params"') && evmSource.includes("evmFeeHistoryUnavailable") && gatewaySource.includes('case "eth_feeHistory"'), "fee history runtime binding missing");
 requireValue(feeHistoryCheckSource.includes("positive CometBFT consensus max_gas") && feeHistoryCheckSource.includes("fails closed"), "fee history verification gate drift");
+const localFeeHistoryProof = feeHistoryProfile.localFourValidatorProof;
+requireValue(localFeeHistoryProof.consensusMaxGas === 42000 && localFeeHistoryProof.committedGasUsed === 21000 && localFeeHistoryProof.gasUsedRatio === 0.5 && localFeeHistoryProof.transactionType === "0x2" && localFeeHistoryProof.validatorCount === 4 && localFeeHistoryProof.public === false && localFeeHistoryProof.productionSigned === false, "four-validator fee history proof profile drift");
+requireValue(consensusFeeHistoryCheckSource.includes("max_gas=42000") && consensusFeeHistoryCheckSource.includes("gasUsedRatio=0.5") && consensusFeeHistoryCheckSource.includes("public/production flags remain false"), "four-validator fee history proof gate drift");
 const signerCliProfile = contract.evmRpc.signerCliProfile;
 requireValue(signerCliProfile.command === "ynx-consensus-tx" && JSON.stringify(signerCliProfile.envelopes) === JSON.stringify(["ynx", "eip155", "eip2930", "eip1559"]), "signer CLI envelope profile drift");
 requireValue(JSON.stringify(signerCliProfile.outputFormats) === JSON.stringify(["raw", "json"]) && signerCliProfile.keyFilePermissions === "0600" && signerCliProfile.privateKeyOutput === false && signerCliProfile.dualHashEvidence === true, "signer CLI security or evidence profile drift");
@@ -265,7 +269,8 @@ for (const required of [
   "consensus-four-validator-eip1559-commit-rollback-accept",
   "evm-broadcast-committed-evidence-binding-accept",
   "evm-broadcast-committed-evidence-mismatch-reject",
-  "evm-comet-cache-duplicate-reject"
+  "evm-comet-cache-duplicate-reject",
+  "consensus-four-validator-positive-max-gas-fee-history-accept"
 ]) {
   requireValue(ids.has(required), `required cross-product vector missing: ${required}`);
 }

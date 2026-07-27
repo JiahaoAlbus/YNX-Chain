@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "fdb005c936fc",
+  "sourceCommit": "5c08b24462a2",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,
@@ -734,6 +734,23 @@
       "expected": "reject",
       "errorClass": "duplicate-or-replay",
       "expectedRpcCode": -32003
+    },
+    {
+      "id": "consensus-four-validator-positive-max-gas-fee-history-accept",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "scripts/verify/consensus-fee-history-check.sh",
+      "expected": "accept",
+      "requiredEvidence": [
+        "four-validator-block-and-apphash-equality",
+        "consensus-max-gas-42000",
+        "committed-type-0x02-gas-used-21000",
+        "zero-base-fee-history",
+        "gas-used-ratio-0.5",
+        "empty-reward-row",
+        "deployedPublic-false",
+        "productionSigned-false"
+      ]
     }
   ]
 }

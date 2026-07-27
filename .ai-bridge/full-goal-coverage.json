@@ -16,7 +16,7 @@
   "current": {
     "phase": "TESTNET",
     "goalStatus": "Active",
-    "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+    "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
     "releaseStatus": {
       "implementedLocal": true,
       "testedLocal": true,
@@ -106,7 +106,7 @@
         "OPERATIONS.md",
         "release/product-release.json"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
         "make no-placeholder-check",
         "make secret-scan",
@@ -146,12 +146,12 @@
         "docs/integration/DEPENDENCY_ACCEPTANCE.md",
         ".ai-bridge/execution-log.jsonl"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
         "git status clean and local or remote SHA matched after bf08b68 push"
       ],
       "artifact": [
-        "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6"
+        "5c08b24462a28a9d768a18f8849f26548e2e4191"
       ],
       "publicProof": [],
       "blockedBy": [
@@ -183,7 +183,7 @@
         "configs/networks.json",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
         "network identity tests",
         "EVM eth_chainId and net_version tests"
@@ -217,7 +217,7 @@
         "release/recovery-evidence.json",
         "FEATURE_COMPLETION_EVIDENCE.md"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
         "make consensus-quorum-check",
         "make consensus-state-sync-check",
@@ -255,7 +255,7 @@
         "docs/formal/streambft/StreamBFT.cfg",
         "tmp/consensus-candidate-evidence"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
         "StreamBFT unit and candidate checks"
       ],
@@ -286,7 +286,7 @@
         "chain/resources",
         "internal/streambft"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [],
       "artifact": [],
       "publicProof": [],
@@ -317,7 +317,7 @@
         "chain/governance/strategy-mandate.schema.json",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
         "account-abstraction tests",
         "mandate lifecycle and negative tests",
@@ -356,7 +356,7 @@
         "infra/docker",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
         "gateway test suites",
         "make indexer-check",
@@ -404,7 +404,7 @@
         "tmp/consensus-quorum-evidence.json",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
         "make integration-contract-check",
         "make bft-evm-receipt-check",
@@ -468,7 +468,7 @@
         "release/product-release.json",
         "FEATURE_COMPLETION_EVIDENCE.md"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
         "local four-validator proof",
         "smart-account, mandate, vault, risk and recovery gates"
@@ -506,7 +506,7 @@
         "release/integration/chain-core-contract.json",
         "docs/integration/INTEGRATION_HANDOFF.md"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [],
       "artifact": [],
       "publicProof": [],
@@ -537,7 +537,7 @@
         "internal/bftgateway",
         "internal/indexer"
       ],
-      "sourceCommit": "fdb005c936fc8b44e9e0ed815dfa4d61778bcbf6",
+      "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
         "go test -race ./internal/indexer",
         "make indexer-check",

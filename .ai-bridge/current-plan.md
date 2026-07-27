@@ -11,15 +11,20 @@ Protected baselines:
 - Committed EVM block-transaction count and transaction-by-block-index lookups: `7b59af3`.
 - Durable Indexer checkpoint/WAL validation and tamper rejection: `bf08b68`.
 - Bounded EIP-155, EIP-2930 and zero-base-fee EIP-1559 transfers: `5469ed2`, `6959df9`, `d6505fb`.
-- Zero-base-fee gas suggestions and read-only freeze classification: `acb8c47`, `c6c013c`.
-- Bounded signer CLI and configurable local consensus fixture funding: `27c52eb`, `3c5c0c8`.
+- Zero-base-fee gas suggestions and committed `eth_feeHistory`: `acb8c47`, `fdb005c`.
 - Committed EIP-1559 Gateway/Comet evidence and four-validator rollback proof: `57a13ba`.
-- Committed zero-base-fee `eth_feeHistory` with positive CometBFT `max_gas` evidence: `fdb005c`.
+- Real four-validator positive-`max_gas` fee-history proof: `5c08b24`.
 
 Current recoverable slice:
 
-1. Prove `eth_feeHistory` against a real local four-validator CometBFT network configured with a positive consensus `max_gas`, including a committed type-0x02 transaction and evidence-derived `gasUsedRatio`.
-2. Bind the returned oldest block, zero base-fee array, per-block gas ratios and next-block base fee to exact committed block, block-results and consensus-parameter evidence.
-3. Add negative drills for non-positive `max_gas`, tampered gas usage, mismatched consensus-parameter height, pending/pruned history and non-empty reward percentiles.
-4. Preserve fail-closed `-32004` and `-32603` classifications and keep all central, public and production release booleans false.
-5. Run focused, quorum, race, regression and security gates; then Commit, Push and verify Local SHA equals Remote SHA.
+1. Freeze Release Record and Integration Contract v1.10.0 to runtime source `5c08b24462a2`.
+2. Freeze 71 unique cross-product vectors, including the four-validator `max_gas=42000`, committed gas `21000`, zero-base-fee and `gasUsedRatio=0.5` proof.
+3. Update Handoff, evidence indexes, acceptance state and `.ai-bridge` without changing unsupported public or production booleans.
+4. Run integration, real consensus fee-history, objective-state, static, placeholder and secret gates.
+5. Commit, push and verify Local SHA equals Remote SHA.
+
+Next runtime slice after this evidence checkpoint:
+
+1. Continue the next autonomous TESTNET compatibility or recovery gap using committed evidence only.
+2. Prepare remote-current-source deployment and follower-first recovery adapters, but do not claim deployment until real authority and infrastructure exist.
+3. Preserve fail-closed EVM evidence binding and do not claim generalized Ethereum execution, a dynamic fee market, production signing, central integration or public deployment.
