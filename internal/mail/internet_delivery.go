@@ -56,6 +56,8 @@ func (s *Service) updateInternetSubmission(messageID, recipient string, submissi
 			delivery.State = DeliveryFailed
 			delivery.Reason = providerSubmissionReason(submissionErr)
 			delivery.UpdatedAt = now
+			recordProviderSubmission(st, delivery.Provider, delivery.Reason, false, now)
+			upsertDeadLetter(st, message, delivery, "open", now)
 			s.audit(st, message.SenderID, "internet_provider_submission_failed", message.ID, map[string]any{
 				"recipient_hash": digest(strings.ToLower(strings.TrimSpace(recipient))),
 				"provider":       delivery.Provider,
@@ -74,6 +76,8 @@ func (s *Service) updateInternetSubmission(messageID, recipient string, submissi
 			delivery.ProviderEventAt = acceptedAt
 			delivery.LastProviderEvent = "api.accepted"
 			delivery.UpdatedAt = now
+			recordProviderSubmission(st, submission.Provider, "", true, now)
+			resolveDeadLetters(st, message.ID, delivery.Recipient, now)
 			s.audit(st, message.SenderID, "internet_provider_accepted", message.ID, map[string]any{
 				"recipient_hash":        digest(strings.ToLower(strings.TrimSpace(recipient))),
 				"provider":              submission.Provider,
@@ -106,6 +110,7 @@ func (s *Service) HandleInternetWebhook(headers http.Header, raw []byte) (duplic
 			return nil
 		}
 		st.ProviderEvents[event.EventID] = event
+		recordVerifiedWebhook(st, event.Provider, event.ReceivedAt)
 		for messageID, message := range st.Messages {
 			for i, delivery := range message.Deliveries {
 				if delivery.Provider != event.Provider || delivery.ProviderMessageID != event.ProviderMessageID {
@@ -121,6 +126,15 @@ func (s *Service) HandleInternetWebhook(headers http.Header, raw []byte) (duplic
 					delivery.UpdatedAt = event.ReceivedAt
 					message.Deliveries[i] = delivery
 					st.Messages[messageID] = message
+					switch event.State {
+					case DeliveryDelivered:
+						resolveDeadLetters(st, message.ID, delivery.Recipient, event.ReceivedAt)
+					case DeliveryBounced, DeliveryComplained, DeliveryFailed:
+						upsertDeadLetter(st, message, delivery, "open", event.ReceivedAt)
+					}
+					if event.Type == "email.bounced" || event.Type == "email.complained" || event.Type == "email.suppressed" {
+						addSuppression(st, delivery.Recipient, event.Provider, event.Reason, event.EventID, event.ReceivedAt)
+					}
 					applied = true
 				}
 				s.audit(st, message.SenderID, "internet_provider_webhook", message.ID, map[string]any{

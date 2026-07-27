@@ -70,7 +70,7 @@ func NewStore(path string) (*Store, error) {
 }
 
 func emptyState() State {
-	return State{Users: map[string]User{}, Challenges: map[string]Challenge{}, Sessions: map[string]Session{}, WalletRequests: map[string]bool{}, Drafts: map[string]Draft{}, Messages: map[string]Message{}, Blocks: map[string]map[string]bool{}, Reports: map[string]AbuseReport{}, AIJobs: map[string]AIJob{}, ProviderEvents: map[string]ProviderEvent{}, Rate: map[string][]time.Time{}}
+	return State{Users: map[string]User{}, Challenges: map[string]Challenge{}, Sessions: map[string]Session{}, WalletRequests: map[string]bool{}, Drafts: map[string]Draft{}, Messages: map[string]Message{}, Blocks: map[string]map[string]bool{}, Reports: map[string]AbuseReport{}, AIJobs: map[string]AIJob{}, ProviderEvents: map[string]ProviderEvent{}, Suppressions: map[string]Suppression{}, DeadLetters: map[string]DeadLetter{}, ProviderHealth: map[string]ProviderHealth{}, Rate: map[string][]time.Time{}}
 }
 
 func (s *Store) normalize() {
@@ -103,6 +103,15 @@ func (s *Store) normalize() {
 	}
 	if s.data.ProviderEvents == nil {
 		s.data.ProviderEvents = map[string]ProviderEvent{}
+	}
+	if s.data.Suppressions == nil {
+		s.data.Suppressions = map[string]Suppression{}
+	}
+	if s.data.DeadLetters == nil {
+		s.data.DeadLetters = map[string]DeadLetter{}
+	}
+	if s.data.ProviderHealth == nil {
+		s.data.ProviderHealth = map[string]ProviderHealth{}
 	}
 	if s.data.Rate == nil {
 		s.data.Rate = map[string][]time.Time{}

@@ -197,6 +197,13 @@ func TestResendProviderFailureAndRetryUseDistinctIdempotencyAttempts(t *testing.
 	if message.Deliveries[0].State != DeliveryFailed || message.Deliveries[0].Reason != "provider_rate_limited" || message.Deliveries[0].Attempt != 1 {
 		t.Fatalf("provider failure was hidden: %+v", message.Deliveries[0])
 	}
+	if health := svc.InternetBridgeHealth(); health.State != "rate_limited" || health.OpenDeadLetters != 1 || health.ConsecutiveFailures != 1 {
+		t.Fatalf("provider health did not expose failure truth: %+v", health)
+	}
+	letters, err := svc.DeadLetters(token)
+	if err != nil || len(letters) != 1 || letters[0].State != "open" || letters[0].Reason != "provider_rate_limited" {
+		t.Fatalf("dead letter not recorded: %v %+v", err, letters)
+	}
 	message, err = svc.RetryDelivery(token, message.ID, "retry@example.net")
 	if err != nil {
 		t.Fatal(err)
@@ -204,10 +211,97 @@ func TestResendProviderFailureAndRetryUseDistinctIdempotencyAttempts(t *testing.
 	if message.Deliveries[0].State != DeliveryProviderAccepted || message.Deliveries[0].Attempt != 2 || message.Deliveries[0].ProviderMessageID != "provider-message-retry" {
 		t.Fatalf("provider retry failed: %+v", message.Deliveries[0])
 	}
+	if health := svc.InternetBridgeHealth(); health.State != "submission_accepted_local_evidence" || health.OpenDeadLetters != 0 || health.ConsecutiveFailures != 0 {
+		t.Fatalf("provider health did not recover after acceptance: %+v", health)
+	}
+	letters, err = svc.DeadLetters(token)
+	if err != nil || len(letters) != 1 || letters[0].State != "resolved" {
+		t.Fatalf("dead letter was not resolved: %v %+v", err, letters)
+	}
 	mu.Lock()
 	defer mu.Unlock()
 	if len(keys) != 2 || keys[0] == keys[1] || !strings.HasSuffix(keys[0], "/1") || !strings.HasSuffix(keys[1], "/2") {
 		t.Fatalf("retry idempotency attempts are unsafe: %+v", keys)
+	}
+}
+
+func TestComplaintSuppressesFutureSubmissionAndQueuesRecovery(t *testing.T) {
+	apiKey := "unit" + "-test" + "-credential-reference"
+	var mu sync.Mutex
+	providerCalls := 0
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		providerCalls++
+		call := providerCalls
+		mu.Unlock()
+		_, _ = w.Write([]byte(`{"id":"provider-complaint-` + strconv.Itoa(call) + `"}`))
+	}))
+	defer provider.Close()
+
+	now := time.Now().UTC().Truncate(time.Second)
+	store, _ := NewStore("")
+	_, signer, _ := ed25519.GenerateKey(rand.Reader)
+	bridge := ResendBridge{BaseURL: provider.URL, APIKey: apiKey, From: "mail@ynxweb4.com", WebhookSecret: testWebhookSecret(), Client: provider.Client()}
+	svc, _ := NewServiceWithInternetBridge(store, testVerifier{}, testAI{}, bridge, signer)
+	svc.now = func() time.Time { return now }
+	token, _, _ := signIn(t, svc, "@suppression", "ynx1suppression")
+
+	firstDraft, _ := svc.SaveDraft(token, Draft{To: []string{"complaint@example.net"}, Subject: "First", Body: "First send"})
+	first, err := svc.SendDraft(token, firstDraft.ID)
+	if err != nil || first.Deliveries[0].State != DeliveryProviderAccepted {
+		t.Fatalf("initial provider submission failed: %v %+v", err, first.Deliveries)
+	}
+	complaintBody := []byte(`{"type":"email.complained","created_at":"` + now.Add(time.Second).Format(time.RFC3339Nano) + `","data":{"email_id":"provider-complaint-1"}}`)
+	complaintRec := httptest.NewRecorder()
+	NewHandler(svc).ServeHTTP(complaintRec, signedWebhookRequest(t, bridge.WebhookSecret, "event-complaint-1", now, complaintBody))
+	if complaintRec.Code != http.StatusOK {
+		t.Fatalf("complaint webhook failed: %d %s", complaintRec.Code, complaintRec.Body.String())
+	}
+	if health := svc.InternetBridgeHealth(); health.ActiveSuppressions != 1 || health.OpenDeadLetters != 1 || health.LastVerifiedWebhookAt.IsZero() {
+		t.Fatalf("suppression health evidence missing: %+v", health)
+	}
+
+	secondDraft, _ := svc.SaveDraft(token, Draft{To: []string{"complaint@example.net"}, Subject: "Blocked", Body: "Must not submit"})
+	second, err := svc.SendDraft(token, secondDraft.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.Deliveries[0].State != DeliveryFailed || second.Deliveries[0].Reason != "recipient_suppressed" {
+		t.Fatalf("suppressed recipient was not blocked: %+v", second.Deliveries[0])
+	}
+	mu.Lock()
+	calls := providerCalls
+	mu.Unlock()
+	if calls != 1 {
+		t.Fatalf("suppressed recipient reached provider: %d calls", calls)
+	}
+	letters, err := svc.DeadLetters(token)
+	if err != nil || len(letters) != 2 {
+		t.Fatalf("recovery queue mismatch: %v %+v", err, letters)
+	}
+	for _, letter := range letters {
+		if letter.RecipientHash == "" || letter.State == "resolved" {
+			t.Fatalf("unsafe or incorrectly resolved dead letter: %+v", letter)
+		}
+	}
+}
+
+func TestDeadLetterQueueIsBounded(t *testing.T) {
+	st := emptyState()
+	base := time.Now().UTC()
+	for i := 0; i < maxDeadLetters+5; i++ {
+		state := "open"
+		if i < 3 {
+			state = "resolved"
+		}
+		st.DeadLetters[strconv.Itoa(i)] = DeadLetter{ID: strconv.Itoa(i), State: state, UpdatedAt: base.Add(time.Duration(i) * time.Second)}
+	}
+	pruneDeadLetters(&st)
+	if len(st.DeadLetters) != maxDeadLetters {
+		t.Fatalf("dead-letter queue is unbounded: %d", len(st.DeadLetters))
+	}
+	if _, exists := st.DeadLetters["0"]; exists {
+		t.Fatal("oldest resolved dead letter was not pruned first")
 	}
 }
 

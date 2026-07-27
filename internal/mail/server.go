@@ -28,7 +28,7 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 			"ok":                true,
 			"product":           ProductID,
 			"internet_delivery": false,
-			"internet_bridge":   service.InternetBridgeStatus(),
+			"internet_bridge":   service.InternetBridgeHealth(),
 			"delivery_truth":    "provider acceptance and mail-server delivery are distinct; user read is never inferred from provider engagement",
 			"build":             build,
 		})
@@ -50,6 +50,7 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("POST /v1/reports", s.report)
 	mux.HandleFunc("GET /v1/reports", s.cases)
 	mux.HandleFunc("POST /v1/messages/{id}/retry", s.retry)
+	mux.HandleFunc("GET /v1/dead-letters", s.deadLetters)
 	mux.HandleFunc("POST /v1/providers/resend/webhook", s.resendWebhook)
 	mux.HandleFunc("POST /v1/reports/{id}/appeal", s.appeal)
 	mux.HandleFunc("POST /v1/ai/jobs", s.beginAI)
@@ -163,6 +164,10 @@ func (s *Server) retry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := s.service.RetryDeliveryContext(r.Context(), bearer(r), r.PathValue("id"), v.Recipient)
+	respond(w, out, err)
+}
+func (s *Server) deadLetters(w http.ResponseWriter, r *http.Request) {
+	out, err := s.service.DeadLetters(bearer(r))
 	respond(w, out, err)
 }
 func (s *Server) resendWebhook(w http.ResponseWriter, r *http.Request) {

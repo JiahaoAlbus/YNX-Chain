@@ -430,11 +430,16 @@ func (s *Service) SendDraftContext(ctx context.Context, token, draftID string) (
 				delivery.Channel = "internet_provider"
 				delivery.Provider = bridgeStatus.Provider
 				delivery.Attempt = 1
-				if bridgeStatus.SubmissionConfigured {
+				if suppression, suppressed := activeSuppression(st, recipient); suppressed {
+					delivery.Reason = "recipient_suppressed"
+					upsertDeadLetter(st, message, delivery, "blocked", now)
+					s.audit(st, sess.UserID, "internet_recipient_suppressed", message.ID, map[string]any{"recipient_hash": suppression.RecipientHash, "reason": suppression.Reason})
+				} else if bridgeStatus.SubmissionConfigured {
 					delivery.State = DeliveryQueued
 					internetRecipients = append(internetRecipients, recipient)
 				} else {
 					delivery.Reason = "internet_provider_not_configured"
+					upsertDeadLetter(st, message, delivery, "blocked", now)
 				}
 			} else if !handlePattern.MatchString(recipient) {
 				delivery.Reason = "invalid_recipient"
@@ -635,13 +640,19 @@ func (s *Service) RetryDeliveryContext(ctx context.Context, token, messageID, re
 			if delivery.Attempt < 1 {
 				delivery.Attempt = 1
 			}
-			if status.SubmissionConfigured {
+			if suppression, suppressed := activeSuppression(st, recipient); suppressed {
+				delivery.State = DeliveryFailed
+				delivery.Reason = "recipient_suppressed"
+				upsertDeadLetter(st, message, delivery, "blocked", now)
+				s.audit(st, sess.UserID, "internet_recipient_suppressed", message.ID, map[string]any{"recipient_hash": suppression.RecipientHash, "reason": suppression.Reason})
+			} else if status.SubmissionConfigured {
 				delivery.State = DeliveryQueued
 				delivery.Reason = ""
 				retryInternet = true
 			} else {
 				delivery.State = DeliveryFailed
 				delivery.Reason = "internet_provider_not_configured"
+				upsertDeadLetter(st, message, delivery, "blocked", now)
 			}
 		} else if !handlePattern.MatchString(recipient) {
 			delivery.Reason = "invalid_recipient"

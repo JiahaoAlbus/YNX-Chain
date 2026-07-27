@@ -200,6 +200,9 @@ type State struct {
 	Reports        map[string]AbuseReport     `json:"reports"`
 	AIJobs         map[string]AIJob           `json:"ai_jobs"`
 	ProviderEvents map[string]ProviderEvent   `json:"provider_events"`
+	Suppressions   map[string]Suppression     `json:"suppressions"`
+	DeadLetters    map[string]DeadLetter      `json:"dead_letters"`
+	ProviderHealth map[string]ProviderHealth  `json:"provider_health"`
 	Rate           map[string][]time.Time     `json:"rate"`
 	Audit          []AuditEntry               `json:"audit"`
 }
