@@ -116,6 +116,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "RM-BILLING-OVERFLOW-001",
+      "category": "billing-integrity",
+      "owners": ["16-resource-market", "26-data-fabric", "29-integration"],
+      "precondition": "A requested quote, auction allocation, signed meter aggregation, settlement aggregation or dispute refund calculation would exceed the non-negative signed 64-bit amount range.",
+      "action": "Execute the affected market action with an authenticated product session and otherwise valid lineage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_AMOUNT_OUT_OF_RANGE",
+      "expectedState": "no quote, bid clearing, meter, receipt, refund, reservation release or dispute decision mutation",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "RM-FAILURE-NO-FAKE-REFUND-001",
       "category": "failure-dispute",
       "owners": ["15-trust-center", "16-resource-market", "26-data-fabric"],

@@ -53,6 +53,7 @@ func TestResourceIntegrationContractAndVectorsStayAligned(t *testing.T) {
 		"RESOURCE_REQUEST_REJECTED",
 		"RESOURCE_ROLE_REQUIRED",
 		"RESOURCE_SELF_DEALING_REJECTED",
+		"RESOURCE_AMOUNT_OUT_OF_RANGE",
 		"RESOURCE_ACTION_REJECTED",
 		"RESOURCE_CAPACITY_UNAVAILABLE",
 		"RESOURCE_STATE_TRANSITION_INVALID",
@@ -117,5 +118,9 @@ func TestResourceIntegrationContractAndVectorsStayAligned(t *testing.T) {
 	capacity := errors.New("provider-owned accepted order, evidence and available capacity required")
 	if got := marketErrorCode("reserve", capacity); got != byID["RM-CAPACITY-OFFER-SCOPE-001"] {
 		t.Fatalf("runtime capacity code=%s vector code=%s", got, byID["RM-CAPACITY-OFFER-SCOPE-001"])
+	}
+	amount := errors.New("monetary amount exceeds supported int64 range")
+	if got := marketErrorCode("create_quote", amount); got != byID["RM-BILLING-OVERFLOW-001"] {
+		t.Fatalf("runtime amount code=%s vector code=%s", got, byID["RM-BILLING-OVERFLOW-001"])
 	}
 }

@@ -294,6 +294,8 @@ func marketErrorCode(action string, err error) string {
 		return "RESOURCE_ROLE_REQUIRED"
 	case strings.Contains(message, "self-dealing"):
 		return "RESOURCE_SELF_DEALING_REJECTED"
+	case strings.Contains(message, "monetary amount exceeds supported int64 range"):
+		return "RESOURCE_AMOUNT_OUT_OF_RANGE"
 	case action == "confirm_settlement" && strings.Contains(message, "already consumed"):
 		return "RESOURCE_SETTLEMENT_REPLAY"
 	case action == "confirm_settlement" && strings.Contains(message, "reconcile"):

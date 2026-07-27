@@ -20,6 +20,44 @@ const SchemaVersion = 6
 
 const maxInt64Value int64 = 1<<63 - 1
 
+var errAmountOutOfRange = errors.New("monetary amount exceeds supported int64 range")
+
+func checkedAddNonNegative(a, b int64) (int64, bool) {
+	if a < 0 || b < 0 || a > maxInt64Value-b {
+		return 0, false
+	}
+	return a + b, true
+}
+
+func checkedMulNonNegative(a, b int64) (int64, bool) {
+	if a < 0 || b < 0 {
+		return 0, false
+	}
+	if a == 0 || b == 0 {
+		return 0, true
+	}
+	if a > maxInt64Value/b {
+		return 0, false
+	}
+	return a * b, true
+}
+
+func checkedProRataNonNegative(value, numerator, denominator int64) (int64, bool) {
+	if value < 0 || numerator < 0 || denominator <= 0 || numerator > denominator {
+		return 0, false
+	}
+	whole, remainder := value/denominator, value%denominator
+	wholeShare, ok := checkedMulNonNegative(whole, numerator)
+	if !ok {
+		return 0, false
+	}
+	remainderProduct, ok := checkedMulNonNegative(remainder, numerator)
+	if !ok {
+		return 0, false
+	}
+	return checkedAddNonNegative(wholeShare, remainderProduct/denominator)
+}
+
 var ResourceUnits = map[string]string{
 	"storage": "gib-hour", "bandwidth_egress": "gib", "cpu_compute": "vcpu-second",
 	"gpu_compute": "gpu-second", "ai_inference": "token", "developer_build": "build-minute",
@@ -752,8 +790,15 @@ func (e *Engine) validateMeterWindowLocked(order Order, start, end time.Time, qu
 		if start.Before(meter.End) && end.After(meter.Start) {
 			return 0, 0, errors.New("meter interval overlaps previously accepted usage")
 		}
-		totalQuantity += meter.Quantity
-		totalFee += meter.ProtocolFee
+		var totalsOK bool
+		totalQuantity, totalsOK = checkedAddNonNegative(totalQuantity, meter.Quantity)
+		if !totalsOK {
+			return 0, 0, errAmountOutOfRange
+		}
+		totalFee, totalsOK = checkedAddNonNegative(totalFee, meter.ProtocolFee)
+		if !totalsOK {
+			return 0, 0, errAmountOutOfRange
+		}
 	}
 	if quantity <= 0 || totalQuantity > order.Units || quantity > order.Units-totalQuantity {
 		return 0, 0, errors.New("cumulative metered quantity exceeds ordered units")
@@ -925,6 +970,33 @@ func (e *Engine) ClearAuction(operator, auctionID string) (AuctionClearing, erro
 		e.audit(operator, "auction_clear", a.ID, a.Status)
 		return AuctionClearing{Auction: a, Quotes: []Quote{}, Bids: bids}, e.save()
 	}
+	type clearingAmount struct {
+		allocated    int64
+		providerCost int64
+		fee          int64
+		gross        int64
+	}
+	amounts := make(map[string]clearingAmount, len(selected))
+	for _, b := range selected {
+		allocated := b.AllocatedUnits
+		if a.Mode == "reverse_auction" {
+			allocated = b.Units
+		}
+		providerCost, ok := checkedMulNonNegative(b.UnitPrice, allocated)
+		if !ok {
+			return AuctionClearing{}, errAmountOutOfRange
+		}
+		fee, ok := checkedProRataNonNegative(providerCost, a.ProtocolFeeBPS, 10_000)
+		if !ok {
+			return AuctionClearing{}, errAmountOutOfRange
+		}
+		gross, ok := checkedAddNonNegative(providerCost, fee)
+		if !ok {
+			return AuctionClearing{}, errAmountOutOfRange
+		}
+		amounts[b.ID] = clearingAmount{allocated: allocated, providerCost: providerCost, fee: fee, gross: gross}
+	}
+
 	quotes := make([]Quote, 0, len(selected))
 	for _, bid := range bids {
 		bid.Status = "rejected_price_or_capacity"
@@ -932,14 +1004,9 @@ func (e *Engine) ClearAuction(operator, auctionID string) (AuctionClearing, erro
 	}
 	for _, b := range selected {
 		o := e.data.Offers[b.OfferID]
-		allocated := b.AllocatedUnits
-		if a.Mode == "reverse_auction" {
-			allocated = b.Units
-		}
-		b.AllocatedUnits = allocated
-		providerCost := b.UnitPrice * allocated
-		fee := providerCost * a.ProtocolFeeBPS / 10_000
-		q := Quote{ID: e.next("quote"), Buyer: a.Buyer, OfferID: o.ID, AuctionID: a.ID, AuctionBidID: b.ID, ProviderID: b.ProviderID, Resource: a.Resource, Unit: a.Unit, Currency: a.Currency, Status: "quote", Units: allocated, UnitPrice: b.UnitPrice, ProviderCost: providerCost, ProtocolFee: fee, GrossCost: providerCost + fee, Source: b.Source, CreatedAt: now, ExpiresAt: now.Add(5 * time.Minute)}
+		amount := amounts[b.ID]
+		b.AllocatedUnits = amount.allocated
+		q := Quote{ID: e.next("quote"), Buyer: a.Buyer, OfferID: o.ID, AuctionID: a.ID, AuctionBidID: b.ID, ProviderID: b.ProviderID, Resource: a.Resource, Unit: a.Unit, Currency: a.Currency, Status: "quote", Units: amount.allocated, UnitPrice: b.UnitPrice, ProviderCost: amount.providerCost, ProtocolFee: amount.fee, GrossCost: amount.gross, Source: b.Source, CreatedAt: now, ExpiresAt: now.Add(5 * time.Minute)}
 		if q.ExpiresAt.After(o.ExpiresAt) {
 			q.ExpiresAt = o.ExpiresAt
 		}
@@ -1129,8 +1196,15 @@ func (e *Engine) CreateQuote(buyer, offerID string, units, protocolFee int64) (Q
 	if buyer == p.Wallet {
 		return Quote{}, errors.New("provider self-dealing quote is prohibited")
 	}
-	providerCost := o.UnitPrice * units
-	q := Quote{ID: e.next("quote"), Buyer: buyer, OfferID: o.ID, ProviderID: o.ProviderID, Resource: o.Resource, Unit: o.Unit, Currency: o.Currency, Status: "quote", Units: units, UnitPrice: o.UnitPrice, ProviderCost: providerCost, ProtocolFee: protocolFee, GrossCost: providerCost + protocolFee, Source: o.Source, CreatedAt: now, ExpiresAt: now.Add(5 * time.Minute)}
+	providerCost, amountOK := checkedMulNonNegative(o.UnitPrice, units)
+	if !amountOK {
+		return Quote{}, errAmountOutOfRange
+	}
+	grossCost, amountOK := checkedAddNonNegative(providerCost, protocolFee)
+	if !amountOK {
+		return Quote{}, errAmountOutOfRange
+	}
+	q := Quote{ID: e.next("quote"), Buyer: buyer, OfferID: o.ID, ProviderID: o.ProviderID, Resource: o.Resource, Unit: o.Unit, Currency: o.Currency, Status: "quote", Units: units, UnitPrice: o.UnitPrice, ProviderCost: providerCost, ProtocolFee: protocolFee, GrossCost: grossCost, Source: o.Source, CreatedAt: now, ExpiresAt: now.Add(5 * time.Minute)}
 	if q.ExpiresAt.After(o.ExpiresAt) {
 		q.ExpiresAt = o.ExpiresAt
 	}
@@ -1239,16 +1313,30 @@ func (e *Engine) RecordUsage(providerWallet, orderID string, start, end time.Tim
 	if !keyOK || worker.ProviderID != p.ID || worker.Status != "active" || worker.ExpiresAt.Before(end.UTC()) || start.UTC().Before(worker.CreatedAt) || keyErr != nil || sigErr != nil || payloadErr != nil || !ed25519.Verify(ed25519.PublicKey(publicKey), payload, signature) {
 		return Meter{}, errors.New("worker meter signature is invalid, expired, revoked or bound to another provider/payload")
 	}
-	cost := quantity * q.UnitPrice
+	cost, amountOK := checkedMulNonNegative(quantity, q.UnitPrice)
+	if !amountOK {
+		return Meter{}, errAmountOutOfRange
+	}
 	fee := int64(0)
 	if o.Units > 0 {
-		cumulativeFee := q.ProtocolFee * (priorQuantity + quantity) / o.Units
-		fee = cumulativeFee - priorFee
-		if fee < 0 {
+		cumulativeQuantity, ok := checkedAddNonNegative(priorQuantity, quantity)
+		if !ok {
+			return Meter{}, errAmountOutOfRange
+		}
+		cumulativeFee, ok := checkedProRataNonNegative(q.ProtocolFee, cumulativeQuantity, o.Units)
+		if !ok {
+			return Meter{}, errAmountOutOfRange
+		}
+		if cumulativeFee < priorFee {
 			return Meter{}, errors.New("meter fee lineage is invalid")
 		}
+		fee = cumulativeFee - priorFee
 	}
-	m := Meter{ID: e.next("meter"), OrderID: o.ID, Buyer: o.Buyer, ProviderID: o.ProviderID, Resource: o.Resource, Unit: o.Unit, IntegrityEvidence: "verified Ed25519 worker signature", Status: "metered_usage", Start: start.UTC(), End: end.UTC(), Quantity: quantity, Rate: q.UnitPrice, GrossCost: cost + fee, ProviderNet: cost, ProtocolFee: fee, Source: source, WorkerKeyID: worker.ID, Signature: parts[2]}
+	grossCost, amountOK := checkedAddNonNegative(cost, fee)
+	if !amountOK {
+		return Meter{}, errAmountOutOfRange
+	}
+	m := Meter{ID: e.next("meter"), OrderID: o.ID, Buyer: o.Buyer, ProviderID: o.ProviderID, Resource: o.Resource, Unit: o.Unit, IntegrityEvidence: "verified Ed25519 worker signature", Status: "metered_usage", Start: start.UTC(), End: end.UTC(), Quantity: quantity, Rate: q.UnitPrice, GrossCost: grossCost, ProviderNet: cost, ProtocolFee: fee, Source: source, WorkerKeyID: worker.ID, Signature: parts[2]}
 	e.data.Meters[m.ID] = m
 	o.MeterIDs = append(o.MeterIDs, m.ID)
 	o.Status = "metered_usage"
@@ -1293,10 +1381,23 @@ func (e *Engine) ConfirmSettlement(authority, orderID string, r Receipt) (Receip
 	}
 	var gross, net, fee int64
 	for _, id := range o.MeterIDs {
-		m := e.data.Meters[id]
-		gross += m.GrossCost
-		net += m.ProviderNet
-		fee += m.ProtocolFee
+		m, meterOK := e.data.Meters[id]
+		if !meterOK || m.OrderID != o.ID {
+			return Receipt{}, errors.New("meter lineage is incomplete or mismatched")
+		}
+		var amountOK bool
+		gross, amountOK = checkedAddNonNegative(gross, m.GrossCost)
+		if !amountOK {
+			return Receipt{}, errAmountOutOfRange
+		}
+		net, amountOK = checkedAddNonNegative(net, m.ProviderNet)
+		if !amountOK {
+			return Receipt{}, errAmountOutOfRange
+		}
+		fee, amountOK = checkedAddNonNegative(fee, m.ProtocolFee)
+		if !amountOK {
+			return Receipt{}, errAmountOutOfRange
+		}
 	}
 	if r.GrossCost != gross || r.ProviderNet != net || r.ProtocolFee != fee || r.Refund < 0 || r.Refund > gross {
 		return Receipt{}, errors.New("receipt amounts do not reconcile to signed metering")
@@ -1397,7 +1498,15 @@ func (e *Engine) DecideDispute(reviewer, disputeID, decision, evidence string, p
 	}
 	var metered int64
 	for _, id := range o.MeterIDs {
-		metered += e.data.Meters[id].GrossCost
+		meter, meterOK := e.data.Meters[id]
+		if !meterOK || meter.OrderID != o.ID {
+			return Dispute{}, errors.New("meter lineage is incomplete or mismatched")
+		}
+		var amountOK bool
+		metered, amountOK = checkedAddNonNegative(metered, meter.GrossCost)
+		if !amountOK {
+			return Dispute{}, errAmountOutOfRange
+		}
 	}
 	if refund > metered {
 		return Dispute{}, errors.New("refund exceeds evidenced metered gross cost")

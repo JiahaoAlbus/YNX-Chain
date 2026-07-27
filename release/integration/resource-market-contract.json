@@ -116,7 +116,8 @@
       "one transaction hash may be consumed by at most one receipt until an explicit batch-settlement contract is frozen",
       "provider failure does not fabricate a refund or settlement",
       "fixed-price and auction procurement reject provider self-dealing",
-      "capacity reservation is scoped to the exact offer referenced by the accepted quote"
+      "capacity reservation is scoped to the exact offer referenced by the accepted quote",
+      "quote, auction, metering, settlement and dispute amounts use checked non-negative int64 arithmetic and fail before mutation on overflow"
     ]
   },
   "metering": {
@@ -149,6 +150,7 @@
     "RESOURCE_REQUEST_REJECTED": "Generic fail-closed request rejection outside a more specific market action.",
     "RESOURCE_ROLE_REQUIRED": "The canonical product session lacks the exact operator role.",
     "RESOURCE_SELF_DEALING_REJECTED": "A provider attempted to purchase or bid on its own capacity.",
+    "RESOURCE_AMOUNT_OUT_OF_RANGE": "A quote, fee, usage, settlement or dispute calculation exceeds the supported non-negative signed 64-bit range.",
     "RESOURCE_ACTION_REJECTED": "The requested action violates a product invariant or required evidence is absent.",
     "RESOURCE_CAPACITY_UNAVAILABLE": "Verified unreserved capacity is insufficient or capacity evidence is invalid.",
     "RESOURCE_STATE_TRANSITION_INVALID": "The requested transition does not match the current authoritative local lifecycle state.",
@@ -197,6 +199,7 @@
       "RM-METER-LIMIT-001",
       "RM-MATCH-SELF-DEAL-001",
       "RM-CAPACITY-OFFER-SCOPE-001",
+      "RM-BILLING-OVERFLOW-001",
       "RM-FAILURE-NO-FAKE-REFUND-001"
     ]
   },

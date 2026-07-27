@@ -22,6 +22,9 @@ OFFER_ID="$(curl -fsS -H 'X-YNX-Actor: smoke-provider' -H 'X-YNX-Role: user' -H 
 SELF_DEAL_STATUS="$(curl -sS -o "$TMP/self-deal.json" -w '%{http_code}' -H 'X-YNX-Actor: smoke-provider' -H 'X-YNX-Role: user' -H 'Content-Type: application/json' -d "{\"type\":\"create_quote\",\"offerId\":\"$OFFER_ID\",\"units\":1,\"protocolFee\":0}" http://127.0.0.1:16441/api/market/actions)"
 test "$SELF_DEAL_STATUS" = 422
 jq -e '.code == "RESOURCE_SELF_DEALING_REJECTED"' "$TMP/self-deal.json" >/dev/null
+AMOUNT_STATUS="$(curl -sS -o "$TMP/amount-range.json" -w '%{http_code}' -H 'X-YNX-Actor: smoke-buyer' -H 'X-YNX-Role: user' -H 'Content-Type: application/json' -d "{\"type\":\"create_quote\",\"offerId\":\"$OFFER_ID\",\"units\":1,\"protocolFee\":9223372036854775807}" http://127.0.0.1:16441/api/market/actions)"
+test "$AMOUNT_STATUS" = 422
+jq -e '.code == "RESOURCE_AMOUNT_OUT_OF_RANGE"' "$TMP/amount-range.json" >/dev/null
 curl -fsS -H 'X-YNX-Actor: smoke-buyer' -H 'X-YNX-Role: user' -H 'Content-Type: application/json' -d "{\"type\":\"create_quote\",\"offerId\":\"$OFFER_ID\",\"units\":100,\"protocolFee\":5}" http://127.0.0.1:16441/api/market/actions | jq -e '.result.status == "quote" and .result.grossCost == 205' >/dev/null
 curl -fsS -H 'X-YNX-Actor: smoke-buyer' -H 'X-YNX-Role: user' 'http://127.0.0.1:16441/api/market/matches?resource=cpu_compute&units=100' | jq -e '.offers | length == 1' >/dev/null
 echo 'resource-market-check: ok'

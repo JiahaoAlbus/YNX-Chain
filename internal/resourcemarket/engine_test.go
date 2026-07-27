@@ -332,6 +332,134 @@ func TestFixedQuoteRejectsProviderSelfDealing(t *testing.T) {
 	}
 }
 
+func TestCheckedAmountArithmeticBoundaries(t *testing.T) {
+	if value, ok := checkedMulNonNegative(maxInt64Value, 1); !ok || value != maxInt64Value {
+		t.Fatalf("max multiplication boundary failed value=%d ok=%v", value, ok)
+	}
+	if _, ok := checkedMulNonNegative(maxInt64Value, 2); ok {
+		t.Fatal("overflowing multiplication was accepted")
+	}
+	if value, ok := checkedProRataNonNegative(maxInt64Value, 10_000, 10_000); !ok || value != maxInt64Value {
+		t.Fatalf("overflow-safe full BPS share failed value=%d ok=%v", value, ok)
+	}
+	if _, ok := checkedAddNonNegative(maxInt64Value, 1); ok {
+		t.Fatal("overflowing addition was accepted")
+	}
+	if _, ok := checkedProRataNonNegative(1, 2, 1); ok {
+		t.Fatal("out-of-range pro-rata numerator was accepted")
+	}
+}
+
+func TestQuoteAndAuctionAmountOverflowFailClosed(t *testing.T) {
+	clock := time.Date(2026, 7, 27, 13, 30, 0, 0, time.UTC)
+	e, _ := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return clock })
+	p := provider(t, e, "overflow-provider", "Overflow Provider", "region", 100)
+	fixed, err := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "cpu_compute", Unit: "vcpu-second", Pricing: "fixed", Currency: "YNXT-testnet", UnitPrice: maxInt64Value, Capacity: 2, MinUnits: 1, MaxUnits: 2, Source: evidence(clock, "capacity"), ExpiresAt: clock.Add(2 * time.Hour)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = e.CreateQuote("overflow-buyer", fixed.ID, 2, 0); err != errAmountOutOfRange {
+		t.Fatalf("multiplication overflow did not fail closed: %v", err)
+	}
+	if _, err = e.CreateQuote("overflow-buyer", fixed.ID, 1, 1); err != errAmountOutOfRange {
+		t.Fatalf("gross-cost overflow did not fail closed: %v", err)
+	}
+	_, _, quotes, _, _, _, _ := e.Snapshot()
+	if len(quotes) != 0 {
+		t.Fatalf("overflowing fixed quote mutated state: %+v", quotes)
+	}
+
+	auctionOffer, err := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "gpu_compute", Unit: "gpu-second", Pricing: "reverse_auction", Currency: "YNXT-testnet", UnitPrice: maxInt64Value, Capacity: 1, MinUnits: 1, MaxUnits: 1, Source: evidence(clock, "auction_capacity"), ExpiresAt: clock.Add(2 * time.Hour)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	auction, err := e.CreateAuction("auction-overflow-buyer", "reverse_auction", "gpu_compute", "region", "YNXT-testnet", 1, maxInt64Value, 10_000, clock.Add(10*time.Minute), evidence(clock, "demand"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bid, err := e.SubmitAuctionBid(p.Wallet, auction.ID, auctionOffer.ID, 1, maxInt64Value, evidence(clock, "bid"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	clock = clock.Add(11 * time.Minute)
+	if _, err = e.ClearAuction("operator", auction.ID); err != errAmountOutOfRange {
+		t.Fatalf("auction gross overflow did not fail closed: %v", err)
+	}
+	auctions, bids := e.AuctionSnapshot()
+	_, _, quotes, _, _, _, _ = e.Snapshot()
+	if len(auctions) != 1 || auctions[0].Status != "open" || len(bids) != 1 || bids[0].ID != bid.ID || bids[0].Status != "sealed" || len(quotes) != 0 {
+		t.Fatalf("overflowing auction mutated state auctions=%+v bids=%+v quotes=%+v", auctions, bids, quotes)
+	}
+}
+
+func TestSettlementAndDisputeAggregationOverflowFailClosed(t *testing.T) {
+	now := time.Date(2026, 7, 27, 13, 45, 0, 0, time.UTC)
+	buildOrder := func(t *testing.T, name string) (*Engine, Provider, Offer, Quote, Order) {
+		t.Helper()
+		e, err := New(filepath.Join(t.TempDir(), name+".json"), func() time.Time { return now })
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := provider(t, e, name+"-provider", name, "region", 100)
+		offer, err := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "cpu_compute", Unit: "vcpu-second", Pricing: "fixed", Currency: "YNXT-testnet", UnitPrice: 1, Capacity: 2, MinUnits: 1, MaxUnits: 2, Source: evidence(now, "capacity"), ExpiresAt: now.Add(time.Hour)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		quote, err := e.CreateQuote(name+"-buyer", offer.ID, 2, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		order, err := e.AcceptIntent(quote.Buyer, quote.ID, Digest(quote))
+		if err != nil {
+			t.Fatal(err)
+		}
+		order, err = e.Reserve(p.Wallet, order.ID, "reservation")
+		if err != nil {
+			t.Fatal(err)
+		}
+		order, err = e.StartService(p.Wallet, order.ID, "service")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return e, p, offer, quote, order
+	}
+
+	settlement, _, settlementOffer, _, settlementOrder := buildOrder(t, "settlement-overflow")
+	settlement.data.Meters["meter-max"] = Meter{ID: "meter-max", OrderID: settlementOrder.ID, GrossCost: maxInt64Value, ProviderNet: maxInt64Value, ProtocolFee: 0}
+	settlement.data.Meters["meter-one"] = Meter{ID: "meter-one", OrderID: settlementOrder.ID, GrossCost: 1, ProviderNet: 1, ProtocolFee: 0}
+	settlementOrder.MeterIDs = []string{"meter-max", "meter-one"}
+	settlementOrder.Status = "settlement_pending"
+	settlement.data.Orders[settlementOrder.ID] = settlementOrder
+	if _, err := settlement.ConfirmSettlement("settlement-authority", settlementOrder.ID, Receipt{Asset: "YNXT-testnet", TransactionHash: "0xoverflow", Evidence: "proof", GrossCost: maxInt64Value, ProviderNet: maxInt64Value, Source: evidence(now, "chain_receipt")}); err != errAmountOutOfRange {
+		t.Fatalf("settlement aggregation overflow did not fail closed: %v", err)
+	}
+	_, offers, _, orders, _, receipts, _ := settlement.Snapshot()
+	if len(receipts) != 0 || len(orders) != 1 || orders[0].Status != "settlement_pending" || orders[0].ReservedUnits != 2 || len(offers) != 1 || offers[0].ID != settlementOffer.ID || offers[0].ReservedUnits != 2 {
+		t.Fatalf("overflowing settlement mutated authority state offers=%+v orders=%+v receipts=%+v", offers, orders, receipts)
+	}
+
+	disputeEngine, disputeProvider, _, _, disputeOrder := buildOrder(t, "dispute-overflow")
+	disputeOrder, err := disputeEngine.ReportFailure(disputeProvider.Wallet, disputeOrder.ID, "worker-failure")
+	if err != nil {
+		t.Fatal(err)
+	}
+	disputeEngine.data.Meters["meter-max"] = Meter{ID: "meter-max", OrderID: disputeOrder.ID, GrossCost: maxInt64Value}
+	disputeEngine.data.Meters["meter-one"] = Meter{ID: "meter-one", OrderID: disputeOrder.ID, GrossCost: 1}
+	disputeOrder.MeterIDs = []string{"meter-max", "meter-one"}
+	disputeEngine.data.Orders[disputeOrder.ID] = disputeOrder
+	dispute, err := disputeEngine.OpenDispute(disputeOrder.Buyer, disputeOrder.ID, "billing", "evidence")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = disputeEngine.DecideDispute("independent-reviewer", dispute.ID, "upheld", "decision-proof", 0, 0); err != errAmountOutOfRange {
+		t.Fatalf("dispute aggregation overflow did not fail closed: %v", err)
+	}
+	_, _, _, _, _, _, disputes := disputeEngine.Snapshot()
+	if len(disputes) != 1 || disputes[0].Status != "open" || disputes[0].Decision != "" {
+		t.Fatalf("overflowing dispute decision mutated state: %+v", disputes)
+	}
+}
+
 func TestReservationsAreScopedToExactOffer(t *testing.T) {
 	now := time.Date(2026, 7, 27, 12, 30, 0, 0, time.UTC)
 	e, _ := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return now })
