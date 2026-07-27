@@ -59,6 +59,11 @@ test("desktop apps expose mature engine, recovery, files, permissions and Wallet
   assert.match(mac, /BrowserWalletCallbackPolicy\.clearPending/);
   assert.match(mac, /SecRandomCopyBytes\(kSecRandomDefault, count, &bytes\) == errSecSuccess/);
   assert.match(mac, /Only HTTPS\/HTTP navigation and the exact Wallet callback route are accepted/);
+  assert.match(mac, /Logger\(subsystem: "com\.ynxweb4\.browser\.macos", category: "security-boundary"\)/);
+  assert.match(mac, /wallet_callback_rejected code=\\\(error\.code, privacy: \.public\)/);
+  const auditMessages = [...mac.matchAll(/auditLogger\.(?:notice|error)\("([^"]*)"/g)].map(match => match[1]);
+  assert.ok(auditMessages.length >= 6);
+  for (const message of auditMessages) assert.doesNotMatch(message, /(?:nonce|url|response|filename|source)=/i);
   assert.doesNotMatch(mac, /defaults\.set\(nonce, forKey:\s*"walletPendingNonce"\)/);
   assert.doesNotMatch(mac, /queryItems\?\.first\(where:\s*\{\s*\$0\.name == "url"\s*\}\)/);
   for (const token of ["pendingDefaultsKey", "signature(for:", "values.count == 1", "duplicateQueryField", "strictTopLevelObjectFields", "Set(fields) == responseFields", "Set(fields) == pendingFields", "pendingTampered", "requestExpired", "no Product Session was created locally"]) {
