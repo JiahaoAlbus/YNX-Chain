@@ -221,6 +221,66 @@ func TestRecurrencePreservesLocalTimeAcrossDST(t *testing.T) {
 	}
 }
 
+func TestVersionedRecurrenceRulesAndSingleOccurrenceExceptions(t *testing.T) {
+	svc := newTestService(t, "")
+	weeklyInput := input("Distributed review", "2026-03-01T09:00", "2026-03-01T10:00", "America/New_York", "recurrence-weekly")
+	weeklyInput.Recurrence = Recurrence{
+		Frequency: "weekly",
+		Interval:  1,
+		Count:     5,
+		ByDay:     []string{"we", "mo"},
+		Exceptions: []RecurrenceException{
+			{RecurrenceID: "2026-03-04T09:00", State: "cancelled"},
+			{RecurrenceID: "2026-03-09T09:00", State: "modified", LocalStart: "2026-03-09T11:00", LocalEnd: "2026-03-09T12:00", Title: "Moved review"},
+		},
+	}
+	weekly, err := svc.eventFromInput(User{ID: "alice", Handle: "@alice"}, weeklyInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if weekly.Recurrence.SchemaVersion != 1 || strings.Join(weekly.Recurrence.ByDay, ",") != "MO,WE" {
+		t.Fatalf("recurrence was not normalized: %+v", weekly.Recurrence)
+	}
+	occurrences := expand(weekly, time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 3, 20, 0, 0, 0, 0, time.UTC))
+	if len(occurrences) != 4 {
+		t.Fatalf("expected one cancellation across five generated occurrences, got %d", len(occurrences))
+	}
+	if !strings.Contains(occurrences[0].LocalStart, "2026-03-02T09:00:00") || !strings.Contains(occurrences[1].LocalStart, "2026-03-09T11:00:00") || occurrences[1].Title != "Moved review" {
+		t.Fatalf("weekly exception expansion is incorrect: %+v", occurrences)
+	}
+	if occurrences[0].StartUTC.Hour() != 14 || occurrences[1].StartUTC.Hour() != 15 {
+		t.Fatalf("weekly DST conversion is incorrect: %v %v", occurrences[0].StartUTC, occurrences[1].StartUTC)
+	}
+
+	monthlyInput := input("Month end", "2026-01-31T09:00", "2026-01-31T10:00", "UTC", "recurrence-monthly")
+	monthlyInput.Recurrence = Recurrence{SchemaVersion: 1, Frequency: "monthly", Interval: 1, Count: 3, ByMonthDay: []int{31}}
+	monthly, err := svc.eventFromInput(User{ID: "alice", Handle: "@alice"}, monthlyInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	monthOccurrences := expand(monthly, time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC))
+	if len(monthOccurrences) != 3 || monthOccurrences[0].StartUTC.Month() != time.January || monthOccurrences[1].StartUTC.Month() != time.March || monthOccurrences[2].StartUTC.Month() != time.May {
+		t.Fatalf("invalid month-end dates were not skipped safely: %+v", monthOccurrences)
+	}
+
+	yearlyInput := input("Leap review", "2024-02-29T09:00", "2024-02-29T10:00", "UTC", "recurrence-yearly")
+	yearlyInput.Recurrence = Recurrence{SchemaVersion: 1, Frequency: "yearly", Interval: 1, Count: 3}
+	yearly, err := svc.eventFromInput(User{ID: "alice", Handle: "@alice"}, yearlyInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	yearOccurrences := expand(yearly, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2033, 1, 1, 0, 0, 0, 0, time.UTC))
+	if len(yearOccurrences) != 3 || yearOccurrences[0].StartUTC.Year() != 2024 || yearOccurrences[1].StartUTC.Year() != 2028 || yearOccurrences[2].StartUTC.Year() != 2032 {
+		t.Fatalf("yearly leap-day expansion is incorrect: %+v", yearOccurrences)
+	}
+
+	invalid := input("Invalid", "2026-03-01T09:00", "2026-03-01T10:00", "UTC", "recurrence-invalid")
+	invalid.Recurrence = Recurrence{SchemaVersion: 2, Frequency: "daily", Interval: 1, Count: 2}
+	if _, err = svc.eventFromInput(User{ID: "alice", Handle: "@alice"}, invalid); err == nil || !strings.Contains(err.Error(), "schema version") {
+		t.Fatalf("unsupported recurrence schema did not fail closed: %v", err)
+	}
+}
+
 func TestInviteRSVPShareUpdateCancelRevertAndAuthorization(t *testing.T) {
 	svc := newTestService(t, "")
 	alice, aliceUser, _ := signIn(t, svc, "@alice", "ynx1alice")

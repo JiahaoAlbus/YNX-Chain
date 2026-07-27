@@ -62,11 +62,23 @@ type Session struct {
 	RevokedAt time.Time `json:"revoked_at,omitempty"`
 }
 
+type RecurrenceException struct {
+	RecurrenceID string `json:"recurrence_id"`
+	State        string `json:"state"`
+	LocalStart   string `json:"local_start,omitempty"`
+	LocalEnd     string `json:"local_end,omitempty"`
+	Title        string `json:"title,omitempty"`
+}
+
 type Recurrence struct {
-	Frequency string    `json:"frequency"`
-	Interval  int       `json:"interval"`
-	Count     int       `json:"count"`
-	Until     time.Time `json:"until,omitempty"`
+	SchemaVersion int                   `json:"schema_version"`
+	Frequency     string                `json:"frequency"`
+	Interval      int                   `json:"interval"`
+	Count         int                   `json:"count"`
+	Until         time.Time             `json:"until,omitempty"`
+	ByDay         []string              `json:"by_day,omitempty"`
+	ByMonthDay    []int                 `json:"by_month_day,omitempty"`
+	Exceptions    []RecurrenceException `json:"exceptions,omitempty"`
 }
 type Reminder struct {
 	ID            string `json:"id"`

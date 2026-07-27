@@ -871,7 +871,8 @@ func (s *Service) eventFromInput(owner User, input EventInput) (Event, error) {
 	if err != nil || !end.After(start) || end.Sub(start) > 7*24*time.Hour {
 		return Event{}, errors.New("invalid event duration")
 	}
-	if err = validateRecurrence(input.Recurrence); err != nil {
+	input.Recurrence, err = normalizeRecurrence(input.Recurrence, start, loc)
+	if err != nil {
 		return Event{}, err
 	}
 	if len(input.Invitees) > 50 {
@@ -906,20 +907,134 @@ func validateInvitees(st *State, event Event) error {
 	}
 	return nil
 }
-func validateRecurrence(r Recurrence) error {
+
+const recurrenceLocalLayout = "2006-01-02T15:04"
+
+var recurrenceWeekdays = map[string]time.Weekday{
+	"SU": time.Sunday,
+	"MO": time.Monday,
+	"TU": time.Tuesday,
+	"WE": time.Wednesday,
+	"TH": time.Thursday,
+	"FR": time.Friday,
+	"SA": time.Saturday,
+}
+
+func normalizeRecurrence(r Recurrence, start time.Time, loc *time.Location) (Recurrence, error) {
+	r.Frequency = strings.ToLower(strings.TrimSpace(r.Frequency))
 	if r.Frequency == "" {
-		return nil
+		if r.Interval != 0 || r.Count != 0 || !r.Until.IsZero() || len(r.ByDay) != 0 || len(r.ByMonthDay) != 0 || len(r.Exceptions) != 0 {
+			return Recurrence{}, errors.New("recurrence options require a frequency")
+		}
+		return Recurrence{}, nil
 	}
-	if r.Frequency != "daily" && r.Frequency != "weekly" && r.Frequency != "monthly" {
-		return errors.New("recurrence frequency must be daily, weekly, or monthly")
+	if r.SchemaVersion == 0 {
+		r.SchemaVersion = 1
+	}
+	if r.SchemaVersion != 1 {
+		return Recurrence{}, errors.New("unsupported recurrence schema version")
+	}
+	if r.Frequency != "daily" && r.Frequency != "weekly" && r.Frequency != "monthly" && r.Frequency != "yearly" {
+		return Recurrence{}, errors.New("recurrence frequency must be daily, weekly, monthly, or yearly")
 	}
 	if r.Interval < 1 || r.Interval > 30 {
-		return errors.New("recurrence interval out of bounds")
+		return Recurrence{}, errors.New("recurrence interval out of bounds")
 	}
-	if r.Count < 1 || r.Count > 366 {
-		return errors.New("recurrence count out of bounds")
+	if r.Count < 0 || r.Count > 366 {
+		return Recurrence{}, errors.New("recurrence count out of bounds")
 	}
-	return nil
+	if r.Count == 0 && r.Until.IsZero() {
+		return Recurrence{}, errors.New("recurrence requires count or until")
+	}
+	if !r.Until.IsZero() {
+		until := r.Until.In(loc)
+		if until.Before(start) || until.After(start.AddDate(10, 0, 0)) {
+			return Recurrence{}, errors.New("recurrence until is outside the supported ten-year window")
+		}
+	}
+	if len(r.ByDay) > 7 {
+		return Recurrence{}, errors.New("recurrence by-day bound exceeded")
+	}
+	seenDays := map[string]bool{}
+	for i, raw := range r.ByDay {
+		day := strings.ToUpper(strings.TrimSpace(raw))
+		if _, ok := recurrenceWeekdays[day]; !ok || seenDays[day] {
+			return Recurrence{}, errors.New("recurrence by-day contains an invalid or duplicate weekday")
+		}
+		seenDays[day] = true
+		r.ByDay[i] = day
+	}
+	if len(r.ByDay) > 0 && r.Frequency != "weekly" {
+		return Recurrence{}, errors.New("recurrence by-day is supported only for weekly rules")
+	}
+	if r.Frequency == "weekly" && len(r.ByDay) == 0 {
+		r.ByDay = []string{weekdayCode(start.Weekday())}
+	}
+	sort.Slice(r.ByDay, func(i, j int) bool {
+		return weekdayOffset(recurrenceWeekdays[r.ByDay[i]]) < weekdayOffset(recurrenceWeekdays[r.ByDay[j]])
+	})
+	if len(r.ByMonthDay) > 31 {
+		return Recurrence{}, errors.New("recurrence by-month-day bound exceeded")
+	}
+	seenMonthDays := map[int]bool{}
+	for _, day := range r.ByMonthDay {
+		if day < 1 || day > 31 || seenMonthDays[day] {
+			return Recurrence{}, errors.New("recurrence by-month-day contains an invalid or duplicate day")
+		}
+		seenMonthDays[day] = true
+	}
+	if len(r.ByMonthDay) > 0 && r.Frequency != "monthly" {
+		return Recurrence{}, errors.New("recurrence by-month-day is supported only for monthly rules")
+	}
+	if r.Frequency == "monthly" && len(r.ByMonthDay) == 0 {
+		r.ByMonthDay = []int{start.Day()}
+	}
+	sort.Ints(r.ByMonthDay)
+	seenExceptions := map[string]bool{}
+	for i := range r.Exceptions {
+		ex := &r.Exceptions[i]
+		ex.RecurrenceID = strings.TrimSpace(ex.RecurrenceID)
+		ex.State = strings.ToLower(strings.TrimSpace(ex.State))
+		original, err := time.ParseInLocation(recurrenceLocalLayout, ex.RecurrenceID, loc)
+		if err != nil || original.Before(start) || seenExceptions[ex.RecurrenceID] {
+			return Recurrence{}, errors.New("recurrence exception ID is invalid, duplicate, or before the series start")
+		}
+		seenExceptions[ex.RecurrenceID] = true
+		if ex.State != "cancelled" && ex.State != "modified" {
+			return Recurrence{}, errors.New("recurrence exception state must be cancelled or modified")
+		}
+		if ex.State == "cancelled" {
+			if ex.LocalStart != "" || ex.LocalEnd != "" || ex.Title != "" {
+				return Recurrence{}, errors.New("cancelled recurrence exceptions cannot carry replacement data")
+			}
+			continue
+		}
+		replacementStart, err := time.ParseInLocation(recurrenceLocalLayout, ex.LocalStart, loc)
+		if err != nil {
+			return Recurrence{}, errors.New("modified recurrence exception has invalid local start")
+		}
+		replacementEnd, err := time.ParseInLocation(recurrenceLocalLayout, ex.LocalEnd, loc)
+		if err != nil || !replacementEnd.After(replacementStart) || replacementEnd.Sub(replacementStart) > 7*24*time.Hour {
+			return Recurrence{}, errors.New("modified recurrence exception has invalid duration")
+		}
+		if len(ex.Title) > 200 {
+			return Recurrence{}, errors.New("modified recurrence exception title is too long")
+		}
+	}
+	return r, nil
+}
+
+func weekdayCode(day time.Weekday) string {
+	for code, candidate := range recurrenceWeekdays {
+		if candidate == day {
+			return code
+		}
+	}
+	return "MO"
+}
+
+func weekdayOffset(day time.Weekday) int {
+	return (int(day) + 6) % 7
 }
 func validateMeetingLink(raw string) error {
 	if raw == "" {
@@ -944,31 +1059,122 @@ func expand(e Event, from, to time.Time) []Occurrence {
 	}
 	start := e.StartUTC.In(loc)
 	end := e.EndUTC.In(loc)
-	count := 1
-	if e.Recurrence.Frequency != "" {
-		count = e.Recurrence.Count
+	duration := end.Sub(start)
+	if e.Recurrence.Frequency == "" {
+		return appendOccurrence(nil, e, start, duration, from, to, nil, loc)
 	}
+	exceptions := map[string]RecurrenceException{}
+	for _, ex := range e.Recurrence.Exceptions {
+		exceptions[ex.RecurrenceID] = ex
+	}
+	maxGenerated := e.Recurrence.Count
+	if maxGenerated == 0 {
+		maxGenerated = 5000
+	}
+	generated := 0
 	out := []Occurrence{}
-	for i := 0; i < count; i++ {
-		var sTime time.Time
-		switch e.Recurrence.Frequency {
-		case "daily":
-			sTime = start.AddDate(0, 0, i*e.Recurrence.Interval)
-		case "weekly":
-			sTime = start.AddDate(0, 0, 7*i*e.Recurrence.Interval)
-		case "monthly":
-			sTime = start.AddDate(0, i*e.Recurrence.Interval, 0)
-		default:
-			sTime = start
+	accept := func(candidate time.Time) bool {
+		if candidate.Before(start) {
+			return true
 		}
-		duration := end.Sub(start)
-		finish := sTime.Add(duration)
-		if !e.Recurrence.Until.IsZero() && sTime.After(e.Recurrence.Until) {
-			break
+		if !e.Recurrence.Until.IsZero() && candidate.After(e.Recurrence.Until.In(loc)) {
+			return false
 		}
-		if finish.After(from) && sTime.Before(to) {
-			out = append(out, Occurrence{EventID: e.ID, Title: e.Title, StartUTC: sTime.UTC(), EndUTC: finish.UTC(), LocalStart: sTime.Format(time.RFC3339), LocalEnd: finish.Format(time.RFC3339), TimeZone: e.TimeZone})
+		if generated >= maxGenerated {
+			return false
 		}
+		generated++
+		ex, ok := exceptions[candidate.Format(recurrenceLocalLayout)]
+		if ok && ex.State == "cancelled" {
+			return true
+		}
+		if ok {
+			out = appendOccurrence(out, e, candidate, duration, from, to, &ex, loc)
+		} else {
+			out = appendOccurrence(out, e, candidate, duration, from, to, nil, loc)
+		}
+		return generated < maxGenerated
+	}
+	switch e.Recurrence.Frequency {
+	case "daily":
+		for i := 0; i < maxGenerated; i++ {
+			if !accept(start.AddDate(0, 0, i*e.Recurrence.Interval)) {
+				break
+			}
+		}
+	case "weekly":
+		byDay := e.Recurrence.ByDay
+		if len(byDay) == 0 {
+			byDay = []string{weekdayCode(start.Weekday())}
+		}
+		weekStart := start.AddDate(0, 0, -weekdayOffset(start.Weekday()))
+		for week := 0; generated < maxGenerated && week < 5000; week++ {
+			base := weekStart.AddDate(0, 0, week*7*e.Recurrence.Interval)
+			for _, code := range byDay {
+				candidate := wallTime(base.AddDate(0, 0, weekdayOffset(recurrenceWeekdays[code])), start)
+				if !accept(candidate) {
+					return out
+				}
+			}
+		}
+	case "monthly":
+		byMonthDay := e.Recurrence.ByMonthDay
+		if len(byMonthDay) == 0 {
+			byMonthDay = []int{start.Day()}
+		}
+		for month := 0; generated < maxGenerated && month < 1200; month++ {
+			base := time.Date(start.Year(), start.Month()+time.Month(month*e.Recurrence.Interval), 1, start.Hour(), start.Minute(), start.Second(), start.Nanosecond(), loc)
+			for _, day := range byMonthDay {
+				candidate, ok := validLocalDate(base.Year(), base.Month(), day, start)
+				if !ok {
+					continue
+				}
+				if !accept(candidate) {
+					return out
+				}
+			}
+		}
+	case "yearly":
+		for year := 0; generated < maxGenerated && year < 100; year++ {
+			candidate, ok := validLocalDate(start.Year()+year*e.Recurrence.Interval, start.Month(), start.Day(), start)
+			if !ok {
+				continue
+			}
+			if !accept(candidate) {
+				break
+			}
+		}
+	}
+	return out
+}
+
+func wallTime(date, template time.Time) time.Time {
+	return time.Date(date.Year(), date.Month(), date.Day(), template.Hour(), template.Minute(), template.Second(), template.Nanosecond(), template.Location())
+}
+
+func validLocalDate(year int, month time.Month, day int, template time.Time) (time.Time, bool) {
+	candidate := time.Date(year, month, day, template.Hour(), template.Minute(), template.Second(), template.Nanosecond(), template.Location())
+	return candidate, candidate.Year() == year && candidate.Month() == month && candidate.Day() == day
+}
+
+func appendOccurrence(out []Occurrence, e Event, original time.Time, duration time.Duration, from, to time.Time, ex *RecurrenceException, loc *time.Location) []Occurrence {
+	start := original
+	finish := original.Add(duration)
+	title := e.Title
+	if ex != nil && ex.State == "modified" {
+		modifiedStart, startErr := time.ParseInLocation(recurrenceLocalLayout, ex.LocalStart, loc)
+		modifiedEnd, endErr := time.ParseInLocation(recurrenceLocalLayout, ex.LocalEnd, loc)
+		if startErr != nil || endErr != nil || !modifiedEnd.After(modifiedStart) {
+			return out
+		}
+		start = modifiedStart
+		finish = modifiedEnd
+		if strings.TrimSpace(ex.Title) != "" {
+			title = strings.TrimSpace(ex.Title)
+		}
+	}
+	if finish.After(from) && start.Before(to) {
+		out = append(out, Occurrence{EventID: e.ID, Title: title, StartUTC: start.UTC(), EndUTC: finish.UTC(), LocalStart: start.Format(time.RFC3339), LocalEnd: finish.Format(time.RFC3339), TimeZone: e.TimeZone})
 	}
 	return out
 }
