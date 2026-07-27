@@ -1,0 +1,250 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "ynx.search.integration.v1",
+  "product": {
+    "number": 23,
+    "name": "YNX Search",
+    "slug": "search",
+    "owner": "23-search"
+  },
+  "sourceCommit": "52c70f74220df06208b6a415580a5a879c4a8cb8",
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": true,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "authority": {
+    "searchOwns": [
+      "source-registry schema",
+      "index receipts",
+      "search result schema",
+      "ranking explanation schema",
+      "public search feeds",
+      "search correction and removal case adapter"
+    ],
+    "externalOwners": {
+      "walletAuth": "02-wallet-auth",
+      "aiGateway": "14-ai",
+      "trustCases": "15-trust-center",
+      "publicDocsAndBrand": "18-docs-compliance",
+      "browserClient": "22-browser",
+      "canonicalEvents": "26-data-fabric",
+      "websiteAndSeo": "28-website",
+      "protocolFreeze": "29-integration",
+      "releaseSecurity": "30-security-sre-release"
+    }
+  },
+  "network": {
+    "testnetName": "YNX Testnet",
+    "evmChainId": 6423,
+    "cosmosChainId": "ynx_6423-1",
+    "nativeAsset": "YNXT"
+  },
+  "apis": [
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "auth": "public",
+      "purpose": "truthful build and dependency status"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search",
+      "auth": "public rate-limited",
+      "purpose": "bounded YNX index retrieval"
+    },
+    {
+      "method": "GET",
+      "path": "/api/index/status",
+      "auth": "public",
+      "purpose": "redacted source coverage and indexing status"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sources",
+      "auth": "operator bearer reference",
+      "purpose": "register reviewed source governance record"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sources/{sourceId}/index",
+      "auth": "operator bearer reference",
+      "purpose": "crawl one registered source through fail-closed outbound policy"
+    },
+    {
+      "method": "POST",
+      "path": "/api/removal|correction|appeal",
+      "auth": "same-origin public request, rate-limited",
+      "purpose": "create auditable remedy case"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/prepare|answer|stream|review",
+      "auth": "same-origin plus explicit user consent",
+      "purpose": "citation-bound AI over AI-eligible retrieved sources"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/prepare|callback",
+      "auth": "same-origin and device-bound challenge",
+      "purpose": "prepare or accept callback binding; central Gateway remains authoritative"
+    }
+  ],
+  "schemas": {
+    "sourceRegistry": {
+      "version": 3,
+      "required": [
+        "id",
+        "url",
+        "origin",
+        "label",
+        "sourceType",
+        "owner",
+        "jurisdiction",
+        "authorization.referenceDigest",
+        "authorization.reviewedAt",
+        "robots.policy",
+        "permittedScope",
+        "terms.url",
+        "terms.permittedUse",
+        "dataRights.storage",
+        "dataRights.snippets",
+        "dataRights.aiRetrieval",
+        "retentionDays",
+        "remedies.removalUrl",
+        "remedies.correctionUrl",
+        "languages",
+        "crawlPolicy.freshnessSloSeconds",
+        "crawlPolicy.maxRequestsPerMinute",
+        "crawlPolicy.backoffSeconds"
+      ],
+      "migration": "v2 entries lacking governance fields are disabled and marked source-registry-v3 until reviewed"
+    },
+    "searchResult": {
+      "version": 1,
+      "required": [
+        "title",
+        "sourceUrl",
+        "sourceLabel",
+        "freshness.publishedAt",
+        "freshness.fetchedAt",
+        "freshness.indexedAt",
+        "indexReceiptDigest",
+        "contentType",
+        "score",
+        "snippet"
+      ]
+    },
+    "indexReceipt": {
+      "version": 1,
+      "digestDomain": "YNX_INDEX_RECEIPT_V1",
+      "authorizationReference": "digest only in public responses"
+    },
+    "remedyCase": {
+      "version": 1,
+      "kinds": ["removal", "correction", "appeal"],
+      "states": ["submitted", "under-review", "accepted", "rejected", "corrected", "removed"]
+    }
+  },
+  "auth": {
+    "productClientId": "search.ynxweb4.com",
+    "bundleId": "com.ynx.search.web",
+    "requestedScopes": ["search.profile.read", "search.cases.write"],
+    "callbackClass": "reviewed exact HTTPS callback",
+    "sessionState": "not centrally integrated",
+    "failClosedTests": [
+      "wrong product",
+      "wrong bundle",
+      "wrong callback",
+      "wrong device",
+      "scope widening",
+      "expiry",
+      "replay"
+    ]
+  },
+  "canonicalEvents": [
+    "ynx.search.source.registered.v1",
+    "ynx.search.source.crawl_started.v1",
+    "ynx.search.source.crawl_failed.v1",
+    "ynx.search.document.indexed.v1",
+    "ynx.search.case.submitted.v1",
+    "ynx.search.case.resolved.v1",
+    "ynx.search.ai.reviewed.v1"
+  ],
+  "errorCodes": [
+    "SEARCH_INVALID_QUERY",
+    "SEARCH_SOURCE_GOVERNANCE_REQUIRED",
+    "SEARCH_SOURCE_DISABLED",
+    "SEARCH_ROBOTS_BLOCKED",
+    "SEARCH_OUTBOUND_DESTINATION_REJECTED",
+    "SEARCH_SOURCE_BACKOFF_ACTIVE",
+    "SEARCH_PROVIDER_UNAVAILABLE",
+    "SEARCH_AI_CONSENT_REQUIRED",
+    "SEARCH_AI_UNINDEXED_CITATION",
+    "SEARCH_WALLET_GATEWAY_REQUIRED",
+    "SEARCH_REPLAY_REJECTED"
+  ],
+  "failureSemantics": {
+    "emptyCorpus": "successful empty result with registered-authorized-sources-only coverage claim",
+    "staleSource": "result retains timestamp and stale state; it is never silently freshened",
+    "providerUnavailable": "unavailable, never synthetic success",
+    "legacyRegistry": "disabled pending renewed source governance review",
+    "outboundPolicy": "fail closed before content fetch and persist failed/backoff status",
+    "centralGatewayMissing": "no Product Session or Trust completion is claimed"
+  },
+  "dependencies": [
+    {
+      "owner": "02-wallet-auth",
+      "required": "accepted Product Session and exact callback/scope registry",
+      "status": "pending"
+    },
+    {
+      "owner": "14-ai",
+      "required": "provider-neutral citation Gateway and client registration",
+      "status": "pending"
+    },
+    {
+      "owner": "15-trust-center",
+      "required": "canonical remedy case intake and event schema",
+      "status": "pending"
+    },
+    {
+      "owner": "22-browser",
+      "required": "reviewed Search route and failure-state acceptance",
+      "status": "pending"
+    },
+    {
+      "owner": "26-data-fabric",
+      "required": "canonical Search events and public data-class labels",
+      "status": "pending"
+    },
+    {
+      "owner": "28-website",
+      "required": "public /search route, feeds, metadata, and support/privacy/security/status paths",
+      "status": "pending"
+    },
+    {
+      "owner": "29-integration",
+      "required": "contract freeze and shared Testnet acceptance",
+      "status": "pending"
+    }
+  ],
+  "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "migration": "apps/search/MIGRATION_COMPATIBILITY.md",
+  "health": "/api/health",
+  "version": "/api/health build",
+  "externalInputs": [
+    "approved production source inventory",
+    "external search provider credential and agreement",
+    "AI Gateway client reference",
+    "Wallet/Auth registry acceptance",
+    "Trust case acceptance",
+    "public deployment authority and domain route"
+  ]
+}

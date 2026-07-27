@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "number": 23,
+    "name": "YNX Search",
+    "slug": "search",
+    "version": "0.2.1-security-baseline",
+    "releaseClass": "Testnet Preview",
+    "goalStatus": "active",
+    "phase": "FREEZE"
+  },
+  "source": {
+    "commit": "52c70f74220df06208b6a415580a5a879c4a8cb8",
+    "repository": "JiahaoAlbus/YNX-Chain"
+  },
+  "status": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": true,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "staging": {
+    "url": "https://search-staging.43.153.202.237.sslip.io",
+    "deployedCommit": "d68b5d89c0d2e92744bf634c55b776397ec8f896",
+    "currentSourceDeployed": false,
+    "coverage": "registered-authorized-sources-only",
+    "approvedCorpus": "empty",
+    "aiGateway": "unavailable",
+    "walletGateway": "unavailable",
+    "trustGateway": "unavailable"
+  },
+  "verification": {
+    "completedAt": "2026-07-27",
+    "commands": [
+      {
+        "command": "cd apps/search && npm run check",
+        "result": "pass: 15/15 tests, service smoke, product-local secret scan"
+      },
+      {
+        "command": "cd apps/search && npm run test:e2e",
+        "result": "pass: 6/6 Chromium scenarios"
+      },
+      {
+        "command": "cd apps/search && npm audit --omit=dev --audit-level=high",
+        "result": "pass: zero vulnerabilities"
+      }
+    ],
+    "notes": [
+      "The root secret scan was not accepted as evidence because its rg dependency was absent while the script printed success.",
+      "The Search product-local scanner is dependency-independent and passed.",
+      "Playwright dependencies required npm ci; two upstream 502 attempts were bounded and the third succeeded."
+    ]
+  },
+  "delivered": [
+    "governed Source Registry v3",
+    "fail-closed v2 registry migration",
+    "outbound URL and DNS rebinding protection",
+    "robots, timeout, redirect, origin, content type, size, freshness, and backoff boundaries",
+    "AI retrieval data-right enforcement",
+    "public authorization-reference redaction",
+    "deterministic Search service smoke",
+    "product-local secret scan"
+  ],
+  "evidence": [
+    ".ai-bridge/full-goal-coverage.json",
+    "release/integration/search-contract.json",
+    "apps/search/evidence/EVIDENCE_INDEX.md",
+    "apps/search/evidence/staging/health.json",
+    "apps/search/evidence/staging/search-empty.json",
+    "apps/search/evidence/ui"
+  ],
+  "blockers": [
+    {
+      "owner": "23-search",
+      "type": "autonomous",
+      "item": "entity aliases and explainable hybrid ranking",
+      "nextAction": "implement runtime and tests"
+    },
+    {
+      "owner": "23-search",
+      "type": "autonomous",
+      "item": "public feed generation",
+      "nextAction": "implement deterministic feed builder"
+    },
+    {
+      "owner": "02-wallet-auth",
+      "type": "dependency",
+      "item": "central Wallet/Auth registry and Product Session acceptance"
+    },
+    {
+      "owner": "14-ai",
+      "type": "dependency",
+      "item": "AI Gateway client and provider-backed citation run"
+    },
+    {
+      "owner": "15-trust-center",
+      "type": "dependency",
+      "item": "canonical remedy case integration"
+    },
+    {
+      "owner": "28-website",
+      "type": "dependency",
+      "item": "public /search route, feeds, and SEO entry"
+    },
+    {
+      "owner": "29-integration",
+      "type": "dependency",
+      "item": "contract freeze and shared Testnet acceptance"
+    },
+    {
+      "owner": "operator",
+      "type": "external",
+      "item": "approved production source inventory and external search provider access"
+    }
+  ],
+  "nextAction": "Implement canonical YNX entity aliases and versioned ranking explanations, then generate public feeds.",
+  "lastUpdated": "2026-07-27"
+}

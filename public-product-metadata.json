@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "name": "YNX Search",
+  "alternateNames": ["YNX Web4 Search", "YNX Ecosystem Search"],
+  "canonicalRoute": "/search",
+  "title": "YNX Search — Transparent Search for the YNX Web4 Ecosystem",
+  "metaDescription": "Search reviewed YNX products, documentation, releases, public chain evidence, governance and authorized public sources with visible citations, freshness and correction paths.",
+  "h1": "Search YNX with sources you can verify",
+  "status": "Testnet Preview",
+  "releaseVersion": "0.2.1-security-baseline",
+  "sourceCommit": "52c70f74220df06208b6a415580a5a879c4a8cb8",
+  "brand": {
+    "officialSiteName": "YNX Chain",
+    "ecosystemName": "YNX Web4",
+    "testnetName": "YNX Testnet",
+    "nativeTestnetAsset": "YNXT",
+    "evmChainId": 6423,
+    "cosmosChainId": "ynx_6423-1",
+    "primaryColor": "#002FA7"
+  },
+  "entityAliases": [
+    { "query": "YNX", "canonical": "YNX Chain" },
+    { "query": "YNX Chain", "canonical": "YNX Chain" },
+    { "query": "YNX Web4", "canonical": "YNX Web4" },
+    { "query": "YNXWeb4", "canonical": "YNX Web4" },
+    { "query": "YNXT", "canonical": "YNXT" },
+    { "query": "6423", "canonical": "YNX Testnet" }
+  ],
+  "features": [
+    "reviewed source registry",
+    "source and freshness visibility",
+    "bounded lexical retrieval",
+    "correction, removal and appeal",
+    "citation-bound AI with explicit consent",
+    "12 languages and Arabic RTL",
+    "light, dark and responsive PWA"
+  ],
+  "truthBoundaries": [
+    "YNX Search covers only registered and authorized sources.",
+    "It does not claim global web coverage, neutrality or complete protection from abuse.",
+    "External provider and AI results are separate from the YNX index.",
+    "The current staging source inventory is intentionally empty.",
+    "The current source commit is not yet deployed to staging or public production."
+  ],
+  "faq": [
+    {
+      "question": "What does YNX Search index?",
+      "answer": "Only sources registered with an owner, authorization, permitted scope, terms, data rights, retention and correction paths. Private messages, mail, files, Wallet sessions, secrets and operator logs are excluded."
+    },
+    {
+      "question": "Does YNX Search control Google or Bing ranking?",
+      "answer": "No. It is an independent YNX product for ecosystem and authorized-source search. Website and documentation owners control external SEO submissions."
+    },
+    {
+      "question": "Can the AI answer without sources?",
+      "answer": "No. Search AI is limited to the current retrieved set, requires explicit consent and rejects citations outside that set."
+    },
+    {
+      "question": "How can a result be corrected or removed?",
+      "answer": "The product provides auditable correction, removal and appeal requests. Central Trust integration is still pending."
+    }
+  ],
+  "structuredData": {
+    "types": ["WebApplication", "SoftwareApplication", "FAQPage"],
+    "applicationCategory": "SearchApplication",
+    "operatingSystem": "Modern web browsers",
+    "offers": null
+  },
+  "routes": {
+    "support": "/support",
+    "privacy": "/privacy",
+    "security": "/security",
+    "status": "/status",
+    "documentation": "/docs/search"
+  },
+  "artifacts": [],
+  "screenshots": [
+    "apps/search/evidence/ui/search-desktop-light-success-1440x900.png",
+    "apps/search/evidence/ui/search-desktop-dark-success-1440x900.png",
+    "apps/search/evidence/ui/search-mobile-empty-390x844.png",
+    "apps/search/evidence/ui/search-ar-rtl-768x1024.png"
+  ],
+  "websiteOwner": "28-website",
+  "lastUpdated": "2026-07-27"
+}

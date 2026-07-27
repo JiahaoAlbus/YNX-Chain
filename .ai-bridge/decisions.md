@@ -1,0 +1,23 @@
+# YNX Search Decisions
+
+## 2026-07-27
+
+1. Search coverage remains `registered-authorized-sources-only`; no global coverage
+   or neutrality claim is permitted.
+2. Source Registry v3 is the only forward schema. Legacy v2 sources fail closed
+   until renewed governance review; they are not silently upgraded.
+3. Public source status exposes evidence digests and review dates, never internal
+   authorization or override references.
+4. DNS and outbound URL validation runs before robots or content fetch. Any
+   private, metadata, rebinding, redirect-origin or unsafe content failure is
+   persisted as failed/backoff.
+5. AI context requires a separate explicit source data right and explicit user
+   consent. Ordinary Search eligibility does not imply AI retrieval eligibility.
+6. Vector retrieval remains Candidate. No vector or hybrid-complete claim is
+   allowed until real embeddings, quality tests, capacity and operational evidence
+   exist.
+7. Existing staging evidence is retained honestly, but it does not represent the
+   current source commit.
+8. The root secret-scan result from this run is not evidence because `rg` was
+   unavailable while the script printed success. The dependency-independent
+   Search scanner is the accepted local scan.

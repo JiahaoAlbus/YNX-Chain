@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "YNX Search",
+  "sourceCommit": "52c70f74220df06208b6a415580a5a879c4a8cb8",
+  "vectors": [
+    {
+      "id": "SEARCH-SOURCE-REGISTER-VALID",
+      "owners": ["23-search"],
+      "precondition": "operator supplies complete Source Registry v3 governance record",
+      "action": "POST /api/sources",
+      "expected": "201 and registered source with authorization digest; raw evidence is absent from public status"
+    },
+    {
+      "id": "SEARCH-SOURCE-GOVERNANCE-MISSING",
+      "owners": ["23-search"],
+      "precondition": "source lacks permitted scope, terms, remedies, language, retention, or crawl policy",
+      "action": "attempt registration",
+      "expected": "fail closed; no source record and no crawl"
+    },
+    {
+      "id": "SEARCH-SOURCE-DNS-REBIND",
+      "owners": ["23-search", "30-security-sre-release"],
+      "precondition": "registered hostname resolves to a loopback or private address",
+      "action": "request indexing",
+      "expected": "no HTTP fetch, source failed with backoff, outbound destination rejection is observable"
+    },
+    {
+      "id": "SEARCH-SOURCE-ROBOTS-DENY",
+      "owners": ["23-search"],
+      "precondition": "robots.txt disallows registered path",
+      "action": "request indexing",
+      "expected": "blocked-by-robots; no document indexed"
+    },
+    {
+      "id": "SEARCH-SOURCE-LEGACY-V2",
+      "owners": ["23-search", "29-integration"],
+      "precondition": "database contains v2 source without v3 governance",
+      "action": "open database",
+      "expected": "source disabled, migrationRequired=source-registry-v3, document excluded from results"
+    },
+    {
+      "id": "SEARCH-RESULT-TRUTH",
+      "owners": ["23-search", "22-browser"],
+      "precondition": "indexed reviewed document matches query",
+      "action": "GET /api/search",
+      "expected": "result includes sourceUrl, sourceLabel, freshness, score, snippet and indexReceiptDigest; inference=false"
+    },
+    {
+      "id": "SEARCH-EMPTY-CORPUS",
+      "owners": ["23-search", "22-browser", "28-website"],
+      "precondition": "approved source corpus is empty",
+      "action": "search any query",
+      "expected": "successful empty state and registered-authorized-sources-only coverage; no synthetic result"
+    },
+    {
+      "id": "SEARCH-AI-RIGHTS-DENY",
+      "owners": ["23-search", "14-ai"],
+      "precondition": "source is searchable but dataRights.aiRetrieval=false",
+      "action": "prepare AI answer",
+      "expected": "source is absent from AI context while remaining eligible for ordinary retrieval"
+    },
+    {
+      "id": "SEARCH-AI-CONSENT-DENY",
+      "owners": ["23-search", "14-ai"],
+      "precondition": "retrieved results exist but user has not approved context",
+      "action": "request AI answer or stream",
+      "expected": "consent-required error; no provider request"
+    },
+    {
+      "id": "SEARCH-AI-CITATION-INJECTION",
+      "owners": ["23-search", "14-ai"],
+      "precondition": "AI provider cites a URL outside the retrieved set",
+      "action": "complete answer or start stream",
+      "expected": "unindexed citation rejection; answer not accepted as verified"
+    },
+    {
+      "id": "SEARCH-WALLET-REPLAY",
+      "owners": ["23-search", "02-wallet-auth"],
+      "precondition": "valid Search Wallet callback binding was consumed once",
+      "action": "submit the same nonce again",
+      "expected": "replay rejection; exactly one callback consumption; no Product Session created locally"
+    },
+    {
+      "id": "SEARCH-WALLET-WRONG-BUNDLE",
+      "owners": ["23-search", "02-wallet-auth"],
+      "precondition": "callback uses correct nonce but wrong product bundle",
+      "action": "submit callback",
+      "expected": "binding rejection; no session"
+    },
+    {
+      "id": "SEARCH-CASE-APPEAL-PARENT",
+      "owners": ["23-search", "15-trust-center"],
+      "precondition": "appeal does not reference an existing remedy case",
+      "action": "submit appeal",
+      "expected": "rejection with no orphan appeal"
+    },
+    {
+      "id": "SEARCH-CASE-REMOVE",
+      "owners": ["23-search", "15-trust-center", "26-data-fabric"],
+      "precondition": "authorized removal decision references indexed source URL",
+      "action": "resolve case as removed",
+      "expected": "document removed, audit retained, canonical event emitted after Data Fabric integration"
+    },
+    {
+      "id": "SEARCH-BROWSER-FAILURE",
+      "owners": ["23-search", "22-browser"],
+      "precondition": "Search API is unavailable",
+      "action": "Browser invokes Search",
+      "expected": "query preserved, retry visible, no fabricated result or signed action claim"
+    },
+    {
+      "id": "SEARCH-ENTITY-YNX-NOT-LYNX",
+      "owners": ["23-search", "18-docs-compliance", "28-website"],
+      "precondition": "query equals YNX",
+      "action": "entity search",
+      "expected": "canonical entity YNX Chain; no automatic correction to Lynx"
+    },
+    {
+      "id": "SEARCH-ENTITY-6423",
+      "owners": ["23-search", "18-docs-compliance"],
+      "precondition": "query equals 6423",
+      "action": "entity search",
+      "expected": "canonical entity YNX Testnet with EVM chain ID 6423 and no Mainnet claim"
+    },
+    {
+      "id": "SEARCH-RELEASE-TRUTH",
+      "owners": ["23-search", "29-integration", "30-security-sre-release"],
+      "precondition": "local commit differs from staging health commit",
+      "action": "read product-release.json",
+      "expected": "deployedStaging remains historical true, currentSourceDeployed=false, public and hosted states false"
+    }
+  ]
+}
