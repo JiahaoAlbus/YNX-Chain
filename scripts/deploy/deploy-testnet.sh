@@ -213,7 +213,7 @@ cat >> "$work/config/ynx-app-gatewayd.env" <<EOF
 YNX_APP_GATEWAY_CHAT_URL=http://127.0.0.1:6435
 YNX_APP_GATEWAY_SQUARE_URL=http://127.0.0.1:6436
 YNX_APP_GATEWAY_PAY_URL=http://127.0.0.1:6430
-YNX_APP_GATEWAY_WALLET_URL=http://127.0.0.1:6438
+YNX_APP_GATEWAY_WALLET_URL=http://127.0.0.1:6439
 YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
 YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
 YNX_APP_GATEWAY_RATE_LIMIT_WINDOW=1m
@@ -228,7 +228,7 @@ printf 'YNX_APP_GATEWAY_SQUARE_API_KEY=%q\n' "${YNX_SQUARE_API_KEY:-disabled-squ
 printf 'YNX_APP_GATEWAY_PAY_API_KEY=%q\n' "${YNX_PAY_API_KEY:-disabled-pay-key}" >> "$work/config/ynx-app-gatewayd.env"
 cat > "$work/config/ynx-wallet-gatewayd.env" <<EOF
 YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1
-YNX_WALLET_GATEWAY_HTTP_PORT=6438
+YNX_WALLET_GATEWAY_HTTP_PORT=6439
 YNX_WALLET_GATEWAY_STATE_PATH=/var/lib/ynx-chain/wallet-gateway/state.json
 YNX_WALLET_GATEWAY_REGISTRY_PATH=/opt/ynx-chain/releases/${release}/wallet-auth/central-registry.json
 YNX_WALLET_GATEWAY_REMOTE_DEPLOYED=true
@@ -985,7 +985,7 @@ ynx_node_scp() {
 ynx_capture_predeploy_state() {
   local role="$1" user="$2" host="$3" key="$4"
   local marker="/var/log/ynx-chain/deploy/predeploy-${release}-${role}.txt"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx /var/log/ynx-chain/deploy 2>/dev/null || sudo install -d /var/log/ynx-chain/deploy; { date -u; hostname; uname -a; echo '--- services'; systemctl list-units --type=service --all 'ynx-*' 2>/dev/null || true; systemctl is-active ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd ynx-squared ynx-wallet-gatewayd ynx-app-gatewayd 2>/dev/null || true; echo '--- local status'; curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true; curl -fsS http://127.0.0.1:6426/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6427/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6428/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6429/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6430/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6431/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6432/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6433/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6434/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6435/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6436/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6437/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6438/health 2>/dev/null || true; echo '--- ingress'; sudo test -f /etc/nginx/conf.d/ynx-chain.conf && sudo sed -n '1,360p' /etc/nginx/conf.d/ynx-chain.conf || true; sudo test -f /etc/caddy/Caddyfile && sudo sed -n '1,360p' /etc/caddy/Caddyfile || true; echo '--- data dirs'; sudo find /var/lib/ynx-chain -maxdepth 3 -type f 2>/dev/null | sort | head -200 || true; } | sudo tee '$marker' >/dev/null && sudo ls -lh '$marker'"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx /var/log/ynx-chain/deploy 2>/dev/null || sudo install -d /var/log/ynx-chain/deploy; { date -u; hostname; uname -a; echo '--- services'; systemctl list-units --type=service --all 'ynx-*' 2>/dev/null || true; systemctl is-active ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd ynx-squared ynx-wallet-gatewayd ynx-app-gatewayd 2>/dev/null || true; echo '--- local status'; curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true; curl -fsS http://127.0.0.1:6426/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6427/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6428/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6429/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6430/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6431/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6432/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6433/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6434/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6435/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6436/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6437/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6438/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6439/health 2>/dev/null || true; echo '--- ingress'; sudo test -f /etc/nginx/conf.d/ynx-chain.conf && sudo sed -n '1,360p' /etc/nginx/conf.d/ynx-chain.conf || true; sudo test -f /etc/caddy/Caddyfile && sudo sed -n '1,360p' /etc/caddy/Caddyfile || true; echo '--- data dirs'; sudo find /var/lib/ynx-chain -maxdepth 3 -type f 2>/dev/null | sort | head -200 || true; } | sudo tee '$marker' >/dev/null && sudo ls -lh '$marker'"
 }
 
 ynx_backup_node() {

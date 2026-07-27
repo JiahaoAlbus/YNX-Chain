@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 
 const address=process.env.YNX_WALLET_GATEWAY_HTTP_ADDR??"127.0.0.1";
-const port=integer(process.env.YNX_WALLET_GATEWAY_HTTP_PORT??"6438","YNX_WALLET_GATEWAY_HTTP_PORT",1,65535);
+const port=integer(process.env.YNX_WALLET_GATEWAY_HTTP_PORT??"6439","YNX_WALLET_GATEWAY_HTTP_PORT",1,65535);
 const statePath=process.env.YNX_WALLET_GATEWAY_STATE_PATH;
 const remoteDeployed=boolean(process.env.YNX_WALLET_GATEWAY_REMOTE_DEPLOYED??"false","YNX_WALLET_GATEWAY_REMOTE_DEPLOYED");
 const registryPath=process.env.YNX_WALLET_GATEWAY_REGISTRY_PATH?resolve(process.env.YNX_WALLET_GATEWAY_REGISTRY_PATH):fileURLToPath(new URL("../central-registry.json",import.meta.url));
