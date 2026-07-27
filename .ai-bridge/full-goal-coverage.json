@@ -8,16 +8,16 @@
   "owner": "02-wallet-auth",
   "phase": "FREEZE",
   "sourceBaselineCommit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
-  "lastUpdated": "2026-07-27T15:00:49Z",
+  "lastUpdated": "2026-07-27T15:10:39Z",
   "summary": {
     "verifiedComplete": 1,
-    "testedLocal": 23,
+    "testedLocal": 24,
     "implementedLocal": 1,
     "integratedCentral": 0,
     "testnetVerified": 1,
     "publicVerified": 0,
     "externalBlocked": 8,
-    "inProgress": 3,
+    "inProgress": 2,
     "notApplicable": 2
   },
   "items": [
@@ -618,16 +618,16 @@
       "category": "release",
       "requirement": "Maintain machine-readable nine-level release state and exact evidence without conflating Testnet, hosted artifacts, production signing or stores.",
       "applicability": true,
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": ["apps/wallet/product-release.json", "apps/wallet/EVIDENCE_INDEX.md", "docs/handoffs/wallet-auth.md", "release/integration/wallet-auth-contract.json"],
-      "sourceCommit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
-      "tests": ["JSON parse", "product check", "SBOM check", "full release validation"],
+      "sourceCommit": "2d07dd49c6bc737c49d6a8e205b6f2db99ce6fec",
+      "tests": ["JSON parse", "product check", "SBOM check", "full release validation", "local SHA equals upstream SHA"],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["validated evidence commit and push"],
+      "blockedBy": ["central integration, public deployment, production signing and store evidence remain external"],
       "owner": "02-wallet-auth",
-      "nextAction": "Commit and push the source-bound observability evidence, then verify local SHA equals upstream SHA.",
-      "lastUpdated": "2026-07-27T15:00:49Z"
+      "nextAction": "Keep the nine-level record synchronized after each protected slice without raising unverified external states.",
+      "lastUpdated": "2026-07-27T15:10:39Z"
     },
     {
       "id": "OPERATOR-INPUTS-001",
