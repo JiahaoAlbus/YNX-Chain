@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
@@ -318,6 +319,49 @@ func TestHTTPProductSmoke(t *testing.T) {
 		t.Fatalf("signed merchant state smoke failed: %v status=%v", err, resp.StatusCode)
 	}
 	_ = resp.Body.Close()
+}
+
+func TestVersionExposesAuditableReleaseMetadata(t *testing.T) {
+	now := time.Date(2026, 7, 24, 9, 30, 0, 0, time.UTC)
+	startedAt := now.Add(-7 * time.Minute)
+	service, _ := testService(t, &fakePay{}, func() time.Time { return now })
+	server := httptest.NewServer(NewServerWithMetadata(service, nil, buildinfo.Info{Commit: "60f8607abc", Release: "merchant-console-v1.0.0", BuildTime: "2026-07-24T09:00:00Z"}, startedAt).Handler())
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/version")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("version status=%d", resp.StatusCode)
+	}
+	var body map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]string{"service": "ynx-pay-product", "product": "ynx-merchant-console", "commit": "60f8607abc", "release": "merchant-console-v1.0.0", "buildTime": "2026-07-24T09:00:00Z", "startedAt": startedAt.Format(time.RFC3339)} {
+		if got, _ := body[key].(string); got != want {
+			t.Fatalf("%s=%q want=%q", key, got, want)
+		}
+	}
+	if body["network"] != ChainID || body["asset"] != NativeAsset {
+		t.Fatalf("network metadata mismatch: %#v", body)
+	}
+
+	healthResp, err := http.Get(server.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer healthResp.Body.Close()
+	if healthResp.StatusCode != http.StatusOK {
+		t.Fatalf("health status=%d", healthResp.StatusCode)
+	}
+	for header, want := range map[string]string{"X-YNX-Commit": "60f8607abc", "X-YNX-Release": "merchant-console-v1.0.0", "X-YNX-Build-Time": "2026-07-24T09:00:00Z", "X-YNX-Started-At": startedAt.Format(time.RFC3339Nano)} {
+		if got := healthResp.Header.Get(header); got != want {
+			t.Fatalf("health %s=%q want=%q", header, got, want)
+		}
+	}
 }
 
 func TestMerchantRoleMatrixAndMembershipChangeInvalidatesSession(t *testing.T) {

@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 const maxRequestBytes = 1 << 20
@@ -21,24 +23,43 @@ type Server struct {
 	mux     *http.ServeMux
 	logger  *slog.Logger
 	metrics *RuntimeMetrics
+	build   buildinfo.Info
+	started time.Time
 }
 
 func NewServer(service *Service) *Server {
 	return NewServerWithLogger(service, newDiscardLogger())
 }
 func NewServerWithLogger(service *Service, logger *slog.Logger) *Server {
+	return NewServerWithMetadata(service, logger, buildinfo.Info{}, service.now().UTC())
+}
+func NewServerWithMetadata(service *Service, logger *slog.Logger, build buildinfo.Info, started time.Time) *Server {
 	if logger == nil {
 		logger = newDiscardLogger()
 	}
-	s := &Server{service: service, mux: http.NewServeMux(), logger: logger, metrics: NewRuntimeMetrics()}
+	if started.IsZero() {
+		started = service.now().UTC()
+	}
+	s := &Server{service: service, mux: http.NewServeMux(), logger: logger, metrics: NewRuntimeMetrics(), build: buildinfo.Normalize(build), started: started.UTC()}
 	s.routes()
 	return s
 }
 func (s *Server) Handler() http.Handler {
-	return requestObservability(securityHeaders(s.mux), s.logger, s.metrics)
+	return requestObservability(releaseMetadataHeaders(securityHeaders(s.mux), s.build, s.started), s.logger, s.metrics)
+}
+
+func releaseMetadataHeaders(next http.Handler, build buildinfo.Info, started time.Time) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-YNX-Commit", build.Commit)
+		w.Header().Set("X-YNX-Release", build.Release)
+		w.Header().Set("X-YNX-Build-Time", build.BuildTime)
+		w.Header().Set("X-YNX-Started-At", started.Format(time.RFC3339Nano))
+		next.ServeHTTP(w, r)
+	})
 }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /internal/metrics", s.runtimeMetrics)
 	s.mux.HandleFunc("POST /v1/merchants/onboard", s.onboard)
 	s.mux.HandleFunc("POST /v1/merchant/sessions", s.merchantSession)
@@ -62,6 +83,21 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/merchant/capital", s.capital)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs", s.aiRun)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs/{id}/review", s.aiReview)
+}
+func (s *Server) version(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"schemaVersion": 1,
+		"service":       "ynx-pay-product",
+		"product":       "ynx-merchant-console",
+		"commit":        s.build.Commit,
+		"release":       s.build.Release,
+		"buildTime":     s.build.BuildTime,
+		"startedAt":     s.started,
+		"network":       ChainID,
+		"evmChainId":    EVMChainID,
+		"asset":         NativeAsset,
+		"source":        "process-build-metadata",
+	})
 }
 func (s *Server) runtimeMetrics(w http.ResponseWriter, r *http.Request) {
 	key := s.service.monitorKey

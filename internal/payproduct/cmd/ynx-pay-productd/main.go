@@ -14,10 +14,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct"
 )
 
+var (
+	commit    string
+	release   string
+	buildTime string
+)
+
 func main() {
+	startedAt := time.Now().UTC()
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	key, err := decodeKey(required("YNX_PAY_PRODUCT_INTEGRITY_KEY"))
 	if err != nil {
@@ -68,7 +76,7 @@ func main() {
 		}
 	}()
 	addr := env("YNX_PAY_PRODUCT_ADDR", "127.0.0.1:6431")
-	server := &http.Server{Addr: addr, Handler: payproduct.NewServerWithLogger(service, logger).Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: addr, Handler: payproduct.NewServerWithMetadata(service, logger, buildinfo.Info{Commit: commit, Release: release, BuildTime: buildTime}, startedAt).Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second}
 	logger.Info("service listening", "event", "service.listen", "address", addr, "network", payproduct.ChainID)
 	errCh := make(chan error, 1)
 	go func() { errCh <- server.ListenAndServe() }()
