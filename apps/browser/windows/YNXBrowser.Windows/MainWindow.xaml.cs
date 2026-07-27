@@ -2,6 +2,7 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -17,7 +18,7 @@ public partial class MainWindow:Window {
  readonly string state=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"YNXBrowser","state.json");
  const string SearchUrl="https://search-staging.43.153.202.237.sslip.io";
  bool refreshing;
- public MainWindow(){InitializeComponent();Loaded+=async(_,_)=>await Restore();}
+ public MainWindow(){InitializeComponent();Loaded+=async(_,_)=>{await Restore();HandleStartupWalletCallback();};}
  async Task Open(string url,bool privacy){
   var id=Guid.NewGuid();
   var folder=privacy?Path.Combine(Path.GetTempPath(),"ynx-private",id.ToString()):null;
@@ -41,7 +42,8 @@ public partial class MainWindow:Window {
  void ShowHistory(object s,RoutedEventArgs e)=>ShowRecords("history.jsonl","History","Private pages never appear here.");
  void ShowDownloads(object s,RoutedEventArgs e)=>ShowRecords("downloads.jsonl","Downloads","Downloaded files remain outside browser data clearing.");
  void ShowRecords(string file,string title,string boundary){var path=Path.Combine(Path.GetDirectoryName(state)!,file);var lines=File.Exists(path)?File.ReadLines(path).Reverse().Take(30):[];MessageBox.Show(boundary+"\n\n"+string.Join("\n",lines),title);}
- void WalletBoundary(object s,RoutedEventArgs e)=>MessageBox.Show("Review requester, callback, scopes, account, network, expiry, recipient, YNXT amount, fee and contract data in YNX Wallet. This browser never signs. Windows product-device request construction remains disabled until the central registry adapter is integrated.","Wallet signing boundary");
+ void WalletBoundary(object s,RoutedEventArgs e){if(MessageBox.Show("Review requester, callback, ordered scopes, device, network and expiry in YNX Wallet. Browser will construct a device-bound request and never signs, pays or creates a Product Session.","Wallet signing boundary",MessageBoxButton.OKCancel)!=MessageBoxResult.OK)return;try{var uri=WalletRequestBuilder.CreateAuthorizationUri();Process.Start(new ProcessStartInfo(uri.AbsoluteUri){UseShellExecute=true});Security.Text="Device-bound Wallet request opened. Awaiting exact callback; Browser still has no Product Session.";}catch(Exception error){Security.Text="Wallet unavailable: "+error.Message;}}
+ void HandleStartupWalletCallback(){var raw=Environment.GetCommandLineArgs().Skip(1).FirstOrDefault(value=>value.StartsWith("ynxbrowser://",StringComparison.OrdinalIgnoreCase));if(raw is null)return;try{Security.Text=WalletRequestBuilder.ValidateCallback(new Uri(raw));}catch(Exception error){Security.Text="Wallet callback rejected: "+error.Message;}}
  void PageAi(object s,RoutedEventArgs e){if(Current.State.Private){Security.Text="AI is unavailable in Private.";return;}MessageBox.Show($"Action: summarize current page\nProvider: unavailable\nModel: default\nContext: {Current.State.Url}\nExcluded: history, other tabs, Wallet identity and private data\nCost: provider-dependent\n\nNo content is sent until provider configuration, permission and central session verification are available.","Page AI preview");}
  void TabChanged(object s,System.Windows.Controls.SelectionChangedEventArgs e){if(!refreshing&&Tabs.SelectedIndex>=0)Show(all[Tabs.SelectedIndex].State.Id);}
  void AddressKey(object s,KeyEventArgs e){if(e.Key==Key.Enter){var value=Address.Text.Trim();Current.View.CoreWebView2.Navigate(value.Contains(' ')?$"{SearchUrl}/?q={Uri.EscapeDataString(value)}":value.Contains("://")?value:$"https://{value}");}}
