@@ -22,14 +22,17 @@ test("Browser and Search registry v2 entries are exact, sorted and P-256 only", 
 
 test("implemented platform request builders bind the reviewed registry tuples", async () => {
   const files = {
-    "ynx-browser-android": "apps/browser/android/app/src/main/java/com/ynxweb4/browser/MainActivity.java",
-    "ynx-browser-ios": "apps/browser/ios/YNXBrowser/BrowserModel.swift",
-    "ynx-browser-macos": "apps/browser/native/Sources/YNXBrowserNative/main.swift",
-    "ynx-browser-windows": "apps/browser/windows/YNXBrowser.Windows/WalletRequestBuilder.cs",
-    "ynx-search-web": "apps/search/src/contracts.js"
+    "ynx-browser-android": ["apps/browser/android/app/src/main/java/com/ynxweb4/browser/MainActivity.java"],
+    "ynx-browser-ios": ["apps/browser/ios/YNXBrowser/BrowserModel.swift"],
+    "ynx-browser-macos": [
+      "apps/browser/native/Sources/YNXBrowserNative/main.swift",
+      "apps/browser/native/Sources/YNXBrowserCore/WalletCallbackPolicy.swift"
+    ],
+    "ynx-browser-windows": ["apps/browser/windows/YNXBrowser.Windows/WalletRequestBuilder.cs"],
+    "ynx-search-web": ["apps/search/src/contracts.js"]
   };
   for (const entry of entries.filter(value => files[value.productClientId])) {
-    const source = await readFile(new URL(files[entry.productClientId], root), "utf8");
+    const source = (await Promise.all(files[entry.productClientId].map(path => readFile(new URL(path, root), "utf8")))).join("\n");
     for (const value of [entry.productClientId, entry.requestingProduct, entry.bundleId, ...entry.callbacks, ...entry.scopes, ...entry.productDeviceAlgorithms]) assert.ok(source.includes(value), `${entry.productClientId} source omits ${value}`);
   }
 });
