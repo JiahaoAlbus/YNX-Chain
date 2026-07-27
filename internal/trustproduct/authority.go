@@ -57,20 +57,20 @@ func (s *Service) centralRequest(r *http.Request, method, path string, body []by
 
 func (s *Service) registerAuthorityRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/meta", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"product": "ynx-trust-center", "chainId": "ynx_6423-1", "evmChainId": 6423, "nativeAsset": "YNXT", "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "centralClientId": s.cfg.CentralClientID, "walletCallback": "ynxtrust://auth/callback", "scopes": []string{"trust:evidence:write", "trust:evidence:read", "trust:appeal", "trust:transparency"}, "authority": "Governance and Trust status comes only from the central Gateway and authoritative Trust API."})
+		writeJSON(w, 200, map[string]any{"product": "ynx-trust-center", "chainId": "ynx_6423-1", "evmChainId": 6423, "nativeAsset": "YNXT", "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "centralClientId": s.cfg.CentralClientID, "walletCallback": "ynxtrust://auth/callback", "scopes": []string{scopeEvidenceWrite, scopeEvidenceRead, scopeAppeal, scopeTransparency}, "authority": "Governance and Trust status comes only from the central Gateway and authoritative Trust API."})
 	})
 	mux.HandleFunc("POST /api/auth/challenges", s.handleCentralChallenge)
 	mux.HandleFunc("POST /api/auth/challenges/{id}/verify", s.handleCentralVerify)
 	mux.HandleFunc("POST /api/auth/revoke", s.handleCentralRevoke)
-	for _, route := range []struct{ pattern, path string }{
-		{"POST /api/authority/evidence", "/app/trust/evidence"}, {"GET /api/authority/evidence/{id}", "/app/trust/evidence/{id}"},
-		{"POST /api/authority/governance/requests", "/app/governance/requests"}, {"GET /api/authority/governance/requests/{id}", "/app/governance/requests/{id}"},
-		{"POST /api/authority/governance/requests/{id}/review", "/app/governance/requests/{id}/review"}, {"POST /api/authority/governance/requests/{id}/reject", "/app/governance/requests/{id}/reject"},
-		{"POST /api/authority/appeals", "/app/trust/appeals"}, {"GET /api/authority/appeals/{id}", "/app/trust/appeals/{id}"}, {"POST /api/authority/appeals/{id}/resolve", "/app/trust/appeals/{id}/resolve"},
-		{"GET /api/authority/transparency", "/app/governance/transparency"}, {"GET /api/authority/validity-rules", "/app/governance/request-validity-rules"},
+	for _, route := range []struct{ pattern, path, scope string }{
+		{"POST /api/authority/evidence", "/app/trust/evidence", scopeEvidenceWrite}, {"GET /api/authority/evidence/{id}", "/app/trust/evidence/{id}", scopeEvidenceRead},
+		{"POST /api/authority/governance/requests", "/app/governance/requests", scopeEvidenceWrite}, {"GET /api/authority/governance/requests/{id}", "/app/governance/requests/{id}", scopeEvidenceRead},
+		{"POST /api/authority/governance/requests/{id}/review", "/app/governance/requests/{id}/review", scopeEvidenceWrite}, {"POST /api/authority/governance/requests/{id}/reject", "/app/governance/requests/{id}/reject", scopeEvidenceWrite},
+		{"POST /api/authority/appeals", "/app/trust/appeals", scopeAppeal}, {"GET /api/authority/appeals/{id}", "/app/trust/appeals/{id}", scopeAppeal}, {"POST /api/authority/appeals/{id}/resolve", "/app/trust/appeals/{id}/resolve", scopeAppeal},
+		{"GET /api/authority/transparency", "/app/governance/transparency", scopeTransparency}, {"GET /api/authority/validity-rules", "/app/governance/request-validity-rules", scopeEvidenceRead},
 	} {
-		pattern, path := route.pattern, route.path
-		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) { s.handleAuthorityProxy(w, r, expandPath(path, r)) })
+		pattern, path, scope := route.pattern, route.path, route.scope
+		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) { s.handleAuthorityProxy(w, r, expandPath(path, r), scope) })
 	}
 }
 func expandPath(path string, r *http.Request) string {
@@ -121,7 +121,7 @@ func (s *Service) handleCentralVerify(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := s.storeCentralSession(out.Token, CentralSession{ID: out.SessionID, Account: out.Account, DeviceID: out.DeviceID, Scopes: out.Scopes, ExpiresAt: out.ExpiresAt}); err != nil {
-			writeJSON(w, 500, map[string]string{"error": "central session audit persistence failed"})
+			writeErr(w, err)
 			return
 		}
 	}
@@ -143,9 +143,9 @@ func (s *Service) handleCentralRevoke(w http.ResponseWriter, r *http.Request) {
 	}
 	copyCentral(w, resp)
 }
-func (s *Service) handleAuthorityProxy(w http.ResponseWriter, r *http.Request, path string) {
+func (s *Service) handleAuthorityProxy(w http.ResponseWriter, r *http.Request, path, requiredScope string) {
 	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID")
-	actor, err := s.authenticateCentral(token, device)
+	actor, err := s.authenticateCentral(token, device, requiredScope)
 	if err != nil {
 		writeErr(w, err)
 		return

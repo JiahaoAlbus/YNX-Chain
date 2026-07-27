@@ -22,6 +22,22 @@ const maxBody = 1 << 20
 
 const currentSnapshotVersion = 2
 
+const (
+	scopeEvidenceWrite = "trust:evidence:write"
+	scopeEvidenceRead  = "trust:evidence:read"
+	scopeAppeal        = "trust:appeal"
+	scopeTransparency  = "trust:transparency"
+)
+
+func isAllowedCentralScope(scope string) bool {
+	switch scope {
+	case scopeEvidenceWrite, scopeEvidenceRead, scopeAppeal, scopeTransparency:
+		return true
+	default:
+		return false
+	}
+}
+
 type Config struct {
 	StorePath         string
 	AIURL             string
@@ -226,6 +242,14 @@ func (s *Service) load() error {
 	if d.Sessions == nil {
 		d.Sessions = map[string]CentralSession{}
 	}
+	for id, session := range d.Sessions {
+		if strings.TrimSpace(id) == "" || session.ID != id || strings.TrimSpace(session.Account) == "" || strings.TrimSpace(session.DeviceID) == "" || session.ExpiresAt.IsZero() {
+			return errors.New("trust store contains an invalid central Wallet session binding")
+		}
+		if err := validateCentralScopes(session.Scopes); err != nil {
+			return fmt.Errorf("trust store contains invalid central Wallet session scopes: %w", err)
+		}
+	}
 	s.data = d
 	if legacy {
 		// Version 1 predates the tamper-evident snapshot seal. Migrate it once,
@@ -400,7 +424,48 @@ func (s *Service) auditLocked(a Actor, action, target, outcome string) {
 	s.data.Audit = append(s.data.Audit, Audit{ID: s.nextLocked("audit"), Actor: a.ID, Role: a.Role, Action: action, Target: target, Outcome: outcome, At: s.cfg.Now().UTC()})
 }
 
+func validateCentralScopes(scopes []string) error {
+	if len(scopes) == 0 {
+		return apiError{502, "central Wallet session returned no Trust scopes"}
+	}
+	seen := map[string]bool{}
+	for _, rawScope := range scopes {
+		scope := strings.TrimSpace(rawScope)
+		if scope != rawScope || scope == "" || scope == "*" || strings.Contains(scope, "*") || !allowedCentralScopes[scope] {
+			return apiError{502, "central Wallet session returned an invalid or widened Trust scope"}
+		}
+		if seen[scope] {
+			return apiError{502, "central Wallet session returned duplicate Trust scopes"}
+		}
+		seen[scope] = true
+	}
+	return nil
+}
+
+func hasCentralScopes(granted []string, required []string) bool {
+	if len(required) == 0 {
+		return true
+	}
+	available := make(map[string]bool, len(granted))
+	for _, scope := range granted {
+		available[scope] = true
+	}
+	for _, scope := range required {
+		if !available[scope] {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Service) storeCentralSession(token string, v CentralSession) error {
+	token = strings.TrimSpace(token)
+	if token == "" || strings.TrimSpace(v.ID) == "" || strings.TrimSpace(v.Account) == "" || strings.TrimSpace(v.DeviceID) == "" || v.ExpiresAt.IsZero() {
+		return apiError{502, "central Wallet session binding is incomplete"}
+	}
+	if err := validateCentralScopes(v.Scopes); err != nil {
+		return err
+	}
 	sum := sha256.Sum256([]byte(token))
 	v.TokenHash = hex.EncodeToString(sum[:])
 	v.Status = "active"
@@ -409,7 +474,7 @@ func (s *Service) storeCentralSession(token string, v CentralSession) error {
 	s.data.Sessions[v.ID] = v
 	return s.saveLocked()
 }
-func (s *Service) authenticateCentral(token, device string) (Actor, error) {
+func (s *Service) authenticateCentral(token, device string, requiredScopes ...string) (Actor, error) {
 	token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
 	if token == "" || device == "" {
 		return Actor{}, apiError{401, "central Wallet session and device are required"}
@@ -423,6 +488,9 @@ func (s *Service) authenticateCentral(token, device string) (Actor, error) {
 		if len(v.TokenHash) == len(want) && subtle.ConstantTimeCompare([]byte(v.TokenHash), []byte(want)) == 1 {
 			if v.Status != "active" || v.DeviceID != device || !now.Before(v.ExpiresAt) {
 				break
+			}
+			if !hasCentralScopes(v.Scopes, requiredScopes) {
+				return Actor{}, apiError{403, "central Wallet session lacks the required Trust scope"}
 			}
 			return Actor{ID: v.Account, Role: "user"}, nil
 		}

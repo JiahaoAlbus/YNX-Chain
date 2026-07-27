@@ -18,7 +18,12 @@ func (s *Service) Handler(assets http.Handler) http.Handler {
 		writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-trust-center", "persistent": true, "stateFormatVersion": currentSnapshotVersion, "tamperEvidentPersistence": true, "authMode": authMode, "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "aiProviderConfigured": s.cfg.AIURL != "" && s.cfg.AIKey != "", "truthBoundary": "Trust explains evidence, process, appeals and corrections; it does not punish or control native YNXT."})
 	})
 	mux.HandleFunc("GET /api/state", func(w http.ResponseWriter, r *http.Request) {
-		v, err := s.View(s.actorFrom(r))
+		actor, err := s.actorFrom(r, scopeEvidenceRead)
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+		v, err := s.View(actor)
 		if err != nil {
 			writeErr(w, err)
 			return
@@ -33,7 +38,12 @@ func (s *Service) Handler(assets http.Handler) http.Handler {
 			writeJSON(w, 400, map[string]string{"error": "invalid JSON"})
 			return
 		}
-		res, err := s.Do(s.actorFrom(r), in)
+		actor, err := s.actorFrom(r, actionScope(in.Type))
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+		res, err := s.Do(actor, in)
 		if err != nil {
 			writeErr(w, err)
 			return
@@ -46,20 +56,32 @@ func (s *Service) Handler(assets http.Handler) http.Handler {
 	return securityHeaders(mux)
 }
 
-func (s *Service) actorFrom(r *http.Request) Actor {
-	token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
-	if actor, ok := s.sessions[token]; ok && token != "" {
-		return actor
+func actionScope(actionType string) string {
+	switch actionType {
+	case "appeal", "resolve_appeal":
+		return scopeAppeal
+	case "ai_prepare", "ai_run", "ai_cancel", "ai_review":
+		return scopeEvidenceRead
+	default:
+		return scopeEvidenceWrite
 	}
+}
+
+func (s *Service) actorFrom(r *http.Request, requiredScopes ...string) (Actor, error) {
+	token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 	if token != "" {
-		if actor, err := s.authenticateCentral("Bearer "+token, strings.TrimSpace(r.Header.Get("X-YNX-Device-ID"))); err == nil {
-			return actor
+		if actor, ok := s.sessions[token]; ok {
+			return actor, nil
 		}
+		return s.authenticateCentral("Bearer "+token, strings.TrimSpace(r.Header.Get("X-YNX-Device-ID")), requiredScopes...)
 	}
 	if s.cfg.AllowHeaderAuth {
-		return Actor{ID: strings.TrimSpace(r.Header.Get("X-YNX-Actor")), Role: strings.TrimSpace(r.Header.Get("X-YNX-Role"))}
+		actor := Actor{ID: strings.TrimSpace(r.Header.Get("X-YNX-Actor")), Role: strings.TrimSpace(r.Header.Get("X-YNX-Role"))}
+		if validActor(actor) {
+			return actor, nil
+		}
 	}
-	return Actor{}
+	return Actor{}, apiError{401, "authenticated Trust actor is required"}
 }
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

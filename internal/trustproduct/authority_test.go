@@ -149,6 +149,91 @@ func TestCentralWalletAndAuthoritativeTrustLifecycle(t *testing.T) {
 	}
 }
 
+func TestCentralSessionScopesAreExactAndRouteEnforced(t *testing.T) {
+	now := time.Date(2026, 7, 16, 2, 0, 0, 0, time.UTC)
+	upstreamCalls := 0
+	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upstreamCalls++
+		writeJSON(w, http.StatusOK, map[string]any{"id": "evidence-1", "source": "authoritative"})
+	}))
+	defer central.Close()
+
+	svc, err := New(Config{StorePath: filepath.Join(t.TempDir(), "state.json"), CentralGatewayURL: central.URL, CentralClientID: "ynx-trust-center-v1", Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.storeCentralSession("read-only-token", CentralSession{ID: "read-only-session", Account: "ynx1reader", DeviceID: "reader-device", Scopes: []string{scopeEvidenceRead}, ExpiresAt: now.Add(time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
+	for name, scopes := range map[string][]string{
+		"wildcard":  {"trust:*"},
+		"unknown":   {"trust:admin"},
+		"duplicate": {scopeEvidenceRead, scopeEvidenceRead},
+		"empty":     {},
+	} {
+		if err := svc.storeCentralSession(name+"-token", CentralSession{ID: name + "-session", Account: "ynx1invalid", DeviceID: "invalid-device", Scopes: scopes, ExpiresAt: now.Add(time.Hour)}); err == nil {
+			t.Fatalf("%s scopes were accepted: %v", name, scopes)
+		}
+	}
+
+	server := httptest.NewServer(svc.Handler(http.NotFoundHandler()))
+	defer server.Close()
+	authorized := func(method, path string, body io.Reader) *http.Response {
+		req, _ := http.NewRequest(method, server.URL+path, body)
+		req.Header.Set("Authorization", "Bearer read-only-token")
+		req.Header.Set("X-YNX-Device-ID", "reader-device")
+		if body != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return resp
+	}
+
+	resp := authorized(http.MethodGet, "/api/state", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("read-scoped local state status=%d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	actionRaw, _ := json.Marshal(Action{Type: "submit_case", IdempotencyKey: "scope-denied", Subject: "ynx1reader", Purpose: "bounded", RequestScope: "one", RequestedAction: "review", Evidence: evidence()})
+	resp = authorized(http.MethodPost, "/api/actions", bytes.NewReader(actionRaw))
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("read-only session performed write action: %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	resp = authorized(http.MethodGet, "/api/authority/transparency", nil)
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("read-only session accessed transparency scope: %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+	if upstreamCalls != 0 {
+		t.Fatalf("scope-denied authority request reached upstream: %d", upstreamCalls)
+	}
+
+	resp = authorized(http.MethodGet, "/api/authority/evidence/evidence-1", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("read-scoped authority lookup status=%d", resp.StatusCode)
+	}
+	resp.Body.Close()
+	if upstreamCalls != 1 {
+		t.Fatalf("authorized authority request count=%d", upstreamCalls)
+	}
+
+	badReq, _ := http.NewRequest(http.MethodGet, server.URL+"/api/state", nil)
+	badReq.Header.Set("Authorization", "Bearer invalid-token")
+	badReq.Header.Set("X-YNX-Actor", "spoofed")
+	badReq.Header.Set("X-YNX-Role", "auditor")
+	resp, _ = http.DefaultClient.Do(badReq)
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("invalid bearer fell back to spoofed identity: %d", resp.StatusCode)
+	}
+	resp.Body.Close()
+}
+
 func TestTrustAuthorityUnavailableDoesNotCreateConclusion(t *testing.T) {
 	svc, _ := New(Config{StorePath: filepath.Join(t.TempDir(), "s.json"), CentralGatewayURL: "http://127.0.0.1:1", CentralClientID: "ynx-trust-center-v1"})
 	ts := httptest.NewServer(svc.Handler(nil))
