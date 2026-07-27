@@ -17,7 +17,7 @@ var (
 )
 
 const (
-	SchemaVersion          = 4
+	SchemaVersion          = 5
 	RequestingProduct      = "social"
 	ProductClientID        = "ynx-social-v1"
 	BundleID               = "com.ynx.social"
@@ -123,6 +123,18 @@ type Session struct {
 	CreatedAt time.Time  `json:"createdAt"`
 	ExpiresAt time.Time  `json:"expiresAt"`
 	RevokedAt *time.Time `json:"revokedAt,omitempty"`
+}
+
+type SessionRotation struct {
+	Account          string    `json:"account"`
+	OldSessionID     string    `json:"oldSessionId"`
+	NewSessionID     string    `json:"newSessionId"`
+	ReplacedDeviceID string    `json:"replacedDeviceId"`
+	NewDeviceID      string    `json:"newDeviceId"`
+	RequestDigest    string    `json:"requestDigest"`
+	NewTokenDigest   string    `json:"newTokenDigest"`
+	CreatedAt        time.Time `json:"createdAt"`
+	ExpiresAt        time.Time `json:"expiresAt"`
 }
 
 type LoginResult struct {
@@ -342,6 +354,7 @@ type idempotencyRecord struct {
 type persistentState struct {
 	SchemaVersion    int                               `json:"schemaVersion"`
 	Sessions         map[string]Session                `json:"sessions"`
+	SessionRotations map[string]SessionRotation        `json:"sessionRotations"`
 	UsedNonces       map[string]time.Time              `json:"usedNonces"`
 	WalletChallenges map[string]PendingWalletChallenge `json:"walletChallenges"`
 	Settings         map[string]ProfileSettings        `json:"settings"`

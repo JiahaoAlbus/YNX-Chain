@@ -169,8 +169,11 @@ func TestDirectMessageContractSendReplayReadAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	socialPath := service.cfg.StatePath
+	tokenKey := append([]byte(nil), service.cfg.TokenKey...)
 	aliceFixture, bobFixture := newFixture(t, 51), newFixture(t, 52)
-	alice, bob := loginFixture(t, service, aliceFixture, now), loginFixture(t, service, bobFixture, now)
+	aliceLogin, bobLogin := loginResult(t, service, aliceFixture, now), loginResult(t, service, bobFixture, now)
+	alice, bob := aliceLogin.Session, bobLogin.Session
 	request, _, err := service.RequestContact(alice, ContactRequestInput{IdempotencyKey: "message-contact", TargetAccount: bob.Account, Source: "handle"})
 	if err != nil {
 		t.Fatal(err)
@@ -225,15 +228,58 @@ func TestDirectMessageContractSendReplayReadAndRestart(t *testing.T) {
 	rotation := chat.RotateDeviceRequest{IdempotencyKey: "rotate-alice-social", NewDeviceID: "device-alice-rotated", SigningPublicKey: nativewallet.EncodePublicKey(newKeys.SigningPublic), EncryptionPublicKey: nativewallet.EncodePublicKey(newKeys.EncryptionPublic)}
 	rotation.AuthorizationSignature = nativewallet.Sign(aliceFixture.deviceKeys.SigningPrivate, chat.DeviceRotationAuthorizationPayload(alice.Account, alice.DeviceID, alice.DeviceID, rotation))
 	rotation.NewDeviceProofSignature = nativewallet.Sign(newKeys.SigningPrivate, chat.DeviceRotationNewDevicePayload(alice.Account, alice.DeviceID, alice.DeviceID, rotation))
-	rotated, rotatedSession, err := service.RotateConversationDevice(alice, alice.DeviceID, rotation)
-	if err != nil || rotated.Replayed || rotatedSession.DeviceID != rotation.NewDeviceID {
-		t.Fatalf("rotation %#v %#v %v", rotated, rotatedSession, err)
+	auth, err := service.AuthorizeConversationDeviceRotation(aliceLogin.Token, alice.DeviceID, rotation)
+	if err != nil {
+		t.Fatal(err)
 	}
-	retry, retrySession, err := service.RotateConversationDevice(rotatedSession, alice.DeviceID, rotation)
-	if err != nil || !retry.Replayed || retrySession.DeviceID != rotation.NewDeviceID {
-		t.Fatalf("rotation retry %#v %#v %v", retry, retrySession, err)
+	rotated, rotatedLogin, err := service.RotateConversationDevice(auth, alice.DeviceID, rotation)
+	if err != nil || rotated.Replayed || rotatedLogin.Session.DeviceID != rotation.NewDeviceID || rotatedLogin.Token == aliceLogin.Token || !rotatedLogin.Session.ExpiresAt.Equal(aliceLogin.Session.ExpiresAt) {
+		t.Fatalf("rotation %#v %#v %v", rotated, rotatedLogin, err)
 	}
-	allDevices, err := service.ConversationDevices(rotatedSession, created.Record.ID)
+	if _, err := service.Authenticate(aliceLogin.Token, "social.profile"); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("old session remained authorized: %v", err)
+	}
+	activeSession, err := service.Authenticate(rotatedLogin.Token, "social.profile")
+	if err != nil || activeSession.ID != rotatedLogin.Session.ID {
+		t.Fatalf("rotated session authentication %#v %v", activeSession, err)
+	}
+	duplicateResult, duplicateOutput, err := service.RotateConversationDevice(auth, alice.DeviceID, rotation)
+	if err != nil || !duplicateResult.Replayed || duplicateOutput.Session.ID != rotatedLogin.Session.ID {
+		t.Fatalf("stale preauthorization retry %#v %#v %v", duplicateResult, duplicateOutput, err)
+	}
+	tampered := rotation
+	tampered.NewDeviceID = "device-alice-tampered"
+	if _, err := service.AuthorizeConversationDeviceRotation(aliceLogin.Token, alice.DeviceID, tampered); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("tampered recovery authorization = %v", err)
+	}
+	retryAuth, err := service.AuthorizeConversationDeviceRotation(aliceLogin.Token, alice.DeviceID, rotation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retry, retryLogin, err := service.RotateConversationDevice(retryAuth, alice.DeviceID, rotation)
+	if err != nil || !retry.Replayed || retryLogin.Token != rotatedLogin.Token || retryLogin.Session.ID != rotatedLogin.Session.ID {
+		t.Fatalf("rotation retry %#v %#v %v", retry, retryLogin, err)
+	}
+	stateBytes, err := os.ReadFile(socialPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(stateBytes, []byte(aliceLogin.Token)) || bytes.Contains(stateBytes, []byte(rotatedLogin.Token)) {
+		t.Fatal("session credential was persisted in plaintext")
+	}
+	restartedService, err := New(Config{StatePath: socialPath, TokenKey: tokenKey, Now: func() time.Time { return now }, Chat: restartedChat})
+	if err != nil {
+		t.Fatal(err)
+	}
+	restartAuth, err := restartedService.AuthorizeConversationDeviceRotation(aliceLogin.Token, alice.DeviceID, rotation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restartReplay, restartLogin, err := restartedService.RotateConversationDevice(restartAuth, alice.DeviceID, rotation)
+	if err != nil || !restartReplay.Replayed || restartLogin.Token != rotatedLogin.Token || restartLogin.Session.ID != rotatedLogin.Session.ID {
+		t.Fatalf("restart rotation recovery %#v %#v %v", restartReplay, restartLogin, err)
+	}
+	allDevices, err := restartedService.ConversationDevices(rotatedLogin.Session, created.Record.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,6 +289,13 @@ func TestDirectMessageContractSendReplayReadAndRestart(t *testing.T) {
 	}
 	if statuses[alice.DeviceID] != "revoked" || statuses[rotation.NewDeviceID] != "active" {
 		t.Fatalf("rotation device states %#v", statuses)
+	}
+	now = now.Add(rotationRecoveryWindow + time.Second)
+	if _, err := restartedService.AuthorizeConversationDeviceRotation(aliceLogin.Token, alice.DeviceID, rotation); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("expired recovery credential = %v", err)
+	}
+	if _, err := restartedService.Authenticate(rotatedLogin.Token, "social.profile"); err != nil {
+		t.Fatalf("rotated session expired with recovery window: %v", err)
 	}
 }
 

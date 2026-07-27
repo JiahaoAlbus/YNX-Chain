@@ -6,8 +6,13 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chat"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/nativewallet"
 )
 
 type testResolver struct{ account string }
@@ -130,7 +135,7 @@ func TestServerConversationMemberMutationResolvesDiscoveryAndEnforcesAuthorizati
 		Record struct {
 			Members []any `json:"members"`
 		} `json:"record"`
-		Replayed bool       `json:"replayed"`
+		Replayed bool `json:"replayed"`
 	}
 	var out membershipResponse
 	if err := json.NewDecoder(response.Body).Decode(&out); err != nil {
@@ -162,6 +167,88 @@ func TestServerConversationMemberMutationResolvesDiscoveryAndEnforcesAuthorizati
 	response = doRequest(t, http.MethodPost, server.URL+"/social/v1/conversations/"+group.ID+"/members", aliceToken, []byte(`{"idempotencyKey":"membership-1","remove":["`+carol.Account+`"]}`))
 	if response.StatusCode != http.StatusConflict {
 		t.Fatalf("idempotency conflict status=%d", response.StatusCode)
+	}
+	response.Body.Close()
+}
+
+func TestServerDeviceRotationRevokesOldSessionAndRecoversExactRetry(t *testing.T) {
+	now := time.Date(2026, 7, 27, 12, 0, 0, 0, time.UTC)
+	dir := t.TempDir()
+	chatService, err := chat.New(chat.Config{StatePath: filepath.Join(dir, "chat.json"), APIKey: strings.Repeat("x", 16), Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := New(Config{StatePath: filepath.Join(dir, "social.json"), TokenKey: bytes.Repeat([]byte{27}, 32), Now: func() time.Time { return now }, RateLimitMax: 100, Chat: chatService})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture := newFixture(t, 101)
+	login := loginResult(t, service, fixture, now)
+	newKeys, err := nativewallet.GenerateDeviceKeys(bytes.NewReader(bytes.Repeat([]byte{121}, 128)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rotation := chat.RotateDeviceRequest{IdempotencyKey: "rotate-http-session", NewDeviceID: "device-http-rotated", SigningPublicKey: nativewallet.EncodePublicKey(newKeys.SigningPublic), EncryptionPublicKey: nativewallet.EncodePublicKey(newKeys.EncryptionPublic)}
+	rotation.AuthorizationSignature = nativewallet.Sign(fixture.deviceKeys.SigningPrivate, chat.DeviceRotationAuthorizationPayload(login.Session.Account, login.Session.DeviceID, login.Session.DeviceID, rotation))
+	rotation.NewDeviceProofSignature = nativewallet.Sign(newKeys.SigningPrivate, chat.DeviceRotationNewDevicePayload(login.Session.Account, login.Session.DeviceID, login.Session.DeviceID, rotation))
+	body, err := json.Marshal(rotation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(service, testResolver{}).Handler())
+	defer server.Close()
+	endpoint := server.URL + "/social/v1/devices/" + login.Session.DeviceID + "/rotate"
+	response := doRequest(t, http.MethodPost, endpoint, login.Token, body)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("rotation status=%d", response.StatusCode)
+	}
+	var first struct {
+		Replayed bool    `json:"replayed"`
+		Session  Session `json:"session"`
+		Token    string  `json:"token"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&first); err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if first.Replayed || first.Token == "" || first.Token == login.Token || first.Session.DeviceID != rotation.NewDeviceID {
+		t.Fatalf("unexpected rotation response %#v", first)
+	}
+	response = doRequest(t, http.MethodGet, server.URL+"/social/v1/settings", login.Token, nil)
+	if response.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("old credential settings status=%d", response.StatusCode)
+	}
+	response.Body.Close()
+	response = doRequest(t, http.MethodGet, server.URL+"/social/v1/settings", first.Token, nil)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("new credential settings status=%d", response.StatusCode)
+	}
+	response.Body.Close()
+	response = doRequest(t, http.MethodPost, endpoint, login.Token, body)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("rotation retry status=%d", response.StatusCode)
+	}
+	var replay struct {
+		Replayed bool    `json:"replayed"`
+		Session  Session `json:"session"`
+		Token    string  `json:"token"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&replay); err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if !replay.Replayed || replay.Token != first.Token || replay.Session.ID != first.Session.ID {
+		t.Fatalf("unexpected rotation retry %#v", replay)
+	}
+	tampered := rotation
+	tampered.NewDeviceID = "device-http-tampered"
+	tamperedBody, err := json.Marshal(tampered)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response = doRequest(t, http.MethodPost, endpoint, login.Token, tamperedBody)
+	if response.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("tampered rotation retry status=%d", response.StatusCode)
 	}
 	response.Body.Close()
 }

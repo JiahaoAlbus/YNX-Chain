@@ -419,53 +419,151 @@ func (s *Service) boundChatDevice(actor Session) (chat.Device, error) {
 	return chat.Device{}, fmt.Errorf("%w: bound Chat device is unavailable", ErrUnauthorized)
 }
 
-func (s *Service) RotateConversationDevice(actor Session, replacedDeviceID string, in chat.RotateDeviceRequest) (chat.Result[chat.DeviceRotation], Session, error) {
-	if s.cfg.Chat == nil {
-		return chat.Result[chat.DeviceRotation]{}, Session{}, fmt.Errorf("%w: Chat contract unavailable", ErrConflict)
+type rotationAuthorization struct {
+	Actor          Session
+	OldTokenDigest string
+	Retry          bool
+}
+
+func (s *Service) rotationRecoverySessionLocked(auth rotationAuthorization, replacedDeviceID string, in chat.RotateDeviceRequest, now time.Time) (Session, bool) {
+	recovery, ok := s.state.SessionRotations[auth.OldTokenDigest]
+	if !ok || !recovery.ExpiresAt.After(now) || recovery.Account != auth.Actor.Account || recovery.ReplacedDeviceID != replacedDeviceID || recovery.NewDeviceID != in.NewDeviceID || recovery.RequestDigest != objectDigest(in) {
+		return Session{}, false
 	}
+	oldSession, ok := s.state.Sessions[auth.OldTokenDigest]
+	if !ok || oldSession.ID != recovery.OldSessionID || oldSession.Account != recovery.Account || oldSession.DeviceID != recovery.ReplacedDeviceID || oldSession.RevokedAt == nil || !oldSession.ExpiresAt.After(now) || !contains(oldSession.Scopes, "social.messaging") {
+		return Session{}, false
+	}
+	newSession, ok := s.state.Sessions[recovery.NewTokenDigest]
+	if !ok || newSession.ID != recovery.NewSessionID || newSession.Account != recovery.Account || newSession.DeviceID != recovery.NewDeviceID || newSession.RevokedAt != nil || !newSession.ExpiresAt.After(now) || !contains(newSession.Scopes, "social.messaging") {
+		return Session{}, false
+	}
+	oldDevice, oldOK := s.state.Devices[replacedDeviceID]
+	newDevice, newOK := s.state.Devices[in.NewDeviceID]
+	if !oldOK || oldDevice.Status != "revoked" || oldDevice.Account != recovery.Account || !newOK || newDevice.Status != "active" || newDevice.Account != recovery.Account || newDevice.SigningPublicKey != in.SigningPublicKey || newDevice.EncryptionPublicKey != in.EncryptionPublicKey {
+		return Session{}, false
+	}
+	if auth.Retry {
+		if auth.Actor.ID != newSession.ID || auth.Actor.DeviceID != newSession.DeviceID {
+			return Session{}, false
+		}
+	} else if auth.Actor.ID != oldSession.ID || auth.Actor.DeviceID != oldSession.DeviceID {
+		return Session{}, false
+	}
+	return newSession, true
+}
+
+func (s *Service) AuthorizeConversationDeviceRotation(authorization, replacedDeviceID string, in chat.RotateDeviceRequest) (rotationAuthorization, error) {
+	if !identifierPattern.MatchString(replacedDeviceID) || !identifierPattern.MatchString(in.NewDeviceID) || !identifierPattern.MatchString(in.IdempotencyKey) {
+		return rotationAuthorization{}, ErrInvalid
+	}
+	sessionCredential := rawSessionToken(authorization)
+	if sessionCredential == "" {
+		return rotationAuthorization{}, ErrUnauthorized
+	}
+	oldDigest := tokenDigest(sessionCredential, s.cfg.TokenKey)
+	now := s.cfg.Now().UTC()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	session, ok := s.state.Sessions[oldDigest]
+	if !ok || !session.ExpiresAt.After(now) || !contains(session.Scopes, "social.messaging") {
+		return rotationAuthorization{}, ErrUnauthorized
+	}
+	if session.RevokedAt == nil {
+		if session.DeviceID != replacedDeviceID {
+			return rotationAuthorization{}, ErrUnauthorized
+		}
+		return rotationAuthorization{Actor: session, OldTokenDigest: oldDigest}, nil
+	}
+	recoveryAuth := rotationAuthorization{Actor: session, OldTokenDigest: oldDigest}
+	newSession, ok := s.rotationRecoverySessionLocked(recoveryAuth, replacedDeviceID, in, now)
+	if !ok {
+		return rotationAuthorization{}, ErrUnauthorized
+	}
+	return rotationAuthorization{Actor: newSession, OldTokenDigest: oldDigest, Retry: true}, nil
+}
+
+func (s *Service) RotateConversationDevice(auth rotationAuthorization, replacedDeviceID string, in chat.RotateDeviceRequest) (chat.Result[chat.DeviceRotation], LoginResult, error) {
+	if s.cfg.Chat == nil {
+		return chat.Result[chat.DeviceRotation]{}, LoginResult{}, fmt.Errorf("%w: Chat contract unavailable", ErrConflict)
+	}
+	requestDigest := objectDigest(in)
+	now := s.cfg.Now().UTC()
 	s.mu.Lock()
 	old, oldOK := s.state.Devices[replacedDeviceID]
-	newDevice, newOK := s.state.Devices[in.NewDeviceID]
-	_, storedSession, sessionOK := s.sessionByIDLocked(actor.ID)
-	firstAttempt := sessionOK && storedSession.DeviceID == replacedDeviceID && actor.DeviceID == replacedDeviceID && oldOK && old.Status == "active"
-	retry := sessionOK && storedSession.DeviceID == in.NewDeviceID && actor.DeviceID == in.NewDeviceID && oldOK && old.Status == "revoked" && newOK && newDevice.Status == "active" && newDevice.Account == actor.Account && newDevice.SigningPublicKey == in.SigningPublicKey && newDevice.EncryptionPublicKey == in.EncryptionPublicKey
+	recoveredSession, retry := s.rotationRecoverySessionLocked(auth, replacedDeviceID, in, now)
+	firstAttempt := !auth.Retry && auth.Actor.DeviceID == replacedDeviceID && oldOK && old.Status == "active"
 	s.mu.Unlock()
-	if (!firstAttempt && !retry) || old.Account != actor.Account {
-		return chat.Result[chat.DeviceRotation]{}, Session{}, fmt.Errorf("%w: rotation is not bound to the current product session", ErrUnauthorized)
+	if (!firstAttempt && !retry) || !oldOK || old.Account != auth.Actor.Account {
+		return chat.Result[chat.DeviceRotation]{}, LoginResult{}, fmt.Errorf("%w: rotation is not bound to the current product session", ErrUnauthorized)
 	}
 	chatActor := chat.Device{ID: old.ID, Account: old.Account, SigningPublicKey: old.SigningPublicKey, EncryptionPublicKey: old.EncryptionPublicKey, Status: old.Status, CreatedAt: old.CreatedAt, UpdatedAt: old.UpdatedAt}
 	result, err := s.cfg.Chat.RotateDevice(chatActor, replacedDeviceID, in)
 	if err != nil {
-		return chat.Result[chat.DeviceRotation]{}, Session{}, socialChatError(err)
+		return chat.Result[chat.DeviceRotation]{}, LoginResult{}, socialChatError(err)
 	}
 	if retry {
-		return result, storedSession, nil
+		s.mu.Lock()
+		now = s.cfg.Now().UTC()
+		recoveredSession, retry = s.rotationRecoverySessionLocked(auth, replacedDeviceID, in, now)
+		s.mu.Unlock()
+		if !retry {
+			return chat.Result[chat.DeviceRotation]{}, LoginResult{}, ErrUnauthorized
+		}
+		issuedCredential := rotationSessionToken(s.cfg.TokenKey, auth.OldTokenDigest, requestDigest)
+		return result, LoginResult{Session: recoveredSession, Token: issuedCredential}, nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	now = s.cfg.Now().UTC()
 	old, oldOK = s.state.Devices[replacedDeviceID]
-	if !oldOK || old.Account != actor.Account || old.Status != "active" {
-		return chat.Result[chat.DeviceRotation]{}, Session{}, ErrUnauthorized
+	if recoveredSession, ok := s.rotationRecoverySessionLocked(auth, replacedDeviceID, in, now); ok {
+		issuedCredential := rotationSessionToken(s.cfg.TokenKey, auth.OldTokenDigest, requestDigest)
+		return result, LoginResult{Session: recoveredSession, Token: issuedCredential}, nil
 	}
-	if existing, ok := s.state.Devices[in.NewDeviceID]; ok && (existing.Account != actor.Account || existing.SigningPublicKey != in.SigningPublicKey || existing.EncryptionPublicKey != in.EncryptionPublicKey) {
-		return chat.Result[chat.DeviceRotation]{}, Session{}, ErrConflict
+	if !oldOK || old.Account != auth.Actor.Account || old.Status != "active" {
+		return chat.Result[chat.DeviceRotation]{}, LoginResult{}, ErrUnauthorized
 	}
-	key, session, ok := s.sessionByIDLocked(actor.ID)
-	if !ok || session.DeviceID != replacedDeviceID {
-		return chat.Result[chat.DeviceRotation]{}, Session{}, ErrUnauthorized
+	if existing, ok := s.state.Devices[in.NewDeviceID]; ok && (existing.Account != auth.Actor.Account || existing.SigningPublicKey != in.SigningPublicKey || existing.EncryptionPublicKey != in.EncryptionPublicKey) {
+		return chat.Result[chat.DeviceRotation]{}, LoginResult{}, ErrConflict
 	}
-	now := s.cfg.Now().UTC()
+	oldSession, ok := s.state.Sessions[auth.OldTokenDigest]
+	if !ok || oldSession.ID != auth.Actor.ID || oldSession.Account != auth.Actor.Account || oldSession.DeviceID != replacedDeviceID || oldSession.RevokedAt != nil || !oldSession.ExpiresAt.After(now) {
+		return chat.Result[chat.DeviceRotation]{}, LoginResult{}, ErrUnauthorized
+	}
+	issuedCredential := rotationSessionToken(s.cfg.TokenKey, auth.OldTokenDigest, requestDigest)
+	issuedDigest := tokenDigest(issuedCredential, s.cfg.TokenKey)
+	if _, exists := s.state.Sessions[issuedDigest]; exists {
+		return chat.Result[chat.DeviceRotation]{}, LoginResult{}, ErrConflict
+	}
+	newSession := Session{
+		ID: "session_" + objectDigest(struct {
+			OldSessionID  string
+			RequestDigest string
+		}{OldSessionID: oldSession.ID, RequestDigest: requestDigest})[:24],
+		Account: oldSession.Account, DeviceID: in.NewDeviceID, Scopes: append([]string(nil), oldSession.Scopes...), CreatedAt: now, ExpiresAt: oldSession.ExpiresAt,
+	}
 	before := cloneState(s.state)
 	old.Status, old.UpdatedAt = "revoked", now
 	s.state.Devices[old.ID] = old
-	s.state.Devices[in.NewDeviceID] = ProductDevice{ID: in.NewDeviceID, Account: actor.Account, SigningPublicKey: in.SigningPublicKey, EncryptionPublicKey: in.EncryptionPublicKey, Status: "active", CreatedAt: now, UpdatedAt: now}
-	session.DeviceID = in.NewDeviceID
-	s.state.Sessions[key] = session
-	s.appendAuditLocked("product_device_rotated", "device", in.NewDeviceID, actor.Account, objectDigest(result.Record), now)
-	if err := s.saveOrRollbackLocked(before); err != nil {
-		return chat.Result[chat.DeviceRotation]{}, Session{}, err
+	s.state.Devices[in.NewDeviceID] = ProductDevice{ID: in.NewDeviceID, Account: auth.Actor.Account, SigningPublicKey: in.SigningPublicKey, EncryptionPublicKey: in.EncryptionPublicKey, Status: "active", CreatedAt: now, UpdatedAt: now}
+	oldSession.RevokedAt = &now
+	s.state.Sessions[auth.OldTokenDigest] = oldSession
+	s.state.Sessions[issuedDigest] = newSession
+	recoveryExpiresAt := now.Add(rotationRecoveryWindow)
+	if oldSession.ExpiresAt.Before(recoveryExpiresAt) {
+		recoveryExpiresAt = oldSession.ExpiresAt
 	}
-	return result, session, nil
+	recovery := SessionRotation{Account: auth.Actor.Account, OldSessionID: oldSession.ID, NewSessionID: newSession.ID, ReplacedDeviceID: replacedDeviceID, NewDeviceID: in.NewDeviceID, RequestDigest: requestDigest, NewTokenDigest: issuedDigest, CreatedAt: now, ExpiresAt: recoveryExpiresAt}
+	s.state.SessionRotations[auth.OldTokenDigest] = recovery
+	s.appendAuditLocked("product_device_and_session_rotated", "device", in.NewDeviceID, auth.Actor.Account, objectDigest(struct {
+		Rotation chat.DeviceRotation
+		Session  SessionRotation
+	}{Rotation: result.Record, Session: recovery}), now)
+	if err := s.saveOrRollbackLocked(before); err != nil {
+		return chat.Result[chat.DeviceRotation]{}, LoginResult{}, err
+	}
+	return result, LoginResult{Session: newSession, Token: issuedCredential}, nil
 }
 
 func (s *Service) AcknowledgeConversationMessage(actor Session, conversationID, messageID, state string) (chat.Message, error) {

@@ -16,11 +16,14 @@ export type SocialProfile = Person & Readonly<{bio:string;followerCount:number;f
 export type PrivacySettings = SocialProfile["privacy"] & Readonly<{account?:string;updatedAt?:string}>;
 export type GroupDiscoveryInput = Readonly<{ idempotencyKey: string; source: "handle" | "contacts" | "qr" | "invite" | "recommendation"; value: string }>;
 export type GroupMembershipUpdateInput = Readonly<{ idempotencyKey: string; add: readonly GroupDiscoveryInput[]; remove: readonly string[] }>;
+export type DeviceRotationResponse = Readonly<{record:{id:string};replayed:boolean;session:Session["session"];token:string}>;
+export function adoptRotatedSession(previous:Session,result:DeviceRotationResponse):Session{return {...previous,token:result.token,session:result.session}}
 
 export class SocialAPI {
   readonly base:string; private token:string|null;
   constructor(base=process.env.EXPO_PUBLIC_YNX_SOCIAL_API_BASE ?? "",token:string|null=null){if(!/^https:\/\//.test(base)&&!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base))throw new Error("Set a secure YNX Social API endpoint");this.base=base.replace(/\/$/,"");this.token=token}
   setToken(value:string|null){this.token=value}
+  useSession(value:Session){this.token=value.token}
   walletChallenge(request:WalletAuthorizationRequest,approval:WalletApproval){return this.request<{challenge:ProductSessionChallenge}>("/social/v1/wallet/challenge",{method:"POST",body:{request,approval},auth:false})}
   login(input:WalletLogin){return this.request<Session>("/social/v1/wallet/login",{method:"POST",body:input,auth:false})}
   profile(){return this.request<{record:SocialProfile}>("/social/v1/profile")}
@@ -44,7 +47,7 @@ export class SocialAPI {
   messages(id:string){return this.request<{messages:ChatMessage[]}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages`)}
   sendMessage(id:string,body:SendMessageRequest){return this.request<{record:ChatMessage;replayed:boolean}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages`,{method:"POST",body})}
   acknowledge(id:string,messageId:string,state:"delivered"|"read"){return this.request<{record:ChatMessage}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages/${encodeURIComponent(messageId)}/${state}`,{method:"POST",body:{}})}
-  rotateDevice(replacedDeviceId:string,body:DeviceRotationRequest){return this.request<{record:{id:string};replayed:boolean;session:Session["session"]}>(`/social/v1/devices/${encodeURIComponent(replacedDeviceId)}/rotate`,{method:"POST",body})}
+  rotateDevice(replacedDeviceId:string,body:DeviceRotationRequest){return this.request<DeviceRotationResponse>(`/social/v1/devices/${encodeURIComponent(replacedDeviceId)}/rotate`,{method:"POST",body})}
   feed(){return this.request<{posts:FeedPost[]}>("/social/v1/feed")}
   publishMoment(body:{idempotencyKey:string;text:string;visibility:"public"|"contacts"|"private";media:readonly string[]}){return this.request("/social/v1/feed",{method:"POST",body})}
   comments(id:string){return this.request<{comments:MomentComment[]}>(`/social/v1/feed/${encodeURIComponent(id)}/comments`)}

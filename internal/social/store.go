@@ -25,6 +25,9 @@ func normalizeState(s *persistentState) {
 	if s.Sessions == nil {
 		s.Sessions = map[string]Session{}
 	}
+	if s.SessionRotations == nil {
+		s.SessionRotations = map[string]SessionRotation{}
+	}
 	if s.UsedNonces == nil {
 		s.UsedNonces = map[string]time.Time{}
 	}
@@ -105,7 +108,7 @@ func loadState(path string, key []byte) (persistentState, bool, error) {
 		return persistentState{}, true, fmt.Errorf("decode social state: %w", err)
 	}
 	version := state.SchemaVersion
-	if version != 1 && version != 2 && version != 3 && version != SchemaVersion {
+	if version != 1 && version != 2 && version != 3 && version != 4 && version != SchemaVersion {
 		return persistentState{}, true, fmt.Errorf("unsupported social state schema %d", state.SchemaVersion)
 	}
 	normalizeState(&state)

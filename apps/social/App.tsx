@@ -56,6 +56,7 @@ import { ed25519, x25519 } from "@noble/curves/ed25519.js";
 import { p256 } from "@noble/curves/nist.js";
 import {
   SocialAPI,
+  adoptRotatedSession,
   type AIJob,
   type AlertItem,
   type ContactMatch,
@@ -2304,6 +2305,11 @@ function Profile({
               request: ReturnType<typeof createDeviceRotation>;
             };
       if (pendingRaw) pending = JSON.parse(pendingRaw) as typeof pending;
+      if (pending && session.session.deviceId === pending.request.newDeviceId) {
+        await SecureStore.deleteItemAsync(ROTATION_KEY);
+        setError(null);
+        return;
+      }
       if (!pending) {
         const oldRaw = await SecureStore.getItemAsync(DEVICE_KEY);
         if (!oldRaw)
@@ -2349,7 +2355,7 @@ function Profile({
           pending.replacedDeviceId,
           pending.request,
         ),
-        next: Session = { ...session, session: result.session };
+        next: Session = adoptRotatedSession(session, result);
       await SecureStore.setItemAsync(
         DEVICE_KEY,
         JSON.stringify({
@@ -2363,8 +2369,9 @@ function Profile({
       await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(next), {
         keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
       });
-      await SecureStore.deleteItemAsync(ROTATION_KEY);
+      api.useSession(next);
       onSessionChange(next);
+      await SecureStore.deleteItemAsync(ROTATION_KEY);
       Alert.alert(
         "Device rotated",
         "The previous Social device is revoked. New messages now use this device identity.",

@@ -183,6 +183,10 @@ type profileInput struct {
 
 func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/social/v1/")
+	if strings.HasPrefix(path, "devices/") && strings.HasSuffix(path, "/rotate") && r.Method == http.MethodPost {
+		s.rotateConversationDevice(w, r, path)
+		return
+	}
 	scope := scopeForPath(path)
 	actor, err := s.service.Authenticate(r.Header.Get("Authorization"), scope)
 	if err != nil {
@@ -334,18 +338,6 @@ func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 			if err == nil {
 				writeJSON(w, 201, map[string]any{"record": record, "replayed": replay})
 			}
-		}
-	case strings.HasPrefix(path, "devices/") && strings.HasSuffix(path, "/rotate") && r.Method == http.MethodPost:
-		replaced := strings.TrimSuffix(strings.TrimPrefix(path, "devices/"), "/rotate")
-		var in chat.RotateDeviceRequest
-		if !decodeRequest(w, r, &in, 32*1024) {
-			return
-		}
-		var result chat.Result[chat.DeviceRotation]
-		var session Session
-		result, session, err = s.service.RotateConversationDevice(actor, replaced, in)
-		if err == nil {
-			writeJSON(w, 200, map[string]any{"record": result.Record, "replayed": result.Replayed, "session": session})
 		}
 	case strings.HasPrefix(path, "conversations/"):
 		s.handleConversation(w, r, actor, path, &err)
@@ -688,6 +680,29 @@ func (s *Server) handleConversation(w http.ResponseWriter, r *http.Request, acto
 	default:
 		writeError(w, 404, "social route not found")
 	}
+}
+
+func (s *Server) rotateConversationDevice(w http.ResponseWriter, r *http.Request, path string) {
+	replaced := strings.TrimSuffix(strings.TrimPrefix(path, "devices/"), "/rotate")
+	var in chat.RotateDeviceRequest
+	if !decodeRequest(w, r, &in, 32*1024) {
+		return
+	}
+	auth, err := s.service.AuthorizeConversationDeviceRotation(r.Header.Get("Authorization"), replaced, in)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	if !s.service.Allow(r.RemoteAddr, auth.Actor.Account, pathAction(path)) {
+		writeServiceError(w, ErrRateLimited)
+		return
+	}
+	result, login, err := s.service.RotateConversationDevice(auth, replaced, in)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"record": result.Record, "replayed": result.Replayed, "session": login.Session, "token": login.Token})
 }
 
 func scopeForPath(path string) string {

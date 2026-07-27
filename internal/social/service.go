@@ -35,6 +35,8 @@ var allowedSources = map[string]bool{"handle": true, "contacts": true, "qr": tru
 var allowedAIKinds = map[string]bool{"reply_draft": true, "conversation_summary": true, "translation": true, "inbox_classification": true, "moderation_explanation": true}
 var allowedAILanguages = map[string]bool{"en": true, "zh-Hans": true, "zh-Hant": true, "ja": true, "ko": true, "es": true, "fr": true, "de": true, "pt": true, "ru": true, "ar": true, "id": true}
 
+const rotationRecoveryWindow = 5 * time.Minute
+
 type Service struct {
 	mu    sync.Mutex
 	cfg   Config
@@ -196,11 +198,19 @@ func (s *Service) Authenticate(token, scope string) (Session, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	session, ok := s.state.Sessions[tokenDigest(strings.TrimSpace(strings.TrimPrefix(token, "Bearer ")), s.cfg.TokenKey)]
+	session, ok := s.state.Sessions[tokenDigest(rawSessionToken(token), s.cfg.TokenKey)]
 	if !ok || session.RevokedAt != nil || !session.ExpiresAt.After(s.cfg.Now()) || !contains(session.Scopes, scope) {
 		return Session{}, ErrUnauthorized
 	}
 	return session, nil
+}
+
+func rawSessionToken(value string) string {
+	value = strings.TrimSpace(value)
+	if strings.HasPrefix(value, "Bearer ") {
+		value = strings.TrimSpace(strings.TrimPrefix(value, "Bearer "))
+	}
+	return value
 }
 
 func (s *Service) RevokeSession(actor Session) error {
@@ -894,6 +904,11 @@ func (s *Service) DeleteAccount(actor Session) error {
 			delete(s.state.Sessions, k)
 		}
 	}
+	for k, rotation := range s.state.SessionRotations {
+		if rotation.Account == actor.Account {
+			delete(s.state.SessionRotations, k)
+		}
+	}
 	for k := range s.state.Blocks {
 		if strings.Contains(k, actor.Account) {
 			delete(s.state.Blocks, k)
@@ -982,6 +997,15 @@ func tokenDigest(token string, key []byte) string {
 	mac := hmac.New(sha256.New, key)
 	_, _ = mac.Write([]byte(token))
 	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func rotationSessionToken(key []byte, oldTokenDigest, requestDigest string) string {
+	mac := hmac.New(sha256.New, key)
+	_, _ = mac.Write([]byte("ynx-social-session-rotation-v1\n"))
+	_, _ = mac.Write([]byte(oldTokenDigest))
+	_, _ = mac.Write([]byte("\n"))
+	_, _ = mac.Write([]byte(requestDigest))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
 func verifyWalletSignature(account, publicKeyText, signatureText string, payload []byte) bool {
