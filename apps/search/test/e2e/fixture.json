@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "revision": 7,
   "sources": {
     "ynx-docs": {
@@ -7,13 +7,45 @@
       "url": "https://docs.ynxweb4.com/",
       "origin": "https://docs.ynxweb4.com",
       "label": "YNX reviewed docs",
-      "authorizationEvidence": "operator-source-approval-browser-search-2026-07",
-      "robotsPolicy": "respect",
-      "overrideEvidence": null,
+      "sourceType": "ynx-official",
+      "owner": "YNX Docs",
+      "jurisdiction": "Global public documentation",
+      "authorization": {
+        "reference": "operator-source-approval-browser-search-2026-07",
+        "referenceDigest": "2a1d9c43838d65eb56d279de956053798a388759827fe6916884929b27bc7c5f",
+        "reviewedAt": "2026-07-17T09:00:00.000Z"
+      },
+      "robots": {
+        "policy": "respect",
+        "overrideReference": null,
+        "overrideReferenceDigest": null
+      },
+      "permittedScope": ["public YNX documentation"],
+      "terms": {
+        "url": "https://docs.ynxweb4.com/terms",
+        "permittedUse": "index-snippet-link"
+      },
+      "dataRights": {
+        "storage": true,
+        "snippets": true,
+        "aiRetrieval": true
+      },
+      "retentionDays": 365,
+      "remedies": {
+        "removalUrl": "https://docs.ynxweb4.com/removal",
+        "correctionUrl": "https://docs.ynxweb4.com/correction"
+      },
+      "languages": ["en", "zh-Hans"],
+      "crawlPolicy": {
+        "freshnessSloSeconds": 3600,
+        "maxRequestsPerMinute": 30,
+        "backoffSeconds": 60
+      },
       "enabled": true,
       "indexingStatus": "ready",
       "lastAttemptAt": "2026-07-17T10:00:00.000Z",
       "lastIndexedAt": "2026-07-17T10:00:00.000Z",
+      "nextEligibleAt": "2026-07-17T11:00:00.000Z",
       "lastError": null,
       "documentCount": 2
     }
@@ -31,7 +63,7 @@
       "indexedAt": "2026-07-17T10:00:00.000Z",
       "contentDigest": "d5db4f22566da91dd4b4423a65b9469e983514fe781d0bf776ef06372c8264e3",
       "indexReceipt": { "digest": "7d9ef087b4bb5af93355d8c45ba5bbf71ed8b04eefaf6c79cde6a16221127c92" },
-      "terms": ["wallet","authorization","requires","exact","product","callback","scope","account","network","and","expiry","review","the","browser","never","signs","cannot","report","completion","before","gateway","verification"]
+      "terms": ["wallet", "authorization", "requires", "exact", "product", "callback", "scope", "account", "network", "and", "expiry", "review", "the", "browser", "never", "signs", "cannot", "report", "completion", "before", "gateway", "verification"]
     },
     "private-boundary": {
       "id": "private-boundary",
@@ -45,7 +77,7 @@
       "indexedAt": "2026-07-17T10:00:00.000Z",
       "contentDigest": "1680ad426dd0bc0fefce520ee57e3746e00d7363a91da761be6d86733db58398",
       "indexReceipt": { "digest": "11a27d77198bd6d40d2fd7ad3467c9b8d1d68861d8b918cf6c61a7c578db88b" },
-      "terms": ["private","browsing","excludes","local","ynx","history","crash","recovery","permission","persistence","and","context","websites","networks","the","operating","system","downloaded","files","may","still","retain","activity"]
+      "terms": ["private", "browsing", "excludes", "local", "ynx", "history", "crash", "recovery", "permission", "persistence", "and", "context", "websites", "networks", "the", "operating", "system", "downloaded", "files", "may", "still", "retain", "activity"]
     }
   },
   "cases": {},

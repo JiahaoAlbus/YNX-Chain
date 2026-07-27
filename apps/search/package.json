@@ -8,7 +8,8 @@
     "test": "node --test test/*.test.js",
     "smoke": "node scripts/smoke.mjs",
     "test:e2e": "playwright test",
-    "check": "npm test && npm run smoke"
+    "security": "node scripts/security-scan.mjs",
+    "check": "npm test && npm run smoke && npm run security"
   },
   "engines": {
     "node": ">=20"
