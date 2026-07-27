@@ -43,10 +43,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/bridge-transfers/{id}/refresh", s.bridgeRefresh)
 	s.mux.HandleFunc("GET /v1/split-payments/{id}", s.splitPayment)
 	s.mux.HandleFunc("POST /v1/split-payments/{id}/shares/{shareId}/claim", s.claimSplitShare)
+	s.mux.HandleFunc("GET /v1/quant-bills/{id}", s.quantBill)
 	s.mux.HandleFunc("GET /v1/merchant/state", s.merchantState)
 	s.mux.HandleFunc("POST /v1/merchant/catalog", s.catalog)
 	s.mux.HandleFunc("POST /v1/merchant/invoices", s.createInvoice)
 	s.mux.HandleFunc("POST /v1/merchant/split-payments", s.createSplitPayment)
+	s.mux.HandleFunc("POST /v1/merchant/quant-bills", s.createQuantBill)
 	s.mux.HandleFunc("POST /v1/merchant/recurring-drafts", s.createRecurringDraft)
 	s.mux.HandleFunc("PUT /v1/merchant/webhook", s.webhook)
 	s.mux.HandleFunc("POST /v1/merchant/webhook/rotate", s.rotate)
@@ -339,6 +341,28 @@ func (s *Server) claimSplitShare(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := s.service.ClaimSplitShare(r.Context(), session, r.PathValue("id"), r.PathValue("shareId"), in.IdempotencyKey)
 	out = publicSplitPayment(out)
+	respond(w, 201, out, err)
+}
+func (s *Server) quantBill(w http.ResponseWriter, r *http.Request) {
+	out, err := s.service.QuantBill(r.Context(), r.PathValue("id"))
+	out = publicQuantBill(out)
+	respond(w, 200, out, err)
+}
+func (s *Server) createQuantBill(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "invoice")
+	if !ok {
+		return
+	}
+	if p.Role != "owner" && p.Role != "finance" {
+		writeError(w, 403, "owner or finance role required for Quant billing")
+		return
+	}
+	var in QuantBillInput
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.CreateQuantBill(r.Context(), p.Merchant, in)
+	out = publicQuantBill(out)
 	respond(w, 201, out, err)
 }
 func (s *Server) createRecurringDraft(w http.ResponseWriter, r *http.Request) {

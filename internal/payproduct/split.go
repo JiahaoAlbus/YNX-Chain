@@ -25,11 +25,15 @@ type SplitPaymentInput struct {
 	IdempotencyKey   string            `json:"idempotencyKey"`
 }
 
-type SplitInvoiceBinding struct {
-	SplitPaymentID string
-	SplitShareID   string
-	ExpectedPayer  string
+type InvoiceBinding struct {
+	SplitPaymentID        string
+	SplitShareID          string
+	ServiceBillID         string
+	ServiceEvidenceDigest string
+	ExpectedPayer         string
 }
+
+type SplitInvoiceBinding = InvoiceBinding
 
 func (s *Service) CreateSplitPayment(merchant Merchant, input SplitPaymentInput) (SplitPayment, error) {
 	s.mutation.Lock()

@@ -32,39 +32,43 @@ type AIProvider interface {
 	Complete(context.Context, string, string) (provider, model, result string, units int64, err error)
 }
 type Config struct {
-	StorePath         string
-	IntegrityKey      []byte
-	GatewayKey        []byte
-	BootstrapKey      string
-	PublicBaseURL     string
-	CentralMerchantID string
-	PayAPI            PayAPI
-	AI                AIProvider
-	Sponsorship       SponsorshipProvider
-	SponsorPolicy     SponsorPolicy
-	Bridge            BridgeProvider
-	StableApproval    *StableSettlementApproval
-	HTTPClient        *http.Client
-	Now               func() time.Time
+	StorePath           string
+	IntegrityKey        []byte
+	GatewayKey          []byte
+	BootstrapKey        string
+	PublicBaseURL       string
+	CentralMerchantID   string
+	PayAPI              PayAPI
+	AI                  AIProvider
+	Sponsorship         SponsorshipProvider
+	SponsorPolicy       SponsorPolicy
+	Bridge              BridgeProvider
+	StableApproval      *StableSettlementApproval
+	QuantEvidenceKeys   map[string]ed25519.PublicKey
+	QuantEvidenceMaxAge time.Duration
+	HTTPClient          *http.Client
+	Now                 func() time.Time
 }
 type Service struct {
-	store             *Store
-	pay               PayAPI
-	ai                AIProvider
-	sponsorship       SponsorshipProvider
-	sponsorPolicy     SponsorPolicy
-	bridge            BridgeProvider
-	stableApproval    *StableSettlementApproval
-	bootstrap         string
-	publicBase        string
-	centralMerchantID string
-	key               []byte
-	gatewayKey        []byte
-	client            *http.Client
-	now               func() time.Time
-	mutation          sync.Mutex
-	aiMu              sync.Mutex
-	aiCancels         map[string]context.CancelFunc
+	store               *Store
+	pay                 PayAPI
+	ai                  AIProvider
+	sponsorship         SponsorshipProvider
+	sponsorPolicy       SponsorPolicy
+	bridge              BridgeProvider
+	stableApproval      *StableSettlementApproval
+	quantEvidenceKeys   map[string]ed25519.PublicKey
+	quantEvidenceMaxAge time.Duration
+	bootstrap           string
+	publicBase          string
+	centralMerchantID   string
+	key                 []byte
+	gatewayKey          []byte
+	client              *http.Client
+	now                 func() time.Time
+	mutation            sync.Mutex
+	aiMu                sync.Mutex
+	aiCancels           map[string]context.CancelFunc
 }
 
 func New(cfg Config) (*Service, error) {
@@ -102,7 +106,11 @@ func New(cfg Config) (*Service, error) {
 			return nil, err
 		}
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, stableApproval: cfg.StableApproval, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
+	quantEvidenceKeys, quantEvidenceMaxAge, err := prepareQuantEvidenceConfig(cfg.QuantEvidenceKeys, cfg.QuantEvidenceMaxAge)
+	if err != nil {
+		return nil, err
+	}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, stableApproval: cfg.StableApproval, quantEvidenceKeys: quantEvidenceKeys, quantEvidenceMaxAge: quantEvidenceMaxAge, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
 		for id, run := range data.AIRuns {
 			if run.Status == "running" {
@@ -363,11 +371,18 @@ func (s *Service) createInvoice(ctx context.Context, merchant Merchant, input In
 	createdAt := s.now()
 	invoice := Invoice{Version: InvoiceVersion, ID: "inv_" + hashString(central.ID, merchant.ID)[:20], CentralID: central.ID, IntentID: intent.ID, MerchantID: merchant.ID, MerchantName: merchant.DisplayName, PayoutAddress: merchant.PayoutAddress, CatalogItemID: itemID, Description: description, BaseAmount: baseAmount, TipAmount: input.TipAmount, Amount: amount, Asset: NativeAsset, Network: ChainID, Fee: NativeFeeYNXT, FeeBreakdown: FeeBreakdown{NetworkFee: NativeFeeYNXT, MerchantNet: amount, Source: "ynx-pay-fee-policy", AsOf: createdAt, Version: 1}, Status: "pending", ExpiresAt: expiry, CreatedAt: createdAt, SignatureKeyID: merchant.ID + "-invoice-v1", SigningPublicKey: merchant.InvoiceSigningPublicKey, SignatureAlgorithm: "ed25519"}
 	if binding != nil {
-		invoice.Version = 4
-		invoice.SplitPaymentID = binding.SplitPaymentID
-		invoice.SplitShareID = binding.SplitShareID
 		invoice.ExpectedPayer = binding.ExpectedPayer
 		invoice.ExpectedPayerHash = hashString("YNX_PAY_EXPECTED_PAYER_V1", binding.ExpectedPayer)
+		switch {
+		case binding.ServiceBillID != "":
+			invoice.Version = 5
+			invoice.ServiceBillID = binding.ServiceBillID
+			invoice.ServiceEvidenceDigest = binding.ServiceEvidenceDigest
+		case binding.SplitPaymentID != "":
+			invoice.Version = 4
+			invoice.SplitPaymentID = binding.SplitPaymentID
+			invoice.SplitShareID = binding.SplitShareID
+		}
 	}
 	privateText, err := s.open(merchant.InvoiceSigningPrivateCipher)
 	if err != nil {
@@ -774,6 +789,11 @@ func (s *Service) SnapshotForMerchant(merchantID string) (Snapshot, error) {
 				out.SplitPayments[k] = v
 			}
 		}
+		for k, v := range data.QuantBills {
+			if v.MerchantID == merchantID {
+				out.QuantBills[k] = v
+			}
+		}
 		for _, v := range data.Audit {
 			if v.MerchantID == merchantID {
 				out.Audit = append(out.Audit, v)
@@ -858,7 +878,10 @@ func invoiceSigningMaterial(v Invoice) []byte {
 	if v.Version == 3 {
 		return []byte(strings.Join(append([]string{"YNX_PAY_INVOICE_V3"}, v3...), "|"))
 	}
-	return []byte(strings.Join(append([]string{"YNX_PAY_INVOICE_V4"}, append(v3, v.SplitPaymentID, v.SplitShareID, v.ExpectedPayerHash)...), "|"))
+	if v.Version == 4 {
+		return []byte(strings.Join(append([]string{"YNX_PAY_INVOICE_V4"}, append(v3, v.SplitPaymentID, v.SplitShareID, v.ExpectedPayerHash)...), "|"))
+	}
+	return []byte(strings.Join(append([]string{"YNX_PAY_INVOICE_V5"}, append(v3, v.ServiceBillID, v.ServiceEvidenceDigest, v.ExpectedPayerHash)...), "|"))
 }
 func appendAudit(data *Snapshot, merchant, actor, action, object, outcome, detail string, at time.Time) {
 	data.Audit = append(data.Audit, AuditEntry{ID: "aud_" + hashString(merchant, action, object, at.Format(time.RFC3339Nano))[:20], MerchantID: merchant, Actor: actor, Action: action, ObjectID: object, Outcome: outcome, Detail: detail, At: at})
