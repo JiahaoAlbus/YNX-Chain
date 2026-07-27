@@ -4,7 +4,7 @@
   "name": "YNX Resource Market",
   "branch": "codex/final-resource-market",
   "sourceBaselineCommit": "c7e4445598a74e60aa0ed05b9580790527bf71be",
-  "candidateSourceCommit": "0bcaef6905136dcb1aceb2704a32120611be628f",
+  "candidateSourceCommit": "939a028325659382a3107136bc6972ddddb3d183",
   "workingTreeDirty": false,
   "version": "0.3.0-candidate",
   "surfaces": ["web", "api", "android-debug-source", "ios-source"],
@@ -38,6 +38,8 @@
     "stableErrorCodeContractTested": true,
     "integrationContractFrozenLocal": true,
     "crossProductNegativeVectorsTested": true,
+    "segmentedMeteringBounded": true,
+    "smokeHarnessLeavesNoListener": true,
     "publicSettlementReceiptVerified": false
   },
   "publicUrls": [],
@@ -60,5 +62,5 @@
     "A current Android debug APK is installed and cold-started on an Android 16 emulator; iOS installation, production signature, public deployment and hosted download are not proven.",
     "Local capacity evidence covers matching reads only and does not establish public or settlement capacity."
   ],
-  "generatedAt": "2026-07-27T10:55:00Z"
+  "generatedAt": "2026-07-27T11:45:00Z"
 }

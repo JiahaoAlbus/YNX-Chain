@@ -7,7 +7,8 @@
 - `TestSettlementReceiptRejectsTransactionReplayAndNormalizesReference` — rejects blank settlement authority and case-insensitive transaction-hash replay across receipts while preserving a fresh authoritative receipt path.
 - `TestMarketErrorCodeContract` — freezes stable market and settlement error semantics with correlated error IDs.
 - `TestResourceIntegrationContractAndVectorsStayAligned` — verifies contract owner/version/status truth, required negative vectors and runtime-to-vector error-code alignment.
-- `./apps/resource-market/check.sh`
+- `TestSegmentedMeteringRejectsOverlapAndCumulativeOverrun` — proves two signed usage segments reconcile to the quote while pre-service, overlapping and cumulative-overrun segments fail closed.
+- `./apps/resource-market/check.sh` — builds and runs the exact temporary binary, completes the smoke flow and leaves no listener on port 16441.
 - `./scripts/verify/resource-market-capacity.sh`
 - `evidence/android-debug-install-20260722.json` — fresh Android debug build, package/signing inspection, emulator install and measured cold start; explicitly not production signing or full Web feature parity.
 - `evidence/android-debug-cold-start-20260722.png` — SHA-256-bound screenshot of the installed Android 16 emulator surface.
