@@ -132,7 +132,9 @@ if [[ -f "$mac_archive" && -f "$windows_archive" ]]; then
   "$python_bin" apps/quant-lab/scripts/scan-desktop-archive.py "$mac_archive" "$windows_archive" >/dev/null
 fi
 
-if [[ "${YNX_REQUIRE_DOCKER_BUILD:-0}" == "1" ]]; then
+if [[ "${YNX_REQUIRE_DOCKER_RUNTIME:-0}" == "1" ]]; then
+  YNX_QUANT_SOURCE_COMMIT="$release_source" apps/quant-lab/scripts/verify-container.sh
+elif [[ "${YNX_REQUIRE_DOCKER_BUILD:-0}" == "1" ]]; then
   docker build -f apps/quant-lab/Dockerfile \
     --build-arg SOURCE_COMMIT="$release_source" \
     -t ynx-quant:testnet-local .
