@@ -18,6 +18,16 @@ Status: implemented and tested for the bounded local filesystem adapter. This is
 - The API returns `X-Content-SHA256` for verified content. A missing blob, non-regular file, symlink, invalid digest, oversize body, hash mismatch, wrong owner, revoked/expired grant, or revoked/expired link fails closed.
 - Reads do not retry corrupted data. Adapter/network retry is permitted only for a transport failure before a verified response and must remain bounded and idempotent.
 
+## Versioned storage lifecycle
+
+- Every immutable file/document version carries a control-plane storage class (`hot`, `cold`, or `archive`), monotonically increasing class version, read mode, and optional transition timestamp. The object summary mirrors only its current immutable version; historical versions keep independent lifecycle truth.
+- A lifecycle request requires the exact Wallet account, Product Session product, product-specific write scope, owned object, current immutable version, SHA-256, provider ref, source class and target class. Cloud and Docs sessions are not interchangeable even for the same Wallet account.
+- The provider adapter must bind the transition ID, opaque owner+product scope, original provider ref, digest, source class, target class and whether isolation is required. A mismatched or incomplete response is failure, not partial success. Provider evidence and `asOf` are mandatory for completion.
+- When another logical version shares the same physical ref and digest, changing one version's class requires copy-on-write. The provider must return a distinct verified ref before the requested version changes class; otherwise both logical versions remain unchanged.
+- Archive is fail closed. `Content` returns `restore-required` and does not silently read from the old ref until a provider-bound transition restores an immediate-read class.
+- A transition starts as persistent `pending`, becomes `completed` only after a bound provider result and atomic metadata save, or becomes persistent `failed` with a redacted operator-retry reason. `pending` and `failed` transitions block permanent object deletion and product-account erasure so ambiguous provider state is not discarded.
+- Schema-v7 migration does not manufacture provider transitions or durability evidence. Legacy immutable versions normalize to bounded direct-read `hot` compatibility; legacy metadata-only records remain without lifecycle state. Production lifecycle claims require provider-native tests for idempotency, restore latency, cache invalidation, replication/erasure coding, region placement, billing and exit migration.
+
 ## Quota, timeout, retry, and duplicate rules
 
 - Quota is evaluated over immutable-version bytes deduplicated within each owner and product boundary. Equal content in Cloud and Docs is charged independently because it is physically isolated. A write that would exceed the configured 64 MiB local quota is rejected before metadata commit.

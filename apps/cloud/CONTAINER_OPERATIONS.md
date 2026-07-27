@@ -30,4 +30,4 @@ Stop writers before the drill. Use a one-off container against the same named vo
 
 ## CI evidence
 
-The Cloud security workflow builds the exact Dockerfile, cold-starts the container with the same least-privilege controls, checks `/health/live`, and verifies the configured numeric user. A green workflow run is build and cold-start evidence for that source commit; it is not public deployment or production attestation.
+The Cloud security workflow builds the exact Dockerfile, cold-starts the container with the same least-privilege controls, checks `/health/live`, and verifies the configured numeric user. GitHub Actions run `30275578270` completed successfully for source commit `d11c382da10ab0629c7d322c83c9ddef24925328`. This is exact-source image build and cold-start evidence; it is not image vulnerability-scan evidence, immutable hosting, public deployment, production provenance, attestation, or signing.

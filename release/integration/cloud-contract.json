@@ -3,7 +3,7 @@
   "productNumber": 20,
   "productId": "cloud",
   "owner": "20-cloud",
-  "sourceCommit": "7759586914c3be5de1f99475f78e39cb1c2f8ad2",
+  "sourceCommit": "d11c382da10ab0629c7d322c83c9ddef24925328",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423
@@ -23,7 +23,21 @@
     "remotePutBinding": "X-YNX-Object-Scope",
     "directUploadBinding": "DirectUploadRequest.scope",
     "legacyReadCompatibility": true,
-    "providerEnforcementStatus": "pending-provider-proof"
+    "providerEnforcementStatus": "pending-provider-proof",
+    "lifecycle": {
+      "stateSchemaVersion": 7,
+      "classes": ["hot", "cold", "archive"],
+      "archiveReadMode": "restore-required",
+      "transitionEndpoint": "POST /api/v1/objects/{id}/storage-class",
+      "historyEndpoint": "GET /api/v1/storage-transitions",
+      "retryEndpoint": "POST /api/v1/storage-transitions/{transition}/retry",
+      "providerBinding": ["transitionId", "opaque scope", "provider ref", "sha256", "from", "to", "copyRequired"],
+      "sessionBinding": ["account", "product", "write scope"],
+      "unresolvedStates": ["pending", "failed"],
+      "deletionPolicy": "unresolved transitions block permanent deletion and product erasure",
+      "dedupPolicy": "shared physical references require copy-on-write before class divergence",
+      "remoteProofStatus": "pending-provider-proof"
+    }
   },
   "auth": {
     "owner": "02-wallet-auth",
@@ -42,6 +56,10 @@
     "cloud.object.created",
     "cloud.object.versioned",
     "cloud.object.restored",
+    "cloud.object.storage-transition.requested",
+    "cloud.object.storage-transition.retried",
+    "cloud.object.storage-transition.completed",
+    "cloud.object.storage-transition.failed",
     "cloud.share.created",
     "cloud.share.revoked",
     "cloud.object.trashed",
@@ -58,7 +76,8 @@
     "retentionOrExitLock": 423,
     "quotaOrValidation": 422,
     "rateLimit": 429,
-    "providerOrCentralUnavailable": 503
+    "providerOrCentralUnavailable": 503,
+    "archiveRestoreRequired": 503
   },
   "dependencies": [
     {"owner": "02-wallet-auth", "status": "pending-review"},
@@ -67,12 +86,12 @@
     {"owner": "16-resource-market", "status": "capacity-contract-pending"},
     {"owner": "26-data-fabric", "status": "canonical-event-acceptance-pending"},
     {"owner": "29-integration", "status": "shared-testnet-acceptance-pending"},
-    {"owner": "30-security-sre", "status": "container-and-release-review-pending"}
+    {"owner": "30-security-sre", "status": "container-ci-passed-image-scan-and-release-review-pending"}
   ],
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
+    "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -82,5 +101,6 @@
   },
   "migration": "apps/cloud/MIGRATION_COMPATIBILITY.md",
   "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "runtimeEvidence": "apps/cloud/evidence/LIFECYCLE_d11c382.json",
   "externalInputs": "apps/cloud/release/operator-inputs.request.json"
 }

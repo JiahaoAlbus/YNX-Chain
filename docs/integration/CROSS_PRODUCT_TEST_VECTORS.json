@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "cloud",
-  "sourceCommit": "6e101f99137c44e51f824770a477bd6149ba5e05",
+  "sourceCommit": "d11c382da10ab0629c7d322c83c9ddef24925328",
   "vectors": [
     {
       "id": "cloud-wallet-valid-session",
@@ -20,6 +20,30 @@
       "owners": ["02-wallet-auth", "20-cloud"],
       "input": "same completion digest submitted twice",
       "expected": "first accepted when valid; replay rejected"
+    },
+    {
+      "id": "cloud-lifecycle-session-product-reject",
+      "owners": ["02-wallet-auth", "20-cloud"],
+      "input": "Cloud files.write session attempts a storage transition or retry for a Docs object/transition owned by the same account",
+      "expected": "403/ErrDenied; no transition attempt and no object/version mutation"
+    },
+    {
+      "id": "cloud-lifecycle-provider-binding-retry",
+      "owners": ["20-cloud", "30-security-sre"],
+      "input": "provider returns an error or a transition result with a mismatched transition ID, ref, digest, source class or target class",
+      "expected": "persist failed truth with redacted error; preserve the prior version class; authenticated same-product retry remains available"
+    },
+    {
+      "id": "cloud-lifecycle-unresolved-delete-barrier",
+      "owners": ["20-cloud", "30-security-sre"],
+      "input": "permanent object deletion or product erasure while a lifecycle transition is pending or failed",
+      "expected": "atomic fail-closed rejection; transition evidence and object/version references remain until a bound retry completes"
+    },
+    {
+      "id": "cloud-lifecycle-dedup-copy-on-write",
+      "owners": ["20-cloud", "30-security-sre"],
+      "input": "one logical version changes tier while another same-owner/product version shares its physical ref",
+      "expected": "provider returns an isolated result ref; only the requested version changes class; the other version remains readable in its prior class"
     },
     {
       "id": "cloud-ai-selected-version-only",
@@ -54,7 +78,7 @@
     {
       "id": "cloud-provider-failure-recovery",
       "owners": ["20-cloud", "30-security-sre"],
-      "input": "provider becomes unavailable during upload or delete",
+      "input": "provider becomes unavailable during upload, lifecycle transition or delete",
       "expected": "no false success; durable pending/failure state, retry path and audit correlation"
     },
     {
