@@ -46,7 +46,15 @@ stable across restart. An interrupted reservation is retained as
 reconciliation. The bounded Testnet broker interface also has injected
 risk-observation tests.
 
-`ExchangeExecutionAdapter` and `DEXExecutionAdapter` are capability-narrowing
-interfaces only. No shipped implementation can submit to either venue. Canonical
-venue schema translation, durable sequence/retry matrices, real receipts and
-emergency exit are not implemented or deployed.
+Concrete `VenueExecutionAdapter` constructors now implement the Exchange and DEX
+interfaces over an owner-supplied narrow transport. They accept only fresh,
+terminal, fully bound receipts whose adapter, request ID, sequence, amount,
+limit price, source, version and audit identity match the reserved intent.
+Accepted/open/partial, stale, future, tampered or malformed responses remain
+`reserved_outcome_unknown` and cannot be retried into a duplicate venue action.
+Authoritative reconciliation deltas must be exact and activate the persistent
+Quant kill switch.
+
+No Exchange- or DEX-owner transport is shipped in this worktree, and no real
+Wallet mandate, order/fill, vault transaction, emergency-exit receipt or central
+integration is claimed. Those remain cross-product Testnet gates.

@@ -1,13 +1,13 @@
 # Feature completion evidence
 
-Evidence date: 2026-07-22. Evidence is local unless explicitly stated.
+Evidence date: 2026-07-27. Evidence is local unless explicitly stated.
 
 | Requirement | State | Direct evidence |
 | --- | --- | --- |
 | deterministic event/OOS backtest | tested local | `internal/quantlab/service_test.go` determinism, split, walk-forward, sensitivity, regime tests |
 | actual YNX market tape boundary | tested local | market adapter tests reject malformed/non-authoritative or insufficient history |
 | paper partial fills/reconciliation | tested local | paper service tests and browser evidence |
-| venue-neutral execution adapters | Paper and Shadow tested local | versioned intent schema; Paper partial-fill translation; Shadow zero-fill/no-submit; durable reservation/completion ledger; restart replay; pending-unknown fail closure; sequence, idempotency, stale-feed, limit and reconciliation tests; Exchange/DEX implementations absent |
+| venue-neutral execution adapters | Paper, Shadow, Exchange boundary and DEX boundary tested local | versioned intent schema; Paper partial-fill translation; Shadow zero-fill/no-submit; concrete owner-transport Exchange/DEX adapters; terminal receipt binding; limit, freshness, sequence, idempotency and replay checks; durable reservation/completion ledger; pending-unknown fail closure; authoritative reconciliation delta and persistent kill-switch tests; no owner transport or real venue receipt |
 | risk kill switch | tested local | mismatch, persistence, browser, and multi-daemon smoke tests |
 | lifecycle | tested local | sequential transition, risk evidence, and Wallet-mandate tests |
 | bounded Testnet adapter contract | implemented/tested with injected test doubles | expiry, notional, position, daily loss, slippage, gas, frequency, projected leverage, drawdown, liquidity, depeg, concentration, cancel/API reliability, supplied VaR/ES, oracle freshness, venue health, overflow, replay, idempotency, and broker-proof tests; no authoritative risk feed or deployed broker claim |
@@ -28,7 +28,7 @@ Evidence date: 2026-07-22. Evidence is local unless explicitly stated.
 | macOS desktop | installed/tested local candidate | arm64 app bundle built, ad-hoc signed, installed in user Applications, version/API/frontend cold-launch smoke passed |
 | Windows desktop | built local candidate | x64 binaries and archive cross-compiled; no Windows host launch/install evidence |
 | canonical Gateway/Wallet integration | not achieved | handoff records only; local writes remain loopback preview |
-| real Exchange/DEX Testnet | not achieved | no transaction hash, fill, vault receipt, revoke propagation, or emergency-exit receipt |
+| real Exchange/DEX Testnet | not achieved | Quant-side fail-closed venue adapters are tested, but no owner transport, canonical Wallet mandate, transaction hash, order/fill, vault receipt, revoke propagation, or emergency-exit receipt exists |
 | public web/download | not achieved | no verified public endpoint or immutable hosted artifact |
 
 Passing local tests cannot promote any final-column item to deployed, installed,
