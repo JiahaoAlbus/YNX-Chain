@@ -1,32 +1,44 @@
-# Pay, Merchant Console and Card evidence index
+# Recovered Pay/Card evidence index
 
-## Passing evidence
+This file was recovered from historical commit `c20beda`. Pay and Merchant
+claims below are cross-product context only and are not owned, modified or
+accepted by the 06 Card worktree.
 
-- Go: full repository tests plus Pay/Card race suites.
-- Pay: six client tests, TypeScript, Android/iOS Hermes exports, Android lint
-  vital/release assembly. APK SHA and size are in `apps/pay/product-release.json`.
-- Merchant: seven tests, zero npm vulnerabilities and canonical-Wallet
-  production bundle.
-- Card: eight client tests, Android/iOS Hermes exports, Android lint vital/
-  release assembly, sandbox lifecycle/provider replay/store tamper/race tests.
-- Security gates: env, placeholder and secret scans and central Pay API check.
-- Canonical package and controller input:
-  `docs/integration/pay-card-wallet-registry.json`.
+## Current Card evidence
 
-## Historical evidence only
+Source commit: `bdd5ca02ad42b712db66a5173ecfad09340aa42c`
 
-- `internal/payproduct/proof/live-testnet-payment.json` proves an older build's
-  real committed Testnet payment. It is not the fresh proof required for this
-  build.
-- Merchant `proof/*.png` and earlier Card runtime captures predate the current
-  canonical-Wallet/UI changes.
+- `go test ./internal/cardproduct/...` passed, including lifecycle, provider
+  replay, Gateway replay/cross-product rejection, persistence, tamper and
+  dependency-readiness tests.
+- `npm test` in `apps/card` passed 8/8.
+- `npm run typecheck` passed.
+- `npm run bundle-check` exported Android and iOS Hermes bundles.
+- `npm run security-check` found no signing material, private-key/token pattern,
+  hard-coded Gradle password or PAN-like literal in the scoped Card sources and
+  contracts.
+- Android native release assembly is unverified: three MCP executions returned
+  upstream `502` without a Gradle result.
+- No current APK/IPA hash, native install, cold-start, central integration,
+  staging, public deployment, hosted download, production signature or store
+  release is claimed.
 
-## Failure/blocker evidence
+## Historical cross-product evidence only
 
-- `apps/pay/evidence/android/anr-emulator-failure.png` records the Android
-  emulator ANR observed before the emulator system died. It is not install
-  success evidence.
-- Public read-only health checks passed for central Pay, RPC and Faucet, but the
-  product Gateway domain returned deployment-not-found.
-- SSH authentication to the documented primary node was rejected for all
-  available local keys. No remote mutation was performed.
+- Historical Pay, Merchant and Card candidate reports described repository tests,
+  Android release assembly and older APKs. Those reports predate the current
+  Card-only recovery and signing-hardening checkpoint.
+- `internal/payproduct/proof/live-testnet-payment.json`, where present in the Pay
+  owner worktree, applies to an older Pay build and is not Card evidence.
+- Earlier screenshots and Card runtime captures predate the current canonical
+  Wallet/UI and are not current install proof.
+
+## Current failure and blocker evidence
+
+- The legacy repository-wide secret scan printed a pass while `rg` was missing;
+  that output is rejected as evidence. Card uses its own zero-dependency gate.
+- Official issuer sandbox selection, provider agreement and sandbox credential
+  remain unresolved, while autonomous adapter/conformance work remains open.
+- Central Wallet/Gateway acceptance, Data Fabric events, Trust dispute handoff,
+  shared Testnet integration, native install evidence and secure signing remain
+  incomplete.

@@ -1,0 +1,12 @@
+{"at":"2026-07-27","stage":"RECOVER","action":"matched_workspace","result":"06-card selected from exact worktree and branch","workspace":"/Users/huangjiahao/Desktop/YNX Final Worktrees/06-card","branch":"codex/final-card"}
+{"at":"2026-07-27","stage":"RECOVER","action":"located_historical_source","result":"found c20beda on codex/final-pay containing Card, Pay and Merchant work","sourceCommit":"c20beda"}
+{"at":"2026-07-27","stage":"RECOVER","action":"restored_card_owned_paths","result":"restored apps/card, internal/cardproduct and Card-specific handoff/evidence only; excluded Pay and Merchant source ownership"}
+{"at":"2026-07-27","stage":"PROTECT","action":"hardened_signing_boundary","result":"removed committed debug.keystore; ignored signing files; release signing requires complete operator environment variables and is otherwise unsigned"}
+{"at":"2026-07-27","stage":"PROTECT","action":"added_truthful_service_status","result":"added /health, fail-closed /ready and /version with issuer dependency truth"}
+{"at":"2026-07-27","stage":"PROTECT","action":"replaced_false_secret_scan_evidence","result":"legacy scan printed pass without rg; added zero-dependency Card-local signing/secret/PAN scan and rejected legacy result as evidence"}
+{"at":"2026-07-27","stage":"PROTECT","action":"verified_runtime","result":"passed go test ./internal/cardproduct/..., 8/8 mobile tests, TypeScript and Card security scan; Android/iOS Hermes export passed"}
+{"at":"2026-07-27","stage":"PROTECT","action":"native_android_build_attempt","result":"unverified because three MCP executions returned upstream 502 without a Gradle result","attempts":3}
+{"at":"2026-07-27","stage":"PROTECT","action":"committed_recovery_checkpoint","result":"commit and push succeeded; local and remote SHA equal","commit":"bdd5ca02ad42b712db66a5173ecfad09340aa42c","remote":"origin/codex/final-card"}
+{"at":"2026-07-27","stage":"FREEZE","action":"created_goal_coverage","result":"created machine-readable full-goal matrix with evidence, owners, blockers and precise next actions","path":".ai-bridge/full-goal-coverage.json"}
+{"at":"2026-07-27","stage":"FREEZE","action":"created_integration_contract","result":"froze Card identity, Wallet binding, routes, states, events, error classes, sensitive-data boundary and release truth","path":"release/integration/ynx-card-contract.json"}
+{"at":"2026-07-27","stage":"FREEZE","action":"created_coordination_bundle","result":"created integration handoff, cross-product vectors, dependency acceptance, decisions, open questions and active next plan"}

@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "ynx.card.cross-product-vectors.v1",
+  "sourceCommit": "bdd5ca02ad42b712db66a5173ecfad09340aa42c",
+  "contract": "release/integration/ynx-card-contract.json",
+  "vectors": [
+    {
+      "id": "CARD-WALLET-ACCEPT-001",
+      "ownerPair": ["06-card", "02-wallet-auth"],
+      "purpose": "Accept an exact product-scoped Wallet approval and Gateway assertion.",
+      "input": {
+        "chainId": "ynx_6423-1",
+        "productId": "ynx-card",
+        "clientId": "ynx-card-v1",
+        "bundleId": "com.ynxweb4.card",
+        "callback": "ynxcard://wallet-auth/callback",
+        "orderedScopes": ["account:read", "card:application:write", "card:controls:write", "card:dispute:write"],
+        "method": "POST",
+        "path": "/v1/card/applications",
+        "nonce": "unique-unconsumed-reference",
+        "expires": "future-within-policy"
+      },
+      "expected": {"accepted": true, "httpStatus": 201},
+      "localEvidence": ["TestGatewayAssertionExactBindingReplayTamperAndStrictJSON", "canonical Wallet callback verifies every Card binding"]
+    },
+    {
+      "id": "CARD-WALLET-REPLAY-001",
+      "ownerPair": ["06-card", "02-wallet-auth"],
+      "purpose": "Reject a previously consumed Gateway nonce after restart.",
+      "mutation": "reuse exact accepted assertion and nonce",
+      "expected": {"accepted": false, "httpStatus": 401, "failureMode": "fail_closed"},
+      "localEvidence": ["GatewaySeen persistence", "replay accepted test expects unauthorized"]
+    },
+    {
+      "id": "CARD-WALLET-CROSS-PRODUCT-001",
+      "ownerPair": ["06-card", "02-wallet-auth"],
+      "purpose": "Reject Pay or another product assertion at the Card service.",
+      "mutation": {"clientId": "ynx-pay-v1"},
+      "expected": {"accepted": false, "httpStatus": 401},
+      "localEvidence": ["TestGatewayAssertionExactBindingReplayTamperAndStrictJSON"]
+    },
+    {
+      "id": "CARD-WALLET-SCOPE-ORDER-001",
+      "ownerPair": ["06-card", "02-wallet-auth"],
+      "purpose": "Reject reordered or widened Card scopes.",
+      "mutation": "reorder orderedScopes or append an unapproved scope",
+      "expected": {"accepted": false, "httpStatus": 401},
+      "localEvidence": ["exact ordered scope comparison in auth.go"]
+    },
+    {
+      "id": "CARD-DATA-PAN-001",
+      "ownerPair": ["06-card", "30-security-sre"],
+      "purpose": "Reject a Card application body containing any PAN field, including nested fields.",
+      "mutation": "add a pan field whose value is generated only at test runtime",
+      "expected": {"accepted": false, "httpStatus": 400, "persisted": false, "logged": false},
+      "localEvidence": ["strict JSON rejection", "Card API rejects PAN, CVV, PIN and identity material at any depth"]
+    },
+    {
+      "id": "CARD-PROVIDER-REPLAY-001",
+      "ownerPair": ["06-card", "provider-adapter"],
+      "purpose": "Reject a duplicate provider event ID and signature.",
+      "mutation": "deliver the same signed provider event twice",
+      "expected": {"firstAccepted": true, "secondAccepted": false, "secondHttpStatus": 409},
+      "localEvidence": ["TestSandboxLifecycleControlsEventsDisputeAndAI"]
+    },
+    {
+      "id": "CARD-PROVIDER-TAMPER-001",
+      "ownerPair": ["06-card", "provider-adapter"],
+      "purpose": "Reject a provider event whose body changes after signature generation.",
+      "mutation": "change amount, currency, providerCardId or occurredAt without resigning",
+      "expected": {"accepted": false, "httpStatus": 401, "persisted": false}
+    },
+    {
+      "id": "CARD-READY-UNAVAILABLE-001",
+      "ownerPair": ["06-card", "13-monitor"],
+      "purpose": "Expose process health without claiming issuer readiness.",
+      "input": {"providerMode": "unavailable"},
+      "expected": {
+        "health": {"httpStatus": 200, "ok": true, "status": "degraded", "issuerAvailable": false},
+        "ready": {"httpStatus": 503, "ready": false, "failureSemantics": "fail_closed"}
+      },
+      "localEvidence": ["TestHealthReadinessAndVersionExposeTruthfulDependencyState"]
+    },
+    {
+      "id": "CARD-AI-NO-MUTATION-001",
+      "ownerPair": ["06-card", "14-ai"],
+      "purpose": "Ensure an approved AI draft cannot change Card state, limits or financial events.",
+      "input": {"workflow": "card_decline_explanation", "permission": "allow_once", "reviewDecision": "apply"},
+      "expected": {"draftStatus": "reviewed", "cardStateChanged": false, "controlsChanged": false},
+      "localEvidence": ["TestSandboxLifecycleControlsEventsDisputeAndAI"]
+    },
+    {
+      "id": "CARD-DATA-FABRIC-ENVELOPE-001",
+      "ownerPair": ["06-card", "26-data-fabric"],
+      "purpose": "Accept a canonical Card event envelope without sensitive card data.",
+      "input": {
+        "requiredFields": ["eventId", "eventType", "productId", "accountReference", "objectId", "occurredAt", "sourceCommit", "schemaVersion", "auditId"],
+        "forbiddenFields": ["pan", "cvv", "pin", "trackData", "rawKyc", "providerSecret"]
+      },
+      "expected": {"acceptedOnlyAfterOwnerFreeze": true, "currentStatus": "pending_contract"}
+    },
+    {
+      "id": "CARD-TRUST-DISPUTE-001",
+      "ownerPair": ["06-card", "15-trust-center"],
+      "purpose": "Handoff a dispute using opaque Card and event IDs only.",
+      "input": {"cardId": "opaque-card-id", "eventId": "opaque-event-id", "reason": "user-provided bounded text", "auditId": "opaque-audit-id"},
+      "expected": {"containsSensitiveCardData": false, "currentStatus": "pending_contract"}
+    }
+  ]
+}
