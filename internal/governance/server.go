@@ -28,15 +28,20 @@ type Authenticator interface {
 }
 
 type Server struct {
-	service   *Service
-	auth      Authenticator
-	statePath string
-	now       func() time.Time
-	startedAt time.Time
-	mux       *http.ServeMux
+	service        *Service
+	auth           Authenticator
+	executionOwner ChainExecutionOwner
+	statePath      string
+	now            func() time.Time
+	startedAt      time.Time
+	mux            *http.ServeMux
 }
 
 func NewServer(service *Service, auth Authenticator, statePath string, now func() time.Time) (*Server, error) {
+	return NewServerWithExecutionOwner(service, auth, nil, statePath, now)
+}
+
+func NewServerWithExecutionOwner(service *Service, auth Authenticator, owner ChainExecutionOwner, statePath string, now func() time.Time) (*Server, error) {
 	if service == nil || auth == nil || strings.TrimSpace(statePath) == "" {
 		return nil, ErrInvalid
 	}
@@ -44,7 +49,7 @@ func NewServer(service *Service, auth Authenticator, statePath string, now func(
 		now = time.Now
 	}
 	startedAt := now().UTC()
-	s := &Server{service: service, auth: auth, statePath: statePath, now: now, startedAt: startedAt, mux: http.NewServeMux()}
+	s := &Server{service: service, auth: auth, executionOwner: owner, statePath: statePath, now: now, startedAt: startedAt, mux: http.NewServeMux()}
 	s.routes()
 	return s, nil
 }
@@ -93,6 +98,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /governance/proposals/{id}/finalize", s.protected("technical_council", s.finalize))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/canary/start", s.protected("executor", s.startCanary))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/canary/complete", s.protected("verifier", s.completeCanary))
+	s.mux.HandleFunc("POST /governance/proposals/{id}/execute/prepare", s.protected("executor", s.prepareExecution))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/execute", s.protected("executor", s.execute))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/verify", s.protected("verifier", s.verify))
 	s.mux.HandleFunc("GET /governance/emergencies", s.listEmergencies)
@@ -137,13 +143,18 @@ func (s *Server) metrics(w http.ResponseWriter, _ *http.Request) {
 	h := s.service.Health(s.now())
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	labels := `service="ynx-governanced",external_execution="false"`
+	externalExecution := s.executionOwner != nil
+	labels := fmt.Sprintf(`service="ynx-governanced",external_execution="%t"`, externalExecution)
+	enabled := 0
+	if externalExecution {
+		enabled = 1
+	}
 	_, _ = fmt.Fprintf(w, "ynx_governance_proposals_total{%s} %d\n", labels, h.ProposalCount)
 	_, _ = fmt.Fprintf(w, "ynx_governance_active_proposals{%s} %d\n", labels, h.ActiveProposalCount)
 	_, _ = fmt.Fprintf(w, "ynx_governance_executed_proposals_total{%s} %d\n", labels, h.ExecutedProposalCount)
 	_, _ = fmt.Fprintf(w, "ynx_governance_roles_total{%s} %d\n", labels, h.RoleCount)
 	_, _ = fmt.Fprintf(w, "ynx_governance_active_emergencies{%s} %d\n", labels, h.ActiveEmergencyCount)
-	_, _ = fmt.Fprintf(w, "ynx_governance_external_execution_enabled{%s} 0\n", labels)
+	_, _ = fmt.Fprintf(w, "ynx_governance_external_execution_enabled{%s} %d\n", labels, enabled)
 	_, _ = fmt.Fprintf(w, "ynx_governance_appeals_total{%s} %d\n", labels, h.AppealCount)
 	_, _ = fmt.Fprintf(w, "ynx_governance_pending_appeals{%s} %d\n", labels, h.PendingAppealCount)
 	_, _ = fmt.Fprintf(w, "ynx_governance_discussion_entries_total{%s} %d\n", labels, h.DiscussionCount)
@@ -471,7 +482,7 @@ func (s *Server) completeCanary(w http.ResponseWriter, r *http.Request, p Princi
 	out, err := s.service.CompleteCanary(input, s.now())
 	s.mutation(w, http.StatusOK, out, err)
 }
-func (s *Server) execute(w http.ResponseWriter, r *http.Request, p Principal) {
+func (s *Server) prepareExecution(w http.ResponseWriter, r *http.Request, p Principal) {
 	if !s.authorizedProposal(w, r.PathValue("id"), p) {
 		return
 	}
@@ -481,7 +492,39 @@ func (s *Server) execute(w http.ResponseWriter, r *http.Request, p Principal) {
 	if !decode(w, r, &in) {
 		return
 	}
-	out, err := s.service.BeginExecution(r.PathValue("id"), in.ManifestHash, s.now())
+	intent, proposal, err := s.service.PrepareChainExecution(r.PathValue("id"), in.ManifestHash, s.now())
+	s.mutation(w, http.StatusOK, map[string]any{"proposal": proposal, "intent": intent}, err)
+}
+func (s *Server) execute(w http.ResponseWriter, r *http.Request, p Principal) {
+	if !s.authorizedProposal(w, r.PathValue("id"), p) {
+		return
+	}
+	if s.executionOwner == nil {
+		writeError(w, http.StatusServiceUnavailable, "canonical Chain Core execution owner is not configured")
+		return
+	}
+	var in struct {
+		ManifestHash string          `json:"manifestHash"`
+		SignedAction json.RawMessage `json:"signedAction"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	intent, _, err := s.service.PrepareChainExecution(r.PathValue("id"), in.ManifestHash, s.now())
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	if err = s.service.Save(s.statePath, s.now()); err != nil {
+		writeError(w, http.StatusServiceUnavailable, "governance execution reservation persistence failed")
+		return
+	}
+	record, err := s.executionOwner.Submit(r.Context(), intent, in.SignedAction)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "canonical Chain Core execution submission failed")
+		return
+	}
+	out, err := s.service.ConfirmChainExecution(r.PathValue("id"), intent, record, s.now())
 	s.mutation(w, http.StatusOK, out, err)
 }
 func (s *Server) verify(w http.ResponseWriter, r *http.Request, p Principal) {

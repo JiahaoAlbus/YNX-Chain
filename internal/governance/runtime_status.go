@@ -96,6 +96,10 @@ func (s *Server) runtimeStatus() RuntimeStatus {
 			"30-security-sre": {Status: "not_integrated", Required: true, Detail: "external signer, release, backup, and incident control are pending"},
 		},
 	}
+	if s.executionOwner != nil {
+		status.ChainStatus = "canonical_execution_adapter_configured"
+		status.DependencyStatus["01-chain-core"] = DependencyStatus{Status: "canonical_execution_adapter_configured", Required: true, Detail: "signed begin actions are verified, broadcast, reconciled, and confirmed against canonical Chain Core records"}
+	}
 	if info, err := os.Stat(s.statePath); err == nil && info.Mode().IsRegular() {
 		status.DatabaseStatus = "available"
 	} else if os.IsNotExist(err) {
@@ -112,7 +116,10 @@ func (s *Server) runtimeStatus() RuntimeStatus {
 	if build.modified {
 		status.DegradedReasons = append(status.DegradedReasons, "binary_built_from_modified_tree")
 	}
-	status.DegradedReasons = append(status.DegradedReasons, "chain_execution_not_integrated", "central_evidence_dependencies_pending")
+	if s.executionOwner == nil {
+		status.DegradedReasons = append(status.DegradedReasons, "chain_execution_not_integrated")
+	}
+	status.DegradedReasons = append(status.DegradedReasons, "central_evidence_dependencies_pending")
 
 	for _, record := range s.service.ListTimelocks(now) {
 		switch record.Status {

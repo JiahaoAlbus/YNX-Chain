@@ -34,10 +34,7 @@ func executedProposal(t *testing.T, s *Service, now time.Time) Proposal {
 		t.Fatal(err)
 	}
 	passTestCanary(t, s, p, strings.Repeat("a", 64))
-	p, err = s.BeginExecution(p.ID, strings.Repeat("a", 64), p.ExecuteAfter)
-	if err != nil {
-		t.Fatal(err)
-	}
+	p = submitTestChainExecution(t, s, p, strings.Repeat("a", 64), p.ExecuteAfter)
 	receipt := NewExecutionReceipt("0x"+strings.Repeat("b", 64), 20, "0x"+strings.Repeat("c", 64), "0x"+strings.Repeat("d", 64), strings.Repeat("a", 64), "verified", p.ExecuteAfter.Add(time.Minute))
 	p, err = s.VerifyExecution(p.ID, receipt, nil, p.ExecuteAfter.Add(time.Minute))
 	if err != nil {

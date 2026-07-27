@@ -87,9 +87,9 @@ func TestProposalVoteTimelockExecution(t *testing.T) {
 		t.Fatalf("early execution: %v", err)
 	}
 	passTestCanary(t, s, p, manifest)
-	p, err = s.BeginExecution(p.ID, manifest, p.ExecuteAfter)
-	if err != nil || p.Status != StatusExecuting {
-		t.Fatalf("execute: %+v %v", p, err)
+	p = submitTestChainExecution(t, s, p, manifest, p.ExecuteAfter)
+	if p.Status != StatusExecuting {
+		t.Fatalf("execute: %+v", p)
 	}
 	receipt := NewExecutionReceipt("0x"+strings.Repeat("d", 64), 11, "0x"+strings.Repeat("e", 64), "0x"+strings.Repeat("f", 64), manifest, "verified", p.ExecuteAfter.Add(time.Minute))
 	tampered := receipt
@@ -146,7 +146,7 @@ func TestBoundsReplayConflictRecusalAndRollback(t *testing.T) {
 	p, _ = castTestVote(t, s, p.ID, "validator-1", "yes", now.Add(5*time.Minute))
 	p, _ = s.Finalize(p.ID, p.VotingEndsAt)
 	passTestCanary(t, s, p, strings.Repeat("b", 64))
-	p, _ = s.BeginExecution(p.ID, strings.Repeat("b", 64), p.ExecuteAfter)
+	p = submitTestChainExecution(t, s, p, strings.Repeat("b", 64), p.ExecuteAfter)
 	failed := NewExecutionReceipt("0x"+strings.Repeat("d", 64), 12, "0x"+strings.Repeat("e", 64), "0x"+strings.Repeat("f", 64), strings.Repeat("b", 64), "failed", p.ExecuteAfter.Add(time.Minute))
 	rollback := NewExecutionReceipt("0x"+strings.Repeat("a", 64), 13, "0x"+strings.Repeat("c", 64), "0x"+strings.Repeat("d", 64), strings.Repeat("c", 64), "verified_rollback", p.ExecuteAfter.Add(2*time.Minute))
 	p, err = s.VerifyExecution(p.ID, failed, &rollback, p.ExecuteAfter.Add(2*time.Minute))

@@ -33,9 +33,7 @@ func TestCanarySignatureHealthWindowAndExactManifestGate(t *testing.T) {
 	if _, err = service.BeginExecution(proposal.ID, strings.Repeat("b", 64), proposal.ExecuteAfter); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("manifest not evaluated by canary was accepted: %v", err)
 	}
-	if _, err = service.BeginExecution(proposal.ID, manifest, proposal.ExecuteAfter); err != nil {
-		t.Fatalf("passed exact-manifest canary did not authorize execution: %v", err)
-	}
+	submitTestChainExecution(t, service, proposal, manifest, proposal.ExecuteAfter)
 }
 
 func TestCanaryThresholdBreachAbortsEarlyAndPersists(t *testing.T) {

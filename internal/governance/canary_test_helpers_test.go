@@ -1,9 +1,13 @@
 package governance
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 func makeTestCanaryEnvelope(t *testing.T, service *Service, proposal Proposal, manifest string) SignedCanaryEnvelope {
@@ -46,6 +50,32 @@ func passTestCanary(t *testing.T, service *Service, proposal Proposal, manifest 
 		t.Fatal(err)
 	}
 	return result
+}
+
+func submitTestChainExecution(t *testing.T, service *Service, proposal Proposal, manifest string, now time.Time) Proposal {
+	t.Helper()
+	intent, _, err := service.PrepareChainExecution(proposal.ID, manifest, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := secp256k1.PrivKeyFromBytes(bytes.Repeat([]byte{0x61}, 32))
+	signer, err := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := consensus.BFTGovernanceExecution{
+		ProposalID: intent.ProposalID, ActionHash: intent.ActionHash, ManifestHash: intent.ManifestHash,
+		GovernanceAuditHash: intent.GovernanceAuditHash, TimelockAuditHash: intent.TimelockAuditHash,
+		CanaryAuditHash: intent.CanaryAuditHash, EvidenceHash: intent.EvidenceHash, Scope: intent.Scope,
+		Signer: signer, Status: "submitted", EarliestExecution: intent.EarliestExecution,
+		LatestExecution: intent.LatestExecution, SubmittedAt: now.UTC(), SubmittedHeight: 10,
+		BeginTxHash: "0x" + strings.Repeat("a", 64), AuditHash: strings.Repeat("b", 64),
+	}
+	out, err := service.ConfirmChainExecution(proposal.ID, intent, record, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 func makeTestCanaryResultEnvelope(t *testing.T, service *Service, proposal Proposal, record CanaryRecord, total, failed uint64, observedTo time.Time) SignedCanaryResultEnvelope {

@@ -97,11 +97,9 @@ func TestUpgradeExecutionPersistsExactManifestAndReceipt(t *testing.T) {
 		t.Fatalf("wrong upgrade manifest accepted: %v", err)
 	}
 	passTestCanary(t, service, proposal, strings.Repeat("a", 64))
-	proposal, err := service.BeginExecution(proposal.ID, strings.Repeat("a", 64), proposal.ExecuteAfter)
-	if err != nil {
-		t.Fatal(err)
-	}
+	proposal = submitTestChainExecution(t, service, proposal, strings.Repeat("a", 64), proposal.ExecuteAfter)
 	receipt := NewExecutionReceipt("0x"+strings.Repeat("1", 64), 31, "0x"+strings.Repeat("2", 64), "0x"+strings.Repeat("3", 64), strings.Repeat("a", 64), "verified", proposal.ExecuteAfter.Add(time.Minute))
+	var err error
 	proposal, err = service.VerifyExecution(proposal.ID, receipt, nil, proposal.ExecuteAfter.Add(time.Minute))
 	if err != nil {
 		t.Fatal(err)
@@ -113,7 +111,7 @@ func TestUpgradeExecutionPersistsExactManifestAndReceipt(t *testing.T) {
 	}
 
 	path := t.TempDir() + "/state.json"
-	if err = service.Save(path, proposal.ExecuteAfter.Add(2*time.Minute)); err != nil {
+	if err := service.Save(path, proposal.ExecuteAfter.Add(2*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	restored, err := Load(path)
@@ -166,11 +164,9 @@ func TestFailedUpgradePersistsVerifiedRollbackCorrelation(t *testing.T) {
 	service := testService(t)
 	proposal := approvedUpgrade(t, service, now)
 	passTestCanary(t, service, proposal, strings.Repeat("a", 64))
-	proposal, err := service.BeginExecution(proposal.ID, strings.Repeat("a", 64), proposal.ExecuteAfter)
-	if err != nil {
-		t.Fatal(err)
-	}
+	proposal = submitTestChainExecution(t, service, proposal, strings.Repeat("a", 64), proposal.ExecuteAfter)
 	failed := NewExecutionReceipt("0x"+strings.Repeat("4", 64), 41, "0x"+strings.Repeat("5", 64), "0x"+strings.Repeat("6", 64), strings.Repeat("a", 64), "failed", proposal.ExecuteAfter.Add(time.Minute))
+	var err error
 	proposal, err = service.VerifyExecution(proposal.ID, failed, nil, proposal.ExecuteAfter.Add(time.Minute))
 	if err != nil || proposal.Status != StatusExecutionFailed {
 		t.Fatalf("failed execution: %+v %v", proposal, err)

@@ -32,9 +32,7 @@ func TestPublicViewsAreDerivedFromCanonicalProposalState(t *testing.T) {
 	}
 	manifest := strings.Repeat("d", 64)
 	passTestCanary(t, s, p, manifest)
-	if p, err = s.BeginExecution(p.ID, manifest, p.ExecuteAfter); err != nil {
-		t.Fatal(err)
-	}
+	p = submitTestChainExecution(t, s, p, manifest, p.ExecuteAfter)
 	if len(s.PublicExecutions()) != 1 || s.PublicExecutions()[0].ExecutionReceipt != nil {
 		t.Fatalf("execution submission view invalid: %+v", s.PublicExecutions())
 	}

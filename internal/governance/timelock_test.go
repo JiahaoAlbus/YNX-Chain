@@ -44,11 +44,11 @@ func TestFirstClassTimelockBindsActionHashGraceAndSingleSubmission(t *testing.T)
 		t.Fatalf("early execution accepted: %v", err)
 	}
 	passTestCanary(t, service, proposal, manifest)
-	submitted, err := service.BeginExecution(proposal.ID, manifest, proposal.ExecuteAfter)
-	if err != nil || submitted.Status != StatusExecutionSubmitted {
-		t.Fatalf("execution submission: %+v %v", submitted, err)
+	submitted := submitTestChainExecution(t, service, proposal, manifest, proposal.ExecuteAfter)
+	if submitted.Status != StatusExecutionSubmitted {
+		t.Fatalf("execution submission: %+v", submitted)
 	}
-	if _, err = service.BeginExecution(proposal.ID, manifest, proposal.ExecuteAfter.Add(time.Second)); !errors.Is(err, ErrReplay) {
+	if _, err := service.BeginExecution(proposal.ID, manifest, proposal.ExecuteAfter.Add(time.Second)); !errors.Is(err, ErrReplay) {
 		t.Fatalf("duplicate execution was not classified as replay: %v", err)
 	}
 	record = service.ListTimelocks(proposal.ExecuteAfter)[0]
@@ -56,7 +56,7 @@ func TestFirstClassTimelockBindsActionHashGraceAndSingleSubmission(t *testing.T)
 		t.Fatalf("submission not bound to timelock: %+v", record)
 	}
 	path := filepath.Join(t.TempDir(), "state.json")
-	if err = service.Save(path, proposal.ExecuteAfter.Add(time.Second)); err != nil {
+	if err := service.Save(path, proposal.ExecuteAfter.Add(time.Second)); err != nil {
 		t.Fatal(err)
 	}
 	restored, err := Load(path)

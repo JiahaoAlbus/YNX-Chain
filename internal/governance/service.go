@@ -536,59 +536,83 @@ func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 	return clone(p), nil
 }
 
+// BeginExecution reserves an exact execution intent but never infers that
+// Chain Core accepted it. Canonical submission must be completed through
+// ConfirmChainExecution after post-commit reconciliation.
 func (s *Service) BeginExecution(id, manifestHash string, now time.Time) (Proposal, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	_, proposal, err := s.PrepareChainExecution(id, manifestHash, now)
+	return proposal, err
+}
+
+func (s *Service) prepareExecutionLocked(id, manifestHash string, now time.Time) (*Proposal, *TimelockRecord, *CanaryRecord, error) {
 	record, ok := s.timelocks[id]
 	if !ok {
-		return Proposal{}, ErrNotFound
+		return nil, nil, nil, ErrNotFound
 	}
-	if record.Status == TimelockExecutionReady || record.Status == TimelockSubmitted || record.Status == TimelockExecuted || record.Status == TimelockFailed || record.Status == TimelockRolledBack {
-		return Proposal{}, ErrReplay
+	if record.Status == TimelockSubmitted || record.Status == TimelockExecuted || record.Status == TimelockFailed || record.Status == TimelockRolledBack {
+		return nil, nil, nil, ErrReplay
 	}
 	p, err := s.mutable(id, now)
 	if err != nil {
-		return Proposal{}, err
+		return nil, nil, nil, err
 	}
 	if err = s.expireTimelockLocked(p, record, now.UTC()); err != nil {
-		return Proposal{}, err
+		return nil, nil, nil, err
+	}
+	if record.Status == TimelockExecutionReady {
+		if p.Status != StatusExecutionReady || !strings.EqualFold(p.ExecutionHash, manifestHash) {
+			return nil, nil, nil, ErrNotReady
+		}
+		canary := s.canaries[p.ID]
+		if canary == nil || canary.Status != CanaryPassed || canary.Envelope == nil || !strings.EqualFold(canary.Envelope.ManifestHash, manifestHash) {
+			return nil, nil, nil, fmt.Errorf("%w: execution requires a passed canary bound to the exact manifest", ErrForbidden)
+		}
+		return p, record, canary, nil
 	}
 	if record.Status != TimelockActive || record.ActionHash != p.ActionHash || p.Status != StatusTimelockActive || now.Before(record.EarliestExecution) || now.After(record.GraceEndsAt) || !validHash(manifestHash) {
-		return Proposal{}, ErrNotReady
+		return nil, nil, nil, ErrNotReady
 	}
 	canary := s.canaries[p.ID]
 	if canary == nil || canary.Status != CanaryPassed || canary.Envelope == nil || !strings.EqualFold(canary.Envelope.ManifestHash, manifestHash) {
-		return Proposal{}, fmt.Errorf("%w: execution requires a passed canary bound to the exact manifest", ErrForbidden)
+		return nil, nil, nil, fmt.Errorf("%w: execution requires a passed canary bound to the exact manifest", ErrForbidden)
 	}
 	if (p.Input.Scope == ScopeProtocolUpgrade || p.Input.Scope == ScopeConsensusUpgrade) && !strings.EqualFold(p.Input.UpgradeHash, manifestHash) {
-		return Proposal{}, fmt.Errorf("%w: upgrade manifest mismatch", ErrForbidden)
+		return nil, nil, nil, fmt.Errorf("%w: upgrade manifest mismatch", ErrForbidden)
 	}
 	p.ExecutionHash = strings.ToLower(manifestHash)
 	evidence := []string{"manifest://sha256/" + p.ExecutionHash}
 	if err = transitionTimelock(record, TimelockExecutionReady, "ynx-governance-runtime", "timelock elapsed and the exact action hash entered its bounded execution window", evidence, now); err != nil {
-		return Proposal{}, err
+		return nil, nil, nil, err
 	}
 	if err = transitionProposal(p, StatusExecutionReady, "ynx-governance-runtime", "timelock elapsed and the exact action hash entered its bounded execution window", evidence, now); err != nil {
-		return Proposal{}, err
+		return nil, nil, nil, err
 	}
 	record.ExecutionManifestHash, record.ExecutionStartedAt = p.ExecutionHash, now.UTC()
-	if err = transitionTimelock(record, TimelockSubmitted, "execution-operator", "the exact authorized action hash was submitted once to the canonical execution owner", evidence, now); err != nil {
-		return Proposal{}, err
+	record.AuditHash = timelockAudit(record)
+	return p, record, canary, nil
+}
+
+func (s *Service) markExecutionSubmittedLocked(p *Proposal, record *TimelockRecord, evidence []string, now time.Time) error {
+	if p == nil || record == nil || p.Status != StatusExecutionReady || record.Status != TimelockExecutionReady || len(evidence) == 0 {
+		return ErrNotReady
 	}
-	if err = transitionProposal(p, StatusExecutionSubmitted, "execution-operator", "the exact authorized action hash was submitted to the canonical execution owner", evidence, now); err != nil {
-		return Proposal{}, err
+	if err := transitionTimelock(record, TimelockSubmitted, "execution-operator", "the exact authorized action hash was submitted once to the canonical execution owner", evidence, now); err != nil {
+		return err
+	}
+	if err := transitionProposal(p, StatusExecutionSubmitted, "execution-operator", "the exact authorized action hash was submitted to the canonical execution owner", evidence, now); err != nil {
+		return err
 	}
 	if isUpgradeProposal(p) {
 		record, exists := s.upgrades[p.ID]
 		if !exists {
-			return Proposal{}, fmt.Errorf("%w: first-class upgrade record missing", ErrForbidden)
+			return fmt.Errorf("%w: first-class upgrade record missing", ErrForbidden)
 		}
 		record.ExecutionManifestHash = p.ExecutionHash
-		if err = s.transitionUpgradeLocked(p, UpgradeSubmitted, "execution-operator", "exact upgrade manifest was submitted to the canonical execution owner", evidence, now); err != nil {
-			return Proposal{}, err
+		if err := s.transitionUpgradeLocked(p, UpgradeSubmitted, "execution-operator", "exact upgrade manifest was submitted to the canonical execution owner", evidence, now); err != nil {
+			return err
 		}
 	}
-	return clone(p), nil
+	return nil
 }
 
 func (s *Service) VerifyExecution(id string, receipt ExecutionReceipt, rollbackReceipt *ExecutionReceipt, now time.Time) (Proposal, error) {
