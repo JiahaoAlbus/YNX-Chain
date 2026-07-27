@@ -3,10 +3,10 @@
   "productNumber": 22,
   "productName": "YNX Browser",
   "productSlug": "browser",
-  "version": "0.2.1-checkpoint",
+  "version": "0.2.2-checkpoint",
   "goalStatus": "active",
   "phase": "FREEZE",
-  "sourceCommit": "88bf8dddf06411ea26749abdd5ea52173b7cd10a",
+  "sourceCommit": "f2f9aaed8d3e4231d37c94de352077008a338572",
   "asOf": "2026-07-27",
   "releaseStates": {
     "implementedLocal": true,
@@ -20,16 +20,14 @@
     "storeReleased": false
   },
   "verifiedThisCheckpoint": {
-    "nodeTests": {
-      "command": "cd apps/browser && npm test",
+    "browserCheck": {
+      "command": "cd apps/browser && npm run check",
       "result": "pass",
-      "tests": 14,
-      "failures": 0
-    },
-    "smoke": {
-      "command": "cd apps/browser && npm run smoke",
-      "result": "pass",
-      "details": "persistent state and exact-origin permission boundary"
+      "nodeTests": 14,
+      "nativeSwiftTests": 3,
+      "smoke": "pass",
+      "productionSourceGate": "pass",
+      "macosReproducibility": "pass"
     },
     "walletPermissionContracts": {
       "command": "cd packages/web4-permissions && npm test",
@@ -39,9 +37,10 @@
       "boundary": "All four Browser platform request builders bind the reviewed registry tuples; central Wallet acceptance remains pending"
     },
     "privateDownloadIsolation": {
-      "sourceCommit": "06fb7ee7e321743288348feefa3fb76e9f096463",
-      "result": "implemented-and-node-gated",
-      "details": "macOS downloads are bound to the initiating tab and source; private or contextless downloads do not write YNX Downloads records"
+      "sourceCommit": "668cb44dab95374ba9e5342d754b6ec568564f2b",
+      "result": "tested-native-policy",
+      "details": "The WKDownload delegate calls a shared native persistence function. Three Swift tests prove normal source/filename persistence, zero Private metadata writes, and byte-for-byte preservation of the normal record after a Private completion.",
+      "truthBoundary": "No completed WKWebView network download plus NSSavePanel interaction recording is claimed."
     },
     "stateLifecycle": {
       "sourceCommit": "91685b728cefefabec9414317f2663d659062edc",
@@ -53,29 +52,35 @@
       "result": "implemented-and-contract-tested",
       "details": "non-exportable Windows CNG P-256 identity, signed pending request state, exact single-field callback parsing, nonce/time/chain/client/bundle binding, single-use consumption and no local Product Session"
     },
+    "productionSourceGate": {
+      "sourceCommit": "668cb44dab95374ba9e5342d754b6ec568564f2b",
+      "result": "pass",
+      "details": "Browser production source trees contain no deployment filler, TODO/FIXME/coming-soon markers, fake-success markers or common embedded-secret patterns"
+    },
     "macosTestnetPreview": {
-      "sourceCommit": "88bf8dddf06411ea26749abdd5ea52173b7cd10a",
-      "evidence": "apps/browser/evidence/macos-release-88bf8dd.json",
+      "sourceCommit": "f2f9aaed8d3e4231d37c94de352077008a338572",
+      "runtimeCommit": "668cb44dab95374ba9e5342d754b6ec568564f2b",
+      "evidence": "apps/browser/evidence/macos-release-f2f9aae.json",
       "releaseBuild": "pass",
       "package": "pass",
+      "archiveIntegrity": "pass",
+      "sameHostReproducibility": "pass",
+      "reproducibilityBuildsCompared": 2,
       "coldStart": "pass",
       "gracefulQuit": "pass",
       "restart": "pass",
       "architecture": "arm64",
       "signingClass": "adhoc",
       "gatekeeper": "rejected",
-      "zipBytes": 103039,
-      "zipSha256": "d41826d277f10a96ef3c5621a3c514689d9a450f094da36c8c87fce8c1efc506",
-      "binarySha256": "279cac226dab8fe06b9f394984a53a900d560008a44ce87a99894804b090eb56",
-      "truthBoundary": "Local ad-hoc-signed Testnet Preview only; not installed, notarized, production signed, hosted or store released"
-    },
-    "diffCheck": {
-      "command": "git diff --check",
-      "result": "pass"
+      "zipBytes": 109273,
+      "zipSha256": "df24eb70667572b3122137f41883bc9d6b02bec8e7728e727b44bcb09cc176ce",
+      "binarySha256": "822947dd8a9146e66274d3ebce1ff56d2e3e2a476493d8069611d7d88e9769dc",
+      "truthBoundary": "Local ad-hoc-signed Testnet Preview only; not installed, notarized, production signed, hosted or store released. Reproducibility is verified only on the evidence host and toolchain."
     }
   },
   "notVerifiedThisCheckpoint": {
-    "macosPrivateDownloadInteraction": "source-gated but not yet executed with a completed Private and normal download pair",
+    "macosPrivateDownloadInteraction": "the exact native persistence policy is tested, but a completed WKWebView normal/Private network download pair through NSSavePanel is not yet recorded",
+    "macosDeepLinkCallback": "ynxbrowser callback interaction and exact rejection-state evidence remain open",
     "macosInstall": "app launched from repository dist; no user application-location install is claimed",
     "windowsBuild": {
       "result": "blocked",
@@ -84,10 +89,12 @@
     "nativeStateLifecycleUi": "not integrated across all native clients",
     "androidFinalBranchInstallColdStart": "not rerun",
     "iosFullXcodeSimulator": "not rerun",
+    "crossHostReproducibility": "not verified",
     "publicEndpoints": "not verified",
     "hostedArtifacts": "not verified",
     "notarization": "not performed",
-    "developerIdSigning": "not performed"
+    "developerIdSigning": "not performed",
+    "githubActions": "GitHub Actions API lookup failed twice with TLS handshake timeout; no run status is claimed"
   },
   "previousEvidence": {
     "baselineCommit": "a90cfef",
@@ -96,5 +103,5 @@
     "boundary": "Previous evidence remains historical and is not automatically attributed to this checkpoint"
   },
   "externalInputs": [],
-  "nextAction": "Execute a normal/private macOS download pair against the built Testnet Preview and prove that only the normal record persists; then wire state-v2 export/delete/backup/restore controls into native clients and obtain Windows CI build evidence."
+  "nextAction": "Extract and test the macOS preliminary Wallet callback validator for malformed, expiry, nonce, chain, client, bundle and replay rejection, then exercise the installed protocol path without claiming a Product Session before Gateway and Wallet/Auth verification."
 }
