@@ -21,9 +21,17 @@ export function invoiceID(value:string):string {
   const deep=raw.match(/^ynxpay:\/\/invoice\/(inv_[a-f0-9]{20})$/); if(deep?.[1]) return deep[1];
   throw new Error("Use a canonical YNX Pay invoice ID, QR, or deep link.");
 }
+export function splitPaymentID(value:string):string {
+  const raw=value.trim();
+  if(/^spl_[a-f0-9]{20}$/.test(raw)) return raw;
+  try { const u=new URL(raw); const match=u.pathname.match(/\/split-payments\/(spl_[a-f0-9]{20})$/); if(match?.[1]) return match[1] } catch {}
+  const deep=raw.match(/^ynxpay:\/\/split\/(spl_[a-f0-9]{20})$/); if(deep?.[1]) return deep[1];
+  throw new Error("Use a canonical YNX Pay split ID, QR, or deep link.");
+}
+export function isSplitPaymentReference(value:string):boolean{try{splitPaymentID(value);return true}catch{return false}}
 export async function getInvoice(reference:string,signal?:AbortSignal):Promise<Invoice> { const invoice=parseInvoice(await request(`/v1/invoices/${encodeURIComponent(invoiceID(reference))}`,{signal})); if(!(await verifyInvoiceSignature(invoice))) throw new Error("Merchant invoice signature verification failed"); return invoice }
-export async function getSplitPayment(splitId:string,signal?:AbortSignal):Promise<SplitPayment>{const split=parseSplitPayment(await request(`/v1/split-payments/${encodeURIComponent(splitID(splitId))}`,{signal}));if(!(await verifySplitPaymentSignature(split)))throw new Error("Merchant split signature verification failed");return split}
-export async function claimSplitShare(splitId:string,shareId:string,idempotencyKey:string,token:string):Promise<SplitPayment>{const split=parseSplitPayment(await request(`/v1/split-payments/${encodeURIComponent(splitID(splitId))}/shares/${encodeURIComponent(shareID(shareId))}/claim`,{method:"POST",token,body:JSON.stringify({idempotencyKey})}));if(!(await verifySplitPaymentSignature(split)))throw new Error("Merchant split signature verification failed");return split}
+export async function getSplitPayment(splitId:string,signal?:AbortSignal):Promise<SplitPayment>{const split=parseSplitPayment(await request(`/v1/split-payments/${encodeURIComponent(splitPaymentID(splitId))}`,{signal}));if(!(await verifySplitPaymentSignature(split)))throw new Error("Merchant split signature verification failed");return split}
+export async function claimSplitShare(splitId:string,shareId:string,idempotencyKey:string,token:string):Promise<SplitPayment>{const split=parseSplitPayment(await request(`/v1/split-payments/${encodeURIComponent(splitPaymentID(splitId))}/shares/${encodeURIComponent(shareID(shareId))}/claim`,{method:"POST",token,body:JSON.stringify({idempotencyKey})}));if(!(await verifySplitPaymentSignature(split)))throw new Error("Merchant split signature verification failed");return split}
 export async function requestWalletChallenge(input:{request:AuthorizationRequest;approval:AuthorizationResponse}):Promise<GatewayChallenge>{return gatewayRequest("/app/pay/session/challenges",input) as Promise<GatewayChallenge>}
 export async function completeWalletSession(input:{request:AuthorizationRequest;approval:AuthorizationResponse;completion:GatewayCompletion}):Promise<WalletSession>{return parseSession(await gatewayRequest("/app/pay/session/complete",input))}
 export async function submitSettlement(invoice:string,intent:SignedPaymentIntent,result:WalletPaymentResult,idempotencyKey:string,token:string):Promise<Invoice> { return parseInvoice(await request(`/v1/invoices/${encodeURIComponent(invoice)}/settlements`,{method:"POST",token,body:JSON.stringify({intent,result,idempotencyKey})})) }

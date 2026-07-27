@@ -5,6 +5,7 @@ import type { AuthorizationRequest, SignedPaymentIntent, WalletPaymentResult } f
 const PREFIX="ynx-pay.secure.v2.";
 export type PendingAuthorization=Readonly<{request:AuthorizationRequest;deviceSecret:string}>;
 export type PendingPayment=Readonly<{intent:SignedPaymentIntent;result?:WalletPaymentResult;updatedAt:string}>;
+export type PendingSplitClaim=Readonly<{splitId:string;shareId:string;idempotencyKey:string;expiresAt:string;createdAt:string}>;
 
 export async function loadSession():Promise<WalletSession|null>{return load<WalletSession>("session",value=>typeof value.token==="string"&&typeof value.sessionBinding==="string"&&Date.parse(value.expiresAt)>Date.now())}
 export async function saveSession(value:WalletSession|null){return save("session",value)}
@@ -12,6 +13,8 @@ export async function loadPendingAuthorization():Promise<PendingAuthorization|nu
 export async function savePendingAuthorization(value:PendingAuthorization|null){return save("authorization",value)}
 export async function loadPendingPayment():Promise<PendingPayment|null>{return load<PendingPayment>("payment",value=>value.intent?.productClientId==="ynx-pay-v1"&&typeof value.updatedAt==="string")}
 export async function savePendingPayment(value:PendingPayment|null){return save("payment",value)}
+export async function loadPendingSplitClaim():Promise<PendingSplitClaim|null>{return load<PendingSplitClaim>("split-claim",value=>/^spl_[a-f0-9]{20}$/.test(value.splitId)&&/^shr_[a-f0-9]{16}$/.test(value.shareId)&&/^[a-zA-Z0-9][a-zA-Z0-9._:-]{7,127}$/.test(value.idempotencyKey)&&Number.isFinite(Date.parse(value.createdAt))&&Date.parse(value.expiresAt)>Date.now())}
+export async function savePendingSplitClaim(value:PendingSplitClaim|null){return save("split-claim",value)}
 export async function loadLocale():Promise<string|null>{return SecureStore.getItemAsync(PREFIX+"locale")}
 export async function saveLocale(value:string){return SecureStore.setItemAsync(PREFIX+"locale",value)}
 export async function loadAILanguage():Promise<string|null>{return SecureStore.getItemAsync(PREFIX+"ai-language")}
