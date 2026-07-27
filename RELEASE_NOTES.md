@@ -8,10 +8,11 @@ integrity, correction, replay, migration, emergency controls, and observability;
 Go and TypeScript consumer validation; a fail-closed consumer CLI; container
 packaging; and an independent multilingual Oracle Web/PWA.
 
-Consumer portability advanced in two protected checkpoints:
+Consumer portability and release integrity advanced in three protected checkpoints:
 
 - `6e811f74c3d68aa70d3216fea9682e932f9a3e73` adds the strict TypeScript SDK. It compiled successfully and passed 18 canonical-vector, schema, derivation, transport, and response-bound tests.
 - `1d17e520186a500f5c9ab04ee88769637d88fc59` adds `ynx-oracle-cli`. Go race tests passed, and the CLI emits no price until market, type, policy version, freshness, confidence, coverage, lineage, and derivation checks pass.
+- `6ba6c39a6661724e07205a265201ac7fa36c91bb` adds deterministic macOS arm64 and Linux arm64 server/CLI bundles plus TypeScript and Go SDK candidates. Canonical manifest, SHA-256/bytes, target validation, CycloneDX SBOM, provenance, detached-signature verification, tamper rejection, clean SDK consumers, and a real macOS install/cold-start/version-binding/graceful-shutdown drill passed.
 
 A real limited-source public Testnet control plane is deployed at
 `https://oracle-testnet.43.153.202.237.sslip.io` from deployment commit
@@ -21,8 +22,9 @@ not make the current candidate deployed, hosted, production-signed, centrally
 integrated, or released.
 
 The Oracle Web remains owner-only and returns HTTP 401 to unauthenticated
-requests. Current-commit server, CLI, and SDK artifacts have not yet been
-packaged with complete provenance or hosted at immutable public URLs.
+requests. Current-commit server, CLI, and SDK candidates now have reproducible
+local packaging, hashes, SBOM, provenance and macOS cold-start evidence, but
+remain unsigned, unhosted and unreleased; Linux arm64 native cold start is open.
 
 ## Release boundary
 

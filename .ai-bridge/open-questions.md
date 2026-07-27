@@ -7,9 +7,16 @@
 - Which exact Integration protocol version will 29 Integration freeze for all consumers?
 - When will Chain, Exchange, DEX, Quant, Finance, Pay, Explorer, Monitor, Bridge, Gateway and Wallet/Auth return acceptance evidence?
 - Which hosting and signing authorities will publish the public Oracle Web and immutable server/CLI/SDK artifacts?
+- Which Linux arm64 execution environment will provide native install, cold-start, `/version` commit and graceful-shutdown evidence?
 
 ## Autonomous questions to resolve next
 
-- What deterministic package layout best covers `ynx-oracled`, `ynx-oracle-cli`, the Go SDK and the TypeScript SDK without including secrets or candidate provider credentials?
-- Which existing provenance/SBOM scripts can be safely extended rather than duplicated?
-- Which accessibility tooling is already installed under `apps/oracle` for direct keyboard, RTL, large-text and 390px verification?
+- Which accessibility tooling is already installed under `apps/oracle` for direct keyboard, RTL, large-text, reduced-motion, theme and 390px verification?
+- Can the host `python3` SIGKILL condition be isolated without changing system configuration, or should the shared SDK suite remain recorded as an environment blocker while Oracle-specific consumers stay green?
+- Does GitHub/MCP Push recover after the protected evidence commit, allowing Local SHA = Remote SHA before the accessibility slice begins?
+
+## Resolved in this slice
+
+- Package layout: deterministic macOS arm64 and Linux arm64 server/CLI archives, TypeScript npm candidate and Go module source candidate; no credentials or active provider material are included.
+- Provenance/SBOM reuse: the bounded deterministic tar/JSON primitives in `scripts/lib/sdk-release.mjs` are reused, with Oracle-specific verification and evidence export rather than a duplicate archive format.
+- Evidence boundary: generated Manifest, Provenance and CycloneDX SBOM are commit-addressed under `release/evidence`; large binary archives remain outside Git.

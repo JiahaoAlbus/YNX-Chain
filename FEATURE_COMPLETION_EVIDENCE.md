@@ -10,7 +10,8 @@
 | Integrity and history | HMAC store, event chain, corrections, replay, v1/v2→v3 migrations and backups | Local tested |
 | Public read contract | `/health`, `/version`, `/prices`, `/markets`, `/providers`, `/status`, `/history`, `/corrections`, `/metrics`, `/v1/index`, `/v1/funding`, `/v1/mark`, request/error IDs, and security headers | Local tested; limited-source public HTTPS control plane verified at deployment commit `f71d5ca5c2ede28477fbadff36701a9f040e311f`; authoritative prices remain unavailable at 0/3 sources |
 | Consumer SDKs | Go and TypeScript strict validators reject schema/request mismatch, unknown fields, stale/future data, breaker/failure states, insufficient source/confidence/coverage, malformed lineage, unsafe derivatives, remote plain HTTP, unbounded responses, and missing timeouts | Go race tests passed; TypeScript compile passed and 18 canonical/negative tests passed at `6e811f74c3d68aa70d3216fea9682e932f9a3e73` |
-| Consumer CLI | `ynx-oracle-cli` binds market, type, policy version, maximum age, confidence, and coverage; it emits JSON only after Go SDK validation and produces no output for unsafe values | Race tests passed at `1d17e520186a500f5c9ab04ee88769637d88fc59`; packaged/hosted artifact pending |
+| Consumer CLI | `ynx-oracle-cli` binds market, type, policy version, maximum age, confidence, and coverage; it emits JSON only after Go SDK validation and produces no output for unsafe values | Race tests passed at `1d17e520186a500f5c9ab04ee88769637d88fc59`; deterministic candidate packaging verified at `6ba6c39a6661724e07205a265201ac7fa36c91bb` |
+| Release artifacts | Deterministic macOS arm64 and Linux arm64 server/CLI archives, TypeScript npm candidate, Go module candidate, canonical manifest, SHA-256/bytes, target validation, CycloneDX SBOM, provenance, detached-signature verification path and tamper rejection | Tested-local unsigned candidates at `6ba6c39a6661724e07205a265201ac7fa36c91bb`; macOS install/cold start/version binding/shutdown passed; Linux native cold start, hosting and production signing remain open |
 | Provider governance | Three official candidates documented; all inactive pending rights/YNX coverage | Source limitation open |
 | Anomaly behavior | Tests cover stale/offline, outlier, divergence, thin source, depeg, DEX reorg replacement, provider deactivation, and historical replay | Local tested; live failover pending |
 | Web/PWA | Independent `/oracle`, 12 languages, RTL, themes, reduced motion, PWA shell, live-only queries | Production build/SSR tests and owner-only deployment pass; public access pending |
@@ -20,5 +21,5 @@
 No row implies authoritative public Testnet readiness. A limited-source public
 control plane exists, but final activation still requires approved independent
 sources, reporter signer custody, central consumer acceptance, public Oracle Web,
-Explorer/Monitor evidence, current-commit artifact provenance, and live
-restore/load/failover evidence.
+Explorer/Monitor evidence, Linux arm64 native artifact cold-start evidence,
+artifact hosting/production signing, and live restore/load/failover evidence.
