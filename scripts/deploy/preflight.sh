@@ -23,6 +23,7 @@ make replication-alert-check
 make stable-reserve-alert-check
 make economics-monitor-check
 make economics-monitor-lifecycle-check
+make yusd-testnet-deploy-check
 go test ./cmd/... ./internal/...
 make faucet-check
 make indexer-check

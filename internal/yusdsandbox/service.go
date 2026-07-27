@@ -29,11 +29,20 @@ type Service struct {
 	state state
 }
 
-func New(cfg Config) (*Service, error) {
+func ValidateConfig(cfg Config) error {
 	cfg.StatePath = strings.TrimSpace(cfg.StatePath)
 	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
 	if cfg.StatePath == "" || len(cfg.APIKey) < 16 {
-		return nil, errors.New("YUSD sandbox state path and API key are required")
+		return errors.New("YUSD sandbox state path and API key are required")
+	}
+	return nil
+}
+
+func New(cfg Config) (*Service, error) {
+	cfg.StatePath = strings.TrimSpace(cfg.StatePath)
+	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
+	if err := ValidateConfig(cfg); err != nil {
+		return nil, err
 	}
 	if cfg.Now == nil {
 		cfg.Now = func() time.Time { return time.Now().UTC() }
