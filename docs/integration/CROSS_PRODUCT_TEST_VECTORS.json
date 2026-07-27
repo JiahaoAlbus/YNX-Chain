@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "product": "25-mail",
-  "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+  "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
   "vectors": [
     {
       "id": "MAIL-WALLET-001",
@@ -104,6 +104,30 @@
         "httpStatus": 400,
         "stateMutationCount": 0,
         "failClosed": true
+      }
+    },
+    {
+      "id": "MAIL-INTERNET-007",
+      "ownerDependencies": ["13-monitor", "15-trust-center", "30-security-sre"],
+      "scenario": "verified complaint suppresses future delivery",
+      "expected": {
+        "suppressionStoredByRecipientHash": true,
+        "futureProviderCalls": 0,
+        "futureDeliveryState": "failed",
+        "futureReason": "recipient_suppressed",
+        "deadLetterState": "blocked"
+      }
+    },
+    {
+      "id": "MAIL-INTERNET-008",
+      "ownerDependencies": ["13-monitor", "30-security-sre"],
+      "scenario": "provider rate limit then successful explicit retry",
+      "expected": {
+        "healthBeforeRetry": "rate_limited",
+        "openDeadLettersBeforeRetry": 1,
+        "healthAfterRetry": "submission_accepted_local_evidence",
+        "openDeadLettersAfterRetry": 0,
+        "queueMaximum": 1000
       }
     },
     {

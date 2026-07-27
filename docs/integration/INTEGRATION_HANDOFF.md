@@ -3,7 +3,7 @@
 Version: 1.0.0  
 Product: 25｜YNX Mail  
 Branch: `codex/final-mail`  
-Runtime source commit: `13c2c7695c9e814ba54d066b6e3e1a03354b7d57`  
+Runtime source commit: `02352ff97e4c5de1ba115b18c41bc740ba7e7191`  
 Current stage: FREEZE → INTEGRATE  
 Goal status: Active
 
@@ -20,7 +20,10 @@ truthful state machine:
 Provider API success is never treated as delivery. Only a bounded, verified
 webhook may establish receiving-mail-server delivery, bounce or complaint.
 Provider open/click telemetry is persisted as ignored evidence and never becomes
-YNX user-read state.
+YNX user-read state. Complaint, permanent-bounce and provider-suppression events
+create a persistent recipient-hash suppression record. Provider failures enter a
+sender-scoped dead-letter queue capped at 1000 records, while health exposes only
+configuration and locally observed submission/webhook evidence.
 
 ## Security and recovery properties
 
@@ -33,6 +36,10 @@ YNX user-read state.
 - Older out-of-order events cannot downgrade a newer delivery fact.
 - Failed and bounced deliveries may be explicitly retried with a new attempt
   number and a distinct idempotency key.
+- Complaint, permanent-bounce and provider-suppression events block future
+  provider submissions until a future centrally authorized review path exists.
+- Dead letters expose recipient hashes rather than mailbox plaintext and are
+  bounded to 1000 records.
 - Webhook request bodies are capped at 256 KiB.
 - Existing native delivery, Wallet replay protection, AI approval/cancel,
   account export/delete and state-tamper rejection remain intact.
@@ -98,11 +105,11 @@ source only and must not be represented as containing this Internet Bridge.
 
 ## Exact next engineering actions
 
-1. Add provider health polling, suppression storage and a bounded dead-letter
-   operator queue without requiring external credentials.
-2. Add migration/rollback and backup/restore drills for the additive provider
-   event state.
-3. Emit canonical delivery events through a Data Fabric adapter with no body,
-   attachment content, credential or raw webhook leakage.
+1. Add migration/rollback and backup/restore drills for provider events,
+   suppressions, dead letters and health evidence.
+2. Emit canonical delivery events through a Data Fabric adapter with no body,
+   attachment content, mailbox plaintext, credential or raw webhook leakage.
+3. Define a centrally authorized operator review/unsuppression path and Monitor
+   alerts without granting Mail arbitrary Trust or provider administration.
 4. Rebuild and reinstall current-source desktop, Android and iOS artifacts before
    restoring any hosted/download state to true.

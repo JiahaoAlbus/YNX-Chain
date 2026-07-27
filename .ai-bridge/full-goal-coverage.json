@@ -5,10 +5,10 @@
   "productSlug": "mail",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/25-mail",
   "branch": "codex/final-mail",
-  "runtimeSourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+  "runtimeSourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
   "currentStage": "INTEGRATE",
   "goalStatus": "active",
-  "lastUpdated": "2026-07-27T08:00:26Z",
+  "lastUpdated": "2026-07-27T08:22:02Z",
   "items": [
     {
       "id": "MAIL-RECOVER-001",
@@ -17,14 +17,14 @@
       "applicability": "required",
       "status": "verifiedComplete",
       "evidence": ["workspace clean at start", "historical release evidence retained in product-release.json"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": [],
       "artifact": "apps/mail/product-release.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "25-mail",
       "nextAction": "none",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-NATIVE-001",
@@ -33,14 +33,14 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["internal/mail/service.go", "internal/mail/service_test.go"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["go test -race ./internal/mail"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["shared Testnet deployment"],
       "owner": "25-mail",
       "nextAction": "re-run against accepted central Wallet and shared Testnet",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-WALLET-001",
@@ -49,14 +49,14 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["RemoteWalletVerifier", "persistent authorization-request replay protection"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["TestCentralWalletRequestReplayPersistsAcrossRestart", "TestAuthorizationReplayRecoveryAndStrictHTTP"],
       "artifact": "release/integration/mail-contract.json",
       "publicProof": null,
       "blockedBy": ["02-wallet-auth registry and live verifier"],
       "owner": "02-wallet-auth",
       "nextAction": "central registration and integration test",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-INTERNET-001",
@@ -65,14 +65,14 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["internal/mail/internet_bridge.go", "internal/mail/internet_bridge_test.go"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["TestResendBridgeSubmissionWebhookReplayAndTruthStates", "TestResendProviderFailureAndRetryUseDistinctIdempotencyAttempts"],
       "artifact": "release/integration/mail-contract.json",
       "publicProof": null,
       "blockedBy": ["provider account", "verified sender domain"],
       "owner": "25-mail",
       "nextAction": "provider sandbox verification when credential reference is available",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-INTERNET-002",
@@ -81,14 +81,14 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["internal/mail/internet_bridge.go", "internal/mail/internet_delivery.go"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["TestResendBridgeSubmissionWebhookReplayAndTruthStates", "TestResendWebhookRejectsStaleTimestamp"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["public HTTPS webhook"],
       "owner": "25-mail",
       "nextAction": "public webhook test through 30-security-sre",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-INTERNET-003",
@@ -97,30 +97,30 @@
       "applicability": "required",
       "status": "verifiedComplete",
       "evidence": ["delivery state model", "opened/clicked ignored provider events", "health delivery_truth"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["TestResendBridgeSubmissionWebhookReplayAndTruthStates"],
       "artifact": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "25-mail",
       "nextAction": "freeze with 29-integration",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-INTERNET-004",
       "category": "provider-operations",
       "requirement": "Provider health, rate-limit status, suppression and bounded dead-letter queue",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["rate-limit failure mapping and explicit provider configuration health exist"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
-      "tests": ["TestResendProviderFailureAndRetryUseDistinctIdempotencyAttempts"],
-      "artifact": null,
+      "status": "testedLocal",
+      "evidence": ["local provider health evidence", "persistent recipient-hash suppression registry", "sender-scoped dead-letter queue bounded to 1000 records"],
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
+      "tests": ["TestResendProviderFailureAndRetryUseDistinctIdempotencyAttempts", "TestComplaintSuppressesFutureSubmissionAndQueuesRecovery", "TestDeadLetterQueueIsBounded"],
+      "artifact": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
       "publicProof": null,
-      "blockedBy": [],
+      "blockedBy": ["13-monitor integration", "centrally authorized operator unsuppression"],
       "owner": "25-mail",
-      "nextAction": "implement health polling, suppression registry and dead-letter queue",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "nextAction": "add active provider health polling and central operator review path",
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-DNS-001",
@@ -129,14 +129,14 @@
       "applicability": "required for Internet delivery",
       "status": "externalBlocked",
       "evidence": ["product-release.json flags all false"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": [],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["DNS authority", "provider domain verification"],
       "owner": "30-security-sre",
       "nextAction": "operator supplies DNS authority through secure process",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-ABUSE-001",
@@ -144,15 +144,15 @@
       "requirement": "Rate limit, block, Trust report, appeal and no bulk spam",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["persistent send-rate limit", "block/report/appeal runtime"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
-      "tests": ["TestAttachmentSpamBlockRateReportAndAIApproval"],
+      "evidence": ["persistent send-rate limit", "block/report/appeal runtime", "verified complaint and permanent-bounce suppression"],
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
+      "tests": ["TestAttachmentSpamBlockRateReportAndAIApproval", "TestComplaintSuppressesFutureSubmissionAndQueuesRecovery"],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["central Trust handoff", "provider suppression automation"],
+      "blockedBy": ["central Trust handoff", "operator suppression review policy"],
       "owner": "25-mail",
-      "nextAction": "integrate complaint suppression and Trust event export",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "nextAction": "integrate Trust event export and centrally authorized suppression review",
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-ATTACH-001",
@@ -161,14 +161,14 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["10 MiB bound", "SHA-256 and size validation", "executable/package/HTML rejection"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["TestAttachmentSpamBlockRateReportAndAIApproval"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["20-cloud object integration", "malware scanner"],
       "owner": "25-mail",
       "nextAction": "add Cloud object adapter and scan verdict",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-AI-001",
@@ -177,14 +177,14 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["AI preview/approve/review/cancel state machine"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["TestAttachmentSpamBlockRateReportAndAIApproval", "TestDeliveryRetryAndAICancelRemainRevocable"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["14-ai accepted product route"],
       "owner": "14-ai",
       "nextAction": "central provider-backed run",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-DATA-001",
@@ -193,14 +193,14 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["account export/delete endpoints and authenticated tombstone"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["TestCookieSessionDraftExportDeleteAndStoreTamper"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["Cloud delete propagation"],
       "owner": "25-mail",
       "nextAction": "define retention and cross-product delete vector",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-STORE-001",
@@ -209,14 +209,14 @@
       "applicability": "required",
       "status": "inProgress",
       "evidence": ["authenticated atomic state", "backup copy on update", "restart replay test"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["TestCookieSessionDraftExportDeleteAndStoreTamper", "TestCentralWalletRequestReplayPersistsAcrossRestart"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "25-mail",
       "nextAction": "add explicit backup/restore and rollback migration drill",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-DATAFABRIC-001",
@@ -225,14 +225,14 @@
       "applicability": "required",
       "status": "implementedLocal",
       "evidence": ["proposed contract and test vector"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": [],
       "artifact": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
       "publicProof": null,
       "blockedBy": ["26-data-fabric schema acceptance"],
       "owner": "26-data-fabric",
       "nextAction": "implement adapter after schema freeze",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-OBS-001",
@@ -241,14 +241,14 @@
       "applicability": "required",
       "status": "inProgress",
       "evidence": ["health/build truth and audit IDs exist"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["npm run smoke --prefix apps/mail"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "25-mail",
       "nextAction": "add metrics, traces, request IDs and Monitor adapter",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-I18N-001",
@@ -257,14 +257,14 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["native localization generator and all locale resources"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["npm test --prefix apps/mail"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "25-mail",
       "nextAction": "repeat current-source native install proof",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-A11Y-001",
@@ -273,14 +273,14 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["Mail UI tests"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["npm test --prefix apps/mail"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "25-mail",
       "nextAction": "browser and native proof on current source",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-ANDROID-001",
@@ -289,14 +289,14 @@
       "applicability": "required",
       "status": "implementedLocal",
       "evidence": ["historical 0.2.0 proof only"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": [],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "25-mail",
       "nextAction": "build and install current source",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-IOS-001",
@@ -305,14 +305,14 @@
       "applicability": "required",
       "status": "implementedLocal",
       "evidence": ["historical 0.2.0 proof only"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": [],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "25-mail",
       "nextAction": "build and install current source",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-DESKTOP-001",
@@ -321,14 +321,14 @@
       "applicability": "required while surface retained",
       "status": "testedLocal",
       "evidence": ["current Go build and smoke; historical package proof only"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["npm run build --prefix apps/mail", "npm run smoke --prefix apps/mail"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "25-mail",
       "nextAction": "package and install current source",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-SECURITY-001",
@@ -337,14 +337,14 @@
       "applicability": "required",
       "status": "inProgress",
       "evidence": ["historical Go SBOM", "targeted tests"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["go test -race ./internal/mail"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["30-security-sre release pipeline"],
       "owner": "30-security-sre",
       "nextAction": "current-source SBOM, scans and provenance",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-CAPACITY-001",
@@ -360,7 +360,7 @@
       "blockedBy": [],
       "owner": "25-mail",
       "nextAction": "implement benchmark harness and SLO capacity plan",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-ECON-001",
@@ -376,7 +376,7 @@
       "blockedBy": ["provider commercial terms", "26-data-fabric billing schema"],
       "owner": "25-mail",
       "nextAction": "create UNIT_ECONOMICS.md with sourced assumptions",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-PUBLIC-001",
@@ -392,7 +392,7 @@
       "blockedBy": ["28-website", "30-security-sre", "current-source packaging"],
       "owner": "25-mail",
       "nextAction": "complete Testnet and release gates before public deployment",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     },
     {
       "id": "MAIL-TESTNET-001",
@@ -401,14 +401,14 @@
       "applicability": "required",
       "status": "inProgress",
       "evidence": ["native and provider-simulated local flows pass"],
-      "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+      "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
       "tests": ["go test -race ./internal/mail"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["real provider sandbox", "central Wallet", "shared Testnet", "current artifacts"],
       "owner": "25-mail",
       "nextAction": "finish autonomous provider operations and recovery before requesting external inputs",
-      "lastUpdated": "2026-07-27T08:00:26Z"
+      "lastUpdated": "2026-07-27T08:22:02Z"
     }
   ]
 }

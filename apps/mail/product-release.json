@@ -2,7 +2,7 @@
   "productId": "com.ynx.mail",
   "name": "YNX Mail",
   "branch": "codex/final-mail",
-  "commit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+  "commit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
   "version": "0.3.0-testnet-preview-source",
   "surfaces": [
     "android-native",
@@ -59,6 +59,9 @@
     "outOfOrderProtection": true,
     "providerAcceptanceSeparatedFromDelivery": true,
     "providerEngagementSeparatedFromUserRead": true,
+    "persistentSuppressionRegistry": true,
+    "boundedDeadLetterQueue": true,
+    "providerHealthLocalEvidence": true,
     "providerCredentialConfigured": false,
     "senderDomainVerified": false,
     "dnsReady": false,
@@ -79,7 +82,7 @@
     "Central Wallet registry/verifier and AI POST route are not merged or deployed.",
     "No production signing, persistent staging Web/API, public product URL or store release.",
     "Message bodies and attachments are authenticated against state tamper but are not end-to-end encrypted.",
-    "Malware scanning, dead-letter operator queue, bounce/complaint suppression automation and Provider Health polling remain incomplete."
+    "Malware scanning, operator unsuppression with central RBAC, active provider health polling and Monitor alerts remain incomplete."
   ],
-  "generatedAt": "2026-07-27T08:00:26Z"
+  "generatedAt": "2026-07-27T08:22:02Z"
 }

@@ -23,3 +23,7 @@ Current-source artifacts are not marked installed or hosted. Historical 0.2.0 ar
 ## D-006 — Ownership
 
 Shared `go test ./...` failures in consensus, Developer artifacts, Faucet and Trust key permissions are recorded but not repaired in the Mail worktree.
+
+## D-007 — Suppression and recovery privacy
+
+Verified complaint, permanent-bounce and provider-suppression events create a persistent recipient-hash suppression record and block future provider calls. Dead letters are sender-scoped, capped at 1000 records and omit internal sender identity from API responses. Unsuppression remains unavailable until a centrally authorized Trust/Monitor policy exists.
