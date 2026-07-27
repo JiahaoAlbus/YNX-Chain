@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "ynx.monitor.cross-product-vectors.v1",
+  "product": "13-monitor",
+  "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
+  "vectors": [
+    {
+      "id": "MON-AUTH-REPLAY-001",
+      "dependencyOwner": "02-wallet-auth",
+      "precondition": "A valid product-scoped wallet challenge is issued for YNX Monitor on ynx_6423-1 / 6423.",
+      "action": "Submit the centrally verified signed challenge twice.",
+      "expected": [
+        "First submission creates a short Monitor session bound to the authorized role.",
+        "Second submission fails with challenge_invalid_expired_or_replayed.",
+        "No broader scope or alternate product session is issued."
+      ],
+      "localEvidence": "apps/monitor/server/auth.test.ts"
+    },
+    {
+      "id": "MON-RBAC-INCIDENT-001",
+      "dependencyOwner": "13-monitor",
+      "precondition": "incident_commander, backup_recovery, and security_reviewer sessions exist.",
+      "action": "Attempt incident creation/management/recovery verification/postmortem, backup recording, alert acknowledgement, and rollback proposal from every scoped role.",
+      "expected": [
+        "incident_commander can create/manage incidents, complete postmortems, and acknowledge alerts, but cannot verify recovery.",
+        "backup_recovery can independently verify recovery, record backup evidence, and propose rollback, but cannot manage or close the postmortem.",
+        "security_reviewer can acknowledge alerts and independently verify backup, restore, and rollback evidence, but cannot create those records.",
+        "All cross-domain actions fail with permission_required."
+      ],
+      "localEvidence": "apps/monitor/server/rbac.test.ts"
+    },
+    {
+      "id": "MON-INCIDENT-LIFECYCLE-001",
+      "dependencyOwner": "13-monitor",
+      "precondition": "A critical incident is open with direct source evidence and scoped Incident Commander and Backup/Recovery sessions.",
+      "action": "Attempt a skipped transition, then progress through assignment, acknowledgement, investigation, mitigation, recovery verification, resolution, postmortem, restart, and evidence export.",
+      "expected": [
+        "Skipped or out-of-order transitions fail with invalid_incident_transition and preserve state.",
+        "Repeated target-state actions are idempotent and do not duplicate audit or timeline entries.",
+        "Incident Commander cannot self-verify recovery.",
+        "Backup/Recovery cannot verify recovery without direct evidence.",
+        "Postmortem cannot complete before recovery is independently verified.",
+        "The lifecycle survives restart inside the integrity-protected state envelope.",
+        "Authenticated export returns ynx.monitor.incident-export.v1 with the complete timeline and postmortem."
+      ],
+      "localEvidence": "apps/monitor/server/incident-lifecycle.test.ts"
+    },
+    {
+      "id": "MON-STATE-TAMPER-001",
+      "dependencyOwner": "30-security-sre-release",
+      "precondition": "A version-2 Monitor state envelope has been persisted.",
+      "action": "Modify persisted state without recomputing its integrity digest and restart Monitor.",
+      "expected": [
+        "Startup fails closed with monitor state integrity check failed.",
+        "No tampered incident, alert, backup, rollback, or audit record is loaded."
+      ],
+      "localEvidence": "apps/monitor/server/store.test.ts"
+    },
+    {
+      "id": "MON-CHAIN-STALE-001",
+      "dependencyOwner": "01-chain-core",
+      "precondition": "Chain telemetry adapter has a previously healthy observation.",
+      "action": "Make finality or validator telemetry unavailable beyond its accepted freshness window.",
+      "expected": [
+        "Monitor marks the dependency unavailable or stale, never healthy.",
+        "The prior value is not presented as current.",
+        "A source-labelled alert and evidence reference are persisted."
+      ],
+      "localEvidence": null
+    },
+    {
+      "id": "MON-ORACLE-DIVERGENCE-001",
+      "dependencyOwner": "19-oracle-market-data",
+      "precondition": "Oracle reports source, version, asOf, confidence, stale, and divergence state.",
+      "action": "Inject stale or divergent market-data status.",
+      "expected": [
+        "Monitor preserves the Oracle owner state and does not recompute price truth.",
+        "A stale or divergence alert is raised with the original source metadata.",
+        "No healthy status is inferred from HTTP success alone."
+      ],
+      "localEvidence": null
+    },
+    {
+      "id": "MON-QUANT-KILL-001",
+      "dependencyOwner": "08-quant-lab",
+      "precondition": "A bounded Testnet strategy has an active mandate and risk telemetry.",
+      "action": "Trigger a daily-loss or drawdown breach and execute the owner-approved kill switch.",
+      "expected": [
+        "Monitor observes the risk breach, kill request, execution result, mandate state, and reconciliation result.",
+        "Monitor cannot change the mandate, resume the strategy, or move assets.",
+        "Resume requires a new owner review."
+      ],
+      "localEvidence": null
+    },
+    {
+      "id": "MON-BACKUP-RESTORE-001",
+      "dependencyOwner": "30-security-sre-release",
+      "precondition": "A backup artifact, hash, retention class, RPO, and RTO are registered.",
+      "action": "Restore into an isolated environment and verify application state and integrity.",
+      "expected": [
+        "Restore result records artifact hash, independent verifier, start/end, observed RPO/RTO, integrity/application checks, and failure details.",
+        "A successful verification requires a previously verified backup plus direct review evidence.",
+        "Monitor records evidence only and does not claim or execute a backup or restore.",
+        "Malformed, premature, incomplete, and same-actor verification attempts fail closed."
+      ],
+      "localEvidence": "apps/monitor/server/recovery-lifecycle.test.ts"
+    },
+    {
+      "id": "MON-ROLLBACK-BOUNDARY-001",
+      "dependencyOwner": "30-security-sre-release",
+      "precondition": "Candidate and previous release manifests are available.",
+      "action": "Submit an explicitly approved rollback proposal from backup_recovery.",
+      "expected": [
+        "Monitor stores approved-not-executed with candidate, previous release, reason, and dry-run evidence.",
+        "A different Security Reviewer must independently verify the proposal before it becomes verified-not-executed.",
+        "Missing manifests, dry-run evidence, review evidence, or same-actor verification fail closed.",
+        "No infrastructure command is executed by Monitor; execution remains with the central infrastructure owner."
+      ],
+      "localEvidence": "apps/monitor/server/recovery-lifecycle.test.ts"
+    },
+    {
+      "id": "MON-PUBLIC-REDACTION-001",
+      "dependencyOwner": "28-website",
+      "precondition": "Private operator state contains topology, audit actors, evidence paths, and internal errors.",
+      "action": "Project the same incident to the public status surface.",
+      "expected": [
+        "Public output contains only approved status, severity, affected public services, timeline, and public message.",
+        "No username, internal path, secret, private evidence URL, stack, or infrastructure topology is exposed."
+      ],
+      "localEvidence": null
+    }
+  ],
+  "lastUpdated": "2026-07-27"
+}

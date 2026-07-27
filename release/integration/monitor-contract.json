@@ -1,0 +1,237 @@
+{
+  "schemaVersion": "ynx.monitor.integration.v1",
+  "contractStatus": "candidate",
+  "owner": "13-monitor",
+  "product": "YNX Monitor",
+  "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "environment": "testnet"
+  },
+  "authorityBoundary": {
+    "owns": [
+      "monitor role-to-permission mapping",
+      "private operations workspace",
+      "public status projection",
+      "alert and incident operational records",
+      "backup and rollback evidence records"
+    ],
+    "doesNotOwn": [
+      "Wallet identity or signature verification",
+      "chain finality",
+      "Oracle price facts",
+      "Quant strategy execution",
+      "asset custody or transfer",
+      "infrastructure rollback execution",
+      "public website deployment"
+    ]
+  },
+  "auth": {
+    "sessionTtlSeconds": 3600,
+    "walletChallengeTtlSeconds": 300,
+    "walletVerifierOwner": "02-wallet-auth",
+    "roles": [
+      "viewer",
+      "operator",
+      "incident_commander",
+      "backup_recovery",
+      "security_reviewer"
+    ],
+    "permissions": {
+      "viewer": [],
+      "operator": [
+        "incident:create",
+        "incident:manage",
+        "incident:recovery_verify",
+        "incident:postmortem",
+        "alert:acknowledge",
+        "backup:record",
+        "backup:verify",
+        "rollback:propose",
+        "rollback:verify"
+      ],
+      "incident_commander": [
+        "incident:create",
+        "incident:manage",
+        "incident:postmortem",
+        "alert:acknowledge"
+      ],
+      "backup_recovery": [
+        "incident:recovery_verify",
+        "backup:record",
+        "rollback:propose"
+      ],
+      "security_reviewer": [
+        "alert:acknowledge",
+        "backup:verify",
+        "rollback:verify"
+      ]
+    },
+    "migration": {
+      "operator": "Transitional broad compatibility role. New assignments should use scoped roles.",
+      "removalGate": "Remove only after deployed role assignments and rollback evidence confirm no operator-only dependency."
+    }
+  },
+  "health": {
+    "path": "/health",
+    "scope": "monitor-control-plane-process",
+    "semantics": "Process and state-store readiness only; it does not imply ecosystem dependency health."
+  },
+  "version": {
+    "path": "/version",
+    "schemaVersion": "ynx.monitor.version.v1",
+    "commitSemantics": "null until YNX_MONITOR_SOURCE_COMMIT is bound",
+    "releaseSemantics": "null until YNX_MONITOR_RELEASE is bound"
+  },
+  "incidentLifecycle": {
+    "schemaVersion": 1,
+    "states": [
+      "open",
+      "acknowledged",
+      "investigating",
+      "mitigated",
+      "recovery_verifying",
+      "resolved",
+      "postmortem_complete"
+    ],
+    "actions": {
+      "acknowledge": { "from": ["open"], "to": "acknowledged", "permission": "incident:manage" },
+      "investigate": { "from": ["acknowledged"], "to": "investigating", "permission": "incident:manage" },
+      "mitigate": { "from": ["investigating"], "to": "mitigated", "permission": "incident:manage" },
+      "begin_recovery": { "from": ["mitigated"], "to": "recovery_verifying", "permission": "incident:manage" },
+      "verify_recovery": { "from": ["recovery_verifying"], "to": "resolved", "permission": "incident:recovery_verify", "evidenceRequired": true },
+      "complete_postmortem": { "from": ["resolved"], "to": "postmortem_complete", "permission": "incident:postmortem", "evidenceRequired": true },
+      "reopen": { "from": ["resolved", "postmortem_complete"], "to": "investigating", "permission": "incident:manage" }
+    },
+    "idempotency": "Repeating an action after its target state returns changed=false without duplicating audit or timeline entries.",
+    "persistence": "Versioned incident state is stored inside the HMAC-protected Monitor state envelope.",
+    "exportSchema": "ynx.monitor.incident-export.v1"
+  },
+  "api": [
+    { "method": "GET", "path": "/health", "auth": "none", "result": "truthful process and state readiness" },
+    { "method": "GET", "path": "/version", "auth": "none", "result": "service, contract, commit, release, and start identity" },
+    { "method": "POST", "path": "/ops/login", "auth": "none", "result": "short authenticated session plus explicit permissions" },
+    { "method": "POST", "path": "/ops/wallet/challenges", "auth": "none", "result": "one-time YNX Monitor wallet challenge" },
+    { "method": "POST", "path": "/ops/wallet/sessions", "auth": "central Wallet/Auth verification", "result": "short product-scoped session plus explicit permissions" },
+    { "method": "GET", "path": "/ops/me", "auth": "session", "result": "principal and permissions" },
+    { "method": "GET", "path": "/ops/overview", "auth": "session", "result": "bounded current probes, alerts, incidents, backup records, and rollback proposals" },
+    { "method": "GET", "path": "/ops/audit", "auth": "session", "result": "append-first bounded audit records" },
+    { "method": "GET", "path": "/ops/logs", "auth": "session", "result": "allowlisted bounded redacted log tail" },
+    { "method": "POST", "path": "/ops/incidents", "auth": "incident:create", "result": "versioned incident with source evidence and opening timeline entry" },
+    { "method": "POST", "path": "/ops/incidents/{id}/assign", "auth": "incident:manage", "result": "owner assignment and timeline/audit evidence" },
+    { "method": "POST", "path": "/ops/incidents/{id}/notes", "auth": "incident:manage", "result": "append-first incident note and evidence" },
+    { "method": "POST", "path": "/ops/incidents/{id}/actions/{action}", "auth": "action-specific permission", "result": "ordered fail-closed transition or explicit rejection" },
+    { "method": "POST", "path": "/ops/incidents/{id}/postmortem", "auth": "incident:postmortem", "result": "postmortem only after independently verified recovery" },
+    { "method": "GET", "path": "/ops/incidents/{id}/export", "auth": "session", "result": "no-store authenticated JSON evidence export" },
+    { "method": "POST", "path": "/ops/alerts/{id}/acknowledge", "auth": "alert:acknowledge plus exact approval phrase", "result": "acknowledged alert and audit event" },
+    { "method": "POST", "path": "/ops/backups", "auth": "backup:record", "result": "typed artifact identity, SHA-256, bytes, retention, storage, encryption, RPO/RTO, and evidence; no backup execution claim" },
+    { "method": "POST", "path": "/ops/backups/{id}/verify", "auth": "backup:verify and independent actor", "result": "final digest/accessibility verification with evidence" },
+    { "method": "POST", "path": "/ops/restore-drills", "auth": "backup:record", "result": "reported restore result, observed RPO/RTO, integrity/application checks, and evidence" },
+    { "method": "POST", "path": "/ops/restore-drills/{id}/verify", "auth": "backup:verify and independent actor", "result": "accepted or rejected restore evidence; accepted results require a verified backup" },
+    { "method": "POST", "path": "/ops/backup-records", "auth": "backup:record", "result": "legacy evidence-only compatibility record; no backup execution claim" },
+    { "method": "POST", "path": "/ops/rollback-proposals", "auth": "rollback:propose plus exact approval phrase", "result": "candidate/previous release and dry-run evidence recorded as approved-not-executed" },
+    { "method": "POST", "path": "/ops/rollback-proposals/{id}/verify", "auth": "rollback:verify and independent actor", "result": "verified-not-executed or rejected-not-executed evidence" },
+    { "method": "POST", "path": "/ops/incidents/{id}/ai", "auth": "session", "result": "advisory-only evidence summary or truthful provider failure" }
+  ],
+  "canonicalAuditActions": [
+    "session.login",
+    "session.wallet_login",
+    "logs.read",
+    "incident.create",
+    "incident.assign",
+    "incident.note",
+    "incident.transition",
+    "incident.postmortem",
+    "alert.acknowledge",
+    "backup.register",
+    "backup.verify",
+    "restore.report",
+    "restore.verify",
+    "backup.record",
+    "rollback.propose",
+    "rollback.verify",
+    "incident.ai_summary"
+  ],
+  "errors": [
+    "authentication_required",
+    "invalid_credentials",
+    "wallet_gateway_not_configured",
+    "signed_challenge_required",
+    "challenge_invalid_expired_or_replayed",
+    "wallet_not_authorized",
+    "wallet_signature_rejected",
+    "permission_required",
+    "explicit_operator_approval_required",
+    "invalid_incident",
+    "incident_owner_required",
+    "incident_note_required",
+    "unsupported_incident_action",
+    "incident_transition_summary_required",
+    "invalid_incident_transition",
+    "recovery_evidence_required",
+    "complete_postmortem_required",
+    "incident_not_found",
+    "alert_not_found",
+    "invalid_backup_record",
+    "invalid_backup_verification",
+    "backup_not_found",
+    "backup_verification_evidence_required",
+    "backup_verification_already_final",
+    "independent_backup_verifier_required",
+    "invalid_restore_drill",
+    "restore_pass_evidence_required",
+    "restore_failure_reason_required",
+    "invalid_restore_verification",
+    "restore_drill_not_found",
+    "restore_verification_evidence_required",
+    "restore_verification_already_final",
+    "independent_restore_verifier_required",
+    "backup_not_verified",
+    "backup_evidence_required",
+    "release_and_reason_required",
+    "invalid_rollback_verification",
+    "rollback_proposal_not_found",
+    "rollback_verification_evidence_required",
+    "rollback_verification_already_final",
+    "independent_rollback_verifier_required",
+    "ai_gateway_not_configured",
+    "log_source_not_allowed",
+    "log_source_unavailable",
+    "not_found"
+  ],
+  "state": {
+    "envelopeVersion": 2,
+    "incidentSchemaVersion": 1,
+    "backupSchemaVersion": 1,
+    "restoreDrillSchemaVersion": 1,
+    "rollbackProposalSchemaVersion": 1,
+    "integrity": "HMAC-SHA256",
+    "writeMode": "atomic temporary-file replacement",
+    "tamperSemantics": "fail closed during load",
+    "legacyIncidentMigration": "normalize after integrity verification, then re-sign the migrated envelope"
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "dependencies": [
+    { "owner": "02-wallet-auth", "requiredContract": "wallet challenge verification and role-bound product session" },
+    { "owner": "01-chain-core", "requiredContract": "node, validator, peer, finality, state-sync, and execution telemetry" },
+    { "owner": "08-quant-lab", "requiredContract": "read-only strategy, risk, mandate, cost, PnL, and reconciliation telemetry" },
+    { "owner": "17-tokenomics", "requiredContract": "read-only solvency, treasury, staking, safety, reserve, revenue, and burn telemetry" },
+    { "owner": "19-oracle-market-data", "requiredContract": "source/version/asOf/confidence/stale market-data facts" },
+    { "owner": "26-data-fabric", "requiredContract": "canonical event and billing telemetry" },
+    { "owner": "29-integration", "requiredContract": "contract freeze, shared testnet endpoints, and public proof acceptance" },
+    { "owner": "30-security-sre-release", "requiredContract": "release, artifact, backup, rollback, and security evidence" }
+  ],
+  "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "lastUpdated": "2026-07-27"
+}

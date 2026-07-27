@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "ynx.product-release.v1",
+  "product": {
+    "number": 13,
+    "name": "YNX Monitor",
+    "slug": "monitor",
+    "owner": "13-monitor"
+  },
+  "goalState": "active",
+  "phase": "PROTECT",
+  "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
+  "releaseCandidate": null,
+  "status": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "verifiedLocal": {
+    "rbac": {
+      "roles": [
+        "viewer",
+        "operator",
+        "incident_commander",
+        "backup_recovery",
+        "security_reviewer"
+      ],
+      "permissions": [
+        "incident:create",
+        "incident:manage",
+        "incident:recovery_verify",
+        "incident:postmortem",
+        "alert:acknowledge",
+        "backup:record",
+        "backup:verify",
+        "rollback:propose",
+        "rollback:verify"
+      ],
+      "compatibilityNote": "operator remains a transitional broad role; new assignments should use scoped roles"
+    },
+    "incidentLifecycle": {
+      "schemaVersion": 1,
+      "states": [
+        "open",
+        "acknowledged",
+        "investigating",
+        "mitigated",
+        "recovery_verifying",
+        "resolved",
+        "postmortem_complete"
+      ],
+      "boundaries": [
+        "ordered fail-closed transitions",
+        "independent Backup/Recovery verification",
+        "append-first audit and timeline",
+        "restart persistence with HMAC integrity",
+        "authenticated JSON evidence export",
+        "capability-gated responsive UI"
+      ]
+    },
+    "backupRestoreRollback": {
+      "schemaVersion": 1,
+      "boundaries": [
+        "typed backup artifact identity, SHA-256, bytes, retention, storage, encryption, and RPO/RTO",
+        "reported restore drills include observed RPO/RTO plus integrity and application checks",
+        "Security Reviewer verification is independent from the registering or reporting actor",
+        "accepted restore evidence requires a previously verified backup",
+        "rollback proposals bind candidate, previous release, and dry-run evidence",
+        "Monitor records proposals and verification but never executes backup, restore, or rollback"
+      ],
+      "compatibility": "The evidence-only /ops/backup-records route remains available for old clients and is not treated as a verified backup artifact."
+    },
+    "tests": {
+      "command": "cd apps/monitor && npm test",
+      "result": "passed",
+      "tests": 17,
+      "failed": 0,
+      "date": "2026-07-27"
+    },
+    "build": {
+      "command": "cd apps/monitor && npm run build",
+      "result": "passed",
+      "toolchain": "TypeScript project build plus Vite production build",
+      "date": "2026-07-27"
+    },
+    "securityGate": {
+      "dependencyAudit": {
+        "command": "cd apps/monitor && npm audit --omit=dev --audit-level=high",
+        "result": "passed",
+        "vulnerabilities": 0,
+        "date": "2026-07-27"
+      },
+      "placeholderScan": {
+        "result": "passed",
+        "terms": ["TODO", "FIXME", "Coming soon", "example.com"]
+      }
+    },
+    "browserE2E": {
+      "managedHarnessBaseline": {
+        "result": "passed",
+        "tests": 6,
+        "scope": "pre-lifecycle desktop/mobile authentication, responsive, PWA, RTL, and cache-boundary suite"
+      },
+      "currentLifecycleSuite": {
+        "result": "passed",
+        "tests": 8,
+        "scope": "managed desktop/mobile authentication, responsive, PWA, RTL, cache-boundary, and incident lifecycle suite",
+        "staleProcessRecovery": "Two abandoned managed-harness listeners on ports 24675 and 24674 were identified and terminated before the successful isolated rerun",
+        "date": "2026-07-27"
+      }
+    }
+  },
+  "artifacts": [],
+  "publicEvidence": [],
+  "testnetEvidence": [],
+  "contracts": [
+    "release/integration/monitor-contract.json"
+  ],
+  "handoff": "docs/integration/INTEGRATION_HANDOFF.md",
+  "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+  "coverageMatrix": ".ai-bridge/full-goal-coverage.json",
+  "blockers": [
+    "The current implementation and evidence are not yet bound to protected source commits or a verified remote final branch.",
+    "Central owner contracts and shared Testnet endpoints are not yet accepted.",
+    "Public status, hosted artifacts, public deployment, and install/cold-start evidence are absent.",
+    "Typed recovery operator UI, incident correlation/escalation, origin/CSRF enforcement, and broad ecosystem telemetry remain incomplete."
+  ],
+  "nextAction": "Create an implementation checkpoint, bind evidence to its exact source commit, push codex/final-monitor with upstream, and verify local/remote SHA equality before the next security or public-status slice.",
+  "lastUpdated": "2026-07-27"
+}
