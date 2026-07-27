@@ -261,6 +261,7 @@ tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-app-gatewayd" || {
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-app-gatewayd.env" || { echo "release tarball missing App Gateway env"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-app-gatewayd.service" || { echo "release tarball missing App Gateway systemd unit"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./wallet-auth/scripts/ynx-wallet-gatewayd.mjs" || { echo "release tarball missing Wallet Gateway runtime"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./wallet-auth/node_modules/@noble/hashes/package.json" || { echo "release tarball missing Wallet Gateway runtime dependencies"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-wallet-gatewayd.env" || { echo "release tarball missing Wallet Gateway env"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-wallet-gatewayd.service" || { echo "release tarball missing Wallet Gateway systemd unit"; exit 1; }
 [[ "$(stat -f '%Lp' "$release_dir/wallet-auth/src/gateway-http.js" 2>/dev/null || stat -c '%a' "$release_dir/wallet-auth/src/gateway-http.js")" == "644" ]] || { echo "Wallet Gateway runtime source is not world-readable"; exit 1; }

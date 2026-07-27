@@ -140,7 +140,8 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldfl
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-app-gatewayd" ./cmd/ynx-app-gatewayd
 cp -R packages/wallet-auth/src "$work/wallet-auth/src"
 cp -R packages/wallet-auth/scripts "$work/wallet-auth/scripts"
-cp packages/wallet-auth/central-registry.json packages/wallet-auth/package.json "$work/wallet-auth/"
+cp packages/wallet-auth/central-registry.json packages/wallet-auth/package.json packages/wallet-auth/package-lock.json "$work/wallet-auth/"
+npm ci --omit=dev --ignore-scripts --prefix "$work/wallet-auth"
 find "$work/wallet-auth" -type d -exec chmod 0755 {} +
 find "$work/wallet-auth" -type f -exec chmod 0644 {} +
 chmod 0755 "$work/wallet-auth/scripts/ynx-wallet-gatewayd.mjs"
