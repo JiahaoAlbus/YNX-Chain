@@ -135,8 +135,329 @@ func TestEthereumAccessListTransferCanonicalEIP2930RoundTripAndBoundaries(t *tes
 			}
 		})
 	}
-	if _, err := TransactionEnvelopeType([]byte{0x02, 0xc0}); err == nil || !strings.Contains(err.Error(), "unsupported typed") {
-		t.Fatalf("EIP-1559 typed envelope was not rejected: %v", err)
+	if _, err := TransactionEnvelopeType([]byte{0x03, 0xc0}); err == nil || !strings.Contains(err.Error(), "unsupported typed") {
+		t.Fatalf("unsupported typed envelope was not rejected: %v", err)
+	}
+}
+
+func TestEthereumDynamicFeeTransferPriorityBelowCapRoundTrip(t *testing.T) {
+	senderKey := deterministicPrivateKey(7)
+	recipient := mustNativeAddress(t, deterministicPrivateKey(8))
+	payload, tx, err := NewEthereumDynamicFeeTransfer(senderKey, 6423, 0, 3, 5, recipient, 77)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(payload) < 2 || payload[0] != EthereumDynamicFeeType {
+		t.Fatalf("unexpected EIP-1559 envelope: %x", payload)
+	}
+	if tx.From != mustNativeAddress(t, senderKey) || tx.To != recipient || tx.Nonce != 0 || tx.MaxPriorityFeePerGas != 3 || tx.MaxFeePerGas != 5 || tx.EffectiveGasPrice != 3 || tx.GasLimit != EthereumTransferGasLimit || tx.Value != 77 || tx.Fee != 63_000 || tx.YParity > 1 {
+		t.Fatalf("unexpected bounded EIP-1559 transfer: %+v", tx)
+	}
+	kind, err := TransactionEnvelopeType(payload)
+	if err != nil || kind != EthereumDynamicFeeTransferType {
+		t.Fatalf("EIP-1559 envelope was not detected: kind=%q err=%v", kind, err)
+	}
+	decoded, err := DecodeEthereumDynamicFeeTransaction(payload)
+	if err != nil || decoded.Hash != tx.Hash || decoded.From != tx.From || decoded.To != tx.To {
+		t.Fatalf("EIP-1559 transaction did not round trip: decoded=%+v err=%v", decoded, err)
+	}
+	generic, err := DecodeEthereumValueTransfer(payload)
+	if err != nil || generic.EnvelopeType != EthereumDynamicFeeTransferType || generic.TransactionType != EthereumDynamicFeeType || generic.GasPrice != 3 || generic.MaxPriorityFeePerGas != 3 || generic.MaxFeePerGas != 5 || generic.BaseFeePerGas != 0 || generic.Hash != tx.Hash {
+		t.Fatalf("EIP-1559 generic transfer mapping failed: generic=%+v err=%v", generic, err)
+	}
+	if err := decoded.Verify(6423); err != nil {
+		t.Fatal(err)
+	}
+	if err := decoded.Verify(1); err == nil {
+		t.Fatal("EIP-1559 transaction was replayable on another chain")
+	}
+	if _, _, err := NewEthereumDynamicFeeTransfer(senderKey, 6423, 0, 0, 5, recipient, 1); err == nil {
+		t.Fatal("zero priority fee was accepted")
+	}
+	if _, _, err := NewEthereumDynamicFeeTransfer(senderKey, 6423, 0, 6, 5, recipient, 1); err == nil {
+		t.Fatal("priority fee above max fee was accepted")
+	}
+	fields, err := decodeCanonicalRLPFields(payload[1:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	rebuild := func(index int, replacement []byte) []byte {
+		items := make([][]byte, len(fields))
+		for i, field := range fields {
+			if field.isList {
+				items[i] = encodeRLPList()
+			} else {
+				items[i] = encodeRLPBytes(field.content)
+			}
+		}
+		items[index] = replacement
+		return append([]byte{EthereumDynamicFeeType}, encodeRLPList(items...)...)
+	}
+	tests := []struct {
+		name    string
+		payload []byte
+		want    string
+	}{
+		{name: "non-empty access list", payload: rebuild(8, encodeRLPList(encodeRLPBytes([]byte{1}))), want: "non-empty"},
+		{name: "access list not list", payload: rebuild(8, encodeRLPBytes(nil)), want: "must be an RLP list"},
+		{name: "priority above max", payload: rebuild(2, encodeRLPUint(6)), want: "maxPriorityFeePerGas"},
+		{name: "contract creation", payload: rebuild(5, encodeRLPBytes(nil)), want: "contract creation"},
+		{name: "calldata", payload: rebuild(7, encodeRLPBytes([]byte{1})), want: "calldata"},
+		{name: "wrong gas", payload: rebuild(4, encodeRLPUint(EthereumTransferGasLimit+1)), want: "gas limit"},
+		{name: "bad y parity", payload: rebuild(9, encodeRLPUint(2)), want: "y parity"},
+		{name: "trailing data", payload: append(append([]byte(nil), payload...), 0), want: "top-level"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := DecodeEthereumDynamicFeeTransaction(test.payload)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("expected %q rejection, got %v", test.want, err)
+			}
+		})
+	}
+}
+
+func TestApplicationExecutesEthereumDynamicFeeTransferPriorityBelowCap(t *testing.T) {
+	senderKey := deterministicPrivateKey(35)
+	sender := mustNativeAddress(t, senderKey)
+	recipient := mustNativeAddress(t, deterministicPrivateKey(36))
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := devnet.Faucet(sender, 200_000); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	migration, err := devnet.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	app, err := NewApplication(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, tx, err := NewEthereumDynamicFeeTransfer(senderKey, migration.Network.ChainID, 0, 3, 5, recipient, 125)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	check, err := app.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: payload})
+	if err != nil || check.Code != abcitypes.CodeTypeOK || string(check.Data) != tx.Hash || check.GasWanted != int64(EthereumTransferGasLimit) || check.GasUsed != int64(EthereumTransferGasLimit) || check.Info != EthereumDynamicFeeTransferType {
+		t.Fatalf("valid EIP-1559 transfer failed CheckTx: response=%+v err=%v", check, err)
+	}
+	height := int64(migration.Height) + 1
+	blockTime := time.Date(2026, 7, 27, 11, 10, 0, 0, time.UTC)
+	finalized, err := app.FinalizeBlock(ctx, &abcitypes.RequestFinalizeBlock{Height: height, Time: blockTime, Txs: [][]byte{payload}})
+	if err != nil || len(finalized.TxResults) != 1 || finalized.TxResults[0].Code != abcitypes.CodeTypeOK || string(finalized.TxResults[0].Data) != tx.Hash || finalized.TxResults[0].GasUsed != int64(EthereumTransferGasLimit) {
+		t.Fatalf("EIP-1559 transfer finalization failed: response=%+v err=%v", finalized, err)
+	}
+	if _, err := app.Commit(ctx, &abcitypes.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	assertConsensusAccount(t, app, sender, 136_875, 1)
+	assertConsensusAccount(t, app, recipient, 125, 0)
+	if len(app.committed.FeeEvents) != 1 || app.committed.FeeEvents[0].TxHash != tx.Hash || app.committed.FeeEvents[0].TransactionType != EthereumDynamicFeeTransferType || app.committed.FeeEvents[0].GrossFeeYNXT != 63_000 || app.committed.FeeEvents[0].Source != EthereumDynamicFeeGasFeeSource {
+		t.Fatalf("EIP-1559 gas fee was not committed truthfully: %+v", app.committed.FeeEvents)
+	}
+	response, err := app.Query(ctx, &abcitypes.RequestQuery{Path: "/evm/receipts/" + tx.Hash})
+	if err != nil || response.Code != abcitypes.CodeTypeOK {
+		t.Fatalf("EIP-1559 committed receipt query failed: response=%+v err=%v", response, err)
+	}
+	var receipt BFTEVMReceipt
+	if err := json.Unmarshal(response.Value, &receipt); err != nil || receipt.TxHash != tx.Hash || receipt.Action != EthereumDynamicFeeTransferType || receipt.AuditHash != bftEVMReceiptAuditHash(receipt) {
+		t.Fatalf("EIP-1559 committed receipt mismatch: receipt=%+v err=%v", receipt, err)
+	}
+	replay, err := app.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: payload})
+	if err != nil || replay.Code != CodeInvalidNonce {
+		t.Fatalf("EIP-1559 replay was not rejected: response=%+v err=%v", replay, err)
+	}
+	wrongChain, _, err := NewEthereumDynamicFeeTransfer(senderKey, 1, 1, 1, 2, recipient, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrongChainResult, err := app.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: wrongChain})
+	if err != nil || wrongChainResult.Code != CodeInvalidTx {
+		t.Fatalf("wrong-chain EIP-1559 transfer was not rejected: response=%+v err=%v", wrongChainResult, err)
+	}
+}
+
+func TestEthereumDynamicFeeTransferCanonicalEIP1559RoundTripAndBoundaries(t *testing.T) {
+	senderKey := deterministicPrivateKey(7)
+	recipient := mustNativeAddress(t, deterministicPrivateKey(8))
+	payload, tx, err := NewEthereumDynamicFeeTransfer(senderKey, 6423, 0, 2, 5, recipient, 77)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(payload) < 2 || payload[0] != EthereumDynamicFeeType {
+		t.Fatalf("unexpected EIP-1559 envelope: %x", payload)
+	}
+	if tx.From != mustNativeAddress(t, senderKey) || tx.To != recipient || tx.Nonce != 0 || tx.MaxPriorityFeePerGas != 2 || tx.MaxFeePerGas != 5 || tx.EffectiveGasPrice != 2 || tx.GasLimit != EthereumTransferGasLimit || tx.Value != 77 || tx.Fee != 42_000 || tx.YParity > 1 {
+		t.Fatalf("unexpected bounded EIP-1559 transfer: %+v", tx)
+	}
+	if tx.Hash != EthereumTransactionHash(payload) || len(tx.Hash) != 66 {
+		t.Fatalf("unexpected EIP-1559 transaction hash: %+v", tx)
+	}
+	kind, err := TransactionEnvelopeType(payload)
+	if err != nil || kind != EthereumDynamicFeeTransferType {
+		t.Fatalf("EIP-1559 envelope was not detected: kind=%q err=%v", kind, err)
+	}
+	decoded, err := DecodeEthereumDynamicFeeTransaction(payload)
+	if err != nil || decoded.Hash != tx.Hash || decoded.From != tx.From || decoded.To != tx.To {
+		t.Fatalf("EIP-1559 transaction did not round trip: decoded=%+v err=%v", decoded, err)
+	}
+	generic, err := DecodeEthereumValueTransfer(payload)
+	if err != nil || generic.EnvelopeType != EthereumDynamicFeeTransferType || generic.TransactionType != EthereumDynamicFeeType || generic.Hash != tx.Hash || generic.GasPrice != 2 || generic.MaxPriorityFeePerGas != 2 || generic.MaxFeePerGas != 5 || generic.BaseFeePerGas != 0 {
+		t.Fatalf("EIP-1559 generic transfer mapping failed: generic=%+v err=%v", generic, err)
+	}
+	if maximumFee, err := generic.MaximumGasFee(); err != nil || maximumFee != 105_000 {
+		t.Fatalf("unexpected EIP-1559 maximum fee exposure: fee=%d err=%v", maximumFee, err)
+	}
+	if err := decoded.Verify(6423); err != nil {
+		t.Fatal(err)
+	}
+	if err := decoded.Verify(1); err == nil {
+		t.Fatal("EIP-1559 transaction was replayable on another chain")
+	}
+	tamperedFee := generic
+	tamperedFee.Fee++
+	if err := tamperedFee.Verify(6423); err == nil || !strings.Contains(err.Error(), "fee does not match") {
+		t.Fatalf("tampered EIP-1559 effective fee was accepted: %v", err)
+	}
+	tamperedCap := generic
+	tamperedCap.MaxFeePerGas = 1
+	if err := tamperedCap.Verify(6423); err == nil || !strings.Contains(err.Error(), "zero-base-fee") {
+		t.Fatalf("tampered EIP-1559 fee cap was accepted: %v", err)
+	}
+	tamperedBaseFee := generic
+	tamperedBaseFee.BaseFeePerGas = 1
+	if err := tamperedBaseFee.Verify(6423); err == nil || !strings.Contains(err.Error(), "zero-base-fee") {
+		t.Fatalf("non-zero EIP-1559 compatibility base fee was accepted: %v", err)
+	}
+	fields, err := decodeCanonicalRLPFields(payload[1:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	rebuild := func(index int, replacement []byte) []byte {
+		items := make([][]byte, len(fields))
+		for i, field := range fields {
+			if field.isList {
+				items[i] = encodeRLPList()
+			} else {
+				items[i] = encodeRLPBytes(field.content)
+			}
+		}
+		items[index] = replacement
+		return append([]byte{EthereumDynamicFeeType}, encodeRLPList(items...)...)
+	}
+	overflowPrice := uint64(math.MaxInt64)/EthereumTransferGasLimit + 1
+	tests := []struct {
+		name    string
+		payload []byte
+		want    string
+	}{
+		{name: "non-empty access list", payload: rebuild(8, encodeRLPList(encodeRLPBytes([]byte{1}))), want: "non-empty"},
+		{name: "access list not list", payload: rebuild(8, encodeRLPBytes(nil)), want: "must be an RLP list"},
+		{name: "contract creation", payload: rebuild(5, encodeRLPBytes(nil)), want: "contract creation"},
+		{name: "calldata", payload: rebuild(7, encodeRLPBytes([]byte{1})), want: "calldata"},
+		{name: "wrong gas", payload: rebuild(4, encodeRLPUint(EthereumTransferGasLimit+1)), want: "gas limit"},
+		{name: "zero priority", payload: rebuild(2, encodeRLPUint(0)), want: "dynamic fee requires"},
+		{name: "priority above cap", payload: rebuild(2, encodeRLPUint(6)), want: "dynamic fee requires"},
+		{name: "overflowing cap", payload: rebuild(3, encodeRLPUint(overflowPrice)), want: "bounded exposure"},
+		{name: "bad y parity", payload: rebuild(9, encodeRLPUint(2)), want: "y parity"},
+		{name: "trailing data", payload: append(append([]byte(nil), payload...), 0), want: "top-level"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := DecodeEthereumDynamicFeeTransaction(test.payload)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("expected %q rejection, got %v", test.want, err)
+			}
+		})
+	}
+	if _, _, err := NewEthereumDynamicFeeTransfer(senderKey, 6423, 0, 1, overflowPrice, recipient, 1); err == nil {
+		t.Fatal("overflowing EIP-1559 maximum fee cap was accepted")
+	}
+}
+
+func TestApplicationExecutesEthereumDynamicFeeTransferAndRejectsReplay(t *testing.T) {
+	senderKey := deterministicPrivateKey(35)
+	sender := mustNativeAddress(t, senderKey)
+	recipient := mustNativeAddress(t, deterministicPrivateKey(36))
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := devnet.Faucet(sender, 200_000); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	migration, err := devnet.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	app, err := NewApplication(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, tx, err := NewEthereumDynamicFeeTransfer(senderKey, migration.Network.ChainID, 0, 2, 5, recipient, 125)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	check, err := app.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: payload})
+	if err != nil || check.Code != abcitypes.CodeTypeOK || string(check.Data) != tx.Hash || check.GasWanted != int64(EthereumTransferGasLimit) || check.GasUsed != int64(EthereumTransferGasLimit) || check.Info != EthereumDynamicFeeTransferType {
+		t.Fatalf("valid EIP-1559 transfer failed CheckTx: response=%+v err=%v", check, err)
+	}
+	height := int64(migration.Height) + 1
+	blockTime := time.Date(2026, 7, 27, 12, 0, 0, 0, time.UTC)
+	finalized, err := app.FinalizeBlock(ctx, &abcitypes.RequestFinalizeBlock{Height: height, Time: blockTime, Txs: [][]byte{payload}})
+	if err != nil || len(finalized.TxResults) != 1 || finalized.TxResults[0].Code != abcitypes.CodeTypeOK || string(finalized.TxResults[0].Data) != tx.Hash || finalized.TxResults[0].GasUsed != int64(EthereumTransferGasLimit) {
+		t.Fatalf("EIP-1559 transfer finalization failed: response=%+v err=%v", finalized, err)
+	}
+	if _, err := app.Commit(ctx, &abcitypes.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	assertConsensusAccount(t, app, sender, 157_875, 1)
+	assertConsensusAccount(t, app, recipient, 125, 0)
+	if len(app.committed.FeeEvents) != 1 || app.committed.FeeEvents[0].TxHash != tx.Hash || app.committed.FeeEvents[0].TransactionType != EthereumDynamicFeeTransferType || app.committed.FeeEvents[0].GrossFeeYNXT != 42_000 || app.committed.FeeEvents[0].Source != EthereumDynamicFeeGasFeeSource {
+		t.Fatalf("EIP-1559 gas fee was not committed truthfully: %+v", app.committed.FeeEvents)
+	}
+	response, err := app.Query(ctx, &abcitypes.RequestQuery{Path: "/evm/receipts/" + tx.Hash})
+	if err != nil || response.Code != abcitypes.CodeTypeOK {
+		t.Fatalf("EIP-1559 committed receipt query failed: response=%+v err=%v", response, err)
+	}
+	var receipt BFTEVMReceipt
+	if err := json.Unmarshal(response.Value, &receipt); err != nil || receipt.TxHash != tx.Hash || receipt.Action != EthereumDynamicFeeTransferType || receipt.AuditHash != bftEVMReceiptAuditHash(receipt) {
+		t.Fatalf("EIP-1559 committed receipt mismatch: receipt=%+v err=%v", receipt, err)
+	}
+	replay, err := app.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: payload})
+	if err != nil || replay.Code != CodeInvalidNonce {
+		t.Fatalf("EIP-1559 replay was not rejected: response=%+v err=%v", replay, err)
+	}
+	wrongChain, _, err := NewEthereumDynamicFeeTransfer(senderKey, 1, 1, 1, 2, recipient, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrongChainResult, err := app.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: wrongChain})
+	if err != nil || wrongChainResult.Code != CodeInvalidTx {
+		t.Fatalf("wrong-chain EIP-1559 transfer was not rejected: response=%+v err=%v", wrongChainResult, err)
+	}
+
+	capDevnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := capDevnet.Faucet(sender, 50_000); err != nil {
+		t.Fatal(err)
+	}
+	capDevnet.ProduceBlock()
+	capMigration, err := capDevnet.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	capApp, err := NewApplication(capMigration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	capPayload, _, err := NewEthereumDynamicFeeTransfer(senderKey, capMigration.Network.ChainID, 0, 1, 3, recipient, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	capResult, err := capApp.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: capPayload})
+	if err != nil || capResult.Code != CodeInsufficientYNXT {
+		t.Fatalf("EIP-1559 maximum fee exposure was not enforced up front: response=%+v err=%v", capResult, err)
 	}
 }
 

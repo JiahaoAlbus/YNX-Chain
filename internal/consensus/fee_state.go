@@ -12,6 +12,7 @@ const (
 	FixedFeeSource                 = "ynx-consensus-fixed-fee-v1"
 	EthereumLegacyGasFeeSource     = "ethereum-legacy-gas-v1"
 	EthereumAccessListGasFeeSource = "ethereum-access-list-gas-v1"
+	EthereumDynamicFeeGasFeeSource = "ethereum-dynamic-fee-zero-base-v1"
 )
 
 // BFTFeeEvent makes the current fixed-fee behavior explicit. BurnYNXT is zero
@@ -44,6 +45,8 @@ func newEthereumGasFeeEvent(txHash, txType, payer, recipient string, fee, height
 	source := EthereumLegacyGasFeeSource
 	if txType == EthereumAccessListTransferType {
 		source = EthereumAccessListGasFeeSource
+	} else if txType == EthereumDynamicFeeTransferType {
+		source = EthereumDynamicFeeGasFeeSource
 	}
 	return newFeeEvent(txHash, txType, payer, recipient, fee, source, height, blockTime)
 }

@@ -556,6 +556,7 @@ func evmCommittedBlock(evidence committedBlockEvidence, full bool, gasUsed uint6
 		"timestamp":        hexEVMQuantity(uint64(evidence.Block.Time.Unix())),
 		"miner":            "0x" + evidence.Block.Validator,
 		"stateRoot":        "0x" + evidence.AppHash,
+		"baseFeePerGas":    hexEVMQuantity(consensus.EthereumCompatibilityBaseFeePerGas),
 		"gasUsed":          hexEVMQuantity(gasUsed),
 		"transactions":     transactions,
 		"transactionCount": hexEVMQuantity(uint64(len(transactions))),
@@ -644,7 +645,7 @@ func (g *Gateway) committedEthereumTransaction(ctx context.Context, hash string)
 	if err := consensus.ValidateBFTEVMReceipt(receipt); err != nil {
 		return cometTx{}, chain.Transaction{}, false, fmt.Errorf("committed Ethereum receipt evidence is invalid: %w", err)
 	}
-	if receipt.TxHash != hash || (receipt.Action != consensus.EthereumLegacyTransferType && receipt.Action != consensus.EthereumAccessListTransferType) {
+	if receipt.TxHash != hash || (receipt.Action != consensus.EthereumLegacyTransferType && receipt.Action != consensus.EthereumAccessListTransferType && receipt.Action != consensus.EthereumDynamicFeeTransferType) {
 		return cometTx{}, chain.Transaction{}, false, errors.New("committed Ethereum receipt evidence is invalid")
 	}
 	height := uint64(receipt.BlockHeight)
@@ -726,9 +727,13 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 		result["v"] = hexEVMQuantity(ethereumEnvelope.V)
 		result["r"] = "0x" + hex.EncodeToString(ethereumEnvelope.R[:])
 		result["s"] = "0x" + hex.EncodeToString(ethereumEnvelope.S[:])
-		if ethereumEnvelope.TransactionType == consensus.EthereumAccessListType {
+		if ethereumEnvelope.TransactionType == consensus.EthereumAccessListType || ethereumEnvelope.TransactionType == consensus.EthereumDynamicFeeType {
 			result["accessList"] = []any{}
 			result["yParity"] = hexEVMQuantity(uint64(ethereumEnvelope.RecoveryID))
+		}
+		if ethereumEnvelope.TransactionType == consensus.EthereumDynamicFeeType {
+			result["maxPriorityFeePerGas"] = hexEVMQuantity(ethereumEnvelope.MaxPriorityFeePerGas)
+			result["maxFeePerGas"] = hexEVMQuantity(ethereumEnvelope.MaxFeePerGas)
 		}
 	}
 	return result

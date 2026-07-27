@@ -678,7 +678,7 @@ func mappedTransaction(payload []byte, height uint64, blockHash string, blockTim
 	if err != nil {
 		return chain.Transaction{}, err
 	}
-	if kind == consensus.EthereumLegacyTransferType || kind == consensus.EthereumAccessListTransferType {
+	if kind == consensus.EthereumLegacyTransferType || kind == consensus.EthereumAccessListTransferType || kind == consensus.EthereumDynamicFeeTransferType {
 		tx, err := consensus.DecodeEthereumValueTransfer(payload)
 		if err != nil || tx.Verify(6423) != nil || tx.EnvelopeType != kind {
 			return chain.Transaction{}, errors.New("invalid bounded Ethereum value transfer")
@@ -686,6 +686,8 @@ func mappedTransaction(payload []byte, height uint64, blockHash string, blockTim
 		memo := "EIP-155 legacy Ethereum value transfer"
 		if kind == consensus.EthereumAccessListTransferType {
 			memo = "EIP-2930 empty-access-list Ethereum value transfer"
+		} else if kind == consensus.EthereumDynamicFeeTransferType {
+			memo = "EIP-1559 zero-base-fee Ethereum value transfer"
 		}
 		return chain.Transaction{
 			Hash: tx.Hash, Type: kind, From: tx.From, To: tx.To,
@@ -746,7 +748,7 @@ func mappedTransactionHash(payload []byte) (string, error) {
 		return "", err
 	}
 	switch kind {
-	case consensus.EthereumLegacyTransferType, consensus.EthereumAccessListTransferType:
+	case consensus.EthereumLegacyTransferType, consensus.EthereumAccessListTransferType, consensus.EthereumDynamicFeeTransferType:
 		tx, err := consensus.DecodeEthereumValueTransfer(payload)
 		if err != nil {
 			return "", err
@@ -803,7 +805,7 @@ func broadcastTransactionIdentity(payload []byte) (string, int, error) {
 	if err != nil {
 		return "", http.StatusBadRequest, err
 	}
-	if kind == consensus.EthereumLegacyTransferType || kind == consensus.EthereumAccessListTransferType {
+	if kind == consensus.EthereumLegacyTransferType || kind == consensus.EthereumAccessListTransferType || kind == consensus.EthereumDynamicFeeTransferType {
 		tx, err := consensus.DecodeEthereumValueTransfer(payload)
 		if err != nil {
 			return "", http.StatusBadRequest, err

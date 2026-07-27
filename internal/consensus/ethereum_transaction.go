@@ -14,11 +14,14 @@ import (
 )
 
 const (
-	EthereumLegacyTransferType     = "ethereum_legacy_transfer"
-	EthereumAccessListTransferType = "ethereum_access_list_transfer"
-	EthereumLegacyTransactionType  = byte(0x00)
-	EthereumAccessListType         = byte(0x01)
-	EthereumTransferGasLimit       = uint64(21_000)
+	EthereumLegacyTransferType         = "ethereum_legacy_transfer"
+	EthereumAccessListTransferType     = "ethereum_access_list_transfer"
+	EthereumDynamicFeeTransferType     = "ethereum_dynamic_fee_transfer"
+	EthereumLegacyTransactionType      = byte(0x00)
+	EthereumAccessListType             = byte(0x01)
+	EthereumDynamicFeeType             = byte(0x02)
+	EthereumTransferGasLimit           = uint64(21_000)
+	EthereumCompatibilityBaseFeePerGas = uint64(0)
 )
 
 // EthereumLegacyTransaction is the bounded Ethereum compatibility envelope
@@ -63,25 +66,51 @@ type EthereumAccessListTransaction struct {
 	Hash       string
 }
 
+// EthereumDynamicFeeTransaction is the bounded EIP-1559 compatibility
+// envelope accepted by Chain Core. The compatibility base fee is explicitly
+// zero, so effective gas price equals maxPriorityFeePerGas. Access lists must
+// be empty and only simple value transfers are accepted.
+type EthereumDynamicFeeTransaction struct {
+	ChainID              int64
+	Nonce                uint64
+	MaxPriorityFeePerGas uint64
+	MaxFeePerGas         uint64
+	EffectiveGasPrice    uint64
+	GasLimit             uint64
+	To                   string
+	Value                int64
+	Data                 []byte
+	YParity              uint64
+	R                    [32]byte
+	S                    [32]byte
+	RecoveryID           byte
+	From                 string
+	Fee                  int64
+	Hash                 string
+}
+
 // EthereumValueTransfer is the normalized execution view shared by the
-// bounded legacy and EIP-2930 envelopes.
+// bounded legacy, EIP-2930 and EIP-1559 envelopes.
 type EthereumValueTransfer struct {
-	EnvelopeType    string
-	TransactionType byte
-	ChainID         int64
-	Nonce           uint64
-	GasPrice        uint64
-	GasLimit        uint64
-	To              string
-	Value           int64
-	Data            []byte
-	V               uint64
-	R               [32]byte
-	S               [32]byte
-	RecoveryID      byte
-	From            string
-	Fee             int64
-	Hash            string
+	EnvelopeType         string
+	TransactionType      byte
+	ChainID              int64
+	Nonce                uint64
+	GasPrice             uint64
+	MaxPriorityFeePerGas uint64
+	MaxFeePerGas         uint64
+	BaseFeePerGas        uint64
+	GasLimit             uint64
+	To                   string
+	Value                int64
+	Data                 []byte
+	V                    uint64
+	R                    [32]byte
+	S                    [32]byte
+	RecoveryID           byte
+	From                 string
+	Fee                  int64
+	Hash                 string
 }
 
 func IsEthereumLegacyEnvelope(payload []byte) bool {
@@ -227,12 +256,85 @@ func NewEthereumAccessListTransfer(privateKey *secp256k1.PrivateKey, chainID int
 	return payload, decoded, nil
 }
 
+func NewEthereumDynamicFeeTransfer(privateKey *secp256k1.PrivateKey, chainID int64, nonce, maxPriorityFeePerGas, maxFeePerGas uint64, to string, value int64) ([]byte, EthereumDynamicFeeTransaction, error) {
+	if privateKey == nil {
+		return nil, EthereumDynamicFeeTransaction{}, errors.New("private key is required")
+	}
+	canonicalTo, err := accountaddress.Normalize(to)
+	if err != nil {
+		return nil, EthereumDynamicFeeTransaction{}, fmt.Errorf("normalize Ethereum recipient: %w", err)
+	}
+	if chainID <= 0 {
+		return nil, EthereumDynamicFeeTransaction{}, errors.New("Ethereum chain ID must be positive")
+	}
+	if maxPriorityFeePerGas == 0 || maxPriorityFeePerGas > maxFeePerGas {
+		return nil, EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic fee requires 0 < maxPriorityFeePerGas <= maxFeePerGas")
+	}
+	if maxFeePerGas > uint64(math.MaxInt64)/EthereumTransferGasLimit {
+		return nil, EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic fee maximum produces an invalid bounded exposure")
+	}
+	if value <= 0 {
+		return nil, EthereumDynamicFeeTransaction{}, errors.New("Ethereum transfer value must be positive")
+	}
+	toBytes, _ := hex.DecodeString(canonicalTo[2:])
+	unsigned := encodeRLPList(
+		encodeRLPUint(uint64(chainID)),
+		encodeRLPUint(nonce),
+		encodeRLPUint(maxPriorityFeePerGas),
+		encodeRLPUint(maxFeePerGas),
+		encodeRLPUint(EthereumTransferGasLimit),
+		encodeRLPBytes(toBytes),
+		encodeRLPUint(uint64(value)),
+		encodeRLPBytes(nil),
+		encodeRLPList(),
+	)
+	digest := legacyKeccak(append([]byte{EthereumDynamicFeeType}, unsigned...))
+	compact := ecdsa.SignCompact(privateKey, digest, true)
+	if len(compact) != 65 || compact[0] < 31 || compact[0] > 34 {
+		return nil, EthereumDynamicFeeTransaction{}, errors.New("unexpected compact secp256k1 signature")
+	}
+	yParity := uint64(compact[0] - 31)
+	if yParity > 1 {
+		return nil, EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic-fee transfer requires y parity 0 or 1")
+	}
+	signed := encodeRLPList(
+		encodeRLPUint(uint64(chainID)),
+		encodeRLPUint(nonce),
+		encodeRLPUint(maxPriorityFeePerGas),
+		encodeRLPUint(maxFeePerGas),
+		encodeRLPUint(EthereumTransferGasLimit),
+		encodeRLPBytes(toBytes),
+		encodeRLPUint(uint64(value)),
+		encodeRLPBytes(nil),
+		encodeRLPList(),
+		encodeRLPUint(yParity),
+		encodeRLPBytes(trimLeadingZeroes(compact[1:33])),
+		encodeRLPBytes(trimLeadingZeroes(compact[33:65])),
+	)
+	payload := append([]byte{EthereumDynamicFeeType}, signed...)
+	decoded, err := DecodeEthereumDynamicFeeTransaction(payload)
+	if err != nil {
+		return nil, EthereumDynamicFeeTransaction{}, err
+	}
+	if err := decoded.Verify(chainID); err != nil {
+		return nil, EthereumDynamicFeeTransaction{}, err
+	}
+	return payload, decoded, nil
+}
+
 func DecodeEthereumValueTransfer(payload []byte) (EthereumValueTransfer, error) {
 	if len(payload) == 0 {
 		return EthereumValueTransfer{}, errors.New("Ethereum transaction payload is empty")
 	}
 	if payload[0] == EthereumAccessListType {
 		tx, err := DecodeEthereumAccessListTransaction(payload)
+		if err != nil {
+			return EthereumValueTransfer{}, err
+		}
+		return tx.ValueTransfer(), nil
+	}
+	if payload[0] == EthereumDynamicFeeType {
+		tx, err := DecodeEthereumDynamicFeeTransaction(payload)
 		if err != nil {
 			return EthereumValueTransfer{}, err
 		}
@@ -263,15 +365,27 @@ func (tx EthereumAccessListTransaction) ValueTransfer() EthereumValueTransfer {
 	}
 }
 
+func (tx EthereumDynamicFeeTransaction) ValueTransfer() EthereumValueTransfer {
+	return EthereumValueTransfer{
+		EnvelopeType: EthereumDynamicFeeTransferType, TransactionType: EthereumDynamicFeeType,
+		ChainID: tx.ChainID, Nonce: tx.Nonce, GasPrice: tx.EffectiveGasPrice,
+		MaxPriorityFeePerGas: tx.MaxPriorityFeePerGas, MaxFeePerGas: tx.MaxFeePerGas,
+		BaseFeePerGas: EthereumCompatibilityBaseFeePerGas, GasLimit: tx.GasLimit,
+		To: tx.To, Value: tx.Value, Data: append([]byte(nil), tx.Data...), V: tx.YParity,
+		R: tx.R, S: tx.S, RecoveryID: tx.RecoveryID, From: tx.From, Fee: tx.Fee, Hash: tx.Hash,
+	}
+}
+
 func (tx EthereumValueTransfer) Verify(expectedChainID int64) error {
 	if tx.ChainID != expectedChainID {
 		return fmt.Errorf("Ethereum transaction chain ID %d does not match %d", tx.ChainID, expectedChainID)
 	}
-	if tx.EnvelopeType != EthereumLegacyTransferType && tx.EnvelopeType != EthereumAccessListTransferType {
+	if tx.EnvelopeType != EthereumLegacyTransferType && tx.EnvelopeType != EthereumAccessListTransferType && tx.EnvelopeType != EthereumDynamicFeeTransferType {
 		return errors.New("Ethereum transfer envelope type is unsupported")
 	}
 	if (tx.EnvelopeType == EthereumLegacyTransferType && tx.TransactionType != EthereumLegacyTransactionType) ||
-		(tx.EnvelopeType == EthereumAccessListTransferType && tx.TransactionType != EthereumAccessListType) {
+		(tx.EnvelopeType == EthereumAccessListTransferType && tx.TransactionType != EthereumAccessListType) ||
+		(tx.EnvelopeType == EthereumDynamicFeeTransferType && tx.TransactionType != EthereumDynamicFeeType) {
 		return errors.New("Ethereum transfer envelope identity is inconsistent")
 	}
 	if !IsNativeAddress(tx.From) || !IsNativeAddress(tx.To) || tx.From == tx.To {
@@ -282,6 +396,13 @@ func (tx EthereumValueTransfer) Verify(expectedChainID int64) error {
 	}
 	if tx.GasPrice > uint64(math.MaxInt64)/tx.GasLimit || tx.Fee != int64(tx.GasPrice*tx.GasLimit) {
 		return errors.New("Ethereum transfer fee does not match the bounded gas profile")
+	}
+	if tx.EnvelopeType == EthereumDynamicFeeTransferType {
+		if tx.BaseFeePerGas != EthereumCompatibilityBaseFeePerGas || tx.MaxPriorityFeePerGas == 0 || tx.MaxPriorityFeePerGas > tx.MaxFeePerGas || tx.GasPrice != tx.MaxPriorityFeePerGas || tx.MaxFeePerGas > uint64(math.MaxInt64)/tx.GasLimit {
+			return errors.New("Ethereum dynamic-fee transfer does not match the zero-base-fee compatibility profile")
+		}
+	} else if tx.MaxPriorityFeePerGas != 0 || tx.MaxFeePerGas != 0 || tx.BaseFeePerGas != 0 {
+		return errors.New("non-dynamic Ethereum transfer contains dynamic fee metadata")
 	}
 	if tx.RecoveryID > 1 {
 		return errors.New("Ethereum transfer recovery ID must be 0 or 1")
@@ -295,12 +416,23 @@ func (tx EthereumValueTransfer) Verify(expectedChainID int64) error {
 			return errors.New("Ethereum legacy transfer EIP-155 signature metadata is inconsistent")
 		}
 	} else if tx.V != uint64(tx.RecoveryID) {
-		return errors.New("Ethereum access-list transfer y parity is inconsistent")
+		return errors.New("Ethereum typed transfer y parity is inconsistent")
 	}
 	if tx.Hash == "" {
 		return errors.New("Ethereum transaction hash is required")
 	}
 	return nil
+}
+
+func (tx EthereumValueTransfer) MaximumGasFee() (int64, error) {
+	price := tx.GasPrice
+	if tx.EnvelopeType == EthereumDynamicFeeTransferType {
+		price = tx.MaxFeePerGas
+	}
+	if tx.GasLimit == 0 || price == 0 || price > uint64(math.MaxInt64)/tx.GasLimit {
+		return 0, errors.New("Ethereum maximum gas fee exceeds the bounded YNXT amount")
+	}
+	return int64(price * tx.GasLimit), nil
 }
 
 func DecodeEthereumLegacyTransaction(payload []byte) (EthereumLegacyTransaction, error) {
@@ -542,6 +674,134 @@ func DecodeEthereumAccessListTransaction(payload []byte) (EthereumAccessListTran
 }
 
 func (tx EthereumAccessListTransaction) Verify(expectedChainID int64) error {
+	return tx.ValueTransfer().Verify(expectedChainID)
+}
+
+func DecodeEthereumDynamicFeeTransaction(payload []byte) (EthereumDynamicFeeTransaction, error) {
+	if len(payload) < 2 || len(payload) > MaxSignedTransactionSize {
+		return EthereumDynamicFeeTransaction{}, fmt.Errorf("Ethereum dynamic-fee transaction size must be between 2 and %d bytes", MaxSignedTransactionSize)
+	}
+	if payload[0] != EthereumDynamicFeeType {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic-fee transaction must use type 0x02")
+	}
+	fields, err := decodeCanonicalRLPFields(payload[1:])
+	if err != nil {
+		return EthereumDynamicFeeTransaction{}, fmt.Errorf("decode Ethereum dynamic-fee transaction: %w", err)
+	}
+	if len(fields) != 12 {
+		return EthereumDynamicFeeTransaction{}, fmt.Errorf("Ethereum dynamic-fee transaction requires 12 fields, got %d", len(fields))
+	}
+	for _, index := range []int{0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11} {
+		if fields[index].isList {
+			return EthereumDynamicFeeTransaction{}, fmt.Errorf("Ethereum dynamic-fee field %d must not be a nested list", index)
+		}
+	}
+	if !fields[8].isList {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic-fee access list must be an RLP list")
+	}
+	if len(fields[8].content) != 0 {
+		return EthereumDynamicFeeTransaction{}, errors.New("non-empty Ethereum dynamic-fee access lists are not supported")
+	}
+	chainID, err := decodeRLPUint(fields[0].content, "chain ID")
+	if err != nil || chainID == 0 || chainID > math.MaxInt64 {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic-fee transaction chain ID is invalid")
+	}
+	nonce, err := decodeRLPUint(fields[1].content, "nonce")
+	if err != nil {
+		return EthereumDynamicFeeTransaction{}, err
+	}
+	maxPriorityFeePerGas, err := decodeRLPUint(fields[2].content, "max priority fee per gas")
+	if err != nil {
+		return EthereumDynamicFeeTransaction{}, err
+	}
+	maxFeePerGas, err := decodeRLPUint(fields[3].content, "max fee per gas")
+	if err != nil {
+		return EthereumDynamicFeeTransaction{}, err
+	}
+	if maxPriorityFeePerGas == 0 || maxPriorityFeePerGas > maxFeePerGas {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic fee requires 0 < maxPriorityFeePerGas <= maxFeePerGas")
+	}
+	gasLimit, err := decodeRLPUint(fields[4].content, "gas limit")
+	if err != nil {
+		return EthereumDynamicFeeTransaction{}, err
+	}
+	if gasLimit != EthereumTransferGasLimit {
+		return EthereumDynamicFeeTransaction{}, fmt.Errorf("bounded Ethereum transfer gas limit must equal %d", EthereumTransferGasLimit)
+	}
+	if maxFeePerGas > uint64(math.MaxInt64)/gasLimit {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic fee maximum produces an invalid bounded exposure")
+	}
+	if len(fields[5].content) == 0 {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum contract creation is not supported")
+	}
+	if len(fields[5].content) != 20 {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum transfer recipient must be exactly 20 bytes")
+	}
+	to, err := accountaddress.FromBytes(fields[5].content)
+	if err != nil {
+		return EthereumDynamicFeeTransaction{}, fmt.Errorf("derive Ethereum recipient: %w", err)
+	}
+	value, err := decodeRLPUint(fields[6].content, "value")
+	if err != nil {
+		return EthereumDynamicFeeTransaction{}, err
+	}
+	if value == 0 || value > math.MaxInt64 {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum transfer value must fit a positive YNXT amount")
+	}
+	if len(fields[7].content) != 0 {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum transfer calldata is not supported")
+	}
+	yParity, err := decodeRLPUint(fields[9].content, "signature y parity")
+	if err != nil || yParity > 1 {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic-fee signature y parity must be 0 or 1")
+	}
+	if len(fields[10].content) == 0 || len(fields[10].content) > 32 || len(fields[11].content) == 0 || len(fields[11].content) > 32 {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum signature r and s must be 1 to 32 bytes")
+	}
+	var rScalar, sScalar secp256k1.ModNScalar
+	if rScalar.SetByteSlice(fields[10].content) || rScalar.IsZero() {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum signature r is outside the secp256k1 order")
+	}
+	if sScalar.SetByteSlice(fields[11].content) || sScalar.IsZero() {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum signature s is outside the secp256k1 order")
+	}
+	if sScalar.IsOverHalfOrder() {
+		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum signature is not canonical low-S")
+	}
+	unsigned := encodeRLPList(
+		encodeRLPUint(chainID), encodeRLPUint(nonce), encodeRLPUint(maxPriorityFeePerGas), encodeRLPUint(maxFeePerGas),
+		encodeRLPUint(gasLimit), encodeRLPBytes(fields[5].content), encodeRLPUint(value), encodeRLPBytes(nil), encodeRLPList(),
+	)
+	digest := legacyKeccak(append([]byte{EthereumDynamicFeeType}, unsigned...))
+	compact := make([]byte, 65)
+	compact[0] = 31 + byte(yParity)
+	copy(compact[33-len(fields[10].content):33], fields[10].content)
+	copy(compact[65-len(fields[11].content):], fields[11].content)
+	publicKey, _, err := ecdsa.RecoverCompact(compact, digest)
+	if err != nil {
+		return EthereumDynamicFeeTransaction{}, fmt.Errorf("recover Ethereum sender: %w", err)
+	}
+	from, err := NativeAddress(publicKey.SerializeCompressed())
+	if err != nil {
+		return EthereumDynamicFeeTransaction{}, err
+	}
+	var rValue, sValue [32]byte
+	copy(rValue[len(rValue)-len(fields[10].content):], fields[10].content)
+	copy(sValue[len(sValue)-len(fields[11].content):], fields[11].content)
+	effectiveGasPrice := maxPriorityFeePerGas + EthereumCompatibilityBaseFeePerGas
+	if effectiveGasPrice > maxFeePerGas {
+		effectiveGasPrice = maxFeePerGas
+	}
+	return EthereumDynamicFeeTransaction{
+		ChainID: int64(chainID), Nonce: nonce, MaxPriorityFeePerGas: maxPriorityFeePerGas,
+		MaxFeePerGas: maxFeePerGas, EffectiveGasPrice: effectiveGasPrice, GasLimit: gasLimit,
+		To: to, Value: int64(value), Data: []byte{}, YParity: yParity,
+		R: rValue, S: sValue, RecoveryID: byte(yParity), From: from,
+		Fee: int64(effectiveGasPrice * gasLimit), Hash: EthereumTransactionHash(payload),
+	}, nil
+}
+
+func (tx EthereumDynamicFeeTransaction) Verify(expectedChainID int64) error {
 	return tx.ValueTransfer().Verify(expectedChainID)
 }
 

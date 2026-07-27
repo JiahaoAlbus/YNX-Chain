@@ -396,6 +396,9 @@ func TransactionEnvelopeType(payload []byte) (string, error) {
 	if payload[0] == EthereumAccessListType {
 		return EthereumAccessListTransferType, nil
 	}
+	if payload[0] == EthereumDynamicFeeType {
+		return EthereumDynamicFeeTransferType, nil
+	}
 	if IsEthereumTypedEnvelope(payload) {
 		return "", errors.New("unsupported typed Ethereum transaction envelope")
 	}

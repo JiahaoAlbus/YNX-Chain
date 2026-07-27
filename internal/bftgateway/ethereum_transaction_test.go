@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
@@ -244,6 +245,64 @@ func TestGatewayBroadcastsAndLooksUpBoundedEthereumAccessListTransfer(t *testing
 	}
 }
 
+func TestGatewayMapsBoundedEthereumDynamicFeeTransfer(t *testing.T) {
+	senderKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 57))
+	recipientKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 58))
+	recipient, err := consensus.NativeAddress(recipientKey.PubKey().SerializeCompressed())
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, ethereumTx, err := consensus.NewEthereumDynamicFeeTransfer(senderKey, 6423, 0, 2, 5, recipient, 125)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash, status, err := broadcastTransactionIdentity(payload)
+	if err != nil || status != http.StatusOK || hash != ethereumTx.Hash {
+		t.Fatalf("EIP-1559 broadcast identity failed: hash=%s status=%d err=%v", hash, status, err)
+	}
+	blockHash := strings.Repeat("4", 64)
+	blockTime := time.Date(2026, 7, 27, 12, 30, 0, 0, time.UTC)
+	mapped, err := mappedTransaction(payload, 19, blockHash, blockTime)
+	if err != nil || mapped.Hash != ethereumTx.Hash || mapped.Type != consensus.EthereumDynamicFeeTransferType || mapped.Fee != 42_000 || mapped.Nonce != 0 || mapped.Memo != "EIP-1559 zero-base-fee Ethereum value transfer" {
+		t.Fatalf("EIP-1559 committed transaction mapping failed: mapped=%+v err=%v", mapped, err)
+	}
+	object := evmCommittedTransaction(mapped, 0, payload)
+	if object["hash"] != ethereumTx.Hash || object["type"] != "0x2" || object["chainId"] != "0x1917" || object["gasPrice"] != "0x2" || object["maxPriorityFeePerGas"] != "0x2" || object["maxFeePerGas"] != "0x5" || object["v"] != hexEVMQuantity(ethereumTx.YParity) || object["yParity"] != hexEVMQuantity(ethereumTx.YParity) {
+		t.Fatalf("unexpected EIP-1559 JSON-RPC transaction object: %+v", object)
+	}
+	if accessList, ok := object["accessList"].([]any); !ok || len(accessList) != 0 {
+		t.Fatalf("EIP-1559 transaction did not expose an empty access list: %+v", object)
+	}
+	receipt := consensus.BFTEVMReceipt{
+		TxHash: ethereumTx.Hash, From: ethereumTx.From, To: ethereumTx.To,
+		Action: consensus.EthereumDynamicFeeTransferType, Status: "success", EncodedResult: "0x",
+		Logs: []consensus.BFTEVMLog{}, BlockHeight: 19,
+	}
+	receipt.AuditHash = consensus.BFTEVMReceiptAuditHash(receipt)
+	if err := consensus.ValidateBFTEVMReceipt(receipt); err != nil {
+		t.Fatalf("valid EIP-1559 receipt evidence was rejected: %v", err)
+	}
+	receiptObject := evmCommittedReceipt(mapped, 0, consensus.EthereumTransferGasLimit, consensus.EthereumTransferGasLimit, payload)
+	if receiptObject["transactionHash"] != ethereumTx.Hash || receiptObject["type"] != "0x2" || receiptObject["effectiveGasPrice"] != "0x2" || receiptObject["gasUsed"] != "0x5208" {
+		t.Fatalf("unexpected EIP-1559 JSON-RPC receipt: %+v", receiptObject)
+	}
+	evidence := committedBlockEvidence{
+		Block: chain.Block{
+			Height: 19, Hash: blockHash, ParentHash: strings.Repeat("3", 64), Time: blockTime,
+			Validator: strings.Repeat("2", 40), Transactions: []chain.Transaction{mapped},
+		},
+		AppHash: strings.Repeat("1", 64), DataHash: strings.Repeat("5", 64), RawTransactions: [][]byte{payload},
+	}
+	blockObject := evmCommittedBlock(evidence, true, consensus.EthereumTransferGasLimit)
+	if blockObject["baseFeePerGas"] != "0x0" || blockObject["gasUsed"] != "0x5208" || blockObject["transactionCount"] != "0x1" {
+		t.Fatalf("unexpected zero-base-fee EIP-1559 block mapping: %+v", blockObject)
+	}
+	transactions, ok := blockObject["transactions"].([]any)
+	if !ok || len(transactions) != 1 || transactions[0].(map[string]any)["type"] != "0x2" {
+		t.Fatalf("EIP-1559 block transaction mapping is incomplete: %+v", blockObject)
+	}
+}
+
 func TestGatewayRejectsTamperedEthereumReceiptAuditEvidence(t *testing.T) {
 	senderKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 53))
 	recipientKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 54))
@@ -325,7 +384,7 @@ func TestGatewayRejectsMalformedWrongChainAndTypedEthereumBroadcasts(t *testing.
 		status  int
 	}{
 		{name: "malformed RLP", payload: []byte{0xc1}, status: http.StatusBadRequest},
-		{name: "typed EIP-1559", payload: []byte{0x02, 0xc0}, status: http.StatusBadRequest},
+		{name: "unsupported typed envelope", payload: []byte{0x03, 0xc0}, status: http.StatusBadRequest},
 		{name: "wrong chain", payload: wrongChain, status: http.StatusUnprocessableEntity},
 	}
 	for _, test := range tests {

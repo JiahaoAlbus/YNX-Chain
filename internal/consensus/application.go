@@ -19,7 +19,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 16
+	ApplicationVersion   = 17
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -607,7 +607,7 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 		}
 		return next, execution, nil
 	}
-	if kind == EthereumLegacyTransferType || kind == EthereumAccessListTransferType {
+	if kind == EthereumLegacyTransferType || kind == EthereumAccessListTransferType || kind == EthereumDynamicFeeTransferType {
 		return a.applyEthereumValueTransfer(state, payload, height, blockTime)
 	}
 	tx, err := DecodeSignedTransaction(payload)
@@ -665,6 +665,10 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 	if err := tx.Verify(a.migration.Network.ChainID); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
+	maximumGasFee, err := tx.MaximumGasFee()
+	if err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
 	accounts := state.accounts
 	senderIndex, ok := accountIndex(accounts, tx.From)
 	if !ok {
@@ -677,8 +681,8 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 	if sender.Nonce == math.MaxUint64 {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, errors.New("Ethereum transaction sender nonce is exhausted"))
 	}
-	if tx.Value > math.MaxInt64-tx.Fee || sender.Balance < tx.Value+tx.Fee {
-		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("insufficient YNXT balance for Ethereum value and gas fee"))
+	if tx.Value > math.MaxInt64-maximumGasFee || sender.Balance < tx.Value+maximumGasFee {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("insufficient YNXT balance for Ethereum value and maximum gas fee exposure"))
 	}
 	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("sender bandwidth usage overflow"))
@@ -713,6 +717,8 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 	envelope := "ethereum_legacy_eip155"
 	if tx.EnvelopeType == EthereumAccessListTransferType {
 		envelope = "ethereum_access_list_eip2930_empty"
+	} else if tx.EnvelopeType == EthereumDynamicFeeTransferType {
+		envelope = "ethereum_dynamic_fee_eip1559_zero_base_fee"
 	}
 	return state, transactionExecution{
 		typeName: tx.EnvelopeType,

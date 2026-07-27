@@ -15,4 +15,4 @@ grep -Fq 'consensus.EthereumAccessListType' internal/bftgateway/evm.go
 grep -Fq 'result["accessList"] = []any{}' internal/bftgateway/evm.go
 grep -Fq 'result["yParity"]' internal/bftgateway/evm.go
 
-echo "bft-evm-access-list-transfer-check passed: chain-bound EIP-2930 type-0x01 empty-access-list value transfers, sender recovery, zero-based nonce, exact 21000-gas accounting, dual Ethereum/Comet identity, audited receipt lookup, type-0x1 JSON-RPC mapping, and fail-closed non-empty access-list/calldata/contract-creation/EIP-1559 rejection are verified"
+echo "bft-evm-access-list-transfer-check passed: chain-bound EIP-2930 type-0x01 empty-access-list value transfers, sender recovery, zero-based nonce, exact 21000-gas accounting, dual Ethereum/Comet identity, audited receipt lookup, type-0x1 JSON-RPC mapping, and fail-closed non-empty access-list/calldata/contract-creation boundaries are verified"
