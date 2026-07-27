@@ -146,7 +146,9 @@ func (server *Server) ServeHTTP(response http.ResponseWriter, request *http.Requ
 	server.logger.Info("oracle request", "request_id", requestID, "trace_id", traceID, "span_id", spanID, "method", request.Method, "path", request.URL.Path, "status", tracked.status, "duration_ms", time.Since(started).Milliseconds())
 }
 
-func (server *Server) MetricsHandler() http.Handler { return server.metrics.Handler() }
+func (server *Server) MetricsHandler() http.Handler {
+	return server.metrics.Handler(server.service.PublicHealth)
+}
 
 func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
 	health := server.service.PublicHealth()

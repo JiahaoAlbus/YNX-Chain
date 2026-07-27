@@ -418,3 +418,65 @@ func TestLimitedSourceTestnetPackageAndPublicSmoke(t *testing.T) {
 		t.Fatalf("limited-source public smoke failed: %v\n%s", err, output)
 	}
 }
+
+func TestOracleMonitoringPackageAndDeploymentDryRun(t *testing.T) {
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("resolve test source path")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
+	monitoringDir := filepath.Join(root, "config", "oracle", "monitoring")
+	rules, err := os.ReadFile(filepath.Join(monitoringDir, "oracle-alerts.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{
+		"alert: YNXOracleMetricsDown",
+		"alert: YNXOracleDegraded",
+		"alert: YNXOracleInsufficientSources",
+		"alert: YNXOracleEmergencyPaused",
+		"alert: YNXOracleStorageUnavailable",
+		"alert: YNXOracleUnsafePriceResponses",
+		"alert: YNXOracleIngestRejections",
+	} {
+		if strings.Count(string(rules), required) != 1 {
+			t.Fatalf("Oracle alert rules must contain exactly one %q", required)
+		}
+	}
+	scrape, err := os.ReadFile(filepath.Join(monitoringDir, "prometheus-scrape.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(string(scrape), "job_name: ynx-oracled") != 1 ||
+		!strings.Contains(string(scrape), "- 127.0.0.1:9470") ||
+		strings.Contains(string(scrape), "0.0.0.0") {
+		t.Fatalf("Oracle monitoring scrape must use one loopback-only target:\n%s", scrape)
+	}
+	key := filepath.Join(t.TempDir(), "ssh-key")
+	if err := os.WriteFile(key, []byte("isolated dry-run fixture\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	deploy := exec.Command("bash", filepath.Join(root, "scripts", "deploy", "deploy-oracle-monitoring.sh"))
+	deploy.Dir = root
+	deploy.Env = append(os.Environ(),
+		"DEPLOY_DRY_RUN=1",
+		"SERVER_HOST=127.0.0.1",
+		"SERVER_USER=tester",
+		"SSH_KEY_PATH="+key,
+	)
+	output, err := deploy.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Oracle monitoring deployment dry run failed: %v\n%s", err, output)
+	}
+	for _, expected := range []string{
+		"oracle-alerts.yml",
+		"prometheus-scrape.yml",
+		"oracle-alerts.test.yml",
+		"oracle\\ monitoring\\ remote\\ merge",
+		"Oracle monitoring deployment dry run passed",
+	} {
+		if !strings.Contains(string(output), expected) {
+			t.Fatalf("Oracle monitoring deployment dry run missing %q:\n%s", expected, output)
+		}
+	}
+}

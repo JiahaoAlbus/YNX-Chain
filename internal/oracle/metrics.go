@@ -58,7 +58,7 @@ func (metrics *Metrics) Snapshot() MetricsSnapshot {
 	return MetricsSnapshot{metrics.requests.Load(), metrics.requestErrors.Load(), metrics.ingestAccepted.Load(), metrics.ingestRejected.Load(), metrics.priceGood.Load(), metrics.priceUnsafe.Load(), metrics.replayRequests.Load(), buckets}
 }
 
-func (metrics *Metrics) Handler() http.Handler {
+func (metrics *Metrics) Handler(healthSnapshot func() Health) http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		if request.Method != http.MethodGet || request.URL.Path != "/metrics" {
 			http.NotFound(response, request)
@@ -76,6 +76,32 @@ func (metrics *Metrics) Handler() http.Handler {
 		writeMetric("ynx_oracle_price_good_total", snapshot.PriceGood)
 		writeMetric("ynx_oracle_price_unsafe_total", snapshot.PriceUnsafe)
 		writeMetric("ynx_oracle_replay_requests_total", snapshot.ReplayRequests)
+		health := healthSnapshot()
+		degraded := uint64(0)
+		if health.Degraded {
+			degraded = 1
+		}
+		emergencyPaused := uint64(0)
+		if health.EmergencyPaused {
+			emergencyPaused = 1
+		}
+		storageReady := uint64(0)
+		if health.StorageStatus == "ready" {
+			storageReady = 1
+		}
+		lastSuccessfulAggregation := int64(0)
+		if !health.LastSuccessfulAggregation.IsZero() {
+			lastSuccessfulAggregation = health.LastSuccessfulAggregation.Unix()
+		}
+		writeMetric("ynx_oracle_health_degraded", degraded)
+		writeMetric("ynx_oracle_emergency_paused", emergencyPaused)
+		writeMetric("ynx_oracle_storage_ready", storageReady)
+		writeMetric("ynx_oracle_provider_count", uint64(health.ProviderCount))
+		writeMetric("ynx_oracle_active_provider_count", uint64(health.ActiveProviderCount))
+		writeMetric("ynx_oracle_required_provider_count", uint64(health.MinimumSources))
+		writeMetric("ynx_oracle_attestor_count", uint64(health.AttestorCount))
+		writeMetric("ynx_oracle_active_attestor_count", uint64(health.ActiveAttestorCount))
+		_, _ = fmt.Fprintf(&output, "ynx_oracle_last_successful_aggregation_timestamp_seconds %d\n", lastSuccessfulAggregation)
 		var cumulative uint64
 		for index, bound := range durationBounds {
 			cumulative += metrics.duration[index].Load()

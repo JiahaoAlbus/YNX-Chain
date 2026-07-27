@@ -318,7 +318,22 @@ func TestTraceCorrelationAndInternalMetricsAreSeparated(t *testing.T) {
 	}
 	metrics := httptest.NewRecorder()
 	server.MetricsHandler().ServeHTTP(metrics, httptest.NewRequest(http.MethodGet, "/metrics", nil))
-	if metrics.Code != http.StatusOK || !strings.Contains(metrics.Body.String(), "ynx_oracle_http_requests_total 2") || !strings.Contains(metrics.Body.String(), "ynx_oracle_http_request_errors_total 1") {
+	for _, expected := range []string{
+		"ynx_oracle_http_requests_total 2",
+		"ynx_oracle_http_request_errors_total 1",
+		"ynx_oracle_health_degraded 1",
+		"ynx_oracle_emergency_paused 0",
+		"ynx_oracle_storage_ready 1",
+		"ynx_oracle_provider_count 1",
+		"ynx_oracle_active_provider_count 1",
+		"ynx_oracle_required_provider_count 3",
+		"ynx_oracle_last_successful_aggregation_timestamp_seconds 0",
+	} {
+		if !strings.Contains(metrics.Body.String(), expected) {
+			t.Fatalf("metrics missing %q: %d %s", expected, metrics.Code, metrics.Body.String())
+		}
+	}
+	if metrics.Code != http.StatusOK {
 		t.Fatalf("metrics=%d %s", metrics.Code, metrics.Body.String())
 	}
 }
