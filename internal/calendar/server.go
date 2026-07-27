@@ -35,6 +35,7 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("GET /v1/events/{id}", s.event)
 	mux.HandleFunc("POST /v1/events/preview", s.previewCreate)
 	mux.HandleFunc("POST /v1/events/{id}/preview", s.previewUpdate)
+	mux.HandleFunc("POST /v1/events/{id}/recurrence-preview", s.previewRecurrence)
 	mux.HandleFunc("POST /v1/events/{id}/cancel-preview", s.previewCancel)
 	mux.HandleFunc("POST /v1/changes/{id}/approve", s.approve)
 	mux.HandleFunc("POST /v1/changes/{id}/revert", s.revert)
@@ -122,6 +123,14 @@ func (s *Server) previewUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, e := s.service.PreviewUpdate(bearer(r), r.PathValue("id"), v)
+	respond(w, out, e)
+}
+func (s *Server) previewRecurrence(w http.ResponseWriter, r *http.Request) {
+	var v RecurrenceMutationInput
+	if !decode(w, r, &v, 64<<10) {
+		return
+	}
+	out, e := s.service.PreviewRecurrenceChange(bearer(r), r.PathValue("id"), v)
 	respond(w, out, e)
 }
 func (s *Server) previewCancel(w http.ResponseWriter, r *http.Request) {

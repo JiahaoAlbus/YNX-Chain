@@ -107,24 +107,27 @@ type Share struct {
 	Role   string `json:"role"`
 }
 type Event struct {
-	ID          string     `json:"id"`
-	OwnerID     string     `json:"owner_id"`
-	OwnerHandle string     `json:"owner_handle"`
-	Title       string     `json:"title"`
-	Description string     `json:"description,omitempty"`
-	StartUTC    time.Time  `json:"start_utc"`
-	EndUTC      time.Time  `json:"end_utc"`
-	TimeZone    string     `json:"time_zone"`
-	Recurrence  Recurrence `json:"recurrence,omitempty"`
-	Invites     []Invite   `json:"invites,omitempty"`
-	Reminders   []Reminder `json:"reminders,omitempty"`
-	Shares      []Share    `json:"shares,omitempty"`
-	MeetingLink string     `json:"meeting_link,omitempty"`
-	State       string     `json:"state"`
-	Version     int        `json:"version"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
-	CancelledAt time.Time  `json:"cancelled_at,omitempty"`
+	ID                    string     `json:"id"`
+	SeriesID              string     `json:"series_id,omitempty"`
+	ParentEventID         string     `json:"parent_event_id,omitempty"`
+	SplitFromRecurrenceID string     `json:"split_from_recurrence_id,omitempty"`
+	OwnerID               string     `json:"owner_id"`
+	OwnerHandle           string     `json:"owner_handle"`
+	Title                 string     `json:"title"`
+	Description           string     `json:"description,omitempty"`
+	StartUTC              time.Time  `json:"start_utc"`
+	EndUTC                time.Time  `json:"end_utc"`
+	TimeZone              string     `json:"time_zone"`
+	Recurrence            Recurrence `json:"recurrence,omitempty"`
+	Invites               []Invite   `json:"invites,omitempty"`
+	Reminders             []Reminder `json:"reminders,omitempty"`
+	Shares                []Share    `json:"shares,omitempty"`
+	MeetingLink           string     `json:"meeting_link,omitempty"`
+	State                 string     `json:"state"`
+	Version               int        `json:"version"`
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at"`
+	CancelledAt           time.Time  `json:"cancelled_at,omitempty"`
 }
 type EventInput struct {
 	Title            string     `json:"title"`
@@ -138,6 +141,18 @@ type EventInput struct {
 	MeetingLink      string     `json:"meeting_link"`
 	ClientMutationID string     `json:"client_mutation_id"`
 	BaseVersion      int        `json:"base_version"`
+}
+
+type RecurrenceMutationInput struct {
+	Scope            string      `json:"scope"`
+	RecurrenceID     string      `json:"recurrence_id"`
+	Action           string      `json:"action"`
+	LocalStart       string      `json:"local_start,omitempty"`
+	LocalEnd         string      `json:"local_end,omitempty"`
+	Title            string      `json:"title,omitempty"`
+	Series           *EventInput `json:"series,omitempty"`
+	ClientMutationID string      `json:"client_mutation_id"`
+	BaseVersion      int         `json:"base_version"`
 }
 type Occurrence struct {
 	EventID    string    `json:"event_id"`
@@ -159,8 +174,12 @@ type ChangePreview struct {
 	EventID          string     `json:"event_id"`
 	ActorID          string     `json:"actor_id"`
 	Kind             string     `json:"kind"`
+	Scope            string     `json:"scope,omitempty"`
+	RecurrenceID     string     `json:"recurrence_id,omitempty"`
 	Before           *Event     `json:"before,omitempty"`
 	After            Event      `json:"after"`
+	RelatedBefore    []Event    `json:"related_before,omitempty"`
+	RelatedAfter     []Event    `json:"related_after,omitempty"`
 	Conflicts        []Conflict `json:"conflicts,omitempty"`
 	State            string     `json:"state"`
 	ClientMutationID string     `json:"client_mutation_id"`

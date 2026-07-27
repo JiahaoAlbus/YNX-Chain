@@ -322,6 +322,7 @@ func (s *Service) PreviewCreate(token string, input EventInput) (ChangePreview, 
 			return e
 		}
 		event.ID = s.id("event")
+		event.SeriesID = event.ID
 		event.OwnerID = owner.ID
 		event.OwnerHandle = owner.Handle
 		event.State = "draft"
@@ -338,6 +339,10 @@ func (s *Service) PreviewCreate(token string, input EventInput) (ChangePreview, 
 }
 
 func (s *Service) PreviewUpdate(token, eventID string, input EventInput) (ChangePreview, error) {
+	return s.previewUpdate(token, eventID, input, "")
+}
+
+func (s *Service) previewUpdate(token, eventID string, input EventInput, scope string) (ChangePreview, error) {
 	var out ChangePreview
 	err := s.store.update(func(st *State) error {
 		sess, e := s.session(st, token)
@@ -364,6 +369,9 @@ func (s *Service) PreviewUpdate(token, eventID string, input EventInput) (Change
 			return e
 		}
 		after.ID = before.ID
+		after.SeriesID = seriesID(before)
+		after.ParentEventID = before.ParentEventID
+		after.SplitFromRecurrenceID = before.SplitFromRecurrenceID
 		after.OwnerID = before.OwnerID
 		after.OwnerHandle = before.OwnerHandle
 		after.State = before.State
@@ -371,10 +379,182 @@ func (s *Service) PreviewUpdate(token, eventID string, input EventInput) (Change
 		after.CreatedAt = before.CreatedAt
 		after.UpdatedAt = s.now().UTC()
 		copyBefore := before
-		out = ChangePreview{ID: s.id("change"), EventID: eventID, ActorID: sess.UserID, Kind: "update", Before: &copyBefore, After: after, Conflicts: s.conflicts(st, after, eventID), State: "preview", ClientMutationID: input.ClientMutationID, CreatedAt: s.now().UTC()}
+		out = ChangePreview{ID: s.id("change"), EventID: eventID, ActorID: sess.UserID, Kind: "update", Scope: scope, Before: &copyBefore, After: after, Conflicts: s.conflicts(st, after, eventID), State: "preview", ClientMutationID: input.ClientMutationID, CreatedAt: s.now().UTC()}
 		st.Changes[out.ID] = out
 		st.Mutations[sess.UserID+":"+input.ClientMutationID] = out.ID
 		s.audit(st, sess.UserID, "event_update_preview", out.ID, map[string]any{"conflicts": len(out.Conflicts)})
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) PreviewRecurrenceChange(token, eventID string, input RecurrenceMutationInput) (ChangePreview, error) {
+	input.Scope = strings.ToLower(strings.TrimSpace(input.Scope))
+	input.Action = strings.ToLower(strings.TrimSpace(input.Action))
+	input.RecurrenceID = strings.TrimSpace(input.RecurrenceID)
+	input.ClientMutationID = strings.TrimSpace(input.ClientMutationID)
+	if input.ClientMutationID == "" || len(input.ClientMutationID) > 100 {
+		return ChangePreview{}, errors.New("client mutation ID is required and bounded")
+	}
+	if input.Scope == "entire_series" {
+		if input.Action != "update" || input.Series == nil || input.RecurrenceID != "" || strings.TrimSpace(input.Series.Recurrence.Frequency) == "" {
+			return ChangePreview{}, errors.New("entire-series recurrence changes require a recurring update series and no recurrence ID")
+		}
+		current, err := s.Event(token, eventID)
+		if err != nil {
+			return ChangePreview{}, err
+		}
+		if current.Recurrence.Frequency == "" {
+			return ChangePreview{}, errors.New("entire-series recurrence changes require a recurring event")
+		}
+		seriesInput := *input.Series
+		seriesInput.ClientMutationID = input.ClientMutationID
+		seriesInput.BaseVersion = input.BaseVersion
+		return s.previewUpdate(token, eventID, seriesInput, "entire_series")
+	}
+	if input.Scope != "occurrence" && input.Scope != "this_and_following" {
+		return ChangePreview{}, errors.New("recurrence scope must be occurrence, this_and_following, or entire_series")
+	}
+	if input.RecurrenceID == "" {
+		return ChangePreview{}, errors.New("recurrence ID is required")
+	}
+
+	var out ChangePreview
+	err := s.store.update(func(st *State) error {
+		sess, err := s.session(st, token)
+		if err != nil {
+			return err
+		}
+		mutationKey := sess.UserID + ":" + input.ClientMutationID
+		if existing := st.Mutations[mutationKey]; existing != "" {
+			out = st.Changes[existing]
+			return nil
+		}
+		before, ok := st.Events[eventID]
+		if !ok || before.State == "cancelled" {
+			return ErrUnauthorized
+		}
+		if input.BaseVersion != before.Version {
+			return ErrVersionConflict
+		}
+		if before.Recurrence.Frequency == "" {
+			return errors.New("recurrence mutation requires a recurring event")
+		}
+		occurrenceStart, occurrenceIndex, err := findRecurrenceStart(before, input.RecurrenceID)
+		if err != nil {
+			return err
+		}
+		owner := st.Users[before.OwnerID]
+		now := s.now().UTC()
+		copyBefore := before
+
+		switch input.Scope {
+		case "occurrence":
+			if input.Series != nil {
+				return errors.New("occurrence recurrence changes cannot include a series")
+			}
+			if input.Action != "cancel" && input.Action != "modify" {
+				return errors.New("occurrence action must be cancel or modify")
+			}
+			if input.Action == "cancel" {
+				if before.OwnerID != sess.UserID {
+					return ErrUnauthorized
+				}
+			} else if !canEdit(st, before, sess.UserID) {
+				return ErrUnauthorized
+			}
+			exception := RecurrenceException{RecurrenceID: input.RecurrenceID, State: map[string]string{"cancel": "cancelled", "modify": "modified"}[input.Action]}
+			if input.Action == "modify" {
+				exception.LocalStart = strings.TrimSpace(input.LocalStart)
+				exception.LocalEnd = strings.TrimSpace(input.LocalEnd)
+				exception.Title = strings.TrimSpace(input.Title)
+			}
+			after := before
+			after.SeriesID = seriesID(before)
+			after.Recurrence = upsertRecurrenceException(after.Recurrence, exception)
+			loc, _ := time.LoadLocation(after.TimeZone)
+			after.Recurrence, err = normalizeRecurrence(after.Recurrence, after.StartUTC.In(loc), loc)
+			if err != nil {
+				return err
+			}
+			after.Version++
+			after.UpdatedAt = now
+			var conflicts []Conflict
+			if input.Action == "modify" {
+				replacementStart, _ := time.ParseInLocation(recurrenceLocalLayout, exception.LocalStart, loc)
+				replacementEnd, _ := time.ParseInLocation(recurrenceLocalLayout, exception.LocalEnd, loc)
+				replacement := Event{ID: before.ID, SeriesID: seriesID(before), OwnerID: before.OwnerID, OwnerHandle: before.OwnerHandle, Title: after.Title, StartUTC: replacementStart.UTC(), EndUTC: replacementEnd.UTC(), TimeZone: before.TimeZone, State: before.State}
+				if exception.Title != "" {
+					replacement.Title = exception.Title
+				}
+				conflicts = s.conflicts(st, replacement, eventID)
+			}
+			out = ChangePreview{ID: s.id("change"), EventID: eventID, ActorID: sess.UserID, Kind: "recurrence", Scope: "occurrence", RecurrenceID: input.RecurrenceID, Before: &copyBefore, After: after, Conflicts: conflicts, State: "preview", ClientMutationID: input.ClientMutationID, CreatedAt: now}
+		case "this_and_following":
+			if input.Action != "update" || input.Series == nil {
+				return errors.New("this-and-following recurrence changes require an update series")
+			}
+			if !canEdit(st, before, sess.UserID) {
+				return ErrUnauthorized
+			}
+			if occurrenceIndex == 0 {
+				return errors.New("the first occurrence must use entire_series scope")
+			}
+			seriesInput := *input.Series
+			seriesInput.ClientMutationID = input.ClientMutationID
+			seriesInput.BaseVersion = 0
+			future, err := s.eventFromInput(owner, seriesInput)
+			if err != nil {
+				return err
+			}
+			if future.Recurrence.Frequency == "" {
+				return errors.New("this-and-following update must remain a recurring series")
+			}
+			if err = validateInvitees(st, future); err != nil {
+				return err
+			}
+			starts := recurrenceStarts(before)
+			previousStart := starts[occurrenceIndex-1]
+			previousEnd := previousStart.Add(before.EndUTC.Sub(before.StartUTC))
+			if future.StartUTC.Before(previousEnd.UTC()) {
+				return errors.New("future series must not overlap the preceding occurrence")
+			}
+
+			truncated := before
+			truncated.SeriesID = seriesID(before)
+			truncated.Recurrence.Exceptions = recurrenceExceptionsBefore(before.Recurrence.Exceptions, input.RecurrenceID)
+			if before.Recurrence.Count > 0 {
+				truncated.Recurrence.Count = occurrenceIndex
+				truncated.Recurrence.Until = time.Time{}
+			} else {
+				truncated.Recurrence.Until = previousStart.UTC()
+			}
+			loc, _ := time.LoadLocation(truncated.TimeZone)
+			truncated.Recurrence, err = normalizeRecurrence(truncated.Recurrence, truncated.StartUTC.In(loc), loc)
+			if err != nil {
+				return err
+			}
+			truncated.Version++
+			truncated.UpdatedAt = now
+
+			future.ID = s.id("event")
+			future.SeriesID = seriesID(before)
+			future.ParentEventID = before.ID
+			future.SplitFromRecurrenceID = input.RecurrenceID
+			future.OwnerID = before.OwnerID
+			future.OwnerHandle = before.OwnerHandle
+			future.Shares = append([]Share(nil), before.Shares...)
+			future.State = before.State
+			future.Version = 1
+			future.CreatedAt = now
+			future.UpdatedAt = now
+
+			out = ChangePreview{ID: s.id("change"), EventID: eventID, ActorID: sess.UserID, Kind: "recurrence", Scope: "this_and_following", RecurrenceID: input.RecurrenceID, Before: &copyBefore, After: truncated, RelatedAfter: []Event{future}, Conflicts: s.conflicts(st, future, eventID), State: "preview", ClientMutationID: input.ClientMutationID, CreatedAt: now}
+		}
+
+		st.Changes[out.ID] = out
+		st.Mutations[mutationKey] = out.ID
+		s.audit(st, sess.UserID, "event_recurrence_preview", out.ID, map[string]any{"scope": input.Scope, "action": input.Action, "recurrence_id": input.RecurrenceID, "occurrence_start": occurrenceStart.UTC(), "conflicts": len(out.Conflicts), "related_events": len(out.RelatedAfter)})
 		return nil
 	})
 	return out, err
@@ -413,6 +593,19 @@ func (s *Service) PreviewCancel(token, eventID, mutationID string, baseVersion i
 	return out, err
 }
 
+func appliedEvent(event Event, now time.Time) Event {
+	if event.State == "draft" {
+		event.State = "scheduled"
+	}
+	for i := range event.Invites {
+		if event.Invites[i].State == "preview" {
+			event.Invites[i].State = "pending"
+		}
+	}
+	event.UpdatedAt = now
+	return event
+}
+
 func (s *Service) ApproveChange(token, changeID string, acceptConflicts bool) (Event, error) {
 	var out Event
 	err := s.store.update(func(st *State) error {
@@ -433,22 +626,39 @@ func (s *Service) ApproveChange(token, changeID string, acceptConflicts bool) (E
 				return ErrVersionConflict
 			}
 		}
-		event := change.After
-		if event.State == "draft" {
-			event.State = "scheduled"
+		relatedBefore := map[string]Event{}
+		for _, before := range change.RelatedBefore {
+			current, ok := st.Events[before.ID]
+			if !ok || current.Version != before.Version {
+				return ErrVersionConflict
+			}
+			relatedBefore[before.ID] = before
 		}
-		for i := range event.Invites {
-			if event.Invites[i].State == "preview" {
-				event.Invites[i].State = "pending"
+		for _, after := range change.RelatedAfter {
+			current, exists := st.Events[after.ID]
+			before, replaces := relatedBefore[after.ID]
+			if replaces {
+				if !exists || current.Version != before.Version {
+					return ErrVersionConflict
+				}
+			} else if exists {
+				return ErrVersionConflict
 			}
 		}
-		event.UpdatedAt = s.now().UTC()
+
+		now := s.now().UTC()
+		event := appliedEvent(change.After, now)
 		st.Events[event.ID] = event
 		change.After = event
+		for i := range change.RelatedAfter {
+			related := appliedEvent(change.RelatedAfter[i], now)
+			st.Events[related.ID] = related
+			change.RelatedAfter[i] = related
+		}
 		change.State = "applied"
-		change.ApprovedAt = s.now().UTC()
+		change.ApprovedAt = now
 		st.Changes[change.ID] = change
-		s.audit(st, sess.UserID, "event_change_approved", change.ID, map[string]any{"kind": change.Kind, "conflict_override": acceptConflicts})
+		s.audit(st, sess.UserID, "event_change_approved", change.ID, map[string]any{"kind": change.Kind, "scope": change.Scope, "conflict_override": acceptConflicts, "related_events": len(change.RelatedAfter)})
 		out = event
 		return nil
 	})
@@ -470,20 +680,44 @@ func (s *Service) RevertChange(token, changeID string) (Event, error) {
 		if !ok || current.Version != change.After.Version {
 			return ErrVersionConflict
 		}
+		relatedCurrent := map[string]Event{}
+		for _, after := range change.RelatedAfter {
+			currentRelated, ok := st.Events[after.ID]
+			if !ok || currentRelated.Version != after.Version {
+				return ErrVersionConflict
+			}
+			relatedCurrent[after.ID] = currentRelated
+		}
+		relatedBefore := map[string]Event{}
+		for _, before := range change.RelatedBefore {
+			relatedBefore[before.ID] = before
+		}
+
+		now := s.now().UTC()
 		if change.Before == nil {
 			delete(st.Events, change.EventID)
 			out = Event{ID: change.EventID, State: "reverted"}
 		} else {
 			restored := *change.Before
 			restored.Version = current.Version + 1
-			restored.UpdatedAt = s.now().UTC()
+			restored.UpdatedAt = now
 			st.Events[restored.ID] = restored
 			out = restored
 		}
+		for _, after := range change.RelatedAfter {
+			if before, ok := relatedBefore[after.ID]; ok {
+				restored := before
+				restored.Version = relatedCurrent[after.ID].Version + 1
+				restored.UpdatedAt = now
+				st.Events[restored.ID] = restored
+			} else {
+				delete(st.Events, after.ID)
+			}
+		}
 		change.State = "reverted"
-		change.RevertedAt = s.now().UTC()
+		change.RevertedAt = now
 		st.Changes[change.ID] = change
-		s.audit(st, sess.UserID, "event_change_reverted", change.ID, nil)
+		s.audit(st, sess.UserID, "event_change_reverted", change.ID, map[string]any{"scope": change.Scope, "related_events": len(change.RelatedAfter)})
 		return nil
 	})
 	return out, err
@@ -1036,6 +1270,134 @@ func weekdayCode(day time.Weekday) string {
 func weekdayOffset(day time.Weekday) int {
 	return (int(day) + 6) % 7
 }
+
+func seriesID(event Event) string {
+	if strings.TrimSpace(event.SeriesID) != "" {
+		return event.SeriesID
+	}
+	return event.ID
+}
+
+func recurrenceStarts(event Event) []time.Time {
+	loc, err := time.LoadLocation(event.TimeZone)
+	if err != nil {
+		return nil
+	}
+	start := event.StartUTC.In(loc)
+	if event.Recurrence.Frequency == "" {
+		return []time.Time{start}
+	}
+	limit := event.Recurrence.Count
+	if limit == 0 {
+		limit = 5000
+	}
+	out := make([]time.Time, 0, min(limit, 64))
+	accept := func(candidate time.Time) bool {
+		if candidate.Before(start) {
+			return true
+		}
+		if !event.Recurrence.Until.IsZero() && candidate.After(event.Recurrence.Until.In(loc)) {
+			return false
+		}
+		if len(out) >= limit {
+			return false
+		}
+		out = append(out, candidate)
+		return len(out) < limit
+	}
+	switch event.Recurrence.Frequency {
+	case "daily":
+		for i := 0; i < limit; i++ {
+			if !accept(start.AddDate(0, 0, i*event.Recurrence.Interval)) {
+				break
+			}
+		}
+	case "weekly":
+		byDay := event.Recurrence.ByDay
+		if len(byDay) == 0 {
+			byDay = []string{weekdayCode(start.Weekday())}
+		}
+		weekStart := start.AddDate(0, 0, -weekdayOffset(start.Weekday()))
+		for week := 0; len(out) < limit && week < 5000; week++ {
+			base := weekStart.AddDate(0, 0, week*7*event.Recurrence.Interval)
+			for _, code := range byDay {
+				candidate := wallTime(base.AddDate(0, 0, weekdayOffset(recurrenceWeekdays[code])), start)
+				if !accept(candidate) {
+					return out
+				}
+			}
+		}
+	case "monthly":
+		byMonthDay := event.Recurrence.ByMonthDay
+		if len(byMonthDay) == 0 {
+			byMonthDay = []int{start.Day()}
+		}
+		for month := 0; len(out) < limit && month < 1200; month++ {
+			base := time.Date(start.Year(), start.Month()+time.Month(month*event.Recurrence.Interval), 1, start.Hour(), start.Minute(), start.Second(), start.Nanosecond(), loc)
+			for _, day := range byMonthDay {
+				candidate, ok := validLocalDate(base.Year(), base.Month(), day, start)
+				if !ok {
+					continue
+				}
+				if !accept(candidate) {
+					return out
+				}
+			}
+		}
+	case "yearly":
+		for year := 0; len(out) < limit && year < 100; year++ {
+			candidate, ok := validLocalDate(start.Year()+year*event.Recurrence.Interval, start.Month(), start.Day(), start)
+			if !ok {
+				continue
+			}
+			if !accept(candidate) {
+				break
+			}
+		}
+	}
+	return out
+}
+
+func findRecurrenceStart(event Event, recurrenceID string) (time.Time, int, error) {
+	recurrenceID = strings.TrimSpace(recurrenceID)
+	loc, err := time.LoadLocation(event.TimeZone)
+	if err != nil {
+		return time.Time{}, -1, errors.New("unknown IANA time zone")
+	}
+	if _, err = time.ParseInLocation(recurrenceLocalLayout, recurrenceID, loc); err != nil {
+		return time.Time{}, -1, errors.New("invalid recurrence ID")
+	}
+	for index, candidate := range recurrenceStarts(event) {
+		if candidate.Format(recurrenceLocalLayout) == recurrenceID {
+			return candidate, index, nil
+		}
+	}
+	return time.Time{}, -1, errors.New("recurrence ID does not identify an occurrence in the current series")
+}
+
+func upsertRecurrenceException(recurrence Recurrence, exception RecurrenceException) Recurrence {
+	next := make([]RecurrenceException, 0, len(recurrence.Exceptions)+1)
+	for _, existing := range recurrence.Exceptions {
+		if existing.RecurrenceID != exception.RecurrenceID {
+			next = append(next, existing)
+		}
+	}
+	next = append(next, exception)
+	sort.Slice(next, func(i, j int) bool { return next[i].RecurrenceID < next[j].RecurrenceID })
+	recurrence.Exceptions = next
+	return recurrence
+}
+
+func recurrenceExceptionsBefore(exceptions []RecurrenceException, recurrenceID string) []RecurrenceException {
+	out := make([]RecurrenceException, 0, len(exceptions))
+	for _, exception := range exceptions {
+		if exception.RecurrenceID < recurrenceID {
+			out = append(out, exception)
+		}
+	}
+	return out
+}
+
 func validateMeetingLink(raw string) error {
 	if raw == "" {
 		return nil
@@ -1058,91 +1420,21 @@ func expand(e Event, from, to time.Time) []Occurrence {
 		return nil
 	}
 	start := e.StartUTC.In(loc)
-	end := e.EndUTC.In(loc)
-	duration := end.Sub(start)
-	if e.Recurrence.Frequency == "" {
-		return appendOccurrence(nil, e, start, duration, from, to, nil, loc)
-	}
+	duration := e.EndUTC.In(loc).Sub(start)
 	exceptions := map[string]RecurrenceException{}
-	for _, ex := range e.Recurrence.Exceptions {
-		exceptions[ex.RecurrenceID] = ex
+	for _, exception := range e.Recurrence.Exceptions {
+		exceptions[exception.RecurrenceID] = exception
 	}
-	maxGenerated := e.Recurrence.Count
-	if maxGenerated == 0 {
-		maxGenerated = 5000
-	}
-	generated := 0
 	out := []Occurrence{}
-	accept := func(candidate time.Time) bool {
-		if candidate.Before(start) {
-			return true
-		}
-		if !e.Recurrence.Until.IsZero() && candidate.After(e.Recurrence.Until.In(loc)) {
-			return false
-		}
-		if generated >= maxGenerated {
-			return false
-		}
-		generated++
-		ex, ok := exceptions[candidate.Format(recurrenceLocalLayout)]
-		if ok && ex.State == "cancelled" {
-			return true
+	for _, candidate := range recurrenceStarts(e) {
+		exception, ok := exceptions[candidate.Format(recurrenceLocalLayout)]
+		if ok && exception.State == "cancelled" {
+			continue
 		}
 		if ok {
-			out = appendOccurrence(out, e, candidate, duration, from, to, &ex, loc)
+			out = appendOccurrence(out, e, candidate, duration, from, to, &exception, loc)
 		} else {
 			out = appendOccurrence(out, e, candidate, duration, from, to, nil, loc)
-		}
-		return generated < maxGenerated
-	}
-	switch e.Recurrence.Frequency {
-	case "daily":
-		for i := 0; i < maxGenerated; i++ {
-			if !accept(start.AddDate(0, 0, i*e.Recurrence.Interval)) {
-				break
-			}
-		}
-	case "weekly":
-		byDay := e.Recurrence.ByDay
-		if len(byDay) == 0 {
-			byDay = []string{weekdayCode(start.Weekday())}
-		}
-		weekStart := start.AddDate(0, 0, -weekdayOffset(start.Weekday()))
-		for week := 0; generated < maxGenerated && week < 5000; week++ {
-			base := weekStart.AddDate(0, 0, week*7*e.Recurrence.Interval)
-			for _, code := range byDay {
-				candidate := wallTime(base.AddDate(0, 0, weekdayOffset(recurrenceWeekdays[code])), start)
-				if !accept(candidate) {
-					return out
-				}
-			}
-		}
-	case "monthly":
-		byMonthDay := e.Recurrence.ByMonthDay
-		if len(byMonthDay) == 0 {
-			byMonthDay = []int{start.Day()}
-		}
-		for month := 0; generated < maxGenerated && month < 1200; month++ {
-			base := time.Date(start.Year(), start.Month()+time.Month(month*e.Recurrence.Interval), 1, start.Hour(), start.Minute(), start.Second(), start.Nanosecond(), loc)
-			for _, day := range byMonthDay {
-				candidate, ok := validLocalDate(base.Year(), base.Month(), day, start)
-				if !ok {
-					continue
-				}
-				if !accept(candidate) {
-					return out
-				}
-			}
-		}
-	case "yearly":
-		for year := 0; generated < maxGenerated && year < 100; year++ {
-			candidate, ok := validLocalDate(start.Year()+year*e.Recurrence.Interval, start.Month(), start.Day(), start)
-			if !ok {
-				continue
-			}
-			if !accept(candidate) {
-				break
-			}
 		}
 	}
 	return out

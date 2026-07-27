@@ -134,8 +134,10 @@ function unnamedInteractive() {
     if (!cookie || "token" in session)
       throw Error("Calendar session was not issued as an HttpOnly cookie");
     const now = new Date();
-    const start = new Date(now.getTime() + 3_600_000);
-    const end = new Date(start.getTime() + 3_600_000);
+    const start = new Date(now);
+    start.setHours(12, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(13, 0, 0, 0);
     const local = (date) =>
       new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
         .toISOString()

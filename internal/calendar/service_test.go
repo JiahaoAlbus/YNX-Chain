@@ -69,6 +69,40 @@ func TestExportDeleteCookieAndStoreTamper(t *testing.T) {
 	}
 }
 
+func TestLegacyRecurrenceLineageNormalizesOnRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "calendar.json")
+	store, err := NewStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := Event{ID: "legacy-event", Recurrence: Recurrence{Frequency: "daily", Interval: 1, Count: 2}}
+	legacyBefore := legacy
+	if err = store.update(func(st *State) error {
+		st.Events[legacy.ID] = legacy
+		st.Changes["legacy-change"] = ChangePreview{ID: "legacy-change", EventID: legacy.ID, Before: &legacyBefore, After: legacy, RelatedAfter: []Event{legacy}}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := NewStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = reloaded.view(func(st State) error {
+		event := st.Events[legacy.ID]
+		change := st.Changes["legacy-change"]
+		if event.SeriesID != legacy.ID || event.Recurrence.SchemaVersion != 1 {
+			t.Fatalf("legacy event was not normalized: %+v", event)
+		}
+		if change.Before == nil || change.Before.SeriesID != legacy.ID || change.After.SeriesID != legacy.ID || change.RelatedAfter[0].SeriesID != legacy.ID {
+			t.Fatalf("legacy change lineage was not normalized: %+v", change)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestHTTPLoginUsesHttpOnlyCookieWithoutTokenBody(t *testing.T) {
 	svc := newTestService(t, "")
 	c, _ := svc.NewChallenge()
@@ -278,6 +312,250 @@ func TestVersionedRecurrenceRulesAndSingleOccurrenceExceptions(t *testing.T) {
 	invalid.Recurrence = Recurrence{SchemaVersion: 2, Frequency: "daily", Interval: 1, Count: 2}
 	if _, err = svc.eventFromInput(User{ID: "alice", Handle: "@alice"}, invalid); err == nil || !strings.Contains(err.Error(), "schema version") {
 		t.Fatalf("unsupported recurrence schema did not fail closed: %v", err)
+	}
+}
+
+func TestRecurrenceMutationScopesAreAtomicReplayableAndRecoverable(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "calendar.json")
+	svc := newTestService(t, path)
+	token, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+
+	createInput := input("Daily review", "2026-10-01T09:00", "2026-10-01T10:00", "UTC", "recurrence-scope-create")
+	createInput.Recurrence = Recurrence{SchemaVersion: 1, Frequency: "daily", Interval: 1, Count: 5}
+	create, err := svc.PreviewCreate(token, createInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := svc.ApproveChange(token, create.ID, false)
+	if err != nil || event.SeriesID != event.ID || event.Version != 1 {
+		t.Fatalf("recurring event creation failed: %v %+v", err, event)
+	}
+
+	modifyInput := RecurrenceMutationInput{
+		Scope:            "occurrence",
+		RecurrenceID:     "2026-10-02T09:00",
+		Action:           "modify",
+		LocalStart:       "2026-10-02T11:00",
+		LocalEnd:         "2026-10-02T12:00",
+		Title:            "Moved review",
+		ClientMutationID: "recurrence-occurrence-1",
+		BaseVersion:      event.Version,
+	}
+	modify, err := svc.PreviewRecurrenceChange(token, event.ID, modifyInput)
+	if err != nil || modify.Scope != "occurrence" || modify.RecurrenceID != modifyInput.RecurrenceID {
+		t.Fatalf("occurrence preview failed: %v %+v", err, modify)
+	}
+	replay, err := svc.PreviewRecurrenceChange(token, event.ID, modifyInput)
+	if err != nil || replay.ID != modify.ID {
+		t.Fatalf("occurrence mutation replay was not idempotent: %v %+v", err, replay)
+	}
+	event, err = svc.ApproveChange(token, modify.ID, false)
+	if err != nil || event.Version != 2 || len(event.Recurrence.Exceptions) != 1 {
+		t.Fatalf("occurrence approval failed: %v %+v", err, event)
+	}
+	occurrences, err := svc.Events(token, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 10, 8, 0, 0, 0, 0, time.UTC))
+	if err != nil || len(occurrences) != 5 || occurrences[1].Title != "Moved review" || occurrences[1].StartUTC.Hour() != 11 {
+		t.Fatalf("modified occurrence expansion failed: %v %+v", err, occurrences)
+	}
+
+	svc = newTestService(t, path)
+	persisted, err := svc.Event(token, event.ID)
+	if err != nil || len(persisted.Recurrence.Exceptions) != 1 || persisted.SeriesID != event.ID {
+		t.Fatalf("occurrence mutation did not survive restart: %v %+v", err, persisted)
+	}
+	restored, err := svc.RevertChange(token, modify.ID)
+	if err != nil || restored.Version != 3 || len(restored.Recurrence.Exceptions) != 0 {
+		t.Fatalf("occurrence rollback failed: %v %+v", err, restored)
+	}
+
+	futureInput := input("Future review", "2026-10-03T10:00", "2026-10-03T11:00", "UTC", "ignored-nested-id")
+	futureInput.Recurrence = Recurrence{SchemaVersion: 1, Frequency: "daily", Interval: 1, Count: 3}
+	firstSplit := RecurrenceMutationInput{Scope: "this_and_following", RecurrenceID: "2026-10-01T09:00", Action: "update", Series: &futureInput, ClientMutationID: "split-first", BaseVersion: restored.Version}
+	if _, err = svc.PreviewRecurrenceChange(token, event.ID, firstSplit); err == nil || !strings.Contains(err.Error(), "entire_series") {
+		t.Fatalf("first-occurrence split did not fail closed: %v", err)
+	}
+
+	splitInput := RecurrenceMutationInput{Scope: "this_and_following", RecurrenceID: "2026-10-03T09:00", Action: "update", Series: &futureInput, ClientMutationID: "recurrence-split-1", BaseVersion: restored.Version}
+	split, err := svc.PreviewRecurrenceChange(token, event.ID, splitInput)
+	if err != nil || split.Scope != "this_and_following" || len(split.RelatedAfter) != 1 || split.After.Recurrence.Count != 2 {
+		t.Fatalf("this-and-following preview failed: %v %+v", err, split)
+	}
+	splitReplay, err := svc.PreviewRecurrenceChange(token, event.ID, splitInput)
+	if err != nil || splitReplay.ID != split.ID || splitReplay.RelatedAfter[0].ID != split.RelatedAfter[0].ID {
+		t.Fatalf("split replay was not stable: %v %+v", err, splitReplay)
+	}
+	futureID := split.RelatedAfter[0].ID
+	if err = svc.store.update(func(st *State) error {
+		st.Events[futureID] = Event{ID: futureID, Version: 99, State: "scheduled"}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.ApproveChange(token, split.ID, false); !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("derived event collision did not fail atomically: %v", err)
+	}
+	unchanged, err := svc.Event(token, event.ID)
+	if err != nil || unchanged.Version != restored.Version || unchanged.Recurrence.Count != 5 {
+		t.Fatalf("failed split approval partially truncated the original: %v %+v", err, unchanged)
+	}
+	if err = svc.store.update(func(st *State) error {
+		delete(st.Events, futureID)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	truncated, err := svc.ApproveChange(token, split.ID, false)
+	if err != nil || truncated.Version != 4 || truncated.Recurrence.Count != 2 {
+		t.Fatalf("split approval failed: %v %+v", err, truncated)
+	}
+	futureEvent, err := svc.Event(token, futureID)
+	if err != nil || futureEvent.SeriesID != event.ID || futureEvent.ParentEventID != event.ID || futureEvent.SplitFromRecurrenceID != splitInput.RecurrenceID || futureEvent.Version != 1 {
+		t.Fatalf("derived future series lineage failed: %v %+v", err, futureEvent)
+	}
+	occurrences, err = svc.Events(token, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 10, 8, 0, 0, 0, 0, time.UTC))
+	if err != nil || len(occurrences) != 5 || occurrences[1].StartUTC.Hour() != 9 || occurrences[2].StartUTC.Hour() != 10 || occurrences[2].EventID != futureID {
+		t.Fatalf("split occurrence expansion failed: %v %+v", err, occurrences)
+	}
+
+	svc = newTestService(t, path)
+	restored, err = svc.RevertChange(token, split.ID)
+	if err != nil || restored.Version != 5 || restored.Recurrence.Count != 5 {
+		t.Fatalf("split rollback failed after restart: %v %+v", err, restored)
+	}
+	if _, err = svc.Event(token, futureID); err == nil {
+		t.Fatal("derived future series survived rollback")
+	}
+	occurrences, err = svc.Events(token, time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 10, 8, 0, 0, 0, 0, time.UTC))
+	if err != nil || len(occurrences) != 5 || occurrences[2].StartUTC.Hour() != 9 {
+		t.Fatalf("original series was not restored deterministically: %v %+v", err, occurrences)
+	}
+
+	entireInput := input("All reviews moved", "2026-10-01T08:00", "2026-10-01T09:00", "UTC", "ignored-entire-id")
+	entireInput.Recurrence = Recurrence{SchemaVersion: 1, Frequency: "daily", Interval: 1, Count: 5}
+	entireMutation := RecurrenceMutationInput{Scope: "entire_series", Action: "update", Series: &entireInput, ClientMutationID: "recurrence-entire-1", BaseVersion: restored.Version}
+	entire, err := svc.PreviewRecurrenceChange(token, event.ID, entireMutation)
+	if err != nil || entire.Scope != "entire_series" || entire.After.Title != "All reviews moved" {
+		t.Fatalf("entire-series preview failed: %v %+v", err, entire)
+	}
+	updated, err := svc.ApproveChange(token, entire.ID, false)
+	if err != nil || updated.Version != 6 || updated.StartUTC.Hour() != 8 || updated.SeriesID != event.ID {
+		t.Fatalf("entire-series approval failed: %v %+v", err, updated)
+	}
+	stale := modifyInput
+	stale.ClientMutationID = "recurrence-stale"
+	stale.RecurrenceID = "2026-10-02T08:00"
+	stale.BaseVersion = restored.Version
+	if _, err = svc.PreviewRecurrenceChange(token, event.ID, stale); !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("stale recurrence mutation was accepted: %v", err)
+	}
+
+	httpInput := RecurrenceMutationInput{Scope: "occurrence", RecurrenceID: "2026-10-04T08:00", Action: "cancel", ClientMutationID: "recurrence-http-1", BaseVersion: updated.Version}
+	body, _ := json.Marshal(httpInput)
+	req := httptest.NewRequest(http.MethodPost, "/v1/events/"+event.ID+"/recurrence-preview", strings.NewReader(string(body)))
+	req.Header.Set("Authorization", "Bearer "+token)
+	rec := httptest.NewRecorder()
+	NewHandler(svc).ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"scope":"occurrence"`) || !strings.Contains(rec.Body.String(), `"recurrence_id":"2026-10-04T08:00"`) {
+		t.Fatalf("recurrence HTTP preview failed: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestRecurrenceMutationPermissionBoundaries(t *testing.T) {
+	svc := newTestService(t, "")
+	alice, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	bob, _, _ := signIn(t, svc, "@bob", "ynx1bob")
+	in := input("Shared series", "2026-11-01T09:00", "2026-11-01T10:00", "UTC", "shared-series-create")
+	in.Recurrence = Recurrence{SchemaVersion: 1, Frequency: "daily", Interval: 1, Count: 3}
+	preview, err := svc.PreviewCreate(alice, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := svc.ApproveChange(alice, preview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err = svc.Share(alice, event.ID, "@bob", "editor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	modify := RecurrenceMutationInput{Scope: "occurrence", RecurrenceID: "2026-11-02T09:00", Action: "modify", LocalStart: "2026-11-02T11:00", LocalEnd: "2026-11-02T12:00", ClientMutationID: "editor-occurrence", BaseVersion: event.Version}
+	if _, err = svc.PreviewRecurrenceChange(bob, event.ID, modify); err != nil {
+		t.Fatalf("shared editor could not preview an occurrence modification: %v", err)
+	}
+	cancel := RecurrenceMutationInput{Scope: "occurrence", RecurrenceID: "2026-11-02T09:00", Action: "cancel", ClientMutationID: "editor-cancel", BaseVersion: event.Version}
+	if _, err = svc.PreviewRecurrenceChange(bob, event.ID, cancel); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("shared editor cancelled an occurrence: %v", err)
+	}
+}
+
+func TestThisAndFollowingTruncatesUntilAtPreviousDSTOccurrence(t *testing.T) {
+	svc := newTestService(t, "")
+	token, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	loc, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := input("DST weekly", "2026-03-01T09:00", "2026-03-01T10:00", "America/New_York", "dst-until-create")
+	in.Recurrence = Recurrence{SchemaVersion: 1, Frequency: "weekly", Interval: 1, Until: time.Date(2026, 4, 1, 9, 0, 0, 0, loc)}
+	preview, err := svc.PreviewCreate(token, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := svc.ApproveChange(token, preview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	future := input("DST future", "2026-03-15T10:00", "2026-03-15T11:00", "America/New_York", "ignored-dst-future")
+	future.Recurrence = Recurrence{SchemaVersion: 1, Frequency: "weekly", Interval: 1, Count: 3}
+	change, err := svc.PreviewRecurrenceChange(token, event.ID, RecurrenceMutationInput{Scope: "this_and_following", RecurrenceID: "2026-03-15T09:00", Action: "update", Series: &future, ClientMutationID: "dst-until-split", BaseVersion: event.Version})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if change.After.Recurrence.Count != 0 || change.After.Recurrence.Until.In(loc).Format(recurrenceLocalLayout) != "2026-03-08T09:00" {
+		t.Fatalf("until recurrence was not truncated at the previous local occurrence: %+v", change.After.Recurrence)
+	}
+	if _, err = svc.ApproveChange(token, change.ID, false); err != nil {
+		t.Fatal(err)
+	}
+	occurrences, err := svc.Events(token, time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC))
+	if err != nil || len(occurrences) != 5 {
+		t.Fatalf("until split occurrence count failed: %v %+v", err, occurrences)
+	}
+	if occurrences[0].StartUTC.Hour() != 14 || occurrences[1].StartUTC.Hour() != 13 || !strings.Contains(occurrences[2].LocalStart, "2026-03-15T10:00:00") {
+		t.Fatalf("until split DST wall time failed: %+v", occurrences)
+	}
+}
+
+func TestOccurrenceCancellationDoesNotRequireUnrelatedConflictOverride(t *testing.T) {
+	svc := newTestService(t, "")
+	token, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	recurringInput := input("Recurring", "2026-12-01T09:00", "2026-12-01T10:00", "UTC", "cancel-conflict-recurring")
+	recurringInput.Recurrence = Recurrence{SchemaVersion: 1, Frequency: "daily", Interval: 1, Count: 2}
+	recurringPreview, err := svc.PreviewCreate(token, recurringInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recurring, err := svc.ApproveChange(token, recurringPreview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	collisionPreview, err := svc.PreviewCreate(token, input("Collision", "2026-12-02T09:30", "2026-12-02T10:30", "UTC", "cancel-conflict-collision"))
+	if err != nil || len(collisionPreview.Conflicts) != 1 {
+		t.Fatalf("expected collision preview: %v %+v", err, collisionPreview.Conflicts)
+	}
+	if _, err = svc.ApproveChange(token, collisionPreview.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	cancel, err := svc.PreviewRecurrenceChange(token, recurring.ID, RecurrenceMutationInput{Scope: "occurrence", RecurrenceID: "2026-12-02T09:00", Action: "cancel", ClientMutationID: "cancel-conflict-occurrence", BaseVersion: recurring.Version})
+	if err != nil || len(cancel.Conflicts) != 0 {
+		t.Fatalf("occurrence cancellation inherited unrelated conflicts: %v %+v", err, cancel.Conflicts)
+	}
+	if _, err = svc.ApproveChange(token, cancel.ID, false); err != nil {
+		t.Fatalf("occurrence cancellation required an override: %v", err)
+	}
+	occurrences, err := svc.Events(token, time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 12, 4, 0, 0, 0, 0, time.UTC))
+	if err != nil || len(occurrences) != 2 {
+		t.Fatalf("cancelled occurrence was not removed: %v %+v", err, occurrences)
 	}
 }
 

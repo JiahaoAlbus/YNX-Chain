@@ -98,6 +98,32 @@ func (s *Store) normalize() {
 	if s.data.AIJobs == nil {
 		s.data.AIJobs = map[string]AIJob{}
 	}
+	normalizeEvent := func(event Event) Event {
+		if event.SeriesID == "" {
+			event.SeriesID = event.ID
+		}
+		if event.Recurrence.Frequency != "" && event.Recurrence.SchemaVersion == 0 {
+			event.Recurrence.SchemaVersion = 1
+		}
+		return event
+	}
+	for id, event := range s.data.Events {
+		s.data.Events[id] = normalizeEvent(event)
+	}
+	for id, change := range s.data.Changes {
+		change.After = normalizeEvent(change.After)
+		if change.Before != nil {
+			before := normalizeEvent(*change.Before)
+			change.Before = &before
+		}
+		for i := range change.RelatedBefore {
+			change.RelatedBefore[i] = normalizeEvent(change.RelatedBefore[i])
+		}
+		for i := range change.RelatedAfter {
+			change.RelatedAfter[i] = normalizeEvent(change.RelatedAfter[i])
+		}
+		s.data.Changes[id] = change
+	}
 }
 func (s *Store) update(fn func(*State) error) error {
 	s.mu.Lock()
