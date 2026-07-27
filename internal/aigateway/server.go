@@ -32,7 +32,7 @@ func (s *Server) Handler() http.Handler { return s.mux }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
-	s.mux.HandleFunc("GET /ai/stream", s.handleStream)
+	s.mux.HandleFunc("POST /ai/stream", s.handleStream)
 	s.mux.HandleFunc("POST /ai/permissions", s.handleProxy)
 	s.mux.HandleFunc("GET /ai/permissions", s.handleProxy)
 	s.mux.HandleFunc("GET /ai/permissions/{id}", s.handleProxy)
@@ -68,27 +68,54 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	session, query := strings.TrimSpace(r.URL.Query().Get("session")), strings.TrimSpace(r.URL.Query().Get("q"))
-	if session == "" || query == "" {
+	if r.URL.RawQuery != "" {
 		s.service.RejectRequest()
-		s.finish(w, r, requestID, session, PromptHash(query), http.StatusBadRequest, "invalid_request", "session and q are required")
+		s.finish(w, r, requestID, "", "", http.StatusBadRequest, "invalid_request", "query parameters are not allowed on the AI stream endpoint")
 		return
 	}
-	if len(session) > 128 || len(query) > 8000 {
+	if mediaType := strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0]); mediaType != "application/json" {
 		s.service.RejectRequest()
-		s.finish(w, r, requestID, session, PromptHash(query), http.StatusBadRequest, "invalid_request", "session or q exceeds limits")
+		s.finish(w, r, requestID, "", "", http.StatusUnsupportedMediaType, "invalid_request", "application/json is required")
 		return
 	}
+	var input generationInput
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&input); err != nil {
+		s.service.RejectRequest()
+		s.finish(w, r, requestID, "", "", http.StatusBadRequest, "invalid_request", "exact YNX AI generation JSON is required")
+		return
+	}
+	var extra any
+	if decoder.Decode(&extra) != io.EOF {
+		s.service.RejectRequest()
+		s.finish(w, r, requestID, "", "", http.StatusBadRequest, "invalid_request", "one JSON object is required")
+		return
+	}
+	session, prompt := strings.TrimSpace(input.Session), strings.TrimSpace(input.Prompt)
+	if session == "" || prompt == "" || !validGenerationContext(input) {
+		s.service.RejectRequest()
+		s.finish(w, r, requestID, session, PromptHash(prompt), http.StatusBadRequest, "invalid_request", "bounded session, prompt, language, and explicit context selection are required")
+		return
+	}
+	if len(session) > 128 || len(prompt) > 8000 {
+		s.service.RejectRequest()
+		s.finish(w, r, requestID, session, PromptHash(prompt), http.StatusBadRequest, "invalid_request", "session or prompt exceeds limits")
+		return
+	}
+	promptHash := PromptHash(prompt)
+	query := completionQuery(prompt, input.OutputLanguage, input.Attachments)
 	if !s.service.Allow(r.RemoteAddr, accessKey, time.Now().UTC()) {
 		s.service.RejectRequest()
-		s.finish(w, r, requestID, session, PromptHash(query), http.StatusTooManyRequests, "rate_limited", "AI Gateway rate limit exceeded")
+		s.finish(w, r, requestID, session, promptHash, http.StatusTooManyRequests, "rate_limited", "AI Gateway rate limit exceeded")
 		return
 	}
 	s.service.StartRequest()
 	answer, err := s.service.Complete(r.Context(), session, query, requestID)
 	if err != nil {
 		s.service.FinishRequest(http.StatusBadGateway)
-		s.audit(r, requestID, session, PromptHash(query), http.StatusBadGateway, "upstream_error")
+		s.audit(r, requestID, session, promptHash, http.StatusBadGateway, "upstream_error")
 		writeError(w, http.StatusBadGateway, requestID, err.Error())
 		return
 	}
@@ -109,7 +136,80 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	}
 	_, _ = fmt.Fprintf(w, "event: done\ndata: {\"requestId\":%q}\n\n", requestID)
 	s.service.FinishRequest(http.StatusOK)
-	s.audit(r, requestID, session, PromptHash(query), http.StatusOK, "streamed")
+	s.audit(r, requestID, session, promptHash, http.StatusOK, "streamed")
+}
+
+type generationInput struct {
+	Session         string              `json:"session"`
+	Prompt          string              `json:"prompt"`
+	OutputLanguage  string              `json:"outputLanguage"`
+	IncludedContext []string            `json:"includedContext"`
+	ExcludedContext []string            `json:"excludedContext"`
+	Attachments     []attachmentContext `json:"attachments"`
+	ContinueFrom    string              `json:"continueFrom"`
+}
+
+type attachmentContext struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	MIMEType string `json:"mimeType"`
+	Text     string `json:"text"`
+}
+
+func validGenerationContext(input generationInput) bool {
+	if len(input.IncludedContext) > 8 || len(input.ExcludedContext) > 8 || len(input.Attachments) > 8 || len(input.ContinueFrom) > 120 || !validOutputLanguage(input.OutputLanguage) {
+		return false
+	}
+	allowed := map[string]bool{"conversation": true, "selected_chain_records": true, "selected_files": true, "selected_trust_records": true}
+	included, excluded := map[string]bool{}, map[string]bool{}
+	for _, value := range input.IncludedContext {
+		value = strings.TrimSpace(value)
+		if !allowed[value] || included[value] {
+			return false
+		}
+		included[value] = true
+	}
+	for _, value := range input.ExcludedContext {
+		value = strings.TrimSpace(value)
+		if !allowed[value] || included[value] || excluded[value] {
+			return false
+		}
+		excluded[value] = true
+	}
+	if len(input.Attachments) > 0 && !included["selected_files"] {
+		return false
+	}
+	total := 0
+	for _, attachment := range input.Attachments {
+		total += len(attachment.Text)
+		if strings.TrimSpace(attachment.ID) == "" || strings.TrimSpace(attachment.Name) == "" || len(attachment.Name) > 160 || len(attachment.Text) == 0 || len(attachment.Text) > 262144 {
+			return false
+		}
+		switch attachment.MIMEType {
+		case "text/plain", "text/markdown", "application/json":
+		default:
+			return false
+		}
+	}
+	return total <= maxBodyBytes
+}
+
+func validOutputLanguage(value string) bool {
+	switch value {
+	case "en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "ru", "ar", "id":
+		return true
+	default:
+		return false
+	}
+}
+
+func completionQuery(prompt, language string, attachments []attachmentContext) string {
+	var query strings.Builder
+	_, _ = fmt.Fprintf(&query, "Respond in language %s.\n\nUser prompt:\n%s", language, prompt)
+	for _, attachment := range attachments {
+		_, _ = fmt.Fprintf(&query, "\n\nUser-selected file %q (%s):\n%s", attachment.Name, attachment.MIMEType, attachment.Text)
+	}
+	return query.String()
 }
 
 func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
