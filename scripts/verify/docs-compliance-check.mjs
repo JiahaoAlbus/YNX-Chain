@@ -75,11 +75,46 @@ for (const file of jsonFiles) {
 }
 
 const release = JSON.parse(fs.readFileSync("release/product-release.json", "utf8"));
+const publicMetadata = JSON.parse(fs.readFileSync("release/public-product-metadata.json", "utf8"));
+const websiteHandoff = fs.readFileSync("docs/public/WEBSITE_INTEGRATION_HANDOFF.md", "utf8");
 const stateKeys = ["implementedLocal", "testedLocal", "installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"];
 const expectedStates = {implementedLocal: true, testedLocal: true, installedLocal: false, integratedCentral: true, deployedStaging: false, deployedPublic: true, downloadHosted: true, productionSigned: false, storeReleased: false};
 for (const key of stateKeys) {
   if (typeof release.states?.[key] !== "boolean") failures.push(`release state is not boolean: ${key}`);
   if (release.states?.[key] !== expectedStates[key]) failures.push(`release state does not match recorded direct evidence: ${key}`);
+}
+const expectedPublicUrls = {
+  support: "https://ynxweb4.com/support",
+  privacy: "https://ynxweb4.com/privacy",
+  security: "https://ynxweb4.com/security",
+  status: "https://ynxweb4.com/status",
+};
+if (publicMetadata.canonicalUrl !== "https://ynxweb4.com/what-is-ynx-chain") {
+  failures.push("public metadata canonical URL does not match the deployed authority route");
+}
+for (const [key, value] of Object.entries(expectedPublicUrls)) {
+  if (publicMetadata.urls?.[key] !== value) failures.push(`public metadata URL is stale: ${key}`);
+}
+const documentationDownload = publicMetadata.downloads?.find((entry) => entry.type === "documentation-bundle");
+if (
+  documentationDownload?.manifestUrl !== "https://ynxweb4.com/docs-authority/artifact-manifest.json" ||
+  documentationDownload?.status !== "hosted-unsigned-candidate" ||
+  documentationDownload?.productionSigned !== false
+) {
+  failures.push("public metadata documentation download state is stale or overstated");
+}
+for (const marker of [
+  "https://ynxweb4.com/what-is-ynx-chain",
+  "`integratedCentral=true`",
+  "`deployedPublic=true`",
+  "`downloadHosted=true`",
+  "`productionSigned=false`",
+  "IndexNow",
+]) {
+  if (!websiteHandoff.includes(marker)) failures.push(`website handoff lacks current marker: ${marker}`);
+}
+for (const stale of ["All nine booleans are currently false", "URLs remain unset", "Downloads remain empty"]) {
+  if (websiteHandoff.includes(stale)) failures.push(`website handoff contains stale release truth: ${stale}`);
 }
 
 const searchDir = "docs/public/search";

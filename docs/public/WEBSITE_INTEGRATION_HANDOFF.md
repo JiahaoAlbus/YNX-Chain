@@ -1,30 +1,48 @@
 # YNX Chain Website Integration Handoff
 
-Version: 1.0.0-candidate  
-Last reviewed: 2026-07-22  
-Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`
+Version: 1.1.0-candidate
+Last reviewed: 2026-07-27
+Source commit: `ab209455dc1e0e537da2872505ed0bb2b2256609`
 
 ## Canonical identity
 
-Use `release/public-product-metadata.json` as the machine-readable identity source and `docs/public/PUBLIC_BRAND_FACTS.md` for editorial facts. The canonical product route is `https://ynxweb4.com/ynx-chain`. Preserve the five neutral disambiguation statements verbatim in substance. Do not call YNXT a Mainnet asset or imply affiliation with unrelated Lynx-branded products.
+Use `release/public-product-metadata.json` as the machine-readable identity source and `docs/public/PUBLIC_BRAND_FACTS.md` for editorial facts. The canonical product route is `https://ynxweb4.com/what-is-ynx-chain`. Preserve the five neutral disambiguation statements verbatim in substance. Do not call YNXT a Mainnet asset or imply affiliation with unrelated Lynx-branded products.
 
 ## Content routes
 
 | Suggested route | Source |
 |---|---|
-| `/ynx-chain` | `search/WHAT_IS_YNX_CHAIN.md` |
-| `/ynx-web4` | `search/WHAT_IS_YNX_WEB4.md` |
-| `/ynxt` | `search/WHAT_IS_YNXT.md` |
+| `/what-is-ynx-chain` | `search/WHAT_IS_YNX_CHAIN.md` |
+| `/what-is-ynx-web4` | `search/WHAT_IS_YNX_WEB4.md` |
+| `/what-is-ynxt` | `search/WHAT_IS_YNXT.md` |
 | `/testnet` | `search/YNX_TESTNET_GUIDE.md` |
 | `/wallet`, `/developer`, `/exchange`, `/dex`, `/quant` | corresponding search page |
 | `/security`, `/trust`, `/economics`, `/products` | corresponding search page |
 | `/faq` | `FAQ.md` |
 
-Render one canonical URL, unique title, meta description and H1 per page. Preserve direct-answer paragraphs, update dates, source commit and evidence links. Avoid creating near-duplicate locale or keyword pages. The Website owner controls final SSR/SSG, canonical tags, hreflang, robots, sitemap, Search Console, Bing and IndexNow submission.
+The Website currently prerenders the authority routes with canonical tags and JSON-LD,
+publishes robots and sitemap discovery files, and submitted the canonical URL set
+through IndexNow. Search Console and Bing owner-console verification remain external
+provider tasks. Preserve one canonical URL, unique title, meta description and H1 per
+page; do not create near-duplicate locale or keyword pages.
 
 ## Status and claims
 
-Read release state from `release/product-release.json`; never infer a later state from prose. All nine booleans are currently false. A local implementation, test, package, simulator or operator-observed endpoint cannot become a public, signed, downloadable or store claim without its direct evidence.
+Read release state from `release/product-release.json`; never infer a later state from
+prose. The current evidence-bound states are:
+
+- `implementedLocal=true`
+- `testedLocal=true`
+- `installedLocal=false`
+- `integratedCentral=true`
+- `deployedStaging=false`
+- `deployedPublic=true`
+- `downloadHosted=true`
+- `productionSigned=false`
+- `storeReleased=false`
+
+The hosted documentation ZIP is an unsigned public candidate. It must not be described
+as production signed, independently audited, Mainnet-ready or store released.
 
 Use `MARKETING_CLAIMS_EVIDENCE_MATRIX.md` as a publishing gate. If a claim's evidence expires or conflicts, remove the claim or render the documented unavailable/candidate state. Do not substitute fake metrics, balances, transactions, prices, APY, liquidity, users, revenue or provider health.
 
@@ -42,8 +60,17 @@ Before publication verify keyboard traversal, visible focus, landmarks/headings,
 
 ## URLs and screenshots
 
-Support, privacy, security and status URLs remain unset in metadata and must render as unavailable—not guessed routes. Downloads remain empty. Screenshots are not approved because the exact documentation candidate has not been integrated and re-captured. Use no screenshot until its source release, route, viewport, state, rights, hash and privacy review are recorded.
+The approved public routes are `/support`, `/privacy`, `/security` and `/status`.
+The documentation download entry resolves through
+`/docs-authority/artifact-manifest.json`, whose content-addressed archive records exact
+bytes, SHA-256, hosted-download state and unsigned status. Screenshots remain
+unapproved until their source release, route, viewport, state, rights, hash and privacy
+review are recorded.
 
 ## Integration acceptance evidence
 
-Return: Website source commit; production deployment identity; route-to-source manifest; rendered HTML for metadata/JSON-LD; sitemap and hreflang results; desktop and 390px screenshots; accessibility report; link scan; public URL responses; asset hashes; and a statement that no release boolean was changed without direct proof.
+Current Website acceptance and direct public observations are recorded in
+`release/evidence/website-public-acceptance-2026-07-26.json`. Future changes must
+return the Website source identity, deployment identity, route-to-source manifest,
+rendered metadata/JSON-LD, discovery results, accessibility and link checks, public URL
+responses and artifact hashes. No release boolean may change without direct proof.
