@@ -34,6 +34,14 @@
 - The 168-hour cooling-off and cancel paths are audited; request routes never perform automatic deletion or claim third-party/public-chain deletion.
 - `go test ./internal/payproduct/...` and `go test -race ./internal/payproduct/...` passed. Full `go test ./...` remains red only in unrelated owner areas: missing bounded-IDE contract artifact and darwin permission-mode checks in consensus/faucet/trust.
 
+## GitHub Actions verification (source `c9eb7e41054fa4f88a3c0f2cc5352a3d187f4504`)
+
+- Run `30276842541` (Merchant Console run number 8) completed with conclusion `success` for the exact source commit.
+- Frontend passed `npm ci`, 14 tests, locale-safe runtime placeholder/credential scanning, production build and high-severity dependency audit.
+- Backend passed package tests, `go vet` and the RBAC, webhook-signature and settlement-evidence fuzz gates.
+- The repaired scanner permits legitimate Spanish/Portuguese `Todo/Todos` translations while rejecting actionable task markers, Coming soon, example domains and credential shapes.
+- The workflow uploaded no Merchant Console artifact, and the repository exposes no visible latest GitHub Release. Green CI is therefore not artifact hosting, release publication, shared Testnet or deployment evidence.
+
 ## Recovery drill (source `53adf12dde18c4e6d0ca3602a528d3efe8c19aef`)
 
 - Built the daemon and independent recovery CLI from the exact source commit.

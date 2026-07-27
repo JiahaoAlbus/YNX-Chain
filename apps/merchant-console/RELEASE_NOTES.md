@@ -19,6 +19,7 @@
 - Added a public `/version` endpoint and release-correlation headers carrying commit, release, build time and process start time; local race tests bind the response to source commit `1f7963c`.
 - Added the versioned Merchant Console integration contract, full-goal coverage matrix, cross-product test vectors and dependency acceptance handoff without claiming central acceptance.
 - Added owner-only schema-v1 merchant data export with tenant isolation and runtime-material redaction, plus audited exact-confirmation/idempotent deletion request/cancel controls with 168-hour cooling off and fail-closed retention blockers. Irreversible deletion remains unavailable pending accepted policy/operator authority.
-- Synchronized the final branch through runtime commit `b0934a09df9d2dbea67abb596ad84154ab168312`; the earlier verified Git bundle remains historical recovery evidence, not deployment proof.
+- Synchronized the final branch through data-rights runtime commit `b0934a09df9d2dbea67abb596ad84154ab168312` and evidence commit `0c275fffddad5d2c9e9d9e82cf55bfa68f3fc53c`; the earlier verified Git bundle remains historical recovery evidence, not deployment proof.
+- Replaced the locale-unsafe case-insensitive `TODO` grep with a tested semantic runtime-source scanner at `c9eb7e4`; GitHub Actions run `30276842541` passed frontend/backend, audit, build, Vet and fuzz gates. No workflow artifact or visible GitHub Release is claimed.
 
 No staging/public deployment, official provider success, stablecoin settlement, hosted download or production signature is claimed by this release.

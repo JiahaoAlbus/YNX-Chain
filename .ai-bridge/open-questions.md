@@ -19,7 +19,7 @@
 - No deployment authority, DNS or public policy/status URLs are available in this worktree.
 - No funded secure signer path or approved provider secret-manager references are available.
 - Irreversible merchant-data disposition requires an accepted legal retention/deletion policy, explicit operator authority and provider-specific completion evidence.
-- GitHub API inspection currently has one recorded TLS handshake timeout; retry is required before claiming Actions/Releases/Artifacts status.
+- GitHub Actions is green at run `30276842541`, but the current workflow uploads no Merchant Console artifact and the repository API exposes no visible latest release; artifact/release gates remain open by evidence, not by network ambiguity.
 
 ## Autonomous questions to resolve in code
 

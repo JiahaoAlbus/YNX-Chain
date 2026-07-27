@@ -13,3 +13,5 @@
 9. Merchant data export is owner-only, tenant-scoped and must exclude runtime authorization, session, replay, provider credential and webhook authentication material.
 10. Deletion request routes never perform irreversible deletion. They require exact merchant confirmation, idempotency, a 168-hour cooling-off period, deterministic retention blockers and audit; execution requires an accepted policy and explicit operator authority.
 11. Snapshot v3 is required for merchant data requests. v1/v2 forward migration is supported; rollback after v3 writes requires a compatible pre-v3 backup to prevent silent field loss.
+12. Runtime placeholder/credential scanning must be locale-safe: normal translated words such as Spanish `Todo` and Portuguese `Todos` are permitted, while actionable comment markers, uppercase `TODO`/`FIXME`, Coming soon, example domains and credential shapes fail the gate.
+13. GitHub Actions success is recorded separately from artifacts, releases, central integration and deployment. Run `30276842541` proves only the Merchant Console CI workflow for commit `c9eb7e4`; it produced no hosted artifact or release.

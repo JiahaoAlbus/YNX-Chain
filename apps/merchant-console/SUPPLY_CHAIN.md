@@ -2,7 +2,8 @@
 
 - JavaScript dependencies are locked by `package-lock.json`; canonical Wallet Auth is vendored as a versioned tarball.
 - Go dependencies are locked by `go.mod` and `go.sum` at repository root.
-- Local `npm audit` reported zero known vulnerabilities on 2026-07-22; this is not a future or production guarantee.
+- Local `npm audit --audit-level=high` reported zero known vulnerabilities on 2026-07-27; GitHub Actions run `30276842541` passed the same gate. This is not a future or production guarantee.
+- `npm run security:scan` uses a locale-safe, tested scanner: Spanish/Portuguese `Todo/Todos` text is valid, while actionable task markers, Coming soon, example domains and common credential shapes fail closed.
 - Build uses the checked-in `scripts/build.mjs` and pinned esbuild version.
 - `artifacts/sbom/frontend.cdx.json` is a path-sanitized CycloneDX 1.5 frontend SBOM (SHA-256 `14681393bd0afa46d5d1b9649f54493cfdd2b98f784ec974db284f47e8858180`, 7,276 bytes at generation).
 - `artifacts/sbom/backend-modules.json` is the path-sanitized machine-readable Go module inventory (SHA-256 `2e7b2e5aebd9fd5abc33e689bdc26d764d64412dda177630640407230b708a1d`, 57,262 bytes at generation).

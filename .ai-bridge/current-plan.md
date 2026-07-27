@@ -2,31 +2,32 @@
 
 Stage: **FREEZE**  
 Goal status: **Active**  
-Latest runtime commit: `b0934a09df9d2dbea67abb596ad84154ab168312`  
-Remote runtime checkpoint: `b0934a09df9d2dbea67abb596ad84154ab168312` (push succeeded)
+Latest protected source: `c9eb7e41054fa4f88a3c0f2cc5352a3d187f4504`  
+Remote checkpoint: `c9eb7e41054fa4f88a3c0f2cc5352a3d187f4504`
 
-## Completed checkpoint
+## Completed checkpoints
 
 - Recovered the exact product worktree/branch and confirmed no concurrent writer.
-- Preserved and reviewed the existing Merchant Data Rights dirty slice.
-- Added owner-only `data-manage` authorization and four authenticated data-rights routes.
-- Added schema-v1 tenant export with runtime/session/replay/provider/webhook authentication redaction.
-- Added versioned retention policy, exact-confirmation/idempotent deletion request, 168-hour cooling off, deterministic retention blockers, cancellation and audit.
+- Preserved, reviewed, tested, committed and pushed Merchant Data Rights runtime commit `b0934a0`.
+- Added owner-only schema-v1 tenant export, runtime-material redaction, versioned retention, exact-confirmation/idempotent deletion requests, 168-hour cooling off, deterministic blockers, cancellation and audit.
 - Upgraded persistent snapshot schema to v3, migrated v1/v2, rejected future schemas, and included data requests in backup/restore counts.
-- `go test ./internal/payproduct/...` and `go test -race ./internal/payproduct/...` passed.
-- Runtime commit `b0934a0` was pushed to `origin/codex/final-merchant-console`.
-- Full-repository `go test ./...` remains red only in unrelated owner areas: missing bounded-IDE contract artifact and darwin permission-mode checks in consensus/faucet/trust.
+- Bound contracts, migrations, release evidence and coverage at evidence commit `0c275ff`.
+- Diagnosed GitHub Actions run 7 failure as a locale false positive: case-insensitive `TODO` matching rejected normal Spanish/Portuguese `Todo/Todos` copy.
+- Replaced the grep gate with a semantic source scanner and positive/negative tests at commit `c9eb7e4`.
+- Reproduced every workflow gate locally: Node install/check/audit/source scan/build, Go test/vet and three fuzz targets.
+- GitHub Actions run `30276842541` for `c9eb7e4` completed successfully; frontend and backend jobs were fully green.
+- Local HEAD, upstream and direct remote branch SHA match; ahead/behind is `0/0`.
 
 ## Immediate checkpoint actions
 
-1. Validate updated contract/release/coverage JSON and review all evidence diffs.
-2. Commit and push the evidence checkpoint; verify exact Local SHA = Remote SHA and clean status.
-3. Retry GitHub Actions/Releases/Artifacts inspection with bounded network attempts.
-4. Continue the highest-priority autonomous runtime gap: signed Quant/Billing evidence acceptance only if an exact owner contract exists; otherwise implement operational search/filter/pagination and confirmed bulk-operation contracts.
+1. Bind the successful CI run, no-artifact state and no-visible-release state into coverage/release/evidence records.
+2. Commit and push the CI evidence checkpoint and verify exact Local SHA = Remote SHA.
+3. Inspect repository-owned Quant/Billing/Data Fabric contracts. Implement only strict accepted-contract ingestion; do not invent schemas or authority.
+4. If no exact accepted contract exists, implement the next independent operations slice: server-side search/filter/cursor pagination and confirmation-bound bulk operations with tenant/RBAC/idempotency/audit tests.
 5. Keep `integratedCentral`, Testnet, deployment, hosting, signing and store states false until direct evidence exists.
 
 ## Boundaries
 
 - Do not modify another worktree or replace central Wallet/Auth, Pay, Quant, Trust, Billing Ledger or Integration authority.
 - Do not request or expose secrets.
-- Do not represent local tests, Git synchronization or unsigned bundles as shared-Testnet/public/production evidence.
+- Do not represent local tests, Git synchronization, green CI or unsigned bundles as shared-Testnet/public/production evidence.
