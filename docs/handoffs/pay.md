@@ -4,7 +4,7 @@
 
 - Branch: `codex/final-pay`
 - Recovery base HEAD: `27b811cabcf16b663a085652412be01561195629`
-- Current checkpoint commit: `a405604714645df1084ed9e06cc7d7b6f9a4d4b0`
+- Current checkpoint commit: `8118cea0404030f6818a4769cc847f8716f60490`
 - Earlier preserved baseline: `ffb528b4971b5849ffb151a018263daf5c0e2cb0`
 - Canonical Wallet dependency: `@ynx-chain/wallet-auth@1.0.0`, vendored from
   `efe827f467107e23482289a5b1f69ac9ff83e694`; tarball SHA-256
@@ -74,12 +74,19 @@ consumer flow: strict Invoice/Split lookup, QR and deep links, signed plan revie
 12-language and Arabic RTL share selection, secure pending-claim recovery,
 automatic continuation after Wallet authentication, and child Invoice v4 review.
 
+## Quant and service billing checkpoint on 2026-07-27
+
+Quant billing no longer accepts a frontend-calculated or manager-declared PnL. An owner or finance merchant session can create a service bill only from an Ed25519-signed external ledger envelope whose key ID is present in the configured verifier registry. Pay validates source/version/as-of/expiry, subtracts net external capital flows, recomputes the high-water-mark base, eligible profit, performance fee, fixed compute/data/subscription/management fees and the new high-water mark with bounded integer arithmetic, and rejects stale, tampered, unapproved or overflowing evidence.
+
+The resulting merchant-signed Invoice v5 binds `serviceBillId`, `serviceEvidenceDigest` and `expectedPayerHash`. Raw payer accounts remain private; public Quant bills retain the external and Invoice-domain payer hashes, evidence signature/digest and complete fee breakdown. Authoritative settlement from a different payer fails closed. The Pay app independently verifies the accepted public key, evidence SHA-256 digest, Ed25519 signature, every calculation and the Invoice v5 binding before it enables Wallet review, and presents the fee breakdown in all 12 supported locales including Arabic RTL. Without an accepted verifier key, the capability is explicitly unavailable.
+
 Canonical integration files are now:
 
 - `release/integration/pay-contract.json`
 - `docs/integration/INTEGRATION_HANDOFF.md`
 - `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- `docs/integration/pay-quant-billing.json`
 - `.ai-bridge/full-goal-coverage.json`
 
 ## Verification completed on 2026-07-27
@@ -89,9 +96,10 @@ Canonical integration files are now:
   emitted a non-fatal `LC_DYSYMTAB` warning.
 - Split signature, tamper, replay, scope, wrong-payer, public-redaction,
   merchant-audit and aggregate-state tests passed.
-- `npm run check` in `apps/pay`: TypeScript passed, 11/11 tests passed,
-  and Android/iOS Hermes bundles exported with Invoice v4, strict Split reference
-  parsing, secure claim recovery and Wallet-auth continuation.
+- `npm run check` in `apps/pay`: TypeScript passed, 13/13 tests passed,
+  and Android/iOS Hermes bundles exported with Invoice v4/v5, strict Split/Quant
+  reference parsing, secure Split recovery, external Quant signature/digest/math
+  verification and 12-language fee review.
 - `make pay-api-check` and `bash internal/payproduct/smoke.sh`: passed.
 - `go test ./... -count=1` is not fully green because unchanged
   Consensus/Faucet/Trust permission tests fail in this host environment and
