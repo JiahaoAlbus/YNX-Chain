@@ -148,9 +148,19 @@ systemctl restart ynx-bridged
 systemctl restart ynx-app-gatewayd
 YNX_LOCAL_SERVICE_CHECK_ATTEMPTS=20 YNX_LOCAL_SERVICE_CHECK_SLEEP_SECONDS=1 \
   bash "$release_dir/scripts/check-local-services.sh" primary "$expected_commit" "$expected_release" 6423 bridge
-app_health="$(curl -fsS --max-time 8 http://127.0.0.1:6437/health)"
-[[ "$app_health" == *'"service":"ynx-app-gatewayd"'* && "$app_health" == *'"bridge":{"ok":true'* ]] || {
-  echo "App Gateway did not report a healthy Bridge upstream" >&2
+app_bridge_verified=0
+for app_bridge_attempt in $(seq 1 20); do
+  if app_bridge_health="$(curl -fsS --max-time 8 http://127.0.0.1:6437/app/bridge/health)" &&
+    [[ "$app_bridge_health" == *'"service":"ynx-bridged"'* &&
+      "$app_bridge_health" == *"\"commit\":\"$expected_commit\""* &&
+      "$app_bridge_health" == *'"externalSubmissionEnabled":false'* ]]; then
+    app_bridge_verified=1
+    break
+  fi
+  sleep 1
+done
+[[ "$app_bridge_verified" == "1" ]] || {
+  echo "App Gateway did not expose the deployed fail-closed Bridge upstream within 20 bounded attempts" >&2
   exit 1
 }
 provider_probe_verified=0
