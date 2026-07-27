@@ -20,6 +20,7 @@ import (
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	sourceURL := flag.String("pay-source-url", os.Getenv("YNX_PAY_DATA_FABRIC_SOURCE_URL"), "authoritative YNX Chain Pay origin")
+	sourceMode := flag.String("pay-source-mode", envString("YNX_PAY_DATA_FABRIC_SOURCE_MODE", datafabricpay.SourceModeAuthoritative), "Pay event source mode: authoritative or bft")
 	upstreamKeyFile := flag.String("pay-upstream-key-file", os.Getenv("YNX_PAY_DATA_FABRIC_UPSTREAM_KEY_FILE"), "absolute private Pay upstream key path")
 	producerURL := flag.String("data-fabric-url", os.Getenv("YNX_PAY_DATA_FABRIC_URL"), "Data Fabric producer origin")
 	keyID := flag.String("event-key-id", os.Getenv("YNX_PAY_DATA_FABRIC_EVENT_KEY_ID"), "registered Pay product event key ID")
@@ -34,9 +35,15 @@ func main() {
 	if *interval <= 0 || strings.TrimSpace(*sourceCommit) == "" || strings.TrimSpace(*sourceRelease) == "" {
 		fail("positive interval, exact Pay source commit, and exact Pay source release are required")
 	}
-	upstreamKey, err := datafabricconfig.LoadSecretFile(*upstreamKeyFile, "Pay authority upstream")
-	if err != nil {
-		fail(err.Error())
+	var upstreamKey []byte
+	var err error
+	if *sourceMode == datafabricpay.SourceModeAuthoritative {
+		upstreamKey, err = datafabricconfig.LoadSecretFile(*upstreamKeyFile, "Pay authority upstream")
+		if err != nil {
+			fail(err.Error())
+		}
+	} else if strings.TrimSpace(*upstreamKeyFile) != "" {
+		fail("BFT Pay event source must not configure a legacy upstream key file")
 	}
 	eventKey, err := datafabricconfig.LoadSecretFile(*eventKeyFile, "Pay Data Fabric event signing")
 	if err != nil {
@@ -47,7 +54,7 @@ func main() {
 		fail(err.Error())
 	}
 	bridge, err := datafabricpay.New(datafabricpay.Config{
-		SourceURL: *sourceURL, UpstreamKey: string(upstreamKey), KeyID: *keyID, SigningKey: eventKey,
+		SourceURL: *sourceURL, SourceMode: *sourceMode, UpstreamKey: string(upstreamKey), KeyID: *keyID, SigningKey: eventKey,
 		SourceCommit: *sourceCommit, SourceRelease: *sourceRelease, ChainID: *chainID, Producer: producer,
 	})
 	if err != nil {
@@ -101,4 +108,12 @@ func envInt64(name string, fallback int64) int64 {
 		return fallback
 	}
 	return parsed
+}
+
+func envString(name, fallback string) string {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return fallback
+	}
+	return value
 }

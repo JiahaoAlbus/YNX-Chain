@@ -1,17 +1,23 @@
 package bftgateway
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/datafabric"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/datafabricpay"
+	sdk "github.com/JiahaoAlbus/YNX-Chain/sdk/datafabric"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
@@ -39,7 +45,8 @@ func TestGatewayCommitsAndQueriesSignedPayWorkflow(t *testing.T) {
 	fixture := newABCICometFixture(t, app, int64(migration.Height))
 	upstream := httptest.NewServer(fixture)
 	defer upstream.Close()
-	gateway, err := New(Config{CometRPCURL: upstream.URL})
+	sourceCommit, sourceRelease := strings.Repeat("a", 40), "bft-pay-gateway-integration"
+	gateway, err := New(Config{CometRPCURL: upstream.URL, Build: buildinfo.Info{Commit: sourceCommit, Release: sourceRelease}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,6 +133,35 @@ func TestGatewayCommitsAndQueriesSignedPayWorkflow(t *testing.T) {
 	if completed.Status != "completed" || completed.SettlementID != settlement.ID || completed.TransactionHash != complete.TransactionHash {
 		t.Fatalf("unexpected committed refund completion: %+v", completed)
 	}
+
+	producer := &payEventProducer{}
+	bridge, err := datafabricpay.New(datafabricpay.Config{
+		SourceURL: server.URL, SourceMode: datafabricpay.SourceModeBFT,
+		KeyID: "key.pay.bft.gateway", SigningKey: []byte("bft-gateway-event-signing-key-0001"),
+		SourceCommit: sourceCommit, SourceRelease: sourceRelease, ChainID: 6423, Producer: producer,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	report, err := bridge.SyncOnce(context.Background())
+	if err != nil || report.SourceEvents != 6 || report.MappedSourceEvents != 3 || report.CanonicalEvents != 4 || report.Committed != 4 {
+		t.Fatalf("real BFT Gateway to Data Fabric integration failed: %+v %v", report, err)
+	}
+	wantTypes := []string{"pay.invoice.created", "pay.invoice.authorized", "pay.receipt.issued", "pay.refund.completed"}
+	for index, event := range producer.events {
+		if event.EventType != wantTypes[index] || event.AggregateID != invoiceRecord.ID || event.Sequence != uint64(index+1) {
+			t.Fatalf("real BFT Gateway event mapping failed at %d: %+v", index, event)
+		}
+	}
+}
+
+type payEventProducer struct {
+	events []datafabric.EventEnvelope
+}
+
+func (p *payEventProducer) Send(_ context.Context, event datafabric.EventEnvelope) (sdk.ProducerReceipt, error) {
+	p.events = append(p.events, event)
+	return sdk.ProducerReceipt{EventID: event.EventID, AuditID: event.AuditID, Status: "committed-to-outbox"}, nil
 }
 
 func signedPay(t *testing.T, key *secp256k1.PrivateKey, action string, payload any, nonce uint64) []byte {

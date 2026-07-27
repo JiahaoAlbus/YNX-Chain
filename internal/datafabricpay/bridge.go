@@ -18,13 +18,16 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/datafabric"
 	sdk "github.com/JiahaoAlbus/YNX-Chain/sdk/datafabric"
 )
 
 const (
-	maxSourceResponseBytes = 8 << 20
-	maxSourceEvents        = 10000
+	maxSourceResponseBytes  = 8 << 20
+	maxSourceEvents         = 10000
+	SourceModeAuthoritative = "authoritative"
+	SourceModeBFT           = "bft"
 )
 
 var canonicalID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$`)
@@ -36,6 +39,7 @@ type EventSender interface {
 
 type Config struct {
 	SourceURL     string
+	SourceMode    string
 	UpstreamKey   string
 	KeyID         string
 	SigningKey    []byte
@@ -59,13 +63,28 @@ type SyncReport struct {
 	AlreadyCommitted     int `json:"alreadyCommitted"`
 }
 
+type sourceBatch struct {
+	events      []chain.PayEvent
+	bftVerified bool
+}
+
 func New(cfg Config) (*Bridge, error) {
 	cfg.SourceURL = strings.TrimRight(strings.TrimSpace(cfg.SourceURL), "/")
+	cfg.SourceMode = strings.TrimSpace(cfg.SourceMode)
+	if cfg.SourceMode == "" {
+		cfg.SourceMode = SourceModeAuthoritative
+	}
 	if err := validateSourceURL(cfg.SourceURL); err != nil {
 		return nil, err
 	}
-	if len(strings.TrimSpace(cfg.UpstreamKey)) < 32 {
+	if cfg.SourceMode != SourceModeAuthoritative && cfg.SourceMode != SourceModeBFT {
+		return nil, errors.New("Pay event source mode must be authoritative or bft")
+	}
+	if cfg.SourceMode == SourceModeAuthoritative && len(strings.TrimSpace(cfg.UpstreamKey)) < 32 {
 		return nil, errors.New("Pay authority upstream key must contain at least 32 bytes")
+	}
+	if cfg.SourceMode == SourceModeBFT && strings.TrimSpace(cfg.UpstreamKey) != "" {
+		return nil, errors.New("BFT Pay event source must not receive the legacy upstream key")
 	}
 	if cfg.Producer == nil {
 		return nil, errors.New("Data Fabric producer client is required")
@@ -101,23 +120,23 @@ func validateSourceURL(value string) error {
 }
 
 func (b *Bridge) SyncOnce(ctx context.Context) (SyncReport, error) {
-	sourceEvents, err := b.fetch(ctx)
+	source, err := b.fetch(ctx)
 	if err != nil {
 		return SyncReport{}, err
 	}
-	envelopes, err := b.build(sourceEvents)
+	envelopes, err := b.buildBatch(source)
 	if err != nil {
 		return SyncReport{}, err
 	}
 	mappedSources := 0
-	for _, source := range sourceEvents {
-		if len(canonicalEventTypes(source)) > 0 {
+	for _, event := range source.events {
+		if len(canonicalEventTypes(event)) > 0 {
 			mappedSources++
 		}
 	}
 	report := SyncReport{
-		SourceEvents: len(sourceEvents), MappedSourceEvents: mappedSources,
-		UnmappedSourceEvents: len(sourceEvents) - mappedSources, CanonicalEvents: len(envelopes),
+		SourceEvents: len(source.events), MappedSourceEvents: mappedSources,
+		UnmappedSourceEvents: len(source.events) - mappedSources, CanonicalEvents: len(envelopes),
 	}
 	for _, envelope := range envelopes {
 		receipt, err := b.cfg.Producer.Send(ctx, envelope)
@@ -136,26 +155,31 @@ func (b *Bridge) SyncOnce(ctx context.Context) (SyncReport, error) {
 	return report, nil
 }
 
-func (b *Bridge) fetch(ctx context.Context) ([]chain.PayEvent, error) {
+func (b *Bridge) fetch(ctx context.Context) (sourceBatch, error) {
 	if err := b.verifySourceIdentity(ctx); err != nil {
-		return nil, err
+		return sourceBatch{}, err
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, b.cfg.SourceURL+"/pay/events", nil)
 	if err != nil {
-		return nil, err
+		return sourceBatch{}, err
 	}
-	request.Header.Set("X-YNX-Pay-Gateway-Upstream-Key", b.cfg.UpstreamKey)
+	if b.cfg.SourceMode == SourceModeAuthoritative {
+		request.Header.Set("X-YNX-Pay-Gateway-Upstream-Key", b.cfg.UpstreamKey)
+	}
 	response, err := b.cfg.HTTPClient.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("read authoritative Pay events: %w", err)
+		return sourceBatch{}, fmt.Errorf("read authoritative Pay events: %w", err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("authoritative Pay event source returned %d", response.StatusCode)
+		return sourceBatch{}, fmt.Errorf("authoritative Pay event source returned %d", response.StatusCode)
 	}
 	payload, err := io.ReadAll(io.LimitReader(response.Body, maxSourceResponseBytes+1))
 	if err != nil || len(payload) > maxSourceResponseBytes {
-		return nil, errors.New("authoritative Pay event response exceeds the bounded limit")
+		return sourceBatch{}, errors.New("authoritative Pay event response exceeds the bounded limit")
+	}
+	if b.cfg.SourceMode == SourceModeBFT {
+		return decodeBFTSourceEvents(payload)
 	}
 	decoder := json.NewDecoder(bytes.NewReader(payload))
 	decoder.DisallowUnknownFields()
@@ -163,16 +187,48 @@ func (b *Bridge) fetch(ctx context.Context) ([]chain.PayEvent, error) {
 		Events []chain.PayEvent `json:"events"`
 	}
 	if err := decoder.Decode(&result); err != nil {
-		return nil, fmt.Errorf("decode authoritative Pay events: %w", err)
+		return sourceBatch{}, fmt.Errorf("decode authoritative Pay events: %w", err)
 	}
 	var extra any
 	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
-		return nil, errors.New("authoritative Pay event response contains trailing JSON")
+		return sourceBatch{}, errors.New("authoritative Pay event response contains trailing JSON")
 	}
 	if len(result.Events) > maxSourceEvents {
-		return nil, errors.New("authoritative Pay event response exceeds the event count limit")
+		return sourceBatch{}, errors.New("authoritative Pay event response exceeds the event count limit")
 	}
-	return result.Events, nil
+	return sourceBatch{events: result.Events}, nil
+}
+
+func decodeBFTSourceEvents(payload []byte) (sourceBatch, error) {
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.DisallowUnknownFields()
+	var result struct {
+		Events []consensus.BFTPayEvent `json:"events"`
+	}
+	if err := decoder.Decode(&result); err != nil {
+		return sourceBatch{}, fmt.Errorf("decode BFT Pay events: %w", err)
+	}
+	var extra any
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
+		return sourceBatch{}, errors.New("BFT Pay event response contains trailing JSON")
+	}
+	if len(result.Events) > maxSourceEvents {
+		return sourceBatch{}, errors.New("BFT Pay event response exceeds the event count limit")
+	}
+	events := make([]chain.PayEvent, 0, len(result.Events))
+	for _, event := range result.Events {
+		if err := consensus.ValidateBFTPayEvent(event); err != nil {
+			return sourceBatch{}, fmt.Errorf("BFT Pay event %s failed authority verification: %w", event.ID, err)
+		}
+		events = append(events, chain.PayEvent{
+			ID: event.ID, Type: event.Type, IntentID: event.IntentID, InvoiceID: event.InvoiceID,
+			SettlementID: event.SettlementID, ObjectID: event.ObjectID, Merchant: event.Merchant,
+			PayoutAddress: event.PayoutAddress, Payer: event.Payer, TransactionHash: event.TransactionHash,
+			Amount: event.Amount, Currency: event.Currency, IdempotencyKey: event.IdempotencyKey,
+			AuditHash: event.AuditHash, CreatedAt: event.CreatedAt,
+		})
+	}
+	return sourceBatch{events: events, bftVerified: true}, nil
 }
 
 func (b *Bridge) verifySourceIdentity(ctx context.Context) error {
@@ -215,6 +271,11 @@ func (b *Bridge) verifySourceIdentity(ctx context.Context) error {
 }
 
 func (b *Bridge) build(sourceEvents []chain.PayEvent) ([]datafabric.EventEnvelope, error) {
+	return b.buildBatch(sourceBatch{events: sourceEvents})
+}
+
+func (b *Bridge) buildBatch(source sourceBatch) ([]datafabric.EventEnvelope, error) {
+	sourceEvents := source.events
 	sorted := append([]chain.PayEvent(nil), sourceEvents...)
 	sort.Slice(sorted, func(left, right int) bool {
 		if sorted[left].CreatedAt.Equal(sorted[right].CreatedAt) {
@@ -222,9 +283,11 @@ func (b *Bridge) build(sourceEvents []chain.PayEvent) ([]datafabric.EventEnvelop
 		}
 		return sorted[left].CreatedAt.Before(sorted[right].CreatedAt)
 	})
-	for _, event := range sorted {
-		if err := validateSourceEvent(event); err != nil {
-			return nil, err
+	if !source.bftVerified {
+		for _, event := range sorted {
+			if err := validateSourceEvent(event); err != nil {
+				return nil, err
+			}
 		}
 	}
 	sequences := map[string]uint64{}
