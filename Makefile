@@ -418,7 +418,10 @@ bridge-supply-chain-check:
 bridge-observability-check:
 	node ./scripts/verify/bridge-observability-check.mjs
 
-.PHONY: bridge-sdk-check bridge-route-adapter-check bridge-provider-check
+.PHONY: bridge-dependency-audit-check bridge-sdk-check bridge-route-adapter-check bridge-provider-check
+bridge-dependency-audit-check:
+	node ./scripts/verify/bridge-dependency-audit.mjs
+
 bridge-sdk-check:
 	bash ./scripts/verify/bridge-sdk-check.sh
 

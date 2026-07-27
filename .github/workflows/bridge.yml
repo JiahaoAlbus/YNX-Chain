@@ -87,6 +87,7 @@ jobs:
         run: |
           npm ci
           make contract-tooling-check
+          make bridge-dependency-audit-check
 
       - name: Run Bridge race and repository tests
         run: |
@@ -123,6 +124,9 @@ jobs:
             docs/bridge/product-release.json
             docs/bridge/public-product-metadata.json
             docs/bridge/provider-status.json
+            docs/bridge/DEPENDENCY_REVIEW.md
+            docs/bridge/THIRD_PARTY_NOTICES.md
+            package-lock.json
             docs/bridge/consumer-integration-manifest.json
             docs/bridge/consumer-lifecycle-vectors.json
             docs/integration/INTEGRATION_HANDOFF.md
