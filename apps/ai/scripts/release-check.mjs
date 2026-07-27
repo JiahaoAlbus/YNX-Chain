@@ -10,7 +10,7 @@ const integration=await json("integration/central-integration.json");
 const required=["productId","name","branch","commit","version","surfaces","implementedLocal","testedLocal","installedLocal","integratedCentral","deployedStaging","deployedPublic","downloadHosted","productionSigned","storeReleased","publicUrls","healthUrls","artifactUrls","sha256","bytes","signingClass","minOS","installEvidence","centralIntegration","knownLimitations","generatedAt"];
 for(const field of required)assert.ok(Object.hasOwn(release,field),`product-release missing ${field}`);
 assert.equal(release.productId,"ynx-ai");
-assert.equal(release.branch,"codex/ecosystem-ai");
+assert.equal(release.branch,"codex/final-ai");
 assert.equal(release.integratedCentral,false);
 assert.equal(release.deployedStaging,false);
 assert.equal(release.deployedPublic,false);

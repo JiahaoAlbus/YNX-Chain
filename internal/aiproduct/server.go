@@ -41,8 +41,14 @@ type Server struct {
 	mux         *http.ServeMux
 	static      fs.FS
 	mu          sync.Mutex
-	generations map[string]context.CancelFunc
+	generations map[string]activeGeneration
 	visitors    map[string][]time.Time
+}
+
+type activeGeneration struct {
+	cancel         context.CancelFunc
+	account        string
+	conversationID string
 }
 
 func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
@@ -67,7 +73,7 @@ func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
 	if cfg.GenerationTimeout <= 0 {
 		cfg.GenerationTimeout = 45 * time.Second
 	}
-	s := &Server{cfg: cfg, store: store, client: &http.Client{Timeout: cfg.GenerationTimeout + 5*time.Second}, mux: http.NewServeMux(), static: static, generations: map[string]context.CancelFunc{}, visitors: map[string][]time.Time{}}
+	s := &Server{cfg: cfg, store: store, client: &http.Client{Timeout: cfg.GenerationTimeout + 5*time.Second}, mux: http.NewServeMux(), static: static, generations: map[string]activeGeneration{}, visitors: map[string][]time.Time{}}
 	s.routes()
 	return s, nil
 }
@@ -444,6 +450,7 @@ type generationInput struct {
 }
 
 func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session ProductSession) {
+	conversationID := r.PathValue("id")
 	var in generationInput
 	if !decodeJSON(w, r, &in, 64<<10) {
 		return
@@ -477,7 +484,7 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusBadRequest, "unsupported AI output language")
 		return
 	}
-	if _, _, err := s.store.Conversation(session.Account, r.PathValue("id")); err != nil {
+	if _, _, err := s.store.Conversation(session.Account, conversationID); err != nil {
 		writeError(w, http.StatusNotFound, "conversation not found")
 		return
 	}
@@ -490,7 +497,7 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusBadRequest, "attachmentIds require selected_files in includedContext")
 		return
 	}
-	attachments, err := s.store.AttachmentContexts(session.Account, r.PathValue("id"), in.AttachmentIDs)
+	attachments, err := s.store.AttachmentContexts(session.Account, conversationID, in.AttachmentIDs)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -517,15 +524,15 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusConflict, "generationId is already active")
 		return
 	}
-	s.generations[in.GenerationID] = cancel
+	s.generations[in.GenerationID] = activeGeneration{cancel: cancel, account: session.Account, conversationID: conversationID}
 	s.mu.Unlock()
 	defer func() { cancel(); s.mu.Lock(); delete(s.generations, in.GenerationID); s.mu.Unlock() }()
 	user := Message{Role: "user", Content: in.Prompt, Status: "complete", IncludedContext: cleanList(in.IncludedContext), ExcludedContext: cleanList(in.ExcludedContext), RetryOf: in.RetryOf}
-	if _, err := s.store.AddMessage(session.Account, r.PathValue("id"), user); err != nil {
+	if _, err := s.store.AddMessage(session.Account, conversationID, user); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	payload := map[string]any{"session": r.PathValue("id"), "prompt": in.Prompt, "outputLanguage": in.OutputLanguage, "includedContext": cleanList(in.IncludedContext), "excludedContext": cleanList(in.ExcludedContext), "attachments": attachments, "continueFrom": in.ContinueFrom}
+	payload := map[string]any{"session": conversationID, "prompt": in.Prompt, "outputLanguage": in.OutputLanguage, "includedContext": cleanList(in.IncludedContext), "excludedContext": cleanList(in.ExcludedContext), "attachments": attachments, "continueFrom": in.ContinueFrom}
 	resp, err := s.gatewayRequest(ctx, http.MethodPost, "/ai/stream", payload)
 	if err != nil {
 		s.streamFailure(w, "timeout_or_gateway_unavailable", in.GenerationID)
@@ -571,7 +578,7 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 	}
 	cost := s.estimateCost(in.Prompt, answer.String())
 	assistant := Message{Role: "assistant", Content: answer.String(), Status: "complete", Provider: s.cfg.ProviderName, Model: model, RequestID: stream.RequestID, RetryOf: in.RetryOf, IncludedContext: cleanList(in.IncludedContext), ExcludedContext: cleanList(in.ExcludedContext), Cost: cost}
-	saved, err := s.store.AddMessage(session.Account, r.PathValue("id"), assistant)
+	saved, err := s.store.AddMessage(session.Account, conversationID, assistant)
 	if err != nil {
 		s.streamFailureAfterStart(w, flusher, "Response arrived but encrypted persistence failed.", in.GenerationID)
 		return
@@ -690,13 +697,13 @@ func (s *Server) estimateCost(prompt, answer string) Cost {
 }
 func (s *Server) handleCancel(w http.ResponseWriter, r *http.Request, session ProductSession) {
 	s.mu.Lock()
-	cancel, ok := s.generations[r.PathValue("id")]
+	generation, ok := s.generations[r.PathValue("id")]
 	s.mu.Unlock()
-	if !ok {
+	if !ok || generation.account != session.Account {
 		writeError(w, http.StatusNotFound, "generation is not active")
 		return
 	}
-	cancel()
+	generation.cancel()
 	writeJSON(w, http.StatusAccepted, map[string]any{"status": "cancelling", "generationId": r.PathValue("id")})
 }
 func (s *Server) handleExport(w http.ResponseWriter, r *http.Request, session ProductSession) {

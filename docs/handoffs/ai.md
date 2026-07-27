@@ -2,8 +2,8 @@
 
 ## Delivery identity
 
-- Branch: `codex/ecosystem-ai`
-- Worktree: `/Users/huangjiahao/Desktop/YNX Chain AI`
+- Branch: `codex/final-ai`
+- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai`
 - Starting point: `51bed843c5aa8dc53b2dc32b29cb8ca349ff0e95`
 - Previous implementation: `5fa7e7795881e67cbf94d69a680726fc6e73fa0e`
 - Previous handoff: `5d8ff216e777872785ee282e8591fb27dc5da2f9`

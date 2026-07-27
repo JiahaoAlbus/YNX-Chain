@@ -37,8 +37,12 @@ type testIdentity struct {
 }
 
 func newTestIdentity(t *testing.T) testIdentity {
+	return newTestIdentityFromSeed(t, 83, "browser-device-01")
+}
+
+func newTestIdentityFromSeed(t *testing.T, seed byte, deviceID string) testIdentity {
 	t.Helper()
-	accountKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 83))
+	accountKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), seed))
 	canonical, err := consensus.NativeAddress(accountKey.PubKey().SerializeCompressed())
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +55,7 @@ func newTestIdentity(t *testing.T) testIdentity {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return testIdentity{account: account, accountKey: accountKey, deviceID: "browser-device-01", devicePublic: devicePublic, devicePrivate: devicePrivate}
+	return testIdentity{account: account, accountKey: accountKey, deviceID: deviceID, devicePublic: devicePublic, devicePrivate: devicePrivate}
 }
 
 func newGatewayFixture(t *testing.T, available bool) *httptest.Server {
@@ -297,6 +301,79 @@ func TestProviderQuotaFailurePreserves429AndCreatesNoMessages(t *testing.T) {
 	}
 }
 
+func TestGenerationCancelIsBoundToOwningAccount(t *testing.T) {
+	streamStarted := make(chan struct{}, 1)
+	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path != "/health" && r.Header.Get("X-YNX-AI-Key") != testGatewayKey {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		switch r.URL.Path {
+		case "/health":
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "model": "ynx-test-model", "providerConfigured": true})
+		case "/ai/stream":
+			w.Header().Set("Content-Type", "text/event-stream")
+			flusher, ok := w.(http.Flusher)
+			if !ok {
+				t.Fatal("gateway fixture does not support flushing")
+			}
+			_, _ = io.WriteString(w, "event: metadata\ndata: {\"requestId\":\"cancel-binding-request\"}\n\n")
+			flusher.Flush()
+			streamStarted <- struct{}{}
+			<-r.Context().Done()
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer gateway.Close()
+
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	owner := authenticate(t, product.URL, store, newTestIdentityFromSeed(t, 83, "owner-device"))
+	intruder := authenticate(t, product.URL, store, newTestIdentityFromSeed(t, 84, "intruder-device"))
+	raw := authedJSON(t, http.MethodPost, product.URL+"/api/conversations", map[string]any{"title": "Owned generation"}, owner, http.StatusCreated)
+	var conversation Conversation
+	if err := json.Unmarshal(raw, &conversation); err != nil {
+		t.Fatal(err)
+	}
+
+	generationDone := make(chan []byte, 1)
+	go func() {
+		payload, _ := json.Marshal(map[string]any{"generationId": "account-bound-generation", "prompt": "Keep streaming", "model": "ynx-test-model", "includedContext": []string{"conversation"}})
+		req, _ := http.NewRequest(http.MethodPost, product.URL+"/api/conversations/"+conversation.ID+"/generate", bytes.NewReader(payload))
+		req.Header.Set("Authorization", "Bearer "+owner.Token)
+		req.Header.Set("X-YNX-Device-ID", owner.DeviceID)
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			generationDone <- []byte(err.Error())
+			return
+		}
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		generationDone <- body
+	}()
+
+	select {
+	case <-streamStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("generation stream did not start")
+	}
+
+	authedJSON(t, http.MethodPost, product.URL+"/api/generations/account-bound-generation/cancel", nil, intruder, http.StatusNotFound)
+	authedJSON(t, http.MethodPost, product.URL+"/api/generations/account-bound-generation/cancel", nil, owner, http.StatusAccepted)
+
+	select {
+	case body := <-generationDone:
+		if !bytes.Contains(body, []byte("Generation interrupted")) {
+			t.Fatalf("owner cancellation did not terminate the stream truthfully: %s", body)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("owner cancellation did not terminate the generation")
+	}
+}
+
 func TestActionApprovalRecordsReviewButNeverExecution(t *testing.T) {
 	gateway := newGatewayFixture(t, true)
 	defer gateway.Close()
@@ -455,7 +532,7 @@ func TestCancelEndpointCancelsRegisteredGeneration(t *testing.T) {
 	// Unknown or already-finished generation IDs fail closed instead of claiming cancellation.
 	authedJSON(t, http.MethodPost, product.URL+"/api/generations/not-active/cancel", nil, session, http.StatusNotFound)
 	ctx, cancel := context.WithCancel(context.Background())
-	service := &Server{generations: map[string]context.CancelFunc{"active-generation": cancel}}
+	service := &Server{generations: map[string]activeGeneration{"active-generation": {cancel: cancel, account: session.Account, conversationID: "conversation-1"}}}
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/generations/active-generation/cancel", nil)
 	req.SetPathValue("id", "active-generation")

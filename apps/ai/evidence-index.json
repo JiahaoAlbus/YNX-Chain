@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-ai",
-  "generatedAt": "2026-07-19T01:55:00+08:00",
+  "generatedAt": "2026-07-27",
   "evidence": [
     {
       "requirement": "Wallet replay/tamper/restart/revoke local fixture behavior",
@@ -18,6 +18,16 @@
       "requirement": "POST-body SSE, cancel, provider unavailable and 429 truth",
       "source": "internal/aiproduct/server_test.go; internal/aiproduct/provider_stream_test.go; apps/ai/mobile/src/api.test.ts",
       "status": "tested-local"
+    },
+    {
+      "requirement": "Generation cancellation is bound to the owning Wallet account and does not disclose another account's active generation",
+      "source": "internal/aiproduct/server.go; TestGenerationCancelIsBoundToOwningAccount; TestCancelEndpointCancelsRegisteredGeneration",
+      "status": "tested-local-race",
+      "tests": [
+        "go test ./internal/aiproduct",
+        "go test -race ./internal/aiproduct"
+      ],
+      "sourceCommit": null
     },
     {
       "requirement": "Encrypted persistence, attachment bounds/tamper, search and branch",
