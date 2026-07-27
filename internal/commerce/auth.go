@@ -68,6 +68,23 @@ type AuthGateway interface {
 	Complete(context.Context, json.RawMessage) (json.RawMessage, error)
 }
 
+type ProductAuthorizationRevocationRequest struct {
+	RequestID, Account, ProductClientID, BundleID string
+	ResourceType, ResourceID, Reason              string
+}
+
+type ProductAuthorizationRevocationReceipt struct {
+	Revoked                                          bool
+	RevocationID, Account, ProductClientID, BundleID string
+	ResourceType, ResourceID                         string
+	SessionCount                                     int
+	RevokedAt                                        time.Time
+}
+
+type ProductAuthorizationRevoker interface {
+	RevokeProductAuthorization(context.Context, ProductAuthorizationRevocationRequest) (ProductAuthorizationRevocationReceipt, error)
+}
+
 // HTTPAuthGateway is a fail-closed adapter for the accepted Wallet Auth v1
 // product-session boundary. It never stores or logs the opaque bearer token.
 // The central Gateway owns Wallet approval verification, one-time replay state,
@@ -133,6 +150,63 @@ func (g HTTPAuthGateway) Begin(ctx context.Context, body json.RawMessage) (json.
 }
 func (g HTTPAuthGateway) Complete(ctx context.Context, body json.RawMessage) (json.RawMessage, error) {
 	return g.forward(ctx, "/v1/product-sessions", body)
+}
+
+func (g HTTPAuthGateway) RevokeProductAuthorization(ctx context.Context, in ProductAuthorizationRevocationRequest) (ProductAuthorizationRevocationReceipt, error) {
+	if !g.Available() {
+		return ProductAuthorizationRevocationReceipt{}, fmt.Errorf("%w: central Wallet Gateway is not configured", ErrUnavailable)
+	}
+	binding, ok := bindingFor(in.ProductClientID)
+	reason := strings.TrimSpace(in.Reason)
+	if !ok || in.BundleID != binding.BundleID || in.ResourceType != "seller_store" || len(in.ResourceID) < 8 || len(in.ResourceID) > 128 || !consensus.IsNativeAddress(in.Account) || len(in.RequestID) < 8 || len(in.RequestID) > 128 || len(reason) < 8 || len(reason) > 240 || strings.ContainsAny(in.RequestID+in.ResourceID+reason, "\r\n") {
+		return ProductAuthorizationRevocationReceipt{}, ErrUnauthorized
+	}
+	payload, err := json.Marshal(map[string]string{"requestId": in.RequestID, "account": in.Account, "productClientId": in.ProductClientID, "bundleId": in.BundleID, "resourceType": in.ResourceType, "resourceId": in.ResourceID, "reason": reason})
+	if err != nil {
+		return ProductAuthorizationRevocationReceipt{}, err
+	}
+	req, err := g.request(ctx, http.MethodPost, "/v1/product-authorizations/revocations", bytes.NewReader(payload))
+	if err != nil {
+		return ProductAuthorizationRevocationReceipt{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := g.client().Do(req)
+	if err != nil {
+		return ProductAuthorizationRevocationReceipt{}, fmt.Errorf("%w: central Wallet Gateway authorization revocation request failed", ErrUnavailable)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusNotImplemented {
+		return ProductAuthorizationRevocationReceipt{}, fmt.Errorf("%w: central Wallet store authorization revocation contract is not deployed", ErrUnavailable)
+	}
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusBadRequest {
+		return ProductAuthorizationRevocationReceipt{}, fmt.Errorf("%w: central Wallet Gateway rejected authorization revocation", ErrUnauthorized)
+	}
+	if resp.StatusCode == http.StatusConflict || resp.StatusCode == http.StatusGone {
+		return ProductAuthorizationRevocationReceipt{}, fmt.Errorf("%w: central Wallet Gateway rejected stale or conflicting revocation", ErrConflict)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return ProductAuthorizationRevocationReceipt{}, fmt.Errorf("%w: central Wallet Gateway returned %d for authorization revocation", ErrUnavailable, resp.StatusCode)
+	}
+	var raw struct {
+		Revoked         bool   `json:"revoked"`
+		RevocationID    string `json:"revocationId"`
+		RequestID       string `json:"requestId"`
+		Account         string `json:"account"`
+		ProductClientID string `json:"productClientId"`
+		BundleID        string `json:"bundleId"`
+		ResourceType    string `json:"resourceType"`
+		ResourceID      string `json:"resourceId"`
+		SessionCount    int    `json:"sessionCount"`
+		RevokedAt       string `json:"revokedAt"`
+	}
+	if err := decodeExact(resp.Body, &raw); err != nil {
+		return ProductAuthorizationRevocationReceipt{}, fmt.Errorf("%w: central Wallet authorization revocation response invalid", ErrUnavailable)
+	}
+	revokedAt, err := time.Parse(time.RFC3339Nano, raw.RevokedAt)
+	if err != nil || revokedAt.After(time.Now().UTC().Add(time.Minute)) || !raw.Revoked || raw.RequestID != in.RequestID || raw.Account != in.Account || raw.ProductClientID != in.ProductClientID || raw.BundleID != in.BundleID || raw.ResourceType != in.ResourceType || raw.ResourceID != in.ResourceID || len(raw.RevocationID) < 8 || raw.SessionCount < 0 {
+		return ProductAuthorizationRevocationReceipt{}, fmt.Errorf("%w: central Wallet authorization revocation receipt failed binding validation", ErrUnavailable)
+	}
+	return ProductAuthorizationRevocationReceipt{Revoked: true, RevocationID: raw.RevocationID, Account: raw.Account, ProductClientID: raw.ProductClientID, BundleID: raw.BundleID, ResourceType: raw.ResourceType, ResourceID: raw.ResourceID, SessionCount: raw.SessionCount, RevokedAt: revokedAt}, nil
 }
 
 func (g HTTPAuthGateway) forward(ctx context.Context, path string, body json.RawMessage) (json.RawMessage, error) {

@@ -2,6 +2,7 @@ package commerce
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -142,6 +143,39 @@ func (s *Store) SellerProducts(actor, storeID string) ([]Product, error) {
 	sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
 	return out, nil
 }
+func (s *Store) latestSellerRevocationLocked(storeID, account string) (SellerRoleRevocation, bool) {
+	var latest SellerRoleRevocation
+	found := false
+	for _, revocation := range s.s.SellerRevocations {
+		if revocation.StoreID != storeID || revocation.Account != account {
+			continue
+		}
+		if !found || revocation.RequestedAt.After(latest.RequestedAt) || (revocation.RequestedAt.Equal(latest.RequestedAt) && revocation.ID > latest.ID) {
+			latest = revocation
+			found = true
+		}
+	}
+	return latest, found
+}
+
+func (s *Store) sellerIntegrationEventLocked(eventName, actor string, revocation SellerRoleRevocation) {
+	s.s.SellerEvents = append(s.s.SellerEvents, SellerIntegrationEvent{
+		ID:                  newID("seller_event"),
+		EventName:           eventName,
+		Source:              "seller-console",
+		StoreID:             revocation.StoreID,
+		Account:             revocation.Account,
+		Actor:               actor,
+		RevocationID:        revocation.ID,
+		PreviousRole:        revocation.PreviousRole,
+		SessionStatus:       revocation.SessionStatus,
+		SessionRevocationID: revocation.SessionRevocationID,
+		SchemaVersion:       1,
+		SessionCount:        revocation.SessionCount,
+		OccurredAt:          revocation.UpdatedAt,
+	})
+}
+
 func (s *Store) SetSellerRole(actor, storeID, account, role string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -155,10 +189,155 @@ func (s *Store) SetSellerRole(actor, storeID, account, role string) error {
 	if !isAssignableSellerRole(role) {
 		return errors.New("role must be admin, catalog, inventory, fulfillment, finance, support or viewer")
 	}
+	if revocation, ok := s.latestSellerRevocationLocked(storeID, account); ok && revocation.SessionStatus != "confirmed" {
+		return fmt.Errorf("%w: prior role revocation session invalidation is %s", ErrConflict, revocation.SessionStatus)
+	}
+	previous, hadPrevious := s.s.SellerRoles[storeID][account]
+	auditLen := len(s.s.Audits)
 	s.s.SellerRoles[storeID][account] = role
 	s.auditLocked(actor, "seller", "seller_role_set", "store", storeID, "approved", account+":"+role)
-	return s.persistLocked()
+	if err := s.persistLocked(); err != nil {
+		if hadPrevious {
+			s.s.SellerRoles[storeID][account] = previous
+		} else {
+			delete(s.s.SellerRoles[storeID], account)
+		}
+		s.s.Audits = s.s.Audits[:auditLen]
+		return err
+	}
+	return nil
 }
+
+func (s *Store) RevokeSellerRole(actor, storeID, account, reason string) (SellerRoleRevocation, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.requireSellerLocked(storeID, actor, SellerRoleOwner); err != nil {
+		return SellerRoleRevocation{}, false, err
+	}
+	reason = strings.TrimSpace(reason)
+	if !consensus.IsNativeAddress(account) || account == actor {
+		return SellerRoleRevocation{}, false, errors.New("valid distinct account required")
+	}
+	if len(reason) < 8 || len(reason) > 240 || strings.ContainsAny(reason, "\r\n") {
+		return SellerRoleRevocation{}, false, errors.New("revocation reason must contain 8 to 240 single-line characters")
+	}
+	role, ok := s.s.SellerRoles[storeID][account]
+	if !ok {
+		if existing, found := s.latestSellerRevocationLocked(storeID, account); found {
+			if existing.Reason != reason {
+				return SellerRoleRevocation{}, false, fmt.Errorf("%w: repeated revocation reason differs", ErrConflict)
+			}
+			return existing, false, nil
+		}
+		return SellerRoleRevocation{}, false, ErrNotFound
+	}
+	role, valid := canonicalSellerRole(role)
+	if !valid || role == SellerRoleOwner {
+		return SellerRoleRevocation{}, false, ErrUnauthorized
+	}
+	now := s.now()
+	revocation := SellerRoleRevocation{ID: newID("seller_revocation"), StoreID: storeID, Account: account, PreviousRole: role, Reason: reason, SessionStatus: "pending", RequestedAt: now, UpdatedAt: now}
+	auditLen := len(s.s.Audits)
+	eventLen := len(s.s.SellerEvents)
+	delete(s.s.SellerRoles[storeID], account)
+	s.s.SellerRevocations[revocation.ID] = revocation
+	s.auditLocked(actor, "seller", "seller_role_revoked", "store", storeID, "local_revoked", "revocation_id="+revocation.ID+" account="+account+" previous_role="+role)
+	s.sellerIntegrationEventLocked("ynx.seller.role.revoked.v1", actor, revocation)
+	if err := s.persistLocked(); err != nil {
+		s.s.SellerRoles[storeID][account] = role
+		delete(s.s.SellerRevocations, revocation.ID)
+		s.s.Audits = s.s.Audits[:auditLen]
+		s.s.SellerEvents = s.s.SellerEvents[:eventLen]
+		return SellerRoleRevocation{}, false, err
+	}
+	return revocation, true, nil
+}
+
+func (s *Store) UpdateSellerRoleRevocation(actor, revocationID, sessionStatus, sessionRevocationID string, sessionCount int, detail string) (SellerRoleRevocation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	revocation, ok := s.s.SellerRevocations[revocationID]
+	if !ok {
+		return SellerRoleRevocation{}, ErrNotFound
+	}
+	if err := s.requireSellerLocked(revocation.StoreID, actor, SellerRoleOwner); err != nil {
+		return SellerRoleRevocation{}, err
+	}
+	if revocation.SessionStatus == "confirmed" {
+		return revocation, nil
+	}
+	switch sessionStatus {
+	case "confirmed", "unavailable", "rejected":
+	default:
+		return SellerRoleRevocation{}, errors.New("session revocation status must be confirmed, unavailable or rejected")
+	}
+	if sessionStatus == "confirmed" && (len(sessionRevocationID) < 8 || sessionCount < 0) {
+		return SellerRoleRevocation{}, errors.New("confirmed session revocation requires receipt id and non-negative session count")
+	}
+	detail = strings.TrimSpace(detail)
+	if len(detail) > 500 || strings.ContainsAny(detail, "\r\n") {
+		return SellerRoleRevocation{}, errors.New("session revocation detail exceeds limits")
+	}
+	previous := revocation
+	auditLen := len(s.s.Audits)
+	eventLen := len(s.s.SellerEvents)
+	revocation.SessionStatus = sessionStatus
+	revocation.SessionRevocationID = strings.TrimSpace(sessionRevocationID)
+	revocation.SessionCount = sessionCount
+	revocation.LastError = ""
+	if sessionStatus != "confirmed" {
+		revocation.LastError = detail
+	}
+	revocation.UpdatedAt = s.now()
+	s.s.SellerRevocations[revocation.ID] = revocation
+	s.auditLocked(actor, "seller", "seller_session_invalidation", "store", revocation.StoreID, sessionStatus, "revocation_id="+revocation.ID+" account="+revocation.Account+" "+detail)
+	s.sellerIntegrationEventLocked("ynx.seller.authorization.revocation.updated.v1", actor, revocation)
+	if err := s.persistLocked(); err != nil {
+		s.s.SellerRevocations[revocation.ID] = previous
+		s.s.Audits = s.s.Audits[:auditLen]
+		s.s.SellerEvents = s.s.SellerEvents[:eventLen]
+		return SellerRoleRevocation{}, err
+	}
+	return revocation, nil
+}
+
+func (s *Store) SellerRoleRevocations(actor, storeID string) ([]SellerRoleRevocation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.requireSellerPermissionLocked(storeID, actor, permissionTeamRead); err != nil {
+		return nil, err
+	}
+	out := []SellerRoleRevocation{}
+	for _, revocation := range s.s.SellerRevocations {
+		if revocation.StoreID == storeID {
+			out = append(out, revocation)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].RequestedAt.After(out[j].RequestedAt) })
+	return out, nil
+}
+
+func (s *Store) SellerIntegrationEvents(actor, storeID string) ([]SellerIntegrationEvent, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.requireSellerPermissionLocked(storeID, actor, permissionTeamRead); err != nil {
+		return nil, err
+	}
+	out := []SellerIntegrationEvent{}
+	for _, event := range s.s.SellerEvents {
+		if event.StoreID == storeID {
+			out = append(out, event)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].OccurredAt.Equal(out[j].OccurredAt) {
+			return out[i].ID > out[j].ID
+		}
+		return out[i].OccurredAt.After(out[j].OccurredAt)
+	})
+	return out, nil
+}
+
 func (s *Store) SellerRoles(actor, storeID string) (map[string]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -171,18 +350,27 @@ func (s *Store) SellerRoles(actor, storeID string) (map[string]string, error) {
 	}
 	return out, nil
 }
-func (s *Store) Settlements(actor string) []SettlementEvidence {
+func (s *Store) Settlements(actor string) ([]SettlementEvidence, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	authorizedStores := map[string]bool{}
+	for storeID := range s.s.SellerRoles {
+		role, ok := s.sellerRoleLocked(storeID, actor)
+		if ok && sellerRoleAllows(role, permissionFinanceRead) {
+			authorizedStores[storeID] = true
+		}
+	}
+	if len(authorizedStores) == 0 {
+		return nil, ErrUnauthorized
+	}
 	out := []SettlementEvidence{}
 	for _, o := range s.s.Orders {
-		role, ok := s.sellerRoleLocked(o.StoreID, actor)
-		if ok && sellerRoleAllows(role, permissionFinanceRead) && o.Settlement != nil {
+		if authorizedStores[o.StoreID] && o.Settlement != nil {
 			out = append(out, *o.Settlement)
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ConfirmedAt.After(out[j].ConfirmedAt) })
-	return out
+	return out, nil
 }
 
 func (s *Store) SellerAudit(actor string) ([]AuditEvent, error) {

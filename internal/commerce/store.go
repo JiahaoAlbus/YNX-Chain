@@ -113,12 +113,12 @@ func decodePersisted(data, key []byte, out *Snapshot) error {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: 3, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{Version: 5, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerEvents: []SellerIntegrationEvent{}, RequestWindow: map[string][]time.Time{}}
 }
 
 func (s *Store) normalize() bool {
-	migrated := s.s.Version < 3
-	s.s.Version = 3
+	migrated := s.s.Version < 5
+	s.s.Version = 5
 	if s.s.Stores == nil {
 		s.s.Stores = map[string]StoreProfile{}
 	}
@@ -156,6 +156,12 @@ func (s *Store) normalize() bool {
 				migrated = true
 			}
 		}
+	}
+	if s.s.SellerRevocations == nil {
+		s.s.SellerRevocations = map[string]SellerRoleRevocation{}
+	}
+	if s.s.SellerEvents == nil {
+		s.s.SellerEvents = []SellerIntegrationEvent{}
 	}
 	if s.s.RequestWindow == nil {
 		s.s.RequestWindow = map[string][]time.Time{}

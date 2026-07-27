@@ -92,7 +92,126 @@ func TestSnapshotV2ManagerMigratesToAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if migrated.s.Version != 3 || migrated.s.SellerRoles["store_legacy"]["ynx_legacy"] != SellerRoleAdmin {
-		t.Fatalf("legacy role was not migrated: version=%d roles=%v", migrated.s.Version, migrated.s.SellerRoles)
+	if migrated.s.Version != 5 || migrated.s.SellerRoles["store_legacy"]["ynx_legacy"] != SellerRoleAdmin || migrated.s.SellerRevocations == nil || migrated.s.SellerEvents == nil {
+		t.Fatalf("legacy role was not migrated: version=%d roles=%v revocations=%v events=%v", migrated.s.Version, migrated.s.SellerRoles, migrated.s.SellerRevocations, migrated.s.SellerEvents)
+	}
+}
+
+func TestSellerRoleRevocationBlocksRegrantUntilSessionInvalidationConfirmed(t *testing.T) {
+	s, err := Open("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, owner := actor(t, 96)
+	_, support := actor(t, 97)
+	_, outsider := actor(t, 98)
+	store, _ := setupCatalog(t, s, owner, 1)
+	if err := s.SetSellerRole(owner, store.ID, support, SellerRoleSupport); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.RevokeSellerRole(outsider, store.ID, support, "Unauthorized attempt"); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("non-owner revoked role: %v", err)
+	}
+	if _, _, err := s.RevokeSellerRole(owner, store.ID, owner, "Owner self revoke"); err == nil {
+		t.Fatal("owner self-revocation accepted")
+	}
+	revocation, created, err := s.RevokeSellerRole(owner, store.ID, support, "Member access removed")
+	if err != nil || !created || revocation.SessionStatus != "pending" || revocation.PreviousRole != SellerRoleSupport {
+		t.Fatalf("local revoke failed: %+v created=%v err=%v", revocation, created, err)
+	}
+	if _, err := s.SellerProducts(support, store.ID); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("revoked member retained seller read access: %v", err)
+	}
+	if err := s.SetSellerRole(owner, store.ID, support, SellerRoleViewer); !errors.Is(err, ErrConflict) {
+		t.Fatalf("role regrant allowed before session invalidation: %v", err)
+	}
+	repeated, created, err := s.RevokeSellerRole(owner, store.ID, support, "Member access removed")
+	if err != nil || created || repeated.ID != revocation.ID {
+		t.Fatalf("idempotent revoke failed: %+v created=%v err=%v", repeated, created, err)
+	}
+	if _, _, err := s.RevokeSellerRole(owner, store.ID, support, "Different revoke reason"); !errors.Is(err, ErrConflict) {
+		t.Fatalf("conflicting repeated revoke accepted: %v", err)
+	}
+	unavailable, err := s.UpdateSellerRoleRevocation(owner, revocation.ID, "unavailable", "", 0, "central Wallet contract unavailable")
+	if err != nil || unavailable.SessionStatus != "unavailable" || unavailable.LastError == "" {
+		t.Fatalf("unavailable state not persisted: %+v err=%v", unavailable, err)
+	}
+	if err := s.SetSellerRole(owner, store.ID, support, SellerRoleViewer); !errors.Is(err, ErrConflict) {
+		t.Fatalf("role regrant allowed while central invalidation unavailable: %v", err)
+	}
+	confirmed, err := s.UpdateSellerRoleRevocation(owner, revocation.ID, "confirmed", "wallet-revoke-001", 2, "central Wallet store-scoped Seller authorization invalidated")
+	if err != nil || confirmed.SessionStatus != "confirmed" || confirmed.SessionCount != 2 || confirmed.SessionRevocationID != "wallet-revoke-001" {
+		t.Fatalf("confirmed invalidation not persisted: %+v err=%v", confirmed, err)
+	}
+	if err := s.SetSellerRole(owner, store.ID, support, SellerRoleViewer); err != nil {
+		t.Fatalf("role regrant blocked after confirmed invalidation: %v", err)
+	}
+	revocations, err := s.SellerRoleRevocations(owner, store.ID)
+	if err != nil || len(revocations) != 1 || revocations[0].ID != revocation.ID {
+		t.Fatalf("revocation history unavailable: %+v err=%v", revocations, err)
+	}
+	events, err := s.SellerIntegrationEvents(owner, store.ID)
+	if err != nil || len(events) != 3 {
+		t.Fatalf("seller integration events unavailable: %+v err=%v", events, err)
+	}
+	seenRoleRevoked := false
+	seenStatuses := map[string]bool{}
+	for _, event := range events {
+		if event.Source != "seller-console" || event.SchemaVersion != 1 || event.StoreID != store.ID || event.Account != support || event.Actor != owner || event.RevocationID != revocation.ID || event.PreviousRole != SellerRoleSupport || event.OccurredAt.IsZero() {
+			t.Fatalf("seller integration event binding invalid: %+v", event)
+		}
+		switch event.EventName {
+		case "ynx.seller.role.revoked.v1":
+			seenRoleRevoked = event.SessionStatus == "pending"
+		case "ynx.seller.authorization.revocation.updated.v1":
+			seenStatuses[event.SessionStatus] = true
+			if event.SessionStatus == "confirmed" && (event.SessionRevocationID != "wallet-revoke-001" || event.SessionCount != 2) {
+				t.Fatalf("confirmed event receipt binding invalid: %+v", event)
+			}
+		default:
+			t.Fatalf("unknown seller integration event: %+v", event)
+		}
+	}
+	if !seenRoleRevoked || !seenStatuses["unavailable"] || !seenStatuses["confirmed"] {
+		t.Fatalf("seller integration event sequence incomplete: %+v", events)
+	}
+	if _, err := s.SellerIntegrationEvents(outsider, store.ID); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("outsider read seller integration events: %v", err)
+	}
+}
+
+func TestSellerRoleRevocationEventsPersistAcrossRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "commerce.json")
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, owner := actor(t, 108)
+	_, member := actor(t, 109)
+	store, _ := setupCatalog(t, s, owner, 1)
+	if err := s.SetSellerRole(owner, store.ID, member, SellerRoleInventory); err != nil {
+		t.Fatal(err)
+	}
+	revocation, _, err := s.RevokeSellerRole(owner, store.ID, member, "Inventory access removed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.UpdateSellerRoleRevocation(owner, revocation.ID, "confirmed", "wallet-revoke-restart-001", 1, "central Wallet store-scoped Seller authorization invalidated"); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := restored.SellerIntegrationEvents(owner, store.ID)
+	if err != nil || len(events) != 2 || events[0].SessionStatus != "confirmed" || events[1].SessionStatus != "pending" {
+		t.Fatalf("restart lost seller integration events: %+v err=%v", events, err)
+	}
+	roles, err := restored.SellerRoles(owner, store.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := roles[member]; ok {
+		t.Fatalf("restart restored revoked role: %+v", roles)
 	}
 }

@@ -152,16 +152,33 @@ type AIJob struct {
 	CreatedAt, UpdatedAt                                        time.Time
 }
 
+type SellerRoleRevocation struct {
+	ID, StoreID, Account, PreviousRole, Reason    string
+	SessionStatus, SessionRevocationID, LastError string
+	SessionCount                                  int
+	RequestedAt, UpdatedAt                        time.Time
+}
+
+type SellerIntegrationEvent struct {
+	ID, EventName, Source, StoreID, Account, Actor string
+	RevocationID, PreviousRole, SessionStatus      string
+	SessionRevocationID                            string
+	SchemaVersion, SessionCount                    int
+	OccurredAt                                     time.Time
+}
+
 type Snapshot struct {
-	Version       int
-	Stores        map[string]StoreProfile
-	Products      map[string]Product
-	Orders        map[string]Order
-	Idempotency   map[string]IdempotencyRecord
-	Audits        []AuditEvent
-	AIJobs        map[string]AIJob
-	BuyerProfiles map[string]BuyerProfile
-	Carts         map[string]Cart
-	SellerRoles   map[string]map[string]string
-	RequestWindow map[string][]time.Time
+	Version           int
+	Stores            map[string]StoreProfile
+	Products          map[string]Product
+	Orders            map[string]Order
+	Idempotency       map[string]IdempotencyRecord
+	Audits            []AuditEvent
+	AIJobs            map[string]AIJob
+	BuyerProfiles     map[string]BuyerProfile
+	Carts             map[string]Cart
+	SellerRoles       map[string]map[string]string
+	SellerRevocations map[string]SellerRoleRevocation
+	SellerEvents      []SellerIntegrationEvent
+	RequestWindow     map[string][]time.Time
 }

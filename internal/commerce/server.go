@@ -60,6 +60,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/seller/stores/{id}/activate", s.activateStore)
 	s.mux.HandleFunc("GET /api/seller/stores/{id}/roles", s.roles)
 	s.mux.HandleFunc("PUT /api/seller/stores/{id}/roles", s.setRole)
+	s.mux.HandleFunc("POST /api/seller/stores/{id}/roles/{account}/revoke", s.revokeRole)
 	s.mux.HandleFunc("POST /api/seller/products", s.createProduct)
 	s.mux.HandleFunc("GET /api/seller/products", s.sellerProducts)
 	s.mux.HandleFunc("PUT /api/seller/products/{id}", s.updateProduct)
@@ -105,7 +106,11 @@ func (s *Server) capabilities(w http.ResponseWriter, r *http.Request) {
 	if s.cfg.Auth != nil && s.cfg.Auth.Available() {
 		wallet = "central_gateway"
 	}
-	write(w, 200, map[string]any{"walletAuth": wallet, "walletProtocol": "wallet-auth-v1+p256-sha256", "paySettlement": availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""), "logistics": "unavailable", "tax": "unavailable", "aiProvider": availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""), "trustEvidence": availability(s.cfg.Trust != nil && s.cfg.Trust.Available()), "protectedAIActions": []string{"publish_product", "change_price", "purchase", "refund", "change_seller_policy"}})
+	authorizationRevocation := "unavailable"
+	if _, ok := s.cfg.Auth.(ProductAuthorizationRevoker); ok && s.cfg.Auth != nil && s.cfg.Auth.Available() {
+		authorizationRevocation = "candidate_configured"
+	}
+	write(w, 200, map[string]any{"walletAuth": wallet, "walletProtocol": "wallet-auth-v1+p256-sha256", "sellerStoreAuthorizationRevocation": authorizationRevocation, "paySettlement": availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""), "logistics": "unavailable", "tax": "unavailable", "aiProvider": availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""), "trustEvidence": availability(s.cfg.Trust != nil && s.cfg.Trust.Available()), "protectedAIActions": []string{"publish_product", "change_price", "purchase", "refund", "change_seller_policy"}})
 }
 func availability(ok bool) string {
 	if ok {
@@ -501,7 +506,17 @@ func (s *Server) roles(w http.ResponseWriter, r *http.Request) {
 		fail(w, status(err), err)
 		return
 	}
-	write(w, 200, map[string]any{"roles": v})
+	revocations, err := s.store.SellerRoleRevocations(sess.Account, r.PathValue("id"))
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	events, err := s.store.SellerIntegrationEvents(sess.Account, r.PathValue("id"))
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, 200, map[string]any{"roles": v, "revocations": revocations, "events": events, "actorRole": v[sess.Account]})
 }
 func (s *Server) setRole(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "seller")
@@ -517,6 +532,75 @@ func (s *Server) setRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, 200, map[string]string{"status": "updated"})
+}
+
+func validProductAuthorizationRevocationReceipt(receipt ProductAuthorizationRevocationReceipt, revocation SellerRoleRevocation) bool {
+	revocationID := strings.TrimSpace(receipt.RevocationID)
+	return receipt.Revoked &&
+		len(revocationID) >= 8 && len(revocationID) <= 128 &&
+		receipt.Account == revocation.Account &&
+		receipt.ProductClientID == SellerClientID &&
+		receipt.BundleID == SellerBundleID &&
+		receipt.ResourceType == "seller_store" &&
+		receipt.ResourceID == revocation.StoreID &&
+		receipt.SessionCount >= 0 &&
+		!receipt.RevokedAt.IsZero() &&
+		!receipt.RevokedAt.After(time.Now().UTC().Add(time.Minute))
+}
+
+func (s *Server) revokeRole(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in struct{ Reason string }
+	if !decode(w, r, &in) {
+		return
+	}
+	revocation, created, err := s.store.RevokeSellerRole(sess.Account, r.PathValue("id"), r.PathValue("account"), in.Reason)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	if revocation.SessionStatus == "confirmed" {
+		write(w, http.StatusOK, map[string]any{"roleRevoked": true, "created": created, "sessionInvalidation": "confirmed", "revocation": revocation})
+		return
+	}
+	revoker, supported := s.cfg.Auth.(ProductAuthorizationRevoker)
+	if !supported || s.cfg.Auth == nil || !s.cfg.Auth.Available() {
+		revocation, err = s.store.UpdateSellerRoleRevocation(sess.Account, revocation.ID, "unavailable", "", 0, "central Wallet store authorization revocation contract is unavailable")
+		if err != nil {
+			fail(w, http.StatusInternalServerError, err)
+			return
+		}
+		write(w, http.StatusAccepted, map[string]any{"roleRevoked": true, "created": created, "sessionInvalidation": "unavailable", "revocation": revocation})
+		return
+	}
+	receipt, revokeErr := revoker.RevokeProductAuthorization(r.Context(), ProductAuthorizationRevocationRequest{RequestID: revocation.ID, Account: revocation.Account, ProductClientID: SellerClientID, BundleID: SellerBundleID, ResourceType: "seller_store", ResourceID: revocation.StoreID, Reason: revocation.Reason})
+	if revokeErr == nil && !validProductAuthorizationRevocationReceipt(receipt, revocation) {
+		revokeErr = fmt.Errorf("%w: central Wallet authorization revocation receipt failed binding validation", ErrUnavailable)
+	}
+	if revokeErr == nil {
+		revocation, err = s.store.UpdateSellerRoleRevocation(sess.Account, revocation.ID, "confirmed", receipt.RevocationID, receipt.SessionCount, "central Wallet store-scoped Seller authorization invalidated")
+		if err != nil {
+			fail(w, http.StatusInternalServerError, err)
+			return
+		}
+		write(w, http.StatusOK, map[string]any{"roleRevoked": true, "created": created, "sessionInvalidation": "confirmed", "revocation": revocation})
+		return
+	}
+	sessionStatus := "unavailable"
+	detail := "central Wallet store authorization revocation contract is unavailable"
+	if errors.Is(revokeErr, ErrUnauthorized) || errors.Is(revokeErr, ErrConflict) {
+		sessionStatus = "rejected"
+		detail = "central Wallet rejected the store-scoped Seller authorization revocation request"
+	}
+	revocation, err = s.store.UpdateSellerRoleRevocation(sess.Account, revocation.ID, sessionStatus, "", 0, detail)
+	if err != nil {
+		fail(w, http.StatusInternalServerError, err)
+		return
+	}
+	write(w, http.StatusAccepted, map[string]any{"roleRevoked": true, "created": created, "sessionInvalidation": sessionStatus, "revocation": revocation})
 }
 func (s *Server) activateStore(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "seller")
@@ -631,7 +715,12 @@ func (s *Server) settlements(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	write(w, 200, map[string]any{"settlements": s.store.Settlements(sess.Account)})
+	settlements, err := s.store.Settlements(sess.Account)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, 200, map[string]any{"settlements": settlements})
 }
 func (s *Server) createAI(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "buyer", "seller")
