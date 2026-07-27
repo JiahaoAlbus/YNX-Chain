@@ -7,6 +7,7 @@ struct TabRecord: Codable { let id: UUID; var url: String; var title: String; le
 struct VisitRecord: Codable { let url: String; let title: String; let visitedAt: Date }
 struct DownloadRecord: Codable { let filename: String; let source: String; let finishedAt: Date }
 struct PermissionRecord: Codable { let origin: String; let permission: String; let decision: String; let decidedAt: Date }
+struct DownloadContext { let source: String; let isPrivate: Bool; var destinationFilename: String? }
 
 final class TabButton: NSButton { var tabID: UUID? }
 
@@ -20,6 +21,7 @@ final class TabButton: NSButton { var tabID: UUID? }
     private let libraryTitle = NSTextField(labelWithString: "History")
     private let libraryBoundary = NSTextField(wrappingLabelWithString: "History is stored on this Mac. Private tabs never appear here.")
     private var webViews: [UUID: WKWebView] = [:]
+    private var downloadContexts: [ObjectIdentifier: DownloadContext] = [:]
     private var tabs: [TabRecord] = []
     private var activeID: UUID?
     private var selectedLibrary = "history"
@@ -234,9 +236,51 @@ final class TabButton: NSButton { var tabID: UUID? }
     func webView(_ webView: WKWebView, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @MainActor (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) { let trust=challenge.protectionSpace.serverTrust; security.stringValue = trust == nil ? "Certificate trust unavailable" : "TLS certificate received for \(challenge.protectionSpace.host) · system trust evaluation applies"; completionHandler(.performDefaultHandling,nil) }
     func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType, decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void) { let permission=type == .camera ? "camera" : type == .microphone ? "microphone" : "camera and microphone";let exactOrigin="\(origin.protocol)://\(origin.host):\(origin.port)";let alert=NSAlert();alert.messageText="Site permission";alert.informativeText="Allow \(permission) once for exact origin \(exactOrigin)? Persistent allow is not offered in this preview.";alert.addButton(withTitle:"Allow once");alert.addButton(withTitle:"Deny");let granted=alert.runModal() == .alertFirstButtonReturn;if let i=index(for:webView),!tabs[i].isPrivate{var values=(try? JSONDecoder().decode([PermissionRecord].self,from:defaults.data(forKey:"permissions") ?? Data())) ?? [];values.insert(PermissionRecord(origin:exactOrigin,permission:permission,decision:granted ? "allow-once" : "deny",decidedAt:Date()),at:0);if let data=try? JSONEncoder().encode(Array(values.prefix(500))){defaults.set(data,forKey:"permissions")};refreshLibrary()};decisionHandler(granted ? .grant : .deny) }
     func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor @Sendable ([URL]?) -> Void) { let panel=NSOpenPanel();panel.canChooseFiles=true;panel.canChooseDirectories=parameters.allowsDirectories;panel.allowsMultipleSelection=parameters.allowsMultipleSelection;panel.beginSheetModal(for:window){completionHandler($0 == .OK ? panel.urls : nil)} }
-    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) { download.delegate=self }
-    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping @MainActor @Sendable (URL?) -> Void) { let panel=NSSavePanel();panel.nameFieldStringValue=suggestedFilename;panel.beginSheetModal(for:window){ result in completionHandler(result == .OK ? panel.url : nil) } }
-    func downloadDidFinish(_ download: WKDownload) { let record=DownloadRecord(filename:"User-selected file",source:activeWebView()?.url?.absoluteString ?? "unknown",finishedAt:Date());var values=(try? JSONDecoder().decode([DownloadRecord].self,from:defaults.data(forKey:"downloads") ?? Data())) ?? [];values.insert(record,at:0);if let data=try? JSONEncoder().encode(Array(values.prefix(500))){defaults.set(data,forKey:"downloads")};security.stringValue="Download completed to the user-selected file.";refreshLibrary() }
+    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        let tab = index(for: webView).map { tabs[$0] }
+        downloadContexts[ObjectIdentifier(download)] = DownloadContext(
+            source: navigationResponse.response.url?.absoluteString ?? webView.url?.absoluteString ?? "unknown",
+            isPrivate: tab?.isPrivate ?? true,
+            destinationFilename: nil
+        )
+        download.delegate = self
+    }
+    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping @MainActor @Sendable (URL?) -> Void) {
+        let identifier = ObjectIdentifier(download)
+        let panel = NSSavePanel(); panel.nameFieldStringValue = suggestedFilename
+        panel.beginSheetModal(for: window) { result in
+            guard result == .OK, let destination = panel.url else {
+                self.downloadContexts.removeValue(forKey: identifier)
+                completionHandler(nil)
+                return
+            }
+            var context = self.downloadContexts[identifier] ?? DownloadContext(source: response.url?.absoluteString ?? "unknown", isPrivate: true, destinationFilename: nil)
+            context.destinationFilename = destination.lastPathComponent
+            self.downloadContexts[identifier] = context
+            completionHandler(destination)
+        }
+    }
+    func downloadDidFinish(_ download: WKDownload) {
+        let identifier = ObjectIdentifier(download)
+        guard let context = downloadContexts.removeValue(forKey: identifier) else {
+            security.stringValue = "Download completed, but no auditable source context was available. No browser record was written."
+            return
+        }
+        if context.isPrivate {
+            security.stringValue = "Private download completed. The selected file remains on disk; no YNX Downloads record was written."
+            return
+        }
+        let record = DownloadRecord(filename: context.destinationFilename ?? "User-selected file", source: context.source, finishedAt: Date())
+        var values = (try? JSONDecoder().decode([DownloadRecord].self, from: defaults.data(forKey: "downloads") ?? Data())) ?? []
+        values.insert(record, at: 0)
+        if let data = try? JSONEncoder().encode(Array(values.prefix(500))) { defaults.set(data, forKey: "downloads") }
+        security.stringValue = "Download completed to the user-selected file."
+        refreshLibrary()
+    }
+    func download(_ download: WKDownload, didFailWithError error: Error, resumeData: Data?) {
+        let context = downloadContexts.removeValue(forKey: ObjectIdentifier(download))
+        security.stringValue = context?.isPrivate == true ? "Private download failed. No YNX Downloads record was written." : "Download failed: \(error.localizedDescription)"
+    }
     private func showBoundary(title: String, message: String) { let alert=NSAlert();alert.messageText=title;alert.informativeText=message;alert.alertStyle = .informational;alert.addButton(withTitle:"Close");alert.runModal() }
 
     private func applyEvidenceState() { guard let state = environment["YNX_BROWSER_EVIDENCE_STATE"] else { return }; if state == "private" { privateTabAction() }; if state == "crash", let id=activeID, let i=tabs.firstIndex(where:{$0.id==id}){tabs[i].crashed=true;refreshChrome();security.stringValue="Web content process crashed · session recovery preserved · press Reload to continue"}; if state == "permissions" { showPermissions() }; if state == "downloads" { showDownloads() } }
