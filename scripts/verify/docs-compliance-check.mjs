@@ -76,6 +76,7 @@ for (const file of jsonFiles) {
 
 const release = JSON.parse(fs.readFileSync("release/product-release.json", "utf8"));
 const publicMetadata = JSON.parse(fs.readFileSync("release/public-product-metadata.json", "utf8"));
+const operatorInputs = JSON.parse(fs.readFileSync("release/operator-inputs.request.json", "utf8"));
 const websiteHandoff = fs.readFileSync("docs/public/WEBSITE_INTEGRATION_HANDOFF.md", "utf8");
 const stateKeys = ["implementedLocal", "testedLocal", "installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"];
 const expectedStates = {implementedLocal: true, testedLocal: true, installedLocal: false, integratedCentral: true, deployedStaging: true, deployedPublic: true, downloadHosted: true, productionSigned: false, storeReleased: false};
@@ -116,6 +117,34 @@ for (const marker of [
 }
 for (const stale of ["All nine booleans are currently false", "URLs remain unset", "Downloads remain empty"]) {
   if (websiteHandoff.includes(stale)) failures.push(`website handoff contains stale release truth: ${stale}`);
+}
+const expectedOperatorInputIds = [
+  "brand-media-rights-approval",
+  "named-review-approvals",
+  "production-signing-approval",
+  "search-and-independent-public-proof",
+];
+const operatorInputIds = (operatorInputs.inputs ?? []).map((entry) => entry.id).sort();
+if (
+  operatorInputs.requestStatus !== "required-before-production-signed-and-reviewed-release" ||
+  !/^[0-9a-f]{40}$/.test(operatorInputs.sourceCommit ?? "") ||
+  JSON.stringify(operatorInputIds) !== JSON.stringify(expectedOperatorInputIds)
+) {
+  failures.push("operator input request is not the minimal production-release request");
+}
+for (const staleId of [
+  "official-public-urls-and-domain-control",
+  "provider-procurement-and-access",
+  "economics-and-funding-decision",
+]) {
+  if (operatorInputIds.includes(staleId)) failures.push(`operator input request still contains resolved or out-of-scope item: ${staleId}`);
+}
+if (
+  operatorInputs.notApplicableStates?.installedLocal == null ||
+  operatorInputs.notApplicableStates?.storeReleased == null ||
+  !operatorInputs.satisfiedByEvidence?.some((entry) => entry.evidence === "release/evidence/website-public-acceptance-2026-07-26.json")
+) {
+  failures.push("operator input request does not separate satisfied and non-applicable release states");
 }
 
 const searchDir = "docs/public/search";
