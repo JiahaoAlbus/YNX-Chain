@@ -9,5 +9,17 @@ cp "$ROOT/native/.build/release/YNXBrowserNative" "$APP/Contents/MacOS/YNXBrowse
 cp "$ROOT/native/AppBundle/Info.plist" "$APP/Contents/Info.plist"
 codesign --force --sign - --timestamp=none "$APP"
 codesign --verify --deep --strict "$APP"
-ditto -c -k --sequesterRsrc --keepParent "$APP" "$ROOT/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip"
-shasum -a 256 "$ROOT/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip"
+
+# Normalize archive metadata and entry order so identical source bytes produce
+# an identical local Testnet Preview ZIP. This does not change the ad-hoc
+# signing class or imply notarization.
+export TZ=UTC
+find "$APP" -exec touch -h -t 202001010000 {} +
+ZIP="$ROOT/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip"
+rm -f "$ZIP"
+(
+  cd "$(dirname "$APP")"
+  find "$(basename "$APP")" -print | LC_ALL=C sort | zip -X -q "$ZIP" -@
+)
+unzip -tq "$ZIP"
+shasum -a 256 "$ZIP"
