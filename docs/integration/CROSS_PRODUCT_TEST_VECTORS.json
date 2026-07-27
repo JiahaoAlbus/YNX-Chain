@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "328ba67b7284",
+  "sourceCommit": "6959df920e71",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,
@@ -69,7 +69,7 @@
       "owner": "chain-core",
       "operation": "eth_sendRawTransaction",
       "inputSource": "internal/consensus/ethereum_transaction_test.go",
-      "mutation": "use-non-canonical-RLP-or-an-EIP-2718-typed-envelope",
+      "mutation": "use-non-canonical-RLP-or-an-unsupported-EIP-2718-envelope-such-as-type-0x02",
       "expected": "reject",
       "errorClass": "unsupported-or-malformed-envelope",
       "expectedRpcCode": -32003
@@ -80,6 +80,64 @@
       "operation": "eth_sendRawTransaction",
       "inputSource": "internal/consensus/ethereum_transaction_test.go",
       "mutation": "resubmit-the-identical-EIP-155-envelope-after-commit",
+      "expected": "reject",
+      "errorClass": "nonce-replay",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip2930-empty-access-list-value-transfer-accept",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "type-0x01-envelope",
+        "chain-id-6423",
+        "empty-access-list",
+        "secp256k1-sender-recovery-and-y-parity",
+        "zero-based-account-nonce",
+        "exact-21000-gas-limit",
+        "ethereum-keccak-and-comet-sha256-dual-identity",
+        "type-0x1-transaction-and-receipt-mapping",
+        "committed-audited-receipt"
+      ]
+    },
+    {
+      "id": "evm-eip2930-non-empty-access-list-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "replace-the-empty-access-list-with-one-or-more-entries",
+      "expected": "reject",
+      "errorClass": "unsupported-access-list",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip2930-calldata-or-contract-creation-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "add-calldata-or-remove-the-20-byte-recipient",
+      "expected": "reject",
+      "errorClass": "outside-bounded-value-transfer-profile",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip2930-wrong-chain-or-eip1559-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/ethereum_transaction_test.go",
+      "mutation": "sign-type-0x01-for-another-chain-or-submit-type-0x02",
+      "expected": "reject",
+      "errorClass": "wrong-chain-or-unsupported-envelope",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip2930-replay-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "resubmit-the-identical-type-0x01-envelope-after-commit",
       "expected": "reject",
       "errorClass": "nonce-replay",
       "expectedRpcCode": -32003

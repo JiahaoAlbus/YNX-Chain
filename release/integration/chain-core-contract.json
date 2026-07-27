@@ -2,11 +2,11 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "328ba67b7284",
-  "contractVersion": "1.5.0",
+  "sourceCommit": "6959df920e71",
+  "contractVersion": "1.6.0",
   "stateSchema": {
     "committedStateVersion": 11,
-    "applicationVersion": 15,
+    "applicationVersion": 16,
     "appHashDomain": "YNX_ABCI_STATE_V11",
     "stateSyncSnapshotFormat": 1,
     "stateSyncSnapshotMaxBytes": 67108864
@@ -71,6 +71,11 @@
       "type": "ethereum_legacy_eip155_value_transfer",
       "version": 1,
       "source": "internal/consensus/ethereum_transaction.go"
+    },
+    {
+      "type": "ethereum_access_list_eip2930_empty_value_transfer",
+      "version": 1,
+      "source": "internal/consensus/ethereum_transaction.go"
     }
   ],
   "routeClasses": {
@@ -132,7 +137,7 @@
       "eth_getTransactionReceipt",
       "eth_getLogs"
     ],
-    "signedTransactionEnvelope": "YNX canonical transfer/v1 or bounded Ethereum legacy EIP-155 type-0 value transfer encoded as 0x data",
+    "signedTransactionEnvelope": "YNX canonical transfer/v1, bounded Ethereum legacy EIP-155 type-0, or bounded EIP-2930 type-0x01 empty-access-list value transfer encoded as 0x data",
     "ethereumLegacyTransactionProfile": {
       "transactionType": "0x0",
       "chainId": 6423,
@@ -145,6 +150,20 @@
       "dualHashIdentity": true,
       "receiptAuditValidation": true
     },
+    "ethereumAccessListTransactionProfile": {
+      "transactionType": "0x1",
+      "standard": "EIP-2930",
+      "chainId": 6423,
+      "gasLimit": 21000,
+      "accessList": "empty-only",
+      "contractCreation": false,
+      "calldata": false,
+      "eip1559Fees": false,
+      "signatureRecovery": true,
+      "yParity": true,
+      "dualHashIdentity": true,
+      "receiptAuditValidation": true
+    },
     "committedOnly": true,
     "historicalAccountState": false,
     "historicalContractState": false,
@@ -152,7 +171,7 @@
     "boundedContractRuntimeMode": "pinned-artifact-bounded-evm-subset",
     "boundedCallNonZeroValue": false,
     "boundedCallStateOverrides": false,
-    "estimateGasSemantics": "0x1 after successful bounded evaluation because ABCI v14 accounts one consensus resource unit per accepted transaction; not Ethereum gas pricing",
+    "estimateGasSemantics": "0x1 after successful bounded evaluation because ABCI v16 accounts one consensus resource unit per accepted transaction; not Ethereum gas pricing",
     "stateRootSemantics": "CometBFT AppHash over YNX committed state v11",
     "transactionsRootSemantics": "CometBFT data hash; not an Ethereum MPT",
     "rejectionCodes": {
