@@ -71,7 +71,10 @@ func TestRunRejectsPermissiveOrInvalidKeyFiles(t *testing.T) {
 	permissivePath := filepath.Join(t.TempDir(), "permissive.key")
 	keyBytes := make([]byte, 32)
 	keyBytes[31] = 9
-	if err := os.WriteFile(permissivePath, keyBytes, 0o644); err != nil {
+	if err := os.WriteFile(permissivePath, keyBytes, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(permissivePath, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := run(permissivePath, 6423, "0x1111111111111111111111111111111111111111", 1, 1, &bytes.Buffer{}); err == nil {

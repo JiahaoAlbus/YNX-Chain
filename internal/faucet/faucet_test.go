@@ -348,7 +348,10 @@ func TestBFTFaucetRejectsUpstreamFailureAndUnsafeCustody(t *testing.T) {
 	}
 
 	keyPath := t.TempDir() + "/faucet.key"
-	if err := os.WriteFile(keyPath, privateKey.Serialize(), 0o644); err != nil {
+	if err := os.WriteFile(keyPath, privateKey.Serialize(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(keyPath, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := New(Config{RPCURL: gateway.URL, UpstreamMode: UpstreamBFT, FaucetKeyPath: keyPath, FaucetAddress: faucetAddress}); err == nil || !strings.Contains(err.Error(), "mode-restricted") {
