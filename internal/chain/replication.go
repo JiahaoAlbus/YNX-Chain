@@ -12,6 +12,7 @@ import (
 
 const MaxReplicationSnapshotBytes = 64 << 20
 const MaxReplicationBatchBlocks = 4096
+const replicationCheckpointInterval = 5 * time.Minute
 
 const (
 	legacyDevnetSnapshotVersion = 1
@@ -156,15 +157,35 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 		d.publishBlockReadViewLocked()
 	}
 	d.publishStatusReadViewLocked()
-	if err := d.persistSnapshotLocked(); err != nil {
-		d.applySnapshotLocked(rollback)
-		if rollbackErr := d.persistSnapshotLocked(); rollbackErr != nil {
-			return ReplicationApplyResult{}, fmt.Errorf("persist replication batch: %v; persist rollback snapshot: %w", err, rollbackErr)
+	if d.shouldCheckpointReplicationLocked(batch.EndHeight, time.Now().UTC()) {
+		if err := d.persistSnapshotLocked(); err != nil {
+			d.applySnapshotLocked(rollback)
+			if rollbackErr := d.persistSnapshotLocked(); rollbackErr != nil {
+				return ReplicationApplyResult{}, fmt.Errorf("persist replication batch: %v; persist rollback snapshot: %w", err, rollbackErr)
+			}
+			return ReplicationApplyResult{}, fmt.Errorf("persist replication batch: %w", err)
 		}
-		return ReplicationApplyResult{}, fmt.Errorf("persist replication batch: %w", err)
+		d.replicaCheckpoint = replicationCheckpointState{
+			Height: batch.EndHeight,
+			At:     time.Now().UTC(),
+			Ready:  true,
+		}
 	}
 	result.Applied = true
 	return result, nil
+}
+
+func (d *Devnet) shouldCheckpointReplicationLocked(height uint64, now time.Time) bool {
+	if d.dataDir == "" {
+		return false
+	}
+	if !d.replicaCheckpoint.Ready {
+		return true
+	}
+	if height >= d.replicaCheckpoint.Height && height-d.replicaCheckpoint.Height >= MaxReplicationBatchBlocks {
+		return true
+	}
+	return d.replicaCheckpoint.At.IsZero() || now.Sub(d.replicaCheckpoint.At) >= replicationCheckpointInterval
 }
 
 func validateReplicationBatch(batch replicationBatch, cfg NetworkConfig) error {

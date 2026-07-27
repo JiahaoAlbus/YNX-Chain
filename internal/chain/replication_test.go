@@ -144,6 +144,59 @@ func TestReplicationBatchCatchesUpInBoundedSuffixes(t *testing.T) {
 	}
 }
 
+func TestReplicationBatchCheckpointsWithoutRewritingEverySuffix(t *testing.T) {
+	cfg := DefaultNetworkConfig("testnet")
+	source := NewDevnet(cfg)
+	destinationDir := t.TempDir()
+	destination, err := NewPersistentDevnet(cfg, destinationDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	applyNext := func() {
+		t.Helper()
+		local := destination.LatestBlock()
+		payload, batchErr := source.ReplicationBatchJSON(local.Height, local.Hash)
+		if batchErr != nil {
+			t.Fatal(batchErr)
+		}
+		if _, batchErr = destination.ApplyReplicationBatchJSON(payload); batchErr != nil {
+			t.Fatal(batchErr)
+		}
+	}
+	durableHeight := func() uint64 {
+		t.Helper()
+		payload, readErr := os.ReadFile(filepath.Join(destinationDir, "devnet-state.json"))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		var snapshot devnetSnapshot
+		if readErr = json.Unmarshal(payload, &snapshot); readErr != nil {
+			t.Fatal(readErr)
+		}
+		return snapshot.Blocks[len(snapshot.Blocks)-1].Height
+	}
+
+	source.ProduceBlock()
+	applyNext()
+	if got := durableHeight(); got != 1 {
+		t.Fatalf("first replication suffix was not checkpointed: height=%d", got)
+	}
+	source.ProduceBlock()
+	applyNext()
+	if destination.LatestHeight() != 2 || durableHeight() != 1 {
+		t.Fatalf("small suffix rewrote the durable checkpoint: memory=%d durable=%d", destination.LatestHeight(), durableHeight())
+	}
+
+	destination.mu.Lock()
+	destination.replicaCheckpoint.At = time.Now().UTC().Add(-replicationCheckpointInterval)
+	destination.mu.Unlock()
+	source.ProduceBlock()
+	applyNext()
+	if got := durableHeight(); got != 3 {
+		t.Fatalf("time-bounded replication checkpoint did not advance: height=%d", got)
+	}
+}
+
 func TestReplicationBatchRejectsTamperingBeforeMutation(t *testing.T) {
 	source := NewDevnet(DefaultNetworkConfig("testnet"))
 	source.ProduceBlock()

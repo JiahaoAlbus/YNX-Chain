@@ -53,18 +53,18 @@ fi
 
 transport_ssh() {
   local role="$1" user="$2" host="$3" key="$4" proxy="$5" command="$6"
-  local options=(-i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10)
+  local options=(-i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=20)
   if [[ "$proxy" == "primary" ]]; then
-    options+=(-o "ProxyCommand=ssh -i $PRIMARY_NODE_SSH_KEY -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -W %h:%p $PRIMARY_NODE_USER@$PRIMARY_NODE_HOST")
+    options+=(-o "ProxyCommand=ssh -i $PRIMARY_NODE_SSH_KEY -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=20 -W %h:%p $PRIMARY_NODE_USER@$PRIMARY_NODE_HOST")
   fi
   ynx_connection_retry "$role read availability ssh" ssh "${options[@]}" "$user@$host" "$command"
 }
 
 transport_scp() {
   local role="$1" user="$2" host="$3" key="$4" proxy="$5" source="$6" destination="$7"
-  local options=(-i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10)
+  local options=(-i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=20)
   if [[ "$proxy" == "primary" ]]; then
-    options+=(-o "ProxyCommand=ssh -i $PRIMARY_NODE_SSH_KEY -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -W %h:%p $PRIMARY_NODE_USER@$PRIMARY_NODE_HOST")
+    options+=(-o "ProxyCommand=ssh -i $PRIMARY_NODE_SSH_KEY -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=20 -W %h:%p $PRIMARY_NODE_USER@$PRIMARY_NODE_HOST")
   fi
   ynx_connection_retry "$role read availability scp" scp "${options[@]}" "$source" "$user@$host:$destination"
 }
@@ -74,7 +74,7 @@ deploy_role() {
   local remote_archive="/tmp/$release.tar.gz" remote_dir="/tmp/$release"
   transport_scp "$role" "$user" "$host" "$key" "$proxy" "$archive" "$remote_archive"
   transport_ssh "$role" "$user" "$host" "$key" "$proxy" \
-    "set -euo pipefail; chmod 0600 '$remote_archive'; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; rm -rf '$remote_dir'; install -d -m 0700 '$remote_dir'; tar -xzf '$remote_archive' -C '$remote_dir'; rm -f '$remote_archive'; bash '$remote_dir/install.sh' '$remote_dir' '$release' '$source_commit' '$role' '$mode' '$replication_interval'; rm -rf '$remote_dir'"
+    "set -euo pipefail; chmod 0600 '$remote_archive'; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; rm -rf '$remote_dir'; install -d -m 0700 '$remote_dir'; tar -xzf '$remote_archive' -C '$remote_dir'; bash '$remote_dir/install.sh' '$remote_dir' '$release' '$source_commit' '$role' '$mode' '$replication_interval'; rm -f '$remote_archive'; rm -rf '$remote_dir'"
 }
 
 echo "YNX_READ_AVAILABILITY_SEQUENCE=1 role=primary"

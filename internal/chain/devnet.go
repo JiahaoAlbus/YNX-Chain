@@ -68,6 +68,7 @@ type Devnet struct {
 	validatorPeerSyncs   map[string]ValidatorPeerSync
 	nodeIdentity         NodeIdentityConfig
 	replicationRuntime   ReplicationRuntimeStatus
+	replicaCheckpoint    replicationCheckpointState
 	lots                 map[string]TrustTraceLot
 	payIntents           map[string]PayIntent
 	invoices             map[string]Invoice
@@ -95,6 +96,12 @@ type Devnet struct {
 	contracts            map[string]ContractArtifact
 	dataDir              string
 	lastPersistenceError string
+}
+
+type replicationCheckpointState struct {
+	Height uint64
+	At     time.Time
+	Ready  bool
 }
 
 type blockReadView struct {

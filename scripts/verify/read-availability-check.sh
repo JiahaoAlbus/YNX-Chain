@@ -44,7 +44,8 @@ for required in \
   'YNX_READ_AVAILABILITY_REPLICATION_INTERVAL:-2s' \
   'SILICON_VALLEY_PRIVATE_HOST:-10.77.42.3' \
   'SEOUL_PRIVATE_HOST:-10.77.42.4' \
-  'ProxyCommand=ssh'
+  'ProxyCommand=ssh' \
+  'ServerAliveInterval=15'
 do
   grep -Fq "$required" scripts/deploy/deploy-read-availability.sh ||
     { echo "four-node private fallback deployment missing gate: $required"; exit 1; }
