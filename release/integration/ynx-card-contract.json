@@ -5,7 +5,7 @@
     "id": "ynx-card",
     "name": "YNX Card",
     "owner": "06-card",
-    "sourceCommit": "13f90c5f6dae6fb002560574b4c481b5e1477f9d",
+    "sourceCommit": "01415dc4413dd8d4e33756a52682ca0f2a6675ec",
     "branch": "codex/final-card"
   },
   "network": {
@@ -150,9 +150,27 @@
   ],
   "migration": {
     "currentStateVersion": 1,
-    "backwardCompatibility": "not yet specified",
-    "rollbackMigration": "not yet implemented",
-    "failClosedOnUnknownVersion": true
+    "backupSchemaVersion": "ynx.card.backup.v1",
+    "backupIntegrityDomain": "YNX_CARD_BACKUP_V1",
+    "backwardCompatibility": "bounded v0 fixture migrates to state v1 by initializing notifications; this is test compatibility and not a claim of prior production deployment",
+    "rollbackMigration": "a verified pre-restore v1 backup is created and has been restored in the local drill",
+    "failClosedOnUnknownVersion": true,
+    "maximumBackupBytes": 67108864
+  },
+  "recovery": {
+    "operatorCommand": "ynx-card-product-admin",
+    "operations": ["backup", "verify", "restore"],
+    "absolutePathsRequired": true,
+    "fileMode": "0600",
+    "nonOverwritingBackupDestination": true,
+    "fileAndDirectorySync": true,
+    "sourceVerifiedBeforeMutation": true,
+    "validPrimaryBehavior": "create verified rollback backup",
+    "corruptPrimaryBehavior": "preserve exact bytes as quarantine and report SHA-256",
+    "missingPrimaryBehavior": "cold restore without fabricating a rollback artifact",
+    "offHostEncryptedBackup": false,
+    "scheduledBackup": false,
+    "timedRpoRtoEvidence": false
   },
   "releaseStatus": {
     "implementedLocal": true,

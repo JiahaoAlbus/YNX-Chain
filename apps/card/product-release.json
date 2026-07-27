@@ -2,7 +2,7 @@
   "productId": "ynx-card",
   "name": "YNX Card",
   "branch": "codex/final-card",
-  "commit": "13f90c5f6dae6fb002560574b4c481b5e1477f9d",
+  "commit": "01415dc4413dd8d4e33756a52682ca0f2a6675ec",
   "recoveredFromCommit": "c20beda",
   "recoveryCheckpoint": "bdd5ca02ad42b712db66a5173ecfad09340aa42c",
   "version": "1.0.0-testnet-preview",
@@ -40,6 +40,8 @@
     "cardVet": "go vet ./internal/cardproduct/... passed",
     "providerCapabilityContract": "passed at 8cd6a721b0ffe007ddaa5855337aa2dfc26c0d9b",
     "providerEventNegativeVectors": "tamper, expiry, replay, ordering, relation and key rotation passed at 13f90c5f6dae6fb002560574b4c481b5e1477f9d",
+    "backupRestore": "versioned HMAC backup, tamper rejection, rollback, migration, corrupt-primary quarantine and missing-primary cold restore passed at 01415dc4413dd8d4e33756a52682ca0f2a6675ec",
+    "adminCliBuild": "go build ./internal/cardproduct/cmd/ynx-card-product-admin passed at 01415dc4413dd8d4e33756a52682ca0f2a6675ec",
     "mobileTests": "8/8 passed at the recovery checkpoint",
     "typecheck": "passed at the recovery checkpoint",
     "expoBundle": "Android and iOS Hermes export passed at the recovery checkpoint",
@@ -51,6 +53,8 @@
   "knownLimitations": [
     "Sandbox or unavailable issuer only; no BIN, real processor, fiat balance or spendable-card claim.",
     "No official provider-specific webhook signature or secure-display integration is selected.",
+    "Local backup/restore is verified, but scheduled encrypted off-host retention and timed RPO/RTO evidence are not complete.",
+    "Account-scoped export/delete and retention enforcement are not complete.",
     "No current native APK install/cold-launch evidence.",
     "No staging, production signing, hosted download, store release or external security review.",
     "Issuer credential and legal/provider agreement remain external inputs for a real issuer sandbox."
