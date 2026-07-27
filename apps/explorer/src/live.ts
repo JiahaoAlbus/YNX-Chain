@@ -1,4 +1,4 @@
-import type { Availability, DashboardSnapshot } from './types';
+import { summaryLatestHeight, type Availability, type DashboardSnapshot } from './types';
 
 export const STALE_AFTER_MS = 15_000;
 export const MAX_POLL_FAILURES = 3;
@@ -17,9 +17,10 @@ export interface LiveOptions {
 }
 
 export function classifyFreshness(snapshot: DashboardSnapshot, receivedAt: number, now = Date.now()): Availability {
-  const latest = Number(snapshot.summary?.latestHeight ?? 0);
+  const latest = Number(summaryLatestHeight(snapshot.summary) ?? 0);
   const indexed = Number(snapshot.summary?.indexedHeight ?? latest);
-  if (latest > indexed) return 'catching-up';
+  const lag = Number(snapshot.summary?.syncLagBlocks ?? Math.max(0, latest - indexed));
+  if (lag > 0) return 'catching-up';
   return now - receivedAt > STALE_AFTER_MS ? 'stale' : 'live';
 }
 

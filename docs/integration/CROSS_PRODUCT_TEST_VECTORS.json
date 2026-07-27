@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "explorer.test-vectors.v1",
+  "product": "YNX Explorer",
+  "owner": "12-explorer",
+  "sourceCommit": null,
+  "vectors": [
+    {
+      "id": "EXP-CURSOR-001",
+      "category": "positive",
+      "request": "GET /api/blocks/latest?limit=2",
+      "expected": {
+        "httpStatus": 200,
+        "fields": ["blocks", "nextCursor", "cursorVersion"],
+        "cursorVersion": 1,
+        "ordering": "height-descending"
+      }
+    },
+    {
+      "id": "EXP-CURSOR-002",
+      "category": "positive",
+      "precondition": "Use nextCursor from EXP-CURSOR-001 without modification",
+      "request": "GET /api/blocks/latest?limit=2&cursor={nextCursor}",
+      "expected": {
+        "httpStatus": 200,
+        "invariant": "No record from the first page repeats and newly inserted higher blocks do not shift the continuation anchor"
+      }
+    },
+    {
+      "id": "EXP-CURSOR-003",
+      "category": "negative-tamper",
+      "precondition": "Change one byte of a valid block cursor",
+      "request": "GET /api/blocks/latest?cursor={tamperedCursor}",
+      "expected": {
+        "httpStatus": 400,
+        "error": "invalid_cursor",
+        "failClosed": true
+      }
+    },
+    {
+      "id": "EXP-CURSOR-004",
+      "category": "negative-cross-feed",
+      "precondition": "Use a valid block cursor on the transaction feed",
+      "request": "GET /api/txs?cursor={blockCursor}",
+      "expected": {
+        "httpStatus": 400,
+        "error": "invalid_cursor",
+        "failClosed": true
+      }
+    },
+    {
+      "id": "EXP-CURSOR-005",
+      "category": "restart",
+      "precondition": "Do not configure YNX_INDEXER_CURSOR_KEY; issue a cursor, restart Indexer, then reuse it",
+      "expected": {
+        "httpStatus": 400,
+        "healthCursorPersistence": "process-scoped",
+        "meaning": "Pre-restart cursor expired; no silent acceptance"
+      }
+    },
+    {
+      "id": "EXP-CURSOR-006",
+      "category": "restart-configured-key",
+      "precondition": "Configure the same approved 32-byte-or-longer key before and after restart",
+      "expected": {
+        "healthCursorPersistence": "configured-key",
+        "invariant": "A retained anchor cursor remains verifiable across restart"
+      },
+      "status": "defined-not-yet-executed"
+    },
+    {
+      "id": "EXP-ERROR-001",
+      "category": "failure-classification",
+      "precondition": "Indexer rejects a cursor with HTTP 400",
+      "expected": {
+        "explorerHttpStatus": 400
+      }
+    },
+    {
+      "id": "EXP-ERROR-002",
+      "category": "failure-classification",
+      "precondition": "Indexer returns HTTP 503 while request contains a cursor",
+      "expected": {
+        "explorerHttpStatus": 502,
+        "invariant": "Dependency outage is not mislabeled as client cursor failure"
+      }
+    },
+    {
+      "id": "EXP-ROUTE-001",
+      "category": "canonical-route",
+      "input": {
+        "searchResult": {"type":"block","query":"41"}
+      },
+      "expected": {
+        "route": "/block/41",
+        "drawer": "open",
+        "back": "route / and drawer closed",
+        "forward": "route /block/41 and drawer restored"
+      }
+    },
+    {
+      "id": "EXP-ROUTE-002",
+      "category": "negative-route",
+      "inputs": [
+        "/unknown/value",
+        "/block/41/extra",
+        "/?kind=wallet&id=41",
+        "/?kind=block&id="
+      ],
+      "expected": {
+        "selection": null,
+        "failClosed": true
+      }
+    },
+    {
+      "id": "EXP-SUMMARY-001",
+      "category": "schema-migration",
+      "input": {
+        "rpcHeight": 6423,
+        "indexedHeight": 6422,
+        "syncLagBlocks": 1,
+        "network": {"name":"YNX Testnet","chainId":6423,"nativeCurrencySymbol":"YNXT"}
+      },
+      "expected": {
+        "displayHeight": 6423,
+        "displayNetwork": "YNX Testnet",
+        "displayChainId": 6423
+      }
+    },
+    {
+      "id": "EXP-SUMMARY-002",
+      "category": "old-client-compatibility",
+      "input": {
+        "latestHeight": 41,
+        "network": "ynx_6423-1",
+        "chainId": 6423
+      },
+      "expected": {
+        "displayHeight": 41,
+        "displayNetwork": "ynx_6423-1",
+        "displayChainId": 6423
+      }
+    }
+  ]
+}

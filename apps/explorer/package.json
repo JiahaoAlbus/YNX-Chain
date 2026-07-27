@@ -10,6 +10,7 @@
     "test": "tsx --test src/*.test.ts",
     "test:a11y": "tsx --test src/accessibility.test.ts",
     "test:e2e": "playwright test",
+    "security:scan": "node scripts/security-scan.mjs",
     "smoke": "node scripts/real-service-smoke.mjs"
   },
   "dependencies": {

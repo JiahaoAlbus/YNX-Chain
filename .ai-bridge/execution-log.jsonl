@@ -1,0 +1,30 @@
+{"at":"2026-07-27","event":"workspace-match","product":12,"workspace":"/Users/huangjiahao/Desktop/YNX Final Worktrees/12-explorer","branch":"codex/final-explorer","result":"matched"}
+{"at":"2026-07-27","event":"baseline","scope":"apps/explorer","command":"npm test","result":"passed","tests":7}
+{"at":"2026-07-27","event":"baseline","scope":"apps/explorer","command":"npm run build","result":"passed"}
+{"at":"2026-07-27","event":"runtime-slice","id":"canonical-deep-links","result":"implemented","details":["canonical routes","search navigation","popstate restoration","negative route parsing"]}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm test","result":"passed","tests":10}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm run build","result":"passed"}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm run test:a11y","result":"passed","tests":1}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm run test:e2e","result":"blocked","reason":"MCP connector 502","attempts":3}
+{"at":"2026-07-27","event":"runtime-slice","id":"opaque-cursor","result":"implemented","details":["HMAC cursor v1","feed binding","tamper rejection","stable anchor pagination","process/configured persistence"]}
+{"at":"2026-07-27","event":"verification","scope":"Go Explorer and Indexer","command":"go test ./internal/indexer ./internal/explorer ./cmd/ynx-indexerd ./cmd/ynx-explorerd","result":"passed","note":"passed after cursor propagation and before later error-classification edit"}
+{"at":"2026-07-27","event":"runtime-slice","id":"summary-schema","result":"implemented","details":["rpcHeight","network identity object","legacy read compatibility"]}
+{"at":"2026-07-27","event":"runtime-slice","id":"cursor-frontend","result":"implemented","details":["server-driven pagination","signed cursor forwarding","first-page cache invalidation","explicit source errors"]}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm test","result":"passed","tests":14}
+{"at":"2026-07-27","event":"runtime-slice","id":"failure-classification","result":"implemented","details":["invalid cursor 400","dependency outage 502"]}
+{"at":"2026-07-27","event":"verification","scope":"final Go regression","command":"go test","result":"blocked","reason":"MCP connector 502","attempts":3}
+{"at":"2026-07-27","event":"checkpoint","stage":"PROTECT","commit":null,"push":false,"reason":"No commit/push action exposed and final verification blocked","goalStatus":"active"}
+{"at":"2026-07-27","event":"verification","scope":"Go Explorer and Indexer","command":"go test ./internal/indexer ./internal/explorer ./cmd/ynx-indexerd ./cmd/ynx-explorerd","result":"passed"}
+{"at":"2026-07-27","event":"verification","scope":"Go Explorer and Indexer","command":"go test -race ./internal/indexer ./internal/explorer","result":"passed-with-warning","warning":"non-fatal macOS LC_DYSYMTAB linker warnings"}
+{"at":"2026-07-27","event":"verification","scope":"Go Explorer and Indexer","command":"go build ./cmd/ynx-indexerd ./cmd/ynx-explorerd","result":"passed"}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm test","result":"passed","tests":14}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm run build","result":"passed"}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm run test:a11y","result":"passed","tests":1}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer desktop/mobile","command":"npm run test:e2e","result":"passed","tests":10}
+{"at":"2026-07-27","event":"verification","scope":"disposable local Testnet","command":"bash scripts/verify/indexer-check.sh","result":"passed"}
+{"at":"2026-07-27","event":"verification","scope":"disposable local Testnet","command":"bash scripts/verify/explorer-check.sh","result":"passed"}
+{"at":"2026-07-27","event":"security","scope":"apps/explorer","command":"npm audit --json","result":"passed","vulnerabilities":0}
+{"at":"2026-07-27","event":"security","scope":"Explorer product files","command":"npm run security:scan","result":"passed","files":36}
+{"at":"2026-07-27","event":"preflight","scope":"whole repository","command":"go test ./...","result":"failed-outside-product-owner","details":["key-permission tests","Hardhat selector-metadata compatibility"],"explorerIndexer":"passed"}
+{"at":"2026-07-27","event":"security","scope":"root Hardhat development tooling","command":"npm audit --json","result":"failed-shared-tooling","high":3,"fixAvailable":false,"dependency":"adm-zip"}
+{"at":"2026-07-27","event":"review","scope":"workspace","command":"show_changes","result":"reviewed","goalStatus":"active","stage":"PROTECT"}

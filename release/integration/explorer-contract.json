@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "explorer.integration.v1",
+  "product": "YNX Explorer",
+  "slug": "explorer",
+  "owner": "12-explorer",
+  "sourceCommit": null,
+  "status": "candidate-local-verified-pending-commit",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeAsset": "YNXT"
+  },
+  "publicReadBoundary": {
+    "authentication": "none-for-public-evidence",
+    "mutationAuthority": "none",
+    "walletTuple": null,
+    "signedIntent": null,
+    "privacyRule": "Only public evidence may be returned; private strategy source, credentials and sensitive user configuration are forbidden."
+  },
+  "api": [
+    {
+      "method": "GET",
+      "path": "/api/summary",
+      "responseSchema": "explorer.summary.v1",
+      "requiredFields": ["network", "rpcHeight", "indexedHeight", "syncLagBlocks", "truthfulStatus", "lastCheckedAt"],
+      "failureSemantics": "502 when an authoritative dependency is unavailable"
+    },
+    {
+      "method": "GET",
+      "path": "/api/blocks/latest?limit={1..100}&cursor={opaque}",
+      "responseSchema": "explorer.block-page.v1",
+      "requiredFields": ["blocks", "nextCursor", "cursorVersion"],
+      "failureSemantics": "400 only for a rejected cursor; 502 for upstream failure"
+    },
+    {
+      "method": "GET",
+      "path": "/api/txs?limit={1..100}&cursor={opaque}",
+      "responseSchema": "explorer.transaction-page.v1",
+      "requiredFields": ["transactions", "nextCursor", "cursorVersion"],
+      "failureSemantics": "400 only for a rejected cursor; 502 for upstream failure"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stream",
+      "responseSchema": "explorer.dashboard-event.v1",
+      "transport": "SSE",
+      "failureSemantics": "Client reconnects with bounded polling fallback and explicit stale/catching-up state"
+    }
+  ],
+  "cursor": {
+    "version": 1,
+    "encoding": "base64url(payload).base64url(hmac-sha256)",
+    "payload": ["v", "f", "a"],
+    "feedBound": true,
+    "tamperRejected": true,
+    "crossFeedRejected": true,
+    "maximumLength": 2048,
+    "configuredKeyEnvironmentReference": "YNX_INDEXER_CURSOR_KEY",
+    "configuredKeyMinimumBytes": 32,
+    "defaultPersistence": "process-scoped",
+    "restartSemantics": "Without a configured key, pre-restart cursors expire and fail closed."
+  },
+  "canonicalRoutes": {
+    "block": "/block/{height}",
+    "transaction": "/tx/{hash}",
+    "account": "/address/{address}",
+    "legacyReadCompatibility": "/?kind={kind}&id={id}"
+  },
+  "canonicalEvents": [
+    "dashboard",
+    "status"
+  ],
+  "errorCodes": [
+    {
+      "code": "invalid_cursor",
+      "owner": "12-explorer/indexer",
+      "httpStatus": 400,
+      "meaning": "Malformed, tampered, unsupported, expired, no-longer-retained or cross-feed cursor"
+    },
+    {
+      "code": "upstream_unavailable",
+      "owner": "12-explorer",
+      "httpStatus": 502,
+      "meaning": "Authoritative RPC or Indexer dependency did not produce a usable response"
+    }
+  ],
+  "dependencies": [
+    {"owner":"01-chain-core","contract":"Network identity, blocks, finality, validators and chain evidence"},
+    {"owner":"02-wallet-auth","contract":"Public address equivalence and approved identity facts only"},
+    {"owner":"17-tokenomics","contract":"Supply, burn, staking, treasury and solvency facts"},
+    {"owner":"19-oracle-market-data","contract":"Source/version/asOf/confidence/stale market facts"},
+    {"owner":"26-data-fabric","contract":"Canonical public product evidence envelopes"},
+    {"owner":"29-integration","contract":"Protocol freeze, shared Testnet and public proof acceptance"},
+    {"owner":"30-security-sre-release","contract":"Secret, artifact, backup and release controls"}
+  ],
+  "migration": {
+    "current": "Legacy latestHeight/network-string frontend summaries remain readable.",
+    "target": "Canonical rpcHeight and NetworkConfig object.",
+    "rollback": "Frontend helper layer can continue reading legacy fields without changing the backend contract."
+  },
+  "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "externalInputs": []
+}

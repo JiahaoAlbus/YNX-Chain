@@ -3,6 +3,7 @@ package explorer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -50,6 +51,24 @@ type client struct {
 	httpClient *http.Client
 }
 
+type upstreamHTTPError struct {
+	Method string
+	Path   string
+	Status int
+}
+
+func (e *upstreamHTTPError) Error() string {
+	return fmt.Sprintf("%s %s returned %d", e.Method, e.Path, e.Status)
+}
+
+func upstreamStatus(err error) int {
+	var target *upstreamHTTPError
+	if errors.As(err, &target) {
+		return target.Status
+	}
+	return 0
+}
+
 func newClient(baseURL string) *client {
 	return &client{baseURL: strings.TrimRight(baseURL, "/"), httpClient: &http.Client{Timeout: 10 * time.Second}}
 }
@@ -74,7 +93,7 @@ func (c *client) getJSONWithHeaders(ctx context.Context, path string, headers ma
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("GET %s returned %d", path, resp.StatusCode)
+		return &upstreamHTTPError{Method: http.MethodGet, Path: path, Status: resp.StatusCode}
 	}
 	return json.NewDecoder(resp.Body).Decode(out)
 }
@@ -219,14 +238,30 @@ func (s *Service) IndexerHealth(ctx context.Context) (IndexerHealth, error) {
 	return health, nil
 }
 
+type BlockPage struct {
+	Blocks        []chain.Block `json:"blocks"`
+	NextCursor    string        `json:"nextCursor,omitempty"`
+	CursorVersion int           `json:"cursorVersion,omitempty"`
+}
+
 func (s *Service) LatestBlocks(ctx context.Context, limit int) ([]chain.Block, error) {
-	var out struct {
-		Blocks []chain.Block `json:"blocks"`
-	}
-	if err := s.indexerClient.getJSON(ctx, "/blocks/latest?limit="+strconv.Itoa(limit), &out); err != nil {
+	page, err := s.LatestBlocksPage(ctx, limit, "")
+	if err != nil {
 		return nil, err
 	}
-	return out.Blocks, nil
+	return page.Blocks, nil
+}
+
+func (s *Service) LatestBlocksPage(ctx context.Context, limit int, cursor string) (BlockPage, error) {
+	path := "/blocks/latest?limit=" + strconv.Itoa(limit)
+	if cursor != "" {
+		path += "&cursor=" + url.QueryEscape(cursor)
+	}
+	var page BlockPage
+	if err := s.indexerClient.getJSON(ctx, path, &page); err != nil {
+		return BlockPage{}, err
+	}
+	return page, nil
 }
 
 func (s *Service) Block(ctx context.Context, height string) (chain.Block, error) {
@@ -237,14 +272,30 @@ func (s *Service) Block(ctx context.Context, height string) (chain.Block, error)
 	return block, nil
 }
 
+type TransactionPage struct {
+	Transactions  []chain.Transaction `json:"transactions"`
+	NextCursor    string              `json:"nextCursor,omitempty"`
+	CursorVersion int                 `json:"cursorVersion,omitempty"`
+}
+
 func (s *Service) Transactions(ctx context.Context, limit int) ([]chain.Transaction, error) {
-	var out struct {
-		Transactions []chain.Transaction `json:"transactions"`
-	}
-	if err := s.indexerClient.getJSON(ctx, "/txs?limit="+strconv.Itoa(limit), &out); err != nil {
+	page, err := s.TransactionsPage(ctx, limit, "")
+	if err != nil {
 		return nil, err
 	}
-	return out.Transactions, nil
+	return page.Transactions, nil
+}
+
+func (s *Service) TransactionsPage(ctx context.Context, limit int, cursor string) (TransactionPage, error) {
+	path := "/txs?limit=" + strconv.Itoa(limit)
+	if cursor != "" {
+		path += "&cursor=" + url.QueryEscape(cursor)
+	}
+	var page TransactionPage
+	if err := s.indexerClient.getJSON(ctx, path, &page); err != nil {
+		return TransactionPage{}, err
+	}
+	return page, nil
 }
 
 func (s *Service) Transaction(ctx context.Context, hash string) (chain.Transaction, error) {

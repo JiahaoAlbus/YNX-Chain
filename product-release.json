@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "number": 12,
+    "name": "YNX Explorer",
+    "slug": "explorer",
+    "owner": "12-explorer"
+  },
+  "goalStatus": "active",
+  "stage": "PROTECT",
+  "releaseCandidate": "verified-local-checkpoint-pending-commit",
+  "sourceCommit": null,
+  "sourceBranch": "codex/final-explorer",
+  "asOf": "2026-07-27",
+  "truthfulStatus": "cursor-deep-link-summary-migration-slice-locally-verified",
+  "capabilities": {
+    "canonicalEvidenceDeepLinks": "testedLocal",
+    "browserHistoryRestoration": "testedLocal",
+    "canonicalExplorerSummarySchema": "testedLocal",
+    "canonicalFreshnessClassification": "testedLocal",
+    "opaqueCursorPagination": "testedLocal",
+    "cursorTamperRejection": "testedLocal",
+    "cursorCrossFeedRejection": "testedLocal",
+    "cursorFailureClassification": "testedLocal",
+    "sseReconnectAndFallback": "testedLocal",
+    "pwa": "testedLocal",
+    "twelveLocales": "testedLocal",
+    "productSecurityScan": "testedLocal"
+  },
+  "verification": [
+    {
+      "command": "go test ./internal/indexer ./internal/explorer ./cmd/ynx-indexerd ./cmd/ynx-explorerd",
+      "scope": "Explorer and Indexer runtime",
+      "result": "passed",
+      "evidence": "Targeted runtime and command-package regression passed on 2026-07-27."
+    },
+    {
+      "command": "go test -race ./internal/indexer ./internal/explorer",
+      "scope": "Explorer and Indexer concurrency",
+      "result": "passed-with-warning",
+      "evidence": "Race tests passed; macOS linker emitted non-fatal LC_DYSYMTAB warnings."
+    },
+    {
+      "command": "go build ./cmd/ynx-indexerd ./cmd/ynx-explorerd",
+      "scope": "Explorer and Indexer binaries",
+      "result": "passed",
+      "evidence": "Both command packages built from the current source."
+    },
+    {
+      "command": "npm test",
+      "scope": "apps/explorer",
+      "result": "passed",
+      "evidence": "14 tests passed, including canonical/legacy Summary compatibility, routing, cursor clients and live freshness."
+    },
+    {
+      "command": "npm run build",
+      "scope": "apps/explorer",
+      "result": "passed",
+      "evidence": "Current TypeScript and Vite production build succeeded."
+    },
+    {
+      "command": "npm run test:a11y",
+      "scope": "apps/explorer",
+      "result": "passed",
+      "evidence": "1 semantic accessibility contract test passed."
+    },
+    {
+      "command": "npm run test:e2e",
+      "scope": "apps/explorer desktop and mobile",
+      "result": "passed",
+      "evidence": "10 Playwright tests passed, covering canonical navigation/history, cursor pagination, responsive overflow, RTL and installable PWA behavior."
+    },
+    {
+      "command": "bash scripts/verify/indexer-check.sh",
+      "scope": "disposable local Testnet",
+      "result": "passed",
+      "evidence": "Indexer sync, resume, HTTP evidence and metrics passed."
+    },
+    {
+      "command": "bash scripts/verify/explorer-check.sh",
+      "scope": "disposable local Testnet",
+      "result": "passed",
+      "evidence": "Explorer transaction, account, resource, token, validator, fee, search, HTML and metrics paths passed."
+    },
+    {
+      "command": "npm audit --json",
+      "scope": "apps/explorer",
+      "result": "passed",
+      "evidence": "0 info, low, moderate, high or critical vulnerabilities."
+    },
+    {
+      "command": "npm run security:scan",
+      "scope": "Explorer runtime, BFF, Indexer, integration and release files",
+      "result": "passed",
+      "evidence": "36 product source and release files passed secret, filler and unfinished-marker scanning."
+    },
+    {
+      "command": "go test ./...",
+      "scope": "whole repository impact check",
+      "result": "failed-outside-product-owner",
+      "evidence": "Explorer and Indexer passed; failures remain in other-owner key-permission tests and Hardhat selector-metadata compatibility paths."
+    },
+    {
+      "command": "npm audit --json",
+      "scope": "repository root Hardhat development tooling",
+      "result": "failed-shared-tooling",
+      "evidence": "3 High advisories through adm-zip; npm reports no available fix. These packages are not shipped in the Explorer bundle."
+    }
+  ],
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "artifacts": [
+    {
+      "path": "apps/explorer/dist",
+      "class": "local-unsigned-web-build",
+      "sha256": null,
+      "hostedURL": null,
+      "current": true,
+      "note": "The current source builds locally and passed desktop/mobile browser tests. Immutable archive, manifest, hash, bytes and hosting remain a later release gate."
+    }
+  ],
+  "externalBlockers": [
+    "29 Integration contract freeze and central acceptance",
+    "Public Explorer ingress and DNS",
+    "Hosted immutable artifact publication",
+    "Cross-region public smoke and search indexability evidence",
+    "Approved multi-instance secret reference and rotation for YNX_INDEXER_CURSOR_KEY"
+  ],
+  "localBlockers": [
+    "Checkpoint commit, upstream creation and remote SHA verification are pending.",
+    "Whole-repository preflight is red in other-owner packages; no Explorer-owned regression remains in the targeted gates.",
+    "Shared root Hardhat tooling has three unresolved High advisories with no npm fix."
+  ],
+  "nextAction": "Commit and push the verified checkpoint, bind all evidence to its exact source commit, then implement versioned public evidence envelopes with source, as-of, version, stale, coverage and correction semantics."
+}

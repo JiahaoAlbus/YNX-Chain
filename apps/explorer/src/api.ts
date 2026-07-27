@@ -1,4 +1,17 @@
-import type { DashboardSnapshot } from './types';
+import type { SearchResult } from './routing';
+import type { Block, DashboardSnapshot, Transaction } from './types';
+
+export interface BlockPage {
+  blocks: Block[];
+  nextCursor?: string;
+  cursorVersion?: number;
+}
+
+export interface TransactionPage {
+  transactions: Transaction[];
+  nextCursor?: string;
+  cursorVersion?: number;
+}
 
 const detailRoutes: Record<string, (id: string) => string[]> = {
   transaction: id => [`/api/txs/${encodeURIComponent(id)}`, `/chain/evm/receipts/${encodeURIComponent(id)}`],
@@ -10,10 +23,28 @@ const detailRoutes: Record<string, (id: string) => string[]> = {
   governance: id => [`/chain/governance/proposals/${encodeURIComponent(id)}`]
 };
 
-export async function universalSearch(query: string) {
+async function getJSON<T>(path: string): Promise<T> {
+  const response = await fetch(path);
+  if (!response.ok) throw new Error(`Explorer source unavailable (${response.status})`);
+  return response.json() as Promise<T>;
+}
+
+export function loadBlockPage(cursor = '', limit = 5): Promise<BlockPage> {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (cursor) query.set('cursor', cursor);
+  return getJSON<BlockPage>(`/api/blocks/latest?${query}`);
+}
+
+export function loadTransactionPage(cursor = '', limit = 5): Promise<TransactionPage> {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (cursor) query.set('cursor', cursor);
+  return getJSON<TransactionPage>(`/api/txs?${query}`);
+}
+
+export async function universalSearch(query: string): Promise<SearchResult> {
   const response = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
   if (!response.ok) throw new Error(`Search unavailable (${response.status})`);
-  return response.json();
+  return response.json() as Promise<SearchResult>;
 }
 
 export async function loadEvidence(kind: string, id: string) {

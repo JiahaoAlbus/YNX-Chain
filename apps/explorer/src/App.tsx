@@ -1,7 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { loadEvidence, sourceLinks, universalSearch } from './api';
+import { loadBlockPage, loadEvidence, loadTransactionPage, sourceLinks, universalSearch, type BlockPage as BlockCursorPage, type TransactionPage as TransactionCursorPage } from './api';
 import { connectLiveData } from './live';
-import { arrayFrom, type Availability, type Block, type DashboardSnapshot, type Transaction, type Validator } from './types';
+import { pathForSelection, selectionFromSearchResult, selectionFromURL, type EvidenceSelection, type SearchResult } from './routing';
+import { arrayFrom, summaryChainID, summaryLatestHeight, summaryNetworkName, type Availability, type Block, type DashboardSnapshot, type Transaction, type Validator } from './types';
 import { localeNames, locales, type Locale, useI18n } from './i18n';
 
 const sections = ['Overview', 'Blocks', 'Transactions', 'Accounts', 'Contracts', 'Validators', 'Resources', 'Tokens', 'Governance', 'Trust', 'Analytics'];
@@ -13,14 +14,20 @@ export function App() {
   const [availability, setAvailability] = useState<Availability>('connecting');
   const [statusDetail, setStatusDetail] = useState('Opening the canonical Explorer event stream.');
   const [query, setQuery] = useState('');
-  const [search, setSearch] = useState<{ loading?: boolean; error?: string; data?: unknown }>({});
-  const [selected, setSelectedState] = useState<{ kind: string; id: string }|undefined>(()=>{const url=new URL(location.href),kind=url.searchParams.get('kind'),id=url.searchParams.get('id');return kind&&id?{kind,id}:undefined});
+  const [search, setSearch] = useState<{ loading?: boolean; error?: string; data?: SearchResult }>({});
+  const [selected, setSelectedState] = useState<EvidenceSelection|undefined>(() => selectionFromURL(new URL(location.href)));
   const [evidence, setEvidence] = useState<Array<{url: string; status: number; body: unknown}>>([]);
   const [evidenceError, setEvidenceError] = useState('');
   const [aiOpen, setAiOpen] = useState(false);
   const [aiState, setAiState] = useState<'preview'|'streaming'|'review'|'rejected'>('preview');
   const [aiOutput, setAiOutput] = useState('');
-  const [blockPage,setBlockPage]=useState(0);const[txPage,setTxPage]=useState(0);const pageSize=5;
+  const pageSize = 5;
+  const [blockPages, setBlockPages] = useState<BlockCursorPage[]>([]);
+  const [blockPageIndex, setBlockPageIndex] = useState(0);
+  const [blockPageState, setBlockPageState] = useState<{ loading?: boolean; error?: string }>({});
+  const [transactionPages, setTransactionPages] = useState<TransactionCursorPage[]>([]);
+  const [transactionPageIndex, setTransactionPageIndex] = useState(0);
+  const [transactionPageState, setTransactionPageState] = useState<{ loading?: boolean; error?: string }>({});
   const [online,setOnline]=useState(navigator.onLine);const[installPrompt,setInstallPrompt]=useState<Event&{prompt():Promise<void>}|null>(null);
 
   useEffect(() => connectLiveData({
@@ -28,6 +35,11 @@ export function App() {
     onStatus: (status, detail) => { setAvailability(status); if (detail) setStatusDetail(detail); }
   }), []);
   useEffect(()=>{const on=()=>setOnline(true),off=()=>setOnline(false),install=(event:Event)=>{event.preventDefault();setInstallPrompt(event as Event&{prompt():Promise<void>})};addEventListener('online',on);addEventListener('offline',off);addEventListener('beforeinstallprompt',install);return()=>{removeEventListener('online',on);removeEventListener('offline',off);removeEventListener('beforeinstallprompt',install)}},[]);
+  useEffect(() => {
+    const restore = () => setSelectedState(selectionFromURL(new URL(location.href)));
+    addEventListener('popstate', restore);
+    return () => removeEventListener('popstate', restore);
+  }, []);
 
   useEffect(() => {
     if (!selected) return;
@@ -35,26 +47,105 @@ export function App() {
     loadEvidence(selected.kind, selected.id).then(setEvidence).catch(error => setEvidenceError(error.message));
   }, [selected]);
 
-  const blocks = arrayFrom<Block>(snapshot?.blocks, ['blocks']);
-  const transactions = arrayFrom<Transaction>(snapshot?.transactions, ['transactions', 'txs']);
+  const snapshotBlocks = arrayFrom<Block>(snapshot?.blocks, ['blocks']);
+  const snapshotTransactions = arrayFrom<Transaction>(snapshot?.transactions, ['transactions', 'txs']);
   const validators = arrayFrom<Validator>(snapshot?.validators, ['validators']);
   const summary = snapshot?.summary;
-  const indexedLag = Math.max(0, Number(summary?.latestHeight ?? 0) - Number(summary?.indexedHeight ?? summary?.latestHeight ?? 0));
+  const latestHeight = summaryLatestHeight(summary);
+  const networkName = summaryNetworkName(summary);
+  const chainID = summaryChainID(summary);
+  const indexedLag = summary?.syncLagBlocks ?? Math.max(0, Number(latestHeight ?? 0) - Number(summary?.indexedHeight ?? latestHeight ?? 0));
   const statusText:Record<Availability,string>={connecting:t('connecting'),live:t('live'),polling:t('polling'),stale:t('stale'),'catching-up':t('catchingUp'),unavailable:t('unavailable')};
-  const pagedBlocks=blocks.slice(blockPage*pageSize,(blockPage+1)*pageSize),pagedTransactions=transactions.slice(txPage*pageSize,(txPage+1)*pageSize);
+  const currentBlockPage = blockPages[blockPageIndex];
+  const currentTransactionPage = transactionPages[transactionPageIndex];
+  const displayedBlocks = currentBlockPage?.blocks ?? (blockPageIndex === 0 ? snapshotBlocks.slice(0, pageSize) : []);
+  const displayedTransactions = currentTransactionPage?.transactions ?? (transactionPageIndex === 0 ? snapshotTransactions.slice(0, pageSize) : []);
+
+  useEffect(() => {
+    if (blockPageIndex !== 0) return;
+    void refreshBlockPage();
+  }, [latestHeight, blockPageIndex]);
+
+  useEffect(() => {
+    if (transactionPageIndex !== 0) return;
+    void refreshTransactionPage();
+  }, [summary?.indexedTxCount, transactionPageIndex]);
 
   const nav = useMemo(() => sections.map(section => <a key={section} href={`#${section.toLowerCase()}`}>{section}</a>), []);
+
+  async function refreshBlockPage() {
+    setBlockPageState({ loading: true });
+    try {
+      const page = await loadBlockPage('', pageSize);
+      setBlockPages([page]);
+      setBlockPageState({});
+    } catch (error) {
+      setBlockPageState({ error: error instanceof Error ? error.message : 'Block source unavailable' });
+    }
+  }
+
+  async function refreshTransactionPage() {
+    setTransactionPageState({ loading: true });
+    try {
+      const page = await loadTransactionPage('', pageSize);
+      setTransactionPages([page]);
+      setTransactionPageState({});
+    } catch (error) {
+      setTransactionPageState({ error: error instanceof Error ? error.message : 'Transaction source unavailable' });
+    }
+  }
+
+  async function nextBlockPage() {
+    const current = blockPages[blockPageIndex];
+    if (!current?.nextCursor || blockPageState.loading) return;
+    if (blockPages[blockPageIndex + 1]) {
+      setBlockPageIndex(blockPageIndex + 1);
+      return;
+    }
+    setBlockPageState({ loading: true });
+    try {
+      const page = await loadBlockPage(current.nextCursor, pageSize);
+      setBlockPages(previous => [...previous.slice(0, blockPageIndex + 1), page]);
+      setBlockPageIndex(blockPageIndex + 1);
+      setBlockPageState({});
+    } catch (error) {
+      setBlockPageState({ error: error instanceof Error ? error.message : 'Block cursor rejected' });
+    }
+  }
+
+  async function nextTransactionPage() {
+    const current = transactionPages[transactionPageIndex];
+    if (!current?.nextCursor || transactionPageState.loading) return;
+    if (transactionPages[transactionPageIndex + 1]) {
+      setTransactionPageIndex(transactionPageIndex + 1);
+      return;
+    }
+    setTransactionPageState({ loading: true });
+    try {
+      const page = await loadTransactionPage(current.nextCursor, pageSize);
+      setTransactionPages(previous => [...previous.slice(0, transactionPageIndex + 1), page]);
+      setTransactionPageIndex(transactionPageIndex + 1);
+      setTransactionPageState({});
+    } catch (error) {
+      setTransactionPageState({ error: error instanceof Error ? error.message : 'Transaction cursor rejected' });
+    }
+  }
 
   async function submitSearch(event: FormEvent) {
     event.preventDefault();
     if (!query.trim()) return;
     setSearch({ loading: true });
-    try { setSearch({ data: await universalSearch(query) }); }
+    try {
+      const data = await universalSearch(query);
+      setSearch({ data });
+      const resolved = selectionFromSearchResult(data);
+      if (resolved) setSelected(resolved);
+    }
     catch (error) { setSearch({ error: error instanceof Error ? error.message : 'Search failed' }); }
   }
 
-  function setSelected(next?:{kind:string;id:string}){setSelectedState(next);const url=new URL(location.href);if(next){url.searchParams.set('kind',next.kind);url.searchParams.set('id',next.id)}else{url.searchParams.delete('kind');url.searchParams.delete('id')}history.replaceState({},'',url)}
-  function openEvidence(kind: string, id?: string) { if (id) { setSelected({ kind, id }); setAiOpen(false); } }
+  function setSelected(next?:EvidenceSelection){setSelectedState(next);history.pushState({},'',next?pathForSelection(next):'/')}
+  function openEvidence(kind: EvidenceSelection['kind'], id?: string) { if (id) { setSelected({ kind, id }); setAiOpen(false); } }
 
   async function runAI() {
     if (!selected || !evidence.length) return;
@@ -107,18 +198,20 @@ export function App() {
       {search.data !== undefined && <section className="search-result"><div><p className="eyebrow">Verified search result</p><h2>Canonical response</h2></div><pre>{JSON.stringify(search.data, null, 2)}</pre></section>}
 
       <section className="metrics" aria-label="Network summary">
-        <article><span>{t('latestBlock')}</span><strong>{typeof summary?.latestHeight==='number'?formatNumber(summary.latestHeight):t('unavailable')}</strong><small>RPC source height</small></article>
+        <article><span>{t('latestBlock')}</span><strong>{typeof latestHeight==='number'?formatNumber(latestHeight):t('unavailable')}</strong><small>RPC source height</small></article>
         <article><span>{t('indexedHeight')}</span><strong>{typeof summary?.indexedHeight==='number'?formatNumber(summary.indexedHeight):t('unavailable')}</strong><small>{indexedLag ? `${formatNumber(indexedLag)} behind source` : 'Caught up'}</small></article>
         <article><span>{t('indexedTransactions')}</span><strong>{typeof summary?.indexedTxCount==='number'?formatNumber(summary.indexedTxCount):t('unavailable')}</strong><small>No estimated TPS</small></article>
-        <article><span>{t('network')}</span><strong>{summary?.network ?? t('unavailable')}</strong><small>Chain ID {summary?.chainId ?? t('unavailable')}</small></article>
+        <article><span>{t('network')}</span><strong>{networkName ?? t('unavailable')}</strong><small>Chain ID {chainID ?? t('unavailable')}</small></article>
       </section>
 
       <div className="evidence-grid">
         <section className="panel" id="blocks"><div className="panel-head"><div><p className="eyebrow">Live finality ledger</p><h2>Blocks</h2></div><a href="/api/blocks/latest">Raw source ↗</a></div>
-          {blocks.length ? <><div className="dense-list">{pagedBlocks.map(block => <button key={block.hash ?? block.height} onClick={() => openEvidence('block', String(block.height))}><strong>#{block.height}</strong><span>{short(block.hash)}</span><time>{block.timestamp?formatDate(block.timestamp):'Timestamp unavailable'}</time></button>)}</div><Pagination page={blockPage} total={blocks.length} size={pageSize} onPage={setBlockPage} previous={t('previous')} next={t('next')} pageLabel={t('page')}/></> : <Empty label="No indexed blocks returned"/>}
+          {blockPageState.error && <div className="notice error" role="alert">{blockPageState.error} <button onClick={refreshBlockPage}>Retry</button></div>}
+          {displayedBlocks.length ? <><div className="dense-list">{displayedBlocks.map(block => <button key={block.hash ?? block.height} onClick={() => openEvidence('block', String(block.height))}><strong>#{block.height}</strong><span>{short(block.hash)}</span><time>{block.timestamp?formatDate(block.timestamp):'Timestamp unavailable'}</time></button>)}</div><CursorPagination page={blockPageIndex} loading={Boolean(blockPageState.loading)} hasNext={Boolean(currentBlockPage?.nextCursor)} onPrevious={()=>setBlockPageIndex(page => Math.max(0, page - 1))} onNext={nextBlockPage} previous={t('previous')} next={t('next')} pageLabel={t('page')}/></> : blockPageState.loading ? <div className="notice">Loading authoritative blocks…</div> : <Empty label="No indexed blocks returned"/>}
         </section>
         <section className="panel" id="transactions"><div className="panel-head"><div><p className="eyebrow">Indexed activity</p><h2>Transactions</h2></div><a href="/api/txs">Raw source ↗</a></div>
-          {transactions.length ? <><div className="dense-list txs">{pagedTransactions.map(tx => <button key={tx.hash} onClick={() => openEvidence('transaction', tx.hash)}><strong>{short(tx.hash, 12)}</strong><span>{tx.type ?? 'Type unavailable'}</span><span>{short(tx.from)} → {short(tx.to)}</span></button>)}</div><Pagination page={txPage} total={transactions.length} size={pageSize} onPage={setTxPage} previous={t('previous')} next={t('next')} pageLabel={t('page')}/></> : <Empty label="No indexed transactions returned"/>}
+          {transactionPageState.error && <div className="notice error" role="alert">{transactionPageState.error} <button onClick={refreshTransactionPage}>Retry</button></div>}
+          {displayedTransactions.length ? <><div className="dense-list txs">{displayedTransactions.map(tx => <button key={tx.hash} onClick={() => openEvidence('transaction', tx.hash)}><strong>{short(tx.hash, 12)}</strong><span>{tx.type ?? 'Type unavailable'}</span><span>{short(tx.from)} → {short(tx.to)}</span></button>)}</div><CursorPagination page={transactionPageIndex} loading={Boolean(transactionPageState.loading)} hasNext={Boolean(currentTransactionPage?.nextCursor)} onPrevious={()=>setTransactionPageIndex(page => Math.max(0, page - 1))} onNext={nextTransactionPage} previous={t('previous')} next={t('next')} pageLabel={t('page')}/></> : transactionPageState.loading ? <div className="notice">Loading authoritative transactions…</div> : <Empty label="No indexed transactions returned"/>}
         </section>
       </div>
 
@@ -155,4 +248,4 @@ export function App() {
 
 function Empty({ label }: { label: string }) { return <div className="empty"><strong>{label}</strong><span>Empty and unavailable states are shown without synthetic records.</span></div>; }
 function Domain({ id, title, text, source }: { id: string; title: string; text: string; source: string }) { return <article id={id}><span className="domain-index">0{sections.indexOf(title)}</span><h3>{title}</h3><p>{text}</p><code>{source}</code></article>; }
-function Pagination({page,total,size,onPage,previous,next,pageLabel}:{page:number;total:number;size:number;onPage:(page:number)=>void;previous:string;next:string;pageLabel:string}){const pages=Math.max(1,Math.ceil(total/size));return <div className="pagination" aria-label={`${pageLabel} ${page+1}`}><button disabled={page===0} onClick={()=>onPage(page-1)}>{previous}</button><span>{pageLabel} {page+1} / {pages}</span><button disabled={page+1>=pages} onClick={()=>onPage(page+1)}>{next}</button></div>}
+function CursorPagination({page,loading,hasNext,onPrevious,onNext,previous,next,pageLabel}:{page:number;loading:boolean;hasNext:boolean;onPrevious:()=>void;onNext:()=>void;previous:string;next:string;pageLabel:string}){return <div className="pagination" aria-label={`${pageLabel} ${page+1}`}><button disabled={page===0||loading} onClick={onPrevious}>{previous}</button><span>{pageLabel} {page+1}</span><button disabled={!hasNext||loading} onClick={onNext}>{loading?'…':next}</button></div>}

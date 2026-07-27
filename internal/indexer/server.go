@@ -22,6 +22,7 @@ type Server struct {
 	errorCount   int64
 	lastSyncedAt time.Time
 	build        buildinfo.Info
+	cursor       *cursorCodec
 }
 
 func NewServer(indexer *Indexer) *Server {
@@ -29,9 +30,21 @@ func NewServer(indexer *Indexer) *Server {
 }
 
 func NewServerWithBuild(indexer *Indexer, build buildinfo.Info) *Server {
-	s := &Server{indexer: indexer, mux: http.NewServeMux(), build: buildinfo.Normalize(build)}
+	server, err := NewServerWithBuildAndCursorKey(indexer, build, nil)
+	if err != nil {
+		panic(err)
+	}
+	return server
+}
+
+func NewServerWithBuildAndCursorKey(indexer *Indexer, build buildinfo.Info, cursorKey []byte) (*Server, error) {
+	codec, err := newCursorCodec(cursorKey)
+	if err != nil {
+		return nil, err
+	}
+	s := &Server{indexer: indexer, mux: http.NewServeMux(), build: buildinfo.Normalize(build), cursor: codec}
 	s.routes()
-	return s
+	return s, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -106,6 +119,8 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		"lastSyncedAt":         lastSyncedAt,
 		"lastError":            lastError,
 		"build":                s.build,
+		"cursorVersion":        cursorVersion,
+		"cursorPersistence":    cursorPersistence(s.cursor),
 		"truthfulStatus":       "local-indexer",
 	})
 }
@@ -135,6 +150,8 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"lastError":            lastError,
 		"syncErrorCount":       errorCount,
 		"build":                s.build,
+		"cursorVersion":        cursorVersion,
+		"cursorPersistence":    cursorPersistence(s.cursor),
 		"truthfulStatus":       "local-indexer",
 	})
 }
@@ -192,7 +209,25 @@ func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"blocks": LatestBlocks(db, intQuery(r, "limit", 25))})
+	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), "blocks")
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
+		return
+	}
+	blocks, nextAfter, err := LatestBlocksPage(db, intQuery(r, "limit", 25), after)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
+		return
+	}
+	nextCursor := ""
+	if nextAfter != "" {
+		nextCursor, err = s.cursor.encode("blocks", nextAfter)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "cursor_encoding_failed"})
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"blocks": blocks, "nextCursor": nextCursor, "cursorVersion": cursorVersion})
 }
 
 func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
@@ -215,7 +250,25 @@ func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"transactions": LatestTransactions(db, intQuery(r, "limit", 25))})
+	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), "transactions")
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
+		return
+	}
+	transactions, nextAfter, err := LatestTransactionsPage(db, intQuery(r, "limit", 25), after)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
+		return
+	}
+	nextCursor := ""
+	if nextAfter != "" {
+		nextCursor, err = s.cursor.encode("transactions", nextAfter)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "cursor_encoding_failed"})
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"transactions": transactions, "nextCursor": nextCursor, "cursorVersion": cursorVersion})
 }
 
 func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {

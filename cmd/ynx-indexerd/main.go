@@ -33,7 +33,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	server := indexer.NewServerWithBuild(idx, currentBuildInfo())
+	server, err := indexer.NewServerWithBuildAndCursorKey(idx, currentBuildInfo(), []byte(os.Getenv("YNX_INDEXER_CURSOR_KEY")))
+	if err != nil {
+		log.Fatal(err)
+	}
 	if *once {
 		result, err := server.SyncOnce(context.Background())
 		if err != nil {

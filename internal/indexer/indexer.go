@@ -327,9 +327,12 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 }
 
 func LatestBlocks(db Database, limit int) []chain.Block {
-	if limit <= 0 || limit > 100 {
-		limit = 25
-	}
+	blocks, _, _ := LatestBlocksPage(db, limit, "")
+	return blocks
+}
+
+func LatestBlocksPage(db Database, limit int, after string) ([]chain.Block, string, error) {
+	limit = normalizePageLimit(limit)
 	heights := make([]int, 0, len(db.Blocks))
 	for raw := range db.Blocks {
 		height, err := strconv.Atoi(raw)
@@ -338,27 +341,79 @@ func LatestBlocks(db Database, limit int) []chain.Block {
 		}
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(heights)))
-	blocks := make([]chain.Block, 0, min(limit, len(heights)))
-	for _, height := range heights {
-		if len(blocks) >= limit {
-			break
+	start := 0
+	if after != "" {
+		position, err := strconv.Atoi(after)
+		if err != nil {
+			return nil, "", fmt.Errorf("block cursor position is invalid")
 		}
+		found := false
+		for index, height := range heights {
+			if height == position {
+				start = index + 1
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, "", fmt.Errorf("block cursor position is no longer retained")
+		}
+	}
+	end := min(start+limit, len(heights))
+	blocks := make([]chain.Block, 0, max(0, end-start))
+	for _, height := range heights[start:end] {
 		blocks = append(blocks, db.Blocks[strconv.Itoa(height)])
 	}
-	return blocks
+	nextAfter := ""
+	if end < len(heights) && len(blocks) > 0 {
+		nextAfter = strconv.FormatUint(blocks[len(blocks)-1].Height, 10)
+	}
+	return blocks, nextAfter, nil
 }
 
 func LatestTransactions(db Database, limit int) []chain.Transaction {
-	if limit <= 0 || limit > 100 {
-		limit = 25
-	}
+	txs, _, _ := LatestTransactionsPage(db, limit, "")
+	return txs
+}
+
+func LatestTransactionsPage(db Database, limit int, after string) ([]chain.Transaction, string, error) {
+	limit = normalizePageLimit(limit)
 	txs := make([]chain.Transaction, 0, len(db.Transactions))
 	for _, tx := range db.Transactions {
 		txs = append(txs, tx)
 	}
-	sort.Slice(txs, func(a, b int) bool { return txs[a].Timestamp.After(txs[b].Timestamp) })
-	if len(txs) > limit {
-		txs = txs[:limit]
+	sort.Slice(txs, func(a, b int) bool {
+		if txs[a].Timestamp.Equal(txs[b].Timestamp) {
+			return txs[a].Hash < txs[b].Hash
+		}
+		return txs[a].Timestamp.After(txs[b].Timestamp)
+	})
+	start := 0
+	if after != "" {
+		found := false
+		for index, tx := range txs {
+			if tx.Hash == after {
+				start = index + 1
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, "", fmt.Errorf("transaction cursor position is no longer retained")
+		}
 	}
-	return txs
+	end := min(start+limit, len(txs))
+	page := append([]chain.Transaction(nil), txs[start:end]...)
+	nextAfter := ""
+	if end < len(txs) && len(page) > 0 {
+		nextAfter = page[len(page)-1].Hash
+	}
+	return page, nextAfter, nil
+}
+
+func normalizePageLimit(limit int) int {
+	if limit <= 0 || limit > 100 {
+		return 25
+	}
+	return limit
 }

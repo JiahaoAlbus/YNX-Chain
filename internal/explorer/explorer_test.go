@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -90,6 +91,53 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		}
 		_ = resp.Body.Close()
 	}
+
+	blockPageResponse, err := http.Get(server.URL + "/api/blocks/latest?limit=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer blockPageResponse.Body.Close()
+	var blockPage BlockPage
+	if err := json.NewDecoder(blockPageResponse.Body).Decode(&blockPage); err != nil {
+		t.Fatal(err)
+	}
+	if blockPageResponse.StatusCode != http.StatusOK || len(blockPage.Blocks) != 1 || blockPage.NextCursor == "" || blockPage.CursorVersion != 1 {
+		t.Fatalf("explorer did not preserve indexer cursor metadata: status=%d page=%+v", blockPageResponse.StatusCode, blockPage)
+	}
+	continuedResponse, err := http.Get(server.URL + "/api/blocks/latest?limit=1&cursor=" + url.QueryEscape(blockPage.NextCursor))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer continuedResponse.Body.Close()
+	var continued BlockPage
+	if err := json.NewDecoder(continuedResponse.Body).Decode(&continued); err != nil {
+		t.Fatal(err)
+	}
+	if continuedResponse.StatusCode != http.StatusOK || len(continued.Blocks) != 1 || continued.Blocks[0].Height >= blockPage.Blocks[0].Height {
+		t.Fatalf("explorer cursor continuation was not ordered: status=%d first=%+v next=%+v", continuedResponse.StatusCode, blockPage, continued)
+	}
+	crossFeedResponse, err := http.Get(server.URL + "/api/txs?cursor=" + url.QueryEscape(blockPage.NextCursor))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer crossFeedResponse.Body.Close()
+	if crossFeedResponse.StatusCode != http.StatusBadRequest {
+		t.Fatalf("explorer accepted a block cursor on the transaction feed: %d", crossFeedResponse.StatusCode)
+	}
+	replacement := "A"
+	if strings.HasSuffix(blockPage.NextCursor, replacement) {
+		replacement = "B"
+	}
+	tamperedCursor := blockPage.NextCursor[:len(blockPage.NextCursor)-1] + replacement
+	tamperedResponse, err := http.Get(server.URL + "/api/blocks/latest?cursor=" + url.QueryEscape(tamperedCursor))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tamperedResponse.Body.Close()
+	if tamperedResponse.StatusCode != http.StatusBadRequest {
+		t.Fatalf("explorer accepted a tampered cursor: %d", tamperedResponse.StatusCode)
+	}
+
 	aliasResponse, err := http.Get(server.URL + "/api/accounts/" + ynxAddress)
 	if err != nil {
 		t.Fatal(err)
@@ -211,6 +259,40 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	_ = streamResp.Body.Close()
 	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":7`) || !strings.Contains(streamData, `"resource_sponsored_action"`) || !strings.Contains(streamData, `"sponsorPoolId"`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
 		t.Fatalf("stream did not return a live dashboard snapshot: %s", streamData)
+	}
+}
+
+func TestExplorerCursorFailureClassification(t *testing.T) {
+	indexerHTTP := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/blocks/latest" {
+			http.NotFound(w, r)
+			return
+		}
+		switch r.URL.Query().Get("cursor") {
+		case "invalid":
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor"})
+		case "outage":
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "indexer_unavailable"})
+		default:
+			writeJSON(w, http.StatusOK, BlockPage{Blocks: []chain.Block{}})
+		}
+	}))
+	defer indexerHTTP.Close()
+	svc, err := New(Config{RPCURL: indexerHTTP.URL, IndexerURL: indexerHTTP.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	explorerHTTP := httptest.NewServer(NewServer(svc).Handler())
+	defer explorerHTTP.Close()
+	for cursor, expected := range map[string]int{"invalid": http.StatusBadRequest, "outage": http.StatusBadGateway} {
+		response, err := http.Get(explorerHTTP.URL + "/api/blocks/latest?cursor=" + cursor)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		if response.StatusCode != expected {
+			t.Fatalf("cursor %q returned %d, expected %d", cursor, response.StatusCode, expected)
+		}
 	}
 }
 
