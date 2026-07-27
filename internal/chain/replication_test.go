@@ -188,7 +188,7 @@ func TestReplicationBatchCheckpointsWithoutRewritingEverySuffix(t *testing.T) {
 	}
 
 	destination.mu.Lock()
-	destination.replicaCheckpoint.At = time.Now().UTC().Add(-replicationCheckpointInterval)
+	destination.replicaCheckpoint.At = time.Now().UTC().Add(-operationalCheckpointInterval)
 	destination.mu.Unlock()
 	source.ProduceBlock()
 	applyNext()

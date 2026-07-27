@@ -12,7 +12,7 @@ import (
 
 const MaxReplicationSnapshotBytes = 64 << 20
 const MaxReplicationBatchBlocks = 4096
-const replicationCheckpointInterval = 5 * time.Minute
+const operationalCheckpointInterval = 5 * time.Minute
 
 const (
 	legacyDevnetSnapshotVersion = 1
@@ -182,7 +182,7 @@ func (d *Devnet) shouldCheckpointReplicationLocked(height uint64, now time.Time)
 	if height >= d.replicaCheckpoint.Height && height-d.replicaCheckpoint.Height >= MaxReplicationBatchBlocks {
 		return true
 	}
-	return d.replicaCheckpoint.At.IsZero() || now.Sub(d.replicaCheckpoint.At) >= replicationCheckpointInterval
+	return d.replicaCheckpoint.At.IsZero() || now.Sub(d.replicaCheckpoint.At) >= operationalCheckpointInterval
 }
 
 func validateReplicationBatch(batch replicationBatch, cfg NetworkConfig) error {

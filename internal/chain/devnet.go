@@ -69,6 +69,7 @@ type Devnet struct {
 	nodeIdentity         NodeIdentityConfig
 	replicationRuntime   ReplicationRuntimeStatus
 	replicaCheckpoint    replicationCheckpointState
+	peerCheckpointAt     time.Time
 	lots                 map[string]TrustTraceLot
 	payIntents           map[string]PayIntent
 	invoices             map[string]Invoice
@@ -925,6 +926,11 @@ func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (Validato
 		LatestHeight: input.TargetHeight,
 		Evidence:     input.Evidence,
 	}, now)
+	if strings.HasPrefix(input.Evidence, "peer-rpc-poll:") &&
+		!d.peerCheckpointAt.IsZero() &&
+		now.Sub(d.peerCheckpointAt) < operationalCheckpointInterval {
+		return sync, nil
+	}
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return sync, err
@@ -3119,6 +3125,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte("2\n")); err != nil {
 		return fmt.Errorf("persist devnet snapshot integrity marker: %w", err)
 	}
+	d.peerCheckpointAt = time.Now().UTC()
 	return nil
 }
 

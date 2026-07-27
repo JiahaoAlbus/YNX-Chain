@@ -134,6 +134,42 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 	}
 }
 
+func TestAutomaticPeerSyncUsesBoundedOperationalCheckpoints(t *testing.T) {
+	validators, err := ParseValidatorSet("ynx_val_primary|primary|127.0.0.1|primary validator|peer-primary;ynx_val_sg|singapore|127.0.0.2|bonded validator|peer-sg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet, err := NewPersistentDevnetWithValidators(DefaultNetworkConfig("testnet"), t.TempDir(), validators)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blockedParent := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(blockedParent, []byte("blocked"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	devnet.mu.Lock()
+	devnet.dataDir = blockedParent
+	devnet.mu.Unlock()
+	input := ValidatorPeerSyncInput{
+		Source: validators[0].Address, Target: validators[1].Address,
+		SourceHeight: 10, TargetHeight: 10, Evidence: "peer-rpc-poll:http://peer.invalid/status",
+	}
+	if _, err := devnet.RecordValidatorPeerSync(input); err != nil {
+		t.Fatalf("fresh automatic peer observation rewrote the full snapshot: %v", err)
+	}
+	input.Evidence = "explicit-peer-sync-test"
+	if _, err := devnet.RecordValidatorPeerSync(input); err == nil {
+		t.Fatal("explicit peer observation did not retain immediate durability")
+	}
+	input.Evidence = "peer-rpc-poll:http://peer.invalid/status"
+	devnet.mu.Lock()
+	devnet.peerCheckpointAt = time.Now().UTC().Add(-operationalCheckpointInterval)
+	devnet.mu.Unlock()
+	if _, err := devnet.RecordValidatorPeerSync(input); err == nil {
+		t.Fatal("expired automatic peer checkpoint did not attempt durability")
+	}
+}
+
 func TestNodeIdentityAndPeerSyncFreshness(t *testing.T) {
 	validators, err := ParseValidatorSet("ynx_val_primary|primary|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore|43.134.23.58|bonded validator|peer-sg;ynx_val_sv|silicon-valley|43.162.100.54|bonded validator|peer-sv")
 	if err != nil {

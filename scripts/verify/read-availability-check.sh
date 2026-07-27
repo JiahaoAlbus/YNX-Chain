@@ -11,7 +11,8 @@ for required in \
   'blockReadView' \
   'statusReadView' \
   'TryRLock' \
-  'TestBlockReadViewDoesNotWaitForStatePersistenceLock'
+  'TestBlockReadViewDoesNotWaitForStatePersistenceLock' \
+  'TestAutomaticPeerSyncUsesBoundedOperationalCheckpoints'
 do
   grep -Fq "$required" internal/chain/devnet.go internal/chain/devnet_test.go ||
     { echo "chain read availability missing gate: $required"; exit 1; }
