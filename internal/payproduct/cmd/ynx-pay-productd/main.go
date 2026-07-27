@@ -127,8 +127,29 @@ func decodeVerifierMap(raw string) (map[string]ed25519.PublicKey, error) {
 	return out, nil
 }
 func decodeKey(v string) ([]byte, error) {
-	if raw, err := hex.DecodeString(strings.TrimPrefix(v, "0x")); err == nil && len(raw) >= 32 {
+	hexValue := strings.TrimPrefix(v, "0x")
+	if isHexEncoding(hexValue) {
+		raw, err := hex.DecodeString(hexValue)
+		if err != nil || len(raw) < 32 {
+			return nil, fmt.Errorf("key hex value must contain at least 32 bytes")
+		}
 		return raw, nil
 	}
-	return base64.RawStdEncoding.DecodeString(v)
+	raw, err := base64.RawStdEncoding.DecodeString(v)
+	if err != nil || len(raw) < 32 {
+		return nil, fmt.Errorf("key must contain at least 32 bytes encoded as hex or unpadded base64")
+	}
+	return raw, nil
+}
+
+func isHexEncoding(value string) bool {
+	if value == "" || len(value)%2 != 0 {
+		return false
+	}
+	for _, char := range value {
+		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
+			return false
+		}
+	}
+	return true
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/hex"
@@ -41,6 +42,31 @@ func TestDecodeVerifierMapFailsClosed(t *testing.T) {
 	empty, err := decodeVerifierMap("")
 	if err != nil || len(empty) != 0 {
 		t.Fatalf("empty optional verifier map failed: %+v %v", empty, err)
+	}
+}
+
+func TestDecodeKeyDoesNotDowngradeShortHexToBase64(t *testing.T) {
+	key := bytes.Repeat([]byte{0x4a}, 32)
+	for name, encoded := range map[string]string{
+		"hex":        hex.EncodeToString(key),
+		"prefixed":   "0x" + hex.EncodeToString(key),
+		"raw-base64": base64.RawStdEncoding.EncodeToString(key),
+	} {
+		t.Run(name, func(t *testing.T) {
+			decoded, err := decodeKey(encoded)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(decoded, key) {
+				t.Fatalf("decoded key mismatch: got %x want %x", decoded, key)
+			}
+		})
+	}
+	if _, err := decodeKey(hex.EncodeToString(bytes.Repeat([]byte{1}, 31))); err == nil {
+		t.Fatal("short hex key was accepted through format fallback")
+	}
+	if _, err := decodeKey("not-a-key"); err == nil {
+		t.Fatal("invalid key was accepted")
 	}
 }
 

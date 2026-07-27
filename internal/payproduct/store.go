@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 )
@@ -32,14 +31,21 @@ func OpenStore(path string, integrityKey []byte) (*Store, error) {
 	if len(integrityKey) < 32 {
 		return nil, errors.New("pay product integrity key must contain at least 32 bytes")
 	}
-	s := &Store{path: path, integrityKey: append([]byte(nil), integrityKey...), data: emptySnapshot()}
 	raw, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return s, nil
+		return &Store{path: path, integrityKey: append([]byte(nil), integrityKey...), data: emptySnapshot()}, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("read pay product store: %w", err)
 	}
+	return decodeStoreBytes(path, raw, integrityKey)
+}
+
+func decodeStoreBytes(path string, raw, integrityKey []byte) (*Store, error) {
+	if len(integrityKey) < 32 {
+		return nil, errors.New("pay product integrity key must contain at least 32 bytes")
+	}
+	s := &Store{path: path, integrityKey: append([]byte(nil), integrityKey...), data: emptySnapshot()}
 	var env diskEnvelope
 	if err := strictJSON(raw, &env); err != nil {
 		return nil, fmt.Errorf("decode pay product store: %w", err)
@@ -62,6 +68,9 @@ func OpenStore(path string, integrityKey []byte) (*Store, error) {
 	}
 	if err := strictJSON(migrated, &s.data); err != nil {
 		return nil, fmt.Errorf("decode pay product snapshot: %w", err)
+	}
+	if s.data.Version != 1 {
+		return nil, fmt.Errorf("unsupported pay product snapshot version %d", s.data.Version)
 	}
 	s.normalize()
 	return s, nil
@@ -165,14 +174,7 @@ func (s *Store) persist(data Snapshot) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
-		return err
-	}
-	tmp := s.path + ".tmp"
-	if err := os.WriteFile(tmp, raw, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmp, s.path)
+	return atomicWritePrivateFile(s.path, raw)
 }
 func (s *Store) mac(payload []byte) string {
 	h := hmac.New(sha256.New, s.integrityKey)
