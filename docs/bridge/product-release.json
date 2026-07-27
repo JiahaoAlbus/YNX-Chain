@@ -3,6 +3,7 @@
   "product": "YNX Bridge",
   "releaseClass": "remote-testnet-coordinator-candidate",
   "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+  "latestVerifiedSourceCommit": "3060deee4132bcd6bdc0d9284e0291391fa3bc4e",
   "sourceCommitRequiredBeforeRelease": true,
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
@@ -88,6 +89,23 @@
     "canonicalBridgeClaim": false
   },
   "artifacts": [],
+  "ciVerification": {
+    "workflow": "bridge",
+    "runId": 30278915644,
+    "jobId": 90019987980,
+    "sourceCommit": "3060deee4132bcd6bdc0d9284e0291391fa3bc4e",
+    "conclusion": "success",
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30278915644",
+    "verificationArtifact": {
+      "id": 8657978658,
+      "name": "ynx-bridge-verification-3060deee4132bcd6bdc0d9284e0291391fa3bc4e",
+      "bytes": 28048,
+      "expiresAt": "2026-08-26T15:14:08Z",
+      "releaseArtifact": false,
+      "archiveContentsIndependentlyVerified": false,
+      "archiveVerificationBlocker": "Blob storage TLS handshake timed out twice during bounded download attempts"
+    }
+  },
   "publicUrls": [
     {"type":"testnet-read-only","url":"https://rest.ynxweb4.com/app/bridge","evidence":"docs/bridge/public-read-evidence.json"}
   ],
@@ -98,6 +116,13 @@
     {"type":"public-read-evidence","value":"docs/bridge/public-read-evidence.json"},
     {"type":"test-command","value":"go test ./..."},
     {"type":"test-command","value":"npm test --prefix sdk/bridge"}
+  ],
+  "knownAutonomousGaps": [
+    "classify and remediate the 3 high-severity npm advisories reported by npm ci",
+    "publish downloadable reproducible server and SDK candidate artifacts",
+    "verify downloaded release bytes, installation, and cold start",
+    "redeploy and re-probe the latest verified source commit",
+    "obtain central consumer acceptance receipts"
   ],
   "remainingReleaseInputs": [
     "approved provider or proof-based route",
