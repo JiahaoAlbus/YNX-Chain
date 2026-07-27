@@ -15,7 +15,8 @@ import {
   signGatewayChallenge,
 } from "../src/index.js";
 import { CanonicalWalletGatewayNodeHost, encodeGatewayProofHeader } from "../src/gateway-node-host.js";
-import * as packageRoot from "../src/index.js";
+import * as packageNodeHost from "@ynx-chain/wallet-auth/gateway-node-host";
+import * as universalPackage from "@ynx-chain/wallet-auth";
 import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_SECRET, request } from "./fixtures.mjs";
 
 const BUILD={buildTime:"2026-07-27T12:00:00.000Z",release:"wallet-auth-test",sourceCommit:"a".repeat(40)};
@@ -132,11 +133,12 @@ test("Node host isolates a failed structured-event sink and reports the drop",as
   });
 });
 
-test("package root exports the canonical Node host observability surface",()=>{
-  assert.equal(packageRoot.CanonicalWalletGatewayNodeHost,CanonicalWalletGatewayNodeHost);
-  assert.equal(packageRoot.CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION,1);
-  assert.equal(packageRoot.CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION,1);
-  assert.equal(packageRoot.CANONICAL_GATEWAY_PROOF_HEADER,"x-ynx-product-session-proof");
-  assert.equal(packageRoot.encodeGatewayProofHeader,encodeGatewayProofHeader);
-  assert.equal(typeof packageRoot.decodeGatewayProofHeader,"function");
+test("Node-only package subpath exports the canonical observability host",()=>{
+  assert.equal(Object.hasOwn(universalPackage,"CanonicalWalletGatewayNodeHost"),false);
+  assert.equal(packageNodeHost.CanonicalWalletGatewayNodeHost,CanonicalWalletGatewayNodeHost);
+  assert.equal(packageNodeHost.CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION,1);
+  assert.equal(packageNodeHost.CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION,1);
+  assert.equal(packageNodeHost.CANONICAL_GATEWAY_PROOF_HEADER,"x-ynx-product-session-proof");
+  assert.equal(packageNodeHost.encodeGatewayProofHeader,encodeGatewayProofHeader);
+  assert.equal(typeof packageNodeHost.decodeGatewayProofHeader,"function");
 });
