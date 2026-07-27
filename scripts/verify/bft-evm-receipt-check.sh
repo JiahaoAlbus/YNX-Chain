@@ -3,7 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-go test ./internal/bftgateway -run 'TestGatewayMapsCometBFTAndKeepsCutoverBlocked|TestCommittedCumulativeGasUsesBlockResultEvidence|TestCommittedEVMFilterValidationHelpers|TestGatewayCommitsBoundedIDEAndReturnsEVMLogs' -count=1
+go test ./internal/bftgateway -run 'TestGatewayMapsCometBFTAndKeepsCutoverBlocked|TestEVMBlockTransactionLookupsClassifyUpstreamFailures|TestCommittedCumulativeGasUsesBlockResultEvidence|TestCommittedEVMFilterValidationHelpers|TestGatewayCommitsBoundedIDEAndReturnsEVMLogs' -count=1
+node ./scripts/verify/integration-contract-check.mjs
 grep -Fq 'net_version' internal/bftgateway/gateway.go
 grep -Fq 'eth_getBalance' internal/bftgateway/gateway.go
 grep -Fq 'eth_getTransactionCount' internal/bftgateway/gateway.go
@@ -25,5 +26,15 @@ grep -Fq '"evm-account-balance-and-nonce"' internal/bftgateway/gateway.go
 grep -Fq '"evm-signed-raw-transaction-broadcast"' internal/bftgateway/gateway.go
 grep -Fq '"evm-bounded-contract-code-call-and-gas"' internal/bftgateway/gateway.go
 grep -Fq '"evm-transaction-receipts-and-logs"' internal/bftgateway/gateway.go
+for vector in \
+  evm-block-transaction-count-index-accept \
+  evm-block-transaction-pending-or-missing-null-accept \
+  evm-block-transaction-out-of-range-null-accept \
+  evm-block-transaction-malformed-quantity-reject \
+  evm-block-transaction-malformed-hash-reject \
+  evm-block-transaction-wrong-parameter-count-reject \
+  evm-block-transaction-upstream-evidence-failure-reject; do
+  grep -Fq "\"id\": \"${vector}\"" docs/integration/CROSS_PRODUCT_TEST_VECTORS.json
+done
 
-echo "bft-evm-receipt-check passed: network identity, signed raw YNXT broadcast with rejection mapping, ABCI-backed latest balance/nonce, Comet block-by-number/hash plus transaction count/index lookup with AppHash/DataHash/gas evidence, committed bounded code/call/current-resource estimate, transaction lookup, receipt gas/index/block evidence, bounded contract logs and bloom, bounded filters, and fail-closed validation are verified"
+echo "bft-evm-receipt-check passed: network identity, signed raw YNXT broadcast with rejection mapping, ABCI-backed latest balance/nonce, Comet block-by-number/hash plus transaction count/index lookup with AppHash/DataHash/gas evidence, frozen null/invalid-parameter/upstream-failure vectors, committed bounded code/call/current-resource estimate, transaction lookup, receipt gas/index/block evidence, bounded contract logs and bloom, bounded filters, and fail-closed validation are verified"

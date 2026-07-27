@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "05b7d3cd3ffc",
+  "sourceCommit": "7935cedb57ab",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,
@@ -52,6 +52,78 @@
         "data-hash",
         "block-results-gas"
       ]
+    },
+    {
+      "id": "evm-block-transaction-count-index-accept",
+      "owner": "chain-core",
+      "operation": "eth_getBlockTransactionCountByNumber-and-eth_getBlockTransactionCountByHash-and-eth_getTransactionByBlockNumberAndIndex-and-eth_getTransactionByBlockHashAndIndex",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "status-bound-block-hash",
+        "app-hash",
+        "data-hash",
+        "raw-and-mapped-transaction-count-match",
+        "canonical-transaction-index"
+      ]
+    },
+    {
+      "id": "evm-block-transaction-pending-or-missing-null-accept",
+      "owner": "chain-core",
+      "operation": "block-transaction-count-or-index-lookup",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "request-pending-height-future-height-or-unknown-block-hash",
+      "expected": "accept",
+      "expectedResult": null
+    },
+    {
+      "id": "evm-block-transaction-out-of-range-null-accept",
+      "owner": "chain-core",
+      "operation": "eth_getTransactionByBlockNumberAndIndex",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "request-canonical-index-equal-to-transaction-count",
+      "expected": "accept",
+      "expectedResult": null
+    },
+    {
+      "id": "evm-block-transaction-malformed-quantity-reject",
+      "owner": "chain-core",
+      "operation": "eth_getBlockTransactionCountByNumber-or-eth_getTransactionByBlockNumberAndIndex",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "use-leading-zero-block-quantity-or-transaction-index",
+      "expected": "reject",
+      "errorClass": "invalid-params",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-block-transaction-malformed-hash-reject",
+      "owner": "chain-core",
+      "operation": "eth_getBlockTransactionCountByHash-or-eth_getTransactionByBlockHashAndIndex",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "use-uppercase-short-or-non-hex-block-hash",
+      "expected": "reject",
+      "errorClass": "invalid-params",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-block-transaction-wrong-parameter-count-reject",
+      "owner": "chain-core",
+      "operation": "block-transaction-count-or-index-lookup",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "omit-required-index-or-add-extra-parameter",
+      "expected": "reject",
+      "errorClass": "invalid-params",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-block-transaction-upstream-evidence-failure-reject",
+      "owner": "chain-core",
+      "operation": "block-transaction-count-or-index-lookup",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "make-CometBFT-block-evidence-unavailable-or-inconsistent",
+      "expected": "reject",
+      "errorClass": "upstream-or-evidence-failure",
+      "expectedRpcCode": -32603
     },
     {
       "id": "evm-current-account-state-accept",

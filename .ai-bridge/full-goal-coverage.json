@@ -16,7 +16,7 @@
   "current": {
     "phase": "TESTNET",
     "goalStatus": "Active",
-    "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+    "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
     "releaseStatus": {
       "implementedLocal": true,
       "testedLocal": true,
@@ -106,7 +106,7 @@
         "OPERATIONS.md",
         "release/product-release.json"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [
         "make no-placeholder-check",
         "make secret-scan",
@@ -121,7 +121,7 @@
       ],
       "owner": "01-chain-core",
       "nextAction": "Continue closing the highest-priority autonomous TESTNET, integration, security and release gaps without changing public booleans prematurely.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-GOV-002",
@@ -146,12 +146,12 @@
         "docs/integration/DEPENDENCY_ACCEPTANCE.md",
         ".ai-bridge/execution-log.jsonl"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [
         "git status clean and local or remote SHA matched after bf08b68 push"
       ],
       "artifact": [
-        "bf08b68a1835a0c9bca5a867c32f504ff14f8381"
+        "7935cedb57ab752b3acc5097303cad672f6f96f1"
       ],
       "publicProof": [],
       "blockedBy": [
@@ -162,7 +162,7 @@
       ],
       "owner": "01-chain-core + central owners",
       "nextAction": "Bind accepted Product Session introspection and canonical event ownership to Chain Core mutation routes.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-NET-001",
@@ -183,7 +183,7 @@
         "configs/networks.json",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [
         "network identity tests",
         "EVM eth_chainId and net_version tests"
@@ -195,7 +195,7 @@
       ],
       "owner": "01-chain-core",
       "nextAction": "Verify public RPC, Explorer, Faucet and wallet add-chain metadata against current source.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-BFT-001",
@@ -217,7 +217,7 @@
         "release/recovery-evidence.json",
         "FEATURE_COMPLETION_EVIDENCE.md"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [
         "make consensus-quorum-check",
         "make consensus-state-sync-check",
@@ -230,7 +230,7 @@
       ],
       "owner": "01-chain-core",
       "nextAction": "Repeat the full failure, recovery and transaction proof on remote current-source validators and publish independent evidence.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-SBFT-001",
@@ -255,7 +255,7 @@
         "docs/formal/streambft/StreamBFT.cfg",
         "tmp/consensus-candidate-evidence"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [
         "StreamBFT unit and candidate checks"
       ],
@@ -264,7 +264,7 @@
       "blockedBy": [],
       "owner": "01-chain-core",
       "nextAction": "Execute and archive the remaining model-check, differential replay, WAN, Byzantine and long-soak matrix.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-EXEC-001",
@@ -286,14 +286,14 @@
         "chain/resources",
         "internal/streambft"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [],
       "artifact": [],
       "publicProof": [],
       "blockedBy": [],
       "owner": "01-chain-core",
       "nextAction": "Complete saturation, priority-inversion, deterministic state-root and governance-parameter tests.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-ASSET-001",
@@ -317,7 +317,7 @@
         "chain/governance/strategy-mandate.schema.json",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [
         "account-abstraction tests",
         "mandate lifecycle and negative tests",
@@ -333,7 +333,7 @@
       ],
       "owner": "01-chain-core + 02-wallet-auth + execution owners",
       "nextAction": "Close passkey, guardian and stablecoin-gas gaps and run real Exchange and DEX end-to-end flows.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-SVC-001",
@@ -356,7 +356,7 @@
         "infra/docker",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [
         "gateway test suites",
         "make indexer-check",
@@ -370,7 +370,7 @@
       ],
       "owner": "01-chain-core + central owners",
       "nextAction": "Finish gRPC and central service acceptance, then run a current-source remote service audit.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-EVM-IDX-001",
@@ -379,7 +379,7 @@
       "subrequirements": [
         "EVM network, block, balance, nonce, code, call, estimate, signed broadcast, transaction, receipt and log methods.",
         "Block transaction count by number or hash and transaction lookup by block number or hash plus canonical index.",
-        "Validate CometBFT AppHash, DataHash and raw-transaction evidence and fail closed for malformed parameters and rejection mappings.",
+        "Validate CometBFT AppHash, DataHash and raw-transaction evidence; return null for pending, missing and out-of-range lookups, -32602 for invalid parameters and -32603 for upstream or evidence failures.",
         "Indexer validates the full incoming batch before journaling and requires exact height, parent and transaction invariants.",
         "Checkpoint and WAL must be private 0600 regular files; reject unknown fields, trailing JSON, symlinks, tampering and conflicting duplicates.",
         "WAL and checkpoint writes are fsync-bound; checkpoint uses atomic rename and directory fsync; checkpoint or WAL overlap crash recovery remains valid.",
@@ -393,23 +393,26 @@
         "internal/indexer/indexer_test.go",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [
+        "make integration-contract-check",
         "make bft-evm-receipt-check",
+        "go test -race ./internal/bftgateway",
         "go test -race ./internal/indexer",
         "make indexer-check"
       ],
       "artifact": [
         "7b59af3 Add EVM block transaction lookups",
-        "bf08b68 fix(indexer): validate durable checkpoints"
+        "bf08b68 fix(indexer): validate durable checkpoints",
+        "7935ced fix(gateway): classify EVM lookup failures"
       ],
       "publicProof": [],
       "blockedBy": [
         "remote current-source Indexer and EVM deployment"
       ],
       "owner": "01-chain-core",
-      "nextAction": "Freeze machine-readable EVM vectors and run remote Indexer restart, tamper and recovery evidence.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "nextAction": "Implement and prove standard Ethereum signed transaction envelope compatibility, then run remote current-source Indexer and EVM recovery evidence without widening public claims.",
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-TESTNET-001",
@@ -436,7 +439,7 @@
         "release/product-release.json",
         "FEATURE_COMPLETION_EVIDENCE.md"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [
         "local four-validator proof",
         "smart-account, mandate, vault, risk and recovery gates"
@@ -451,7 +454,7 @@
       ],
       "owner": "01-chain-core + execution and public-evidence owners",
       "nextAction": "Finish Exchange and DEX shared Testnet flows, then deploy follower-first and collect public cross-region evidence.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-RELEASE-001",
@@ -474,7 +477,7 @@
         "release/integration/chain-core-contract.json",
         "docs/integration/INTEGRATION_HANDOFF.md"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [],
       "artifact": [],
       "publicProof": [],
@@ -485,7 +488,7 @@
       ],
       "owner": "01-chain-core",
       "nextAction": "Continue the highest-priority autonomous TESTNET gap; Goal remains Active.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     },
     {
       "id": "CHAIN-PROTECT-001",
@@ -505,7 +508,7 @@
         "internal/bftgateway",
         "internal/indexer"
       ],
-      "sourceCommit": "bf08b68a1835a0c9bca5a867c32f504ff14f8381",
+      "sourceCommit": "7935cedb57ab752b3acc5097303cad672f6f96f1",
       "tests": [
         "go test -race ./internal/indexer",
         "make indexer-check",
@@ -519,7 +522,7 @@
       "blockedBy": [],
       "owner": "01-chain-core",
       "nextAction": "Re-evaluate protection state after this metadata and coverage-matrix slice.",
-      "lastUpdated": "2026-07-27T09:45:00Z"
+      "lastUpdated": "2026-07-27T08:16:52Z"
     }
   ]
 }

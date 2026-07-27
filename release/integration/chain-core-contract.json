@@ -2,7 +2,7 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "bf08b68a1835",
+  "sourceCommit": "7935cedb57ab",
   "contractVersion": "1.4.0",
   "stateSchema": {
     "committedStateVersion": 11,

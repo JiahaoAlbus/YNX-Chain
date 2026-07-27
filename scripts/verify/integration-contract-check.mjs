@@ -76,7 +76,7 @@ requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplet
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
 }
-requireValue(contract.contractVersion === "1.3.0", "unexpected Chain Core contract version");
+requireValue(contract.contractVersion === "1.4.0", "unexpected Chain Core contract version");
 requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
 requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
 requireValue(contract.evmRpc.historicalContractState === false, "EVM RPC cannot claim historical contract state");
@@ -87,9 +87,14 @@ requireValue(contract.evmRpc.boundedCallStateOverrides === false, "bounded EVM c
 for (const method of contract.evmRpc.methods) {
   requireValue(gatewaySource.includes(`case \"${method}\"`) || gatewaySource.includes(`\"${method}\"`), `runtime EVM method missing: ${method}`);
 }
-for (const implementation of ["evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedAccountResult", "evmCommittedContractCode", "evmCommittedContractCall", "evmCommittedResult"]) {
+for (const implementation of ["evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedBlockTransactionResult", "evmCommittedAccountResult", "evmCommittedContractCode", "evmCommittedContractCall", "evmCommittedResult"]) {
   requireValue(evmSource.includes(`func (g *Gateway) ${implementation}`), `runtime EVM implementation missing: ${implementation}`);
 }
+requireValue(contract.evmRpc.rejectionCodes.invalidParams === -32602, "EVM invalid-parameter code drift");
+requireValue(contract.evmRpc.rejectionCodes.transactionRejected === -32003, "EVM transaction-rejection code drift");
+requireValue(contract.evmRpc.rejectionCodes.upstreamOrEvidenceFailure === -32603, "EVM upstream/evidence code drift");
+requireValue(evmSource.includes("validateCommittedBlockLookupTagSyntax"), "EVM block lookup syntax gate missing");
+requireValue(gatewaySource.includes("result, code, err = g.evmCommittedBlockTransactionResult"), "EVM block lookup RPC code propagation missing");
 requireValue(contract.accountAbstraction.paymasterFeeYNXT === 1, "Paymaster fee contract drift");
 requireValue(contract.accountAbstraction.replayRejectedByNonceDomain === true, "UserOperation replay boundary drift");
 requireValue(contract.accountAbstraction.testedThroughRealLocalABCICometGatewayBundler === true, "Bundler local E2E evidence missing");
@@ -143,6 +148,13 @@ for (const required of [
   "native-transfer-valid-accept",
   "native-transfer-replay-reject",
   "evm-committed-block-evidence-accept",
+  "evm-block-transaction-count-index-accept",
+  "evm-block-transaction-pending-or-missing-null-accept",
+  "evm-block-transaction-out-of-range-null-accept",
+  "evm-block-transaction-malformed-quantity-reject",
+  "evm-block-transaction-malformed-hash-reject",
+  "evm-block-transaction-wrong-parameter-count-reject",
+  "evm-block-transaction-upstream-evidence-failure-reject",
   "evm-current-account-state-accept",
   "evm-historical-account-state-reject",
   "evm-signed-ynxt-broadcast-accept",

@@ -29,7 +29,7 @@ grep -q "43.164.132.81" docs/acceptance/GOAL_DIGEST.md
 grep -q "ynx_9102-1" docs/acceptance/GOAL_DIGEST.md
 
 grep -q "State snapshot baseline commit:" docs/acceptance/PROJECT_STATE.md
-grep -q "Last pushed commit" docs/acceptance/PROJECT_STATE.md
+grep -q "Last pushed runtime commit" docs/acceptance/PROJECT_STATE.md
 grep -q "Chain repo state:" docs/acceptance/PROJECT_STATE.md
 grep -q "Website repo state:" docs/acceptance/PROJECT_STATE.md
 grep -q "Remote deployment state:" docs/acceptance/PROJECT_STATE.md
@@ -37,7 +37,7 @@ grep -q "Current blockers:" docs/acceptance/PROJECT_STATE.md
 grep -q "Largest real gap" docs/acceptance/PROJECT_STATE.md
 
 grep -q "Current single action:" docs/acceptance/NEXT_ACTION.md
-grep -q "Files to touch:" docs/acceptance/NEXT_ACTION.md
+grep -q "Files in the current slice:" docs/acceptance/NEXT_ACTION.md
 grep -q "Validation commands:" docs/acceptance/NEXT_ACTION.md
 grep -q "Completion standard:" docs/acceptance/NEXT_ACTION.md
 grep -q "Explicitly not doing" docs/acceptance/NEXT_ACTION.md

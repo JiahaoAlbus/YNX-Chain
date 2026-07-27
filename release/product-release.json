@@ -1,6 +1,6 @@
 {
   "schema": "ynx-product-release/v1",
-  "generatedAt": "2026-07-27T09:45:00Z",
+  "generatedAt": "2026-07-27T08:16:52Z",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -9,7 +9,7 @@
     "canonicalRoute": "/chain"
   },
   "source": {
-    "implementationCommit": "bf08b68a1835",
+    "implementationCommit": "7935cedb57ab",
     "committedStateVersion": 11,
     "contractVersion": "1.4.0",
     "releaseRecordVersion": 1
