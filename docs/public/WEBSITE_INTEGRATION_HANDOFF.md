@@ -35,14 +35,17 @@ prose. The current evidence-bound states are:
 - `testedLocal=true`
 - `installedLocal=false`
 - `integratedCentral=true`
-- `deployedStaging=false`
+- `deployedStaging=true`
 - `deployedPublic=true`
 - `downloadHosted=true`
 - `productionSigned=false`
 - `storeReleased=false`
 
-The hosted documentation ZIP is an unsigned public candidate. It must not be described
-as production signed, independently audited, Mainnet-ready or store released.
+The provider records a successful, SSO-protected Preview deployment for the accepted
+Website source. This proves staging deployment, not anonymous public availability or
+independent proof. The hosted documentation ZIP remains an unsigned public candidate
+and must not be described as production signed, independently audited, Mainnet-ready
+or store released.
 
 Use `MARKETING_CLAIMS_EVIDENCE_MATRIX.md` as a publishing gate. If a claim's evidence expires or conflicts, remove the claim or render the documented unavailable/candidate state. Do not substitute fake metrics, balances, transactions, prices, APY, liquidity, users, revenue or provider health.
 

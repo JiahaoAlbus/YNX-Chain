@@ -1,10 +1,10 @@
 {
   "$schema": "../schemas/public-record.schema.json",
   "schemaVersion": "1.0.0",
-  "version": "2026.07.27.1",
-  "sourceCommit": "9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4",
+  "version": "2026.07.27.2",
+  "sourceCommit": "046bc4f23f78d3c80881f6d2ed7dac88f35bf8a4",
   "lastReviewed": "2026-07-27",
-  "observedAt": "2026-07-27T10:55:18+08:00",
+  "observedAt": "2026-07-27T11:54:04+08:00",
   "status": "Verified Public Candidate",
   "scope": "Website owner acceptance and direct public deployment of the YNX Chain documentation authority bundle",
   "centralAcceptance": {
@@ -23,7 +23,32 @@
     "websiteHostingHeadCommit": "62f26c769a6f6e4c6e99ca88cfa44b5203b776a1",
     "websiteHostingMergeCommit": "285aeaaf1661e890775e779e5abedb7eb6deedaa",
     "websiteHostingCiRun": "https://github.com/JiahaoAlbus/YNX-Chain-website/actions/runs/30205219081",
-    "websiteHostingCiConclusion": "success"
+    "websiteHostingCiConclusion": "success",
+    "websiteHandoffPullRequest": "https://github.com/JiahaoAlbus/YNX-Chain-website/pull/6",
+    "websiteHandoffHeadCommit": "e4ad539f7d9767fe251df6ca1b975d05385dca2d",
+    "websiteHandoffMergeCommit": "f0c743e82317f6f31093703c79cec6f4d266384a",
+    "websiteHandoffCiRun": "https://github.com/JiahaoAlbus/YNX-Chain-website/actions/runs/30235363783",
+    "websiteHandoffMainCiRun": "https://github.com/JiahaoAlbus/YNX-Chain-website/actions/runs/30235482345",
+    "websiteHandoffCiConclusion": "success"
+  },
+  "stagingRuntime": {
+    "provider": "Vercel",
+    "environment": "Preview",
+    "githubDeploymentId": 5616823815,
+    "githubDeploymentStatusId": 15972541245,
+    "sourceCommit": "e4ad539f7d9767fe251df6ca1b975d05385dca2d",
+    "deploymentState": "success",
+    "environmentUrl": "https://ynx-web4-website-li3mbs9il-jiahaoalbus-projects.vercel.app",
+    "providerDescription": "Deployment has completed",
+    "providerObservedAt": "2026-07-27T03:45:29Z",
+    "anonymousAccess": {
+      "httpStatus": 302,
+      "accessPolicy": "provider-sso",
+      "contentVerified": false,
+      "locationOrigin": "https://vercel.com",
+      "observedAt": "2026-07-27T11:50:29+08:00"
+    },
+    "stateBoundary": "The provider deployment record proves staging deployment for the exact Website source. SSO-protected anonymous access is not public availability evidence."
   },
   "publicRuntime": {
     "vantage": "Direct production HTTP and browser verification from the current operator-controlled environment; not independent third-party proof",
@@ -38,14 +63,14 @@
         "renderedH1": "What Is YNX Chain?",
         "canonical": "https://ynxweb4.com/what-is-ynx-chain",
         "jsonLdType": "TechArticle",
-        "bundleSourceCommit": "9f9efcb84b59",
+        "bundleSourceCommit": "046bc4f23f78",
         "horizontalOverflow": false
       },
       {
         "url": "https://www.ynxweb4.com/docs",
         "canonical": "https://ynxweb4.com/docs",
         "downloadLabel": "Download verified documentation bundle",
-        "downloadSha256": "f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246",
+        "downloadSha256": "23d1117e9e8a6c7b25029f3404431fc7a86fbdf3710bb68d0acfd75ce46ae933",
         "horizontalOverflow": false
       },
       {
@@ -71,27 +96,28 @@
     ],
     "artifactManifest": {
       "url": "https://www.ynxweb4.com/docs-authority/artifact-manifest.json",
-      "sourceCommit": "9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4",
-      "sha256": "f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246",
-      "bytes": 129546,
+      "sourceCommit": "046bc4f23f78d3c80881f6d2ed7dac88f35bf8a4",
+      "sha256": "23d1117e9e8a6c7b25029f3404431fc7a86fbdf3710bb68d0acfd75ce46ae933",
+      "bytes": 135312,
       "downloadHosted": true,
-      "downloadUrl": "https://ynxweb4.com/docs-authority/packages/sha256-f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246/ynx-website-content-9f9efcb84b59.zip",
+      "downloadUrl": "https://ynxweb4.com/docs-authority/packages/sha256-23d1117e9e8a6c7b25029f3404431fc7a86fbdf3710bb68d0acfd75ce46ae933/ynx-website-content-046bc4f23f78.zip",
       "immutable": true,
       "productionSigned": false
     },
     "hostedArchive": {
-      "url": "https://www.ynxweb4.com/docs-authority/packages/sha256-f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246/ynx-website-content-9f9efcb84b59.zip",
+      "url": "https://www.ynxweb4.com/docs-authority/packages/sha256-23d1117e9e8a6c7b25029f3404431fc7a86fbdf3710bb68d0acfd75ce46ae933/ynx-website-content-046bc4f23f78.zip",
       "httpStatus": 200,
       "contentType": "application/zip",
-      "contentLength": 129546,
-      "sha256": "f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246",
+      "contentLength": 135312,
+      "sha256": "23d1117e9e8a6c7b25029f3404431fc7a86fbdf3710bb68d0acfd75ce46ae933",
       "cacheControl": "public, max-age=31536000, immutable",
       "contentDisposition": "attachment",
-      "observedAt": "2026-07-27T10:54:00+08:00"
+      "observedAt": "2026-07-27T11:49:32+08:00"
     }
   },
   "stateConclusion": {
     "integratedCentral": true,
+    "deployedStaging": true,
     "deployedPublic": true,
     "downloadHosted": true,
     "productionSigned": false,

@@ -95,16 +95,19 @@ for a stronger state.
 
 - Canonical identity, Testnet Chain ID and YNXT naming are evidence-linked candidate
   facts.
-- Website PRs 1 and 2 integrated and refreshed the verified authority bundle; the
-  accepted public content source is `9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4`.
-- Website PR 3 added a content-addressed package path. Direct HTTP 200 retrieval on
-  2026-07-27 matched 129546 bytes and SHA-256
-  `f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246`,
+- Website PR 6 integrated authority source
+  `046bc4f23f78d3c80881f6d2ed7dac88f35bf8a4` and added fail-closed canonical,
+  service-route, download-state and signing checks.
+- Direct HTTP 200 retrieval on 2026-07-27 matched 135312 bytes and SHA-256
+  `23d1117e9e8a6c7b25029f3404431fc7a86fbdf3710bb68d0acfd75ce46ae933`,
   with immutable caching and attachment headers.
+- GitHub deployment 5616823815 records a successful SSO-protected Vercel Preview for
+  exact Website source `e4ad539f7d9767fe251df6ca1b975d05385dca2d`;
+  `deployedStaging=true`, while anonymous Preview content verification remains blocked.
 - This operator-controlled observation proves `downloadHosted=true` for the named
   documentation ZIP only; it is not independent third-party availability evidence.
-- Mainnet launch, public StreamBFT activation, staging deployment, production signing,
-  legal approval and independent audit remain false or blocked.
+- Mainnet launch, public StreamBFT activation, production signing, legal approval and
+  independent audit remain false or blocked.
 
 ## 7. Required local checks
 
