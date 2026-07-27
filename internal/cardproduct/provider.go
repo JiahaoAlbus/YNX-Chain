@@ -20,6 +20,7 @@ type ProviderCard struct {
 
 type IssuerProvider interface {
 	Name() string
+	Capabilities() ProviderCapabilities
 	Health(context.Context) error
 	CheckEligibility(context.Context, string, string) (Eligibility, error)
 	SubmitApplication(context.Context, IssueRequest) (string, string, error)
@@ -36,6 +37,9 @@ func (p UnavailableProvider) Name() string {
 		return "unconfigured-issuer"
 	}
 	return p.ProviderName
+}
+func (p UnavailableProvider) Capabilities() ProviderCapabilities {
+	return unavailableCapabilities(p.Name())
 }
 func (p UnavailableProvider) Health(context.Context) error { return ErrProviderUnavailable }
 func (p UnavailableProvider) CheckEligibility(context.Context, string, string) (Eligibility, error) {
@@ -65,7 +69,10 @@ func NewSandboxProvider(now func() time.Time) SandboxProvider {
 	}
 	return SandboxProvider{now: now}
 }
-func (SandboxProvider) Name() string                 { return "YNX Card Testnet Sandbox" }
+func (SandboxProvider) Name() string { return "YNX Card Testnet Sandbox" }
+func (p SandboxProvider) Capabilities() ProviderCapabilities {
+	return sandboxCapabilities(p.Name())
+}
 func (SandboxProvider) Health(context.Context) error { return nil }
 func (p SandboxProvider) CheckEligibility(_ context.Context, account, reference string) (Eligibility, error) {
 	if strings.HasPrefix(reference, "kyc_rejected_") {

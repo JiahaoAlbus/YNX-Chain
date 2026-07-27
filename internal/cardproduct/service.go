@@ -47,6 +47,12 @@ func New(cfg Config) (*Service, error) {
 	if cfg.Now == nil {
 		cfg.Now = time.Now
 	}
+	if cfg.Provider == nil {
+		cfg.Provider = UnavailableProvider{}
+	}
+	if err := ValidateProviderCapabilities(cfg.Provider); err != nil {
+		return nil, fmt.Errorf("issuer provider capability contract: %w", err)
+	}
 	store, err := OpenStore(cfg.StorePath, cfg.IntegrityKey)
 	if err != nil {
 		return nil, err
@@ -55,16 +61,16 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	if cfg.Provider == nil {
-		cfg.Provider = UnavailableProvider{}
-	}
 	if len(cfg.ProviderEventKey) < 32 {
 		return nil, errors.New("provider event key must contain at least 32 bytes")
 	}
 	return &Service{store: store, provider: cfg.Provider, ai: cfg.AI, gateway: verifier, providerEventKey: append([]byte(nil), cfg.ProviderEventKey...), now: cfg.Now}, nil
 }
 
-func (s *Service) ProviderName() string                       { return s.provider.Name() }
+func (s *Service) ProviderName() string { return s.provider.Name() }
+func (s *Service) ProviderCapabilities() ProviderCapabilities {
+	return s.provider.Capabilities()
+}
 func (s *Service) ProviderAvailable(ctx context.Context) bool { return s.provider.Health(ctx) == nil }
 
 type ApplyInput struct {
