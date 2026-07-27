@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "ynx.product-release.v1",
+  "productNumber": 22,
+  "productName": "YNX Browser",
+  "productSlug": "browser",
+  "version": "0.2.1-checkpoint",
+  "goalStatus": "active",
+  "phase": "PROTECT",
+  "sourceCommit": "0515ff50b22547840c6554b29c4af3cd17484800",
+  "asOf": "2026-07-27",
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "verifiedThisCheckpoint": {
+    "nodeTests": {
+      "command": "cd apps/browser && npm test",
+      "result": "pass",
+      "tests": 14,
+      "failures": 0
+    },
+    "smoke": {
+      "command": "cd apps/browser && npm run smoke",
+      "result": "pass",
+      "details": "persistent state and exact-origin permission boundary"
+    },
+    "walletPermissionContracts": {
+      "command": "cd packages/web4-permissions && npm test",
+      "result": "pass",
+      "tests": 15,
+      "failures": 0,
+      "boundary": "All four Browser platform request builders bind the reviewed registry tuples; central Wallet acceptance remains pending"
+    },
+    "windowsWalletRequestBuilder": {
+      "sourceCommit": "0515ff50b22547840c6554b29c4af3cd17484800",
+      "result": "implemented-and-contract-tested",
+      "details": "non-exportable Windows CNG P-256 identity, signed pending request state, exact single-field callback parsing, nonce/time/chain/client/bundle binding, single-use consumption and no local Product Session"
+    },
+    "diffCheck": {
+      "command": "git diff --check",
+      "result": "pass"
+    },
+    "privateDownloadIsolation": {
+      "sourceCommit": "06fb7ee7e321743288348feefa3fb76e9f096463",
+      "result": "implemented-and-node-gated",
+      "details": "macOS downloads are bound to the initiating tab and source; private or contextless downloads do not write YNX Downloads records"
+    },
+    "stateLifecycle": {
+      "sourceCommit": "91685b728cefefabec9414317f2663d659062edc",
+      "result": "tested-local-core",
+      "details": "state v2 migration with v1 rollback backup, private-trace filtering, immutable tab privacy/identity, corrupt-primary recovery, explicit backup/restore, export, selective delete and future-version fail-closed behavior"
+    }
+  },
+  "notVerifiedThisCheckpoint": {
+    "macosNativeBuild": {
+      "result": "blocked",
+      "reason": "Swift compiler and package-manager processes hung or exceeded the MCP command window; no current-commit build success is claimed"
+    },
+    "windowsBuild": {
+      "result": "blocked",
+      "reason": "dotnet is not installed in the current macOS workspace; no Windows compile, package, install or protocol-registration success is claimed"
+    },
+    "nativeStateLifecycleUi": "not integrated across all native clients",
+    "platformInstallColdStart": "not rerun",
+    "publicEndpoints": "not verified",
+    "hostedArtifacts": "not verified"
+  },
+  "previousEvidence": {
+    "baselineCommit": "a90cfef",
+    "evidenceIndex": "apps/browser/evidence/EVIDENCE_INDEX.md",
+    "platformEvidence": "apps/browser/PLATFORM_EVIDENCE.md",
+    "boundary": "Previous evidence remains historical and is not automatically attributed to this checkpoint"
+  },
+  "externalInputs": [],
+  "nextAction": "Protect and push the three runtime checkpoints, restore deterministic Swift build execution for macOS, then run Windows CI with .NET 8 to compile/package the CNG Wallet builder and register/test the callback protocol before central Wallet acceptance."
+}
