@@ -8,6 +8,7 @@ const dashboard = JSON.parse(dashboardRaw);
 
 const requiredAlerts = [
   "YNXBridgeUnavailable",
+  "YNXBridgeProviderOutage",
   "YNXBridgeUnexpectedExternalSubmission",
   "YNXBridgePaused",
   "YNXBridgeRouteExposureHigh",
@@ -18,14 +19,14 @@ const requiredAlerts = [
 for (const alert of requiredAlerts) {
   if (!rules.includes(`alert: ${alert}`)) throw new Error(`missing bridge alert ${alert}`);
 }
-for (const metric of ["ynx_bridge_providers_configured", "ynx_bridge_providers_available"]) {
+for (const metric of ["ynx_bridge_providers_configured", "ynx_bridge_providers_available", "ynx_bridge_provider_outage_active", "ynx_bridge_provider_incidents_total"]) {
   if (!server.includes(metric)) throw new Error(`missing provider observability metric ${metric}`);
 }
 const referenced = [...new Set(rules.match(/ynx_bridge_[a-z_]+/g) ?? [])];
 for (const metric of referenced) {
   if (!server.includes(metric)) throw new Error(`alert references unexported metric ${metric}`);
 }
-if (dashboard.uid !== "ynx-bridge-safety" || dashboard.panels?.length < 7) {
+if (dashboard.uid !== "ynx-bridge-safety" || dashboard.panels?.length < 8) {
   throw new Error("bridge dashboard identity or required panel coverage is missing");
 }
 const dashboardMetrics = [...new Set(dashboardRaw.match(/ynx_bridge_[a-z_]+/g) ?? [])];

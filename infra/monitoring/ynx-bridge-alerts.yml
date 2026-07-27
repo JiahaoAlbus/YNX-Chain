@@ -9,6 +9,14 @@ groups:
         annotations:
           summary: YNX Bridge coordinator is unavailable
           runbook: docs/bridge/OPERATIONS.md#incident-response
+      - alert: YNXBridgeProviderOutage
+        expr: ynx_bridge_provider_outage_active{service="ynx-bridged"} == 1
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: A configured Bridge Provider observation is unavailable or stale
+          runbook: docs/bridge/OPERATIONS.md#incident-response
       - alert: YNXBridgeUnexpectedExternalSubmission
         expr: ynx_bridge_external_submission_enabled{service="ynx-bridged"} != 0
         for: 0m

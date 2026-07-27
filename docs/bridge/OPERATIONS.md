@@ -16,6 +16,8 @@ Before maintenance or incident recovery:
 
 Do not delete, rewrite, or manually rebalance state during an incident. Preserve request, trace, error, and audit IDs; capture health, metrics, process logs, state SHA-256, and build identity; then classify availability, persistence, provider, reconciliation, or abuse-control failure. Public status communication must distinguish this local coordinator from an externally live bridge.
 
+For a Provider outage, verify `ynx_bridge_provider_outage_active`, preserve the corresponding integrity-sealed Registry incident evidence, and keep the route unavailable. Recovery requires the active-outage metric to return to zero and a persisted `recovered` incident; it does not approve the Provider route or enable external submission.
+
 ## Pause and resume
 
 Resume requires an idempotent operator request with a reason, a healthy persistent state, and confirmation that exposure remains within configured limits. A reconciliation difference must stay visible; it must not be cleared by editing state. External submission, signer installation, contract authority, and funded routes require a separate approval-gated deployment procedure.

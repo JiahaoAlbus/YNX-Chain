@@ -63,6 +63,16 @@
         {"expr": "ynx_bridge_finalized_local_total", "legendFormat": "local finalized", "refId": "C"}
       ],
       "gridPos": {"h": 7, "w": 12, "x": 12, "y": 8}
+    },
+    {
+      "id": 8,
+      "title": "Provider outage and recovery",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "ynx_bridge_provider_outage_active", "legendFormat": "{{provider}} outage active", "refId": "A"},
+        {"expr": "ynx_bridge_provider_incidents_total", "legendFormat": "{{provider}} {{status}} incidents", "refId": "B"}
+      ],
+      "gridPos": {"h": 7, "w": 24, "x": 0, "y": 19}
     }
   ],
   "refresh": "30s",

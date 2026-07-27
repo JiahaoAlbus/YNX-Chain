@@ -1171,6 +1171,7 @@ func (s *Service) ProviderRegistry() ProviderRegistry {
 			ProductionStatus:        "unavailable",
 			FailureStatus:           "provider-support-contracts-credentials-agreement-and-funding-unavailable",
 		}
+		entry.IncidentHistory = s.providerIncidentHistoryLocked(routeID)
 		if config, configured := s.providerRoutes[key]; configured {
 			minSeconds, maxSeconds := config.EstimatedMinSeconds, config.EstimatedMaxSeconds
 			destinationRule := "circle-cctp-v2-attestation-plus-destination-receive-message"

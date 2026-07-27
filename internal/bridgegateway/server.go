@@ -174,6 +174,16 @@ func (s *Server) handleMetrics(w http.ResponseWriter, _ *http.Request) {
 	_, _ = fmt.Fprintf(w, "ynx_bridge_audit_events_total{%s} %d\n", labels, health.AuditEventCount)
 	_, _ = fmt.Fprintf(w, "ynx_bridge_providers_configured{%s} %d\n", labels, health.ProviderCount)
 	_, _ = fmt.Fprintf(w, "ynx_bridge_providers_available{%s} %d\n", labels, health.AvailableProviderCount)
+	for _, provider := range s.service.providerMonitorStates() {
+		providerLabels := fmt.Sprintf(`%s,provider="%s",route_id="%s"`, labels, provider.Provider, provider.RouteID)
+		outageActive := 0
+		if provider.OutageActive {
+			outageActive = 1
+		}
+		_, _ = fmt.Fprintf(w, "ynx_bridge_provider_outage_active{%s} %d\n", providerLabels, outageActive)
+		_, _ = fmt.Fprintf(w, `ynx_bridge_provider_incidents_total{%s,status="outage"} %d`+"\n", providerLabels, provider.OutageCount)
+		_, _ = fmt.Fprintf(w, `ynx_bridge_provider_incidents_total{%s,status="recovered"} %d`+"\n", providerLabels, provider.RecoveryCount)
+	}
 	_, _ = fmt.Fprintf(w, "ynx_bridge_external_submission_enabled{%s} 0\n", labels)
 	paused := 0
 	if health.Safety.Paused {

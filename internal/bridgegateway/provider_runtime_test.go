@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -409,7 +411,11 @@ func TestCircleCCTPV2PeriodicProbeFailsClosedRecoversAndStops(t *testing.T) {
 	}
 	failedRegistry := service.ProviderRegistry()
 	if failedRegistry.Providers[0].TestnetStatus != "provider-api-unavailable-route-unavailable" ||
-		failedRegistry.Providers[0].FailureStatus != "provider-connectivity-probe-unavailable" {
+		failedRegistry.Providers[0].FailureStatus != "provider-connectivity-probe-unavailable" ||
+		len(failedRegistry.Providers[0].IncidentHistory) != 1 ||
+		failedRegistry.Providers[0].IncidentHistory[0].Status != "outage" ||
+		!strings.HasPrefix(failedRegistry.Providers[0].IncidentHistory[0].Evidence, "bridge-audit:") ||
+		failedRegistry.Providers[0].IncidentHistoryComplete {
 		t.Fatalf("periodic Provider failure did not degrade registry: %+v", failedRegistry)
 	}
 	unavailable.Store(false)
@@ -425,6 +431,79 @@ func TestCircleCCTPV2PeriodicProbeFailsClosedRecoversAndStops(t *testing.T) {
 	}
 	if calls.Load() < 3 {
 		t.Fatalf("periodic Provider probe calls=%d, want startup, failure, and recovery", calls.Load())
+	}
+	recoveredRegistry := service.ProviderRegistry()
+	if len(recoveredRegistry.Providers[0].IncidentHistory) != 2 ||
+		recoveredRegistry.Providers[0].IncidentHistory[1].Status != "recovered" ||
+		recoveredRegistry.Providers[0].LastFailure != nil {
+		t.Fatalf("Provider recovery incident is missing or current failure leaked: %+v", recoveredRegistry)
+	}
+	restarted, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	persistedRegistry := restarted.ProviderRegistry()
+	if len(persistedRegistry.Providers[0].IncidentHistory) != 2 ||
+		persistedRegistry.Providers[0].IncidentHistory[0].ID != recoveredRegistry.Providers[0].IncidentHistory[0].ID ||
+		persistedRegistry.Providers[0].IncidentHistory[1].ID != recoveredRegistry.Providers[0].IncidentHistory[1].ID {
+		t.Fatalf("Provider incidents did not survive restart: %+v", persistedRegistry)
+	}
+	request := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	response := httptest.NewRecorder()
+	NewServer(restarted).Handler().ServeHTTP(response, request)
+	metrics := response.Body.String()
+	for _, expected := range []string{
+		`ynx_bridge_provider_outage_active{service="ynx-bridged",native_symbol="YNXT",live_bridge="false",provider="circle-cctp-v2",route_id="` + routeCatalogID(key, cfg.Policies[0]) + `"} 0`,
+		`status="outage"} 1`,
+		`status="recovered"} 1`,
+	} {
+		if !strings.Contains(metrics, expected) {
+			t.Fatalf("Provider Monitor metric %q is missing: %s", expected, metrics)
+		}
+	}
+	unavailable.Store(true)
+	restarted.probeConfiguredProviderConnectivity()
+	restarted.probeConfiguredProviderConnectivity()
+	duringOutage, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if incidents := duringOutage.ProviderRegistry().Providers[0].IncidentHistory; len(incidents) != 3 || incidents[2].Status != "outage" {
+		t.Fatalf("Provider outage restart duplicated or lost the outage incident: %+v", incidents)
+	}
+	unavailable.Store(false)
+	afterRecovery, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if incidents := afterRecovery.ProviderRegistry().Providers[0].IncidentHistory; len(incidents) != 4 || incidents[3].Status != "recovered" {
+		t.Fatalf("Provider recovery after restart was not persisted exactly once: %+v", incidents)
+	}
+}
+
+func TestProviderIncidentPersistenceFailureStaysUnavailable(t *testing.T) {
+	cfg := providerTestConfig(t, providerRoundTripFunc(func(*http.Request) (*http.Response, error) {
+		return providerResponse(http.StatusOK, `[{"finalityThreshold":1000,"minimumFee":1},{"finalityThreshold":2000,"minimumFee":0}]`), nil
+	}))
+	cfg.ProviderRoutes[0].ConnectivityProbeEnabled = true
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blocker := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(blocker, []byte("blocked"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	service.cfg.StatePath = filepath.Join(blocker, "state.json")
+	key := routeKey(cfg.ProviderRoutes[0].SourceChain, cfg.ProviderRoutes[0].DestinationChain, cfg.ProviderRoutes[0].SourceAsset, cfg.ProviderRoutes[0].DestinationAsset)
+	service.recordProviderFailure(key, "provider-connectivity-probe-unavailable")
+	registry := service.ProviderRegistry()
+	if registry.Providers[0].Health != "unavailable" ||
+		registry.Providers[0].FailureStatus != "provider-incident-persistence-unavailable" ||
+		len(registry.Providers[0].IncidentHistory) != 0 ||
+		registry.Providers[0].RouteAvailable ||
+		registry.Providers[0].Executable {
+		t.Fatalf("Provider incident persistence failure did not stay fail closed: %+v", registry)
 	}
 }
 

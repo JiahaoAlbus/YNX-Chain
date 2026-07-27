@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,9 @@ const (
 	providerConnectivityProbeMinIntervalSeconds      = 30
 	providerConnectivityProbeMaxIntervalSeconds      = 3600
 	providerConnectivityProbeStaleIntervalMultiplier = 2
+	providerIncidentHistoryLimit                     = 50
+	providerAuditActionOutage                        = "provider_outage"
+	providerAuditActionRecovered                     = "provider_recovered"
 )
 
 type providerRuntimeState struct {
@@ -26,6 +30,14 @@ type providerRuntimeState struct {
 	LastSuccess string
 	LastFailure string
 	Failure     string
+}
+
+type providerMonitorState struct {
+	Provider      string
+	RouteID       string
+	OutageActive  bool
+	OutageCount   int
+	RecoveryCount int
 }
 
 type circleCCTPFee struct {
@@ -276,20 +288,137 @@ func ensureJSONEOF(decoder *json.Decoder) error {
 
 func (s *Service) recordProviderSuccess(key string) {
 	now := s.cfg.Now().UTC().Format(timeFormat)
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.providerMu.Lock()
-	s.providerStates[key] = providerRuntimeState{Health: "connected-live-fee-api", LastSuccess: now}
-	s.providerMu.Unlock()
+	defer s.providerMu.Unlock()
+	next := providerRuntimeState{Health: "connected-live-fee-api", LastSuccess: now}
+	routeID, configured := s.providerIncidentRouteIDLocked(key)
+	if configured && s.lastProviderIncidentActionLocked(routeID) == providerAuditActionOutage {
+		if err := s.persistProviderIncidentLocked(now, providerAuditActionRecovered, routeID); err != nil {
+			s.recordProviderPersistenceFailureLocked(key, now)
+			return
+		}
+	}
+	s.providerStates[key] = next
 }
 
 func (s *Service) recordProviderFailure(key, failure string) {
 	now := s.cfg.Now().UTC().Format(timeFormat)
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.providerMu.Lock()
+	defer s.providerMu.Unlock()
 	previous := s.providerStates[key]
 	previous.Health = "unavailable"
 	previous.LastFailure = now
 	previous.Failure = failure
+	routeID, configured := s.providerIncidentRouteIDLocked(key)
+	if configured && s.lastProviderIncidentActionLocked(routeID) != providerAuditActionOutage {
+		if err := s.persistProviderIncidentLocked(now, providerAuditActionOutage, routeID); err != nil {
+			s.recordProviderPersistenceFailureLocked(key, now)
+			return
+		}
+	}
 	s.providerStates[key] = previous
-	s.providerMu.Unlock()
+}
+
+func (s *Service) recordProviderPersistenceFailureLocked(key, now string) {
+	previous := s.providerStates[key]
+	previous.Health = "unavailable"
+	previous.LastFailure = now
+	previous.Failure = "provider-incident-persistence-unavailable"
+	s.providerStates[key] = previous
+}
+
+func (s *Service) providerIncidentRouteIDLocked(key string) (string, bool) {
+	policy, configured := s.policies[key]
+	if !configured {
+		return "", false
+	}
+	return routeCatalogID(key, policy), true
+}
+
+func (s *Service) lastProviderIncidentActionLocked(routeID string) string {
+	for index := len(s.state.Audit) - 1; index >= 0; index-- {
+		event := s.state.Audit[index]
+		if event.TransferID == routeID && (event.Action == providerAuditActionOutage || event.Action == providerAuditActionRecovered) {
+			return event.Action
+		}
+	}
+	return ""
+}
+
+func (s *Service) persistProviderIncidentLocked(at, action, routeID string) error {
+	next := cloneState(s.state)
+	detailHash := "sha256:" + hashText("ynx-bridge-provider-incident-v1|"+action+"|"+routeID+"|"+at)
+	appendAudit(&next, at, action, routeID, detailHash)
+	if err := saveState(s.cfg.StatePath, &next); err != nil {
+		return err
+	}
+	s.state = next
+	return nil
+}
+
+func (s *Service) providerIncidentHistoryLocked(routeID string) []ProviderIncident {
+	history := make([]ProviderIncident, 0)
+	for _, event := range s.state.Audit {
+		if event.TransferID != routeID || (event.Action != providerAuditActionOutage && event.Action != providerAuditActionRecovered) {
+			continue
+		}
+		status, summary := "outage", "Provider connectivity became unavailable"
+		if event.Action == providerAuditActionRecovered {
+			status, summary = "recovered", "Provider connectivity recovered"
+		}
+		history = append(history, ProviderIncident{
+			ID:         "provider_incident_" + hashText(event.Hash)[:24],
+			OccurredAt: event.At,
+			Status:     status,
+			Summary:    summary,
+			Evidence:   "bridge-audit:" + event.Hash,
+		})
+	}
+	if len(history) > providerIncidentHistoryLimit {
+		history = history[len(history)-providerIncidentHistoryLimit:]
+	}
+	return history
+}
+
+func (s *Service) providerMonitorStates() []providerMonitorState {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	keys := make([]string, 0, len(s.providerRoutes))
+	for key := range s.providerRoutes {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	result := make([]providerMonitorState, 0, len(keys))
+	for _, key := range keys {
+		config := s.providerRoutes[key]
+		routeID, configured := s.providerIncidentRouteIDLocked(key)
+		if !configured {
+			continue
+		}
+		state := s.providerState(key)
+		monitor := providerMonitorState{
+			Provider:     config.Provider,
+			RouteID:      routeID,
+			OutageActive: state.Health == "unavailable" || state.Health == "stale",
+		}
+		for _, event := range s.state.Audit {
+			if event.TransferID != routeID {
+				continue
+			}
+			switch event.Action {
+			case providerAuditActionOutage:
+				monitor.OutageCount++
+			case providerAuditActionRecovered:
+				monitor.RecoveryCount++
+			}
+		}
+		result = append(result, monitor)
+	}
+	return result
 }
 
 func (s *Service) providerState(key string) providerRuntimeState {
