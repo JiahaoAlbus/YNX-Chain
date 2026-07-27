@@ -1,7 +1,7 @@
 {
   "schemaVersion": "ynx.browser.cross-product-vectors.v1",
   "product": "browser",
-  "sourceCommit": "0515ff50b22547840c6554b29c4af3cd17484800",
+  "sourceCommit": "f2f9aaed8d3e4231d37c94de352077008a338572",
   "asOf": "2026-07-27",
   "status": "candidate",
   "fixtures": {
@@ -110,8 +110,14 @@
       "kind": "negative",
       "steps": ["Start a download in a Private macOS tab", "Choose a destination", "Complete or fail the download", "Open YNX Downloads library"],
       "expected": "The operating-system file may remain, but no YNX Downloads record is written. Source metadata is not taken from another active tab.",
-      "status": "implemented-and-node-gated",
-      "blockedBy": "Current-commit Swift native build and interaction evidence"
+      "status": "tested-native-policy",
+      "evidence": {
+        "sourceCommit": "668cb44dab95374ba9e5342d754b6ec568564f2b",
+        "tests": "apps/browser/native/Tests/YNXBrowserCoreTests/DownloadPersistenceTests.swift",
+        "result": "3/3 pass",
+        "truthBoundary": "The exact WKDownloadDelegate persistence function is tested; full WKWebView and NSSavePanel interaction evidence remains open."
+      },
+      "blockedBy": "Full native normal/Private network download interaction recording"
     },
     {
       "id": "BR-DOWNLOAD-CONTEXT-MISSING",

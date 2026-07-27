@@ -1,7 +1,8 @@
 # YNX Browser integration handoff
 
-Version: 0.2.1-candidate  
-Browser source commit: `0515ff50b22547840c6554b29c4af3cd17484800`  
+Version: 0.2.2-candidate
+Browser source commit: `f2f9aaed8d3e4231d37c94de352077008a338572`
+Native download runtime commit: `668cb44dab95374ba9e5342d754b6ec568564f2b`
 Branch: `codex/final-browser`  
 As of: 2026-07-27  
 Goal: Active  
@@ -22,6 +23,10 @@ Commit `06fb7ee7e321743288348feefa3fb76e9f096463` fixes a macOS WKWebView privac
 - Cancellation and failure remove retained context.
 
 This change preserves the product's truthful Private boundary rather than claiming downloaded files disappear.
+
+Commit `668cb44dab95374ba9e5342d754b6ec568564f2b` moves the exact persistence policy into `YNXBrowserCore`, makes the WKDownload delegate call that shared function, and adds three native tests proving normal source/filename persistence and zero Private metadata writes. It also removes the third-party example-domain runtime fallback and adds a Browser production-source gate. This is deterministic policy evidence, not a completed WKWebView plus NSSavePanel interaction recording.
+
+Commit `f2f9aaed8d3e4231d37c94de352077008a338572` normalizes archive metadata and entry order. Two consecutive same-host builds produced the same ZIP SHA-256. This proves only same-host/toolchain reproducibility and does not upgrade the ad-hoc signing class.
 
 Commit `91685b728cefefabec9414317f2663d659062edc` adds the recoverable Browser state-v2 lifecycle:
 
@@ -48,10 +53,11 @@ Windows source and cross-platform contracts are tested, but compile/package/prot
 | Check | Result | Truth boundary |
 | --- | --- | --- |
 | `cd apps/browser && npm test` | Pass: 14/14 | Covers platform source gates, private-download metadata, state migration, tamper resistance, backup/restore, export/delete and Windows Wallet source boundary |
+| `cd apps/browser && npm run test:native` | Pass: 3/3 | Exercises the exact download persistence function used by WKDownloadDelegate; normal records persist exact source/filename while Private completions write no metadata |
+| `cd apps/browser && npm run gate:source` | Pass | Scans Browser production source trees for deployment filler, fake-success markers and common embedded-secret patterns |
 | `cd packages/web4-permissions && npm test` | Pass: 15/15 | Covers all four exact Browser tuples, callback/scope/chain/replay rejection and the non-exportable Windows CNG builder boundary |
-| `git diff --check` before runtime commits | Pass | No whitespace/patch-format errors |
-| macOS Swift release build at `88bf8dd` | Pass | Swift 6.1 arm64 build completed and linked `YNXBrowserNative` in 41.70 seconds |
-| macOS Testnet Preview package | Pass | ad-hoc-signed app and ZIP created; ZIP SHA-256 `d41826d277f10a96ef3c5621a3c514689d9a450f094da36c8c87fce8c1efc506`, 103039 bytes |
+| `cd apps/browser && npm run verify:macos-reproducible` | Pass | Two complete same-host builds produced ZIP SHA-256 `df24eb70667572b3122137f41883bc9d6b02bec8e7728e727b44bcb09cc176ce`; cross-host reproducibility is not claimed |
+| macOS Testnet Preview package | Pass | ad-hoc-signed app and integrity-checked ZIP created; 109273 bytes; executable SHA-256 `822947dd8a9146e66274d3ebce1ff56d2e3e2a476493d8069611d7d88e9769dc` |
 | macOS cold start / quit / restart | Pass | Packaged app started twice, exposed `YNXBrowserNative`, and exited cleanly after each run |
 | macOS signing boundary | Truthfully non-production | `codesign` verification passed as `adhoc`; Gatekeeper rejected it; no Developer ID, notarization, hosting or store claim is made |
 | Windows WPF build at current commit | Blocked before compile | `dotnet` is absent from this macOS workspace; no Windows build/package/install claim is made |
@@ -80,11 +86,11 @@ The contract is a Browser-owned candidate. It is not a central protocol freeze. 
 
 ## Exact next Browser action
 
-Execute one normal download and one Private download against the built macOS Testnet Preview, then prove that only the normal source/filename record persists. Next, wire state-v2 export/delete/backup/restore controls into native clients. In parallel, run Windows CI with .NET 8 to compile/package the CNG Wallet builder, register the `ynxbrowser` callback protocol and execute replay/tamper/expiry tests before central Wallet/Auth acceptance.
+Extract and test the macOS preliminary Wallet callback validator for malformed input, unknown fields, expiry, Nonce, Chain ID, Product Client ID, Bundle ID and replay. Then exercise the `ynxbrowser` protocol path on the built app while keeping Product Session creation fail closed until Gateway signature and device-challenge verification. Separately record the full normal/Private WKWebView plus NSSavePanel download interaction, then wire state-v2 export/delete/backup/restore controls into native clients. In parallel, run Windows CI with .NET 8 to compile/package the CNG Wallet builder, register the callback protocol and execute replay/tamper/expiry tests before central Wallet/Auth acceptance.
 
 ## Blockers
 
-- macOS Private-download and deep-link interactions are not yet captured, despite successful build/package/cold-start evidence.
+- macOS native download persistence policy is tested, but the full WKWebView/NSSavePanel normal/Private interaction and the `ynxbrowser` callback interaction are not yet captured.
 - Central contracts and shared Testnet endpoints are not yet accepted in this branch.
 - Windows build, full Xcode/simulator, production signing, notarization, store release, hosted downloads and public `/browser` proof remain unverified.
 

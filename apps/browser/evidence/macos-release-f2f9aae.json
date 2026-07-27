@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "ynx.browser.macos-evidence.v2",
+  "product": "YNX Browser",
+  "platform": "macOS",
+  "sourceCommit": "f2f9aaed8d3e4231d37c94de352077008a338572",
+  "runtimeCommit": "668cb44dab95374ba9e5342d754b6ec568564f2b",
+  "asOf": "2026-07-27",
+  "git": {
+    "branch": "codex/final-browser",
+    "upstream": "origin/codex/final-browser",
+    "localRemoteEqual": true,
+    "remoteCommit": "f2f9aaed8d3e4231d37c94de352077008a338572"
+  },
+  "environment": {
+    "swift": "Apple Swift 6.1",
+    "testTarget": "arm64e-apple-macos14.0",
+    "minimumOsDeclared": "14.0",
+    "bundleId": "com.ynxweb4.browser.macos"
+  },
+  "verification": {
+    "browserCheck": {
+      "command": "cd apps/browser && npm run check",
+      "result": "pass",
+      "nodeTests": 14,
+      "nativeSwiftTests": 3,
+      "smoke": "pass",
+      "productionSourceGate": "pass",
+      "macosReproducibility": "pass"
+    },
+    "walletPermissionContracts": {
+      "command": "cd packages/web4-permissions && npm test",
+      "result": "pass",
+      "tests": 15
+    },
+    "privateDownloadPersistence": {
+      "implementation": "apps/browser/native/Sources/YNXBrowserCore/DownloadPersistence.swift",
+      "tests": "apps/browser/native/Tests/YNXBrowserCoreTests/DownloadPersistenceTests.swift",
+      "result": "pass",
+      "verified": [
+        "a normal completion persists the initiating source and selected filename",
+        "a Private completion writes no YNX Downloads metadata",
+        "a normal record remains byte-for-byte unchanged after a Private completion",
+        "the macOS WKDownload delegate calls the same tested persistence function"
+      ],
+      "truthBoundary": "This is deterministic native policy evidence for the exact persistence function used by the WKDownload delegate. It is not a completed Save Panel and network download interaction recording."
+    },
+    "sourceGate": {
+      "result": "pass",
+      "scope": [
+        "shared Browser runtime",
+        "macOS native sources",
+        "iOS native sources",
+        "Android production sources",
+        "Windows production sources"
+      ],
+      "checks": [
+        "deployment filler",
+        "TODO/FIXME/coming-soon markers",
+        "fake-success markers",
+        "common embedded secret patterns"
+      ]
+    }
+  },
+  "artifact": {
+    "app": "apps/browser/dist/macos/YNX Browser Testnet Preview.app",
+    "zip": "apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip",
+    "zipBytes": 109273,
+    "zipSha256": "df24eb70667572b3122137f41883bc9d6b02bec8e7728e727b44bcb09cc176ce",
+    "binarySha256": "822947dd8a9146e66274d3ebce1ff56d2e3e2a476493d8069611d7d88e9769dc",
+    "archiveIntegrity": {
+      "command": "unzip -tq <zip>",
+      "result": "pass"
+    },
+    "reproducibility": {
+      "command": "cd apps/browser && npm run verify:macos-reproducible",
+      "result": "pass",
+      "buildsCompared": 2,
+      "firstSha256": "df24eb70667572b3122137f41883bc9d6b02bec8e7728e727b44bcb09cc176ce",
+      "secondSha256": "df24eb70667572b3122137f41883bc9d6b02bec8e7728e727b44bcb09cc176ce",
+      "scope": "same host, toolchain, source tree and ad-hoc signing class"
+    }
+  },
+  "signing": {
+    "codesignVerify": "pass",
+    "class": "adhoc",
+    "architecture": "arm64",
+    "teamIdentifier": null,
+    "cdHash": "ad2ebc20cbd141c36bb4f857ded499fff8ece17e",
+    "cdHashFullSha256": "ad2ebc20cbd141c36bb4f857ded499fff8ece17e4d847f552e006ea6d7dca51f",
+    "gatekeeperAssessment": {
+      "command": "spctl -a -vv <app>",
+      "result": "rejected",
+      "exitCode": 3
+    },
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "truthBoundary": "The artifact is an ad-hoc-signed local Testnet Preview. Gatekeeper rejection proves that production signing and notarization are not satisfied."
+  },
+  "runtime": {
+    "coldStart": {
+      "command": "open -n <app>",
+      "result": "pass",
+      "observedPid": 17025,
+      "process": "YNXBrowserNative"
+    },
+    "gracefulQuit": {
+      "command": "osascript -e 'tell application id com.ynxweb4.browser.macos to quit'",
+      "result": "pass"
+    },
+    "restart": {
+      "command": "open -n <app>",
+      "result": "pass",
+      "observedPid": 17896,
+      "gracefulQuitAfterRestart": "pass"
+    }
+  },
+  "verifiedStates": {
+    "implementedLocal": true,
+    "builtLocal": true,
+    "packagedLocal": true,
+    "executedLocal": true,
+    "coldStartVerified": true,
+    "restartVerified": true,
+    "reproducibleOnEvidenceHost": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "notVerified": [
+    "interactive normal and Private network download pair through WKWebView and NSSavePanel",
+    "copy or installation into a user application location",
+    "macOS ynxbrowser callback interaction and rejection states",
+    "notarization or Developer ID signing",
+    "native state-v2 export/delete/backup/restore UI",
+    "public hosting and immutable download URL",
+    "central Wallet/Auth acceptance",
+    "shared Testnet end-to-end flow"
+  ]
+}

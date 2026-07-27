@@ -1,7 +1,7 @@
 # YNX Browser dependency acceptance
 
-Version: 0.2.1-candidate  
-Source commit: `0515ff50b22547840c6554b29c4af3cd17484800`  
+Version: 0.2.2-candidate
+Source commit: `f2f9aaed8d3e4231d37c94de352077008a338572`
 As of: 2026-07-27  
 Status: candidate; no central acceptance is implied
 
@@ -15,7 +15,7 @@ Status: candidate; no central acceptance is implied
 | 26 Data Fabric | Canonical privacy-safe Browser events | Browser has bounded local audit event names only | Pending | Canonical event names, versions, retention and redaction contract; local strings must not be treated as canonical |
 | 28 Website | `/browser` public route, metadata, downloads and support/privacy/security/status links | Browser public package has not yet been generated | Pending | Truthful metadata and immutable artifact manifest, then Website publication evidence |
 | 29 Integration | Protocol freeze and shared Testnet | Browser contract and cross-product candidate vectors now exist | Pending | Freeze one version and run the shared Search/Wallet/Pay/Quant/DEX/Explorer flow |
-| 30 Security/SRE/Release | Threat policy, SBOM/provenance, signing and hosted artifacts | Historical SBOM and prior local build evidence exist | Pending | Current-commit scans, reproducible builds, signing class, immutable hashes and hosted artifact proof |
+| 30 Security/SRE/Release | Threat policy, SBOM/provenance, signing and hosted artifacts | Production source gate passes; macOS ad-hoc preview has integrity-checked bytes/hashes and two same-host builds produce the same ZIP SHA-256 | Pending | Regenerated current-commit SBOM/provenance, dependency/license/SAST/DAST/artifact scans, cross-host reproducibility, production signing and hosted artifact proof |
 
 ## Fail-closed rules while pending
 
@@ -27,4 +27,4 @@ Status: candidate; no central acceptance is implied
 
 ## Current local blocker
 
-The macOS privacy fix, state-v2 lifecycle and Windows Wallet request builder are committed. Browser tests pass 14/14, Wallet/permission contracts pass 15/15, and Smoke passes. The macOS arm64 Release Build, ad-hoc Testnet Preview package, cold start, graceful quit and restart are now verified at `88bf8dd`; Gatekeeper rejection correctly preserves the non-production boundary. Windows compilation still cannot start because `dotnet` is not installed, and macOS Private-download/deep-link interactions remain open.
+The macOS privacy fix, state-v2 lifecycle and Windows Wallet request builder are committed. Browser tests pass 14/14, native download-persistence tests pass 3/3, Wallet/permission contracts pass 15/15, Smoke passes, and the production source gate passes. The macOS arm64 Release Build, ad-hoc Testnet Preview package, two-build same-host reproducibility, cold start, graceful quit and restart are verified at `f2f9aae`; Gatekeeper rejection correctly preserves the non-production boundary. Windows compilation still cannot start because `dotnet` is not installed. The full macOS WKWebView/NSSavePanel download interaction and `ynxbrowser` callback interaction remain open.

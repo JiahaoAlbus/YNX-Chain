@@ -1,13 +1,19 @@
 {
   "schemaVersion": "ynx.browser.integration.v1",
-  "contractVersion": "0.2.1-candidate",
+  "contractVersion": "0.2.2-candidate",
   "status": "candidate-not-centrally-frozen",
   "owner": {
     "productNumber": 22,
     "productSlug": "browser",
     "responsibility": "Browser runtime, platform clients, local privacy/security mediation, and exact Wallet review handoff"
   },
-  "sourceCommit": "0515ff50b22547840c6554b29c4af3cd17484800",
+  "sourceCommit": "f2f9aaed8d3e4231d37c94de352077008a338572",
+  "implementationCommits": {
+    "downloadPrivacy": "668cb44dab95374ba9e5342d754b6ec568564f2b",
+    "reproducibleMacosPreview": "f2f9aaed8d3e4231d37c94de352077008a338572",
+    "stateLifecycle": "91685b728cefefabec9414317f2663d659062edc",
+    "windowsWalletBuilder": "0515ff50b22547840c6554b29c4af3cd17484800"
+  },
   "asOf": "2026-07-27",
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -83,7 +89,12 @@
       "download metadata"
     ],
     "downloadBoundary": "The selected file can remain in the operating-system file system; private downloads must not create a normal YNX Downloads record.",
-    "aiBoundary": "AI cannot access private pages, unselected history, Wallet identity, or unrelated tabs."
+    "aiBoundary": "AI cannot access private pages, unselected history, Wallet identity, or unrelated tabs.",
+    "implementationEvidence": {
+      "nativePolicyTests": "apps/browser/native/Tests/YNXBrowserCoreTests/DownloadPersistenceTests.swift",
+      "result": "3/3 pass",
+      "truthBoundary": "The tested persistence function is the same function invoked by the macOS WKDownload delegate; full network and NSSavePanel interaction evidence remains open."
+    }
   },
   "localAuditEvents": {
     "status": "local-noncanonical",

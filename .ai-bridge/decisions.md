@@ -15,3 +15,7 @@ Updated: 2026-07-27
 11. **Local audit names are noncanonical.** Product 26 owns canonical event definitions; product 29 freezes the integration version.
 12. **No dual registry.** The existing v2 registry candidate remains the one local tuple source until Wallet/Auth accepts it or provides an explicit migration.
 13. **Ad-hoc signing is preview evidence only.** A passing `codesign` check plus Gatekeeper rejection proves the local bundle's integrity class and simultaneously forbids any production-signed, notarized, hosted or store-release claim.
+14. **Native download evidence must exercise production policy code.** The WKDownload delegate and Swift tests share `BrowserDownloadPersistence`; a duplicate test-only implementation is not acceptable.
+15. **A deterministic policy harness is not a UI interaction recording.** It can close the persistence-logic gate while the WKWebView, network response and NSSavePanel evidence remains explicitly open.
+16. **Invalid Search configuration fails locally.** macOS falls back to `about:blank`, not a third-party example domain or a fabricated Search success.
+17. **Preview archives are normalized and ordered.** Same-host reproducibility must compare two complete builds; it does not imply cross-host reproducibility or production provenance.
