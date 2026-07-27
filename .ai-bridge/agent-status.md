@@ -46,5 +46,7 @@ StreamBFT activation are not established. The long-term goal remains Active.
 
 ## Checkpoint
 
-Implementation is reviewed and ready for commit/push. Exact checkpoint and remote SHA
-will be appended after the first protected commit is pushed.
+Implementation checkpoint `0fd3a650c7430a1336e2d20fd368fdad5f242a3f` was pushed to
+`origin/codex/final-docs-compliance`, and local and remote SHA were verified equal. This
+evidence-only follow-up records that protected checkpoint and does not promote any
+product, legal, economic, security or signing state.

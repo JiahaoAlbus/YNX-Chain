@@ -164,9 +164,9 @@
     {
       "id": "C22",
       "name": "Final validation commit push and remote verification",
-      "status": "partial",
-      "evidence": [".ai-bridge/full-goal-coverage.json", ".ai-bridge/agent-status.md", ".ai-bridge/execution-log.jsonl"],
-      "remaining": ["Commit and push the current coverage slice", "Verify local and remote SHA", "Verify clean worktree"]
+      "status": "proved",
+      "evidence": [".ai-bridge/full-goal-coverage.json", ".ai-bridge/agent-status.md", ".ai-bridge/execution-log.jsonl", "commit:0fd3a650c7430a1336e2d20fd368fdad5f242a3f"],
+      "remaining": []
     }
   ],
   "publicDocumentDeliverables": {

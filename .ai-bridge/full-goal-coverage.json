@@ -141,9 +141,9 @@
     },
     {
       "id": "YNX18-C22", "category": "git-release", "requirement": "Validate, commit, push, verify local/remote SHA equality and accurately record clean state.",
-      "applicability": "applicable", "applicabilityReason": "Every autonomous slice must be recoverable and remotely protected.", "status": "inProgress",
-      "evidence": [".ai-bridge/agent-status.md", ".ai-bridge/execution-log.jsonl"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": [], "artifact": [], "publicProof": [],
-      "blockedBy": [], "owner": "YNX 18", "nextAction": "Run all YNX 18 gates, review, commit, push and verify exact SHA for this slice.", "lastUpdated": "2026-07-27"
+      "applicability": "applicable", "applicabilityReason": "Every autonomous slice must be recoverable and remotely protected.", "status": "verifiedComplete",
+      "evidence": [".ai-bridge/agent-status.md", ".ai-bridge/execution-log.jsonl"], "sourceCommit": "0fd3a650c7430a1336e2d20fd368fdad5f242a3f", "tests": ["scripts/verify/full-goal-coverage-gate.mjs", "scripts/verify/docs-compliance-check.mjs"], "artifact": ["release/integration/docs-compliance-brand-contract.json"], "publicProof": [],
+      "blockedBy": [], "owner": "YNX 18", "nextAction": "Reverify commit, push, SHA equality and clean state after every subsequent slice.", "lastUpdated": "2026-07-27"
     },
     {
       "id": "YNX18-P01", "category": "product-truth-boundary", "requirement": "Publish only claims grounded in code, tests, releases, public evidence or official sources; otherwise label Candidate, Goal or Blocked.",
