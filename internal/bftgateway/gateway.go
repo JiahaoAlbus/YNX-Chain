@@ -35,7 +35,7 @@ var implementedCapabilities = []string{
 	"evm-block-transaction-count-and-index-lookup",
 	"evm-account-balance-and-nonce",
 	"evm-signed-raw-transaction-broadcast",
-	"evm-bounded-contract-code-call-and-gas",
+	"evm-bounded-contract-code-storage-call-and-gas",
 	"native-signed-transaction-http-broadcast",
 	"transaction-lookup-and-history",
 	"faucet-state-transition",
