@@ -17,6 +17,11 @@ final class APIClient {
         let(data,response)=try await URLSession.shared.data(for:req);guard let http=response as? HTTPURLResponse,(200..<300).contains(http.statusCode) else{throw ShopError.invalidResponse}
         return try JSONDecoder().decode(T.self,from:data)
     }
+    func data(_ path:String,method:String="GET",body:Data?=nil) async throws->Data{
+        guard let url=URL(string:path,relativeTo:base.appendingPathComponent("/")) else{throw ShopError.unavailable};var req=URLRequest(url:url);req.httpMethod=method;req.httpBody=body;req.timeoutInterval=12;req.setValue("application/json",forHTTPHeaderField:"Content-Type")
+        if let token=Vault.text("product-session"){req.setValue("Bearer \(token)",forHTTPHeaderField:"Authorization")}
+        let(data,response)=try await URLSession.shared.data(for:req);guard let http=response as? HTTPURLResponse,(200..<300).contains(http.statusCode) else{throw ShopError.invalidResponse};return data
+    }
     func raw(_ path:String,method:String="POST",json:[String:Any]) async throws->[String:Any]{
         let body=try CanonicalJSON.data(json);guard let url=URL(string:path,relativeTo:base.appendingPathComponent("/")) else{throw ShopError.unavailable};var req=URLRequest(url:url);req.httpMethod=method;req.httpBody=method=="GET" ? nil:body;req.timeoutInterval=12;req.setValue("application/json",forHTTPHeaderField:"Content-Type")
         if let token=Vault.text("product-session"){req.setValue("Bearer \(token)",forHTTPHeaderField:"Authorization")}

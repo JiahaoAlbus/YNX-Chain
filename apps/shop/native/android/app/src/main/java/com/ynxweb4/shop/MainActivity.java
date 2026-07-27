@@ -12,20 +12,22 @@ import android.widget.*;
 
 import org.json.*;
 
+import java.io.OutputStream;
 import java.text.NumberFormat;
 import java.time.*;
 import java.time.format.*;
 import java.util.*;
 
 public final class MainActivity extends Activity {
-    private static final int BLUE=Color.rgb(0,47,167),INK=Color.rgb(7,20,51),LINE=Color.rgb(220,227,242);
+    private static final int BLUE=Color.rgb(0,47,167),INK=Color.rgb(7,20,51),LINE=Color.rgb(220,227,242),CREATE_PRIVACY_EXPORT=6423;
     private SecureStore secure; private ApiClient api; private OfflineMutationQueue queue; private WalletAuth wallet;
     private LinearLayout content; private TextView status,cartBadge; private JSONArray products=new JSONArray(),cart=new JSONArray();
-    private EditText recipient,address,city,country;
+    private EditText recipient,address,city,country; private String pendingPrivacyExport="";
 
     @Override protected void attachBaseContext(Context base){super.attachBaseContext(LocaleController.apply(base));}
     @Override public void onCreate(Bundle state){super.onCreate(state);secure=new SecureStore(this);api=new ApiClient(secure);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);build();restoreCart();handleIntent(getIntent());showCatalog();}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);handleIntent(intent);}
+    @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);if(requestCode!=CREATE_PRIVACY_EXPORT||resultCode!=RESULT_OK||data==null||data.getData()==null||pendingPrivacyExport.isEmpty())return;try(OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IllegalStateException("export destination unavailable");out.write(pendingPrivacyExport.getBytes(java.nio.charset.StandardCharsets.UTF_8));pendingPrivacyExport="";status.setText("Shop data exported.");}catch(Exception error){status.setText(error.getMessage());}}
     @Override protected void onDestroy(){api.close();super.onDestroy();}
 
     private void build(){
@@ -131,9 +133,11 @@ public final class MainActivity extends Activity {
         content.addView(text(getString(R.string.settings_language),15,true));Spinner language=localeSpinner(LocaleController.current(this));language.setContentDescription(getString(R.string.accessibility_language));language.setOnItemSelectedListener(selection(tag->{if(!tag.equals(LocaleController.current(this))){LocaleController.save(this,tag);recreate();}}));content.addView(language);
         content.addView(text(getString(R.string.ai_language),15,true));Spinner ai=localeSpinner(LocaleController.aiLanguage(this));ai.setContentDescription(getString(R.string.accessibility_ai_language));ai.setOnItemSelectedListener(selection(tag->LocaleController.saveAI(this,tag)));content.addView(ai);
         Button retry=button(getString(R.string.restore_pending));retry.setOnClickListener(v->new Thread(()->{try{int count=queue.flush(api);runOnUiThread(()->status.setText(count+" "+getString(R.string.restore_pending)));}catch(Exception e){runOnUiThread(()->status.setText(e.getMessage()));}}).start());content.addView(retry);
-        if(hasSession()){recipient=input(getString(R.string.recipient));address=input(getString(R.string.address));city=input(getString(R.string.city));country=input(getString(R.string.country));for(EditText f:List.of(recipient,address,city,country))content.addView(f);Button save=primary(getString(R.string.save_profile));save.setOnClickListener(v->saveProfile());content.addView(save);}
+        if(hasSession()){recipient=input(getString(R.string.recipient));address=input(getString(R.string.address));city=input(getString(R.string.city));country=input(getString(R.string.country));for(EditText f:List.of(recipient,address,city,country))content.addView(f);Button save=primary(getString(R.string.save_profile));save.setOnClickListener(v->saveProfile());content.addView(save);content.addView(text("Shop data export and deletion",18,true));content.addView(text("Export includes profile, cart, orders, AI records and buyer audit history. Deletion requires terminal orders and retains authoritative public-chain settlement evidence.",13,false));Button export=button("Export Shop data");export.setOnClickListener(v->exportPrivacyData());content.addView(export);Button delete=button("Delete personal Shop data");delete.setTextColor(Color.rgb(180,35,24));delete.setOnClickListener(v->confirmPrivacyDeletion());content.addView(delete);}
     }
     private void saveProfile(){try{JSONObject body=new JSONObject().put("DisplayName","").put("Addresses",new JSONArray().put(new JSONObject().put("Recipient",recipient.getText()).put("Line1",address.getText()).put("City",city.getText()).put("Country",country.getText())));api.request("PUT","/profile",body,(v,e)->runOnUiThread(()->status.setText(e==null?getString(R.string.profile_saved):e.getMessage())));}catch(Exception e){status.setText(e.getMessage());}}
+    private void exportPrivacyData(){api.request("GET","/privacy/export",null,(value,error)->runOnUiThread(()->{if(error!=null){status.setText(error.getMessage());return;}pendingPrivacyExport=value.toString();Intent intent=new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/json").putExtra(Intent.EXTRA_TITLE,"ynx-shop-data-"+LocalDate.now()+".json");startActivityForResult(intent,CREATE_PRIVACY_EXPORT);}));}
+    private void confirmPrivacyDeletion(){EditText confirmation=input("DELETE_MY_SHOP_DATA");new AlertDialog.Builder(this).setTitle("Delete personal Shop data").setMessage("Active orders must reach a terminal state. Finalized orders are pseudonymized; authoritative public-chain settlement evidence remains retained.").setView(confirmation).setNegativeButton(getString(R.string.cancel),null).setPositiveButton("Delete",(dialog,which)->{if(!"DELETE_MY_SHOP_DATA".equals(confirmation.getText().toString())){status.setText("Exact confirmation phrase required.");return;}api.request("POST","/privacy/delete",json("confirmation","DELETE_MY_SHOP_DATA"),(value,error)->runOnUiThread(()->{if(error!=null){status.setText(error.getMessage());return;}try{secure.put("cart","");cart=new JSONArray();cartBadge.setText("0");status.setText("Personal Shop data deleted. Receipt "+value.optString("receiptId"));showAccount();}catch(Exception e){status.setText(e.getMessage());}}));}).show();}
 
     private void runAI(String workflow,String contextClass,String summary,long units){
         if(!hasSession()){signIn();return;}new AlertDialog.Builder(this).setTitle(getString(R.string.ai_compare)).setMessage(getString(R.string.ai_privacy)+"\n\n"+summary+"\n"+units+" AI units · "+LocaleController.aiLanguage(this)).setNegativeButton(getString(R.string.cancel),null).setPositiveButton(getString(R.string.grant_permission),(d,w)->{

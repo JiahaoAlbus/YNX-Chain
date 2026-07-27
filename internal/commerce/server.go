@@ -48,6 +48,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /api/profile", s.saveProfile)
 	s.mux.HandleFunc("GET /api/cart", s.cart)
 	s.mux.HandleFunc("PUT /api/cart", s.saveCart)
+	s.mux.HandleFunc("GET /api/privacy/export", s.exportBuyerData)
+	s.mux.HandleFunc("POST /api/privacy/delete", s.deleteBuyerData)
 	s.mux.HandleFunc("GET /api/orders", s.orders)
 	s.mux.HandleFunc("POST /api/orders", s.createOrder)
 	s.mux.HandleFunc("GET /api/orders/{id}", s.order)
@@ -105,7 +107,7 @@ func (s *Server) capabilities(w http.ResponseWriter, r *http.Request) {
 	if s.cfg.Auth != nil && s.cfg.Auth.Available() {
 		wallet = "central_gateway"
 	}
-	write(w, 200, map[string]any{"walletAuth": wallet, "walletProtocol": "wallet-auth-v1+p256-sha256", "paySettlement": availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""), "logistics": "unavailable", "tax": "unavailable", "aiProvider": availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""), "trustEvidence": availability(s.cfg.Trust != nil && s.cfg.Trust.Available()), "protectedAIActions": []string{"publish_product", "change_price", "purchase", "refund", "change_seller_policy"}})
+	write(w, 200, map[string]any{"walletAuth": wallet, "walletProtocol": "wallet-auth-v1+p256-sha256", "paySettlement": availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""), "logistics": "unavailable", "tax": "unavailable", "aiProvider": availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""), "trustEvidence": availability(s.cfg.Trust != nil && s.cfg.Trust.Available()), "privacyData": "export_and_delete", "protectedAIActions": []string{"publish_product", "change_price", "purchase", "refund", "change_seller_policy"}})
 }
 func availability(ok bool) string {
 	if ok {
@@ -307,6 +309,35 @@ func (s *Server) saveCart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, 200, v)
+}
+func (s *Server) exportBuyerData(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "buyer")
+	if !ok || !s.rate(w, r, sess.Account, "privacy.export") {
+		return
+	}
+	write(w, http.StatusOK, s.store.ExportBuyerData(sess.Account))
+}
+func (s *Server) deleteBuyerData(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "buyer")
+	if !ok || !s.rate(w, r, sess.Account, "privacy.delete") {
+		return
+	}
+	var in struct {
+		Confirmation string `json:"confirmation"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	if in.Confirmation != "DELETE_MY_SHOP_DATA" {
+		fail(w, http.StatusBadRequest, errors.New("exact confirmation DELETE_MY_SHOP_DATA required"))
+		return
+	}
+	receipt, err := s.store.DeleteBuyerData(sess.Account)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusOK, receipt)
 }
 func (s *Server) orders(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "buyer", "seller")

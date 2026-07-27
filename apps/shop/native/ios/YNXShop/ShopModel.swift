@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor final class ShopModel:ObservableObject {
     @Published var products:[Product]=[],cart:[CartItem]=[],orders:[Order]=[]
     @Published var state="loading",search="",selected:Product?,signedIn=false
+    @Published var privacyExportURL:URL?
     @Published var appLanguage=UserDefaults.standard.string(forKey:"app-language") ?? Locale.current.identifier
     @Published var aiLanguage=UserDefaults.standard.string(forKey:"ai-language") ?? Locale.current.language.languageCode?.identifier ?? "en"
     let api=APIClient(),queue=OfflineQueue()
@@ -19,5 +20,7 @@ import SwiftUI
     func transition(_ order:Order,_ action:String,reason:String){let json:[String:Any]=["Action":action,"Reason":reason,"Explanation":reason,"Body":reason,"Rating":action=="reviewed" ? 5:0,"IdempotencyKey":UUID().uuidString.lowercased()];Task{do{_ = try await api.raw("orders/\(order.ID)/transition",json:json);await loadOrders()}catch{do{try queue.append(method:"POST",path:"orders/\(order.ID)/transition",body:try CanonicalJSON.data(json));state="queued_offline"}catch{state="security_error"}}}}
     func pay(_ order:Order){Task{do{let r=try await api.raw("orders/\(order.ID)/pay-handoff",json:["IdempotencyKey":UUID().uuidString.lowercased()]);if let text=r["deepLink"] as? String,let url=URL(string:text){await UIApplication.shared.open(url)}else{state="unavailable"}}catch{state="unavailable"}}}
     func retryPending(){Task{var remaining:[OfflineEnvelope]=[];for item in queue.load(){do{let json=(try JSONSerialization.jsonObject(with:item.body) as? [String:Any]) ?? [:];_ = try await api.raw(item.path,method:item.method,json:json)}catch{remaining.append(item)}};try? queue.replace(remaining);state=remaining.isEmpty ? "":"queued_offline";await loadOrders()}}
+    func exportPrivacyData(){guard signedIn else{signIn();return};Task{do{let data=try await api.data("privacy/export"),url=FileManager.default.temporaryDirectory.appendingPathComponent("ynx-shop-data-\(ISO8601DateFormatter().string(from:Date()).prefix(10)).json");try data.write(to:url,options:.atomic);privacyExportURL=url;state="Shop data export ready."}catch{state="Shop data export unavailable."}}}
+    func deletePrivacyData(_ confirmation:String){guard signedIn else{signIn();return};guard confirmation=="DELETE_MY_SHOP_DATA" else{state="Exact deletion confirmation required.";return};Task{do{_ = try await api.raw("privacy/delete",json:["confirmation":confirmation]);cart=[];orders=[];privacyExportURL=nil;state="Personal Shop data deleted; public-chain settlement evidence remains retained."}catch{state="Deletion not completed. Active workflows may still require resolution."}}}
     func runAI(workflow:String,summary:String){Task{do{let job=try await api.raw("ai/jobs",json:["Workflow":workflow,"ContextClasses":["public_catalog"],"ContextSummary":"\(summary); outputLanguage=\(aiLanguage)","EstimateUnits":1,"PermissionGranted":true,"IdempotencyKey":UUID().uuidString]);guard let id=job["ID"] as? String else{throw ShopError.invalidResponse};let result=try await api.raw("ai/jobs/\(id)/run",json:[:]);state=(result["Result"] as? String) ?? "unavailable"}catch{state="unavailable"}}}
 }
