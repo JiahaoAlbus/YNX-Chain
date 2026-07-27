@@ -6,6 +6,7 @@ cd "$root"
 work="$(mktemp -d)"
 server_pids=()
 cleanup() {
+  set +u
   for pid in "${server_pids[@]}"; do kill "$pid" 2>/dev/null || true; done
   rm -rf "$work"
 }
@@ -50,7 +51,28 @@ fi
 
 signing_key="$work/signing-key.pem"
 public_key="$work/signing-public.pem"
-openssl genpkey -algorithm ED25519 -out "$signing_key"
+case "${YNX_DATA_FABRIC_TEST_SIGNING_ALGORITHM:-auto}" in
+  auto)
+    if openssl genpkey -algorithm ED25519 -out "$signing_key" >/dev/null 2>&1; then
+      signing_algorithm="ed25519-over-sha256"
+    else
+      signing_algorithm="rsa-pkcs1-sha256-over-sha256"
+      openssl genrsa -out "$signing_key" 3072 >/dev/null 2>&1
+    fi
+    ;;
+  ed25519)
+    signing_algorithm="ed25519-over-sha256"
+    openssl genpkey -algorithm ED25519 -out "$signing_key" >/dev/null 2>&1
+    ;;
+  rsa)
+    signing_algorithm="rsa-pkcs1-sha256-over-sha256"
+    openssl genrsa -out "$signing_key" 3072 >/dev/null 2>&1
+    ;;
+  *)
+    echo "unsupported test signing algorithm override" >&2
+    exit 1
+    ;;
+esac
 openssl pkey -in "$signing_key" -pubout -out "$public_key"
 server_key="$work/server-key.pem"
 server_certificate="$work/server-certificate.pem"
@@ -71,6 +93,7 @@ run_promotion() {
   YNX_DATA_FABRIC_PUBLIC_RELEASE_TEST_MODE="${YNX_DATA_FABRIC_PUBLIC_RELEASE_TEST_MODE_OVERRIDE:-1}" \
   YNX_DATA_FABRIC_SECURE_SIGNER_COMMAND="$root/scripts/data-fabric/testdata/secure-signer-fixture.sh" \
   YNX_DATA_FABRIC_SIGNING_PUBLIC_KEY="$public_key" \
+  YNX_DATA_FABRIC_SIGNING_ALGORITHM="$signing_algorithm" \
   YNX_DATA_FABRIC_SIGNING_CLASS="test-hardware-backed-equivalent" \
   YNX_DATA_FABRIC_SIGNING_APPROVAL_ID="approval.public-release.test.0001" \
   YNX_DATA_FABRIC_PROVENANCE_IDENTITY="fixture://public-release-signer" \

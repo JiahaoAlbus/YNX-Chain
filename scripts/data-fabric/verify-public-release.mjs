@@ -14,7 +14,8 @@ if (
 ) fail("usage: verify-public-release.mjs <publish-dir> <hosting-receipt> <commit> <release> <base-url> [--downloads]");
 
 const sha256 = (body) => crypto.createHash("sha256").update(body).digest("hex");
-const normalizedBaseURL = new URL(expectedBaseURL).toString().replace(/\/$/, "");
+const parsedBaseURL = new URL(expectedBaseURL);
+const normalizedBaseURL = parsedBaseURL.toString().replace(/\/$/, "");
 const releaseRecordName = `${expectedRelease}-public-release.json`;
 const signatureName = `${expectedRelease}-public-release.sig`;
 const publicKeyName = `${expectedRelease}-public-release.pub.pem`;
@@ -29,7 +30,7 @@ if (
   || record.target?.architecture !== "amd64"
   || record.states?.downloadHosted !== true
   || record.states?.productionSigned !== true
-  || record.signing?.algorithm !== "ed25519-over-sha256"
+  || !["ed25519-over-sha256", "rsa-pkcs1-sha256-over-sha256"].includes(record.signing?.algorithm)
   || !/^[0-9a-f]{64}$/.test(record.signing?.publicKeySha256 ?? "")
   || record.signing?.signaturePath !== signatureName
   || record.hosting?.immutable !== true
@@ -108,6 +109,14 @@ if (
   || requiredColdStartChecks.some((check) => coldStart.checks?.[check] !== true)
   || (coldStart.environment === "linux-runtime" && (!Array.isArray(coldStart.binaries) || coldStart.binaries.length !== 4))
 ) fail("public release cold-start evidence is invalid");
+if (
+  record.signing.algorithm === "rsa-pkcs1-sha256-over-sha256"
+  && (
+    coldStart.environment !== "contract-test"
+    || !["127.0.0.1", "::1"].includes(parsedBaseURL.hostname)
+    || !record.signing.class.startsWith("test-")
+  )
+) fail("RSA signing is restricted to loopback contract tests");
 
 const receipt = JSON.parse(fs.readFileSync(hostingReceiptPath, "utf8"));
 if (

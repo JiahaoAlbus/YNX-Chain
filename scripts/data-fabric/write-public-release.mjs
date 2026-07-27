@@ -10,6 +10,7 @@ const [
   release,
   immutableBaseURL,
   publicKeySha256,
+  signingAlgorithm,
   signingClass,
   approvalID,
   provenanceIdentity,
@@ -20,9 +21,10 @@ if (
   || !/^[0-9a-f]{12}$/.test(commit ?? "")
   || release !== `ynx-data-fabric-${commit}`
   || !/^[0-9a-f]{64}$/.test(publicKeySha256 ?? "")
+  || !["ed25519-over-sha256", "rsa-pkcs1-sha256-over-sha256"].includes(signingAlgorithm)
   || [signingClass, approvalID, provenanceIdentity, releaseApprover].some((value) => !value || value.length > 256)
 ) {
-  throw new Error("usage: write-public-release.mjs <publish-dir> <commit> <release> <immutable-base-url> <public-key-sha256> <signing-class> <approval-id> <provenance-identity> <release-approver>");
+  throw new Error("usage: write-public-release.mjs <publish-dir> <commit> <release> <immutable-base-url> <public-key-sha256> <signing-algorithm> <signing-class> <approval-id> <provenance-identity> <release-approver>");
 }
 const baseURL = new URL(immutableBaseURL);
 if (
@@ -94,7 +96,7 @@ const record = {
     productionSigned: true,
   },
   signing: {
-    algorithm: "ed25519-over-sha256",
+    algorithm: signingAlgorithm,
     class: signingClass,
     approvalId: approvalID,
     provenanceIdentity,

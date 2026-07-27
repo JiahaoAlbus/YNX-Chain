@@ -20,6 +20,7 @@ esac
 required_env=(
   YNX_DATA_FABRIC_SECURE_SIGNER_COMMAND
   YNX_DATA_FABRIC_SIGNING_PUBLIC_KEY
+  YNX_DATA_FABRIC_SIGNING_ALGORITHM
   YNX_DATA_FABRIC_SIGNING_CLASS
   YNX_DATA_FABRIC_SIGNING_APPROVAL_ID
   YNX_DATA_FABRIC_PROVENANCE_IDENTITY
@@ -31,11 +32,17 @@ required_env=(
 for name in "${required_env[@]}"; do
   [[ -n "${!name:-}" ]] || { echo "$name is required" >&2; exit 1; }
 done
+signing_algorithm="$YNX_DATA_FABRIC_SIGNING_ALGORITHM"
+case "$signing_algorithm" in
+  ed25519-over-sha256 | rsa-pkcs1-sha256-over-sha256) ;;
+  *) echo "unsupported public release signing algorithm" >&2; exit 1 ;;
+esac
 if [[ "${YNX_DATA_FABRIC_PUBLIC_RELEASE_TEST_MODE:-0}" == "1" ]]; then
   node -e 'const u=new URL(process.argv[1]); if (u.protocol !== "https:" || (u.hostname !== "127.0.0.1" && u.hostname !== "::1")) process.exit(1)' \
     "$YNX_DATA_FABRIC_IMMUTABLE_BASE_URL" ||
     { echo "public release test mode is restricted to loopback HTTPS" >&2; exit 1; }
 else
+  [[ "$signing_algorithm" == "ed25519-over-sha256" ]] || { echo "production promotion requires ed25519-over-sha256" >&2; exit 1; }
   [[ "${YNX_DATA_FABRIC_PUBLIC_RELEASE_APPROVED:-}" == "yes" ]] || { echo "YNX_DATA_FABRIC_PUBLIC_RELEASE_APPROVED=yes is required" >&2; exit 1; }
   ynx_require_clean_worktree
   jq -e '.environment == "linux-runtime" and .status == "verified"' "$YNX_DATA_FABRIC_COLD_START_EVIDENCE_FILE" >/dev/null ||
@@ -78,20 +85,30 @@ openssl pkey -pubin -in "$public_key" -outform DER -out "$public_key_der"
 public_key_sha="$(sha256sum "$public_key_der" | awk '{print $1}')"
 node scripts/data-fabric/write-public-release.mjs \
   "$publish_dir" "$commit" "$release" "$YNX_DATA_FABRIC_IMMUTABLE_BASE_URL" "$public_key_sha" \
-  "$YNX_DATA_FABRIC_SIGNING_CLASS" "$YNX_DATA_FABRIC_SIGNING_APPROVAL_ID" \
+  "$signing_algorithm" "$YNX_DATA_FABRIC_SIGNING_CLASS" "$YNX_DATA_FABRIC_SIGNING_APPROVAL_ID" \
   "$YNX_DATA_FABRIC_PROVENANCE_IDENTITY" "$YNX_DATA_FABRIC_RELEASE_APPROVER"
 
 release_record="$publish_dir/${release}-public-release.json"
 signature="$publish_dir/${release}-public-release.sig"
 digest_file="$output/public-release.sha256.bin"
 openssl dgst -sha256 -binary -out "$digest_file" "$release_record"
+verify_signature() {
+  case "$signing_algorithm" in
+    ed25519-over-sha256)
+      openssl pkeyutl -verify -pubin -inkey "$public_key" -rawin -in "$digest_file" -sigfile "$signature" >/dev/null
+      ;;
+    rsa-pkcs1-sha256-over-sha256)
+      openssl dgst -sha256 -verify "$public_key" -signature "$signature" "$digest_file" >/dev/null
+      ;;
+  esac
+}
 "$signer_command" sign --digest-file "$digest_file" --signature-output "$signature"
 [[ -s "$signature" ]] || { echo "secure signer did not produce a detached signature" >&2; exit 1; }
-openssl pkeyutl -verify -pubin -inkey "$public_key" -rawin -in "$digest_file" -sigfile "$signature" >/dev/null
+verify_signature
 
 "$upload_command" upload --source-dir "$publish_dir" --base-url "$YNX_DATA_FABRIC_IMMUTABLE_BASE_URL" --receipt-output "$hosting_receipt"
 [[ -s "$hosting_receipt" ]] || { echo "immutable uploader did not produce a hosting receipt" >&2; exit 1; }
-openssl pkeyutl -verify -pubin -inkey "$public_key" -rawin -in "$digest_file" -sigfile "$signature" >/dev/null
+verify_signature
 
 downloads="$output/downloads.tsv"
 node scripts/data-fabric/verify-public-release.mjs \
