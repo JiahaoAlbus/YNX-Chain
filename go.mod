@@ -5,6 +5,7 @@ go 1.25.0
 require (
 	github.com/cometbft/cometbft v0.38.23
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
+	github.com/gorilla/websocket v1.5.3
 	golang.org/x/crypto v0.50.0
 )
 
@@ -38,7 +39,6 @@ require (
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/orderedcode v0.0.1 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
