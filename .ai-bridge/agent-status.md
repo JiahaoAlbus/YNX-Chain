@@ -5,33 +5,37 @@
 - Stage: PROTECT
 - Goal status: Active
 - Workspace/branch match: confirmed
-- Dirty tree: no after the source-binding evidence checkpoint
-- Runtime source commit: `eb3d19091feff85a7cdbc09c20ed06ed402c74a7`
-- Push/upstream: `origin/codex/final-explorer`; runtime source Local/Remote equality confirmed
+- Runtime source commit: `3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb`
+- Upstream: `origin/codex/final-explorer`
+- Runtime source push: confirmed
+- Evidence binding: prepared in current checkpoint
 - Public deployment: not claimed
 
 ## Current checkpoint
 
-A runtime-first Explorer slice is locally verified: canonical evidence deep links, canonical Summary consumption with old-client compatibility, authenticated opaque cursor pagination from Indexer through Explorer to the web client, truthful freshness classification, and fail-closed cursor/error semantics.
+The Explorer now has two locally verified runtime slices: secure opaque cursor/deep-link migration and additive `explorer.public-evidence.v1` envelopes for block, transaction, account, resource, token and fee records. The envelope separates authority from transport, exposes observed/as-of/freshness/coverage/correction truth, hashes successful payloads, preserves payloads when only freshness probing degrades, and fails closed without payload or integrity when the source is unavailable.
 
 ## Current verification
 
-- `go test ./internal/indexer ./internal/explorer ./cmd/ynx-indexerd ./cmd/ynx-explorerd`: passed.
-- `go test -race ./internal/indexer ./internal/explorer`: passed; macOS linker emitted non-fatal `LC_DYSYMTAB` warnings.
-- `go build ./cmd/ynx-indexerd ./cmd/ynx-explorerd`: passed.
-- `apps/explorer npm test`: 14/14 passed.
-- `apps/explorer npm run build`: passed against current source.
-- `apps/explorer npm run test:a11y`: 1/1 passed.
-- `apps/explorer npm run test:e2e`: 10/10 passed across desktop and mobile projects.
-- `scripts/verify/indexer-check.sh`: passed against a disposable local Testnet, including resume behavior and metrics.
-- `scripts/verify/explorer-check.sh`: passed against a disposable local Testnet, including transaction, account, resource, token, validator, fee, search and metrics paths.
-- `apps/explorer npm audit --json`: 0 vulnerabilities.
-- `apps/explorer npm run security:scan`: passed across 36 product source and release files.
+- Explorer/Indexer Go suites and command packages: passed.
+- Explorer/Indexer Race: passed with non-fatal macOS `LC_DYSYMTAB` linker warnings.
+- Explorer/Indexer binary build: passed.
+- Frontend unit tests: 15/15 passed.
+- Production web build: passed.
+- Accessibility contract: 1/1 passed.
+- Playwright desktop/mobile: 10/10 passed, including public evidence metadata visibility.
+- Indexer disposable local-Testnet smoke: passed.
+- Explorer disposable local-Testnet smoke: passed, including live `explorer.public-evidence.v1` validation.
+- Explorer npm audit: 0 vulnerabilities.
+- Explorer security scan: 38 product source and release files passed.
 
-## Non-product preflight findings
+## Known release facts
 
-The repository-wide `go test ./...` remains red only in other-owner packages: shared key-permission tests, Hardhat selector metadata compatibility, and related Chain Core/API tooling. Explorer and Indexer packages pass. Root Hardhat development tooling reports three High advisories through `adm-zip`, with no npm fix available; the Explorer package itself is clean.
+- Repository-wide `go test ./...` remains red only in other-owner key-permission and Hardhat selector-metadata paths.
+- Root Hardhat development tooling reports three High advisories through `adm-zip`, with no npm fix available; these packages are not shipped by Explorer.
+- GitHub Actions status for this branch is not yet confirmed because the local `gh` query encountered TLS handshake timeout.
+- Central contract freeze, public ingress, hosted immutable artifact, cross-region proof and public deployment remain false.
 
-## Recovery instruction
+## Exact next action
 
-Preserve all current changes. Review the final synchronized evidence, create a checkpoint commit, push non-destructively with upstream creation, verify local and remote SHA equality, then continue the highest-priority uncovered Explorer requirement.
+Commit and push the source-bound evidence checkpoint, verify Local/Remote SHA equality, retry GitHub Actions status, then execute configured-key cursor restart continuity followed by explicit SSE `Last-Event-ID` gap recovery.

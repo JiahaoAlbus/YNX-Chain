@@ -3,7 +3,7 @@
   "product": "YNX Explorer",
   "slug": "explorer",
   "owner": "12-explorer",
-  "sourceCommit": "eb3d19091feff85a7cdbc09c20ed06ed402c74a7",
+  "sourceCommit": "3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb",
   "status": "candidate-source-bound-awaiting-central-freeze",
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -38,6 +38,15 @@
       "responseSchema": "explorer.transaction-page.v1",
       "requiredFields": ["transactions", "nextCursor", "cursorVersion"],
       "failureSemantics": "400 only for a rejected cursor; 502 for upstream failure"
+    },
+    {
+      "method": "GET",
+      "path": "/api/evidence/{kind}/{subject}",
+      "responseSchema": "explorer.public-evidence.v1",
+      "supportedKinds": ["block", "transaction", "account", "resource", "token", "fee"],
+      "requiredFields": ["schemaVersion", "evidenceId", "kind", "subject", "source", "observedAt", "asOf", "asOfBasis", "freshness", "coverage", "correction"],
+      "successIntegrity": "sha256 over kind, normalized subject, public raw-source path and canonical JSON payload",
+      "failureSemantics": "400 invalid/unsupported request; 404 source-confirmed absence; 502 authoritative source outage; error envelopes contain no payload or integrity"
     },
     {
       "method": "GET",
@@ -82,6 +91,24 @@
       "owner": "12-explorer",
       "httpStatus": 502,
       "meaning": "Authoritative RPC or Indexer dependency did not produce a usable response"
+    },
+    {
+      "code": "unsupported_evidence_kind",
+      "owner": "12-explorer",
+      "httpStatus": 400,
+      "meaning": "Requested kind is outside explorer.public-evidence.v1 and no fallback payload is returned"
+    },
+    {
+      "code": "evidence_not_found",
+      "owner": "authoritative-source-via-12-explorer",
+      "httpStatus": 404,
+      "meaning": "The authoritative source confirmed that the requested record is absent"
+    },
+    {
+      "code": "evidence_source_unavailable",
+      "owner": "12-explorer",
+      "httpStatus": 502,
+      "meaning": "The authoritative source failed; envelope is offline, retryable, and contains no payload or integrity"
     }
   ],
   "dependencies": [

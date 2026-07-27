@@ -17,14 +17,14 @@
       "requirement": "Use only authoritative RPC, Indexer, Trading, Oracle, Economics, Pay, Trust, Resource and public evidence sources; expose source, as-of, stale, offline and partial states.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": ["apps/explorer/src/live.ts", "apps/explorer/src/App.tsx", "apps/explorer/src/types.ts", "internal/explorer/explorer.go"],
-      "sourceCommit": "eb3d19091feff85a7cdbc09c20ed06ed402c74a7",
-      "tests": ["apps/explorer/src/live.test.ts", "apps/explorer/src/types.test.ts"],
+      "evidence": ["internal/explorer/evidence.go", "internal/explorer/server.go", "apps/explorer/src/api.ts", "apps/explorer/src/App.tsx", "apps/explorer/src/live.ts", "apps/explorer/src/types.ts", "release/integration/explorer-contract.json"],
+      "sourceCommit": "3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb",
+      "tests": ["internal/explorer/evidence_test.go", "apps/explorer/src/api.test.ts", "apps/explorer/tests/explorer.spec.ts", "apps/explorer/src/live.test.ts", "scripts/verify/explorer-check.sh"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "12-explorer",
-      "nextAction": "Add explicit source/asOf/coverage fields to every evidence-domain response and UI inspector.",
+      "nextAction": "Extend explorer.public-evidence.v1 to accepted Trading, Oracle, Economics, Pay, Trust and product-release domains after their owner contracts are frozen; retain fail-closed privacy tests.",
       "lastUpdated": "2026-07-27"
     },
     {

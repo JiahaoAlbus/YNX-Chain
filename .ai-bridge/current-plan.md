@@ -7,55 +7,49 @@
 - Goal: Active
 - Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/12-explorer`
 - Branch: `codex/final-explorer`
-- Current tree: source-bound evidence checkpoint, clean after commit
+- Runtime source commit: `3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb`
+- Runtime source push: confirmed
+- Current tree: source-binding evidence checkpoint pending commit
 
-## Protected intent
+## Protected runtime slices
 
-Do not discard or overwrite the current cursor, routing, schema migration, freshness, security-scan or integration-contract changes. Do not reset, clean or switch worktrees.
-
-## Completed runtime slice
-
-1. Canonical `/block`, `/tx` and `/address` evidence routes.
-2. Search-to-evidence navigation and browser back/forward restoration.
-3. Frontend migration to canonical Go Summary fields while retaining legacy read compatibility.
-4. HMAC-authenticated, versioned, feed-bound opaque cursor pagination in Indexer.
-5. Cursor propagation through Explorer APIs and cursor-driven frontend pagination.
-6. Fail-closed rejection for tampered, cross-feed, malformed and no-longer-retained cursors.
-7. Honest process-scoped versus configured-key cursor persistence in health metadata.
-8. Correct HTTP 400 cursor rejection versus HTTP 502 dependency-outage classification.
-9. Canonical freshness classification using `rpcHeight`, `indexedHeight` and `syncLagBlocks`.
-10. Product-owned security scan that does not depend on the shared `rg` installation.
-11. Product coverage matrix, release record, integration contract, handoff, test vectors and dependency acceptance.
+1. Canonical `/block`, `/tx` and `/address` evidence routes with browser history restoration.
+2. Canonical Summary migration with legacy read compatibility.
+3. HMAC-authenticated, feed-bound opaque cursor pagination and fail-closed error classification.
+4. Canonical freshness classification using `rpcHeight`, `indexedHeight` and `syncLagBlocks`.
+5. `explorer.public-evidence.v1` for block, transaction, account, resource, token and fee records.
+6. Authority/transport separation, observed/as-of basis, stale/offline/partial/coverage/correction metadata.
+7. Stable SHA-256 evidence identity for successful payloads.
+8. Versioned non-200 error envelopes without payload, integrity, internal host or stack disclosure.
+9. Product-owned security scan and real local-Testnet envelope smoke.
 
 ## Verification facts
 
-- Explorer/Indexer Go suites: passed.
-- Explorer/Indexer Race: passed with non-fatal macOS linker warnings.
-- Explorer/Indexer binary build: passed.
-- Frontend unit tests: 14/14 passed.
-- Production web build: passed against current source.
+- Explorer/Indexer targeted Go, Race and binary build: passed.
+- Frontend unit tests: 15/15 passed.
+- Production web build: passed.
 - Accessibility contract: 1/1 passed.
 - Playwright desktop/mobile: 10/10 passed.
-- Indexer local-Testnet smoke: passed.
-- Explorer local-Testnet smoke: passed.
+- Indexer and Explorer disposable local-Testnet smoke: passed.
 - Explorer npm audit: 0 vulnerabilities.
-- Explorer security scan: passed across 36 files.
-- Repository-wide `go test ./...`: still fails only in other-owner packages for shared key-permission and Hardhat selector-metadata issues.
-- Root Hardhat tooling audit: 3 High advisories through `adm-zip`, no npm fix available; not shipped in the Explorer package.
+- Explorer security scan: 38 files passed.
+- Whole-repository preflight remains red only in other-owner key-permission and Hardhat selector-metadata paths.
+- GitHub Actions status remains unconfirmed after a TLS handshake timeout from local `gh`.
 
 ## Exact next action
 
-1. Submit the source-bound `explorer.integration.v1` contract and vectors for 29 Integration freeze.
-2. Continue the next highest-priority local requirement: versioned public evidence envelopes carrying source, as-of, version, stale, coverage and correction semantics.
-3. Add configured-key cursor restart continuity and indexer restart/reorg evidence.
-4. Create product-specific Threat Model, SBOM, provenance and artifact scan gates.
-5. Keep public deployment, hosting, signing and central integration flags false until direct evidence exists.
+1. Validate source-bound JSON/JSONL and review changes.
+2. Commit and push the evidence checkpoint.
+3. Verify Local SHA equals Remote SHA.
+4. Retry GitHub Actions status without inferring success from push alone.
+5. Execute `EXP-CURSOR-006`: same approved 32-byte-or-longer configured cursor key across Indexer restart, with retained-anchor continuation and health persistence proof.
+6. Implement explicit SSE `Last-Event-ID` gap detection/replay-or-snapshot semantics and integration tests.
+7. Keep central integration, public deployment, artifact hosting and signing flags false until direct evidence exists.
 
 ## Do not claim
 
-- full product completion;
-- central integration acceptance;
-- public deployment or public runtime URL;
-- hosted immutable artifact;
-- production signing or store release;
-- repository-wide preflight success while other-owner failures remain.
+- central contract acceptance or 29 Integration freeze;
+- whole-repository preflight success;
+- public runtime deployment or public URL;
+- hosted immutable artifact, SBOM/provenance completeness, production signing or store release;
+- completion of Trading, Quant, Solvency, Economics or product-public-evidence domains before their owner contracts are accepted.

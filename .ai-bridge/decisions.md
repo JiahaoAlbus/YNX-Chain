@@ -31,6 +31,10 @@ The Go Explorer schema using `rpcHeight`, `indexedHeight`, `syncLagBlocks` and a
 
 An invalid cursor is HTTP 400. An Indexer/RPC outage is HTTP 502. The presence of a cursor must not cause an upstream outage to be mislabeled as a client error.
 
+### Public evidence authority
+
+`explorer.public-evidence.v1` is an additive Explorer transport envelope, not a replacement authority for Chain Core or another data owner. Successful envelopes separate authority from transport, carry observed/as-of/freshness/coverage/correction facts and hash the normalized payload. Historical records are not called stale solely because their event time is old. When only the cross-source freshness probe fails, the record remains available as `partial/unknown`; when the authoritative record fetch fails, the endpoint returns a non-200 error envelope with no payload or integrity and no internal host disclosure.
+
 ### Security gate integrity
 
 A validation command that exits 0 after its scanner dependency failed is not accepted as evidence. Explorer therefore owns a Node-based scan covering its runtime, BFF, Indexer, integration and release files without relying on `rg`.

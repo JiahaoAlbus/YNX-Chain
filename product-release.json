@@ -8,16 +8,19 @@
   },
   "goalStatus": "active",
   "stage": "PROTECT",
-  "releaseCandidate": "verified-local-checkpoint-eb3d190",
-  "sourceCommit": "eb3d19091feff85a7cdbc09c20ed06ed402c74a7",
+  "releaseCandidate": "verified-local-checkpoint-3e5cd9c",
+  "sourceCommit": "3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb",
   "sourceBranch": "codex/final-explorer",
   "asOf": "2026-07-27",
-  "truthfulStatus": "cursor-deep-link-summary-migration-slice-locally-verified",
+  "truthfulStatus": "cursor-deep-link-summary-and-versioned-public-evidence-slices-locally-verified",
   "capabilities": {
     "canonicalEvidenceDeepLinks": "testedLocal",
     "browserHistoryRestoration": "testedLocal",
     "canonicalExplorerSummarySchema": "testedLocal",
     "canonicalFreshnessClassification": "testedLocal",
+    "versionedPublicEvidenceEnvelope": "testedLocal",
+    "evidenceIntegrityDigest": "testedLocal",
+    "evidenceFailClosedErrors": "testedLocal",
     "opaqueCursorPagination": "testedLocal",
     "cursorTamperRejection": "testedLocal",
     "cursorCrossFeedRejection": "testedLocal",
@@ -50,7 +53,7 @@
       "command": "npm test",
       "scope": "apps/explorer",
       "result": "passed",
-      "evidence": "14 tests passed, including canonical/legacy Summary compatibility, routing, cursor clients and live freshness."
+      "evidence": "15 tests passed, including versioned evidence clients, canonical/legacy Summary compatibility, routing, cursor clients and live freshness."
     },
     {
       "command": "npm run build",
@@ -68,7 +71,7 @@
       "command": "npm run test:e2e",
       "scope": "apps/explorer desktop and mobile",
       "result": "passed",
-      "evidence": "10 Playwright tests passed, covering canonical navigation/history, cursor pagination, responsive overflow, RTL and installable PWA behavior."
+      "evidence": "10 Playwright tests passed, covering canonical navigation/history, visible authority/transport/as-of/coverage metadata, cursor pagination, responsive overflow, RTL and installable PWA behavior."
     },
     {
       "command": "bash scripts/verify/indexer-check.sh",
@@ -80,7 +83,7 @@
       "command": "bash scripts/verify/explorer-check.sh",
       "scope": "disposable local Testnet",
       "result": "passed",
-      "evidence": "Explorer transaction, account, resource, token, validator, fee, search, HTML and metrics paths passed."
+      "evidence": "Explorer transaction, versioned public-evidence envelope, account, resource, token, validator, fee, search, HTML and metrics paths passed against a disposable local Testnet."
     },
     {
       "command": "npm audit --json",
@@ -92,7 +95,7 @@
       "command": "npm run security:scan",
       "scope": "Explorer runtime, BFF, Indexer, integration and release files",
       "result": "passed",
-      "evidence": "36 product source and release files passed secret, filler and unfinished-marker scanning."
+      "evidence": "38 product source and release files passed secret, filler and unfinished-marker scanning."
     },
     {
       "command": "go test ./...",
@@ -139,5 +142,5 @@
     "Whole-repository preflight is red in other-owner packages; no Explorer-owned regression remains in the targeted gates.",
     "Shared root Hardhat tooling has three unresolved High advisories with no npm fix."
   ],
-  "nextAction": "Submit the source-bound contract for 29 Integration freeze, then implement versioned public evidence envelopes with source, as-of, version, stale, coverage and correction semantics."
+  "nextAction": "Submit explorer.public-evidence.v1 and its source-bound vectors for 29 Integration freeze, then execute configured-key cursor restart continuity and explicit SSE Last-Event-ID gap recovery."
 }

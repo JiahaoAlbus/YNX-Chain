@@ -31,3 +31,16 @@
 {"at":"2026-07-27","event":"commit","scope":"verified Explorer checkpoint","commit":"eb3d19091feff85a7cdbc09c20ed06ed402c74a7","message":"feat(explorer): secure cursor evidence navigation","result":"created"}
 {"at":"2026-07-27","event":"push","branch":"codex/final-explorer","upstream":"origin/codex/final-explorer","commit":"eb3d19091feff85a7cdbc09c20ed06ed402c74a7","result":"passed","localRemoteEqual":true}
 {"at":"2026-07-27","event":"evidence-binding","sourceCommit":"eb3d19091feff85a7cdbc09c20ed06ed402c74a7","files":[".ai-bridge/full-goal-coverage.json","product-release.json","release/integration/explorer-contract.json","docs/integration/CROSS_PRODUCT_TEST_VECTORS.json","docs/integration/INTEGRATION_HANDOFF.md"],"result":"prepared"}
+{"at":"2026-07-27","event":"verification","scope":"Explorer public evidence runtime","command":"go test ./internal/explorer","result":"passed","tests":["stable payload integrity","partial lag","freshness-probe degradation","fail-closed source outage"]}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm test","result":"passed","tests":15}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm run build","result":"passed"}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer desktop/mobile","command":"npm run test:e2e","result":"passed","tests":10,"coverage":["authority","transport","partial state","coverage metadata"]}
+{"at":"2026-07-27","event":"verification","scope":"apps/explorer","command":"npm run test:a11y","result":"passed","tests":1}
+{"at":"2026-07-27","event":"verification","scope":"Explorer and Indexer","command":"go test -race ./internal/indexer ./internal/explorer","result":"passed-with-warning","warning":"non-fatal macOS LC_DYSYMTAB linker warnings"}
+{"at":"2026-07-27","event":"verification","scope":"Explorer and Indexer","command":"go build ./cmd/ynx-indexerd ./cmd/ynx-explorerd","result":"passed"}
+{"at":"2026-07-27","event":"verification","scope":"disposable local Testnet","command":"bash scripts/verify/indexer-check.sh","result":"passed"}
+{"at":"2026-07-27","event":"verification","scope":"disposable local Testnet","command":"bash scripts/verify/explorer-check.sh","result":"passed","coverage":["explorer.public-evidence.v1","source authority","transport","payload hash","asOf","integrity","coverage"]}
+{"at":"2026-07-27","event":"security","scope":"Explorer product files","command":"npm run security:scan","result":"passed","files":38}
+{"at":"2026-07-27","event":"commit","scope":"versioned public evidence runtime","commit":"3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb","message":"feat(explorer): add versioned public evidence envelopes","result":"created"}
+{"at":"2026-07-27","event":"push","branch":"codex/final-explorer","upstream":"origin/codex/final-explorer","commit":"3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb","result":"passed"}
+{"at":"2026-07-27","event":"evidence-binding","sourceCommit":"3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb","files":[".ai-bridge/full-goal-coverage.json","product-release.json","release/integration/explorer-contract.json","docs/integration/CROSS_PRODUCT_TEST_VECTORS.json","docs/integration/INTEGRATION_HANDOFF.md"],"result":"prepared"}

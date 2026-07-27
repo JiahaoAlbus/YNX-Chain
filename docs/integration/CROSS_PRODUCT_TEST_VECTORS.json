@@ -2,7 +2,7 @@
   "schemaVersion": "explorer.test-vectors.v1",
   "product": "YNX Explorer",
   "owner": "12-explorer",
-  "sourceCommit": "eb3d19091feff85a7cdbc09c20ed06ed402c74a7",
+  "sourceCommit": "3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb",
   "vectors": [
     {
       "id": "EXP-CURSOR-001",
@@ -138,6 +138,64 @@
         "displayHeight": 41,
         "displayNetwork": "ynx_6423-1",
         "displayChainId": 6423
+      }
+    },
+    {
+      "id": "EXP-EVIDENCE-001",
+      "category": "public-evidence-positive",
+      "request": "GET /api/evidence/transaction/{knownHash}",
+      "expected": {
+        "httpStatus": 200,
+        "schemaVersion": "explorer.public-evidence.v1",
+        "sourceAuthority": "01-chain-core",
+        "transportOwner": "12-explorer",
+        "transport": "ynx-indexer",
+        "asOfBasis": "source-event-time",
+        "integrityAlgorithm": "sha256",
+        "payloadHash": "{knownHash}"
+      }
+    },
+    {
+      "id": "EXP-EVIDENCE-002",
+      "category": "public-evidence-partial",
+      "precondition": "RPC height is one block ahead of Indexer height",
+      "request": "GET /api/evidence/block/{indexedHeight}",
+      "expected": {
+        "httpStatus": 200,
+        "freshnessState": "partial",
+        "partial": true,
+        "offline": false,
+        "lagBlocks": 1,
+        "coverageStatus": "partial",
+        "missing": ["records-after-indexed-height"]
+      }
+    },
+    {
+      "id": "EXP-EVIDENCE-003",
+      "category": "public-evidence-freshness-degraded",
+      "precondition": "Requested Indexer record succeeds while the cross-source Summary probe fails",
+      "expected": {
+        "httpStatus": 200,
+        "payloadPreserved": true,
+        "freshnessState": "unknown",
+        "partial": true,
+        "offline": false,
+        "coverageStatus": "partial",
+        "missing": ["cross-source-freshness"]
+      }
+    },
+    {
+      "id": "EXP-EVIDENCE-004",
+      "category": "public-evidence-fail-closed",
+      "precondition": "The authoritative record source returns HTTP 503",
+      "expected": {
+        "httpStatus": 502,
+        "errorCode": "evidence_source_unavailable",
+        "retryable": true,
+        "freshnessState": "offline",
+        "payload": null,
+        "integrity": null,
+        "internalHostDisclosure": false
       }
     }
   ]

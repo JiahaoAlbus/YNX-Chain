@@ -2,7 +2,7 @@
 
 These are owner or external integration questions. They are not reasons to stop local engineering.
 
-1. **29 Integration:** Will `explorer.summary.v1`, cursor envelope v1 and the HTTP 400/502 error split be frozen without field changes?
+1. **29 Integration:** Will `explorer.summary.v1`, cursor envelope v1, `explorer.public-evidence.v1` and their HTTP 400/404/502 error split be frozen without conflicting field ownership?
 2. **30 Security/SRE:** What approved secret reference, rotation and multi-instance rollout pattern should provide `YNX_INDEXER_CURSOR_KEY` in shared Testnet/public environments?
 3. **01 Chain Core:** Which exact versioned fields are authoritative for AppHash, precommits/finality, state-sync, snapshot, upgrade and rollback evidence?
 4. **19 Oracle:** What accepted public schema carries source, version, as-of, confidence, coverage, stale and correction facts?
@@ -13,4 +13,4 @@ These are owner or external integration questions. They are not reasons to stop 
 
 ## Current local blocker
 
-None for the verified Explorer cursor/deep-link slice. Repository-wide preflight remains red in other-owner packages for key-permission and Hardhat selector-metadata tests; those failures must be resolved by their owners before a whole-repository release gate can be claimed green.
+None for the verified Explorer cursor/deep-link/public-evidence slices. Repository-wide preflight remains red in other-owner packages for key-permission and Hardhat selector-metadata tests; those failures must be resolved by their owners before a whole-repository release gate can be claimed green.

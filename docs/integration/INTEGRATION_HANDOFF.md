@@ -7,7 +7,7 @@
 - Contract status: source-bound candidate awaiting 29 Integration freeze
 - Goal status: Active
 - Stage: PROTECT
-- Source commit: `eb3d19091feff85a7cdbc09c20ed06ed402c74a7`
+- Source commit: `3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb`
 - Public deployment: not claimed
 
 ## Implemented slice
@@ -37,6 +37,12 @@ The Go Explorer summary is authoritative:
 
 The web client still reads the legacy `latestHeight`, string `network` and top-level `chainId` fields for old-client compatibility. New producers should not emit a second conflicting summary schema.
 
+## Versioned public evidence
+
+`GET /api/evidence/{kind}/{subject}` returns `explorer.public-evidence.v1` for block, transaction, account, resource, token and fee records while preserving the legacy raw endpoints. Each successful envelope separates authoritative owner from Explorer transport, records observed-at and as-of basis, exposes stale/offline/partial/coverage/correction truth, and binds the normalized payload to a stable SHA-256 evidence ID.
+
+A successful source record is retained as HTTP 200 with `partial/unknown` freshness when only the cross-source freshness probe fails. A missing, invalid or offline authoritative record returns a non-200 versioned error envelope with no payload and no integrity field. Public errors do not expose internal upstream hosts or stack details.
+
 ## Cursor security and operations
 
 `YNX_INDEXER_CURSOR_KEY` is an optional secret reference for stable cursor validation across restarts. It must contain at least 32 bytes and must be supplied through the approved secret mechanism; it must not be committed or pasted into chat.
@@ -56,14 +62,14 @@ Passed against the current source:
 - Explorer/Indexer Go suites and command packages;
 - Explorer/Indexer Race tests;
 - Explorer/Indexer binary build;
-- `npm test`: 14 tests;
+- `npm test`: 15 tests;
 - production web build;
 - accessibility contract: 1 test;
-- Playwright desktop/mobile: 10 tests;
+- Playwright desktop/mobile: 10 tests, including visible evidence-source metadata;
 - disposable local-Testnet Indexer resume/metrics smoke;
-- disposable local-Testnet Explorer API/search/metrics smoke;
+- disposable local-Testnet Explorer API/search/evidence-envelope/metrics smoke;
 - Explorer npm audit: 0 vulnerabilities;
-- Explorer product security scan: 36 source and release files.
+- Explorer product security scan: 38 source and release files.
 
 Repository-wide `go test ./...` remains red only in other-owner key-permission and Hardhat selector-metadata paths. Root Hardhat tooling reports three High advisories through `adm-zip` with no npm fix; these packages are not shipped by Explorer.
 
@@ -94,4 +100,4 @@ Chain Core, Economics, Oracle, Data Fabric, Exchange, DEX and Quant must provide
 
 ## Next engineering action
 
-Create and push the reviewed checkpoint, bind this contract and its evidence to the resulting source commit, then proceed to the next highest-priority uncovered runtime requirement: versioned public evidence envelopes with explicit source/as-of/version/stale/coverage/correction fields.
+Freeze `explorer.public-evidence.v1` and its error semantics through 29 Integration. The next local runtime work is configured-key cursor restart continuity followed by explicit SSE `Last-Event-ID` gap recovery and indexer restart/reorg evidence.
