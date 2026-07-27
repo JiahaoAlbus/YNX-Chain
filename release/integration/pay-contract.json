@@ -6,7 +6,7 @@
     "name": "YNX Pay",
     "owner": "04-pay",
     "branch": "codex/final-pay",
-    "sourceCommit": "a405604714645df1084ed9e06cc7d7b6f9a4d4b0"
+    "sourceCommit": "8118cea0404030f6818a4769cc847f8716f60490"
   },
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -42,7 +42,8 @@
       {"method": "GET", "path": "/health"},
       {"method": "GET", "path": "/v1/settlement-assets"},
       {"method": "GET", "path": "/v1/invoices/{id}"},
-      {"method": "GET", "path": "/v1/split-payments/{id}"}
+      {"method": "GET", "path": "/v1/split-payments/{id}"},
+      {"method": "GET", "path": "/v1/quant-bills/{id}"}
     ],
     "walletGateway": [
       {"method": "POST", "path": "/v1/invoices/{id}/settlements", "scope": "pay:settlement:submit"},
@@ -56,15 +57,17 @@
     "merchant": [
       {"method": "POST", "path": "/v1/merchant/invoices", "permission": "invoice"},
       {"method": "POST", "path": "/v1/merchant/split-payments", "permission": "invoice"},
+      {"method": "POST", "path": "/v1/merchant/quant-bills", "roles": ["owner", "finance"]},
       {"method": "POST", "path": "/v1/merchant/recurring-drafts", "roles": ["owner", "finance"]},
       {"method": "GET", "path": "/v1/merchant/state", "permission": "read"}
     ]
   },
   "schemas": {
     "invoice": {
-      "currentVersion": 4,
-      "compatibility": [1, 2, 3, 4],
+      "currentVersion": 5,
+      "compatibility": [1, 2, 3, 4, 5],
       "v4Adds": ["splitPaymentId", "splitShareId", "expectedPayerHash"],
+      "v5Adds": ["serviceBillId", "serviceEvidenceDigest", "expectedPayerHash"],
       "signature": "merchant-ed25519",
       "paidAuthority": "authoritative-central-pay-api"
     },
@@ -75,6 +78,17 @@
       "states": ["open", "partially_claimed", "partially_paid", "committed", "expired"],
       "claimAuthority": "wallet-product-session",
       "childInvoicePerShare": true,
+      "wrongPayerRejected": true,
+      "publicPayerRedaction": true
+    },
+    "quantServiceBill": {
+      "version": 1,
+      "invoiceVersion": 5,
+      "evidenceDomain": "YNX_QUANT_BILLING_EVIDENCE_V1",
+      "calculationDomain": "YNX_QUANT_HIGH_WATER_MARK_V1",
+      "externalEd25519EvidenceRequired": true,
+      "frontendPnlAccepted": false,
+      "managerDeclaredPnlAccepted": false,
       "wrongPayerRejected": true,
       "publicPayerRedaction": true
     },
@@ -90,6 +104,7 @@
     "invoice.expired",
     "split.create",
     "split.share.claim",
+    "quant.bill.create",
     "refund.requested",
     "dispute.created",
     "webhook.dead_letter",
@@ -103,21 +118,30 @@
     "wrongDevice": "reject",
     "expiredSession": "reject",
     "wrongSplitPayer": "reject",
+    "wrongQuantPayer": "reject",
+    "missingQuantVerifier": "unavailable",
+    "staleOrTamperedQuantEvidence": "reject",
     "unsupportedSettlementAsset": "unavailable",
     "providerFailure": "explicit failure; never paid"
   },
   "migration": {
     "snapshotVersion": 1,
     "missingSplitPaymentsField": "normalize to empty map",
+    "missingQuantBillsField": "normalize to empty map",
     "invoiceV1V2V3Verification": "preserved",
-    "invoiceV4Writer": "local implementation"
+    "invoiceV4Writer": "Split local implementation",
+    "invoiceV5Writer": "Quant service-billing local implementation"
   },
   "tests": [
     "go test ./internal/payproduct/... -count=1",
     "go test -race ./internal/payproduct/... -count=1",
-    "npm run check (apps/pay; 11 tests plus Android/iOS bundle and complete Split consumer flow)",
+    "npm run check (apps/pay; 13 tests plus Android/iOS bundle, Split flow, Invoice v5 and Quant verification)",
     "TestSplitPaymentCreatesSignedSharesAndBindsClaimedPayer",
-    "TestSplitPaymentValidationFailsClosed"
+    "TestSplitPaymentValidationFailsClosed",
+    "TestQuantBillingUsesSignedExternalHighWaterMarkEvidence",
+    "TestQuantBillingRejectsTamperStaleAndUnapprovedEvidence",
+    "TestQuantBillingExcludesDepositsFromPerformanceProfit",
+    "TestQuantBillingHTTPRoleAndPublicRedaction"
   ],
   "releaseStatus": {
     "implementedLocal": true,
@@ -134,6 +158,7 @@
     "accepted central Wallet/Gateway registry and deployed product routes",
     "public Testnet deployment authority",
     "configured paymaster or stablecoin/bridge provider where applicable",
+    "accepted Quant/Data Fabric Ed25519 verifier key and evidence stream",
     "mobile production signing and store accounts"
   ]
 }

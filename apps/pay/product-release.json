@@ -3,8 +3,8 @@
   "productId": "pay",
   "name": "YNX Pay",
   "branch": "codex/final-pay",
-  "commit": "a405604714645df1084ed9e06cc7d7b6f9a4d4b0",
-  "version": "1.2.0",
+  "commit": "8118cea0404030f6818a4769cc847f8716f60490",
+  "version": "1.3.0",
   "releaseClass": "local-candidate",
   "phase": "FREEZE",
   "goalStatus": "active",
@@ -19,13 +19,15 @@
     "webhookRetryAndDeadLetter": "testedLocal",
     "sponsorship": "testedLocal-provider-unconfigured",
     "stableSettlement": "externalBlocked",
-    "bridgeEntry": "testedLocal-provider-unconfigured"
+    "bridgeEntry": "testedLocal-provider-unconfigured",
+    "quantServiceBilling": "testedLocal-external-verifier-unaccepted"
   },
   "contracts": {
     "canonical": "release/integration/pay-contract.json",
     "handoff": "docs/integration/INTEGRATION_HANDOFF.md",
     "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+    "quantBilling": "docs/integration/pay-quant-billing.json",
     "coverage": ".ai-bridge/full-goal-coverage.json"
   },
   "implementedLocal": true,
@@ -68,7 +70,7 @@
       "cwd": "apps/pay",
       "result": "pass",
       "verifiedAt": "2026-07-27",
-      "details": "TypeScript passed, 11 tests passed, and Android/iOS Hermes bundles exported. Split lookup, QR/deep links, secure claim recovery, Wallet sign-in resume, localized share selection and Invoice v4 handoff are covered locally."
+      "details": "TypeScript passed, 13 tests passed, and Android/iOS Hermes bundles exported. Split consumer flow and Quant Invoice v5/service-bill verification, external Ed25519 evidence, independent high-water-mark recalculation and 12-language review are covered locally."
     },
     {
       "command": "bash internal/payproduct/smoke.sh",
@@ -100,8 +102,9 @@
     "Fresh authoritative Testnet payment, two-account Split flow, sponsorship receipt and refund proof are blocked on accepted central Gateway/Testnet deployment.",
     "No current source-bound Android/iOS install and cold-launch evidence.",
     "No public service URL, hosted immutable artifact, production signature or store release.",
-    "Quant high-water-mark billing evidence validator, full migration/restore drill, deployed observability and capacity/unit-economics measurements remain incomplete.",
+    "Quant verification is implemented locally, but no Quant/Data Fabric verifier key, staging evidence stream, or fresh Testnet service-fee payment has been accepted by the integration owner.",
+    "Full migration/restore drill, deployed observability and capacity/unit-economics measurements remain incomplete.",
     "Stablecoin and Bridge production-capable providers remain unavailable until approved owner/provider contracts exist."
   ],
-  "generatedAt": "2026-07-27T11:20:00+01:00"
+  "generatedAt": "2026-07-27T15:15:02+01:00"
 }

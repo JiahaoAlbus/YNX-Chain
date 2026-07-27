@@ -6,5 +6,9 @@
 4. Invoice v4 is used only for Split-bound child Invoices. Existing Invoice v1, v2 and v3 signing material remains byte-compatible.
 5. Split plan creation is merchant-authorized; share claim is Wallet/Gateway-authorized with `pay:settlement:submit`.
 6. A Split status is derived from authoritative child Invoice states. Claiming or receiving a webhook cannot produce `committed`.
-7. Central Wallet/Gateway, Testnet, public, hosted, signing and store states remain false until direct evidence exists.
-8. Repository-wide failures in other product owners are recorded, not repaired by broad out-of-scope edits in 04 Pay.
+7. Quant/service billing accepts only an externally signed ledger envelope from an explicitly configured Ed25519 verifier key; frontend and manager-declared PnL are never payment authority.
+8. Performance fees use net-flow-adjusted high-water-mark arithmetic with whole-YNXT-unit floor rounding. Deposits cannot become performance profit, and overflow or stale evidence fails closed.
+9. Invoice v5 binds the Quant bill ID, external evidence digest and public payer hash while the raw payer remains private for authoritative settlement matching.
+10. The Pay client independently verifies the accepted Quant public key, evidence digest/signature, every calculation and Invoice v5 binding before Wallet review.
+11. Central Wallet/Gateway, Quant verifier acceptance, Testnet, public, hosted, signing and store states remain false until direct evidence exists.
+12. Repository-wide failures in other product owners are recorded, not repaired by broad out-of-scope edits in 04 Pay.

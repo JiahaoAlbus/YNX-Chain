@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "pay",
-  "sourceCommit": "a405604714645df1084ed9e06cc7d7b6f9a4d4b0",
+  "sourceCommit": "8118cea0404030f6818a4769cc847f8716f60490",
   "vectors": [
     {
       "id": "pay-wallet-valid-session",
@@ -72,6 +72,42 @@
       "owners": ["02-wallet-auth", "04-pay"],
       "mutation": "different account attempts to claim an already claimed share",
       "expected": "reject conflict"
+    },
+    {
+      "id": "pay-quant-valid-evidence",
+      "owners": ["08-quant-lab", "26-data-fabric-billing-ledger", "04-pay", "29-integration"],
+      "input": "accepted Ed25519-signed Quant evidence with period equity, net external flows, previous high-water mark, fixed fees and performance fee policy",
+      "expected": "Pay verifies the accepted key ID, recomputes adjusted equity and high-water-mark fees, persists a public-redacted Quant bill, and creates an Invoice v5 bound to serviceBillId, evidence digest and payer hash"
+    },
+    {
+      "id": "pay-quant-deposit-not-profit",
+      "owners": ["08-quant-lab", "26-data-fabric-billing-ledger", "04-pay"],
+      "input": "end equity increases only because of a matching external deposit",
+      "expected": "net-flow adjustment removes the deposit; eligible performance profit and performance fee remain zero"
+    },
+    {
+      "id": "pay-quant-tamper-stale-rejected",
+      "owners": ["08-quant-lab", "26-data-fabric-billing-ledger", "04-pay"],
+      "mutation": "alter PnL inputs, fee policy, payer hashes, source metadata or timestamps after evidence signature, or submit evidence outside the configured age",
+      "expected": "reject before Invoice creation"
+    },
+    {
+      "id": "pay-quant-missing-verifier-unavailable",
+      "owners": ["08-quant-lab", "26-data-fabric-billing-ledger", "29-integration"],
+      "input": "evidence key ID is not in the frozen verifier registry",
+      "expected": "Quant billing is explicitly unavailable; Pay does not trust frontend or manager-declared PnL"
+    },
+    {
+      "id": "pay-quant-wrong-payer-rejected",
+      "owners": ["01-chain-core", "04-pay"],
+      "mutation": "authoritative settlement payer differs from the private account bound to the signed Quant evidence and Invoice v5 expectedPayerHash",
+      "expected": "reject settlement; Quant bill remains non-committed"
+    },
+    {
+      "id": "pay-quant-public-verification",
+      "owners": ["04-pay", "28-website"],
+      "input": "public Quant bill and Invoice v5 lookup",
+      "expected": "raw payer is redacted while both payer hashes, evidence signature, evidence digest, high-water-mark inputs and fee breakdown remain independently verifiable"
     },
     {
       "id": "pay-recurring-no-standing-authority",

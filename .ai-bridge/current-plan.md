@@ -2,12 +2,12 @@
 
 Status: Active. Current phase: FREEZE moving toward INTEGRATE.
 
-1. Preserve the full local Split consumer flow at `a405604714645df1084ed9e06cc7d7b6f9a4d4b0` and bind release evidence to it.
-2. Push and verify the source-bound Split UI metadata checkpoint.
-3. Implement the Quant/service-billing evidence validator, including externally signed high-water-mark evidence and fail-closed fee calculation.
-4. Add fixture-based migration/rollback and timed backup/restore verification.
-5. Add dependency-aware health/version, metrics and trace correlation, then run repeatable capacity/unit-economics measurements.
-6. Ask `29-integration` to accept the Pay contract and run Wallet/Gateway cross-product vectors; after central acceptance, run a fresh YNX Testnet payment, two-account Split flow, sponsorship, refund, dispute and webhook retry proof.
-7. Continue current mobile install/cold-launch and accessibility proof when the required device/runtime authority is available.
+1. Preserve Quant/service-billing implementation commit `8118cea0404030f6818a4769cc847f8716f60490` and push its source-bound contract/evidence checkpoint.
+2. Add fixture-based migration/rollback plus atomic, timed backup/restore verification with corruption and wrong-key rejection.
+3. Add dependency-aware health/version, structured request IDs, metrics and trace correlation.
+4. Run repeatable capacity and unit-economics measurements with source commit, sample size and environment recorded; do not claim global benchmark parity.
+5. Fix validation scripts so missing `rg` cannot produce a false passing secret/placeholder scan, then generate source-bound SBOM/provenance evidence.
+6. Ask `29-integration` to freeze Wallet/Gateway and Quant/Data Fabric verifier contracts and run cross-product vectors; after central acceptance, run fresh Testnet Invoice, Split, Quant, sponsorship, refund, dispute and webhook-retry proofs.
+7. Continue current Android/iOS install, cold-launch, accessibility and public-artifact evidence when the required device/runtime/signing authority is available.
 
 Do not mark central, public, hosted, signed or store states true without direct evidence.

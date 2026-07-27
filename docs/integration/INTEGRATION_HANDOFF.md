@@ -4,7 +4,7 @@
 
 - Product owner: `04-pay`
 - Branch: `codex/final-pay`
-- Source commit: `a405604714645df1084ed9e06cc7d7b6f9a4d4b0`
+- Source commit: `8118cea0404030f6818a4769cc847f8716f60490`
 - Canonical machine contract: `release/integration/pay-contract.json`
 - Central freeze owner: `29-integration`
 
@@ -35,6 +35,14 @@ Invoice signatures preserve v1, v2 and v3 verification. Invoice v4 adds signed S
 
 A Split Payment is merchant-signed and contains 2–20 immutable positive shares. Claiming a share requires a valid Pay product session with `pay:settlement:submit`. The claim creates one authoritative child Invoice for that share and binds settlement to the claiming Wallet account. The signed public Invoice carries an irreversible payer-binding hash so its signature remains independently verifiable; public responses redact the raw account, while the authenticated merchant audit view retains it. A wrong payer, altered share, replay, missing scope, expired Split, or conflicting claim fails closed.
 
+Invoice v5 adds externally verified service-billing bindings:
+
+- `serviceBillId`
+- `serviceEvidenceDigest`
+- `expectedPayerHash`
+
+Quant/service billing consumes an Ed25519-signed evidence envelope from an explicitly configured `08-quant-lab` / `26-data-fabric-billing-ledger` verifier. Pay removes net external capital flows, independently recomputes the high-water-mark base, eligible profit, performance fee and new high-water mark using bounded integer arithmetic, and rejects stale, tampered, unapproved or overflowing evidence. Frontend- or manager-declared PnL is never accepted. Public bills redact the raw payer while preserving signed Quant and Invoice payer hashes, the evidence signature/digest and the complete fee breakdown. Without an accepted verifier key, the capability is unavailable rather than downgraded.
+
 ## Endpoints added by this checkpoint
 
 | Method | Path | Boundary |
@@ -42,10 +50,12 @@ A Split Payment is merchant-signed and contains 2–20 immutable positive shares
 | POST | `/v1/merchant/split-payments` | Merchant `invoice` permission |
 | GET | `/v1/split-payments/{id}` | Public read, payer account redacted |
 | POST | `/v1/split-payments/{id}/shares/{shareId}/claim` | Canonical Wallet/Gateway session; `pay:settlement:submit` |
+| POST | `/v1/merchant/quant-bills` | Merchant owner/finance; accepted external evidence required |
+| GET | `/v1/quant-bills/{id}` | Public read; raw payer redacted, signed evidence retained |
 
 ## Migration and compatibility
 
-Snapshots that predate Split Payments omit `splitPayments`; normalization creates an empty map without modifying existing merchants, invoices, receipts or audit entries. Invoice v1–v3 signing material is unchanged. New Split child Invoices are v4. The snapshot envelope remains HMAC-SHA-256 protected and atomically replaced.
+Snapshots that predate Split Payments omit `splitPayments`; snapshots that predate Quant billing omit `quantBills`. Normalization creates empty maps without modifying existing merchants, invoices, receipts or audit entries. Invoice v1–v3 signing material is unchanged; Split child Invoices are v4 and externally verified service invoices are v5. The snapshot envelope remains HMAC-SHA-256 protected and atomically replaced.
 
 ## Verification
 
@@ -59,6 +69,11 @@ Passing locally on 2026-07-27:
 - wrong-payer settlement rejection
 - public payer redaction and merchant audit retention
 - aggregate `partially_paid` state
+- external Ed25519 Quant evidence verification and verifier-registry fail-closed behavior
+- net-flow-adjusted high-water-mark calculation and deposit exclusion
+- Invoice v5 service-bill/evidence/payer binding and wrong-payer rejection
+- owner/finance Quant RBAC and public raw-payer redaction
+- client evidence digest/signature/math verification, 13/13 tests and 12-language fee review
 
 Repository-wide `go test ./... -count=1` is not green because unchanged Consensus/Faucet/Trust key-permission tests fail in the current host environment and unchanged IDE tests require a missing generated contract artifact. The Pay package passes in that run. These are not being silently fixed in the Pay worktree as Pay-owned requirements.
 
@@ -70,5 +85,6 @@ Repository-wide `go test ./... -count=1` is not green because unchanged Consensu
 2. App Gateway exposes the Pay product routes and emits the exact server assertion.
 3. Replay, wrong product, wrong bundle, wrong device, scope widening, expiry and revoke vectors fail closed.
 4. Split claim reaches the Pay service through the product-scoped route without exposing server keys.
-5. A fresh YNX Testnet payment produces a matching authoritative receipt and Explorer evidence.
-6. Public deployment, artifact, install and signing states are updated only from direct evidence.
+5. `08-quant-lab` and `26-data-fabric-billing-ledger` sign the exact Quant evidence schema with a frozen, rotatable Ed25519 verifier key; stale, tampered, deposit-only and wrong-payer vectors behave as specified.
+6. A fresh YNX Testnet payment produces a matching authoritative receipt and Explorer evidence, including one source-bound Quant Invoice v5 payment.
+7. Public deployment, artifact, install and signing states are updated only from direct evidence.
