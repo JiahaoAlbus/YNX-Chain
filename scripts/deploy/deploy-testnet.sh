@@ -592,8 +592,8 @@ EOF
 cat > "$work/systemd/ynx-app-gatewayd.service" <<'EOF'
 [Unit]
 Description=YNX Chain first-party browser application gateway
-After=network-online.target ynx-chatd.service ynx-squared.service ynx-payd.service
-Wants=network-online.target
+After=network-online.target ynx-chatd.service ynx-squared.service ynx-payd.service ynx-wallet-gatewayd.service
+Wants=network-online.target ynx-wallet-gatewayd.service
 
 [Service]
 User=ynx

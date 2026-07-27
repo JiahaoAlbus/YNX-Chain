@@ -67,6 +67,7 @@ relayer_b="$(<"$relayer_dir/relayer-b.pub")"
 
 bridge_env_stage="/etc/ynx/.ynx-bridged.env.$expected_release"
 app_env_stage="/etc/ynx/.ynx-app-gatewayd.env.$expected_release"
+app_unit_stage="/etc/systemd/system/.ynx-app-gatewayd.service.$expected_release"
 route_policies_json='[{"provider":"unapproved-testnet-candidate","classification":"external-bridge-adapter","sourceChain":"ynx_6423-1","destinationChain":"external-testnet-unavailable","sourceAsset":"YNXT","destinationAsset":"wrapped-YNXT","sourceAssetClass":"ynxt-bridge-candidate","destinationAssetClass":"wrapped-test-asset","minConfirmations":12,"maxAmount":"1000000000","maxOutstanding":"5000000000","dailyLimit":"10000000000","userOutstandingLimit":"2000000000","largeTransferThreshold":"500000000","largeTransferDelaySeconds":3600,"assetBoundary":"canonical-to-represented","externalSubmission":false},{"provider":"circle-cctp-v2","classification":"official-stablecoin-transfer-candidate","sourceChain":"ethereum-sepolia","destinationChain":"base-sepolia","sourceAsset":"sepolia-usdc","destinationAsset":"base-sepolia-usdc","sourceAssetClass":"testnet-stablecoin","destinationAssetClass":"testnet-stablecoin","minConfirmations":12,"maxAmount":"1000000000","maxOutstanding":"1000000000","dailyLimit":"10000000000","userOutstandingLimit":"1000000000","largeTransferThreshold":"500000000","largeTransferDelaySeconds":3600,"assetBoundary":"canonical-to-canonical","externalSubmission":false}]'
 provider_routes_json='[{"provider":"circle-cctp-v2","adapter":"circle-cctp-v2","environment":"testnet","baseUrl":"https://iris-api-sandbox.circle.com","sourceChain":"ethereum-sepolia","destinationChain":"base-sepolia","sourceAsset":"sepolia-usdc","destinationAsset":"base-sepolia-usdc","sourceDomain":0,"destinationDomain":6,"sourceSymbol":"USDC","destinationSymbol":"USDC","sourceDecimals":6,"destinationDecimals":6,"sourceTokenContract":"0x1c7d4b196cb0c7b01d743fbc6116a902379c7238","destinationTokenContract":"0x036cbd53842c5426634e7929541ec2318f3dcf7e","sourceContract":"0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa","destinationContract":"0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa","sourceExplorerUrl":"https://sepolia.etherscan.io/address/0x1c7d4b196cb0c7b01d743fbc6116a902379c7238","destinationExplorerUrl":"https://base-sepolia.blockscout.com/address/0x036cbd53842c5426634e7929541ec2318f3dcf7e","finalityThreshold":1000,"estimatedMinSeconds":15,"estimatedMaxSeconds":300,"connectivityProbeEnabled":true,"connectivityProbeIntervalSeconds":60,"routeSupportVerified":true,"contractsVerified":true,"agreementApproved":false,"operationalReviewApproved":false,"routeSupportEvidenceUrl":"https://developers.circle.com/cctp/references/contract-addresses","agreementEvidenceUrl":"","operationalReviewUrl":"","license":"not-approved","termsUrl":"https://www.circle.com/legal/developer-terms","jurisdiction":"not-approved","dataRetention":"not-reviewed","dataRights":"not-reviewed","fallback":"none","outageMode":"route-unavailable"}]'
 cat >"$bridge_env_stage" <<EOF
@@ -91,6 +92,17 @@ chmod 0600 "$bridge_env_stage"
 awk '!/^YNX_APP_GATEWAY_BRIDGE_URL=/ && !/^YNX_APP_GATEWAY_BRIDGE_API_KEY=/' /etc/ynx/ynx-app-gatewayd.env >"$app_env_stage"
 printf 'YNX_APP_GATEWAY_BRIDGE_URL=http://127.0.0.1:6433\nYNX_APP_GATEWAY_BRIDGE_API_KEY=%s\n' "$gateway_key" >>"$app_env_stage"
 chmod 0600 "$app_env_stage"
+[[ -s /etc/systemd/system/ynx-app-gatewayd.service ]] || { echo "canonical App Gateway unit is missing" >&2; exit 1; }
+awk '
+  $0 == "Requires=ynx-wallet-gatewayd.service" { next }
+  /^Wants=/ && $0 !~ /ynx-wallet-gatewayd\.service/ { $0 = $0 " ynx-wallet-gatewayd.service" }
+  /^After=/ && $0 !~ /ynx-wallet-gatewayd\.service/ { $0 = $0 " ynx-wallet-gatewayd.service" }
+  { print }
+' /etc/systemd/system/ynx-app-gatewayd.service >"$app_unit_stage"
+grep -Eq '^Wants=.*ynx-wallet-gatewayd\.service' "$app_unit_stage"
+grep -Eq '^After=.*ynx-wallet-gatewayd\.service' "$app_unit_stage"
+! grep -Eq '^Requires=.*ynx-wallet-gatewayd\.service' "$app_unit_stage"
+chmod 0644 "$app_unit_stage"
 
 set -a
 # shellcheck disable=SC1090
@@ -115,7 +127,7 @@ backup_if_present /usr/local/bin/ynx-app-gatewayd ynx-app-gatewayd
 backup_if_present /etc/ynx/ynx-bridged.env ynx-bridged.env
 backup_if_present /etc/ynx/ynx-app-gatewayd.env ynx-app-gatewayd.env
 backup_if_present /etc/systemd/system/ynx-bridged.service ynx-bridged.service
-backup_if_present /etc/systemd/system/ynx-app-gatewayd.service.d/bridge-resilience.conf bridge-resilience.conf
+backup_if_present /etc/systemd/system/ynx-app-gatewayd.service ynx-app-gatewayd.service
 
 rollback_required=1
 rollback() {
@@ -128,12 +140,8 @@ rollback() {
     if [[ -f "$backup_dir/ynx-bridged" ]]; then install -m 0755 "$backup_dir/ynx-bridged" /usr/local/bin/ynx-bridged; fi
     if [[ -f "$backup_dir/ynx-bridged.env" ]]; then install -m 0600 "$backup_dir/ynx-bridged.env" /etc/ynx/ynx-bridged.env; fi
     if [[ -f "$backup_dir/ynx-bridged.service" ]]; then install -m 0644 "$backup_dir/ynx-bridged.service" /etc/systemd/system/ynx-bridged.service; fi
-    if [[ -f "$backup_dir/bridge-resilience.conf" ]]; then
-      install -d -m 0755 /etc/systemd/system/ynx-app-gatewayd.service.d
-      install -m 0644 "$backup_dir/bridge-resilience.conf" /etc/systemd/system/ynx-app-gatewayd.service.d/bridge-resilience.conf
-    else
-      rm -f /etc/systemd/system/ynx-app-gatewayd.service.d/bridge-resilience.conf
-    fi
+    if [[ -f "$backup_dir/ynx-app-gatewayd.service" ]]; then install -m 0644 "$backup_dir/ynx-app-gatewayd.service" /etc/systemd/system/ynx-app-gatewayd.service; fi
+    rm -f "$app_unit_stage" /etc/systemd/system/ynx-app-gatewayd.service.d/bridge-resilience.conf
     systemctl daemon-reload || true
     systemctl restart ynx-app-gatewayd || true
     if [[ -f "$backup_dir/ynx-bridged.service" ]]; then systemctl restart ynx-bridged || true; else systemctl disable --now ynx-bridged || true; fi
@@ -147,9 +155,8 @@ install -m 0755 "$release_dir/bin/ynx-app-gatewayd" /usr/local/bin/ynx-app-gatew
 install -m 0600 "$bridge_env_stage" /etc/ynx/ynx-bridged.env
 install -m 0600 "$app_env_stage" /etc/ynx/ynx-app-gatewayd.env
 install -m 0644 "$release_dir/systemd/ynx-bridged.service" /etc/systemd/system/ynx-bridged.service
-install -d -m 0755 /etc/systemd/system/ynx-app-gatewayd.service.d
-install -m 0644 "$release_dir/systemd/ynx-app-gatewayd-bridge-resilience.conf" /etc/systemd/system/ynx-app-gatewayd.service.d/bridge-resilience.conf
-rm -f "$bridge_env_stage" "$app_env_stage"
+install -m 0644 "$app_unit_stage" /etc/systemd/system/ynx-app-gatewayd.service
+rm -f "$bridge_env_stage" "$app_env_stage" "$app_unit_stage" /etc/systemd/system/ynx-app-gatewayd.service.d/bridge-resilience.conf
 
 systemctl daemon-reload
 systemctl enable ynx-bridged
