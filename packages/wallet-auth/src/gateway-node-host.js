@@ -27,7 +27,7 @@ export class CanonicalWalletGatewayNodeHost {
     if (stored && stored.stateDigest !== gatewayStateDigest(this.#kernel.snapshot())) {
       throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state digest is invalid");
     }
-    if (!stored) this.#persist();
+    if (!stored || stored.needsRewrite) this.#persist();
   }
 
   handler() {
@@ -131,11 +131,27 @@ function loadState(path) {
   if ((statSync(path).mode & 0o077) !== 0) throw new WalletAuthError("STATE_PERMISSIONS", "Canonical Gateway state must use mode 0600");
   let value;
   try { value = JSON.parse(raw); } catch { throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state is invalid JSON"); }
-  exactFields(value, STATE_FIELDS, "Canonical Gateway persisted state");
+  let needsRewrite = false;
+  try {
+    exactFields(value, STATE_FIELDS, "Canonical Gateway persisted state");
+  } catch (currentError) {
+    try {
+      exactFields(value, [...STATE_FIELDS, "updatedAt"], "Canonical Gateway legacy persisted state");
+      needsRewrite = true;
+    } catch {
+      throw currentError;
+    }
+  }
+  if (needsRewrite) {
+    const updatedAt = Date.parse(value.updatedAt);
+    if (typeof value.updatedAt !== "string" || !Number.isFinite(updatedAt) || new Date(updatedAt).toISOString() !== value.updatedAt) {
+      throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway legacy persisted state timestamp is invalid");
+    }
+  }
   if (value.schemaVersion !== CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION || !/^[0-9a-f]{64}$/.test(value.stateDigest)) {
     throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state envelope is invalid");
   }
-  return value;
+  return { schemaVersion: value.schemaVersion, stateDigest: value.stateDigest, snapshot: value.snapshot, needsRewrite };
 }
 
 async function boundedBody(request) {

@@ -74,6 +74,16 @@ test("Node host rejects noncanonical proof transport and persisted-state tamper"
   assert.throws(()=>new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW}),/state digest/);
 });
 
+test("Node host validates and atomically normalizes the legacy timestamped state envelope",()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ynx-wallet-gateway-legacy-")),statePath=join(directory,"state.json"),registry=approvedRegistry();
+  const original=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
+  const stored=JSON.parse(readFileSync(statePath,"utf8"));
+  writeFileSync(statePath,canonicalJSON({...stored,updatedAt:NOW.toISOString()}),{mode:0o600});
+  const migrated=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
+  assert.deepEqual(migrated.snapshot(),original.snapshot());
+  assert.deepEqual(Object.keys(JSON.parse(readFileSync(statePath,"utf8"))).sort(),["schemaVersion","snapshot","stateDigest"]);
+});
+
 test("Node host refuses a group-readable state directory instead of changing its permissions",()=>{
   const directory=mkdtempSync(join(tmpdir(),"ynx-wallet-gateway-insecure-"));chmodSync(directory,0o755);
   assert.throws(()=>new CanonicalWalletGatewayNodeHost(approvedRegistry(),{statePath:join(directory,"state.json"),now:()=>NOW}),/directory must use mode 0700/);
