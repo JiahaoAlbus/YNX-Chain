@@ -8,7 +8,7 @@ const (
 	NativeAsset     = "YNXT"
 	NativeFeeYNXT   = int64(1)
 	InvoiceVersion  = 1
-	SnapshotVersion = 2
+	SnapshotVersion = 3
 )
 
 type Merchant struct {
@@ -224,6 +224,21 @@ type WalletSession struct {
 	ExpiresAt              time.Time `json:"expiresAt"`
 }
 
+type MerchantDataRequest struct {
+	ID            string     `json:"id"`
+	MerchantID    string     `json:"merchantId"`
+	Type          string     `json:"type"`
+	Status        string     `json:"status"`
+	RequestedBy   string     `json:"requestedBy"`
+	Reason        string     `json:"reason"`
+	PolicyVersion string     `json:"policyVersion"`
+	Blockers      []string   `json:"blockers"`
+	EligibleAt    *time.Time `json:"eligibleAt,omitempty"`
+	CanceledAt    *time.Time `json:"canceledAt,omitempty"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+}
+
 type Snapshot struct {
 	Version         int                               `json:"version"`
 	Merchants       map[string]Merchant               `json:"merchants"`
@@ -237,6 +252,7 @@ type Snapshot struct {
 	Deliveries      map[string]WebhookDelivery        `json:"deliveries"`
 	AIRuns          map[string]AIRun                  `json:"aiRuns"`
 	Providers       map[string]ProviderConnection     `json:"providers"`
+	DataRequests    map[string]MerchantDataRequest    `json:"dataRequests"`
 	Idempotency     map[string]IdempotencyRecord      `json:"idempotency"`
 	Nonces          map[string]NonceRecord            `json:"nonces"`
 	Audit           []AuditEntry                      `json:"audit"`

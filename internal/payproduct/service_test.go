@@ -375,14 +375,14 @@ func TestMerchantRoleMatrixAndMembershipChangeInvalidatesSession(t *testing.T) {
 	}
 	roles := []string{"owner", "finance", "developer", "support", "viewer"}
 	wants := map[string]map[string]bool{
-		"owner":     {"read": true, "invoice": true, "reconcile": true, "case": true, "webhook": true, "ai-run": true, "ai-review": true, "members": true, "provider-manage": true, "provider-test": true},
+		"owner":     {"read": true, "invoice": true, "reconcile": true, "case": true, "webhook": true, "ai-run": true, "ai-review": true, "members": true, "provider-manage": true, "provider-test": true, "data-manage": true},
 		"finance":   {"read": true, "invoice": true, "reconcile": true, "case": true, "ai-run": true, "ai-review": true},
 		"developer": {"read": true, "webhook": true, "provider-manage": true, "provider-test": true},
 		"support":   {"read": true, "case": true, "ai-run": true},
 		"viewer":    {"read": true},
 	}
 	for _, role := range roles {
-		for _, permission := range []string{"read", "invoice", "reconcile", "case", "webhook", "ai-run", "ai-review", "members", "provider-manage", "provider-test"} {
+		for _, permission := range []string{"read", "invoice", "reconcile", "case", "webhook", "ai-run", "ai-review", "members", "provider-manage", "provider-test", "data-manage"} {
 			if got := roleAllows(role, permission); got != wants[role][permission] {
 				t.Fatalf("role=%s permission=%s got=%v want=%v", role, permission, got, wants[role][permission])
 			}

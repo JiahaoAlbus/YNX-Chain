@@ -47,7 +47,7 @@ type MerchantSessionResult struct {
 }
 
 var merchantRolePermissions = map[string]map[string]bool{
-	"owner":     {"read": true, "invoice": true, "reconcile": true, "case": true, "webhook": true, "ai-run": true, "ai-review": true, "members": true, "provider-manage": true, "provider-test": true},
+	"owner":     {"read": true, "invoice": true, "reconcile": true, "case": true, "webhook": true, "ai-run": true, "ai-review": true, "members": true, "provider-manage": true, "provider-test": true, "data-manage": true},
 	"finance":   {"read": true, "invoice": true, "reconcile": true, "case": true, "ai-run": true, "ai-review": true},
 	"developer": {"read": true, "webhook": true, "provider-manage": true, "provider-test": true},
 	"support":   {"read": true, "case": true, "ai-run": true},

@@ -2,6 +2,7 @@ package payproduct
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -84,28 +85,41 @@ func TestProviderProbeFailureIsVisibleAndFailsClosed(t *testing.T) {
 	}
 }
 
-func TestSnapshotV1MigratesProvidersAndFutureVersionFails(t *testing.T) {
+func TestLegacySnapshotsMigrateAndFutureVersionFails(t *testing.T) {
+	for _, version := range []int{1, 2} {
+		t.Run(fmt.Sprintf("v%d", version), func(t *testing.T) {
+			path := t.TempDir() + "/state.json"
+			store, err := OpenStore(path, bytes32(7))
+			if err != nil {
+				t.Fatal(err)
+			}
+			legacy := emptySnapshot()
+			legacy.Version = version
+			legacy.DataRequests = nil
+			if version == 1 {
+				legacy.Providers = nil
+			}
+			if err := store.persist(legacy); err != nil {
+				t.Fatal(err)
+			}
+			migrated, err := OpenStore(path, bytes32(7))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := migrated.View(func(snapshot Snapshot) error {
+				if snapshot.Version != SnapshotVersion || snapshot.Providers == nil || snapshot.DataRequests == nil {
+					t.Fatalf("legacy snapshot was not migrated: %+v", snapshot)
+				}
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+
 	path := t.TempDir() + "/state.json"
 	store, err := OpenStore(path, bytes32(7))
 	if err != nil {
-		t.Fatal(err)
-	}
-	legacy := emptySnapshot()
-	legacy.Version = 1
-	legacy.Providers = nil
-	if err := store.persist(legacy); err != nil {
-		t.Fatal(err)
-	}
-	migrated, err := OpenStore(path, bytes32(7))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := migrated.View(func(snapshot Snapshot) error {
-		if snapshot.Version != SnapshotVersion || snapshot.Providers == nil {
-			t.Fatalf("legacy snapshot was not migrated: %+v", snapshot)
-		}
-		return nil
-	}); err != nil {
 		t.Fatal(err)
 	}
 	future := emptySnapshot()

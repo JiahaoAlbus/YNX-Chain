@@ -80,6 +80,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/merchant/webhooks/{id}/retry", s.retryWebhook)
 	s.mux.HandleFunc("GET /v1/merchant/analytics", s.analytics)
 	s.mux.HandleFunc("GET /v1/merchant/reconciliation.csv", s.exportCSV)
+	s.mux.HandleFunc("GET /v1/merchant/data-rights", s.dataRights)
+	s.mux.HandleFunc("GET /v1/merchant/data-export", s.dataExport)
+	s.mux.HandleFunc("POST /v1/merchant/data-deletion-requests", s.dataDeletionRequest)
+	s.mux.HandleFunc("POST /v1/merchant/data-deletion-requests/{id}/cancel", s.dataDeletionCancel)
 	s.mux.HandleFunc("GET /v1/merchant/capital", s.capital)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs", s.aiRun)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs/{id}/review", s.aiReview)
@@ -335,6 +339,40 @@ func (s *Server) retryWebhook(w http.ResponseWriter, r *http.Request) {
 	out, err := s.service.Deliver(r.Context(), r.PathValue("id"))
 	respond(w, 200, out, err)
 }
+func (s *Server) dataRights(w http.ResponseWriter, r *http.Request) {
+	p, _, ok := s.merchantAuth(w, r, "data-manage")
+	if !ok {
+		return
+	}
+	out, err := s.service.MerchantDataRights(p)
+	respond(w, http.StatusOK, out, err)
+}
+func (s *Server) dataExport(w http.ResponseWriter, r *http.Request) {
+	p, _, ok := s.merchantAuth(w, r, "data-manage")
+	if !ok {
+		return
+	}
+	out, err := s.service.ExportMerchantData(p)
+	if err != nil {
+		respond(w, 0, nil, err)
+		return
+	}
+	w.Header().Set("Content-Disposition", "attachment; filename=ynx-merchant-data.json")
+	w.Header().Set("X-YNX-Data-Export-Schema", strconv.Itoa(merchantDataExportSchemaVersion))
+	writeJSON(w, http.StatusOK, out)
+}
+func (s *Server) dataDeletionRequest(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "data-manage")
+	if !ok {
+		return
+	}
+	var in MerchantDeletionRequestInput
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.RequestMerchantDeletion(p, in)
+	respond(w, http.StatusCreated, out, err)
+}
 func (s *Server) analytics(w http.ResponseWriter, r *http.Request) {
 	p, _, ok := s.merchantAuth(w, r, "read")
 	if !ok {
@@ -416,6 +454,14 @@ func (s *Server) aiReview(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := s.service.ReviewAI(p.Merchant, r.PathValue("id"), in.Decision)
 	respond(w, 200, out, err)
+}
+func (s *Server) dataDeletionCancel(w http.ResponseWriter, r *http.Request) {
+	p, _, ok := s.merchantAuth(w, r, "data-manage")
+	if !ok {
+		return
+	}
+	out, err := s.service.CancelMerchantDeletion(p, r.PathValue("id"))
+	respond(w, http.StatusOK, out, err)
 }
 func (s *Server) merchantAuth(w http.ResponseWriter, r *http.Request, permission string) (MerchantPrincipal, []byte, bool) {
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
