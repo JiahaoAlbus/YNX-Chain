@@ -14,6 +14,9 @@ runtime_targets=(
   apps/quant-lab/public-product-metadata.json
   apps/quant-lab/product-release.json
   apps/quant-lab/security-verification.json
+  release/integration/ynx-quant-lab-contract.json
+  docs/integration
+  .ai-bridge/full-goal-coverage.json
   cmd/ynx-quantd
   cmd/ynx-quant-worker
   cmd/ynx-quant-paperd
@@ -66,6 +69,7 @@ if [[ -z "$python_bin" ]]; then
   echo "No healthy Python 3.9+ interpreter found; set YNX_PYTHON_BIN explicitly" >&2
   exit 1
 fi
+"$python_bin" apps/quant-lab/scripts/validate-integration-package.py >/dev/null
 PYTHONPATH=apps/quant-lab/sdk/python/src "$python_bin" -m unittest discover \
   -s apps/quant-lab/sdk/python/tests -p 'test_*.py' -v
 "$python_bin" apps/quant-lab/tests/test_archive_scanner.py -v

@@ -1,0 +1,287 @@
+{
+  "schemaVersion": "ynx.cross-product-test-vectors.v1",
+  "productId": "ynx-quant-lab",
+  "contractId": "ynx-quant-lab-contract-v1",
+  "sourceCommit": "89a180911e40d66e47789eab419dff21d93a42d8",
+  "state": "owner-proposal-not-yet-executed-on-shared-testnet",
+  "generatedAt": "2026-07-27T00:00:00Z",
+  "truthBoundary": "Local injected transports and fixtures validate the Quant boundary only. A vector is testnetVerified only after owner services, authoritative receipts, transaction references, Explorer proof, and retained raw evidence are present.",
+  "vectors": [
+    {
+      "id": "QX-AUTH-001",
+      "category": "wallet-auth-positive",
+      "owners": ["02-wallet-auth", "08-quant-lab", "29-integration"],
+      "preconditions": [
+        "ynx-quant-lab registry entry accepted and enabled",
+        "device P-256 challenge approved",
+        "ordered scopes equal quant:research, quant:paper, quant:audit:read as requested",
+        "session expiry no more than 300 seconds"
+      ],
+      "action": "Complete Product Session and introspect it at the canonical Gateway before a Quant read or local-paper operation.",
+      "expected": [
+        "session binding includes product, client, bundle, callback, device, account, ordered scopes, purpose, nonce, createdAt and expiresAt",
+        "Quant receives no private key or long-lived bearer",
+        "request and audit correlation identifiers are preserved"
+      ],
+      "negativeCompanion": "QX-AUTH-002",
+      "status": "pending-owner-integration",
+      "requiredEvidence": ["Wallet approval record", "introspection response", "Quant request log", "source commits"]
+    },
+    {
+      "id": "QX-AUTH-002",
+      "category": "wallet-auth-negative",
+      "owners": ["02-wallet-auth", "08-quant-lab", "29-integration"],
+      "preconditions": ["valid baseline authorization request exists"],
+      "action": "Replay or mutate bundle, callback, device, product, account, purpose, scope ordering, expiry, nonce, or unknown fields.",
+      "expected": [
+        "Wallet/Gateway rejects fail closed",
+        "Quant mutation route is not invoked",
+        "error has requestId and errorId without stack or secret",
+        "no durable strategy or execution state changes"
+      ],
+      "status": "pending-owner-integration",
+      "requiredEvidence": ["negative request corpus", "Gateway rejection responses", "Quant state digest before and after"]
+    },
+    {
+      "id": "QX-MANDATE-001",
+      "category": "strategy-mandate-positive",
+      "owners": ["02-wallet-auth", "08-quant-lab", "07-exchange", "29-integration"],
+      "preconditions": [
+        "Wallet Product Session valid",
+        "StrategyMandate binds user Exchange subaccount, strategy hash/version, YNXT-YUSD_TEST, buy/sell method, capital, position, leverage, slippage, gas, frequency, loss, drawdown, expiry and nonce domain",
+        "no-withdraw boundary attested"
+      ],
+      "action": "Verify the mandate and submit one bounded Exchange order intent.",
+      "expected": [
+        "Quant accepts only the exact signed limits",
+        "Exchange transport cannot withdraw, change owner, change withdrawal address, export credentials or widen risk",
+        "terminal receipt binds requestId, sequence, amount, source, asOf, version and auditId"
+      ],
+      "negativeCompanion": "QX-MANDATE-002",
+      "status": "pending-owner-integration",
+      "requiredEvidence": ["mandate digest and attestation", "no-withdraw capability proof", "order and fill receipt", "Explorer or Exchange evidence"]
+    },
+    {
+      "id": "QX-MANDATE-002",
+      "category": "strategy-mandate-negative",
+      "owners": ["02-wallet-auth", "08-quant-lab", "07-exchange", "27-dex", "29-integration"],
+      "preconditions": ["valid baseline StrategyMandate exists"],
+      "action": "Attempt venue, market, method, capital, position, leverage, slippage, gas, frequency, daily loss, drawdown, expiry, nonce, account, device or product widening; also test expired and revoked mandates.",
+      "expected": [
+        "request rejected before venue call",
+        "no order, swap, LP action, transfer, approval, owner change or withdrawal occurs",
+        "rejection is correlated and auditable",
+        "revoke propagates without process restart"
+      ],
+      "status": "pending-owner-integration",
+      "requiredEvidence": ["tampered vector corpus", "Wallet/Quant rejection", "venue call count zero", "state and balance snapshots"]
+    },
+    {
+      "id": "QX-ORACLE-001",
+      "category": "oracle-positive",
+      "owners": ["19-oracle-market-data", "08-quant-lab", "29-integration"],
+      "preconditions": [
+        "accepted market-data schema and provider registry version",
+        "historical bars and latest observation include source, asOf, version, coverage, confidence and failure state",
+        "timestamp is within accepted freshness bound"
+      ],
+      "action": "Run deterministic research/backtest and Shadow observation from the accepted feed.",
+      "expected": [
+        "dataset hash and lineage persist",
+        "same input and seed produce identical output digest",
+        "Shadow produces observed_no_submit, zero fill and no orderId",
+        "provider source and correction lineage remain visible"
+      ],
+      "negativeCompanion": "QX-ORACLE-002",
+      "status": "pending-owner-integration",
+      "requiredEvidence": ["provider registry/version", "raw dataset hash", "backtest digest", "Shadow record"]
+    },
+    {
+      "id": "QX-ORACLE-002",
+      "category": "oracle-negative",
+      "owners": ["19-oracle-market-data", "08-quant-lab", "29-integration"],
+      "preconditions": ["baseline valid feed exists"],
+      "action": "Supply stale, future, missing-source, nonpositive-price, insufficient-coverage, divergent, silently-corrected or unavailable data.",
+      "expected": [
+        "research or execution fails closed according to operation type",
+        "no venue mutation occurs",
+        "failure source and stale/partial state are explicit",
+        "last-good value is never represented as fresh"
+      ],
+      "status": "pending-owner-integration",
+      "requiredEvidence": ["negative feed corpus", "Quant rejection/failure response", "venue call count zero"]
+    },
+    {
+      "id": "QX-EXCHANGE-001",
+      "category": "exchange-testnet-positive",
+      "owners": ["01-chain-core", "02-wallet-auth", "07-exchange", "08-quant-lab", "12-explorer", "13-monitor", "19-oracle-market-data", "26-data-fabric", "29-integration"],
+      "preconditions": [
+        "test user receives Testnet YNXT",
+        "user deposits to own Exchange subaccount",
+        "canonical Wallet mandate verified",
+        "accepted Exchange no-withdraw transport and Oracle feed healthy",
+        "risk limits below test account capacity"
+      ],
+      "action": "Advance strategy Paper to Shadow to Wallet-approved bounded Testnet and execute one order that reaches a terminal fill.",
+      "expected": [
+        "one execution reservation and one terminal completion",
+        "completed replay returns local result without second Exchange call",
+        "order/fill, fee and PnL remain in user subaccount",
+        "Explorer/Monitor/Data Fabric correlation identifiers match",
+        "live mainnet funds remain disabled"
+      ],
+      "negativeCompanion": "QX-EXCHANGE-002",
+      "status": "pending-shared-testnet",
+      "requiredEvidence": ["Faucet transaction", "deposit receipt", "mandate", "order/fill", "fee/PnL ledger", "Explorer link", "Monitor event", "source commits"]
+    },
+    {
+      "id": "QX-EXCHANGE-002",
+      "category": "exchange-testnet-negative",
+      "owners": ["02-wallet-auth", "07-exchange", "08-quant-lab", "13-monitor", "29-integration"],
+      "preconditions": ["valid bounded Exchange flow is available"],
+      "action": "Return accepted/open/partial, stale, future, wrong-adapter, wrong-requestId, wrong-sequence, wrong-amount, over-limit-price, missing-source/version/audit, or transport-timeout response.",
+      "expected": [
+        "Quant does not mark execution completed",
+        "reservation remains reserved_outcome_unknown",
+        "retry does not call Exchange again",
+        "Monitor exposes pending unknown execution",
+        "operator reconciliation is required before recovery"
+      ],
+      "status": "pending-owner-integration",
+      "requiredEvidence": ["response mutation corpus", "Exchange call count", "durable execution ledger after restart", "Monitor signal"]
+    },
+    {
+      "id": "QX-DEX-001",
+      "category": "dex-testnet-positive",
+      "owners": ["01-chain-core", "02-wallet-auth", "08-quant-lab", "12-explorer", "13-monitor", "19-oracle-market-data", "26-data-fabric", "27-dex", "29-integration"],
+      "preconditions": [
+        "user deposits Testnet assets to own Strategy Vault",
+        "limited session key binds Vault, pools/routers, methods and risk limits",
+        "accepted DEX transport and Oracle feed healthy"
+      ],
+      "action": "Execute a bounded DCA or TWAP action and one LP rebalance, then reconcile the Vault.",
+      "expected": [
+        "assets remain in user Vault",
+        "terminal receipts bind transaction/order references and Quant sequence",
+        "fees, gas, slippage and PnL are attributable",
+        "Explorer/Monitor/Data Fabric identifiers correlate",
+        "session key cannot arbitrary-transfer or change owner"
+      ],
+      "negativeCompanion": "QX-DEX-002",
+      "status": "pending-shared-testnet",
+      "requiredEvidence": ["Vault deposit", "session-key mandate", "swap/LP receipts", "reconciliation snapshot", "Explorer and Monitor proof"]
+    },
+    {
+      "id": "QX-DEX-002",
+      "category": "dex-testnet-negative",
+      "owners": ["02-wallet-auth", "08-quant-lab", "13-monitor", "27-dex", "29-integration"],
+      "preconditions": ["valid bounded DEX flow exists"],
+      "action": "Attempt unapproved pool/router/method, unlimited approval, arbitrary transfer, owner change, expired/revoked key, excessive gas/slippage, stale Oracle, or malformed/nonterminal receipt.",
+      "expected": [
+        "action rejected before or by the authoritative owner boundary",
+        "no unapproved state change or asset movement",
+        "unknown terminal outcome remains blocked from duplicate retry",
+        "kill switch or emergency exit remains available according to the accepted contract"
+      ],
+      "status": "pending-owner-integration",
+      "requiredEvidence": ["negative method corpus", "chain/Vault state before and after", "rejection and audit records"]
+    },
+    {
+      "id": "QX-RISK-001",
+      "category": "risk-and-kill-switch",
+      "owners": ["08-quant-lab", "13-monitor", "19-oracle-market-data", "29-integration"],
+      "preconditions": ["bounded Testnet strategy running with authoritative venue and Oracle observations"],
+      "action": "Breach one limit at a time: notional, position, leverage, order, slippage, gas, frequency, daily loss, drawdown, liquidity, depeg, concentration, cancel rate, API failures, VaR/ES or Oracle freshness.",
+      "expected": [
+        "new mutation is rejected",
+        "persistent kill switch activates where policy requires",
+        "restart does not clear kill switch",
+        "Monitor receives correlated risk event",
+        "resume requires new human/Wallet review"
+      ],
+      "status": "pending-shared-testnet",
+      "requiredEvidence": ["risk observation", "rejection", "persistent state across restart", "Monitor incident timeline"]
+    },
+    {
+      "id": "QX-RECON-001",
+      "category": "reconciliation",
+      "owners": ["07-exchange", "08-quant-lab", "13-monitor", "27-dex", "29-integration"],
+      "preconditions": ["authoritative account or Vault snapshot endpoint accepted"],
+      "action": "Return exact match, then deliberate nonzero cash and position delta, then overflow/malformed/stale snapshots.",
+      "expected": [
+        "exact match returns delta zero",
+        "nonzero exact delta requires killSwitch=true and activates persistent Quant kill switch",
+        "wrong delta, overflow, stale or malformed snapshot is rejected unavailable",
+        "no local state is silently overwritten by remote snapshot"
+      ],
+      "status": "pending-owner-integration",
+      "requiredEvidence": ["snapshot corpus", "Quant reconciliation results", "kill-switch state", "restart evidence"]
+    },
+    {
+      "id": "QX-REVOKE-001",
+      "category": "revoke-and-emergency-exit",
+      "owners": ["02-wallet-auth", "07-exchange", "08-quant-lab", "13-monitor", "27-dex", "29-integration"],
+      "preconditions": ["active bounded Exchange or DEX mandate"],
+      "action": "Revoke mandate during idle and in-flight states; for DEX also invoke owner-authorized emergency exit.",
+      "expected": [
+        "new actions reject immediately",
+        "in-flight result is reconciled without duplicate submission",
+        "Quant cannot undo revoke or expand authority",
+        "DEX emergency exit returns assets according to Vault owner contract",
+        "all transitions are correlated and auditable"
+      ],
+      "status": "pending-shared-testnet",
+      "requiredEvidence": ["Wallet revoke record", "venue call count", "reconciliation", "Vault emergency-exit receipt", "Monitor timeline"]
+    },
+    {
+      "id": "QX-DATAFABRIC-001",
+      "category": "canonical-events-and-billing",
+      "owners": ["08-quant-lab", "12-explorer", "13-monitor", "15-trust-center", "24-finance", "26-data-fabric", "29-integration"],
+      "preconditions": ["26-data-fabric accepts one event schema/version mapping"],
+      "action": "Emit research, lifecycle, mandate, execution, risk, PnL/fee, revoke and recovery events from one bounded flow.",
+      "expected": [
+        "one canonical event version per fact",
+        "idempotent ingestion",
+        "Finance remains read-only",
+        "Explorer exposes public-safe proof only",
+        "Trust can reference evidence without receiving secrets or strategy source",
+        "fees reconcile to real venue/gas/compute/data records"
+      ],
+      "status": "pending-owner-integration",
+      "requiredEvidence": ["accepted schema", "event stream", "billing ledger", "cross-product correlation report"]
+    },
+    {
+      "id": "QX-RECOVERY-001",
+      "category": "restart-backup-restore",
+      "owners": ["08-quant-lab", "13-monitor", "29-integration", "30-security-sre-release"],
+      "preconditions": ["deployed persistent Quant environment with backup location and release manifest"],
+      "action": "Create strategy and execution state, interrupt during reserved outcome, restart, back up, restore to clean environment, tamper backup, and exercise rollback migration.",
+      "expected": [
+        "completed replay remains idempotent",
+        "reserved unknown remains blocked",
+        "kill switch persists",
+        "valid restore reproduces integrity digest",
+        "tampered restore fails closed",
+        "rollback does not silently discard newer state"
+      ],
+      "status": "pending-deployed-environment",
+      "requiredEvidence": ["backup hash", "restore logs", "state digest", "tamper rejection", "rollback record", "Monitor incident"]
+    },
+    {
+      "id": "QX-PUBLIC-001",
+      "category": "public-release-truth",
+      "owners": ["08-quant-lab", "12-explorer", "28-website", "29-integration", "30-security-sre-release"],
+      "preconditions": ["central integration and required Testnet vectors verified"],
+      "action": "Deploy Web/API and immutable artifacts, then query health/version and install hosted packages from two regions.",
+      "expected": [
+        "public commit equals approved release commit",
+        "health exposes real dependency and failure state",
+        "downloaded SHA/bytes/signing class match release record",
+        "Testnet and production-signing boundaries remain explicit",
+        "canonical page and Explorer proof are available"
+      ],
+      "status": "pending-public-stage",
+      "requiredEvidence": ["public URLs", "cross-region responses", "download hashes", "installation/cold start", "Website and Explorer proof"]
+    }
+  ]
+}
