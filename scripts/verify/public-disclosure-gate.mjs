@@ -117,10 +117,33 @@ if (index) {
     }
     expect(release.states?.implementedLocal === true, `${records.release} implementedLocal must remain evidence-bound true`);
     expect(release.states?.testedLocal === true, `${records.release} testedLocal must remain evidence-bound true`);
-    for (const key of releaseStateKeys.filter((key) => !["implementedLocal", "testedLocal", "integratedCentral", "deployedPublic", "downloadHosted"].includes(key))) {
+    for (const key of releaseStateKeys.filter((key) => !["implementedLocal", "testedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted"].includes(key))) {
       expect(release.states?.[key] === false, `${records.release} ${key} must remain false without stronger evidence`);
     }
     expect(release.states?.integratedCentral === true, `${records.release} integratedCentral must match Website owner acceptance evidence`);
+    const stagingEvidence = (release.stateEvidence?.deployedStaging ?? [])
+      .map((evidencePath) => readJson(evidencePath))
+      .find((record) => {
+        const staging = record?.stagingRuntime;
+        return (
+          staging?.provider === "Vercel" &&
+          staging?.environment === "Preview" &&
+          Number.isSafeInteger(staging?.githubDeploymentId) &&
+          Number.isSafeInteger(staging?.githubDeploymentStatusId) &&
+          /^[0-9a-f]{40}$/.test(staging?.sourceCommit ?? "") &&
+          staging?.deploymentState === "success" &&
+          typeof staging?.environmentUrl === "string" &&
+          staging.environmentUrl.startsWith("https://") &&
+          staging?.anonymousAccess?.httpStatus === 302 &&
+          staging?.anonymousAccess?.accessPolicy === "provider-sso" &&
+          staging?.anonymousAccess?.contentVerified === false &&
+          staging?.anonymousAccess?.locationOrigin === "https://vercel.com" &&
+          !Number.isNaN(Date.parse(staging?.providerObservedAt ?? "")) &&
+          !Number.isNaN(Date.parse(staging?.anonymousAccess?.observedAt ?? ""))
+        );
+      });
+    expect(Boolean(stagingEvidence), `${records.release} deployedStaging requires direct provider deployment evidence`);
+    expect(release.states?.deployedStaging === Boolean(stagingEvidence), `${records.release} deployedStaging must match direct provider deployment evidence`);
     expect(release.states?.deployedPublic === true, `${records.release} deployedPublic must match direct production-route evidence`);
     const hostedEvidence = (release.stateEvidence?.downloadHosted ?? [])
       .map((evidencePath) => readJson(evidencePath))

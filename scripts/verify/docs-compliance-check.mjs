@@ -78,7 +78,7 @@ const release = JSON.parse(fs.readFileSync("release/product-release.json", "utf8
 const publicMetadata = JSON.parse(fs.readFileSync("release/public-product-metadata.json", "utf8"));
 const websiteHandoff = fs.readFileSync("docs/public/WEBSITE_INTEGRATION_HANDOFF.md", "utf8");
 const stateKeys = ["implementedLocal", "testedLocal", "installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"];
-const expectedStates = {implementedLocal: true, testedLocal: true, installedLocal: false, integratedCentral: true, deployedStaging: false, deployedPublic: true, downloadHosted: true, productionSigned: false, storeReleased: false};
+const expectedStates = {implementedLocal: true, testedLocal: true, installedLocal: false, integratedCentral: true, deployedStaging: true, deployedPublic: true, downloadHosted: true, productionSigned: false, storeReleased: false};
 for (const key of stateKeys) {
   if (typeof release.states?.[key] !== "boolean") failures.push(`release state is not boolean: ${key}`);
   if (release.states?.[key] !== expectedStates[key]) failures.push(`release state does not match recorded direct evidence: ${key}`);
@@ -106,6 +106,7 @@ if (
 for (const marker of [
   "https://ynxweb4.com/what-is-ynx-chain",
   "`integratedCentral=true`",
+  "`deployedStaging=true`",
   "`deployedPublic=true`",
   "`downloadHosted=true`",
   "`productionSigned=false`",
