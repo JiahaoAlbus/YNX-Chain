@@ -2,7 +2,7 @@
   "productId": "wallet",
   "name": "YNX Wallet",
   "branch": "codex/final-wallet-auth",
-  "commit": "7e54b5e471066e44f4eacf3014bcad4d23dd0ebe",
+  "commit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
   "artifactSourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
   "version": "1.0.0-testnet-preview",
   "surfaces": ["android", "ios"],
@@ -18,6 +18,7 @@
   "capabilityStates": {
     "canonicalAuth": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "canonicalGatewayAdapter": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"gatewayAdapterSnapshotVersion":2,"gatewayHttpKernelVersion":1,"evidenceSourceCommit":"d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e","coverage":["twelve-canonical-routes","canonical-json-body","separate-p256-proof-header","immutable-registry","request-atomic-rollback","state-digest","proof-replay","session-revoke","approval-revoke","device-revoke","wallet-only-all-device-logout","mandate-proof-atomicity"]},
+    "gatewayObservability": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6","observabilitySchemaVersion":1,"endpoints":["/health","/ready","/version","/metrics"],"identifiers":["x-request-id","x-trace-id","x-error-id"],"remoteBuildIdentityRequired":true,"boundedMetricLabels":true,"redactedStructuredEvents":true,"nodeOnlyPackageSubpath":"@ynx-chain/wallet-auth/gateway-node-host","mobileUniversalRootExcludesNodeBuiltins":true,"evidence":"proof/gateway-observability-local-2026-07-27.json"},
     "connectedApps": {"implementedLocal":true,"testedLocal":true,"installedAndroid":true,"installedIOS":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"b88a40ed37eaf3fd50d6accc5fdc3b7693c82cf5","androidEvidence":"proof/wallet-connected-apps-android-installed-2026-07-26.json","iosEvidenceRun":"https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30201957908","iosArtifactId":8632005688,"iosArtifactSha256":"f1af6a4a8902a16a43c6ee5a2bda279ed642613d27edaff4b9e6e675c1c4a64a","iosSigningClass":"unsigned-simulator-build","coverage":["account-bound-session-inventory","freshness-bound","strict-envelope","loading-empty-failure-ready-ui"]},
     "signedIntent": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountPolicy": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
@@ -57,6 +58,7 @@
     "gatewayAdapterSnapshotVersion": 2,
     "gatewayHttpKernelVersion": 1,
     "candidateSourceCommit": "d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e",
+    "observabilityCandidateSourceCommit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
     "registryProducts": 26,
     "localExactProductsTested": ["social", "pay", "card", "quant"],
     "candidateImplemented": true,
@@ -70,7 +72,8 @@
     "No staging/public product deployment, production signing or store release exists; hosted binaries are engineering evidence only.",
     "Native iOS development on this host requires full Xcode; the executed macOS CI provides the Simulator build/install evidence.",
     "No external security audit or hardware-backed non-exportable chain transaction signer has been completed.",
-    "The ERC-4337 EntryPoint and Smart Account contracts pass a local Hardhat EDR flow but are not deployed, Bundler-integrated, externally audited or proven on YNX Testnet."
+    "The ERC-4337 EntryPoint and Smart Account contracts pass a local Hardhat EDR flow but are not deployed, Bundler-integrated, externally audited or proven on YNX Testnet.",
+    "Gateway health/readiness/version/metrics and redacted structured events are tested on a loopback runtime only; no central Monitor acceptance, staging endpoint or public endpoint exists."
   ],
-  "generatedAt": "2026-07-27T06:40:05Z"
+  "generatedAt": "2026-07-27T15:00:49Z"
 }

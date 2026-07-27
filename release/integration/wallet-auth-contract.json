@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productSlug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e",
+  "sourceCommit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
   "phase": "INTEGRATE",
   "network": {
     "nativeChainId": "ynx_6423-1",
@@ -19,6 +19,8 @@
     "centralProductRegistration": 3,
     "gatewayAdapterSnapshot": 2,
     "gatewayHttpKernel": 1,
+    "gatewayNodeState": 1,
+    "gatewayObservability": 1,
     "strategyMandate": 2,
     "strategyAction": 1,
     "strategyMandateStore": 1,
@@ -34,6 +36,21 @@
     "proofIncludedInBodyDigest": false,
     "stateDigestDomain": "YNX_CANONICAL_GATEWAY_HTTP_STATE_V1",
     "requestAtomicRollback": true
+  },
+  "gatewayObservability": {
+    "administrativeEndpoints": {"health":"/health","readiness":"/ready","version":"/version","metrics":"/metrics"},
+    "responseIdentifiers": ["x-request-id", "x-trace-id", "x-error-id"],
+    "structuredEventSchemaVersion": 1,
+    "structuredEventSinkFailureIsolation": true,
+    "metricsFormat": "Prometheus text exposition 0.0.4",
+    "boundedRouteLabels": true,
+    "boundedErrorCodeLabels": true,
+    "requestBodyOrProofInEvents": false,
+    "remoteDeploymentRequiresExactBuildIdentity": true,
+    "requiredBuildIdentity": ["sourceCommit", "release", "buildTime"],
+    "localRuntimeDoesNotImplyPublicDeployment": true,
+    "nodeHostImport": "@ynx-chain/wallet-auth/gateway-node-host",
+    "universalPackageRootMobileSafe": true
   },
   "canonicalBindings": [
     "network",
@@ -213,11 +230,11 @@
   ],
   "dependencies": [
     {"owner": "01-chain-core", "need": "chain identity, EVM, EntryPoint, transaction and receipt authority", "status": "blocked-external"},
-    {"owner": "app-gateway", "need": "merge and deploy the canonical adapter with fail-closed persistence", "status": "adapter-ready"},
+    {"owner": "app-gateway", "need": "merge and deploy the canonical adapter and observability host with fail-closed persistence and exact build identity", "status": "adapter-ready"},
     {"owner": "26-data-fabric", "need": "accept canonical event and billing-ledger mappings", "status": "contract-ready"},
     {"owner": "19-oracle", "need": "capital-product and stablecoin reference facts", "status": "contract-required"},
     {"owner": "12-explorer", "need": "authorization, transaction, UserOperation and evidence indexing", "status": "contract-required"},
-    {"owner": "13-monitor", "need": "session, sponsor, Gateway, Bundler, Paymaster and mandate telemetry", "status": "contract-required"},
+    {"owner": "13-monitor", "need": "session, sponsor, Gateway, Bundler, Paymaster and mandate telemetry", "status": "contract-ready-local-runtime"},
     {"owner": "15-trust-center", "need": "appeal, correction and mandate-dispute linkage", "status": "contract-required"},
     {"owner": "29-integration", "need": "freeze merge order and execute shared Testnet", "status": "handoff-ready"}
   ],
@@ -233,12 +250,16 @@
     "storeReleased": false
   },
   "verification": {
-    "walletAuthPackageTests": "84/84 passed",
+    "walletAuthPackageTests": "94/94 passed",
+    "gatewayNodeHostTests": "8/8 passed",
     "browserSdkTests": "7/7 passed after npm ci from its independent lockfile",
     "jsSdkTests": "5/5 passed",
-    "goRepositoryTests": "go test ./... passed",
+    "goRepositoryTests": "umask 0022; go test ./... passed; MCP default umask 0077 made two non-Wallet unsafe-permission fixtures mode 0600 and was preserved as an environment precondition, not a runtime pass",
     "packageDryRun": "passed",
     "gatewayHttpKernel": "twelve exact routes; canonical body; separate proof header; immutable registry; replay; restart; rollback; state digest; self-scoped approval/device revoke; Wallet-only all-device logout tested",
+    "gatewayCliLoopbackSmoke": "health/version/ready/metrics and structured JSON events passed",
+    "remoteDeploymentBuildIdentityGate": "missing exact source commit/release/build time rejected",
+    "nodeHostSubpathExport": "CanonicalWalletGatewayNodeHost and observability constants/types exposed from @ynx-chain/wallet-auth/gateway-node-host; universal root excludes Node-only imports",
     "directTestnetMandateReceipt": false,
     "directPublicGatewayEvidence": false
   }

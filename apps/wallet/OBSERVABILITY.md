@@ -1,7 +1,36 @@
 # Observability
 
-Gateway and sponsor events use structured JSON with timestamp, level, service/version, request ID, error ID, audit ID, product client, hashed device/account binding, operation/intent digest, outcome, latency and authoritative source. Logs exclude seeds, private keys, recovery material, raw Credential evidence, bearer material, signatures and provider secrets.
+Source commit: `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6`.
 
-Metrics cover authorization request/approve/reject/complete, introspection outcome, expiry/revoke/logout, replay/tamper/cross-App rejection, UserOperation simulation/submission/receipt, Paymaster eligible/ineligible reason, budget consumption, provider latency/rate limits, queue age, Credential status failure, mandate kill/exit and artifact download/install verification. Traces connect Wallet callback → Gateway → Bundler/Paymaster with request ID, never secret fields.
+## Canonical Gateway runtime
 
-Alerts: p99/SLO burn, replay surge, signature/tamper surge, sponsor budget at 50/75/90/100%, Paymaster deposit threshold, Bundler outage, queue age, revoke failure, backup lag, audit-chain failure and public artifact hash mismatch. The incident runbook is in `OPERATIONS.md`. Status-page and central monitor URLs remain operator inputs until deployed.
+`ynx-wallet-gatewayd` now exposes four loopback administrative interfaces without Product Session proof transport:
+
+- `GET /health`: process health, persisted-state digest and truthful local/remote classification.
+- `GET /ready`: separates `runtimeReady` from `publicDeploymentReady`; a healthy local process does not imply staging or public deployment.
+- `GET /version`: exact source commit, release, canonical build time and Gateway/node/observability schema versions.
+- `GET /metrics`: Prometheus text exposition with request count, in-flight requests, cumulative duration, response status by bounded route, bounded public error codes, structured-event sink drops, build identity and remote-deployment classification.
+
+Every response carries a generated `x-request-id` and `x-trace-id`. Rejected or failed requests additionally carry `x-error-id`. A remotely classified process refuses startup unless the operator supplies a full lowercase 40-character source commit, bounded release identifier and canonical ISO-8601 UTC build time. A local process without those values reports `local-unbound` rather than inventing a release.
+
+## Structured event boundary
+
+The CLI emits one canonical JSON event per request plus structured startup/shutdown records. Request events contain timestamp, service, release/source commit, request/trace/error IDs, bounded route and method, HTTP status, public error code, duration, state digest, outcome and remote-deployment classification.
+
+Events and metric labels exclude request bodies, Product Session proofs, authorization headers, private keys, seeds, recovery material, signatures, provider secrets and state paths. Route labels come from a fixed allowlist and error labels come from bounded public error codes. A failed event sink cannot fail an authorization request; the drop is counted by `ynx_wallet_gateway_events_dropped_total`.
+
+## Required central observability contract
+
+The central integration must extend correlation beyond the local host with authoritative audit IDs, product client, hashed device/account binding, operation or intent digest, source/version and outcome. It must cover authorization request/approve/reject/complete, introspection, expiry/revoke/logout, replay/tamper/cross-App rejection, UserOperation simulation/submission/receipt, Paymaster eligibility and budget consumption, provider latency/rate limits, queue age, Credential status failure, mandate kill/exit and artifact verification. Traces must connect Wallet callback → Gateway → Bundler/Paymaster without secret fields.
+
+Required alerts remain p99/SLO burn, replay or signature/tamper surge, sponsor budget at 50/75/90/100%, Paymaster deposit threshold, Bundler outage, queue age, revoke failure, backup lag, audit-chain failure and public artifact hash mismatch. Status-page publication, durable telemetry storage, accepted dashboards and alert evidence remain central Monitor/operator inputs; the local host does not claim them.
+
+## Verification and remaining boundary
+
+- `packages/wallet-auth npm test`: 94/94 passed.
+- `gateway-node-host.test.mjs`: 8/8 passed, including Node-only package subpath export, ID headers, exact build identity, redaction, bounded metrics and event-sink failure isolation.
+- A real loopback CLI process returned health, readiness, version and metrics and emitted canonical structured events.
+- `remoteDeployed=true` without the complete build identity failed startup.
+- Machine-readable evidence: `proof/gateway-observability-local-2026-07-27.json`.
+
+This is tested local runtime evidence only. Central App Gateway merge, durable telemetry storage, distributed trace propagation, Monitor dashboard/alert acceptance, staging/public endpoints and production SLO compliance remain unverified.

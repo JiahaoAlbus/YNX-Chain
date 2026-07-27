@@ -7,7 +7,7 @@ Handoff date: 2026-07-27. Owned branch: `codex/final-wallet-auth`. Recovery sour
 - Preserved starting/remote branch tip: `efe827f467107e23482289a5b1f69ac9ff83e694`.
 - Merge base: `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`.
 - Compatibility reference observed on `origin/main`: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`.
-- Recovered hosted-artifact source commit: `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`. Current protocol/vector source commit: `853b2e0bf923e3d3535685c38b3e2396c2ea56df`. The final release-record/handoff commit is reported to the controller because a commit cannot contain its own hash.
+- Recovered hosted-artifact source commit: `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`. Current protocol, vector and local Gateway-observability source commit: `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6`. The final release-record/handoff commit is reported to the controller because a commit cannot contain its own hash.
 - Owned changes are limited to `apps/wallet/**`, `packages/wallet-auth/**`, this handoff and `.github/workflows/wallet-ios.yml`. No central acceptance file, long-term objective, root Makefile or other product source was modified.
 
 ## Honest delivery state
@@ -15,10 +15,10 @@ Handoff date: 2026-07-27. Owned branch: `codex/final-wallet-auth`. Recovery sour
 | State | Value | Evidence/boundary |
 |---|---:|---|
 | implemented-local | true | Independent Wallet, canonical lifecycle, Signed Intent, Smart Account policy, mandate/capital and Credential candidates |
-| tested-local | true | Wallet/Auth SDK 75/75 plus prior Wallet typecheck/product-check evidence; current integration slice is source- and vector-bound |
+| tested-local | true | Wallet/Auth 94/94 plus Wallet typecheck/product-check evidence; the current Gateway observability slice is bound to exact source and machine evidence |
 | installed-local | Android true; iOS Simulator true | API 36 phone/foldable installed and cold-launched; macOS 15/Xcode 26.3 CI installed and cold-launched the unsigned iOS Simulator app |
-| integrated-central | false | Registry document v2, product schema v3 and Gateway adapter v2 are tested candidates; not merged into or deployed by central Gateway |
-| deployed-staging | false | No staging endpoint or version health exists |
+| integrated-central | false | Registry document v2, product schema v3, Gateway adapter v2 and observability host v1 are tested candidates; not merged into or deployed by central Gateway |
+| deployed-staging | false | Local loopback health/readiness/version/metrics exist; no staging endpoint or exact deployed build response exists |
 | deployed-public | false | No product public deployment exists; public chain RPC use is not product deployment |
 | download-hosted | true | GitHub prerelease hosts the exact test-signed APK and unsigned Simulator app with hashes |
 | production-signed | false | Android is local test-signed; no Apple product archive |
@@ -92,10 +92,10 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 
 ## Verification performed
 
-- `packages/wallet-auth npm test`: 75/75 pass; `npm pack --dry-run` includes central docs, Registry v2, Gateway adapter v2, StrategyMandate runtime and deterministic vectors.
-- `apps/wallet npm run check`: typecheck, 23/23 tests, product boundary check, Android/iOS Hermes exports pass.
-- `apps/wallet npm audit --omit=dev --audit-level=high`: pass with no high/critical; ten moderate Expo build-tool findings documented. SDK audit: zero findings.
-- `npm run hardhat:build && npm run contracts:selectors && go test ./...`: pass after generating the repository's ignored contract fixtures.
+- `packages/wallet-auth npm test`: 94/94 pass; `npm pack --dry-run` includes central docs, Registry v2, Gateway adapter/Node host, StrategyMandate runtime and deterministic vectors.
+- `apps/wallet npm run check`: typecheck, 39/39 tests, product/release/coverage/SBOM gates and Android/iOS Hermes exports pass.
+- Offline production audits with `npm audit --offline --omit=dev --audit-level=high`: Wallet app and Wallet/Auth both report zero vulnerabilities; Browser/JS SDK tests remain green.
+- `npm run contracts:check` and `umask 0022; go test ./...`: pass. The MCP default `umask 0077` tightened two non-Wallet unsafe-permission fixtures to `0600`, so the standard fixture precondition is recorded rather than changing another product's source.
 - root `make test`: pass.
 - root `make preflight`: pass after using the host's working `/usr/bin/python3` and creating the ignored `tmp/` directory required by the existing Exchange fixture; the default third-party Python installation is killed by macOS before startup.
 - Android SDK 36 `assembleRelease`: pass, 352 tasks. Final APK is 78,035,858 bytes, SHA-256 `3d7dd0b349721f2364a2ec0519269bee2933c8b718ba26fc68e7e3354ae15256`.
@@ -108,6 +108,7 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 - Smart Account policy/mandate/Credential/Signed Intent gates cover property/fuzz/fault, 10,000 sponsorship evaluations, 5,000 Credential parses, 2,000 signed export verifications and a 20,000-evaluation sponsorship benchmark. The new Solidity account additionally executes owner, UV-required WebAuthn and bounded-session UserOperations through the official EntryPoint on local Hardhat EDR, rejects missing UV/wrong target/over-limit/post-recovery sessions, and runs a 50-operation soak.
 - The default-disabled Paymaster executes local first-action, merchant, developer and product sponsorship, conservatively reserves product/subject budgets, observes postOp cost, rejects tamper/replay/second-first-action/unapproved target and restricts Risk Officer authority to disabling. The ERC-7769 adapter adds strict health/estimate/send/lookup/receipt with 4 dedicated tests and a 100-request isolated-fixture soak. Neither is deployed publicly.
 - Canonical Gateway adapter: 7 tests covering server-authoritative registry selection, P-256 HTTP proof binding, replay, restart/revoke and 2,000 unique proof operations; the local 1,000-sample benchmark measured p50 2.931 ms, p95 3.318 ms, p99 4.208 ms, zero errors and 333.48 operations/second without network or disk latency.
+- Canonical Gateway observability at source `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6`: Node-host 8/8 and package 94/94 pass; a real loopback CLI process returned `/health`, `/ready`, `/version` and Prometheus `/metrics`, emitted redacted canonical JSON events, and rejected remote classification without exact source/release/build-time identity. `apps/wallet/proof/gateway-observability-local-2026-07-27.json` binds hashes and explicitly leaves central Monitor, staging and public states false.
 
 ## Artifact record
 
@@ -119,7 +120,7 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 
 ## Controller integration requests and external blockers
 
-1. Review Central Registry document v2 / product schema v3 conflicts and exact 26-product entries, approve only verified tuples, merge Gateway adapter v2 into the central Gateway and deploy the atomic lifecycle/introspection/revocation/mandate store. Until verified remotely, `integratedCentral` remains false.
+1. Review Central Registry document v2 / product schema v3 conflicts and exact 26-product entries, approve only verified tuples, merge Gateway adapter v2 plus observability host v1 into the central Gateway, deploy the atomic lifecycle/introspection/revocation/mandate store, and bind `/version` to the exact deployed source/release/build time before Monitor acceptance. Until verified remotely, `integratedCentral` remains false.
 2. Have each product adopt the canonical request/callback/challenge/completion SDK; remove legacy query-field login and custom/local session verifiers. Exercise installed Wallet↔product flows against the deployed central lifecycle.
 3. Provide owner-controlled Android production keystore, Apple signing/provisioning and store accounts; perform physical-device biometric/screen-reader/recovery drills. Engineering artifacts are hosted, but production-signed/store states remain false.
 4. Commission external mobile/cryptographic review and decide whether a chain-compatible native non-exportable transaction signer/device-integrity policy is required before mainnet.

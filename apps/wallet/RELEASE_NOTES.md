@@ -10,10 +10,11 @@
 - Android API 36 release build/install/cold-launch evidence plus phone, foldable, RTL and large-text screenshots. iOS Hermes output and runnable macOS Simulator CI are included.
 - Strict Smart Account UserOperation/sponsorship policy, Quant/Exchange/DEX mandate, capital review and selective-disclosure Credential candidates with property, fuzz, fault, soak and benchmark coverage.
 - Product Session-bound secp256k1 Signed Intent with typed Evidence/Trust, biometric or external-signer human approval, AI explain-only boundary, canonical export, expiry and immediate revoke checks.
-- Recovery, Reference, Parity, Web4 Identity, API Registry, Migration, SLO/Capacity, Unit Economics, Observability, notices, KPI and machine-readable public/operator metadata.
+- Recovery, Reference, Parity, Web4 Identity, API Registry, Migration, SLO/Capacity, Unit Economics, notices, KPI and machine-readable public/operator metadata.
+- Canonical Gateway local observability: truthful health/readiness/version, Prometheus metrics with bounded labels, generated request/trace/error IDs, exact remote build identity and redacted structured events with sink-failure isolation.
 - Release-grade CycloneDX 1.6 runtime SBOM: pinned generator, clean npm tree, 431 components, 518 dependency nodes, complete license metadata and byte-for-byte reproducibility gate.
 - Hosted test-signed Android and unsigned iOS Simulator engineering artifacts with SHA-256 and byte counts; executed iOS CI install/cold-launch/deep-link rejection evidence.
 
 ## Not released
 
-Central registry/Gateway deployment, deployed Bundler/Paymaster, sponsored on-chain receipt, public product hosting, production signing, physical Apple device build, store review and external security audit remain false. Hosted binaries are engineering evidence only.
+Central registry/Gateway deployment, Monitor acceptance, staging/public observability endpoints, deployed Bundler/Paymaster, sponsored on-chain receipt, public product hosting, production signing, physical Apple device build, store review and external security audit remain false. Hosted binaries are engineering evidence only.
