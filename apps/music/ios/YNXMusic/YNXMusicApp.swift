@@ -55,7 +55,7 @@ enum Keychain { static func set(_ key:String,_ value:String){let d=Data(value.ut
 
 enum WalletLink {
     private static func key()throws->P256.Signing.PrivateKey{if let raw=Keychain.get("device-p256"),let d=Data(base64Encoded:raw),let k=try? P256.Signing.PrivateKey(rawRepresentation:d){return k};let key=P256.Signing.PrivateKey();Keychain.set("device-p256",key.rawRepresentation.base64EncodedString());return key}
-    static func productDeviceKey()throws->String{key().publicKey.compressedRepresentation.base64URLEncodedString()}
+    static func productDeviceKey()throws->String{try key().publicKey.compressedRepresentation.base64URLEncodedString()}
     static func make()throws->URL{let nonce=random(),now=Date();UserDefaults.standard.set(now.addingTimeInterval(300).timeIntervalSince1970,forKey:"walletExpires");let iso=ISO8601DateFormatter();iso.formatOptions=[.withInternetDateTime,.withFractionalSeconds];let request:[String:Any]=["version":"1","nonce":nonce,"chainId":"ynx_6423-1","requestingProduct":"music","productClientId":"ynx-music-v1","bundleId":"com.ynxweb4.music","productDeviceAlgorithm":"p256-sha256","productDeviceKey":try productDeviceKey(),"callback":"ynxmusic://auth/callback","scopes":["music.creator","music.library","music.playback","music.profile"],"purpose":"Sign in to YNX Music without sharing Wallet recovery material","issuedAt":iso.string(from:now),"expiresAt":iso.string(from:now.addingTimeInterval(300))];let data=try JSONSerialization.data(withJSONObject:request,options:.sortedKeys);UserDefaults.standard.set(String(decoding:data,as:UTF8.self),forKey:"walletRequest");guard let url=URL(string:"ynxwallet://authorize?request=\(data.base64URLEncodedString())")else{throw URLError(.badURL)};return url}
     static func approval(_ encoded:String,request:[String:Any])throws->[String:Any]{guard let data=Data(base64URLEncoded:encoded),let approval=try JSONSerialization.jsonObject(with:data) as? [String:Any]else{throw URLError(.cannotDecodeRawData)};for field in ["nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","purpose"]{guard request[field] as? String == approval[field] as? String else{throw URLError(.userAuthenticationRequired)}};guard (request["scopes"] as? [String]) == (approval["grantedScopes"] as? [String]) else{throw URLError(.userAuthenticationRequired)};return approval}
     static func completion(_ challenge:[String:Any])throws->[String:Any]{guard challenge["productClientId"] as? String == "ynx-music-v1",challenge["bundleId"] as? String == "com.ynxweb4.music",challenge["productDeviceKey"] as? String == (try productDeviceKey())else{throw URLError(.userAuthenticationRequired)};let canonical=try JSONSerialization.data(withJSONObject:challenge,options:.sortedKeys),message=Data("YNX_PRODUCT_SESSION_CHALLENGE_V1\n".utf8)+canonical;let signature=try key().signature(for:message);return ["challenge":challenge,"deviceSignature":signature.derRepresentation.base64URLEncodedString()]}
@@ -85,9 +85,36 @@ extension Data { func base64URLEncodedString()->String{base64EncodedString().rep
 }
 
 @MainActor final class NativePlayer {
-    private var player:AVPlayer?;private var observer:Any?;private var completion:Any?;var onPosition:((String,Double)->Void)?;var onComplete:((String,Double)->Void)?;private var id=""
+    private var player:AVPlayer?
+    private var observer:Any?
+    private var completion:Any?
+    var onPosition:((String,Double)->Void)?
+    var onComplete:((String,Double)->Void)?
+    private var id=""
+
     init(){try? AVAudioSession.sharedInstance().setCategory(.playback,mode:.default,options:[]);try? AVAudioSession.sharedInstance().setActive(true);MPRemoteCommandCenter.shared().playCommand.addTarget{[weak self]_ in self?.player?.play();return .success};MPRemoteCommandCenter.shared().pauseCommand.addTarget{[weak self]_ in self?.player?.pause();return .success}}
-    func play(track:Track,url:URL,position:Double,binding:String?){id=track.id;if let observer,let player{player.removeTimeObserver(observer)};if let completion{NotificationCenter.default.removeObserver(completion)};var headers:[String:String]=[:];if let binding{headers["X-YNX-App-Session"]=binding;headers["X-YNX-Product-Device-Key"]=(try? WalletLink.productDeviceKey()) ?? ""};let asset=AVURLAsset(url:url,options:["AVURLAssetHTTPHeaderFieldsKey":headers]);let item=AVPlayerItem(asset:asset);player=AVPlayer(playerItem:item);if position>0{player?.seek(to:CMTime(seconds:position,preferredTimescale:1000))};player?.play();MPNowPlayingInfoCenter.default().nowPlayingInfo=[MPMediaItemPropertyTitle:track.title,MPMediaItemPropertyArtist:track.artistName,MPMediaItemPropertyPlaybackDuration:Double(track.durationMillis)/1000];observer=player?.addPeriodicTimeObserver(forInterval:CMTime(seconds:5,preferredTimescale:1),queue:.main){[weak self] t in guard let self else{return};self.onPosition?(self.id,t.seconds)};completion=NotificationCenter.default.addObserver(forName:.AVPlayerItemDidPlayToEndTime,object:item,queue:.main){[weak self]_ in guard let self else{return};self.onComplete?(self.id,Double(track.durationMillis)/1000)}}
+
+    func play(track:Track,url:URL,position:Double,binding:String?){
+        id=track.id
+        if let observer,let player{player.removeTimeObserver(observer)}
+        if let completion{NotificationCenter.default.removeObserver(completion)}
+        var headers:[String:String]=[:]
+        if let binding{headers["X-YNX-App-Session"]=binding;headers["X-YNX-Product-Device-Key"]=(try? WalletLink.productDeviceKey()) ?? ""}
+        let asset=AVURLAsset(url:url,options:["AVURLAssetHTTPHeaderFieldsKey":headers])
+        let item=AVPlayerItem(asset:asset)
+        player=AVPlayer(playerItem:item)
+        if position>0{player?.seek(to:CMTime(seconds:position,preferredTimescale:1000))}
+        player?.play()
+        MPNowPlayingInfoCenter.default().nowPlayingInfo=[MPMediaItemPropertyTitle:track.title,MPMediaItemPropertyArtist:track.artistName,MPMediaItemPropertyPlaybackDuration:Double(track.durationMillis)/1000]
+        observer=player?.addPeriodicTimeObserver(forInterval:CMTime(seconds:5,preferredTimescale:1),queue:.main){[weak self] time in
+            let seconds=time.seconds
+            Task{@MainActor [weak self] in guard let self else{return};self.onPosition?(self.id,seconds)}
+        }
+        let duration=Double(track.durationMillis)/1000
+        completion=NotificationCenter.default.addObserver(forName:.AVPlayerItemDidPlayToEndTime,object:item,queue:.main){[weak self]_ in
+            Task{@MainActor [weak self] in guard let self else{return};self.onComplete?(self.id,duration)}
+        }
+    }
 }
 
 struct TrackDetail:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;let t:Track;@State var reason="";@State var evidence="";var body:some View{Form{Section(t.title){Text(t.artistName);if let album=t.album,!album.isEmpty{Text(album)};Text("\(l.t("rights")): \(t.rights.basis) · \(t.rights.evidenceRef)");Text("\(l.t("provenance")): \(t.provenance["audio"] ?? "")")};Section(l.t("rights")){TextField(l.t("rights_declaration"),text:$reason);TextField(l.t("rights_evidence"),text:$evidence);ForEach(["report","dispute","appeal"],id:\.self){kind in Button(kind.capitalized){Task{try? await m.api.openCase(kind:kind,track:t.id,reason:reason,evidence:evidence);await m.refresh()}}.disabled(reason.count<5||evidence.isEmpty)}}}.navigationTitle(t.title)}}

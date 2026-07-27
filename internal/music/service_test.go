@@ -3,6 +3,7 @@ package music
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -378,6 +379,127 @@ func TestMutationDoesNotLeakIntoMemoryWhenPersistenceFails(t *testing.T) {
 	if auditCount != 0 {
 		t.Fatalf("failed mutation appended %d audit records", auditCount)
 	}
+}
+
+func rewritePersistedState(t *testing.T, s *Service, mutate func(*persistentState)) {
+	t.Helper()
+	data, err := os.ReadFile(s.cfg.StatePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var state persistentState
+	if err := json.Unmarshal(data, &state); err != nil {
+		t.Fatal(err)
+	}
+	mutate(&state)
+	if err := saveState(s.cfg.StatePath, &state); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAuditChainTamperFailsClosedEvenWithValidStateIntegrity(t *testing.T) {
+	s := testService(t)
+	actor := testAccount(t, 8)
+	if _, err := s.UpsertProfile(actor, Profile{DisplayName: "Audit Owner"}); err != nil {
+		t.Fatal(err)
+	}
+	rewritePersistedState(t, s, func(state *persistentState) {
+		state.Audit[0].PayloadHash = strings.Repeat("0", 64)
+	})
+	if _, err := New(s.cfg); err == nil || !strings.Contains(err.Error(), "audit hash verification failed") {
+		t.Fatalf("audit payload tamper was accepted: %v", err)
+	}
+}
+
+func TestAuditSequenceAndPreviousHashFailClosed(t *testing.T) {
+	s := testService(t)
+	actor := testAccount(t, 9)
+	if _, err := s.UpsertProfile(actor, Profile{DisplayName: "Audit Sequence"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.OnboardCreator(actor, "Audit Sequence", "Second event"); err != nil {
+		t.Fatal(err)
+	}
+	t.Run("sequence", func(t *testing.T) {
+		rewritePersistedState(t, s, func(state *persistentState) {
+			state.Audit[1].Sequence = 9
+		})
+		if _, err := New(s.cfg); err == nil || !strings.Contains(err.Error(), "audit sequence verification failed") {
+			t.Fatalf("audit sequence tamper was accepted: %v", err)
+		}
+	})
+
+	// Restore the legitimate in-memory state, then corrupt only the link while
+	// keeping the outer state integrity valid.
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		t.Fatal(err)
+	}
+	t.Run("previous-hash", func(t *testing.T) {
+		rewritePersistedState(t, s, func(state *persistentState) {
+			state.Audit[1].PreviousHash = strings.Repeat("f", 64)
+		})
+		if _, err := New(s.cfg); err == nil || !strings.Contains(err.Error(), "audit previous hash verification failed") {
+			t.Fatalf("audit link tamper was accepted: %v", err)
+		}
+	})
+}
+
+func TestMissingOrTamperedPrivateMediaFailsClosed(t *testing.T) {
+	t.Run("missing", func(t *testing.T) {
+		s := testService(t)
+		track := publishTrack(t, s, testAccount(t, 10), false)
+		if err := os.Remove(track.AudioFile); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(s.cfg); err == nil || !strings.Contains(err.Error(), "audio integrity verification failed") {
+			t.Fatalf("missing audio was accepted: %v", err)
+		}
+	})
+
+	t.Run("tampered-bytes", func(t *testing.T) {
+		s := testService(t)
+		track := publishTrack(t, s, testAccount(t, 11), false)
+		data, err := os.ReadFile(track.AudioFile)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data[len(data)-1] ^= 0xff
+		if err := os.WriteFile(track.AudioFile, data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(s.cfg); err == nil || !strings.Contains(err.Error(), "media SHA-256 mismatch") {
+			t.Fatalf("tampered audio was accepted: %v", err)
+		}
+	})
+
+	t.Run("symlink", func(t *testing.T) {
+		s := testService(t)
+		track := publishTrack(t, s, testAccount(t, 12), false)
+		target := filepath.Join(t.TempDir(), "external.wav")
+		if err := os.WriteFile(target, toneWAV(1000), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Remove(track.AudioFile); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(target, track.AudioFile); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(s.cfg); err == nil || !strings.Contains(err.Error(), "not a regular file") {
+			t.Fatalf("symlinked audio was accepted: %v", err)
+		}
+	})
+
+	t.Run("broad-permissions", func(t *testing.T) {
+		s := testService(t)
+		track := publishTrack(t, s, testAccount(t, 13), false)
+		if err := os.Chmod(track.AudioFile, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(s.cfg); err == nil || !strings.Contains(err.Error(), "permissions are too broad") {
+			t.Fatalf("broad media permissions were accepted: %v", err)
+		}
+	})
 }
 
 func TestTamperedStateFailsClosed(t *testing.T) {
