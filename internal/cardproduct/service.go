@@ -23,24 +23,32 @@ var (
 	mccPattern      = regexp.MustCompile(`^[0-9]{4}$`)
 )
 
+var providerKeyID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}\z`)
+
+const (
+	DefaultProviderEventKeyID    = "default"
+	MaxProviderEventVerification = 4
+)
+
 type Config struct {
-	StorePath        string
-	IntegrityKey     []byte
-	GatewayKey       []byte
-	ProviderEventKey []byte
-	Provider         IssuerProvider
-	AI               AIProvider
-	Now              func() time.Time
+	StorePath         string
+	IntegrityKey      []byte
+	GatewayKey        []byte
+	ProviderEventKey  []byte
+	ProviderEventKeys map[string][]byte
+	Provider          IssuerProvider
+	AI                AIProvider
+	Now               func() time.Time
 }
 
 type Service struct {
-	store            *Store
-	provider         IssuerProvider
-	ai               AIProvider
-	gateway          *GatewayVerifier
-	providerEventKey []byte
-	now              func() time.Time
-	mu               sync.Mutex
+	store             *Store
+	provider          IssuerProvider
+	ai                AIProvider
+	gateway           *GatewayVerifier
+	providerEventKeys map[string][]byte
+	now               func() time.Time
+	mu                sync.Mutex
 }
 
 func New(cfg Config) (*Service, error) {
@@ -61,10 +69,11 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(cfg.ProviderEventKey) < 32 {
-		return nil, errors.New("provider event key must contain at least 32 bytes")
+	providerEventKeys, err := normalizeProviderEventKeys(cfg.ProviderEventKey, cfg.ProviderEventKeys)
+	if err != nil {
+		return nil, err
 	}
-	return &Service{store: store, provider: cfg.Provider, ai: cfg.AI, gateway: verifier, providerEventKey: append([]byte(nil), cfg.ProviderEventKey...), now: cfg.Now}, nil
+	return &Service{store: store, provider: cfg.Provider, ai: cfg.AI, gateway: verifier, providerEventKeys: providerEventKeys, now: cfg.Now}, nil
 }
 
 func (s *Service) ProviderName() string { return s.provider.Name() }
@@ -285,6 +294,10 @@ type ProviderEventInput struct {
 }
 
 func (s *Service) AcceptProviderEvent(input ProviderEventInput, timestamp time.Time, signature string) (CardEvent, error) {
+	return s.AcceptProviderEventWithKeyID(input, timestamp, DefaultProviderEventKeyID, signature)
+}
+
+func (s *Service) AcceptProviderEventWithKeyID(input ProviderEventInput, timestamp time.Time, keyID, signature string) (CardEvent, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	now := s.now().UTC()
@@ -296,7 +309,8 @@ func (s *Service) AcceptProviderEvent(input ProviderEventInput, timestamp time.T
 	}
 	raw, _ := json.Marshal(input)
 	material := []byte(strings.Join([]string{ProviderDomain, timestamp.UTC().Format(time.RFC3339Nano), hashBytes(raw)}, "\n"))
-	if !hmacEqual(signature, hmacHex(s.providerEventKey, material)) {
+	verificationKey, ok := s.providerEventKeys[strings.TrimSpace(keyID)]
+	if !ok || !hmacEqual(signature, hmacHex(verificationKey, material)) {
 		return CardEvent{}, ErrUnauthorized
 	}
 	var card Card
@@ -311,6 +325,9 @@ func (s *Service) AcceptProviderEvent(input ProviderEventInput, timestamp time.T
 				found = true
 				break
 			}
+		}
+		if found {
+			return validateProviderEventRelation(state, input)
 		}
 		return nil
 	}); err != nil {
@@ -614,8 +631,62 @@ func validateControls(c Controls) error {
 	return nil
 }
 func validProviderEvent(v ProviderEventInput) bool {
-	return validKey(v.EventID) && strings.HasPrefix(v.ProviderCardID, "pcard_") && v.AmountMinor >= 0 && v.AmountMinor <= 100_000_000 && len(v.Currency) == 3 && v.Currency == strings.ToUpper(v.Currency) && len(strings.TrimSpace(v.Merchant)) >= 1 && len(v.Merchant) <= 160 && !v.OccurredAt.IsZero()
+	return validKey(v.EventID) && v.EventID != v.RelatedEventID && strings.HasPrefix(v.ProviderCardID, "pcard_") && v.AmountMinor >= 0 && v.AmountMinor <= 100_000_000 && len(v.Currency) == 3 && v.Currency == strings.ToUpper(v.Currency) && len(strings.TrimSpace(v.Merchant)) >= 1 && len(v.Merchant) <= 160 && !v.OccurredAt.IsZero()
 }
+
+func normalizeProviderEventKeys(legacy []byte, configured map[string][]byte) (map[string][]byte, error) {
+	if len(configured) > 0 && len(legacy) > 0 {
+		return nil, errors.New("configure either the default provider event key or a provider event key set, not both")
+	}
+	if len(configured) == 0 {
+		if len(legacy) < 32 {
+			return nil, errors.New("provider event key must contain at least 32 bytes")
+		}
+		return map[string][]byte{DefaultProviderEventKeyID: append([]byte(nil), legacy...)}, nil
+	}
+	if len(configured) > MaxProviderEventVerification {
+		return nil, fmt.Errorf("provider event key set exceeds %d verification keys", MaxProviderEventVerification)
+	}
+	out := make(map[string][]byte, len(configured))
+	for keyID, key := range configured {
+		if keyID != strings.TrimSpace(keyID) || !providerKeyID.MatchString(keyID) {
+			return nil, errors.New("provider event key id is invalid")
+		}
+		if len(key) < 32 {
+			return nil, fmt.Errorf("provider event key %q must contain at least 32 bytes", keyID)
+		}
+		out[keyID] = append([]byte(nil), key...)
+	}
+	return out, nil
+}
+
+func validateProviderEventRelation(state Snapshot, input ProviderEventInput) error {
+	requiredParent := map[string]string{
+		"clearing": "authorization",
+		"reversal": "authorization",
+		"refund":   "clearing",
+	}[input.Type]
+	if requiredParent == "" {
+		if input.RelatedEventID != "" {
+			return ErrInvalid
+		}
+		return nil
+	}
+	if !validKey(input.RelatedEventID) {
+		return ErrInvalid
+	}
+	for _, event := range state.Events {
+		if event.ProviderEventID != input.RelatedEventID {
+			continue
+		}
+		if event.ProviderCardID != input.ProviderCardID || event.Type != requiredParent || input.OccurredAt.UTC().Before(event.OccurredAt.UTC()) {
+			return ErrConflict
+		}
+		return nil
+	}
+	return ErrConflict
+}
+
 func validKey(v string) bool { return len(v) >= 8 && len(v) <= 128 && identifierPattern.MatchString(v) }
 func normalized(values []string) []string {
 	out := make([]string, 0, len(values))

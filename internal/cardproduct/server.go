@@ -162,7 +162,11 @@ func (s *Server) providerEvent(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid provider timestamp")
 		return
 	}
-	out, err := s.service.AcceptProviderEvent(in, timestamp, r.Header.Get("X-YNX-Provider-Signature"))
+	keyID := strings.TrimSpace(r.Header.Get("X-YNX-Provider-Key-ID"))
+	if keyID == "" {
+		keyID = DefaultProviderEventKeyID
+	}
+	out, err := s.service.AcceptProviderEventWithKeyID(in, timestamp, keyID, r.Header.Get("X-YNX-Provider-Signature"))
 	respond(w, http.StatusCreated, out, err)
 }
 

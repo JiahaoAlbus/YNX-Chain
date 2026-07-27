@@ -306,6 +306,77 @@ func TestRestartTamperAndConcurrentIdempotency(t *testing.T) {
 	}
 }
 
+func TestProviderEventTamperExpiryOrderingAndKeyRotation(t *testing.T) {
+	now := time.Date(2026, 7, 18, 6, 0, 0, 0, time.UTC)
+	integrity := bytes.Repeat([]byte{0x17}, 32)
+	gateway := bytes.Repeat([]byte{0x32}, 32)
+	previousKey := bytes.Repeat([]byte{0x51}, 32)
+	currentKey := bytes.Repeat([]byte{0x61}, 32)
+	path := filepath.Join(t.TempDir(), "rotating-card-state.json")
+	config := Config{
+		StorePath:    path,
+		IntegrityKey: integrity,
+		GatewayKey:   gateway,
+		ProviderEventKeys: map[string][]byte{
+			"provider-2026-06": previousKey,
+			"provider-2026-07": currentKey,
+		},
+		Provider: NewSandboxProvider(func() time.Time { return now }),
+		Now:      func() time.Time { return now },
+	}
+	s, err := New(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, card := applySandbox(t, s)
+
+	authorization := ProviderEventInput{EventID: "provider-authorization-01", ProviderCardID: card.ProviderCardID, Type: "authorization", AmountMinor: 4200, Currency: "USD", Merchant: "Sandbox Books", MCC: "5942", Country: "US", OccurredAt: now.Add(-2 * time.Minute)}
+	previousSignature := signProviderEvent(previousKey, authorization, now)
+	tampered := authorization
+	tampered.AmountMinor++
+	if _, err := s.AcceptProviderEventWithKeyID(tampered, now, "provider-2026-06", previousSignature); err != ErrUnauthorized {
+		t.Fatalf("tampered provider event must fail authentication: %v", err)
+	}
+	expiredTimestamp := now.Add(-5*time.Minute - time.Nanosecond)
+	if _, err := s.AcceptProviderEventWithKeyID(authorization, expiredTimestamp, "provider-2026-06", signProviderEvent(previousKey, authorization, expiredTimestamp)); err != ErrUnauthorized {
+		t.Fatalf("expired provider timestamp must fail closed: %v", err)
+	}
+	if _, err := s.AcceptProviderEventWithKeyID(authorization, now, "unknown-key", signProviderEvent(currentKey, authorization, now)); err != ErrUnauthorized {
+		t.Fatalf("unknown provider key id must fail closed: %v", err)
+	}
+
+	clearing := ProviderEventInput{EventID: "provider-clearing-01", ProviderCardID: card.ProviderCardID, Type: "clearing", AmountMinor: 4200, Currency: "USD", Merchant: "Sandbox Books", MCC: "5942", Country: "US", RelatedEventID: authorization.EventID, OccurredAt: now.Add(-time.Minute)}
+	if _, err := s.AcceptProviderEventWithKeyID(clearing, now, "provider-2026-07", signProviderEvent(currentKey, clearing, now)); err != ErrConflict {
+		t.Fatalf("out-of-order clearing must wait for its authorization: %v", err)
+	}
+	reversal := ProviderEventInput{EventID: "provider-reversal-01", ProviderCardID: card.ProviderCardID, Type: "reversal", AmountMinor: 4200, Currency: "USD", Merchant: "Sandbox Books", MCC: "5942", Country: "US", RelatedEventID: authorization.EventID, OccurredAt: now.Add(-time.Minute)}
+	if _, err := s.AcceptProviderEventWithKeyID(reversal, now, "provider-2026-07", signProviderEvent(currentKey, reversal, now)); err != ErrConflict {
+		t.Fatalf("out-of-order reversal must wait for its authorization: %v", err)
+	}
+
+	acceptedAuthorization, err := s.AcceptProviderEventWithKeyID(authorization, now, "provider-2026-06", previousSignature)
+	if err != nil || acceptedAuthorization.Type != "authorization" {
+		t.Fatalf("previous rotation key should remain valid during overlap: %+v %v", acceptedAuthorization, err)
+	}
+	acceptedClearing, err := s.AcceptProviderEventWithKeyID(clearing, now, "provider-2026-07", signProviderEvent(currentKey, clearing, now))
+	if err != nil || acceptedClearing.RelatedEventID != authorization.EventID {
+		t.Fatalf("clearing retry did not reconcile after authorization: %+v %v", acceptedClearing, err)
+	}
+	refund := ProviderEventInput{EventID: "provider-refund-01", ProviderCardID: card.ProviderCardID, Type: "refund", AmountMinor: 2100, Currency: "USD", Merchant: "Sandbox Books", MCC: "5942", Country: "US", RelatedEventID: authorization.EventID, OccurredAt: now}
+	if _, err := s.AcceptProviderEventWithKeyID(refund, now, "provider-2026-07", signProviderEvent(currentKey, refund, now)); err != ErrConflict {
+		t.Fatalf("refund must reference a clearing event: %v", err)
+	}
+
+	rotated, err := New(Config{StorePath: path, IntegrityKey: integrity, GatewayKey: gateway, ProviderEventKeys: map[string][]byte{"provider-2026-07": currentKey}, Provider: NewSandboxProvider(func() time.Time { return now }), Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	retiredEvent := ProviderEventInput{EventID: "provider-decline-retired-key", ProviderCardID: card.ProviderCardID, Type: "decline", AmountMinor: 900, Currency: "USD", Merchant: "Sandbox Books", MCC: "5942", Country: "US", ReasonCode: "velocity", OccurredAt: now}
+	if _, err := rotated.AcceptProviderEventWithKeyID(retiredEvent, now, "provider-2026-06", signProviderEvent(previousKey, retiredEvent, now)); err != ErrUnauthorized {
+		t.Fatalf("retired provider key remained valid after rotation: %v", err)
+	}
+}
+
 func testAssertion(nonce string) GatewayAssertion {
 	return GatewayAssertion{Account: testAccount, SessionID: "gateway-session-00000001", DeviceID: "device-key-reference-0001", ProductID: ProductID, ClientID: ClientID, BundleID: BundleID, Callback: Callback, ChainID: "ynx_6423-1", Scopes: append([]string(nil), CardScopes...), RequestDigest: strings.Repeat("a", 64), IssuedAt: time.Date(2026, 7, 18, 5, 59, 0, 0, time.UTC), ExpiresAt: time.Date(2026, 7, 18, 6, 4, 0, 0, time.UTC), Nonce: nonce}
 }
@@ -330,4 +401,9 @@ func signRequest(t *testing.T, request *http.Request, body []byte, a GatewayAsse
 	request.Header.Set("X-YNX-Nonce", a.Nonce)
 	request.Header.Set("X-YNX-Gateway-Signature", signature)
 	request.Header.Set("Content-Type", "application/json")
+}
+
+func signProviderEvent(key []byte, input ProviderEventInput, timestamp time.Time) string {
+	raw, _ := json.Marshal(input)
+	return hmacHex(key, []byte(strings.Join([]string{ProviderDomain, timestamp.UTC().Format(time.RFC3339Nano), hashBytes(raw)}, "\n")))
 }
