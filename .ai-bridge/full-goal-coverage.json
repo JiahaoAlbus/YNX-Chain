@@ -5,7 +5,7 @@
   "productSlug": "resource-market",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market",
   "branch": "codex/final-resource-market",
-  "stage": "PROTECT",
+  "stage": "FREEZE",
   "goalStatus": "active",
   "updatedAt": "2026-07-27T09:30:00Z",
   "entries": [
@@ -32,13 +32,13 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/resourcemarket/engine.go:ConfirmSettlement", "internal/resourcemarket/engine_test.go:TestSettlementReceiptRejectsTransactionReplayAndNormalizesReference"],
-      "sourceCommit": null,
-      "tests": ["go test ./internal/resourcemarket ./internal/resourceproduct"],
+      "sourceCommit": "42cac5dc809505e88a94e190e1f4f34e0ec245f1",
+      "tests": ["go test ./internal/resourcemarket ./internal/resourceproduct", "go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct", "./apps/resource-market/check.sh"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "16-resource-market",
-      "nextAction": "Commit the settlement replay protection and bind this entry to the resulting source commit.",
+      "nextAction": "Carry the replay-rejection vector into the central settlement integration contract and public Testnet receipt smoke.",
       "lastUpdated": "2026-07-27"
     },
     {

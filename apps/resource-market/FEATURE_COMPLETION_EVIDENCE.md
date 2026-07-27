@@ -1,6 +1,6 @@
 # Feature completion evidence
 
-Evidence date: 2026-07-22. Baseline commit: `c7e4445598a74e60aa0ed05b9580790527bf71be`. Source candidate: `beca120f3e5e9552f7d9f1bc62aac217f6026b33`. Local evidence is source-candidate-bound but remains nonpublic candidate evidence.
+Evidence date: 2026-07-27. Baseline commit: `c7e4445598a74e60aa0ed05b9580790527bf71be`. Source candidate: `42cac5dc809505e88a94e190e1f4f34e0ec245f1`. Local evidence is source-candidate-bound but remains nonpublic candidate evidence.
 
 | Requirement | Current result | Direct evidence | Remaining proof |
 | --- | --- | --- | --- |
@@ -10,6 +10,7 @@ Evidence date: 2026-07-22. Baseline commit: `c7e4445598a74e60aa0ed05b9580790527b
 | Matching | Implemented and locally tested | score includes price, region filter, latency, uptime, completion, bond, failures and disputes | measured settlement/exit reliability inputs |
 | Pricing modes | Implemented and locally tested | fixed/reservation/long-term quotes plus sealed reverse and split batch procurement; deadline, self-dealing, price ceiling, full-fill, commitment digest and deterministic price/quality/provider tie-break tests | public fairness monitoring and real-provider auction evidence |
 | Quote through settlement | Implemented and locally tested | strict lifecycle test and receipt reconciliation test | central Wallet/Gateway and public chain receipt |
+| Settlement replay rejection | Implemented and locally tested | `TestSettlementReceiptRejectsTransactionReplayAndNormalizesReference`; blank authority rejection; normalized transaction reference; case-insensitive duplicate transaction-hash rejection across receipts | authoritative public chain receipt and central settlement-authority integration |
 | Signed metering | Locally implemented and tested | expiring Ed25519 worker-key registry, canonical payload preview, tamper/revoke tests and receipt reconciliation | remote worker identity ceremony and public workload proof |
 | Failure, retry and refund | Implemented and locally tested | `TestProviderFailureRetryRefundBondAndAppeal` | authoritative refund transaction receipt |
 | Bond, notice and appeal | Implemented and locally tested | capped bond and independent appeal tests | insurance policy and legal review |
