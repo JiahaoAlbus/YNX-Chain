@@ -48,26 +48,11 @@ func OpenStore(path string, integrityKey []byte) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	var env stateEnvelope
-	if err := decodeStrict(raw, &env); err != nil {
-		return nil, fmt.Errorf("card state integrity verification failed: %w", err)
+	snapshot, err := decodeStateDocument(raw, integrityKey)
+	if err != nil {
+		return nil, err
 	}
-	var canonical bytes.Buffer
-	if err := json.Compact(&canonical, env.Payload); err != nil {
-		return nil, fmt.Errorf("card state integrity verification failed: %w", err)
-	}
-	if env.Version != StateVersion || !hmac.Equal([]byte(env.HMAC), []byte(hmacHex(integrityKey, canonical.Bytes()))) {
-		return nil, errors.New("card state integrity verification failed")
-	}
-	if err := decodeStrict(canonical.Bytes(), &s.data); err != nil {
-		return nil, fmt.Errorf("decode card state payload: %w", err)
-	}
-	if s.data.Version != StateVersion {
-		return nil, errors.New("unsupported card state version")
-	}
-	if s.data.Notifications == nil {
-		s.data.Notifications = map[string]Notification{}
-	}
+	s.data = snapshot
 	return s, nil
 }
 
@@ -100,28 +85,57 @@ func (s *Store) Update(fn func(*Snapshot) error) error {
 }
 
 func (s *Store) persistLocked() error {
-	payload, err := json.Marshal(s.data)
+	raw, err := encodeStateDocument(s.data, s.key)
 	if err != nil {
 		return err
 	}
-	env := stateEnvelope{Version: StateVersion, Payload: payload, HMAC: hmacHex(s.key, payload)}
-	raw, err := json.MarshalIndent(env, "", "  ")
+	return atomicWriteFile(s.path, raw, true)
+}
+
+func encodeStateDocument(snapshot Snapshot, integrityKey []byte) ([]byte, error) {
+	if len(integrityKey) < 32 {
+		return nil, errors.New("card integrity key must contain at least 32 bytes")
+	}
+	normalizeSnapshot(&snapshot)
+	if err := validateBackupSnapshot(snapshot); err != nil {
+		return nil, fmt.Errorf("validate card state before persistence: %w", err)
+	}
+	payload, err := json.Marshal(snapshot)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	tmp := s.path + ".tmp"
-	if err := os.WriteFile(tmp, append(raw, '\n'), 0o600); err != nil {
-		return err
+	envelope := stateEnvelope{Version: StateVersion, Payload: payload, HMAC: hmacHex(integrityKey, payload)}
+	raw, err := json.MarshalIndent(envelope, "", "  ")
+	if err != nil {
+		return nil, err
 	}
-	if err := os.Chmod(tmp, 0o600); err != nil {
-		_ = os.Remove(tmp)
-		return err
+	return append(raw, '\n'), nil
+}
+
+func decodeStateDocument(raw, integrityKey []byte) (Snapshot, error) {
+	if len(integrityKey) < 32 {
+		return Snapshot{}, errors.New("card integrity key must contain at least 32 bytes")
 	}
-	if err := os.Rename(tmp, s.path); err != nil {
-		_ = os.Remove(tmp)
-		return err
+	var envelope stateEnvelope
+	if err := decodeStrict(raw, &envelope); err != nil {
+		return Snapshot{}, fmt.Errorf("card state integrity verification failed: %w", err)
 	}
-	return nil
+	var canonical bytes.Buffer
+	if err := json.Compact(&canonical, envelope.Payload); err != nil {
+		return Snapshot{}, fmt.Errorf("card state integrity verification failed: %w", err)
+	}
+	if envelope.Version != StateVersion || !hmac.Equal([]byte(envelope.HMAC), []byte(hmacHex(integrityKey, canonical.Bytes()))) {
+		return Snapshot{}, errors.New("card state integrity verification failed")
+	}
+	var snapshot Snapshot
+	if err := decodeStrict(canonical.Bytes(), &snapshot); err != nil {
+		return Snapshot{}, fmt.Errorf("decode card state payload: %w", err)
+	}
+	normalizeSnapshot(&snapshot)
+	if err := validateBackupSnapshot(snapshot); err != nil {
+		return Snapshot{}, fmt.Errorf("validate card state payload: %w", err)
+	}
+	return snapshot, nil
 }
 
 func cloneSnapshot(value Snapshot) (Snapshot, error) {
