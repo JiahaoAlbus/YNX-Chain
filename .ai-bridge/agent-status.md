@@ -2,46 +2,49 @@
 
 ## Result
 
-Completed the 2026-07-25 YNX 18 recovery and authority-layer implementation in
-`codex/final-docs-compliance` without resetting, cleaning, deleting, force-pushing or
-modifying sibling worktrees.
+Completed the YNX 18 full-goal coverage and standard integration-contract slice on
+`codex/final-docs-compliance` without resetting, cleaning, force-pushing, modifying
+sibling worktrees or promoting unsupported public claims.
 
 ## Delivered
 
-- Recovered and preserved the pre-existing fact, conflict and endpoint evidence files.
-- Added local schemas, a 12-class authoritative fact index, evidence and supersession
-  records, nine evidence-linked Claims and 12 locale records.
-- Repaired the dangling Mainnet FAQ Claim reference and replaced symbolic `git:HEAD`
-  identities with the exact recovery source commit.
-- Added a fail-closed public disclosure gate and integrated it with the existing
-  documentation compliance check and Makefile.
-- Fixed three validation paths that previously treated missing ripgrep as success.
-- Added the Docs/Compliance Integration Manifest, recovery inventory, current state
-  overlays and a dedicated GitHub Actions workflow.
-- Kept public observations component-specific and explicitly ineligible as independent
-  direct-public proof.
+- Added `.ai-bridge/full-goal-coverage.json` with 30 evidence-linked entries covering
+  22 unified requirements and eight YNX 18 product-specific requirements.
+- Added `release/integration/docs-compliance-brand-contract.json` with explicit owner,
+  non-owner, release-state, migration, wording and external-input boundaries.
+- Added the standard Integration Handoff, 12 cross-product test vectors and Dependency
+  Acceptance record.
+- Added `scripts/verify/full-goal-coverage-gate.mjs`, including negative self-tests for
+  duplicate IDs, invalid statuses, missing public proof and missing blocker evidence.
+- Integrated the gate with `make full-goal-coverage-check` and
+  `make docs-compliance-check`.
+- Marked the older requirements checklist as a legacy compatibility record and removed
+  stale open questions already resolved by Website/public artifact evidence.
+- Set the next autonomous slice to high-authority document metadata inventory and
+  normalization.
 
 ## Verification
 
-- `make public-disclosure-check` — passed: 29 JSON records, 12 fact classes, 9 release states.
-- `make docs-compliance-check` — passed: 44 named artifacts, 11 indexed JSON records,
-  13 search pages, 43 public documents and the integrated disclosure gate.
-- `make no-placeholder-check` — passed with bounded grep fallback.
-- `make secret-scan` — passed with bounded dependency-aware grep fallback.
-- `make objective-state-check` — passed, including README positioning and strict SSH policy.
-- Docs/Compliance GitHub Actions YAML parsed successfully.
+- `node scripts/verify/full-goal-coverage-gate.mjs --self-test` — passed: 30 entries;
+  four negative mutation classes rejected.
+- `make docs-compliance-check` — passed: 50 named artifacts, 15 JSON records,
+  13 search pages, 43 public documents, nine release states and both authority gates.
+- `make public-disclosure-check` — passed: 30 JSON records, 12 authoritative fact
+  classes and nine release states.
+- `make no-placeholder-check` — passed with the bounded grep fallback.
+- `make secret-scan` — passed with the bounded grep fallback.
+- `make objective-state-check` — passed.
+- `make static-check` — passed Go vet, all Shell syntax and all JavaScript syntax.
 - `go test ./...` — passed across all Go packages.
 
-## Remaining external blockers
+## Current truthful state
 
-Central Website/Gateway integration, independent public availability evidence,
-canonical support/privacy/security/status routes, immutable package hosting,
-production signing, Mainnet launch, public StreamBFT activation, named legal review,
-economic review and independent audit remain false, blocked or pending their owners.
-Protected dirty or local-ahead sibling work remains unmerged candidate input.
+The documentation authority package remains centrally integrated, publicly rendered
+and immutably hosted as an unsigned candidate. Production signing, named legal,
+economic and security review, independent audit/proof, Mainnet activation and public
+StreamBFT activation are not established. The long-term goal remains Active.
 
-## Review note
+## Checkpoint
 
-The final review diff is represented by the committed Git change set. The
-`implementation-diff.patch` file remains empty to avoid a self-referential patch that
-would include its own generated content.
+Implementation is reviewed and ready for commit/push. Exact checkpoint and remote SHA
+will be appended after the first protected commit is pushed.

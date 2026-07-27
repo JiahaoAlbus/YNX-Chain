@@ -4,16 +4,25 @@
 
 - Which exact clean commits and focused tests will Wallet/Auth, Tokenomics, Oracle,
   Bridge, Data Fabric and Security/SRE hand off for public fact integration?
-- When will Website/Operations provide approved canonical support, privacy, security
-  reporting and service-status routes?
-- Which independent network vantage will verify root site, Explorer, EVM RPC, Gateway
-  and Faucet without the current workstation proxy-path limitation?
-- Which exact artifact, digest, byte count and hosting record will define the first
-  immutable Docs/Compliance candidate package?
-- Who are the named legal, economic and independent-audit reviewers, and what scope,
-  jurisdiction, expiry and approval evidence will each own?
+- Which independent network vantage will verify the canonical Website, Explorer, EVM
+  RPC, Gateway and Faucet without operator-controlled routing limitations?
+- Who are the named legal, economic, security and independent-audit reviewers, and
+  what scope, jurisdiction, expiry and approval evidence will each own?
+- Which approved media-rights record and digest-bound asset set will define the final
+  press-kit logo, light/dark variants and icon sizes?
+- Which production signing authority and certificate-chain evidence will promote the
+  hosted unsigned documentation candidate, if signing is selected?
+- Which Search Console, Bing, IndexNow or answer-engine evidence will establish actual
+  discovery or indexing rather than submission alone?
 - Which Chain Core release will establish any future public StreamBFT activation or
-  Mainnet transition, separately from Testnet Chain ID 6423?
+  Mainnet transition, separately from YNX Testnet Chain ID 6423?
 
-Until each owner answers with direct evidence, the corresponding release state or
-public claim remains false, blocked or candidate-only.
+## Autonomous next question
+
+Which high-authority public documents still lack the complete metadata tuple of
+version, effective date, source commit, product release, last review, change log and
+supersession identity? YNX 18 can inventory and normalize these without waiting for an
+external owner, while keeping substantive claims evidence-bound.
+
+Until each external owner answers with direct evidence, the corresponding release
+state or public claim remains false, blocked or candidate-only.

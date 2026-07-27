@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractVersion": "0.1.0-candidate",
+  "productNumber": 18,
+  "product": "YNX Whitepaper / Compliance / Brand",
+  "productSlug": "docs-compliance-brand",
+  "owner": "YNX 18 Whitepaper / Compliance / Brand",
+  "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12",
+  "release": "0.2.0-candidate",
+  "status": "public-candidate",
+  "authority": {
+    "owns": ["public fact model", "technical and economic disclosure wording", "compliance and legal preparation records", "brand facts and disambiguation", "search authority content", "claims evidence and supersession controls", "documentation release-state language"],
+    "doesNotOwn": ["Chain Core runtime", "Wallet/Auth runtime", "Economics runtime", "Oracle runtime", "Bridge runtime", "Data Fabric events", "Security/SRE infrastructure", "Website deployment", "production signing", "legal, economic or independent audit approval"]
+  },
+  "artifacts": {
+    "authoritativeFacts": "release/facts/authoritative-facts.json",
+    "claims": "release/facts/claims.json",
+    "supersededFacts": "release/facts/superseded-facts.json",
+    "publicMetadata": "release/public-product-metadata.json",
+    "releaseState": "release/product-release.json",
+    "coverage": ".ai-bridge/full-goal-coverage.json"
+  },
+  "auth": {"applicable": false, "reason": "The contract distributes public read-only disclosure records; product-scoped Wallet authorization remains owned by YNX 02."},
+  "walletTuple": {"applicable": false, "reason": "No value-moving or user-authorized operation is defined by this contract."},
+  "signedIntent": {"applicable": false, "reason": "Publication integration is a repository and Website release workflow, not a user transaction."},
+  "canonicalEvents": [],
+  "eventBoundary": "YNX 18 does not mint Data Fabric canonical events; any future publication event schema must be owned and versioned by YNX 26.",
+  "errorCodes": ["YNX18_DISCLOSURE_RECORD_MISSING", "YNX18_DISCLOSURE_SCHEMA_INVALID", "YNX18_DISCLOSURE_EVIDENCE_MISSING", "YNX18_DISCLOSURE_STATE_OVERSTATED", "YNX18_DISCLOSURE_SUPERSESSION_MISSING", "YNX18_COVERAGE_INVALID"],
+  "healthAndVersion": {"health": "make docs-compliance-check", "coverage": "make full-goal-coverage-check", "versionSource": "release/product-release.json"},
+  "releaseStates": {"implementedLocal": true, "testedLocal": true, "installedLocal": false, "integratedCentral": true, "deployedStaging": true, "deployedPublic": true, "downloadHosted": true, "productionSigned": false, "storeReleased": false},
+  "dependencies": [
+    {"owner": "YNX 01 Chain Core", "input": "network and runtime facts", "acceptance": "clean exact-commit handoff"},
+    {"owner": "YNX 02 Wallet/Auth", "input": "identity and permission facts", "acceptance": "clean exact-commit handoff with negative vectors"},
+    {"owner": "YNX 17 Economics", "input": "economic policy and evidence", "acceptance": "clean exact-commit handoff with tests and review state"},
+    {"owner": "YNX 19 Oracle", "input": "market-data facts", "acceptance": "clean exact-commit handoff with source limitations"},
+    {"owner": "YNX 21 Bridge", "input": "interoperability facts", "acceptance": "clean exact-commit handoff with lifecycle evidence"},
+    {"owner": "YNX 26 Data Fabric", "input": "canonical event and billing facts", "acceptance": "frozen schema and owner test vectors"},
+    {"owner": "YNX 28 Website", "input": "public rendering, routes and indexing evidence", "acceptance": "exact source, CI, deployment and direct route evidence"},
+    {"owner": "YNX 30 Security/SRE", "input": "artifact, monitoring, backup and security evidence", "acceptance": "exact artifact and review evidence"},
+    {"owner": "YNX 29 Integration", "input": "cross-product protocol freeze", "acceptance": "accepted version and migration decision"}
+  ],
+  "migration": {
+    "strategy": "Consumers must pin contractVersion and sourceCommit, reject unknown required fields, preserve superseded facts and fail closed on missing evidence.",
+    "rollback": "Revert to the last accepted immutable disclosure bundle while retaining the supersession and incident record; never silently restore withdrawn claims."
+  },
+  "allowedWording": ["YNX Testnet", "candidate", "evidence-backed public documentation package", "production signing not established", "independent review pending"],
+  "forbiddenWording": ["Mainnet live", "fully compliant", "audited", "guaranteed return", "production signed", "independently available"],
+  "externalInputs": ["brand-media rights approval", "named legal, economic and security review", "production signing approval", "independent search and public-proof evidence"]
+}

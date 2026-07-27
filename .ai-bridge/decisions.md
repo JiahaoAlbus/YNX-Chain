@@ -21,3 +21,18 @@
 8. The public disclosure gate is fail-closed for missing files, missing schemas,
    symbolic source identities, broken Claim references, unsupported release states and
    missing evidence locations.
+
+## 2026-07-27 full-goal coverage decisions
+
+9. `.ai-bridge/full-goal-coverage.json` is the authoritative long-term coverage matrix;
+   `docs/acceptance/DOCS_COMPLIANCE_REQUIREMENTS.json` remains a legacy compatibility
+   checklist and must not override newer evidence-linked statuses.
+10. YNX 18 uses `docs-compliance-brand` as its integration product slug and publishes
+    the standard contract at `release/integration/docs-compliance-brand-contract.json`.
+11. YNX 18 does not claim Data Fabric canonical-event ownership. The integration
+    contract intentionally exports no canonical events; YNX 26 owns any future event
+    schema and YNX 29 freezes cross-product conflicts.
+12. A public URL may prove the named component state from the recorded vantage while
+    independent public proof remains false. These are distinct evidence classes.
+13. Document metadata normalization is the next autonomous priority because it can be
+    completed without external credentials and prevents stale version/source claims.

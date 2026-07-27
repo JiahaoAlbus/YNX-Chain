@@ -1,8 +1,11 @@
 {
   "schemaVersion": "1.0.0",
-  "asOf": "2026-07-22",
-  "sourceCommit": "2e3c893c7c97e7bc713af4e9a74438ffd125289f",
+  "asOf": "2026-07-27",
+  "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12",
   "overallStatus": "in_progress",
+  "recordClass": "legacy-compatibility-checklist",
+  "authoritativeCoverage": ".ai-bridge/full-goal-coverage.json",
+  "authorityNote": "This checklist is retained for compatibility. Evidence-linked long-term status is authoritative only in .ai-bridge/full-goal-coverage.json.",
   "statusVocabulary": [
     "proved",
     "partial",
@@ -161,9 +164,9 @@
     {
       "id": "C22",
       "name": "Final validation commit push and remote verification",
-      "status": "missing",
-      "evidence": [],
-      "remaining": ["Commit and push assigned branch", "Verify local and remote SHA", "Verify clean worktree"]
+      "status": "partial",
+      "evidence": [".ai-bridge/full-goal-coverage.json", ".ai-bridge/agent-status.md", ".ai-bridge/execution-log.jsonl"],
+      "remaining": ["Commit and push the current coverage slice", "Verify local and remote SHA", "Verify clean worktree"]
     }
   ],
   "publicDocumentDeliverables": {

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractVersion": "0.1.0-candidate",
+  "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12",
+  "owner": "YNX 18 Whitepaper / Compliance / Brand",
+  "vectors": [
+    {"id": "YNX18-V01", "case": "network identity", "input": {"evmChainId": 6423, "cosmosChainId": "ynx_6423-1"}, "expected": "Publish as YNX Testnet only."},
+    {"id": "YNX18-V02", "case": "native asset", "input": {"symbol": "YNXT", "decimals": 18}, "expected": "Include the Testnet qualifier and no monetary-value guarantee."},
+    {"id": "YNX18-V03", "case": "missing evidence", "input": {"claimStatus": "verified", "evidence": []}, "expectedError": "YNX18_DISCLOSURE_EVIDENCE_MISSING"},
+    {"id": "YNX18-V04", "case": "state overstatement", "input": {"downloadHosted": true, "productionSigned": true, "signatureEvidence": null}, "expectedError": "YNX18_DISCLOSURE_STATE_OVERSTATED"},
+    {"id": "YNX18-V05", "case": "mainnet boundary", "input": {"copy": "YNX Mainnet is live"}, "expectedError": "YNX18_DISCLOSURE_STATE_OVERSTATED"},
+    {"id": "YNX18-V06", "case": "legal boundary", "input": {"copy": "YNX is fully compliant", "namedReview": null}, "expectedError": "YNX18_DISCLOSURE_EVIDENCE_MISSING"},
+    {"id": "YNX18-V07", "case": "economic claim", "input": {"apy": "10%", "period": null, "risk": null, "evidenceId": null}, "expectedError": "YNX18_DISCLOSURE_SCHEMA_INVALID"},
+    {"id": "YNX18-V08", "case": "dirty owner input", "input": {"dirty": true, "sourceCommit": null}, "expected": "Do not accept as a canonical fact."},
+    {"id": "YNX18-V09", "case": "supersession", "input": {"claimWithdrawn": true, "supersededBy": null}, "expectedError": "YNX18_DISCLOSURE_SUPERSESSION_MISSING"},
+    {"id": "YNX18-V10", "case": "Arabic locale", "input": {"locale": "ar", "direction": "rtl", "reviewClass": "Machine Draft"}, "expected": "Accept locally; do not claim named human review or complete runtime RTL verification."},
+    {"id": "YNX18-V11", "case": "operator proxy observation", "input": {"httpStatus": 200, "vantage": "operator-controlled"}, "expected": "May support the named component state; must not be labeled independent proof."},
+    {"id": "YNX18-V12", "case": "unknown required contract field", "input": {"contractVersion": "future", "unknownRequired": true}, "expected": "Fail closed and request a versioned migration decision."}
+  ]
+}

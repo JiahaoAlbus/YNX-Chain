@@ -1,0 +1,197 @@
+{
+  "schemaVersion": "1.0.0",
+  "productNumber": 18,
+  "productName": "YNX Whitepaper / Compliance / Brand",
+  "productSlug": "docs-compliance-brand",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/18-docs-compliance",
+  "branch": "codex/final-docs-compliance",
+  "recoverySources": ["YNX repositories", "product handoffs", "architecture and tokenomics records", "security and release evidence", "Website and public brand records"],
+  "productOwner": "YNX 18 Whitepaper / Compliance / Brand",
+  "currentPhase": "PUBLIC",
+  "goalStatus": "active",
+  "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12",
+  "lastUpdated": "2026-07-27",
+  "statusVocabulary": ["notStarted", "inProgress", "implementedLocal", "testedLocal", "integratedCentral", "testnetVerified", "publicVerified", "externalBlocked", "notApplicable", "verifiedComplete"],
+  "entries": [
+    {
+      "id": "YNX18-C01", "category": "recovery", "requirement": "Recover and audit current documentation, release, public endpoint and sibling-owner evidence without discarding newer work.",
+      "applicability": "applicable", "applicabilityReason": "YNX 18 is the public disclosure authority and must preserve source provenance.", "status": "testedLocal",
+      "evidence": ["docs/coordination/DOCS_COMPLIANCE_RECOVERY_AUDIT.md", "release/recovery-inventory-2026-07-25.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": ["release/recovery-inventory-2026-07-25.json"], "publicProof": [],
+      "blockedBy": ["Independent public-vantage evidence and newer owner handoffs remain outside this Worktree."], "owner": "YNX 18", "nextAction": "Ingest only clean exact-commit owner handoffs and append new recovery observations.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C02", "category": "ownership", "requirement": "Publish an owner-scoped integration contract, handoff, cross-product vectors and dependency acceptance record.",
+      "applicability": "applicable", "applicabilityReason": "Public facts are consumed by Website, Gateway, Security/SRE and product owners.", "status": "integratedCentral",
+      "evidence": ["release/integration/docs-compliance-brand-contract.json", "docs/integration/INTEGRATION_HANDOFF.md", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json", "docs/integration/DEPENDENCY_ACCEPTANCE.md", "release/evidence/website-public-acceptance-2026-07-26.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/full-goal-coverage-gate.mjs", "scripts/verify/docs-compliance-check.mjs"], "artifact": ["release/integration/docs-compliance-brand-contract.json"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": [], "owner": "YNX 18 with Website acceptance", "nextAction": "Version the contract when an accepted owner fact, route or release-state rule changes.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C03", "category": "release-truth", "requirement": "Maintain nine distinct release-state booleans and promote each state only with direct evidence.",
+      "applicability": "applicable", "applicabilityReason": "The package has local, central, staging, public and hosted states that must not be conflated.", "status": "publicVerified",
+      "evidence": ["release/product-release.json", "release/evidence/website-public-acceptance-2026-07-26.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs", "scripts/verify/public-disclosure-gate.mjs"], "artifact": ["release/product-release.json"], "publicProof": ["https://ynxweb4.com/docs", "https://ynxweb4.com/docs-authority/artifact-manifest.json"],
+      "blockedBy": ["Production signing and store release remain false."], "owner": "YNX 18 and Website", "nextAction": "Keep productionSigned false until artifact-specific signature evidence exists.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C04", "category": "truth-gates", "requirement": "Reject placeholders, fake success, stale claims and prohibited public implementation references.",
+      "applicability": "applicable", "applicabilityReason": "YNX 18 publishes user-facing and search-indexable claims.", "status": "testedLocal",
+      "evidence": ["docs/architecture/ZERO_PLACEHOLDER_POLICY.md", "scripts/validate/no-placeholder-check.sh", "scripts/verify/public-disclosure-gate.mjs"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/validate/no-placeholder-check.sh", "scripts/verify/public-disclosure-gate.mjs"], "artifact": [], "publicProof": [],
+      "blockedBy": [], "owner": "YNX 18", "nextAction": "Run the gates for every claim-package change and fail closed on missing records.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C05", "category": "authority-model", "requirement": "Classify canonical facts, third-party facts, estimates, AI drafts, cache values and failures with source and version metadata.",
+      "applicability": "applicable", "applicabilityReason": "The public bundle is the ecosystem fact authority, not an implementation owner.", "status": "publicVerified",
+      "evidence": ["release/facts/authoritative-facts.json", "release/schemas/public-record.schema.json", "release/facts/claims.json", "release/facts/superseded-facts.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/public-disclosure-gate.mjs"], "artifact": ["release/facts/authoritative-facts.json"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": [], "owner": "YNX 18", "nextAction": "Require each new claim to link an accepted evidence record and supersession path.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C06", "category": "wallet-auth", "requirement": "Disclose canonical Wallet/Auth/Gateway boundaries without claiming unaccepted runtime integration.",
+      "applicability": "applicable", "applicabilityReason": "Wallet/Auth is documented by YNX 18 but implemented by YNX 02.", "status": "inProgress",
+      "evidence": ["docs/architecture/WALLET_AUTH_SMART_ACCOUNT_STRATEGY_MANDATE.md", "docs/ecosystem/PRODUCT_ARCHITECTURE.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": [], "artifact": [], "publicProof": [],
+      "blockedBy": ["Accepted YNX 02 clean handoff and integrated negative-vector evidence."], "owner": "YNX 02 runtime; YNX 18 disclosure", "nextAction": "Consume the next accepted Wallet/Auth contract and update only evidence-backed wording.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C07", "category": "asset-boundary", "requirement": "Disclose user asset custody, mandate, revocation, kill-switch and emergency-exit boundaries.",
+      "applicability": "applicable", "applicabilityReason": "Asset-control claims span Wallet, Quant, Exchange and DEX.", "status": "inProgress",
+      "evidence": ["docs/quant/QUANT_ARCHITECTURE_ASSET_BOUNDARY_FEES_RISKS.md", "docs/custody/CUSTODY_PROVIDER_READINESS.md", "docs/architecture/WALLET_AUTH_SMART_ACCOUNT_STRATEGY_MANDATE.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": [], "artifact": [], "publicProof": [],
+      "blockedBy": ["Integrated runtime and audit evidence from asset-owning product threads."], "owner": "Product owners; YNX 18 disclosure", "nextAction": "Keep runtime-control statements Candidate or Blocked until exact tests are accepted.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C08", "category": "providers", "requirement": "Maintain provider terms, license, jurisdiction, retention, rights, limits, cost, health and outage truth.",
+      "applicability": "applicable", "applicabilityReason": "Provider claims affect compliance, privacy, reliability and unit economics.", "status": "inProgress",
+      "evidence": ["docs/compliance/PROVIDER_REGISTER.md", "release/facts/compliance.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/public-disclosure-gate.mjs"], "artifact": [], "publicProof": [],
+      "blockedBy": ["Product-specific procurement, privacy, security and legal approvals."], "owner": "Product/provider owners; YNX 18 register", "nextAction": "Reconcile activated providers from official-source handoffs and preserve unavailable states.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C09", "category": "ai-governance", "requirement": "Document AI consent, context, tool approval, audit, provider, cost, retention and forbidden-action boundaries.",
+      "applicability": "applicable", "applicabilityReason": "YNX AI and product assistants require public governance disclosure.", "status": "implementedLocal",
+      "evidence": ["docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md", "docs/architecture/ARCHITECTURE.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": [], "publicProof": [],
+      "blockedBy": ["Production consent, red-team, provider and central integration evidence."], "owner": "YNX 14 runtime; YNX 18 disclosure", "nextAction": "Import accepted YNX 14 evidence before promoting provider-backed safety claims.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C10", "category": "brand", "requirement": "Maintain canonical YNX Chain, YNX Web4, YNXT and YNX Testnet identity and remove superseded names.",
+      "applicability": "applicable", "applicabilityReason": "Brand facts and disambiguation are direct YNX 18 ownership.", "status": "publicVerified",
+      "evidence": ["release/facts/brand.json", "docs/public/PUBLIC_BRAND_FACTS.md", "docs/public/BRAND_GUIDE.md", "docs/public/GLOSSARY.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/public-disclosure-gate.mjs", "scripts/verify/docs-compliance-check.mjs"], "artifact": ["assets/brand/ynx-logo.png"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": ["Named media-rights approval for final press assets."], "owner": "YNX 18", "nextAction": "Complete rights review and publish digest-bound asset variants.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C11", "category": "localization-accessibility", "requirement": "Cover 12 languages, Arabic RTL, legal/risk terminology and accessible public presentation.",
+      "applicability": "applicable", "applicabilityReason": "The public authority bundle is localized and Website-consumed.", "status": "implementedLocal",
+      "evidence": ["release/locales/en.json", "release/locales/ar.json", "docs/public/LOCALIZATION_TERMINOLOGY.md", "release/evidence/website-public-acceptance-2026-07-26.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/public-disclosure-gate.mjs", "scripts/verify/docs-compliance-check.mjs"], "artifact": ["release/locales/ar.json"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": ["Named human translation review and full runtime RTL/accessibility audit."], "owner": "YNX 18 content; Website runtime", "nextAction": "Retain Machine Draft labels until named reviews and RTL verification exist.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C12", "category": "platform-applicability", "requirement": "State platform applicability and distinguish preview, simulator, unsigned, signed and store classes.",
+      "applicability": "applicable", "applicabilityReason": "Documentation is Web-first while product guides describe other platforms.", "status": "inProgress",
+      "evidence": ["docs/ecosystem/PRODUCT_ARCHITECTURE.md", "docs/coordination/PRODUCT_ACCEPTANCE_MATRIX.md", "release/product-release.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": [], "publicProof": [],
+      "blockedBy": ["Accepted product-specific platform handoffs."], "owner": "Product owners; YNX 18 matrix", "nextAction": "Publish a current applicability matrix after owner release classes are reconciled.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C13", "category": "slo-economics", "requirement": "Publish evidence-bounded SLO, capacity and unit-economics disclosures.",
+      "applicability": "applicable", "applicabilityReason": "Performance and cost claims require measured scope.", "status": "testedLocal",
+      "evidence": ["docs/operations/SLO_CAPACITY_PLAN.md", "docs/economics/UNIT_ECONOMICS.md", "release/evidence/local-read-benchmark-2026-07-22.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/loadtest/local-read-benchmark.mjs"], "artifact": ["release/evidence/local-read-benchmark-2026-07-22.json"], "publicProof": [],
+      "blockedBy": ["Representative write-path, soak, failover and approved cost inputs."], "owner": "Product/SRE/Economics owners; YNX 18 disclosure", "nextAction": "Keep measurements explicitly local and avoid scale extrapolation.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C14", "category": "lifecycle", "requirement": "Document migration, rollback, backup, restore, export, deletion, retention and sunset behavior.",
+      "applicability": "applicable", "applicabilityReason": "Public guides and legal drafts must describe lifecycle boundaries.", "status": "implementedLocal",
+      "evidence": ["docs/operations/MIGRATION_COMPATIBILITY.md", "docs/operations/OPERATIONS_RUNBOOK.md", "docs/deployment/TESTNET_DEPLOYMENT_GUIDE.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": [], "publicProof": [],
+      "blockedBy": ["Representative owner restore, rollback, export and deletion drills."], "owner": "Product/SRE owners; YNX 18 disclosure", "nextAction": "Attach drill evidence and distinguish procedures from verified outcomes.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C15", "category": "observability-support", "requirement": "Document observability, status, support, dispute, incident and recovery routes.",
+      "applicability": "applicable", "applicabilityReason": "Public support, security and status routes are part of the package.", "status": "publicVerified",
+      "evidence": ["docs/operations/OBSERVABILITY.md", "docs/public/SUPPORT_AND_DISPUTES.md", "docs/public/INCIDENT_COMMUNICATION.md", "release/evidence/website-public-acceptance-2026-07-26.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": [], "publicProof": ["https://ynxweb4.com/support", "https://ynxweb4.com/security", "https://ynxweb4.com/status"],
+      "blockedBy": ["Production alert routing and full service telemetry remain SRE-owned."], "owner": "YNX 18 content; Website/SRE runtime", "nextAction": "Keep service-health claims component-specific.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C16", "category": "security-supply-chain", "requirement": "Maintain threat, privacy, SBOM, dependency, license, provenance, secret and artifact evidence.",
+      "applicability": "applicable", "applicabilityReason": "The public package and hosted archive require supply-chain truth.", "status": "testedLocal",
+      "evidence": ["docs/security/THREAT_MODEL.md", "docs/security/SUPPLY_CHAIN_REVIEW.md", "THIRD_PARTY_NOTICES.md", "release/sbom-npm.cdx.json", "release/evidence/supply-chain-2026-07-22.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/validate/secret-scan.sh", "scripts/verify/docs-compliance-check.mjs"], "artifact": ["release/sbom-npm.cdx.json", "release/go-module-inventory.json"], "publicProof": ["https://ynxweb4.com/security"],
+      "blockedBy": ["Dedicated external scanners, production signature and independent audit."], "owner": "YNX 18 package; YNX 30 review", "nextAction": "Add artifact-specific provenance and review evidence when supplied.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C17", "category": "economics-risk", "requirement": "Disclose issuance, fees, burn, staking, stablecoin, treasury, solvency, user PnL and risk without guarantees.",
+      "applicability": "applicable", "applicabilityReason": "Economic claims are core YNX 18 deliverables but runtime policy is owned elsewhere.", "status": "inProgress",
+      "evidence": ["docs/economics/YNXT_TOKENOMICS.md", "docs/economics/TREASURY_REVENUE_BURN.md", "docs/stablecoin/STABLECOIN_RESERVE_REDEMPTION.md", "docs/economics/PROOF_OF_SOLVENCY.md", "release/facts/economics.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/public-disclosure-gate.mjs"], "artifact": [], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": ["Accepted YNX 17 runtime evidence and named reviews."], "owner": "YNX 17 runtime; YNX 18 disclosure", "nextAction": "Retain Candidate, Testnet and no-guarantee labels until accepted.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C18", "category": "public-seo", "requirement": "Provide metadata, FAQ, search pages, structured data, public routes and immutable candidate downloads.",
+      "applicability": "applicable", "applicabilityReason": "Public content authority and SEO handoff are direct YNX 18 responsibilities.", "status": "publicVerified",
+      "evidence": ["release/public-product-metadata.json", "release/structured-data-suggestions.json", "docs/public/WEBSITE_INTEGRATION_HANDOFF.md", "release/evidence/website-public-acceptance-2026-07-26.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs", "scripts/verify/public-disclosure-gate.mjs"], "artifact": ["release/public-product-metadata.json"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain", "https://ynxweb4.com/docs"],
+      "blockedBy": ["Independent indexing proof and named asset-rights review."], "owner": "YNX 18 content; Website publication", "nextAction": "Collect search-owner evidence without treating submission as ranking success.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C19", "category": "evidence-release", "requirement": "Maintain completion, evidence, UI, migration, observability, release, operations and machine-readable records.",
+      "applicability": "applicable", "applicabilityReason": "Founder-grade delivery requires evidence-linked acceptance.", "status": "publicVerified",
+      "evidence": ["docs/acceptance/FEATURE_COMPLETION_EVIDENCE.md", "docs/acceptance/EVIDENCE_INDEX.md", "docs/acceptance/UI_DESIGN_AUDIT.md", "docs/acceptance/RELEASE_NOTES.md", "docs/acceptance/OPERATIONS.md", "release/docs-compliance-completion-evidence.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": ["release/docs-compliance-completion-evidence.json", "release/product-release.json"], "publicProof": ["https://ynxweb4.com/docs"],
+      "blockedBy": ["Production signature and named reviews remain separate states."], "owner": "YNX 18", "nextAction": "Append exact evidence for each stronger state.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C20", "category": "founder-kpi", "requirement": "Define evidence-safe activation, retention, completion, support, abuse, cost, margin and scale/kill metrics.",
+      "applicability": "applicable", "applicabilityReason": "The package defines measurement semantics without fabricating a baseline.", "status": "implementedLocal",
+      "evidence": ["docs/acceptance/FOUNDER_KPI_FRAMEWORK.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": [], "publicProof": [],
+      "blockedBy": ["Privacy-reviewed telemetry and representative product baselines."], "owner": "Product owners; YNX 18 semantics", "nextAction": "Accept numeric thresholds only from reviewed owner evidence.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C21", "category": "external-inputs", "requirement": "Request only minimum external inputs after autonomous engineering is exhausted.",
+      "applicability": "applicable", "applicabilityReason": "Production signing and named reviews cannot be self-issued.", "status": "externalBlocked",
+      "evidence": ["release/operator-inputs.request.json", "REQUIRED_INPUTS.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": ["release/operator-inputs.request.json"], "publicProof": [],
+      "blockedBy": ["Brand-media rights approval", "Named legal/economic/security review", "Production signing approval", "Independent search/public proof"], "owner": "Founder and named external reviewers", "nextAction": "Receive inputs through approved secure channels; never request secrets in chat.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-C22", "category": "git-release", "requirement": "Validate, commit, push, verify local/remote SHA equality and accurately record clean state.",
+      "applicability": "applicable", "applicabilityReason": "Every autonomous slice must be recoverable and remotely protected.", "status": "inProgress",
+      "evidence": [".ai-bridge/agent-status.md", ".ai-bridge/execution-log.jsonl"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": [], "artifact": [], "publicProof": [],
+      "blockedBy": [], "owner": "YNX 18", "nextAction": "Run all YNX 18 gates, review, commit, push and verify exact SHA for this slice.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-P01", "category": "product-truth-boundary", "requirement": "Publish only claims grounded in code, tests, releases, public evidence or official sources; otherwise label Candidate, Goal or Blocked.",
+      "applicability": "applicable", "applicabilityReason": "This is the defining product-specific invariant.", "status": "publicVerified",
+      "evidence": ["release/facts/claims.json", "docs/public/MARKETING_CLAIMS_EVIDENCE_MATRIX.md", "scripts/verify/public-disclosure-gate.mjs"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/public-disclosure-gate.mjs"], "artifact": ["release/facts/claims.json"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": [], "owner": "YNX 18", "nextAction": "Reject imported claims lacking exact evidence, allowed wording and expiry.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-P02", "category": "public-document-set", "requirement": "Maintain the complete technical, economics, security, compliance, legal, guide, brand, support and launch document set.",
+      "applicability": "applicable", "applicabilityReason": "The product goal enumerates this document portfolio.", "status": "implementedLocal",
+      "evidence": ["docs/whitepaper/YNX_CHAIN_WHITEPAPER.md", "docs/economics/YNXT_TOKENOMICS.md", "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md", "docs/legal/LEGAL_REVIEW_PACKET.md", "docs/public/PRESS_KIT.md", "docs/acceptance/DOCS_COMPLIANCE_REQUIREMENTS.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": [], "publicProof": ["https://ynxweb4.com/docs"],
+      "blockedBy": ["Named legal, economic, security and technical review."], "owner": "YNX 18", "nextAction": "Version and review content by evidence delta rather than prose volume.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-P03", "category": "canonical-brand-facts", "requirement": "Fix official names, domain, Testnet asset and chain identities and record superseded facts.",
+      "applicability": "applicable", "applicabilityReason": "Canonical brand facts are direct YNX 18 authority.", "status": "publicVerified",
+      "evidence": ["release/facts/brand.json", "release/facts/network.json", "release/facts/superseded-facts.json", "docs/public/PUBLIC_BRAND_FACTS.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/public-disclosure-gate.mjs"], "artifact": ["release/facts/brand.json", "release/facts/network.json"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": [], "owner": "YNX 18", "nextAction": "Add newly found legacy identity to the supersession record before migration.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-P04", "category": "brand-disambiguation", "requirement": "Explain YNX Chain, YNX Web4, YNXT and unrelated Lynx-branded products neutrally.",
+      "applicability": "applicable", "applicabilityReason": "Search and public identity require neutral disambiguation.", "status": "publicVerified",
+      "evidence": ["docs/public/PUBLIC_BRAND_FACTS.md", "docs/public/FAQ.md", "docs/public/search/WHAT_IS_YNX_CHAIN.md", "docs/public/search/WHAT_IS_YNX_WEB4.md", "docs/public/search/WHAT_IS_YNXT.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": [], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": [], "owner": "YNX 18", "nextAction": "Keep disambiguation factual and non-adversarial.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-P05", "category": "search-content", "requirement": "Provide unique indexable authority pages for YNX Chain, Web4, YNXT, Testnet and required product clusters.",
+      "applicability": "applicable", "applicabilityReason": "Search authority is a direct product deliverable.", "status": "publicVerified",
+      "evidence": ["docs/public/search/WHAT_IS_YNX_CHAIN.md", "docs/public/search/YNX_TESTNET_GUIDE.md", "docs/public/search/PRODUCTS.md", "release/evidence/website-public-acceptance-2026-07-26.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": [], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": ["Independent indexing and search-console evidence."], "owner": "YNX 18 content; Website SEO", "nextAction": "Measure indexing through owner evidence and do not equate submission with ranking.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-P06", "category": "aeo-geo", "requirement": "Structure definitions, answers, lists, tables, dates, sources and evidence for answer engines without fabricated citations.",
+      "applicability": "applicable", "applicabilityReason": "AEO/GEO is explicitly required.", "status": "integratedCentral",
+      "evidence": ["release/structured-data-suggestions.json", "docs/public/WEBSITE_INTEGRATION_HANDOFF.md", "release/evidence/website-public-acceptance-2026-07-26.json"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": ["release/structured-data-suggestions.json"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": ["Independent answer-engine discovery evidence."], "owner": "YNX 18 structure; Website rendering", "nextAction": "Version structured data with the same evidence source.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-P07", "category": "capital-risk-communication", "requirement": "Attach source, period, gross/net, costs, risk, drawdown, lock, exit, environment, evidence ID and no-guarantee language to capital claims.",
+      "applicability": "applicable", "applicabilityReason": "APY, PnL, reserve, liquidity, burn, staking, vault and revenue wording is high-risk.", "status": "inProgress",
+      "evidence": ["docs/public/MARKETING_CLAIMS_EVIDENCE_MATRIX.md", "release/facts/economics.json", "docs/economics/UNIT_ECONOMICS.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/public-disclosure-gate.mjs"], "artifact": [], "publicProof": [],
+      "blockedBy": ["Accepted economic source data and named review."], "owner": "YNX 17 evidence; YNX 18 wording", "nextAction": "Reject numeric claims missing the complete capital-risk evidence tuple.", "lastUpdated": "2026-07-27"
+    },
+    {
+      "id": "YNX18-P08", "category": "document-versioning", "requirement": "Give public documents version, effective date, source commit, product release, last review, change log and supersession identity.",
+      "applicability": "applicable", "applicabilityReason": "The goal requires versioned and supersedable public documents.", "status": "inProgress",
+      "evidence": ["release/facts/superseded-facts.json", "docs/public/search/WHAT_IS_YNX_CHAIN.md", "docs/coordination/DOCS_COMPLIANCE_INTEGRATION_MANIFEST.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": [], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": ["Legacy documents still require metadata normalization."], "owner": "YNX 18", "nextAction": "Add a bounded metadata inventory and normalize high-authority documents first.", "lastUpdated": "2026-07-27"
+    }
+  ]
+}

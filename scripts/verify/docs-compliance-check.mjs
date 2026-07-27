@@ -48,7 +48,13 @@ const required = [
   "release/schemas/claims-matrix.schema.json",
   "release/recovery-inventory-2026-07-25.json",
   "docs/coordination/DOCS_COMPLIANCE_INTEGRATION_MANIFEST.md",
-  "scripts/verify/public-disclosure-gate.mjs"
+  "scripts/verify/public-disclosure-gate.mjs",
+  ".ai-bridge/full-goal-coverage.json",
+  "release/integration/docs-compliance-brand-contract.json",
+  "docs/integration/INTEGRATION_HANDOFF.md",
+  "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+  "scripts/verify/full-goal-coverage-gate.mjs"
 ];
 
 const jsonFiles = [
@@ -63,7 +69,10 @@ const jsonFiles = [
   "release/sbom-npm.cdx.json",
   "release/go-module-inventory.json",
   "release/facts/authoritative-facts.json",
-  "release/recovery-inventory-2026-07-25.json"
+  "release/recovery-inventory-2026-07-25.json",
+  ".ai-bridge/full-goal-coverage.json",
+  "release/integration/docs-compliance-brand-contract.json",
+  "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
 ];
 
 const failures = [];
@@ -189,8 +198,16 @@ if (disclosureGate.status !== 0) {
   failures.push(`public disclosure gate failed:\n${(disclosureGate.stderr || disclosureGate.stdout || "no output").trim()}`);
 }
 
+const coverageGate = spawnSync(process.execPath, ["scripts/verify/full-goal-coverage-gate.mjs"], {
+  cwd: process.cwd(),
+  encoding: "utf8"
+});
+if (coverageGate.status !== 0) {
+  failures.push(`full goal coverage gate failed:\n${(coverageGate.stderr || coverageGate.stdout || "no output").trim()}`);
+}
+
 if (failures.length > 0) {
   process.stderr.write(`${failures.join("\n")}\n`);
   process.exit(1);
 }
-process.stdout.write(`docs compliance check passed: ${required.length} named artifacts, ${jsonFiles.length} JSON records, ${expectedSearch.length} search pages, ${publicFiles.length} public documents, ${stateKeys.length} evidence-bound release states, and the public disclosure gate\n`);
+process.stdout.write(`docs compliance check passed: ${required.length} named artifacts, ${jsonFiles.length} JSON records, ${expectedSearch.length} search pages, ${publicFiles.length} public documents, ${stateKeys.length} evidence-bound release states, the public disclosure gate, and the full goal coverage gate\n`);
