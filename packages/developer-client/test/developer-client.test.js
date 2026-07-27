@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   AIBuildPersistence, AIBuildRun, AI_BUILD_PERMISSIONS, GROK_BUILD_ACP,
-  AICodingAgent, CommandAudit, DeveloperError, MemoryPersistence, ProjectWorkspace,
+  AICodingAgent, API_ERROR_MESSAGE_KEYS, API_MESSAGE_KEYS, apiMessageKeyForError,
+  CommandAudit, DeveloperError, MemoryPersistence, ProjectWorkspace,
   DeveloperI18n, MESSAGES, SUPPORTED_LOCALES, DeveloperWalletSession, LocalNonceLedger, WalletDeployment, YNXChainClient, commandPreview, sourceDiagnostics
 } from "../src/index.js";
 
@@ -194,4 +195,10 @@ test("all 12 locales are complete, persistent and Arabic is RTL", () => {
   const data = new Map(); const storage={getItem:(key)=>data.get(key),setItem:(key,value)=>data.set(key,value)}; const i18n=new DeveloperI18n({locale:"ar",storage});
   assert.equal(i18n.dir,"rtl"); assert.match(i18n.t("privateKeyBoundary"),/المفتاح الخاص/); i18n.setLocale("ja"); assert.equal(new DeveloperI18n({storage}).locale,"ja");
   assert.ok(i18n.number(1234).length>0); assert.ok(i18n.date("2026-07-16T00:00:00.000Z").length>0); assert.equal(i18n.plural(2,{other:"files"}),"files");
+  for (const key of API_MESSAGE_KEYS) for (const locale of SUPPORTED_LOCALES) assert.ok(MESSAGES[locale][key]?.trim(), `${locale}.${key}`);
+  assert.notEqual(MESSAGES.ar.apiApprovalTitle, MESSAGES.en.apiApprovalTitle);
+  assert.equal(apiMessageKeyForError("credential_broker_unavailable"), "apiErrorBrokerUnavailable");
+  assert.equal(apiMessageKeyForError("api_origin_not_allowed"), "apiErrorOriginRejected");
+  assert.equal(apiMessageKeyForError("unknown_error"), null);
+  assert.ok(Object.keys(API_ERROR_MESSAGE_KEYS).length >= 40);
 });

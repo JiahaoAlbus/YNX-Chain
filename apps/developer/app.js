@@ -1,4 +1,5 @@
 import { AIBuildPersistence, AIBuildRun, GROK_BUILD_ACP } from "/client/ai-build.js";
+import { apiMessageKeyForError } from "/client/api-i18n.js?v=1";
 import { OpenAPIStudio, createConnectorTemplate, listConnectorTemplates } from "/client/api-studio.js";
 import { AICodingAgent } from "/client/ai.js";
 import { YNXChainClient } from "/client/chain-client.js";
@@ -26,7 +27,8 @@ const aiBuildPersistence = new AIBuildPersistence(localStorage);
 const state = { project: null, path: null, artifact: null, aiPrepared: null, aiResult: null, aiBuild: null, aiProposalId: null, deployReview: null, apiPreview: null, apiConnector: "oracle", saveTimer: null };
 
 function toast(message) { const item = $("#toast"); item.textContent = message; item.classList.add("show"); setTimeout(() => item.classList.remove("show"), 2500); }
-function showError(error, target = $("#command-output")) { target.textContent = `[${error.code || "error"}] ${errorMessage(error)}`; toast(errorMessage(error)); }
+function localizedErrorMessage(error) { const key = apiMessageKeyForError(error?.code); return key ? i18n.t(key) : errorMessage(error); }
+function showError(error, target = $("#command-output")) { const message = localizedErrorMessage(error); target.textContent = `[${error.code || "error"}] ${message}`; if (target.id === "api-output") target.dataset.apiState = "error"; toast(message); }
 
 function modal({ title, content, confirm = "Continue", danger = false }) {
   $("#modal-title").textContent = title; const container = $("#modal-content"); container.replaceChildren();
@@ -95,7 +97,8 @@ function importAPISpec() {
     const operations = $("#api-operation"); operations.replaceChildren();
     for (const item of imported.operations) operations.append(new Option(`${item.method} ${item.path} · ${item.operationId}`, item.operationId));
     state.apiPreview = null;
-    output.textContent = JSON.stringify({ status: "validated-local", ...imported, credentialBoundary: "reference-only-host-broker", publicConnectivityClaim: false }, null, 2);
+    output.dataset.apiState = "validated";
+    output.textContent = `${i18n.t("apiValidatedLocal")} · ${i18n.t("apiCredentialBoundary")} · ${i18n.t("apiPublicClaim")}\n\n${JSON.stringify({ status: "validated-local", ...imported, credentialBoundary: "reference-only-host-broker", publicConnectivityClaim: false }, null, 2)}`;
     return imported;
   } catch (error) { showError(error, output); return null; }
 }
@@ -106,12 +109,13 @@ function previewAPIRequest() {
     state.apiPreview = apiStudio.preview({
       operationId: $("#api-operation").value,
       baseURL: $("#api-base-url").value.trim(),
-      path: jsonField("api-path", "Path parameters"),
-      query: jsonField("api-query", "Query parameters"),
-      headers: jsonField("api-headers", "Headers"),
-      body: jsonField("api-body", "Request body", { optional: true }),
-      credentialReferences: jsonField("api-credential-references", "Credential references"),
+      path: jsonField("api-path", i18n.t("pathParametersJSON")),
+      query: jsonField("api-query", i18n.t("queryParametersJSON")),
+      headers: jsonField("api-headers", i18n.t("declaredHeadersJSON")),
+      body: jsonField("api-body", i18n.t("requestBodyJSON"), { optional: true }),
+      credentialReferences: jsonField("api-credential-references", i18n.t("credentialReferencesJSON")),
     });
+    output.dataset.apiState = "preview";
     output.textContent = JSON.stringify(state.apiPreview, null, 2);
     return state.apiPreview;
   } catch (error) { state.apiPreview = null; showError(error, output); return null; }
@@ -121,30 +125,36 @@ async function sendAPISandboxRequest() {
   const preview = state.apiPreview || previewAPIRequest();
   if (!preview) return;
   const review = node("div");
-  review.append(node("pre", "", JSON.stringify(preview, null, 2)), node("p", "muted compact", "Only the reviewed same-origin or allowlisted sandbox target may be contacted. Secured requests require a host credential broker; browser JavaScript never receives credential values."));
-  if (!await modal({ title: "Approve API sandbox request", content: review, confirm: "Send sandbox request" })) return;
-  try { $("#api-output").textContent = JSON.stringify(await apiStudio.execute(preview, { approved: true }), null, 2); }
+  review.append(node("pre", "", JSON.stringify(preview, null, 2)), node("p", "muted compact", i18n.t("apiApprovalNote")));
+  if (!await modal({ title: i18n.t("apiApprovalTitle"), content: review, confirm: i18n.t("apiApprovalConfirm") })) return;
+  try { const output = $("#api-output"); output.dataset.apiState = "response"; output.textContent = JSON.stringify(await apiStudio.execute(preview, { approved: true }), null, 2); }
   catch (error) { showError(error, $("#api-output")); }
 }
 
 function simulateAPIRequest() {
   const preview = state.apiPreview || previewAPIRequest();
   if (!preview) return;
-  try { $("#api-output").textContent = JSON.stringify(apiStudio.simulate(preview, $("#api-simulation").value), null, 2); }
+  try { const output = $("#api-output"); output.dataset.apiState = "simulation"; output.textContent = JSON.stringify(apiStudio.simulate(preview, $("#api-simulation").value), null, 2); }
   catch (error) { showError(error, $("#api-output")); }
 }
 
 function generateAPIClient() {
-  try { $("#api-output").textContent = apiStudio.generateTypeScriptClient(); }
+  try { const output = $("#api-output"); output.dataset.apiState = "generated-client"; output.textContent = apiStudio.generateTypeScriptClient(); }
   catch (error) { showError(error, $("#api-output")); }
 }
 
 function generateAPIAdapterManifest() {
-  try { $("#api-output").textContent = JSON.stringify(apiStudio.generateAdapterManifest({ connector: state.apiConnector }), null, 2); }
+  try { const output = $("#api-output"); output.dataset.apiState = "generated-manifest"; output.textContent = JSON.stringify(apiStudio.generateAdapterManifest({ connector: state.apiConnector }), null, 2); }
   catch (error) { showError(error, $("#api-output")); }
 }
 
-function applyLocale() { document.documentElement.lang=i18n.locale; document.documentElement.dir=i18n.dir; document.querySelectorAll('[data-i18n]').forEach((item)=>{item.textContent=i18n.t(item.dataset.i18n);}); }
+function applyLocale() {
+  document.documentElement.lang=i18n.locale;
+  document.documentElement.dir=i18n.dir;
+  document.querySelectorAll('[data-i18n]').forEach((item)=>{item.textContent=i18n.t(item.dataset.i18n);});
+  const output=$("#api-output");
+  if(output?.dataset.apiState === "empty") output.textContent=i18n.t("apiEmptyState");
+}
 function applyTheme(theme) { if (theme === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; localStorage.setItem("ynx.developer.theme", theme); $("#theme-toggle")?.setAttribute("data-mode", theme); }
 function toggleTheme() { const current=localStorage.getItem("ynx.developer.theme")||"system"; applyTheme(current === "system" ? "light" : current === "light" ? "dark" : "system"); toast(`Appearance: ${localStorage.getItem("ynx.developer.theme")}`); }
 function toggleTextSize(){const large=document.documentElement.dataset.textSize!=="large";document.documentElement.dataset.textSize=large?"large":"normal";localStorage.setItem("ynx.developer.text-size",large?"large":"normal");toast(large?"Large interface text enabled":"Standard interface text enabled");}
@@ -253,7 +263,18 @@ function bindNavigation() {
   $("#close-agent").onclick = () => $("aside.agent").classList.remove("mobile-open");
   $(".workspace").addEventListener("pointerdown",()=>{if(matchMedia("(max-width:740px)").matches)setMobileSidebar(false);});
   document.addEventListener("keydown",(event)=>{if(event.key==="Escape"){setMobileSidebar(false);$(".agent").classList.remove("mobile-open");}});
-  $$(".panel-tab").forEach((button) => button.onclick = () => { $$(".panel-tab").forEach((item) => item.classList.toggle("active", item === button)); $$(".panel-body").forEach((panel) => panel.classList.toggle("active", panel.id === `panel-${button.dataset.panel}`)); });
+  const tabs=[...document.querySelectorAll(".panel-tab")]; $(".panel-tabs").setAttribute("role","tablist");
+  const activateTab=(button,{focus=false}={})=>{
+    tabs.forEach((item)=>{const active=item===button;item.classList.toggle("active",active);item.setAttribute("role","tab");item.setAttribute("aria-selected",String(active));item.tabIndex=active?0:-1;});
+    [...document.querySelectorAll(".panel-body")].forEach((panel)=>{const active=panel.id===`panel-${button.dataset.panel}`;panel.classList.toggle("active",active);panel.setAttribute("role","tabpanel");panel.hidden=!active;});
+    if(focus)button.focus();
+  };
+  tabs.forEach((button,index)=>{
+    button.id=`panel-tab-${button.dataset.panel}`;button.setAttribute("aria-controls",`panel-${button.dataset.panel}`);button.onclick=()=>activateTab(button);
+    button.onkeydown=(event)=>{let target=index;if(event.key==="ArrowRight")target=(index+1)%tabs.length;else if(event.key==="ArrowLeft")target=(index-1+tabs.length)%tabs.length;else if(event.key==="Home")target=0;else if(event.key==="End")target=tabs.length-1;else return;event.preventDefault();activateTab(tabs[target],{focus:true});};
+    $(`#panel-${button.dataset.panel}`)?.setAttribute("aria-labelledby",button.id);
+  });
+  activateTab(tabs.find((button)=>button.classList.contains("active"))||tabs[0]);
 }
 
 function bindActions() {

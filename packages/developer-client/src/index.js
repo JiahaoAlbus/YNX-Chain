@@ -7,5 +7,6 @@ export * from "./wallet-auth.js";
 export * from "./ai.js";
 export * from "./ai-build.js";
 export * from "./api-studio.js";
+export * from "./api-i18n.js";
 export * from "./diagnostics.js";
 export * from "./i18n.js";

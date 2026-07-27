@@ -1,4 +1,5 @@
 import { invariant } from "./errors.js";
+import { API_MESSAGES } from "./api-i18n.js";
 
 export const SUPPORTED_LOCALES = Object.freeze(["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"]);
 const rows = {
@@ -31,7 +32,7 @@ const workspaceRows={
   ar:["الملفات","بحث","الفروقات","النشر","الوثائق","بناء الذكاء الاصطناعي","ترجمة","تشغيل الاختبارات","المهام","المشكلات","المخرجات","الطرفية","أدوات RPC","الإيصالات والسجلات","المنتجات","التدقيق","معاينة الخطة","استئناف","تصدير التدقيق","السياق المعتمد","النموذج / المزوّد","الأذونات"],
   id:["File","Cari","Perbedaan","Deploy","Dokumentasi","Build AI","Kompilasi","Jalankan pengujian","Tugas","Masalah","Keluaran","Terminal","Alat RPC","Tanda terima & log","Artefak","Audit","Pratinjau rencana","Lanjutkan","Ekspor audit","Konteks disetujui","Model / penyedia","Izin"],
 };
-export const MESSAGES = Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale, values]) => [locale, Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...Object.fromEntries(workspaceKeys.map((key,index)=>[key,workspaceRows[locale][index]]))})])));
+export const MESSAGES = Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale, values]) => [locale, Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...Object.fromEntries(workspaceKeys.map((key,index)=>[key,workspaceRows[locale][index]])),...API_MESSAGES[locale]})])));
 
 export function resolveLocale(requested, detected = globalThis.navigator?.languages ?? []) {
   for (const raw of [requested, ...detected, "en"].filter(Boolean)) { const exact = SUPPORTED_LOCALES.find((item)=>item.toLowerCase()===String(raw).toLowerCase()); if (exact) return exact; const base = SUPPORTED_LOCALES.find((item)=>item.split("-")[0]===String(raw).split("-")[0]); if (base) return base; }

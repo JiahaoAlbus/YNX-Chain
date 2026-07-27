@@ -35,10 +35,30 @@ test("API Studio UI preserves host-broker credential and responsive boundaries",
   const html = await read("index.html");
   const app = await read("app.js");
   const css = await read("styles.css");
-  assert.match(html + app, /browser JavaScript never receives credential values/i);
+  const messages = await read("../../packages/developer-client/src/api-i18n.js");
+  assert.match(html + app + messages, /browser JavaScript never receives credential values/i);
   assert.match(app, /credentialBroker: globalThis\.ynxCredentialBroker/);
   assert.match(app, /allowedOrigins: \[location\.origin\]/);
   assert.match(css, /\.api-grid/);
   assert.match(css, /\.rpc-row,\.api-grid \{ grid-template-columns:1fr; \}/);
   assert.doesNotMatch(html + app, /providerReference\s*:\s*["'](?!credential-ref:)/i);
+});
+
+test("API Studio localizes dynamic states and exposes keyboard, RTL and 390px accessibility gates", async () => {
+  const html = await read("index.html");
+  const app = await read("app.js");
+  const css = await read("styles.css");
+  for (const key of ["apiStudio","connectorTemplate","previewRequest","failureSimulation","apiBoundaryNote"]) {
+    assert.match(html, new RegExp(`data-i18n=["']${key}["']`));
+  }
+  assert.match(html, /id="api-output"[^>]+data-api-state="empty"[^>]+aria-live="polite"[^>]+tabindex="0"/);
+  assert.match(app, /apiMessageKeyForError/);
+  assert.match(app, /i18n\.t\("apiApprovalTitle"\)/);
+  assert.match(app, /event\.key==="ArrowRight"/);
+  assert.match(app, /setAttribute\("role","tablist"\)/);
+  assert.match(app, /setAttribute\("aria-selected",String\(active\)\)/);
+  assert.match(css, /\[dir="rtl"\][^{]+\.api-studio/);
+  assert.match(css, /@media \(max-width:740px\)/);
+  assert.match(css, /\.api-toolbar label \{ width:100%; min-width:0; \}/);
+  assert.match(css, /@media \(prefers-reduced-motion:reduce\)/);
 });
