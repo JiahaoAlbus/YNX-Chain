@@ -6,3 +6,6 @@
 - A public liveness response is not readiness or durability evidence.
 - Container delivery remains `implementedLocal` until an exact image build and cold-start succeeds.
 - GitHub push failure is handled with a verified bundle, never force push or destructive reset.
+- Content-addressed deduplication is restricted to the same owner and product; equal hashes across Cloud/Docs or owners do not share physical references.
+- Legacy global BlobPath records remain readable and deletable; no silent startup rewrite is allowed.
+- Smoke tests build a temporary binary rather than using `go run`, so cleanup terminates the exact tested process and cannot accidentally reuse a stale listener.

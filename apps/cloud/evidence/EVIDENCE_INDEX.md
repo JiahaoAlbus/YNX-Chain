@@ -14,6 +14,7 @@
 - Security/supply chain: `../THREAT_MODEL.md`, `../SECURITY_BOUNDARIES.md`, `SBOM.cdx.json`, `ARTIFACT_PROVENANCE.json`, `../security/build-script-allowlist.json`, `../scripts/security-gate.mjs`, and `.github/workflows/cloud-security.yml` define and execute local controls without upgrading debug/public release claims.
 - Real API smoke: `scripts/canonical-smoke.mjs` and `scripts/smoke.sh` cover canonical sessions, upload/download/hash, same-name collision, share/revoke, trash/delete, quota/audit, Docs save/conflict/comment/presence, backup, and restore.
 - Object-store contract: `OBJECT_STORAGE_CONTRACT.md` and `internal/cloud/recovery.go`.
+- Scoped content-addressed deduplication: commit `7759586`, `internal/cloud/dedup_scope_test.go`, updated erasure/final-reference tests, fresh Race suite, canonical API smoke, and `MIGRATION_COMPATIBILITY.md` prove same-owner/product reuse with cross-owner/product physical isolation and legacy BlobPath compatibility.
 - Web runtime images: `screenshots/cloud-desktop-empty-en.png`, `cloud-desktop-success-en.png`, `cloud-desktop-dark-en.png`, `cloud-mobile-rtl-ar.png`.
 - Android runtime: `screenshots/cloud-android-release.png`; package `com.ynxweb4.cloud`, cold launch and `ynxcloud://wallet-auth/callback` routing verified by `adb`.
 - Artifact: `ARTIFACT_MANIFEST.json` and `release/YNX-Cloud-1.0.0-testnet-preview.apk`.

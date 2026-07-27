@@ -4,3 +4,8 @@
 {"at":"2026-07-27","phase":"PROTECT","event":"docker-build","result":"not-run","reason":"local Docker daemon unavailable"}
 {"at":"2026-07-27","phase":"PROTECT","event":"push","attempts":3,"result":"failed","reason":"upstream 502 or empty reply"}
 {"at":"2026-07-27","phase":"PROTECT","event":"recovery-bundle","result":"verified","bundle":".ai-bridge/recovery/ynx-cloud-6e101f9.bundle","sha256":"9c9a6f2f8ebd41140d912b1b55dac872b24c0330bcdde1c13f462d541f0b27fd"}
+{"at":"2026-07-27","phase":"PROTECT","event":"push-recovered","result":"passed","remoteHead":"e528bb7395a7f068db11e710be3514ff0869a16a"}
+{"at":"2026-07-27","phase":"EXPAND","event":"scoped-content-addressed-dedup","result":"tested-local","commit":"7759586914c3be5de1f99475f78e39cb1c2f8ad2","boundary":"same owner and product only"}
+{"at":"2026-07-27","phase":"EXPAND","event":"smoke-process-isolation","result":"passed","evidence":"temporary binary terminated; no listener remains on 18092"}
+{"at":"2026-07-27","phase":"EXPAND","event":"tests","result":"passed","commands":["go test -race -count=1 ./internal/cloud","go test -count=1 ./internal/cloud ./apps/cloud/cmd/ynx-cloudd","npm test --prefix apps/cloud","npm run check --prefix apps/cloud","npm run security --prefix apps/cloud","npm run smoke --prefix apps/cloud"]}
+{"at":"2026-07-27","phase":"EXPAND","event":"push","result":"passed","localHead":"7759586914c3be5de1f99475f78e39cb1c2f8ad2","remoteHead":"7759586914c3be5de1f99475f78e39cb1c2f8ad2"}

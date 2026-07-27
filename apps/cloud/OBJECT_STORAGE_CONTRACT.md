@@ -5,10 +5,10 @@ Status: implemented and tested for the bounded local filesystem adapter. This is
 ## Write contract
 
 - A logical object write is accepted only after strict JSON decoding, ownership and scope checks, an 8 MiB product bound, quota reservation, MIME/extension validation, and scanner acceptance.
-- The service hashes decoded bytes with SHA-256. Blobs are addressed only by the lowercase 64-hex digest and written beneath the configured data root; request names and paths never become filesystem paths.
+- The service hashes decoded bytes with SHA-256. New blobs are addressed inside an opaque `SHA-256(product, owner)` storage namespace and then by the lowercase 64-hex content digest. Request names, product names, account addresses, and user paths never become filesystem paths.
 - Same-name siblings are retained as distinct object IDs. No create, upload, autosave, version restore, or conflict recovery silently overwrites another object.
 - Object metadata, immutable version metadata, quota state, and the hash-chained audit event are persisted atomically through a new state snapshot. A failed persistence step restores the previous in-memory state.
-- Duplicate content may share one content-addressed blob. Permanent deletion removes logical references first, computes remaining hash references, and calls the provider delete contract only for the final reference. Local deletion verifies the path and hash before removal. Remote deletion binds the expected SHA-256.
+- Duplicate content may share one content-addressed blob only within the same owner and product boundary. Cloud and Docs, or two owners, never share a physical reference merely because plaintext hashes match. Permanent deletion removes logical references first, computes remaining `hash + providerRef` references, and calls the provider delete contract only for the final scoped reference. Local deletion verifies the bounded path and hash before removal. Remote writes and direct-upload plans bind the opaque scope; remote deletion binds the expected SHA-256.
 - Artifact retention is enforced before logical deletion: legal holds never auto-expire, ephemeral artifacts require a future expiry at creation, and active standard/ephemeral retention timestamps block deletion until the recorded UTC instant. Expiry makes an owner-authorized deletion eligible; it never triggers silent automatic erasure.
 - A provider deletion failure returns truthful `logical-deletion-complete` / `physicalDeletion: pending`, persists a redacted owner-visible deletion record, and supports an authenticated retry. It never reports physical erasure before provider success. Completed local deletion proves removal from this adapter only, not media sanitization by a production provider.
 
@@ -20,7 +20,7 @@ Status: implemented and tested for the bounded local filesystem adapter. This is
 
 ## Quota, timeout, retry, and duplicate rules
 
-- Quota is evaluated over logical current-version bytes per owner. A write that would exceed the configured 64 MiB local product quota is rejected before commit.
+- Quota is evaluated over immutable-version bytes deduplicated within each owner and product boundary. Equal content in Cloud and Docs is charged independently because it is physically isolated. A write that would exceed the configured 64 MiB local quota is rejected before metadata commit.
 - HTTP bodies, provider responses, scanner reads, and backup files are bounded. Remote Wallet/AI/scanner calls use configured client timeouts; no unavailable dependency is replaced with canned success.
 - Clients may retry idempotent reads. Create retries must use the returned object ID or an application idempotency key at the orchestration boundary; blind duplicate create is intentionally visible as another object.
 - Offline upload queue entries have stable local IDs and are deleted only after a successful server write. The first failure pauses the queue for explicit retry.

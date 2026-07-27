@@ -1,6 +1,6 @@
 # YNX Cloud feature completion evidence
 
-Evidence baseline: local source commit `f05fc3faa5665d917b9f8a8aa0b8678ab04b0728`. Remote publication, staging, and public evidence remain separately unproven and are not implied by this local source reference.
+Evidence baseline: local source commit `7759586914c3be5de1f99475f78e39cb1c2f8ad2`. Remote publication, staging, and public evidence remain separately unproven and are not implied by this local source reference.
 
 | Capability | Implemented | Tested | Direct evidence | Remaining proof |
 | --- | --- | --- | --- | --- |
@@ -16,6 +16,7 @@ Evidence baseline: local source commit `f05fc3faa5665d917b9f8a8aa0b8678ab04b0728
 | Multipart/resume/cancel | yes, bounded | local | durable upload/part state, restart resume and integrity tests | provider-native streaming; pause is client-side stop/resume |
 | Presigned direct upload | yes, adapter contract | local | fail-closed remote adapter, restart/verify tests, Web 8–64 MiB route | provisioned S3-compatible provider and remote proof |
 | Production object storage | no | no | local/remote adapter contracts only | provisioned provider, KMS, SLA |
+| Content-addressed deduplication | yes, owner+product scoped | local | commit `7759586`; `dedup_scope_test.go`; Race suite; ordinary, multipart, document-version, direct-upload scope and final-reference deletion paths | provider acceptance of opaque scope, remote migration drill and provider-side isolation evidence |
 | Millions-of-objects candidate | partial | local | 1m-object/100-sample p50/p95/p99 evidence at exact commit | concurrent, persisted, sharded and remote benchmark |
 | AI selected-file boundary | yes | local | product-bound job and selected-object service/client tests | configured gateway staging |
 | Export/delete | yes, control-plane | local | product-scoped verified portable ZIP; schema-v6 dedicated-scope product-account erasure with retention-atomic preflight, session/job/upload/collaboration cleanup, hashed receipts, provider pending/retry truth, 12-locale Web/native export-first UI, API/SDK/client/smoke tests | provisioned-provider media-sanitization and backup/replica erasure proof |

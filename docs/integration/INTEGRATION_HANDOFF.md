@@ -4,7 +4,7 @@
 
 Product 20 owns Cloud control-plane runtime, object metadata, object-provider abstraction, Cloud client/SDK behavior, retention/export/delete controls and Cloud evidence. It does not own Wallet identity, AI provider execution, Trust adjudication, Resource Market settlement, Data Fabric canonical-event acceptance, shared Testnet deployment or public website routing.
 
-Authoritative machine-readable contract: `release/integration/cloud-contract.json` at source commit `6e101f99137c44e51f824770a477bd6149ba5e05`.
+Authoritative machine-readable contract: `release/integration/cloud-contract.json` at source commit `7759586914c3be5de1f99475f78e39cb1c2f8ad2`.
 
 ## Acceptance request
 
@@ -22,4 +22,4 @@ Central registrations remain disabled. Without an accepted central verifier, `yn
 
 ## Current checkpoint
 
-The least-privilege Docker/Server delivery was implemented in commit `6e101f9`. Local Go, Web/SDK, static, security, migration and backup/restore gates passed. Docker Compose parsing passed, but local image build could not run because the Docker daemon was unavailable; the Cloud CI workflow now performs the exact image build and cold-start gate. GitHub push failed after three bounded attempts, so a verified recovery bundle and manifest exist under `.ai-bridge/recovery/`.
+The least-privilege Docker/Server delivery was implemented in commit `6e101f9`; owner-and-product scoped content-addressed deduplication and reliable Smoke process cleanup were implemented in commit `7759586`. Fresh Race, Go, Web/SDK, static, security, canonical API, backup and restore gates passed. Both commits and the coverage checkpoint are on `origin/codex/final-cloud`. Provider-side opaque-scope enforcement, physical legacy-blob migration, central Wallet acceptance, staging and public evidence remain pending and must fail closed.

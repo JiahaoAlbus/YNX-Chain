@@ -3,7 +3,7 @@
   "productNumber": 20,
   "productId": "cloud",
   "owner": "20-cloud",
-  "sourceCommit": "6e101f99137c44e51f824770a477bd6149ba5e05",
+  "sourceCommit": "7759586914c3be5de1f99475f78e39cb1c2f8ad2",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423
@@ -15,6 +15,15 @@
     "authenticatedReadiness": "GET /api/v1/ready",
     "apiBase": "/api/v1",
     "container": "infra/docker/ynx-cloudd.Dockerfile"
+  },
+  "objectStorage": {
+    "contentDigest": "sha256",
+    "dedupBoundary": "same owner and product only",
+    "opaqueScope": "sha256(YNX_CLOUD_OBJECT_SCOPE_V1 + product + owner)",
+    "remotePutBinding": "X-YNX-Object-Scope",
+    "directUploadBinding": "DirectUploadRequest.scope",
+    "legacyReadCompatibility": true,
+    "providerEnforcementStatus": "pending-provider-proof"
   },
   "auth": {
     "owner": "02-wallet-auth",
