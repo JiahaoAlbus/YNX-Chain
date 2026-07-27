@@ -7,7 +7,7 @@
 - Goal: Active
 - Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/12-explorer`
 - Branch: `codex/final-explorer`
-- Current tree: dirty, reviewed, locally verified checkpoint
+- Current tree: source-bound evidence checkpoint, clean after commit
 
 ## Protected intent
 
@@ -45,13 +45,11 @@ Do not discard or overwrite the current cursor, routing, schema migration, fresh
 
 ## Exact next action
 
-1. Review synchronized changes with `show_changes`.
-2. Commit the verified checkpoint.
-3. Push with `git push -u origin HEAD`; do not force.
-4. Verify local SHA equals the remote `codex/final-explorer` SHA and record CI truth.
-5. Bind coverage, contract, vectors, handoff and release records to the pushed source commit in a follow-up evidence commit.
-6. Submit `explorer.integration.v1` for 29 Integration freeze.
-7. Continue the next highest-priority local requirement: versioned public evidence envelopes carrying source, as-of, version, stale, coverage and correction semantics.
+1. Submit the source-bound `explorer.integration.v1` contract and vectors for 29 Integration freeze.
+2. Continue the next highest-priority local requirement: versioned public evidence envelopes carrying source, as-of, version, stale, coverage and correction semantics.
+3. Add configured-key cursor restart continuity and indexer restart/reorg evidence.
+4. Create product-specific Threat Model, SBOM, provenance and artifact scan gates.
+5. Keep public deployment, hosting, signing and central integration flags false until direct evidence exists.
 
 ## Do not claim
 

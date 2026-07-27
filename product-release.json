@@ -8,8 +8,8 @@
   },
   "goalStatus": "active",
   "stage": "PROTECT",
-  "releaseCandidate": "verified-local-checkpoint-pending-commit",
-  "sourceCommit": null,
+  "releaseCandidate": "verified-local-checkpoint-eb3d190",
+  "sourceCommit": "eb3d19091feff85a7cdbc09c20ed06ed402c74a7",
   "sourceBranch": "codex/final-explorer",
   "asOf": "2026-07-27",
   "truthfulStatus": "cursor-deep-link-summary-migration-slice-locally-verified",
@@ -136,9 +136,8 @@
     "Approved multi-instance secret reference and rotation for YNX_INDEXER_CURSOR_KEY"
   ],
   "localBlockers": [
-    "Checkpoint commit, upstream creation and remote SHA verification are pending.",
     "Whole-repository preflight is red in other-owner packages; no Explorer-owned regression remains in the targeted gates.",
     "Shared root Hardhat tooling has three unresolved High advisories with no npm fix."
   ],
-  "nextAction": "Commit and push the verified checkpoint, bind all evidence to its exact source commit, then implement versioned public evidence envelopes with source, as-of, version, stale, coverage and correction semantics."
+  "nextAction": "Submit the source-bound contract for 29 Integration freeze, then implement versioned public evidence envelopes with source, as-of, version, stale, coverage and correction semantics."
 }

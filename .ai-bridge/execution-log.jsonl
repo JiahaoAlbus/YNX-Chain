@@ -28,3 +28,6 @@
 {"at":"2026-07-27","event":"preflight","scope":"whole repository","command":"go test ./...","result":"failed-outside-product-owner","details":["key-permission tests","Hardhat selector-metadata compatibility"],"explorerIndexer":"passed"}
 {"at":"2026-07-27","event":"security","scope":"root Hardhat development tooling","command":"npm audit --json","result":"failed-shared-tooling","high":3,"fixAvailable":false,"dependency":"adm-zip"}
 {"at":"2026-07-27","event":"review","scope":"workspace","command":"show_changes","result":"reviewed","goalStatus":"active","stage":"PROTECT"}
+{"at":"2026-07-27","event":"commit","scope":"verified Explorer checkpoint","commit":"eb3d19091feff85a7cdbc09c20ed06ed402c74a7","message":"feat(explorer): secure cursor evidence navigation","result":"created"}
+{"at":"2026-07-27","event":"push","branch":"codex/final-explorer","upstream":"origin/codex/final-explorer","commit":"eb3d19091feff85a7cdbc09c20ed06ed402c74a7","result":"passed","localRemoteEqual":true}
+{"at":"2026-07-27","event":"evidence-binding","sourceCommit":"eb3d19091feff85a7cdbc09c20ed06ed402c74a7","files":[".ai-bridge/full-goal-coverage.json","product-release.json","release/integration/explorer-contract.json","docs/integration/CROSS_PRODUCT_TEST_VECTORS.json","docs/integration/INTEGRATION_HANDOFF.md"],"result":"prepared"}

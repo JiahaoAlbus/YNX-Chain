@@ -5,9 +5,9 @@
 - Stage: PROTECT
 - Goal status: Active
 - Workspace/branch match: confirmed
-- Dirty tree: yes, reviewed and locally verified
-- Commit: pending
-- Push/upstream: pending; remote branch does not yet exist
+- Dirty tree: no after the source-binding evidence checkpoint
+- Runtime source commit: `eb3d19091feff85a7cdbc09c20ed06ed402c74a7`
+- Push/upstream: `origin/codex/final-explorer`; runtime source Local/Remote equality confirmed
 - Public deployment: not claimed
 
 ## Current checkpoint

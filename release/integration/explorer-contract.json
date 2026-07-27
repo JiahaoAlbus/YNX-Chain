@@ -3,8 +3,8 @@
   "product": "YNX Explorer",
   "slug": "explorer",
   "owner": "12-explorer",
-  "sourceCommit": null,
-  "status": "candidate-local-verified-pending-commit",
+  "sourceCommit": "eb3d19091feff85a7cdbc09c20ed06ed402c74a7",
+  "status": "candidate-source-bound-awaiting-central-freeze",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,

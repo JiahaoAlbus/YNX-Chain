@@ -4,10 +4,10 @@
 
 - Product owner: `12-explorer`
 - Contract: `release/integration/explorer-contract.json`
-- Contract status: candidate, locally verified, pending source-bound checkpoint
+- Contract status: source-bound candidate awaiting 29 Integration freeze
 - Goal status: Active
 - Stage: PROTECT
-- Source commit: pending checkpoint commit
+- Source commit: `eb3d19091feff85a7cdbc09c20ed06ed402c74a7`
 - Public deployment: not claimed
 
 ## Implemented slice
