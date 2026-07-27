@@ -34,7 +34,9 @@ Each owner must return a machine-readable record containing:
 - `limitations`
 - all nine release-state claims supported by direct evidence
 
-An acceptance record that omits a failed vector, changes economic meaning, or claims deployment from local evidence is rejected.
+`consumerSourceCommit` is independent for each owner. 29 Integration must pin the exact Economics source commit plus the accepted 01/12/13/26/29 consumer commits before validation. Every required owner then signs the same canonical payload hash in canonical owner order using an accepted Ed25519 key. Missing, duplicate, reordered, stale, future-dated, commit-rebound or over-promoted evidence is rejected fail closed by `internal/economics/shared_testnet_acceptance.go`.
+
+An acceptance record that omits a failed vector, changes economic meaning, or claims deployment from local evidence is rejected. A passing local validator fixture is not an acceptance record and does not change any central, staging, shared-Testnet, public or production state.
 
 ## Current blocking inputs
 

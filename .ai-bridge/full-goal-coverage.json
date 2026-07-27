@@ -7,8 +7,8 @@
   "branch": "codex/final-tokenomics",
   "phase": "INTEGRATE",
   "goalState": "active",
-  "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
-  "lastUpdated": "2026-07-27T14:14:52Z",
+  "sourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
+  "lastUpdated": "2026-07-27T14:43:03Z",
   "items": [
     {
       "id": "ECON-BOUNDARY-001",
@@ -256,15 +256,15 @@
       "requirement": "Direct accepted transaction, block, receipt, Data Fabric record, Explorer proof and Monitor proof for economics transitions on the shared YNX Testnet.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["internal/economics/local_testnet_evidence.go"],
-      "sourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
-      "tests": ["make economics-local-testnet-evidence-check"],
-      "artifact": null,
+      "evidence": ["internal/economics/shared_testnet_acceptance.go", "internal/economics/shared_testnet_acceptance_test.go", "release/integration/ynxt-economics-shared-testnet-evidence.schema.json", "release/integration/ynxt-economics-contract.json#sharedTestnetAcceptance", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#economics-shared-testnet-acceptance-validator-v1"],
+      "sourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
+      "tests": ["make economics-shared-testnet-acceptance-check", "go test -race ./internal/economics -count=1", "make static-check", "make no-placeholder-check"],
+      "artifact": "release/integration/ynxt-economics-shared-testnet-evidence.schema.json",
       "publicProof": null,
-      "blockedBy": ["01 Chain Core accepted transaction interface", "12 Explorer consumer", "13 Monitor consumer", "26 Data Fabric consumer", "29 shared Testnet integration"],
+      "blockedBy": ["01 Chain Core signed acceptance and committed transaction proof", "12 Explorer signed projection proof", "13 Monitor signed health proof", "26 Data Fabric signed ingest receipt", "29 Integration accepted owner key and source-commit policy"],
       "owner": "17 Economics",
-      "nextAction": "Implement the real endpoint adapter once the accepted owner contracts are available; keep local evidence explicitly simulated meanwhile.",
-      "lastUpdated": "2026-07-27T06:33:12Z"
+      "nextAction": "Collect the five independent owner source commits, accepted verification keys and direct shared-Testnet proofs; validate the canonical multi-owner evidence without changing public or production states.",
+      "lastUpdated": "2026-07-27T14:43:03Z"
     },
     {
       "id": "ECON-OBS-001",

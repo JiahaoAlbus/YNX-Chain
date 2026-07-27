@@ -17,13 +17,22 @@ assert.equal(integration.sourceCommit, contract.sourceCommit);
 assert.equal(release.runtimeSourceCommit, contract.localTestnetEvidence.sourceCommit);
 assert.equal(release.localTestnetEvidence.sourceCommit, release.runtimeSourceCommit);
 assert.equal(release.sourceCommit, release.artifactBuilderSourceCommit);
+assert.equal(release.sharedTestnetAcceptance.sourceCommit, release.sharedTestnetAcceptanceSourceCommit);
+assert.equal(release.sharedTestnetAcceptance.sourceCommit, contract.sharedTestnetAcceptance.sourceCommit);
+assert.equal(release.sharedTestnetAcceptance.schema, contract.sharedTestnetAcceptance.schema);
 assert.match(integration.sourceCommit, /^[0-9a-f]{40}$/);
 assert.match(release.sourceCommit, /^[0-9a-f]{40}$/);
+assert.match(release.sharedTestnetAcceptanceSourceCommit, /^[0-9a-f]{40}$/);
 execFileSync("git", ["cat-file", "-e", `${integration.sourceCommit}^{commit}`]);
 execFileSync("git", ["cat-file", "-e", `${release.sourceCommit}^{commit}`]);
+execFileSync("git", ["cat-file", "-e", `${release.sharedTestnetAcceptanceSourceCommit}^{commit}`]);
 assert.equal(release.states.installedLocal, true, "persisted CLI installation evidence must promote only installedLocal");
 for (const key of ["integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"]) {
   assert.equal(release.states[key], false, `${key} cannot be promoted by local installation evidence`);
+}
+for (const key of ["acceptedEvidenceAttached", "integratedCentral", "deployedStaging", "sharedTestnetEvidence", "publicDeployment", "production"]) {
+  assert.equal(release.sharedTestnetAcceptance[key], false, `${key} cannot be promoted by validator tests`);
+  assert.equal(contract.sharedTestnetAcceptance[key], false, `${key} cannot be promoted in the integration contract without owner evidence`);
 }
 for (const key of ["installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"]) {
   assert.equal(integration.states[key], false, `${key} cannot be promoted without direct evidence`);

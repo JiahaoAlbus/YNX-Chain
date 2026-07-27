@@ -320,6 +320,62 @@
     "publicDeployment": false,
     "production": false
   },
+  "sharedTestnetAcceptance": {
+    "schemaVersion": 1,
+    "evidenceClass": "shared-testnet-owner-attestation-validation",
+    "sourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
+    "source": "internal/economics/shared_testnet_acceptance.go",
+    "schema": "release/integration/ynxt-economics-shared-testnet-evidence.schema.json",
+    "verification": "make economics-shared-testnet-acceptance-check",
+    "environment": "ynx-shared-testnet",
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "requiredOwners": [
+      "01 Chain Core",
+      "12 Explorer",
+      "13 Monitor",
+      "26 Data Fabric",
+      "29 Integration"
+    ],
+    "ownerSourceCommitModel": "independent-consumer-commit-per-owner",
+    "signatureAlgorithm": "ed25519",
+    "canonicalAttestationOrderRequired": true,
+    "policyBounds": {
+      "maximumClockSkewSeconds": 300,
+      "minimumAllowedMaxProofAgeSeconds": 60,
+      "maximumAllowedMaxProofAgeSeconds": 86400
+    },
+    "requiredReleaseStates": {
+      "implementedLocal": true,
+      "testedLocal": true,
+      "installedLocal": true,
+      "integratedCentral": true,
+      "deployedStaging": true,
+      "deployedPublic": false,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    "negativeChecks": [
+      "missing-owner",
+      "duplicate-owner",
+      "reordered-attestation",
+      "invalid-signature",
+      "wrong-owner-source-commit",
+      "stale-or-future-proof",
+      "record-count-conflict",
+      "local-endpoint",
+      "release-state-overclaim",
+      "payload-tamper",
+      "evidence-tamper"
+    ],
+    "acceptedEvidenceAttached": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "sharedTestnetEvidence": false,
+    "publicDeployment": false,
+    "production": false
+  },
   "apis": [
     {
       "method": "GET",
@@ -402,7 +458,12 @@
     "YNX_ECONOMICS_LOCAL_TESTNET_EVIDENCE_INVALID",
     "YNX_ECONOMICS_LOCAL_TESTNET_EVIDENCE_CONFLICT",
     "YNX_ECONOMICS_LOCAL_TESTNET_EVIDENCE_TAMPERED",
-    "YNX_ECONOMICS_LOCAL_TESTNET_EVIDENCE_IO"
+    "YNX_ECONOMICS_LOCAL_TESTNET_EVIDENCE_IO",
+    "YNX_ECONOMICS_SHARED_TESTNET_EVIDENCE_INVALID",
+    "YNX_ECONOMICS_SHARED_TESTNET_EVIDENCE_STALE",
+    "YNX_ECONOMICS_SHARED_TESTNET_EVIDENCE_CONFLICT",
+    "YNX_ECONOMICS_SHARED_TESTNET_EVIDENCE_ATTESTATION",
+    "YNX_ECONOMICS_SHARED_TESTNET_EVIDENCE_TAMPERED"
   ],
   "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "migration": {
@@ -412,6 +473,7 @@
     "candidateIntegrationSchema": 1,
     "candidateIntegrationStoreSchema": 1,
     "candidateLocalTestnetEvidenceSchema": 1,
+    "candidateSharedTestnetEvidenceSchema": 1,
     "activationRequires": [
       "29-integration-contract-acceptance",
       "01-chain-core-migration",

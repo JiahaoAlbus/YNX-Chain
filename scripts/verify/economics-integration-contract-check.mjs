@@ -8,8 +8,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const readJSON = (relativePath) => JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8"));
 const contractPath = "release/integration/ynxt-economics-contract.json";
 const vectorsPath = "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json";
+const sharedTestnetSchemaPath = "release/integration/ynxt-economics-shared-testnet-evidence.schema.json";
 const contract = readJSON(contractPath);
 const vectors = readJSON(vectorsPath);
+const sharedTestnetSchema = readJSON(sharedTestnetSchemaPath);
 
 assert.equal(contract.schemaVersion, 1);
 assert.equal(contract.contractId, "ynx.economics.integration.v1");
@@ -128,6 +130,51 @@ assert.equal(contract.localTestnetEvidence.production, false);
 const localEvidenceCommit = spawnSync("git", ["cat-file", "-e", `${contract.localTestnetEvidence.sourceCommit}^{commit}`], { cwd: root });
 assert.equal(localEvidenceCommit.status, 0, "local Testnet evidence sourceCommit must identify an existing commit");
 
+assert.equal(contract.sharedTestnetAcceptance.schemaVersion, 1);
+assert.equal(contract.sharedTestnetAcceptance.evidenceClass, "shared-testnet-owner-attestation-validation");
+assert.equal(contract.sharedTestnetAcceptance.sourceCommit, "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8");
+assert.equal(contract.sharedTestnetAcceptance.schema, sharedTestnetSchemaPath);
+assert.equal(contract.sharedTestnetAcceptance.ownerSourceCommitModel, "independent-consumer-commit-per-owner");
+assert.equal(contract.sharedTestnetAcceptance.signatureAlgorithm, "ed25519");
+assert.equal(contract.sharedTestnetAcceptance.canonicalAttestationOrderRequired, true);
+assert.deepEqual(contract.sharedTestnetAcceptance.policyBounds, {
+  maximumClockSkewSeconds: 300,
+  minimumAllowedMaxProofAgeSeconds: 60,
+  maximumAllowedMaxProofAgeSeconds: 86400,
+});
+assert.deepEqual(contract.sharedTestnetAcceptance.requiredOwners, ["01 Chain Core", "12 Explorer", "13 Monitor", "26 Data Fabric", "29 Integration"]);
+assert.deepEqual(contract.sharedTestnetAcceptance.requiredReleaseStates, {
+  implementedLocal: true,
+  testedLocal: true,
+  installedLocal: true,
+  integratedCentral: true,
+  deployedStaging: true,
+  deployedPublic: false,
+  downloadHosted: false,
+  productionSigned: false,
+  storeReleased: false,
+});
+for (const key of ["acceptedEvidenceAttached", "integratedCentral", "deployedStaging", "sharedTestnetEvidence", "publicDeployment", "production"]) {
+  assert.equal(contract.sharedTestnetAcceptance[key], false, `${key} must remain false without direct owner evidence`);
+}
+const sharedAcceptanceCommit = spawnSync("git", ["cat-file", "-e", `${contract.sharedTestnetAcceptance.sourceCommit}^{commit}`], { cwd: root });
+assert.equal(sharedAcceptanceCommit.status, 0, "shared Testnet acceptance sourceCommit must identify an existing commit");
+assert.equal(sharedTestnetSchema.$schema, "https://json-schema.org/draft/2020-12/schema");
+assert.equal(sharedTestnetSchema.properties.schemaVersion.const, 1);
+assert.equal(sharedTestnetSchema.properties.contractId.const, contract.contractId);
+assert.equal(sharedTestnetSchema.properties.sharedTestnet.const, true);
+assert.equal(sharedTestnetSchema.properties.publicDeployment.const, false);
+assert.equal(sharedTestnetSchema.properties.production.const, false);
+assert.equal(sharedTestnetSchema.properties.attestations.minItems, 5);
+assert.equal(sharedTestnetSchema.properties.attestations.maxItems, 5);
+assert.deepEqual(sharedTestnetSchema.properties.attestations.prefixItems.map((entry) => entry.$ref), [
+  "#/$defs/chainCoreAttestation",
+  "#/$defs/explorerAttestation",
+  "#/$defs/monitorAttestation",
+  "#/$defs/dataFabricAttestation",
+  "#/$defs/integrationAttestation",
+]);
+
 const eventTypes = contract.canonicalEvents.map((event) => event.type);
 assert.equal(new Set(eventTypes).size, eventTypes.length, "canonical event types must be unique");
 for (const event of contract.canonicalEvents) {
@@ -156,6 +203,9 @@ for (const requiredPath of [
   "internal/economics/local_testnet_evidence.go",
   "cmd/ynx-economics-local-testnet-evidence/main.go",
   "scripts/verify/economics-local-testnet-evidence-check.mjs",
+  "internal/economics/shared_testnet_acceptance.go",
+  "internal/economics/shared_testnet_acceptance_test.go",
+  sharedTestnetSchemaPath,
   "evidence/economics/integration-bundle-72591ce.json",
   "evidence/economics/integration-store-72591ce.json",
 ]) {
@@ -268,6 +318,24 @@ assert.equal(localEvidenceVector.expected.integratedCentral, false);
 assert.equal(localEvidenceVector.expected.sharedTestnet, false);
 assert.equal(localEvidenceVector.expected.publicDeployment, false);
 assert.equal(localEvidenceVector.expected.production, false);
+
+const sharedAcceptanceVector = vectorById.get("economics-shared-testnet-acceptance-validator-v1");
+assert.ok(sharedAcceptanceVector);
+assert.equal(sharedAcceptanceVector.sourceCommit, contract.sharedTestnetAcceptance.sourceCommit);
+assert.equal(sharedAcceptanceVector.schema, contract.sharedTestnetAcceptance.schema);
+assert.equal(sharedAcceptanceVector.classification, "local-validator-test-fixture-not-owner-acceptance");
+assert.deepEqual(sharedAcceptanceVector.expected.requiredOwners, contract.sharedTestnetAcceptance.requiredOwners);
+assert.equal(sharedAcceptanceVector.expected.ownerSourceCommitModel, contract.sharedTestnetAcceptance.ownerSourceCommitModel);
+assert.equal(sharedAcceptanceVector.expected.signatureAlgorithm, contract.sharedTestnetAcceptance.signatureAlgorithm);
+assert.equal(sharedAcceptanceVector.expected.canonicalAttestationOrderRequired, true);
+for (const key of ["acceptedEvidenceAttached", "integratedCentral", "deployedStaging", "sharedTestnetEvidence", "publicDeployment", "production"]) {
+  assert.equal(sharedAcceptanceVector.expected[key], false, `${key} cannot be claimed by the local acceptance fixture`);
+}
+for (const requiredNegative of ["missing-owner", "reordered-attestation", "wrong-owner-source-commit", "future-dated-proof", "missing-installedLocal", "release-state-overclaim", "payload-tamper", "evidence-tamper"]) {
+  assert.ok(sharedAcceptanceVector.negativeCases.includes(requiredNegative), `missing shared Testnet negative vector: ${requiredNegative}`);
+}
+const sharedAcceptanceRun = spawnSync("make", ["economics-shared-testnet-acceptance-check"], { cwd: root, encoding: "utf8", maxBuffer: 8 * 1024 * 1024 });
+assert.equal(sharedAcceptanceRun.status, 0, sharedAcceptanceRun.stderr || "shared Testnet acceptance verification failed");
 
 const feeVector = vectorById.get("fee-burn-revenue-separation-v1");
 assert.ok(feeVector);

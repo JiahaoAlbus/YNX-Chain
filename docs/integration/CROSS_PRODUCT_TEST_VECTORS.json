@@ -272,6 +272,71 @@
       }
     },
     {
+      "id": "economics-shared-testnet-acceptance-validator-v1",
+      "sourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
+      "classification": "local-validator-test-fixture-not-owner-acceptance",
+      "schema": "release/integration/ynxt-economics-shared-testnet-evidence.schema.json",
+      "command": "make economics-shared-testnet-acceptance-check",
+      "expected": {
+        "schemaVersion": 1,
+        "contractId": "ynx.economics.integration.v1",
+        "environment": "ynx-shared-testnet",
+        "cosmosChainId": "ynx_6423-1",
+        "evmChainId": 6423,
+        "requiredOwners": [
+          "01 Chain Core",
+          "12 Explorer",
+          "13 Monitor",
+          "26 Data Fabric",
+          "29 Integration"
+        ],
+        "ownerSourceCommitModel": "independent-consumer-commit-per-owner",
+        "signatureAlgorithm": "ed25519",
+        "canonicalAttestationOrderRequired": true,
+        "acceptedEvidenceAttached": false,
+        "integratedCentral": false,
+        "deployedStaging": false,
+        "sharedTestnetEvidence": false,
+        "publicDeployment": false,
+        "production": false
+      },
+      "negativeCases": [
+        "missing-owner",
+        "duplicate-owner",
+        "reordered-attestation",
+        "invalid-signature",
+        "wrong-owner-source-commit",
+        "stale-evidence",
+        "future-dated-proof",
+        "record-count-conflict",
+        "localhost-endpoint",
+        "missing-installedLocal",
+        "release-state-overclaim",
+        "payload-tamper",
+        "evidence-tamper"
+      ],
+      "consumerAssertions": {
+        "01 Chain Core": [
+          "attach a committed transaction, block, app hash, quorum proof and independent consumer source commit",
+          "attest only the canonical payload hash using an accepted owner key"
+        ],
+        "12 Explorer": [
+          "attach an HTTPS projection endpoint, response hash, projection count and independent consumer source commit"
+        ],
+        "13 Monitor": [
+          "attach an HTTPS monitor endpoint, response hash, check count, clear alert state and independent consumer source commit"
+        ],
+        "26 Data Fabric": [
+          "attach the canonical ingest receipt, exact record counts and independent consumer source commit"
+        ],
+        "29 Integration": [
+          "pin the exact Economics and five owner source commits before verification",
+          "reject missing, reordered, stale, tampered or over-promoted evidence fail closed",
+          "do not treat this local validator fixture as shared-Testnet acceptance"
+        ]
+      }
+    },
+    {
       "id": "release-truth-boundary-v1",
       "source": "release/integration/ynxt-economics-contract.json#releaseStates",
       "expected": {
