@@ -230,6 +230,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/objects/{id}", s.auth(s.get))
 	mux.HandleFunc("DELETE /api/v1/objects/{id}", s.auth(s.deleteObject))
 	mux.HandleFunc("GET /api/v1/objects/{id}/content", s.auth(s.content))
+	mux.HandleFunc("GET /api/v1/objects/{id}/export", s.auth(s.exportDocument))
 	mux.HandleFunc("PUT /api/v1/objects/{id}/document", s.auth(s.saveDocument))
 	mux.HandleFunc("GET /api/v1/objects/{id}/versions", s.auth(s.versions))
 	mux.HandleFunc("POST /api/v1/objects/{id}/versions/{version}/restore", s.auth(s.restoreVersion))
@@ -252,6 +253,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/access-requests/{request}/decision", s.auth(s.decideAccess))
 	mux.HandleFunc("GET /api/v1/objects/{id}/comments", s.auth(s.comments))
 	mux.HandleFunc("POST /api/v1/objects/{id}/comments", s.auth(s.addComment))
+	mux.HandleFunc("POST /api/v1/objects/{id}/comments/{thread}/resolution", s.auth(s.resolveComment))
 	mux.HandleFunc("POST /api/v1/objects/{id}/presence", s.auth(s.presence))
 	mux.HandleFunc("GET /api/v1/quota", s.auth(s.quota))
 	mux.HandleFunc("GET /api/v1/usage", s.auth(s.usage))
@@ -563,7 +565,17 @@ func (s *Server) get(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
-	obj, err := s.service.Get(a.Account, r.PathValue("id"))
+	writeJSON(w, 200, obj)
+}
+func (s *Server) updateObject(w http.ResponseWriter, r *http.Request, a Session) {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.write", "docs.edit", true); !ok {
+		return
+	}
+	var req UpdateObjectRequest
+	if !decode(w, r, &req, 4096) {
+		return
+	}
+	obj, err := s.service.UpdateObject(a.Account, r.PathValue("id"), req)
 	writeResult(w, obj, err)
 }
 func (s *Server) deleteObject(w http.ResponseWriter, r *http.Request, a Session) {
@@ -612,6 +624,26 @@ func (s *Server) content(w http.ResponseWriter, r *http.Request, a Session) {
 		}
 	}
 }
+func (s *Server) exportDocument(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.read") {
+		return
+	}
+	version, _ := strconv.Atoi(r.URL.Query().Get("version"))
+	export, err := s.service.ExportDocument(a.Account, r.PathValue("id"), r.URL.Query().Get("format"), version)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	filename := strings.ReplaceAll(export.Filename, "\"", "")
+	w.Header().Set("Content-Type", export.MIME)
+	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	w.Header().Set("X-Content-SHA256", export.SHA256)
+	w.Header().Set("X-YNX-Source-SHA256", export.SourceHash)
+	w.Header().Set("X-YNX-Document-Version", strconv.Itoa(export.Version))
+	w.WriteHeader(200)
+	_, _ = w.Write(export.Body)
+}
+
 func (s *Server) saveDocument(w http.ResponseWriter, r *http.Request, a Session) {
 	if a.Product != "docs" || !requireScope(w, a, "documents.write") {
 		return
@@ -841,20 +873,36 @@ func (s *Server) addComment(w http.ResponseWriter, r *http.Request, a Session) {
 		return
 	}
 	var req struct {
-		Version  int      `json:"version"`
-		Body     string   `json:"body"`
-		Mentions []string `json:"mentions"`
+		Version  int            `json:"version"`
+		Body     string         `json:"body"`
+		Mentions []string       `json:"mentions"`
+		ParentID string         `json:"parentId"`
+		Anchor   *CommentAnchor `json:"anchor"`
 	}
 	if !decode(w, r, &req, 32<<10) {
 		return
 	}
-	v, err := s.service.AddComment(a.Account, r.PathValue("id"), req.Version, req.Body, req.Mentions)
+	v, err := s.service.AddCommentThread(a.Account, r.PathValue("id"), req.Version, req.Body, req.Mentions, req.ParentID, req.Anchor)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
 	writeJSON(w, 201, v)
 }
+func (s *Server) resolveComment(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.comment") {
+		return
+	}
+	var req struct {
+		Resolved bool `json:"resolved"`
+	}
+	if !decode(w, r, &req, 1024) {
+		return
+	}
+	comment, err := s.service.ResolveComment(a.Account, r.PathValue("id"), r.PathValue("thread"), req.Resolved)
+	writeResult(w, comment, err)
+}
+
 func (s *Server) presence(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return

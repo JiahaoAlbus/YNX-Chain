@@ -168,6 +168,10 @@ func RollbackStateToV1(source, destination string) error {
 	if err != nil || want != state.IntegrityHash {
 		return errors.New("rollback source integrity verification failed")
 	}
+	migrated := state.SchemaVersion != currentSchemaVersion
+	if state.SchemaVersion == 1 {
+		migrateV1ToV2(&state)
+	}
 	normalize(&state)
 	return writeLegacyState(destination, 1, state)
 }
@@ -354,6 +358,31 @@ func verifyStoredState(raw []byte, state persistentState) bool {
 	}
 	sum := sha256.Sum256(compact.Bytes())
 	return hex.EncodeToString(sum[:]) == state.IntegrityHash
+}
+
+func migrateV1ToV2(s *persistentState) {
+	for objectID, comments := range s.Comments {
+		for i := range comments {
+			if comments[i].ThreadID == "" {
+				comments[i].ThreadID = comments[i].ID
+			}
+		}
+		s.Comments[objectID] = comments
+	}
+	s.SchemaVersion = currentSchemaVersion
+}
+
+func cloneState(state persistentState) (persistentState, error) {
+	encoded, err := json.Marshal(state)
+	if err != nil {
+		return persistentState{}, fmt.Errorf("encode cloud state snapshot: %w", err)
+	}
+	var clone persistentState
+	if err := json.Unmarshal(encoded, &clone); err != nil {
+		return persistentState{}, fmt.Errorf("decode cloud state snapshot: %w", err)
+	}
+	normalize(&clone)
+	return clone, nil
 }
 
 func normalize(s *persistentState) {
