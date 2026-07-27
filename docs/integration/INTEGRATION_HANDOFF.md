@@ -5,7 +5,7 @@
 - Product owner: `16-resource-market`
 - Contract: `release/integration/resource-market-contract.json`
 - Contract version: `resource-market-integration-v1`
-- Implementation source: `939a028325659382a3107136bc6972ddddb3d183`
+- Implementation source: `03a9898bff2ba7c7ec014f5531fa168b78192359`
 - Current phase: `FREEZE → INTEGRATE`
 - Current product status: local candidate; not centrally integrated, staged, public, production-signed or store-released.
 
@@ -13,7 +13,7 @@
 
 Resource Market owns provider registration, verified capacity, offers, matching, auctions, reservation, service lifecycle, signed usage metering and local dispute evidence. It does not own Wallet identity, asset finality, billing-ledger authority, public Explorer proof, central monitoring, public Website entry or protocol freeze.
 
-A quote, accepted intent, reservation, service start, meter, service completion, HTTP success or provider statement is never asset settlement. Settlement is accepted only when an authorized settlement identity supplies a non-empty asset, transaction hash, evidence and source; amounts exactly reconcile to signed meters; the order is `settlement_pending`; and the normalized transaction hash has not already been consumed by another receipt.
+A quote, accepted intent, reservation, service start, meter, service completion, HTTP success or provider statement is never asset settlement. Reservations are bound to the exact Offer referenced by the accepted Quote; capacity from a sibling Offer cannot satisfy or release that reservation. Settlement is accepted only when an authorized settlement identity supplies a non-empty asset, transaction hash, evidence and source; amounts exactly reconcile to signed meters; the order is `settlement_pending`; and the normalized transaction hash has not already been consumed by another receipt.
 
 ## Canonical integration inputs
 
@@ -39,6 +39,8 @@ A quote, accepted intent, reservation, service start, meter, service completion,
 
 The product returns a stable `code` with `errorId`, `requestId` and `traceId`. Settlement integrations must preserve at least:
 
+- `RESOURCE_SELF_DEALING_REJECTED`
+- `RESOURCE_CAPACITY_UNAVAILABLE`
 - `RESOURCE_METER_WINDOW_INVALID`
 - `RESOURCE_METER_LIMIT`
 - `RESOURCE_SETTLEMENT_STATE_INVALID`

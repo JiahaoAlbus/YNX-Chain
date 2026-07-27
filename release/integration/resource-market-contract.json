@@ -8,7 +8,7 @@
     "name": "YNX Resource Market",
     "slug": "resource-market",
     "owner": "16-resource-market",
-    "sourceCommit": "939a028325659382a3107136bc6972ddddb3d183"
+    "sourceCommit": "03a9898bff2ba7c7ec014f5531fa168b78192359"
   },
   "network": {
     "cosmosChainId": "ynx_6423-1",
