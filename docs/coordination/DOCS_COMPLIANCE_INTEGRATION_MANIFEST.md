@@ -7,7 +7,7 @@
 | Evidence source commit | `c8c4ff7263e50afc4c731dac8157aa85e02232dc` |
 | Owner | YNX 18 Whitepaper / Compliance / Brand |
 | Target branch | `codex/final-docs-compliance` |
-| Status | Candidate; local verification required; no central integration or public release claim |
+| Status | Public candidate; centrally integrated, publicly deployed and immutably hosted; no production signing claim |
 
 ## 1. Ownership boundary
 
@@ -71,8 +71,8 @@ for a stronger state.
 5. Security/SRE verifies artifact, route, TLS, monitoring and rollback evidence.
 6. Legal, economic, audit or provider reviewers approve only their named scope.
 7. YNX 18 runs the public disclosure gate and emits a candidate package.
-8. Public deployment, immutable hosting and production signing remain separate later
-   approvals.
+8. Public deployment and immutable hosting require direct Website evidence; production
+   signing remains a separate later approval.
 
 ## 5. Exact integration test vectors
 
@@ -95,14 +95,16 @@ for a stronger state.
 
 - Canonical identity, Testnet Chain ID and YNXT naming are evidence-linked candidate
   facts.
-- Root-site, Explorer and EVM observations from the current workstation timed out.
-- The www site, App Gateway and Faucet returned HTTP 200 through the same ineligible
-  proxy path.
-- These mixed observations prove neither portfolio-wide availability nor a
-  portfolio-wide outage.
-- Mainnet launch, public StreamBFT activation, central integration, public deployment,
-  immutable package hosting, production signing, legal approval and independent audit
-  remain false or blocked.
+- Website PRs 1 and 2 integrated and refreshed the verified authority bundle; the
+  accepted public content source is `9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4`.
+- Website PR 3 added a content-addressed package path. Direct HTTP 200 retrieval on
+  2026-07-27 matched 129546 bytes and SHA-256
+  `f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246`,
+  with immutable caching and attachment headers.
+- This operator-controlled observation proves `downloadHosted=true` for the named
+  documentation ZIP only; it is not independent third-party availability evidence.
+- Mainnet launch, public StreamBFT activation, staging deployment, production signing,
+  legal approval and independent audit remain false or blocked.
 
 ## 7. Required local checks
 

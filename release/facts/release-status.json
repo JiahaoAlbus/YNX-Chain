@@ -1,9 +1,9 @@
 {
   "$schema": "../schemas/public-record.schema.json",
   "schemaVersion": "1.0.0",
-  "version": "2026.07.26.1",
+  "version": "2026.07.27.1",
   "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
-  "lastReviewed": "2026-07-26",
+  "lastReviewed": "2026-07-27",
   "status": "Public Candidate",
   "product": "YNX Chain Documentation and Public Disclosure Package",
   "release": "0.2.0-candidate",
@@ -15,7 +15,7 @@
     "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": true,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   },
@@ -26,7 +26,7 @@
     "integratedCentral": ["release/evidence/website-public-acceptance-2026-07-26.json"],
     "deployedStaging": [],
     "deployedPublic": ["release/evidence/website-public-acceptance-2026-07-26.json"],
-    "downloadHosted": [],
+    "downloadHosted": ["release/evidence/website-public-acceptance-2026-07-26.json"],
     "productionSigned": [],
     "storeReleased": []
   }

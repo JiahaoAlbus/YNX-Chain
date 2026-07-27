@@ -1,23 +1,32 @@
 {
   "$schema": "../schemas/public-record.schema.json",
   "schemaVersion": "1.0.0",
-  "version": "2026.07.26.1",
-  "sourceCommit": "2b7a8643694425b1fadd954c5c11bfcd5eb33e38",
-  "lastReviewed": "2026-07-26",
-  "observedAt": "2026-07-26T21:16:43+08:00",
+  "version": "2026.07.27.1",
+  "sourceCommit": "9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4",
+  "lastReviewed": "2026-07-27",
+  "observedAt": "2026-07-27T10:55:18+08:00",
   "status": "Verified Public Candidate",
   "scope": "Website owner acceptance and direct public deployment of the YNX Chain documentation authority bundle",
   "centralAcceptance": {
     "documentationRepositoryMergeCommit": "03a542d55b37239c8b05e76898db9a3d2715cd93",
-    "documentationContentCommit": "2b7a8643694425b1fadd954c5c11bfcd5eb33e38",
+    "documentationContentCommit": "9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4",
     "websitePullRequest": "https://github.com/JiahaoAlbus/YNX-Chain-website/pull/1",
     "websiteHeadCommit": "d3c9ea04ee00c4668cd3089d38a4d53c3104a96b",
     "websiteMergeCommit": "aee12104cae241c612ce32e1d60eb213f14bcdb9",
     "websiteCiRun": "https://github.com/JiahaoAlbus/YNX-Chain-website/actions/runs/30203356668",
-    "websiteCiConclusion": "success"
+    "websiteCiConclusion": "success",
+    "websiteContentRefreshPullRequest": "https://github.com/JiahaoAlbus/YNX-Chain-website/pull/2",
+    "websiteContentRefreshHeadCommit": "2293a798bfd107105e47efc3c297f10c6f1a5a68",
+    "websiteContentRefreshMergeCommit": "ae9a9f0f2047e1451f7519276cc24b9acb3c4b33",
+    "websiteContentRefreshCiRun": "https://github.com/JiahaoAlbus/YNX-Chain-website/actions/runs/30204766792",
+    "websiteHostingPullRequest": "https://github.com/JiahaoAlbus/YNX-Chain-website/pull/3",
+    "websiteHostingHeadCommit": "62f26c769a6f6e4c6e99ca88cfa44b5203b776a1",
+    "websiteHostingMergeCommit": "285aeaaf1661e890775e779e5abedb7eb6deedaa",
+    "websiteHostingCiRun": "https://github.com/JiahaoAlbus/YNX-Chain-website/actions/runs/30205219081",
+    "websiteHostingCiConclusion": "success"
   },
   "publicRuntime": {
-    "vantage": "Direct production browser from the current operator-controlled environment; not independent third-party proof",
+    "vantage": "Direct production HTTP and browser verification from the current operator-controlled environment; not independent third-party proof",
     "routes": [
       {
         "url": "https://ynxweb4.com",
@@ -29,7 +38,14 @@
         "renderedH1": "What Is YNX Chain?",
         "canonical": "https://ynxweb4.com/what-is-ynx-chain",
         "jsonLdType": "TechArticle",
-        "bundleSourceCommit": "2b7a86436944",
+        "bundleSourceCommit": "9f9efcb84b59",
+        "horizontalOverflow": false
+      },
+      {
+        "url": "https://www.ynxweb4.com/docs",
+        "canonical": "https://ynxweb4.com/docs",
+        "downloadLabel": "Download verified documentation bundle",
+        "downloadSha256": "f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246",
         "horizontalOverflow": false
       },
       {
@@ -55,17 +71,29 @@
     ],
     "artifactManifest": {
       "url": "https://www.ynxweb4.com/docs-authority/artifact-manifest.json",
-      "sourceCommit": "2b7a8643694425b1fadd954c5c11bfcd5eb33e38",
-      "sha256": "cf5b7f7a6fe01e0a8c16d0f4c1c7fa8c45b620c76aa1360a1166e7a2c8e8f446",
-      "bytes": 128893,
-      "downloadHosted": false,
+      "sourceCommit": "9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4",
+      "sha256": "f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246",
+      "bytes": 129546,
+      "downloadHosted": true,
+      "downloadUrl": "https://ynxweb4.com/docs-authority/packages/sha256-f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246/ynx-website-content-9f9efcb84b59.zip",
+      "immutable": true,
       "productionSigned": false
+    },
+    "hostedArchive": {
+      "url": "https://www.ynxweb4.com/docs-authority/packages/sha256-f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246/ynx-website-content-9f9efcb84b59.zip",
+      "httpStatus": 200,
+      "contentType": "application/zip",
+      "contentLength": 129546,
+      "sha256": "f940eda5d37606d48172cd6b7805f5f1805cc495d3bd49fb44178d01305af246",
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentDisposition": "attachment",
+      "observedAt": "2026-07-27T10:54:00+08:00"
     }
   },
   "stateConclusion": {
     "integratedCentral": true,
     "deployedPublic": true,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "independentPublicProof": false
   }

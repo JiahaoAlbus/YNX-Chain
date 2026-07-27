@@ -14,6 +14,7 @@ const requiredBundleInputs = [
   "docs/public/FAQ.md",
   "release/public-product-metadata.json",
   "release/facts/release-status.json",
+  "release/evidence/website-public-acceptance-2026-07-26.json",
   "release/locales/ar.json",
   "release/schemas/public-record.schema.json",
 ];

@@ -24,11 +24,13 @@ const publicInputs = [
   "release/facts/public-urls.json",
   "release/facts/release-status.json",
   "release/facts/test.json",
+  "release/evidence/website-public-acceptance-2026-07-26.json",
   "release/locales",
   "release/schemas",
 ];
 const prohibitedPublicText = [
   /\bcodex\b/i,
+  /\bbranch\b/i,
   /\/users\//i,
   /\bworktree\b/i,
   /\brefs\/heads\b/i,
