@@ -30,6 +30,46 @@ type Candidate struct {
 
 type OfficialHTTP struct{ client *http.Client }
 
+type OfficialRoute struct {
+	ProviderID string
+	Endpoint   string
+	APIVersion string
+}
+
+func ResolveOfficialRoute(adapter, symbol string) (OfficialRoute, error) {
+	switch adapter {
+	case "coinbase":
+		if !allowedCoinbaseProduct(symbol) {
+			return OfficialRoute{}, errors.New("Coinbase product is not allowlisted")
+		}
+		return OfficialRoute{
+			ProviderID: "coinbase-exchange",
+			Endpoint:   "https://api.exchange.coinbase.com/products/" + url.PathEscape(symbol) + "/ticker",
+			APIVersion: "exchange-rest-v1",
+		}, nil
+	case "kraken":
+		if !allowedKrakenSymbol(symbol) {
+			return OfficialRoute{}, errors.New("Kraken symbol is not allowlisted")
+		}
+		return OfficialRoute{
+			ProviderID: "kraken",
+			Endpoint:   "https://api.kraken.com/0/public/PostTrade?symbol=" + url.QueryEscape(symbol) + "&count=1",
+			APIVersion: "spot-rest-post-trade-v1",
+		}, nil
+	case "bitstamp":
+		if !allowedBitstampPair(symbol) {
+			return OfficialRoute{}, errors.New("Bitstamp pair is not allowlisted")
+		}
+		return OfficialRoute{
+			ProviderID: "bitstamp",
+			Endpoint:   "https://www.bitstamp.net/api/v2/ticker/" + url.PathEscape(symbol) + "/",
+			APIVersion: "public-api-v2",
+		}, nil
+	default:
+		return OfficialRoute{}, errors.New("official provider adapter is not supported")
+	}
+}
+
 func NewOfficialHTTP(client *http.Client) (*OfficialHTTP, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 5 * time.Second}
@@ -45,16 +85,16 @@ func NewOfficialHTTP(client *http.Client) (*OfficialHTTP, error) {
 }
 
 func (adapter *OfficialHTTP) CoinbaseTicker(ctx context.Context, product, market string, scale int64) (Candidate, error) {
-	if !allowedCoinbaseProduct(product) {
-		return Candidate{}, errors.New("Coinbase product is not allowlisted")
+	route, err := ResolveOfficialRoute("coinbase", product)
+	if err != nil {
+		return Candidate{}, err
 	}
-	endpoint := "https://api.exchange.coinbase.com/products/" + url.PathEscape(product) + "/ticker"
 	var payload struct {
 		Price  string    `json:"price"`
 		Time   time.Time `json:"time"`
 		Volume string    `json:"volume"`
 	}
-	if err := adapter.get(ctx, endpoint, &payload); err != nil {
+	if err := adapter.get(ctx, route.Endpoint, &payload); err != nil {
 		return Candidate{}, err
 	}
 	value, err := decimalToScaled(payload.Price, scale)
@@ -62,16 +102,16 @@ func (adapter *OfficialHTTP) CoinbaseTicker(ctx context.Context, product, market
 		return Candidate{}, errors.New("invalid Coinbase ticker")
 	}
 	volume, _ := decimalToScaled(payload.Volume, scale)
-	return Candidate{"coinbase-exchange", market, value, scale, volume, payload.Time.UTC(), endpoint, "exchange-rest-v1"}, nil
+	return Candidate{route.ProviderID, market, value, scale, volume, payload.Time.UTC(), route.Endpoint, route.APIVersion}, nil
 }
 
 func (adapter *OfficialHTTP) BitstampTicker(ctx context.Context, pair, market string, scale int64) (Candidate, error) {
-	if !allowedBitstampPair(pair) {
-		return Candidate{}, errors.New("Bitstamp pair is not allowlisted")
+	route, err := ResolveOfficialRoute("bitstamp", pair)
+	if err != nil {
+		return Candidate{}, err
 	}
-	endpoint := "https://www.bitstamp.net/api/v2/ticker/" + url.PathEscape(pair) + "/"
 	var payload struct{ Last, Volume, Timestamp string }
-	if err := adapter.get(ctx, endpoint, &payload); err != nil {
+	if err := adapter.get(ctx, route.Endpoint, &payload); err != nil {
 		return Candidate{}, err
 	}
 	value, err := decimalToScaled(payload.Last, scale)
@@ -80,14 +120,14 @@ func (adapter *OfficialHTTP) BitstampTicker(ctx context.Context, pair, market st
 		return Candidate{}, errors.New("invalid Bitstamp ticker")
 	}
 	volume, _ := decimalToScaled(payload.Volume, scale)
-	return Candidate{"bitstamp", market, value, scale, volume, time.Unix(seconds, 0).UTC(), endpoint, "public-api-v2"}, nil
+	return Candidate{route.ProviderID, market, value, scale, volume, time.Unix(seconds, 0).UTC(), route.Endpoint, route.APIVersion}, nil
 }
 
 func (adapter *OfficialHTTP) KrakenPostTrade(ctx context.Context, symbol, market string, scale int64) (Candidate, error) {
-	if !allowedKrakenSymbol(symbol) {
-		return Candidate{}, errors.New("Kraken symbol is not allowlisted")
+	route, err := ResolveOfficialRoute("kraken", symbol)
+	if err != nil {
+		return Candidate{}, err
 	}
-	endpoint := "https://api.kraken.com/0/public/PostTrade?symbol=" + url.QueryEscape(symbol) + "&count=1"
 	var payload struct {
 		Error  []string `json:"error"`
 		Result struct {
@@ -98,7 +138,7 @@ func (adapter *OfficialHTTP) KrakenPostTrade(ctx context.Context, symbol, market
 			} `json:"trades"`
 		} `json:"result"`
 	}
-	if err := adapter.get(ctx, endpoint, &payload); err != nil {
+	if err := adapter.get(ctx, route.Endpoint, &payload); err != nil {
 		return Candidate{}, err
 	}
 	if len(payload.Error) != 0 || len(payload.Result.Trades) != 1 {
@@ -111,7 +151,7 @@ func (adapter *OfficialHTTP) KrakenPostTrade(ctx context.Context, symbol, market
 		return Candidate{}, errors.New("invalid Kraken trade")
 	}
 	volume, _ := decimalToScaled(trade.Quantity, scale)
-	return Candidate{"kraken", market, value, scale, volume, at.UTC(), endpoint, "spot-rest-post-trade-v1"}, nil
+	return Candidate{route.ProviderID, market, value, scale, volume, at.UTC(), route.Endpoint, route.APIVersion}, nil
 }
 
 func (adapter *OfficialHTTP) get(ctx context.Context, endpoint string, target any) error {

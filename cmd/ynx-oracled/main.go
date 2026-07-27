@@ -40,6 +40,7 @@ func run() error {
 	registryPath := flag.String("providers", "", "versioned provider registry JSON path")
 	nonceDomain := flag.String("nonce-domain", "ynx-oracle-testnet-v1", "signed observation nonce domain")
 	publicOrigin := flag.String("public-origin", "", "exact HTTPS Oracle Web origin allowed to read public endpoints")
+	checkConfig := flag.Bool("check-config", false, "validate registry, state integrity, policy, and public-origin configuration without listening")
 	flag.Parse()
 	if *registryPath == "" {
 		return errors.New("--providers is required; provider success is never fabricated")
@@ -72,6 +73,9 @@ func run() error {
 	}
 	if err := handler.SetPublicOrigin(*publicOrigin); err != nil {
 		return err
+	}
+	if *checkConfig {
+		return nil
 	}
 	server := &http.Server{Addr: *listen, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	var metricsServer *http.Server

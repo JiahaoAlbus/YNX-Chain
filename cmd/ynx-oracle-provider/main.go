@@ -44,6 +44,7 @@ func run() error {
 	nonceDomain := flag.String("nonce-domain", "ynx-oracle-testnet-v1", "Oracle reporter nonce domain")
 	interval := flag.Duration("interval", 5*time.Second, "poll interval")
 	once := flag.Bool("once", false, "fetch and publish exactly one observation")
+	checkConfig := flag.Bool("check-config", false, "validate registry, signer, adapter, and runtime configuration without network access")
 	flag.Parse()
 
 	if *registryPath == "" || *providerID == "" || *adapterName == "" || *symbol == "" ||
@@ -56,6 +57,13 @@ func run() error {
 	provider, err := loadProvider(*registryPath, *providerID)
 	if err != nil {
 		return err
+	}
+	route, err := providers.ResolveOfficialRoute(*adapterName, *symbol)
+	if err != nil {
+		return err
+	}
+	if provider.ID != route.ProviderID || provider.Endpoint != route.Endpoint || provider.APIVersion != route.APIVersion {
+		return errors.New("official adapter route does not match provider registry authority")
 	}
 	privateKey, err := providers.LoadReporterPrivateKey(*signerPath, provider)
 	if err != nil {
@@ -80,6 +88,9 @@ func run() error {
 	worker, err := providers.NewWorker(fetch, provider, privateKey, *nonceDomain, sequences, publisher, time.Now)
 	if err != nil {
 		return err
+	}
+	if *checkConfig {
+		return nil
 	}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	runOnce := func(ctx context.Context) error {

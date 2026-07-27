@@ -65,3 +65,18 @@ func TestOfficialFetcherRejectsUnknownAdapter(t *testing.T) {
 		t.Fatal("unknown provider adapter accepted")
 	}
 }
+
+func TestOfficialRegistryRouteMustMatchAdapter(t *testing.T) {
+	provider := commandProvider(t, "active")
+	route, err := providers.ResolveOfficialRoute("coinbase", "BTC-USD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if provider.ID != route.ProviderID || provider.Endpoint != route.Endpoint || provider.APIVersion != route.APIVersion {
+		t.Fatalf("valid official registry route rejected: provider=%+v route=%+v", provider, route)
+	}
+	provider.Endpoint = "https://unregistered.invalid/ticker"
+	if provider.ID == route.ProviderID && provider.Endpoint == route.Endpoint && provider.APIVersion == route.APIVersion {
+		t.Fatal("mismatched official route accepted")
+	}
+}

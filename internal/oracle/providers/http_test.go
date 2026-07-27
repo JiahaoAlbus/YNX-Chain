@@ -77,3 +77,27 @@ func TestOfficialAdaptersFailClosed(t *testing.T) {
 		t.Fatal("non-JSON provider response accepted")
 	}
 }
+
+func TestResolveOfficialRouteIsExactAndFailClosed(t *testing.T) {
+	cases := []struct {
+		adapter, symbol, providerID, endpoint, version string
+	}{
+		{"coinbase", "BTC-USD", "coinbase-exchange", "https://api.exchange.coinbase.com/products/BTC-USD/ticker", "exchange-rest-v1"},
+		{"kraken", "BTC/USD", "kraken", "https://api.kraken.com/0/public/PostTrade?symbol=BTC%2FUSD&count=1", "spot-rest-post-trade-v1"},
+		{"bitstamp", "btcusd", "bitstamp", "https://www.bitstamp.net/api/v2/ticker/btcusd/", "public-api-v2"},
+	}
+	for _, test := range cases {
+		route, err := ResolveOfficialRoute(test.adapter, test.symbol)
+		if err != nil {
+			t.Fatalf("%s route rejected: %v", test.adapter, err)
+		}
+		if route.ProviderID != test.providerID || route.Endpoint != test.endpoint || route.APIVersion != test.version {
+			t.Fatalf("%s route mismatch: %+v", test.adapter, route)
+		}
+	}
+	for _, test := range [][2]string{{"coinbase", "YNXT-USD"}, {"kraken", "YNXT/USD"}, {"bitstamp", "ynxtusd"}, {"unknown", "BTC-USD"}} {
+		if _, err := ResolveOfficialRoute(test[0], test[1]); err == nil {
+			t.Fatalf("unsupported official route accepted: %v", test)
+		}
+	}
+}
