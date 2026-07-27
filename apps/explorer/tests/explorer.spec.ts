@@ -18,6 +18,7 @@ test.beforeEach(async ({ page }) => {
     return route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ transactions:cursor?transactions.slice(5):transactions.slice(0,5), nextCursor:cursor?'':'signed-transaction-cursor', cursorVersion:1 }) });
   });
   await page.route('**/api/search?**', route => route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ query:'41', type:'block', path:'/api/blocks/41', truthfulStatus:'resolved-from-indexer' }) }));
+  await page.route('**/api/evidence/block/41', route => route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify({ schemaVersion:'explorer.public-evidence.v1', evidenceId:'ynx-evidence-sha256:block41', kind:'block', subject:'41', source:{authority:'01-chain-core',system:'ynx-chain',version:'not-declared-by-source',transportOwner:'12-explorer',transport:'ynx-indexer',transportVersion:'local-proof',path:'/api/blocks/41',upstreamPath:'/blocks/41',derivation:'none'}, observedAt:'2026-07-15T00:00:10Z', asOf:blocks[0].timestamp, asOfBasis:'source-event-time', freshness:{state:'partial',stale:false,offline:false,partial:true,rpcHeight:41,indexedHeight:40,lagBlocks:1,reason:'Indexer is 1 block behind the RPC source.'}, coverage:{status:'partial',scope:'requested-record',missing:['records-after-indexed-height']}, correction:{status:'not-declared-by-source'}, integrity:{algorithm:'sha256',digest:'block41'}, payload:blocks[0] }) }));
   await page.route('**/api/blocks/41', route => route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify(blocks[0]) }));
 });
 
@@ -34,7 +35,12 @@ test('search opens canonical evidence deep links and browser history restores th
   await page.getByRole('search').getByRole('textbox').fill('41');
   await page.getByRole('button', { name:'Verify' }).click();
   await expect(page).toHaveURL(/\/block\/41$/);
-  await expect(page.locator('aside.drawer')).toBeVisible();
+  const drawer = page.locator('aside.drawer');
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByText('01-chain-core')).toBeVisible();
+  await expect(drawer.getByText('12-explorer · ynx-indexer')).toBeVisible();
+  await expect(drawer.getByText('HTTP 200 · PARTIAL')).toBeVisible();
+  await expect(drawer.getByText(/records-after-indexed-height/)).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator('aside.drawer')).toHaveCount(0);

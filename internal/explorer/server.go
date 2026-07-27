@@ -55,6 +55,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/summary", s.handleSummary)
+	s.mux.HandleFunc("GET /api/evidence/{kind}/{subject}", s.handleEvidence)
 	s.mux.HandleFunc("GET /api/stream", s.handleStream)
 	s.mux.HandleFunc("GET /api/blocks/latest", s.handleLatestBlocks)
 	s.mux.HandleFunc("GET /api/blocks/{height}", s.handleBlock)
@@ -246,6 +247,12 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	summary.Build = s.build
 	writeJSON(w, http.StatusOK, summary)
+}
+
+func (s *Server) handleEvidence(w http.ResponseWriter, r *http.Request) {
+	envelope, status := s.publicEvidence(r.Context(), r.PathValue("kind"), r.PathValue("subject"))
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	writeJSON(w, status, envelope)
 }
 
 func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {

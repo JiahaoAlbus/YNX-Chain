@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { loadBlockPage, loadEvidence, loadTransactionPage, sourceLinks, universalSearch, type BlockPage as BlockCursorPage, type TransactionPage as TransactionCursorPage } from './api';
+import { loadBlockPage, loadEvidence, loadTransactionPage, sourceLinks, universalSearch, type BlockPage as BlockCursorPage, type EvidenceItem, type TransactionPage as TransactionCursorPage } from './api';
 import { connectLiveData } from './live';
 import { pathForSelection, selectionFromSearchResult, selectionFromURL, type EvidenceSelection, type SearchResult } from './routing';
 import { arrayFrom, summaryChainID, summaryLatestHeight, summaryNetworkName, type Availability, type Block, type DashboardSnapshot, type Transaction, type Validator } from './types';
@@ -16,7 +16,7 @@ export function App() {
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState<{ loading?: boolean; error?: string; data?: SearchResult }>({});
   const [selected, setSelectedState] = useState<EvidenceSelection|undefined>(() => selectionFromURL(new URL(location.href)));
-  const [evidence, setEvidence] = useState<Array<{url: string; status: number; body: unknown}>>([]);
+  const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [evidenceError, setEvidenceError] = useState('');
   const [aiOpen, setAiOpen] = useState(false);
   const [aiState, setAiState] = useState<'preview'|'streaming'|'review'|'rejected'>('preview');
@@ -234,7 +234,10 @@ export function App() {
     {selected && <aside className="drawer" aria-label="Evidence detail"><button className="drawer-close" onClick={() => setSelected(undefined)} aria-label="Close detail">×</button><p className="eyebrow">Source verification</p><h2>{selected.kind} · {short(selected.id, 16)}</h2>
       {evidenceError && <div className="notice error" role="alert">{evidenceError}</div>}
       {!evidence.length && !evidenceError && <div className="notice">Loading authoritative evidence…</div>}
-      {evidence.map(item => <article className="evidence" key={item.url}><a href={item.url}>{item.url} ↗</a><span className={item.status < 300 ? 'verified' : 'failed'}>HTTP {item.status}</span><pre>{JSON.stringify(item.body, null, 2)}</pre></article>)}
+      {evidence.map(item => <article className="evidence" key={item.url}><a href={item.rawSourceUrl}>{item.rawSourceUrl} ↗</a><span className={item.envelope?.freshness.partial ? 'partial' : item.status < 300 ? 'verified' : 'failed'}>HTTP {item.status}{item.envelope ? ` · ${item.envelope.freshness.state.toUpperCase()}` : ''}</span>
+        {item.envelope && <dl className="evidence-meta"><dt>Authority</dt><dd>{item.envelope.source.authority}</dd><dt>Transport</dt><dd>{item.envelope.source.transportOwner} · {item.envelope.source.transport}</dd><dt>Source version</dt><dd>{item.envelope.source.version}</dd><dt>Observed</dt><dd>{formatDate(item.envelope.observedAt)}</dd><dt>As of</dt><dd>{formatDate(item.envelope.asOf)} · {item.envelope.asOfBasis}</dd><dt>Coverage</dt><dd>{item.envelope.coverage.status}{item.envelope.coverage.missing?.length ? ` · missing ${item.envelope.coverage.missing.join(', ')}` : ''}</dd><dt>Correction</dt><dd>{item.envelope.correction.status}</dd><dt>Integrity</dt><dd>{item.envelope.integrity ? `${item.envelope.integrity.algorithm}:${short(item.envelope.integrity.digest, 14)}` : 'Unavailable'}</dd></dl>}
+        {item.envelope?.freshness.reason && <p className="evidence-reason">{item.envelope.freshness.reason}</p>}
+        <pre>{JSON.stringify(item.envelope?.payload ?? item.body, null, 2)}</pre></article>)}
       {evidence.length > 0 && <button className="ai-button" onClick={() => { setAiOpen(true); setAiState('preview'); }}>{t('explain')}</button>}
       {aiOpen && <section className="ai-workflow"><p className="eyebrow">Permissioned explanation</p><h3>Evidence-only context preview</h3><p>The selected public record and listed source URLs will be sent. No wallet, contacts, keys or private history are included.</p><dl><dt>Provider</dt><dd>YNX AI Gateway</dd><dt>Estimated resource</dt><dd>One bounded explanation request</dd><dt>Action authority</dt><dd>Read-only; cannot change chain or operations state</dd></dl>
         {aiState === 'preview' && <div className="actions"><button onClick={runAI}>Allow once & stream</button><button className="quiet" onClick={() => setAiOpen(false)}>Reject</button></div>}

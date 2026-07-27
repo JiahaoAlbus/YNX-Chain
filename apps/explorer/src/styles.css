@@ -72,7 +72,12 @@ pre { max-height:360px; margin:0; padding:15px; overflow:auto; white-space:pre-w
 .evidence>a { display:inline-block; padding:12px; color:var(--blue); font-size:12px; }
 .evidence>span { float:right; margin:9px; padding:4px 8px; font-size:10px; background:#eef1f6; }
 .evidence>span.verified { color:#11643e; background:#e3f5ec; }
+.evidence>span.partial { color:#805500; background:#fff4cf; }
 .evidence>span.failed { color:#8d1f16; background:#fff0ee; }
+.evidence-meta { clear:both; display:grid; grid-template-columns:120px minmax(0,1fr); gap:7px 12px; margin:0; padding:14px; border-top:1px solid var(--line); font-size:11px; }
+.evidence-meta dt { color:var(--muted); }
+.evidence-meta dd { min-width:0; margin:0; overflow-wrap:anywhere; }
+.evidence-reason { margin:0; padding:0 14px 14px; color:#6b4c00; font-size:11px; }
 .ai-button { width:100%; min-height:48px; background:var(--blue); }
 .ai-workflow { margin-top:14px; padding:20px; border:1px solid var(--blue); background:#f4f7ff; }
 .ai-workflow h3 { margin:0; }

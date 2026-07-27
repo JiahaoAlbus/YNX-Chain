@@ -46,6 +46,15 @@ summary="$(curl -fsS "$explorer_url/api/summary")"
 curl -fsS "$explorer_url/api/blocks/latest?limit=3" >/dev/null
 curl -fsS "$explorer_url/api/txs?limit=3" >/dev/null
 curl -fsS "$explorer_url/api/txs/$tx_hash" >/dev/null
+evidence="$(curl -fsS "$explorer_url/api/evidence/transaction/$tx_hash")"
+[[ "$(printf '%s' "$evidence" | ynx_json_field '["schemaVersion"]')" == "explorer.public-evidence.v1" ]] || { echo "explorer evidence schema mismatch"; exit 1; }
+[[ "$(printf '%s' "$evidence" | ynx_json_field '["source"]["authority"]')" == "01-chain-core" ]] || { echo "explorer evidence authority mismatch"; exit 1; }
+[[ "$(printf '%s' "$evidence" | ynx_json_field '["source"]["transport"]')" == "ynx-indexer" ]] || { echo "explorer evidence transport mismatch"; exit 1; }
+[[ "$(printf '%s' "$evidence" | ynx_json_field '["payload"]["hash"]')" == "$tx_hash" ]] || { echo "explorer evidence payload mismatch"; exit 1; }
+[[ -n "$(printf '%s' "$evidence" | ynx_json_field '["asOf"]')" ]] || { echo "explorer evidence as-of missing"; exit 1; }
+[[ -n "$(printf '%s' "$evidence" | ynx_json_field '["integrity"]["digest"]')" ]] || { echo "explorer evidence integrity missing"; exit 1; }
+coverage="$(printf '%s' "$evidence" | ynx_json_field '["coverage"]["status"]')"
+[[ "$coverage" == "complete-for-explorer-schema" || "$coverage" == "partial" ]] || { echo "explorer evidence coverage invalid: $coverage"; exit 1; }
 curl -fsS "$explorer_url/api/accounts/ynx_explorer_bob" >/dev/null
 curl -fsS "$explorer_url/api/resources/ynx_explorer_bob" >/dev/null
 curl -fsS "$explorer_url/api/tokens/YNXT" >/dev/null
