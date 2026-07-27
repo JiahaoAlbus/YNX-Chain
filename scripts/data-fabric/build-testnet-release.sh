@@ -34,6 +34,7 @@ install -m 0755 scripts/data-fabric/install-testnet-release.sh "$stage/scripts/i
 install -m 0755 scripts/data-fabric/remote-install-testnet-release.sh "$stage/scripts/remote-install-testnet-release.sh"
 install -m 0755 scripts/data-fabric/verify-testnet-deployment.sh "$stage/scripts/verify-testnet-deployment.sh"
 
+node scripts/data-fabric/write-testnet-provenance.mjs "$stage" "$commit" "$release" "$build_time"
 node scripts/data-fabric/write-testnet-release-manifest.mjs "$stage" "$commit" "$release" "$build_time"
 node scripts/data-fabric/verify-testnet-release.mjs "$stage" "$commit" "$release" >&2
 printf '%s\n' "$stage"

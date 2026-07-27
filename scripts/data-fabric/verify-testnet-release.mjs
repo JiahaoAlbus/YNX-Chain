@@ -15,13 +15,42 @@ if (manifest.schema !== "ynx-data-fabric-testnet-release/v1" || manifest.product
 if (manifest.commit !== expectedCommit || manifest.release !== expectedRelease) fail("release is not bound to the expected commit");
 if (manifest.target?.os !== "linux" || manifest.target?.architecture !== "amd64" || manifest.target?.channel !== "testnet") fail("release target is invalid");
 if (manifest.sourceMode !== "bft" || manifest.signing?.class !== "unsigned-testnet-build" || manifest.signing?.productionSigned !== false) fail("release truth is invalid");
-if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length !== 12) fail("release artifact inventory is incomplete");
+if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length !== 14) fail("release artifact inventory is incomplete");
 
 for (const artifact of manifest.artifacts) {
   if (!artifact || typeof artifact.path !== "string" || artifact.path.includes("..") || path.isAbsolute(artifact.path)) fail("artifact path is invalid");
   const body = fs.readFileSync(path.join(releaseDir, artifact.path));
   const digest = crypto.createHash("sha256").update(body).digest("hex");
   if (body.length !== artifact.bytes || digest !== artifact.sha256) fail(`artifact integrity mismatch: ${artifact.path}`);
+}
+
+const sbom = JSON.parse(fs.readFileSync(path.join(releaseDir, "sbom/go-runtime.spdx.json"), "utf8"));
+if (
+  sbom.spdxVersion !== "SPDX-2.3"
+  || sbom.name !== `${expectedRelease}-go-runtime`
+  || sbom.documentNamespace !== `https://ynxchain.com/spdx/${expectedRelease}`
+  || !Array.isArray(sbom.packages)
+  || sbom.packages.length < 2
+  || sbom.packages[0]?.versionInfo !== expectedCommit
+) fail("release SBOM identity or dependency inventory is invalid");
+
+const provenance = JSON.parse(fs.readFileSync(path.join(releaseDir, "provenance.json"), "utf8"));
+if (
+  provenance.schema !== "ynx-data-fabric-build-provenance/v1"
+  || provenance.commit !== expectedCommit
+  || provenance.release !== expectedRelease
+  || provenance.builder?.target !== "linux/amd64"
+  || provenance.signing?.productionSigned !== false
+  || provenance.hosting?.hosted !== false
+  || typeof provenance.source?.trackedTreeClean !== "boolean"
+  || !Array.isArray(provenance.binaries)
+  || provenance.binaries.length !== 4
+) fail("release provenance is invalid");
+for (const binary of provenance.binaries) {
+  const artifact = manifest.artifacts.find((candidate) => candidate.path === binary.path);
+  if (!artifact || artifact.bytes !== binary.bytes || artifact.sha256 !== binary.sha256) {
+    fail(`release provenance mismatch: ${binary.path}`);
+  }
 }
 
 const bridgeUnit = fs.readFileSync(path.join(releaseDir, "systemd/ynx-pay-data-fabric-bridge.service"), "utf8");

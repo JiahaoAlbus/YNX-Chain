@@ -24,12 +24,18 @@ runtime_paths=(
   scripts/data-fabric/build-testnet-release.sh
   scripts/data-fabric/deploy-testnet.sh
   scripts/data-fabric/install-testnet-release.sh
+  scripts/data-fabric/extract-public-testnet-release.mjs
+  scripts/data-fabric/package-public-testnet-release.mjs
+  scripts/data-fabric/package-public-testnet-release.sh
+  scripts/data-fabric/public-testnet-release-check.sh
   scripts/data-fabric/remote-install-testnet-release.sh
   scripts/data-fabric/testnet-release-check.sh
   scripts/data-fabric/testnet-deployment-check.sh
   scripts/data-fabric/testnet-remote-deploy-check.sh
   scripts/data-fabric/verify-testnet-deployment.sh
+  scripts/data-fabric/verify-public-testnet-release.mjs
   scripts/data-fabric/write-testnet-release-manifest.mjs
+  scripts/data-fabric/write-testnet-provenance.mjs
   scripts/data-fabric/verify-testnet-release.mjs
   docs/data-fabric
   public-product-metadata.json
@@ -66,5 +72,6 @@ fi
 
 git diff --check
 bash scripts/data-fabric/testnet-release-check.sh
+bash scripts/data-fabric/public-testnet-release-check.sh
 bash scripts/data-fabric/testnet-deployment-check.sh
 bash scripts/data-fabric/testnet-remote-deploy-check.sh

@@ -15,6 +15,8 @@ const required = [
   ["bin/ynx-pay-data-fabric-bridge", "binary"],
   ["config/data-fabric.env", "operator-config-template"],
   ["config/event-keys.json", "operator-config-template"],
+  ["provenance.json", "build-provenance"],
+  ["sbom/go-runtime.spdx.json", "sbom"],
   ["scripts/install-testnet-release.sh", "installer"],
   ["scripts/remote-install-testnet-release.sh", "remote-installer"],
   ["scripts/verify-testnet-deployment.sh", "deployment-verifier"],

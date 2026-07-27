@@ -38,7 +38,9 @@ export function createDeterministicTarGz(entries) {
     if (seen.has(entry.path)) throw new Error(`duplicate archive path: ${entry.path}`);
     seen.add(entry.path);
     const body = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(entry.data);
-    blocks.push(createTarHeader(entry.path, body.length), body);
+    const mode = entry.mode ?? 0o644;
+    if (mode !== 0o644 && mode !== 0o755) throw new Error(`archive entry mode is invalid: ${entry.path}`);
+    blocks.push(createTarHeader(entry.path, body.length, mode), body);
     const padding = (512 - (body.length % 512)) % 512;
     if (padding) blocks.push(Buffer.alloc(padding));
   }
@@ -52,8 +54,8 @@ export function createDeterministicTarGz(entries) {
   return compressed;
 }
 
-export function readDeterministicTarGz(compressed) {
-  const tar = zlib.gunzipSync(compressed, {maxOutputLength: MAX_ARCHIVE_OUTPUT_BYTES});
+export function readDeterministicTarGz(compressed, {maxOutputLength = MAX_ARCHIVE_OUTPUT_BYTES} = {}) {
+  const tar = zlib.gunzipSync(compressed, {maxOutputLength});
   if (tar.length % 512 !== 0) throw new Error("tar payload is not block aligned");
   const entries = [];
   const seen = new Set();
@@ -82,12 +84,12 @@ export function readDeterministicTarGz(compressed) {
     const size = readOctal(header, 124, 12, "size");
     const mode = readOctal(header, 100, 8, "mode");
     const mtime = readOctal(header, 136, 12, "mtime");
-    if (mode !== 0o644) throw new Error(`archive entry mode is not 0644: ${entryPath}`);
+    if (mode !== 0o644 && mode !== 0o755) throw new Error(`archive entry mode is invalid: ${entryPath}`);
     if (mtime !== 0) throw new Error(`archive entry mtime is not zero: ${entryPath}`);
     const bodyStart = offset + 512;
     const bodyEnd = bodyStart + size;
     if (bodyEnd > tar.length) throw new Error(`archive entry exceeds payload: ${entryPath}`);
-    entries.push({path: entryPath, data: Buffer.from(tar.subarray(bodyStart, bodyEnd))});
+    entries.push({path: entryPath, data: Buffer.from(tar.subarray(bodyStart, bodyEnd)), mode});
     offset = bodyStart + Math.ceil(size / 512) * 512;
   }
   if (!foundEnd) throw new Error("tar payload is missing its end marker");
@@ -264,12 +266,12 @@ export function readPythonProjectMetadata(text) {
   return {name, version};
 }
 
-function createTarHeader(name, size) {
+function createTarHeader(name, size, mode) {
   const header = Buffer.alloc(512);
   const nameBytes = Buffer.from(name);
   if (nameBytes.length > 100) throw new Error(`archive path exceeds ustar name field: ${name}`);
   writeString(header, 0, 100, name);
-  writeOctal(header, 100, 8, 0o644);
+  writeOctal(header, 100, 8, mode);
   writeOctal(header, 108, 8, 0);
   writeOctal(header, 116, 8, 0);
   writeOctal(header, 124, 12, size);

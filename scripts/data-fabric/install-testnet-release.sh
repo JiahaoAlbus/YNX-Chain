@@ -28,7 +28,7 @@ release="$(jq -er '.release' "$manifest")"
 [[ "$(jq -er '[.target.os, .target.architecture, .target.channel] | join("/")' "$manifest")" == "linux/amd64/testnet" ]] || { echo "release target is invalid" >&2; exit 1; }
 [[ "$(jq -er '.sourceMode' "$manifest")" == "bft" ]] || { echo "release source mode is not BFT" >&2; exit 1; }
 [[ "$(jq -r '.signing.productionSigned' "$manifest")" == "false" ]] || { echo "Testnet package signing truth is invalid" >&2; exit 1; }
-[[ "$(jq -er '.artifacts | length' "$manifest")" == "12" ]] || { echo "release artifact inventory is incomplete" >&2; exit 1; }
+[[ "$(jq -er '.artifacts | length' "$manifest")" == "14" ]] || { echo "release artifact inventory is incomplete" >&2; exit 1; }
 
 required_artifacts=(
   bin/ynx-data-fabricctl
@@ -37,6 +37,8 @@ required_artifacts=(
   bin/ynx-pay-data-fabric-bridge
   config/data-fabric.env
   config/event-keys.json
+  provenance.json
+  sbom/go-runtime.spdx.json
   scripts/install-testnet-release.sh
   scripts/remote-install-testnet-release.sh
   scripts/verify-testnet-deployment.sh

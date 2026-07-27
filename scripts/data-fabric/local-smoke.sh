@@ -15,9 +15,16 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$WORK/bin" "$WORK/config" "$WORK/data"
-CGO_ENABLED=0 go build -trimpath -o "$WORK/bin/ynx-data-fabricd" "$ROOT/cmd/ynx-data-fabricd"
-CGO_ENABLED=0 go build -trimpath -o "$WORK/bin/ynx-data-fabric-worker" "$ROOT/cmd/ynx-data-fabric-worker"
-CGO_ENABLED=0 go build -trimpath -o "$WORK/bin/ynx-data-fabricctl" "$ROOT/cmd/ynx-data-fabricctl"
+if [[ -n "${YNX_DATA_FABRIC_BIN_DIR:-}" ]]; then
+  for command in ynx-data-fabricd ynx-data-fabric-worker ynx-data-fabricctl; do
+    [[ -x "$YNX_DATA_FABRIC_BIN_DIR/$command" ]] || { echo "packaged binary is not executable: $command" >&2; exit 1; }
+    cp "$YNX_DATA_FABRIC_BIN_DIR/$command" "$WORK/bin/$command"
+  done
+else
+  CGO_ENABLED=0 go build -trimpath -o "$WORK/bin/ynx-data-fabricd" "$ROOT/cmd/ynx-data-fabricd"
+  CGO_ENABLED=0 go build -trimpath -o "$WORK/bin/ynx-data-fabric-worker" "$ROOT/cmd/ynx-data-fabric-worker"
+  CGO_ENABLED=0 go build -trimpath -o "$WORK/bin/ynx-data-fabricctl" "$ROOT/cmd/ynx-data-fabricctl"
+fi
 
 openssl rand -hex 32 > "$WORK/config/pay.key"
 chmod 600 "$WORK/config/pay.key"
@@ -55,8 +62,8 @@ if [[ "$ready" != true ]]; then
   exit 1
 fi
 
-jq -e --arg commit "$SOURCE_COMMIT" '.ok == true and .integrity == "verified" and .sourceCommit == $commit' "$WORK/health.json" >/dev/null
-curl --fail --silent --show-error http://127.0.0.1:18094/version | jq -e --arg commit "$SOURCE_COMMIT" '.service == "ynx-data-fabric" and .sourceCommit == $commit' >/dev/null
+jq -e --arg commit "$SOURCE_COMMIT" '.ok == true and .integrity == "verified" and .commit == $commit' "$WORK/health.json" >/dev/null
+curl --fail --silent --show-error http://127.0.0.1:18094/version | jq -e --arg commit "$SOURCE_COMMIT" '.service == "ynx-data-fabric" and .commit == $commit' >/dev/null
 curl --fail --silent --show-error http://127.0.0.1:18094/metrics | grep -q '^ynx_data_fabric_outbox_pending 0$'
 curl --fail --silent --show-error --dump-header "$WORK/operator.headers" http://127.0.0.1:18094/operator/ > "$WORK/operator.html"
 grep -q 'YNX Data Fabric Operator' "$WORK/operator.html"
