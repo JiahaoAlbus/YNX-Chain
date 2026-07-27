@@ -57,6 +57,9 @@ artifact_source_paths=(
   go.sum
   apps/quant-lab/web
   apps/quant-lab/desktop/Info.plist
+  apps/quant-lab/Dockerfile
+  apps/quant-lab/compose.yaml
+  apps/quant-lab/k8s
   apps/quant-lab/scripts/build-desktop-candidates.sh
   cmd/ynx-quantd
   cmd/ynx-quant-web
