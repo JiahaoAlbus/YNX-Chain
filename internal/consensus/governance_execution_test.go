@@ -50,6 +50,10 @@ func TestGovernanceExecutionCommitsDeterministicallyPersistsAndAudits(t *testing
 		}
 		height := int64(migration.Height) + 1
 		commitGovernanceExecutionBlock(t, app, height, blockTime, beginRaw)
+		checked, err := app.CheckTx(context.Background(), &abcitypes.RequestCheckTx{Tx: verifyRaw})
+		if err != nil || checked.Code != 0 {
+			t.Fatalf("canonical terminal action failed CheckTx after committed begin: %+v err=%v", checked, err)
+		}
 		commitGovernanceExecutionBlock(t, app, height+1, blockTime.Add(time.Minute), verifyRaw)
 
 		var state CommittedState

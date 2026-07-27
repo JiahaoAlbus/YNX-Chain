@@ -65,6 +65,42 @@ func TestCanaryThresholdBreachAbortsEarlyAndPersists(t *testing.T) {
 	}
 }
 
+func TestCanaryResultAcceptsBoundedClientObservationTimeAndRejectsFutureOrStaleEvidence(t *testing.T) {
+	now := time.Date(2026, 7, 27, 15, 0, 0, 0, time.UTC)
+	service := testService(t)
+	proposal := proposalAtTimelock(t, service, now)
+	record := startTestCanary(t, service, proposal, strings.Repeat("a", 64))
+	serverNow := record.Envelope.EndsAt.Add(30 * time.Second)
+	bounded := makeTestCanaryResultEnvelope(t, service, proposal, record, 100, 0, serverNow.Add(-time.Second))
+	if _, err := service.CompleteCanary(bounded, serverNow); err != nil {
+		t.Fatalf("bounded cross-process observation time was rejected: %v", err)
+	}
+	path := t.TempDir() + "/state.json"
+	if err := service.Save(path, serverNow); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := Load(path)
+	if err != nil {
+		t.Fatalf("bounded cross-process observation time did not survive restart: %v", err)
+	}
+	if canaries := restored.ListCanaries(); len(canaries) != 1 || canaries[0].Status != CanaryPassed {
+		t.Fatalf("restored bounded canary result mismatch: %+v", canaries)
+	}
+
+	service = testService(t)
+	proposal = proposalAtTimelock(t, service, now.Add(time.Hour))
+	record = startTestCanary(t, service, proposal, strings.Repeat("b", 64))
+	serverNow = record.Envelope.EndsAt.Add(30 * time.Second)
+	future := makeTestCanaryResultEnvelope(t, service, proposal, record, 100, 0, serverNow.Add(time.Nanosecond))
+	if _, err := service.CompleteCanary(future, serverNow); err == nil {
+		t.Fatal("future canary observation evidence was accepted")
+	}
+	stale := makeTestCanaryResultEnvelope(t, service, proposal, record, 100, 0, serverNow.Add(-service.policy.VoteMaxClockSkew-time.Nanosecond))
+	if _, err := service.CompleteCanary(stale, serverNow); err == nil {
+		t.Fatal("stale canary observation evidence was accepted")
+	}
+}
+
 func TestLoadRejectsTamperedCanaryWithValidSnapshotDigest(t *testing.T) {
 	now := time.Date(2026, 7, 27, 10, 0, 0, 0, time.UTC)
 	service := testService(t)

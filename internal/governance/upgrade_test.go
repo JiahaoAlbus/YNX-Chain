@@ -14,7 +14,7 @@ func upgradeProposalInput(now time.Time) ProposalInput {
 	input.Scope = ScopeProtocolUpgrade
 	input.Summary = "Upgrade the public testnet protocol runtime to the signed v2 release"
 	input.Changes = []ParameterChange{{Path: "/protocol/release", Before: "v1", After: "v2"}}
-	input.SourceCommit = strings.Repeat("d", 64)
+	input.SourceCommit = strings.Repeat("d", 40)
 	input.Release = "ynx-protocol-v2"
 	input.UpgradeHash = strings.Repeat("a", 64)
 	return input

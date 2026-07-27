@@ -103,6 +103,23 @@ func TestProposalVoteTimelockExecution(t *testing.T) {
 	}
 }
 
+func TestProposalAcceptsCanonicalGitSourceCommitAndRejectsMalformedCommit(t *testing.T) {
+	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
+	service := testService(t)
+	input := proposalInput(now)
+	input.SourceCommit = strings.Repeat("a", 40)
+	if _, err := service.Create(input, now); err != nil {
+		t.Fatalf("canonical Git SHA-1 source commit was rejected: %v", err)
+	}
+
+	service = testService(t)
+	input = proposalInput(now)
+	input.SourceCommit = strings.Repeat("a", 39) + "z"
+	if _, err := service.Create(input, now); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("malformed source commit was accepted: %v", err)
+	}
+}
+
 func TestBoundsReplayConflictRecusalAndRollback(t *testing.T) {
 	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
 	s := testService(t)

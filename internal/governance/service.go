@@ -881,7 +881,7 @@ func (s *Service) mutable(id string, now time.Time) (*Proposal, error) {
 
 func validateProposal(input ProposalInput, now time.Time, minimumLifetime, maxLifetime time.Duration, rules map[string]ParameterRule) error {
 	validScopes := map[Scope]bool{ScopeProtocolUpgrade: true, ScopeConsensusUpgrade: true, ScopeGenesis: true, ScopeEconomics: true, ScopeTreasury: true, ScopeStablecoin: true, ScopeOracle: true, ScopeBridge: true, ScopeExchange: true, ScopeDEX: true, ScopeVault: true, ScopeSafety: true, ScopeServiceSecurity: true, ScopeResource: true, ScopeProductRegistry: true, ScopeGrants: true, ScopeRetentionPolicy: true, ScopeSecurityPolicy: true, ScopeReleasePolicy: true}
-	if !validScopes[input.Scope] || len(strings.TrimSpace(input.Nonce)) < 8 || len(strings.TrimSpace(input.ProposalType)) < 3 || len(strings.TrimSpace(input.Proposer)) < 3 || len(strings.TrimSpace(input.Owner)) < 3 || len(strings.TrimSpace(input.Summary)) < 16 || len(strings.TrimSpace(input.Motivation)) < 16 || len(strings.TrimSpace(input.TechnicalImpact)) < 16 || len(strings.TrimSpace(input.EconomicImpact)) < 16 || len(strings.TrimSpace(input.SecurityRisk)) < 16 || len(strings.TrimSpace(input.UserImpact)) < 16 || len(strings.TrimSpace(input.ProviderImpact)) < 16 || len(strings.TrimSpace(input.Migration)) < 16 || len(strings.TrimSpace(input.Rollback)) < 16 || len(strings.TrimSpace(input.CanaryPlan)) < 16 || len(strings.TrimSpace(input.VerificationPlan)) < 16 || len(strings.TrimSpace(input.ConflictDisclosure)) < 16 || len(input.Dependencies) == 0 || len(input.Evidence) == 0 || len(input.Changes) == 0 || !validHash(strings.ToLower(input.SourceCommit)) || len(strings.TrimSpace(input.Release)) < 3 || !input.ExpiresAt.After(now.Add(minimumLifetime)) || input.ExpiresAt.After(now.Add(maxLifetime)) {
+	if !validScopes[input.Scope] || len(strings.TrimSpace(input.Nonce)) < 8 || len(strings.TrimSpace(input.ProposalType)) < 3 || len(strings.TrimSpace(input.Proposer)) < 3 || len(strings.TrimSpace(input.Owner)) < 3 || len(strings.TrimSpace(input.Summary)) < 16 || len(strings.TrimSpace(input.Motivation)) < 16 || len(strings.TrimSpace(input.TechnicalImpact)) < 16 || len(strings.TrimSpace(input.EconomicImpact)) < 16 || len(strings.TrimSpace(input.SecurityRisk)) < 16 || len(strings.TrimSpace(input.UserImpact)) < 16 || len(strings.TrimSpace(input.ProviderImpact)) < 16 || len(strings.TrimSpace(input.Migration)) < 16 || len(strings.TrimSpace(input.Rollback)) < 16 || len(strings.TrimSpace(input.CanaryPlan)) < 16 || len(strings.TrimSpace(input.VerificationPlan)) < 16 || len(strings.TrimSpace(input.ConflictDisclosure)) < 16 || len(input.Dependencies) == 0 || len(input.Evidence) == 0 || len(input.Changes) == 0 || !validSourceCommit(strings.ToLower(input.SourceCommit)) || len(strings.TrimSpace(input.Release)) < 3 || !input.ExpiresAt.After(now.Add(minimumLifetime)) || input.ExpiresAt.After(now.Add(maxLifetime)) {
 		return ErrInvalid
 	}
 	for _, dependency := range input.Dependencies {
@@ -936,6 +936,17 @@ func hash(parts ...string) string {
 }
 func validHash(value string) bool {
 	if len(value) != 64 {
+		return false
+	}
+	_, err := hex.DecodeString(value)
+	return err == nil
+}
+
+func validSourceCommit(value string) bool {
+	if len(value) != 40 && len(value) != 64 {
+		return false
+	}
+	if strings.ToLower(value) != value {
 		return false
 	}
 	_, err := hex.DecodeString(value)

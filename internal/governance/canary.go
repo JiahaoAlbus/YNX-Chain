@@ -401,7 +401,8 @@ func validateCanaryResultEnvelope(envelope SignedCanaryResultEnvelope, proposal 
 		envelope.TotalSamples == 0 || envelope.FailedSamples > envelope.TotalSamples ||
 		!validHash(strings.ToLower(envelope.MetricsHash)) ||
 		!validHash(strings.ToLower(strings.TrimPrefix(envelope.StateRoot, "0x"))) ||
-		!envelope.ObservedFrom.Equal(record.Envelope.StartsAt) || !envelope.ObservedTo.Equal(now) ||
+		!envelope.ObservedFrom.Equal(record.Envelope.StartsAt) || envelope.ObservedTo.After(now) ||
+		now.Sub(envelope.ObservedTo) > policy.VoteMaxClockSkew ||
 		envelope.ObservedTo.Before(envelope.ObservedFrom) || len(strings.TrimSpace(envelope.Nonce)) < 16 ||
 		envelope.Verifier == record.Envelope.Operator || envelope.Verifier != strings.TrimSpace(envelope.Verifier) ||
 		envelope.PublicKey != strings.TrimSpace(envelope.PublicKey) || !validCanaryEvidence(envelope.Evidence) {
@@ -587,7 +588,7 @@ func validateStoredCanary(record *CanaryRecord, proposal *Proposal, timelock *Ti
 	}
 	if record.Result != nil {
 		result := record.Result
-		if record.Envelope == nil || !result.CompletedAt.Equal(result.Envelope.ObservedTo) ||
+		if record.Envelope == nil ||
 			validateCanaryResultEnvelope(result.Envelope, proposal, record, policy, result.CompletedAt) != nil ||
 			result.AuditHash != canaryResultAudit(record.ID, result) {
 			return fmt.Errorf("%w: invalid stored canary result", ErrForbidden)

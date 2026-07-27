@@ -21,3 +21,5 @@ jobs:
           cache: true
       - name: Verify governance control plane
         run: bash ./scripts/verify/governance-check.sh
+      - name: Exercise four-validator governance Testnet lifecycle
+        run: bash ./scripts/verify/governance-testnet-drill.sh

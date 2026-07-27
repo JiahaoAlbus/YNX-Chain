@@ -18,7 +18,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 11
+	ApplicationVersion   = 12
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4

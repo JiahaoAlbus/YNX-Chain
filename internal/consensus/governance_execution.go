@@ -190,7 +190,7 @@ func (a *Application) applyProtocolGovernanceAction(state executionState, raw []
 		if record.Status == "failed" {
 			previousHeight = record.FailedHeight
 		}
-		if height <= previousHeight {
+		if !validationOnly && height <= previousHeight {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("governance execution verification requires a later committed block"))
 		}
 		record.Status = p.Outcome

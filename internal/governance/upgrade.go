@@ -81,7 +81,7 @@ func isUpgradeProposal(proposal *Proposal) bool {
 }
 
 func (s *Service) createUpgradeLocked(proposal *Proposal, now time.Time) (*UpgradeRecord, error) {
-	if !isUpgradeProposal(proposal) || !validHash(strings.ToLower(proposal.Input.SourceCommit)) || !validHash(strings.ToLower(proposal.Input.UpgradeHash)) ||
+	if !isUpgradeProposal(proposal) || !validSourceCommit(strings.ToLower(proposal.Input.SourceCommit)) || !validHash(strings.ToLower(proposal.Input.UpgradeHash)) ||
 		len(strings.TrimSpace(proposal.Input.Release)) < 3 || len(strings.TrimSpace(proposal.Input.Migration)) < 16 ||
 		len(strings.TrimSpace(proposal.Input.Rollback)) < 16 || len(strings.TrimSpace(proposal.Input.CanaryPlan)) < 16 || len(strings.TrimSpace(proposal.Input.VerificationPlan)) < 16 {
 		return nil, ErrInvalid
