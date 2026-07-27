@@ -15,7 +15,7 @@
 | Billing ledger/events and Quant verifier | 26 Data Fabric | Audit/event payloads, Ed25519 verifier registry and independent fee calculation exist locally | No | Canonical event/ledger version, accepted public verifier key, evidence source/version/asOf/expiry contract and rotation/revocation vector |
 | Website/public `/pay` | 28 Website | Public metadata exists | No | Hosted route, canonical metadata, support/privacy/security/status paths |
 | Protocol freeze/shared Testnet | 29 Integration | Contract and vectors supplied | No | Signed acceptance against exact commit |
-| Security/release/artifacts | 30 Security/SRE | Local scans/build evidence only | No | SBOM, provenance, hosted hash, signing class and release evidence |
+| Security/release/artifacts and recovery | 30 Security/SRE | Local build plus source-bound backup/restore contract and fixture drill | No | SBOM, provenance, hosted hash, signing class, immutable encrypted retention target, production-volume RTO/RPO drill and release evidence |
 
 ## Pay-owned acceptance already met locally
 
@@ -25,6 +25,7 @@
 - Split Plans are merchant-signed, bounded, persistent and idempotent.
 - Split claims require `pay:settlement:submit`, create one child Invoice per share, reject wrong payers and redact account bindings publicly.
 - Quant bills require an explicitly configured external Ed25519 verifier, reject frontend/manager PnL, remove net capital flows before performance-fee calculation, bind Invoice v5 to the evidence digest and payer, and remain unavailable when the verifier is not accepted.
+- Store snapshots reject unsupported future versions; immutable backups bind SHA-256/bytes/records; restore uses one verified source read, preserves valid rollback or corrupt quarantine artifacts, and fails closed for wrong keys or corrupt sources.
 - Refund, dispute, webhook retry/dead-letter/manual replay, sponsorship, route and bridge paths fail closed under missing authority.
 
 ## Non-acceptance rules

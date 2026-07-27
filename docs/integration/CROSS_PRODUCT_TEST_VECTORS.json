@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "pay",
-  "sourceCommit": "8118cea0404030f6818a4769cc847f8716f60490",
+  "sourceCommit": "2303ceeed6ff8e7a8606b87a2e7155702e4e27b1",
   "vectors": [
     {
       "id": "pay-wallet-valid-session",
@@ -108,6 +108,30 @@
       "owners": ["04-pay", "28-website"],
       "input": "public Quant bill and Invoice v5 lookup",
       "expected": "raw payer is redacted while both payer hashes, evidence signature, evidence digest, high-water-mark inputs and fee breakdown remain independently verifiable"
+    },
+    {
+      "id": "pay-store-valid-backup-restore",
+      "owners": ["04-pay", "30-security-sre-release"],
+      "input": "integrity-valid snapshot v1, new immutable backup path and stopped destination writer",
+      "expected": "backup receipt binds SHA-256, bytes and record count; restore validates and uses one source read, creates a verified rollback artifact for the prior valid destination, atomically restores and re-verifies snapshot v1"
+    },
+    {
+      "id": "pay-store-corrupt-destination-quarantine",
+      "owners": ["04-pay", "30-security-sre-release"],
+      "input": "integrity-valid backup and corrupt current destination",
+      "expected": "preserve corrupt destination bytes in a hash-addressed quarantine artifact, do not label it rollback-valid, restore the verified source and report both hashes"
+    },
+    {
+      "id": "pay-store-corrupt-source-wrong-key-future-version",
+      "owners": ["04-pay", "30-security-sre-release"],
+      "mutation": "tamper backup bytes, use the wrong integrity key, or present an HMAC-valid unsupported snapshot version",
+      "expected": "reject before destination mutation"
+    },
+    {
+      "id": "pay-store-immutable-artifact",
+      "owners": ["04-pay", "30-security-sre-release"],
+      "mutation": "request backup to an existing path or live store path",
+      "expected": "reject; never overwrite the existing artifact or live store"
     },
     {
       "id": "pay-recurring-no-standing-authority",

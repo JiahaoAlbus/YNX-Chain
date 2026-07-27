@@ -16,11 +16,13 @@ Unknown JSON fields are rejected at API and persistence boundaries. Removed prod
 
 ## Migration contract
 
-Any schema change requires a fixture from the previous version, forward migration, deterministic validation, a downgrade/export path, and tests proving that a failed migration leaves the original file intact. A new writer must use a new snapshot version and atomic replacement. Old clients remain supported only while their exact signed protocol version is listed in the release record.
+Source commit `2303ceeed6ff8e7a8606b87a2e7155702e4e27b1` adds fixture-tested forward migration, rollback artifacts, strict future-version rejection and atomic persistence. The fixture proves that legacy Wallet challenges/sessions are removed rather than imported, missing recurring/Split/Quant maps are initialized, failed webhooks become dead letters, Invoice v1 remains readable, and corrupted or wrong-key sources cannot mutate the destination. A new incompatible writer must use a new snapshot version and ship a fixture, deterministic validator, export or rollback migration, and failed-migration immutability test. Old clients remain supported only while their exact signed protocol version is listed in the release record.
 
 ## Backup and restore
 
-Back up the encrypted/integrity-protected store plus its separately managed integrity and encryption keys. A restore drill must verify file hash, permissions, envelope MAC, object counts, audit continuity and read-only API behavior before traffic is enabled. “The process restarted” is not restore evidence.
+`ynx-pay-store` provides three offline operator commands. `verify --store` checks strict JSON, envelope version, HMAC, snapshot version, SHA-256, byte count and record count. `backup --store --output` writes a new immutable artifact with mode `0600`; it never overwrites an existing backup. `restore --backup --store` reads and validates the source once, preserves a valid destination as a hash-addressed verified rollback artifact, or preserves an invalid destination byte-for-byte as a quarantine artifact, then atomically restores and re-verifies the destination.
+
+All writers must be stopped before restore. The integrity key must come from the approved secret manager and must never be embedded in the backup, source or command history. The local drill verifies hash, permissions, MAC, object counts, additive migration, rollback, corruption recovery and wrong-key rejection. Production-volume RTO/RPO, remote retention/replication and Windows directory-fsync parity remain unverified and must not be inferred from the local drill.
 
 ## Retention, export and deletion
 

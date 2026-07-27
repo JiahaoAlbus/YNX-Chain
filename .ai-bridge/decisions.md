@@ -12,3 +12,7 @@
 10. The Pay client independently verifies the accepted Quant public key, evidence digest/signature, every calculation and Invoice v5 binding before Wallet review.
 11. Central Wallet/Gateway, Quant verifier acceptance, Testnet, public, hosted, signing and store states remain false until direct evidence exists.
 12. Repository-wide failures in other product owners are recorded, not repaired by broad out-of-scope edits in 04 Pay.
+13. Backup artifacts are immutable: the operator CLI refuses to overwrite an existing output path, and every receipt binds SHA-256, bytes and record count.
+14. Restore validates and uses one source read to avoid a validation/use race. A valid destination becomes a verified hash-addressed rollback artifact; an invalid destination is preserved only as quarantine evidence.
+15. Unknown future snapshot versions, wrong integrity keys, corrupt sources and ambiguous short-Hex key encodings fail closed.
+16. Restore is offline. No production-volume RTO/RPO, remote-retention or Windows directory-fsync claim is made from the local fixture drill.

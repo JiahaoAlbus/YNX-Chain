@@ -4,7 +4,7 @@
 
 - Product owner: `04-pay`
 - Branch: `codex/final-pay`
-- Source commit: `8118cea0404030f6818a4769cc847f8716f60490`
+- Source commit: `2303ceeed6ff8e7a8606b87a2e7155702e4e27b1`
 - Canonical machine contract: `release/integration/pay-contract.json`
 - Central freeze owner: `29-integration`
 
@@ -55,7 +55,7 @@ Quant/service billing consumes an Ed25519-signed evidence envelope from an expli
 
 ## Migration and compatibility
 
-Snapshots that predate Split Payments omit `splitPayments`; snapshots that predate Quant billing omit `quantBills`. Normalization creates empty maps without modifying existing merchants, invoices, receipts or audit entries. Invoice v1–v3 signing material is unchanged; Split child Invoices are v4 and externally verified service invoices are v5. The snapshot envelope remains HMAC-SHA-256 protected and atomically replaced.
+Snapshots that predate recurring drafts, Split Payments or Quant billing omit their corresponding maps; normalization creates empty maps without modifying existing merchants, invoices, receipts or audit entries. Removed product-local Wallet challenges/sessions are dropped and must be re-established through the canonical Gateway. Legacy failed webhooks become dead letters. Invoice v1–v3 signing material is unchanged; Split child Invoices are v4 and externally verified service invoices are v5. Snapshot envelope/version/HMAC checks fail closed, future snapshot versions are rejected, and persistence uses same-directory file fsync, atomic rename and non-Windows directory fsync. The source-bound offline backup/restore contract is `docs/integration/pay-store-recovery.json`.
 
 ## Verification
 
@@ -74,6 +74,11 @@ Passing locally on 2026-07-27:
 - Invoice v5 service-bill/evidence/payer binding and wrong-payer rejection
 - owner/finance Quant RBAC and public raw-payer redaction
 - client evidence digest/signature/math verification, 13/13 tests and 12-language fee review
+- fixture-based forward migration, legacy Wallet-session removal and failed-webhook dead-letter normalization
+- immutable `0600` backup, SHA/bytes/record receipt and no-overwrite behavior
+- single-read source verification, offline restore, verified rollback and corrupt-destination quarantine
+- corrupt source, wrong key, future snapshot version and ambiguous short-Hex key rejection
+- `go vet ./internal/payproduct/...`, `make pay-api-check` and full Pay smoke
 
 Repository-wide `go test ./... -count=1` is not green because unchanged Consensus/Faucet/Trust key-permission tests fail in the current host environment and unchanged IDE tests require a missing generated contract artifact. The Pay package passes in that run. These are not being silently fixed in the Pay worktree as Pay-owned requirements.
 
@@ -86,5 +91,6 @@ Repository-wide `go test ./... -count=1` is not green because unchanged Consensu
 3. Replay, wrong product, wrong bundle, wrong device, scope widening, expiry and revoke vectors fail closed.
 4. Split claim reaches the Pay service through the product-scoped route without exposing server keys.
 5. `08-quant-lab` and `26-data-fabric-billing-ledger` sign the exact Quant evidence schema with a frozen, rotatable Ed25519 verifier key; stale, tampered, deposit-only and wrong-payer vectors behave as specified.
-6. A fresh YNX Testnet payment produces a matching authoritative receipt and Explorer evidence, including one source-bound Quant Invoice v5 payment.
-7. Public deployment, artifact, install and signing states are updated only from direct evidence.
+6. `30-security-sre-release` accepts the immutable backup/restore receipt schema, offline-writer stop condition, verified rollback/quarantine semantics, remote retention target and production-volume RTO/RPO drill.
+7. A fresh YNX Testnet payment produces a matching authoritative receipt and Explorer evidence, including one source-bound Quant Invoice v5 payment.
+8. Public deployment, artifact, install and signing states are updated only from direct evidence.
