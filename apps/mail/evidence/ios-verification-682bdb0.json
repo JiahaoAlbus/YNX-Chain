@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "YNX Mail",
+  "sourceCommit": "682bdb075803a77c9591fc59b83708944ea76fdf",
+  "release": "0.3.0-testnet-preview-source",
+  "platform": "ios",
+  "staticVerification": {
+    "command": "npm run check:ios --prefix apps/mail",
+    "swiftParse": "pass",
+    "infoPlistLint": "pass",
+    "projectFileLint": "pass",
+    "marketingVersion": "0.3.0",
+    "currentProjectVersion": 2,
+    "minimumOS": "17.0"
+  },
+  "build": {
+    "attempted": true,
+    "result": "blocked",
+    "reason": "xcodebuild requires a complete Xcode installation; only Command Line Tools are installed and neither Xcode.app nor Xcode-beta.app is present"
+  },
+  "installedLocal": false,
+  "artifact": null,
+  "productionSigned": false,
+  "storeReleased": false,
+  "recordedAt": "2026-07-27T15:34:04Z"
+}

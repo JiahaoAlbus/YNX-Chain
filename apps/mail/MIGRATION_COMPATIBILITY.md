@@ -35,7 +35,7 @@ The provider recovery drill specifically proves that a complaint remains suppres
 
 - `go test -race ./internal/mail`: pass
 - `go vet ./internal/mail`: pass
-- `npm test --prefix apps/mail`: 8/8 pass
+- `npm test --prefix apps/mail`: 9/9 pass
 - `npm run build --prefix apps/mail`: pass
 - `npm run smoke --prefix apps/mail`: pass
 

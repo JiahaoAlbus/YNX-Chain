@@ -19,6 +19,15 @@ const iosProject = readFileSync(
   new URL("../native/ios/YNXMail.xcodeproj/project.pbxproj", import.meta.url),
   "utf8",
 );
+const androidEvidence = JSON.parse(
+  readFileSync(new URL("../evidence/android-install-682bdb0.json", import.meta.url), "utf8"),
+);
+const desktopEvidence = JSON.parse(
+  readFileSync(new URL("../evidence/desktop-install-682bdb0.json", import.meta.url), "utf8"),
+);
+const iosEvidence = JSON.parse(
+  readFileSync(new URL("../evidence/ios-verification-682bdb0.json", import.meta.url), "utf8"),
+);
 
 test("Mail release record exposes every acceptance state and evidence field", () => {
   for (const key of [
@@ -61,6 +70,26 @@ test("Mail release identity stays aligned across every build surface", () => {
   assert.match(androidBuild, /versionName '0\.3\.0-test'/);
   assert.equal((iosProject.match(/CURRENT_PROJECT_VERSION = 2;/g) ?? []).length, 2);
   assert.equal((iosProject.match(/MARKETING_VERSION = 0\.3\.0;/g) ?? []).length, 2);
+});
+
+test("Mail platform evidence matches the release source", () => {
+  for (const evidence of [androidEvidence, desktopEvidence, iosEvidence])
+    assert.equal(evidence.sourceCommit, release.commit);
+  assert.equal(release.installedLocal.android, true);
+  assert.equal(release.installedLocal.desktop, true);
+  assert.equal(release.installedLocal.ios, false);
+  assert.equal(release.sha256[androidEvidence.artifact.name], androidEvidence.artifact.sha256);
+  assert.equal(release.bytes[androidEvidence.artifact.name], androidEvidence.artifact.bytes);
+  assert.equal(release.signingClass.android, androidEvidence.artifact.signingClass);
+  assert.equal(release.sha256[desktopEvidence.artifact.name], desktopEvidence.artifact.sha256);
+  assert.equal(release.bytes[desktopEvidence.artifact.name], desktopEvidence.artifact.bytes);
+  assert.equal(release.signingClass.desktop, desktopEvidence.artifact.signingClass);
+  assert.equal(androidEvidence.install.result, "pass");
+  assert.equal(desktopEvidence.verification.embeddedCommitMatched, true);
+  assert.equal(iosEvidence.build.result, "blocked");
+  assert.equal(iosEvidence.installedLocal, false);
+  assert.equal(release.downloadHosted, false);
+  assert.deepEqual(release.artifactUrls, []);
 });
 
 test("Mail public metadata is complete without overstating release status", () => {

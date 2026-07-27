@@ -2,7 +2,7 @@
   "productId": "com.ynx.mail",
   "name": "YNX Mail",
   "branch": "codex/final-mail",
-  "commit": "0e087bc1fe7f71732d28dab1a6c7414e28d424ce",
+  "commit": "682bdb075803a77c9591fc59b83708944ea76fdf",
   "version": "0.3.0-testnet-preview-source",
   "surfaces": [
     "android-native",
@@ -14,9 +14,9 @@
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": {
-    "android": false,
+    "android": true,
     "ios": false,
-    "desktop": false
+    "desktop": true
   },
   "integratedCentral": false,
   "deployedStaging": false,
@@ -27,19 +27,33 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
-  "sha256": {},
-  "bytes": {},
+  "sha256": {
+    "app-debug.apk": "92214dd2f1a086ef586a834be7a8c2e2cd611d758788d734e41d1f9c3bf81448",
+    "ynx-mail-0.3.0-testnet-preview-source-darwin-arm64.tar.gz": "42c8cde2f71ab967adaa2116493830586a1b241bb2f60240dd91b2b8a0ebaf73"
+  },
+  "bytes": {
+    "app-debug.apk": 6393187,
+    "ynx-mail-0.3.0-testnet-preview-source-darwin-arm64.tar.gz": 2782558
+  },
   "signingClass": {
-    "android": "not-built-for-current-source",
+    "android": "debug-test-signed",
     "ios": "not-built-for-current-source",
-    "desktop": "not-packaged-for-current-source"
+    "desktop": "unsigned-local"
   },
   "minOS": {
     "android": 26,
     "ios": "17.0",
     "macOS": "13.0"
   },
-  "installEvidence": [],
+  "installEvidence": [
+    "apps/mail/evidence/android-install-682bdb0.json",
+    "apps/mail/evidence/desktop-install-682bdb0.json"
+  ],
+  "platformEvidence": {
+    "android": "apps/mail/evidence/android-install-682bdb0.json",
+    "ios": "apps/mail/evidence/ios-verification-682bdb0.json",
+    "desktop": "apps/mail/evidence/desktop-install-682bdb0.json"
+  },
   "centralIntegration": "docs/integration/INTEGRATION_HANDOFF.md",
   "integrationContract": "release/integration/mail-contract.json",
   "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
@@ -48,9 +62,12 @@
   "runtimeEvidence": {
     "mailRace": "go test -race ./internal/mail: pass",
     "mailVet": "go vet ./internal/mail: pass",
-    "mailWeb": "npm test --prefix apps/mail: 8/8 pass",
+    "mailWeb": "npm test --prefix apps/mail: 9/9 pass",
     "mailBuild": "npm run build --prefix apps/mail: pass",
     "mailSmoke": "npm run smoke --prefix apps/mail: pass",
+    "desktopInstall": "current-source unsigned local package extracted, cold-started and restarted: pass",
+    "androidBuildInstall": "current-source debug/test APK built with JDK 17, installed on API 36 emulator, cold-started, restarted and callback route resolved: pass",
+    "iosStaticVerification": "Swift parse and project/plist lint: pass; Simulator build blocked because complete Xcode is not installed",
     "fullRepositoryPreflight": "Mail passes; blocked outside Mail ownership by Consensus key-permission failures, missing Developer contract artifact, Faucet key-permission failure and Trust signer-permission failure",
     "securityScanGate": "shared placeholder and secret scripts are invalid on this host because missing rg produced false-green exit code 0; not counted as pass"
   },
@@ -95,7 +112,7 @@
     "note": "Historical artifacts remain hosted but do not contain the current Internet Bridge source."
   },
   "knownLimitations": [
-    "Current source candidate has not yet been repackaged, reinstalled or hosted; historical 0.2.0 artifacts do not include the Internet Bridge.",
+    "Current-source Android and desktop artifacts are built and installed locally only; they are not hosted or production signed. iOS Simulator build/install remains blocked because complete Xcode is not installed. Historical 0.2.0 artifacts do not include the Internet Bridge.",
     "No provider credential, verified sender domain, DNS/SPF/DKIM/DMARC evidence, public webhook, reputation proof or sandbox delivery evidence is present.",
     "Central Wallet registry/verifier and AI POST route are not merged or deployed.",
     "No production signing, persistent staging Web/API, public product URL or store release.",
@@ -104,5 +121,5 @@
     "Legacy state forward loading is verified, but an explicit rollback export and old-binary drill remain incomplete.",
     "Malware scanning, operator unsuppression with central RBAC, active provider health polling and Monitor alerts remain incomplete."
   ],
-  "generatedAt": "2026-07-27T14:40:02Z"
+  "generatedAt": "2026-07-27T15:34:04Z"
 }

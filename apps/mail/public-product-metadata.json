@@ -7,7 +7,7 @@
     "Mail",
     "YNX Native Mail"
   ],
-  "runtimeSourceCommit": "0e087bc1fe7f71732d28dab1a6c7414e28d424ce",
+  "runtimeSourceCommit": "682bdb075803a77c9591fc59b83708944ea76fdf",
   "canonicalRoute": "/mail",
   "canonicalUrl": null,
   "seo": {
@@ -36,7 +36,7 @@
   "riskAndStatus": [
     "Internet provider delivery is not publicly enabled and no verified sender domain or DNS evidence exists.",
     "Provider acceptance does not mean delivered or read; open and click telemetry never establishes YNX user-read state.",
-    "Current Android, iOS and desktop artifacts are not rebuilt, installed or hosted for this source commit.",
+    "Current Android and desktop artifacts are built and installed locally but are not hosted or production signed; iOS Simulator build/install is not verified because complete Xcode is unavailable.",
     "The self-contained backup contains sensitive key material and requires an approved encrypted operator boundary.",
     "Message bodies and attachments are not end-to-end encrypted.",
     "Central Wallet, Cloud malware scanning, Trust operations, Monitor alerts and Data Fabric event acceptance remain incomplete."
@@ -90,5 +90,5 @@
     "releaseStatus": "Testnet source verified locally; not publicly deployed"
   },
   "websiteIntegrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
-  "generatedAt": "2026-07-27T14:40:02Z"
+  "generatedAt": "2026-07-27T15:34:04Z"
 }

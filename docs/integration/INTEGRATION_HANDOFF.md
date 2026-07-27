@@ -3,7 +3,7 @@
 Version: 1.0.0  
 Product: 25｜YNX Mail  
 Branch: `codex/final-mail`  
-Runtime source commit: `0e087bc1fe7f71732d28dab1a6c7414e28d424ce`  
+Runtime source commit: `682bdb075803a77c9591fc59b83708944ea76fdf`  
 Current stage: FREEZE → INTEGRATE  
 Goal status: Active
 
@@ -57,9 +57,14 @@ configuration and locally observed submission/webhook evidence.
 | `go test ./internal/mail` | Pass |
 | `go test -race ./internal/mail` | Pass |
 | `go vet ./internal/mail` | Pass |
-| `npm test --prefix apps/mail` | Pass, 8/8 |
+| `npm test --prefix apps/mail` | Pass, 9/9 |
 | `npm run build --prefix apps/mail` | Pass |
 | `npm run smoke --prefix apps/mail` | Pass |
+| `npm run proof:desktop --prefix apps/mail` | Pass; exact-commit unsigned package, cold start and restart |
+| Android `:app:assembleDebug` with JDK 17 and SDK 36 | Pass; debug/test signed APK |
+| Android API 36 install, cold start, restart and callback route | Pass |
+| `npm run check:ios --prefix apps/mail` | Pass; Swift and project/plist static verification |
+| iOS Simulator build/install | Blocked; complete Xcode is not installed |
 | `gofmt -d` on changed Go files | Clean |
 | `go test ./...` | Mail passes; shared repository blocked by non-Mail owner failures recorded below |
 
@@ -85,6 +90,9 @@ repair before Release acceptance.
 - Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 - Migration and recovery compatibility: `apps/mail/MIGRATION_COMPATIBILITY.md`
 - Public product metadata: `apps/mail/public-product-metadata.json`
+- Android install evidence: `apps/mail/evidence/android-install-682bdb0.json`
+- Desktop install evidence: `apps/mail/evidence/desktop-install-682bdb0.json`
+- iOS verification evidence: `apps/mail/evidence/ios-verification-682bdb0.json`
 - Current release record: `apps/mail/product-release.json`
 - Goal coverage: `.ai-bridge/full-goal-coverage.json`
 
@@ -114,9 +122,7 @@ HTTPS webhook, provider terms approval, abuse desk, reputation evidence or real
 sandbox delivery is currently available. These states remain false in
 `product-release.json`.
 
-Current-source Android, iOS and desktop packages have not yet been rebuilt,
-installed or hosted. Historical 0.2.0 artifacts remain evidence for the older
-source only and must not be represented as containing this Internet Bridge.
+Current-source Android and desktop packages are rebuilt and installed locally with exact-commit evidence, but remain local-only and are not production signed or hosted. Current-source iOS static checks pass, while Simulator build/install remains blocked because complete Xcode is unavailable. Historical 0.2.0 artifacts remain evidence for the older source only and must not be represented as containing this Internet Bridge.
 
 ## Exact next engineering actions
 
@@ -126,5 +132,4 @@ source only and must not be represented as containing this Internet Bridge.
    against the prior accepted Mail runtime.
 3. Define a centrally authorized operator review/unsuppression path and Monitor
    alerts without granting Mail arbitrary Trust or provider administration.
-4. Rebuild and reinstall current-source desktop, Android and iOS artifacts before
-   restoring any hosted/download state to true.
+4. Complete the current-source iOS Simulator build/install/callback drill and route Android/desktop artifacts through immutable hosting, provenance and approved signing before restoring any hosted/download state to true.

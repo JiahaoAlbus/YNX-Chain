@@ -4,10 +4,11 @@
 - Branch: `codex/final-mail`
 - Stage: INTEGRATE
 - Goal: Active
-- Runtime commit: `0e087bc1fe7f71732d28dab1a6c7414e28d424ce`
-- Runtime push: verified Local SHA = Remote SHA; Ahead/Behind = 0/0
-- Working tree: evidence and integration truth sync in progress
-- Targeted tests: Mail Race, Vet, UI tests, build and smoke pass
+- Release-source commit: `682bdb075803a77c9591fc59b83708944ea76fdf`
+- Source push: verified Local SHA = Remote SHA; Ahead/Behind = 0/0
+- Working tree: exact-source platform evidence and release truth sync in progress
+- Targeted tests: Mail Race, Vet, UI 9/9, Web build/smoke, desktop install, Android build/install/cold-start/restart/callback and iOS static checks pass
+- Platform truth: Android is debug/test signed and installed locally; desktop is unsigned and installed locally; iOS Simulator build/install is blocked because complete Xcode is unavailable
 - Shared repository preflight: Mail passes; blocked by non-Mail Consensus key permission, missing Developer contract artifact, Faucet permission and Trust signer permission failures
 - Security gate note: shared placeholder and secret scripts false-green when `rg` is absent; results are invalid until 30 Security/SRE repairs the scripts or guarantees the dependency
-- Current blocker class: central dependencies and later external provider/DNS authority; autonomous Mail work remains
+- Current blocker class: central dependencies, iOS build environment and later external provider/DNS/signing/hosting authority; autonomous Mail work remains
