@@ -2,8 +2,8 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "d6505fb40988",
-  "contractVersion": "1.7.0",
+  "sourceCommit": "57a13bacaaf1",
+  "contractVersion": "1.8.0",
   "stateSchema": {
     "committedStateVersion": 11,
     "applicationVersion": 17,
@@ -126,6 +126,8 @@
       "eth_chainId",
       "net_version",
       "eth_blockNumber",
+      "eth_gasPrice",
+      "eth_maxPriorityFeePerGas",
       "eth_getBlockByNumber",
       "eth_getBlockByHash",
       "eth_getBlockTransactionCountByNumber",
@@ -189,6 +191,35 @@
       "yParity": true,
       "dualHashIdentity": true,
       "receiptAuditValidation": true
+    },
+    "feeSuggestionProfile": {
+      "minimumAcceptedGasPrice": 1,
+      "gasPriceResponse": "0x1",
+      "maxPriorityFeePerGasResponse": "0x1",
+      "params": "omitted-or-empty-array-only",
+      "marketEstimate": false,
+      "historicalFeeHistory": false,
+      "ethFeeHistorySupported": false,
+      "dynamicBaseFeeMarket": false
+    },
+    "signerCliProfile": {
+      "command": "ynx-consensus-tx",
+      "envelopes": ["ynx", "eip155", "eip2930", "eip1559"],
+      "outputFormats": ["raw", "json"],
+      "keyFilePermissions": "0600",
+      "privateKeyOutput": false,
+      "dualHashEvidence": true
+    },
+    "committedBroadcastEvidence": {
+      "broadcastCommitRequired": true,
+      "blockMembershipRequired": true,
+      "appHashRequired": true,
+      "dataHashRequiredWhenTransactionsPresent": true,
+      "blockResultsGasMustMatchBroadcast": true,
+      "receiptAuditMustMatchBlockTransaction": true,
+      "ethereumAndCometHashesMustMatchTheirDomains": true,
+      "duplicateCometCacheErrorRpcCode": -32003,
+      "upstreamOrEvidenceMismatchRpcCode": -32603
     },
     "committedOnly": true,
     "historicalAccountState": false,
@@ -260,6 +291,13 @@
     "userOperation": "chain/accounts/user-operation.schema.json",
     "validatorManifest": "chain/consensus/production-validator-manifest.schema.json"
   },
+  "localConsensusLab": {
+    "command": "ynx-consensus-lab",
+    "fixtureBalanceConfigurable": true,
+    "fixtureBalancePositiveOnly": true,
+    "ephemeralLocalOnly": true,
+    "publicDeploymentEvidence": false
+  },
   "recovery": {
     "abciStateSync": {
       "implementedLocal": true,
@@ -275,6 +313,25 @@
       "archiveEntriesValidated": true,
       "rollbackReplayToCurrentAppHash": true,
       "remoteDrillComplete": false
+    },
+    "fourValidatorEIP1559CommitProof": {
+      "script": "scripts/verify/consensus-eip1559-commit-check.sh",
+      "mode": "local-ephemeral-four-validator",
+      "validatorCount": 4,
+      "gatewayBroadcastCommit": true,
+      "ethereumAndCometDualIdentityValidated": true,
+      "blockNumberAndHashReadbackValidated": true,
+      "cometTransactionMembershipValidated": true,
+      "auditedReceiptValidated": true,
+      "allValidatorAppHashEqual": true,
+      "allValidatorReceiptEvidenceEqual": true,
+      "allValidatorAccountStateEqual": true,
+      "accountBalanceAndNonceReadbackValidated": true,
+      "backupRollbackReplayIncludesDynamicFeeState": true,
+      "wrongChainRejected": true,
+      "replayRejected": true,
+      "deployedPublic": false,
+      "productionSigned": false
     },
     "indexerPersistence": {
       "schemaVersion": 2,

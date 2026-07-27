@@ -42,6 +42,10 @@ const evmSource = readFileSync("internal/bftgateway/evm.go", "utf8");
 const bundlerSource = readFileSync("internal/bundler/server.go", "utf8");
 const quantGatewaySource = readFileSync("internal/bftgateway/quant.go", "utf8");
 const assetAuthorizationSource = readFileSync("internal/consensus/asset_authorization_action.go", "utf8");
+const signerCliSource = readFileSync("cmd/ynx-consensus-tx/main.go", "utf8");
+const consensusLabSource = readFileSync("cmd/ynx-consensus-lab/main.go", "utf8");
+const quorumCheckSource = readFileSync("scripts/verify/consensus-quorum-check.sh", "utf8");
+const eip1559CommitCheckSource = readFileSync("scripts/verify/consensus-eip1559-commit-check.sh", "utf8");
 
 requireValue(release.schema === "ynx-product-release/v1", "unexpected product release schema");
 requireValue(contract.schema === "ynx-integration-contract/v1", "unexpected contract schema");
@@ -77,7 +81,7 @@ requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplet
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
 }
-requireValue(contract.contractVersion === "1.7.0", "unexpected Chain Core contract version");
+requireValue(contract.contractVersion === "1.8.0", "unexpected Chain Core contract version");
 requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
 requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
 requireValue(contract.evmRpc.historicalContractState === false, "EVM RPC cannot claim historical contract state");
@@ -106,8 +110,33 @@ const dynamicFeeProfile = contract.evmRpc.ethereumDynamicFeeTransactionProfile;
 requireValue(dynamicFeeProfile.transactionType === "0x2" && dynamicFeeProfile.standard === "EIP-1559" && dynamicFeeProfile.chainId === 6423 && dynamicFeeProfile.gasLimit === 21000, "bounded EIP-1559 identity or gas profile drift");
 requireValue(dynamicFeeProfile.accessList === "empty-only" && dynamicFeeProfile.contractCreation === false && dynamicFeeProfile.calldata === false && dynamicFeeProfile.baseFeePerGas === 0 && dynamicFeeProfile.effectiveGasPrice === "maxPriorityFeePerGas", "bounded EIP-1559 compatibility boundary drift");
 requireValue(dynamicFeeProfile.maximumFeeExposureRequired === true && dynamicFeeProfile.maximumAffordabilityCheck === "value-plus-maxFeePerGas-times-gasLimit" && dynamicFeeProfile.finalDebit === "value-plus-effectiveGasPrice-times-gasLimit" && dynamicFeeProfile.dynamicBaseFeeMarket === false && dynamicFeeProfile.burn === false && dynamicFeeProfile.signatureRecovery === true && dynamicFeeProfile.yParity === true && dynamicFeeProfile.dualHashIdentity === true && dynamicFeeProfile.receiptAuditValidation === true, "bounded EIP-1559 evidence profile drift");
+const feeSuggestionProfile = contract.evmRpc.feeSuggestionProfile;
+requireValue(feeSuggestionProfile.minimumAcceptedGasPrice === 1 && feeSuggestionProfile.gasPriceResponse === "0x1" && feeSuggestionProfile.maxPriorityFeePerGasResponse === "0x1", "minimum gas price suggestion drift");
+requireValue(feeSuggestionProfile.params === "omitted-or-empty-array-only" && feeSuggestionProfile.marketEstimate === false && feeSuggestionProfile.historicalFeeHistory === false && feeSuggestionProfile.ethFeeHistorySupported === false && feeSuggestionProfile.dynamicBaseFeeMarket === false, "fee suggestion truth boundary drift");
+requireValue(ethereumTransactionSource.includes("EthereumMinimumGasPrice") && evmSource.includes("evmFeeSuggestionResult"), "fee suggestion runtime binding missing");
+const signerCliProfile = contract.evmRpc.signerCliProfile;
+requireValue(signerCliProfile.command === "ynx-consensus-tx" && JSON.stringify(signerCliProfile.envelopes) === JSON.stringify(["ynx", "eip155", "eip2930", "eip1559"]), "signer CLI envelope profile drift");
+requireValue(JSON.stringify(signerCliProfile.outputFormats) === JSON.stringify(["raw", "json"]) && signerCliProfile.keyFilePermissions === "0600" && signerCliProfile.privateKeyOutput === false && signerCliProfile.dualHashEvidence === true, "signer CLI security or evidence profile drift");
+for (const fragment of ["envelopeEIP155", "envelopeEIP2930", "envelopeEIP1559", 'format != "raw" && format != "json"', "PayloadHex", "CometHash", "loadPrivateKey", "info.Mode().Perm()&0o077"]) {
+  requireValue(signerCliSource.includes(fragment), `signer CLI runtime evidence missing: ${fragment}`);
+}
+requireValue(contract.localConsensusLab.fixtureBalanceConfigurable === true && contract.localConsensusLab.fixtureBalancePositiveOnly === true && contract.localConsensusLab.ephemeralLocalOnly === true && contract.localConsensusLab.publicDeploymentEvidence === false, "local consensus lab boundary drift");
+requireValue(consensusLabSource.includes("fixture-balance") && consensusLabSource.includes("localMigrationFixture"), "configurable consensus fixture runtime evidence missing");
+const fourValidatorProof = contract.recovery.fourValidatorEIP1559CommitProof;
+requireValue(fourValidatorProof.script === "scripts/verify/consensus-eip1559-commit-check.sh" && fourValidatorProof.mode === "local-ephemeral-four-validator" && fourValidatorProof.validatorCount === 4 && fourValidatorProof.gatewayBroadcastCommit === true && fourValidatorProof.ethereumAndCometDualIdentityValidated === true && fourValidatorProof.blockNumberAndHashReadbackValidated === true && fourValidatorProof.cometTransactionMembershipValidated === true && fourValidatorProof.auditedReceiptValidated === true && fourValidatorProof.allValidatorAppHashEqual === true && fourValidatorProof.allValidatorReceiptEvidenceEqual === true && fourValidatorProof.allValidatorAccountStateEqual === true && fourValidatorProof.accountBalanceAndNonceReadbackValidated === true && fourValidatorProof.backupRollbackReplayIncludesDynamicFeeState === true && fourValidatorProof.wrongChainRejected === true && fourValidatorProof.replayRejected === true && fourValidatorProof.deployedPublic === false && fourValidatorProof.productionSigned === false, "four-validator EIP-1559 proof boundary drift");
+requireValue(quorumCheckSource.includes("dynamicFeeTransaction") && quorumCheckSource.includes("rollbackReplay=true"), "quorum EIP-1559 rollback evidence missing");
+requireValue(eip1559CommitCheckSource.includes("eth_sendRawTransaction") && eip1559CommitCheckSource.includes("deployedPublic: false"), "independent EIP-1559 commit evidence missing");
 requireValue(evmSource.includes('result["accessList"] = []any{}') && evmSource.includes('result["yParity"]'), "typed Ethereum JSON-RPC transaction mapping missing");
 requireValue(evmSource.includes('result["maxPriorityFeePerGas"]') && evmSource.includes('result["maxFeePerGas"]') && evmSource.includes('"baseFeePerGas"'), "EIP-1559 JSON-RPC fee mapping missing");
+requireValue(gatewaySource.includes('case "eth_gasPrice", "eth_maxPriorityFeePerGas"') && evmSource.includes("consensus.EthereumMinimumGasPrice"), "fee suggestion runtime mapping missing");
+const committedBroadcastEvidence = contract.evmRpc.committedBroadcastEvidence;
+requireValue(committedBroadcastEvidence.broadcastCommitRequired === true && committedBroadcastEvidence.blockMembershipRequired === true && committedBroadcastEvidence.appHashRequired === true && committedBroadcastEvidence.dataHashRequiredWhenTransactionsPresent === true, "committed broadcast block evidence profile drift");
+requireValue(committedBroadcastEvidence.blockResultsGasMustMatchBroadcast === true && committedBroadcastEvidence.receiptAuditMustMatchBlockTransaction === true && committedBroadcastEvidence.ethereumAndCometHashesMustMatchTheirDomains === true, "committed broadcast transaction evidence profile drift");
+requireValue(committedBroadcastEvidence.duplicateCometCacheErrorRpcCode === -32003 && committedBroadcastEvidence.upstreamOrEvidenceMismatchRpcCode === -32603, "committed broadcast error classification drift");
+for (const fragment of ["committedEthereumTransaction(ctx, externalHash)", "committed Ethereum CometBFT evidence does not match broadcast result", "committed Ethereum receipt evidence does not match broadcast transaction", "tx already exists in cache"]) {
+  requireValue(gatewaySource.includes(fragment), `committed Ethereum broadcast runtime evidence missing: ${fragment}`);
+}
+requireValue(evmSource.includes("committed Ethereum block is missing a valid AppHash") && evmSource.includes("committed Ethereum block is missing a valid data hash"), "committed Ethereum AppHash/DataHash validation missing");
 requireValue(evmSource.includes("consensus.ValidateBFTEVMReceipt(receipt)"), "committed Ethereum receipt audit validation missing");
 requireValue(evmSource.includes("consensus.ValidateBFTEVMReceipt(ideReceipt)"), "JSON-RPC receipt audit validation missing");
 requireValue(contract.evmRpc.rejectionCodes.invalidParams === -32602, "EVM invalid-parameter code drift");
@@ -214,7 +243,17 @@ for (const required of [
   "solvency-liability-proof-tamper-reject",
   "abci-state-sync-roundtrip-accept",
   "abci-state-sync-tampered-chunk-reject",
-  "validator-backup-rollback-replay-accept"
+  "validator-backup-rollback-replay-accept",
+  "evm-gas-price-minimum-suggestion-accept",
+  "evm-max-priority-fee-minimum-suggestion-accept",
+  "evm-fee-suggestion-invalid-params-reject",
+  "evm-fee-history-unavailable-reject",
+  "consensus-signer-cli-bounded-envelopes-accept",
+  "consensus-lab-configurable-fixture-balance-accept",
+  "consensus-four-validator-eip1559-commit-rollback-accept",
+  "evm-broadcast-committed-evidence-binding-accept",
+  "evm-broadcast-committed-evidence-mismatch-reject",
+  "evm-comet-cache-duplicate-reject"
 ]) {
   requireValue(ids.has(required), `required cross-product vector missing: ${required}`);
 }

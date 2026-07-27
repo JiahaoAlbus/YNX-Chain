@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "d6505fb40988",
+  "sourceCommit": "57a13bacaaf1",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,
@@ -571,6 +571,120 @@
       "operation": "restore-validator-backup-and-replay",
       "inputSource": "scripts/verify/consensus-quorum-check.sh",
       "expected": "accept"
+    },
+    {
+      "id": "evm-gas-price-minimum-suggestion-accept",
+      "owner": "chain-core",
+      "operation": "eth_gasPrice",
+      "inputSource": "internal/bftgateway/fee_suggestion_test.go",
+      "expected": "accept",
+      "expectedResult": "0x1",
+      "semantics": "minimum-accepted-protocol-value-not-market-estimate"
+    },
+    {
+      "id": "evm-max-priority-fee-minimum-suggestion-accept",
+      "owner": "chain-core",
+      "operation": "eth_maxPriorityFeePerGas",
+      "inputSource": "internal/bftgateway/fee_suggestion_test.go",
+      "expected": "accept",
+      "expectedResult": "0x1",
+      "semantics": "minimum-accepted-protocol-value-not-market-estimate"
+    },
+    {
+      "id": "evm-fee-suggestion-invalid-params-reject",
+      "owner": "chain-core",
+      "operation": "eth_gasPrice-or-eth_maxPriorityFeePerGas",
+      "inputSource": "internal/bftgateway/fee_suggestion_test.go",
+      "mutation": "supply-null-object-or-extra-parameters",
+      "expected": "reject",
+      "errorClass": "invalid-params",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-fee-history-unavailable-reject",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "internal/bftgateway/fee_suggestion_test.go",
+      "expected": "reject",
+      "errorClass": "unsupported-method",
+      "expectedRpcCode": -32601
+    },
+    {
+      "id": "consensus-signer-cli-bounded-envelopes-accept",
+      "owner": "chain-core",
+      "operation": "sign-bounded-transaction",
+      "inputSource": "cmd/ynx-consensus-tx/main_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "ynx-eip155-eip2930-eip1559",
+        "raw-and-json-output",
+        "0600-key-file",
+        "no-private-key-output",
+        "ethereum-and-comet-dual-hash"
+      ]
+    },
+    {
+      "id": "consensus-lab-configurable-fixture-balance-accept",
+      "owner": "chain-core",
+      "operation": "create-local-four-validator-fixture",
+      "inputSource": "cmd/ynx-consensus-lab/main_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "exact-positive-balance",
+        "migration-supply-binding",
+        "zero-and-negative-rejected",
+        "ephemeral-local-only"
+      ]
+    },
+    {
+      "id": "consensus-four-validator-eip1559-commit-rollback-accept",
+      "owner": "chain-core",
+      "operation": "commit-and-recover-bounded-eip1559-transfer",
+      "inputSource": "scripts/verify/consensus-eip1559-commit-check.sh and scripts/verify/consensus-quorum-check.sh",
+      "expected": "accept",
+      "requiredEvidence": [
+        "four-validator-apphash-equality",
+        "gateway-broadcast-commit",
+        "ethereum-and-comet-dual-identity",
+        "all-validator-receipt-equality",
+        "wrong-chain-and-replay-rejection",
+        "backup-rollback-replay-includes-type-0x02-state",
+        "deployedPublic-false"
+      ]
+    },
+    {
+      "id": "evm-broadcast-committed-evidence-binding-accept",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/ethereum_transaction_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "broadcast-height-and-comet-hash",
+        "exact-raw-transaction-block-membership",
+        "valid-app-hash-and-data-hash",
+        "block-results-gas-equals-broadcast-gas",
+        "audited-receipt-equals-block-transaction"
+      ]
+    },
+    {
+      "id": "evm-broadcast-committed-evidence-mismatch-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/ethereum_transaction_test.go",
+      "mutation": "change-receipt-party-gas-hash-height-or-raw-block-membership-after-broadcast-success",
+      "expected": "reject",
+      "errorClass": "committed-evidence-mismatch",
+      "expectedRpcCode": -32603
+    },
+    {
+      "id": "evm-comet-cache-duplicate-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/gateway_test.go and internal/bftgateway/broadcast_rejection_test.go",
+      "mutation": "resubmit-a-transaction-that-CometBFT-reports-as-already-existing-in-cache",
+      "expected": "reject",
+      "errorClass": "duplicate-or-replay",
+      "expectedRpcCode": -32003
     }
   ]
 }

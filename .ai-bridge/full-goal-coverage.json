@@ -16,7 +16,7 @@
   "current": {
     "phase": "TESTNET",
     "goalStatus": "Active",
-    "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+    "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
     "releaseStatus": {
       "implementedLocal": true,
       "testedLocal": true,
@@ -106,7 +106,7 @@
         "OPERATIONS.md",
         "release/product-release.json"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [
         "make no-placeholder-check",
         "make secret-scan",
@@ -146,12 +146,12 @@
         "docs/integration/DEPENDENCY_ACCEPTANCE.md",
         ".ai-bridge/execution-log.jsonl"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [
         "git status clean and local or remote SHA matched after bf08b68 push"
       ],
       "artifact": [
-        "d6505fb409884e5de578a3a4f92cc0a592ba4fd5"
+        "57a13bacaaf11402b0a03803f45f35c4b4be6f37"
       ],
       "publicProof": [],
       "blockedBy": [
@@ -183,7 +183,7 @@
         "configs/networks.json",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [
         "network identity tests",
         "EVM eth_chainId and net_version tests"
@@ -217,7 +217,7 @@
         "release/recovery-evidence.json",
         "FEATURE_COMPLETION_EVIDENCE.md"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [
         "make consensus-quorum-check",
         "make consensus-state-sync-check",
@@ -255,7 +255,7 @@
         "docs/formal/streambft/StreamBFT.cfg",
         "tmp/consensus-candidate-evidence"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [
         "StreamBFT unit and candidate checks"
       ],
@@ -286,7 +286,7 @@
         "chain/resources",
         "internal/streambft"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [],
       "artifact": [],
       "publicProof": [],
@@ -317,7 +317,7 @@
         "chain/governance/strategy-mandate.schema.json",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [
         "account-abstraction tests",
         "mandate lifecycle and negative tests",
@@ -356,7 +356,7 @@
         "infra/docker",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [
         "gateway test suites",
         "make indexer-check",
@@ -383,6 +383,9 @@
         "Accept bounded chain-6423 EIP-155 legacy type-0 value transfers with recovered sender, zero-based nonce, exact 21000 gas, dual Ethereum or Comet transaction identity and audited committed receipt evidence.",
         "Accept bounded EIP-2930 type-0x01 value transfers only with an empty access list, y-parity sender recovery, exact 21000 gas, dual identity and truthful type-0x1 transaction and receipt mapping.",
         "Accept bounded EIP-1559 type-0x02 transfers only with chain ID 6423, zero compatibility base fee, 0 < maxPriorityFeePerGas <= maxFeePerGas, maximum-fee affordability, effective-fee debit, empty access list, exact 21000 gas and truthful type-0x2 mapping.",
+        "Expose eth_gasPrice and eth_maxPriorityFeePerGas as the protocol minimum 0x1 only; reject malformed parameters and keep eth_feeHistory unsupported rather than inventing market history.",
+        "Return a successful bounded Ethereum broadcast only after raw block membership, AppHash, DataHash, Comet gas, dual transaction identity and audited receipt evidence agree; classify duplicates as -32003 and evidence mismatches as -32603.",
+        "Provide a mode-0600 multi-envelope signer CLI and configurable positive-only local consensus fixture without exposing private key material or claiming production signing.",
         "Reject wrong-chain, replayed, malformed, unsupported typed, non-empty-access-list, contract-creation, calldata and audit-tampered envelopes or evidence without claiming a dynamic base-fee market or general Ethereum execution.",
         "Indexer validates the full incoming batch before journaling and requires exact height, parent and transaction invariants.",
         "Checkpoint and WAL must be private 0600 regular files; reject unknown fields, trailing JSON, symlinks, tampering and conflicting duplicates.",
@@ -395,15 +398,22 @@
         "internal/bftgateway",
         "internal/indexer/indexer.go",
         "internal/indexer/indexer_test.go",
+        "scripts/verify/consensus-eip1559-commit-check.sh",
+        "tmp/consensus-eip1559-commit-evidence.json",
+        "tmp/consensus-quorum-evidence.json",
         "release/integration/chain-core-contract.json"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [
         "make integration-contract-check",
         "make bft-evm-receipt-check",
+        "make bft-evm-fee-suggestion-check",
         "make bft-evm-legacy-transfer-check",
         "make bft-evm-access-list-transfer-check",
         "make bft-evm-dynamic-fee-transfer-check",
+        "make consensus-eip1559-commit-check",
+        "make consensus-quorum-check",
+        "go test ./cmd/ynx-consensus-tx ./cmd/ynx-consensus-lab ./internal/bftgateway ./internal/consensus",
         "go test -race ./internal/consensus ./internal/bftgateway",
         "go test -race ./internal/indexer",
         "make indexer-check"
@@ -415,7 +425,12 @@
         "5469ed2 feat(evm): accept bounded EIP-155 transfers",
         "328ba67 fix(evm): validate committed receipt evidence",
         "6959df9 feat(evm): accept bounded EIP-2930 transfers",
-        "d6505fb feat(evm): accept bounded EIP-1559 transfers"
+        "d6505fb feat(evm): accept bounded EIP-1559 transfers",
+        "acb8c47 feat(evm): expose zero-base-fee suggestions",
+        "c6c013c test(evm): gate fee suggestions",
+        "27c52eb feat(consensus): add bounded Ethereum signer tooling",
+        "3c5c0c8 test(consensus): validate fixture signer funding",
+        "57a13ba test(consensus): prove committed EIP-1559 evidence"
       ],
       "publicProof": [],
       "blockedBy": [
@@ -450,7 +465,7 @@
         "release/product-release.json",
         "FEATURE_COMPLETION_EVIDENCE.md"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [
         "local four-validator proof",
         "smart-account, mandate, vault, risk and recovery gates"
@@ -488,7 +503,7 @@
         "release/integration/chain-core-contract.json",
         "docs/integration/INTEGRATION_HANDOFF.md"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [],
       "artifact": [],
       "publicProof": [],
@@ -519,7 +534,7 @@
         "internal/bftgateway",
         "internal/indexer"
       ],
-      "sourceCommit": "d6505fb409884e5de578a3a4f92cc0a592ba4fd5",
+      "sourceCommit": "57a13bacaaf11402b0a03803f45f35c4b4be6f37",
       "tests": [
         "go test -race ./internal/indexer",
         "make indexer-check",

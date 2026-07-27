@@ -16,3 +16,7 @@
 - Exact checkpoint/WAL overlap after an atomic checkpoint but before WAL deletion is a valid recovery window and must not be rejected when the block record is identical.
 - Objective-state security scanning must not silently disappear when `rg` is absent; the portable `grep` fallback is part of the gate.
 - Machine release, integration and coverage records bind to the latest runtime implementation commit, while a later documentation-only commit must not be misrepresented as a different deployed runtime.
+- `eth_gasPrice` and `eth_maxPriorityFeePerGas` expose the minimum accepted protocol value `0x1` for the frozen zero-base-fee compatibility profile; they are not market forecasts and do not imply `eth_feeHistory` support.
+- Gateway broadcast success for bounded Ethereum transfers requires committed raw-transaction membership, valid AppHash/DataHash, matching block-results gas and an audited receipt that matches the broadcast identity and parties.
+- A CometBFT `tx already exists in cache` response is a deterministic duplicate/replay rejection and maps to JSON-RPC `-32003`; unrelated upstream or committed-evidence failures remain `-32603`.
+- Local four-validator EIP-1559 commit and rollback evidence remains explicitly ephemeral, `deployedPublic=false` and `productionSigned=false`; it cannot be promoted to public proof without current-source deployment and independent evidence.
