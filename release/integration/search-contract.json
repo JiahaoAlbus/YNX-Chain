@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "contractId": "ynx.search.integration.v1",
   "product": {
     "number": 23,
@@ -7,7 +7,7 @@
     "slug": "search",
     "owner": "23-search"
   },
-  "sourceCommit": "52c70f74220df06208b6a415580a5a879c4a8cb8",
+  "sourceCommit": "84e0655c7c3c1106eceae72bc11361e242132f48",
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -127,19 +127,50 @@
       "migration": "v2 entries lacking governance fields are disabled and marked source-registry-v3 until reviewed"
     },
     "searchResult": {
-      "version": 1,
+      "version": 2,
       "required": [
+        "resultType",
         "title",
         "sourceUrl",
         "sourceLabel",
+        "sourceScope",
+        "language",
         "freshness.publishedAt",
         "freshness.fetchedAt",
         "freshness.indexedAt",
         "indexReceiptDigest",
         "contentType",
         "score",
+        "ranking.version",
+        "ranking.queryIntent",
+        "ranking.factors",
+        "ranking.whyThisResult",
+        "ranking.authorityBasis",
+        "ranking.sourceQualityBasis",
+        "ranking.vectorStatus",
+        "remedies.removalUrl",
+        "remedies.correctionUrl",
+        "remedies.appealEndpoint",
         "snippet"
-      ]
+      ],
+      "entityRegistryVersion": "1.0.0",
+      "vectorStatus": "candidate-disabled",
+      "correctionPolicy": "exact aliases only; YNX is never corrected to Lynx"
+    },
+    "publicFeeds": {
+      "version": "1.0.0",
+      "directory": "release/public/search",
+      "files": [
+        "public-search-index.json",
+        "public-products.json",
+        "public-documents.json",
+        "public-releases.json",
+        "public-faq.json",
+        "public-entities.json"
+      ],
+      "manifest": "public-feed-manifest.json",
+      "hash": "sha256",
+      "publicStatus": "local artifact only; not hosted"
     },
     "indexReceipt": {
       "version": 1,

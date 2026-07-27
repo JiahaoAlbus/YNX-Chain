@@ -4,13 +4,13 @@
     "number": 23,
     "name": "YNX Search",
     "slug": "search",
-    "version": "0.2.1-security-baseline",
+    "version": "0.3.0-ranking-preview",
     "releaseClass": "Testnet Preview",
     "goalStatus": "active",
     "phase": "FREEZE"
   },
   "source": {
-    "commit": "52c70f74220df06208b6a415580a5a879c4a8cb8",
+    "commit": "84e0655c7c3c1106eceae72bc11361e242132f48",
     "repository": "JiahaoAlbus/YNX-Chain"
   },
   "status": {
@@ -39,7 +39,7 @@
     "commands": [
       {
         "command": "cd apps/search && npm run check",
-        "result": "pass: 15/15 tests, service smoke, product-local secret scan"
+        "result": "pass: 19/19 tests, service smoke, product-local secret scan, deterministic feed verification"
       },
       {
         "command": "cd apps/search && npm run test:e2e",
@@ -63,6 +63,12 @@
     "robots, timeout, redirect, origin, content type, size, freshness, and backoff boundaries",
     "AI retrieval data-right enforcement",
     "public authorization-reference redaction",
+    "canonical YNX entity registry with explicit YNX-not-Lynx policy",
+    "versioned explainable ranking with relevance gate and auditable factors",
+    "language filtering, duplicate penalty and domain-diversity scoring",
+    "vector retrieval truthfully marked candidate-disabled",
+    "six deterministic public Search feeds plus SHA-256 manifest",
+    "public feed safety gate for engineering metadata leakage",
     "deterministic Search service smoke",
     "product-local secret scan"
   ],
@@ -72,21 +78,10 @@
     "apps/search/evidence/EVIDENCE_INDEX.md",
     "apps/search/evidence/staging/health.json",
     "apps/search/evidence/staging/search-empty.json",
-    "apps/search/evidence/ui"
+    "apps/search/evidence/ui",
+    "release/public/search/public-feed-manifest.json"
   ],
   "blockers": [
-    {
-      "owner": "23-search",
-      "type": "autonomous",
-      "item": "entity aliases and explainable hybrid ranking",
-      "nextAction": "implement runtime and tests"
-    },
-    {
-      "owner": "23-search",
-      "type": "autonomous",
-      "item": "public feed generation",
-      "nextAction": "implement deterministic feed builder"
-    },
     {
       "owner": "02-wallet-auth",
       "type": "dependency",
@@ -118,6 +113,6 @@
       "item": "approved production source inventory and external search provider access"
     }
   ],
-  "nextAction": "Implement canonical YNX entity aliases and versioned ranking explanations, then generate public feeds.",
+  "nextAction": "Add explicit public data-class ingestion gates and a version-3 backup/restore drill before central integration.",
   "lastUpdated": "2026-07-27"
 }

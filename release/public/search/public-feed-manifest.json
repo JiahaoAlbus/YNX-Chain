@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "feedSet": "ynx-search-public-feeds",
+  "version": "1.0.0",
+  "asOf": "2026-07-27T00:00:00.000Z",
+  "sourceCommit": "84e0655c7c3c1106eceae72bc11361e242132f48",
+  "files": [
+    {
+      "name": "public-documents.json",
+      "bytes": 260,
+      "sha256": "8dfeaad1949a1b0d8fa0fb0faf8d46d90dfccfa29a0b575d0e9258f283a70787"
+    },
+    {
+      "name": "public-entities.json",
+      "bytes": 18342,
+      "sha256": "3128166dff964233ddb6d7061a44dd738435c215f7919240faf707914f50495c"
+    },
+    {
+      "name": "public-faq.json",
+      "bytes": 1840,
+      "sha256": "91d67fb1aa4f27f6f271e08495107b186dd75d6b8073e2e2d7d9cfbfda90023b"
+    },
+    {
+      "name": "public-products.json",
+      "bytes": 15300,
+      "sha256": "c5fc186d856bb13d6c866b36f7fc18446d89c1b00a121804a1011c87165749c8"
+    },
+    {
+      "name": "public-releases.json",
+      "bytes": 725,
+      "sha256": "1b4ca14c6e7bec80fc941a63ae38654dfa84de31e8002b5fc316c8104767d79c"
+    },
+    {
+      "name": "public-search-index.json",
+      "bytes": 18368,
+      "sha256": "242513fa38d411d7ca2294df85066fcd67c97774020a4fa759522dbe834444e9"
+    }
+  ]
+}

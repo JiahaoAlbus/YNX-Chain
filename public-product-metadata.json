@@ -7,8 +7,8 @@
   "metaDescription": "Search reviewed YNX products, documentation, releases, public chain evidence, governance and authorized public sources with visible citations, freshness and correction paths.",
   "h1": "Search YNX with sources you can verify",
   "status": "Testnet Preview",
-  "releaseVersion": "0.2.1-security-baseline",
-  "sourceCommit": "52c70f74220df06208b6a415580a5a879c4a8cb8",
+  "releaseVersion": "0.3.0-ranking-preview",
+  "sourceCommit": "84e0655c7c3c1106eceae72bc11361e242132f48",
   "brand": {
     "officialSiteName": "YNX Chain",
     "ecosystemName": "YNX Web4",

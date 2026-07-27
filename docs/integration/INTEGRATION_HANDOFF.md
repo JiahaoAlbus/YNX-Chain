@@ -2,7 +2,7 @@
 
 Version: 1.0.0  
 Product owner: `23-search`  
-Source commit: `52c70f74220df06208b6a415580a5a879c4a8cb8`  
+Source commit: `84e0655c7c3c1106eceae72bc11361e242132f48`  
 Current phase: `FREEZE`
 
 ## Product boundary
@@ -27,11 +27,19 @@ approved corpus. The current security commit is not yet deployed to staging.
   multicast, and DNS-rebinding destinations before content fetch.
 - Public index status exposes authorization digests, not internal references.
 - AI retrieval includes only sources with explicit AI retrieval rights.
-- Search results expose source URL, source label, freshness, score, snippet, and
-  index receipt digest.
+- Search result schema v2 exposes source, scope, language, freshness, receipt,
+  remedies, query intent and versioned ranking factors. Authority and quality are
+  explicitly labeled as registered-policy and governance-completeness proxies.
+- Canonical entity registry resolves YNX, YNX Web4, YNXWeb4, YNXT, 6423 and
+  product names; YNX is never silently corrected to Lynx.
+- Vector retrieval remains `candidate-disabled`; no embedding capability is
+  claimed.
+- Six deterministic public feeds and a SHA-256 manifest exist under
+  `release/public/search`; they are local artifacts and are not hosted.
 - Remedy cases and Wallet callback challenges are persistent and replay-safe.
-- 15 unit/integration tests, service smoke, dependency-independent secret scan,
-  six Playwright scenarios, and production dependency audit pass locally.
+- 19 unit/integration tests, service smoke, dependency-independent secret scan,
+  deterministic feed verification, six Playwright scenarios, and production
+  dependency audit pass locally.
 
 ## Required owner actions
 

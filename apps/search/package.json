@@ -9,7 +9,9 @@
     "smoke": "node scripts/smoke.mjs",
     "test:e2e": "playwright test",
     "security": "node scripts/security-scan.mjs",
-    "check": "npm test && npm run smoke && npm run security"
+    "feeds": "node scripts/build-public-feeds.mjs",
+    "feeds:verify": "node scripts/verify-public-feeds.mjs",
+    "check": "npm test && npm run smoke && npm run security && npm run feeds:verify"
   },
   "engines": {
     "node": ">=20"

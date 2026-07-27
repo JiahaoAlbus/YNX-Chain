@@ -1,6 +1,6 @@
 # YNX Search Dependency Acceptance
 
-Source commit: `52c70f74220df06208b6a415580a5a879c4a8cb8`  
+Source commit: `84e0655c7c3c1106eceae72bc11361e242132f48`  
 Status: pending central acceptance
 
 | Owner | Dependency | Search acceptance criteria | Current state |

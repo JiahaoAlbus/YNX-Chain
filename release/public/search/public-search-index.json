@@ -1,0 +1,560 @@
+{
+  "schemaVersion": 1,
+  "feedName": "public-search-index",
+  "version": "1.0.0",
+  "asOf": "2026-07-27T00:00:00.000Z",
+  "sourceCommit": "84e0655c7c3c1106eceae72bc11361e242132f48",
+  "coverage": "metadata-only public discovery index; not the live Search corpus",
+  "items": [
+    {
+      "id": "0347b5be21c5a30a993f76ad",
+      "type": "product",
+      "title": "YNX Security",
+      "aliases": [
+        "ynx release platform",
+        "ynx security",
+        "ynx sre"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/security",
+      "summary": "YNX Security is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "087e7e22b756a1fc6afcb108",
+      "type": "entity",
+      "title": "YNX Chain",
+      "aliases": [
+        "streambft",
+        "ynx",
+        "ynx chain",
+        "ynx chain core"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/",
+      "summary": "The YNX Web4 Layer-1 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": null
+    },
+    {
+      "id": "0c5b7fb0f9df10f67af5ce4f",
+      "type": "product",
+      "title": "YNX Bridge",
+      "aliases": [
+        "ynx bridge",
+        "ynx interoperability"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/bridge",
+      "summary": "YNX Bridge is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "123436e88ba8e042ad337fcf",
+      "type": "product",
+      "title": "YNX Video",
+      "aliases": [
+        "ynx video"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/video",
+      "summary": "YNX Video is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "1a3c7612d18fd160e75eb181",
+      "type": "faq",
+      "title": "Can the AI answer without sources?",
+      "aliases": [],
+      "canonicalUrl": "https://ynxweb4.com/search#faq-dc7a989786fb",
+      "summary": "No. Search AI is limited to the current retrieved set, requires explicit consent and rejects citations outside that set.",
+      "source": "ynx-search-public-product-metadata",
+      "publicationStatus": null
+    },
+    {
+      "id": "1acd4523374c4ca77ed7f86f",
+      "type": "product",
+      "title": "YNX Website",
+      "aliases": [
+        "ynx website",
+        "ynxweb4.com"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/website",
+      "summary": "YNX Website is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "1dbcc0a29df211dd4e1c14a2",
+      "type": "product",
+      "title": "YNX Wallet",
+      "aliases": [
+        "wallet auth",
+        "ynx wallet",
+        "ynx wallet auth"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/wallet",
+      "summary": "YNX Wallet is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "2163706bec4dcf5d410329eb",
+      "type": "product",
+      "title": "YNX Governance",
+      "aliases": [
+        "ynx governance",
+        "ynx protocol control"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/governance",
+      "summary": "YNX Governance is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "22d320bd0da1a2ac96aefbfa",
+      "type": "product",
+      "title": "YNX Resource Market",
+      "aliases": [
+        "resource market",
+        "ynx resource market"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/resource-market",
+      "summary": "YNX Resource Market is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "23c79e4b8430cd69f19b6224",
+      "type": "faq",
+      "title": "Does YNX Search control Google or Bing ranking?",
+      "aliases": [],
+      "canonicalUrl": "https://ynxweb4.com/search#faq-b75c77f63ff3",
+      "summary": "No. It is an independent YNX product for ecosystem and authorized-source search. Website and documentation owners control external SEO submissions.",
+      "source": "ynx-search-public-product-metadata",
+      "publicationStatus": null
+    },
+    {
+      "id": "25a283a43660ae84569902e7",
+      "type": "product",
+      "title": "YNX Docs",
+      "aliases": [
+        "ynx docs"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/docs",
+      "summary": "YNX Docs is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "2a44e4258d88ab9583719bbd",
+      "type": "product",
+      "title": "YNX Search",
+      "aliases": [
+        "ynx search"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/search",
+      "summary": "YNX Search is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-search-public-product-metadata",
+      "publicationStatus": "Testnet Preview"
+    },
+    {
+      "id": "2afeb3991b26d3481cfff10d",
+      "type": "application",
+      "title": "YNX Search",
+      "aliases": [
+        "YNX Web4 Search",
+        "YNX Ecosystem Search"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/search",
+      "summary": "Search reviewed YNX products, documentation, releases, public chain evidence, governance and authorized public sources with visible citations, freshness and correction paths.",
+      "source": "ynx-search-public-product-metadata",
+      "publicationStatus": "Testnet Preview"
+    },
+    {
+      "id": "3613cb4f0358941c05a52b8c",
+      "type": "product",
+      "title": "YNX Calendar",
+      "aliases": [
+        "ynx calendar"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/calendar",
+      "summary": "YNX Calendar is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "378bc4416a3206bc94190778",
+      "type": "product",
+      "title": "YNX Integration",
+      "aliases": [
+        "ynx integration"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/integration",
+      "summary": "YNX Integration is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "3e664f27866d08069e26728f",
+      "type": "product",
+      "title": "YNX Creator Studio",
+      "aliases": [
+        "creator studio",
+        "ynx creator studio"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/creator-studio",
+      "summary": "YNX Creator Studio is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "4223a6fbc76c985c3ce1601d",
+      "type": "product",
+      "title": "YNX Browser",
+      "aliases": [
+        "ynx browser"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/browser",
+      "summary": "YNX Browser is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "4a55b31b6cc472fb475ef436",
+      "type": "product",
+      "title": "YNX Merchant Console",
+      "aliases": [
+        "merchant console",
+        "ynx merchant console"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/merchant-console",
+      "summary": "YNX Merchant Console is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "4b4912fbb807d156830e2e3f",
+      "type": "product",
+      "title": "YNX Data Fabric",
+      "aliases": [
+        "ynx billing ledger",
+        "ynx data fabric"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/data-fabric",
+      "summary": "YNX Data Fabric is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "4f666432915b0f8633ee39df",
+      "type": "product",
+      "title": "YNX Music",
+      "aliases": [
+        "ynx music"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/music",
+      "summary": "YNX Music is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "537d11b70f0acb4732c77ce9",
+      "type": "product",
+      "title": "YNX Docs and Compliance",
+      "aliases": [
+        "ynx compliance",
+        "ynx docs and compliance",
+        "ynx whitepaper"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/docs-compliance",
+      "summary": "YNX Docs and Compliance is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "632554ff5b3c3606af655fda",
+      "type": "product",
+      "title": "YNX Pay",
+      "aliases": [
+        "ynx pay"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/pay",
+      "summary": "YNX Pay is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "63944aa5350356c3252c67fc",
+      "type": "entity",
+      "title": "YNXT",
+      "aliases": [
+        "ynx token",
+        "ynxt"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/economics",
+      "summary": "The native YNX Testnet asset; it is not a Mainnet or fiat asset.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": null
+    },
+    {
+      "id": "655158e3b83776d9fb814c45",
+      "type": "entity",
+      "title": "YNX Web4",
+      "aliases": [
+        "ynx web4",
+        "ynxweb4"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/products",
+      "summary": "The independent product ecosystem powered by YNX Chain.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": null
+    },
+    {
+      "id": "6a8038322963a12e60aebf59",
+      "type": "product",
+      "title": "YNX Exchange",
+      "aliases": [
+        "ynx exchange"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/exchange",
+      "summary": "YNX Exchange is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "6c348dfbcbec2f923c928ee5",
+      "type": "product",
+      "title": "YNX Seller Console",
+      "aliases": [
+        "seller console",
+        "ynx seller console"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/seller-console",
+      "summary": "YNX Seller Console is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "77f6626bab9b17396e93b52e",
+      "type": "product",
+      "title": "YNX Monitor",
+      "aliases": [
+        "ynx monitor"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/monitor",
+      "summary": "YNX Monitor is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "81274c39f6f511b8938aec0e",
+      "type": "product",
+      "title": "YNX Social",
+      "aliases": [
+        "ynx social"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/social",
+      "summary": "YNX Social is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "8180d39b50485e75b970e611",
+      "type": "product",
+      "title": "YNX DEX",
+      "aliases": [
+        "ynx dex"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/dex",
+      "summary": "YNX DEX is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "8970be86281a138e7c125570",
+      "type": "entity",
+      "title": "YNX Testnet",
+      "aliases": [
+        "0x1917",
+        "6423",
+        "ynx testnet",
+        "ynx_6423-1"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/testnet",
+      "summary": "YNX Testnet uses EVM chain ID 6423 and Cosmos chain ID ynx_6423-1.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": null
+    },
+    {
+      "id": "91a40ee2fb1e7b6adac14b3a",
+      "type": "product",
+      "title": "YNX Trust Center",
+      "aliases": [
+        "trust center",
+        "ynx trust center"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/trust-center",
+      "summary": "YNX Trust Center is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "928f8b7614ec580b74dfe3cb",
+      "type": "product",
+      "title": "YNX Finance",
+      "aliases": [
+        "ynx finance"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/finance",
+      "summary": "YNX Finance is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "acc7ec87e06cf3f7f0393b17",
+      "type": "faq",
+      "title": "What does YNX Search index?",
+      "aliases": [],
+      "canonicalUrl": "https://ynxweb4.com/search#faq-430037ac6087",
+      "summary": "Only sources registered with an owner, authorization, permitted scope, terms, data rights, retention and correction paths. Private messages, mail, files, Wallet sessions, secrets and operator logs are excluded.",
+      "source": "ynx-search-public-product-metadata",
+      "publicationStatus": null
+    },
+    {
+      "id": "b21d880391344e9a872691db",
+      "type": "product",
+      "title": "YNX Card",
+      "aliases": [
+        "ynx card"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/card",
+      "summary": "YNX Card is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "b6ff82051d6983c0d4c0f692",
+      "type": "product",
+      "title": "YNX AI",
+      "aliases": [
+        "ynx ai"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/ai",
+      "summary": "YNX AI is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "b7f0a75bc4b19255aac9353a",
+      "type": "product",
+      "title": "YNX Oracle",
+      "aliases": [
+        "ynx market data",
+        "ynx oracle"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/oracle",
+      "summary": "YNX Oracle is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "cc98a01ede8686d239cc7a53",
+      "type": "product",
+      "title": "YNX Quant Lab",
+      "aliases": [
+        "quant lab",
+        "ynx quant",
+        "ynx quant lab"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/quant",
+      "summary": "YNX Quant Lab is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "da64c814b5c2eb22ca569f9f",
+      "type": "product",
+      "title": "YNX Shop",
+      "aliases": [
+        "ynx shop"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/shop",
+      "summary": "YNX Shop is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "e635badcfcc2844df639d647",
+      "type": "product",
+      "title": "YNX Cloud",
+      "aliases": [
+        "ynx cloud"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/cloud",
+      "summary": "YNX Cloud is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "e7e40fda16abc0466e0b1404",
+      "type": "product",
+      "title": "YNX Developer",
+      "aliases": [
+        "ynx ai build",
+        "ynx developer"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/developer",
+      "summary": "YNX Developer is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "edeb5a98a3806a51f7cbffbb",
+      "type": "product",
+      "title": "YNX Explorer",
+      "aliases": [
+        "ynx explorer"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/explorer",
+      "summary": "YNX Explorer is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "f436b1fb10a99b1528d707a7",
+      "type": "product",
+      "title": "YNX Mail",
+      "aliases": [
+        "ynx mail"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/mail",
+      "summary": "YNX Mail is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "f46a5e6b3ab09fb25e11c9f7",
+      "type": "product",
+      "title": "YNX Economics",
+      "aliases": [
+        "ynx economics",
+        "ynx tokenomics",
+        "ynxt economics"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/economics",
+      "summary": "YNX Economics is an independent product in the YNX Web4 ecosystem.",
+      "source": "ynx-entity-registry",
+      "publicationStatus": "metadata-candidate"
+    },
+    {
+      "id": "fb743bdd2f4d0238c76097fe",
+      "type": "faq",
+      "title": "How can a result be corrected or removed?",
+      "aliases": [],
+      "canonicalUrl": "https://ynxweb4.com/search#faq-17d48ca48597",
+      "summary": "The product provides auditable correction, removal and appeal requests. Central Trust integration is still pending.",
+      "source": "ynx-search-public-product-metadata",
+      "publicationStatus": null
+    }
+  ]
+}
