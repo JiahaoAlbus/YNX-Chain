@@ -432,9 +432,12 @@ bridge-provider-check:
 bridge-data-lifecycle-check:
 	bash ./scripts/verify/bridge-data-lifecycle-check.sh
 
-.PHONY: bridge-capacity-check bridge-restore-check bridge-evidence-check
+.PHONY: bridge-capacity-check bridge-migration-check bridge-restore-check bridge-evidence-check
 bridge-capacity-check:
 	bash ./scripts/verify/bridge-capacity-check.sh
+
+bridge-migration-check:
+	bash ./scripts/verify/bridge-migration-check.sh
 
 bridge-restore-check:
 	bash ./scripts/verify/bridge-restore-check.sh

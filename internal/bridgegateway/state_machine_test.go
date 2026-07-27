@@ -1,6 +1,7 @@
 package bridgegateway
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -115,6 +116,70 @@ func TestBridgeV6LifecycleMigratesWithoutInventingDestinationAvailability(t *tes
 	}
 	if !strings.Contains(string(persisted), `"schemaVersion": 7`) {
 		t.Fatalf("v6 state was not resealed as v7: %s", persisted)
+	}
+}
+
+func TestBridgeV6RollbackBackupForwardRecoversDeterministically(t *testing.T) {
+	b := newTestBridge(t)
+	proof := finalizeProofBundle(t, b, "v6-rollback")
+	state := cloneState(b.service.state)
+	transfer := state.Transfers[proof.Transfer.ID]
+	for index := range transfer.Lifecycle {
+		if transfer.Lifecycle[index].Phase == phaseProofAttestationAvailable {
+			transfer.Lifecycle[index].Phase = "proof_attestation"
+		}
+	}
+	appendLifecycle(&transfer, "destination_mint_release", transfer.UpdatedAt, "tx:v6-rollback-destination", "operator-observed", "operator-submitted-evidence")
+	appendLifecycle(&transfer, "destination_confirmed", transfer.UpdatedAt, "receipt:v6-rollback-destination", "finalized-receipt", "operator-submitted-evidence")
+	transfer.Phase = "destination_confirmed"
+	transfer.ExposureStatus = "destination-confirmed"
+	prepareLegacyTransferForStateMachineMigration(&transfer)
+	state.Transfers[transfer.ID] = transfer
+	state.SchemaVersion = 6
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	preMigrationBackup, err := os.ReadFile(b.state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(preMigrationBackup), `"schemaVersion": 6`) {
+		t.Fatalf("rollback fixture is not an exact v6 backup: %s", preMigrationBackup)
+	}
+
+	firstMigration, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("first v6 to v7 migration failed: %v", err)
+	}
+	firstPersisted, err := os.ReadFile(b.state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstTransfer := firstMigration.state.Transfers[transfer.ID]
+	if firstMigration.state.SchemaVersion != SchemaVersion || firstTransfer.Phase != phaseDestinationActionConfirmed || firstTransfer.DestinationAssetAvailable || firstTransfer.ExposureStatus != "destination-confirmed-legacy" {
+		t.Fatalf("first migration semantics are unsafe: %+v", firstTransfer)
+	}
+
+	if err := os.WriteFile(b.state, preMigrationBackup, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(b.state, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	secondMigration, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("forward recovery after exact backup restore failed: %v", err)
+	}
+	secondPersisted, err := os.ReadFile(b.state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondTransfer := secondMigration.state.Transfers[transfer.ID]
+	if !bytes.Equal(firstPersisted, secondPersisted) {
+		t.Fatalf("rollback forward recovery was not deterministic\nfirst: %s\nsecond: %s", firstPersisted, secondPersisted)
+	}
+	if firstMigration.state.Integrity != secondMigration.state.Integrity || firstTransfer.ProofDigest != secondTransfer.ProofDigest || firstTransfer.MessageID != secondTransfer.MessageID || firstTransfer.NonceDomain != secondTransfer.NonceDomain || len(firstTransfer.Lifecycle) != len(secondTransfer.Lifecycle) || len(firstMigration.state.Audit) != len(secondMigration.state.Audit) {
+		t.Fatalf("rollback forward recovery lost evidence: first=%+v second=%+v", firstTransfer, secondTransfer)
 	}
 }
 

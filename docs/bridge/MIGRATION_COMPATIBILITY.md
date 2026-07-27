@@ -1,15 +1,49 @@
 # Bridge Migration Compatibility
 
-Bridge persisted state schema v6 retains the exact response for every new reconciliation idempotency key. Replaying an older key after a newer route observation returns the original persisted record, including its evidence reference, accounting values, and timestamps. Migrated v1-v5 states cannot reconstruct responses that were overwritten before v6; those legacy keys are durably marked and fail closed with a conflict instead of returning a newer observation. Schema v5 added explicit per-transfer exposure status: `open`, `destination-confirmed`, or `refund-recovered`. A later dispute remains visible as the current lifecycle phase but cannot reopen already resolved route or user exposure. Schema v4 added a per-transfer append-only lifecycle timeline. New records preserve ordered source-submitted, source-accepted, source-finalized, proof-attestation, destination, failure, retry, recovery, and dispute observations with event source, evidence reference, reason, timestamp, and explicit non-independent-proof coverage. Schema v3 added durable data-rights requests and sender/recipient identity-redaction markers. Schema v2 added current lifecycle phase, mutation idempotency, safety state, and reconciliation records.
+## Current state schema
 
-Verified v2, v3, v4, and v5 files are migrated to v6 only after their original integrity digest and audit chain pass. Existing v2/v3 transfers receive one snapshot event labeled `source=schema-migration` and `coverage=migration-current-phase-only`; migration does not invent historical transitions that the old schema did not retain. v4 exposure status is derived from its preserved terminal lifecycle evidence, including when a later dispute is current. New reconciliation replay snapshots are bound to the configured route, normalized request digest, and append-only audit evidence. New timelines require contiguous sequence numbers, valid phases/timestamps/sources, consistent non-conflicting terminal resolution, and survive restart under the state integrity digest.
+The current persisted state schema is **v7**. Schema v7 binds each transfer to the canonical Bridge lifecycle state machine and separates provider or operator destination confirmation from actual destination-asset availability. It adds deterministic message identity, nonce domain, proof type and digest, explicit proof-verification status, and a terminal `destination_available` boundary. A legacy `destination_confirmed` observation migrates conservatively to `destination_action_confirmed`; it never becomes spendable availability without new direct evidence.
 
-On startup, a v1 file is decoded using the exact v1 field layout and its original SHA-256 integrity value is verified before conversion. Legacy statuses map as follows:
+Schema v6 introduced exact reconciliation replay results. Replaying an older idempotency key returns the original persisted record, including evidence reference, accounting values, and timestamps. States from v1-v5 that cannot reconstruct an overwritten historical response mark those keys as replay-unavailable and fail closed instead of returning a newer observation.
 
-- `pending_attestations` → `source_submitted`
-- `ready_for_local_finalization` → `source_finalized`
-- `finalized_local` → `proof_attestation`
+Schema v5 added explicit transfer exposure status. Schema v4 added the append-only lifecycle timeline. Schema v3 added durable data-rights requests and identity-redaction markers. Schema v2 added current phase, mutation idempotency, safety state, and reconciliation records.
 
-Unknown legacy statuses fail closed. Valid v1, v2, v3, and v4 states are integrity-verified before migration and resealed as v5 using atomic mode-0600 replacement. Legacy integrity mismatches are rejected. Tests cover successful v1/v2/v3/v4 migration, honest lifecycle snapshot coverage, settled-dispute exposure preservation, redacted-state restart, and tampered-state rejection.
+## Forward migration
 
-Rollback to a v1, v2, v3, or v4 binary after v5 persistence is unsupported because older binaries cannot interpret the current data-rights, lifecycle, and exposure-resolution state. Operator rollback requires restoring the exact pre-migration state backup with its matching binary. Converting v5 backwards is prohibited because it could reopen settled exposure, discard security/privacy or lifecycle evidence, or reintroduce removed identities.
+Bridge verifies the original integrity digest and audit chain before accepting any v1-v6 state. Unknown versions, malformed structures, invalid lifecycle data, inconsistent terminal resolution, forged attestations, source-event conflicts, or integrity mismatches are rejected.
+
+Forward migration rules are conservative:
+
+- v1 status values map only to their known lifecycle equivalents.
+- v2/v3 records receive a migration snapshot rather than invented historical events.
+- v4/v5/v6 lifecycle evidence is retained and canonicalized.
+- legacy destination confirmation does not establish destination-asset availability.
+- settled exposure is not reopened by a later dispute.
+- legacy reconciliation replay gaps remain explicit and fail closed.
+- migrated state is atomically resealed as v7 with mode `0600`.
+
+## Rollback and forward recovery
+
+A v7 state file must **not** be converted backwards. Older binaries cannot safely interpret v7 proof, availability, lifecycle, reconciliation, privacy, and exposure semantics. A backwards converter could discard evidence, reopen settled exposure, or incorrectly advertise destination assets as available.
+
+The supported rollback procedure is:
+
+1. Enable the deployment mutation freeze before the upgrade window.
+2. Stop the coordinator and verify no accepted mutation remains in flight.
+3. Copy the exact pre-migration state file, retain mode `0600`, record SHA-256 and byte size, and bind it to the matching binary and source commit.
+4. Start the new binary and verify migration, health, state integrity, lifecycle semantics, reconciliation, and audit continuity.
+5. Do not accept post-upgrade mutations until the rollback decision window closes. If mutations have been accepted, an old-state rollback is prohibited unless those mutations are independently reconciled and replayed under an approved recovery procedure.
+6. For rollback, stop the new binary and restore the exact pre-migration backup with its matching prior binary.
+7. A later forward recovery may restore the same backup and migrate again. The resulting v7 state must be deterministic and evidence-equivalent.
+
+`TestBridgeV6RollbackBackupForwardRecoversDeterministically` performs the bounded local rehearsal: one exact v6 backup is migrated to v7, restored, and migrated a second time. The two persisted v7 files must be byte-identical and preserve lifecycle, message identity, nonce domain, integrity, and audit evidence while keeping destination availability false.
+
+## Verification
+
+Run:
+
+```text
+make bridge-migration-check
+```
+
+The gate covers v1-v6 integrity-checked forward migration, tamper rejection, conservative lifecycle conversion, and deterministic v6 rollback/forward recovery. Backup corruption and service restore are independently covered by `make bridge-restore-check`.
