@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "evidenceType": "remote-testnet-coordinator-installation",
-  "observedAt": "2026-07-27T03:58:28Z",
-  "sourceCommit": "3e0907e1bad8595a90149c2778ec50b2e7cb520a",
-  "release": "ynx-bridge-3e0907e1bad8",
+  "observedAt": "2026-07-27T05:39:36Z",
+  "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+  "release": "ynx-bridge-857371f9b194",
   "targetRole": "primary-testnet",
   "deploymentState": {
     "integratedCentral": true,
@@ -13,12 +13,12 @@
     "userAssetMovementEnabled": false
   },
   "package": {
-    "sha256": "f87fab7716244da34b45ade5725f03fa30b2108d84278a0b56e892bb924b86cc",
+    "sha256": "42d001cc146a79a92a70912ab09d456f605e5fbe04ac32b274a6db239726a9be",
     "checksumsVerifiedRemote": true
   },
   "artifacts": {
-    "ynxBridgedSha256": "47ef17350c529972c09c6c7fda19c4bfc20c7484246d4ea552748ff47b81defc",
-    "ynxAppGatewaydSha256": "88eccaa60d13e1e8922b81058ad598a5b983b2ddeae93e2750cf9d629dceb015"
+    "ynxBridgedSha256": "ff002b8ececbc2d2156eb155229ddaafe9c401bd2f2501897e7491985eda5189",
+    "ynxAppGatewaydSha256": "781dbfe55c686f6d94fac640f886b9850c8381b4d6262b65a6774cf0a1f470e8"
   },
   "installation": {
     "bridgeServiceActive": true,
@@ -33,8 +33,8 @@
     "service": "ynx-bridged",
     "schemaVersion": 7,
     "stateMachineVersion": "ynx.bridge.lifecycle.v1",
-    "buildCommit": "3e0907e1bad8",
-    "buildRelease": "ynx-bridge-3e0907e1bad8",
+    "buildCommit": "857371f9b194",
+    "buildRelease": "ynx-bridge-857371f9b194",
     "coordinatorState": "available-local-coordinator",
     "externalBridgeState": "provider-api-connected-route-execution-unavailable",
     "providerConnection": "connected-live-provider-api-route-execution-disabled",
@@ -51,7 +51,7 @@
     "sourceRoute": "ethereum-sepolia-domain-0",
     "destinationRoute": "base-sepolia-domain-6",
     "health": "connected-live-fee-api",
-    "lastSuccess": "2026-07-27T03:57:52.852648651Z",
+    "lastSuccess": "2026-07-27T05:38:48.415822780Z",
     "connectivityProbeIntervalSeconds": 60,
     "connectivityStaleAfterSeconds": 120,
     "periodicRefresh": {
@@ -111,6 +111,11 @@
   "appGateway": {
     "remoteDeployed": true,
     "bridgeUpstreamHealthy": true,
+    "walletUpstreamHealthy": true,
+    "walletBoundary": "p256-product-session-proof",
+    "walletDependencyMode": "soft-wants-no-requires",
+    "walletFailureIsolationConfigured": true,
+    "stableObservedSeconds": 360,
     "browserCredentialAccess": false,
     "walletSecretAccess": false
   },

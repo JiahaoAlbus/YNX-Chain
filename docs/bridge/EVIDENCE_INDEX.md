@@ -1,6 +1,6 @@
 # Bridge Evidence Index
 
-- Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`, `internal/appgateway`, `cmd/ynx-app-gatewayd`; deployed Testnet source commit `3e0907e1bad8595a90149c2778ec50b2e7cb520a`
+- Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`, `internal/appgateway`, `cmd/ynx-app-gatewayd`; deployed Testnet source commit `857371f9b19422861c0675ca6cbd89a7750744ad`
 - Remote Testnet coordinator, artifact, permission, App Gateway, and fail-closed runtime proof: `docs/bridge/testnet-deployment-evidence.json`
 - Independent-node public TLS read-only surface and mutation-boundary proof: `docs/bridge/public-read-evidence.json`
 - Quote Runtime and fail-closed vectors: `internal/bridgegateway/service.go`, `internal/bridgegateway/gateway_test.go`, `scripts/verify/bridge-api-check.sh`

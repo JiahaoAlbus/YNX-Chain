@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "evidenceType": "public-testnet-read-only-surface",
-  "observedAt": "2026-07-27T03:58:28Z",
-  "sourceCommit": "3e0907e1bad8595a90149c2778ec50b2e7cb520a",
-  "release": "ynx-bridge-3e0907e1bad8",
+  "observedAt": "2026-07-27T05:39:36Z",
+  "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+  "release": "ynx-bridge-857371f9b194",
   "observerRole": "independent-testnet-node",
   "baseUrl": "https://rest.ynxweb4.com/app/bridge",
   "tlsVerified": true,
@@ -31,7 +31,7 @@
     "provider": "Circle CCTP V2",
     "connection": "connected-live-provider-api-route-execution-disabled",
     "availableProviderCount": 1,
-    "lastSuccess": "2026-07-27T03:57:52.852648651Z",
+    "lastSuccess": "2026-07-27T05:38:48.415822780Z",
     "connectivityProbeIntervalSeconds": 60,
     "connectivityStaleAfterSeconds": 120,
     "periodicRefreshVerified": true,
@@ -67,7 +67,7 @@
     "ynxRouteAvailable": false
   },
   "runtimeTruth": {
-    "buildCommit": "3e0907e1bad8",
+    "buildCommit": "857371f9b194",
     "externalSubmissionEnabled": false,
     "userAssetMovementEnabled": false,
     "liveBridge": false,

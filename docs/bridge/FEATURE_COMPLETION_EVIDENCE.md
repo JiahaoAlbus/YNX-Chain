@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-27. Runtime and public read-only Testnet evidence source commit: `3e0907e1bad8595a90149c2778ec50b2e7cb520a`; the deployed Provider health observation is verified to refresh every 60 seconds, fail closed on a real egress outage, automatically recover, persist eight integrity-linked incident events, and preserve their identifiers across a service restart.
+Status date: 2026-07-27. Runtime and public read-only Testnet evidence source commit: `857371f9b19422861c0675ca6cbd89a7750744ad`; the deployed Provider health observation is verified to refresh every 60 seconds, fail closed on a real egress outage, automatically recover, persist eight integrity-linked incident events, and preserve their identifiers across a service restart. The deployed App Gateway simultaneously reports healthy Bridge and canonical Wallet upstreams and uses a soft Wallet dependency so an unrelated Wallet service failure cannot become a hard Bridge availability dependency.
 
 ## Evidence-backed state
 
