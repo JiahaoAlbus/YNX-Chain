@@ -16,5 +16,8 @@
 - Contained webhook SSRF, DNS rebinding and redirect risks with public-address validation, bound dialing, disabled proxies and persisted fail-closed retry evidence.
 - Added a deterministic CycloneDX backend SBOM and exact vendored Wallet Auth member manifest; unresolved source provenance/license remains an explicit distribution blocker.
 - Added exact-source two-run production-bundle byte reproducibility evidence with explicit same-host/cache limitations.
+- Added a public `/version` endpoint and release-correlation headers carrying commit, release, build time and process start time; local race tests bind the response to source commit `1f7963c`.
+- Added the versioned Merchant Console integration contract, full-goal coverage matrix, cross-product test vectors and dependency acceptance handoff without claiming central acceptance.
+- Added a verified Git recovery bundle for runtime commit `1f7963c`; three bounded origin pushes returned upstream HTTP 502, so remote synchronization remains false.
 
 No staging/public deployment, official provider success, stablecoin settlement, hosted download or production signature is claimed by this release.

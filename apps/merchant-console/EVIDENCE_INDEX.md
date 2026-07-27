@@ -46,6 +46,14 @@
 - Post-change fuzz rerun passed: RBAC 38,756 executions, Webhook 13,485 executions and Settlement 30,818 executions after baseline coverage.
 - Scope limitation: no OpenTelemetry collector, durable exporter, alert delivery, staging dashboard or measured SLO is claimed.
 
+## Release identity and integration freeze (2026-07-27)
+
+- Runtime commit `1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9` adds `/version` and release-correlation headers for commit, release, build time and process start time.
+- `TestVersionExposesAuditableReleaseMetadata` and `go test -race ./internal/payproduct ./internal/payproduct/cmd/ynx-pay-productd` passed.
+- The unique integration contract, full-goal coverage matrix, cross-product test vectors and dependency acceptance handoff parse as valid JSON where applicable.
+- Three bounded origin pushes returned upstream HTTP 502. The verified bundle `release/recovery/merchant-console-1f7963c.bundle` contains runtime commit `1f7963c`, requires base `60f8607`, is 2,324 bytes and has SHA-256 `5fd0082dfbde40c335d07a68a7e5004ea745f4319c21cf3a4b8d6aed84d8e91e`.
+- Scope limitation: the bundle is local recovery evidence; it is not remote synchronization, shared-Testnet integration or deployment proof.
+
 ## Focused UI, RTL and accessibility verification
 
 - Current production bundle loaded over local HTTP in the in-app Chromium browser at 1280x720 desktop and 390x844 mobile.

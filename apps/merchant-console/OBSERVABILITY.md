@@ -3,7 +3,8 @@
 ## Implemented local signals
 
 - `/health` reports direct process liveness and local-store readability while keeping central Pay and Gateway readiness `unverified`; it does not emit a fixed success boolean.
-- Every HTTP response carries `X-Request-ID` and `X-Trace-ID`. Errors also carry a random `X-Error-ID`, and the JSON error body contains the same request/error IDs plus a stable error code.
+- `/version` reports product, source commit, release, build time, process start time, network and native asset. Missing linker inputs normalize to truthful `unknown` / `local` values.
+- Every HTTP response carries `X-Request-ID`, `X-Trace-ID`, `X-YNX-Commit`, `X-YNX-Release`, `X-YNX-Build-Time` and `X-YNX-Started-At`. Errors also carry a random `X-Error-ID`, and the JSON error body contains the same request/error IDs plus a stable error code.
 - JSON request logs contain request ID, trace ID, matched route template, status, duration, response bytes, redacted merchant role and error ID. They never include URL query, request body, authorization header or credentials.
 - Central Pay and AI outbound requests propagate the request ID and W3C `traceparent`.
 - `GET /internal/metrics` returns direct in-process counts, response bytes, total/max duration and bounded duration buckets by HTTP method, matched route template and status. It fails closed unless `YNX_PAY_PRODUCT_MONITOR_KEY` contains at least 24 characters and the caller sends it as `X-YNX-Monitor-Key`.

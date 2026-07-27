@@ -2,7 +2,7 @@
   "productId": "pay-merchant",
   "name": "YNX Merchant Console",
   "branch": "codex/final-merchant-console",
-  "commit": "c2ae341e9a745e0f7874a49c2662d5c2ea159cc9",
+  "commit": "1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9",
   "version": "1.0.0",
   "surfaces": ["web"],
   "implementedLocal": true,
@@ -46,9 +46,10 @@
   "signingClass": {"web": "unsigned static production bundle"},
   "minOS": {"web": "current evergreen browsers"},
   "installEvidence": [],
-  "recoveryEvidence": [{"classification": "local-unsigned-recovery-drill", "path": "evidence/backup-restore-drill.json", "sha256": "eab7eee06310e9519d2d7f5945ce977a0e8a6a5ad5e95aff906e2a5cdfa6e045", "bytes": 3024, "sourceCommit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef"}],
+  "runtimeEvidence": [{"classification": "local-runtime-release-metadata", "sourceCommit": "1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9", "endpoints": ["/health", "/version"], "headers": ["X-YNX-Commit", "X-YNX-Release", "X-YNX-Build-Time", "X-YNX-Started-At"], "test": "TestVersionExposesAuditableReleaseMetadata"}],
+  "recoveryEvidence": [{"classification": "local-unsigned-recovery-drill", "path": "evidence/backup-restore-drill.json", "sha256": "eab7eee06310e9519d2d7f5945ce977a0e8a6a5ad5e95aff906e2a5cdfa6e045", "bytes": 3024, "sourceCommit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef"}, {"classification": "local-git-recovery-bundle", "path": "../../release/recovery/merchant-console-1f7963c.bundle", "sha256": "5fd0082dfbde40c335d07a68a7e5004ea745f4319c21cf3a4b8d6aed84d8e91e", "bytes": 2324, "containedHead": "1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9", "requiredBase": "60f860791a09e41a3bf0509184d5a91ea926e985", "remoteSynchronized": false}],
   "reproducibilityEvidence": [{"classification": "local-unsigned-reproducible-build-check", "path": "evidence/reproducible-build.json", "sha256": "5a770c56ef7bbcd47e3a47b8d51e614c68385a059c320b1c5dc5c4d73fbf72cf", "bytes": 1232, "sourceCommit": "70f637de4a5b7e21da1b0743b6c96b8b572b9a11", "runs": 2, "byteIdentical": true}],
   "centralIntegration": "Canonical pay-merchant Wallet entry and same-origin /app/pay-merchant proxy are requested but not deployed.",
-  "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Authenticated business views retain untranslated English copy; full 12-language, screen-reader, keyboard, zoom and automated accessibility-rule acceptance is incomplete.", "Existing proof screenshots predate canonical Wallet integration.", "Observability is process-local; OpenTelemetry, durable export, alerts and a staging dashboard are not configured.", "Official provider adapters/credentials, executable capital services, production-sized remote restore evidence, end-to-end capacity and public Testnet evidence remain incomplete."],
-  "generatedAt": "2026-07-22T00:00:00+08:00"
+  "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Authenticated business views retain untranslated English copy; full 12-language, screen-reader, keyboard, zoom and automated accessibility-rule acceptance is incomplete.", "Existing proof screenshots predate canonical Wallet integration.", "Observability is process-local; OpenTelemetry, durable export, alerts and a staging dashboard are not configured.", "Official provider adapters/credentials, executable capital services, production-sized remote restore evidence, end-to-end capacity and public Testnet evidence remain incomplete.", "Runtime commit 1f7963c is locally protected, but three bounded origin pushes returned upstream HTTP 502; the recorded Git bundle is recovery evidence, not remote synchronization."],
+  "generatedAt": "2026-07-27T11:00:00+01:00"
 }

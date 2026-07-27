@@ -8,12 +8,13 @@ surface and does not claim a deployed endpoint.
 
 - JSON requests are limited to 1 MiB and decoded strictly; unknown fields and
   trailing data are rejected.
-- Every response carries `X-Request-ID` and `X-Trace-ID`. Error responses also
-  carry `X-Error-ID` and return `{error,errorId,requestId,code}` without provider
-  bodies, stack traces, credentials or server paths.
+- Every response carries `X-Request-ID`, `X-Trace-ID`, `X-YNX-Commit`,
+  `X-YNX-Release`, `X-YNX-Build-Time` and `X-YNX-Started-At`. Error responses
+  also carry `X-Error-ID` and return `{error,errorId,requestId,code}` without
+  provider bodies, stack traces, credentials or server paths.
 - Merchant-console endpoints accept only `Authorization: Bearer <session>` from
   the canonical Wallet/Gateway session exchange. Sessions bind merchant,
-  account, role and membership version and expire after five minutes. Role
+  account, role and membership version and expire after fifteen minutes. Role
   changes invalidate older sessions.
 - Gateway settlement/refund/dispute endpoints use the canonical signed Gateway
   assertion headers and exact request digest. Bootstrap and monitoring use
@@ -24,6 +25,7 @@ surface and does not claim a deployed endpoint.
 | Method and route | Authority | Permission | Success | Purpose |
 |---|---|---|---:|---|
 | `GET /health` | public | direct checks only | 200/503 | Process/store evidence; dependencies remain `unverified` when not checked |
+| `GET /version` | public | build metadata only | 200 | Product, source commit, release, build time, started time, network and asset identity |
 | `GET /internal/metrics` | `X-YNX-Monitor-Key` | dedicated 24+ character key | 200 | Process-local bounded request metrics; fails closed when unconfigured |
 | `POST /v1/merchants/onboard` | `X-YNX-Bootstrap-Key` | deployment bootstrap | 201 | Create merchant/owner and return one-time credentials |
 | `POST /v1/merchant/sessions` | canonical Wallet/Gateway assertion | registered owner/staff account | 201 | Exchange exact product/device/account approval for a short session |

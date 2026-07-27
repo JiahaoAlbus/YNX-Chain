@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx.integration.merchant-console.v1",
+  "sourceCommit": "1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9",
+  "status": "local-vectors-tested-central-execution-pending",
+  "vectors": [
+    {
+      "id": "MC-AUTH-001",
+      "owners": ["02-wallet-auth", "05-merchant-console"],
+      "purpose": "Accept the exact canonical merchant product tuple and create a short merchant session.",
+      "input": {
+        "product": "pay-merchant",
+        "client": "ynx-merchant-console-v1",
+        "bundle": "com.ynxweb4.merchant-console",
+        "callback": "https://pay.ynxweb4.com/merchant/wallet-auth/callback",
+        "chainId": "ynx_6423-1",
+        "orderedScopes": ["account:read", "merchant:session:create"],
+        "deviceAlgorithm": "p256-sha256"
+      },
+      "expected": ["201 merchant session", "session binds merchant/account/role", "session expires within 900 seconds"],
+      "localTest": "canonical Wallet approval and product-device proof create only a short merchant session",
+      "centralState": "pending"
+    },
+    {
+      "id": "MC-AUTH-002",
+      "owners": ["02-wallet-auth", "05-merchant-console"],
+      "purpose": "Reject cross-product, callback, scope, device, digest, timestamp and replay tampering.",
+      "mutations": ["wrong product", "wrong client", "wrong bundle", "wrong callback", "scope widening", "scope replacement", "wrong device", "body substitution", "expired assertion", "future assertion", "replayed nonce"],
+      "expected": ["fail closed", "no merchant session", "no authorization fallback"],
+      "localTests": ["cross-product callback and scope escalation fail closed", "TestMerchantGatewayAssertionRejectsReplayAndBodySubstitution"],
+      "centralState": "pending"
+    },
+    {
+      "id": "MC-RBAC-001",
+      "owners": ["05-merchant-console"],
+      "purpose": "Enforce the frozen five-role permission matrix.",
+      "roles": ["owner", "finance", "developer", "support", "viewer"],
+      "expected": ["only declared permissions succeed", "unknown role and permission fail closed", "last active owner cannot be demoted"],
+      "localTests": ["TestMerchantRoleMatrixAndMembershipChangeInvalidatesSession", "FuzzMerchantRBACFailsClosed"],
+      "centralState": "not-required"
+    },
+    {
+      "id": "MC-RBAC-002",
+      "owners": ["02-wallet-auth", "05-merchant-console"],
+      "purpose": "Invalidate an existing session after the member role or active status changes.",
+      "expected": ["existing bearer rejected", "user must complete canonical sign-in again"],
+      "localTest": "TestMerchantRoleMatrixAndMembershipChangeInvalidatesSession",
+      "centralState": "pending-staging-walkthrough"
+    },
+    {
+      "id": "MC-PAY-001",
+      "owners": ["04-pay", "05-merchant-console"],
+      "purpose": "Accept a payment only when central Pay evidence exactly matches the Merchant invoice.",
+      "requiredMatches": ["central invoice ID", "intent ID", "merchant ID", "payout address", "amount", "asset", "transaction hash", "nonzero block", "audit hash", "paid status"],
+      "expected": ["invoice becomes committed", "persisted settlement source is authoritative-central-pay-api", "invoice.committed webhook queued"],
+      "localTests": ["TestAuthoritativePaymentPersistenceIdempotencyAndTamper", "FuzzSettlementEvidenceFailsClosed"],
+      "centralState": "pending-funded-shared-testnet"
+    },
+    {
+      "id": "MC-PAY-002",
+      "owners": ["04-pay", "05-merchant-console"],
+      "purpose": "Reject incomplete, mismatched, expired, duplicate or UI/webhook-only payment claims.",
+      "mutations": ["wrong invoice", "wrong intent", "wrong merchant", "wrong payout", "wrong amount", "wrong asset", "zero block", "bad hash", "expired invoice", "duplicate idempotency conflict"],
+      "expected": ["invoice not committed", "no fake receipt", "operator-visible error"],
+      "localTests": ["TestSettlementMismatchExpiryAndWebhookRetry", "TestMerchantFaultMatrixFailsClosed"],
+      "centralState": "pending"
+    },
+    {
+      "id": "MC-CASE-001",
+      "owners": ["04-pay", "15-trust-center", "05-merchant-console"],
+      "purpose": "Create refund and dispute records without moving funds or making a Trust decision.",
+      "expected": ["refund request remains reviewable", "dispute carries Trust reference", "no automatic refund", "no AI decision"],
+      "localTest": "TestGatewayBoundPaymentCreatesPayerCases",
+      "centralState": "pending-official-trust-and-refund-adapters"
+    },
+    {
+      "id": "MC-WEBHOOK-001",
+      "owners": ["05-merchant-console"],
+      "purpose": "Deliver a signed webhook to a validated public HTTPS receiver and persist retry evidence.",
+      "expected": ["signature binds every field", "timestamp and delivery ID are stable", "success only after actual receiver response", "failed attempts remain retryable and audited"],
+      "localTests": ["FuzzWebhookSignatureBindsEveryField", "TestSettlementMismatchExpiryAndWebhookRetry"],
+      "centralState": "pending-public-receiver"
+    },
+    {
+      "id": "MC-WEBHOOK-002",
+      "owners": ["05-merchant-console", "30-security-sre"],
+      "purpose": "Reject unsafe webhook destinations and DNS/redirect attacks.",
+      "mutations": ["loopback", "private address", "link-local", "mixed public/private DNS", "DNS rebinding", "redirect", "non-HTTPS", "non-443 port"],
+      "expected": ["no unsafe network call", "delivery remains failed/retryable", "failure is audited"],
+      "localTests": ["TestWebhookDestinationRejectsLocalAndReboundAddresses", "TestWebhookClientNeverFollowsRedirects", "TestWebhookDNSRebindingFaultPersistsFailureWithoutNetworkCall"],
+      "centralState": "not-required"
+    },
+    {
+      "id": "MC-RECON-001",
+      "owners": ["04-pay", "26-data-fabric", "05-merchant-console"],
+      "purpose": "Export reconciliation schema v1 from authoritative persisted records.",
+      "expectedHeaders": {"Content-Type": "text/csv; charset=utf-8", "X-YNX-Reconciliation-Schema": "1"},
+      "expectedColumns": ["invoice_id", "central_invoice_id", "merchant_id", "amount_ynxt", "fee_ynxt", "status", "transaction_hash", "block_number", "created_at", "expires_at"],
+      "localTest": "TestReconciliationCSVGoldenSchemaAndEvidenceFields",
+      "centralState": "pending-staging-records"
+    },
+    {
+      "id": "MC-QUANT-001",
+      "owners": ["08-quant-lab", "17-tokenomics", "26-data-fabric", "05-merchant-console"],
+      "purpose": "Accept a Quant/Vault fee invoice only from signed realized-net-PnL and high-water-mark ledger evidence.",
+      "requiredEvidence": ["strategy hash/version", "Quant release", "venue/vault/subaccount", "realized gross PnL", "trading/funding/gas/compute/data costs", "loss carry-forward", "previous/current high-water mark", "fee formula/version", "ledger event IDs"],
+      "expected": ["frontend or manager PnL assertion rejected", "unrealized profit not charged", "loss or below-high-water-mark fee is zero", "fee breakdown is auditable"],
+      "localState": "disclosure and unavailable-value behavior tested; signed ingestion not implemented",
+      "centralState": "pending-contracts"
+    },
+    {
+      "id": "MC-OBS-001",
+      "owners": ["13-monitor", "30-security-sre", "05-merchant-console"],
+      "purpose": "Expose truthful health/version and release correlation without inventing dependency health.",
+      "expected": ["/version returns product, commit, release, buildTime, startedAt, network and asset", "all responses carry release metadata headers", "/health checks local store and labels dependencies unverified/unavailable", "metrics require dedicated monitor authority"],
+      "localTests": ["TestVersionExposesAuditableReleaseMetadata", "TestRuntimeMetricsFailClosedAndExposeOnlyBoundedDirectObservations"],
+      "centralState": "pending-monitor-ingestion"
+    },
+    {
+      "id": "MC-RECOVERY-001",
+      "owners": ["30-security-sre", "05-merchant-console"],
+      "purpose": "Backup, verify, restore and rollback without tamper, wrong key, symlink or active-service overwrite.",
+      "expected": ["nested integrity verified", "exact source commit guarded", "active service lock blocks restore", "rollback copy retained", "record counts and SHA evidence emitted"],
+      "localTests": ["TestBackupVerifyRestoreAndRollbackDrill", "TestBackupTamperWrongKeyAndInvalidSourceCommitFailClosed", "TestRunningServiceLockBlocksRestoreAndOwnershipChangeBlocksUnlock"],
+      "centralState": "pending-production-sized-staging-drill"
+    }
+  ]
+}

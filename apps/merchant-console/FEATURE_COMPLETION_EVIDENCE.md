@@ -1,6 +1,6 @@
 # Merchant Console feature completion evidence
 
-Evidence date: 2026-07-22. Source branch: `codex/final-merchant-console`.
+Evidence date: 2026-07-27. Source branch: `codex/final-merchant-console`.
 
 This ledger is intentionally fail-closed: `implemented` means current source contains the behavior; `tested` means a named local command exercised it; deployment fields remain false until remote evidence exists.
 
@@ -21,6 +21,9 @@ This ledger is intentionally fail-closed: `implemented` means current source con
 | Backup/verify/restore/rollback | yes-local | yes | Recovery CLI, nested HMAC verification, exact-SHA guard, store lock, rollback copy and `evidence/backup-restore-drill.json` | Repeat with production-sized staging copy and remote operator evidence |
 | Request observability and runtime metrics | yes-local | yes | Correlated request/trace/error IDs, redacted JSON logs, outbound trace propagation, fail-closed monitor endpoint and race-tested bounded metrics | Add OpenTelemetry/exporter, durable business metrics, alerts and staging dashboard |
 | Supply-chain inventory and verification | partial | yes-local | Frontend/backend CycloneDX, deterministic Go generator, exact vendor manifest, input/hash/path tests and two-run identical bundle evidence | Resolve Wallet Auth provenance/license; approved scanners, independent hermetic build, signed provenance and hosted immutable artifacts |
+| Runtime release identity | yes-local | yes | `/version`, release metadata response headers and linker-injected build fields at source commit `1f7963c`; `TestVersionExposesAuditableReleaseMetadata`; exact Wallet/Pay/Monitor dependency states remain separate | Inject non-local release metadata in CI and verify from staging/public service |
+| Integration contract and full-goal coverage | yes-local | validated | `release/integration/merchant-console-contract.json`, integration handoff, cross-product vectors, dependency acceptance and `.ai-bridge/full-goal-coverage.json`; JSON parsing passed | Acceptance and execution by central owners/29 Integration |
+| Git recovery checkpoint | yes-local | verified | Runtime commit `1f7963c`; verified bundle SHA-256 `5fd0082dfbde40c335d07a68a7e5004ea745f4319c21cf3a4b8d6aed84d8e91e`, requiring remote base `60f8607` | Origin push is not synchronized; three bounded attempts returned HTTP 502 |
 | Public/staging deployment | no | no | No current URL, health response or hosted hash | Operator inputs and deployment |
 
 The product is not release-complete while any remaining gate above is open.

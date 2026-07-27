@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "ynx.integration.merchant-console.v1",
+  "product": {
+    "number": "05",
+    "id": "pay-merchant",
+    "slug": "merchant-console",
+    "name": "YNX Merchant Console",
+    "owner": "05-merchant-console",
+    "sourceCommit": "1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9",
+    "branch": "codex/final-merchant-console"
+  },
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeAsset": "YNXT",
+    "nativeAddressPrefix": "ynx1"
+  },
+  "walletTuple": {
+    "requestingProduct": "pay-merchant",
+    "productClientId": "ynx-merchant-console-v1",
+    "bundleId": "com.ynxweb4.merchant-console",
+    "callback": "https://pay.ynxweb4.com/merchant/wallet-auth/callback",
+    "orderedScopes": ["account:read", "merchant:session:create"],
+    "deviceAlgorithm": "p256-sha256",
+    "authorizationRequestMaxTtlSeconds": 300,
+    "merchantSessionTtlSeconds": 900,
+    "failClosed": true
+  },
+  "roles": {
+    "owner": ["read", "invoice", "reconcile", "case", "webhook", "ai-run", "ai-review", "members", "provider-manage", "provider-test"],
+    "finance": ["read", "invoice", "reconcile", "case", "ai-run", "ai-review"],
+    "developer": ["read", "webhook", "provider-manage", "provider-test"],
+    "support": ["read", "case", "ai-run"],
+    "viewer": ["read"]
+  },
+  "http": {
+    "public": [
+      {"method": "GET", "path": "/health", "authority": "direct process/store checks; dependency states remain explicit"},
+      {"method": "GET", "path": "/version", "authority": "process build metadata"},
+      {"method": "GET", "path": "/v1/invoices/{id}", "authority": "signed invoice and accepted central settlement evidence"}
+    ],
+    "monitor": [
+      {"method": "GET", "path": "/internal/metrics", "authority": "dedicated server-side monitor key"}
+    ],
+    "bootstrap": [
+      {"method": "POST", "path": "/v1/merchants/onboard", "authority": "deployment bootstrap key"}
+    ],
+    "walletGateway": [
+      {"method": "POST", "path": "/v1/merchant/sessions", "authority": "canonical exact-digest Gateway assertion"},
+      {"method": "POST", "path": "/v1/invoices/{id}/settlements", "authority": "canonical Pay Gateway assertion and signed payment result"},
+      {"method": "POST", "path": "/v1/invoices/{id}/refund-requests", "authority": "canonical payer/session binding; request only"},
+      {"method": "POST", "path": "/v1/invoices/{id}/disputes", "authority": "canonical payer/session binding; Trust record only"}
+    ],
+    "merchantSession": [
+      {"method": "POST", "path": "/v1/merchant/members", "permission": "members"},
+      {"method": "GET", "path": "/v1/merchant/state", "permission": "read"},
+      {"method": "GET", "path": "/v1/merchant/analytics", "permission": "read"},
+      {"method": "POST", "path": "/v1/merchant/catalog", "permission": "invoice"},
+      {"method": "POST", "path": "/v1/merchant/invoices", "permission": "invoice"},
+      {"method": "PUT", "path": "/v1/merchant/webhook", "permission": "webhook"},
+      {"method": "POST", "path": "/v1/merchant/webhook/rotate", "permission": "webhook"},
+      {"method": "POST", "path": "/v1/merchant/webhooks/{id}/retry", "permission": "webhook"},
+      {"method": "GET", "path": "/v1/merchant/reconciliation.csv", "permission": "reconcile"},
+      {"method": "GET", "path": "/v1/merchant/providers/catalog", "permission": "read"},
+      {"method": "PUT", "path": "/v1/merchant/providers", "permission": "provider-manage"},
+      {"method": "POST", "path": "/v1/merchant/providers/{id}/test", "permission": "provider-test"},
+      {"method": "POST", "path": "/v1/merchant/providers/{id}/disable", "permission": "provider-manage"},
+      {"method": "GET", "path": "/v1/merchant/capital", "permission": "reconcile"},
+      {"method": "POST", "path": "/v1/merchant/ai/runs", "permission": "ai-run"},
+      {"method": "POST", "path": "/v1/merchant/ai/runs/{id}/review", "permission": "ai-review"}
+    ]
+  },
+  "responseContract": {
+    "strictJson": true,
+    "maxRequestBytes": 1048576,
+    "headers": ["X-Request-ID", "X-Trace-ID", "X-YNX-Commit", "X-YNX-Release", "X-YNX-Build-Time", "X-YNX-Started-At"],
+    "errorHeaders": ["X-Error-ID"],
+    "errorBodyFields": ["error", "errorId", "requestId", "code"],
+    "errorCodes": ["invalid_request", "unauthorized", "forbidden", "not_found", "conflict", "request_too_large", "operation_failed", "internal_error"]
+  },
+  "canonicalEvents": [
+    "merchant.onboard",
+    "merchant.session.create",
+    "merchant.member.upsert",
+    "catalog.create",
+    "invoice.create",
+    "payment.signed-intent.accept",
+    "invoice.committed",
+    "refund.request",
+    "dispute.open",
+    "webhook.secret.rotate",
+    "webhook.endpoint.update",
+    "webhook.deliver",
+    "provider.configure",
+    "provider.test",
+    "provider.disable",
+    "ai.result",
+    "ai.review"
+  ],
+  "invariants": [
+    "Unknown roles, permissions, fields, products, bundles, callbacks, devices, scopes, nonces and expired assertions fail closed.",
+    "A merchant session is bound to merchant, account, role and active membership; membership changes invalidate older sessions.",
+    "The last active owner cannot be demoted.",
+    "Paid or committed status requires exact accepted central Pay evidence; a UI action or webhook cannot create settlement authority.",
+    "Refund and dispute routes create reviewable records only and never move funds.",
+    "Browser clients never receive provider credentials, webhook secret material, merchant signing keys or long-lived bearer tokens.",
+    "AI output cannot execute payment, refund, payout, secret rotation, role change or settlement mutation.",
+    "Unknown economic values remain unavailable and are never inferred from frontend or manager assertions."
+  ],
+  "dependencies": [
+    {"owner": "02-wallet-auth", "contract": "canonical product registry, authorization, challenge, completion, introspection and revoke", "state": "notAcceptedRemote"},
+    {"owner": "04-pay", "contract": "authoritative invoice, settlement, receipt and refund execution", "state": "localAdapterTested"},
+    {"owner": "08-quant-lab", "contract": "strategy identity, realized net PnL and high-water-mark evidence", "state": "notAcceptedRemote"},
+    {"owner": "13-monitor", "contract": "metrics, alerts, incident and status ingestion", "state": "localMetricsOnly"},
+    {"owner": "14-ai", "contract": "provider-neutral AI Gateway with context consent, cost and audit", "state": "notAcceptedRemote"},
+    {"owner": "15-trust-center", "contract": "dispute evidence, status and appeal references", "state": "localReferenceOnly"},
+    {"owner": "17-tokenomics", "contract": "fee, burn, treasury and reserve definitions", "state": "notAcceptedRemote"},
+    {"owner": "21-bridge", "contract": "cross-chain settlement lifecycle", "state": "unavailable"},
+    {"owner": "26-data-fabric", "contract": "canonical events and Billing Ledger", "state": "notAcceptedRemote"},
+    {"owner": "28-website", "contract": "canonical microsite, downloads, support/privacy/security/status and SEO", "state": "metadataPrepared"},
+    {"owner": "29-integration", "contract": "protocol freeze and shared Testnet acceptance", "state": "pendingSubmission"},
+    {"owner": "30-security-sre", "contract": "release, provenance, hosting, backup and incident standards", "state": "localPartial"}
+  ],
+  "migration": {
+    "snapshotCurrent": 2,
+    "snapshotV1Migration": "testedLocal",
+    "futureSchemaPolicy": "reject",
+    "reconciliationSchema": 1,
+    "rollbackEvidence": "local-only"
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "externalInputs": [
+    "accepted canonical Gateway registration and endpoint",
+    "shared Testnet deployment and funded secure signer path",
+    "approved provider secret-manager references where official sandboxes require credentials",
+    "deployment authority and DNS",
+    "public Support, Privacy, Security and Status URLs"
+  ],
+  "status": "active"
+}
