@@ -4,7 +4,7 @@
 
 - Product owner: `24-finance`
 - Branch: `codex/final-finance`
-- Protected implementation commit: `b7147cee87275a3d7b0b452aae29bfbd93667dff`
+- Protected implementation commit: `23bcdea565bcfcb7d211512e654f916faf817df3`
 - Contract: `release/integration/finance-contract.json`
 - Product identity: `ynx-finance-v1` / `com.ynxweb4.finance`
 - Network: `ynx_6423-1`; native Testnet asset: `YNXT`
@@ -19,6 +19,8 @@ Explorer data is accepted only after `/health` reports an operational service an
 The Finance activity API remains explicitly bounded to the latest 100 indexed transactions because the current Explorer contract has no account-history cursor. Finance-side page cursors are opaque HMAC-SHA-256 tokens bound to the Wallet account, offset and current activity snapshot. Tamper, cross-account reuse, unsupported version and changed snapshot fail closed. `YNX_FINANCE_CURSOR_SIGNING_KEY` is an operator-managed secret and must be shared consistently across deployed Finance API replicas. Key rotation intentionally invalidates outstanding cursors.
 
 Pay receipts remain server-to-server and require `X-YNX-Pay-Key`. The key never belongs in the client or repository. A failed or unauthorized Pay response becomes an unavailable source state; it never creates a placeholder receipt or marks an asset event settled.
+
+Finance state recovery is now locally implemented at the protected commit. Backup envelopes are versioned, bounded and HMAC-SHA-256 authenticated; they are not encrypted. Verification rejects wrong keys, tamper, unknown fields, unsupported versions and unsafe paths. Restore is an offline operator action that preserves the current private state with hash/byte evidence, atomically installs and reopens the snapshot, emits a private receipt and rolls back automatically on post-write verification or receipt failure. Security/SRE acceptance, encrypted storage/retention policy, deployed restore drill and measured RTO/RPO remain pending.
 
 ## Required owner inputs
 
@@ -60,7 +62,7 @@ Accept Finance health, source availability, lag, request/error/audit IDs, restor
 
 ### 28 Website / 29 Integration / 30 Security-SRE
 
-Website owns the final `/finance` public route and SEO. Integration owns shared Testnet protocol freeze and end-to-end proof. Security/SRE owns deployment secret handling, backup policy, artifact provenance, production signing and release gates.
+Website owns the final `/finance` public route and SEO. Integration owns shared Testnet protocol freeze and end-to-end proof. Security/SRE must review the separate backup-authentication key, encrypted storage and retention policy, execute an isolated deployed restore drill, set RTO/RPO targets, validate artifact provenance and control production signing/release gates. Local recovery tests do not imply that acceptance.
 
 ## Negative test vectors
 

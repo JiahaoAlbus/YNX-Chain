@@ -2,30 +2,35 @@
 
 ## Current stage
 
-FREEZE. The source-truth and activity-cursor runtime slice is protected at `b7147cee87275a3d7b0b452aae29bfbd93667dff`, and the remote branch matches. The local Finance read contract is now versioned; central dependency acceptance remains pending direct owner contracts and Testnet evidence.
+FREEZE. The authenticated local backup/restore slice is protected at `23bcdea565bcfcb7d211512e654f916faf817df3`; `codex/final-finance` now tracks `origin/codex/final-finance`, and local/remote SHA equality was verified. Central source contracts, installed Wallet approval, staging, public deployment and production signing remain incomplete.
 
 ## Protected scope
 
-- Explorer health/native-asset validation before account evidence.
-- Source version, `asOf`, coverage, sync and error semantics.
-- HMAC-SHA-256 activity cursors bound to Wallet account and source snapshot.
-- Operator-managed `YNX_FINANCE_CURSOR_SIGNING_KEY` startup gate.
-- Finance integration contract, handoff, dependency acceptance and negative vectors.
-- Machine-readable full-goal coverage matrix and truthful release state.
+- Explorer health/native-asset validation and explicit source provenance.
+- Account/snapshot-bound HMAC-SHA-256 activity cursors.
+- Version-1 strict Finance state validation and private atomic writes.
+- HMAC-SHA-256 authenticated backup envelopes with bounded size and strict schema checks.
+- Offline restore with pre-restore preservation, SHA-256/byte evidence, reopen verification and automatic rollback on post-write failure.
+- Admin backup/verify/restore CLI, recovery runbook, migration compatibility policy and negative tests.
+- Repository placeholder/sensitive-material gates now fail correctly when the primary scanner is unavailable.
 
-## Verification before checkpoint
+## Verified gates for the protected commit
 
-1. Validate all modified JSON.
-2. Run `gofmt` and uncached Finance Go tests.
-3. Run Finance smoke, Gateway tests and native checks.
-4. Run diff/placeholder/secret gates applicable to the changed scope.
-5. Review with `show_changes`.
-6. Commit and push `codex/final-finance`; verify local SHA equals remote SHA.
+- `go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1`
+- `go test -race ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1`
+- `npm run smoke --prefix apps/finance`
+- `npm test --prefix apps/finance/gateway`
+- `npm test --prefix packages/wallet-auth`
+- `bash scripts/validate/no-placeholder-check.sh`
+- `bash scripts/validate/secret-scan.sh`
+- Shell syntax checks for modified validation/smoke scripts.
+
+The full repository Go preflight still fails outside Finance ownership because Consensus/IDE artifacts and key-permission tests in Consensus, Faucet and Trust are not healthy on this host. The current mobile check passed TypeScript and 6/6 tests but could not run the bundle step because the local Expo executable is absent. The latest dependency-audit retry returned an upstream 502; the previously recorded 1 high and 10 moderate advisories remain release blockers.
 
 ## Next autonomous runtime slice
 
-Implement explicit Finance state backup and restore with integrity manifest, atomic restore, corrupted-backup rejection, restart proof and migration/rollback documentation. Do not wait for external source contracts before completing this local recovery work.
+Create versioned, fail-closed read adapter contracts and negative vectors for Exchange, DEX, Quant and Economics. Finance must expose truthful unavailable/source-status states and action deep links only; it must not implement execution, signing, custody, a second Quant Engine or fabricated source data. Prefer owner-frozen contracts when present, and record explicit dependency conflicts rather than maintaining competing long-term schemas.
 
-## Later priority
+## Following priority
 
-Create fail-closed read adapter contracts for Exchange, DEX, Quant and Economics; then implement only against owner-frozen schemas. Add request/error IDs, metrics and source SLOs before staging.
+Implement request/error IDs, structured metrics and source-specific SLO signals; then add bounded local capacity/storage measurements. Deployed restore drill, RTO/RPO, mobile reproducible bundle/audit, central Wallet integration and shared Testnet flows remain required before stage advancement.

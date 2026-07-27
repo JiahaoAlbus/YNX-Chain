@@ -35,7 +35,7 @@ Missing fields fail closed. Finance must display an unavailable or partial state
 | 26 Data Fabric | Canonical Finance read/audit events | No | No | Event schema and billing boundary pending. |
 | 28 Website | `/finance`, metadata, downloads and SEO | Local web only | No | Public route, functional API and evidence not deployed. |
 | 29 Integration | Shared Testnet freeze and proof | No | No | Cross-product sources and central Wallet are incomplete. |
-| 30 Security/SRE | Secret, backup, artifact and release policy | Partial local audit | No | Deployment, restore drill, provenance and production signing pending. |
+| 30 Security/SRE | Secret, backup, artifact and release policy | Authenticated local backup/restore tested | No | HMAC-authenticated recovery is local only; encrypted storage/retention approval, deployed restore drill, RTO/RPO, provenance and production signing remain pending. |
 
 ## Explicit rejection conditions
 

@@ -5,7 +5,7 @@
   "productSlug": "finance",
   "owner": "24-finance",
   "sourceBranch": "codex/final-finance",
-  "sourceCommit": "b7147cee87275a3d7b0b452aae29bfbd93667dff",
+  "sourceCommit": "23bcdea565bcfcb7d211512e654f916faf817df3",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -47,6 +47,21 @@
       "YNX_FINANCE_WEB_DIR",
       "YNX_FINANCE_LISTEN"
     ]
+  },
+  "operations": {
+    "stateVersion": 1,
+    "backupSchemaVersion": 1,
+    "backupFormat": "ynx-finance-backup-v1",
+    "backupAuthentication": "HMAC-SHA-256",
+    "backupAuthenticationKeyEnvironment": "YNX_FINANCE_BACKUP_AUTH_KEY",
+    "minimumBackupAuthenticationKeyBytes": 32,
+    "backupEncrypted": false,
+    "restoreMode": "offline-only",
+    "adminCommands": ["backup", "verify", "restore"],
+    "localRestoreTested": true,
+    "deployedRestoreDrill": false,
+    "rtoRpoMeasured": false,
+    "securitySreAccepted": false
   },
   "sourceStatus": {
     "schema": {
