@@ -399,6 +399,43 @@ func TestPersistentDevnetRestoresBlocksAndAccounts(t *testing.T) {
 	}
 }
 
+func TestBlockReadViewDoesNotWaitForStatePersistenceLock(t *testing.T) {
+	devnet := NewDevnet(DefaultNetworkConfig("testnet"))
+	block := devnet.ProduceBlock()
+
+	devnet.mu.Lock()
+	defer devnet.mu.Unlock()
+
+	result := make(chan Block, 1)
+	go func() {
+		got, ok := devnet.BlockByHeight(block.Height)
+		if !ok {
+			result <- Block{}
+			return
+		}
+		result <- got
+	}()
+
+	select {
+	case got := <-result:
+		if got.Hash != block.Hash {
+			t.Fatalf("block read view returned hash %q, want %q", got.Hash, block.Hash)
+		}
+	case <-time.After(250 * time.Millisecond):
+		t.Fatal("block read waited for the state persistence lock")
+	}
+
+	if got := devnet.LatestBlock(); got.Hash != block.Hash {
+		t.Fatalf("latest block read view returned hash %q, want %q", got.Hash, block.Hash)
+	}
+	if got := devnet.Status()["height"]; got != block.Height {
+		t.Fatalf("cached status returned height %v, want %d", got, block.Height)
+	}
+	if got := devnet.NodeIdentity().Build.Commit; got == "" {
+		t.Fatal("cached node identity omitted build commit")
+	}
+}
+
 func TestPersistentDevnetRejectsCorruptionAndMigratesLegacySnapshot(t *testing.T) {
 	dir := t.TempDir()
 	cfg := DefaultNetworkConfig("testnet")

@@ -2,6 +2,7 @@
 .PHONY: bft-evm-receipt-check bft-ide-contract-check native-wallet-check chat-api-check square-api-check app-gateway-check app-account-ownership-check browser-signer-check mobile-check mobile-product-split-check mobile-android-native-check mobile-android-release-check mobile-android-release-installed-check mobile-biometric-installed-check
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check
 .PHONY: yusd-sandbox-check yusd-restore-drill yusd-testnet-deploy-check economics-runtime-check staking-risk-runtime-check economics-integration-adapter-check economics-integration-store-check liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check economics-local-candidate-check economics-monitor-lifecycle-check
+.PHONY: deploy-read-availability read-availability-check
 
 setup:
 	go mod tidy
@@ -99,6 +100,9 @@ deploy-economics-monitor:
 
 deploy-yusd-sandbox:
 	bash ./scripts/deploy/deploy-yusd-sandbox.sh
+
+deploy-read-availability:
+	bash ./scripts/deploy/deploy-read-availability.sh
 
 deploy-authoritative-monitoring:
 	bash ./scripts/deploy/deploy-authoritative-monitoring.sh
@@ -441,6 +445,9 @@ yusd-restore-drill:
 
 yusd-testnet-deploy-check:
 	bash ./scripts/verify/yusd-testnet-deploy-check.sh
+
+read-availability-check:
+	bash ./scripts/verify/read-availability-check.sh
 
 economics-runtime-check:
 	go test -race ./internal/economics ./cmd/ynx-economics-runtime

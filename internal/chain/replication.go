@@ -69,6 +69,7 @@ func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritative
 	// Peer observations are node-local operational evidence, not replicated chain state.
 	d.validatorPeers = localPeers
 	d.validatorPeerSyncs = localPeerSyncs
+	d.publishStatusReadViewLocked()
 	if err := d.persistSnapshotLocked(); err != nil {
 		d.applySnapshotLocked(rollback)
 		if rollbackErr := d.persistSnapshotLocked(); rollbackErr != nil {
@@ -194,4 +195,6 @@ func (d *Devnet) applySnapshotLocked(snapshot devnetSnapshot) {
 	d.resourcePools, d.resourceSponsorships, d.resourceSponsorIdem = snapshot.Pools, snapshot.Sponsors, snapshot.SponsorIDs
 	d.resourceActionRefs, d.resourceSponsorAudit = snapshot.ActionRefs, snapshot.SponsorLog
 	d.ensureStateDefaults()
+	d.publishBlockReadViewLocked()
+	d.publishStatusReadViewLocked()
 }

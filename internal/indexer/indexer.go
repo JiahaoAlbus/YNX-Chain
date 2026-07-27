@@ -16,6 +16,8 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
+const syncCheckpointBlocks = 4096
+
 type Config struct {
 	RPCURL    string
 	StorePath string
@@ -82,8 +84,9 @@ type Status struct {
 }
 
 type Store struct {
-	path string
-	mu   sync.Mutex
+	path             string
+	mu               sync.Mutex
+	afterSaveForTest func()
 }
 
 func NewStore(path string) *Store {
@@ -211,7 +214,13 @@ func (s *Store) saveLocked(db Database) error {
 	if err := os.WriteFile(tmp, payload, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(tmp, s.path)
+	if err := os.Rename(tmp, s.path); err != nil {
+		return err
+	}
+	if s.afterSaveForTest != nil {
+		s.afterSaveForTest()
+	}
+	return nil
 }
 
 type Indexer struct {
@@ -299,6 +308,11 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 	for height := start; height <= status.Height; height++ {
 		block, err := i.client.Block(ctx, height)
 		if err != nil {
+			if result.NewBlocksThisRun > 0 {
+				if checkpointErr := i.store.Save(db); checkpointErr != nil {
+					return SyncResult{}, fmt.Errorf("fetch block %d: %v; persist verified index progress: %w", height, err, checkpointErr)
+				}
+			}
 			return SyncResult{}, err
 		}
 		if block.Height != height || block.Hash == "" {
@@ -313,17 +327,41 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 		if expectedParent != "" && block.ParentHash != expectedParent {
 			return SyncResult{}, fmt.Errorf("source chain divergence at height %d: parent %s does not match indexed hash %s; indexer rebuild required", height, block.ParentHash, expectedParent)
 		}
-		db, err = i.store.UpsertBlock(i.cfg.RPCURL, status, block)
-		if err != nil {
-			return SyncResult{}, err
-		}
+		applyIndexedBlock(&db, i.cfg.RPCURL, status, block)
 		result.NewBlocksThisRun++
 		expectedParent = block.Hash
+		if result.NewBlocksThisRun%syncCheckpointBlocks == 0 {
+			if err := i.store.Save(db); err != nil {
+				return SyncResult{}, err
+			}
+		}
+	}
+	if result.NewBlocksThisRun%syncCheckpointBlocks != 0 {
+		if err := i.store.Save(db); err != nil {
+			return SyncResult{}, err
+		}
 	}
 	result.LastIndexedHeight = db.LastIndexedHeight
 	result.IndexedBlockCount = len(db.Blocks)
 	result.IndexedTxCount = len(db.Transactions)
 	return result, nil
+}
+
+func applyIndexedBlock(db *Database, sourceURL string, status Status, block chain.Block) {
+	if db.Blocks == nil {
+		db.Blocks = map[string]chain.Block{}
+	}
+	if db.Transactions == nil {
+		db.Transactions = map[string]chain.Transaction{}
+	}
+	applySourceStatus(db, sourceURL, status)
+	db.Blocks[strconv.FormatUint(block.Height, 10)] = block
+	db.LastIndexedHeight = block.Height
+	db.LastBlockHash = block.Hash
+	db.LastSyncAt = time.Now().UTC()
+	for _, tx := range block.Transactions {
+		db.Transactions[tx.Hash] = tx
+	}
 }
 
 func LatestBlocks(db Database, limit int) []chain.Block {

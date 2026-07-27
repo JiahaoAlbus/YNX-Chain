@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -56,6 +57,8 @@ var requestValidityRules = []RequestValidityRule{
 
 type Devnet struct {
 	mu                   sync.RWMutex
+	blockReadView        atomic.Pointer[blockReadView]
+	statusReadView       atomic.Pointer[statusReadView]
 	cfg                  NetworkConfig
 	blocks               []Block
 	pending              []Transaction
@@ -92,6 +95,15 @@ type Devnet struct {
 	contracts            map[string]ContractArtifact
 	dataDir              string
 	lastPersistenceError string
+}
+
+type blockReadView struct {
+	blocks []Block
+}
+
+type statusReadView struct {
+	status   map[string]any
+	identity NodeIdentity
 }
 
 func DefaultValidators() []Validator {
@@ -448,6 +460,8 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 	d.blocks = append(d.blocks, Block{
 		Height: 0, Hash: hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID)), Time: time.Now().UTC(), Validator: normalized[0].Address,
 	})
+	d.publishBlockReadViewLocked()
+	d.publishStatusReadViewLocked()
 	return d
 }
 
@@ -509,24 +523,36 @@ func (d *Devnet) StartWithPause(ctx context.Context, interval time.Duration, pau
 	}
 }
 
-func (d *Devnet) Config() NetworkConfig { d.mu.RLock(); defer d.mu.RUnlock(); return d.cfg }
+func (d *Devnet) Config() NetworkConfig { return d.cfg }
 
 func (d *Devnet) LatestHeight() uint64 {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.blocks[len(d.blocks)-1].Height
+	return d.LatestBlock().Height
 }
 
 func (d *Devnet) Status() map[string]any {
+	if d.mu.TryRLock() {
+		view := d.newStatusReadViewLocked(time.Now().UTC())
+		d.statusReadView.Store(view)
+		d.mu.RUnlock()
+		return cloneStatusMap(view.status)
+	}
+	if view := d.statusReadView.Load(); view != nil {
+		return cloneStatusMap(view.status)
+	}
 	d.mu.RLock()
-	defer d.mu.RUnlock()
+	view := d.newStatusReadViewLocked(time.Now().UTC())
+	d.statusReadView.Store(view)
+	d.mu.RUnlock()
+	return cloneStatusMap(view.status)
+}
+
+func (d *Devnet) newStatusReadViewLocked(now time.Time) *statusReadView {
 	latest := d.blocks[len(d.blocks)-1]
-	now := time.Now().UTC()
 	readyCount := d.readyValidatorCountLocked()
 	expectedPeers, observedPeers := d.validatorPeerDiscoveryCountsLocked()
 	syncedPeers, laggingPeers := d.validatorPeerSyncCountsLocked()
 	identity := d.nodeIdentityLocked(now)
-	return map[string]any{
+	status := map[string]any{
 		"network": d.cfg.Name, "slug": d.cfg.Slug, "chainId": d.cfg.ChainID,
 		"nativeCoinName": d.cfg.NativeCoinName, "nativeCurrencySymbol": d.cfg.NativeCurrencySymbol,
 		"decimals": d.cfg.Decimals, "publicNetwork": d.cfg.IsPublicNet,
@@ -543,6 +569,19 @@ func (d *Devnet) Status() map[string]any {
 		"truthfulStatus": TruthfulStatus(d.cfg), "mainnetReady": false,
 		"chainIdConflictCheck": d.cfg.ChainIDConflictCheck,
 	}
+	return &statusReadView{status: status, identity: identity}
+}
+
+func cloneStatusMap(source map[string]any) map[string]any {
+	cloned := make(map[string]any, len(source))
+	for key, value := range source {
+		cloned[key] = value
+	}
+	return cloned
+}
+
+func (d *Devnet) publishStatusReadViewLocked() {
+	d.statusReadView.Store(d.newStatusReadViewLocked(time.Now().UTC()))
 }
 
 func (d *Devnet) SetNodeIdentityConfig(input NodeIdentityConfig) {
@@ -561,6 +600,7 @@ func (d *Devnet) SetNodeIdentityConfig(input NodeIdentityConfig) {
 	defer d.mu.Unlock()
 	d.nodeIdentity = input
 	d.configureReplicationRuntimeLocked(input.ReplicationSource)
+	d.publishStatusReadViewLocked()
 }
 
 func normalizeBuildInfo(input BuildInfo) BuildInfo {
@@ -580,9 +620,20 @@ func normalizeBuildInfo(input BuildInfo) BuildInfo {
 }
 
 func (d *Devnet) NodeIdentity() NodeIdentity {
+	if d.mu.TryRLock() {
+		view := d.newStatusReadViewLocked(time.Now().UTC())
+		d.statusReadView.Store(view)
+		d.mu.RUnlock()
+		return view.identity
+	}
+	if view := d.statusReadView.Load(); view != nil {
+		return view.identity
+	}
 	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.nodeIdentityLocked(time.Now().UTC())
+	view := d.newStatusReadViewLocked(time.Now().UTC())
+	d.statusReadView.Store(view)
+	d.mu.RUnlock()
+	return view.identity
 }
 
 func (d *Devnet) ExplorerSummary() ExplorerSummary {
@@ -597,18 +648,23 @@ func (d *Devnet) ExplorerSummary() ExplorerSummary {
 }
 
 func (d *Devnet) LatestBlock() Block {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.blocks[len(d.blocks)-1]
+	view := d.blockReadView.Load()
+	if view == nil || len(view.blocks) == 0 {
+		return Block{}
+	}
+	return view.blocks[len(view.blocks)-1]
 }
 
 func (d *Devnet) BlockByHeight(height uint64) (Block, bool) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	if height >= uint64(len(d.blocks)) {
+	view := d.blockReadView.Load()
+	if view == nil || height >= uint64(len(view.blocks)) {
 		return Block{}, false
 	}
-	return d.blocks[height], true
+	return view.blocks[height], true
+}
+
+func (d *Devnet) publishBlockReadViewLocked() {
+	d.blockReadView.Store(&blockReadView{blocks: d.blocks})
 }
 
 func (d *Devnet) BlockByHash(hash string) (Block, bool) {
@@ -2578,7 +2634,9 @@ func (d *Devnet) ProduceBlock() Block {
 		logIndex += uint64(len(block.Transactions[i].Logs))
 	}
 	d.blocks = append(d.blocks, block)
+	d.publishBlockReadViewLocked()
 	d.markValidatorProducedBlockLocked(validator, block.Height, block.Time)
+	d.publishStatusReadViewLocked()
 	d.recordPersistenceErrorLocked(d.persistSnapshotLocked())
 	return block
 }

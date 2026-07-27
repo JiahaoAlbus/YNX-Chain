@@ -103,6 +103,30 @@ func TestIndexerBootstrapsAtMigrationHeightAndResumesWithFaucetTransaction(t *te
 	}
 }
 
+func TestIndexerCheckpointsLargeCatchupInBatches(t *testing.T) {
+	source := newMigrationSource(0, 8199, nil)
+	server := httptest.NewServer(source)
+	defer server.Close()
+
+	idx, err := New(Config{RPCURL: server.URL, StorePath: t.TempDir() + "/batched-index.json"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	saveCount := 0
+	idx.store.afterSaveForTest = func() { saveCount++ }
+
+	result, err := idx.SyncOnce(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.LastIndexedHeight != 8199 || result.IndexedBlockCount != 8200 || result.NewBlocksThisRun != 8200 {
+		t.Fatalf("unexpected batched catch-up result: %+v", result)
+	}
+	if saveCount != 4 {
+		t.Fatalf("large catch-up used %d durable writes, want 4 (source status, two checkpoints, final)", saveCount)
+	}
+}
+
 func TestIndexerFailsClosedOnParentDivergence(t *testing.T) {
 	source := newMigrationSource(100, 100, nil)
 	server := httptest.NewServer(source)
