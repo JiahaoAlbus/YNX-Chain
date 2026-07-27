@@ -195,6 +195,11 @@ func TestValidateReplicationStartupConfig(t *testing.T) {
 	if err := validateReplicationStartupConfig(network, validators, follower); err != nil {
 		t.Fatalf("valid follower rejected: %v", err)
 	}
+	follower.ReplicationInterval = 30 * time.Minute
+	if err := validateReplicationStartupConfig(network, validators, follower); err == nil || !strings.Contains(err.Error(), "must not exceed 30s") {
+		t.Fatalf("expected stale follower interval rejection, got %v", err)
+	}
+	follower.ReplicationInterval = time.Second
 	follower.BlockProduction = true
 	if err := validateReplicationStartupConfig(network, validators, follower); err == nil || !strings.Contains(err.Error(), "must disable") {
 		t.Fatalf("expected follower production rejection, got %v", err)

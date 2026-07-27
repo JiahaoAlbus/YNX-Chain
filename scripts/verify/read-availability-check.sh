@@ -30,6 +30,8 @@ done
 for required in \
   '/var/backups/ynx-chain/$release-$role' \
   'previous binaries restored' \
+  'YNX_REPLICATION_INTERVAL=%s' \
+  'bounded replication did not become fresh' \
   'http://127.0.0.1:6420/blocks/$probe_height' \
   'ynx-indexerd did not persist forward catch-up progress'
 do
@@ -39,6 +41,7 @@ done
 
 for required in \
   'sequence=primary,singapore,silicon-valley,seoul' \
+  'YNX_READ_AVAILABILITY_REPLICATION_INTERVAL:-2s' \
   'SILICON_VALLEY_PRIVATE_HOST:-10.77.42.3' \
   'SEOUL_PRIVATE_HOST:-10.77.42.4' \
   'ProxyCommand=ssh'

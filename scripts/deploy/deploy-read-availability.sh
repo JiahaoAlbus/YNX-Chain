@@ -7,6 +7,11 @@ source scripts/deploy/lib.sh
 ynx_load_env
 
 dry_run="${DEPLOY_DRY_RUN:-0}"
+replication_interval="${YNX_READ_AVAILABILITY_REPLICATION_INTERVAL:-2s}"
+case "$replication_interval" in
+  1s|2s|5s|10s|15s|30s) ;;
+  *) echo "YNX_READ_AVAILABILITY_REPLICATION_INTERVAL must be one of 1s,2s,5s,10s,15s,30s"; exit 1 ;;
+esac
 if [[ "$dry_run" != "1" ]]; then
   ynx_require_env PRIMARY_NODE_HOST PRIMARY_NODE_USER PRIMARY_NODE_SSH_KEY \
     SG_NODE_HOST SG_NODE_USER SG_NODE_SSH_KEY \
@@ -42,7 +47,7 @@ if [[ "$dry_run" == "1" ]]; then
   bash -n scripts/deploy/remote/install-read-availability.sh
   grep -a -Fq "$source_commit" "$work/package/bin/ynx-chaind"
   grep -a -Fq "$source_commit" "$work/package/bin/ynx-indexerd"
-  echo "read availability deployment dry-run passed: release=$release archiveSHA256=$archive_hash sequence=primary,singapore,silicon-valley,seoul"
+  echo "read availability deployment dry-run passed: release=$release archiveSHA256=$archive_hash sequence=primary,singapore,silicon-valley,seoul replicationInterval=$replication_interval"
   exit 0
 fi
 
@@ -69,7 +74,7 @@ deploy_role() {
   local remote_archive="/tmp/$release.tar.gz" remote_dir="/tmp/$release"
   transport_scp "$role" "$user" "$host" "$key" "$proxy" "$archive" "$remote_archive"
   transport_ssh "$role" "$user" "$host" "$key" "$proxy" \
-    "set -euo pipefail; chmod 0600 '$remote_archive'; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; rm -rf '$remote_dir'; install -d -m 0700 '$remote_dir'; tar -xzf '$remote_archive' -C '$remote_dir'; rm -f '$remote_archive'; bash '$remote_dir/install.sh' '$remote_dir' '$release' '$source_commit' '$role' '$mode'; rm -rf '$remote_dir'"
+    "set -euo pipefail; chmod 0600 '$remote_archive'; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; rm -rf '$remote_dir'; install -d -m 0700 '$remote_dir'; tar -xzf '$remote_archive' -C '$remote_dir'; rm -f '$remote_archive'; bash '$remote_dir/install.sh' '$remote_dir' '$release' '$source_commit' '$role' '$mode' '$replication_interval'; rm -rf '$remote_dir'"
 }
 
 echo "YNX_READ_AVAILABILITY_SEQUENCE=1 role=primary"

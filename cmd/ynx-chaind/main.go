@@ -290,6 +290,9 @@ func validateReplicationStartupConfig(network chain.NetworkConfig, validators []
 	if cfg.ReplicationInterval <= 0 {
 		return fmt.Errorf("YNX_REPLICATION_INTERVAL must be positive")
 	}
+	if cfg.ReplicationInterval > 30*time.Second {
+		return fmt.Errorf("YNX_REPLICATION_INTERVAL must not exceed 30s for Testnet followers")
+	}
 	return nil
 }
 
