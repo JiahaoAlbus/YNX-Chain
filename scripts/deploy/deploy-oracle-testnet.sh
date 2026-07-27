@@ -287,7 +287,10 @@ remote="${SERVER_USER}@${SERVER_HOST}"
 remote_tar="/tmp/$(basename "$tarball")"
 remote_release="/opt/ynx-oracle/releases/$release"
 remote_env="$ORACLE_REMOTE_ENV_PATH"
-units_joined="${provider_units[*]}"
+units_joined=""
+if (( ${#provider_units[@]} > 0 )); then
+  units_joined="${provider_units[*]}"
+fi
 
 ynx_ssh "hostname >/dev/null && command -v systemctl >/dev/null && command -v caddy >/dev/null && command -v jq >/dev/null"
 ynx_scp "$tarball" "$remote_tar"
@@ -304,6 +307,11 @@ ynx_ssh "set -e; previous=\$(readlink -f /opt/ynx-oracle/current 2>/dev/null || 
 
 ynx_ssh "set -e; sudo bash -lc 'set -a; source \"$remote_env\"; set +a; runuser -u ynx-oracle --preserve-environment -- /opt/ynx-oracle/current/bin/ynx-oracled --state /var/lib/ynx-oracle/state.json --providers /opt/ynx-oracle/current/config/providers.json --nonce-domain \"$ORACLE_NONCE_DOMAIN\" --public-origin \"$ORACLE_PUBLIC_ORIGIN\" --check-config'; while IFS=\$'\\t' read -r id adapter symbol market scale interval signer; do sudo -u ynx-oracle /opt/ynx-oracle/current/bin/ynx-oracle-provider --providers /opt/ynx-oracle/current/config/providers.json --provider-id \"\$id\" --adapter \"\$adapter\" --symbol \"\$symbol\" --market \"\$market\" --scale \"\$scale\" --oracle http://127.0.0.1:6470 --signer \"\$signer\" --sequence-state \"/var/lib/ynx-oracle/providers/\$id.sequence\" --nonce-domain \"$ORACLE_NONCE_DOMAIN\" --interval \"\${interval}s\" --check-config; done < <(jq -r '.providers[] | [.id,.adapter,.symbol,.market,(.scale|tostring),(.intervalSeconds|tostring),.signerPath] | @tsv' /opt/ynx-oracle/current/config/provider-deployment.json)"
 ynx_ssh "set -e; expected=' $units_joined '; for unit in \$(systemctl list-unit-files --no-legend 'ynx-oracle-provider-*.service' 2>/dev/null | awk '{print \$1}'); do case \"\$expected\" in *\" \$unit \"*) ;; *) sudo systemctl disable --now \"\$unit\" ;; esac; done; sudo systemctl daemon-reload; sudo systemctl enable ynx-oracled.service $units_joined; sudo systemctl restart ynx-oracled.service; for unit in $units_joined; do sudo systemctl restart \"\$unit\"; done; sudo systemctl reload caddy"
+
+if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+  printf 'Oracle Testnet deployment dry run passed: release=%s source_mode=%s\n' "$release" "$source_mode"
+  exit 0
+fi
 
 if [[ "$source_mode" == "authoritative" ]]; then
   test_market="$(jq -r '.providers[0].market' "$deployment_manifest")"

@@ -291,6 +291,32 @@ func TestLimitedSourceTestnetPackageAndPublicSmoke(t *testing.T) {
 	if output, err := packageCommand.CombinedOutput(); err != nil {
 		t.Fatalf("limited-source Testnet package failed: %v\n%s", err, output)
 	}
+	dryRunKey := filepath.Join(fixtureDir, "deployment-transport.key")
+	if err := os.WriteFile(dryRunKey, []byte("isolated dry-run transport fixture\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	deployDryRun := exec.Command("bash", filepath.Join(root, "scripts", "deploy", "deploy-oracle-testnet.sh"))
+	deployDryRun.Dir = root
+	deployDryRun.Env = append(os.Environ(),
+		"DEPLOY_DRY_RUN=1",
+		"ORACLE_SOURCE_MODE=limited",
+		"ORACLE_API_DOMAIN=oracle-api.test.ynx.invalid",
+		"ORACLE_PUBLIC_ORIGIN=https://oracle-web.test.ynx.invalid",
+		"ORACLE_PROVIDER_REGISTRY="+registryPath,
+		"ORACLE_PROVIDER_DEPLOYMENT_JSON=",
+		"ORACLE_NONCE_DOMAIN=ynx-oracle-testnet-v1",
+		"ORACLE_TARGET_ARCH=amd64",
+		"SERVER_HOST=192.0.2.1",
+		"SERVER_USER=oracle-test",
+		"SSH_KEY_PATH="+dryRunKey,
+	)
+	dryRunOutput, err := deployDryRun.CombinedOutput()
+	if err != nil {
+		t.Fatalf("limited-source deployment dry run failed: %v\n%s", err, dryRunOutput)
+	}
+	if !strings.Contains(string(dryRunOutput), "deployment dry run passed") || !strings.Contains(string(dryRunOutput), "source_mode=limited") {
+		t.Fatalf("limited-source deployment dry run truth missing:\n%s", dryRunOutput)
+	}
 	candidateData, err := os.ReadFile(registryPath)
 	if err != nil {
 		t.Fatal(err)
