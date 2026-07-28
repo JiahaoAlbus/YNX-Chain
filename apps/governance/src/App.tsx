@@ -32,9 +32,7 @@ export const App: React.FC = () => {
             <a href="/governance/emergencies" style={styles.navLink}>Emergency</a>
             <a href="/governance/docs" style={styles.navLink}>Docs</a>
           </div>
-          <div style={styles.navRight}>
-            <button style={styles.walletButton}>Connect Wallet</button>
-          </div>
+          <a href="/docs/governance/operations" style={styles.operatorLink}>Operator guide</a>
         </div>
       </nav>
 
@@ -125,16 +123,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     textDecoration: 'none',
     transition: 'color 0.2s',
   },
-  navRight: {},
-  walletButton: {
+  operatorLink: {
     padding: '8px 16px',
     backgroundColor: '#002FA7',
     color: '#FFFFFF',
-    border: 'none',
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '600',
-    cursor: 'pointer',
+    textDecoration: 'none',
     transition: 'background-color 0.2s',
   },
   main: {

@@ -2,15 +2,16 @@ import React, { useEffect, useState } from 'react';
 
 interface Proposal {
   id: string;
-  nonce: string;
-  scope: string;
-  proposer: string;
-  summary: string;
   status: string;
   createdAt: string;
-  votingOpensAt?: string;
-  votingClosesAt?: string;
-  timelockEndsAt?: string;
+  votingEndsAt?: string;
+  executeAfter?: string;
+  input: {
+    nonce: string;
+    scope: string;
+    proposer: string;
+    summary: string;
+  };
 }
 
 interface ProposalListProps {
@@ -67,10 +68,38 @@ export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) 
   const filteredProposals = proposals.filter(p => {
     if (filter === 'all') return true;
     if (filter === 'active') {
-      return ['deposit', 'discussion', 'voting', 'timelocked', 'executing'].includes(p.status);
+      return [
+        'deposit_pending',
+        'discussion',
+        'technical_review',
+        'economic_review',
+        'security_review',
+        'conflict_disclosure',
+        'simulation_pending',
+        'simulation_completed',
+        'voting_pending',
+        'voting_active',
+        'voting_closed',
+        'approved',
+        'timelock_pending',
+        'timelock_active',
+        'execution_ready',
+        'execution_submitted',
+        'verification_pending',
+      ].includes(p.status);
     }
     if (filter === 'completed') {
-      return ['executed', 'rejected', 'cancelled', 'expired', 'rolled_back'].includes(p.status);
+      return [
+        'verified',
+        'quorum_failed',
+        'threshold_failed',
+        'cancelled',
+        'expired',
+        'execution_failed',
+        'rolled_back',
+        'corrected',
+        'archived',
+      ].includes(p.status);
     }
     return p.status === filter;
   });
@@ -118,10 +147,10 @@ export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) 
             Active
           </button>
           <button
-            onClick={() => setFilter('voting')}
+            onClick={() => setFilter('voting_active')}
             style={{
               ...styles.filterButton,
-              ...(filter === 'voting' ? styles.filterButtonActive : {}),
+              ...(filter === 'voting_active' ? styles.filterButtonActive : {}),
             }}
           >
             Voting
@@ -159,14 +188,14 @@ export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) 
                 >
                   {proposal.status.toUpperCase()}
                 </span>
-                <span style={styles.scope}>{proposal.scope}</span>
+                <span style={styles.scope}>{proposal.input.scope}</span>
               </div>
-              <h3 style={styles.proposalTitle}>{proposal.summary}</h3>
+              <h3 style={styles.proposalTitle}>{proposal.input.summary}</h3>
               <div style={styles.proposalMeta}>
                 <div style={styles.metaRow}>
                   <span style={styles.metaLabel}>Proposer:</span>
                   <span style={styles.metaValue}>
-                    {proposal.proposer.substring(0, 10)}...
+                    {proposal.input.proposer.substring(0, 10)}...
                   </span>
                 </div>
                 <div style={styles.metaRow}>
@@ -175,11 +204,11 @@ export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) 
                     {new Date(proposal.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                {proposal.votingOpensAt && (
+                {proposal.votingEndsAt && (
                   <div style={styles.metaRow}>
-                    <span style={styles.metaLabel}>Voting Opens:</span>
+                    <span style={styles.metaLabel}>Voting Ends:</span>
                     <span style={styles.metaValue}>
-                      {new Date(proposal.votingOpensAt).toLocaleDateString()}
+                      {new Date(proposal.votingEndsAt).toLocaleDateString()}
                     </span>
                   </div>
                 )}
@@ -240,10 +269,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#FFFFFF',
     cursor: 'pointer',
     transition: 'all 0.2s',
-    ':hover': {
-      boxShadow: '0 4px 12px rgba(0, 47, 167, 0.1)',
-      borderColor: '#002FA7',
-    },
   },
   proposalHeader: {
     display: 'flex',

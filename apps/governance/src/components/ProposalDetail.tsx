@@ -2,49 +2,50 @@ import React, { useEffect, useState } from 'react';
 
 interface ProposalDetail {
   id: string;
-  nonce: string;
-  scope: string;
-  proposer: string;
-  owner: string;
-  summary: string;
-  economicImpact: string;
-  securityRisk: string;
-  migration: string;
-  rollback: string;
-  evidence: string[];
-  changes: Array<{
-    path: string;
-    before: string;
-    after: string;
-    minimum?: number;
-    maximum?: number;
-  }>;
   status: string;
   createdAt: string;
-  votingOpensAt?: string;
-  votingClosesAt?: string;
-  timelockEndsAt?: string;
-  executedAt?: string;
-  upgradeHash?: string;
+  votingEndsAt?: string;
+  executeAfter?: string;
+  eligiblePower: number;
+  input: {
+    nonce: string;
+    scope: string;
+    proposer: string;
+    owner: string;
+    summary: string;
+    economicImpact: string;
+    securityRisk: string;
+    migration: string;
+    rollback: string;
+    evidence: string[];
+    changes: Array<{
+      path: string;
+      before: string;
+      after: string;
+      minimum?: number;
+      maximum?: number;
+    }>;
+    upgradeHash?: string;
+  };
 }
 
 interface Vote {
-  account: string;
-  position: string;
+  proposalId: string;
+  voter: string;
+  choice?: string;
+  operation: string;
+  currentRevision: boolean;
   power: number;
   castAt: string;
 }
 
 interface VotingStats {
-  totalVotes: number;
-  approveCount: number;
-  rejectCount: number;
+  yesCount: number;
+  noCount: number;
   abstainCount: number;
-  approvePower: number;
-  rejectPower: number;
+  yesPower: number;
+  noPower: number;
   abstainPower: number;
-  quorumReached: boolean;
-  thresholdReached: boolean;
 }
 
 interface ProposalDetailProps {
@@ -58,7 +59,6 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
   const [stats, setStats] = useState<VotingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [voting, setVoting] = useState(false);
 
   useEffect(() => {
     fetchProposalDetail();
@@ -67,48 +67,33 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
   const fetchProposalDetail = async () => {
     try {
       setLoading(true);
-      const [proposalRes, votesRes, statsRes] = await Promise.all([
+      const [proposalRes, votesRes] = await Promise.all([
         fetch(`/governance/proposals/${proposalId}`),
-        fetch(`/governance/proposals/${proposalId}/votes`),
-        fetch(`/governance/proposals/${proposalId}/stats`),
+        fetch('/votes'),
       ]);
 
       if (!proposalRes.ok) throw new Error('Failed to fetch proposal');
 
       const proposalData = await proposalRes.json();
       const votesData = votesRes.ok ? await votesRes.json() : { votes: [] };
-      const statsData = statsRes.ok ? await statsRes.json() : null;
+      const currentVotes = (votesData.votes as Vote[]).filter(
+        (vote) => vote.proposalId === proposalId && vote.currentRevision && vote.operation !== 'withdraw',
+      );
 
       setProposal(proposalData);
-      setVotes(votesData.votes || []);
-      setStats(statsData);
+      setVotes(currentVotes);
+      setStats({
+        yesCount: currentVotes.filter((vote) => vote.choice === 'yes').length,
+        noCount: currentVotes.filter((vote) => vote.choice === 'no').length,
+        abstainCount: currentVotes.filter((vote) => vote.choice === 'abstain').length,
+        yesPower: currentVotes.filter((vote) => vote.choice === 'yes').reduce((sum, vote) => sum + vote.power, 0),
+        noPower: currentVotes.filter((vote) => vote.choice === 'no').reduce((sum, vote) => sum + vote.power, 0),
+        abstainPower: currentVotes.filter((vote) => vote.choice === 'abstain').reduce((sum, vote) => sum + vote.power, 0),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleVote = async (position: 'approve' | 'reject' | 'abstain') => {
-    try {
-      setVoting(true);
-      const response = await fetch(`/governance/proposals/${proposalId}/vote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ position }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to cast vote');
-      }
-
-      // Refresh data
-      await fetchProposalDetail();
-      alert(`Vote cast: ${position}`);
-    } catch (err) {
-      alert(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setVoting(false);
     }
   };
 
@@ -140,8 +125,6 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
     );
   }
 
-  const canVote = proposal.status === 'voting';
-
   return (
     <div style={styles.container}>
       <button onClick={onBack} style={styles.backButton}>← Back to Proposals</button>
@@ -149,13 +132,13 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.headerRow}>
-          <h1 style={styles.title}>{proposal.summary}</h1>
+          <h1 style={styles.title}>{proposal.input.summary}</h1>
           <span style={{...styles.statusBadge, backgroundColor: getStatusColor(proposal.status)}}>
             {proposal.status.toUpperCase()}
           </span>
         </div>
         <div style={styles.meta}>
-          <span style={styles.metaItem}>Scope: <strong>{proposal.scope}</strong></span>
+          <span style={styles.metaItem}>Scope: <strong>{proposal.input.scope}</strong></span>
           <span style={styles.metaItem}>ID: <strong>{proposal.id.substring(0, 16)}...</strong></span>
         </div>
       </div>
@@ -166,14 +149,14 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
           <h2 style={styles.sectionTitle}>Voting Results</h2>
           <div style={styles.statsGrid}>
             <div style={styles.statBox}>
-              <div style={styles.statLabel}>Approve</div>
-              <div style={styles.statValue}>{stats.approveCount}</div>
-              <div style={styles.statPower}>{stats.approvePower} power</div>
+              <div style={styles.statLabel}>Yes</div>
+              <div style={styles.statValue}>{stats.yesCount}</div>
+              <div style={styles.statPower}>{stats.yesPower} power</div>
             </div>
             <div style={styles.statBox}>
-              <div style={styles.statLabel}>Reject</div>
-              <div style={styles.statValue}>{stats.rejectCount}</div>
-              <div style={styles.statPower}>{stats.rejectPower} power</div>
+              <div style={styles.statLabel}>No</div>
+              <div style={styles.statValue}>{stats.noCount}</div>
+              <div style={styles.statPower}>{stats.noPower} power</div>
             </div>
             <div style={styles.statBox}>
               <div style={styles.statLabel}>Abstain</div>
@@ -181,54 +164,44 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
               <div style={styles.statPower}>{stats.abstainPower} power</div>
             </div>
           </div>
-          <div style={styles.statsRow}>
-            <span>Quorum: {stats.quorumReached ? '✓ Reached' : '✗ Not reached'}</span>
-            <span>Threshold: {stats.thresholdReached ? '✓ Reached' : '✗ Not reached'}</span>
-          </div>
+          <div style={styles.statsRow}>Eligible power: {proposal.eligiblePower}</div>
         </div>
       )}
 
-      {/* Voting Actions */}
-      {canVote && (
+      {votes.length > 0 && (
+        <div style={styles.detailsCard}>
+          <h2 style={styles.sectionTitle}>Recorded Votes</h2>
+          {votes.map((vote) => (
+            <div key={`${vote.voter}-${vote.castAt}`} style={styles.voteRecord}>
+              <span>{vote.voter}</span>
+              <strong>{vote.choice}</strong>
+              <span>{vote.power} power</span>
+              <time dateTime={vote.castAt}>{new Date(vote.castAt).toLocaleString()}</time>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {proposal.status === 'voting_active' && (
         <div style={styles.votingCard}>
-          <h2 style={styles.sectionTitle}>Cast Your Vote</h2>
-          <div style={styles.votingButtons}>
-            <button
-              onClick={() => handleVote('approve')}
-              disabled={voting}
-              style={{...styles.voteButton, backgroundColor: '#66BB6A'}}
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => handleVote('reject')}
-              disabled={voting}
-              style={{...styles.voteButton, backgroundColor: '#EF5350'}}
-            >
-              Reject
-            </button>
-            <button
-              onClick={() => handleVote('abstain')}
-              disabled={voting}
-              style={{...styles.voteButton, backgroundColor: '#9E9E9E'}}
-            >
-              Abstain
-            </button>
-          </div>
-          {proposal.votingClosesAt && (
+          <h2 style={styles.sectionTitle}>Voting Active</h2>
+          <p style={styles.timelockText}>
+            Votes must be submitted as signed envelopes through an authenticated YNX governance client.
+          </p>
+          {proposal.votingEndsAt && (
             <div style={styles.deadline}>
-              Voting closes in: {getRemainingTime(proposal.votingClosesAt)}
+              Voting closes in: {getRemainingTime(proposal.votingEndsAt)}
             </div>
           )}
         </div>
       )}
 
       {/* Timelock */}
-      {proposal.status === 'timelocked' && proposal.timelockEndsAt && (
+      {proposal.status === 'timelock_active' && proposal.executeAfter && (
         <div style={styles.timelockCard}>
           <h2 style={styles.sectionTitle}>⏱ Timelock Active</h2>
           <p style={styles.timelockText}>
-            This proposal is in timelock period. Execution allowed in: {getRemainingTime(proposal.timelockEndsAt)}
+            This proposal is in timelock period. Execution allowed in: {getRemainingTime(proposal.executeAfter)}
           </p>
         </div>
       )}
@@ -239,30 +212,30 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
         
         <div style={styles.detailSection}>
           <h3 style={styles.detailLabel}>Economic Impact</h3>
-          <p style={styles.detailText}>{proposal.economicImpact}</p>
+          <p style={styles.detailText}>{proposal.input.economicImpact}</p>
         </div>
 
         <div style={styles.detailSection}>
           <h3 style={styles.detailLabel}>Security Risk</h3>
-          <p style={styles.detailText}>{proposal.securityRisk}</p>
+          <p style={styles.detailText}>{proposal.input.securityRisk}</p>
         </div>
 
         <div style={styles.detailSection}>
           <h3 style={styles.detailLabel}>Migration</h3>
-          <p style={styles.detailText}>{proposal.migration}</p>
+          <p style={styles.detailText}>{proposal.input.migration}</p>
         </div>
 
         <div style={styles.detailSection}>
           <h3 style={styles.detailLabel}>Rollback Plan</h3>
-          <p style={styles.detailText}>{proposal.rollback}</p>
+          <p style={styles.detailText}>{proposal.input.rollback}</p>
         </div>
       </div>
 
       {/* Parameter Changes */}
-      {proposal.changes && proposal.changes.length > 0 && (
+      {proposal.input.changes.length > 0 && (
         <div style={styles.changesCard}>
           <h2 style={styles.sectionTitle}>Parameter Changes</h2>
-          {proposal.changes.map((change, index) => (
+          {proposal.input.changes.map((change, index) => (
             <div key={index} style={styles.changeRow}>
               <div style={styles.changePath}>{change.path}</div>
               <div style={styles.changeValues}>
@@ -281,10 +254,10 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
       )}
 
       {/* Evidence */}
-      {proposal.evidence && proposal.evidence.length > 0 && (
+      {proposal.input.evidence.length > 0 && (
         <div style={styles.evidenceCard}>
           <h2 style={styles.sectionTitle}>Evidence & Documentation</h2>
-          {proposal.evidence.map((link, index) => (
+          {proposal.input.evidence.map((link, index) => (
             <a key={index} href={link} target="_blank" rel="noopener noreferrer" style={styles.evidenceLink}>
               {link}
             </a>
@@ -406,27 +379,21 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '14px',
     color: '#424242',
   },
+  voteRecord: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) auto auto auto',
+    gap: '16px',
+    alignItems: 'center',
+    padding: '12px 0',
+    borderBottom: '1px solid #E0E0E0',
+    fontSize: '13px',
+    overflowWrap: 'anywhere',
+  },
   votingCard: {
     padding: '24px',
     backgroundColor: '#E3F2FD',
     borderRadius: '12px',
     marginBottom: '24px',
-  },
-  votingButtons: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '12px',
-    marginBottom: '16px',
-  },
-  voteButton: {
-    padding: '16px',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#FFFFFF',
-    cursor: 'pointer',
-    transition: 'opacity 0.2s',
   },
   deadline: {
     textAlign: 'center',
