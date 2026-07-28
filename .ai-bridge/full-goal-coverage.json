@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "31",
+  "product": "YNX Governance & Protocol Control",
+  "slug": "governance",
+  "owner": "31-governance",
+  "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+  "allowedStatuses": [
+    "notStarted",
+    "inProgress",
+    "implementedLocal",
+    "testedLocal",
+    "integratedCentral",
+    "testnetVerified",
+    "publicVerified",
+    "externalBlocked",
+    "notApplicable",
+    "verifiedComplete"
+  ],
+  "items": [
+    {
+      "id": "GOV-RECOVER-001",
+      "category": "recovery",
+      "requirement": "Recover and protect the newest Governance branch, history, artifacts and evidence without discarding concurrent work.",
+      "status": "verifiedComplete",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-CONTROL-001",
+      "category": "governance-runtime",
+      "requirement": "Implement bounded proposals, signed votes and delegations, timelocks, upgrades, canaries, emergency actions, appeals and tamper-evident persistence.",
+      "status": "testedLocal",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-REGISTRY-001",
+      "category": "protocol-freeze",
+      "requirement": "Enforce one digest-bound authoritative parameter and role registry with type, scope and bound validation.",
+      "status": "testedLocal",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-WALLET-001",
+      "category": "wallet-auth",
+      "requirement": "Use the accepted Wallet Product Session, exact device, scope, expiry and revocation contract for every protected Governance mutation.",
+      "status": "inProgress",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-CHAIN-001",
+      "category": "chain-integration",
+      "requirement": "Submit signed execution intents through Chain Core and verify transaction, block, state root, manifest, outcome and audit identity.",
+      "status": "testedLocal",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-TESTNET-001",
+      "category": "shared-testnet",
+      "requirement": "Verify proposal, vote, timelock, canary, execution, failure, emergency expiry and rollback with Explorer, Monitor and Trust evidence on the shared Testnet.",
+      "status": "inProgress",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-UI-001",
+      "category": "product-ui",
+      "requirement": "Deliver an independent accessible Governance UI with truthful proposal, diff, vote, timelock, execution, conflict and audit states in 12 languages.",
+      "status": "inProgress",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-SLO-001",
+      "category": "capacity-economics",
+      "requirement": "Maintain measured SLO, capacity and unit-economics evidence without projecting local samples as public scale.",
+      "status": "testedLocal",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-MIGRATION-001",
+      "category": "migration-recovery",
+      "requirement": "Version Governance state and config, reject implicit old-state restore and prove backup, migration, rollback and tamper behavior.",
+      "status": "testedLocal",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-OBS-001",
+      "category": "observability",
+      "requirement": "Expose health, version, metrics, audit identity and actionable alerts without leaking secrets or internal paths.",
+      "status": "testedLocal",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-SEC-001",
+      "category": "security-supply-chain",
+      "requirement": "Pass dependency, secret, forbidden-text and deterministic-build gates and obtain Security/SRE acceptance before production.",
+      "status": "testedLocal",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-PUBLIC-001",
+      "category": "public-release",
+      "requirement": "Publish source-bound metadata, immutable artifacts, support, privacy, security, status and public proof without promoting local evidence.",
+      "status": "inProgress",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    },
+    {
+      "id": "GOV-EXTERNAL-001",
+      "category": "production-inputs",
+      "requirement": "Obtain production signer custody, approved public deployment destination and public support, security and status destinations.",
+      "status": "externalBlocked",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+      "blockedBy": [
+        "production signer custody approval",
+        "approved public deployment and support destinations"
+      ]
+    },
+    {
+      "id": "GOV-GIT-001",
+      "category": "delivery",
+      "requirement": "Commit, push and verify the exact final branch with a clean worktree and source-bound owner handoff.",
+      "status": "inProgress",
+      "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d"
+    }
+  ]
+}

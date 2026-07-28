@@ -6,11 +6,24 @@ cd "$root"
 
 GOMAXPROCS="${GOMAXPROCS:-2}" go test ./internal/governance ./cmd/ynx-governanced ./cmd/ynx-governance-state
 go vet ./internal/governance ./cmd/ynx-governanced ./cmd/ynx-governance-state
-jq empty release/governance/product-release.json release/governance/public-product-metadata.json release/integration/governance-app-gateway.manifest.json release/integration/governance-app-gateway.schema.json release/integration/governance-bft.manifest.json release/integration/governance-bft.schema.json release/integration/governance-bft-test-vectors.json
+jq empty release/governance/product-release.json release/governance/public-product-metadata.json .ai-bridge/full-goal-coverage.json release/integration/governance-contract.json docs/integration/CROSS_PRODUCT_TEST_VECTORS.json release/integration/governance-app-gateway.manifest.json release/integration/governance-app-gateway.schema.json release/integration/governance-bft.manifest.json release/integration/governance-bft.schema.json release/integration/governance-bft-test-vectors.json
 npm --prefix apps/governance run lint
 npm --prefix apps/governance test
 npm --prefix apps/governance run build
-npm --prefix apps/governance audit --audit-level=moderate
+if command -v timeout >/dev/null 2>&1; then
+  set +e
+  timeout 30s npm --prefix apps/governance audit --audit-level=moderate --fetch-timeout=15000 --fetch-retries=0
+  audit_status=$?
+  set -e
+  if [[ $audit_status -eq 124 ]]; then
+    echo "online npm audit timed out; verifying against the local advisory cache" >&2
+    npm --prefix apps/governance audit --offline --audit-level=moderate
+  elif [[ $audit_status -ne 0 ]]; then
+    exit "$audit_status"
+  fi
+else
+  npm --prefix apps/governance audit --audit-level=moderate --fetch-timeout=15000 --fetch-retries=0
+fi
 
 scan_text() {
   local case_mode="$1"

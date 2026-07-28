@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "31",
+  "product": "YNX Governance & Protocol Control",
+  "slug": "governance",
+  "owner": "31-governance",
+  "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+  "branch": "codex/final-governance",
+  "authority": {
+    "owns": [
+      "proposal lifecycle",
+      "vote and delegation integrity",
+      "timelock and canary policy",
+      "protocol parameter control",
+      "emergency scope and expiry",
+      "governance audit history"
+    ],
+    "doesNotOwn": [
+      "Wallet identity or Product Session",
+      "Chain Core consensus or transaction inclusion",
+      "Oracle price facts",
+      "Bridge asset custody",
+      "Data Fabric canonical billing",
+      "Security/SRE signer custody",
+      "Website public status"
+    ]
+  },
+  "api": {
+    "schema": "ynx-governance-api/v1",
+    "health": "/health",
+    "version": "/version",
+    "metrics": "/metrics",
+    "publicReads": [
+      "/proposals",
+      "/votes",
+      "/delegations",
+      "/roles",
+      "/parameters",
+      "/timelocks",
+      "/executions",
+      "/upgrades",
+      "/canaries",
+      "/emergency-actions",
+      "/conflicts",
+      "/appeals",
+      "/audit"
+    ],
+    "protectedMutationPrefix": "/governance"
+  },
+  "auth": {
+    "authority": "02-wallet-auth",
+    "product": "governance",
+    "walletTuple": [
+      "account",
+      "deviceId",
+      "sessionId",
+      "product",
+      "issuedAt",
+      "expiresAt",
+      "status"
+    ],
+    "wildcardScopesAllowed": false,
+    "plaintextBearerForwardingAllowed": false,
+    "requiredFailures": [
+      "wrong_product",
+      "wrong_origin",
+      "wrong_device",
+      "unknown_session",
+      "expired_session",
+      "revoked_session",
+      "scope_widening"
+    ]
+  },
+  "signedIntent": {
+    "domain": "ynx-governance-action/v1",
+    "chainId": 6423,
+    "canonicalEncoding": "RFC8785-compatible canonical JSON",
+    "signature": "secp256k1",
+    "noncePolicy": "exact next account nonce with changed-input conflict rejection"
+  },
+  "canonicalEvents": [
+    "governance.proposal.created.v1",
+    "governance.vote.recorded.v1",
+    "governance.timelock.started.v1",
+    "governance.canary.completed.v1",
+    "governance.execution.verified.v1",
+    "governance.rollback.verified.v1",
+    "governance.emergency.closed.v1"
+  ],
+  "errorCodes": [
+    "governance_auth_invalid",
+    "governance_scope_denied",
+    "governance_replay",
+    "governance_conflict",
+    "governance_parameter_out_of_bounds",
+    "governance_timelock_not_ready",
+    "governance_canary_failed",
+    "governance_receipt_mismatch",
+    "governance_dependency_unavailable"
+  ],
+  "migration": {
+    "stateVersion": 7,
+    "olderVersionsRequireExplicitMigration": true,
+    "rollbackRequired": true,
+    "restoreIntegrityRequired": true
+  },
+  "testVectors": [
+    "release/integration/governance-bft-test-vectors.json",
+    "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
+  ],
+  "dependencies": [
+    "01-chain-core",
+    "02-wallet-auth",
+    "12-explorer",
+    "13-monitor",
+    "15-trust-center",
+    "17-tokenomics",
+    "26-data-fabric",
+    "29-integration",
+    "30-security-platform"
+  ],
+  "externalInputs": [
+    "production signer custody approval",
+    "approved public deployment destination",
+    "public support, security and status destinations"
+  ],
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
