@@ -49,7 +49,7 @@
     "releaseSbom": {"implementedLocal":true,"testedLocal":true,"releaseGrade":true,"generator":"@cyclonedx/cyclonedx-npm@6.0.0","specVersion":"1.6","components":431,"dependencyNodes":504,"licenseCoverage":"431/431","sha256":"7d1afd4f176776840a45c131843cde1550154f738a1e3da67f1163cf88dab633","evidence":"proof/wallet-sbom-release-grade-2026-07-27.json"},
     "releaseContentGate": {"implementedLocal":true,"testedLocal":true,"filesScanned":22,"externalBinaryRequired":false,"centralGateConflict":"../../docs/integration/SECURITY_GATE_CONFLICT.md"},
     "websiteDocumentationHandoff": {"implementedLocal":true,"testedLocal":true,"integratedCentral":true,"deployedStaging":true,"deployedPublic":true,"productRuntimeDeployed":false,"walletRouteDirectlyVerified":true,"canonicalRoute":"https://ynxweb4.com/wallet","source":"../../docs/public/search/WALLET.md","handoff":"../../docs/public/WEBSITE_INTEGRATION_HANDOFF.md","publicEvidence":["../../release/evidence/website-public-acceptance-2026-07-26.json","proof/wallet-public-route-2026-07-28.json"],"requestedPromptDomain":{"url":"https://huangjeo.com","ynxProductAuthority":false}},
-    "fullGoalCoverage": {"implementedLocal":true,"testedLocal":true,"requirements":39,"evidence":"../../.ai-bridge/full-goal-coverage.json"},
+    "fullGoalCoverage": {"implementedLocal":true,"testedLocal":true,"requirements":40,"evidence":"../../.ai-bridge/full-goal-coverage.json"},
     "selectiveDisclosureCredential": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false}
   },
   "publicUrls": [],
