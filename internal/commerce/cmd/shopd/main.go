@@ -17,6 +17,8 @@ func main() {
 	buyer := flag.String("buyer-assets", "apps/shop", "buyer web assets")
 	seller := flag.String("seller-assets", "apps/seller-console", "seller web assets")
 	restoreBackup := flag.Bool("restore-backup", false, "restore the last verified state backup before starting")
+	exportRollback := flag.String("export-rollback", "", "write a new bounded rollback snapshot and exit; never overwrites an existing file")
+	rollbackVersion := flag.Int("rollback-version", 5, "rollback snapshot target version: 3, 4 or 5")
 	flag.Parse()
 	var integrityKey []byte
 	if value := os.Getenv("YNX_SHOP_STATE_HMAC_KEY"); value != "" {
@@ -44,6 +46,13 @@ func main() {
 	}
 	if err != nil {
 		log.Fatal(err)
+	}
+	if *exportRollback != "" {
+		if err := store.ExportRollbackSnapshot(*exportRollback, *rollbackVersion); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("exported Snapshot v%d rollback file to %s", *rollbackVersion, *exportRollback)
+		return
 	}
 	if err := store.Recover(); err != nil {
 		log.Fatal(err)

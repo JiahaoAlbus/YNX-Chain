@@ -18,6 +18,8 @@ import (
 	"time"
 )
 
+const currentSnapshotVersion = 6
+
 var (
 	ErrNotFound     = errors.New("not found")
 	ErrUnauthorized = errors.New("unauthorized")
@@ -52,6 +54,14 @@ type persistedEnvelope struct {
 	HMAC     string          `json:"hmac"`
 }
 
+type sellerIntegrationEventV5 struct {
+	ID, EventName, Source, StoreID, Account, Actor string
+	RevocationID, PreviousRole, SessionStatus      string
+	SessionRevocationID                            string
+	SchemaVersion, SessionCount                    int
+	OccurredAt                                     time.Time
+}
+
 func open(path string, integrityKey []byte) (*Store, error) {
 	st := &Store{path: path, integrityKey: integrityKey, now: func() time.Time { return time.Now().UTC() }}
 	st.s = emptySnapshot()
@@ -66,6 +76,9 @@ func open(path string, integrityKey []byte) (*Store, error) {
 		return nil, fmt.Errorf("read commerce state: %w", err)
 	}
 	if err := decodePersisted(data, integrityKey, &st.s); err != nil {
+		return nil, fmt.Errorf("decode commerce state: %w", err)
+	}
+	if err := validateSnapshotVersion(st.s.Version); err != nil {
 		return nil, fmt.Errorf("decode commerce state: %w", err)
 	}
 	migrated := st.normalize()
@@ -112,13 +125,20 @@ func decodePersisted(data, key []byte, out *Snapshot) error {
 	return json.Unmarshal(envelope.Snapshot, out)
 }
 
+func validateSnapshotVersion(version int) error {
+	if version > currentSnapshotVersion {
+		return fmt.Errorf("unsupported commerce snapshot version %d; runtime supports up to %d", version, currentSnapshotVersion)
+	}
+	return nil
+}
+
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: 6, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{Version: currentSnapshotVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, RequestWindow: map[string][]time.Time{}}
 }
 
 func (s *Store) normalize() bool {
-	migrated := s.s.Version < 6
-	s.s.Version = 6
+	migrated := s.s.Version < currentSnapshotVersion
+	s.s.Version = currentSnapshotVersion
 	if s.s.Stores == nil {
 		s.s.Stores = map[string]StoreProfile{}
 	}
@@ -176,23 +196,9 @@ func (s *Store) persistLocked() error {
 	if s.path == "" {
 		return nil
 	}
-	snapshot, err := json.Marshal(s.s)
+	data, err := encodePersisted(s.s, s.integrityKey)
 	if err != nil {
 		return err
-	}
-	data := snapshot
-	if len(s.integrityKey) > 0 {
-		mac := hmac.New(sha256.New, s.integrityKey)
-		_, _ = mac.Write(snapshot)
-		data, err = json.MarshalIndent(persistedEnvelope{Version: 1, Snapshot: snapshot, HMAC: hex.EncodeToString(mac.Sum(nil))}, "", "  ")
-		if err != nil {
-			return err
-		}
-	} else {
-		data, err = json.MarshalIndent(s.s, "", "  ")
-		if err != nil {
-			return err
-		}
 	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
 		return err
@@ -205,6 +211,129 @@ func (s *Store) persistLocked() error {
 		return readErr
 	}
 	return atomicWrite(s.path, data)
+}
+
+func encodePersisted(value any, key []byte) ([]byte, error) {
+	snapshot, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	if len(key) == 0 {
+		return json.MarshalIndent(value, "", "  ")
+	}
+	mac := hmac.New(sha256.New, key)
+	_, _ = mac.Write(snapshot)
+	return json.MarshalIndent(persistedEnvelope{Version: 1, Snapshot: snapshot, HMAC: hex.EncodeToString(mac.Sum(nil))}, "", "  ")
+}
+
+func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMessage, error) {
+	if targetVersion < 3 || targetVersion >= currentSnapshotVersion {
+		return nil, errors.New("rollback target must be Snapshot v3, v4 or v5")
+	}
+	if len(s.s.SellerInvitations) > 0 {
+		return nil, fmt.Errorf("%w: Snapshot v%d cannot represent Seller invitations", ErrConflict, targetVersion)
+	}
+	if targetVersion < 5 && len(s.s.SellerEvents) > 0 {
+		return nil, fmt.Errorf("%w: Snapshot v%d cannot represent Seller integration events", ErrConflict, targetVersion)
+	}
+	if targetVersion < 4 && len(s.s.SellerRevocations) > 0 {
+		return nil, fmt.Errorf("%w: Snapshot v%d cannot represent Seller role revocations", ErrConflict, targetVersion)
+	}
+
+	raw, err := json.Marshal(s.s)
+	if err != nil {
+		return nil, err
+	}
+	fields := map[string]json.RawMessage{}
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return nil, err
+	}
+	version, err := json.Marshal(targetVersion)
+	if err != nil {
+		return nil, err
+	}
+	fields["Version"] = version
+	delete(fields, "SellerInvitations")
+
+	if targetVersion < 5 {
+		delete(fields, "SellerEvents")
+	} else {
+		legacyEvents := make([]sellerIntegrationEventV5, 0, len(s.s.SellerEvents))
+		for _, event := range s.s.SellerEvents {
+			if event.InvitationID != "" || event.Role != "" || event.Status != "" || !event.ExpiresAt.IsZero() {
+				return nil, fmt.Errorf("%w: Snapshot v5 cannot represent Seller event %s", ErrConflict, event.EventName)
+			}
+			legacyEvents = append(legacyEvents, sellerIntegrationEventV5{
+				ID: event.ID, EventName: event.EventName, Source: event.Source, StoreID: event.StoreID,
+				Account: event.Account, Actor: event.Actor, RevocationID: event.RevocationID,
+				PreviousRole: event.PreviousRole, SessionStatus: event.SessionStatus,
+				SessionRevocationID: event.SessionRevocationID, SchemaVersion: event.SchemaVersion,
+				SessionCount: event.SessionCount, OccurredAt: event.OccurredAt,
+			})
+		}
+		encoded, err := json.Marshal(legacyEvents)
+		if err != nil {
+			return nil, err
+		}
+		fields["SellerEvents"] = encoded
+	}
+	if targetVersion < 4 {
+		delete(fields, "SellerRevocations")
+	}
+	return fields, nil
+}
+
+func (s *Store) ExportRollbackSnapshot(path string, targetVersion int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return errors.New("rollback export path required")
+	}
+	if s.path != "" {
+		source, sourceErr := filepath.Abs(s.path)
+		target, targetErr := filepath.Abs(path)
+		if sourceErr == nil && targetErr == nil && source == target {
+			return errors.New("rollback export must not overwrite the active state path")
+		}
+	}
+	rollback, err := s.rollbackSnapshotLocked(targetVersion)
+	if err != nil {
+		return err
+	}
+	data, err := encodePersisted(rollback, s.integrityKey)
+	if err != nil {
+		return err
+	}
+	return exclusiveWrite(path, data)
+}
+
+func exclusiveWrite(path string, data []byte) (err error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = f.Close()
+			_ = os.Remove(path)
+		}
+	}()
+	if _, err = f.Write(append(data, '\n')); err != nil {
+		return err
+	}
+	if err = f.Sync(); err != nil {
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+	committed = true
+	return nil
 }
 
 func atomicWrite(path string, data []byte) error {
@@ -233,6 +362,9 @@ func RestoreCommerceBackup(path string, key []byte) error {
 	}
 	var snapshot Snapshot
 	if err := decodePersisted(backup, key, &snapshot); err != nil {
+		return fmt.Errorf("verify commerce backup: %w", err)
+	}
+	if err := validateSnapshotVersion(snapshot.Version); err != nil {
 		return fmt.Errorf("verify commerce backup: %w", err)
 	}
 	return atomicWrite(path, bytes.TrimSpace(backup))
