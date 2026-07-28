@@ -2,25 +2,25 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-28T16:42:40.263Z",
-  "controllerSourceCommit": "57f1881964e3564260b32d9c90c22c9143a62ec4",
+  "generatedAt": "2026-07-28T16:43:03.698Z",
+  "controllerSourceCommit": "1196eddf1b9ef6479952f3048aa924bf5c8faf73",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "57f1881964e3564260b32d9c90c22c9143a62ec4",
+    "localHead": "1196eddf1b9ef6479952f3048aa924bf5c8faf73",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "57f1881964e3564260b32d9c90c22c9143a62ec4",
+    "remoteHead": "1196eddf1b9ef6479952f3048aa924bf5c8faf73",
     "ahead": 0,
     "behind": 0,
-    "clean": false
+    "clean": true
   },
   "summary": {
     "totalProducts": 36,
     "localBranches": 36,
     "remoteBranches": 36,
     "registeredWorktrees": 36,
-    "cleanWorktrees": 14,
-    "dirtyWorktrees": 22,
+    "cleanWorktrees": 15,
+    "dirtyWorktrees": 21,
     "syncedBranches": 35,
     "upstreamConfigured": 36,
     "implementedLocalCandidates": 0,
@@ -3561,8 +3561,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "57f1881964e3564260b32d9c90c22c9143a62ec4",
-        "remoteSha": "57f1881964e3564260b32d9c90c22c9143a62ec4",
+        "localSha": "1196eddf1b9ef6479952f3048aa924bf5c8faf73",
+        "remoteSha": "1196eddf1b9ef6479952f3048aa924bf5c8faf73",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3574,9 +3574,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "57f1881964e3564260b32d9c90c22c9143a62ec4",
-        "clean": false,
-        "changedEntries": 3,
+        "observedHead": "1196eddf1b9ef6479952f3048aa924bf5c8faf73",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -3618,28 +3618,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 9
+            "distance": 10
           },
           "productRelease": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 53
+            "distance": 54
           },
           "publicMetadata": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 53
+            "distance": 54
           },
           "integrationContract": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 53
+            "distance": 54
           }
         },
         "claimedReleaseStates": {
@@ -3663,10 +3663,9 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
         "full-goal coverage has 62 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: full-goal coverage has 62 autonomous or unresolved items."
     },
     {
       "id": "30",
