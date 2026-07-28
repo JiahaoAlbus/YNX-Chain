@@ -431,16 +431,16 @@
       "category": "data",
       "requirement": "Versioned schema migration, rollback migration, old-client compatibility, retention and service-exit plan.",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["Persistence and privacy retention behavior are implemented; a complete versioned migration/rollback package is not yet evidenced."],
-      "sourceCommit": "4cd59fcb11e11d221defa88d20ac0d50b7663b99",
-      "tests": ["Commerce restart/privacy tests"],
+      "status": "testedLocal",
+      "evidence": ["Schema v1 state migrates forward to v2 under HMAC integrity protection.", "Rollback creates a verified recovery point, emits an omission report for v2-only privacy/cart/rate-window state, and writes a v1-compatible snapshot.", "Recovery restores the exact v2 state; unsupported future versions and invalid rollback targets fail closed."],
+      "sourceCommit": "d2a55ecffb8800df6046bfa7bd152c1bc956cbcc",
+      "tests": ["go test -count=1 ./internal/commerce", "go test -race -count=1 ./internal/commerce", "internal/commerce/commerce_test.go:TestCommercePersistenceSchemaMigrationRollbackAndRecovery"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "09-shop",
-      "nextAction": "Define schema version, forward migration, rollback migration and old-client vectors for privacy fields and retained records.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Have Integration consume the migration and rollback vectors; run the same drill against an authenticated staging copy before any production-class migration.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "observability.support",
