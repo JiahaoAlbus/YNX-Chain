@@ -3,16 +3,22 @@
 Status: ACTIVE
 Stage: PROTECT
 Branch: `codex/final-music`
-Protected runtime checkpoint: `74716a19d95fc191b54102adc02000a91fafec24`
+Protected source checkpoint: `6cf7506b7eb150c6cfeebf2a8b147d8a5e22d605`
+
+## Current evidence
+
+1. Trust and Pay idempotency are account-scoped, atomic and legacy-compatible.
+2. State mutation is copy-on-write and publishes memory only after durable save.
+3. Startup verifies the outer state hash, every audit sequence/link/event hash, every track identity, private-media file type, private permissions and media SHA-256.
+4. Missing, symlinked, permission-broadened or byte-tampered media fails startup closed.
+5. iOS source fixes the throwing device-key call and MainActor callback isolation.
+6. Local Go, Race, smoke, Wallet contract, 12-locale and Swift parse gates pass.
+7. GitHub run `30381036379` passed Service, Android and the complete dynamic iOS Simulator gate against the exact source checkpoint.
 
 ## Current slice
 
-1. Freeze truthful Release, Artifact, Website and Integration records against runtime commit `74716a1`.
-2. Record GitHub Actions run `30277833892` at job granularity: Service and Android succeeded; iOS failed.
-3. Repair the iOS workflow root cause by dynamically creating an available Simulator instead of hard-coding an absent device.
-4. Validate all JSON/YAML and public-metadata truth gates.
-5. Commit, push, verify Local SHA equals Remote SHA and inspect the new exact-SHA CI run.
+Implement a versioned persisted-state migration registry plus schema-v1 golden compatibility, then add consistent state-and-media backup and clean-directory restore verification. Keep unknown future schemas fail closed and do not confuse ordinary restart with disaster recovery.
 
-## Next slice
+## Next gate
 
-If iOS CI becomes green, bind app hash, bytes, install, cold-start, tampered-callback and restart evidence. Otherwise fix the exact compile/runtime failure. Then implement the highest-priority autonomous persistence gap: audit-chain verification on load and missing-media fail-closed quarantine, followed by migration/restore.
+Bind run `30381036379` into release and platform evidence, then continue the versioned state migration and consistent state-and-media restore slice. Production signing, physical-device and store claims remain separate.
