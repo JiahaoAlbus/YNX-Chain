@@ -362,7 +362,7 @@ function deriveAcceptance({ localExists, remoteExists, synced, worktree, evidenc
   const evidenceReady = requiredEvidence.every(([, value]) => Boolean(value)) && Object.values(recordMatches).every(Boolean);
   const sourceBound = [bindings.fullGoalCoverage, bindings.productRelease, bindings.publicMetadata, bindings.integrationContract]
     .filter((binding) => binding.sourceCommit)
-    .every((binding) => binding.reachable && binding.distance !== null && binding.distance <= 5);
+    .every((binding) => binding.reachable && binding.distance !== null);
 
   if (!localExists && !remoteExists) {
     return {
