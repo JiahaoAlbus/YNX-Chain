@@ -65,7 +65,9 @@
         "healthCursorPersistence": "configured-key",
         "invariant": "A retained anchor cursor remains verifiable across restart"
       },
-      "status": "defined-not-yet-executed"
+      "status": "testedLocal",
+      "sourceCommit": "1d403f82e1e3a17ee892e43187752e2d564767c5",
+      "evidence": "scripts/verify/indexer-cursor-restart-check.sh"
     },
     {
       "id": "EXP-ERROR-001",
