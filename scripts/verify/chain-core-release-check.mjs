@@ -25,7 +25,7 @@ expect(contract.schema === "ynx-integration-contract/v1", "unexpected integratio
 expect(release.product?.id === "chain-core" && metadata.product?.id === "chain-core", "product ID mismatch");
 
 const sourceCommit = release.source?.implementationCommit;
-expect(/^[0-9a-f]{12}$/.test(sourceCommit ?? ""), "implementationCommit must be a 12-character Git SHA");
+expect(/^[0-9a-f]{40}$/.test(sourceCommit ?? ""), "implementationCommit must be an exact 40-character Git SHA");
 expect(metadata.sourceCommit === sourceCommit, "public metadata source SHA does not match product release");
 expect(contract.sourceCommit === sourceCommit, "integration contract source SHA does not match product release");
 execFileSync("git", ["cat-file", "-e", `${sourceCommit}^{commit}`], { stdio: "ignore" });

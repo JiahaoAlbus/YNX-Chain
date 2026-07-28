@@ -16,7 +16,7 @@
   "current": {
     "phase": "TESTNET",
     "goalStatus": "Active",
-    "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
+    "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
     "releaseStatus": {
       "implementedLocal": true,
       "testedLocal": true,

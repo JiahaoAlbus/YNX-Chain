@@ -9,7 +9,7 @@
     "canonicalRoute": "/chain"
   },
   "source": {
-    "implementationCommit": "72e7890b79e3",
+    "implementationCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
     "committedStateVersion": 11,
     "contractVersion": "1.11.0",
     "releaseRecordVersion": 1

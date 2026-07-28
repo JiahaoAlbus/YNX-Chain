@@ -1,7 +1,7 @@
 {
   "schema": "ynx-public-product-metadata/v1",
   "generatedAt": "2026-07-28T10:20:00Z",
-  "sourceCommit": "72e7890b79e3",
+  "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
