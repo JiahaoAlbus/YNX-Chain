@@ -1,84 +1,47 @@
 # Release notes
 
-## v0.2.0-local (Unreleased)
+## v0.3.0-integration (Candidate)
 
-This local Governance candidate adds BFT chain integration, smart contracts, and a standalone UI to the existing control-plane service.
+This Governance integration candidate binds protocol changes to an authoritative registry, submits signed execution intents through the canonical Chain Core/Comet adapter, verifies execution receipts, and exposes an honest read-only UI.
 
-### What's New
+### Runtime and integrity
 
-**BFT Chain Integration**
-- Action envelope validation with canonical hashing and signature verification
-- ABCI handler implementing CheckTx, DeliverTx, and Query paths
-- On-chain state management for proposals, votes, roles, and emergencies
-- State root computation for deterministic AppHash
-- Execution receipt generation with verified/failed/rollback outcomes
-- Nonce sequencing and replay protection via txHash registry
-- Support for all 17 governance actions defined in the integration manifest
+- 34 governance objects, 32 bounded integer parameters, 2 SHA-256 upgrade-manifest parameters, and 12 roles load through a digest-bound startup gate.
+- Runtime policy cannot widen, narrow, retype, or rescope registered parameters.
+- Proposal creation, voting, finalization, execution preparation, and restore reject registry drift without mutating proposal or timelock state.
+- Upgrade manifest changes must use canonical SHA-256 values and match the proposal upgrade hash.
+- Governance state v7 preserves signed votes, delegations, timelocks, upgrades, canaries, emergencies, appeals, and audit history.
 
-**Smart Contracts**
-- `YnxGovernance.sol` - Main governance contract with proposal lifecycle, voting, and role management
-- `YnxParameterStore.sol` - Parameter storage with type constraints and min/max bounds enforcement
-- `YnxTimelock.sol` - Timelock enforcement with configurable delays (1-30 days)
-- `YnxEmergencyPause.sol` - Multi-sig emergency pause for bridges, oracles, markets, vaults, providers, and upgrades
+### Chain integration
 
-**Standalone UI**
-- Proposal list view with status filtering (all, active, voting, completed)
-- Detailed proposal view showing summary, economic impact, security risk, migration, and rollback plans
-- Parameter change visualization with before/after diff and bounds display
-- Voting interface with approve/reject/abstain options
-- Real-time voting statistics with quorum and threshold indicators
-- Timelock countdown display
-- Evidence and documentation links
-- Klein Blue (#002FA7) branding throughout
-- Responsive design with Apple-grade polish
+- Signed execution intents are broadcast through the canonical Chain Core/Comet client.
+- Receipt verification binds transaction hash, block height, block hash, state root, manifest, source, outcome, and audit identity.
+- A multiprocess four-validator lifecycle exercises the integrated flow locally.
 
-### What's Still Missing
+### Public UI and CI
 
-The complete product is not yet implemented or tested locally because:
-- Smart contracts lack tests (Hardhat/Foundry setup needed)
-- UI lacks component tests (Vitest setup needed)
-- BFT handler not wired into main ABCI application
-- Governance service not connected to BFT gateway
-- No end-to-end testnet deployment with real transactions
-- No execution receipts captured from chain
-- No Explorer/Monitor integration for transaction display
-- No 12-language internationalization
+- Proposal list and detail views consume the real nested API contract.
+- Vote history is read from the public signed-vote endpoint and filtered to current revisions.
+- Fake wallet connection and invalid unsigned-vote actions were removed; voting guidance points users to an authenticated signing client.
+- Vite 8, TypeScript 7, and Vitest 4 are locked in `package-lock.json`.
+- Type-check, production build, render smoke test, npm audit, forbidden-text scan, secret scan, Go tests/vet, JSON validation, and deterministic binary comparison run in the governance gate.
+- The npm audit reports zero known vulnerabilities.
 
-It is also not centrally integrated, staging-deployed, publicly deployed, production signed, download hosted, or store released. External execution remains disabled and local execution status must not be interpreted as a chain transaction.
+### Not public or production
 
-### Technical Details
-
-**BFT Integration:**
-- Domain: `ynx-governance-action/v1`
-- Chain ID: 6423
-- Nonce domain prevents cross-action replay
-- Canonical JSON encoding before signing (RFC8785-compatible)
-- State root: SHA-256 of canonical state
-- Receipt schema: `ynx-governance-execution-receipt/v1`
-
-**Smart Contracts:**
-- Solidity 0.8.20
-- Custom errors for gas efficiency
-- No single administrator role
-- Role expiry enforcement
-- Emergency duration capped at 7 days
-- Multi-sig threshold for emergency actions
-
-**UI Stack:**
-- React 18
-- TypeScript 5
-- Vite 4
-- No external UI libraries (custom components)
-- Vite proxy routes `/governance` to `http://127.0.0.1:6441`
+This candidate is not shared-Testnet accepted, staging deployed, publicly deployed, production signed, download hosted, or website accepted. Explorer, Monitor, Trust, Data Fabric, Security/SRE, and central Integration evidence remains pending. No local receipt or lifecycle drill is represented as a public transaction.
 
 ### Evidence
 
-- Go service tests: `internal/governance/*_test.go` (20 tests passing)
-- BFT handler tests: `chain/governance/abci_handler_test.go` (4 tests passing)
-- Smart contract source: `contracts/governance/*.sol` (~1,060 lines)
-- UI source: `apps/governance/src/**/*.tsx` (~1,200 lines)
-- Commits: `75d3412`, `7d0b5ce`
+- Registry gates: `b1b460d8e798f50381c819c80294c679a7fc6d1f`
+- UI/CI verification: `ea949aacac147505360528583bd7fade12f7cac8`
+- Multiprocess lifecycle: `27921c8298e22616f983c87fd0d8c51a49495cfd`
+- Full local gate: `bash scripts/verify/governance-check.sh`
 
-## v0.1.0-local (Previous)
+## v0.2.0-local
 
-Initial local Governance control-plane candidate with bounded proposal lifecycle, policy-owned parameters, vote/delegation integrity, term-scoped roles, emergency-pause constraints, tamper-evident persistence, canonical Gateway assertions, backup/restore, aggregate observability, and hardened service packaging.
+Introduced signed votes and delegations, first-class timelocks and upgrades, signed canary gates, public read APIs, BFT governance primitives, Solidity governance contracts, and the initial standalone UI.
+
+## v0.1.0-local
+
+Introduced the bounded proposal lifecycle, policy-owned parameters, role and emergency controls, tamper-evident persistence, gateway assertions, backup/restore, observability, and hardened service packaging.

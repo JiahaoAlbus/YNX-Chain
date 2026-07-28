@@ -2,17 +2,27 @@
   "schemaVersion": "ynx-product-release/v1",
   "product": "YNX Governance & Protocol Control",
   "slug": "governance",
-  "version": "0.2.0-testnet-dev",
-  "generatedAt": "2026-07-26T00:00:00Z",
-  "sourceCommit": "5ab6e04bc95d57d2c1736835b190dadcaab4118e",
+  "version": "0.3.0-integration",
+  "generatedAt": "2026-07-28T10:18:11Z",
+  "sourceCommit": "ea949aacac147505360528583bd7fade12f7cac8",
   "branch": "codex/final-governance",
-  "phase": "FREEZE",
+  "phase": "INTEGRATE",
   "status": "Active",
   "completedWork": [
     {
       "id": "runtime-control-registries",
       "status": "complete",
-      "details": "34 governance objects, 32 bounded parameters, and 12 scoped roles load through a fail-closed runtime startup gate."
+      "details": "34 governance objects, 32 bounded integer parameters, 2 canonical SHA-256 upgrade-manifest parameters, and 12 scoped roles load through a digest-bound fail-closed runtime gate."
+    },
+    {
+      "id": "authoritative-parameter-registry-gates",
+      "status": "complete",
+      "details": "Runtime policy must exactly match registered parameter type, scope, and bounds. Proposal creation, voting, finalization, execution preparation, and state restore revalidate the canonical registry and reject drift without mutating state."
+    },
+    {
+      "id": "verifiable-governance-ui",
+      "status": "complete",
+      "details": "The read-only React UI consumes the real nested proposal and public signed-vote API contracts, removes fake wallet and unsigned-vote controls, builds reproducibly from a lockfile, has a render smoke test, and audits with zero known npm vulnerabilities."
     },
     {
       "id": "canonical-proposal-state-machine",
@@ -53,6 +63,11 @@
       "id": "migration-and-restore-gates",
       "status": "complete",
       "details": "Governance state v7 persists vote, delegation, first-class Timelock, first-class Upgrade, signed Canary cohorts, and signed Canary results; v1 through v6 require explicit migrations. Runtime config v3 requires bounded Timelock Grace policy, and digest-valid tampering still fails closed."
+    },
+    {
+      "id": "canonical-chain-execution-adapter",
+      "status": "complete",
+      "details": "Signed execution intents are submitted through the canonical Chain Core/Comet adapter, reconciled against chain records, and verified using transaction hash, block height, block hash, state root, manifest, source, outcome, and audit identity."
     }
   ],
   "api": {
@@ -93,7 +108,9 @@
   },
   "evidence": {
     "targetedTests": [
-      "go test ./internal/governance ./chain/governance"
+      "bash scripts/verify/governance-check.sh",
+      "go test ./internal/governance ./chain/governance",
+      "npm --prefix apps/governance test"
     ],
     "fullRepositoryTests": [
       "go test ./..."
@@ -140,12 +157,17 @@
       "canary nonce reconciliation, restart recovery, and digest-valid signed-result tamper rejection",
       "persistent canary transitions in public canary and audit views",
       "v1 through v6 state migration rejection",
-      "v2 runtime config migration rejection"
+      "v2 runtime config migration rejection",
+      "authoritative registry policy divergence rejection",
+      "authoritative registry drift rejection before voting, finalization, execution, and restore",
+      "canonical Chain Core execution submission and receipt reconciliation",
+      "four-validator multiprocess governance Testnet lifecycle",
+      "governance UI production build, type-check, render smoke test, and zero-vulnerability npm audit"
     ],
-    "sourceCommit": "5ab6e04bc95d57d2c1736835b190dadcaab4118e"
+    "sourceCommit": "ea949aacac147505360528583bd7fade12f7cac8"
   },
   "dependencies": {
-    "chainCore": "not_integrated",
+    "chainCore": "canonical_execution_adapter_configured_and_locally_verified",
     "walletAuth": "gateway_assertion_adapter_configured",
     "explorer": "not_integrated",
     "monitor": "not_integrated",
@@ -161,14 +183,17 @@
     "Persistent Timelock integrity, Grace expiry, exact ActionHash cancellation, and single execution submission are implemented and tested locally.",
     "Persistent Upgrade integrity, exact manifest execution, restart recovery, and execution or rollback receipt correlation are implemented and tested locally.",
     "Signed Canary cohort and independent signed health-result integrity, abort thresholds, restart recovery, and exact-manifest execution gating are implemented and tested locally.",
+    "Authoritative parameter-registry validation is enforced at startup, proposal creation, voting, finalization, execution preparation, and restore.",
+    "The governance UI builds from a committed lockfile, reads the real public API contract, exposes no fake mutation controls, and passes its local CI gate with zero known npm vulnerabilities.",
+    "Canonical Chain Core submission and receipt reconciliation are implemented and exercised in a local multiprocess four-validator lifecycle.",
     "A passed vote is not reported as execution.",
     "A submitted execution is not reported as verified.",
     "Treasury and provider views expose proposal records only; they do not claim external execution.",
-    "Central chain execution, Explorer evidence, Monitor alerts, shared Testnet acceptance, and public deployment are not complete."
+    "Shared Testnet acceptance, Explorer evidence, Monitor alerts, production signer custody, website handoff, and public deployment are not complete."
   ],
   "nextActions": [
-    "Begin the real shared Testnet integration by binding governance execution and audit events to the canonical Chain Core owner without inferring external execution.",
-    "Bind proposal parameter validation directly to the canonical Parameter Registry at creation, voting close, timelock, and execution-ready gates.",
-    "Complete shared Testnet acceptance across Data Fabric, Explorer, Monitor, Trust, Security/SRE, 29 Integration, and the public governance page."
+    "Complete shared Testnet acceptance across Data Fabric, Explorer, Monitor, Trust, Security/SRE, and 29 Integration using immutable transaction and alert evidence.",
+    "Obtain production signer custody, deployment endpoints, DNS/Vercel ownership, and public support/security/status destinations from the external operator.",
+    "Publish the accepted governance product page, user and developer documentation, API, FAQ, security, status, and support evidence through the website handoff."
   ]
 }

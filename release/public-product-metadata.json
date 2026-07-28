@@ -12,16 +12,17 @@
     "Readable proposals and machine diffs",
     "Technical and economic simulation evidence",
     "Vote, quorum, threshold, and delegation records",
+    "Digest-bound authoritative parameter and role registries",
     "Timelock, execution verification, and rollback history",
     "Council conflicts, terms, removals, and emergency-action archive"
   ],
   "risks": [
     "Governance decisions may change protocol economics, providers, limits, or software behavior.",
     "Voting participation does not guarantee a preferred outcome.",
-    "The current candidate is local-only and has no public execution evidence."
+    "The current integration candidate has no accepted shared-Testnet or public execution evidence."
   ],
   "status": {
-    "channel": "local-development",
+    "channel": "integration-candidate",
     "publiclyAvailable": false,
     "externalExecutionEnabled": false
   },
@@ -41,7 +42,7 @@
     },
     {
       "question": "Is this governance service publicly deployed?",
-      "answer": "No. The current release record describes a locally implemented and tested candidate only."
+      "answer": "No. The current release record describes a locally verified integration candidate; shared-Testnet acceptance and public deployment are still pending."
     }
   ],
   "structuredDataSuggestion": {

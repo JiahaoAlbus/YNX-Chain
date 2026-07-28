@@ -1,57 +1,40 @@
 # YNX Governance & Protocol Control — Current Checkpoint
 
 Status: **Active**
-Phase: **FREEZE**
+Phase: **INTEGRATE**
 Branch: `codex/final-governance`
-Protected implementation checkpoint: `3a561ddf3c7ab28b1bf7c1aa0158dfea0ee9c570`
+Implementation checkpoint: `ea949aacac147505360528583bd7fade12f7cac8`
 
 ## Implemented and verified
 
-- Runtime Governance Object Registry with 34 versioned control objects.
-- Runtime Parameter Registry with 32 bounded, rate-limited, timelocked parameters.
-- Machine-readable Role Registry with 12 scoped, expiring, revocable roles.
-- Dedicated Emergency Council separated from Technical and Security Council authority.
-- Dedicated Execution Operator separated from Treasury Council authority.
-- Canonical 33-state proposal state machine from `draft` through `archived`.
-- Audit-hashed transition history with strict allowed-transition validation.
-- Strict Proposal gate for machine diff, impacts, migration, rollback, canary, verification, conflicts, dependencies, evidence, source commit, and release.
-- Proposal `ActionHash` binding the exact diff, source commit, release, and upgrade manifest.
-- Governance state snapshot schema `ynx-governance-state/v5`; v1 through v4 require explicit migration.
-- Runtime config schema `ynx-governanced-config/v3` requires an explicit bounded Timelock Grace policy; v2 fails closed until migrated.
-- Ed25519 signed vote envelopes binding Chain ID, Domain, Proposal ID, Voter ID, Choice, Operation, Revision, Nonce, Electorate Snapshot, SignedAt, and Expiry.
-- Voter ID derived from the signing public key; wrong voter/public key, wrong chain/domain/proposal, tamper, expired vote, future vote, duplicate, and replay fail closed.
-- Immutable Vote Revision history supporting explicit replacement and withdrawal without voting-power double counting.
-- Vote Nonce registry persisted and reconciled against signed history during restore.
-- HTTP mutation gate requiring the Product Session account to match the signed Voter ID.
-- Public read APIs expose all signed Vote revisions, public keys, signatures, nonces, snapshot evidence, supersession links, and current-revision status.
-- Persistent Ed25519 signed Delegation revisions bind chain, domain, delegator, delegate, scope, amount, operation, revision, nonce, start, expiry, override policy, and superseded audit hash.
-- Delegation registration, redelegation, revocation, replay rejection, self-delegation rejection, multi-hop/cycle rejection, historical snapshots, partial power, and direct-vote override are enforced without double counting.
-- Product Session identity and scope are bound to Delegation HTTP mutations; immutable Delegation history and nonce state survive restore and fail closed on tamper.
-- First-class persistent Timelock records bind Proposal ID, exact ActionHash, earliest execution, bounded Grace deadline, public Notice evidence, execution manifest, and an audit-hashed transition chain.
-- Timelock cancellation requires the exact ActionHash and an authorized scoped Product Session; early execution, post-Grace execution, duplicate submission, state tamper, and Proposal/Timelock divergence fail closed.
-- Emergency Pause, verified execution, failed execution, rollback, expiry, archive, restart recovery, health, public views, and audit output remain synchronized with the Timelock record.
-- `/health` and `/version` report real runtime provenance and degraded central dependencies without hard-coded healthy claims.
+- A digest-bound registry loads 34 governance objects, 32 bounded integer parameters, 2 canonical SHA-256 upgrade-manifest parameters, and 12 scoped roles.
+- Runtime policy must exactly match registered parameter type, scope, and bounds. Proposal creation, voting, finalization, execution preparation, and restore revalidate the authoritative registry.
+- The canonical 33-state proposal lifecycle separates approval, timelock, submission, execution, verification, failure, rollback, correction, and archive.
+- Ed25519 vote, delegation, canary cohort, and canary-result envelopes have replay protection, immutable revision history, identity binding, and restore-time integrity checks.
+- First-class Timelock, Upgrade, Canary, Emergency, Appeal, Discussion, Role, and audit records persist with explicit state transitions.
+- Signed execution intents pass through the canonical Chain Core/Comet adapter. Verification reconciles transaction hash, block height, block hash, state root, manifest, source, outcome, and audit identity.
+- A multiprocess four-validator lifecycle exercises proposal creation through canonical execution and verification without inferring public deployment.
+- Public APIs expose proposals, votes, delegations, roles, parameters, timelocks, executions, upgrades, canaries, emergencies, treasury/provider proposal records, conflicts, appeals, audit, health, version, and metrics.
+- The read-only governance UI consumes the real nested proposal and public signed-vote contracts. Fake wallet and unsigned-vote controls were removed.
+- The UI has a committed dependency lock, production build, type-check, render smoke test, and zero-known-vulnerability npm audit.
+- Governance CI verifies Go tests and vet, JSON metadata, UI build/test/type-check/audit, forbidden text, secret patterns, and deterministic Go binaries.
 
 ## Verification
 
-- `go test ./internal/governance ./chain/governance` — passed.
-- `go test ./...` — passed.
-- Signed-vote tests cover valid cast, Wrong Chain, Wrong Domain, Wrong Proposal, Wrong Voter, Wrong Public Key, Choice Tamper, Wrong Snapshot, Expiry, Future Timestamp, exact Replay, Duplicate Cast, Replacement, Withdrawal, post-restore Replay, signature tamper with recomputed outer digest, Nonce Registry mismatch, and HTTP Session/Voter mismatch.
-- Delegation tests cover registration, redelegation, revocation, replay, tamper, self-delegation, multi-hop/cycle rejection, historical snapshot binding, partial amount, direct override tallying, persistence, nonce reconciliation, and HTTP Session/Delegator mismatch.
-- Timelock tests cover exact ActionHash binding and cancellation, scoped Session authorization, early execution rejection, bounded Grace expiry, duplicate submission replay, public Notice evidence, submitted/expired/cancelled/paused restart recovery, and digest-valid tamper rejection.
+- `bash scripts/verify/governance-check.sh` — passed on 2026-07-28.
+- `go test ./...` — passed on 2026-07-28.
+- `npm --prefix apps/governance test` — 1 render smoke test passed.
+- `npm --prefix apps/governance audit --audit-level=moderate` — 0 known vulnerabilities.
+- Remote branch SHA was verified as `ea949aacac147505360528583bd7fade12f7cac8`.
 
 ## Truthful release state
 
-- `implementedLocal`: true for registry, canonical Proposal lifecycle, signed Vote and Delegation integrity, persistent Timelock control, local persistence, Emergency control, and public-read APIs.
-- `testedLocal`: true for these slices.
-- `installedLocal`: false.
-- `integratedCentral`: false.
-- `deployedStaging`: false.
-- `deployedPublic`: false.
-- `downloadHosted`: false.
-- `productionSigned`: false.
-- `storeReleased`: false.
+- Local implementation, tests, deterministic builds, registry gates, UI verification, canonical execution-adapter integration, and multiprocess lifecycle evidence are complete.
+- Shared Testnet acceptance is not complete.
+- Explorer, Monitor, Trust, Data Fabric, Security/SRE, and central Integration acceptance are not complete.
+- Production signer custody, staging/public endpoints, Vercel/DNS ownership, support/security/status destinations, website handoff, public downloads, and production signing are not available in this workspace.
+- No local evidence is represented as a public-chain transaction, public deployment, external audit, or production release.
 
 ## Next engineering target
 
-Implement first-class Upgrade Runtime records with signed source/manifest identity, migration and rollback binding, canary eligibility, duplicate/conflict rejection, restart recovery, and execution receipt correlation. The long-term Governance goal remains Active.
+Complete the shared Testnet acceptance matrix with immutable external transaction, indexing, monitoring, trust, and security evidence. Public release then requires operator-provided production custody and deployment destinations.

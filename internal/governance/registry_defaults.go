@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	registrySourceCommit = "c4f98fb0c8c08b35d4a8f33d8321a05e21c41736"
-	registryRelease      = "governance-registry-v1-unreleased"
+	registrySourceCommit = "b1b460d8e798f50381c819c80294c679a7fc6d1f"
+	registryRelease      = "governance-registry-v2-integration"
 	registryEffectiveAt  = "2026-07-25T00:00:00Z"
 )
 

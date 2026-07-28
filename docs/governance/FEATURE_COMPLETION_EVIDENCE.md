@@ -2,125 +2,52 @@
 
 | Capability | Implemented local | Tested local | Public evidence |
 | --- | ---: | ---: | ---: |
-| Proposal lifecycle, quorum, threshold, timelock | Yes | Yes | No |
-| Append-only public discussion, evidence, and replies | Yes | Yes | No public deployment |
-| Policy-owned parameter bounds | Yes | Yes | No |
-| Frozen electorate, delegation, cycle protection | Yes | Yes | No |
-| Multi-member electorate snapshot approval | Yes | Yes | No central/BFT evidence |
-| Distributed role bootstrap, terms, scope, removal | Yes | Yes | No |
-| Emergency pause, threshold, expiry, follow-up | Yes | Yes | No |
-| Upgrade hash and rollback state | Yes | Yes | No |
-| Atomic persistence and tamper rejection | Yes | Yes | No |
-| Gateway HMAC assertion boundary | Yes | Yes | No central integration evidence |
-| Backup and restore with rollback preservation | Yes | Yes | No remote drill |
-| Public appeal/correction archive and executed resolution | Yes | Yes | No public deployment |
-| Health, metrics, request/error IDs, structured logs | Yes | Yes | No installed dashboard or alerts |
-| Reproducible local binaries, SBOM, and license notice | Yes | Yes | No production signing or hosting |
-| **BFT action envelope and validation** | **Yes** | **Yes** | **No** |
-| **BFT CheckTx/DeliverTx/Query handlers** | **Yes** | **Yes** | **No** |
-| **On-chain state management (proposals, votes, roles)** | **Yes** | **Yes** | **No** |
-| **State root computation and execution receipts** | **Yes** | **Yes** | **No** |
-| **Nonce management and replay protection** | **Yes** | **Yes** | **No** |
-| **Smart contracts: YnxGovernance.sol** | **Yes** | **No** | **No** |
-| **Smart contracts: YnxParameterStore.sol** | **Yes** | **No** | **No** |
-| **Smart contracts: YnxTimelock.sol** | **Yes** | **No** | **No** |
-| **Smart contracts: YnxEmergencyPause.sol** | **Yes** | **No** | **No** |
-| **Standalone /governance UI - Proposal list** | **Yes** | **No** | **No** |
-| **Standalone /governance UI - Proposal detail** | **Yes** | **No** | **No** |
-| **Standalone /governance UI - Voting interface** | **Yes** | **No** | **No** |
-| **Standalone /governance UI - Timelock display** | **Yes** | **No** | **No** |
-| BFT protocol execution and chain receipts | No | No | No |
-| Explorer, Monitor, and Trust evidence integration | No | No | No |
-| 12-language accessibility | No | No | No |
-| Staging/public deployment and download hosting | No | No | No |
+| Canonical proposal lifecycle, quorum, threshold, and timelock | Yes | Yes | No public deployment |
+| Signed vote and delegation integrity | Yes | Yes | No public deployment |
+| Authoritative object, parameter, and role registries | Yes | Yes | No public deployment |
+| Registry enforcement at startup, proposal, voting, finalization, execution, and restore gates | Yes | Yes | No public deployment |
+| Persistent upgrade and signed canary execution gates | Yes | Yes | No public deployment |
+| Emergency, conflict, appeal, correction, and discussion records | Yes | Yes | No public deployment |
+| Gateway assertion and scoped Product Session boundary | Yes | Yes | No production identity provider evidence |
+| Canonical Chain Core/Comet execution adapter | Yes | Yes | No shared-Testnet acceptance |
+| Chain execution receipt reconciliation | Yes | Yes | No public transaction evidence |
+| Multiprocess four-validator lifecycle drill | Yes | Yes | Local evidence only |
+| Public read APIs, health, version, metrics, and audit | Yes | Yes | No public endpoint |
+| Governance UI against the real public API contract | Yes | Yes | No public endpoint |
+| UI dependency lock, build, type-check, render smoke test, and vulnerability audit | Yes | Yes | CI pending for current evidence commit |
+| Deterministic Go binaries, secret scan, and forbidden-text scan | Yes | Yes | CI pending for current evidence commit |
+| Solidity governance contracts | Yes | No | No deployment |
+| Explorer, Monitor, Trust, Data Fabric, and Security/SRE acceptance | No | No | No |
+| Shared Testnet acceptance | No | No | No |
+| Website handoff and Vercel/DNS deployment | No | No | No |
+| Production signing and public downloads | No | No | No |
+| 12-language and RTL localization | No | No | No |
 
-## Implementation Evidence
+## Immutable implementation evidence
 
-### Go Service (Existing)
-- Location: `internal/governance/`
-- Tests: `internal/governance/*_test.go` (20 tests, all passing)
-- Command: `GOMAXPROCS=2 go test ./internal/governance/...`
+- Authoritative registry gates: `b1b460d8e798f50381c819c80294c679a7fc6d1f`
+- Verifiable UI and CI gate: `ea949aacac147505360528583bd7fade12f7cac8`
+- Multiprocess Testnet lifecycle: `27921c8298e22616f983c87fd0d8c51a49495cfd`
+- Chain receipt verification: `7e342ec`
+- Comet execution client: `0640f26`
+- Chain Core submission: `ddc7f98`
+- Consensus execution audit: `322e795`
 
-### BFT Chain Integration (New)
-- Location: `chain/governance/`
-- Files:
-  - `actions.go` (180 lines) - Action envelope, validation, hashing
-  - `state.go` (260 lines) - On-chain state management
-  - `abci_handler.go` (180 lines) - ABCI CheckTx/DeliverTx/Query
-  - `abci_handler_test.go` (220 lines) - Test coverage
-- Tests: `go test ./chain/governance/...`
-- Commit: `75d3412`
+## Local verification evidence
 
-### Smart Contracts (New)
-- Location: `contracts/governance/`
-- Files:
-  - `YnxGovernance.sol` (350 lines) - Main governance contract
-  - `YnxParameterStore.sol` (250 lines) - Parameter storage with bounds
-  - `YnxTimelock.sol` (180 lines) - Timelock enforcement
-  - `YnxEmergencyPause.sol` (280 lines) - Emergency pause mechanism
-- Total: ~1,060 lines Solidity
-- Tests: Not yet implemented (requires Hardhat/Foundry setup)
-- Commit: `75d3412`
+- `bash scripts/verify/governance-check.sh`
+- `go test ./...`
+- `npm --prefix apps/governance test`
+- `npm --prefix apps/governance run build`
+- `npm --prefix apps/governance audit --audit-level=moderate`
 
-### UI Components (New)
-- Location: `apps/governance/`
-- Files:
-  - `src/App.tsx` (180 lines) - Main app with navigation
-  - `src/components/ProposalList.tsx` (330 lines) - Proposal browser
-  - `src/components/ProposalDetail.tsx` (480 lines) - Detail view with voting
-  - `package.json`, `vite.config.ts`, `tsconfig.json` - Build config
-- Total: ~1,200 lines TypeScript/React
-- Tests: Not yet implemented
-- Dev server: `cd apps/governance && npm install && npm run dev`
-- Commit: `7d0b5ce`
+The local checks passed on 2026-07-28. They do not substitute for GitHub Actions, shared-Testnet transaction evidence, public hosting, or external audit evidence.
 
-## Remaining Work
+## External blockers
 
-### Integration
-- [ ] Wire `chain/governance/abci_handler.go` into main ABCI application
-- [ ] Connect governance service to BFT gateway
-- [ ] Deploy smart contracts to testnet
-- [ ] Connect UI to governance service API
+- No accepted shared-Testnet transaction, Explorer, Monitor, Trust, Data Fabric, or Security/SRE evidence is present.
+- No production signer custody or release-signing authority is present.
+- No staging/public governance endpoint, Vercel project, DNS authority, or website acceptance record is present.
+- Public support, security, privacy, and status destinations remain unassigned.
 
-### Testing
-- [ ] Smart contract tests (Hardhat or Foundry)
-- [ ] UI component tests (Vitest + React Testing Library)
-- [ ] End-to-end testnet flow
-
-### Deployment
-- [ ] Local testnet deployment with real BFT consensus
-- [ ] Submit proposal via signed transaction
-- [ ] Cast votes and reach quorum
-- [ ] Execute through timelock
-- [ ] Capture transaction receipts and block hashes
-- [ ] Update evidence with testnet data
-
-### Explorer/Monitor Integration
-- [ ] Display governance transactions in Explorer
-- [ ] Show proposal execution receipts
-- [ ] Link to block height and transaction hash
-- [ ] Trust evidence archive
-
-### Internationalization
-- [ ] Extract UI strings for translation
-- [ ] Add i18n library (react-i18next)
-- [ ] Create translation files for 12 languages
-- [ ] Test RTL languages (Arabic, Hebrew)
-
-## Status Summary
-
-**Implemented:** ~70% of governance system
-- ✅ Complete Go governance service (internal/governance)
-- ✅ BFT chain integration layer (chain/governance)
-- ✅ Smart contracts (contracts/governance)
-- ✅ Standalone UI (apps/governance)
-
-**Not Yet Complete:** ~30%
-- ❌ Integration wiring (ABCI, BFT gateway, smart contract deployment)
-- ❌ Contract and UI tests
-- ❌ End-to-end testnet deployment
-- ❌ Real transaction receipts and evidence
-- ❌ Explorer/Monitor integration
-- ❌ Internationalization
-
-Exact immutable logs and source commit must be recorded after commit; this document does not substitute for CI or public transaction evidence.
+These blockers require external owners or credentials; the runtime must continue to report them as degraded rather than fabricating success.
