@@ -7,7 +7,7 @@ Goal: Active
 
 ## Protected checkpoint
 
-Release-source commit `682bdb075803a77c9591fc59b83708944ea76fdf` is pushed and matches the remote branch. It carries the verified backup/restore runtime, truthful public metadata, aligned 0.3.0 build identity and reproducible platform proof scripts. The underlying backup/restore implementation was introduced at `0e087bc1fe7f71732d28dab1a6c7414e28d424ce`.
+Evidence checkpoint `fedfed5e4017f36556c5a1df730859c9ac044105` is pushed and matches the remote branch. Platform artifacts remain bound to the clean source commit `682bdb075803a77c9591fc59b83708944ea76fdf`; the backup/restore implementation was introduced at `0e087bc1fe7f71732d28dab1a6c7414e28d424ce`.
 
 Targeted evidence at this checkpoint:
 
