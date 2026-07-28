@@ -145,15 +145,15 @@
       "requirement": "Stateless API, worker queue, metadata sharding, backpressure, rate limit, region placement and million-object candidate benchmark.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": ["apps/cloud/evidence/CAPACITY_077bfc1.json", "apps/cloud/SLO_CAPACITY_PLAN.md", "internal/cloud/server.go"],
-      "sourceCommit": "6e101f99137c44e51f824770a477bd6149ba5e05",
-      "tests": ["capacity candidate", "go test ./internal/cloud"],
+      "evidence": ["apps/cloud/evidence/CAPACITY_077bfc1.json", "apps/cloud/SLO_CAPACITY_PLAN.md", "internal/cloud/server.go", "internal/cloud/lifecycle.go:RecoverPendingStorageTransitions", "apps/cloud/cmd/ynx-cloudd/main.go bounded storage transition worker"],
+      "sourceCommit": "e7cb63a311115fb8ff643d3cfa4ca1b1c8a89556",
+      "tests": ["capacity candidate", "TestStorageLifecycleWorkerRecoversPendingAfterRestart", "TestStorageLifecycleWorkerDoesNotDoubleExecuteActiveTransition", "TestStorageLifecycleWorkerFailureDoesNotHotLoop", "TestStorageLifecycleWorkerCancellationRemainsRecoverable", "go test -race -count=1 ./internal/cloud"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": null,
       "owner": "20-cloud",
-      "nextAction": "Add concurrent persisted, sharded and remote benchmarks plus queue/worker implementation.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Add concurrent persisted, sharded and remote benchmarks, explicit backpressure/rate limits, region placement and the million-object candidate.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "CLOUD-DEDUP-001",
@@ -177,15 +177,15 @@
       "requirement": "Hot, cold and archive lifecycle plus CDN and replication or erasure-coding candidate.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": ["internal/cloud/lifecycle.go", "internal/cloud/lifecycle_test.go", "internal/cloud/lifecycle_adapter_test.go", "internal/cloud/lifecycle_server_test.go", "apps/cloud/evidence/LIFECYCLE_d11c382.json"],
-      "sourceCommit": "d11c382da10ab0629c7d322c83c9ddef24925328",
-      "tests": ["go test ./internal/cloud", "go test -race ./internal/cloud", "npm --prefix apps/cloud run smoke", "GitHub Actions run 30275578270"],
+      "evidence": ["internal/cloud/lifecycle.go", "internal/cloud/lifecycle_test.go", "internal/cloud/lifecycle_adapter_test.go", "internal/cloud/lifecycle_server_test.go", "apps/cloud/evidence/LIFECYCLE_d11c382.json", "bounded restart recovery worker with claimed/completed/failed/interrupted truth"],
+      "sourceCommit": "e7cb63a311115fb8ff643d3cfa4ca1b1c8a89556",
+      "tests": ["go test -count=1 ./internal/cloud ./apps/cloud/...", "go test -race -count=1 ./internal/cloud", "TestStorageLifecycleWorkerRecoversPendingAfterRestart", "TestStorageLifecycleWorkerFailureDoesNotHotLoop", "TestStorageLifecycleWorkerCancellationRemainsRecoverable", "npm --prefix apps/cloud run smoke", "GitHub Actions run 30275578270"],
       "artifact": null,
       "publicProof": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30275578270",
       "blockedBy": "Hot/cold/archive control-plane lifecycle is tested; CDN, provider replication or erasure coding and remote lifecycle proof require provisioned provider/deployment inputs",
       "owner": "20-cloud",
       "nextAction": "Add CDN/replication contracts and execute provider-bound lifecycle, restore and migration proof when provisioned.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "CLOUD-ENCRYPT-001",
