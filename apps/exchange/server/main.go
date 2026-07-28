@@ -57,7 +57,6 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", http.StripPrefix("/api", api))
 	mux.Handle("/", spa(http.Dir("apps/exchange/web")))
-<<<<<<< HEAD
 	server := &http.Server{Addr: addr, Handler: securityHeaders(newAdmission(128, 600, time.Minute).wrap(mux)), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	slog.Info("exchange_listening", "address", addr, "product_id", exchangeproduct.ProductID, "version", exchangeproduct.Version, "commit", exchangeproduct.BuildCommit)
 	if err := server.ListenAndServe(); err != nil {

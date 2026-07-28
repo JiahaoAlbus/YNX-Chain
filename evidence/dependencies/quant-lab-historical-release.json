@@ -1,0 +1,40 @@
+{
+  "evidenceClassification": "historical-local-dependency-snapshot-not-owner-release-authority",
+  "canonicalOwner": "08-quant-lab",
+  "productId": "ynx-quant-lab",
+  "name": "YNX Quant Lab — Paper & Testnet Preview",
+  "branch": "codex/final-exchange",
+  "sourceCommit": "22604af0717a19b5f8aa9223685c3ad3f049941a",
+  "commit": "22604af0717a19b5f8aa9223685c3ad3f049941a",
+  "version": "0.1.0-testnet",
+  "surfaces": ["web-desktop", "web-mobile", "local-paper-api", "bounded-testnet-adapter"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {},
+  "bytes": {},
+  "signingClass": "unsigned-darwin-arm64-upload-ready-bundle",
+  "minOS": {"server": "darwin-arm64", "browser": "current evergreen with ES2022"},
+  "installEvidence": "Local API, browser, persistence, paper reconciliation, kill switch, and mandate tests; no desktop-installed package is claimed",
+  "centralIntegration": {
+    "registryState": "pending-review-disabled",
+    "walletMandate": "bounded-verifier-adapter-required-fail-closed",
+    "exchangeMarketData": "actual-owned-match-tape-only"
+  },
+  "knownLimitations": [
+    "No suitable persistent staging runtime was available; static hosting is not treated as deployment",
+    "No live-funds automation; testnet broker and Wallet mandate verifier default unavailable",
+    "Paper/backtest requires sufficient actual YNX Exchange matched-trade history and never synthesizes a feed",
+    "Evaluated third-party engines are not bundled"
+  ],
+  "generatedAt": "2026-07-22T14:30:00Z"
+}

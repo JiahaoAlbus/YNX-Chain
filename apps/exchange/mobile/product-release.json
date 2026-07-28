@@ -1,0 +1,46 @@
+{
+  "productId": "ynx-exchange-mobile",
+  "name": "YNX Exchange Mobile",
+  "branch": "codex/final-exchange",
+  "sourceCommit": "22604af0717a19b5f8aa9223685c3ad3f049941a",
+  "commit": "22604af0717a19b5f8aa9223685c3ad3f049941a",
+  "version": "0.1.0-testnet",
+  "surfaces": ["android", "ios"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {
+    "androidPreviewApk": "986cf0ce775cb92ba60429445b354c38141c723af4c62d7cb6e8294fe57a3ca2",
+    "androidHermesBundle": "17ca63f7ed0b86dc2ef3be3f72a3daa6b1df6674aec0643d9a67265122591993",
+    "iosHermesBundle": "5bb1f52b8bbd297397c11801e7d754e9946d18f78eec937006e2d747a93b1ebc"
+  },
+  "bytes": {"androidPreviewApk": 77369630, "androidHermesBundle": 3775462, "iosHermesBundle": 3770149},
+  "signingClass": {"android": "debug-key-v2-testnet-preview", "ios": "unsigned-simulator-ci"},
+  "minOS": {"androidApi": 24, "ios": "16.4"},
+  "installEvidence": {
+    "android": "API 36 emulator install; cold launch 751 ms; Wallet callback delivered; five tabs present in native accessibility tree; PID alive; no product fatal exception",
+    "ios": "Runnable macOS-15 CI workflow added; local host has Command Line Tools only, so Simulator evidence is pending"
+  },
+  "centralIntegration": {
+    "sourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
+    "registryState": "pending-review-disabled",
+    "sessionIntrospection": "configured-route-required-fail-closed",
+    "actionAuthorization": "canonical-Gateway-route-required"
+  },
+  "knownLimitations": [
+    "Overall installedLocal is false because iOS Simulator execution has not yet run",
+    "Central Wallet registry and Gateway acceptance are external and not claimed",
+    "Android uses a debug signing key; no production/store signature",
+    "Custody, authoritative Indexer, withdrawal broadcaster, cross-chain bridge, and AI provider are unavailable"
+  ],
+  "generatedAt": "2026-07-22T14:30:00Z"
+}

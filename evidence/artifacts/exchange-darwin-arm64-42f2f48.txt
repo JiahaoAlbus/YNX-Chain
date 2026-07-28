@@ -1,0 +1,20 @@
+Product: YNX Exchange Pro local server
+Source commit: 42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d
+Version: 0.1.0-testnet
+Build command: go build -trimpath -ldflags=-X=github.com/JiahaoAlbus/YNX-Chain/internal/exchangeproduct.BuildCommit=42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d -o <temporary-output> ./apps/exchange/server
+Build environment: Go 1.25.7; darwin/arm64; Apple M2; CGO_ENABLED=1
+SHA-256: c2421d5d52763678e3903099eb9031090036a09e06fe061d3aa3a634a55ba09e
+Bytes: 10877506
+Signing class: unsigned local engineering build
+Hosted: false
+Download URL: none
+Install class: executable local build; no desktop package or installer
+Cold-start evidence: apps/exchange/smoke.sh passed against the local service and truthful empty venue state
+
+Embedded direct modules from `go version -m`:
+- github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
+- github.com/gorilla/websocket v1.5.3
+- golang.org/x/crypto v0.33.0
+- golang.org/x/sys v0.30.0
+
+This file records a local build only. It is not a hosted artifact, production signature, notarized binary, store release or reproducibility proof.
