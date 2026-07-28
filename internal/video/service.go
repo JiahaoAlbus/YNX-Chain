@@ -411,6 +411,11 @@ func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*
 		s.failVideo(videoID, "scan_failed: "+err.Error())
 		return nil, err
 	}
+	probe, err := s.probeMedia(ctx, original)
+	if err != nil {
+		s.failVideo(videoID, "probe_failed: "+err.Error())
+		return nil, err
+	}
 	s.setStatus(videoID, "transcoding", "")
 	if err = cleanProcessingOutputs(filepath.Dir(original)); err != nil {
 		s.failVideo(videoID, "processing cleanup failed: "+err.Error())
@@ -436,6 +441,7 @@ func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*
 		v := st.Videos[videoID]
 		v.Status = "ready"
 		v.Variants = variants
+		v.Probe = probe
 		v.Failure = ""
 		v.UpdatedAt = s.cfg.Now().UTC()
 		copy := *v
@@ -966,6 +972,11 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		s.failVideo(vid, "scan_failed: "+err.Error())
 		return v, err
 	}
+	probe, err := s.probeMedia(ctx, original)
+	if err != nil {
+		s.failVideo(vid, "probe_failed: "+err.Error())
+		return v, err
+	}
 	s.setStatus(vid, "transcoding", "")
 	variants, err := s.cfg.Processor.Transcode(ctx, original, objDir)
 	if err != nil {
@@ -985,6 +996,7 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		x.Status = "ready"
 		x.Failure = ""
 		x.Variants = variants
+		x.Probe = probe
 		x.UpdatedAt = s.cfg.Now().UTC()
 		s.audit(st, actor, "video.processing.ready", "video", vid, "")
 		v = x
@@ -992,6 +1004,19 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	})
 	return v, err
 }
+
+func (s *Service) probeMedia(ctx context.Context, original string) (*MediaProbe, error) {
+	prober, ok := s.cfg.Processor.(MediaProber)
+	if !ok {
+		return nil, nil
+	}
+	probe, err := prober.Probe(ctx, original)
+	if err != nil {
+		return nil, err
+	}
+	return &probe, nil
+}
+
 func verifyVideoSignature(path, mime string) error {
 	f, err := os.Open(path)
 	if err != nil {

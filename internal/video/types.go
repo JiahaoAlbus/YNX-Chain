@@ -25,6 +25,7 @@ type Video struct {
 	Bytes            int64              `json:"bytes"`
 	SHA256           string             `json:"sha256"`
 	Rights           *RightsDeclaration `json:"rights,omitempty"`
+	Probe            *MediaProbe        `json:"probe,omitempty"`
 	ObjectKey        string             `json:"object_key"`
 	Variants         []MediaVariant     `json:"variants,omitempty"`
 	ThumbnailKey     string             `json:"thumbnail_key,omitempty"`
@@ -42,6 +43,16 @@ type RightsDeclaration struct {
 	Territories    []string   `json:"territories"`
 	ExpiresAt      *time.Time `json:"expires_at,omitempty"`
 	EvidenceSHA256 string     `json:"evidence_sha256"`
+}
+
+type MediaProbe struct {
+	Container      string  `json:"container"`
+	VideoCodec     string  `json:"video_codec"`
+	AudioCodec     string  `json:"audio_codec,omitempty"`
+	DurationSecond float64 `json:"duration_seconds"`
+	Width          int     `json:"width"`
+	Height         int     `json:"height"`
+	FrameRate      float64 `json:"frame_rate"`
 }
 
 type MediaVariant struct {

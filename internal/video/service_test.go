@@ -451,6 +451,9 @@ func TestRepositoryOwnedMediaTranscodesWithFFmpeg(t *testing.T) {
 	if len(v.Variants) != 2 || v.Variants[0].MIME != "application/vnd.apple.mpegurl" || v.Variants[1].MIME != "video/mp4" {
 		t.Fatalf("adaptive output missing: %+v", v.Variants)
 	}
+	if v.Probe == nil || v.Probe.VideoCodec == "" || v.Probe.Width <= 0 || v.Probe.Height <= 0 || v.Probe.DurationSecond <= 0 || v.Probe.FrameRate <= 0 {
+		t.Fatalf("persisted media probe missing or invalid: %+v", v.Probe)
+	}
 	if _, err = os.Stat(filepath.Join(s.cfg.Root, "objects", v.ID, "stream.m3u8")); err != nil {
 		t.Fatal(err)
 	}
