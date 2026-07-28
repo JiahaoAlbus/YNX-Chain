@@ -13,9 +13,9 @@ On first open of authenticated schema v1, v2, v3 or v4 state, the indexer:
 
 An existing backup with different bytes causes startup failure. A tampered source state, backup, v5 state or event fails closed. The v4 migration test proves LP Protection history is retained and an already-valid Stable event remains typed.
 
-## Confirmed EVM cursor schema v5
+## Confirmed EVM cursor schema v6
 
-Cursor v5 binds the configured Strategy Vault, FairFlow, LP Protection and Stable Factory addresses into its HMAC. Each discovered pool now binds its contract version and immutable swap fee. Legacy discovered pools migrate explicitly to CPMM/30 BPS; enabling Stable indexing from v4 rewinds to the deployment start block after an exact v4 backup. Reopening with a substituted Stable Factory or typed-pool metadata fails.
+Cursor v6 binds the configured CPMM Factory, Strategy Vault, FairFlow, LP Protection and Stable Factory addresses into its HMAC. Each discovered pool binds its contract version and immutable swap fee. Schema v1-v5 migration first preserves an exact private rollback file, then binds the configured Factory and rewinds to the deployment start block so a legacy cursor cannot silently bless substituted Factory history. Legacy discovered pools migrate explicitly to CPMM/30 BPS. Reopening with a substituted Factory, Stable Factory or typed-pool metadata fails.
 
 CPMM and Stable discovery share the cursor but scan distinct verified Factory addresses. Stable fee BPS is read from the pool at its creation block; later event fees use that bound value. Protected CPMM swap fees instead require an exact same-transaction `ProtectionAssessed` match and fail closed when absent or duplicated. Confirmed reorg recovery rewinds every pool family and policy source at one boundary.
 
@@ -27,14 +27,16 @@ Existing API routes retain their shapes; pool `contractVersion` now capability-i
 
 Rollback is an operator-controlled recovery, not an in-place downgrade:
 
-1. stop the v5 indexer and archive its state, cursor, logs and hashes;
+1. stop the state-v5/cursor-v6 indexer and archive its state, cursor, logs and hashes;
 2. stop serving LP Protection events, FairFlow events, and Vault actions where unsupported by the target schema, so missing legacy data cannot be mistaken for empty history;
 3. restore the preserved state and cursor backup to isolated paths;
 4. start the exact previous binary against those copies; and
 5. replay only the sources that legacy schema supports while retaining archived v5 evidence.
 
-Schema v4 cannot safely discover or fee-label Stable pools. Schema v3 cannot represent LP Protection, schema v2 cannot represent FairFlow, and schema v1 cannot represent Vault actions. A rollback therefore suspends Stable endpoints and any other unsupported reconciliation source; it must never reinterpret Stable events as CPMM or claim archived actions did not occur. Forward recovery restarts v5 or reindexes from verified deployment blocks.
+Schema v4 cannot safely discover or fee-label Stable pools. Schema v3 cannot represent LP Protection, schema v2 cannot represent FairFlow, and schema v1 cannot represent Vault actions. A rollback therefore suspends Stable endpoints and any other unsupported reconciliation source; it must never reinterpret Stable events as CPMM or claim archived actions did not occur. Forward recovery restarts the current state-v5/cursor-v6 indexer or reindexes from verified deployment blocks.
+
+`ynx-dex-recovery` creates and verifies an immutable, HMAC-authenticated point-in-time bundle containing both state and cursor, their SHA-256/byte/mode metadata, exact source commit and deployment bindings. Its `drill` command restores only into an empty isolated destination and measures local backup, restore, verification and observed RTO. This is disaster recovery, not a lossy down-schema migration; operational RPO remains unproven until the same drill runs against a quiesced provisioned Testnet indexer.
 
 ## Old-client policy
 
-Read-only clients remain compatible and may capability-detect `contractVersion`. Clients that only implement CPMM must hide or reject `ynx-stableswap-v1` rather than apply constant-product math. Old indexers may read only isolated preserved snapshots and must not share writable paths with v5. There is intentionally no lossy typed-pool downgrade.
+Read-only clients remain compatible and may capability-detect `contractVersion`. Clients that only implement CPMM must hide or reject `ynx-stableswap-v1` rather than apply constant-product math. Old indexers may read only isolated preserved snapshots and must not share writable paths with the current runtime. There is intentionally no lossy typed-pool downgrade.

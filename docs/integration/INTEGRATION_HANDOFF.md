@@ -20,7 +20,7 @@ The machine-readable authority is `release/integration/ynx-dex-contract.json`. C
 - User-owned Strategy Vault with typed CPMM actions and direct StableSwap exact-input, exact-output, add-liquidity and remove-liquidity actions.
 - FairFlow intent/solver candidate.
 - LP protection and depeg circuit-breaker candidate.
-- Source-labelled Indexer API and cursor/state schema v5.
+- Source-labelled Indexer API with state schema v5 and Factory-bound cursor schema v6.
 - JavaScript SDK main entry and `@ynx-chain/dex-sdk/stable-vault` subpath.
 - Independent Web/PWA preview and unsigned local artifacts.
 

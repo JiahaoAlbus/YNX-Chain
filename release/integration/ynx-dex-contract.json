@@ -3,7 +3,7 @@
   "contractId": "ynx-dex-integration-v1",
   "productId": "ynx-dex",
   "owner": "YNX 27",
-  "sourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "sourceCommit": "7d61369e02ab4d50a9fc36c927dc487e47ce9814",
   "releaseVersion": "0.1.0-testnet-preview.1",
   "network": {
     "name": "YNX Testnet",
@@ -178,10 +178,10 @@
   },
   "migration": {
     "stateSchemaVersion": 5,
-    "cursorSchemaVersion": 5,
+    "cursorSchemaVersion": 6,
     "forwardMigration": "tested-local",
     "rollbackMigration": "incomplete",
-    "restoreDrill": "incomplete",
+    "restoreDrill": "tested-local-point-in-time; operational-rpo-unproven",
     "oldClientCompatibility": "partially-tested-local"
   },
   "releaseStatus": {
