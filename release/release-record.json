@@ -1,14 +1,17 @@
 {
-  "schemaVersion": 1,
-  "product": "YNX Data Fabric",
-  "release": null,
-  "sourceCommit": "fa73fd7e814b0881d8244a95998bcaa3e6dc3085",
-  "sourceRelease": null,
-  "generatedAt": "2026-07-22T17:45:00Z",
+  "schemaVersion": 2,
+  "productId": "ynx-data-fabric",
+  "productName": "YNX Data Fabric & Billing Ledger",
+  "release": "ynx-data-fabric-3a1bcceddc9e",
+  "channel": "testnet-preview",
+  "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+  "generatedAt": "2026-07-27T15:39:51Z",
+  "phase": "INTEGRATE",
+  "overallStatus": "ACTIVE",
   "states": {
-    "implementedLocal": false,
-    "testedLocal": false,
-    "installedLocal": false,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -17,46 +20,89 @@
     "storeReleased": false
   },
   "components": {
-    "canonicalEnvelope": {"implementedLocal": true, "testedLocal": true},
-    "fileBackedOutboxInbox": {"implementedLocal": true, "testedLocal": true},
-    "jetstreamTransport": {"implementedLocal": true, "testedLocal": true, "deployedStaging": false},
-    "postgresTransactionalRepository": {"implementedLocal": true, "testedLocal": true, "liveDatabaseTested": true, "deployedStaging": false},
-    "postgresCapacitySample": {"measuredDirtyWorktree": true, "measuredCleanCommit": false, "deployedLoadTested": false},
-    "sagaStateMachine": {"implementedLocal": true, "testedLocal": true},
-    "billingLedgerModel": {"implementedLocal": true, "testedLocal": true},
-    "reconciliationModel": {"implementedLocal": true, "testedLocal": true},
-    "canonicalIntrospectionBoundary": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false},
-    "daemonAndControlBinaries": {"implementedLocal": true, "testedLocal": true, "exercisedLocal": true, "installedLocal": false},
-    "offlineBackupRestore": {"implementedLocal": true, "testedLocal": true, "exercisedLocal": true, "installedLocal": false},
-    "postgresLogicalBackupRestore": {"implementedLocal": true, "testedLocal": true, "encryptedRemote": false, "pitrTested": false, "productionSizeTested": false},
-    "subjectExportAndAnalyticsSuppression": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false},
-    "operatorConsole": {"implementedLocal": true, "testedLocal": true, "realWalletSessionTested": false, "visualAuditPassed": false},
-    "analyticsEventFactSink": {"implementedLocal": true, "testedLocal": true, "deployedWarehouse": false},
-    "analyticsWarehouse": {"implementedLocal": false, "testedLocal": false}
-  },
-  "evidence": {
-    "featureMatrix": "FEATURE_COMPLETION_EVIDENCE.md",
-    "evidenceIndex": "EVIDENCE_INDEX.md",
-    "integrationContracts": "integration/product-event-contracts.json",
-    "publicMetadata": "public-product-metadata.json",
-    "productRelease": "product-release.json",
-    "kpiDefinitions": "release/kpi-definitions.json",
-    "operatorInputs": "release/operator-inputs.request.json",
-    "remoteCI": {
-      "runId": 29942204067,
-      "sourceCommit": "f065375cc001513942f0abcebd5483d446eb2665",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29942204067",
-      "conclusion": "success",
-      "artifactsPublished": false
+    "eventEnvelope": {
+      "currentVersion": "2.0",
+      "acceptedVersions": ["1.0", "2.0"],
+      "schema": "schemas/data-fabric/event-envelope-v2.schema.json",
+      "runtime": "internal/datafabric/envelope.go",
+      "unknownFields": "reject",
+      "invalidVersion": "reject-and-dead-letter",
+      "duplicate": "acknowledge-without-reapplying-effect",
+      "outOfOrder": "reject-for-ordered-aggregate-and-retry-after-gap",
+      "tamper": "reject-quarantine-alert"
+    },
+    "schemaRegistry": {
+      "version": "2.0",
+      "artifact": "schemas/data-fabric/schema-registry-v2.json",
+      "compatibilityAPI": true
+    },
+    "storage": {
+      "fileStoreSchema": 1,
+      "postgresMigration": 6,
+      "rollbackMigrations": true,
+      "appendOnlyLedgerCorrections": true,
+      "leasedSagaRecovery": true,
+      "atomicUsageBilling": true
+    },
+    "transport": {
+      "transactionalOutbox": true,
+      "consumerInbox": true,
+      "idempotentEffects": true,
+      "retryBackoff": true,
+      "deadLetter": true,
+      "replayBackfill": true,
+      "jetStreamAdapter": true,
+      "exactlyOnceClaim": "idempotent-state-transition-with-inbox-not-network-delivery"
+    },
+    "productIntegration": {
+      "payBFTBridge": "testedLocal",
+      "payLedgerReconciliation": "testedLocal",
+      "otherProducerOwners": "not-yet-integrated-central"
+    },
+    "releaseEngineering": {
+      "linuxPackage": "testedLocal",
+      "systemdInstall": "testedLocal",
+      "coldStart": "testedLocal",
+      "fixturePromotion": "testedLocal",
+      "publicPromotion": "not-evidenced",
+      "productionSigningAlgorithm": "ed25519-over-sha256",
+      "contractTestFallback": "rsa-pkcs1-sha256-over-sha256-loopback-only",
+      "signingClass": "ephemeral-test-fixture-only",
+      "hostedDownload": false
     }
   },
+  "evidence": {
+    "local": {
+      "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+      "fullGoTest": "passed-with-standard-umask",
+      "dataFabricRace": "passed",
+      "schemaContract": "passed",
+      "releaseTruth": "passed"
+    },
+    "remoteCI": {
+      "runId": 30279794834,
+      "workflow": "data-fabric",
+      "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-07-27T15:24:01Z",
+      "duration": "3m47s",
+      "artifactsPublished": false,
+      "url": null
+    },
+    "coverage": ".ai-bridge/full-goal-coverage.json",
+    "integrationContract": "release/integration/ynx-data-fabric-contract.json",
+    "handoff": "docs/integration/INTEGRATION_HANDOFF.md",
+    "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+    "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+  },
   "blockingEvidence": [
-    "central product integration",
-    "replicated broker and database kill/failover testing",
-    "warehouse and privacy lifecycle",
-    "live testnet reconciliation",
-    "capacity and disaster-recovery measurements",
-    "staging and public deployment",
-    "immutable signed artifact"
-  ]
+    "central Wallet/Auth and App Gateway owner acceptance",
+    "shared Testnet product producer and consumer receipts",
+    "production-shaped JetStream and PostgreSQL capacity, partition and recovery drills",
+    "approved secure signer path and immutable public HTTPS hosting",
+    "public runtime, health, support, privacy, security and status URLs",
+    "production artifact, SBOM, provenance, hash, bytes and cold-install receipts"
+  ],
+  "nextAction": "Execute central producer acceptance and shared-Testnet Pay flow before any PUBLIC phase transition."
 }

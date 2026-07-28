@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "product": {
     "id": "ynx-data-fabric",
     "name": "YNX Data Fabric",
@@ -13,6 +13,20 @@
       "backgroundColor": "#FFFFFF",
       "logoSource": "assets/brand/ynx-logo.png"
     }
+  },
+  "releaseStatus": {
+    "release": "ynx-data-fabric-3a1bcceddc9e",
+    "channel": "testnet-preview",
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "statusLabel": "Locally verified Testnet candidate; not centrally integrated or publicly deployed"
   },
   "localizedNames": {
     "en": "YNX Data Fabric",
@@ -29,7 +43,7 @@
     "id": "YNX Data Fabric"
   },
   "features": [
-    "Strict signed event envelopes with product, actor, ordering, source, privacy, retention, and audit authority",
+    "Strict Envelope v2 events with v1 migration compatibility and product, actor, request, ordering, source, privacy, residency, retention, and audit bindings",
     "Transactional Outbox and consumer Inbox with idempotent effects, retry, dead letter, replay, and backfill",
     "Recoverable cross-product Sagas with compensation, timeout, audit, and user-visible status",
     "Append-only double-entry billing records and source-labeled reconciliation"
@@ -55,7 +69,7 @@
     },
     {
       "question": "Is it publicly released?",
-      "answer": "No. Local component tests exist, but central integration, staging and public deployment, hosted downloads, production signing, and store release are not evidenced."
+      "answer": "No. A locally implemented, tested, Linux-installed and cold-started Testnet candidate is verified. Central integration, staging and public deployment, immutable hosted downloads, production signing, and store release are not evidenced."
     }
   ],
   "structuredDataRecommendation": {

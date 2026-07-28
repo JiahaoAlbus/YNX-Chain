@@ -1,13 +1,16 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "productId": "ynx-data-fabric",
-  "release": null,
-  "sourceCommit": "fa73fd7e814b0881d8244a95998bcaa3e6dc3085",
-  "channel": "unreleased-testnet-work",
+  "productName": "YNX Data Fabric & Billing Ledger",
+  "release": "ynx-data-fabric-3a1bcceddc9e",
+  "channel": "testnet-preview",
+  "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+  "sourceRelease": "ynx-data-fabric-3a1bcceddc9e",
+  "generatedAt": "2026-07-27T15:39:51Z",
   "states": {
-    "implementedLocal": false,
-    "testedLocal": false,
-    "installedLocal": false,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -15,21 +18,56 @@
     "productionSigned": false,
     "storeReleased": false
   },
-  "publicHealthURL": null,
-  "artifacts": [],
   "compatibility": {
-    "eventEnvelope": "1.0",
+    "eventEnvelope": "2.0",
+    "acceptedEventEnvelopes": ["1.0", "2.0"],
+    "schemaRegistry": "2.0",
     "fileStoreSchema": 1,
     "backupManifestSchema": 1,
-    "postgresMigration": 1,
-    "minimumOS": null
+    "postgresMigration": 6,
+    "minimumOS": "Linux x86_64 for packaged runtime; source builds remain platform-dependent"
   },
-  "externalEvidenceRequired": [
-    "accepted canonical Wallet and App Gateway registration",
-    "real producer and consumer integration receipts",
-    "shared staging PostgreSQL, replicated JetStream, and analytics warehouse",
-    "public Testnet health and cross-product workflow receipts",
-    "immutable hosted artifacts with SHA-256, bytes, signing class, and cold-install proof",
-    "support, privacy, security, status, canonical, and download URLs"
-  ]
+  "delivery": {
+    "productClass": "headless-data-plane-with-responsive-operator-console",
+    "runtimePlatforms": ["Linux server", "command line", "Go SDK", "systemd package"],
+    "nativeStoreApps": "notApplicable",
+    "candidateArtifactClass": "ephemeral-unsigned-testnet-package-installed-and-cold-started-in-linux-ci",
+    "containerPublished": false
+  },
+  "publicHealthURL": null,
+  "artifacts": [],
+  "evidence": {
+    "localVerification": {
+      "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+      "status": "passed",
+      "environment": "macOS development environment with standard umask for cross-repository permission vectors",
+      "commands": [
+        "go test ./internal/datafabric -count=1",
+        "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1",
+        "go test -race ./internal/datafabric -count=1",
+        "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json",
+        "bash -lc 'umask 022; exec go test ./... -count=1'",
+        "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1",
+        "bash scripts/data-fabric/quality-gates.sh"
+      ]
+    },
+    "remoteCI": {
+      "runId": 30279794834,
+      "workflow": "data-fabric",
+      "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-07-27T15:24:01Z",
+      "duration": "3m47s",
+      "artifactsPublished": false,
+      "url": null
+    }
+  },
+  "limitations": [
+    "No central product-owner acceptance receipt exists for the full producer set.",
+    "No shared Testnet, staging or public runtime receipt is recorded for this source.",
+    "No immutable public download, production signature or public health endpoint is recorded.",
+    "The successful Linux CI package and cold-start path is a Testnet candidate class, not a public production release."
+  ],
+  "nextAction": "Continue central producer acceptance and shared-Testnet integration while keeping all public and production states false until direct receipts exist."
 }

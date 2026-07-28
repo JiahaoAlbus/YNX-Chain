@@ -3,67 +3,16 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-runtime_paths=(
-  cmd/ynx-data-fabricctl
-  cmd/ynx-data-fabricd
-  cmd/ynx-data-fabric-worker
-  cmd/ynx-pay-data-fabric-bridge
-  internal/datafabric
-  internal/datafabricapi
-  internal/datafabricbackup
-  internal/datafabricconfig
-  internal/datafabricnats
-  internal/datafabricpay
-  internal/datafabricpayledger
-  internal/datafabricpostgres
-  sdk/datafabric
-  schemas/data-fabric
-  configs/data-fabric.env.example
-  configs/data-fabric-event-keys.example.json
-  infra/data-fabric/systemd
-  scripts/data-fabric/build-testnet-release.sh
-  scripts/data-fabric/deploy-testnet.sh
-  scripts/data-fabric/install-testnet-release.sh
-  scripts/data-fabric/extract-public-testnet-release.mjs
-  scripts/data-fabric/generate-cold-start-evidence.sh
-  scripts/data-fabric/package-public-testnet-release.mjs
-  scripts/data-fabric/package-public-testnet-release.sh
-  scripts/data-fabric/promote-public-release.sh
-  scripts/data-fabric/public-release-promotion-check.sh
-  scripts/data-fabric/public-testnet-release-check.sh
-  scripts/data-fabric/remote-install-testnet-release.sh
-  scripts/data-fabric/testnet-release-check.sh
-  scripts/data-fabric/testnet-deployment-check.sh
-  scripts/data-fabric/testnet-remote-deploy-check.sh
-  scripts/data-fabric/verify-testnet-deployment.sh
-  scripts/data-fabric/verify-public-testnet-release.mjs
-  scripts/data-fabric/verify-public-release.mjs
-  scripts/data-fabric/write-public-release.mjs
-  scripts/data-fabric/write-cold-start-evidence.mjs
-  scripts/data-fabric/write-testnet-release-manifest.mjs
-  scripts/data-fabric/write-testnet-provenance.mjs
-  scripts/data-fabric/verify-testnet-release.mjs
-  docs/data-fabric
-  public-product-metadata.json
-  product-release.json
-)
-
-forbidden='TODO|FIXME|placeholder|coming[[:space:]-]+soon|example\.com|fake[[:space:]-]+(balance|user|transaction|price|revenue|apy|liquidity|provider|health)|hard[[:space:]-]*coded[[:space:]-]+success|no[[:space:]-]*op[[:space:]-]+button|mock[[:space:]-]+provider'
-if rg -n -i --glob '!**/*_test.go' --glob '!**/testdata/**' "$forbidden" "${runtime_paths[@]}"; then
-  echo "Data Fabric runtime/public package contains prohibited placeholder or fake-success language" >&2
-  exit 1
-fi
-
-public_leak='Codex|Worktree|codex/|/Users/|localhost|127\.0\.0\.1|719e101|internal[[:space:]-]+host'
-if rg -n -i "$public_leak" public-product-metadata.json product-release.json; then
-  echo "Data Fabric public handoff leaks internal development or endpoint details" >&2
-  exit 1
-fi
+node scripts/data-fabric/policy-scan.mjs runtime
+node scripts/data-fabric/policy-scan.mjs public
 
 jq empty \
   schemas/data-fabric/*.json \
   integration/product-event-contracts.json \
   release/*.json \
+  release/integration/*.json \
+  docs/integration/*.json \
+  .ai-bridge/full-goal-coverage.json \
   evidence/capacity/*.json \
   evidence/postgres/*.json \
   evidence/ui/*.json \
@@ -71,14 +20,13 @@ jq empty \
   product-release.json \
   infra/data-fabric/grafana-dashboard.json
 
-if rg -n -i --glob '!*.example.*' "(-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|client_secret[[:space:]]*[:=][[:space:]]*[A-Za-z0-9+/=_-]{16,})" configs schemas/data-fabric public-product-metadata.json product-release.json; then
-  echo "Data Fabric scoped secret gate failed" >&2
-  exit 1
-fi
+node scripts/data-fabric/release-truth-check-check.mjs
+node scripts/data-fabric/policy-scan.mjs secret
 
 git diff --check
 bash scripts/data-fabric/testnet-release-check.sh
 bash scripts/data-fabric/public-testnet-release-check.sh
 bash scripts/data-fabric/public-release-promotion-check.sh
+YNX_DATA_FABRIC_TEST_SIGNING_ALGORITHM=rsa bash scripts/data-fabric/public-release-promotion-check.sh
 bash scripts/data-fabric/testnet-deployment-check.sh
 bash scripts/data-fabric/testnet-remote-deploy-check.sh

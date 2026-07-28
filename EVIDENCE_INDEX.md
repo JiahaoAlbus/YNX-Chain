@@ -1,67 +1,96 @@
 # YNX Data Fabric Evidence Index
 
-## Source and recovery
+Engineering Source Commit: `3a1bcceddc9e680761ce9563bb3d6cd823037222`
+Release Candidate: `ynx-data-fabric-3a1bcceddc9e`
+Phase: `INTEGRATE`
+Status: `ACTIVE`
 
-- Recovery base: commit `719e1018267ed5a53e6fae5211c5fd8a1503c35c` from the pushed `main` branch.
-- Product source inventory: `integration/product-event-contracts.json` records the committed product refs observed during recovery and whether a dirty product worktree was present.
-- Cross-owner merge contract: `integration/DATA_FABRIC_HANDOFF.md` plus strict canonical introspection request/response schemas.
-- External authority packet: `release/operator-inputs.request.json`; it requests secure references and approvals only and explicitly forbids secret material in chat.
-- Remote truth observed during recovery: GitHub run `29942204067` passed at `f065375cc001513942f0abcebd5483d446eb2665`; no public Release; no listening local Data Fabric process.
-- Final engineering verification: GitHub Actions run `29942204067` passed both jobs at `f065375cc001513942f0abcebd5483d446eb2665`, including full Go tests, race, vet, official vulnerability analysis, Linux builds/hashes, SBOM and policy gates, and isolated PostgreSQL 17.10 transaction plus logical backup/restore tests.
+## Source, Git and CI
 
-## Implemented source
+- Exact YNX 26 Workspace and `codex/final-data-fabric` Branch were verified before modification.
+- No active writer, test, commit or push process was found for this Worktree.
+- Commit `3a1bcceddc9e680761ce9563bb3d6cd823037222` was pushed without force and verified with `git ls-remote`.
+- GitHub Actions Run `30279794834` completed successfully for the Engineering Source Commit in three minutes and forty-seven seconds.
+- The workflow runs full Go tests, Data Fabric Race tests, vet, vulnerability analysis, Linux builds and hashes, SBOM generation, quality gates, secret scanning, JSON validation and isolated PostgreSQL 17.10 transaction and logical backup/restore tests.
+- The workflow does not upload a public artifact; `downloadHosted` and all public states remain false.
+- The two stale untracked recovery summaries discovered at takeover are preserved under `recovery/2026-07-23/` and are not current truth.
 
-- Canonical envelope: `internal/datafabric/envelope.go`
-- Durable Outbox/Inbox store: `internal/datafabric/store.go`
-- Durable JetStream transport: `internal/datafabricnats/broker.go`
-- PostgreSQL schema and checksum-locked migrator: `internal/datafabricpostgres/migrations/0001_initial.up.sql`, `internal/datafabricpostgres/migrate.go`
-- PostgreSQL transactional Store and Outbox worker: `internal/datafabricpostgres/store.go`, `internal/datafabricpostgres/dispatcher.go`, `cmd/ynx-data-fabric-worker/main.go`
-- Context-aware API Repository and PostgreSQL Saga/reconciliation/privacy/audit surfaces: `internal/datafabricapi/repository.go`, `internal/datafabricpostgres/saga.go`, `internal/datafabricpostgres/reconciliation.go`, `internal/datafabricpostgres/privacy.go`, `internal/datafabricpostgres/audit.go`
-- Payload-free pseudonymous analytics projection and erasure suppression: `internal/datafabricpostgres/analytics.go`, `ynx_analytics.event_facts` in migration `0001`
-- Restore integrity: `internal/datafabric/integrity.go`
-- Billing Ledger: `internal/datafabric/ledger.go`
-- Saga catalog and persistence: `internal/datafabric/saga.go`, `internal/datafabric/saga_store.go`
-- Reconciliation: `internal/datafabric/reconciliation.go`
-- Reconciliation tests: `internal/datafabric/reconciliation_test.go` (match/mismatch/unavailable/evidence hash/duplicate/persistence)
-- Ledger tests: `internal/datafabric/ledger_test.go` (balance/consent/maximum/timing/account ownership/correction/integrity)
-- Producer integration vectors: `integration/PRODUCER_TEST_VECTORS.md` (20 contract test vectors for product owners)
-- Fail-closed API boundary: `internal/datafabricapi/auth.go`, `internal/datafabricapi/server.go`
-- Runnable daemon: `cmd/ynx-data-fabricd/main.go`
-- Go SDK and canonical request client: `sdk/datafabric/datafabric.go`, `sdk/datafabric/client.go`
-- Schemas: `schemas/data-fabric/event-envelope-v1.schema.json`, `schemas/data-fabric/journal-entry-v1.schema.json`
-- Exploratory capacity sample: `evidence/capacity/local-working-tree-20260722.json`
-- Exploratory PostgreSQL capacity sample: `evidence/capacity/postgresql-17.10-dirty-20260722.json`
-- Isolated PostgreSQL 17.10 execution: `evidence/postgres/local-postgresql-17.10-20260722.json`
-- Isolated PostgreSQL 17.10 logical recovery: `evidence/postgres/local-postgresql-backup-restore-20260722.json`
-- Website/SEO handoff: `public-product-metadata.json`, `product-release.json`
-- Founder KPI measurement contract: `GROWTH_KPI.md`, `release/kpi-definitions.json`
-- Monitor source: `infra/data-fabric/prometheus-rules.yml`, `infra/data-fabric/grafana-dashboard.json`
-- Supply-chain inventory and runtime/public gate: `release/go-runtime-sbom.spdx.json`, `release/npm-sbom.spdx.json`, `scripts/data-fabric/quality-gates.sh`
-- Embedded operator console: `internal/datafabricconsole`, `UI_DESIGN_AUDIT.md`, `evidence/ui/operator-console-unavailable-state-20260722.json`
+## Canonical protocol
 
-## Current direct verification
+- Envelope runtime: `internal/datafabric/envelope.go`
+- Envelope v2 Schema: `schemas/data-fabric/event-envelope-v2.schema.json`
+- Envelope v1 migration compatibility: `schemas/data-fabric/event-envelope-v1.schema.json`
+- Runtime-to-Schema drift test: `internal/datafabric/event_schema_artifact_test.go`
+- Schema Registry runtime and artifact: `internal/datafabric/schema_registry.go`, `schemas/data-fabric/schema-registry-v2.json`
+- Product ownership and protocol policy: `integration/product-event-contracts.json`
+- Machine integration contract: `release/integration/ynx-data-fabric-contract.json`
+- Handoff and vectors: `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 
-Run from the repository root:
+## Reliable transport, Saga and Ledger
+
+- Transactional Outbox and Inbox: `internal/datafabric/store.go`, `internal/datafabricpostgres/store.go`
+- JetStream transport and durable consumption: `internal/datafabricnats/broker.go`
+- Dispatch, retry, backoff and DLQ: `internal/datafabric/dispatcher.go`, `internal/datafabricpostgres/dispatcher.go`
+- Replay, backfill and leased recovery: `internal/datafabric/redelivery.go`, `internal/datafabricpostgres/redelivery.go`
+- Saga model and leased compensation recovery: `internal/datafabric/saga.go`, `internal/datafabricpostgres/saga.go`, `cmd/ynx-data-fabric-worker/main.go`
+- Immutable double-entry Ledger and correction: `internal/datafabric/ledger.go`, PostgreSQL migration `0004`
+- Atomic usage billing: `internal/datafabric/billing.go`, `internal/datafabricpostgres/billing.go`, PostgreSQL migration `0006`
+- Pay BFT event bridge and Billing Ledger reconciliation: `internal/datafabricpay`, `internal/datafabricpayledger`, `cmd/ynx-pay-data-fabric-bridge`
+
+## Migration, privacy and recovery
+
+- PostgreSQL migrations: `internal/datafabricpostgres/migrations/0001` through `0006`, including rollback files for 0002 through 0006.
+- File and PostgreSQL backup and restore: `internal/datafabricbackup`, `internal/datafabricpgbackup`.
+- Subject export, erasure, retention and analytics suppression: `internal/datafabric/privacy.go`, `internal/datafabricpostgres/privacy.go`, `internal/datafabricpostgres/analytics.go`.
+- Migration and compatibility report: `MIGRATION_COMPATIBILITY.md`.
+
+## API, SDK, operations and UI
+
+- API: `internal/datafabricapi`
+- Go SDK: `sdk/datafabric`
+- Daemon, worker and operator CLI: `cmd/ynx-data-fabricd`, `cmd/ynx-data-fabric-worker`, `cmd/ynx-data-fabricctl`
+- Structured health, ready, version and metrics surfaces: `internal/datafabricapi/server.go`
+- Alerts and dashboards: `infra/data-fabric/alerts.yml`, `infra/data-fabric/grafana-dashboard.json`
+- Operator console and twelve locales: `internal/datafabricconsole`, `UI_DESIGN_AUDIT.md`
+- Linux package, install, cold-start and promotion gates: `scripts/data-fabric/build-testnet-release.sh`, `install-testnet-release.sh`, `generate-cold-start-evidence.sh`, `public-release-promotion-check.sh`
+
+## Release truth and coverage
+
+- Product release: `product-release.json`
+- Machine release record: `release/release-record.json`
+- Full goal coverage: `.ai-bridge/full-goal-coverage.json`
+- Release truth implementation: `scripts/data-fabric/release-truth-check.mjs`
+- Release truth positive and negative vectors: `scripts/data-fabric/release-truth-check-check.mjs`
+- Quality gate entrypoint: `scripts/data-fabric/quality-gates.sh`
+- Release signing boundary: production promotion requires `ed25519-over-sha256`; `rsa-pkcs1-sha256-over-sha256` is accepted only for loopback contract-test portability and is rejected for production promotion.
+- Public metadata handoff: `public-product-metadata.json`
+
+The release truth gate derives the latest Engineering Source Commit from tracked Data Fabric runtime, schema, integration ownership, packaging and deployment files. It rejects stale release records, inconsistent states, missing coverage fields, invalid coverage statuses, source-unbound evidence and public URLs or downloads without direct receipts. Negative vectors mutate the Source Commit, public URL, public deployment state and coverage status and must all fail.
+
+## Direct verification for this Source Commit
 
 ```sh
-go test ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpostgres ./sdk/datafabric ./cmd/ynx-data-fabricd ./cmd/ynx-data-fabricctl ./cmd/ynx-data-fabric-worker -count=1
-go build ./cmd/ynx-data-fabricd ./cmd/ynx-data-fabricctl ./cmd/ynx-data-fabric-worker
-scripts/data-fabric/local-smoke.sh
-jq empty schemas/data-fabric/*.json integration/product-event-contracts.json release/*.json public-product-metadata.json product-release.json
-git diff --check
+go test ./internal/datafabric -count=1
+go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1
+go test -race ./internal/datafabric -count=1
+jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json
+bash -lc 'umask 022; exec go test ./... -count=1'
+node scripts/data-fabric/release-truth-check-check.mjs
+bash scripts/data-fabric/quality-gates.sh
 ```
 
-The PostgreSQL evidence record additionally captures a direct test against an isolated PostgreSQL 17.10 server. The test database-name and explicit destructive-test guards prevent accidental execution against any differently named database. It proves initial migration/checksum verification, transaction and constraint behavior, disjoint Outbox leases, authority checks, reconciliation truth and repository audit in that bounded environment. It does not prove replica failover, commit-boundary process kills, staging, rollback/restore, long-running load or production capacity.
+The first full-repository run under the caller's restrictive `umask=077` invalidated three unrelated permission-negative fixtures by turning requested `0644` files into `0600`. Re-running with the standard CI `umask=022` restored the intended unsafe-file precondition and the full repository passed. This is recorded as an environment diagnosis, not hidden as a green result.
 
-These commands prove only their bounded local scope. The NATS tests start a real embedded server with file-backed JetStream and directly prove PubAck/de-duplication, durable consumer redelivery, network outage, retained Outbox and reconnect recovery. They do not prove a replicated cluster, central integration, installation, staging/public deployment, downloads, production signing, store release, production capacity, RTO/RPO, or public health.
+## Evidence still missing
 
-The local smoke directly proves both binaries build, the daemon cold-starts, health/version/metrics respond, an unauthenticated write fails closed, SIGTERM shuts down cleanly, the control binary verifies state, and an empty schema-1 store completes an offline backup/restore cycle. It does not make the product-level `installedLocal` state true because the central Gateway, products, broker/database/warehouse and operator console are absent.
+- Central Wallet/Auth and App Gateway owner acceptance.
+- Complete producer adapter set and accepted fee and compensation semantics.
+- Shared-Testnet invoice, settlement, receipt, refund and reconciliation receipts.
+- Production-shaped JetStream partition, PostgreSQL failover, process-kill, long replay, capacity and RTO/RPO evidence.
+- Encrypted immutable remote backup and PITR evidence.
+- Staging and public runtime receipts.
+- Approved secure signer and immutable HTTPS artifact hosting.
+- Public health, status, support, privacy, security and download URLs.
+- Production artifact hashes, bytes, signing class and cold-install receipts.
 
-## Missing external evidence
-
-- Accepted canonical App Gateway introspection endpoint and product registration.
-- Real product producer commits using the canonical envelope.
-- Replicated broker, staging PostgreSQL and warehouse endpoints plus a shared failure-injection environment.
-- Testnet chain, Pay, Exchange, DEX and Quant reconciliation receipts.
-- Staging/public domains, TLS, status/support/privacy/security URLs.
-- Immutable hosted release artifacts and CI at the future centrally integrated source commit.
+Until those receipts exist, the product remains `ACTIVE` in `INTEGRATE`; it is not centrally integrated, staged, public, hosted or production signed.
