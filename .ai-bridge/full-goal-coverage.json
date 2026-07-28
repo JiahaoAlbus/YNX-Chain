@@ -6,8 +6,8 @@
   "branch": "codex/final-docs",
   "phase": "PROTECT",
   "status": "ACTIVE",
-  "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
-  "lastUpdated": "2026-07-27T23:35:00+01:00",
+  "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
+  "lastUpdated": "2026-07-29T16:00:00+08:00",
   "allowedStatuses": [
     "notStarted",
     "inProgress",
@@ -314,16 +314,16 @@
       "category": "recovery",
       "requirement": "Backup and restore drill verify state, object bytes, integrity, RTO and RPO after restart.",
       "applicability": "applicable",
-      "status": "notStarted",
-      "evidence": [],
-      "sourceCommit": null,
-      "tests": [],
+      "status": "inProgress",
+      "evidence": ["schema-v1 manifest binds state and immutable objects by SHA-256", "offline operator backup is read-only against source state", "cold restore excludes sessions, nonces and presence and fails interrupted AI jobs", "tamper, symlink, broad-permission and existing-target cases fail closed", "local drill records backup and restore duration but does not establish an operational RPO"],
+      "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
+      "tests": ["TestBackupRestoreDrillPreservesDurableStateAndDropsEphemeralCredentials", "TestBackupDeduplicatesAndFailsClosedOnMissingObject", "TestRestoreRejectsTamperSymlinkBroadPermissionsAndExistingTarget", "TestOperatorBackupRestoreRoundTripIsReadOnlyAgainstSource"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX 35 with YNX 30 policy acceptance",
-      "nextAction": "Implement backup manifest, cold restore drill and byte/hash reconciliation across state and object storage.",
-      "lastUpdated": "2026-07-27T23:35:00+01:00"
+      "nextAction": "Obtain YNX 30 policy acceptance, add encrypted/off-site retention and measure an operational RPO before promoting beyond local recovery evidence.",
+      "lastUpdated": "2026-07-29T16:00:00+08:00"
     },
     {
       "id": "DOCS-OBS-001",

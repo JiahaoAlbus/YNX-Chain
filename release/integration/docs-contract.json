@@ -7,7 +7,7 @@
     "product": "YNX Docs",
     "slug": "docs"
   },
-  "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+  "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
   "stateSchemaVersion": 2,
   "network": {
     "chainId": "ynx_6423-1",
@@ -179,6 +179,18 @@
     "fields": ["actor", "action", "objectId", "hash", "at", "details"],
     "plaintextAllowed": false,
     "publicVerificationClaim": false
+  },
+  "backupRecovery": {
+    "schemaVersion": 1,
+    "operator": "cmd/ynx-docs-operator",
+    "stateAndObjects": "hash-verified offline backup and restore",
+    "ephemeralStateExcluded": ["sessions", "nonces", "presence"],
+    "interruptedAiJobs": "restored as failed; retry requires fresh context consent",
+    "overwriteExistingTarget": false,
+    "encryptionClass": "none-local-operator-only",
+    "signingClass": "none-local-integrity-only",
+    "productionDurabilityClaim": false,
+    "centralAcceptance": "pending YNX 30"
   },
   "dependencies": [
     {"owner": "YNX 02", "capability": "Wallet/Auth and product session", "acceptance": "pending"},

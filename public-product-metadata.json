@@ -4,7 +4,7 @@
   "aliases": ["Docs", "YNX Documents"],
   "slug": "docs",
   "canonicalRoute": "/docs",
-  "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+  "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
   "website": {
     "websitePublished": false,
     "deployedPublic": false,
@@ -29,7 +29,8 @@
     "Share grants, expiring links and revocation services",
     "Text, Markdown, HTML and JSON export with source/output hashes",
     "Review-first AI drafts limited to selected document versions",
-    "Audit and Trust evidence without document plaintext"
+    "Audit and Trust evidence without document plaintext",
+    "Offline operator backup and hash-verified restore with ephemeral credentials excluded"
   ],
   "risksAndLimits": [
     "Current release status is local development, not a public Runtime.",

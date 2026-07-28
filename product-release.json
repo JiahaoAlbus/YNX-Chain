@@ -6,7 +6,7 @@
   "releaseChannel": "development",
   "goalStatus": "ACTIVE",
   "phase": "PROTECT",
-  "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+  "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
   "stateSchemaVersion": 2,
   "contract": {
     "id": "ynx-docs-v1",
@@ -68,7 +68,6 @@
     "device installation and cold start",
     "production signing",
     "store release",
-    "backup/restore drill",
     "SBOM and provenance",
     "artifact scan",
     "complete Web 12-locale coverage",
@@ -80,6 +79,9 @@
       "go test ./internal/cloud -count=1",
       "go test -race ./internal/cloud -count=1",
       "go vet ./internal/cloud",
+      "go test ./cmd/ynx-docs-operator",
+      "go test -race ./cmd/ynx-docs-operator",
+      "go vet ./cmd/ynx-docs-operator",
       "npm --prefix apps/docs test",
       "npm --prefix apps/docs run check",
       "pnpm run check in apps/docs/mobile",
@@ -112,5 +114,5 @@
     "Website publication acceptance",
     "support/privacy/security/status canonical URLs"
   ],
-  "nextAction": "Freeze the candidate integration contract, then implement restart/backup/restore and central Testnet adapters before any public or release status is promoted."
+  "nextAction": "Freeze the candidate integration contract, accept the local backup/restore format with YNX 30, and execute central Testnet adapters before any public or release status is promoted."
 }

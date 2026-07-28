@@ -4,7 +4,7 @@
 
 - Product: YNX Docs
 - Owner: YNX 35
-- Runtime source commit: `376d8a42a641cf312d2b7330af0ed8566371c2e5`
+- Runtime source commit: `5d04c144987fd35d09925db72bd882719a2e7df9`
 - Candidate contract: `release/integration/docs-contract.json`
 - Test vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - Current phase: PROTECT, requesting FREEZE review
@@ -12,7 +12,7 @@
 
 ## Runtime delivered locally
 
-The current runtime provides Wallet-gated Web/mobile entry, document/folder listing and creation, deterministic optimistic autosave, offline draft recovery, explicit conflict handling, rename/move/duplicate, version history and restore, comments with exact-version anchors and thread resolution, permission/link/access-request services, versioned Text/Markdown/HTML/JSON export with two-hash evidence, bounded AI review and persisted audit/Trust adapters.
+The current runtime provides Wallet-gated Web/mobile entry, document/folder listing and creation, deterministic optimistic autosave, offline draft recovery, explicit conflict handling, rename/move/duplicate, version history and restore, comments with exact-version anchors and thread resolution, permission/link/access-request services, versioned Text/Markdown/HTML/JSON export with two-hash evidence, bounded AI review, persisted audit/Trust adapters, and an offline operator backup/restore drill that verifies state and object hashes while excluding sessions, nonces and presence.
 
 The service is implemented in `internal/cloud` but YNX Docs remains a separate product. HTTP authorization enforces the product boundary: Cloud sessions cannot read or mutate Docs objects, folders containing Docs cannot be moved/copied/shared by a Cloud session, Docs audit events are filtered from Cloud, and Cloud cannot submit Docs content to AI.
 
@@ -48,7 +48,7 @@ Review conflicts, freeze exactly one contract version and schedule the shared Te
 
 ### YNX 30 — Security/SRE/Release
 
-Provide accepted backup/restore, artifact, SBOM, provenance, signing and deployment gates. Local Expo exports are not hosted or signed release artifacts.
+Review and accept the local backup schema and restore drill, then provide artifact, SBOM, provenance, signing and deployment gates. The backup is local integrity evidence only: it is not encrypted, signed, off-site or production-durable. Local Expo exports are not hosted or signed release artifacts.
 
 ### YNX 28 — Website
 
@@ -78,6 +78,7 @@ Consume `public-product-metadata.json` only after freeze. The `/docs` page may b
 - No PDF export is claimed.
 - No device install, cold-start, production signing or store release is claimed.
 - No retained hosted artifact, SBOM or provenance exists yet.
+- Local backup/restore is verified, but off-site durability, encryption, signing and an accepted operational RPO remain unproven.
 - Full repository `go test ./...` remains blocked by central failures outside YNX 35; targeted Docs gates are green.
 
 ## Merge requirement
