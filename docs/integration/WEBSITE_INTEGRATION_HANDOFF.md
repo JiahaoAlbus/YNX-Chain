@@ -3,7 +3,7 @@
 Consumer: `28-website`  
 Reviewers: `29-integration`, `30-security-platform`  
 Metadata source: `public-product-metadata.json`  
-Runtime source: `4ed42274a7abca2aaea0a426faa1c5548f8fd63e`
+Runtime source: `9cf30f16c4312b4438d087b1df58cec68df54f15`
 
 ## Canonical package
 

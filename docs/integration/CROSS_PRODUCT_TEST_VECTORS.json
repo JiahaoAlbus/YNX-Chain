@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "productId": "com.ynx.calendar",
   "contractVersion": "1.0.0-draft",
-  "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
-  "generatedAt": "2026-07-27T14:39:45Z",
+  "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
+  "generatedAt": "2026-07-27T15:47:17Z",
   "vectors": [
     {
       "id": "CAL-X-001",
@@ -76,11 +76,11 @@
       "id": "CAL-X-005",
       "name": "recurrence mutation scopes",
       "owners": ["36-calendar"],
-      "status": "implementation-pending",
-      "preconditions": ["explicit occurrence-only, this-and-following, and entire-series APIs"],
-      "steps": ["modify one occurrence", "split and update this-and-following", "update the entire series", "replay each mutation", "restart and revert each applied change"],
-      "expected": ["stable series linkage", "no duplicate occurrence", "prior occurrences remain unchanged for future-scope update", "version conflicts fail closed", "rollback restores deterministic state"],
-      "localEvidence": [],
+      "status": "local-pass",
+      "preconditions": ["recurrence schema version 1 and the recurrence-preview endpoint"],
+      "steps": ["modify one occurrence", "cancel one occurrence", "split and update this-and-following for Count and Until series", "update the entire series", "replay each mutation", "restart and revert each applied change", "collide the derived future event ID", "submit a stale base version"],
+      "expected": ["stable series linkage", "no duplicate occurrence", "prior occurrences remain unchanged for future-scope update", "cancellation does not require override for unrelated conflicts", "derived-event collision and stale versions fail atomically", "rollback restores deterministic state after restart"],
+      "localEvidence": ["TestRecurrenceMutationScopesAreAtomicReplayableAndRecoverable", "TestRecurrenceMutationPermissionBoundaries", "TestThisAndFollowingTruncatesUntilAtPreviousDSTOccurrence", "TestOccurrenceCancellationDoesNotRequireUnrelatedConflictOverride", "TestLegacyRecurrenceLineageNormalizesOnRestart", "go test -race ./internal/calendar"],
       "centralEvidenceRequired": []
     },
     {
@@ -143,7 +143,7 @@
       "name": "current-source platform artifacts",
       "owners": ["36-calendar", "30-security-platform"],
       "status": "build-pass-install-and-host-pending",
-      "preconditions": ["source commit 4ed42274a7abca2aaea0a426faa1c5548f8fd63e"],
+      "preconditions": ["source commit 9cf30f16c4312b4438d087b1df58cec68df54f15"],
       "steps": ["build Web/Go, Android debug, iOS simulator, and macOS test-only artifacts", "generate SBOM and provenance", "install and cold-start", "restart and resolve callback", "publish immutable hashes and bytes"],
       "expected": ["every artifact names exact source commit", "signing class is truthful", "no old e227c4f artifact is presented as current", "productionSigned remains false without production evidence"],
       "localEvidence": ["npm run build", "npm run build:android", "npm run check:ios", "npm run smoke", "npm run browser:proof"],

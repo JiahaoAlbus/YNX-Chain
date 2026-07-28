@@ -4,7 +4,7 @@
   "name": "YNX Calendar",
   "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
   "canonicalRoute": "/calendar",
-  "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+  "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
   "title": "YNX Calendar — Private scheduling with explicit approval",
   "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
   "h1": "Your time, clearly under your control",

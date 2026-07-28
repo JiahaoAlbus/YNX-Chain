@@ -43,7 +43,7 @@ test("Calendar release record exposes every acceptance state and evidence field"
 
 test("current source and historical preview artifacts remain separated", () => {
   assert.equal(release.branch, "codex/final-calendar");
-  assert.equal(release.commit, "4ed42274a7abca2aaea0a426faa1c5548f8fd63e");
+  assert.equal(release.commit, "9cf30f16c4312b4438d087b1df58cec68df54f15");
   assert.equal(release.installedLocal, false);
   assert.equal(release.downloadHosted, false);
   assert.deepEqual(release.artifactUrls, []);
@@ -71,7 +71,7 @@ test("integration contract freezes Calendar authority without claiming central a
   assert.equal(integrationContract.releaseStates.deployedPublic, false);
   assert.equal(integrationContract.releaseStates.productionSigned, false);
   assert.ok(testVectors.vectors.some((vector) => vector.id === "CAL-X-003" && vector.status === "local-pass"));
-  assert.ok(testVectors.vectors.some((vector) => vector.id === "CAL-X-005" && vector.status === "implementation-pending"));
+  assert.ok(testVectors.vectors.some((vector) => vector.id === "CAL-X-005" && vector.status === "local-pass"));
 });
 
 test("full goal coverage is machine-readable and uses only accepted states", () => {

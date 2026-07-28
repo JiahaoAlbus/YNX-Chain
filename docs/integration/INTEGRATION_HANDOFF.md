@@ -7,7 +7,7 @@
 - Product client: `ynx-calendar-v1`
 - Bundle ID: `com.ynxweb4.calendar`
 - Callback: `ynxcalendar://wallet-auth/callback`
-- Runtime source: `4ed42274a7abca2aaea0a426faa1c5548f8fd63e`
+- Runtime source: `9cf30f16c4312b4438d087b1df58cec68df54f15`
 - Contract: `release/integration/calendar-contract.json`
 - Status: local-tested proposal; not centrally accepted or deployed
 
@@ -19,7 +19,7 @@ The local Calendar runtime uses explicit preview and approval for event mutation
 
 Recurrence schema version 1 supports daily, weekly, monthly, yearly, interval, count, until, weekly `ByDay`, monthly `ByMonthDay`, and single-occurrence `cancelled` or `modified` exceptions. Exception IDs are the original local start in the series IANA timezone. Invalid month days and non-leap February 29 dates are skipped rather than rolled forward.
 
-The schema implementation is local-tested. Explicit occurrence-only and this-and-following HTTP mutation operations are still pending and must not be inferred from the schema alone.
+The schema and recurrence mutation API are local-tested. `occurrence`, `this_and_following`, and `entire_series` all use the preview/approval state machine. Future splits preserve stable series lineage and apply or revert the original and derived events atomically. This local proof does not imply central integration or current-source installed artifacts.
 
 ## Wallet/Auth handoff
 

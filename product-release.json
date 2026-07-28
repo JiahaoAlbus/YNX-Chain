@@ -3,7 +3,7 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "owner": "36-calendar",
-  "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+  "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
   "releaseRecord": "apps/calendar/product-release.json",
   "integrationContract": "release/integration/calendar-contract.json",
   "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
