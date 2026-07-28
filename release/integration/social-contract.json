@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "03",
+  "product": "YNX Social",
+  "slug": "social",
+  "owner": "03-social",
+  "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+  "branch": "codex/final-social",
+  "authority": {
+    "owns": ["Social profiles and privacy","contact and social graph","conversation presentation","feed and creator interaction state","Social reports and local recovery"],
+    "doesNotOwn": ["Wallet identity or Product Session","Chat cryptographic primitives","Square canonical posts","Pay settlement","Trust cases","Cloud objects","Search index","canonical events or billing"]
+  },
+  "api": {"schema":"ynx-social-api/v1","health":"/health","version":"/version","protectedPrefix":"/social/v1"},
+  "auth": {
+    "authority":"02-wallet-auth",
+    "product":"social",
+    "clientId":"ynx-social-v1",
+    "bundleId":"com.ynx.social",
+    "callback":"ynx-social://com.ynx.social",
+    "scopes":["account:read","profile:link"],
+    "walletTuple":["account","deviceId","sessionId","product","issuedAt","expiresAt","status"],
+    "wildcardScopesAllowed":false
+  },
+  "signedIntent": {"domain":"YNX_WALLET_AUTH_APPROVAL_V1","deviceChallenge":"YNX_PRODUCT_SESSION_CHALLENGE_V1","replayAllowed":false},
+  "canonicalEvents": ["social.contact.changed.v1","social.message.lifecycle.v1","social.feed.interaction.v1","social.report.created.v1","social.appeal.created.v1"],
+  "errorCodes": ["social_auth_invalid","social_scope_denied","social_replay","social_conflict","social_privacy_denied","social_dependency_unavailable"],
+  "migration": {"stateVersion":1,"explicitMigrationRequired":true,"rollbackAndRestoreRequired":true},
+  "dependencies": ["02-wallet-auth","04-pay","11-developer-ai-build","15-trust-center","20-cloud","23-search","24-finance","26-data-fabric","29-integration","30-security-platform"],
+  "externalInputs": ["production signing custody","approved public deployment and support destinations"],
+  "releaseStates": {
+    "implementedLocal":true,"testedLocal":true,"installedLocal":false,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "ynx-public-product-metadata/v1",
+  "productId": "03",
+  "product": "YNX Social",
+  "slug": "social",
+  "owner": "03-social",
+  "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+  "canonicalRoute": "/social",
+  "title": "YNX Social — Private conversations and user-controlled feeds",
+  "metaDescription": "Connect through consent-based profiles, device-bound encrypted conversations and user-controlled social feeds.",
+  "h1": "Social connection with explicit privacy controls",
+  "features": ["Consent-based contacts","Device-bound encrypted chat","Groups and delivery receipts","User-controlled feed","Reports, appeals and recovery"],
+  "risks": ["Shared Testnet acceptance is incomplete.","Production-signed mobile builds are not available.","Cross-product deletion is not complete."],
+  "status": {"channel":"integration-candidate","publiclyAvailable":false},
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "faq": [
+    {"question":"Can people find me by wallet address?","answer":"No. Wallet addresses are not a Social discovery surface."},
+    {"question":"Is the mobile app publicly released?","answer":"No. The current build is a locally tested integration candidate."}
+  ],
+  "structuredDataSuggestion": {"type":"MobileApplication","applicationCategory":"SocialNetworkingApplication","operatingSystem":"Android, iOS"}
+}

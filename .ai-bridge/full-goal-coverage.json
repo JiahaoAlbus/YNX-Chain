@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "03",
+  "product": "YNX Social",
+  "slug": "social",
+  "owner": "03-social",
+  "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+  "items": [
+    {"id":"SOC-RECOVER-001","requirement":"Preserve recovered Social, Chat, Square, native, gateway and release work.","status":"verifiedComplete","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-AUTH-001","requirement":"Bind Social to Wallet approval, product, client, bundle, callback, device key, ordered scopes, nonce, digest, expiry and revoke.","status":"testedLocal","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-E2EE-001","requirement":"Provide device-bound E2EE, key verification, rotation warnings, group re-key and ciphertext-only server storage.","status":"testedLocal","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-GRAPH-001","requirement":"Provide profiles, privacy, contact consent, requests, block, mute, follow and feed controls without wallet-address discovery.","status":"testedLocal","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-CHAT-001","requirement":"Provide private and group messaging, receipts, retry, idempotency, membership and recovery.","status":"testedLocal","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-CROSS-001","requirement":"Verify Social-to-Pay, Trust, Cloud, Search, AI, Finance and Data Fabric flows on the shared Testnet.","status":"inProgress","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-PRIVACY-001","requirement":"Complete Social, Chat and Square export, delete, retention and service-exit behavior.","status":"inProgress","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-UI-001","requirement":"Maintain an independent 12-language accessible Social product with truthful offline, failure, permission and recovery states.","status":"testedLocal","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-PLATFORM-001","requirement":"Build Android and iOS candidates and distinguish simulator, test signing, production signing and store states.","status":"implementedLocal","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-OPS-001","requirement":"Prove SLO, capacity, migration, restore, observability, security and supply-chain controls.","status":"inProgress","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-PUBLIC-001","requirement":"Publish hosted artifacts, public product route, status and source-bound evidence.","status":"inProgress","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"},
+    {"id":"SOC-EXTERNAL-001","requirement":"Obtain production signing, public deployment, support and store inputs.","status":"externalBlocked","sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1"}
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "ynx-product-release/v1",
+  "productId": "03",
+  "product": "YNX Social",
+  "slug": "social",
+  "owner": "03-social",
+  "version": "1.0.0-integration",
+  "branch": "codex/final-social",
+  "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+  "phase": "INTEGRATE",
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "verifiedCapabilities": [
+    "device-bound Wallet authorization and session rotation",
+    "contact, privacy, group, messaging, report and appeal APIs",
+    "local E2EE and group-key lifecycle tests",
+    "12-language native product bundle",
+    "Social-owned export and deletion"
+  ],
+  "knownGaps": [
+    "shared Testnet owner acceptance",
+    "Chat and Square coordinated erasure",
+    "device installation and iOS signing evidence",
+    "hosted artifacts and public product route"
+  ]
+}
