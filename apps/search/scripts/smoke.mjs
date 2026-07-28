@@ -64,7 +64,7 @@ try {
   if (!indexStatus.sources[0]?.authorization?.referenceDigest) throw new Error("public source status omitted evidence digest");
 
   const result = await (await fetch(`${origin}/api/search?q=origin%20permission`)).json();
-  if (result.total !== 1 || result.results[0].sourceUrl !== "https://docs.example/permission" || result.results[0].dataClass !== "public-docs" || result.dataPolicyVersion !== "1.0.0" || result.inference !== false || !result.results[0].indexReceiptDigest) {
+  if (result.total !== 1 || result.results[0].sourceUrl !== "https://docs.example/permission" || result.results[0].dataClass !== "public-docs" || result.results[0].sourceUse?.permittedUse !== "index-snippet-link" || result.dataPolicyVersion !== "1.0.0" || result.sourceUsePolicyVersion !== "1.0.0" || result.inference !== false || !result.results[0].indexReceiptDigest) {
     throw new Error("search citation/index receipt smoke failed");
   }
 

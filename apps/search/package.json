@@ -11,7 +11,9 @@
     "security": "node scripts/security-scan.mjs",
     "feeds": "node scripts/build-public-feeds.mjs",
     "feeds:verify": "node scripts/verify-public-feeds.mjs",
-    "check": "npm test && npm run smoke && npm run security && npm run feeds:verify"
+    "recovery": "node scripts/recovery.mjs",
+    "recovery:drill": "node scripts/recovery-drill.mjs",
+    "check": "npm test && npm run smoke && npm run security && npm run feeds:verify && npm run recovery:drill"
   },
   "engines": {
     "node": ">=20"

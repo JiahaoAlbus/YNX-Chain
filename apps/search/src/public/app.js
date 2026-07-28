@@ -158,10 +158,11 @@ async function search(nextPage = 1) {
     link.textContent = result.title;
     heading.append(link);
     const snippet = document.createElement("p");
-    snippet.textContent = result.snippet;
+    snippet.textContent = result.snippet ?? text(locale, "snippetRestricted");
+    if (result.snippet === null) snippet.dataset.restricted = "source-terms";
     const meta = document.createElement("div");
     meta.className = "result-meta";
-    meta.textContent = `Score ${number(result.score)} · ${result.contentType} · receipt ${result.indexReceiptDigest?.slice(0, 12) || "unavailable"}`;
+    meta.textContent = `Score ${number(result.score)} · ${result.contentType} · ${result.dataClass} · ${result.sourceUse?.permittedUse || "source-use-unavailable"} · receipt ${result.indexReceiptDigest?.slice(0, 12) || "unavailable"}`;
     article.append(retrieval, source, heading, snippet, meta);
     return article;
   }));

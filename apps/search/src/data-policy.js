@@ -36,6 +36,12 @@ const HIGH_CONFIDENCE_SECRET_PATTERNS = [
   { name: "environment-file", expression: /(?:^|[\s/])\.env(?:\.[A-Za-z0-9_-]+)?(?:$|[\s:])/u },
 ];
 
+export const SEARCH_SOURCE_USE_POLICY = Object.freeze({
+  version: "1.0.0",
+  permittedUses: Object.freeze(["metadata-only", "index-snippet-link", "index-fulltext-link"]),
+  snippetStorageLimit: 1000,
+});
+
 export const SEARCH_DATA_POLICY = Object.freeze({
   version: "1.0.0",
   registryVersion: 4,
