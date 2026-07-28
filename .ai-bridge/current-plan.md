@@ -2,7 +2,7 @@
 
 Status: Active
 Stage: FREEZE → INTEGRATE
-Source commit: `4267fdbf3ff581043bafef5c357d915f1904b964`
+Source commit: `0347320463466cf9a265c7447fbced0218a32cab`
 
 ## Completed checkpoints
 
@@ -11,14 +11,14 @@ Source commit: `4267fdbf3ff581043bafef5c357d915f1904b964`
 - `ef97eadea90e2b6f4f24225c52e6093b5d5de567`: Node fallback for secret scanning; real secret and placeholder scans pass.
 - `5ce3ae56d14b73c4d5b0c64deaa27e6353b224c3`: integration contract, release record, public metadata and full-goal coverage frozen for current truth.
 - `4267fdbf3ff581043bafef5c357d915f1904b964`: Web/PWA privacy controls and dynamic export/delete states localized across all twelve locales; Arabic RTL framework retained.
+- `0347320463466cf9a265c7447fbced0218a32cab`: Android and iOS privacy controls, warnings and dynamic results localized across all twelve locales with Arabic RTL verification.
 
 ## Next autonomous actions
 
-1. Localize Android and iOS privacy controls across the twelve supported locales and verify Arabic RTL; Web/PWA is tested locally.
-2. Add versioned persistence migration/rollback and old-client vectors for privacy records.
-3. Add Shop-specific SLO/load evidence, unit economics and observability counters.
-4. Package current Web/API artifacts with hashes and provenance.
-5. Resolve shared-repository preflight failures without weakening permission checks.
+1. Add versioned persistence migration/rollback and old-client vectors for privacy records.
+2. Add Shop-specific SLO/load evidence, unit economics and observability counters.
+3. Package current Web/API artifacts with hashes and provenance.
+4. Resolve shared-repository preflight failures without weakening permission checks.
 
 ## External integration gates
 

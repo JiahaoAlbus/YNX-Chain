@@ -6,7 +6,7 @@
     "id": "ynx-shop",
     "name": "YNX Shop",
     "owner": "09-shop",
-    "sourceCommit": "4267fdbf3ff581043bafef5c357d915f1904b964"
+    "sourceCommit": "0347320463466cf9a265c7447fbced0218a32cab"
   },
   "status": "candidate-for-29-integration-freeze",
   "network": {

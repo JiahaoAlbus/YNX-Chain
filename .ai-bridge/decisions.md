@@ -10,3 +10,4 @@
 6. The existing staging deployment and hosted artifacts remain attributed to source `38e2f68`; current commits are not marked deployed or hosted.
 7. Missing scanner dependencies must never yield a successful security gate. Node.js is the bounded fallback for placeholder and secret scans.
 8. Android/iOS source verification is distinct from build, install, production signing and store release.
+9. Native privacy copy is maintained in the twelve audited Android resource catalogs and synchronized into the iOS string catalog; verification rejects missing translations, English fallback and non-Arabic RTL privacy strings.

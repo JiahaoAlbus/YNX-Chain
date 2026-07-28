@@ -1,6 +1,6 @@
 # YNX Shop integration handoff
 
-Source commit: `4267fdbf3ff581043bafef5c357d915f1904b964`  
+Source commit: `0347320463466cf9a265c7447fbced0218a32cab`
 Contract: `release/integration/ynx-shop-contract.json`  
 Test vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`  
 Status: Candidate for 29 Integration freeze; not centrally integrated or current-source deployed.
@@ -46,11 +46,11 @@ Current source adds:
 - pseudonymization of terminal order personal fields
 - preservation of authoritative public-chain settlement evidence and integrity records
 
-The privacy source is tested locally across Commerce, Web and native static contracts. It is not present on the existing staging deployment, which still reports source `38e2f68`.
+The privacy source is tested locally across Commerce, Web and native static contracts. Web/PWA, Android and iOS privacy controls and dynamic results cover all twelve locales, with Arabic RTL wiring and Arabic-script values verified statically. It is not present on the existing staging deployment, which still reports source `38e2f68`.
 
 ## Release truth
 
-Existing Staging and hosted artifacts are evidence for source `38e2f68deb91d5f26e5aeec2318e260cd0742115`. Current source `4267fdbf3ff581043bafef5c357d915f1904b964` is implemented and tested locally but is not current-source installed, centrally integrated, staged, public, hosted, production signed or store released.
+Existing Staging and hosted artifacts are evidence for source `38e2f68deb91d5f26e5aeec2318e260cd0742115`. Current source `0347320463466cf9a265c7447fbced0218a32cab` is implemented and tested locally but is not current-source installed, centrally integrated, staged, public, hosted, production signed or store released.
 
 ## Acceptance sequence
 

@@ -2,13 +2,14 @@
 
 ## 2026-07-27 current-source checkpoint
 
-Current source: `4267fdbf3ff581043bafef5c357d915f1904b964`
+Current source: `0347320463466cf9a265c7447fbced0218a32cab`
 
 - Added buyer data export and deletion to Commerce API, Web/PWA, Android source and iOS source.
 - Deletion requires the exact phrase `DELETE_MY_SHOP_DATA` and refuses to run while any order is active.
 - Terminal orders retain only pseudonymized commerce records plus unchanged authoritative public-chain settlement and integrity evidence.
 - Added bounded Node fallbacks for Placeholder and Secret scanning so missing ripgrep cannot produce a false success.
 - Localized Web/PWA privacy labels, capability text and dynamic export/delete states across all twelve locales; Arabic keeps document-level RTL.
+- Localized Android and iOS privacy controls, warnings and dynamic export/delete results across all twelve locales; native verification rejects missing translations, English fallback and invalid Arabic privacy copy.
 - Commerce race tests, buyer Web tests/build/smoke, native static verification, scanner tests and both scans pass locally.
 - Current Android build is blocked by missing Android SDK configuration; current iOS build is blocked by the absence of full Xcode and Simulator.
 - Current source is not centrally integrated, staged, hosted, production signed or store released. Existing Staging and downloads remain evidence for the prior source below.

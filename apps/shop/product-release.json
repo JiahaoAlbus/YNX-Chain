@@ -5,7 +5,7 @@
   "version": "0.2.0-testnet-preview",
   "environment": "YNX Testnet",
   "branch": "codex/final-shop",
-  "commit": "4267fdbf3ff581043bafef5c357d915f1904b964",
+  "commit": "0347320463466cf9a265c7447fbced0218a32cab",
   "surfaces": ["web", "pwa", "android", "ios"],
   "implementedLocal": true,
   "testedLocal": true,
@@ -18,7 +18,8 @@
   "storeReleased": false,
   "currentSource": {
     "privacyRuntimeCommit": "4cd59fcb11e11d221defa88d20ac0d50b7663b99",
-    "privacyLocalizationCommit": "4267fdbf3ff581043bafef5c357d915f1904b964",
+    "privacyLocalizationCommit": "0347320463466cf9a265c7447fbced0218a32cab",
+    "privacyLocalizationCommits": ["4267fdbf3ff581043bafef5c357d915f1904b964", "0347320463466cf9a265c7447fbced0218a32cab"],
     "validationGateCommits": ["77d047076537fffb4290d9389516c73f3a4cbede", "ef97eadea90e2b6f4f24225c52e6093b5d5de567"],
     "capabilities": {
       "catalog": "testedLocal",
@@ -33,7 +34,7 @@
       "androidSource": "testedLocalStatic",
       "iosSource": "testedLocalStatic",
       "webPrivacyLocales": "testedLocal",
-      "twelveLocaleFramework": "inProgressNativePrivacyCopy",
+      "twelveLocaleFramework": "testedLocalStaticAllSurfaces",
       "currentSourceStaging": "notDeployed"
     },
     "verification": [
@@ -101,13 +102,13 @@
     "A Shop-specific Pay merchant and payout address are not provisioned; payment and refund remain unavailable rather than simulated.",
     "Current privacy and validation changes are not deployed to Staging or hosted as immutable artifacts.",
     "Current Android and iOS build and install evidence is blocked by missing platform toolchains on this host.",
-    "Web/PWA privacy controls are localized across all twelve locales; Android and iOS privacy action copy is still English.",
+    "Web/PWA, Android source and iOS source privacy controls are localized across all twelve locales; device-level native accessibility and build evidence still require platform hosts.",
     "Tax and carrier providers are unavailable; shipment entries remain manual-unverified.",
     "Prior Android artifacts use Testnet Preview signing and are not production signed or store released.",
     "The full repository suite has unrelated shared baseline failures that must be resolved before release."
   ],
   "goalStatus": "active",
   "currentStage": "FREEZE",
-  "nextAutonomousAction": "Localize Android and iOS privacy controls across twelve locales and verify Arabic RTL, then add migration and capacity evidence.",
-  "generatedAt": "2026-07-27T14:16:53Z"
+  "nextAutonomousAction": "Add versioned privacy persistence migration, rollback and old-client vectors, then add capacity and observability evidence.",
+  "generatedAt": "2026-07-28T06:07:38Z"
 }
