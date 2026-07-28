@@ -59,6 +59,49 @@ func TestProposalRejectsResourceOverflow(t *testing.T) {
 	}
 }
 
+func TestProposalRejectsUnmeteredTransactionsAndInvalidGovernancePolicy(t *testing.T) {
+	policy := testPolicy()
+	unmetered := testTransaction("unmetered", LaneGeneralEVM, "alice", 1, nil, []string{"evm/zero"}, 1)
+	unmetered.Resources = Resources{}
+	if _, err := BuildProposal(1, 0, "validator-a", "genesis", []Transaction{unmetered}, policy); err == nil {
+		t.Fatal("zero-resource transaction bypassed proposal metering")
+	}
+
+	policy.Lanes[Lane("unknown")] = LanePolicy{Limit: resources(1), MinimumFee: 1}
+	if err := policy.Validate(); err == nil {
+		t.Fatal("proposal governance accepted an unknown lane")
+	}
+	delete(policy.Lanes, Lane("unknown"))
+	policy.Lanes[LaneGeneralEVM] = LanePolicy{Limit: resources(1001), MinimumFee: 1}
+	if err := policy.Validate(); err == nil {
+		t.Fatal("proposal governance accepted a lane limit above the global limit")
+	}
+}
+
+func TestLaneSaturationCannotDisplaceRecoveryOrPay(t *testing.T) {
+	policy := testPolicy()
+	policy.GlobalLimit = resources(4)
+	for _, lane := range orderedLanes {
+		policy.Lanes[lane] = LanePolicy{Limit: resources(4), MinimumFee: 1}
+	}
+	candidates := []Transaction{
+		testTransaction("pay", LanePayStableSettlement, "pay", 1, nil, []string{"pay/1"}, 1),
+		testTransaction("recovery", LaneConsensusGovernance, "recovery", 1, nil, []string{"recovery/1"}, 1),
+	}
+	for index := 0; index < 64; index++ {
+		id := string(rune('a'+index%26)) + string(rune('a'+index/26))
+		candidates = append(candidates, testTransaction("evm-"+id, LaneGeneralEVM, "evm-"+id, 1, nil, []string{"evm/" + id}, 1))
+	}
+	proposal, err := BuildProposal(2, 0, "validator-a", "parent", candidates, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := ids(proposal.Transactions)
+	if len(got) != 4 || got[0] != "recovery" || got[1] != "pay" {
+		t.Fatalf("lower-priority EVM saturation displaced protected lanes: %v", got)
+	}
+}
+
 func TestAvailabilityAndQuorumRequireMoreThanTwoThirds(t *testing.T) {
 	validators, privateKeys := testValidators(t, 4)
 	batch, err := NewWorkerBatch(1, 7, "worker-2", []string{"parent-b", "parent-a"}, []string{"tx-2", "tx-1"})
@@ -136,6 +179,34 @@ func TestDeterministicParallelExecutionMatchesSequentialFallback(t *testing.T) {
 	}
 }
 
+func TestStateRootAndExecutionAreDeterministicAcrossInputOrder(t *testing.T) {
+	initialA := State{"z": []byte("3"), "a": []byte("1"), "m": []byte("2")}
+	initialB := State{}
+	initialB["m"] = []byte("2")
+	initialB["z"] = []byte("3")
+	initialB["a"] = []byte("1")
+	if StateRoot(initialA) != StateRoot(initialB) {
+		t.Fatal("state root depends on map insertion order")
+	}
+	transactions := []Transaction{
+		testTransactionWithWrites("bulk", LaneBulkDataCommitment, "carol", 1, nil, []string{"bulk/1"}, map[string][]byte{"bulk/1": []byte("c")}),
+		testTransactionWithWrites("governance", LaneConsensusGovernance, "alice", 1, nil, []string{"gov/1"}, map[string][]byte{"gov/1": []byte("a")}),
+		testTransactionWithWrites("pay", LanePayStableSettlement, "bob", 1, nil, []string{"pay/1"}, map[string][]byte{"pay/1": []byte("b")}),
+	}
+	reversed := []Transaction{transactions[2], transactions[0], transactions[1]}
+	stateA, resultA, err := (Executor{Workers: 8}).Execute(initialA, transactions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stateB, resultB, err := (Executor{Workers: 2}).Execute(initialB, reversed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !EqualState(stateA, stateB) || resultA.StateRoot != resultB.StateRoot || !reflect.DeepEqual(resultA.Applied, resultB.Applied) {
+		t.Fatalf("input order changed deterministic execution: first=%+v second=%+v", resultA, resultB)
+	}
+}
+
 func TestPacemakerUsesDeterministicBoundedP95(t *testing.T) {
 	config := PacemakerConfig{Minimum: 500 * time.Millisecond, Maximum: 5 * time.Second, Factor: 2}
 	timeout, err := AdaptiveTimeout(config, []time.Duration{100 * time.Millisecond, 2 * time.Second, 250 * time.Millisecond, 300 * time.Millisecond})
@@ -174,6 +245,41 @@ func TestLaneFeeMarketsAreIndependent(t *testing.T) {
 	}
 }
 
+func TestFeeMarketGovernanceAndInputsFailClosed(t *testing.T) {
+	config := testFeeMarketConfig()
+	invalidTarget := config
+	invalidTarget.Target = cloneTargets(config.Target)
+	invalidTarget.Target[LaneGeneralEVM] = Resources{StorageRead: 1}
+	if err := invalidTarget.Validate(); err == nil {
+		t.Fatal("fee governance accepted a zero compute target")
+	}
+
+	unknownTarget := config
+	unknownTarget.Target = cloneTargets(config.Target)
+	unknownTarget.Target[Lane("unknown")] = resources(1)
+	if err := unknownTarget.Validate(); err == nil {
+		t.Fatal("fee governance accepted an unknown lane")
+	}
+
+	zeroPrice := config
+	zeroPrice.Prices.StateGrowth = 0
+	if err := zeroPrice.Validate(); err == nil {
+		t.Fatal("fee governance accepted an unpriced resource dimension")
+	}
+
+	state := FeeMarketState{BaseFee: map[Lane]uint64{LaneGeneralEVM: config.MaximumBaseFee + 1}}
+	if _, err := state.Next(config, nil); err == nil {
+		t.Fatal("fee transition accepted a base fee above the governance maximum")
+	}
+	state = FeeMarketState{BaseFee: map[Lane]uint64{Lane("unknown"): config.MinimumBaseFee}}
+	if _, err := state.Next(config, nil); err == nil {
+		t.Fatal("fee transition accepted unknown state")
+	}
+	if _, err := (FeeMarketState{}).Next(config, map[Lane]Resources{Lane("unknown"): resources(1)}); err == nil {
+		t.Fatal("fee transition accepted unknown usage")
+	}
+}
+
 func TestCanaryFailsClosedWithoutCompleteEvidence(t *testing.T) {
 	mode, err := ResolveMode(ModeCanary, PromotionEvidence{})
 	if err == nil || mode != ModeShadow {
@@ -192,6 +298,22 @@ func testPolicy() ProposalPolicy {
 		lanes[lane] = LanePolicy{Limit: resources(100), MinimumFee: 1}
 	}
 	return ProposalPolicy{GlobalLimit: resources(1000), Lanes: lanes}
+}
+
+func testFeeMarketConfig() FeeMarketConfig {
+	config := FeeMarketConfig{MinimumBaseFee: 10, MaximumBaseFee: 10_000, ChangeDenominator: 8, Target: map[Lane]Resources{}, Prices: ResourcePrices{Compute: 1, StorageRead: 2, StorageWrite: 4, Bandwidth: 1, StateGrowth: 20}}
+	for _, lane := range orderedLanes {
+		config.Target[lane] = Resources{Compute: 100}
+	}
+	return config
+}
+
+func cloneTargets(source map[Lane]Resources) map[Lane]Resources {
+	clone := make(map[Lane]Resources, len(source))
+	for lane, target := range source {
+		clone[lane] = target
+	}
+	return clone
 }
 
 func resources(value uint64) Resources {

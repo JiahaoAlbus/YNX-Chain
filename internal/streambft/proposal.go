@@ -21,17 +21,27 @@ type ProposalPolicy struct {
 }
 
 func (p ProposalPolicy) Validate() error {
+	for lane := range p.Lanes {
+		if err := lane.Validate(); err != nil {
+			return fmt.Errorf("proposal policy contains invalid lane: %w", err)
+		}
+	}
 	for _, lane := range orderedLanes {
 		policy, ok := p.Lanes[lane]
 		if !ok {
 			return fmt.Errorf("missing policy for lane %s", lane)
 		}
-		if policy.Limit == (Resources{}) {
+		if policy.Limit.IsZero() {
 			return fmt.Errorf("lane %s has zero resource limit", lane)
 		}
 	}
-	if p.GlobalLimit == (Resources{}) {
+	if p.GlobalLimit.IsZero() {
 		return errors.New("global resource limit is zero")
+	}
+	for _, lane := range orderedLanes {
+		if !p.Lanes[lane].Limit.Fits(p.GlobalLimit) {
+			return fmt.Errorf("lane %s resource limit exceeds global limit", lane)
+		}
 	}
 	return nil
 }

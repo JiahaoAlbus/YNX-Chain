@@ -11,9 +11,19 @@ test -s docs/formal/streambft/StreamBFT.tla
 test -s docs/formal/streambft/StreamBFT.cfg
 test -s docs/architecture/STREAMBFT_CANDIDATE.md
 
-rg -q 'HonestNoEquivocation' docs/formal/streambft/StreamBFT.tla
-rg -q 'QuorumIntersection' docs/formal/streambft/StreamBFT.tla
-rg -q 'ModeShadow' internal/streambft/mode.go
-rg -q 'CometBFTCompositeWin' internal/streambft/mode.go
+contains_literal() {
+  local pattern="$1"
+  local path="$2"
+  if command -v rg >/dev/null 2>&1; then
+    rg -q -- "$pattern" "$path"
+  else
+    grep -Fq -- "$pattern" "$path"
+  fi
+}
+
+contains_literal 'HonestNoEquivocation' docs/formal/streambft/StreamBFT.tla
+contains_literal 'QuorumIntersection' docs/formal/streambft/StreamBFT.tla
+contains_literal 'ModeShadow' internal/streambft/mode.go
+contains_literal 'CometBFTCompositeWin' internal/streambft/mode.go
 
 printf '%s\n' 'StreamBFT local shadow-candidate gate passed; canary/public promotion evidence remains false.'

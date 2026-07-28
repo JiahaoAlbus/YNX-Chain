@@ -30,12 +30,18 @@ func (config FeeMarketConfig) Validate() error {
 	if config.MinimumBaseFee == 0 || config.MaximumBaseFee < config.MinimumBaseFee || config.ChangeDenominator == 0 {
 		return errors.New("fee market bounds are invalid")
 	}
-	if config.Prices == (ResourcePrices{}) {
-		return errors.New("resource prices are zero")
+	if config.Prices.Compute == 0 || config.Prices.StorageRead == 0 || config.Prices.StorageWrite == 0 ||
+		config.Prices.Bandwidth == 0 || config.Prices.StateGrowth == 0 {
+		return errors.New("every resource price must be non-zero")
+	}
+	for lane := range config.Target {
+		if err := lane.Validate(); err != nil {
+			return fmt.Errorf("fee market contains invalid lane: %w", err)
+		}
 	}
 	for _, lane := range orderedLanes {
-		if config.Target[lane] == (Resources{}) {
-			return fmt.Errorf("fee target is missing for lane %s", lane)
+		if config.Target[lane].Compute == 0 {
+			return fmt.Errorf("compute fee target is missing for lane %s", lane)
 		}
 	}
 	return nil
@@ -44,6 +50,19 @@ func (config FeeMarketConfig) Validate() error {
 func (state FeeMarketState) Next(config FeeMarketConfig, usage map[Lane]Resources) (FeeMarketState, error) {
 	if err := config.Validate(); err != nil {
 		return FeeMarketState{}, err
+	}
+	for lane, baseFee := range state.BaseFee {
+		if err := lane.Validate(); err != nil {
+			return FeeMarketState{}, fmt.Errorf("fee state contains invalid lane: %w", err)
+		}
+		if baseFee > config.MaximumBaseFee {
+			return FeeMarketState{}, fmt.Errorf("base fee for lane %s exceeds maximum", lane)
+		}
+	}
+	for lane := range usage {
+		if err := lane.Validate(); err != nil {
+			return FeeMarketState{}, fmt.Errorf("fee usage contains invalid lane: %w", err)
+		}
 	}
 	next := FeeMarketState{BaseFee: make(map[Lane]uint64, len(orderedLanes))}
 	for _, lane := range orderedLanes {

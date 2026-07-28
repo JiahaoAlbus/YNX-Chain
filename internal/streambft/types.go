@@ -116,6 +116,8 @@ type Resources struct {
 	StateGrowth  uint64 `json:"stateGrowth"`
 }
 
+func (r Resources) IsZero() bool { return r == (Resources{}) }
+
 func (r Resources) Add(other Resources) Resources {
 	return Resources{
 		Compute: r.Compute + other.Compute, StorageRead: r.StorageRead + other.StorageRead,
@@ -161,6 +163,9 @@ func (t Transaction) Validate() error {
 	}
 	if err := t.Access.Validate(); err != nil {
 		return err
+	}
+	if t.Resources.IsZero() {
+		return errors.New("transaction resources must be non-zero")
 	}
 	if len(t.PayloadHash) != sha256.Size*2 {
 		return errors.New("payload hash must be lowercase SHA-256 hex")
