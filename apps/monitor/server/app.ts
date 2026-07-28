@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from 'express';
 import { readFile } from 'node:fs/promises';
-import { auth, createToken, loadUsers, permissionsForRole, requirePermission, verifyUser } from './auth.js';
+import { auth, createCsrfToken, createToken, loadUsers, permissionsForRole, requireMutationProtection, requirePermission, verifyUser } from './auth.js';
 import { IncidentTransitionError, OpsStore } from './store.js';
 import type { IncidentAction, Permission, Principal, Role } from './types.js';
 
@@ -20,7 +20,7 @@ async function probe(id:string,label:string,url:string):Promise<Probe>{
   finally{clearTimeout(timeout);}
 }
 
-export async function createApp(options:{store?:OpsStore;secret?:string;integrityKey?:string;rpcUrl?:string;explorerUrl?:string;indexerUrl?:string;aiUrl?:string;users?:ReturnType<typeof loadUsers>;walletVerifier?:WalletVerifier;walletRoles?:Record<string,Role>;walletOrigin?:string}={}){
+export async function createApp(options:{store?:OpsStore;secret?:string;integrityKey?:string;rpcUrl?:string;explorerUrl?:string;indexerUrl?:string;aiUrl?:string;users?:ReturnType<typeof loadUsers>;walletVerifier?:WalletVerifier;walletRoles?:Record<string,Role>;walletOrigin?:string;allowedOrigins?:string[]}={}){
   const secret=options.secret??process.env.YNX_MONITOR_SESSION_SECRET;if(!secret||secret.length<24)throw new Error('YNX_MONITOR_SESSION_SECRET must contain at least 24 characters');
   const users=options.users??loadUsers();const integrityKey=options.integrityKey??process.env.YNX_MONITOR_STATE_INTEGRITY_KEY;if(!options.store&&(!integrityKey||integrityKey.length<32))throw new Error('YNX_MONITOR_STATE_INTEGRITY_KEY must contain at least 32 characters');const store=options.store??new OpsStore(process.env.YNX_MONITOR_STATE_PATH||'tmp/monitor/state.json',integrityKey!);await store.load();
   const rpc=(options.rpcUrl??process.env.YNX_MONITOR_RPC_URL??'http://127.0.0.1:6420').replace(/\/$/,'');
@@ -28,18 +28,21 @@ export async function createApp(options:{store?:OpsStore;secret?:string;integrit
   const indexer=(options.indexerUrl??process.env.YNX_MONITOR_INDEXER_URL??'http://127.0.0.1:6426').replace(/\/$/,'');
   const ai=(options.aiUrl??process.env.YNX_MONITOR_AI_URL??'http://127.0.0.1:6429').replace(/\/$/,'');
   const logSources:Record<string,string>=process.env.YNX_MONITOR_LOG_SOURCES?JSON.parse(process.env.YNX_MONITOR_LOG_SOURCES):{};
-  const walletOrigin=options.walletOrigin??process.env.YNX_MONITOR_PUBLIC_ORIGIN??'http://127.0.0.1:4675';
+  const walletOrigin=options.walletOrigin??process.env.YNX_MONITOR_PUBLIC_ORIGIN??'http://127.0.0.1:4674';
+  const configuredOrigins=process.env.YNX_MONITOR_ALLOWED_ORIGINS?.split(',').map(value=>value.trim()).filter(Boolean);
+  const allowedOrigins=options.allowedOrigins??configuredOrigins??[walletOrigin];
   const walletRoles=options.walletRoles??(process.env.YNX_MONITOR_WALLET_ROLES?JSON.parse(process.env.YNX_MONITOR_WALLET_ROLES):{});
   const walletVerifier=options.walletVerifier??(process.env.YNX_MONITOR_WALLET_AUTH_URL?async(input)=>{const response=await fetch(process.env.YNX_MONITOR_WALLET_AUTH_URL!,{method:'POST',headers:{'content-type':'application/json',...(process.env.YNX_MONITOR_WALLET_AUTH_KEY?{'x-ynx-gateway-key':process.env.YNX_MONITOR_WALLET_AUTH_KEY}:{})},body:JSON.stringify(input)});if(!response.ok)throw new Error('wallet_gateway_rejected');const body=await response.json() as {account?:string};if(!body.account)throw new Error('wallet_gateway_invalid_response');return{account:body.account};}:undefined);
   const startedAt=new Date().toISOString();
   const app=express();app.disable('x-powered-by');app.use(express.json({limit:'128kb'}));
   app.get('/health',(_req,res)=>res.json({status:'available',scope:'monitor-control-plane-process',stateLoaded:true,startedAt,checkedAt:new Date().toISOString()}));
   app.get('/version',(_req,res)=>res.json({schemaVersion:'ynx.monitor.version.v1',service:'ynx-monitor-control-plane',contractVersion:'ynx.monitor.integration.v1',commit:process.env.YNX_MONITOR_SOURCE_COMMIT||null,release:process.env.YNX_MONITOR_RELEASE||null,startedAt}));
-  const sessionResponse=(principal:Principal)=>({token:createToken(principal,secret),principal,permissions:permissionsForRole(principal.role),expiresIn:3600});
+  const sessionResponse=(principal:Principal)=>{const token=createToken(principal,secret);return{token,csrfToken:createCsrfToken(token,secret),principal,permissions:permissionsForRole(principal.role),expiresIn:3600};};
   app.post('/ops/login',async(req,res)=>{const principal=verifyUser(users,bounded(req.body?.username,80),bounded(req.body?.password,200));if(!principal)return res.status(401).json({error:'invalid_credentials'});await store.audit(principal,'session.login','monitor','authenticated');return res.json(sessionResponse(principal));});
   app.post('/ops/wallet/challenges',async(req,res)=>{if(!walletVerifier)return res.status(503).json({error:'wallet_gateway_not_configured'});const accountHint=bounded(req.body?.accountHint,160)||undefined;const{challenge,nonce}=await store.createWalletChallenge(walletOrigin,accountHint);return res.status(201).json({challengeId:challenge.id,nonce,origin:challenge.origin,network:'ynx_6423-1',chainId:6423,purpose:'Sign in to YNX Monitor',issuedAt:challenge.issuedAt,expiresAt:challenge.expiresAt});});
   app.post('/ops/wallet/sessions',async(req,res)=>{if(!walletVerifier)return res.status(503).json({error:'wallet_gateway_not_configured'});const challengeId=bounded(req.body?.challengeId,100),nonce=bounded(req.body?.nonce,200),signature=bounded(req.body?.signature,2000),signedPayload=bounded(req.body?.signedPayload,4000);if(!challengeId||!nonce||!signature||!signedPayload)return res.status(400).json({error:'signed_challenge_required'});const challenge=await store.consumeWalletChallenge(challengeId,nonce);if(!challenge)return res.status(409).json({error:'challenge_invalid_expired_or_replayed'});try{const verified=await walletVerifier({challengeId,nonce,origin:challenge.origin,network:'ynx_6423-1',chainId:6423,signature,signedPayload});const role=walletRoles[verified.account];if(!role)return res.status(403).json({error:'wallet_not_authorized'});const principal={username:`wallet:${verified.account}`,role};await store.audit(principal,'session.wallet_login','monitor','authenticated',{account:verified.account,challengeId});return res.json(sessionResponse(principal));}catch{return res.status(401).json({error:'wallet_signature_rejected'});}});
   app.use('/ops',auth(secret));
+  app.use('/ops',requireMutationProtection(secret,allowedOrigins));
   app.get('/ops/me',(req,res)=>res.json({principal:req.principal,permissions:permissionsForRole(req.principal!.role)}));
   app.get('/ops/overview',async(req,res)=>{
     const probes=await Promise.all([probe('node','Node',`${rpc}/status`),probe('identity','Release identity',`${rpc}/node/identity`),probe('validators','Validators',`${rpc}/validators`),probe('peers','Peers',`${rpc}/validators/peers`),probe('peer-sync','Peer sync',`${rpc}/validators/peer-sync`),probe('explorer','Explorer',`${explorer}/health`),probe('indexer','Indexer',`${indexer}/health`),probe('ai','AI Gateway',`${ai}/health`)]);

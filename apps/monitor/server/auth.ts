@@ -83,6 +83,10 @@ export function createToken(principal:Principal,secret:string,ttlSeconds=3600){
   return `${payload}.${createHmac('sha256',secret).update(payload).digest('base64url')}`;
 }
 
+export function createCsrfToken(sessionToken:string,secret:string){
+  return createHmac('sha256',secret).update(`ynx-monitor-csrf:${sessionToken}`).digest('base64url');
+}
+
 export function verifyToken(token:string,secret:string):Principal|undefined{
   try{
     const [payload,sig]=token.split('.');
@@ -95,7 +99,7 @@ export function verifyToken(token:string,secret:string):Principal|undefined{
   }catch{return undefined}
 }
 
-declare global { namespace Express { interface Request { principal?:Principal } } }
+declare global { namespace Express { interface Request { principal?:Principal; sessionToken?:string } } }
 
 export function auth(secret:string){
   return(req:Request,res:Response,next:NextFunction)=>{
@@ -103,6 +107,25 @@ export function auth(secret:string){
     const principal=token&&verifyToken(token,secret);
     if(!principal)return res.status(401).json({error:'authentication_required'});
     req.principal=principal;
+    req.sessionToken=token;
+    next();
+  };
+}
+
+export function requireMutationProtection(secret:string,allowedOrigins:readonly string[]){
+  const origins=new Set(allowedOrigins.map(value=>new URL(value).origin));
+  if(!origins.size)throw new Error('At least one YNX Monitor operator origin is required');
+  return(req:Request,res:Response,next:NextFunction)=>{
+    if(['GET','HEAD','OPTIONS'].includes(req.method))return next();
+    const origin=req.header('origin');
+    if(!origin)return res.status(403).json({error:'origin_required'});
+    let normalized:string;
+    try{normalized=new URL(origin).origin;}catch{return res.status(403).json({error:'origin_not_allowed'});}
+    if(!origins.has(normalized))return res.status(403).json({error:'origin_not_allowed'});
+    const csrf=req.header('x-ynx-csrf-token');
+    if(!csrf||!req.sessionToken)return res.status(403).json({error:'csrf_token_required'});
+    const actual=Buffer.from(csrf),expected=Buffer.from(createCsrfToken(req.sessionToken,secret));
+    if(actual.length!==expected.length||!timingSafeEqual(actual,expected))return res.status(403).json({error:'csrf_token_invalid'});
     next();
   };
 }

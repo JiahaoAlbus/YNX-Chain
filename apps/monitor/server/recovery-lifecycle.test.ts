@@ -10,6 +10,9 @@ import { OpsStore } from './store.js';
 import type { Role } from './types.js';
 
 const servers:Server[]=[];
+const operatorOrigin='https://monitor.test';
+type TestSession={token:string;csrfToken:string};
+
 after(async()=>{
   await Promise.all(servers.splice(0).map(server=>new Promise<void>(resolve=>server.close(()=>resolve()))));
 });
@@ -25,6 +28,7 @@ async function fixture(){
     store,
     secret:'s'.repeat(32),
     users,
+    allowedOrigins:[operatorOrigin],
     rpcUrl:'http://127.0.0.1:1',
     explorerUrl:'http://127.0.0.1:1',
     indexerUrl:'http://127.0.0.1:1',
@@ -38,10 +42,10 @@ async function fixture(){
   return{base:`http://127.0.0.1:${address.port}`,password,store};
 }
 
-async function call(base:string,path:string,token?:string,body?:Record<string,unknown>){
+async function call(base:string,path:string,session?:TestSession,body?:Record<string,unknown>){
   const response=await fetch(base+path,{
     method:body?'POST':'GET',
-    headers:{'content-type':'application/json',...(token?{authorization:`Bearer ${token}`}:{})},
+    headers:{'content-type':'application/json',...(session?{authorization:`Bearer ${session.token}`,origin:operatorOrigin,'x-ynx-csrf-token':session.csrfToken}:{})},
     ...(body?{body:JSON.stringify(body)}:{}),
   });
   return{status:response.status,body:await response.json() as Record<string,unknown>};
@@ -50,7 +54,7 @@ async function call(base:string,path:string,token?:string,body?:Record<string,un
 async function login(base:string,username:string,password:string){
   const response=await call(base,'/ops/login',undefined,{username,password});
   assert.equal(response.status,200);
-  return response.body.token as string;
+  return response.body as unknown as TestSession;
 }
 
 const backupInput={

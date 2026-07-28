@@ -11,6 +11,7 @@ import { OpsStore } from "./store.js";
 const expect = (actual: unknown) => ({
   toBe: (expected: unknown) => assert.equal(actual, expected),
 });
+const operatorOrigin = "https://monitor.test";
 const users = [
   {
     username: "view",
@@ -47,6 +48,7 @@ async function fixture(extra: Record<string, unknown> = {}) {
     store,
     secret: "test-session-secret-with-32-bytes",
     users,
+    allowedOrigins: [operatorOrigin],
     rpcUrl: "http://127.0.0.1:1",
     explorerUrl: "http://127.0.0.1:1",
     indexerUrl: "http://127.0.0.1:1",
@@ -74,7 +76,14 @@ async function token(base: string, username: string, password: string) {
     body: JSON.stringify({ username, password }),
   });
   expect(response.status).toBe(200);
-  return response.body.token as string;
+  return response.body as { token: string; csrfToken: string };
+}
+function sessionHeaders(session: { token: string; csrfToken: string }) {
+  return {
+    Authorization: `Bearer ${session.token}`,
+    Origin: operatorOrigin,
+    "X-YNX-CSRF-Token": session.csrfToken,
+  };
 }
 describe("Monitor authorization and approval boundaries", () => {
   it("rejects missing and invalid authentication", async () => {
@@ -89,10 +98,53 @@ describe("Monitor authorization and approval boundaries", () => {
       ).status,
     ).toBe(401);
   });
+  it("rejects missing, untrusted, and invalid mutation protection", async () => {
+    const { base } = await fixture();
+    const op = await token(base, "op", "op-pass");
+    const path = "/ops/rollback-proposals";
+    const body = JSON.stringify({
+      release: "release-a",
+      reason: "origin test",
+      approvalPhrase: "APPROVE ROLLBACK PROPOSAL",
+    });
+    const authorization = { Authorization: `Bearer ${op.token}` };
+
+    const missingOrigin = await call(base, path, {
+      method: "POST",
+      headers: { ...authorization, "X-YNX-CSRF-Token": op.csrfToken },
+      body,
+    });
+    expect(missingOrigin.status).toBe(403);
+    expect(missingOrigin.body.error).toBe("origin_required");
+
+    const untrustedOrigin = await call(base, path, {
+      method: "POST",
+      headers: { ...authorization, Origin: "https://attacker.test", "X-YNX-CSRF-Token": op.csrfToken },
+      body,
+    });
+    expect(untrustedOrigin.status).toBe(403);
+    expect(untrustedOrigin.body.error).toBe("origin_not_allowed");
+
+    const missingCsrf = await call(base, path, {
+      method: "POST",
+      headers: { ...authorization, Origin: operatorOrigin },
+      body,
+    });
+    expect(missingCsrf.status).toBe(403);
+    expect(missingCsrf.body.error).toBe("csrf_token_required");
+
+    const invalidCsrf = await call(base, path, {
+      method: "POST",
+      headers: { ...authorization, Origin: operatorOrigin, "X-YNX-CSRF-Token": "invalid" },
+      body,
+    });
+    expect(invalidCsrf.status).toBe(403);
+    expect(invalidCsrf.body.error).toBe("csrf_token_invalid");
+  });
   it("allows viewers to inspect and read bounded logs but forbids acknowledgement", async () => {
     const { base } = await fixture();
     const viewer = await token(base, "view", "view-pass");
-    const headers = { Authorization: `Bearer ${viewer}` };
+    const headers = sessionHeaders(viewer);
     expect((await call(base, "/ops/audit", { headers })).status).toBe(200);
     const logs = await call(base, "/ops/logs", { headers });
     expect(logs.status).toBe(200);
@@ -110,7 +162,7 @@ describe("Monitor authorization and approval boundaries", () => {
   it("requires exact operator approval and writes audit", async () => {
     const { base } = await fixture();
     const op = await token(base, "op", "op-pass");
-    const headers = { Authorization: `Bearer ${op}` };
+    const headers = sessionHeaders(op);
     expect(
       (
         await call(base, "/ops/alerts/upstream%3Anode/acknowledge", {
@@ -139,7 +191,7 @@ describe("Monitor authorization and approval boundaries", () => {
     const op = await token(base, "op", "op-pass");
     const response = await call(base, "/ops/rollback-proposals", {
       method: "POST",
-      headers: { Authorization: `Bearer ${op}` },
+      headers: sessionHeaders(op),
       body: JSON.stringify({
         release: "release-a",
         reason: "failed probe",

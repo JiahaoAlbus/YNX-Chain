@@ -84,9 +84,12 @@ const views = [
 
 function storedSession() {
   try {
-    return JSON.parse(
+    const parsed = JSON.parse(
       sessionStorage.getItem("ynx-monitor-session") || "null",
     ) as Session | null;
+    return parsed && typeof parsed.token === "string" && typeof parsed.csrfToken === "string"
+      ? parsed
+      : null;
   } catch {
     return null;
   }
@@ -1407,6 +1410,7 @@ function IncidentAI({
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.token}`,
+          "X-YNX-CSRF-Token": session.csrfToken,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ language }),
