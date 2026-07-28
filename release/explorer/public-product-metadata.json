@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "ynx-public-product-metadata/v1",
+  "productId": "12",
+  "product": "YNX Explorer",
+  "slug": "explorer",
+  "owner": "12-explorer",
+  "sourceCommit": "967a97cb8d3873b88f817a571477aff7f0b46450",
+  "canonicalRoute": "/explorer",
+  "title": "YNX Explorer — Verify blocks, transactions and public evidence",
+  "metaDescription": "Inspect source-bound YNX Testnet blocks, transactions, accounts, receipts and product evidence with explicit freshness and coverage.",
+  "h1": "Public evidence with explicit source and freshness",
+  "features": [
+    "Canonical block, transaction and address deep links",
+    "Source-bound public evidence envelopes",
+    "Opaque authenticated cursor pagination",
+    "Live updates with offline and partial states",
+    "Twelve-language accessible PWA"
+  ],
+  "risks": [
+    "A displayed record is not authoritative unless its owner, source, version and integrity fields verify.",
+    "The current branch is locally tested and has not received central shared-Testnet acceptance.",
+    "No immutable hosted artifact or current public deployment is claimed by this record."
+  ],
+  "status": {
+    "channel": "integration-candidate",
+    "publiclyAvailable": false,
+    "integratedCentral": false
+  },
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "faq": [
+    {
+      "question": "Does an Explorer page prove finality?",
+      "answer": "Only when the corresponding authoritative record, source identity, freshness and integrity evidence verify."
+    },
+    {
+      "question": "Is this Explorer release public?",
+      "answer": "No. The current record describes a locally verified integration candidate."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "type": "WebApplication",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web"
+  }
+}
