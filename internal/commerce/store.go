@@ -18,14 +18,31 @@ import (
 	"time"
 )
 
-var (
-	ErrNotFound     = errors.New("not found")
-	ErrUnauthorized = errors.New("unauthorized")
-	ErrConflict     = errors.New("conflict")
-	ErrUnavailable  = errors.New("unavailable")
-	ErrInvalidState = errors.New("invalid state transition")
-	ErrInventory    = errors.New("insufficient inventory")
+const (
+	PersistenceSchemaVersionV1      = 1
+	CurrentPersistenceSchemaVersion = 2
+	persistenceEnvelopeVersion      = 1
+	persistenceRollbackSuffix       = ".schema-rollback"
 )
+
+var (
+	ErrNotFound           = errors.New("not found")
+	ErrUnauthorized       = errors.New("unauthorized")
+	ErrConflict           = errors.New("conflict")
+	ErrUnavailable        = errors.New("unavailable")
+	ErrInvalidState       = errors.New("invalid state transition")
+	ErrInventory          = errors.New("insufficient inventory")
+	ErrPersistenceVersion = errors.New("unsupported commerce persistence schema version")
+)
+
+type PersistenceRollbackReport struct {
+	FromVersion          int    `json:"fromVersion"`
+	ToVersion            int    `json:"toVersion"`
+	RecoveryPath         string `json:"recoveryPath"`
+	BuyerProfilesOmitted int    `json:"buyerProfilesOmitted"`
+	CartsOmitted         int    `json:"cartsOmitted"`
+	RateWindowsOmitted   int    `json:"rateWindowsOmitted"`
+}
 
 type Store struct {
 	mu           sync.Mutex
@@ -68,7 +85,10 @@ func open(path string, integrityKey []byte) (*Store, error) {
 	if err := decodePersisted(data, integrityKey, &st.s); err != nil {
 		return nil, fmt.Errorf("decode commerce state: %w", err)
 	}
-	migrated := st.normalize()
+	migrated, err := st.normalize()
+	if err != nil {
+		return nil, fmt.Errorf("migrate commerce state: %w", err)
+	}
 	if migrated {
 		st.mu.Lock()
 		err = st.persistLocked()
@@ -93,7 +113,7 @@ func decodePersisted(data, key []byte, out *Snapshot) error {
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
 		return errors.New("single integrity envelope required")
 	}
-	if envelope.Version != 1 || len(envelope.Snapshot) == 0 || len(envelope.HMAC) != 64 {
+	if envelope.Version != persistenceEnvelopeVersion || len(envelope.Snapshot) == 0 || len(envelope.HMAC) != 64 {
 		return errors.New("invalid commerce state integrity envelope")
 	}
 	want, err := hex.DecodeString(envelope.HMAC)
@@ -113,12 +133,19 @@ func decodePersisted(data, key []byte, out *Snapshot) error {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: 2, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, RequestWindow: map[string][]time.Time{}}
 }
 
-func (s *Store) normalize() bool {
-	migrated := s.s.Version < 2
-	s.s.Version = 2
+func (s *Store) normalize() (bool, error) {
+	version := s.s.Version
+	if version == 0 {
+		version = PersistenceSchemaVersionV1
+	}
+	if version < PersistenceSchemaVersionV1 || version > CurrentPersistenceSchemaVersion {
+		return false, fmt.Errorf("%w: %d", ErrPersistenceVersion, s.s.Version)
+	}
+	migrated := version != CurrentPersistenceSchemaVersion
+	s.s.Version = CurrentPersistenceSchemaVersion
 	if s.s.Stores == nil {
 		s.s.Stores = map[string]StoreProfile{}
 	}
@@ -146,30 +173,16 @@ func (s *Store) normalize() bool {
 	if s.s.RequestWindow == nil {
 		s.s.RequestWindow = map[string][]time.Time{}
 	}
-	return migrated
+	return migrated, nil
 }
 
 func (s *Store) persistLocked() error {
 	if s.path == "" {
 		return nil
 	}
-	snapshot, err := json.Marshal(s.s)
+	data, err := encodePersisted(s.s, s.integrityKey)
 	if err != nil {
 		return err
-	}
-	data := snapshot
-	if len(s.integrityKey) > 0 {
-		mac := hmac.New(sha256.New, s.integrityKey)
-		_, _ = mac.Write(snapshot)
-		data, err = json.MarshalIndent(persistedEnvelope{Version: 1, Snapshot: snapshot, HMAC: hex.EncodeToString(mac.Sum(nil))}, "", "  ")
-		if err != nil {
-			return err
-		}
-	} else {
-		data, err = json.MarshalIndent(s.s, "", "  ")
-		if err != nil {
-			return err
-		}
 	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
 		return err
@@ -182,6 +195,19 @@ func (s *Store) persistLocked() error {
 		return readErr
 	}
 	return atomicWrite(s.path, data)
+}
+
+func encodePersisted(snapshot Snapshot, key []byte) ([]byte, error) {
+	raw, err := json.Marshal(snapshot)
+	if err != nil {
+		return nil, err
+	}
+	if len(key) == 0 {
+		return json.MarshalIndent(snapshot, "", "  ")
+	}
+	mac := hmac.New(sha256.New, key)
+	_, _ = mac.Write(raw)
+	return json.MarshalIndent(persistedEnvelope{Version: persistenceEnvelopeVersion, Snapshot: raw, HMAC: hex.EncodeToString(mac.Sum(nil))}, "", "  ")
 }
 
 func atomicWrite(path string, data []byte) error {
@@ -212,7 +238,73 @@ func RestoreCommerceBackup(path string, key []byte) error {
 	if err := decodePersisted(backup, key, &snapshot); err != nil {
 		return fmt.Errorf("verify commerce backup: %w", err)
 	}
+	probe := &Store{s: snapshot}
+	if _, err := probe.normalize(); err != nil {
+		return fmt.Errorf("verify commerce backup: %w", err)
+	}
 	return atomicWrite(path, bytes.TrimSpace(backup))
+}
+
+func RollbackCommercePersistence(path string, key []byte, targetVersion int) (PersistenceRollbackReport, error) {
+	report := PersistenceRollbackReport{ToVersion: targetVersion}
+	if path == "" {
+		return report, errors.New("commerce persistence path is required")
+	}
+	if targetVersion != PersistenceSchemaVersionV1 {
+		return report, fmt.Errorf("%w: rollback target %d", ErrPersistenceVersion, targetVersion)
+	}
+	current, err := os.ReadFile(path)
+	if err != nil {
+		return report, fmt.Errorf("read commerce state for rollback: %w", err)
+	}
+	var snapshot Snapshot
+	if err := decodePersisted(current, key, &snapshot); err != nil {
+		return report, fmt.Errorf("verify commerce state for rollback: %w", err)
+	}
+	probe := &Store{s: snapshot}
+	if _, err := probe.normalize(); err != nil {
+		return report, fmt.Errorf("verify commerce state for rollback: %w", err)
+	}
+	snapshot = probe.s
+	report.FromVersion = snapshot.Version
+	report.RecoveryPath = path + persistenceRollbackSuffix
+	report.BuyerProfilesOmitted = len(snapshot.BuyerProfiles)
+	report.CartsOmitted = len(snapshot.Carts)
+	report.RateWindowsOmitted = len(snapshot.RequestWindow)
+	if err := atomicWrite(report.RecoveryPath, bytes.TrimSpace(current)); err != nil {
+		return report, fmt.Errorf("write commerce rollback recovery point: %w", err)
+	}
+	snapshot.Version = targetVersion
+	snapshot.BuyerProfiles = nil
+	snapshot.Carts = nil
+	snapshot.RequestWindow = nil
+	rolledBack, err := encodePersisted(snapshot, key)
+	if err != nil {
+		return report, fmt.Errorf("encode commerce rollback state: %w", err)
+	}
+	if err := atomicWrite(path, rolledBack); err != nil {
+		return report, fmt.Errorf("write commerce rollback state: %w", err)
+	}
+	return report, nil
+}
+
+func RestoreCommercePersistenceRollback(path string, key []byte) error {
+	rollback, err := os.ReadFile(path + persistenceRollbackSuffix)
+	if err != nil {
+		return fmt.Errorf("read commerce rollback recovery point: %w", err)
+	}
+	var snapshot Snapshot
+	if err := decodePersisted(rollback, key, &snapshot); err != nil {
+		return fmt.Errorf("verify commerce rollback recovery point: %w", err)
+	}
+	if snapshot.Version != CurrentPersistenceSchemaVersion {
+		return fmt.Errorf("rollback recovery point schema %d is not current schema %d", snapshot.Version, CurrentPersistenceSchemaVersion)
+	}
+	probe := &Store{s: snapshot}
+	if _, err := probe.normalize(); err != nil {
+		return fmt.Errorf("verify commerce rollback recovery point: %w", err)
+	}
+	return atomicWrite(path, bytes.TrimSpace(rollback))
 }
 
 func newID(prefix string) string {
