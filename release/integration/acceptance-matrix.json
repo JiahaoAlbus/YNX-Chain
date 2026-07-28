@@ -2,14 +2,14 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-28T16:21:00.458Z",
-  "controllerSourceCommit": "7d4b2654100f4e29d04467c59aac241240716e4a",
+  "generatedAt": "2026-07-28T16:27:09.180Z",
+  "controllerSourceCommit": "f4efe76f8cb0f8f2945143b40a7616cdba8e6bd9",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "7d4b2654100f4e29d04467c59aac241240716e4a",
+    "localHead": "f4efe76f8cb0f8f2945143b40a7616cdba8e6bd9",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "7d4b2654100f4e29d04467c59aac241240716e4a",
+    "remoteHead": "f4efe76f8cb0f8f2945143b40a7616cdba8e6bd9",
     "ahead": 0,
     "behind": 0,
     "clean": true
@@ -286,8 +286,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
-        "remoteSha": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+        "localSha": "a9f1638d6650dbb743f6b7237a919b99ad24e290",
+        "remoteSha": "a9f1638d6650dbb743f6b7237a919b99ad24e290",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -299,86 +299,86 @@
       "worktree": {
         "registered": true,
         "pathToken": "03-social",
-        "observedHead": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+        "observedHead": "a9f1638d6650dbb743f6b7237a919b99ad24e290",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
         "paths": {
-          "fullGoalCoverage": null,
-          "productRelease": null,
-          "publicMetadata": null,
-          "integrationContract": null,
-          "integrationHandoff": "docs/handoffs/social.md",
-          "crossProductTestVectors": null,
-          "dependencyAcceptance": null
+          "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
+          "productRelease": "release/social/product-release.json",
+          "publicMetadata": "release/social/public-product-metadata.json",
+          "integrationContract": "release/integration/social-contract.json",
+          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
+          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 12,
+          "open": 10,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
+            "inProgress": 4,
+            "implementedLocal": 1,
+            "testedLocal": 5,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
+            "externalBlocked": 1,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 1
           }
         },
         "recordMatches": {
-          "fullGoalCoverage": false,
-          "productRelease": false,
-          "publicMetadata": false,
-          "integrationContract": false
+          "fullGoalCoverage": true,
+          "productRelease": true,
+          "publicMetadata": true,
+          "integrationContract": true
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           },
           "productRelease": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           },
           "publicMetadata": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           },
           "integrationContract": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           }
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
-        "exactCommitBound": true
+        "exactCommitBound": false
       },
       "centralAcceptance": {
         "status": "inProgress",
@@ -388,14 +388,9 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage is missing from the branch tree",
-        "product release is missing from the branch tree",
-        "public metadata is missing from the branch tree",
-        "integration contract is missing from the branch tree",
-        "cross-product test vectors is missing from the branch tree",
-        "dependency acceptance is missing from the branch tree"
+        "full-goal coverage has 10 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage is missing from the branch tree."
+      "nextAction": "Resolve: full-goal coverage has 10 autonomous or unresolved items."
     },
     {
       "id": "04",
@@ -3584,8 +3579,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "7d4b2654100f4e29d04467c59aac241240716e4a",
-        "remoteSha": "7d4b2654100f4e29d04467c59aac241240716e4a",
+        "localSha": "f4efe76f8cb0f8f2945143b40a7616cdba8e6bd9",
+        "remoteSha": "f4efe76f8cb0f8f2945143b40a7616cdba8e6bd9",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3597,7 +3592,7 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "7d4b2654100f4e29d04467c59aac241240716e4a",
+        "observedHead": "f4efe76f8cb0f8f2945143b40a7616cdba8e6bd9",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
@@ -3641,28 +3636,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 7
+            "distance": 8
           },
           "productRelease": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 51
+            "distance": 52
           },
           "publicMetadata": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 51
+            "distance": 52
           },
           "integrationContract": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 51
+            "distance": 52
           }
         },
         "claimedReleaseStates": {
