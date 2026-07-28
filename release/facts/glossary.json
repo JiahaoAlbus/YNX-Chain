@@ -1,0 +1,19 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Candidate",
+  "entries": [
+    {"term": "YNX Chain", "definition": "The official site and chain ecosystem name.", "status": "Verified"},
+    {"term": "YNX", "definition": "The primary short name for YNX Chain.", "status": "Verified"},
+    {"term": "YNX Web4", "definition": "The application ecosystem powered by YNX Chain.", "status": "Verified"},
+    {"term": "YNXWeb4", "definition": "A compact alternate brand name.", "status": "Verified"},
+    {"term": "YNXT", "definition": "The native Testnet asset of YNX Testnet; no monetary value or liquidity is guaranteed.", "status": "Verified"},
+    {"term": "YNX Testnet", "definition": "The YNX testing network using EVM Chain ID 6423 and Cosmos Chain ID ynx_6423-1.", "status": "Verified"},
+    {"term": "Web4", "definition": "A YNX product term for user-controlled accounts, permissioned applications, verifiable execution, evidence-linked automation, and human approval; not an adopted Internet standard.", "status": "Candidate"},
+    {"term": "Candidate", "definition": "Designed, drafted, or locally implemented without sufficient evidence for a stronger public status.", "status": "Verified"},
+    {"term": "Blocked", "definition": "Publication or progression is prevented by missing direct evidence, review, authority, or an external dependency.", "status": "Verified"}
+  ]
+}

@@ -1,5 +1,16 @@
 # Project State
 
+## 2026-07-25 Docs / Compliance / Brand recovery state
+
+- The assigned worktree is `codex/final-docs-compliance` at recovery source commit `c8c4ff7263e50afc4c731dac8157aa85e02232dc`; it matched its remote after fetch before current candidate edits.
+- The pre-existing conflict report, public URL probe and fact directory were preserved. Missing schemas, evidence and supersession records, locale files, the dangling Mainnet FAQ Claim and symbolic `git:HEAD` identities were repaired without cleaning or replacing the worktree.
+- The 0.2.0 candidate contains a 12-class authoritative facts index, nine evidence-linked Claims, 12 locale records, three local schemas, a recovery inventory and a cross-thread Integration Manifest.
+- `scripts/verify/public-disclosure-gate.mjs` passed over 29 JSON records, 12 fact classes and nine release states before integration into the existing documentation compliance entrypoint.
+- Current public observations are component-specific and ineligible as independent proof: the active workstation path uses `198.18.0.0/15`; the www site, App Gateway and Faucet returned HTTP 200, while the canonical root, Explorer and EVM RPC timed out.
+- Wallet/Auth, Tokenomics, Oracle, Bridge, Data Fabric and Security/SRE contain protected dirty work; Music and Quant have local-ahead commits. None is an accepted public fact until owner commit, tests and handoff exist.
+- Canonical Testnet identity and qualified brand wording are candidate facts. Central integration, staging/public deployment, immutable hosting, production signing, Mainnet launch, public StreamBFT activation, legal approval and independent audit remain false or blocked.
+- The detailed recovery record is `docs/coordination/DOCS_COMPLIANCE_RECOVERY_AUDIT.md`; current execution priority is `docs/acceptance/NEXT_ACTION.md`. Sections below remain historical operational evidence and must be read with their dated scope.
+
 ## 2026-07-16 transaction continuity and ecosystem worktree audit
 
 - A Singapore direct-origin read-only check used the committed Exchange
