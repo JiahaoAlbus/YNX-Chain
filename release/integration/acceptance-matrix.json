@@ -2,25 +2,25 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-28T15:58:40.662Z",
-  "controllerSourceCommit": "43df61661c5addd6c457f26f5ada322cfc16a866",
+  "generatedAt": "2026-07-28T16:07:31.044Z",
+  "controllerSourceCommit": "5461be3f12896d47180534d8c912c6ff1a27bddc",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "43df61661c5addd6c457f26f5ada322cfc16a866",
+    "localHead": "5461be3f12896d47180534d8c912c6ff1a27bddc",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "43df61661c5addd6c457f26f5ada322cfc16a866",
+    "remoteHead": "5461be3f12896d47180534d8c912c6ff1a27bddc",
     "ahead": 0,
     "behind": 0,
-    "clean": true
+    "clean": false
   },
   "summary": {
     "totalProducts": 36,
     "localBranches": 36,
     "remoteBranches": 36,
     "registeredWorktrees": 36,
-    "cleanWorktrees": 15,
-    "dirtyWorktrees": 21,
+    "cleanWorktrees": 14,
+    "dirtyWorktrees": 22,
     "syncedBranches": 35,
     "upstreamConfigured": 36,
     "implementedLocalCandidates": 0,
@@ -69,20 +69,20 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 12,
+          "open": 11,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 0,
+            "inProgress": 7,
             "implementedLocal": 0,
-            "testedLocal": 0,
+            "testedLocal": 2,
             "integratedCentral": 0,
-            "testnetVerified": 0,
+            "testnetVerified": 2,
             "publicVerified": 0,
             "externalBlocked": 0,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 1
           }
         },
         "recordMatches": {
@@ -93,14 +93,14 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 11
           },
           "productRelease": {
-            "sourceCommit": null,
+            "sourceCommit": "72e7890b79e3",
             "valid": false,
             "exact": false,
             "reachable": false,
@@ -122,15 +122,15 @@
           }
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "exactCommitBound": false
       },
@@ -142,11 +142,12 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage is empty or contains an invalid status",
+        "full-goal coverage has 11 autonomous or unresolved items",
+        "productRelease sourceCommit is not reachable from the final branch",
         "publicMetadata sourceCommit is not reachable from the final branch",
         "integrationContract sourceCommit is not reachable from the final branch"
       ],
-      "nextAction": "Resolve: full-goal coverage is empty or contains an invalid status."
+      "nextAction": "Resolve: full-goal coverage has 11 autonomous or unresolved items."
     },
     {
       "id": "02",
@@ -268,7 +269,8 @@
         "registered final worktree has uncommitted changes",
         "productRelease belongs to a different product or authority owner",
         "publicMetadata belongs to a different product or authority owner",
-        "full-goal coverage has 28 autonomous or unresolved items"
+        "full-goal coverage has 28 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -517,7 +519,9 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage has 23 autonomous or unresolved items"
+        "full-goal coverage has 23 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit",
+        "publicMetadata lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: full-goal coverage has 23 autonomous or unresolved items."
     },
@@ -641,7 +645,10 @@
       "blockers": [
         "registered final worktree has uncommitted changes",
         "publicMetadata belongs to a different product or authority owner",
-        "full-goal coverage has 26 autonomous or unresolved items"
+        "full-goal coverage has 26 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "productRelease lacks an exact sourceCommit",
+        "publicMetadata lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -691,20 +698,20 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 24,
+          "open": 22,
           "invalid": 0,
           "counts": {
-            "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
+            "notStarted": 4,
+            "inProgress": 5,
+            "implementedLocal": 3,
+            "testedLocal": 10,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
+            "externalBlocked": 1,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 1
           }
         },
         "recordMatches": {
@@ -764,9 +771,10 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage is empty or contains an invalid status"
+        "full-goal coverage has 22 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit"
       ],
-      "nextAction": "Resolve: full-goal coverage is empty or contains an invalid status."
+      "nextAction": "Resolve: full-goal coverage has 22 autonomous or unresolved items."
     },
     {
       "id": "07",
@@ -946,18 +954,18 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 40,
+          "open": 39,
           "invalid": 0,
           "counts": {
-            "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
+            "notStarted": 2,
+            "inProgress": 6,
+            "implementedLocal": 7,
+            "testedLocal": 24,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
+            "externalBlocked": 1,
             "notApplicable": 0,
             "verifiedComplete": 0
           }
@@ -1020,7 +1028,8 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage is empty or contains an invalid status"
+        "full-goal coverage has 39 autonomous or unresolved items",
+        "publicMetadata lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -1070,20 +1079,20 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 29,
+          "open": 21,
           "invalid": 0,
           "counts": {
-            "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
+            "notStarted": 1,
+            "inProgress": 6,
+            "implementedLocal": 1,
+            "testedLocal": 13,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
+            "externalBlocked": 6,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 2
           }
         },
         "recordMatches": {
@@ -1144,7 +1153,8 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage is empty or contains an invalid status"
+        "full-goal coverage has 21 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -1195,20 +1205,20 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 25,
+          "open": 24,
           "invalid": 0,
           "counts": {
-            "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
+            "notStarted": 3,
+            "inProgress": 8,
+            "implementedLocal": 2,
+            "testedLocal": 11,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
             "externalBlocked": 0,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 1
           }
         },
         "recordMatches": {
@@ -1270,7 +1280,9 @@
       "blockers": [
         "registered final worktree has uncommitted changes",
         "public metadata is missing from the branch tree",
-        "full-goal coverage is empty or contains an invalid status"
+        "full-goal coverage has 24 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "productRelease lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -1395,7 +1407,9 @@
       "blockers": [
         "registered final worktree has uncommitted changes",
         "public metadata is missing from the branch tree",
-        "full-goal coverage has 31 autonomous or unresolved items"
+        "full-goal coverage has 31 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit",
+        "integrationContract lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -1444,18 +1458,18 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 23,
+          "open": 22,
           "invalid": 0,
           "counts": {
-            "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
+            "notStarted": 6,
+            "inProgress": 9,
+            "implementedLocal": 2,
+            "testedLocal": 5,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
+            "externalBlocked": 1,
             "notApplicable": 0,
             "verifiedComplete": 0
           }
@@ -1518,7 +1532,8 @@
       },
       "blockers": [
         "public metadata is missing from the branch tree",
-        "full-goal coverage is empty or contains an invalid status"
+        "full-goal coverage has 22 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: public metadata is missing from the branch tree."
     },
@@ -1641,7 +1656,8 @@
       },
       "blockers": [
         "public metadata is missing from the branch tree",
-        "full-goal coverage has 30 autonomous or unresolved items"
+        "full-goal coverage has 30 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: public metadata is missing from the branch tree."
     },
@@ -1690,20 +1706,20 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 27,
+          "open": 22,
           "invalid": 0,
           "counts": {
-            "notStarted": 0,
-            "inProgress": 0,
+            "notStarted": 2,
+            "inProgress": 6,
             "implementedLocal": 0,
-            "testedLocal": 0,
+            "testedLocal": 14,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
+            "externalBlocked": 3,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 2
           }
         },
         "recordMatches": {
@@ -1765,7 +1781,10 @@
       "blockers": [
         "registered final worktree has uncommitted changes",
         "public metadata is missing from the branch tree",
-        "full-goal coverage is empty or contains an invalid status"
+        "full-goal coverage has 22 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "productRelease lacks an exact sourceCommit",
+        "integrationContract lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -1816,20 +1835,20 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 19,
+          "open": 14,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
+            "inProgress": 2,
+            "implementedLocal": 2,
+            "testedLocal": 10,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
+            "externalBlocked": 4,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 1
           }
         },
         "recordMatches": {
@@ -1889,9 +1908,9 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage is empty or contains an invalid status"
+        "full-goal coverage has 14 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage is empty or contains an invalid status."
+      "nextAction": "Resolve: full-goal coverage has 14 autonomous or unresolved items."
     },
     {
       "id": "16",
@@ -1939,19 +1958,19 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
-          "invalid": 0,
+          "total": 22,
+          "open": 17,
+          "invalid": 1,
           "counts": {
             "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
+            "inProgress": 3,
+            "implementedLocal": 2,
+            "testedLocal": 11,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
-            "notApplicable": 0,
+            "externalBlocked": 4,
+            "notApplicable": 1,
             "verifiedComplete": 0
           }
         },
@@ -2013,7 +2032,11 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage is empty or contains an invalid status"
+        "full-goal coverage is empty or contains an invalid status",
+        "full-goal coverage has 17 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "productRelease lacks an exact sourceCommit",
+        "publicMetadata lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -2195,20 +2218,20 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 30,
+          "open": 28,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
-            "integratedCentral": 0,
+            "inProgress": 7,
+            "implementedLocal": 5,
+            "testedLocal": 4,
+            "integratedCentral": 2,
             "testnetVerified": 0,
-            "publicVerified": 0,
-            "externalBlocked": 0,
+            "publicVerified": 10,
+            "externalBlocked": 1,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 1
           }
         },
         "recordMatches": {
@@ -2272,7 +2295,7 @@
         "integration contract is missing from the branch tree",
         "productRelease belongs to a different product or authority owner",
         "publicMetadata belongs to a different product or authority owner",
-        "full-goal coverage is empty or contains an invalid status"
+        "full-goal coverage has 28 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -2393,7 +2416,9 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage has 28 autonomous or unresolved items"
+        "full-goal coverage has 28 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "publicMetadata lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: full-goal coverage has 28 autonomous or unresolved items."
     },
@@ -2443,20 +2468,20 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 25,
+          "open": 21,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 0,
+            "inProgress": 8,
             "implementedLocal": 0,
-            "testedLocal": 0,
+            "testedLocal": 13,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
+            "externalBlocked": 3,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 1
           }
         },
         "recordMatches": {
@@ -2517,7 +2542,9 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage is empty or contains an invalid status"
+        "full-goal coverage has 21 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "publicMetadata lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -2643,7 +2670,8 @@
       "blockers": [
         "productRelease belongs to a different product or authority owner",
         "publicMetadata belongs to a different product or authority owner",
-        "full-goal coverage has 32 autonomous or unresolved items"
+        "full-goal coverage has 32 autonomous or unresolved items",
+        "publicMetadata lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: productRelease belongs to a different product or authority owner."
     },
@@ -2895,7 +2923,8 @@
       "blockers": [
         "local and remote final branch SHAs differ",
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 26 autonomous or unresolved items"
+        "full-goal coverage has 26 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: local and remote final branch SHAs differ."
     },
@@ -3022,7 +3051,9 @@
       },
       "blockers": [
         "public metadata is missing from the branch tree",
-        "full-goal coverage has 21 autonomous or unresolved items"
+        "full-goal coverage has 21 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "productRelease lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: public metadata is missing from the branch tree."
     },
@@ -3146,6 +3177,9 @@
       "blockers": [
         "registered final worktree has uncommitted changes",
         "full-goal coverage has 22 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "productRelease lacks an exact sourceCommit",
+        "publicMetadata lacks an exact sourceCommit",
         "integrationContract sourceCommit is not reachable from the final branch"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
@@ -3273,7 +3307,8 @@
         "cross-product test vectors is missing from the branch tree",
         "dependency acceptance is missing from the branch tree",
         "productRelease belongs to a different product or authority owner",
-        "publicMetadata belongs to a different product or authority owner"
+        "publicMetadata belongs to a different product or authority owner",
+        "publicMetadata lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -3399,7 +3434,8 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 29 autonomous or unresolved items"
+        "full-goal coverage has 29 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -3556,8 +3592,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "43df61661c5addd6c457f26f5ada322cfc16a866",
-        "remoteSha": "43df61661c5addd6c457f26f5ada322cfc16a866",
+        "localSha": "5461be3f12896d47180534d8c912c6ff1a27bddc",
+        "remoteSha": "5461be3f12896d47180534d8c912c6ff1a27bddc",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3569,9 +3605,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "43df61661c5addd6c457f26f5ada322cfc16a866",
-        "clean": true,
-        "changedEntries": 0,
+        "observedHead": "5461be3f12896d47180534d8c912c6ff1a27bddc",
+        "clean": false,
+        "changedEntries": 2,
         "statusError": null
       },
       "evidence": {
@@ -3613,28 +3649,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "productRelease": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 46
+            "distance": 47
           },
           "publicMetadata": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 46
+            "distance": 47
           },
           "integrationContract": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 46
+            "distance": 47
           }
         },
         "claimedReleaseStates": {
@@ -3658,9 +3694,10 @@
         "acceptedAt": null
       },
       "blockers": [
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 67 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 67 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "30",
@@ -3798,8 +3835,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
-        "remoteSha": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+        "localSha": "146c2a0ad85136815f03b2272688c5220cef7842",
+        "remoteSha": "146c2a0ad85136815f03b2272688c5220cef7842",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3811,72 +3848,72 @@
       "worktree": {
         "registered": true,
         "pathToken": "31-governance",
-        "observedHead": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+        "observedHead": "146c2a0ad85136815f03b2272688c5220cef7842",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
         "paths": {
-          "fullGoalCoverage": null,
+          "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
           "productRelease": "release/governance/product-release.json",
           "publicMetadata": "release/governance/public-product-metadata.json",
-          "integrationContract": null,
-          "integrationHandoff": null,
-          "crossProductTestVectors": null,
-          "dependencyAcceptance": null
+          "integrationContract": "release/integration/governance-contract.json",
+          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
+          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 14,
+          "open": 12,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 0,
+            "inProgress": 5,
             "implementedLocal": 0,
-            "testedLocal": 0,
+            "testedLocal": 7,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
+            "externalBlocked": 1,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 1
           }
         },
         "recordMatches": {
-          "fullGoalCoverage": false,
+          "fullGoalCoverage": true,
           "productRelease": true,
           "publicMetadata": true,
-          "integrationContract": false
+          "integrationContract": true
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           },
           "productRelease": {
             "sourceCommit": "ea949aacac147505360528583bd7fade12f7cac8",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 28
+            "distance": 29
           },
           "publicMetadata": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           },
           "integrationContract": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           }
         },
         "claimedReleaseStates": {
@@ -3900,13 +3937,9 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage is missing from the branch tree",
-        "integration contract is missing from the branch tree",
-        "integration handoff is missing from the branch tree",
-        "cross-product test vectors is missing from the branch tree",
-        "dependency acceptance is missing from the branch tree"
+        "full-goal coverage has 12 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage is missing from the branch tree."
+      "nextAction": "Resolve: full-goal coverage has 12 autonomous or unresolved items."
     },
     {
       "id": "32",
@@ -4031,7 +4064,8 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 30 autonomous or unresolved items"
+        "full-goal coverage has 30 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -4158,7 +4192,8 @@
       "blockers": [
         "registered final worktree has uncommitted changes",
         "public metadata is missing from the branch tree",
-        "full-goal coverage has 41 autonomous or unresolved items"
+        "full-goal coverage has 41 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -4290,7 +4325,8 @@
         "integration contract is missing from the branch tree",
         "integration handoff is missing from the branch tree",
         "cross-product test vectors is missing from the branch tree",
-        "dependency acceptance is missing from the branch tree"
+        "dependency acceptance is missing from the branch tree",
+        "productRelease lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -4393,15 +4429,15 @@
           }
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "exactCommitBound": false
       },
@@ -4539,7 +4575,8 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 37 autonomous or unresolved items"
+        "full-goal coverage has 37 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     }
