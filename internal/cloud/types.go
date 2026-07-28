@@ -165,6 +165,14 @@ type StorageTransition struct {
 	LastError        string       `json:"lastError,omitempty"`
 }
 
+type StorageTransitionWorkerResult struct {
+	Claimed       int      `json:"claimed"`
+	Completed     int      `json:"completed"`
+	Failed        int      `json:"failed"`
+	Interrupted   int      `json:"interrupted"`
+	TransitionIDs []string `json:"transitionIds,omitempty"`
+}
+
 type StorageTransitionRequest struct {
 	TransitionID string       `json:"transitionId"`
 	Scope        string       `json:"scope"`

@@ -361,6 +361,233 @@ func TestStorageLifecycleUnsupportedAndAuthorization(t *testing.T) {
 	}
 }
 
+func persistPendingTransitionForTest(t *testing.T, service *Service, object Object, target StorageClass) StorageTransition {
+	t.Helper()
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	_, version, err := currentVersionIndex(service.state, object)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := service.cfg.Now()
+	transition := StorageTransition{
+		ID:           newID("storage-transition"),
+		Product:      object.Product,
+		Owner:        object.Owner,
+		ObjectID:     object.ID,
+		Version:      version.Number,
+		Ref:          version.BlobPath,
+		Hash:         version.Hash,
+		From:         normalizedVersionStorageClass(version),
+		To:           target,
+		CopyRequired: physicalReferenceCount(service.state, version.BlobPath, version.Hash) > 1,
+		Status:       "pending",
+		Attempts:     1,
+		RequestedAt:  now,
+		UpdatedAt:    now,
+	}
+	service.state.StorageTransitions[transition.ID] = transition
+	if err := saveState(service.cfg.StatePath, &service.state); err != nil {
+		t.Fatal(err)
+	}
+	return transition
+}
+
+func TestStorageLifecycleWorkerRecoversPendingAfterRestart(t *testing.T) {
+	dir := t.TempDir()
+	store := &lifecycleTestStore{LocalObjectStore: LocalObjectStore{Root: filepath.Join(dir, "objects")}}
+	cfg := Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: filepath.Join(dir, "objects"), ObjectStore: store}
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	object, err := service.Create(context.Background(), owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "orphan.bin", Content: []byte("orphan")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	orphan := persistPendingTransitionForTest(t, service, object, StorageClassCold)
+
+	restarted, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := restarted.RecoverPendingStorageTransitions(context.Background(), 1)
+	if err != nil || result.Claimed != 1 || result.Completed != 1 || result.Failed != 0 || len(result.TransitionIDs) != 1 || result.TransitionIDs[0] != orphan.ID {
+		t.Fatalf("pending recovery result: %#v %v", result, err)
+	}
+	transitions, err := restarted.StorageTransitions(owner, "cloud", object.ID)
+	if err != nil || len(transitions) != 1 || transitions[0].Status != "completed" || transitions[0].Attempts != 2 {
+		t.Fatalf("pending recovery truth: %#v %v", transitions, err)
+	}
+	recoveredObject, err := restarted.Get(owner, object.ID)
+	if err != nil || recoveredObject.StorageClass != StorageClassCold || recoveredObject.StorageClassVersion != 2 {
+		t.Fatalf("pending recovery object: %#v %v", recoveredObject, err)
+	}
+	foundAudit := false
+	for _, event := range restarted.state.Audit {
+		if event.Action == "storage.transition.recovered" && event.ObjectID == object.ID {
+			foundAudit = true
+			break
+		}
+	}
+	if !foundAudit {
+		t.Fatal("pending recovery audit event missing")
+	}
+
+	restartedAgain, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	empty, err := restartedAgain.RecoverPendingStorageTransitions(context.Background(), 8)
+	if err != nil || empty.Claimed != 0 {
+		t.Fatalf("completed transition was reclaimed after restart: %#v %v", empty, err)
+	}
+}
+
+func TestStorageLifecycleWorkerDoesNotDoubleExecuteActiveTransition(t *testing.T) {
+	dir := t.TempDir()
+	started := make(chan struct{})
+	release := make(chan struct{})
+	store := &lifecycleTestStore{LocalObjectStore: LocalObjectStore{Root: filepath.Join(dir, "objects")}, started: started, release: release}
+	service, err := New(Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: filepath.Join(dir, "objects"), ObjectStore: store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	object, err := service.Create(context.Background(), owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "active.bin", Content: []byte("active")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	transitionResult := make(chan error, 1)
+	go func() {
+		_, transitionErr := service.TransitionStorageClass(context.Background(), owner, "cloud", object.ID, StorageClassCold)
+		transitionResult <- transitionErr
+	}()
+	<-started
+	workerResult, err := service.RecoverPendingStorageTransitions(context.Background(), 8)
+	if err != nil || workerResult.Claimed != 0 {
+		t.Fatalf("worker double-claimed active transition: %#v %v", workerResult, err)
+	}
+	close(release)
+	if err := <-transitionResult; err != nil {
+		t.Fatal(err)
+	}
+	store.mu.Lock()
+	calls := len(store.calls)
+	store.mu.Unlock()
+	if calls != 1 {
+		t.Fatalf("active transition executed %d provider calls", calls)
+	}
+}
+
+func TestStorageLifecycleWorkerFailureDoesNotHotLoop(t *testing.T) {
+	dir := t.TempDir()
+	store := &lifecycleTestStore{LocalObjectStore: LocalObjectStore{Root: filepath.Join(dir, "objects")}, fail: true}
+	service, err := New(Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: filepath.Join(dir, "objects"), ObjectStore: store})
+	if err != nil {
+		t.Fatal(err)
+	}
+	object, err := service.Create(context.Background(), owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "failed-worker.bin", Content: []byte("failure")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	orphan := persistPendingTransitionForTest(t, service, object, StorageClassArchive)
+	result, err := service.RecoverPendingStorageTransitions(context.Background(), 8)
+	if err != nil || result.Claimed != 1 || result.Completed != 0 || result.Failed != 1 {
+		t.Fatalf("worker failure truth: %#v %v", result, err)
+	}
+	transitions, err := service.StorageTransitions(owner, "cloud", object.ID)
+	if err != nil || len(transitions) != 1 || transitions[0].ID != orphan.ID || transitions[0].Status != "failed" || transitions[0].Attempts != 2 {
+		t.Fatalf("worker failed transition: %#v %v", transitions, err)
+	}
+	second, err := service.RecoverPendingStorageTransitions(context.Background(), 8)
+	if err != nil || second.Claimed != 0 {
+		t.Fatalf("failed transition hot-looped: %#v %v", second, err)
+	}
+	store.mu.Lock()
+	calls := len(store.calls)
+	store.mu.Unlock()
+	if calls != 1 {
+		t.Fatalf("failed transition executed %d provider calls", calls)
+	}
+}
+
+func TestStorageLifecycleWorkerCancellationRemainsRecoverable(t *testing.T) {
+	dir := t.TempDir()
+	started := make(chan struct{})
+	release := make(chan struct{})
+	store := &lifecycleTestStore{LocalObjectStore: LocalObjectStore{Root: filepath.Join(dir, "objects")}, started: started, release: release}
+	cfg := Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: filepath.Join(dir, "objects"), ObjectStore: store}
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	object, err := service.Create(context.Background(), owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "interrupted-worker.bin", Content: []byte("interrupted")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	pending := persistPendingTransitionForTest(t, service, object, StorageClassCold)
+
+	type workerOutcome struct {
+		result StorageTransitionWorkerResult
+		err    error
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	outcomes := make(chan workerOutcome, 1)
+	go func() {
+		result, workerErr := service.RecoverPendingStorageTransitions(ctx, 1)
+		outcomes <- workerOutcome{result: result, err: workerErr}
+	}()
+	<-started
+	cancel()
+	outcome := <-outcomes
+	if !errors.Is(outcome.err, context.Canceled) || outcome.result.Claimed != 1 || outcome.result.Completed != 0 || outcome.result.Failed != 0 || outcome.result.Interrupted != 1 {
+		t.Fatalf("canceled worker result: %#v %v", outcome.result, outcome.err)
+	}
+	transitions, err := service.StorageTransitions(owner, "cloud", object.ID)
+	if err != nil || len(transitions) != 1 || transitions[0].ID != pending.ID || transitions[0].Status != "pending" || transitions[0].Attempts != 2 || !strings.Contains(transitions[0].LastError, "recovery pending") {
+		t.Fatalf("canceled worker transition truth: %#v %v", transitions, err)
+	}
+	foundAudit := false
+	for _, event := range service.state.Audit {
+		if event.Action == "storage.transition.interrupted" && event.ObjectID == object.ID {
+			foundAudit = true
+			break
+		}
+	}
+	if !foundAudit {
+		t.Fatal("interrupted transition audit event missing")
+	}
+
+	close(release)
+	restarted, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := restarted.RecoverPendingStorageTransitions(context.Background(), 1)
+	if err != nil || recovered.Claimed != 1 || recovered.Completed != 1 || recovered.Failed != 0 || recovered.Interrupted != 0 {
+		t.Fatalf("interrupted transition restart recovery: %#v %v", recovered, err)
+	}
+	transitions, err = restarted.StorageTransitions(owner, "cloud", object.ID)
+	if err != nil || len(transitions) != 1 || transitions[0].Status != "completed" || transitions[0].Attempts != 3 {
+		t.Fatalf("interrupted transition final truth: %#v %v", transitions, err)
+	}
+}
+
+func TestStorageLifecycleWorkerBoundsAndCancellation(t *testing.T) {
+	service := testService(t, nil)
+	if _, err := service.RecoverPendingStorageTransitions(context.Background(), 0); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("zero worker batch accepted: %v", err)
+	}
+	if _, err := service.RecoverPendingStorageTransitions(context.Background(), 65); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("oversized worker batch accepted: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := service.RecoverPendingStorageTransitions(ctx, 1); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled worker context accepted: %v", err)
+	}
+}
+
 func TestSchemaV6MigratesStorageLifecycleDefaultsToV7(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "state.json")

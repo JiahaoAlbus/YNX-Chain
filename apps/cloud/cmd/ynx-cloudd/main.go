@@ -12,8 +12,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/cloud"
@@ -79,8 +81,16 @@ func main() {
 	rollbackV1 := flag.String("rollback-state-v1", "", "write a verified schema-v1 rollback state to this new file and exit")
 	maxConcurrent := flag.Int("max-concurrent", 128, "maximum in-flight HTTP requests before fail-fast backpressure")
 	requestsPerMinute := flag.Int("requests-per-minute", 120, "fixed-window requests per direct TCP client")
+	lifecycleWorkerInterval := flag.Duration("lifecycle-worker-interval", 2*time.Second, "interval for recovering persisted pending storage lifecycle transitions")
+	lifecycleWorkerBatch := flag.Int("lifecycle-worker-batch", 8, "maximum pending storage lifecycle transitions claimed per worker cycle")
 	exitMode := flag.Bool("user-exit-mode", false, "disable new writes while preserving authentication, read, export, revoke, cancel, trash and delete paths")
 	flag.Parse()
+	if *lifecycleWorkerInterval < 100*time.Millisecond || *lifecycleWorkerInterval > time.Minute {
+		log.Fatal("-lifecycle-worker-interval must be between 100ms and 1m")
+	}
+	if *lifecycleWorkerBatch < 1 || *lifecycleWorkerBatch > 64 {
+		log.Fatal("-lifecycle-worker-batch must be between 1 and 64")
+	}
 	operations := 0
 	for _, value := range []string{*backupDir, *restoreDir, *rollbackV1} {
 		if value != "" {
@@ -139,6 +149,33 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	workerCtx, stopWorker := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopWorker()
+	go func() {
+		run := func() {
+			result, err := service.RecoverPendingStorageTransitions(workerCtx, *lifecycleWorkerBatch)
+			if err != nil {
+				if workerCtx.Err() == nil {
+					log.Printf("storage lifecycle recovery worker failed: %v", err)
+				}
+				return
+			}
+			if result.Claimed > 0 {
+				log.Printf("storage lifecycle recovery worker claimed=%d completed=%d failed=%d", result.Claimed, result.Completed, result.Failed)
+			}
+		}
+		run()
+		ticker := time.NewTicker(*lifecycleWorkerInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-workerCtx.Done():
+				return
+			case <-ticker.C:
+				run()
+			}
+		}
+	}()
 	api := cloud.NewServerWithLimits(service, cloud.ServerLimits{MaxConcurrent: *maxConcurrent, RequestsPerMinute: *requestsPerMinute}).Handler()
 	mux := http.NewServeMux()
 	mux.Handle("/api/", api)
@@ -150,8 +187,25 @@ func main() {
 		http.Redirect(w, r, "/cloud/", http.StatusTemporaryRedirect)
 	})
 	server := &http.Server{Addr: *addr, Handler: cloud.SecureHandlerWithDirectUploadOrigin(mux, os.Getenv("YNX_DIRECT_UPLOAD_ORIGIN")), ReadHeaderTimeout: 5e9, ReadTimeout: 15e9, WriteTimeout: 30e9, IdleTimeout: 60e9}
+	serverErrors := make(chan error, 1)
+	go func() {
+		serverErrors <- server.ListenAndServe()
+	}()
 	log.Printf("ynx-cloudd listening on %s; durability is bounded local persistence, not production storage", *addr)
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
+	select {
+	case err := <-serverErrors:
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	case <-workerCtx.Done():
+		shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancelShutdown()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			log.Printf("ynx-cloudd graceful shutdown failed: %v", err)
+			_ = server.Close()
+		}
+		if err := <-serverErrors; err != nil && err != http.ErrServerClosed {
+			log.Printf("ynx-cloudd stopped with server error: %v", err)
+		}
 	}
 }
