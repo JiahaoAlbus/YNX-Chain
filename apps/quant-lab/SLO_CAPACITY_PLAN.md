@@ -1,23 +1,37 @@
 # SLO and capacity plan
 
-## Measured local baseline
+## Measured local baselines
 
-Measured 2026-07-22 on one local macOS arm64 host using the compiled Go
-`ynx-quantd` binary, loopback HTTP, 500 requests per endpoint, concurrency 20.
-This is a development-host baseline, not a public-capacity claim.
+Measured 2026-07-29 on one macOS arm64 host with 8 logical CPUs and Go 1.25.7,
+bound to source commit `369807b7a6d865db4009a67e305480d39de6a154`.
+The repeatable harness retained every raw wall-clock sample. This is a
+development-host baseline, not a public-capacity claim.
 
 | Endpoint | p50 | p95 | p99 | Throughput | Errors |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `GET /health` | 1.264 ms | 3.142 ms | 13.054 ms | 5,158.1 req/s | 0/500 |
-| `GET /v1/snapshot` | 1.187 ms | 3.013 ms | 3.700 ms | 7,839.3 req/s | 0/500 |
+| `GET /health` | 2.737 ms | 4.120 ms | 4.404 ms | 6,660.5 req/s | 0/500 |
+| `GET /v1/snapshot` | 2.376 ms | 3.325 ms | 4.027 ms | 7,842.8 req/s | 0/500 |
 
-Cold start, measured across 20 process starts: p50 5.990 ms, p95 9.594 ms,
+| Workload | Count | p50 | p95 | p99 | Throughput | Errors |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| deterministic backtest, 512 bars | 40 | 2.984 ms | 4.304 ms | 4.811 ms | 354.0 runs/s | 0 |
+| signed worker service, 512 bars | 40 | 3.464 ms | 4.852 ms | 4.891 ms | 277.1 jobs/s | 0 |
+| worker queue age | 40 | 64.963 ms | 135.261 ms | 144.437 ms | — | 0 |
+
+The 40 API backtests grew the atomic JSON state by 243,181 bytes. The 40 worker
+jobs grew state by 242,033 bytes and produced 2,396,354 outbox bytes. These are
+short synthetic samples, not retention or long-soak forecasts. Raw evidence is
+in `evidence/local-api-backtest-capacity-20260729.json` and
+`evidence/local-worker-capacity-20260729.json`.
+
+The earlier 2026-07-22 cold-start sample across 20 process starts measured p50
+5.990 ms, p95 9.594 ms,
 p99/max 337.302 ms. The outlier is retained. No warm-up result is substituted.
 
 Not yet measured: public network latency, authenticated Gateway overhead,
 Exchange/DEX provider latency, sustained mixed writes, large datasets, WebSocket
-fan-out, desktop launch, container cold start, queue saturation, storage growth,
-or multi-region behavior.
+fan-out, desktop launch, container cold start, queue saturation, long-soak
+storage growth, or multi-region behavior.
 
 ## Candidate SLOs
 
