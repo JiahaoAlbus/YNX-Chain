@@ -2,9 +2,9 @@
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
   "branch": "codex/final-developer",
-  "commit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+  "commit": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
   "version": "0.2.0",
-  "sourceCheckpoint": "macos-current-source-provenance-2026-07-27",
+  "sourceCheckpoint": "windows-current-source-provenance-2026-07-27",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -31,7 +31,7 @@
       "installedLocal": true,
       "installedPlatforms": {
         "macosArm64": true,
-        "windowsX64": false
+        "windowsX64": true
       },
       "integratedCentral": false,
       "deployedStaging": false,
@@ -46,7 +46,8 @@
         "sameOriginProxy": "passed",
         "placeholderGate": "passed with grep fallback because rg was unavailable",
         "credentialLeakGate": "passed with grep fallback because rg was unavailable",
-        "macosCurrentSourcePackage": "embedded provenance, extracted self-test, ad-hoc classification, cold launch, bundled server observation and child cleanup passed"
+        "macosCurrentSourcePackage": "embedded provenance, extracted self-test, ad-hoc classification, cold launch, bundled server observation and child cleanup passed",
+        "windowsCurrentSourcePackage": "GitHub Actions run 30280327020: compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed"
       },
       "capabilities": [
         "OpenAPI 3.0/3.1 JSON import and validation",
@@ -69,19 +70,19 @@
   },
   "sha256": {
     "macosArm64UnsignedZip": "55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9",
-    "windowsX64UnsignedZip": "2899026250ecbbb28fc853cba291565bf792902b301f24280858cf4eb9098991"
+    "windowsX64UnsignedZip": "92d2e85210740c44f2c3f2f08eb3ea1a2a84b30c836106498d4ba48696e62a54"
   },
   "bytes": {
     "macosArm64UnsignedZip": 38450127,
-    "windowsX64UnsignedZip": 106319108
+    "windowsX64UnsignedZip": 106341640
   },
   "artifactSourceCommits": {
     "macosArm64UnsignedZip": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
-    "windowsX64UnsignedZip": "c6b4affc03b3255100516c34483096f445c46753"
+    "windowsX64UnsignedZip": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e"
   },
   "artifactRuntimeCheckpoints": {
     "macosArm64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-    "windowsX64UnsignedZip": "c6b4affc03b3255100516c34483096f445c46753"
+    "windowsX64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551"
   },
   "signingClass": {
     "macos": "adhoc-no-team-id",
@@ -108,9 +109,20 @@
     {
       "surface": "windows-x64-testnet-preview",
       "class": "windows-ci-portable-extract",
-      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
-      "result": "compile, package, resource self-test, WPF cold launch, bundled server observation and child cleanup passed",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29658166198"
+      "sourceCommit": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
+      "sourceTree": "f8687d6cce6e187d96daefd2e30757cf49f7c9dc",
+      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+      "artifactSha256": "92d2e85210740c44f2c3f2f08eb3ea1a2a84b30c836106498d4ba48696e62a54",
+      "artifactBytes": 106341640,
+      "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+      "provenanceEmbedded": true,
+      "authenticodeStatus": "NotSigned",
+      "runId": 30280327020,
+      "jobId": 90024771435,
+      "artifactId": 8658611304,
+      "artifactOuterDigest": "sha256:888478649d2f9e2241469e439d918260e4ad8b2c7e7cc40861a0e8925ace7762",
+      "artifactExpiresAt": "2026-08-10T15:33:26Z",
+      "result": "compile, embedded provenance, native self-test, portable extraction, Authenticode NotSigned classification, WPF cold launch, bundled server observation, child cleanup and transient artifact upload passed"
     }
   ],
   "centralIntegration": {
@@ -127,10 +139,10 @@
     "No central Wallet registry/provider integration or real Wallet-signed deployment was performed.",
     "No provider-backed AI generation was performed because no operator provider credential/configuration was supplied.",
     "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
-    "Current-source API Studio is installed and cold-launched only in the local macOS arm64 unsigned Testnet Preview; this is not public hosting, Gatekeeper distribution, notarization or production signing.",
-    "The Windows x64 package evidence remains tied to historical source commit c6b4affc03b3255100516c34483096f445c46753 and does not prove current-source API Studio installation.",
+    "Current-source API Studio is installed and cold-launched in local macOS arm64 and Windows x64 unsigned Testnet Previews; neither is a public, notarized, Authenticode-signed or production release.",
+    "The current Windows artifact is a transient GitHub Actions artifact expiring 2026-08-10 and is not an immutable public product download.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The pinned chain compiler response truthfully reports deterministic analyzer output unless a matching production solc artifact exists; no arbitrary EVM or remote public verification claim is made."
   ],
-  "generatedAt": "2026-07-27T15:04:04Z"
+  "generatedAt": "2026-07-27T15:40:21Z"
 }

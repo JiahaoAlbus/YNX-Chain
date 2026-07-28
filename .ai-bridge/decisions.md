@@ -30,6 +30,14 @@
 4. **Current-source installation is platform-specific.** macOS arm64 is true; Windows x64 remains false until a current workflow build and cold-start run succeed.
 5. **Ad-hoc signing is not production signing.** The package remains a local unsigned Testnet Preview with no Team ID, Developer ID or notarization.
 
+## 2026-07-27 — Windows current-source artifact proof
+
+1. **A successful Workflow summary is not sufficient.** Build, portable install/cold-launch and Artifact upload steps must each succeed, and the downloaded evidence must agree with the package bytes.
+2. **The product ZIP and GitHub Artifact archive have different digests.** The inner product ZIP is `92d2e852...`; the outer GitHub Artifact archive is `88847864...`. Both are recorded with their own bytes and semantics.
+3. **A transient CI Artifact is not `downloadHosted`.** Expiration on 2026-08-10 means it cannot be presented as an immutable public release asset.
+4. **Authenticode `NotSigned` is a verified signing class, not a production signature.** The Windows package remains an unsigned Testnet Preview.
+5. **Current-source installation truth is platform-specific and now true for both macOS arm64 and Windows x64.** This does not imply central integration, staging, public deployment or store release.
+
 ## Safety decisions
 
 - No private key, signing material, credential value or production secret may be requested in chat, written to repository state, or exposed to the browser.

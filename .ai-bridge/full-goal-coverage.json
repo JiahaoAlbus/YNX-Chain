@@ -9,8 +9,8 @@
     "owner": "11-developer"
   },
   "phase": "FREEZE",
-  "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
-  "lastUpdated": "2026-07-27T15:04:04Z",
+  "sourceCommit": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
+  "lastUpdated": "2026-07-27T15:40:21Z",
   "allowedStatuses": [
     "notStarted",
     "inProgress",
@@ -56,10 +56,12 @@
         "API Studio i18n/accessibility and fail-closed scan gates committed and pushed as 8f352d0159eef0ab60fb6411e949cfcf3aafb551",
         "API Studio evidence records committed and pushed as 3519c5c608e8f9a011e2d39eb9be858710eae499",
         "macOS embedded-provenance package gates committed and pushed as 9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+        "macOS artifact evidence committed and pushed as 3d15991f325673bf77a3666bb364ac93b5f6d426",
+        "Windows embedded-provenance and final-branch CI gates committed and pushed as 5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
         "origin/codex/final-developer created and upstream tracking established",
-        "Local SHA and upstream SHA matched at 9bcb984d475a39cc9fcd7e46fbb00adaee0421ca"
+        "Local SHA and upstream SHA matched at 5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e"
       ],
-      "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+      "sourceCommit": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
       "tests": [
         "Developer client 22 passed",
         "Developer Web 17 passed",
@@ -68,14 +70,15 @@
         "Live check passed",
         "Same-origin proxy check passed",
         "No-placeholder and secret scans executed through the grep fallback and passed",
-        "Current-source macOS package embedded provenance and passed extracted cold-start verification"
+        "Current-source macOS package embedded provenance and passed extracted cold-start verification",
+        "Windows CI run 30280327020 built, cold-launched and uploaded the current-source package from 5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e"
       ],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "11-developer",
       "nextAction": "Verify Local SHA equals Remote SHA after each subsequent commit.",
-      "lastUpdated": "2026-07-27T15:04:04Z"
+      "lastUpdated": "2026-07-27T15:40:21Z"
     },
     {
       "id": "DEV-IDE-001",
@@ -341,26 +344,35 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": [
-        "Windows CI run 29658166198",
-        "portable package evidence"
+        "GitHub Actions run 30280327020 and job 90024771435 completed successfully on Windows Server 2025 for exact head 5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
+        "Source tree f8687d6cce6e187d96daefd2e30757cf49f7c9dc and runtime checkpoint 8f352d0159eef0ab60fb6411e949cfcf3aafb551 were embedded and independently matched",
+        "Windows ZIP SHA-256 92d2e85210740c44f2c3f2f08eb3ea1a2a84b30c836106498d4ba48696e62a54 and 106341640 bytes",
+        "Embedded CycloneDX SBOM SHA-256 15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+        "GitHub artifact 8658611304 outer digest sha256:888478649d2f9e2241469e439d918260e4ad8b2c7e7cc40861a0e8925ace7762 and 105947974 bytes, expiring 2026-08-10",
+        "Native self-test, portable extraction, Authenticode NotSigned classification, WPF cold launch, bundled Node server observation and child cleanup all passed"
       ],
-      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
+      "sourceCommit": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
       "tests": [
-        "Windows compile",
+        "Developer client 22 passed on windows-latest",
+        "Developer Web 17 passed on windows-latest",
+        "dotnet publish --runtime win-x64 --self-contained true",
+        "embedded source/tree/runtime/SBOM provenance verification",
         "resource self-test",
-        "cold launch",
-        "child cleanup"
+        "Authenticode NotSigned classification",
+        "portable extraction and WPF cold launch",
+        "bundled server process verification",
+        "child cleanup",
+        "artifact upload"
       ],
-      "artifact": "Windows x64 unsigned ZIP, expiring CI artifact",
+      "artifact": "Windows x64 unsigned ZIP 92d2e85210740c44f2c3f2f08eb3ea1a2a84b30c836106498d4ba48696e62a54, 106341640 bytes, transient CI artifact only",
       "publicProof": null,
       "blockedBy": [
-        "current source Windows rebuild",
-        "Authenticode for production class",
-        "immutable hosting"
+        "Authenticode production signing",
+        "immutable public artifact hosting"
       ],
       "owner": "11-developer",
-      "nextAction": "Trigger current-source Windows CI after target branch push and verify package evidence.",
-      "lastUpdated": "2026-07-27T06:26:30Z"
+      "nextAction": "Keep the current package classified as unsigned-no-authenticode and replace the transient CI artifact with an immutable release only after Security/SRE approval and signing inputs.",
+      "lastUpdated": "2026-07-27T15:40:21Z"
     },
     {
       "id": "DEV-WEB-001",

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "ynx-developer-v1",
   "version": "0.2.0",
-  "generatedAt": "2026-07-27T15:04:04Z",
+  "generatedAt": "2026-07-27T15:40:21Z",
   "artifacts": [
     {
       "name": "ynx-developer-testnet-preview-macos-unsigned.zip",
@@ -23,13 +23,24 @@
       "name": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
       "surface": "Windows x64",
       "path": "apps/developer/.ynx-developer-windows/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
-      "sha256": "2899026250ecbbb28fc853cba291565bf792902b301f24280858cf4eb9098991",
-      "bytes": 106319108,
-      "sourceCommit": "c6b4affc03b3255100516c34483096f445c46753",
-      "currentSource": false,
+      "sha256": "92d2e85210740c44f2c3f2f08eb3ea1a2a84b30c836106498d4ba48696e62a54",
+      "bytes": 106341640,
+      "sourceCommit": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
+      "sourceTree": "f8687d6cce6e187d96daefd2e30757cf49f7c9dc",
+      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+      "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+      "provenanceEmbedded": true,
+      "currentSource": true,
       "signingClass": "unsigned-no-authenticode",
+      "authenticodeStatus": "NotSigned",
       "hosted": false,
-      "evidence": "Windows workflow run 29658166198 compiled and packaged the WPF/WebView2 App on windows-latest, extracted the portable ZIP, passed resource self-test, cold-launched the real App, observed bundled node.exe running server.mjs, closed the main window and verified child cleanup. The CI artifact expires after 14 days and is not a public immutable download."
+      "ciRunId": 30280327020,
+      "ciJobId": 90024771435,
+      "ciArtifactId": 8658611304,
+      "ciArtifactOuterSha256": "888478649d2f9e2241469e439d918260e4ad8b2c7e7cc40861a0e8925ace7762",
+      "ciArtifactOuterBytes": 105947974,
+      "ciArtifactExpiresAt": "2026-08-10T15:33:26Z",
+      "evidence": "Current-source workflow run 30280327020 compiled and packaged the WPF/WebView2 App on Windows Server 2025, verified embedded source/tree/runtime/SBOM provenance, extracted the portable ZIP, passed native resource self-test, classified the executable as Authenticode NotSigned, cold-launched the real App, observed bundled node.exe running server.mjs, closed the main window, verified child cleanup and uploaded the transient CI artifact. This is not a public immutable download."
     }
   ]
 }
