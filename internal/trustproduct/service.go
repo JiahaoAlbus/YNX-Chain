@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 const maxBody = 1 << 20
@@ -47,6 +49,7 @@ type Config struct {
 	AllowHeaderAuth   bool
 	CentralGatewayURL string
 	CentralClientID   string
+	Build             buildinfo.Info
 	Now               func() time.Time
 }
 
@@ -186,6 +189,7 @@ func New(cfg Config) (*Service, error) {
 	if cfg.AIModel == "" {
 		cfg.AIModel = "unconfigured"
 	}
+	cfg.Build = buildinfo.Normalize(cfg.Build)
 	cfg.CentralGatewayURL = strings.TrimRight(strings.TrimSpace(cfg.CentralGatewayURL), "/")
 	if cfg.CentralGatewayURL != "" {
 		if !strings.HasPrefix(cfg.CentralGatewayURL, "https://") && !strings.HasPrefix(cfg.CentralGatewayURL, "http://127.0.0.1:") && !strings.HasPrefix(cfg.CentralGatewayURL, "http://localhost:") {

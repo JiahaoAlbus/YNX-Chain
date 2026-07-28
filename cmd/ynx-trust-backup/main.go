@@ -9,7 +9,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/trustproduct"
+)
+
+var (
+	buildCommit  = "unknown"
+	buildRelease = "local"
+	buildTime    = "unknown"
 )
 
 func main() {
@@ -20,6 +27,19 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		printUsage(stderr)
 		return 2
+	}
+	if args[0] == "version" {
+		if len(args) != 1 {
+			fmt.Fprintln(stderr, "version does not accept arguments")
+			return 2
+		}
+		encoder := json.NewEncoder(stdout)
+		encoder.SetIndent("", "  ")
+		if err := encoder.Encode(currentBuildInfo()); err != nil {
+			fmt.Fprintf(stderr, "encode Trust backup build information: %v\n", err)
+			return 1
+		}
+		return 0
 	}
 
 	var manifest trustproduct.BackupManifest
@@ -97,8 +117,17 @@ func restoreBackup(args []string, stderr io.Writer) (trustproduct.BackupManifest
 	return manifest, nil
 }
 
+func currentBuildInfo() buildinfo.Info {
+	return buildinfo.Normalize(buildinfo.Info{
+		Commit:    strings.TrimSpace(buildCommit),
+		Release:   strings.TrimSpace(buildRelease),
+		BuildTime: strings.TrimSpace(buildTime),
+	})
+}
+
 func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "Usage:")
+	fmt.Fprintln(w, "  ynx-trust-backup version")
 	fmt.Fprintln(w, "  ynx-trust-backup create -store <state.json> -out <backup.json>")
 	fmt.Fprintln(w, "  ynx-trust-backup restore -backup <backup.json> -store <new-state.json>")
 }

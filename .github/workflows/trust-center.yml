@@ -1,0 +1,82 @@
+name: trust-center
+
+on:
+  push:
+    branches:
+      - codex/final-trust-center
+    paths:
+      - ".github/workflows/trust-center.yml"
+      - "Makefile"
+      - "go.mod"
+      - "go.sum"
+      - "apps/trust-center/**"
+      - "cmd/ynx-trust-backup/**"
+      - "internal/buildinfo/**"
+      - "internal/trustproduct/**"
+      - "scripts/package/trust-center-release.mjs"
+  pull_request:
+    paths:
+      - ".github/workflows/trust-center.yml"
+      - "Makefile"
+      - "go.mod"
+      - "go.sum"
+      - "apps/trust-center/**"
+      - "cmd/ynx-trust-backup/**"
+      - "internal/buildinfo/**"
+      - "internal/trustproduct/**"
+      - "scripts/package/trust-center-release.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trust-center-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.12"
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pinned vulnerability scanner
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Trust runtime
+        run: |
+          go test -race ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center
+          go vet ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center
+          ./apps/trust-center/check.sh
+          node --check ./scripts/package/trust-center-release.mjs
+
+      - name: Build and install-check release bundle
+        run: >-
+          node ./scripts/package/trust-center-release.mjs
+          --out dist/trust-center-release/ci
+          --evidence release/evidence/trust-center/ci
+
+      - name: Upload unsigned local candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: ynx-trust-center-${{ github.sha }}-linux-amd64
+          path: |
+            dist/trust-center-release/ci/**
+            release/evidence/trust-center/ci/**
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

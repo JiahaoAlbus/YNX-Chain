@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 func evidence() []Evidence {
@@ -225,7 +227,7 @@ func TestAIProviderPermissionFailureAndNoCaseMutation(t *testing.T) {
 }
 
 func TestHTTPAuthorizationSecurityAndTransparency(t *testing.T) {
-	svc, _ := New(Config{StorePath: filepath.Join(t.TempDir(), "s.json"), AllowHeaderAuth: true})
+	svc, _ := New(Config{StorePath: filepath.Join(t.TempDir(), "s.json"), AllowHeaderAuth: true, Build: buildinfo.Info{Commit: "commit-123", Release: "trust-test", BuildTime: "2026-07-27T00:00:00Z"}})
 	ts := httptest.NewServer(svc.Handler(http.NotFoundHandler()))
 	defer ts.Close()
 	healthResp, err := http.Get(ts.URL + "/health")
@@ -238,8 +240,9 @@ func TestHTTPAuthorizationSecurityAndTransparency(t *testing.T) {
 		t.Fatal(err)
 	}
 	healthResp.Body.Close()
-	if healthResp.StatusCode != http.StatusOK || health["stateFormatVersion"] != float64(currentSnapshotVersion) || health["tamperEvidentPersistence"] != true {
-		t.Fatalf("health does not disclose persistence integrity: status=%d body=%+v", healthResp.StatusCode, health)
+	build, _ := health["build"].(map[string]any)
+	if healthResp.StatusCode != http.StatusOK || health["stateFormatVersion"] != float64(currentSnapshotVersion) || health["tamperEvidentPersistence"] != true || build["commit"] != "commit-123" || build["release"] != "trust-test" || build["buildTime"] != "2026-07-27T00:00:00Z" {
+		t.Fatalf("health does not disclose persistence and build integrity: status=%d body=%+v", healthResp.StatusCode, health)
 	}
 	resp, err := http.Get(ts.URL + "/api/state")
 	if err != nil {

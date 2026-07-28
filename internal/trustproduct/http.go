@@ -15,7 +15,7 @@ func (s *Service) Handler(assets http.Handler) http.Handler {
 		if s.cfg.AllowHeaderAuth {
 			authMode = "development-trusted-header"
 		}
-		writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-trust-center", "persistent": true, "stateFormatVersion": currentSnapshotVersion, "tamperEvidentPersistence": true, "authMode": authMode, "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "aiProviderConfigured": s.cfg.AIURL != "" && s.cfg.AIKey != "", "truthBoundary": "Trust explains evidence, process, appeals and corrections; it does not punish or control native YNXT."})
+		writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-trust-center", "persistent": true, "stateFormatVersion": currentSnapshotVersion, "tamperEvidentPersistence": true, "authMode": authMode, "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "aiProviderConfigured": s.cfg.AIURL != "" && s.cfg.AIKey != "", "build": s.cfg.Build, "truthBoundary": "Trust explains evidence, process, appeals and corrections; it does not punish or control native YNXT."})
 	})
 	mux.HandleFunc("GET /api/state", func(w http.ResponseWriter, r *http.Request) {
 		actor, err := s.actorFrom(r, scopeEvidenceRead)

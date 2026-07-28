@@ -60,6 +60,26 @@ func TestRunCreatesAndColdStartsRestoredStore(t *testing.T) {
 	}
 }
 
+func TestRunReportsEmbeddedBuildInformation(t *testing.T) {
+	previousCommit, previousRelease, previousTime := buildCommit, buildRelease, buildTime
+	buildCommit, buildRelease, buildTime = "commit-abc", "trust-release", "2026-07-27T00:00:00Z"
+	t.Cleanup(func() {
+		buildCommit, buildRelease, buildTime = previousCommit, previousRelease, previousTime
+	})
+
+	var stdout, stderr bytes.Buffer
+	if code := run([]string{"version"}, &stdout, &stderr); code != 0 {
+		t.Fatalf("version exit=%d stderr=%s", code, stderr.String())
+	}
+	var version map[string]string
+	if err := json.Unmarshal(stdout.Bytes(), &version); err != nil {
+		t.Fatal(err)
+	}
+	if version["commit"] != "commit-abc" || version["release"] != "trust-release" || version["buildTime"] != "2026-07-27T00:00:00Z" {
+		t.Fatalf("unexpected version payload: %+v", version)
+	}
+}
+
 func TestRunFailsClosedOnInvalidInvocation(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	if code := run(nil, &stdout, &stderr); code != 2 {
