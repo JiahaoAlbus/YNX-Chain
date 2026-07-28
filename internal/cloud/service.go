@@ -42,8 +42,35 @@ type Service struct {
 }
 
 func New(cfg Config) (*Service, error) {
+	normalized, err := normalizeConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	state, err := loadState(normalized.StatePath)
+	if err != nil {
+		return nil, err
+	}
+	service := newService(normalized, state)
+	recovered := false
+	for id, job := range service.state.AIJobs {
+		if job.Status == "queued" || job.Status == "running" {
+			job.Status = "failed"
+			job.Error = "AI job was interrupted by service restart; retry requires fresh context consent"
+			service.state.AIJobs[id] = job
+			recovered = true
+		}
+	}
+	if recovered {
+		if err := saveState(normalized.StatePath, &service.state); err != nil {
+			return nil, err
+		}
+	}
+	return service, nil
+}
+
+func normalizeConfig(cfg Config) (Config, error) {
 	if strings.TrimSpace(cfg.StatePath) == "" {
-		return nil, errors.New("cloud state path is required")
+		return Config{}, errors.New("cloud state path is required")
 	}
 	if cfg.ObjectDir == "" {
 		cfg.ObjectDir = filepath.Join(filepath.Dir(cfg.StatePath), "objects")
@@ -69,26 +96,11 @@ func New(cfg Config) (*Service, error) {
 	if cfg.Now == nil {
 		cfg.Now = func() time.Time { return time.Now().UTC() }
 	}
-	state, err := loadState(cfg.StatePath)
-	if err != nil {
-		return nil, err
-	}
-	service := &Service{cfg: cfg, state: state, cancels: map[string]context.CancelFunc{}}
-	recovered := false
-	for id, job := range service.state.AIJobs {
-		if job.Status == "queued" || job.Status == "running" {
-			job.Status = "failed"
-			job.Error = "AI job was interrupted by service restart; retry requires fresh context consent"
-			service.state.AIJobs[id] = job
-			recovered = true
-		}
-	}
-	if recovered {
-		if err := saveState(cfg.StatePath, &service.state); err != nil {
-			return nil, err
-		}
-	}
-	return service, nil
+	return cfg, nil
+}
+
+func newService(cfg Config, state persistentState) *Service {
+	return &Service{cfg: cfg, state: state, cancels: map[string]context.CancelFunc{}}
 }
 
 func newID(prefix string) string {

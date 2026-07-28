@@ -18,6 +18,14 @@ func newState() persistentState {
 }
 
 func loadState(path string) (persistentState, error) {
+	return loadStateWithMigration(path, true)
+}
+
+func loadStateReadOnly(path string) (persistentState, error) {
+	return loadStateWithMigration(path, false)
+}
+
+func loadStateWithMigration(path string, persistMigration bool) (persistentState, error) {
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return newState(), nil
@@ -41,7 +49,7 @@ func loadState(path string) (persistentState, error) {
 		migrateV1ToV2(&state)
 	}
 	normalize(&state)
-	if migrated {
+	if migrated && persistMigration {
 		if err := saveState(path, &state); err != nil {
 			return persistentState{}, fmt.Errorf("persist cloud state migration: %w", err)
 		}
@@ -162,8 +170,17 @@ func saveState(path string, s *persistentState) error {
 }
 
 func writeBlob(root, hash string, content []byte) (string, error) {
+	if !validSHA256(hash) {
+		return "", errors.New("object hash is invalid")
+	}
 	dir := filepath.Join(root, hash[:2])
 	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	if err := validatePrivateDirectory(root, "object store root"); err != nil {
+		return "", err
+	}
+	if err := validatePrivateDirectory(dir, "object store hash directory"); err != nil {
 		return "", err
 	}
 	path := filepath.Join(dir, hash)
@@ -189,6 +206,55 @@ func writeBlob(root, hash string, content []byte) (string, error) {
 		return "", err
 	}
 	return path, f.Close()
+}
+
+func validatePrivateDirectory(path, label string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return fmt.Errorf("inspect %s: %w", label, err)
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("%s must be a real directory", label)
+	}
+	if info.Mode().Perm()&0o077 != 0 {
+		return fmt.Errorf("%s permissions are too broad", label)
+	}
+	return nil
+}
+
+func validateLocalObjectRef(root, ref, hash string) error {
+	if !validSHA256(hash) {
+		return errors.New("object hash is invalid")
+	}
+	rootAbs, err := filepath.Abs(filepath.Clean(root))
+	if err != nil {
+		return err
+	}
+	refAbs, err := filepath.Abs(filepath.Clean(ref))
+	if err != nil {
+		return err
+	}
+	expected := filepath.Join(rootAbs, hash[:2], hash)
+	if refAbs != expected {
+		return errors.New("object reference escapes the content-addressed store")
+	}
+	if err := validatePrivateDirectory(rootAbs, "object store root"); err != nil {
+		return err
+	}
+	if err := validatePrivateDirectory(filepath.Dir(expected), "object store hash directory"); err != nil {
+		return err
+	}
+	info, err := os.Lstat(expected)
+	if err != nil {
+		return fmt.Errorf("inspect object file: %w", err)
+	}
+	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		return errors.New("object file must be a regular file")
+	}
+	if info.Mode().Perm()&0o077 != 0 {
+		return errors.New("object file permissions are too broad")
+	}
+	return nil
 }
 
 func readBlob(path, expected string) ([]byte, error) {

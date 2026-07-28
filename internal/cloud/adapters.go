@@ -26,6 +26,9 @@ func (s LocalObjectStore) Put(_ context.Context, hash string, body []byte) (stri
 	return writeBlob(s.Root, hash, body)
 }
 func (s LocalObjectStore) Get(_ context.Context, ref, hash string) ([]byte, error) {
+	if err := validateLocalObjectRef(s.Root, ref, hash); err != nil {
+		return nil, err
+	}
 	return readBlob(ref, hash)
 }
 func (s LocalObjectStore) Boundary() string { return "bounded-local-filesystem-not-production-durable" }
