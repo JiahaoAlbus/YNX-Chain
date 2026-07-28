@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/bits"
 	"sort"
 )
 
@@ -95,8 +96,15 @@ func (certificate AvailabilityCertificate) Validate(batch WorkerBatch, validator
 		if validator.ID == "" || len(validator.PublicKey) != ed25519.PublicKeySize || validator.Power == 0 {
 			return errors.New("validator set contains an invalid member")
 		}
+		if _, duplicate := validatorByID[validator.ID]; duplicate {
+			return errors.New("validator set contains a duplicate ID")
+		}
 		validatorByID[validator.ID] = validator
-		totalPower += validator.Power
+		var carry uint64
+		totalPower, carry = bits.Add64(totalPower, validator.Power, 0)
+		if carry != 0 {
+			return errors.New("validator set total power overflows uint64")
+		}
 	}
 	seen := map[string]struct{}{}
 	var availablePower uint64
@@ -112,9 +120,13 @@ func (certificate AvailabilityCertificate) Validate(batch WorkerBatch, validator
 			return fmt.Errorf("invalid availability vote from %s", vote.ValidatorID)
 		}
 		seen[vote.ValidatorID] = struct{}{}
-		availablePower += validator.Power
+		var carry uint64
+		availablePower, carry = bits.Add64(availablePower, validator.Power, 0)
+		if carry != 0 {
+			return errors.New("available validator power overflows uint64")
+		}
 	}
-	if totalPower == 0 || availablePower*3 <= totalPower*2 {
+	if !hasTwoThirdsQuorum(availablePower, totalPower) {
 		return fmt.Errorf("insufficient availability power: available=%d total=%d", availablePower, totalPower)
 	}
 	return nil

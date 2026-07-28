@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/bits"
 	"sort"
 )
 
@@ -177,7 +178,11 @@ func (q QuorumCertificate) Validate(validators []Validator) error {
 			return errors.New("validator set contains a duplicate ID")
 		}
 		validatorByID[validator.ID] = validator
-		totalPower += validator.Power
+		var carry uint64
+		totalPower, carry = bits.Add64(totalPower, validator.Power, 0)
+		if carry != 0 {
+			return errors.New("validator set total power overflows uint64")
+		}
 	}
 	seen := map[string]struct{}{}
 	var signedPower uint64
@@ -194,12 +199,29 @@ func (q QuorumCertificate) Validate(validators []Validator) error {
 			return fmt.Errorf("invalid vote from validator %s", vote.ValidatorID)
 		}
 		seen[vote.ValidatorID] = struct{}{}
-		signedPower += validator.Power
+		var carry uint64
+		signedPower, carry = bits.Add64(signedPower, validator.Power, 0)
+		if carry != 0 {
+			return errors.New("signed validator power overflows uint64")
+		}
 	}
-	if totalPower == 0 || signedPower*3 <= totalPower*2 {
+	if !hasTwoThirdsQuorum(signedPower, totalPower) {
 		return fmt.Errorf("insufficient quorum power: signed=%d total=%d", signedPower, totalPower)
 	}
 	return nil
+}
+
+// hasTwoThirdsQuorum evaluates signed/total > 2/3 without multiplying either
+// uint64 input. The caller must still reject overflow while accumulating power.
+func hasTwoThirdsQuorum(signed, total uint64) bool {
+	if total == 0 || signed > total {
+		return false
+	}
+	threshold := (total / 3) * 2
+	if total%3 == 2 {
+		threshold++
+	}
+	return signed > threshold
 }
 
 func DeterministicLeader(validators []Validator, view uint64) (string, error) {

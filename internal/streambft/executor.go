@@ -93,7 +93,11 @@ func (e Executor) Execute(initial State, transactions []Transaction) (State, Exe
 		for _, transaction := range wave {
 			applyWrites(state, transaction)
 			result.Applied = append(result.Applied, transaction.ID)
-			result.Resources = result.Resources.Add(transaction.Resources)
+			resources, ok := result.Resources.checkedAdd(transaction.Resources)
+			if !ok {
+				return nil, ExecutionResult{}, fmt.Errorf("execution resource accounting overflow at %s", transaction.ID)
+			}
+			result.Resources = resources
 		}
 	}
 	result.StateRoot = StateRoot(state)
@@ -120,7 +124,11 @@ func (e Executor) executeSequential(initial State, ordered []Transaction, parall
 		}
 		applyWrites(state, transaction)
 		result.Applied = append(result.Applied, transaction.ID)
-		result.Resources = result.Resources.Add(transaction.Resources)
+		resources, ok := result.Resources.checkedAdd(transaction.Resources)
+		if !ok {
+			return nil, ExecutionResult{}, fmt.Errorf("execution resource accounting overflow at %s", transaction.ID)
+		}
+		result.Resources = resources
 	}
 	result.StateRoot = StateRoot(state)
 	return state, result, nil

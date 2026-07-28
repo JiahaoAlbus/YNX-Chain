@@ -130,6 +130,64 @@ func TestAvailabilityAndQuorumRequireMoreThanTwoThirds(t *testing.T) {
 	}
 }
 
+func TestAvailabilityAndQuorumPowerArithmeticFailsClosed(t *testing.T) {
+	validators, privateKeys := testValidators(t, 4)
+	validators[0].Power = math.MaxUint64 - 1
+	validators[1].Power = 2
+	batch, err := NewWorkerBatch(1, 1, "worker", nil, []string{"tx"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	availability := AvailabilityCertificate{
+		ChainID:     ChainID,
+		BatchDigest: batch.Digest,
+		Votes: []Vote{{
+			ValidatorID: validators[0].ID,
+			Signature:   ed25519.Sign(privateKeys[0], AvailabilityMessage(batch.Digest)),
+		}},
+	}
+	if err := availability.Validate(batch, validators); err == nil {
+		t.Fatal("availability accepted overflowing validator power")
+	}
+	qc := QuorumCertificate{
+		ChainID: ChainID,
+		View:    1,
+		BlockID: "block",
+		Votes: []Vote{{
+			ValidatorID: validators[0].ID,
+			Signature:   ed25519.Sign(privateKeys[0], QuorumMessage(1, "block", false)),
+		}},
+	}
+	if err := qc.Validate(validators); err == nil {
+		t.Fatal("quorum accepted overflowing validator power")
+	}
+
+	duplicate := []Validator{validators[2], validators[2]}
+	if err := availability.Validate(batch, duplicate); err == nil {
+		t.Fatal("availability accepted duplicate validator identities")
+	}
+}
+
+func TestTwoThirdsQuorumUsesExactOverflowSafeThreshold(t *testing.T) {
+	cases := []struct {
+		signed uint64
+		total  uint64
+		want   bool
+	}{
+		{signed: 2, total: 3, want: false},
+		{signed: 3, total: 4, want: true},
+		{signed: 6, total: 9, want: false},
+		{signed: 7, total: 9, want: true},
+		{signed: math.MaxUint64 - 1, total: math.MaxUint64, want: true},
+		{signed: math.MaxUint64, total: math.MaxUint64, want: true},
+	}
+	for _, test := range cases {
+		if got := hasTwoThirdsQuorum(test.signed, test.total); got != test.want {
+			t.Fatalf("hasTwoThirdsQuorum(%d, %d)=%t want %t", test.signed, test.total, got, test.want)
+		}
+	}
+}
+
 func TestSafetyStateRejectsEquivocationAndLockedBranch(t *testing.T) {
 	validators, privateKeys := testValidators(t, 4)
 	leader, _ := DeterministicLeader(validators, 3)
@@ -220,6 +278,13 @@ func TestPacemakerUsesDeterministicBoundedP95(t *testing.T) {
 	if err != nil || clamped != 5*time.Second {
 		t.Fatalf("maximum clamp: %s %v", clamped, err)
 	}
+	overflowClamped, err := AdaptiveTimeout(
+		PacemakerConfig{Minimum: time.Nanosecond, Maximum: time.Duration(math.MaxInt64), Factor: math.MaxUint64},
+		[]time.Duration{2},
+	)
+	if err != nil || overflowClamped != time.Duration(math.MaxInt64) {
+		t.Fatalf("overflow clamp: %s %v", overflowClamped, err)
+	}
 }
 
 func TestLaneFeeMarketsAreIndependent(t *testing.T) {
@@ -277,6 +342,20 @@ func TestFeeMarketGovernanceAndInputsFailClosed(t *testing.T) {
 	}
 	if _, err := (FeeMarketState{}).Next(config, map[Lane]Resources{Lane("unknown"): resources(1)}); err == nil {
 		t.Fatal("fee transition accepted unknown usage")
+	}
+}
+
+func TestExecutionResourceAccountingRejectsOverflow(t *testing.T) {
+	first := testTransaction("first", LaneGeneralEVM, "alice", 1, nil, []string{"a"}, 1)
+	first.Resources.Compute = math.MaxUint64
+	second := testTransaction("second", LaneGeneralEVM, "bob", 1, nil, []string{"b"}, 1)
+	for _, workers := range []int{1, 2} {
+		if _, _, err := (Executor{Workers: workers}).Execute(nil, []Transaction{first, second}); err == nil {
+			t.Fatalf("workers=%d accepted overflowing resource accounting", workers)
+		}
+	}
+	if _, _, err := (Executor{Workers: 1}).ExecuteSequential(nil, []Transaction{first, second}); err == nil {
+		t.Fatal("sequential execution accepted overflowing resource accounting")
 	}
 }
 

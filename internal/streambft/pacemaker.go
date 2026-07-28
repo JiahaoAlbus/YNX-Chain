@@ -39,7 +39,11 @@ func AdaptiveTimeout(config PacemakerConfig, committedLatencies []time.Duration)
 	if index == 0 {
 		index = 1
 	}
-	timeout := samples[index-1] * time.Duration(config.Factor)
+	p95 := samples[index-1]
+	if p95 >= config.Maximum || config.Factor > uint64(config.Maximum/p95) {
+		return config.Maximum, nil
+	}
+	timeout := p95 * time.Duration(config.Factor)
 	if timeout < config.Minimum {
 		return config.Minimum, nil
 	}
