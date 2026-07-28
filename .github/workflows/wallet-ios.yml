@@ -24,6 +24,8 @@ jobs:
           cache-dependency-path: |
             packages/wallet-auth/package-lock.json
             apps/wallet/package-lock.json
+      - name: Use the release-locked npm
+        run: npm install --global npm@11.5.1
       - run: npm ci
         working-directory: packages/wallet-auth
       - run: npm test
