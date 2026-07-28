@@ -196,7 +196,9 @@ function sourceBinding(record, tipCommit, cwd = root) {
     record?.sourceCommit,
     record?.product?.sourceCommit,
     record?.release?.sourceCommit,
-    record?.metadata?.sourceCommit
+    record?.metadata?.sourceCommit,
+    record?.current?.sourceCommit,
+    record?.source?.implementationCommit
   ].find((value) => typeof value === "string") ?? null;
   if (!/^[0-9a-f]{40}$/.test(sourceCommit ?? "") || !tipCommit) {
     return { sourceCommit, valid: false, exact: false, reachable: false, distance: null };
@@ -221,7 +223,7 @@ function sourceBinding(record, tipCommit, cwd = root) {
 
 function extractReleaseStates(record) {
   const result = {};
-  const states = record?.states ?? record?.releaseStates ?? {};
+  const states = record?.states ?? record?.releaseStates ?? record?.releaseStatus ?? {};
   for (const key of releaseStateKeys) {
     result[key] = typeof states?.[key] === "boolean" ? states[key] : null;
   }
@@ -233,7 +235,9 @@ function extractCoverage(record) {
     ? record.items
     : Array.isArray(record?.requirements)
       ? record.requirements
-      : [];
+      : Array.isArray(record?.entries)
+        ? record.entries
+        : [];
   const counts = Object.fromEntries([...allowedStatuses].map((status) => [status, 0]));
   let invalid = 0;
   for (const item of items) {
@@ -347,7 +351,9 @@ function deriveAcceptance({ localExists, remoteExists, synced, worktree, evidenc
   }
   if (coverage.open > 0) blockers.push(`full-goal coverage has ${coverage.open} autonomous or unresolved items`);
   for (const [label, binding] of Object.entries(bindings)) {
-    if (binding.sourceCommit && (!binding.reachable || binding.distance === null)) {
+    if (evidence[label] && !binding.sourceCommit) {
+      blockers.push(`${label} lacks an exact sourceCommit`);
+    } else if (binding.sourceCommit && (!binding.reachable || binding.distance === null)) {
       blockers.push(`${label} sourceCommit is not reachable from the final branch`);
     }
   }
