@@ -512,7 +512,8 @@ func TestReservationsAreScopedToExactOffer(t *testing.T) {
 
 func TestProviderFailureRetryRefundBondAndAppeal(t *testing.T) {
 	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
-	e, _ := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return now })
+	path := filepath.Join(t.TempDir(), "market.json")
+	e, _ := New(path, func() time.Time { return now })
 	p := provider(t, e, "provider", "Provider", "region", 100)
 	o, _ := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "developer_build", Unit: "build-minute", Pricing: "fixed", Currency: "YNXT-testnet", UnitPrice: 10, Capacity: 100, MinUnits: 1, MaxUnits: 100, Source: evidence(now, "capacity_proof"), ExpiresAt: now.Add(time.Hour)})
 	q, _ := e.CreateQuote("buyer", o.ID, 10, 0)
@@ -529,6 +530,27 @@ func TestProviderFailureRetryRefundBondAndAppeal(t *testing.T) {
 	retry, err := e.RetryFailure("buyer", failed.ID)
 	if err != nil || retry.Status != "accepted" || retry.ID == failed.ID {
 		t.Fatalf("retry=%+v err=%v", retry, err)
+	}
+	if retry.RetryOfOrderID != failed.ID {
+		t.Fatalf("retry source lineage missing: %+v", retry)
+	}
+	if _, err = e.RetryFailure("buyer", failed.ID); err == nil {
+		t.Fatal("duplicate retry was accepted")
+	}
+	if _, err = e.RetryFailure("buyer", retry.ID); err == nil {
+		t.Fatal("retry chain was accepted")
+	}
+	restarted, err := New(path, func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, _, restartedOrders, _, _, _ := restarted.Snapshot()
+	orderByID := make(map[string]Order, len(restartedOrders))
+	for _, persistedOrder := range restartedOrders {
+		orderByID[persistedOrder.ID] = persistedOrder
+	}
+	if orderByID[failed.ID].RetryOrderID != retry.ID || orderByID[retry.ID].RetryOfOrderID != failed.ID {
+		t.Fatalf("retry lineage was not durable: %+v", restartedOrders)
 	}
 	d, err := e.OpenDispute("buyer", failed.ID, "paid usage did not complete", "failure-and-meter-evidence")
 	if err != nil {
@@ -552,6 +574,49 @@ func TestProviderFailureRetryRefundBondAndAppeal(t *testing.T) {
 	ps, _, _, orders, _, _, ds := e.Snapshot()
 	if ps[0].BondAvailable != 80 || len(orders) != 2 || len(ds) != 1 {
 		t.Fatalf("bond/retry state providers=%+v orders=%d disputes=%d", ps, len(orders), len(ds))
+	}
+}
+
+func TestSchemaV6MigratesUnambiguousRetryLineage(t *testing.T) {
+	now := time.Date(2026, 7, 28, 12, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "market-v6.json")
+	e, _ := New(path, func() time.Time { return now })
+	p := provider(t, e, "migration-provider", "Migration Provider", "region", 100)
+	offer, _ := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "developer_build", Unit: "build-minute", Pricing: "fixed", Currency: "YNXT-testnet", UnitPrice: 2, Capacity: 10, MinUnits: 1, MaxUnits: 10, Source: evidence(now, "capacity"), ExpiresAt: now.Add(time.Hour)})
+	quote, _ := e.CreateQuote("migration-buyer", offer.ID, 2, 0)
+	order, _ := e.AcceptIntent("migration-buyer", quote.ID, Digest(quote))
+	order, _ = e.Reserve(p.Wallet, order.ID, "reservation")
+	order, _ = e.StartService(p.Wallet, order.ID, "service-start")
+	failed, err := e.ReportFailure(p.Wallet, order.ID, "worker-failure")
+	if err != nil {
+		t.Fatal(err)
+	}
+	retry, err := e.RetryFailure("migration-buyer", failed.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	legacy := e.data
+	legacy.Version = reservationLedgerSchemaVersion
+	legacyFailed := legacy.Orders[failed.ID]
+	legacyFailed.RetryOrderID = ""
+	legacy.Orders[failed.ID] = legacyFailed
+	legacyRetry := legacy.Orders[retry.ID]
+	legacyRetry.RetryOfOrderID = ""
+	legacy.Orders[retry.ID] = legacyRetry
+	if err = productstore.Save(path, legacy); err != nil {
+		t.Fatal(err)
+	}
+
+	migrated, err := New(path, func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if migrated.data.Version != SchemaVersion || migrated.data.Orders[failed.ID].RetryOrderID != retry.ID || migrated.data.Orders[retry.ID].RetryOfOrderID != failed.ID {
+		t.Fatalf("v6 retry lineage migration failed: %+v", migrated.data.Orders)
+	}
+	if _, err = migrated.RetryFailure("migration-buyer", failed.ID); err == nil {
+		t.Fatal("migrated failed order accepted a duplicate retry")
 	}
 }
 

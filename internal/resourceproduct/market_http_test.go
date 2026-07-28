@@ -189,7 +189,7 @@ func TestMarketHTTPProviderOfferQuoteAndScopedState(t *testing.T) {
 	defer versionResp.Body.Close()
 	var version map[string]any
 	_ = json.NewDecoder(versionResp.Body).Decode(&version)
-	if version["releaseClass"] != "unreleased-local-candidate" || version["marketSchemaVersion"].(float64) != 6 {
+	if version["releaseClass"] != "unreleased-local-candidate" || version["marketSchemaVersion"].(float64) != 7 {
 		t.Fatalf("version=%v", version)
 	}
 }

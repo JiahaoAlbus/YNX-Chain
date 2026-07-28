@@ -9,7 +9,7 @@ go build -o "$TMP/resource-market" ./apps/resource-market
 YNX_RESOURCE_MARKET_DEV_HEADER_AUTH=1 YNX_RESOURCE_MARKET_ADDR=127.0.0.1:16441 YNX_RESOURCE_MARKET_STORE="$TMP/state.json" YNX_RESOURCE_MARKET_ENGINE_STORE="$TMP/market.json" "$TMP/resource-market" >"$TMP/server.log" 2>&1 & PID=$!
 for _ in {1..300}; do curl -fsS http://127.0.0.1:16441/health >/dev/null 2>&1 && break; sleep .1; done
 curl -fsS http://127.0.0.1:16441/health | jq -e '.status == "ready" and .checks.marketEngineInitialized == "pass" and .coverage == "local process initialization only"' >/dev/null
-curl -fsS http://127.0.0.1:16441/version | jq -e '.marketSchemaVersion == 6 and .releaseClass == "unreleased-local-candidate"' >/dev/null
+curl -fsS http://127.0.0.1:16441/version | jq -e '.marketSchemaVersion == 7 and .releaseClass == "unreleased-local-candidate"' >/dev/null
 curl -fsS http://127.0.0.1:16441/status | jq -e '.status == "operational" and .source == "current-process SLO guardrails"' >/dev/null
 curl -fsS http://127.0.0.1:16441/resource-market | grep -q '<title>YNX Resource Market — Verifiable Infrastructure Capacity</title>'
 EXPIRY="$(date -u -v+1d '+%Y-%m-%dT%H:%M:%SZ')"

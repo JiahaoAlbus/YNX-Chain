@@ -169,7 +169,7 @@
     "metrics": "GET /metrics returns in-process counters with request and trace correlation."
   },
   "migration": {
-    "currentMarketSchemaVersion": 6,
+    "currentMarketSchemaVersion": 7,
     "supportedReadVersions": [1, 2, 3, 4, 5, 6],
     "futureVersion": "reject",
     "rollback": "restore only an integrity-verified supported schema backup",

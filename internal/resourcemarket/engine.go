@@ -16,7 +16,10 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productstore"
 )
 
-const SchemaVersion = 6
+const (
+	reservationLedgerSchemaVersion = 6
+	SchemaVersion                  = 7
+)
 
 const maxInt64Value int64 = 1<<63 - 1
 
@@ -225,6 +228,8 @@ type Order struct {
 	Units               int64     `json:"units"`
 	ReservedUnits       int64     `json:"reservedUnits"`
 	IntentDigest        string    `json:"intentDigest"`
+	RetryOfOrderID      string    `json:"retryOfOrderId,omitempty"`
+	RetryOrderID        string    `json:"retryOrderId,omitempty"`
 	ReservationEvidence string    `json:"reservationEvidence,omitempty"`
 	ServiceEvidence     string    `json:"serviceEvidence,omitempty"`
 	MeterIDs            []string  `json:"meterIds"`
@@ -363,11 +368,15 @@ func New(path string, now func() time.Time) (*Engine, error) {
 		loadedVersion := loaded.Version
 		e.data = loaded
 		e.ensureMaps()
-		migrated, err := e.reconcileReservationLedger(loadedVersion)
+		reservationMigrated, err := e.reconcileReservationLedger(loadedVersion)
 		if err != nil {
 			return nil, fmt.Errorf("validate market reservation ledger: %w", err)
 		}
-		if legacyEnvelope || migrated {
+		retryMigrated, err := e.reconcileRetryLineage(loadedVersion)
+		if err != nil {
+			return nil, fmt.Errorf("validate market retry lineage: %w", err)
+		}
+		if legacyEnvelope || reservationMigrated || retryMigrated {
 			if err := e.save(); err != nil {
 				return nil, fmt.Errorf("persist market schema migration: %w", err)
 			}
@@ -499,10 +508,10 @@ func (e *Engine) reconcileReservationLedger(fromVersion int) (bool, error) {
 			return false, errors.New("order ID does not match reservation ledger key")
 		}
 		if !reservationHoldsCapacity(order.Status) {
-			if fromVersion >= SchemaVersion && order.ReservedUnits != 0 {
+			if fromVersion >= reservationLedgerSchemaVersion && order.ReservedUnits != 0 {
 				return false, errors.New("terminal or unreserved order retained capacity")
 			}
-			if fromVersion < SchemaVersion && order.ReservedUnits != 0 {
+			if fromVersion < reservationLedgerSchemaVersion && order.ReservedUnits != 0 {
 				order.ReservedUnits = 0
 				e.data.Orders[orderID] = order
 			}
@@ -529,7 +538,7 @@ func (e *Engine) reconcileReservationLedger(fromVersion int) (bool, error) {
 		expectedProviderReserved[order.ProviderID][order.Resource] = currentProvider + order.ReservedUnits
 	}
 
-	if fromVersion < SchemaVersion {
+	if fromVersion < reservationLedgerSchemaVersion {
 		for offerID, offer := range e.data.Offers {
 			offer.ReservedUnits = expectedOfferReserved[offerID]
 			e.data.Offers[offerID] = offer
@@ -539,7 +548,7 @@ func (e *Engine) reconcileReservationLedger(fromVersion int) (bool, error) {
 			provider.Reserved = expectedProviderReserved[providerID]
 			e.data.Providers[providerID] = provider
 		}
-		e.data.Version = SchemaVersion
+		e.data.Version = reservationLedgerSchemaVersion
 		return true, nil
 	}
 	for offerID, offer := range e.data.Offers {
@@ -554,6 +563,124 @@ func (e *Engine) reconcileReservationLedger(fromVersion int) (bool, error) {
 		if !equalInt64Ledger(provider.Reserved, expectedProviderReserved[providerID]) {
 			return false, errors.New("provider reservation ledger does not match active orders")
 		}
+	}
+	return false, nil
+}
+
+func retryLineageMatches(failed, retry Order) bool {
+	return failed.Buyer == retry.Buyer &&
+		failed.ProviderID == retry.ProviderID &&
+		failed.QuoteID == retry.QuoteID &&
+		failed.Resource == retry.Resource &&
+		failed.Unit == retry.Unit &&
+		failed.Units == retry.Units &&
+		failed.IntentDigest == retry.IntentDigest &&
+		!retry.CreatedAt.Before(failed.CreatedAt)
+}
+
+// reconcileRetryLineage upgrades pre-v7 snapshots using only existing
+// failure_retry audit events. It never invents a retry. Ambiguous, duplicate or
+// chained legacy retries fail closed for operator review. Version 7 snapshots
+// must preserve a one-to-one failed-order -> retry-order relationship.
+func (e *Engine) reconcileRetryLineage(fromVersion int) (bool, error) {
+	retryAuditIDs := make(map[string][]string)
+	for _, audit := range e.data.Audit {
+		if audit.Action != "failure_retry" {
+			continue
+		}
+		if audit.ID == "" || audit.Target == "" {
+			return false, errors.New("failure retry audit is missing identity or target")
+		}
+		retryAuditIDs[audit.Target] = append(retryAuditIDs[audit.Target], audit.ID)
+	}
+
+	if fromVersion < SchemaVersion {
+		retryIDs := make([]string, 0, len(retryAuditIDs))
+		for retryID := range retryAuditIDs {
+			retryIDs = append(retryIDs, retryID)
+		}
+		sort.Strings(retryIDs)
+		for _, retryID := range retryIDs {
+			retry, ok := e.data.Orders[retryID]
+			if !ok {
+				return false, errors.New("legacy failure retry audit references missing order")
+			}
+			if retry.RetryOfOrderID != "" {
+				continue
+			}
+			candidateIDs := make([]string, 0, 1)
+			for failedID, failed := range e.data.Orders {
+				if failedID == retryID || failed.Status != "provider_failed" || failed.RetryOfOrderID != "" || failed.RetryOrderID != "" {
+					continue
+				}
+				if len(retryAuditIDs[failedID]) != 0 || !retryLineageMatches(failed, retry) {
+					continue
+				}
+				candidateIDs = append(candidateIDs, failedID)
+			}
+			sort.Strings(candidateIDs)
+			if len(candidateIDs) != 1 {
+				return false, errors.New("legacy failure retry lineage is missing or ambiguous")
+			}
+			failed := e.data.Orders[candidateIDs[0]]
+			failed.RetryOrderID = retry.ID
+			retry.RetryOfOrderID = failed.ID
+			e.data.Orders[failed.ID] = failed
+			e.data.Orders[retry.ID] = retry
+		}
+	}
+
+	claimedFailedOrders := make(map[string]string)
+	for orderID, order := range e.data.Orders {
+		if order.ID != "" && order.ID != orderID {
+			return false, errors.New("order ID does not match retry lineage key")
+		}
+		if order.RetryOfOrderID != "" && order.RetryOrderID != "" {
+			return false, errors.New("retry order cannot create a chained retry")
+		}
+		if order.RetryOfOrderID == "" {
+			if len(retryAuditIDs[orderID]) != 0 {
+				return false, errors.New("failure retry audit is missing persisted source lineage")
+			}
+		} else {
+			failed, ok := e.data.Orders[order.RetryOfOrderID]
+			if !ok || failed.Status != "provider_failed" || failed.RetryOrderID != order.ID || !retryLineageMatches(failed, order) {
+				return false, errors.New("failure retry lineage is incomplete or mismatched")
+			}
+			if len(retryAuditIDs[orderID]) != 1 {
+				return false, errors.New("failure retry must have exactly one creation audit")
+			}
+			if existing, exists := claimedFailedOrders[failed.ID]; exists && existing != order.ID {
+				return false, errors.New("failed order is linked to multiple retries")
+			}
+			claimedFailedOrders[failed.ID] = order.ID
+		}
+		if order.RetryOrderID != "" {
+			retry, ok := e.data.Orders[order.RetryOrderID]
+			if !ok || order.Status != "provider_failed" || retry.RetryOfOrderID != order.ID || !retryLineageMatches(order, retry) {
+				return false, errors.New("failed order retry pointer is incomplete or mismatched")
+			}
+		}
+	}
+	for retryID, auditIDs := range retryAuditIDs {
+		if len(auditIDs) != 1 {
+			return false, errors.New("failure retry has duplicate creation audits")
+		}
+		retry := e.data.Orders[retryID]
+		found := false
+		for _, auditID := range retry.AuditIDs {
+			if auditID == auditIDs[0] {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false, errors.New("failure retry audit is not bound to retry order")
+		}
+	}
+	if fromVersion < SchemaVersion {
+		e.data.Version = SchemaVersion
+		return true, nil
 	}
 	return false, nil
 }
@@ -1444,19 +1571,30 @@ func (e *Engine) ReportFailure(providerWallet, orderID, evidence string) (Order,
 	return o, e.save()
 }
 
-// RetryFailure creates a fresh accepted order bound to the same quote and
-// buyer. The failed order remains immutable evidence and is never relabelled
-// successful.
+// RetryFailure creates at most one fresh accepted order bound to the same quote
+// and buyer. The failed order's status and evidence remain unchanged; explicit
+// bidirectional lineage makes the retry durable and prevents retry chains.
 func (e *Engine) RetryFailure(buyer, failedOrderID string) (Order, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	buyer = strings.TrimSpace(buyer)
 	failed, ok := e.data.Orders[failedOrderID]
-	if !ok || failed.Buyer != buyer || failed.Status != "provider_failed" {
+	if !ok || buyer == "" || failed.Buyer != buyer || failed.Status != "provider_failed" {
 		return Order{}, errors.New("buyer-owned failed order required")
 	}
+	if failed.RetryOfOrderID != "" || failed.RetryOrderID != "" {
+		return Order{}, errors.New("failure retry already consumed or retry chain prohibited")
+	}
+	quote, quoteOK := e.data.Quotes[failed.QuoteID]
+	if !quoteOK || quote.Buyer != failed.Buyer || quote.ProviderID != failed.ProviderID || quote.Resource != failed.Resource || quote.Unit != failed.Unit || quote.Units != failed.Units {
+		return Order{}, errors.New("failed order retry lineage is incomplete or mismatched")
+	}
 	now := e.now().UTC()
-	retry := Order{ID: e.next("order"), Buyer: buyer, ProviderID: failed.ProviderID, QuoteID: failed.QuoteID, Resource: failed.Resource, Unit: failed.Unit, Status: "accepted", Units: failed.Units, IntentDigest: failed.IntentDigest, MeterIDs: []string{}, AuditIDs: []string{}, CreatedAt: now, UpdatedAt: now}
+	retry := Order{ID: e.next("order"), Buyer: buyer, ProviderID: failed.ProviderID, QuoteID: failed.QuoteID, Resource: failed.Resource, Unit: failed.Unit, Status: "accepted", Units: failed.Units, IntentDigest: failed.IntentDigest, RetryOfOrderID: failed.ID, MeterIDs: []string{}, AuditIDs: []string{}, CreatedAt: now, UpdatedAt: now}
 	retry.AuditIDs = append(retry.AuditIDs, e.audit(buyer, "failure_retry", retry.ID, "accepted"))
+	failed.RetryOrderID = retry.ID
+	failed.AuditIDs = append(failed.AuditIDs, e.audit(buyer, "failure_retry_claimed", failed.ID, retry.ID))
+	e.data.Orders[failed.ID] = failed
 	e.data.Orders[retry.ID] = retry
 	return retry, e.save()
 }
