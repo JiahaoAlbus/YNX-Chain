@@ -17,10 +17,11 @@
       "maxItems": 36,
       "items": {
         "type": "object",
-        "required": ["id", "product", "branch", "phase", "refs", "worktree", "evidence", "centralAcceptance", "blockers", "nextAction"],
+        "required": ["id", "product", "repository", "branch", "phase", "refs", "worktree", "evidence", "centralAcceptance", "blockers", "nextAction"],
         "properties": {
           "id": {"type": "string", "pattern": "^(0[1-9]|[12][0-9]|3[0-6])$"},
           "product": {"type": "string", "minLength": 1},
+          "repository": {"type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"},
           "branch": {"type": "string", "minLength": 1},
           "phase": {"type": "string", "minLength": 1},
           "owner": {"type": "string", "minLength": 1},

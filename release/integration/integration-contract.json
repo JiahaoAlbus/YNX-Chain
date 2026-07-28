@@ -43,7 +43,7 @@
     "quantEngine": "08-quant-lab",
     "economicsAndParameterRegistry": "17-tokenomics",
     "governanceAndTimelock": "31-governance",
-    "securityReleaseBackupAndArtifactPolicy": "30-security-sre",
+    "securityReleaseBackupAndArtifactPolicy": "30-security-platform",
     "websitePublicRegistryAndSEO": "28-website",
     "protocolFreezeMergeOrderSharedTestnetPublicProof": "29-integration"
   },

@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
   "product": "YNX Integration / Founder Control",
-  "sourceCommit": "562888318863435382d839958130246973dc1206",
+  "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
   "allowedStatuses": [
     "notStarted",
     "inProgress",
@@ -25,14 +25,14 @@
       "evidence": [
         "workspace and branch matched; takeover status was clean"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Repeat the takeover audit at every new session.",
-      "lastUpdated": "2026-07-27T15:41:09.743Z"
+      "lastUpdated": "2026-07-28T15:53:31.997Z"
     },
     {
       "id": "INT-PROTECT-001",
@@ -43,14 +43,14 @@
       "evidence": [
         "origin/codex/final-integration created and synchronized before this implementation slice"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Recheck Local and Remote SHA after every protected slice.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-CONCURRENCY-001",
@@ -61,14 +61,14 @@
       "evidence": [
         "no active same-worktree handoff state or matching writer was observed at takeover"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Repeat the process and handoff-state check before each long write/test/push slice.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-REGISTRY-001",
@@ -79,7 +79,7 @@
       "evidence": [
         "release/integration/product-registry.json"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "refresh-integration-acceptance --self-test",
         "integration-acceptance-check --self-test"
@@ -89,7 +89,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Bind the protected commit and rerun the exact-ref matrix after Push.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-FREEZE-001",
@@ -101,7 +101,7 @@
         "release/integration/integration-contract.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "integration-acceptance-check",
         "integration-acceptance-check --self-test"
@@ -111,7 +111,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Bind the protected commit, then validate every Phase 0 authority bundle and record explicit conflict resolution.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-AUTH-001",
@@ -120,7 +120,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "CP-001",
         "CP-002",
@@ -136,7 +136,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review 02 and rerun the central auth negative vectors.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-SOURCE-001",
@@ -145,7 +145,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -156,7 +156,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze source semantics across Oracle and Data Fabric.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-ASSET-001",
@@ -165,7 +165,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "CP-004",
         "CP-005",
@@ -182,7 +182,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review Wallet mandates, Exchange no-withdraw sessions and DEX vault ownership.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-AI-001",
@@ -191,7 +191,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "CP-009"
       ],
@@ -205,7 +205,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review the AI approval contract and execute CP-009.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PROVIDER-001",
@@ -214,7 +214,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -226,7 +226,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Aggregate provider registers and verify fail-closed adapters.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-L10N-001",
@@ -235,7 +235,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -245,7 +245,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Define and run one central locale and accessibility conformance harness.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PLATFORM-001",
@@ -254,7 +254,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -264,7 +264,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Import owner platform manifests and rerun installation evidence.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-SLO-001",
@@ -273,7 +273,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -288,7 +288,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Collect comparable SLO and capacity artifacts.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-ECON-001",
@@ -297,7 +297,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -310,7 +310,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Reconcile owner economics records against Billing Ledger facts.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-MIGRATION-001",
@@ -319,7 +319,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -333,7 +333,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze schema versions and execute forward/rollback vectors.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-RESTORE-001",
@@ -342,7 +342,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -354,7 +354,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Consume the Security/SRE restore policy and execute the shared drill.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-OBS-001",
@@ -363,7 +363,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -375,43 +375,42 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze common evidence fields and run Monitor integration.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-SEC-001",
       "category": "security-supply-chain",
       "requirement": "Verify threat model, boundaries, secret/dependency/license/SAST/DAST/artifact/container scans, SBOM, provenance, reproducibility and build-script allowlist.",
       "applicability": "applicable",
-      "status": "externalBlocked",
+      "status": "inProgress",
       "evidence": [
-        "release/integration/security/npm-audit-policy.json"
+        "release/integration/acceptance-matrix.json"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
-        "npm-audit-policy-check",
-        "npm-audit-policy-check --self-test",
+        "integration-acceptance-check",
         "secret-scan",
         "static-check"
       ],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [
-        "codex/final-security-sre and 30-security-sre were not observed"
+        "Security/SRE owner coverage still contains autonomous/open items"
       ],
       "owner": "29-integration",
-      "nextAction": "Continue autonomous scans and time-bounded controls while requesting the missing Security/SRE owner branch through the central operator-input process.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "nextAction": "Review the synchronized Security/SRE candidate contract and close its remaining autonomous coverage before central acceptance.",
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-NPM-AUDIT-001",
       "category": "security-supply-chain",
-      "requirement": "Constrain the unfixed Hardhat adm-zip advisory to an exact, development-only, non-runtime graph with zero production vulnerabilities and an automatically expiring exception.",
+      "requirement": "Enforce the remediated Hardhat dependency graph with pinned fixed versions and zero vulnerabilities in both full and production-only npm audits.",
       "applicability": "applicable",
-      "status": "implementedLocal",
+      "status": "testedLocal",
       "evidence": [
         "release/integration/security/npm-audit-policy.json"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "integration-npm-audit-policy-check",
         "integration-npm-audit-policy-check-test"
@@ -419,11 +418,11 @@
       "artifact": "release/integration/security/npm-audit-policy.json",
       "publicProof": [],
       "blockedBy": [
-        "30-security-sre review before production release"
+        "Security/SRE production review remains required independently of the resolved advisory"
       ],
       "owner": "29-integration",
-      "nextAction": "Bind the protected commit, rerun the exact audit policy and obtain Security/SRE acceptance before any production release.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "nextAction": "Bind the protected commit and obtain Security/SRE acceptance before any production release.",
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PREFLIGHT-001",
@@ -432,7 +431,7 @@
       "applicability": "applicable",
       "status": "implementedLocal",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "integration-acceptance-check",
         "contract-tooling-check",
@@ -450,7 +449,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Rerun every component at the protected implementation commit and bind a direct evidence record.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-FEE-001",
@@ -459,7 +458,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "CP-004",
         "CP-005",
@@ -477,7 +476,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Reconcile Quant, Exchange, DEX and Economics fee authorities.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PUBLIC-001",
@@ -486,7 +485,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "CP-011"
       ],
@@ -498,7 +497,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Generate Integration public metadata and require Website consumption proof.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-EVIDENCE-001",
@@ -509,14 +508,14 @@
       "evidence": [
         "scripts/ops/refresh-integration-acceptance.mjs"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": "release/integration/acceptance-matrix.json",
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Generate and validate the first exact-ref matrix and GitHub evidence snapshot.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-KPI-001",
@@ -525,7 +524,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -538,7 +537,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Map KPI owners and exclude internal test traffic.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-INPUTS-001",
@@ -547,7 +546,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -556,7 +555,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Aggregate 01–36 input records after autonomous work is complete.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PHASE-001",
@@ -567,14 +566,14 @@
       "evidence": [
         "release/integration/integration-contract.json"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Complete PROTECT verification before promoting the controller gate to FREEZE.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-CROSS-DEFINITION-001",
@@ -585,7 +584,7 @@
       "evidence": [
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "integration-acceptance-check",
         "integration-acceptance-check --self-test"
@@ -595,7 +594,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Bind the protected commit, rerun exact-commit validation and keep vectors synchronized with accepted contracts.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-CROSS-001",
@@ -606,7 +605,7 @@
       "evidence": [
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "CP-001 through CP-012"
       ],
@@ -618,7 +617,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Execute CP-001 through CP-012 after Phase 0 acceptance.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-QUANT-001",
@@ -627,7 +626,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "CP-004",
         "CP-005"
@@ -652,7 +651,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review 08 as the sole engine owner and reject duplicate engines.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-CAPITAL-001",
@@ -661,7 +660,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "CP-012"
       ],
@@ -683,7 +682,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze evidence contracts and execute fail-closed shortfall and exit drills.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-GITHUB-001",
@@ -692,14 +691,14 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": "release/integration/github-evidence.json",
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Generate source-bound GitHub evidence and require CI on the Integration branch.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PUBLICNET-001",
@@ -708,7 +707,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -719,7 +718,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Start only after FREEZE and INTEGRATE gates pass.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-SEO-001",
@@ -728,7 +727,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -740,7 +739,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Consume Website evidence and record observed indexing separately.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-MAINNET-001",
@@ -751,14 +750,14 @@
       "evidence": [
         "release/integration/integration-contract.json"
       ],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Retain false production states until independent Mainnet evidence exists.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-FINAL-001",
@@ -767,7 +766,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -776,7 +775,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Execute only after every autonomous item is closed or truly externally blocked.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-01",
@@ -785,7 +784,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 01"
       ],
@@ -794,7 +793,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-02",
@@ -803,7 +802,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 02"
       ],
@@ -812,7 +811,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-03",
@@ -821,7 +820,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 03"
       ],
@@ -830,7 +829,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-04",
@@ -839,7 +838,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 04"
       ],
@@ -848,7 +847,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-05",
@@ -857,7 +856,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 05"
       ],
@@ -866,7 +865,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-06",
@@ -875,7 +874,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 06"
       ],
@@ -884,7 +883,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-07",
@@ -893,7 +892,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 07"
       ],
@@ -902,7 +901,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-08",
@@ -911,7 +910,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 08"
       ],
@@ -920,7 +919,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-09",
@@ -929,7 +928,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 09"
       ],
@@ -938,7 +937,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-10",
@@ -947,7 +946,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 10"
       ],
@@ -956,7 +955,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-11",
@@ -965,7 +964,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 11"
       ],
@@ -974,7 +973,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-12",
@@ -983,7 +982,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 12"
       ],
@@ -992,7 +991,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-13",
@@ -1001,7 +1000,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 13"
       ],
@@ -1010,7 +1009,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-14",
@@ -1019,7 +1018,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 14"
       ],
@@ -1028,7 +1027,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-15",
@@ -1037,7 +1036,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 15"
       ],
@@ -1046,7 +1045,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-16",
@@ -1055,7 +1054,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 16"
       ],
@@ -1064,7 +1063,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-17",
@@ -1073,7 +1072,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 17"
       ],
@@ -1082,7 +1081,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-18",
@@ -1091,7 +1090,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 18"
       ],
@@ -1100,7 +1099,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-19",
@@ -1109,7 +1108,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 19"
       ],
@@ -1118,7 +1117,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-20",
@@ -1127,7 +1126,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 20"
       ],
@@ -1136,7 +1135,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-21",
@@ -1145,7 +1144,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 21"
       ],
@@ -1154,7 +1153,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-22",
@@ -1163,7 +1162,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 22"
       ],
@@ -1172,7 +1171,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-23",
@@ -1181,7 +1180,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 23"
       ],
@@ -1190,7 +1189,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-24",
@@ -1199,7 +1198,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 24"
       ],
@@ -1208,7 +1207,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-25",
@@ -1217,7 +1216,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 25"
       ],
@@ -1226,7 +1225,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-26",
@@ -1235,7 +1234,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 26"
       ],
@@ -1244,7 +1243,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-27",
@@ -1253,7 +1252,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 27"
       ],
@@ -1262,7 +1261,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-28",
@@ -1271,7 +1270,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 28"
       ],
@@ -1280,7 +1279,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-29",
@@ -1289,7 +1288,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 29"
       ],
@@ -1298,7 +1297,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-30",
@@ -1307,7 +1306,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 30"
       ],
@@ -1318,7 +1317,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-31",
@@ -1327,7 +1326,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 31"
       ],
@@ -1336,7 +1335,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-32",
@@ -1345,7 +1344,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 32"
       ],
@@ -1354,7 +1353,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-33",
@@ -1363,7 +1362,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 33"
       ],
@@ -1372,7 +1371,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-34",
@@ -1381,7 +1380,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 34"
       ],
@@ -1390,7 +1389,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-35",
@@ -1399,7 +1398,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 35"
       ],
@@ -1408,7 +1407,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     },
     {
       "id": "INT-PRODUCT-36",
@@ -1417,7 +1416,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "562888318863435382d839958130246973dc1206",
+      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
       "tests": [
         "central acceptance row 36"
       ],
@@ -1426,7 +1425,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-27T15:41:09.744Z"
+      "lastUpdated": "2026-07-28T15:53:31.998Z"
     }
   ]
 }

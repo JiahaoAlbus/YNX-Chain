@@ -18,7 +18,7 @@ This branch is the only central owner for protocol freeze, dependency acceptance
 - The branch was a direct ancestor of `origin/main` and had no unique commits. It was fast-forwarded by 20 commits to `562888318863435382d839958130246973dc1206`, then pushed after one bounded network retry.
 - The inherited `.ai-bridge` plan belonged to 18 Docs/Compliance and is being replaced with Integration-specific state.
 - The old product matrix covered 23 products and contained stale 2026-07-16 branch SHAs. It remains historical evidence and is not the current central authority.
-- The registered worktree inventory included 01–29 except 30, plus 31–36. No `30-security-sre` worktree or `codex/final-security-sre` branch was observed.
+- The original central-repository scan missed products in separate repositories. The registry and scanner now resolve Website from `JiahaoAlbus/YNX-Chain-website` and Security/SRE from `JiahaoAlbus/YNX`, including their exact synchronized branches and clean worktrees without recording absolute paths in the matrix.
 - The first full Go run exposed umask-sensitive unsafe-permission fixtures and missing generated contract artifacts. The fixtures now explicitly create the unsafe mode, while Runtime permission checks remain unchanged; contract-dependent tests are preceded by the pinned Hardhat build.
 - Main now locks Hardhat 3.11.1, `@nomicfoundation/hardhat-ethers` 4.0.15 and `adm-zip` 0.6.0. Full and production-only npm audits are clean, so the former time-bounded High-advisory exception is closed. Security/SRE acceptance remains an independent production-release gate.
 

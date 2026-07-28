@@ -109,6 +109,7 @@ function validateSourceBinding(collector, owner, sourceCommit) {
 function validateRegistry(registry, collector) {
   collector.expect(registry?.schemaVersion === "1.0.0", "registry schemaVersion must be 1.0.0");
   collector.expect(registry?.owner === "29-integration", "registry owner must be 29-integration");
+  collector.expect(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(registry?.defaultRepository ?? ""), "registry defaultRepository is invalid");
   validateSourceBinding(collector, "registry", registry?.sourceCommit);
   collector.expect(Array.isArray(registry?.products), "registry products must be an array");
   const products = Array.isArray(registry?.products) ? registry.products : [];
@@ -118,10 +119,13 @@ function validateRegistry(registry, collector) {
   const slugs = new Set();
   const ids = new Set(products.map((product) => product.id));
   for (const product of products) {
+    const repository = product.repository ?? registry.defaultRepository;
+    collector.expect(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository), `product ${product.id} has an invalid repository`);
     collector.expect(typeof product.product === "string" && product.product.length > 0, `product ${product.id} lacks a name`);
     collector.expect(/^codex\/final-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(product.branch ?? ""), `product ${product.id} has an invalid final branch`);
-    collector.expect(!branches.has(product.branch), `duplicate final branch ${product.branch}`);
-    branches.add(product.branch);
+    const branchIdentity = `${repository}#${product.branch}`;
+    collector.expect(!branches.has(branchIdentity), `duplicate final branch ${branchIdentity}`);
+    branches.add(branchIdentity);
     collector.expect(/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(product.slug ?? ""), `product ${product.id} has an invalid slug`);
     collector.expect(!slugs.has(product.slug), `duplicate product slug ${product.slug}`);
     slugs.add(product.slug);
@@ -138,7 +142,12 @@ function validateRegistry(registry, collector) {
   const integration = products.find((product) => product.id === "29");
   const security = products.find((product) => product.id === "30");
   collector.expect(integration?.branch === "codex/final-integration" && integration?.owner === "29-integration", "product 29 authority mapping is invalid");
-  collector.expect(security?.branch === "codex/final-security-sre" && security?.owner === "30-security-sre", "product 30 authority mapping is invalid");
+  collector.expect(
+    security?.repository === "JiahaoAlbus/YNX"
+      && security?.branch === "codex/final-security-platform"
+      && security?.owner === "30-security-platform",
+    "product 30 authority mapping is invalid"
+  );
   collector.expect(compareArrays(registry?.releaseStateKeys, releaseStateKeys), "registry release-state vocabulary differs from the canonical order");
   return new Map(products.map((product) => [product.id, product]));
 }
@@ -162,7 +171,7 @@ function validateContract(contract, collector) {
   const serialized = JSON.stringify(contract);
   collector.expect(!serialized.includes("<product-slug>"), "contract contains an unresolved product-slug placeholder");
   const authorities = contract?.authoritativeOwners ?? {};
-  for (const owner of ["01-chain-core", "02-wallet-auth", "08-quant-lab", "17-tokenomics", "19-oracle-market-data", "21-bridge", "26-data-fabric", "28-website", "29-integration", "30-security-sre", "31-governance"]) {
+  for (const owner of ["01-chain-core", "02-wallet-auth", "08-quant-lab", "17-tokenomics", "19-oracle-market-data", "21-bridge", "26-data-fabric", "28-website", "29-integration", "30-security-platform", "31-governance"]) {
     collector.expect(Object.values(authorities).includes(owner), `contract lacks authoritative owner ${owner}`);
   }
 }
@@ -242,6 +251,7 @@ function validateMatrix(matrix, productMap, collector) {
   for (const product of products) {
     const expected = productMap.get(product.id);
     collector.expect(Boolean(expected), `matrix contains unknown product ${product.id}`);
+    collector.expect(product.repository === (expected?.repository ?? "JiahaoAlbus/YNX-Chain"), `matrix product ${product.id} repository differs from registry`);
     collector.expect(product.branch === expected?.branch, `matrix product ${product.id} branch differs from registry`);
     collector.expect(product.owner === expected?.owner, `matrix product ${product.id} owner differs from registry`);
     collector.expect(Array.isArray(product.blockers), `matrix product ${product.id} blockers must be an array`);

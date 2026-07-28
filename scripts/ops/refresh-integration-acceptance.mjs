@@ -11,6 +11,7 @@ const registryPath = "release/integration/product-registry.json";
 const matrixPath = "release/integration/acceptance-matrix.json";
 const githubEvidencePath = "release/integration/github-evidence.json";
 const githubRepository = "JiahaoAlbus/YNX-Chain";
+const finalWorktreesRoot = path.dirname(root);
 const allowedStatuses = new Set([
   "notStarted",
   "inProgress",
@@ -81,15 +82,15 @@ function normalizeBranchRef(branch) {
   return branch.startsWith("refs/heads/") ? branch.slice("refs/heads/".length) : branch;
 }
 
-function refSha(ref) {
-  const value = git(["rev-parse", "--verify", ref], { allowFailure: true });
+function refSha(ref, cwd = root) {
+  const value = git(["rev-parse", "--verify", ref], { allowFailure: true, cwd });
   const sha = value?.trim() ?? "";
   return /^[0-9a-f]{40}$/.test(sha) ? sha : null;
 }
 
-function aheadBehind(left, right) {
+function aheadBehind(left, right, cwd = root) {
   if (!left || !right) return { ahead: null, behind: null };
-  const value = git(["rev-list", "--left-right", "--count", `${left}...${right}`], { allowFailure: true });
+  const value = git(["rev-list", "--left-right", "--count", `${left}...${right}`], { allowFailure: true, cwd });
   if (!value) return { ahead: null, behind: null };
   const [ahead, behind] = value.trim().split(/\s+/).map((entry) => Number.parseInt(entry, 10));
   return {
@@ -101,6 +102,13 @@ function aheadBehind(left, right) {
 function sanitizeRemote(value) {
   if (typeof value !== "string") return null;
   return value.replace(/\/\/[^/@]+@/, "//[redacted]@").trim();
+}
+
+function repositoryFromRemote(value) {
+  const sanitized = sanitizeRemote(value);
+  if (!sanitized) return null;
+  const match = sanitized.match(/github\.com(?::|\/)([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?)(?:\.git)?$/);
+  return match?.[1] ?? null;
 }
 
 function parseWorktrees(raw) {
@@ -155,9 +163,9 @@ function inspectWorktree(record) {
   };
 }
 
-function treePaths(commit) {
+function treePaths(commit, cwd = root) {
   if (!commit) return [];
-  const raw = git(["ls-tree", "-r", "--name-only", commit], { allowFailure: true });
+  const raw = git(["ls-tree", "-r", "--name-only", commit], { allowFailure: true, cwd });
   return raw ? raw.split(/\r?\n/).filter(Boolean) : [];
 }
 
@@ -172,9 +180,9 @@ function firstExisting(paths, candidates, basenames = []) {
   return null;
 }
 
-function readJsonAtCommit(commit, relativePath) {
+function readJsonAtCommit(commit, relativePath, cwd = root) {
   if (!commit || !relativePath) return null;
-  const raw = git(["show", `${commit}:${relativePath}`], { allowFailure: true });
+  const raw = git(["show", `${commit}:${relativePath}`], { allowFailure: true, cwd });
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -183,17 +191,22 @@ function readJsonAtCommit(commit, relativePath) {
   }
 }
 
-function sourceBinding(record, tipCommit) {
-  const sourceCommit = typeof record?.sourceCommit === "string" ? record.sourceCommit : null;
+function sourceBinding(record, tipCommit, cwd = root) {
+  const sourceCommit = [
+    record?.sourceCommit,
+    record?.product?.sourceCommit,
+    record?.release?.sourceCommit,
+    record?.metadata?.sourceCommit
+  ].find((value) => typeof value === "string") ?? null;
   if (!/^[0-9a-f]{40}$/.test(sourceCommit ?? "") || !tipCommit) {
     return { sourceCommit, valid: false, exact: false, reachable: false, distance: null };
   }
   const exact = sourceCommit === tipCommit;
-  const reachableResult = git(["merge-base", "--is-ancestor", sourceCommit, tipCommit], { allowFailure: true });
+  const reachableResult = git(["merge-base", "--is-ancestor", sourceCommit, tipCommit], { allowFailure: true, cwd });
   const reachable = exact || reachableResult !== null;
   let distance = null;
   if (reachable) {
-    const raw = git(["rev-list", "--count", `${sourceCommit}..${tipCommit}`], { allowFailure: true });
+    const raw = git(["rev-list", "--count", `${sourceCommit}..${tipCommit}`], { allowFailure: true, cwd });
     const parsed = Number.parseInt(raw?.trim() ?? "", 10);
     distance = Number.isSafeInteger(parsed) ? parsed : null;
   }
@@ -208,8 +221,9 @@ function sourceBinding(record, tipCommit) {
 
 function extractReleaseStates(record) {
   const result = {};
+  const states = record?.states ?? record?.releaseStates ?? {};
   for (const key of releaseStateKeys) {
-    result[key] = typeof record?.states?.[key] === "boolean" ? record.states[key] : null;
+    result[key] = typeof states?.[key] === "boolean" ? states[key] : null;
   }
   return result;
 }
@@ -236,19 +250,43 @@ function normalizeIdentity(value) {
 
 function recordMatchesProduct(record, product) {
   if (!record || typeof record !== "object") return false;
+  const nestedProduct = record.product && typeof record.product === "object" ? record.product : {};
   const exactCandidates = [
     [record.owner, product.owner],
     [record.productId, product.id],
     [record.id, product.id],
     [record.slug, product.slug],
     [record.productSlug, product.slug],
-    [record.branch, product.branch]
+    [record.branch, product.branch],
+    [nestedProduct.owner, product.owner],
+    [String(nestedProduct.number ?? ""), product.id],
+    [nestedProduct.slug, product.slug],
+    [nestedProduct.branch, product.branch]
   ];
   if (exactCandidates.some(([actual, expected]) => typeof actual === "string" && actual === expected)) return true;
-  const expectedProduct = normalizeIdentity(product.product);
-  return [record.product, record.productName, record.name]
+  const expectedIdentities = new Set([
+    product.product,
+    product.slug,
+    product.owner,
+    product.id,
+    product.branch,
+    ...(product.aliases ?? [])
+  ].map(normalizeIdentity).filter(Boolean));
+  return [
+    typeof record.product === "string" ? record.product : null,
+    record.productName,
+    record.name,
+    record.owner,
+    record.slug,
+    record.productSlug,
+    record.productId,
+    nestedProduct.id,
+    nestedProduct.name,
+    nestedProduct.owner,
+    nestedProduct.slug
+  ]
     .map(normalizeIdentity)
-    .some((identity) => identity.length > 0 && identity === expectedProduct);
+    .some((identity) => identity.length > 0 && expectedIdentities.has(identity));
 }
 
 function discoverEvidencePaths(product, paths) {
@@ -260,22 +298,19 @@ function discoverEvidencePaths(product, paths) {
       paths,
       integrationProduct
         ? ["release/integration/product-release.json", "release/product-release.json", "product-release.json"]
-        : [`release/${slug}/product-release.json`, "release/product-release.json", "product-release.json"],
-      ["product-release.json"]
+        : [`release/${slug}/product-release.json`, `apps/${slug}/product-release.json`, `docs/${slug}/product-release.json`, slug === "governance" ? "release/governance/product-release.json" : null, "release/product-release.json", "product-release.json"].filter(Boolean)
     ),
     publicMetadata: firstExisting(
       paths,
       integrationProduct
         ? ["release/integration/public-product-metadata.json", "release/public-product-metadata.json", "public-product-metadata.json"]
-        : [`release/${slug}/public-product-metadata.json`, "release/public-product-metadata.json", "public-product-metadata.json"],
-      ["public-product-metadata.json"]
+        : [`release/${slug}/public-product-metadata.json`, `apps/${slug}/public-product-metadata.json`, `docs/${slug}/public-product-metadata.json`, slug === "governance" ? "release/governance/public-product-metadata.json" : null, "release/public-product-metadata.json", "public-product-metadata.json"].filter(Boolean)
     ),
     integrationContract: firstExisting(
       paths,
       integrationProduct
         ? ["release/integration/integration-contract.json", `release/integration/${slug}-contract.json`]
-        : [`release/integration/${slug}-contract.json`, "release/integration/integration-contract.json"],
-      ["integration-contract.json", `${slug}-contract.json`]
+        : [product.integrationContractPath, `release/integration/${slug}-contract.json`, `release/integration/ynx-${slug}-contract.json`, "release/integration/integration-contract.json"].filter(Boolean)
     ),
     integrationHandoff: firstExisting(paths, ["docs/integration/INTEGRATION_HANDOFF.md", `docs/handoffs/${slug}.md`], ["INTEGRATION_HANDOFF.md"]),
     crossProductTestVectors: firstExisting(paths, ["docs/integration/CROSS_PRODUCT_TEST_VECTORS.json", "release/integration/CROSS_PRODUCT_TEST_VECTORS.json"], ["CROSS_PRODUCT_TEST_VECTORS.json"]),
@@ -331,7 +366,7 @@ function deriveAcceptance({ localExists, remoteExists, synced, worktree, evidenc
       nextAction: "Create and push the declared final branch without changing another worktree."
     };
   }
-  if (branchReady && evidenceReady && sourceBound) {
+  if (branchReady && evidenceReady && sourceBound && blockers.length === 0) {
     return {
       status: "implementedLocal",
       reason: "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
@@ -350,14 +385,18 @@ function deriveAcceptance({ localExists, remoteExists, synced, worktree, evidenc
 function validateRegistry(registry) {
   if (registry?.schemaVersion !== "1.0.0") fail("product registry schemaVersion must be 1.0.0");
   if (!Array.isArray(registry.products) || registry.products.length !== 36) fail("product registry must contain exactly 36 products");
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(registry.defaultRepository ?? "")) fail("product registry defaultRepository is invalid");
   const ids = registry.products.map((product) => product.id);
   const expected = Array.from({ length: 36 }, (_, index) => String(index + 1).padStart(2, "0"));
   if (JSON.stringify(ids) !== JSON.stringify(expected)) fail("product registry IDs must be the ordered range 01 through 36");
   const branches = new Set();
   for (const product of registry.products) {
+    const repository = product.repository ?? registry.defaultRepository;
+    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) fail(`invalid repository for product ${product.id}`);
     if (!/^codex\/final-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(product.branch ?? "")) fail(`invalid branch for product ${product.id}`);
-    if (branches.has(product.branch)) fail(`duplicate final branch ${product.branch}`);
-    branches.add(product.branch);
+    const branchIdentity = `${repository}#${product.branch}`;
+    if (branches.has(branchIdentity)) fail(`duplicate final branch ${branchIdentity}`);
+    branches.add(branchIdentity);
     for (const dependency of product.dependencies ?? []) {
       if (!expected.includes(dependency)) fail(`product ${product.id} references unknown dependency ${dependency}`);
       if (dependency === product.id) fail(`product ${product.id} depends on itself`);
@@ -384,7 +423,9 @@ function githubQuery(commandArgs, attempts = 2) {
       cwd: root,
       encoding: "utf8",
       maxBuffer: 32 * 1024 * 1024,
-      env: process.env
+      env: process.env,
+      timeout: 15_000,
+      killSignal: "SIGTERM"
     });
     if (!result.error && result.status === 0) {
       return { ok: true, stdout: String(result.stdout ?? ""), attempts: attempt, error: null };
@@ -508,28 +549,39 @@ function main() {
   const productRows = [];
 
   for (const product of registry.products) {
+    const repository = product.repository ?? registry.defaultRepository;
+    const externalRepository = repository !== registry.defaultRepository;
+    const expectedExternalWorktree = path.join(finalWorktreesRoot, product.worktreeSlug);
+    const repositoryRoot = externalRepository ? expectedExternalWorktree : root;
+    const repositoryOrigin = repositoryFromRemote(git(["remote", "get-url", "origin"], { allowFailure: true, cwd: repositoryRoot })?.trim() ?? null);
+    const repositoryMatches = repositoryOrigin === repository;
     const localRef = `refs/heads/${product.branch}`;
     const remoteRef = `refs/remotes/origin/${product.branch}`;
-    const localSha = refSha(localRef);
-    const remoteSha = refSha(remoteRef);
-    const distance = aheadBehind(localSha, remoteSha);
-    const branchConfigRemote = git(["config", "--get", `branch.${product.branch}.remote`], { allowFailure: true })?.trim() || null;
-    const branchConfigMerge = git(["config", "--get", `branch.${product.branch}.merge`], { allowFailure: true })?.trim() || null;
+    const localSha = refSha(localRef, repositoryRoot);
+    const remoteSha = refSha(remoteRef, repositoryRoot);
+    const distance = aheadBehind(localSha, remoteSha, repositoryRoot);
+    const branchConfigRemote = git(["config", "--get", `branch.${product.branch}.remote`], { allowFailure: true, cwd: repositoryRoot })?.trim() || null;
+    const branchConfigMerge = git(["config", "--get", `branch.${product.branch}.merge`], { allowFailure: true, cwd: repositoryRoot })?.trim() || null;
     const expectedMerge = `refs/heads/${product.branch}`;
-    const worktree = inspectWorktree(worktreesByBranch.get(product.branch));
+    const externalHead = refSha("HEAD", repositoryRoot);
+    const externalBranch = git(["branch", "--show-current"], { allowFailure: true, cwd: repositoryRoot })?.trim() || null;
+    const worktreeRecord = externalRepository
+      ? (repositoryMatches ? { path: repositoryRoot, head: externalHead, branch: externalBranch, detached: false } : null)
+      : worktreesByBranch.get(product.branch);
+    const worktree = inspectWorktree(worktreeRecord);
     const commitForEvidence = localSha ?? remoteSha;
-    const paths = treePaths(commitForEvidence);
+    const paths = treePaths(commitForEvidence, repositoryRoot);
     const evidencePaths = discoverEvidencePaths(product, paths);
-    const fullGoalCoverage = readJsonAtCommit(commitForEvidence, evidencePaths.fullGoalCoverage);
-    const productRelease = readJsonAtCommit(commitForEvidence, evidencePaths.productRelease);
-    const publicMetadata = readJsonAtCommit(commitForEvidence, evidencePaths.publicMetadata);
-    const integrationContract = readJsonAtCommit(commitForEvidence, evidencePaths.integrationContract);
+    const fullGoalCoverage = readJsonAtCommit(commitForEvidence, evidencePaths.fullGoalCoverage, repositoryRoot);
+    const productRelease = readJsonAtCommit(commitForEvidence, evidencePaths.productRelease, repositoryRoot);
+    const publicMetadata = readJsonAtCommit(commitForEvidence, evidencePaths.publicMetadata, repositoryRoot);
+    const integrationContract = readJsonAtCommit(commitForEvidence, evidencePaths.integrationContract, repositoryRoot);
     const coverage = extractCoverage(fullGoalCoverage);
     const bindings = {
-      fullGoalCoverage: sourceBinding(fullGoalCoverage, commitForEvidence),
-      productRelease: sourceBinding(productRelease, commitForEvidence),
-      publicMetadata: sourceBinding(publicMetadata, commitForEvidence),
-      integrationContract: sourceBinding(integrationContract, commitForEvidence)
+      fullGoalCoverage: sourceBinding(fullGoalCoverage, commitForEvidence, repositoryRoot),
+      productRelease: sourceBinding(productRelease, commitForEvidence, repositoryRoot),
+      publicMetadata: sourceBinding(publicMetadata, commitForEvidence, repositoryRoot),
+      integrationContract: sourceBinding(integrationContract, commitForEvidence, repositoryRoot)
     };
     const recordMatches = {
       fullGoalCoverage: recordMatchesProduct(fullGoalCoverage, product),
@@ -550,13 +602,15 @@ function main() {
       bindings,
       recordMatches
     });
-    const localShaAfter = refSha(localRef);
+    if (!repositoryMatches) acceptance.blockers.unshift(`repository origin does not match ${repository}`);
+    const localShaAfter = refSha(localRef, repositoryRoot);
     const stableDuringScan = localShaAfter === localSha;
     if (!stableDuringScan) acceptance.blockers.unshift("local final branch moved during the central scan");
 
     productRows.push({
       id: product.id,
       product: product.product,
+      repository,
       branch: product.branch,
       phase: product.phase,
       owner: product.owner,
@@ -570,6 +624,7 @@ function main() {
         behind: distance.behind,
         upstreamConfigured: branchConfigRemote === "origin" && branchConfigMerge === expectedMerge,
         upstreamRef: branchConfigRemote && branchConfigMerge ? `${branchConfigRemote}/${branchConfigMerge.replace("refs/heads/", "")}` : null,
+        repositoryMatches,
         synced,
         stableDuringScan
       },

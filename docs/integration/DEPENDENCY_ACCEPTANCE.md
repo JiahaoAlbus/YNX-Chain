@@ -18,7 +18,7 @@ This record defines the central dependency acceptance boundary. Product-owner br
 | Unique Quant Engine | 08 Quant Lab | one engine identity; Exchange/DEX/Paper adapters; independent risk engine; mandate enforcement; no-withdraw/private-key boundary | Pending branch scan and owner contract review |
 | Economics and parameter registry | 17 Tokenomics | fee authority; reserve/redemption; treasury and safety module; high-water-mark rules; no fee on unrealized PnL | Pending branch scan and owner contract review |
 | Governance and timelock | 31 Governance | proposal/vote/timelock/canary/rollback; emergency scope; audit and duplicate-execution rejection | Pending branch scan and owner contract review |
-| Security, release, backup, artifact policy | 30 Security/SRE | Threat Model; secret/SAST/DAST/dependency/license scans; SBOM/provenance; restore drill; incident and alert evidence | Final branch and registered worktree not yet observed |
+| Security, release, backup, artifact policy | 30 Security/SRE | Threat Model; secret/SAST/DAST/dependency/license scans; SBOM/provenance; restore drill; incident and alert evidence | Candidate observed in `JiahaoAlbus/YNX` on synchronized branch `codex/final-security-platform`; central acceptance remains pending while its coverage has autonomous/open items |
 | Website public registry and SEO | 28 Website | accepted metadata consumption; canonical route; runtime/public status separation; immutable download; public probes | Pending branch scan and owner contract review |
 | Protocol freeze, merge order, shared Testnet, public proof | 29 Integration | 01–36 matrix; conflict resolution; dependency acceptance; cross-product vectors; exact accepted commits | In progress in this branch |
 
@@ -38,4 +38,8 @@ Phase 0 authorities are reviewed first: 01, 17, 19, 21, 26, 30 and 31. Phase 1 d
 
 ## Current blocker
 
-The declared `codex/final-security-sre` branch and `30-security-sre` registered worktree were not present in the recovered Git/worktree inventory. Integration must keep Security/SRE-dependent products fail-closed while continuing branch scans, contract adapters, test vectors and evidence validation that do not require that owner input.
+The Security/SRE candidate is no longer missing: Integration resolves its separate
+repository, exact synchronized branch and clean worktree. It is not centrally
+accepted yet because its owner coverage still contains autonomous/open items.
+Security-dependent public and production promotions therefore remain fail-closed
+while the verified local candidate can now participate in contract review.

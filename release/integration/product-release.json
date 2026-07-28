@@ -41,7 +41,7 @@
   "runtimeDeployedPublic": false,
   "mainnetAccepted": false,
   "knownBlockers": [
-    "The Security/SRE final branch and registered worktree were not present in the recovered inventory.",
+    "The Security/SRE candidate is present in its separate repository, but its remaining autonomous/open coverage items still block central and production acceptance.",
     "The former Hardhat development-tooling advisory is remediated in the locked dependency graph; Security/SRE acceptance remains independently required for production release.",
     "Phase 0 owner contracts and central negative vectors have not yet been accepted.",
     "No shared Public Testnet or independent public proof has been accepted by Integration."
