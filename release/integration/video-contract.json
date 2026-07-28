@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx-video-integration-v1",
+  "owner": "YNX 33",
+  "product": "YNX Video",
+  "sourceCommit": "11e64797c64cd64d1c6e53f0295c17997bde6f97",
+  "phase": "FREEZE",
+  "authority": {
+    "videoState": "YNX 33",
+    "walletIdentityAndSessions": "YNX 02",
+    "paymentSettlement": "YNX 04",
+    "trustCasesAndAppeals": "YNX 15",
+    "canonicalEventsAndBilling": "YNX 26",
+    "integrationFreeze": "YNX 29",
+    "releaseSecurity": "YNX 30"
+  },
+  "wallet": {
+    "protocol": "wallet-auth-v1",
+    "registrySchemaVersion": 2,
+    "registrations": "internal/video/integration/registry-v2.json",
+    "attestationDomain": "YNX_VIDEO_GATEWAY_REQUEST_V2",
+    "network": "ynx_6423-1",
+    "deviceAlgorithm": "p256-sha256",
+    "failClosed": true
+  },
+  "service": {
+    "basePath": "/video",
+    "health": "GET /video/health",
+    "version": "GET /video/version",
+    "apiPrefix": "/video/v1",
+    "mediaPrefix": "/video/media/",
+    "requestHeaders": ["X-YNX-App-Session", "X-YNX-Device-ID"],
+    "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
+  },
+  "canonicalStates": {
+    "processing": ["uploaded", "scanning", "scan_failed", "transcoding", "processing_failed", "ready"],
+    "visibility": ["private", "unlisted", "public"],
+    "appeal": ["draft", "submitted_local", "accepted", "rejected"],
+    "payIntent": ["awaiting_wallet_confirmation", "confirmed", "failed"]
+  },
+  "security": {
+    "replayProtection": "persistent nonce consumption before mutation",
+    "requestBinding": ["method", "requestUri", "bodySha256", "requestTime", "nonce"],
+    "rightsRequiredForPublication": true,
+    "rawPublicBucket": false,
+    "aiAutonomousPublishOrRemoval": false
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "dependencies": [
+    {"owner":"YNX 02","contract":"Wallet registrations and Product Session acceptance","status":"pending"},
+    {"owner":"YNX 04","contract":"Pay intent and paid-settlement receipt","status":"pending"},
+    {"owner":"YNX 15","contract":"Delegated per-user Trust appeal","status":"pending"},
+    {"owner":"YNX 26","contract":"Canonical events and billing ledger ingestion","status":"pending"},
+    {"owner":"YNX 29","contract":"Shared-testnet integration freeze","status":"pending"},
+    {"owner":"YNX 30","contract":"Artifact, deployment and security gate","status":"pending"}
+  ],
+  "truthBoundary": "This file freezes the product-owned contract only. It is not evidence of central acceptance, shared-testnet integration, public deployment or production signing."
+}

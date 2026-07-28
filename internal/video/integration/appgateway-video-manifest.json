@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "service": "video",
-  "sourceMainCommit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+  "sourceMainCommit": "11e64797c64cd64d1c6e53f0295c17997bde6f97",
   "requiredWalletVerifier": "wallet-auth-v1",
   "requiredRegistry": "internal/video/integration/registry-v2.json",
   "upstream": {

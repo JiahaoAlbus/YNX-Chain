@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Video",
+  "sourceCommit": "11e64797c64cd64d1c6e53f0295c17997bde6f97",
+  "vectors": [
+    {"id":"wallet-happy","owner":"YNX 02","expect":"accepted","given":"exact product, bundle, callback, device key, sorted scopes, body digest, nonce and bounded expiry"},
+    {"id":"wallet-replay","owner":"YNX 02","expect":"rejected","given":"identical consumed nonce and attestation"},
+    {"id":"wallet-body-tamper","owner":"YNX 02","expect":"rejected","given":"valid attestation with changed mutation body"},
+    {"id":"wallet-scope-widen","owner":"YNX 02","expect":"rejected","given":"requested scope outside exact registry entry"},
+    {"id":"pay-unsettled-tip","owner":"YNX 04","expect":"no revenue allocation","given":"Pay intent exists without matching paid settlement receipt"},
+    {"id":"pay-settled-tip","owner":"YNX 04","expect":"single allocation","given":"matching paid receipt, intent, invoice, account, amount, transaction hash, block height and audit hash"},
+    {"id":"trust-local-appeal","owner":"YNX 15","expect":"local pending only","given":"creator appeal without delegated user signer/session"},
+    {"id":"trust-delegated-appeal","owner":"YNX 15","expect":"authoritative submission","given":"accepted delegated creator session and exact appeal digest"},
+    {"id":"rights-expired","owner":"YNX 33","expect":"publication rejected","given":"public or unlisted visibility with expired rights declaration"},
+    {"id":"scanner-unready","owner":"YNX 33","expect":"processing unavailable","given":"malware scanner configuration or signatures unavailable"},
+    {"id":"ai-autopublish","owner":"YNX 14","expect":"rejected","given":"AI suggestion attempts to publish, remove, demonetize, claim rights or execute Pay"},
+    {"id":"restricted-media","owner":"YNX 29","expect":"unauthorized response without raw object disclosure","given":"private media request from unrelated Product Session"}
+  ]
+}
