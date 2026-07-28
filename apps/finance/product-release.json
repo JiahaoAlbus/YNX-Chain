@@ -3,6 +3,7 @@
   "product": "YNX Finance",
   "version": "1.2.0",
   "branch": "codex/final-finance",
+  "sourceCommit": "31ac90ec6a8bd665f1fe630f87ba9221c836288a",
   "generatedAt": "2026-07-27T15:32:35Z",
   "implementedLocal": true,
   "testedLocal": true,
@@ -16,6 +17,17 @@
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "signingClass": {
     "android": "local-test-signed",
     "ios": "unsigned-simulator-target"
