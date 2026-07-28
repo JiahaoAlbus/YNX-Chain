@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "sourceCommit": "1eb2764c95368d5a62483028891eb6c3f67f2c1a",
   "productId": "pay",
   "name": "YNX Pay",
   "aliases": ["YNX Payment"],
