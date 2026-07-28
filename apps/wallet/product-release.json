@@ -2,7 +2,7 @@
   "productId": "wallet",
   "name": "YNX Wallet",
   "branch": "codex/final-wallet-auth",
-  "commit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
+  "commit": "9a434ffa8f8d498d99f577ce97964903afea9cae",
   "artifactSourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
   "version": "1.0.0-testnet-preview",
   "surfaces": ["android", "ios"],
@@ -19,6 +19,7 @@
     "canonicalAuth": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "canonicalGatewayAdapter": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"gatewayAdapterSnapshotVersion":2,"gatewayHttpKernelVersion":1,"evidenceSourceCommit":"d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e","coverage":["twelve-canonical-routes","canonical-json-body","separate-p256-proof-header","immutable-registry","request-atomic-rollback","state-digest","proof-replay","session-revoke","approval-revoke","device-revoke","wallet-only-all-device-logout","mandate-proof-atomicity"]},
     "gatewayObservability": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6","observabilitySchemaVersion":1,"endpoints":["/health","/ready","/version","/metrics"],"identifiers":["x-request-id","x-trace-id","x-error-id"],"remoteBuildIdentityRequired":true,"boundedMetricLabels":true,"redactedStructuredEvents":true,"nodeOnlyPackageSubpath":"@ynx-chain/wallet-auth/gateway-node-host","mobileUniversalRootExcludesNodeBuiltins":true,"evidence":"proof/gateway-observability-local-2026-07-27.json"},
+    "gatewayBackupRecovery": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"c4e476dc52e40ae4c895503a9ed0b756b1884f77","schemaVersion":1,"algorithm":"aes-256-gcm","exactStateRestore":true,"replayStateRestored":true,"noOverwrite":true,"rollbackFloor":true,"maximumAgePolicy":true,"evidence":"proof/gateway-backup-restore-local-2026-07-27.json"},
     "connectedApps": {"implementedLocal":true,"testedLocal":true,"installedAndroid":true,"installedIOS":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"b88a40ed37eaf3fd50d6accc5fdc3b7693c82cf5","androidEvidence":"proof/wallet-connected-apps-android-installed-2026-07-26.json","iosEvidenceRun":"https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30201957908","iosArtifactId":8632005688,"iosArtifactSha256":"f1af6a4a8902a16a43c6ee5a2bda279ed642613d27edaff4b9e6e675c1c4a64a","iosSigningClass":"unsigned-simulator-build","coverage":["account-bound-session-inventory","freshness-bound","strict-envelope","loading-empty-failure-ready-ui"]},
     "signedIntent": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountPolicy": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
@@ -30,6 +31,7 @@
     "evmContractSimulation": {"implementedLocal":true,"testedLocal":true,"installedAndroid":false,"installedIOS":false,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"ec8bdc6c7ae61479ed257cff26c41dbbc1366dba","coverage":["0x-derivation","chain-id-binding","fixed-block-code-read","eth-call","gas-estimate","code-hash","response-bounds","no-sign","no-broadcast"]},
     "releaseSbom": {"implementedLocal":true,"testedLocal":true,"releaseGrade":true,"generator":"@cyclonedx/cyclonedx-npm@6.0.0","specVersion":"1.6","components":431,"dependencyNodes":504,"licenseCoverage":"431/431","sha256":"7d1afd4f176776840a45c131843cde1550154f738a1e3da67f1163cf88dab633","evidence":"proof/wallet-sbom-release-grade-2026-07-27.json"},
     "releaseContentGate": {"implementedLocal":true,"testedLocal":true,"filesScanned":22,"externalBinaryRequired":false,"centralGateConflict":"../../docs/integration/SECURITY_GATE_CONFLICT.md"},
+    "websiteDocumentationHandoff": {"implementedLocal":true,"testedLocal":true,"integratedCentral":true,"deployedStaging":true,"deployedPublic":true,"productRuntimeDeployed":false,"walletRouteDirectlyVerified":false,"canonicalRoute":"https://ynxweb4.com/wallet","source":"../../docs/public/search/WALLET.md","handoff":"../../docs/public/WEBSITE_INTEGRATION_HANDOFF.md","publicEvidence":"../../release/evidence/website-public-acceptance-2026-07-26.json"},
     "fullGoalCoverage": {"implementedLocal":true,"testedLocal":true,"requirements":39,"evidence":"../../.ai-bridge/full-goal-coverage.json"},
     "selectiveDisclosureCredential": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false}
   },
@@ -75,5 +77,5 @@
     "The ERC-4337 EntryPoint and Smart Account contracts pass a local Hardhat EDR flow but are not deployed, Bundler-integrated, externally audited or proven on YNX Testnet.",
     "Gateway health/readiness/version/metrics and redacted structured events are tested on a loopback runtime only; no central Monitor acceptance, staging endpoint or public endpoint exists."
   ],
-  "generatedAt": "2026-07-27T15:00:49Z"
+  "generatedAt": "2026-07-28T10:08:28Z"
 }

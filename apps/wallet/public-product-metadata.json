@@ -14,9 +14,17 @@
     {"platform":"android","signingClass":"local-test-signed","url":"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-Android-test-da82c8b.apk","sha256":"3d7dd0b349721f2364a2ec0519269bee2933c8b718ba26fc68e7e3354ae15256"},
     {"platform":"ios-simulator","signingClass":"unsigned-simulator-build","url":"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-iOS-Simulator-da82c8b.zip","sha256":"1396a275c90b1333c8cda80acf4428553e995cdcc87f8eaa3baf11fbfc7b3a43"}
   ],
-  "supportUrl": "https://github.com/JiahaoAlbus/YNX-Chain/issues",
-  "privacyUrl": null,
-  "securityUrl": null,
-  "statusUrl": null,
+  "supportUrl": "https://ynxweb4.com/support",
+  "privacyUrl": "https://ynxweb4.com/privacy",
+  "securityUrl": "https://ynxweb4.com/security",
+  "statusUrl": "https://ynxweb4.com/status",
+  "websiteHandoff": {
+    "canonicalProductRoute": "https://ynxweb4.com/wallet",
+    "contentIntegrated": true,
+    "contentDeployedPublic": true,
+    "productRuntimeDeployed": false,
+    "walletRouteDirectlyVerified": false,
+    "evidence": "../../release/evidence/website-public-acceptance-2026-07-26.json"
+  },
   "structuredDataSuggestion": "SoftwareApplication with operatingSystem, softwareVersion, downloadUrl and explicit Testnet engineering-preview status"
 }

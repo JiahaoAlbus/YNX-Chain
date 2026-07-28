@@ -1,25 +1,25 @@
 # YNX Wallet and canonical Wallet Auth handoff
 
-Handoff date: 2026-07-27. Owned branch: `codex/final-wallet-auth`. Recovery source: preserved `codex/ecosystem-wallet-auth` tip plus its six byte-for-byte verified dirty artifacts.
+Handoff updated: 2026-07-28. Owned branch: `codex/final-wallet-auth`. Recovery source: preserved `codex/ecosystem-wallet-auth` tip plus its six byte-for-byte verified dirty artifacts.
 
 ## Git and ownership
 
 - Preserved starting/remote branch tip: `efe827f467107e23482289a5b1f69ac9ff83e694`.
 - Merge base: `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`.
-- Compatibility reference observed on `origin/main`: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`.
-- Recovered hosted-artifact source commit: `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`. Current protocol, vector and local Gateway-observability source commit: `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6`. The final release-record/handoff commit is reported to the controller because a commit cannot contain its own hash.
-- Owned changes are limited to `apps/wallet/**`, `packages/wallet-auth/**`, this handoff and `.github/workflows/wallet-ios.yml`. No central acceptance file, long-term objective, root Makefile or other product source was modified.
+- Current main compatibility merge: `9a434ffa8f8d498d99f577ce97964903afea9cae`, including `origin/main` at `562888318863435382d839958130246973dc1206`.
+- Recovered hosted-artifact source commit: `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`. Gateway observability source: `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6`. Encrypted backup runtime source: `c4e476dc52e40ae4c895503a9ed0b756b1884f77`.
+- Product-owned implementation remains under `apps/wallet/**`, `packages/wallet-auth/**`, this handoff and `.github/workflows/wallet-ios.yml`. The branch also merges the current central documentation, website-handoff and deployment-gate baseline without claiming central Wallet runtime deployment.
 
 ## Honest delivery state
 
 | State | Value | Evidence/boundary |
 |---|---:|---|
 | implemented-local | true | Independent Wallet, canonical lifecycle, Signed Intent, Smart Account policy, mandate/capital and Credential candidates |
-| tested-local | true | Wallet/Auth 94/94 plus Wallet typecheck/product-check evidence; the current Gateway observability slice is bound to exact source and machine evidence |
+| tested-local | true | Wallet/Auth 99/99 plus Wallet 39/39, typecheck, product-check, SBOM, Android/iOS bundle, documentation, disclosure, deploy dry-run and full Go regression evidence |
 | installed-local | Android true; iOS Simulator true | API 36 phone/foldable installed and cold-launched; macOS 15/Xcode 26.3 CI installed and cold-launched the unsigned iOS Simulator app |
 | integrated-central | false | Registry document v2, product schema v3, Gateway adapter v2 and observability host v1 are tested candidates; not merged into or deployed by central Gateway |
 | deployed-staging | false | Local loopback health/readiness/version/metrics exist; no staging endpoint or exact deployed build response exists |
-| deployed-public | false | No product public deployment exists; public chain RPC use is not product deployment |
+| deployed-public | false | No Wallet runtime public deployment exists; Wallet documentation is integrated into the public Website content bundle, but the Wallet route lacks direct route-level runtime proof |
 | download-hosted | true | GitHub prerelease hosts the exact test-signed APK and unsigned Simulator app with hashes |
 | production-signed | false | Android is local test-signed; no Apple product archive |
 | store-released | false | No store submission or approval |
@@ -92,7 +92,7 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 
 ## Verification performed
 
-- `packages/wallet-auth npm test`: 94/94 pass; `npm pack --dry-run` includes central docs, Registry v2, Gateway adapter/Node host, StrategyMandate runtime and deterministic vectors.
+- `packages/wallet-auth npm test`: 99/99 pass; `npm pack --dry-run` includes central docs, Registry v2, Gateway adapter/Node host, encrypted backup/restore, StrategyMandate runtime and deterministic vectors.
 - `apps/wallet npm run check`: typecheck, 39/39 tests, product/release/coverage/SBOM gates and Android/iOS Hermes exports pass.
 - Offline production audits with `npm audit --offline --omit=dev --audit-level=high`: Wallet app and Wallet/Auth both report zero vulnerabilities; Browser/JS SDK tests remain green.
 - `npm run contracts:check` and `umask 0022; go test ./...`: pass. The MCP default `umask 0077` tightened two non-Wallet unsafe-permission fixtures to `0600`, so the standard fixture precondition is recorded rather than changing another product's source.
@@ -109,6 +109,8 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 - The default-disabled Paymaster executes local first-action, merchant, developer and product sponsorship, conservatively reserves product/subject budgets, observes postOp cost, rejects tamper/replay/second-first-action/unapproved target and restricts Risk Officer authority to disabling. The ERC-7769 adapter adds strict health/estimate/send/lookup/receipt with 4 dedicated tests and a 100-request isolated-fixture soak. Neither is deployed publicly.
 - Canonical Gateway adapter: 7 tests covering server-authoritative registry selection, P-256 HTTP proof binding, replay, restart/revoke and 2,000 unique proof operations; the local 1,000-sample benchmark measured p50 2.931 ms, p95 3.318 ms, p99 4.208 ms, zero errors and 333.48 operations/second without network or disk latency.
 - Canonical Gateway observability at source `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6`: Node-host 8/8 and package 94/94 pass; a real loopback CLI process returned `/health`, `/ready`, `/version` and Prometheus `/metrics`, emitted redacted canonical JSON events, and rejected remote classification without exact source/release/build-time identity. `apps/wallet/proof/gateway-observability-local-2026-07-27.json` binds hashes and explicitly leaves central Monitor, staging and public states false.
+- Gateway recovery at source `c4e476dc52e40ae4c895503a9ed0b756b1884f77`: AES-256-GCM backup preserves exact canonical Gateway state, consumed-proof replay rejection, revocations and mandates; wrong key, tamper, broad permissions, links, stale/future recovery points and existing restore targets fail closed. `apps/wallet/proof/gateway-backup-restore-local-2026-07-27.json` records the 20-sample local drill and explicit false central/KMS/cross-region states.
+- Main compatibility merge `9a434ffa8f8d498d99f577ce97964903afea9cae`: Wallet/Auth 99/99, Wallet App 39/39 plus both bundles, all documentation/disclosure/package gates, the complete deploy dry-run and `go test ./...` pass.
 
 ## Artifact record
 
@@ -116,7 +118,7 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 - Android Hermes: 4,446,705 bytes, SHA-256 `d3fb4d403eb46d54adbf5e8811ff36abeb0146b5a54c6b17ac6e246628bf7349`.
 - iOS Hermes: 4,440,970 bytes, SHA-256 `6c8b372e34ae7cd22984eb3518da9abe1a876de5d7cf4de2e6c2686d71360555`.
 - iOS Simulator zip: unsigned, 16,442,130 bytes, SHA-256 `1396a275c90b1333c8cda80acf4428553e995cdcc87f8eaa3baf11fbfc7b3a43`; [hosted engineering artifact](https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-iOS-Simulator-da82c8b.zip).
-- Staging/public product/health/version URLs: none. The GitHub prerelease is artifact hosting only, not a product deployment.
+- Staging/public Wallet runtime/health/version URLs: none. The GitHub prerelease is artifact hosting only, not a product deployment. The publicly hosted Website documentation bundle designates `https://ynxweb4.com/wallet` as the canonical Wallet route, and general support/privacy/security/status routes are verified by the Website evidence record; the Wallet route itself has not received direct route-level public verification.
 
 ## Controller integration requests and external blockers
 
