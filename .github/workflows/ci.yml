@@ -19,6 +19,7 @@ jobs:
           node-version: "24"
           cache: npm
       - run: npm ci
+      - run: make dependency-audit
       - run: make env-check
       - run: make no-placeholder-check
       - run: make secret-scan

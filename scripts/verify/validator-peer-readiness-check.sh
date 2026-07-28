@@ -89,10 +89,27 @@ for _ in {1..40}; do
   sleep 0.25
 done
 PRIMARY_STATUS="$primary_status" SECONDARY_STATUS="$secondary_status" node -e 'const p=JSON.parse(process.env.PRIMARY_STATUS); const s=JSON.parse(process.env.SECONDARY_STATUS); if (p.height!==s.height || p.latestBlockHash!==s.latestBlockHash) { console.error(`replication did not converge: primary=${p.height}/${p.latestBlockHash} secondary=${s.height}/${s.latestBlockHash}`); process.exit(1); }'
-secondary_identity="$(curl -fsS http://127.0.0.1:6461/node/identity)"
+secondary_identity=""
+# The producer can advance after the paired status reads above. Require one
+# follower identity snapshot that is itself fully synchronized instead of
+# assuming the previous status pair remains current.
+for _ in {1..40}; do
+  secondary_identity="$(curl -fsS http://127.0.0.1:6461/node/identity)"
+  if printf '%s' "$secondary_identity" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const r=data.replication||{}; process.exit(r.status === "synced" && r.catchingUp === false && r.fresh === true && r.localHeight === r.sourceHeight && r.localBlockHash === r.sourceBlockHash && r.consecutiveFailures === 0 ? 0 : 1);' >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.25
+done
 printf '%s' "$secondary_identity" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const r=data.replication||{}; if (data.blockProductionEnabled || data.replicationMode !== "authoritative_follower" || data.replicationSource !== "http://127.0.0.1:6460" || !r.configured || r.status !== "synced" || r.catchingUp !== false || r.fresh !== true || r.localHeight !== r.sourceHeight || r.localBlockHash !== r.sourceBlockHash || r.consecutiveFailures !== 0 || r.successes < 1) { console.error(`follower identity missing verified replication state: ${JSON.stringify(data)}`); process.exit(1); }'
 
-secondary_status="$(curl -fsS http://127.0.0.1:6461/status)"
+secondary_status=""
+for _ in {1..40}; do
+  secondary_status="$(curl -fsS http://127.0.0.1:6461/status)"
+  if printf '%s' "$secondary_status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const r=data.replication||{}; process.exit(data.catchingUp === false && r.status === "synced" && r.localHeight === data.height && r.localBlockHash === data.latestBlockHash ? 0 : 1);' >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.25
+done
 printf '%s' "$secondary_status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const r=data.replication||{}; if (data.catchingUp !== false || r.status !== "synced" || r.localHeight !== data.height || r.localBlockHash !== data.latestBlockHash) { console.error(`follower status missing convergence proof: ${JSON.stringify(data)}`); process.exit(1); }'
 secondary_metrics=""
 # The producer can advance between the status and metrics requests. Poll until

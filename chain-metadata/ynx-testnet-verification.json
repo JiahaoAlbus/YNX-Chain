@@ -6,6 +6,6 @@
   "explorerSearchPath": "/api/search",
   "faucetHealthPath": "/health",
   "requestAttempts": 3,
-  "requestTimeoutMs": 8000,
+  "requestTimeoutMs": 15000,
   "restStatusURL": "https://rpc.ynxweb4.com/status"
 }

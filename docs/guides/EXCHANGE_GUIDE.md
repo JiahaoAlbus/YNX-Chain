@@ -2,12 +2,12 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.0-candidate |
-| Effective date | 2026-07-23 |
-| Evidence source commit | `d0f16c2971f33e1e8b9bced947131423f841af2f` |
+| Version | 1.0.0-testnet-candidate |
+| Effective date | 2026-07-28 |
+| Evidence source | Exchange package `manifest.json` |
 | Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-23 |
-| Superseded version | None |
+| Last reviewed | 2026-07-28 |
+| Superseded version | 0.1.0-candidate |
 | Canonical | `https://ynxweb4.com/exchange` |
 
 ## Status
@@ -30,12 +30,10 @@ listing commitment from any exchange.
 
 ## Integration overview
 
-YNX Testnet supports both native YNXT transactions and EVM-compatible operations.
-Exchanges can integrate using:
-
-1. **Native path**: Cosmos SDK / CometBFT transactions for YNXT transfers
-2. **EVM path**: Ethereum-compatible JSON-RPC for ERC-20 tokens and smart contracts
-3. **Hybrid**: Native YNXT deposits/withdrawals plus EVM token support
+YNX Testnet exposes a YNX native-envelope transfer path plus a bounded
+Ethereum-compatible read interface. Standard Ethereum RLP broadcast is not
+supported. The canonical broadcast input is a hex-encoded
+`ynx-native-json-envelope-v1`.
 
 ## Prerequisites
 
@@ -49,22 +47,10 @@ Exchanges can integrate using:
 
 ### Running a full node
 
-```bash
-# Initialize node
-ynxd init <exchange-node> --chain-id ynx_6423-1 --home ~/.ynx-exchange
-
-# Obtain genesis file from network coordinator
-cp genesis.json ~/.ynx-exchange/config/genesis.json
-
-# Configure seeds and persistent peers
-# Edit ~/.ynx-exchange/config/config.toml
-
-# Disable indexing if using custom database
-# Edit ~/.ynx-exchange/config/config.toml: indexer = "null"
-
-# Start node
-ynxd start --home ~/.ynx-exchange
-```
+The repository does not yet publish a production exchange-node binary or a
+production genesis package. Use the public read-only Testnet endpoints for
+evaluation and request an independently reviewed node package before any
+custody integration. Do not rely on illustrative `ynxd` commands.
 
 ### Node monitoring
 
@@ -78,30 +64,25 @@ ynxd start --home ~/.ynx-exchange
 
 ### Generate deposit addresses
 
-```bash
-# Generate a unique address per user or use a single hot wallet with memos
-ynxd keys add user-deposit-<id> --home ~/.ynx-exchange
-```
-
-**Important**: If using a single deposit address, implement memo-based
-accounting to distinguish users. Cosmos SDK supports memo fields in transactions.
+Use unique addresses or an exchange-controlled allocation ledger. The current
+candidate does not use memo/tag routing. Both lowercase `0x` and checksummed
+`ynx1` forms resolve to one account; store and sign with the canonical lowercase
+`0x` form.
 
 ### Monitor incoming transactions
 
-```bash
-# Query transactions to a specific address
-ynxd query txs --events "transfer.recipient=<address>" --node <rpc-endpoint>
-
-# Or monitor blocks and parse transfer events
-ynxd query block <height> --node <rpc-endpoint>
-```
+Use `eth_getBlockByNumber`, `eth_getTransactionByHash`,
+`eth_getTransactionReceipt`, and bounded `eth_getLogs`. Pause crediting on block
+identity mismatch, observed reorg, or indexer lag.
 
 ### Confirmation policy
 
-- **Minimum confirmations**: 12 blocks recommended (approximately 60 seconds)
-- **Finality**: CometBFT provides fast finality; confirmed blocks are not reverted
-  under normal operation
-- **Reorg risk**: Minimal in BFT consensus; monitor for consensus issues
+- **Fixture minimum**: 2 blocks, for deterministic candidate evidence only
+- **Production threshold**: not approved; pause credits until an exchange and
+  network operator approve it
+- **Finality evidence**: the public candidate uses an authoritative
+  producer/follower model and does not claim public BFT finality or proven reorg
+  resistance
 
 ### Credit user balance
 
@@ -123,22 +104,14 @@ Once confirmations are met and the transaction is verified:
 
 ### Broadcast transaction
 
-```bash
-# Create and sign withdrawal transaction
-ynxd tx bank send <hot-wallet> <user-address> <amount>ynxt \
-  --chain-id ynx_6423-1 \
-  --from <hot-wallet> \
-  --gas auto \
-  --gas-adjustment 1.5 \
-  --node <rpc-endpoint>
-```
+Build and sign the canonical YNX native JSON envelope, then submit it to
+`POST /transactions/broadcast` as JSON or to `eth_sendRawTransaction` as the
+`0x`-prefixed hex encoding of that exact canonical envelope.
 
 ### Monitor transaction status
 
-```bash
-# Query transaction by hash
-ynxd query tx <txhash> --node <rpc-endpoint>
-```
+Query `eth_getTransactionByHash` and `eth_getTransactionReceipt`. Exact duplicate
+broadcasts are idempotent and must return the same transaction hash.
 
 Check for:
 - `code: 0` (success)
@@ -161,16 +134,14 @@ using standard Ethereum tooling.
 ### JSON-RPC endpoint
 
 ```
-https://evm.ynxweb4.com
+https://rpc.ynxweb4.com/evm
 ```
-
-(Actual endpoint provided by network coordinator)
 
 ### Web3 integration
 
 ```javascript
 const Web3 = require('web3');
-const web3 = new Web3('https://evm.ynxweb4.com');
+const web3 = new Web3('https://rpc.ynxweb4.com/evm');
 
 // Check balance
 const balance = await web3.eth.getBalance(address);
@@ -185,8 +156,8 @@ contract.events.Transfer({ filter: { to: depositAddress } }, (error, event) => {
 ### Gas and fees
 
 - **Gas token**: Native YNXT is used for EVM gas
-- **Gas price**: Query `eth_gasPrice` or use EIP-1559 if supported
-- **Estimation**: Use `eth_estimateGas` and apply safety margin
+- **Gas price**: `eth_gasPrice` is currently unsupported
+- **Estimation**: `eth_estimateGas` is not exchange-safe in this candidate
 
 ## Hot/cold wallet architecture
 
@@ -246,6 +217,9 @@ For Testnet integration assistance:
 
 ## Change log
 
+- 1.0.0-testnet-candidate (2026-07-28): Replaced illustrative node and standard
+  Ethereum broadcast claims with verified envelope, RPC, confirmation, address
+  and endpoint boundaries.
 - 0.1.0-candidate (2026-07-23): Initial exchange integration guide covering node
   setup, deposits, withdrawals, EVM support, custody, Testnet limitations, and
   Mainnet readiness checklist.
