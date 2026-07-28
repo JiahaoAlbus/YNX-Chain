@@ -126,16 +126,16 @@
       "category": "failure-refund-dispute",
       "requirement": "Record provider failure without fabricating settlement, permit bounded retry, cap bond penalties, provide notice, independent review and appeal.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": ["internal/resourcemarket/engine.go:ReportFailure", "internal/resourcemarket/engine.go:RetryFailure", "internal/resourcemarket/engine.go:releaseReservationLocked", "internal/resourcemarket/engine_test.go:TestProviderFailureRetryRefundBondAndAppeal", "internal/resourcemarket/engine_test.go:TestReservationsAreScopedToExactOffer"],
-      "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
+      "status": "testedLocal",
+      "evidence": ["internal/resourcemarket/engine.go:ReportFailure", "internal/resourcemarket/engine.go:RetryFailure", "internal/resourcemarket/engine.go:releaseReservationLocked", "internal/resourcemarket/engine_test.go:TestProviderFailureRetryRefundBondAndAppeal", "internal/resourcemarket/engine_test.go:TestSchemaV6MigratesUnambiguousRetryLineage", "internal/resourcemarket/engine_test.go:TestReservationsAreScopedToExactOffer"],
+      "sourceCommit": "5088c2b74119c0a9d594a3c1dcab92f33d91fdc0",
       "tests": ["go test -count=1 ./internal/resourcemarket", "go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["authoritative refund transaction", "insurance and legal review"],
       "owner": "16-resource-market",
-      "nextAction": "Persist one-to-one failed-order retry lineage and reject duplicate or chained retry abuse before restoring testedLocal status.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Obtain authoritative refund transaction integration plus insurance and legal review before any public or production claim.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "RM-DATA-001",
@@ -143,15 +143,15 @@
       "requirement": "Version state, migrate old clients, preserve rollback, verify backup/restore, scope exports, pseudonymize erasure requests and apply retention without deleting economic evidence.",
       "applicability": "applicable",
       "status": "testedLocal",
-      "evidence": ["internal/resourcemarket/engine.go:reconcileReservationLedger", "internal/productstore/store.go", "internal/resourcemarket/engine_test.go:TestSchemaV5MigratesOfferReservationLedgerAndRejectsTamper", "apps/resource-market/MIGRATION_COMPATIBILITY.md", "apps/resource-market/OPERATIONS.md"],
-      "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
+      "evidence": ["internal/resourcemarket/engine.go:reconcileReservationLedger", "internal/resourcemarket/engine.go:reconcileRetryLineage", "internal/productstore/store.go", "internal/resourcemarket/engine_test.go:TestSchemaV5MigratesOfferReservationLedgerAndRejectsTamper", "internal/resourcemarket/engine_test.go:TestSchemaV6MigratesUnambiguousRetryLineage", "apps/resource-market/MIGRATION_COMPATIBILITY.md", "apps/resource-market/OPERATIONS.md"],
+      "sourceCommit": "5088c2b74119c0a9d594a3c1dcab92f33d91fdc0",
       "tests": ["go test -count=1 ./internal/resourcemarket ./internal/productstore", "go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct", "./apps/resource-market/check.sh"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["source-commit-bound final restore drill", "jurisdiction-specific retention approval"],
       "owner": "16-resource-market",
-      "nextAction": "Regenerate a source-commit-bound backup/restore drill after the current runtime slice.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Run the v6-to-v7 migration and restore drill on an authenticated staging copy before any production-class migration.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "RM-AUTH-001",
