@@ -2,20 +2,23 @@
 
 ## Current local checkpoint
 
-Source commit: `f2f9aaed8d3e4231d37c94de352077008a338572`
+Source commit: `bde6939223693d5cdf5d05f309ac888c091ab815`
+Wallet callback runtime commit: `d9580e6b9d09a9d2eec69fbcb6d35a9ddf6997ed`
 Native download runtime commit: `668cb44dab95374ba9e5342d754b6ec568564f2b`
 
 - Browser tests: 14/14 pass.
-- Native macOS download-persistence tests: 3/3 pass against the exact function called by the WKDownload delegate.
+- Native macOS tests: 20/20 pass, including 17 Wallet callback boundary tests and 3 download-persistence tests.
 - Browser Smoke: persistent state and exact-origin permission boundary pass.
 - Web4 permissions/Wallet registry tests: 15/15 pass.
 - Production source gate: pass for deployment filler, fake-success markers and common embedded-secret patterns.
+- macOS Wallet pending state is P-256 signed and bound to Nonce, expiry, chain, product, client, bundle, callback, algorithm and ordered scopes.
+- Current Dist protocol probes recorded `MALFORMED`, `ROUTE`, `DUPLICATE` and `STATE-MISSING` rejection codes through privacy-safe OSLog events.
 - macOS Swift 6.1 release build: pass for arm64.
 - macOS Testnet Preview packaging: pass with ad-hoc signature and ZIP integrity verification.
 - Two consecutive same-host builds produced the same ZIP SHA-256.
-- macOS cold start, graceful quit and restart: pass.
-- Current machine-readable evidence: `macos-release-f2f9aae.json`.
-- Historical machine-readable evidence: `macos-release-88bf8dd.json`.
+- macOS cold start, termination and restart: pass.
+- Current machine-readable callback and artifact evidence: `macos-wallet-callback-bde6939.json`.
+- Historical machine-readable evidence: `macos-release-f2f9aae.json` and `macos-release-88bf8dd.json`.
 
 ## Local artifacts
 
@@ -23,18 +26,20 @@ Native download runtime commit: `668cb44dab95374ba9e5342d754b6ec568564f2b`
   ignored); the prior API 36 preview evidence remains historical until the final
   branch install/cold-start rerun.
 - macOS: `dist/macos/YNX-Browser-Testnet-Preview-macOS.zip` (generated,
-  ignored); 109273 bytes; SHA-256
-  `df24eb70667572b3122137f41883bc9d6b02bec8e7728e727b44bcb09cc176ce`.
+  ignored); 138216 bytes; SHA-256
+  `fa22ac3924f68f25658257b42341f5af44274a5faa8ceceb57a2a76ef94bf2f7`.
 - macOS executable SHA-256:
-  `822947dd8a9146e66274d3ebce1ff56d2e3e2a476493d8069611d7d88e9769dc`.
+  `cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9`.
 - Reproducibility scope: two consecutive builds on the same host, toolchain,
   source tree and ad-hoc signing class produced the same ZIP hash. Cross-host
   reproducibility is not yet claimed.
 
 The macOS app is an ad-hoc-signed local Testnet Preview. `codesign` verification
 passes, while Gatekeeper rejects it because it is not Developer ID signed or
-notarized. It is not production signed, hosted, installed to a user application
-location, or store released.
+notarized. LaunchServices also knew a source-mismatched user Applications copy
+with the same bundle identifier, so current-source `installedLocal` remains
+false. Controlled callback evidence explicitly targeted the repository Dist app.
+It is not production signed, hosted, current-source installed, or store released.
 
 ## Platform CI
 
@@ -57,7 +62,12 @@ inside each artifact. The final run URL and results are recorded in
 - Complete one normal and one Private network download through WKWebView and
   NSSavePanel. The exact persistence policy is now natively tested, but the
   full UI interaction recording remains open.
-- Exercise the macOS `ynxbrowser` deep-link callback and rejection states.
+- Complete a centrally accepted positive macOS Wallet/Auth callback with Gateway
+  signature and product-device challenge verification. Local negative protocol
+  paths are proven; no Product Session is created locally.
+- Install the exact current-source macOS artifact without overwriting the
+  source-mismatched user Applications copy, then prove LaunchServices resolves
+  the protocol to the reviewed binary hash.
 - Run Windows/.NET 8 compile, package, install, protocol registration and
   Wallet callback replay/tamper/expiry tests.
 - Rerun Android final-branch installation and full iOS Simulator evidence.
