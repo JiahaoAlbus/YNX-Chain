@@ -11,7 +11,7 @@
   "currentPhase": "PROTECT",
   "goalState": "active",
   "generatedAt": "2026-07-28",
-  "workingTreeState": "evidence-bound-checkpoint-ready",
+  "workingTreeState": "public-status-evidence-bound-checkpoint-ready",
   "requirements": [
     {
       "id": "MON-RECOVER-001",
@@ -45,11 +45,12 @@
       "evidence": [
         "show_changes reviewed",
         "implementation commit pushed to origin/codex/final-monitor",
-        "Local SHA equals upstream SHA at 95817f417bb9d08a8450c09fca884bb89d240eba"
+        "Local SHA equals upstream SHA at 95817f417bb9d08a8450c09fca884bb89d240eba",
+        "Public-status implementation commit pushed and Local SHA equals upstream at f3ab30068bc6ae3358cc2e6102ec3735abeae70f"
       ],
-      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
       "tests": [
-        "cd apps/monitor && npm test — 18/18 passed",
+        "cd apps/monitor && npm test — 31/31 passed",
         "cd apps/monitor && npm run build — passed",
         "cd apps/monitor && npm run test:e2e — 8/8 passed",
         "cd apps/monitor && npm audit --omit=dev --audit-level=high — 0 vulnerabilities"
@@ -100,7 +101,7 @@
       ],
       "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
       "tests": [
-        "18/18 Monitor tests passed on 2026-07-28",
+        "31/31 Monitor tests passed on 2026-07-28",
         "production TypeScript/Vite build passed",
         "managed desktop/mobile E2E passed 8/8"
       ],
@@ -201,7 +202,7 @@
         "idempotent transition retry",
         "cross-role recovery and postmortem denial",
         "restart persistence",
-        "18/18 Monitor tests passed",
+        "31/31 Monitor tests passed",
         "production build passed",
         "8/8 managed browser E2E passed"
       ],
@@ -231,7 +232,7 @@
         "missing evidence rejection",
         "premature restore acceptance rejection",
         "same-actor verification rejection",
-        "18/18 Monitor tests passed"
+        "31/31 Monitor tests passed"
       ],
       "artifact": "apps/monitor/server",
       "publicProof": null,
@@ -283,7 +284,7 @@
       "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
       "tests": [
         "rejects missing, untrusted, and invalid mutation protection",
-        "18/18 Monitor tests passed",
+        "31/31 Monitor tests passed",
         "managed browser E2E passed 8/8"
       ],
       "artifact": "apps/monitor",
@@ -300,16 +301,34 @@
       "category": "product",
       "requirement": "Provide a truthful unauthenticated public status surface distinct from private operator evidence.",
       "applicability": "required",
-      "status": "notStarted",
-      "evidence": [],
-      "sourceCommit": null,
-      "tests": [],
-      "artifact": null,
+      "status": "testedLocal",
+      "evidence": [
+        "apps/monitor/server/public-status.ts",
+        "apps/monitor/server/app.ts",
+        "release/integration/monitor-contract.json#publicStatus",
+        "MON-PUBLIC-REDACTION-001",
+        "MON-PUBLIC-INTEGRITY-001"
+      ],
+      "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
+      "tests": [
+        "cd apps/monitor && npm test — 31/31 passed including 13 public-status cases",
+        "cd apps/monitor && npm run build — passed",
+        "cd apps/monitor && npm run test:e2e — 8/8 passed",
+        "changed production placeholder and secret-shaped assignment scans passed"
+      ],
+      "artifact": [
+        "ynx.monitor.public-status-source.v1",
+        "ynx.monitor.public-status.v1"
+      ],
       "publicProof": null,
-      "blockedBy": [],
+      "blockedBy": [
+        "Approved publisher feed and independent key provisioning",
+        "28-website consumption and hosted public endpoint",
+        "Public probe and deployment evidence"
+      ],
       "owner": "13-monitor",
-      "nextAction": "Define redacted public status schema and build a separate read-only route with no internal topology or sensitive evidence.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Integrate an approved publisher feed, host the route, and prove Website/public probe consumption without weakening the private/public boundary.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-CHAIN-001",
@@ -612,7 +631,7 @@
         "Missing/untrusted/invalid mutation vectors",
         "npm production dependency audit reports 0 vulnerabilities"
       ],
-      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
       "tests": [
         "auth, replay, tamper, and RBAC tests"
       ],
@@ -632,7 +651,7 @@
       "evidence": [
         "candidate integration files under release/integration and docs/integration"
       ],
-      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
       "tests": [
         "Machine-readable contract and cross-product vectors parsed successfully"
       ],
@@ -658,7 +677,7 @@
         "product-release.json",
         ".ai-bridge/execution-log.jsonl"
       ],
-      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
       "tests": [
         "Machine-readable release, coverage, contract, and vector JSON parse validation",
         "Evidence files explicitly separate local proof from absent Testnet/public/artifact proof"

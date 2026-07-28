@@ -2,28 +2,30 @@
 
 Current phase: `PROTECT`  
 Goal state: `ACTIVE`  
-Implementation source: `95817f417bb9d08a8450c09fca884bb89d240eba`
+Implementation source: `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`
 
 ## Protected checkpoint
 
-- Exact worktree and branch verified.
-- No concurrent writer detected.
-- Implementation source pushed to `origin/codex/final-monitor`.
-- Local and upstream SHA verified equal.
-- Monitor tests: 18/18 passed.
+- Exact worktree and branch verified; no concurrent writer detected.
+- Implementation source is pushed to `origin/codex/final-monitor`; local and upstream SHA are equal.
+- Monitor tests: 31/31 passed, including 13 public-status integrity, redaction, replay, approval, and file-boundary cases.
 - Production TypeScript/Vite build passed.
 - Managed desktop/mobile E2E: 8/8 passed.
 - Production dependency audit: 0 vulnerabilities.
-- Authenticated mutations now require exact Origin allowlisting and a session-bound CSRF token.
+- Changed production placeholder and changed-file secret-shaped assignment scans passed.
+- Authenticated mutations require exact Origin allowlisting and a session-bound CSRF token.
+- `/status` is a separate signed, approved, source-pinned, stale/replay-aware public projection that never reads private OpsStore state.
 
-## Phase gate
+## Non-green gates
 
-The repository-wide `go test ./...` preflight was run and is not green. Failures are in cross-product consensus signing-key permissions, faucet/trust signer permissions, and missing compiled EVM test artifacts. They are outside `13-monitor` ownership and are recorded without cross-worktree modification. Formal transition to `FREEZE` remains blocked, even though the Monitor source and candidate contract are protected.
+- `go test ./...` remains non-green in cross-product consensus/faucet/trust key-permission tests and missing compiled EVM fixtures outside `13-monitor` ownership.
+- `npm run smoke` failed because node, identity, validator, peer, peer-sync, Explorer, Indexer, and AI endpoints were all unavailable. No Testnet or dependency-health claim is made.
+- `29-integration` has not frozen the candidate contract; no approved public-status publisher feed, hosted endpoint, Website consumption, artifact, install, signing, or public probe exists.
 
 ## Evidence binding
 
-Contract, release, coverage, integration handoff, cross-product vectors, dependency acceptance, evidence index, feature evidence, decisions, questions, and execution log are bound to the protected implementation source. They preserve truthful separation between Monitor-local verification and the failed monorepo preflight.
+Contract, release, coverage, integration handoff, cross-product vectors, dependency acceptance, evidence index, feature evidence, decisions, questions, and execution log are bound to the protected public-status implementation source. Historical source commits remain preserved in the execution log.
 
 ## Exact next engineering action
 
-Implement a separate fail-closed public-status projection that exposes only approved public service state and public incident messages. Add leakage tests proving that usernames, internal evidence references, topology, stacks, paths, audit details, and private recovery records cannot enter the public response. Then continue the Monitor threat model and supply-chain evidence while central owner contracts remain unavailable.
+Create the Monitor threat model and executable supply-chain gates: SBOM generation, third-party notices and license/dependency review, secret and SAST scans, DAST inputs, artifact provenance, and reproducibility evidence. Continue all local work while central endpoints and contract acceptance remain unavailable.

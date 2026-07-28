@@ -1,7 +1,7 @@
 {
   "schemaVersion": "ynx.monitor.cross-product-vectors.v1",
   "product": "13-monitor",
-  "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+  "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
   "vectors": [
     {
       "id": "MON-AUTH-REPLAY-001",
@@ -133,13 +133,27 @@
     {
       "id": "MON-PUBLIC-REDACTION-001",
       "dependencyOwner": "28-website",
-      "precondition": "Private operator state contains topology, audit actors, evidence paths, and internal errors.",
-      "action": "Project the same incident to the public status surface.",
+      "precondition": "Private OpsStore state contains usernames, topology paths, audit details, backup references, stack-like data, and internal errors while a separately signed public snapshot exists.",
+      "action": "Read /status for a valid approved snapshot, then submit signed snapshots with unknown fields, private text, fake healthy aggregation, stale data, wrong approval role, provider failure, and oversized or symbolic-link file sources.",
       "expected": [
-        "Public output contains only approved status, severity, affected public services, timeline, and public message.",
-        "No username, internal path, secret, private evidence URL, stack, or infrastructure topology is exposed."
+        "Valid output contains only the strict public schema, approved public services/incidents, source, version, asOf, and publishedAt.",
+        "No private OpsStore actor, path, evidence, topology, audit, backup, restore, rollback, stack, approval ID, approval role, or HMAC field is exposed.",
+        "Unknown fields, private text, fake healthy aggregation, stale data, wrong approval, invalid files, and provider errors return bounded 503 responses without echoing source content."
       ],
-      "localEvidence": null
+      "localEvidence": "apps/monitor/server/public-status.test.ts"
+    },
+    {
+      "id": "MON-PUBLIC-INTEGRITY-001",
+      "dependencyOwner": "13-monitor",
+      "precondition": "The deployment pins an approved publisher ID and an independent public-status integrity key.",
+      "action": "Submit unsigned, post-signature-tampered, wrong-publisher, and older previously valid snapshots after a newer snapshot has been accepted.",
+      "expected": [
+        "Unsigned or tampered snapshots fail with public_status_integrity_invalid.",
+        "A correctly signed snapshot from another publisher fails with public_status_source_mismatch.",
+        "An older signed snapshot after a newer accepted snapshot fails with public_status_replayed.",
+        "No rejected source content is reflected in the response."
+      ],
+      "localEvidence": "apps/monitor/server/public-status.test.ts"
     }
   ],
   "lastUpdated": "2026-07-28"

@@ -3,7 +3,7 @@
   "contractStatus": "candidate",
   "owner": "13-monitor",
   "product": "YNX Monitor",
-  "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+  "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -172,6 +172,12 @@
       "path": "/version",
       "auth": "none",
       "result": "service, contract, commit, release, and start identity"
+    },
+    {
+      "method": "GET",
+      "path": "/status",
+      "auth": "none",
+      "result": "strict signed and Incident-Commander-approved public status projection, or bounded fail-closed 503"
     },
     {
       "method": "POST",
@@ -374,7 +380,14 @@
     "origin_required",
     "origin_not_allowed",
     "csrf_token_required",
-    "csrf_token_invalid"
+    "csrf_token_invalid",
+    "public_status_unavailable",
+    "public_status_invalid",
+    "public_status_integrity_invalid",
+    "public_status_not_approved",
+    "public_status_source_mismatch",
+    "public_status_replayed",
+    "public_status_stale"
   ],
   "state": {
     "envelopeVersion": 2,
@@ -433,5 +446,20 @@
     }
   ],
   "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-  "lastUpdated": "2026-07-28"
+  "lastUpdated": "2026-07-28",
+  "publicStatus": {
+    "path": "/status",
+    "sourceSchema": "ynx.monitor.public-status-source.v1",
+    "responseSchema": "ynx.monitor.public-status.v1",
+    "sourcePathConfig": "YNX_MONITOR_PUBLIC_STATUS_PATH",
+    "expectedSourceConfig": "YNX_MONITOR_PUBLIC_STATUS_EXPECTED_SOURCE",
+    "integrityKeyConfig": "YNX_MONITOR_PUBLIC_STATUS_INTEGRITY_KEY",
+    "maxAgeSecondsConfig": "YNX_MONITOR_PUBLIC_STATUS_MAX_AGE_SECONDS",
+    "approvalRole": "incident_commander",
+    "integrity": "HMAC-SHA256 over canonical JSON",
+    "readBoundary": "bounded regular file, maximum 262144 bytes, no symbolic links",
+    "replayBoundary": "repeated identical snapshots are allowed; older asOf or publishedAt after a newer accepted snapshot fail closed within the running process",
+    "redactionBoundary": "Public projection is parsed only from the separately signed source and never from private OpsStore incidents, audit, backups, restore drills, rollback proposals, topology, paths, stacks, or actor records.",
+    "failureSemantics": "Missing configuration, invalid schema, integrity failure, wrong source, replay, stale data, wrong approval role, fake healthy summary, private text, or provider errors return a bounded 503 response without source content."
+  }
 }

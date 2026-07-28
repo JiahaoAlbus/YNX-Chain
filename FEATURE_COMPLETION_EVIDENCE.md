@@ -2,7 +2,7 @@
 
 Goal state: `ACTIVE`  
 Phase: `PROTECT`  
-Implementation source: `95817f417bb9d08a8450c09fca884bb89d240eba`  
+Implementation source: `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`
 Last updated: 2026-07-28
 
 This document records feature-level evidence only. It does not declare the product complete, centrally integrated, deployed, signed, or public.
@@ -17,6 +17,14 @@ This document records feature-level evidence only. It does not declare the produ
 - Wallet challenges are single-use and replay attempts fail closed.
 - Every authenticated mutation requires an exact allowlisted Origin and the session-bound `X-YNX-CSRF-Token`.
 - Evidence: `apps/monitor/server/auth.ts`, `apps/monitor/server/app.ts`, `apps/monitor/server/auth.test.ts`, `apps/monitor/server/rbac.test.ts`.
+
+### Redacted public status
+
+- `/status` reads only a separately configured public source; it never projects private OpsStore incidents, audit actors, backup/restore records, rollback proposals, topology, paths, stacks, or evidence references.
+- The source uses `ynx.monitor.public-status-source.v1`, HMAC-SHA256 over canonical JSON, an exact approved publisher ID, an Incident Commander approval record, bounded freshness, and a 256 KiB regular-file limit with symbolic links rejected.
+- Unsigned, tampered, wrong-publisher, stale, wrong-role, fake-healthy, private-text, invalid-file, provider-error, and older replayed snapshots fail closed with bounded 503 responses that do not echo source content.
+- Repeated identical snapshots are readable; after a newer snapshot is accepted, older `asOf` or `publishedAt` snapshots are rejected within the running process.
+- Evidence: `apps/monitor/server/public-status.ts`, `apps/monitor/server/public-status.test.ts`, `MON-PUBLIC-REDACTION-001`, `MON-PUBLIC-INTEGRITY-001`.
 
 ### Incident lifecycle
 
@@ -47,11 +55,13 @@ This document records feature-level evidence only. It does not declare the produ
 
 ## Current validation set
 
-- `cd apps/monitor && npm test`: 18 passed, 0 failed.
+- `cd apps/monitor && npm test`: 31 passed, 0 failed, including 13 public-status cases.
 - `cd apps/monitor && npm run build`: passed.
 - `cd apps/monitor && npm run test:e2e`: 8 passed, 0 failed.
 - `cd apps/monitor && npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
-- Source checkpoint pushed; local and upstream SHA equal at `95817f417bb9d08a8450c09fca884bb89d240eba`.
+- Changed production placeholder and changed-file secret-shaped assignment scans: passed.
+- `cd apps/monitor && npm run smoke`: failed because all eight configured central service endpoints were unavailable; no Testnet or dependency-health claim is made.
+- Source checkpoint pushed; local and upstream SHA equal at `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`.
 
 ## Incomplete or externally dependent
 
@@ -60,7 +70,7 @@ The following requirements are not completed by the evidence above:
 - central contract freeze and accepted Wallet/Auth expiry, revoke, device, product, and scope vectors;
 - typed authoritative telemetry for consensus, trading, liquidity, Quant, capital, and every YNX product;
 - alert correlation, escalation, notification delivery, and controlled automation;
-- separately redacted public-status runtime and public communication approval;
+- approved public-status publisher feed, independent key provisioning, hosted endpoint, Website consumption, and public probe evidence;
 - explicit schema migration and rollback-migration drills;
 - real backup, isolated restore, region failure, provider failure, or rollback execution evidence;
 - shared Testnet integration and public probes;

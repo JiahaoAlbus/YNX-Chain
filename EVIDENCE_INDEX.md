@@ -2,7 +2,7 @@
 
 Status: Active, phase `PROTECT`  
 Product owner: `13-monitor`  
-Implementation source: `95817f417bb9d08a8450c09fca884bb89d240eba`  
+Implementation source: `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`
 Branch: `codex/final-monitor`  
 Last updated: 2026-07-28
 
@@ -13,7 +13,7 @@ This index separates source-bound local evidence from central, Testnet, artifact
 | Evidence | Direct location | Result |
 |---|---|---|
 | Exact worktree and branch takeover | `.ai-bridge/execution-log.jsonl` — `takeover-inventory` | Passed |
-| Implementation checkpoint | Git commit `95817f417bb9d08a8450c09fca884bb89d240eba` | Committed and pushed |
+| Implementation checkpoint | Git commit `f3ab30068bc6ae3358cc2e6102ec3735abeae70f` | Committed and pushed |
 | Local/upstream equality | `product-release.json` → `verifiedLocal.remoteProtection` | Equal at source commit |
 | Full requirement coverage | `.ai-bridge/full-goal-coverage.json` | Active; incomplete items retained |
 | Decisions and boundaries | `.ai-bridge/decisions.md` | Current |
@@ -26,6 +26,7 @@ This index separates source-bound local evidence from central, Testnet, artifact
 | Scoped RBAC | `apps/monitor/server/auth.ts`, `apps/monitor/src/api.ts` | `apps/monitor/server/rbac.test.ts` |
 | Wallet challenge replay rejection | `apps/monitor/server/app.ts`, `apps/monitor/server/store.ts` | `apps/monitor/server/auth.test.ts` |
 | Exact Origin and session-bound CSRF | `apps/monitor/server/auth.ts`, `apps/monitor/server/app.ts`, `apps/monitor/src/api.ts` | `MON-ORIGIN-CSRF-001`; `apps/monitor/server/auth.test.ts` |
+| Signed redacted public status | `apps/monitor/server/public-status.ts`, `apps/monitor/server/app.ts` | `MON-PUBLIC-REDACTION-001`, `MON-PUBLIC-INTEGRITY-001`; `apps/monitor/server/public-status.test.ts` |
 | Versioned incident lifecycle | `apps/monitor/server/store.ts`, `apps/monitor/server/app.ts` | `apps/monitor/server/incident-lifecycle.test.ts` |
 | Integrity-protected restart | `apps/monitor/server/store.ts` | `apps/monitor/server/store.test.ts` |
 | Typed backup and restore evidence | `apps/monitor/server/store.ts`, `apps/monitor/server/app.ts` | `apps/monitor/server/recovery-lifecycle.test.ts` |
@@ -36,10 +37,11 @@ This index separates source-bound local evidence from central, Testnet, artifact
 
 | Gate | Command | Result |
 |---|---|---|
-| Monitor tests | `cd apps/monitor && npm test` | 18 passed, 0 failed |
+| Monitor tests | `cd apps/monitor && npm test` | 31 passed, 0 failed; 13 public-status cases |
 | Production build | `cd apps/monitor && npm run build` | Passed |
 | Desktop/mobile browser E2E | `cd apps/monitor && npm run test:e2e` | 8 passed, 0 failed |
 | Production dependency audit | `cd apps/monitor && npm audit --omit=dev --audit-level=high` | 0 vulnerabilities |
+| Real-service smoke | `cd apps/monitor && npm run smoke` | Failed because all eight central dependency endpoints were unavailable; no Testnet/healthy claim |
 | Repository preflight | `go test ./...` | Failed outside `13-monitor`; details in `product-release.json` |
 
 The failed repository preflight is not hidden or attributed to Monitor. It includes signing-key permission failures in consensus/faucet/trust owners and missing compiled EVM fixtures in BFT/consensus tests. This thread did not modify those owners' code.

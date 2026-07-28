@@ -2,27 +2,29 @@
 
 Status: `ACTIVE`  
 Current phase: `PROTECT`  
-Implementation source: `95817f417bb9d08a8450c09fca884bb89d240eba`  
+Implementation source: `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`
 Branch: `codex/final-monitor` tracking `origin/codex/final-monitor`
 
 ## Direct state
 
-- Worktree and branch matched the required target.
-- Takeover baseline was clean; no unpushed commit or concurrent writer was found.
-- Implementation source is pushed and local/upstream SHA equality was verified.
+- Worktree and branch match the required target; no concurrent writer was detected.
+- Implementation source is pushed and local/upstream SHA equality is verified.
 - GitHub inventory found no Monitor branch Actions run, Release, or Artifact; no claim is made for those states.
-- Monitor-local verification is green: 18 tests, production build, 8 managed E2E tests, and 0 production dependency vulnerabilities.
+- Monitor-local verification is green: 31 tests, production build, 8 managed E2E tests, 0 production dependency vulnerabilities, and changed-file placeholder/secret-shaped scans.
 - Exact Origin allowlisting and session-bound CSRF enforcement protect authenticated mutations.
-- `EVIDENCE_INDEX.md` and `FEATURE_COMPLETION_EVIDENCE.md` now provide source-bound audit entry points without promoting absent Testnet, public, artifact, or signing proof.
+- `/status` is locally tested as a separate signed, source-pinned, Incident-Commander-approved, stale/replay-aware public projection with strict private-data rejection.
+- `EVIDENCE_INDEX.md` and `FEATURE_COMPLETION_EVIDENCE.md` provide source-bound audit entry points without promoting absent Testnet, hosted, artifact, signing, or public proof.
 
 ## Non-green evidence
 
-`go test ./...` fails in cross-product packages outside Monitor ownership: consensus transaction key-permission enforcement, BFT/consensus missing compiled EVM fixtures, faucet unsafe-key enforcement, and Trust signer permissions. These failures block the formal phase transition and are preserved in the release record; this thread did not modify those owners' code.
+- `go test ./...` fails in cross-product packages outside Monitor ownership: consensus transaction key-permission enforcement, BFT/consensus missing compiled EVM fixtures, faucet unsafe-key enforcement, and Trust signer permissions.
+- `npm run smoke` failed because all eight configured central dependency endpoints were unavailable.
+- These failures block Testnet and the formal phase transition but do not justify cross-worktree modification or fake health.
 
 ## Truthful release state
 
-`implementedLocal=true` and `testedLocal=true` remain supported. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned`, and `storeReleased` remain false. No real backup, restore, rollback execution, shared Testnet, hosted private operator, public status, public artifact, or production release is claimed.
+`implementedLocal=true` and `testedLocal=true` remain supported. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned`, and `storeReleased` remain false. The public-status route is local-only; no approved publisher feed, hosted endpoint, Website consumption, real backup/restore/rollback execution, shared Testnet, public artifact, or production release is claimed.
 
 ## Next action
 
-Implement and test the redacted public-status projection, then continue Monitor-specific threat-model, SBOM/provenance, license, SAST/DAST, and artifact gates while owner dependencies remain unresolved.
+Create the Monitor threat model and executable supply-chain gates: SBOM, third-party notices/license review, dependency review, secret/SAST/DAST scans, artifact provenance, and reproducibility evidence while owner dependencies remain unresolved.

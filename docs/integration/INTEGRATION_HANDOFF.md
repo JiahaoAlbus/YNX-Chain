@@ -2,7 +2,7 @@
 
 Status: Candidate, not frozen  
 Owner: `13-monitor`  
-Source commit: `95817f417bb9d08a8450c09fca884bb89d240eba`  
+Source commit: `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`
 Last updated: 2026-07-28
 
 ## Protected local delivery
@@ -42,6 +42,12 @@ Every authenticated non-`GET`/`HEAD`/`OPTIONS` request under `/ops` now requires
 
 Missing Origin, an untrusted Origin, a missing CSRF token, and an invalid token fail closed with `origin_required`, `origin_not_allowed`, `csrf_token_required`, and `csrf_token_invalid`. Old browser sessions that lack the new CSRF field are discarded and must authenticate again.
 
+## Public status boundary
+
+`GET /status` is unauthenticated but never reads private OpsStore state. It accepts only a separate `ynx.monitor.public-status-source.v1` document whose publisher is pinned by `YNX_MONITOR_PUBLIC_STATUS_EXPECTED_SOURCE`, whose canonical JSON is protected by HMAC-SHA256 using `YNX_MONITOR_PUBLIC_STATUS_INTEGRITY_KEY`, and whose approval record is signed as part of the source and names `incident_commander` as the approving role.
+
+The file adapter uses `YNX_MONITOR_PUBLIC_STATUS_PATH`, accepts only a regular non-symbolic-link file no larger than 262,144 bytes, and applies `YNX_MONITOR_PUBLIC_STATUS_MAX_AGE_SECONDS`. The route strips approval identity and integrity material, returns `Cache-Control: no-store`, and rejects unsigned, tampered, wrong-publisher, stale, wrong-role, fake-healthy, private-text, invalid-file, provider-error, and older replayed snapshots with bounded 503 responses. Replay prevention is monotonic within the running Monitor process; a hosted publisher must also provide durable sequence/rollback protection across restarts before public verification.
+
 ## Health and version semantics
 
 - `/health` reports only the Monitor control-plane process and state-store readiness. It does not imply that chain, Oracle, Quant, provider, or public services are healthy.
@@ -49,11 +55,13 @@ Missing Origin, an untrusted Origin, a missing CSRF token, and an invalid token 
 
 ## Verification bound to the source commit
 
-- `cd apps/monitor && npm test` — 18 passed, 0 failed, including Origin/CSRF negative vectors.
+- `cd apps/monitor && npm test` — 31 passed, 0 failed, including 13 public-status integrity/redaction/replay cases.
 - `cd apps/monitor && npm run build` — TypeScript and production Vite build passed.
 - `cd apps/monitor && npm run test:e2e` — managed desktop/mobile suite passed 8/8.
 - `cd apps/monitor && npm audit --omit=dev --audit-level=high` — 0 vulnerabilities.
-- Git protection — `codex/final-monitor` pushed; local SHA equals upstream SHA at `95817f417bb9d08a8450c09fca884bb89d240eba`.
+- Changed production placeholder and changed-file secret-shaped assignment scans passed.
+- `cd apps/monitor && npm run smoke` — failed because all eight configured central service endpoints were unavailable; no Testnet or dependency-health claim is made.
+- Git protection — `codex/final-monitor` pushed; local SHA equals upstream SHA at `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`.
 
 The repository-wide `go test ./...` preflight was also run and failed in cross-product consensus, faucet, trust, and missing EVM artifact tests outside `13-monitor` ownership. These failures are recorded in `product-release.json`; Monitor does not claim the full monorepo preflight passed and did not modify those owners' code.
 
@@ -76,6 +84,6 @@ Consumers must not infer health from HTTP 200 alone. Every telemetry adapter mus
 
 ## Current blockers and next action
 
-The current phase remains `PROTECT`: Monitor-local tests, build, E2E, dependency audit, push, and SHA equality pass, but the repository-wide phase-transition preflight is not green and `29-integration` has not frozen the contract. No Testnet, hosted private operator, public status, public deployment, production signing, artifact, install, or cold-start claim is made.
+The current phase remains `PROTECT`: Monitor-local tests, build, E2E, dependency audit, push, and SHA equality pass, but the repository-wide phase-transition preflight is not green and `29-integration` has not frozen the contract. The redacted status route is locally tested only; no approved publisher feed, hosted private operator, hosted public endpoint, Website consumption, public probe, public deployment, production signing, artifact, install, or cold-start claim is made.
 
-The next autonomous slice is the fail-closed redacted public-status projection and private-data leakage test vectors, followed by Monitor-specific threat-model and supply-chain evidence. The transitional `operator` role remains migration-only and must not be assigned to new principals once scoped-role migration is accepted.
+The next autonomous slice is Monitor-specific threat modelling and executable supply-chain evidence: SBOM, third-party notices/license review, dependency and secret scans, SAST/DAST inputs, artifact provenance, and reproducibility checks. The transitional `operator` role remains migration-only and must not be assigned to new principals once scoped-role migration is accepted.

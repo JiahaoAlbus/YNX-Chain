@@ -71,3 +71,11 @@ Rationale: Bearer possession alone must not make a browser mutation sufficient. 
 Decision: The implementation source may be committed, pushed, and recorded as Monitor-local tested while the product phase remains `PROTECT` when the required repository-wide preflight is non-green. Failures owned by consensus, faucet, trust, or artifact-generation threads are preserved as explicit blockers and are not repaired by modifying their code from the Monitor worktree.
 
 Rationale: A protected checkpoint and a passing product-local suite are evidence, not permission to skip the ordered phase gate or cross-thread ownership boundary. This preserves both release truth and worktree isolation.
+
+## 2026-07-28 — Public status never derives from private operator state
+
+Decision: `/status` consumes only a separately signed, source-pinned, Incident-Commander-approved public document. It does not transform or redact private OpsStore incidents, audit, topology, backup, restore, rollback, path, stack, or actor records at request time.
+
+Rationale: A redaction function over private operational state creates a future leakage path whenever private schemas evolve. A separate strict public schema, exact-key parser, bounded file adapter, HMAC integrity, freshness, fake-health rejection, and monotonic in-process replay guard make the public/private boundary fail closed by construction.
+
+Limitation: The local replay guard protects a running process. Durable anti-rollback sequence state across restarts remains a requirement for the accepted hosted publisher and cannot be claimed from this local implementation.

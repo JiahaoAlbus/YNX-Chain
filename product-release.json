@@ -8,7 +8,7 @@
   },
   "goalState": "active",
   "phase": "PROTECT",
-  "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+  "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
   "releaseCandidate": null,
   "status": {
     "implementedLocal": true,
@@ -78,7 +78,7 @@
     "tests": {
       "command": "cd apps/monitor && npm test",
       "result": "passed",
-      "tests": 18,
+      "tests": 31,
       "failed": 0,
       "date": "2026-07-28"
     },
@@ -97,12 +97,17 @@
       },
       "placeholderScan": {
         "result": "passed",
+        "scope": "changed production files",
         "terms": [
           "TODO",
           "FIXME",
+          "placeholder",
           "Coming soon",
-          "example.com"
-        ]
+          "example.com",
+          "hard-coded success",
+          "fake health"
+        ],
+        "date": "2026-07-28"
       }
     },
     "browserE2E": {
@@ -115,7 +120,6 @@
         "result": "passed",
         "tests": 8,
         "scope": "managed desktop/mobile authentication, responsive, PWA, RTL, cache-boundary, and incident lifecycle suite",
-        "staleProcessRecovery": "Two abandoned managed-harness listeners on ports 24675 and 24674 were identified and terminated before the successful isolated rerun",
         "date": "2026-07-28"
       }
     },
@@ -136,7 +140,7 @@
     },
     "remoteProtection": {
       "branch": "codex/final-monitor",
-      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
       "upstream": "origin/codex/final-monitor",
       "localRemoteEqual": true,
       "pushedAt": "2026-07-28"
@@ -154,6 +158,42 @@
         "internal/trustgateway: unsafe BFT Trust signer permissions accepted"
       ],
       "ownerBoundary": "Recorded for central owners; 13-monitor did not modify cross-product code."
+    },
+    "publicStatus": {
+      "result": "testedLocal",
+      "route": "/status",
+      "sourceSchema": "ynx.monitor.public-status-source.v1",
+      "responseSchema": "ynx.monitor.public-status.v1",
+      "boundaries": [
+        "separate source from private OpsStore",
+        "HMAC-SHA256 canonical JSON integrity",
+        "approved publisher ID pinned by configuration",
+        "Incident Commander approval required",
+        "bounded regular-file source with no symbolic links",
+        "stale, wrong-source, tampered, unsigned, replayed, fake-healthy, private-text, invalid-file, and provider-error paths fail closed",
+        "rejected source content and private operator evidence are never reflected"
+      ],
+      "tests": "apps/monitor/server/public-status.test.ts",
+      "testCases": 13,
+      "hosted": false,
+      "publicProof": null
+    },
+    "realServiceSmoke": {
+      "command": "cd apps/monitor && npm run smoke",
+      "result": "failed",
+      "monitorImplementationAttribution": false,
+      "unavailableDependencies": [
+        "node",
+        "identity",
+        "validators",
+        "peers",
+        "peer-sync",
+        "explorer",
+        "indexer",
+        "ai"
+      ],
+      "semantics": "All configured central dependency endpoints were unavailable; no healthy or Testnet claim is made.",
+      "date": "2026-07-28"
     }
   },
   "artifacts": [],
@@ -169,14 +209,14 @@
   "blockers": [
     "The repository-wide go test ./... preflight fails in cross-product consensus, faucet, trust, and EVM artifact tests outside 13-monitor ownership; the phase remains PROTECT until owner fixes are accepted and the full preflight passes.",
     "Central owner contracts and shared Testnet endpoints are not yet accepted.",
-    "A separately redacted public-status runtime, hosted artifacts, public deployment, and install/cold-start evidence are absent.",
+    "The redacted public-status runtime is locally tested but no approved publisher feed, hosted endpoint, Website consumption, public probe, artifact, install, or cold-start evidence exists.",
     "Typed recovery operator UI, incident correlation/escalation, threat model, SBOM/provenance, and broad ecosystem telemetry remain incomplete."
   ],
-  "nextAction": "Implement the fail-closed redacted public-status projection and its private-data leakage vectors, then continue threat-model and supply-chain gates while central contracts remain unavailable.",
+  "nextAction": "Create the Monitor threat model and executable supply-chain gates (SBOM, license/dependency review, secret/SAST scans, artifact provenance) while central endpoints and contract acceptance remain unavailable.",
   "lastUpdated": "2026-07-28",
   "evidence": {
     "index": "EVIDENCE_INDEX.md",
     "featureCompletion": "FEATURE_COMPLETION_EVIDENCE.md",
-    "implementationSource": "95817f417bb9d08a8450c09fca884bb89d240eba"
+    "implementationSource": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f"
   }
 }
