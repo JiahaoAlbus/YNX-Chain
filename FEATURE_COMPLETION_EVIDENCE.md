@@ -14,7 +14,7 @@
 | Release artifacts | Deterministic macOS arm64 and Linux arm64 server/CLI archives, TypeScript npm candidate, Go module candidate, canonical manifest, SHA-256/bytes, target validation, CycloneDX SBOM, provenance, detached-signature verification path and tamper rejection | Tested-local unsigned candidates at `6ba6c39a6661724e07205a265201ac7fa36c91bb`; macOS install/cold start/version binding/shutdown passed; Linux native cold start, hosting and production signing remain open |
 | Provider governance | Three official candidates documented; all inactive pending rights/YNX coverage | Source limitation open |
 | Anomaly behavior | Tests cover stale/offline, outlier, divergence, thin source, depeg, DEX reorg replacement, provider deactivation, and historical replay | Local tested; live failover pending |
-| Web/PWA | Independent `/oracle`, 12 languages, RTL, themes, reduced motion, PWA shell, live-only queries | Production build/SSR tests and owner-only deployment pass; public access pending |
+| Web/PWA | Independent `/oracle`, 12 languages, RTL, themes, reduced motion, PWA shell, live-only queries | Production build/SSR and real-Chrome keyboard/semantics/RTL/theme/reduced-motion/200%-text/390px tests pass at `a3c3275`; public access and manual VoiceOver/TalkBack evidence remain pending |
 | Container | Digest-pinned non-root image, Go 1.25.12 binary, read-only cold start, degraded fail-closed health, image SBOM, clean high/critical Trivy scan, and repeatable live DAST smoke | Built/installed locally; not hosted or signed |
 | Central integrations | Versioned schemas, owner-specific authority boundaries, acceptance evidence, and SDK-executed accept/reject vectors | Ready for owner review; not integrated centrally |
 

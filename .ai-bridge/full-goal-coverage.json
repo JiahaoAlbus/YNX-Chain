@@ -482,16 +482,16 @@
       "category": "internationalization-accessibility",
       "requirement": "Support 12 languages, Arabic RTL, keyboard, screen-reader semantics, focus, contrast, large text, reduced motion, light/dark and 390px viewport.",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["apps/oracle/app/oracle-console.tsx", "apps/oracle/app/globals.css", "UI_DESIGN_AUDIT.md"],
-      "sourceCommit": "ad7836788e61d396402f286e687d99f723fea0bd",
-      "tests": ["SSR/rendered HTML and responsive rules recorded; direct assistive-technology audit not recorded."],
+      "status": "testedLocal",
+      "evidence": ["apps/oracle/app/oracle-console.tsx", "apps/oracle/app/globals.css", "apps/oracle/tests/browser-accessibility.test.mjs", "UI_DESIGN_AUDIT.md"],
+      "sourceCommit": "a3c3275c15f31a4f5de96c6f4ebce0b04245db79",
+      "tests": ["npm run test:browser:a11y: real Chrome verified semantic landmarks and labels, keyboard focus order/visibility, Arabic RTL, reduced motion, light/dark theme, 200% large text, and no overflow at 390px."],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "19 Oracle",
-      "nextAction": "Run keyboard, screen-reader, RTL, large-text and 390px browser audits and attach direct evidence.",
-      "lastUpdated": "2026-07-27T10:00:00Z"
+      "nextAction": "Preserve the real-browser gate and obtain manual VoiceOver/TalkBack plus public-origin evidence before public promotion.",
+      "lastUpdated": "2026-07-29T00:00:00Z"
     },
     {
       "id": "ORACLE-PLATFORM-001",
