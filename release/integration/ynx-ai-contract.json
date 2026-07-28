@@ -1,13 +1,13 @@
 {
   "schemaVersion": "ynx.ai.integration.v1",
-  "contractVersion": "1.0.0",
+  "contractVersion": "1.1.0",
   "product": {
     "number": 14,
     "id": "ynx-ai",
     "name": "YNX AI",
     "owner": "14-ai",
     "branch": "codex/final-ai",
-    "runtimeSourceCommit": "2678a8b0cf3f9463ec7fc205caab486993bf5f18",
+    "runtimeSourceCommit": "8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154",
     "evidenceCheckpointCommit": "b066b65aac8c8b197ab9b38659e937e73544daf1"
   },
   "network": {
@@ -63,6 +63,7 @@
       "maxSessionCharacters": 128,
       "maxPromptCharacters": 8000,
       "maxContextEntries": 8,
+      "maxProductContextEntries": 8,
       "maxAttachments": 8,
       "maxAttachmentNameCharacters": 160,
       "maxAttachmentTextBytes": 262144,
@@ -76,9 +77,11 @@
         "conversation",
         "selected_chain_records",
         "selected_files",
-        "selected_trust_records"
+        "selected_trust_records",
+        "selected_product_context"
       ],
       "attachmentContextRequirement": "selected_files must be explicitly included",
+      "productContextRequirement": "selected_product_context plus exact registry policy, explicit selection, freshness, byte budget, source version, reference hashes, and permission when required",
       "supportedOutputLanguages": [
         "en",
         "zh-CN",
@@ -118,8 +121,10 @@
     "audit": {
       "rawPromptStored": false,
       "rawAttachmentStored": false,
+      "rawProductContextStored": false,
       "originalPromptHashStored": true,
-      "requestIdStored": true
+      "requestIdStored": true,
+      "productContextFields": ["accountHash", "productId", "contextType", "dataClass", "sourceOwner", "sourceVersion", "asOf", "permissionId", "referenceHashes"]
     },
     "errorEnvelope": {
       "fields": [
@@ -129,6 +134,21 @@
       ],
       "providerBodyExposed": false
     }
+  },
+  "productAIRegistry": {
+    "schemaVersion": "ynx.ai.product-registry.v1",
+    "registryVersion": "1.0.0",
+    "path": "internal/aiproduct/product-ai-registry.json",
+    "productCount": 24,
+    "products": ["ai", "wallet", "social", "pay", "card", "exchange", "quant", "shop", "seller", "developer", "explorer", "monitor", "trust", "resource", "cloud", "browser", "search", "finance", "mail", "music", "video", "creator-studio", "docs", "calendar"],
+    "defaultPolicy": "deny",
+    "unknownProduct": "deny",
+    "unknownContext": "deny",
+    "crossProductReuse": "deny",
+    "secretBearingContext": "deny",
+    "toolExecution": "deny",
+    "publicProductEndpoint": "GET /api/product-ai-registry",
+    "gatewayContextContent": "metadata-and-reference-hashes-only until an accepted owner adapter explicitly supplies content"
   },
   "productGenerationStream": {
     "route": "POST /api/conversations/{id}/generate",
@@ -243,6 +263,16 @@
       "code": "generation_not_active",
       "httpStatus": 404,
       "retryable": false
+    },
+    {
+      "code": "restricted_context",
+      "httpStatus": 400,
+      "retryable": false
+    },
+    {
+      "code": "audit_unavailable",
+      "httpStatus": 503,
+      "retryable": true
     }
   ],
   "healthAndVersion": {
@@ -322,5 +352,5 @@
     "Xcode runner and signing assets",
     "domain/artifact hosting authority"
   ],
-  "lastUpdated": "2026-07-27"
+  "lastUpdated": "2026-07-29"
 }

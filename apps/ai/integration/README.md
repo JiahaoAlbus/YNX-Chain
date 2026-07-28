@@ -12,7 +12,10 @@ These files separate local implementation evidence from central deployment claim
 
 ## AI Gateway
 
-The POST-body stream contract and stable Provider-error semantics are implemented in `internal/aigateway/server.go` at source commit `2678a8b0cf3f9463ec7fc205caab486993bf5f18` and covered by package and race tests.
+The POST-body stream contract, stable Provider errors, Product AI Registry and
+restricted-context guard are implemented at source commit
+`8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154` and covered by package and race
+tests.
 
 The local contract:
 
@@ -23,6 +26,12 @@ The local contract:
 - enforces a 2 MiB body limit;
 - validates the 12 supported output-language identifiers;
 - requires explicit `selected_files` context before accepting attachments;
+- requires exact registry policy, explicit selection, freshness, byte budget and
+  permission (where applicable) before accepting product-context references;
+- passes only product-context metadata and account/conversation-scoped reference
+  hashes until an accepted owner adapter supplies content;
+- rejects restricted credentials, PAN/CVV, PEM/seed material and indirect
+  attachment injection before provider access;
 - bounds context lists, attachment count, type, name, and text size;
 - stores only the original prompt hash in Gateway audit records;
 - returns stable `code`, `error`, and `requestId` failure envelopes;

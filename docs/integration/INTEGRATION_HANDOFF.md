@@ -5,7 +5,7 @@
 - Product: YNX AI (`14-ai`)
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai`
 - Branch: `codex/final-ai`
-- Runtime source commit: `2678a8b0cf3f9463ec7fc205caab486993bf5f18`
+- Runtime source commit: `8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154`
 - Evidence checkpoint: `b066b65aac8c8b197ab9b38659e937e73544daf1`
 - Contract: `release/integration/ynx-ai-contract.json`
 - Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
@@ -48,6 +48,13 @@ The current runtime implements:
 - bounded prompt, session, context lists, attachments, attachment names, attachment text, and continuation reference;
 - 12 output-language identifiers;
 - explicit `selected_files` consent before any attachment content is accepted;
+- Product AI Registry v1 for AI plus the 23 product integrations named in the
+  YNX AI objective, with deny-by-default unknown product/context/tool policies;
+- exact product context selection, freshness, size, data class, source owner,
+  source version and permission enforcement before Gateway/provider access;
+- credential, PEM, seed, PAN/CVV and indirect attachment-injection rejection;
+- account/conversation-scoped reference hashes and context metadata audit without
+  raw product reference IDs or raw owner content;
 - Gateway SSE `metadata`, `token`, and `done` events;
 - product generation SSE `metadata`, `token`, `done`, and truthful `error` events;
 - audit storage of request metadata and original prompt hash, not raw prompt or attachment text;
@@ -55,6 +62,10 @@ The current runtime implements:
 - Provider HTTP 429 preservation as `provider_rate_limited`, with upstream response bodies redacted.
 
 The legacy `GET /ai/stream?session=...&q=...` route is rejected and must never be restored by rollback.
+
+Product-context transport currently carries validated metadata and reference
+hashes only. It does not claim the Gateway read an underlying private product
+record. Each owner must provide an accepted adapter before content can be supplied.
 
 ## Generation cancellation
 

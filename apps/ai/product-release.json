@@ -2,7 +2,7 @@
   "productId": "ynx-ai",
   "name": "YNX AI",
   "branch": "codex/final-ai",
-  "commit": "2678a8b0cf3f9463ec7fc205caab486993bf5f18",
+  "commit": "8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154",
   "version": "1.0.0-testnet-preview",
   "surfaces": [
     "web",
@@ -54,7 +54,7 @@
   },
   "centralIntegration": {
     "walletAuth": "not integrated; exact schema-v2 entry/vector/patch supplied under apps/ai/integration; production local-auth routes fail closed by default",
-    "aiGateway": "POST JSON-body stream contract and stable Provider error semantics implemented and race-tested at 2678a8b0cf3f9463ec7fc205caab486993bf5f18; not deployed or centrally accepted",
+    "aiGateway": "POST JSON-body stream contract, stable Provider errors, restricted-content guard, and Product AI Registry enforcement implemented and race-tested at 8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154; not deployed or centrally accepted",
     "provider": "no provider-backed successful staging output evidenced; generationLive=false"
   },
   "knownLimitations": [
@@ -62,6 +62,7 @@
     "Central AI Gateway POST-body stream contract is implemented and tested on codex/final-ai, but is not deployed or accepted as central evidence.",
     "No staging/public URL, hosted download, production signing, or store release exists.",
     "No true provider success is claimed; current central provider evidence reports quota/rate-limit failure.",
+    "Product-context references are locally policy-validated metadata and hashes only; no product owner adapter has centrally supplied underlying private record content.",
     "Local host lacks Xcode; iOS evidence depends on the runnable CI workflow and is not yet a successful run.",
     "Durable screenshot coverage is incomplete; browser light/dark/mobile failure states were inspected interactively."
   ],

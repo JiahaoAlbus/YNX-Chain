@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "ynx.public-product-metadata.v1",
+  "product": "YNX AI",
+  "aliases": ["YNX AI Assistant"],
+  "slug": "ai",
+  "canonicalRoute": "/ai",
+  "sourceCommit": "8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154",
+  "title": "YNX AI — Permission-bound assistance for the YNX ecosystem",
+  "metaDescription": "Draft, explain, research, translate and preview with explicit context selection, provider transparency and no autonomous asset or account actions.",
+  "h1": "Useful assistance, bounded by your permissions",
+  "features": [
+    "Provider-neutral streaming and truthful unavailable, quota and timeout states",
+    "Explicit attachment and product-context selection",
+    "Product AI Registry with deny-by-default context and tool policies",
+    "Prompt-injection and restricted-credential rejection",
+    "Preview and approval records that never execute external actions",
+    "Conversation export, deletion and retention controls",
+    "Web, Android and iOS product surfaces"
+  ],
+  "risksAndLimits": [
+    "The current release is a local Testnet preview, not a public Runtime.",
+    "No provider-backed staging success or live generation is claimed.",
+    "Product-context records remain unavailable until each owner adapter is accepted.",
+    "AI output may be inaccurate and is advisory; it cannot sign, pay, trade, publish, delete or change permissions.",
+    "Hosted downloads, production signing and store release are not verified."
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "links": {
+    "runtime": null,
+    "download": null,
+    "support": null,
+    "privacy": null,
+    "security": null,
+    "status": null
+  },
+  "structuredDataSuggestion": {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "YNX AI",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, Android, iOS",
+    "urlPath": "/ai",
+    "releaseStatus": "Development"
+  }
+}

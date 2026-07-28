@@ -2,7 +2,7 @@
   "schemaVersion": "ynx.ai.cross-product-vectors.v1",
   "productId": "ynx-ai",
   "contract": "release/integration/ynx-ai-contract.json",
-  "runtimeSourceCommit": "2678a8b0cf3f9463ec7fc205caab486993bf5f18",
+  "runtimeSourceCommit": "8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154",
   "vectors": [
     {
       "id": "AI-WALLET-WRONG-PRODUCT",
@@ -154,7 +154,26 @@
       "surface": "Product AI Registry",
       "mutation": "request private Social, Mail, Cloud, Browser, Finance, Wallet, or Quant context without explicit product-specific selection and approved scope",
       "expected": "deny by default; no provider request",
-      "status": "pending Product AI Registry runtime"
+      "status": "local runtime pass; central owner acceptance and shared Testnet pending",
+      "localEvidence": "TestProductContextSelectionRequiresExactPermissionAndFreshness"
+    },
+    {
+      "id": "AI-CROSS-PRODUCT-CONTEXT-STALE-OR-REUSED",
+      "owner": "14-ai",
+      "surface": "Product AI Registry",
+      "mutation": "reuse permission in another conversation, duplicate a permission in one request, widen data class, exceed byte budget, or submit stale/future source metadata",
+      "expected": "deny before Gateway/provider request; no raw reference ID in Gateway audit",
+      "status": "local runtime pass; central execution pending",
+      "localEvidence": "TestProductContextSelectionRequiresExactPermissionAndFreshness"
+    },
+    {
+      "id": "AI-ATTACHMENT-INDIRECT-INJECTION",
+      "owner": "14-ai",
+      "surface": "POST /ai/stream",
+      "mutation": "selected attachment contains restricted credential material or instructions to override policy and execute a sensitive action",
+      "expected": "restricted_context before provider request; bounded audit without raw attachment content",
+      "status": "local runtime pass; remote provider vector pending",
+      "localEvidence": "TestContentGuardRejectsSecretsCardsAndIndirectInjection"
     },
     {
       "id": "AI-BILLING-ACTUAL-USAGE-UNKNOWN",

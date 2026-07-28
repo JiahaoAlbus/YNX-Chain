@@ -14,12 +14,15 @@
   "aiGateway": {
     "status": "tested-local-not-deployed",
     "runtimeSource": "internal/aigateway/server.go",
-    "sourceCommit": "2678a8b0cf3f9463ec7fc205caab486993bf5f18",
+    "sourceCommit": "8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154",
     "requiredRoute": "POST /ai/stream",
     "requestMediaType": "application/json",
     "forbiddenTransport": "prompt or attachment content in URL/query/log",
     "strictUnknownFieldRejection": true,
     "explicitAttachmentContextRequired": true,
+    "productAIRegistryVersion": "1.0.0",
+    "productContextTransport": "validated metadata and account/conversation-scoped reference hashes only",
+    "restrictedContextGuard": true,
     "stableErrorEnvelope": [
       "code",
       "error",
@@ -54,5 +57,5 @@
     "generationLive": false,
     "reason": "The POST-body Gateway contract is implemented and tested on codex/final-ai, but canonical Wallet Auth is not integrated and no provider-backed staging deployment or public endpoint is evidenced."
   },
-  "lastUpdated": "2026-07-27"
+  "lastUpdated": "2026-07-29"
 }
