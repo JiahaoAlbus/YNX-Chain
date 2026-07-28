@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "product": "wallet-auth",
+  "sourceCommit": "c4e476dc52e40ae4c895503a9ed0b756b1884f77",
+  "generatedAt": "2026-07-27T15:42:09.158Z",
+  "classification": "local-gateway-backup-restore-evidence",
+  "protocol": {
+    "backupSchemaVersion": 1,
+    "stateSchemaVersion": 1,
+    "algorithm": "aes-256-gcm",
+    "keyInput": "exactly 32 bytes supplied by the operator boundary",
+    "canonicalEnvelope": true,
+    "authenticatedMetadata": [
+      "algorithm",
+      "createdAt",
+      "schemaVersion",
+      "sourceStateDigest",
+      "stateSchemaVersion"
+    ],
+    "privateDirectoryMode": "0700",
+    "privateFileMode": "0600",
+    "symbolicLinksRejected": true,
+    "multipleHardLinksRejected": true,
+    "exclusiveNoOverwriteCreate": true,
+    "exclusiveNoOverwriteRestore": true,
+    "fileAndDirectoryFsync": true,
+    "offlineVerifyBeforeRestore": true,
+    "minimumCreatedAtRollbackFloor": true,
+    "maximumAgeRpoPolicy": true,
+    "futureTimestampRejected": true
+  },
+  "functionalVerification": {
+    "nonEmptyGatewaySnapshotRestoredExactly": true,
+    "productSessionsRestored": true,
+    "approvalAndDeviceStateRestored": true,
+    "consumedProofReplayStateRestored": true,
+    "consumedProofRejectedAfterRestore": true,
+    "wrongKeyRejected": true,
+    "ciphertextOrTagTamperRejected": true,
+    "staleRecoveryPointRejected": true,
+    "futureRecoveryPointRejected": true,
+    "existingRestoreTargetPreserved": true,
+    "broadPermissionsRejected": true,
+    "hardLinkRejected": true,
+    "symbolicLinkRejected": true,
+    "cliOutputExcludesKeyAndPaths": true,
+    "cliFailuresExcludeStackAndPaths": true,
+    "nodeOnlyPackageSubpath": "@ynx-chain/wallet-auth/gateway-backup",
+    "universalPackageRootRemainsMobileSafe": true
+  },
+  "performanceDrill": {
+    "classification": "local-empty-state-gateway-backup-performance-drill",
+    "samples": 20,
+    "backup": {
+      "minMicroseconds": 12762,
+      "p50Microseconds": 14469,
+      "p95Microseconds": 20432,
+      "p99Microseconds": 20432,
+      "maxMicroseconds": 20432
+    },
+    "offlineVerify": {
+      "minMicroseconds": 116,
+      "p50Microseconds": 188,
+      "p95Microseconds": 356,
+      "p99Microseconds": 681,
+      "maxMicroseconds": 681
+    },
+    "restoreAndColdStart": {
+      "minMicroseconds": 13197,
+      "p50Microseconds": 15185,
+      "p95Microseconds": 25931,
+      "p99Microseconds": 44445,
+      "maxMicroseconds": 44445
+    },
+    "backupBytes": 1076,
+    "backupSha256": "5464d68eeb6285c16caf57da51dec56be5104be2b812846170b1c5ad43104b93",
+    "sourceStateDigest": "bbdb1adea08a5ee0f2907f26c16cc5ce272bc76034f1cef4055c2f2715f963a7",
+    "maximumAcceptedRpoMs": 300000,
+    "exactSnapshotRestored": true,
+    "tamperRejected": true,
+    "sensitiveOrPathFieldsEmitted": false,
+    "scopeBoundary": "Performance values use an empty local Gateway state. Non-empty Session and consumed-Proof recovery is verified separately by the functional test suite."
+  },
+  "verification": {
+    "walletAuthPackage": "99/99 passed",
+    "gatewayBackup": "5/5 passed",
+    "walletApp": "39/39 plus typecheck, release, coverage, SBOM and Android/iOS Hermes passed",
+    "npmPackDryRun": "passed with both executable backup scripts and Node-only type/runtime exports",
+    "sourceHashes": {
+      "packages/wallet-auth/package.json": "4e361f708eeb9d47990afbe9cb251a15cb102c5a4f41bc47d6453906ce678b8b",
+      "packages/wallet-auth/src/gateway-backup.js": "a39bb3e861b73a8fa73f0a0f6fd3366e1240a5358f16a88fad3820829478696a",
+      "packages/wallet-auth/src/gateway-backup.d.ts": "d96179b78a69d5e5d9dc5615b48bf14a4e3de37723e9fca26e0792bad64392ef",
+      "packages/wallet-auth/scripts/ynx-wallet-gateway-backup.mjs": "3bb7373bb8a30416f78d796310657cac58b7fb216351a8198a77ccb8d6feb8f8",
+      "packages/wallet-auth/scripts/run-gateway-backup-drill.mjs": "80b0e37167b0aaccc2c76d6e061dbcf21bd8ed85ff6ae69679d13437553504ac",
+      "packages/wallet-auth/test/gateway-backup.test.mjs": "13eafc35d6546ec18f96a6cb51da86003808771812c8c1af5152c84ee9bf910e"
+    }
+  },
+  "truthBoundaries": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "productionKmsIntegrated": false,
+    "crossRegionBackupHosted": false,
+    "centralRestoreDrillCompleted": false,
+    "productionRtoVerified": false,
+    "productionRpoVerified": false
+  },
+  "notClaimed": [
+    "central App Gateway deployment restore",
+    "remote immutable backup storage",
+    "cross-region replication",
+    "production KMS or HSM integration",
+    "production RTO or RPO compliance",
+    "mobile account backup changes"
+  ]
+}
