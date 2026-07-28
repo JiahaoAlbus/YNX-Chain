@@ -25,9 +25,9 @@ scan_text() {
     return $?
   fi
   if [[ "$case_mode" == "insensitive" ]]; then
-    grep -R -n -E -i "$pattern" "$@"
+    grep -R --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=coverage -n -E -i "$pattern" "$@"
   else
-    grep -R -n -E "$pattern" "$@"
+    grep -R --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=coverage -n -E "$pattern" "$@"
   fi
 }
 
