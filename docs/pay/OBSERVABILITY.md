@@ -16,5 +16,6 @@ Alert on sustained server-error rate, settlement verification failure, no commit
 
 ## Current evidence
 
-Local tests verify audit persistence and fail-closed protocol behavior. No deployed metrics endpoint, trace backend, dashboard, monitor integration, alert delivery or public status component has been directly verified for this source version.
+The source now implements dependency-aware liveness/readiness, version metadata, bounded Prometheus metrics, structured JSON completion logs, request/trace/error correlation, `traceparent` propagation and panic redaction. Local and Race tests verify healthy/degraded dependency states, route-template cardinality, correlation propagation, private-value redaction and bounded client errors.
 
+No deployed trace backend, dashboard, Monitor integration, alert delivery or public status component has been directly verified for this source version.
