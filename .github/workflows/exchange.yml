@@ -54,6 +54,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: make dependency-audit
+      - run: make contract-tooling-check
       - run: make exchange-vector-check
       - run: make exchange-package-integrity-check
       - run: make exchange-integration-check
