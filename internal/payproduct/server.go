@@ -58,10 +58,17 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /v1/merchant/webhook", s.webhook)
 	s.mux.HandleFunc("POST /v1/merchant/webhook/rotate", s.rotate)
 	s.mux.HandleFunc("POST /v1/merchant/webhooks/{id}/retry", s.retryWebhook)
+	s.mux.HandleFunc("POST /v1/merchant/webhooks/bulk-retry/preview", s.previewBulkWebhookRetry)
+	s.mux.HandleFunc("POST /v1/merchant/webhooks/bulk-retry", s.bulkWebhookRetry)
+	s.mux.HandleFunc("GET /v1/merchant/operations", s.merchantOperations)
 	s.mux.HandleFunc("POST /v1/merchant/refunds/{id}/submit", s.submitRefund)
 	s.mux.HandleFunc("POST /v1/merchant/refunds/{id}/refresh", s.refreshRefund)
 	s.mux.HandleFunc("GET /v1/merchant/analytics", s.analytics)
 	s.mux.HandleFunc("GET /v1/merchant/reconciliation.csv", s.exportCSV)
+	s.mux.HandleFunc("GET /v1/merchant/data-rights", s.dataRights)
+	s.mux.HandleFunc("GET /v1/merchant/data-export", s.dataExport)
+	s.mux.HandleFunc("POST /v1/merchant/data-deletion-requests", s.dataDeletionRequest)
+	s.mux.HandleFunc("POST /v1/merchant/data-deletion-requests/{id}/cancel", s.dataDeletionCancel)
 	s.mux.HandleFunc("GET /v1/merchant/capital", s.capital)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs", s.aiRun)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs/{id}/review", s.aiReview)
@@ -328,6 +335,38 @@ func (s *Server) merchantState(w http.ResponseWriter, r *http.Request) {
 	out, err := s.service.SnapshotForMerchant(p.Merchant.ID)
 	respond(w, 200, out, err)
 }
+func (s *Server) merchantOperations(w http.ResponseWriter, r *http.Request) {
+	p, _, ok := s.merchantAuth(w, r, "read")
+	if !ok {
+		return
+	}
+	values := r.URL.Query()
+	limit := 0
+	if raw := values.Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "operation limit must be an integer")
+			return
+		}
+		limit = parsed
+	}
+	from, err := parseOptionalRFC3339(values.Get("from"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "operation from time must be RFC3339")
+		return
+	}
+	to, err := parseOptionalRFC3339(values.Get("to"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "operation to time must be RFC3339")
+		return
+	}
+	search := values.Get("search")
+	if search == "" {
+		search = values.Get("q")
+	}
+	out, err := s.service.MerchantOperations(p.Merchant.ID, MerchantOperationQuery{Kind: values.Get("kind"), Status: values.Get("status"), Search: search, Limit: limit, Cursor: values.Get("cursor"), From: from, To: to})
+	respond(w, http.StatusOK, out, err)
+}
 func (s *Server) catalog(w http.ResponseWriter, r *http.Request) {
 	p, body, ok := s.merchantAuth(w, r, "invoice")
 	if !ok {
@@ -469,6 +508,72 @@ func (s *Server) retryWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := s.service.Deliver(r.Context(), queued.ID)
 	respond(w, 201, out, err)
+}
+func (s *Server) previewBulkWebhookRetry(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "webhook")
+	if !ok {
+		return
+	}
+	var in BulkWebhookRetryPreviewInput
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.PreviewBulkWebhookRetry(p, in.DeliveryIDs)
+	respond(w, http.StatusOK, out, err)
+}
+func (s *Server) bulkWebhookRetry(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "webhook")
+	if !ok {
+		return
+	}
+	var in BulkWebhookRetryInput
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.BulkRetryWebhooks(r.Context(), p, in)
+	respond(w, http.StatusOK, out, err)
+}
+func (s *Server) dataRights(w http.ResponseWriter, r *http.Request) {
+	p, _, ok := s.merchantAuth(w, r, "data-manage")
+	if !ok {
+		return
+	}
+	out, err := s.service.MerchantDataRights(p)
+	respond(w, http.StatusOK, out, err)
+}
+func (s *Server) dataExport(w http.ResponseWriter, r *http.Request) {
+	p, _, ok := s.merchantAuth(w, r, "data-manage")
+	if !ok {
+		return
+	}
+	out, err := s.service.ExportMerchantData(p)
+	if err != nil {
+		respond(w, 0, nil, err)
+		return
+	}
+	w.Header().Set("Content-Disposition", "attachment; filename=ynx-merchant-data.json")
+	w.Header().Set("X-YNX-Data-Export-Schema", strconv.Itoa(merchantDataExportSchemaVersion))
+	writeJSON(w, http.StatusOK, out)
+}
+func (s *Server) dataDeletionRequest(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "data-manage")
+	if !ok {
+		return
+	}
+	var in MerchantDeletionRequestInput
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.RequestMerchantDeletion(p, in)
+	respond(w, http.StatusCreated, out, err)
+}
+func (s *Server) dataDeletionCancel(w http.ResponseWriter, r *http.Request) {
+	p, _, ok := s.merchantAuth(w, r, "data-manage")
+	if !ok {
+		return
+	}
+	out, err := s.service.CancelMerchantDeletion(p, r.PathValue("id"))
+	respond(w, http.StatusOK, out, err)
 }
 func (s *Server) submitRefund(w http.ResponseWriter, r *http.Request) {
 	p, body, ok := s.merchantAuth(w, r, "refund")
@@ -628,6 +733,17 @@ func decodeBytes(w http.ResponseWriter, raw []byte, out any) bool {
 		return false
 	}
 	return true
+}
+func parseOptionalRFC3339(raw string) (*time.Time, error) {
+	if raw == "" {
+		return nil, nil
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, raw)
+	if err != nil {
+		return nil, err
+	}
+	parsed = parsed.UTC()
+	return &parsed, nil
 }
 func respond(w http.ResponseWriter, status int, value any, err error) {
 	if err != nil {

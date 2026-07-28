@@ -8,7 +8,7 @@ const (
 	NativeAsset     = "YNXT"
 	NativeFeeYNXT   = int64(1)
 	InvoiceVersion  = 3
-	SnapshotVersion = 2
+	SnapshotVersion = 4
 )
 
 type Merchant struct {
@@ -247,6 +247,20 @@ type ProviderConnection struct {
 	CreatedAt           time.Time  `json:"createdAt"`
 	UpdatedAt           time.Time  `json:"updatedAt"`
 }
+type MerchantDataRequest struct {
+	ID            string     `json:"id"`
+	MerchantID    string     `json:"merchantId"`
+	Type          string     `json:"type"`
+	Status        string     `json:"status"`
+	RequestedBy   string     `json:"requestedBy"`
+	Reason        string     `json:"reason"`
+	PolicyVersion string     `json:"policyVersion"`
+	Blockers      []string   `json:"blockers"`
+	EligibleAt    *time.Time `json:"eligibleAt,omitempty"`
+	CanceledAt    *time.Time `json:"canceledAt,omitempty"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+}
 type IdempotencyRecord struct {
 	Scope       string    `json:"scope"`
 	Key         string    `json:"key"`
@@ -355,6 +369,8 @@ type Snapshot struct {
 	Deliveries      map[string]WebhookDelivery        `json:"deliveries"`
 	AIRuns          map[string]AIRun                  `json:"aiRuns"`
 	Providers       map[string]ProviderConnection     `json:"providers"`
+	DataRequests    map[string]MerchantDataRequest    `json:"dataRequests"`
+	BulkOperations  map[string]BulkWebhookRetryResult `json:"bulkOperations"`
 	Idempotency     map[string]IdempotencyRecord      `json:"idempotency"`
 	Nonces          map[string]NonceRecord            `json:"nonces"`
 	Sponsorships    map[string]SponsorshipQuote       `json:"sponsorships"`
