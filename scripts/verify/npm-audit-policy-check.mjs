@@ -11,7 +11,6 @@ const policyPath = "release/integration/security/npm-audit-policy.json";
 const packagePath = "package.json";
 const lockPath = "package-lock.json";
 const expectedPolicyId = "YNX-INT-NPM-2026-001";
-const maximumExceptionMilliseconds = 45 * 24 * 60 * 60 * 1000;
 
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8"));
@@ -22,7 +21,9 @@ function run(command, commandArgs, options = {}) {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 16 * 1024 * 1024,
-    env: process.env
+    env: process.env,
+    timeout: options.timeout ?? 0,
+    killSignal: "SIGTERM"
   });
   if (result.error) throw result.error;
   if (options.allowedExitCodes?.includes(result.status)) return result;
@@ -36,7 +37,7 @@ function runAudit(omitDevelopment) {
   const commandArgs = ["audit"];
   if (omitDevelopment) commandArgs.push("--omit=dev");
   commandArgs.push("--audit-level=high", "--json", "--fetch-timeout=15000", "--fetch-retries=0");
-  const result = run("npm", commandArgs, { allowedExitCodes: [0, 1] });
+  const result = run("npm", commandArgs, { allowedExitCodes: [0, 1], timeout: 45_000 });
   try {
     return JSON.parse(String(result.stdout ?? ""));
   } catch (error) {
@@ -104,20 +105,17 @@ function validateBundle({ policy, packageJson, lock, fullAudit, productionAudit,
   expect(policy?.policyId === expectedPolicyId, `policyId must be ${expectedPolicyId}`);
   expect(policy?.owner === "29-integration", "policy owner must be 29-integration");
   expect(policy?.requiredReviewOwner === "30-security-sre", "policy review owner must be 30-security-sre");
-  expect(policy?.decision === "timeBoundDevelopmentToolingException", "policy decision must remain time bounded");
-  expect(policy?.releaseEffect === "blocksProductionReleaseUntilSecuritySreReviewOrUpstreamFix", "policy must block production release");
+  expect(policy?.decision === "noExceptionRequired", "policy must record the remediated dependency graph");
+  expect(policy?.releaseEffect === "none", "remediated audit policy must not retain the expired release block");
   expect(validSha(policy?.sourceCommit), "policy sourceCommit must be an exact SHA");
   if (validSha(policy?.sourceCommit)) expect(isReachableFromHead(policy.sourceCommit), "policy sourceCommit must be reachable from HEAD");
 
   const createdAt = Date.parse(policy?.createdAt ?? "");
-  const expiresAt = Date.parse(policy?.expiresAt ?? "");
+  const remediatedAt = Date.parse(policy?.remediatedAt ?? "");
   expect(Number.isFinite(createdAt), "policy createdAt is invalid");
-  expect(Number.isFinite(expiresAt), "policy expiresAt is invalid");
-  if (Number.isFinite(createdAt) && Number.isFinite(expiresAt)) {
-    expect(expiresAt > createdAt, "policy expiresAt must follow createdAt");
-    expect(expiresAt - createdAt <= maximumExceptionMilliseconds, "policy exception exceeds 45 days");
-    expect(now.getTime() < expiresAt, "policy exception has expired");
-  }
+  expect(Number.isFinite(remediatedAt), "policy remediatedAt is invalid");
+  if (Number.isFinite(createdAt) && Number.isFinite(remediatedAt)) expect(remediatedAt >= createdAt, "policy remediatedAt must not precede createdAt");
+  expect(!Object.hasOwn(policy ?? {}, "expiresAt"), "remediated policy must not retain an exception expiry");
 
   expect(packageJson?.private === true, "contract tooling package must remain private");
   expect(Object.keys(packageJson?.dependencies ?? {}).length === 0, "contract tooling must not add production npm dependencies");
@@ -126,11 +124,12 @@ function validateBundle({ policy, packageJson, lock, fullAudit, productionAudit,
   }
 
   const advisory = policy?.advisory ?? {};
-  expect(advisory.id === "GHSA-xcpc-8h2w-3j85", "unexpected advisory ID");
-  expect(advisory.source === 1123686, "unexpected advisory source ID");
-  expect(advisory.package === "adm-zip", "unexpected advisory package");
-  expect(advisory.severity === "high", "advisory severity must be high");
-  expect(advisory.fixAvailable === false, "policy must not claim an upstream fix");
+  expect(advisory.id === "GHSA-xcpc-8h2w-3j85", "unexpected remediated advisory ID");
+  expect(advisory.source === 1123686, "unexpected remediated advisory source ID");
+  expect(advisory.package === "adm-zip", "unexpected remediated advisory package");
+  expect(advisory.severity === "high", "remediated advisory severity history must remain high");
+  expect(advisory.fixAvailable === true, "policy must record that the dependency graph is fixed");
+  expect(advisory.installedVersion === "0.6.0", "policy must bind the fixed adm-zip version");
   expect(policy?.scope?.productionDependenciesAllowed === false, "production dependency scope must remain prohibited");
   expect(policy?.scope?.runtimeImportAllowed === false, "runtime import scope must remain prohibited");
   expect(policy?.scope?.untrustedArchiveInputAllowed === false, "untrusted archive input must remain prohibited");
@@ -172,7 +171,7 @@ function validateBundle({ policy, packageJson, lock, fullAudit, productionAudit,
   const ignored = spawnSync("git", ["check-ignore", "-q", "artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json"], { cwd: root });
   expect(!ignored.error && ignored.status === 0, "generated Hardhat artifacts must remain ignored build outputs");
   expect(Array.isArray(policy?.mandatoryControls) && policy.mandatoryControls.length >= 8, "policy mandatoryControls are incomplete");
-  expect(Array.isArray(policy?.exitConditions) && policy.exitConditions.length >= 5, "policy exitConditions are incomplete");
+  expect(Array.isArray(policy?.remediationEvidence) && policy.remediationEvidence.length >= 4, "policy remediationEvidence is incomplete");
 
   return failures;
 }
@@ -191,10 +190,10 @@ function main() {
   if (failures.length > 0) return failures;
 
   if (args.has("--self-test")) {
-    const expiredPolicy = clone(policy);
-    expiredPolicy.expiresAt = "2026-07-26T00:00:00Z";
-    const expiredFailures = validateBundle({ policy: expiredPolicy, packageJson, lock, fullAudit, productionAudit });
-    if (!expiredFailures.some((failure) => failure.includes("expired"))) return ["self-test failed to reject an expired policy"];
+    const staleExceptionPolicy = clone(policy);
+    staleExceptionPolicy.decision = "timeBoundDevelopmentToolingException";
+    const staleExceptionFailures = validateBundle({ policy: staleExceptionPolicy, packageJson, lock, fullAudit, productionAudit });
+    if (!staleExceptionFailures.some((failure) => failure.includes("remediated dependency graph"))) return ["self-test failed to reject a stale exception"];
 
     const widenedPolicy = clone(policy);
     widenedPolicy.expectedAuditVulnerabilities.pop();

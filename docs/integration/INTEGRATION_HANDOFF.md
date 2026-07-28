@@ -20,7 +20,7 @@ This branch is the only central owner for protocol freeze, dependency acceptance
 - The old product matrix covered 23 products and contained stale 2026-07-16 branch SHAs. It remains historical evidence and is not the current central authority.
 - The registered worktree inventory included 01–29 except 30, plus 31–36. No `30-security-sre` worktree or `codex/final-security-sre` branch was observed.
 - The first full Go run exposed umask-sensitive unsafe-permission fixtures and missing generated contract artifacts. The fixtures now explicitly create the unsafe mode, while Runtime permission checks remain unchanged; contract-dependent tests are preceded by the pinned Hardhat build.
-- The locked npm graph has one unfixed High advisory through Hardhat development tooling. Production-only audit is clean. A machine-checked exception expires on 2026-08-31 and blocks production release pending Security/SRE acceptance or remediation.
+- Main now locks Hardhat 3.11.1, `@nomicfoundation/hardhat-ethers` 4.0.15 and `adm-zip` 0.6.0. Full and production-only npm audits are clean, so the former time-bounded High-advisory exception is closed. Security/SRE acceptance remains an independent production-release gate.
 
 ## New central artifacts
 

@@ -42,7 +42,7 @@
   "mainnetAccepted": false,
   "knownBlockers": [
     "The Security/SRE final branch and registered worktree were not present in the recovered inventory.",
-    "The exact Hardhat development-tooling advisory graph is time-bounded through 2026-08-31 and blocks production release pending Security/SRE review or upstream remediation.",
+    "The former Hardhat development-tooling advisory is remediated in the locked dependency graph; Security/SRE acceptance remains independently required for production release.",
     "Phase 0 owner contracts and central negative vectors have not yet been accepted.",
     "No shared Public Testnet or independent public proof has been accepted by Integration."
   ]
