@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-exchange",
+  "sourceCommit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+  "vectors": [
+    {
+      "id": "EX-WALLET-001",
+      "owner": "02-wallet-auth",
+      "consumer": "07-exchange",
+      "requirement": "Valid exact product session",
+      "input": "Bearer session for product=exchange, client=ynx-exchange-v1, bundle=com.ynxweb4.exchange, unexpired, required scope present",
+      "expected": "Gateway returns wallet-auth-v1 account/public-key tuple; Exchange authorizes only the requested scope",
+      "status": "externalBlocked",
+      "localEvidence": "fixture Gateway authorization tests"
+    },
+    {
+      "id": "EX-WALLET-002",
+      "owner": "02-wallet-auth",
+      "consumer": "07-exchange",
+      "requirement": "Wrong product, bundle, device, expiry or revoked session",
+      "input": "Any tuple mismatch or revoked/expired session",
+      "expected": "Fail closed with unauthorized/forbidden; no state mutation",
+      "status": "externalBlocked",
+      "localEvidence": "Gateway adapter negative tests"
+    },
+    {
+      "id": "EX-AUTH-003",
+      "owner": "07-exchange",
+      "requirement": "No query or browser-persisted token",
+      "input": "WebSocket or REST query-string token without Authorization header",
+      "expected": "Unauthorized; query token ignored",
+      "status": "testedLocal",
+      "localEvidence": "WebSocket auth and UI legacy-session tests"
+    },
+    {
+      "id": "EX-ORDER-004",
+      "owner": "07-exchange",
+      "requirement": "Signed order replay protection",
+      "input": "Reuse idempotency key with different signed digest",
+      "expected": "Conflict; original authoritative object remains unchanged",
+      "status": "testedLocal",
+      "localEvidence": "service idempotency/replay tests"
+    },
+    {
+      "id": "EX-QUANT-005",
+      "owner": "07-exchange",
+      "requirement": "Aggregate mandate capital",
+      "input": "Multiple open orders whose combined nonce-domain exposure exceeds signed capital, including after restart",
+      "expected": "Forbidden before reservation or mutation; cancel/fill releases only authoritative exposure",
+      "status": "testedLocal",
+      "localEvidence": "TestQuantAdapterEnforcesAggregateCapitalAcrossRestart"
+    },
+    {
+      "id": "EX-QUANT-006",
+      "owner": "07-exchange",
+      "requirement": "Kill signature domain separation",
+      "input": "Mass-cancel signature submitted to /v1/quant-adapter/kill",
+      "expected": "Unauthorized; no cancellation or revocation",
+      "status": "testedLocal",
+      "localEvidence": "TestHTTPQuantKillRequiresKillSignatureAndPersistsReconciliation"
+    },
+    {
+      "id": "EX-QUANT-007",
+      "owner": "07-exchange",
+      "requirement": "Persistent strategy kill",
+      "input": "Valid ynx-quant-strategy-kill-v1 signature for account/market/nonce/key",
+      "expected": "Atomic market mass cancel, persistent killed status, future exposure methods forbidden after restart; reconcile reports killed and zero exposure",
+      "status": "testedLocal",
+      "localEvidence": "Quant kill direct and HTTP tests"
+    },
+    {
+      "id": "EX-QUANT-008",
+      "owner": "07-exchange",
+      "requirement": "Nonce-domain rotation after kill",
+      "input": "New signed mandate with distinct valid quant nonce domain",
+      "expected": "New domain is independently active; killed domain remains revoked",
+      "status": "testedLocal",
+      "localEvidence": "TestQuantAdapterUsesAuthoritativeExchangeStateAndKill"
+    },
+    {
+      "id": "EX-STREAM-009",
+      "owner": "07-exchange",
+      "requirement": "Market/user/drop-copy isolation",
+      "input": "Public market snapshot and authenticated user/drop-copy snapshots",
+      "expected": "Public output strips account, reserve, authorization and hidden iceberg remainder; private output contains only the authorized account",
+      "status": "testedLocal",
+      "localEvidence": "stream redaction and auth tests"
+    },
+    {
+      "id": "EX-STREAM-010",
+      "owner": "07-exchange",
+      "requirement": "Sequence reconciliation",
+      "input": "Reconnect after a persisted sequence",
+      "expected": "Monotonic events after sequence or explicit snapshot recovery; hash chain verifies",
+      "status": "testedLocal",
+      "localEvidence": "execution replay and tamper tests"
+    },
+    {
+      "id": "EX-MIGRATION-011",
+      "owner": "07-exchange",
+      "requirement": "v8-shaped state to v9",
+      "input": "Integrity-valid reconstructed v8 state",
+      "expected": "Atomic v9 rewrite; Quant kill map initialized; balances/orders/audit preserved",
+      "status": "testedLocal",
+      "localEvidence": "TestStateSchemaV8MigratesToV9AndRejectsTamper",
+      "limitation": "Not an immutable historical v8 byte fixture"
+    },
+    {
+      "id": "EX-MIGRATION-012",
+      "owner": "07-exchange",
+      "requirement": "Historical v2-v7 compatibility",
+      "input": "Immutable state bytes produced by each shipped historical source commit",
+      "expected": "Verify old hash, migrate forward, compare canonical state and prove rollback/export",
+      "status": "externalBlocked",
+      "blockedBy": "Historical byte fixtures unavailable; remote retrieval timed out"
+    },
+    {
+      "id": "EX-CUSTODY-013",
+      "owner": "01-chain-core/operator",
+      "consumer": "07-exchange",
+      "requirement": "Deposit authority",
+      "input": "Configured approved custody address plus committed Indexer transfer proof at required confirmations",
+      "expected": "Exactly-once credit with source/asOf/version; otherwise unavailable and no credit",
+      "status": "externalBlocked",
+      "localEvidence": "deposit intent/refresh and duplicate-credit tests"
+    },
+    {
+      "id": "EX-WITHDRAW-014",
+      "owner": "07-exchange/operator",
+      "requirement": "Withdrawal boundary",
+      "input": "Wallet-signed review request within limits and allowlist",
+      "expected": "Reserve and reviewed_pending_operator_broadcast only; Exchange does not broadcast without approved operator adapter/proof",
+      "status": "testedLocal",
+      "localEvidence": "withdrawal review boundary tests"
+    },
+    {
+      "id": "EX-SHARED-015",
+      "owner": "29-integration",
+      "consumer": "07-exchange",
+      "requirement": "Shared Testnet acceptance",
+      "input": "Two independent users, canonical Wallet sessions, committed deposits, Spot plus future Margin/Perp, profit/loss, fees, kill/revoke, restart/reconcile, UltraLiquidity, solvency and Explorer/Finance/Monitor evidence",
+      "expected": "All receipts and public evidence bind the same source/release commit",
+      "status": "externalBlocked",
+      "blockedBy": "Central dependencies and unimplemented Margin/Perp/UltraLiquidity/solvency"
+    }
+  ],
+  "generatedAt": "2026-07-27T15:28:52Z"
+}

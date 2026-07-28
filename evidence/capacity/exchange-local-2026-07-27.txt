@@ -1,0 +1,15 @@
+Source commit: 42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d
+Command: go test ./internal/exchangeproduct -run '^$' -bench 'BenchmarkPlaceOrderPersistent|BenchmarkOrderBookSnapshot1000' -benchtime=100x -count=1
+Environment: darwin/arm64, Apple M2, Go 1.25.7, local filesystem, 2026-07-27
+
+BenchmarkPlaceOrderPersistent-8:
+100 iterations; 13,428,316 ns/op
+p50 12.18 ms; p95 17.40 ms; p99 45.81 ms
+4,073 persisted state bytes/order
+1,369,669 B/op; 4,382 allocs/op
+
+BenchmarkOrderBookSnapshot1000-8:
+100 iterations; 467,576 ns/op
+1,075,565 B/op; 16 allocs/op
+
+Scope: Wallet signature verification, reservation, event/audit creation, whole-state JSON serialization, fsync, atomic rename and directory sync. Orders are non-crossing. This is a local engineering sample, not staging/public, sustained-load or multi-region evidence.

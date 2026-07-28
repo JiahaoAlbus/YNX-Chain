@@ -4,8 +4,8 @@
   "serialNumber": "urn:uuid:6b8cd65a-5f01-4e0f-98cd-ea8ee70f7a80",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-07-18T19:34:01Z",
-    "component": {"type": "application", "name": "YNX Exchange", "version": "0.1.0-testnet"}
+    "timestamp": "2026-07-27T15:28:52Z",
+    "component": {"type": "application", "name": "YNX Exchange", "version": "0.1.0-testnet", "properties": [{"name": "ynx:sourceCommit", "value": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d"}]}
   },
   "components": [
     {"type":"library","name":"expo","version":"57.0.6","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/expo@57.0.6"},
@@ -22,6 +22,7 @@
     {"type":"library","name":"@noble/curves","version":"2.2.0","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/%40noble/curves@2.2.0"},
     {"type":"library","name":"@noble/hashes","version":"2.2.0","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/%40noble/hashes@2.2.0"},
     {"type":"library","name":"github.com/decred/dcrd/dcrec/secp256k1/v4","version":"4.4.0","licenses":[{"license":{"id":"ISC"}}],"purl":"pkg:golang/github.com/decred/dcrd/dcrec/secp256k1/v4@v4.4.0"},
+    {"type":"library","name":"github.com/gorilla/websocket","version":"1.5.3","licenses":[{"license":{"id":"BSD-2-Clause"}}],"purl":"pkg:golang/github.com/gorilla/websocket@v1.5.3"},
     {"type":"library","name":"golang.org/x/crypto","version":"0.33.0","licenses":[{"license":{"id":"BSD-3-Clause"}}],"purl":"pkg:golang/golang.org/x/crypto@v0.33.0"},
     {"type":"library","name":"golang.org/x/sys","version":"0.30.0","licenses":[{"license":{"id":"BSD-3-Clause"}}],"purl":"pkg:golang/golang.org/x/sys@v0.30.0"}
   ]

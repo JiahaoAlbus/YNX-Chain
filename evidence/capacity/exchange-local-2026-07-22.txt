@@ -1,0 +1,17 @@
+Command: go test ./internal/exchangeproduct -run '^$' -bench 'Benchmark(PlaceOrderPersistent|OrderBookSnapshot1000)$' -benchtime=200x -count=5
+Environment: darwin/arm64, Apple M2, local filesystem, Go benchmark, 2026-07-22 Asia/Shanghai
+
+Persistent order (200 operations per sample):
+ns/op: 13,389,196; 15,317,372; 14,244,118; 16,682,769; 14,723,597
+p50 ms: 13.10; 13.53; 14.19; 16.46; 13.56
+p95 ms: 19.72; 29.14; 19.47; 27.79; 26.88
+p99 ms: 22.38; 35.40; 23.91; 38.07; 38.76
+
+1,000-order book snapshot (200 operations per sample):
+ns/op: 1,041,901; 741,569; 1,179,875; 1,016,640; 1,057,497
+
+Follow-up storage sample command:
+go test ./internal/exchangeproduct -run '^$' -bench '^BenchmarkPlaceOrderPersistent$' -benchtime=200x -count=1
+Result: 13,487,101 ns/op; p50 13.18 ms; p95 19.52 ms; p99 20.84 ms; 4,007 persisted state bytes/order.
+
+Scope: Wallet signature verification, reserve mutation, events/audit, whole-state JSON serialization, fsync, atomic rename and directory sync. Non-crossing orders only. This is a local engineering baseline, not staging/public or multi-user load evidence.

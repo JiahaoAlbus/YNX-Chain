@@ -2,9 +2,10 @@
 
 ## Scope and preservation
 
-- Worktree: `/Users/huangjiahao/Desktop/YNX Chain Exchange`
-- Branch: `codex/ecosystem-exchange`
-- Required minimum baseline preserved: `5d95046a92e01c7c5d00306cf8e78a1b9002a08a`
+- Current worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/07-exchange`
+- Current branch: `codex/final-exchange`
+- Required minimum baseline preserved: `22604af0717a19b5f8aa9223685c3ad3f049941a`
+- Current Exchange runtime evidence commit: `42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d`
 - Central Wallet/Auth source: `/Users/huangjiahao/Desktop/YNX Chain Wallet Auth`, commit `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`
 
 No reset, old-SHA checkout, force push, or removal of inherited work was used. The final pushed SHA is reported by the completion message and remote verification; release records identify the immutable implementation commit used for artifacts.

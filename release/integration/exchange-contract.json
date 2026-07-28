@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0-testnet",
+  "product": "ynx-exchange",
+  "owner": "07-exchange",
+  "sourceCommit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+  "stateSchemaVersion": 9,
+  "authority": {
+    "exchangeOwned": [
+      "spot order state",
+      "available and reserved subaccount balances",
+      "fills and maker/taker fees",
+      "execution event sequence and hash chain",
+      "quant mandate enforcement and strategy kill state"
+    ],
+    "externalOwners": {
+      "walletIdentityAndSession": "02-wallet-auth",
+      "chainFinalityAndNativeTransfer": "01-chain-core",
+      "marketPriceAndOracleFacts": "oracle owner",
+      "canonicalEventAndBillingLedger": "data-fabric owner",
+      "quantResearchEngine": "quant-lab owner",
+      "sharedTestnetAcceptance": "29-integration",
+      "securityReleaseAndBackup": "30-security-sre",
+      "publicWebsiteAndSEO": "28-website"
+    }
+  },
+  "walletTuple": {
+    "productId": "exchange",
+    "productClientId": "ynx-exchange-v1",
+    "bundleId": "com.ynxweb4.exchange",
+    "callback": "ynxexchange://wallet-auth/callback",
+    "chainId": "ynx_6423-1",
+    "sessionVerifier": "wallet-auth-v1",
+    "registryState": "pending-review",
+    "enabled": false
+  },
+  "authScopes": [
+    "exchange:ai",
+    "exchange:deposit",
+    "exchange:read",
+    "exchange:trade",
+    "exchange:withdrawal-review"
+  ],
+  "sessionRules": {
+    "transport": "Authorization: Bearer header only",
+    "queryTokenAccepted": false,
+    "longLivedBrowserTokenAccepted": false,
+    "gatewayIntrospectionRequired": true,
+    "wrongProductDeviceBundleScopeExpiryOrRevoke": "fail-closed",
+    "centralAccepted": false
+  },
+  "signedIntentDomains": [
+    "ynx-exchange-order-v1",
+    "ynx-exchange-order-v2",
+    "ynx-exchange-amend-v1",
+    "ynx-exchange-cancel-v1",
+    "ynx-exchange-mass-cancel-v1",
+    "ynx-exchange-conditional-v1",
+    "ynx-exchange-conditional-v2",
+    "ynx-exchange-conditional-cancel-v1",
+    "ynx-exchange-oco-v1",
+    "ynx-exchange-twap-v1",
+    "ynx-exchange-twap-cancel-v1",
+    "ynx-exchange-iceberg-v1",
+    "ynx-exchange-scale-v1",
+    "ynx-exchange-scale-cancel-v1",
+    "ynx-exchange-dead-man-v1",
+    "ynx-exchange-withdrawal-review-v1",
+    "ynx-quant-execution-adapter-v1",
+    "ynx-quant-strategy-kill-v1"
+  ],
+  "httpApi": {
+    "health": ["GET /health", "GET /ready", "GET /metrics", "GET /version"],
+    "publicMarket": [
+      "GET /v1/config",
+      "GET /v1/markets",
+      "GET /v1/orderbook",
+      "GET /v1/market-data/trades",
+      "GET /v1/streams/market/snapshot",
+      "GET /v1/ws/market"
+    ],
+    "account": [
+      "GET /v1/account",
+      "POST /v1/deposit-intents",
+      "POST /v1/deposits",
+      "POST /v1/deposits/{id}/refresh",
+      "POST /v1/withdrawals/review"
+    ],
+    "orders": [
+      "POST /v1/orders",
+      "PUT /v1/orders/{id}",
+      "POST /v1/orders/{id}/cancel",
+      "POST /v1/orders/mass-cancel",
+      "POST /v1/conditional-orders",
+      "POST /v1/conditional-orders/{id}/cancel",
+      "POST /v1/oco",
+      "POST /v1/twap",
+      "POST /v1/twap/{id}/cancel",
+      "POST /v1/iceberg",
+      "POST /v1/scale",
+      "POST /v1/scale/{id}/cancel",
+      "PUT /v1/dead-man"
+    ],
+    "privateStreams": [
+      "GET /v1/streams/user/snapshot",
+      "GET /v1/ws/user",
+      "GET /v1/ws/drop-copy"
+    ],
+    "quantNamespace": "/v1/quant-adapter/",
+    "adminTestCredit": "POST /v1/admin/test-credits; admin-key testnet-only"
+  },
+  "quantBoundary": {
+    "allowed": [
+      "markets",
+      "balances",
+      "spot positions",
+      "open orders",
+      "order book",
+      "fills",
+      "fees",
+      "submit",
+      "amend",
+      "conditional TP/SL/trailing",
+      "OCO",
+      "TWAP",
+      "iceberg",
+      "scale",
+      "cancel",
+      "mass cancel",
+      "persistent kill",
+      "reconcile"
+    ],
+    "forbidden": [
+      "withdraw",
+      "owner change",
+      "withdrawal-address change",
+      "unapproved transfer",
+      "risk override",
+      "API key export"
+    ],
+    "mandateBinds": [
+      "subaccount",
+      "market",
+      "methods",
+      "aggregate capital",
+      "leverage=1",
+      "expiry<=24h",
+      "nonce domain",
+      "wallet signature"
+    ],
+    "pauseResume": "unavailable-fail-closed",
+    "kill": "persistent nonce-domain revocation plus atomic subaccount-market mass cancel"
+  },
+  "canonicalEvents": {
+    "sequenceOwner": "07-exchange",
+    "persistence": "monotonic hash-chained executionEvents",
+    "marketVisibility": "public fields only; account, reserve, authorization and hidden iceberg remainder removed",
+    "userVisibility": "authenticated account-scoped",
+    "dropCopyVisibility": "authenticated account-scoped",
+    "eventTypes": [
+      "order_opened",
+      "order_amended",
+      "order_cancelled",
+      "orders_mass_cancelled",
+      "trade_executed",
+      "conditional_created",
+      "conditional_triggered",
+      "oco_created",
+      "twap_created",
+      "twap_slice_submitted",
+      "iceberg_created",
+      "scale_created",
+      "dead_man_armed",
+      "dead_man_expired",
+      "quant_strategy_killed"
+    ]
+  },
+  "errorCodes": [
+    "invalid_request",
+    "invalid_json",
+    "multiple_json_values",
+    "unauthorized",
+    "forbidden",
+    "not_found",
+    "conflict",
+    "insufficient_balance",
+    "unavailable",
+    "rate_limited",
+    "concurrency_limit",
+    "internal_error"
+  ],
+  "healthVersion": {
+    "liveness": "GET /health",
+    "readiness": "GET /ready; verifies local state integrity and reports integrations",
+    "version": "GET /version; product/version/build commit",
+    "metrics": "GET /metrics; local process counters",
+    "publicDeployment": false
+  },
+  "migration": {
+    "current": 9,
+    "verifiedGeneratedVectors": [1, 8],
+    "historicalByteFixturesMissing": [2, 3, 4, 5, 6, 7, 8],
+    "futureSchema": "fail-closed",
+    "rollback": "restore verified pre-v9 backup or reviewed export transformation"
+  },
+  "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+  "handoff": "docs/integration/INTEGRATION_HANDOFF.md",
+  "dependencies": {
+    "required": [
+      "central Wallet registry acceptance",
+      "Gateway session introspection",
+      "Gateway protected-action verification",
+      "approved custody address",
+      "authoritative Indexer transfer proof"
+    ],
+    "optionalOrFuture": [
+      "Oracle/mark/index facts",
+      "Bridge routes",
+      "Explorer/Finance/Monitor evidence",
+      "approved AI provider",
+      "public hosting and artifact signing"
+    ]
+  },
+  "externalInputs": [
+    "central registry and action-verification acceptance",
+    "operator-approved custody address and Indexer URL",
+    "withdrawal broadcaster/proof adapter",
+    "persistent staging/public deployment authority",
+    "production signing and store assets",
+    "independent security/legal/accessibility review"
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "generatedAt": "2026-07-27T15:28:52Z"
+}
