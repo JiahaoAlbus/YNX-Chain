@@ -32,6 +32,12 @@ func (p *HTTPAIProvider) Complete(ctx context.Context, workflow, prompt string) 
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+p.APIKey)
+	if requestID := RequestIDFromContext(ctx); requestID != "" {
+		req.Header.Set(RequestIDHeader, requestID)
+	}
+	if traceparent := TraceparentFromContext(ctx); traceparent != "" {
+		req.Header.Set("traceparent", traceparent)
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "YNX AI Gateway", p.Model, "", 0, err

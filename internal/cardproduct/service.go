@@ -125,7 +125,7 @@ func (s *Service) Apply(ctx context.Context, account string, input ApplyInput) (
 		state.Eligibility[account] = eligibility
 		state.Applications[id] = application
 		state.Idempotency[scope+":"+key] = IdempotencyRecord{Scope: scope, Key: key, RequestHash: requestHash, ObjectID: id, CreatedAt: now}
-		appendAudit(state, "application_created", id, account, now)
+		appendAudit(ctx, state, "application_created", id, account, now)
 		return nil
 	})
 	if err != nil {
@@ -154,7 +154,7 @@ func (s *Service) issueSandboxLocked(ctx context.Context, application Applicatio
 		app.Status = "issued_sandbox"
 		app.UpdatedAt = now
 		state.Applications[application.ID] = app
-		appendAudit(state, "sandbox_card_issued", id, card.Account, now)
+		appendAudit(ctx, state, "sandbox_card_issued", id, card.Account, now)
 		return nil
 	})
 	return card, err
@@ -193,7 +193,7 @@ func (s *Service) Transition(ctx context.Context, account, cardID, action, key s
 			state.Cards[old.ID] = old
 			state.Cards[replacement.ID] = replacement
 			state.Idempotency[scope+":"+key] = IdempotencyRecord{Scope: scope, Key: key, RequestHash: requestHash, ObjectID: replacement.ID, CreatedAt: now}
-			appendAudit(state, "card_replaced", replacement.ID, account, now)
+			appendAudit(ctx, state, "card_replaced", replacement.ID, account, now)
 			return nil
 		})
 		return replacement, err
@@ -207,7 +207,7 @@ func (s *Service) Transition(ctx context.Context, account, cardID, action, key s
 	err = s.store.Update(func(state *Snapshot) error {
 		state.Cards[card.ID] = card
 		state.Idempotency[scope+":"+key] = IdempotencyRecord{Scope: scope, Key: key, RequestHash: requestHash, ObjectID: card.ID, CreatedAt: now}
-		appendAudit(state, "card_"+action, card.ID, account, now)
+		appendAudit(ctx, state, "card_"+action, card.ID, account, now)
 		return nil
 	})
 	return card, err
@@ -273,7 +273,7 @@ func (s *Service) UpdateControls(ctx context.Context, account, cardID string, in
 	err = s.store.Update(func(state *Snapshot) error {
 		state.Cards[card.ID] = card
 		state.Idempotency[scope+":"+input.IdempotencyKey] = IdempotencyRecord{Scope: scope, Key: input.IdempotencyKey, RequestHash: requestHash, ObjectID: card.ID, CreatedAt: now}
-		appendAudit(state, "card_controls_updated", card.ID, account, now)
+		appendAudit(ctx, state, "card_controls_updated", card.ID, account, now)
 		return nil
 	})
 	return card, err
@@ -294,10 +294,14 @@ type ProviderEventInput struct {
 }
 
 func (s *Service) AcceptProviderEvent(input ProviderEventInput, timestamp time.Time, signature string) (CardEvent, error) {
-	return s.AcceptProviderEventWithKeyID(input, timestamp, DefaultProviderEventKeyID, signature)
+	return s.AcceptProviderEventWithKeyIDContext(context.Background(), input, timestamp, DefaultProviderEventKeyID, signature)
 }
 
 func (s *Service) AcceptProviderEventWithKeyID(input ProviderEventInput, timestamp time.Time, keyID, signature string) (CardEvent, error) {
+	return s.AcceptProviderEventWithKeyIDContext(context.Background(), input, timestamp, keyID, signature)
+}
+
+func (s *Service) AcceptProviderEventWithKeyIDContext(ctx context.Context, input ProviderEventInput, timestamp time.Time, keyID, signature string) (CardEvent, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	now := s.now().UTC()
@@ -345,7 +349,7 @@ func (s *Service) AcceptProviderEventWithKeyID(input ProviderEventInput, timesta
 		state.ProviderSeen[input.EventID] = now
 		state.Events[event.ID] = event
 		state.Notifications[notification.ID] = notification
-		appendAudit(state, "provider_"+event.Type, event.ID, event.Account, now)
+		appendAudit(ctx, state, "provider_"+event.Type, event.ID, event.Account, now)
 		return nil
 	})
 	return event, err
@@ -358,6 +362,10 @@ type DisputeInput struct {
 }
 
 func (s *Service) OpenDispute(account, cardID string, input DisputeInput) (Dispute, error) {
+	return s.OpenDisputeWithContext(context.Background(), account, cardID, input)
+}
+
+func (s *Service) OpenDisputeWithContext(ctx context.Context, account, cardID string, input DisputeInput) (Dispute, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if len(strings.TrimSpace(input.Reason)) < 8 || len(input.Reason) > 1000 || !validKey(input.IdempotencyKey) {
@@ -398,7 +406,7 @@ func (s *Service) OpenDispute(account, cardID string, input DisputeInput) (Dispu
 	err := s.store.Update(func(state *Snapshot) error {
 		state.Disputes[d.ID] = d
 		state.Idempotency[scope+":"+input.IdempotencyKey] = IdempotencyRecord{Scope: scope, Key: input.IdempotencyKey, RequestHash: requestHash, ObjectID: d.ID, CreatedAt: now}
-		appendAudit(state, "card_dispute_opened", d.ID, account, now)
+		appendAudit(ctx, state, "card_dispute_opened", d.ID, account, now)
 		return nil
 	})
 	return d, err
@@ -422,11 +430,13 @@ func (s *Service) RunAI(ctx context.Context, account string, input AIRunInput) (
 	}
 	now := s.now().UTC()
 	run := AIRun{ID: "cai_" + shortHash(account, input.ContextEventID, now.String()), Account: account, Workflow: input.Workflow, ContextEventID: event.ID, OutputLanguage: input.OutputLanguage, Permission: input.Permission, Status: "running", CreatedAt: now, UpdatedAt: now}
-	_ = s.store.Update(func(state *Snapshot) error {
+	if err := s.store.Update(func(state *Snapshot) error {
 		state.AIRuns[run.ID] = run
-		appendAudit(state, "card_ai_started", run.ID, account, now)
+		appendAudit(ctx, state, "card_ai_started", run.ID, account, now)
 		return nil
-	})
+	}); err != nil {
+		return AIRun{}, err
+	}
 	if s.ai == nil {
 		run.Status = "provider_unavailable"
 	} else {
@@ -441,15 +451,21 @@ func (s *Service) RunAI(ctx context.Context, account string, input AIRunInput) (
 		}
 	}
 	run.UpdatedAt = s.now().UTC()
-	_ = s.store.Update(func(state *Snapshot) error {
+	if err := s.store.Update(func(state *Snapshot) error {
 		state.AIRuns[run.ID] = run
-		appendAudit(state, "card_ai_"+run.Status, run.ID, account, run.UpdatedAt)
+		appendAudit(ctx, state, "card_ai_"+run.Status, run.ID, account, run.UpdatedAt)
 		return nil
-	})
+	}); err != nil {
+		return AIRun{}, err
+	}
 	return run, nil
 }
 
 func (s *Service) ReviewAI(account, id, decision string) (AIRun, error) {
+	return s.ReviewAIWithContext(context.Background(), account, id, decision)
+}
+
+func (s *Service) ReviewAIWithContext(ctx context.Context, account, id, decision string) (AIRun, error) {
 	if !contains([]string{"apply", "reject"}, decision) {
 		return AIRun{}, ErrInvalid
 	}
@@ -466,7 +482,7 @@ func (s *Service) ReviewAI(account, id, decision string) (AIRun, error) {
 		run.Status = "reviewed"
 		run.UpdatedAt = s.now().UTC()
 		state.AIRuns[id] = run
-		appendAudit(state, "card_ai_"+decision, id, account, run.UpdatedAt)
+		appendAudit(ctx, state, "card_ai_"+decision, id, account, run.UpdatedAt)
 		return nil
 	})
 	return run, err
@@ -720,7 +736,22 @@ func hmacCompare(a, b []byte) bool {
 	}
 	return result == 0
 }
-func appendAudit(state *Snapshot, eventType, objectID, account string, at time.Time) {
+func auditIDFromHash(hash string) string {
+	if len(hash) < 24 {
+		return ""
+	}
+	return "audit_" + hash[:24]
+}
+
+func auditHash(entry AuditEvent) string {
+	parts := []string{fmt.Sprint(entry.Sequence), entry.Type, entry.ObjectID, entry.Account, entry.At.UTC().Format(time.RFC3339Nano), entry.PreviousHash}
+	if entry.RequestID != "" || entry.TraceID != "" {
+		parts = append(parts, entry.RequestID, entry.TraceID)
+	}
+	return hashBytes([]byte(strings.Join(parts, "\n")))
+}
+
+func appendAudit(ctx context.Context, state *Snapshot, eventType, objectID, account string, at time.Time) {
 	previous := ""
 	sequence := uint64(1)
 	if len(state.Audit) > 0 {
@@ -728,9 +759,11 @@ func appendAudit(state *Snapshot, eventType, objectID, account string, at time.T
 		previous = last.Hash
 		sequence = last.Sequence + 1
 	}
-	material := strings.Join([]string{fmt.Sprint(sequence), eventType, objectID, account, at.UTC().Format(time.RFC3339Nano), previous}, "\n")
-	entry := AuditEvent{Sequence: sequence, Type: eventType, ObjectID: objectID, Account: account, At: at.UTC(), PreviousHash: previous, Hash: hashBytes([]byte(material))}
+	entry := AuditEvent{RequestID: RequestIDFromContext(ctx), TraceID: TraceIDFromContext(ctx), Sequence: sequence, Type: eventType, ObjectID: objectID, Account: account, At: at.UTC(), PreviousHash: previous}
+	entry.Hash = auditHash(entry)
+	entry.ID = auditIDFromHash(entry.Hash)
 	state.Audit = append(state.Audit, entry)
+	RecordAuditID(ctx, entry.ID)
 	if len(state.Audit) > MaxAuditEntries {
 		state.Audit = append([]AuditEvent(nil), state.Audit[len(state.Audit)-MaxAuditEntries:]...)
 	}
