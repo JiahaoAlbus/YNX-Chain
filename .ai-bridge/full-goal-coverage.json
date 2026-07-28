@@ -5,9 +5,10 @@
   "productSlug": "resource-market",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market",
   "branch": "codex/final-resource-market",
+  "sourceCommit": "c15178c5ca0d7e248b09b5cbd1bd7f2fe10e4195",
   "stage": "INTEGRATE",
   "goalStatus": "active",
-  "updatedAt": "2026-07-27T15:25:35Z",
+  "updatedAt": "2026-07-28T19:31:04Z",
   "entries": [
     {
       "id": "RM-CORE-001",

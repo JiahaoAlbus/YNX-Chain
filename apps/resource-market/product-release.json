@@ -3,6 +3,7 @@
   "productId": "ynx-resource-market-v1",
   "name": "YNX Resource Market",
   "branch": "codex/final-resource-market",
+  "sourceCommit": "c15178c5ca0d7e248b09b5cbd1bd7f2fe10e4195",
   "sourceBaselineCommit": "c7e4445598a74e60aa0ed05b9580790527bf71be",
   "candidateSourceCommit": "941e4422e50229da4fe8a8df216346e1930093b2",
   "workingTreeDirty": false,
@@ -17,6 +18,17 @@
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
+  "states": {
+    "implementedLocal": false,
+    "testedLocal": false,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "componentEvidence": {
     "providerMarketDomainTested": true,
     "authenticatedMarketAPITested": true,
