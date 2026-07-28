@@ -1,5 +1,8 @@
 {
   "schemaVersion": "ynx.browser.integration.v1",
+  "productId": "22",
+  "product": "YNX Browser",
+  "slug": "browser",
   "contractVersion": "0.2.3-candidate",
   "status": "candidate-not-centrally-frozen",
   "owner": {

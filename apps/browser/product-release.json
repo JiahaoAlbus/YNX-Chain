@@ -6,7 +6,7 @@
   "version": "0.2.3-checkpoint",
   "goalStatus": "active",
   "phase": "FREEZE",
-  "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
+  "sourceCommit": "d614a11a0eaf3661be9df70a4776e809e82687f5",
   "asOf": "2026-07-27",
   "releaseStates": {
     "implementedLocal": true,
