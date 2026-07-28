@@ -36,7 +36,7 @@ contract YnxTimelock {
     error InvalidDelay(uint256 delay);
     error TimelockNotReady(bytes32 proposalId, uint256 remainingTime);
     error TimelockAlreadyExecuted(bytes32 proposalId);
-    error TimelockCancelled(bytes32 proposalId);
+    error TimelockAlreadyCancelled(bytes32 proposalId);
     error TimelockNotFound(bytes32 proposalId);
     
     modifier onlyGovernance() {
@@ -86,7 +86,7 @@ contract YnxTimelock {
         TimelockEntry storage entry = timelocks[proposalId];
         
         if (entry.proposalId == bytes32(0)) revert TimelockNotFound(proposalId);
-        if (entry.cancelled) revert TimelockCancelled(proposalId);
+        if (entry.cancelled) revert TimelockAlreadyCancelled(proposalId);
         if (entry.executed) revert TimelockAlreadyExecuted(proposalId);
         
         if (block.timestamp < entry.executeAfter) {

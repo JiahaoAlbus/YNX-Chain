@@ -64,7 +64,7 @@ contract YnxEmergencyPause {
     error NotCouncilMember(address caller);
     error EmergencyNotFound(bytes32 emergencyId);
     error EmergencyAlreadyApproved(bytes32 emergencyId, address approver);
-    error EmergencyExpired(bytes32 emergencyId);
+    error EmergencyWindowExpired(bytes32 emergencyId);
     error InsufficientApprovals(bytes32 emergencyId, uint256 current, uint256 required);
     error InvalidDuration(uint256 duration);
     error TargetNotPaused(EmergencyScope scope, string target);
@@ -165,7 +165,7 @@ contract YnxEmergencyPause {
         if (hasApproved[emergencyId][msg.sender]) {
             revert EmergencyAlreadyApproved(emergencyId, msg.sender);
         }
-        if (block.timestamp >= emergency.expiresAt) revert EmergencyExpired(emergencyId);
+        if (block.timestamp >= emergency.expiresAt) revert EmergencyWindowExpired(emergencyId);
         
         hasApproved[emergencyId][msg.sender] = true;
         emergency.approvers.push(msg.sender);
