@@ -64,3 +64,17 @@ jobs:
       - run: make chain-core-release-check
       - run: make no-placeholder-check
       - run: make secret-scan
+      - name: Upload Chain Core handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: chain-core-handoff-${{ github.sha }}
+          path: |
+            FEATURE_COMPLETION_EVIDENCE.md
+            docs/architecture/STREAMBFT_CANDIDATE.md
+            docs/integration/INTEGRATION_HANDOFF.md
+            docs/integration/WEBSITE_HANDOFF.md
+            release/integration/chain-core-contract.json
+            release/product-release.json
+            release/public-product-metadata.json
+          if-no-files-found: error
+          retention-days: 90
