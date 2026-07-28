@@ -8,7 +8,7 @@ const (
 	NativeAsset     = "YNXT"
 	NativeFeeYNXT   = int64(1)
 	InvoiceVersion  = 1
-	SnapshotVersion = 3
+	SnapshotVersion = 4
 )
 
 type Merchant struct {
@@ -253,6 +253,7 @@ type Snapshot struct {
 	AIRuns          map[string]AIRun                  `json:"aiRuns"`
 	Providers       map[string]ProviderConnection     `json:"providers"`
 	DataRequests    map[string]MerchantDataRequest    `json:"dataRequests"`
+	BulkOperations  map[string]BulkWebhookRetryResult `json:"bulkOperations"`
 	Idempotency     map[string]IdempotencyRecord      `json:"idempotency"`
 	Nonces          map[string]NonceRecord            `json:"nonces"`
 	Audit           []AuditEntry                      `json:"audit"`

@@ -37,22 +37,23 @@ type MerchantDataRightsOverview struct {
 }
 
 type MerchantDataExport struct {
-	SchemaVersion int                         `json:"schemaVersion"`
-	Merchant      Merchant                    `json:"merchant"`
-	Members       []MerchantMember            `json:"members"`
-	Catalog       []CatalogItem               `json:"catalog"`
-	Invoices      []Invoice                   `json:"invoices"`
-	Refunds       []RefundRequest             `json:"refunds"`
-	Disputes      []Dispute                   `json:"disputes"`
-	Deliveries    []WebhookDelivery           `json:"deliveries"`
-	AIRuns        []AIRun                     `json:"aiRuns"`
-	Providers     []ProviderConnection        `json:"providers"`
-	DataRequests  []MerchantDataRequest       `json:"dataRequests"`
-	Audit         []AuditEntry                `json:"audit"`
-	Policy        MerchantDataRetentionPolicy `json:"policy"`
-	Redactions    []string                    `json:"redactions"`
-	GeneratedAt   time.Time                   `json:"generatedAt"`
-	Source        string                      `json:"source"`
+	SchemaVersion  int                         `json:"schemaVersion"`
+	Merchant       Merchant                    `json:"merchant"`
+	Members        []MerchantMember            `json:"members"`
+	Catalog        []CatalogItem               `json:"catalog"`
+	Invoices       []Invoice                   `json:"invoices"`
+	Refunds        []RefundRequest             `json:"refunds"`
+	Disputes       []Dispute                   `json:"disputes"`
+	Deliveries     []WebhookDelivery           `json:"deliveries"`
+	AIRuns         []AIRun                     `json:"aiRuns"`
+	Providers      []ProviderConnection        `json:"providers"`
+	DataRequests   []MerchantDataRequest       `json:"dataRequests"`
+	BulkOperations []BulkWebhookRetryResult    `json:"bulkOperations"`
+	Audit          []AuditEntry                `json:"audit"`
+	Policy         MerchantDataRetentionPolicy `json:"policy"`
+	Redactions     []string                    `json:"redactions"`
+	GeneratedAt    time.Time                   `json:"generatedAt"`
+	Source         string                      `json:"source"`
 }
 
 type MerchantDeletionRequestInput struct {
@@ -108,18 +109,19 @@ func (s *Service) ExportMerchantData(actor MerchantPrincipal) (MerchantDataExpor
 	}
 	now := s.now().UTC()
 	out := MerchantDataExport{
-		SchemaVersion: merchantDataExportSchemaVersion,
-		Members:       []MerchantMember{},
-		Catalog:       []CatalogItem{},
-		Invoices:      []Invoice{},
-		Refunds:       []RefundRequest{},
-		Disputes:      []Dispute{},
-		Deliveries:    []WebhookDelivery{},
-		AIRuns:        []AIRun{},
-		Providers:     []ProviderConnection{},
-		DataRequests:  []MerchantDataRequest{},
-		Audit:         []AuditEntry{},
-		Policy:        merchantDataRetentionPolicy(),
+		SchemaVersion:  merchantDataExportSchemaVersion,
+		Members:        []MerchantMember{},
+		Catalog:        []CatalogItem{},
+		Invoices:       []Invoice{},
+		Refunds:        []RefundRequest{},
+		Disputes:       []Dispute{},
+		Deliveries:     []WebhookDelivery{},
+		AIRuns:         []AIRun{},
+		Providers:      []ProviderConnection{},
+		DataRequests:   []MerchantDataRequest{},
+		BulkOperations: []BulkWebhookRetryResult{},
+		Audit:          []AuditEntry{},
+		Policy:         merchantDataRetentionPolicy(),
 		Redactions: []string{
 			"authorization internals",
 			"runtime session material",
@@ -182,6 +184,11 @@ func (s *Service) ExportMerchantData(actor MerchantPrincipal) (MerchantDataExpor
 		for _, request := range data.DataRequests {
 			if request.MerchantID == actor.Merchant.ID {
 				out.DataRequests = append(out.DataRequests, request)
+			}
+		}
+		for _, operation := range data.BulkOperations {
+			if operation.MerchantID == actor.Merchant.ID {
+				out.BulkOperations = append(out.BulkOperations, operation)
 			}
 		}
 		for _, entry := range data.Audit {
@@ -319,6 +326,11 @@ func merchantDeletionBlockers(data Snapshot, merchantID string) []string {
 			seen["pending-webhook-delivery"] = true
 		}
 	}
+	for _, operation := range data.BulkOperations {
+		if operation.MerchantID == merchantID && operation.Status == "in_progress" {
+			seen["unresolved-bulk-operation"] = true
+		}
+	}
 	out := make([]string, 0, len(seen))
 	for blocker := range seen {
 		out = append(out, blocker)
@@ -337,6 +349,7 @@ func sortMerchantDataExport(out *MerchantDataExport) {
 	sort.Slice(out.AIRuns, func(i, j int) bool { return out.AIRuns[i].ID < out.AIRuns[j].ID })
 	sort.Slice(out.Providers, func(i, j int) bool { return out.Providers[i].ID < out.Providers[j].ID })
 	sort.Slice(out.DataRequests, func(i, j int) bool { return out.DataRequests[i].ID < out.DataRequests[j].ID })
+	sort.Slice(out.BulkOperations, func(i, j int) bool { return out.BulkOperations[i].OperationID < out.BulkOperations[j].OperationID })
 	sort.Slice(out.Audit, func(i, j int) bool {
 		if out.Audit[i].At.Equal(out.Audit[j].At) {
 			return out.Audit[i].ID < out.Audit[j].ID

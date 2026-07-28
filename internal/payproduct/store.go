@@ -81,7 +81,7 @@ func decodeStoreSnapshot(raw, integrityKey []byte) (Snapshot, error) {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: SnapshotVersion, Merchants: map[string]Merchant{}, MerchantMembers: map[string]MerchantMember{}, ConsoleSessions: map[string]MerchantConsoleSession{}, GatewaySeen: map[string]time.Time{}, Catalog: map[string]CatalogItem{}, Invoices: map[string]Invoice{}, Refunds: map[string]RefundRequest{}, Disputes: map[string]Dispute{}, Deliveries: map[string]WebhookDelivery{}, AIRuns: map[string]AIRun{}, Providers: map[string]ProviderConnection{}, DataRequests: map[string]MerchantDataRequest{}, Idempotency: map[string]IdempotencyRecord{}, Nonces: map[string]NonceRecord{}, Audit: []AuditEntry{}}
+	return Snapshot{Version: SnapshotVersion, Merchants: map[string]Merchant{}, MerchantMembers: map[string]MerchantMember{}, ConsoleSessions: map[string]MerchantConsoleSession{}, GatewaySeen: map[string]time.Time{}, Catalog: map[string]CatalogItem{}, Invoices: map[string]Invoice{}, Refunds: map[string]RefundRequest{}, Disputes: map[string]Dispute{}, Deliveries: map[string]WebhookDelivery{}, AIRuns: map[string]AIRun{}, Providers: map[string]ProviderConnection{}, DataRequests: map[string]MerchantDataRequest{}, BulkOperations: map[string]BulkWebhookRetryResult{}, Idempotency: map[string]IdempotencyRecord{}, Nonces: map[string]NonceRecord{}, Audit: []AuditEntry{}}
 }
 func (s *Store) normalize() {
 	e := emptySnapshot()
@@ -121,6 +121,9 @@ func (s *Store) normalize() {
 	}
 	if s.data.DataRequests == nil {
 		s.data.DataRequests = e.DataRequests
+	}
+	if s.data.BulkOperations == nil {
+		s.data.BulkOperations = e.BulkOperations
 	}
 	if s.data.Idempotency == nil {
 		s.data.Idempotency = e.Idempotency

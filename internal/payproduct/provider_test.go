@@ -86,7 +86,7 @@ func TestProviderProbeFailureIsVisibleAndFailsClosed(t *testing.T) {
 }
 
 func TestLegacySnapshotsMigrateAndFutureVersionFails(t *testing.T) {
-	for _, version := range []int{1, 2} {
+	for _, version := range []int{1, 2, 3} {
 		t.Run(fmt.Sprintf("v%d", version), func(t *testing.T) {
 			path := t.TempDir() + "/state.json"
 			store, err := OpenStore(path, bytes32(7))
@@ -96,6 +96,7 @@ func TestLegacySnapshotsMigrateAndFutureVersionFails(t *testing.T) {
 			legacy := emptySnapshot()
 			legacy.Version = version
 			legacy.DataRequests = nil
+			legacy.BulkOperations = nil
 			if version == 1 {
 				legacy.Providers = nil
 			}
@@ -107,7 +108,7 @@ func TestLegacySnapshotsMigrateAndFutureVersionFails(t *testing.T) {
 				t.Fatal(err)
 			}
 			if err := migrated.View(func(snapshot Snapshot) error {
-				if snapshot.Version != SnapshotVersion || snapshot.Providers == nil || snapshot.DataRequests == nil {
+				if snapshot.Version != SnapshotVersion || snapshot.Providers == nil || snapshot.DataRequests == nil || snapshot.BulkOperations == nil {
 					t.Fatalf("legacy snapshot was not migrated: %+v", snapshot)
 				}
 				return nil

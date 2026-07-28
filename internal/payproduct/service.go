@@ -97,16 +97,28 @@ func New(cfg Config) (*Service, error) {
 		now = func() time.Time { return time.Now().UTC() }
 	}
 	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, bootstrap: cfg.BootstrapKey, monitorKey: strings.TrimSpace(cfg.MonitorKey), publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, webhookResolver: resolver, now: now, aiCancels: map[string]context.CancelFunc{}}
-	_ = service.store.Update(func(data *Snapshot) error {
+	if err := service.store.Update(func(data *Snapshot) error {
+		recoveredAt := now().UTC()
 		for id, run := range data.AIRuns {
 			if run.Status == "running" {
 				run.Status = "interrupted"
-				run.UpdatedAt = now()
+				run.UpdatedAt = recoveredAt
 				data.AIRuns[id] = run
 			}
 		}
+		for id, operation := range data.BulkOperations {
+			if operation.Status == "in_progress" {
+				operation.Status = "interrupted"
+				operation.CompletedAt = recoveredAt
+				operation.Source = "restart-interrupted-webhook-retry-v1"
+				data.BulkOperations[id] = operation
+				appendAudit(data, operation.MerchantID, "system-recovery", "webhook.bulk-retry.interrupted", id, "interrupted", "service restarted before the bulk retry reached a terminal state; create a fresh preview before retrying", recoveredAt)
+			}
+		}
 		return nil
-	})
+	}); err != nil {
+		return nil, fmt.Errorf("persist merchant restart recovery: %w", err)
+	}
 	return service, nil
 }
 
