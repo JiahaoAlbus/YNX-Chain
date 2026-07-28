@@ -6,8 +6,8 @@
   "branch": "codex/final-trust-center",
   "phase": "FREEZE",
   "goalStatus": "active",
-  "sourceCommit": "d31811280ba741026c74a836a212f78fe88c172a",
-  "lastUpdated": "2026-07-27",
+  "sourceCommit": "cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3",
+  "lastUpdated": "2026-07-29",
   "entries": [
     {
       "id": "TRUST-OWNERSHIP-001",
@@ -238,7 +238,7 @@
       "category": "data-lifecycle",
       "requirement": "Provide export, deletion, retention and service-exit controls for user Trust data.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "externalBlocked",
       "evidence": ["Trust Gateway JSON/PDF evidence export", "Product-local subject-scoped JSON export with explicit omission policy and cross-subject isolation"],
       "sourceCommit": "77ad082036a866c9730f8ca3694d977fa56cc171",
       "tests": ["TestSubjectExportIsPortableAndCrossSubjectIsolated", "TestCentralSessionScopesAreExactAndRouteEnforced"],
@@ -246,8 +246,8 @@
       "publicProof": null,
       "blockedBy": "Canonical deletion/retention durations and legally mandatory audit-preservation exceptions require legal/privacy owner approval.",
       "owner": "15-trust-center",
-      "nextAction": "Implement audited deletion and retention after the canonical policy and exceptions are frozen.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Obtain the canonical deletion/retention durations and mandatory preservation exceptions from the legal/privacy owner, then implement and audit the destructive lifecycle.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "TRUST-DR-001",
@@ -270,16 +270,16 @@
       "category": "security-supply-chain",
       "requirement": "Provide threat model, SBOM, dependency/license review, secret scan and artifact provenance.",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["Existing repository-wide security gates and historical handoff; no Trust-specific frozen artifact provenance in this checkpoint"],
-      "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356",
-      "tests": [],
-      "artifact": null,
+      "status": "testedLocal",
+      "evidence": ["THREAT_MODEL.md", "scripts/package/trust-center-release.mjs", "evidence/trust-center-release-cb1dcbc/artifact-manifest.json", "evidence/trust-center-release-cb1dcbc/bom.cdx.json", "evidence/trust-center-release-cb1dcbc/THIRD_PARTY_NOTICES.txt", "evidence/trust-center-release-cb1dcbc/provenance.json", "evidence/trust-center-release-cb1dcbc/verification.json"],
+      "sourceCommit": "cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3",
+      "tests": ["GOTOOLCHAIN=go1.25.12 govulncheck ./apps/trust-center ./cmd/ynx-trust-backup ./internal/trustproduct", "GOTOOLCHAIN=go1.25.12 node scripts/package/trust-center-release.mjs --evidence evidence/trust-center-release-cb1dcbc"],
+      "artifact": "evidence/trust-center-release-cb1dcbc/artifact-manifest.json",
       "publicProof": null,
       "blockedBy": null,
       "owner": "15-trust-center",
-      "nextAction": "Generate Trust-specific SBOM/provenance and run secret/dependency scans on the release artifact.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Preserve the pinned clean vulnerability scan and deterministic evidence; require independent attestation, immutable hosting, and production signing before promotion.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "TRUST-TESTNET-001",

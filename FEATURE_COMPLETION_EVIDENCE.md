@@ -34,8 +34,8 @@ Runtime evidence is bound to source commit `d31811280ba741026c74a836a212f78fe88c
 | Central integration | externalBlocked | frozen contract and vectors | 29 Integration registration/execution |
 | Public deployment | externalBlocked | public metadata candidate | Website/DNS/deployment/public proof |
 | Production signing/store | externalBlocked | all booleans remain false | Founder release assets/accounts |
-| Data deletion/retention | inProgress | subject export completed | Frozen legal/privacy policy and audited implementation |
-| Artifact provenance/SBOM | inProgress | no Trust-specific frozen artifact yet | Reproducible bundle, SBOM, provenance and scans |
+| Data deletion/retention | externalBlocked | subject export completed; destructive lifecycle deliberately withheld | Legal/privacy owner must freeze durations and mandatory audit-preservation exceptions |
+| Artifact provenance/SBOM | testedLocal | `cb1dcbc`; deterministic double build, CycloneDX SBOM, notices, SHA-256 manifest, local provenance, focused secret/placeholder scans, `go mod verify`, Go 1.25.12 `govulncheck`, clean install and cold start | Independent attestation, immutable hosting and production signing |
 
 ## Current verification
 
@@ -52,4 +52,8 @@ go test ./internal/trustgateway ./internal/trustproduct ./apps/trust-center ./cm
 
 ## Checkpoint conclusion
 
-The current checkpoint closes exact local scope enforcement, subject-scoped export and a verified local backup/restore rollback drill. It does not complete policy-approved deletion/retention, supply-chain provenance, central integration, mobile installation, shared Testnet or public release. The long-term goal remains active.
+The current checkpoint closes exact local scope enforcement, subject-scoped
+export, verified local backup/restore, and the local supply-chain/reproducible
+artifact gate. It does not complete policy-approved deletion/retention, central
+integration, native mobile installation, shared Testnet, immutable hosting,
+production signing or public release. The long-term goal remains active.

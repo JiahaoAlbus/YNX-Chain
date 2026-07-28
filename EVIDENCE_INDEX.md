@@ -39,6 +39,9 @@
 - `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 - `FEATURE_COMPLETION_EVIDENCE.md`
+- `THREAT_MODEL.md`
+- `evidence/trust-center-release-cb1dcbc/`: source-bound artifact manifest,
+  CycloneDX SBOM, notices/licenses, local provenance, verification and checksums.
 
 ## Verified commands
 
@@ -50,6 +53,16 @@ go test ./internal/trustgateway ./internal/trustproduct ./apps/trust-center ./cm
 ```
 
 All commands above passed at the runtime checkpoint.
+
+The release gate also passed at source
+`cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3` with Go 1.25.12 and pinned
+`govulncheck` 1.6.0. It produced identical binaries across two builds,
+deterministic archive SHA-256
+`f9c09886115a2ea36c83ab2d58e637378675bb73ea84ccb770ae97ae82b28d13`,
+a linked-runtime CycloneDX SBOM and notices, focused secret/placeholder scans,
+module verification, a clean vulnerability-database result, and local
+install/cold-start build-identity evidence. The binaries remain local,
+unsigned/adhoc, unhosted and independently unattested.
 
 ## Failed broader command
 

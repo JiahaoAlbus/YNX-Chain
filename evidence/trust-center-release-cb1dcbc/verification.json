@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "ynx-trust-center-release-verification/v1",
+  "sourceCommit": "cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3",
+  "sourceBranch": "codex/final-trust-center",
+  "release": "ynx-trust-center-cb1dcbc8cba4",
+  "target": {
+    "goos": "darwin",
+    "goarch": "arm64"
+  },
+  "worktreeCleanAtBuildStart": true,
+  "reproducibleBuild": {
+    "result": "pass",
+    "passes": 2,
+    "binaries": [
+      {
+        "name": "ynx-trust-center",
+        "sha256": "343f5569bd678da9bbee38856306505042a427ecc4300a2b5178b6d5f06bcc6a"
+      },
+      {
+        "name": "ynx-trust-backup",
+        "sha256": "1b4a1949a15d786923b7fb1b8ac8dabeb3a6c24dd79090e5d06a325e222de6ef"
+      }
+    ]
+  },
+  "deterministicArchive": {
+    "result": "pass",
+    "sha256": "f9c09886115a2ea36c83ab2d58e637378675bb73ea84ccb770ae97ae82b28d13"
+  },
+  "moduleIntegrity": {
+    "command": "go mod verify",
+    "result": "pass"
+  },
+  "focusedSecretScan": {
+    "result": "pass",
+    "filesScanned": 13,
+    "signatures": 4
+  },
+  "focusedPlaceholderScan": {
+    "result": "pass",
+    "filesScanned": 13,
+    "signatures": 7
+  },
+  "linkedDependencyLicenseReview": {
+    "result": "pass",
+    "linkedThirdPartyModules": 0,
+    "standardLibraryLicense": {
+      "toolchain": "go version go1.25.12 darwin/arm64",
+      "bundledFile": "licenses/Go-LICENSE.txt",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    "missing": []
+  },
+  "vulnerabilityDatabaseScan": {
+    "toolVersion": "Go: go1.25.12\nScanner: govulncheck@v1.6.0\nDB: https://vuln.go.dev\nDB updated: 2026-07-27 20:14:16 +0000 UTC",
+    "command": "govulncheck ./apps/trust-center ./cmd/ynx-trust-backup ./internal/trustproduct",
+    "result": "pass",
+    "exitCode": 0,
+    "outputSha256": "9cfe113963f01bc61818252ed0a24ab1a8b26df008ab54c7d0b85d14dd645806"
+  },
+  "installedLocal": {
+    "result": "pass",
+    "method": "copy release binaries into a clean local install root, execute CLI version, cold-start server and verify /health build identity",
+    "installRoot": "dist/trust-center-release/cb1dcbc8cba4/darwin-arm64/install",
+    "serverHealth": {
+      "service": "ynx-trust-center",
+      "commit": "cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3",
+      "release": "ynx-trust-center-cb1dcbc8cba4",
+      "buildTime": "2026-07-29T03:13:42+08:00"
+    },
+    "signingClass": "adhoc-local"
+  },
+  "limitations": [
+    "This build is local and is not hosted, production-signed, notarized, store-released or independently attested.",
+    "CycloneDX components are derived from modules linked into the two Go binaries; development-only tooling is excluded.",
+    "The focused scanner is not a substitute for an external maintained vulnerability or secret-signature database."
+  ]
+}

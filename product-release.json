@@ -5,13 +5,13 @@
   "productSlug": "trust-center",
   "releaseStatus": "active",
   "phase": "FREEZE",
-  "sourceCommit": "d31811280ba741026c74a836a212f78fe88c172a",
+  "sourceCommit": "cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3",
   "sourceBranch": "codex/final-trust-center",
   "asOf": "2026-07-27",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": false,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -75,6 +75,11 @@
     "internal/trustproduct/backup_test.go",
     "cmd/ynx-trust-backup/main.go",
     "cmd/ynx-trust-backup/main_test.go",
+    "THREAT_MODEL.md",
+    "evidence/trust-center-release-cb1dcbc/artifact-manifest.json",
+    "evidence/trust-center-release-cb1dcbc/bom.cdx.json",
+    "evidence/trust-center-release-cb1dcbc/provenance.json",
+    "evidence/trust-center-release-cb1dcbc/verification.json",
     ".ai-bridge/full-goal-coverage.json"
   ],
   "externalBlockers": [
@@ -99,6 +104,6 @@
       "requirement": "Publish the canonical product route, hosted artifacts and public evidence only after integration and release gates pass."
     }
   ],
-  "nextAutonomousAction": "Generate a reproducible Trust server/CLI bundle with SBOM, provenance, hashes, dependency/license/secret scans and unsigned local install/cold-start evidence.",
+  "nextAutonomousAction": "Preserve the local artifact gate and await the named legal/privacy, central-integration, hosting, signing and deployment authorities without promoting release states.",
   "completionClaim": false
 }
