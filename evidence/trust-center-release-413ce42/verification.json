@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "ynx-trust-center-release-verification/v1",
+  "sourceCommit": "413ce425c1d5bd43d89bb3813209840d8320f1f3",
+  "sourceBranch": "codex/final-trust-center",
+  "release": "ynx-trust-center-413ce425c1d5",
+  "target": {
+    "goos": "darwin",
+    "goarch": "arm64"
+  },
+  "worktreeCleanAtBuildStart": true,
+  "reproducibleBuild": {
+    "result": "pass",
+    "passes": 2,
+    "binaries": [
+      {
+        "name": "ynx-trust-center",
+        "sha256": "9f872d54b08839ac69e2d550ed955fcc7f4e8722291ad1c3a9b9657fcf55115d"
+      },
+      {
+        "name": "ynx-trust-backup",
+        "sha256": "adecf2a78967a695623e7fce93ae938c0d1be3dfed8c86d39ff2d2a43fdd4120"
+      }
+    ]
+  },
+  "deterministicArchive": {
+    "result": "pass",
+    "sha256": "f60e779fb20fcfbedf1ca6c7af705d393d6c5af4d04538adf5522f15c28d142d"
+  },
+  "moduleIntegrity": {
+    "command": "go mod verify",
+    "result": "pass"
+  },
+  "focusedSecretScan": {
+    "result": "pass",
+    "filesScanned": 13,
+    "signatures": 4
+  },
+  "focusedPlaceholderScan": {
+    "result": "pass",
+    "filesScanned": 13,
+    "signatures": 7
+  },
+  "linkedDependencyLicenseReview": {
+    "result": "pass",
+    "linkedThirdPartyModules": 0,
+    "standardLibraryLicense": {
+      "toolchain": "go version go1.25.7 darwin/arm64",
+      "bundledFile": "licenses/Go-LICENSE.txt",
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    "missing": []
+  },
+  "vulnerabilityDatabaseScan": {
+    "result": "notRun",
+    "reason": "govulncheck is not installed in the verified build environment"
+  },
+  "installedLocal": {
+    "result": "pass",
+    "method": "copy release binaries into a clean local install root, execute CLI version, cold-start server and verify /health build identity",
+    "installRoot": "dist/trust-center-release/413ce425c1d5/darwin-arm64/install",
+    "serverHealth": {
+      "service": "ynx-trust-center",
+      "commit": "413ce425c1d5bd43d89bb3813209840d8320f1f3",
+      "release": "ynx-trust-center-413ce425c1d5",
+      "buildTime": "2026-07-28T17:51:04+08:00"
+    },
+    "signingClass": "adhoc-local"
+  },
+  "limitations": [
+    "This build is local and is not hosted, production-signed, notarized, store-released or independently attested.",
+    "CycloneDX components are derived from modules linked into the two Go binaries; development-only tooling is excluded.",
+    "The focused scanner is not a substitute for an external maintained vulnerability or secret-signature database."
+  ]
+}

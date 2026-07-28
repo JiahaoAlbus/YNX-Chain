@@ -1,0 +1,14 @@
+YNX Trust Center Third-Party Notices
+====================================
+
+Source commit: 413ce425c1d5bd43d89bb3813209840d8320f1f3
+Target: darwin/arm64
+
+This inventory is derived from modules linked into the release binaries using `go version -m`.
+Go toolchain: go version go1.25.7 darwin/arm64
+Go standard-library license: licenses/Go-LICENSE.txt
+Go standard-library license SHA-256: 911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad
+
+No non-standard-library Go modules are linked into these two Trust release binaries.
+
+This file is an inventory and preservation record, not legal advice or a representation of external audit.

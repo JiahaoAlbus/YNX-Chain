@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "ynx-local-build-provenance/v1",
+  "predicateType": "urn:ynx:provenance:local-build:v1",
+  "subject": [
+    {
+      "name": "ynx-trust-center",
+      "digest": {
+        "sha256": "9f872d54b08839ac69e2d550ed955fcc7f4e8722291ad1c3a9b9657fcf55115d"
+      },
+      "bytes": 6338626
+    },
+    {
+      "name": "ynx-trust-backup",
+      "digest": {
+        "sha256": "adecf2a78967a695623e7fce93ae938c0d1be3dfed8c86d39ff2d2a43fdd4120"
+      },
+      "bytes": 3702258
+    },
+    {
+      "name": "ynx-trust-center-413ce425c1d5-darwin-arm64.tar.gz",
+      "digest": {
+        "sha256": "f60e779fb20fcfbedf1ca6c7af705d393d6c5af4d04538adf5522f15c28d142d"
+      },
+      "bytes": 4186755
+    }
+  ],
+  "predicate": {
+    "buildType": "ynx-trust-center-reproducible-go-bundle/v1",
+    "builder": {
+      "id": "scripts/package/trust-center-release.mjs"
+    },
+    "invocation": {
+      "sourceCommit": "413ce425c1d5bd43d89bb3813209840d8320f1f3",
+      "sourceBranch": "codex/final-trust-center",
+      "release": "ynx-trust-center-413ce425c1d5",
+      "buildTime": "2026-07-28T17:51:04+08:00",
+      "target": {
+        "goos": "darwin",
+        "goarch": "arm64"
+      },
+      "parameters": {
+        "cgoEnabled": false,
+        "trimpath": true,
+        "buildVCS": false,
+        "linkerBuildID": "empty",
+        "moduleProxy": "off",
+        "sumDatabase": "off"
+      }
+    },
+    "materials": [
+      {
+        "path": "go.mod",
+        "sha256": "922a635f2ceb0f60a7e4c4ad2cf8c0bbe55b7ea609a02c1e6678e8f656e96fb8",
+        "bytes": 4436
+      },
+      {
+        "path": "go.sum",
+        "sha256": "8084743bd7e108d78d54edee6396f89a0f561da044d5eafe4b561e48e5370793",
+        "bytes": 36600
+      },
+      {
+        "path": "Makefile",
+        "sha256": "7b827eb7d65a4a3ce9411944eb417a3fd77f2d604d45f30b5b8f8760ee9880f9",
+        "bytes": 15133
+      },
+      {
+        "path": "scripts/package/trust-center-release.mjs",
+        "sha256": "f8c2a530cb8ec2bbe2a88c30f66efc2b2891252c3b6294e2611e315b31faf9d9",
+        "bytes": 32637
+      },
+      {
+        "path": "apps/trust-center/main.go",
+        "sha256": "902543e4fd2afa3d547d64d5b9702f44fc5a21f186091f8ff7a0b4234e14f97d",
+        "bytes": 1775
+      },
+      {
+        "path": "apps/trust-center/web/app.js",
+        "sha256": "5d0031e2e7bebe7b7c4ef000957bbff1cc6e29ec8158c207bb1ba7c26ca698ad",
+        "bytes": 8484
+      },
+      {
+        "path": "apps/trust-center/web/i18n-extra.js",
+        "sha256": "bc44428e36e0eb10d0e5cbfe09cb729f664f434b6fc8f73ce49e2363baf1f533",
+        "bytes": 22011
+      },
+      {
+        "path": "apps/trust-center/web/i18n.js",
+        "sha256": "59bb5c9880e859cdffd6b0b655f7c82f4a88ee4030b933b119ea48cc66f84aff",
+        "bytes": 18911
+      },
+      {
+        "path": "apps/trust-center/web/index.html",
+        "sha256": "e4e7bb440553cee6138a01a9fe902118869a2788e7d4c4b5c06c770703748195",
+        "bytes": 7361
+      },
+      {
+        "path": "apps/trust-center/web/styles.css",
+        "sha256": "f1164ac6b610c5e835818cc08c7146c46d7437214862c83397ed8484579452f2",
+        "bytes": 4235
+      },
+      {
+        "path": "cmd/ynx-trust-backup/main.go",
+        "sha256": "6af1afe8fa298e032efc21a25d6319cf1bd8b24a781d5ce222df226f850f0e54",
+        "bytes": 4121
+      },
+      {
+        "path": "internal/buildinfo/buildinfo.go",
+        "sha256": "68358db14c043fc2d6c90531c19f86a6b8b2a606ca24c997b5d591808aec961f",
+        "bytes": 538
+      },
+      {
+        "path": "internal/trustproduct/authority.go",
+        "sha256": "f1544031befb3bc0e6a07791df89b1f2a690897d1da767d9991041adaa74adf4",
+        "bytes": 8352
+      },
+      {
+        "path": "internal/trustproduct/backup.go",
+        "sha256": "d942581c874eeb140962e48db379069781873c7792b1bc04926b47fa5ec5cfbd",
+        "bytes": 10529
+      },
+      {
+        "path": "internal/trustproduct/export.go",
+        "sha256": "7aeb99f2b5c4130b8ea6ddf6301610bb718a23332728495238e361fa8b64634a",
+        "bytes": 3352
+      },
+      {
+        "path": "internal/trustproduct/http.go",
+        "sha256": "b2d36bfcf5c7ca782bb64f648cae99fd640e142c2a997e23e31ff18b29a96543",
+        "bytes": 4137
+      },
+      {
+        "path": "internal/trustproduct/service.go",
+        "sha256": "cc14bd6a98ebc2574f51fa064f354caa6fe9f4f95328366a9e0bdccd3b648db5",
+        "bytes": 31490
+      }
+    ],
+    "environment": {
+      "goVersion": "go version go1.25.7 darwin/arm64",
+      "nodeVersion": "v24.5.0",
+      "host": {
+        "goos": "darwin",
+        "goarch": "arm64"
+      }
+    },
+    "verification": {
+      "reproducibleBuild": true,
+      "deterministicArchive": true,
+      "goModVerify": true,
+      "installAndColdStart": true
+    },
+    "truthBoundary": "Local provenance binds bytes to a clean source commit and deterministic commands; it is not external SLSA attestation, notarization or production signing."
+  }
+}

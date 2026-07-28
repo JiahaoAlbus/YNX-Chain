@@ -1,0 +1,57 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:e18ec979-8e12-479f-97e0-390b030bec01",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-28T17:51:04+08:00",
+    "tools": [
+      {
+        "vendor": "YNX",
+        "name": "trust-center-release.mjs",
+        "version": "1"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "pkg:golang/github.com/JiahaoAlbus/YNX-Chain@413ce425c1d5bd43d89bb3813209840d8320f1f3",
+      "group": "github.com/JiahaoAlbus",
+      "name": "YNX-Chain/trust-center",
+      "version": "413ce425c1d5bd43d89bb3813209840d8320f1f3",
+      "purl": "pkg:golang/github.com/JiahaoAlbus/YNX-Chain@413ce425c1d5bd43d89bb3813209840d8320f1f3",
+      "properties": [
+        {
+          "name": "ynx:release",
+          "value": "ynx-trust-center-413ce425c1d5"
+        },
+        {
+          "name": "ynx:target",
+          "value": "darwin/arm64"
+        },
+        {
+          "name": "ynx:binaries",
+          "value": "ynx-trust-center,ynx-trust-backup"
+        },
+        {
+          "name": "ynx:go-toolchain",
+          "value": "go version go1.25.7 darwin/arm64"
+        },
+        {
+          "name": "ynx:go-license-file",
+          "value": "licenses/Go-LICENSE.txt"
+        },
+        {
+          "name": "ynx:go-license-sha256",
+          "value": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+        }
+      ]
+    }
+  },
+  "components": [],
+  "dependencies": [
+    {
+      "ref": "pkg:golang/github.com/JiahaoAlbus/YNX-Chain@413ce425c1d5bd43d89bb3813209840d8320f1f3",
+      "dependsOn": []
+    }
+  ]
+}

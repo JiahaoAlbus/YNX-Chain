@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "ynx-trust-center-artifact-manifest/v1",
+  "product": "YNX Trust Center",
+  "sourceCommit": "413ce425c1d5bd43d89bb3813209840d8320f1f3",
+  "sourceBranch": "codex/final-trust-center",
+  "release": "ynx-trust-center-413ce425c1d5",
+  "buildTime": "2026-07-28T17:51:04+08:00",
+  "target": {
+    "goos": "darwin",
+    "goarch": "arm64",
+    "cgoEnabled": false
+  },
+  "signingClass": "unsigned-local",
+  "binarySigningClass": "adhoc-local",
+  "installedLocal": true,
+  "integratedCentral": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "artifacts": [
+    {
+      "name": "ynx-trust-center",
+      "path": "bin/ynx-trust-center",
+      "sha256": "9f872d54b08839ac69e2d550ed955fcc7f4e8722291ad1c3a9b9657fcf55115d",
+      "bytes": 6338626,
+      "signingClass": "adhoc-local"
+    },
+    {
+      "name": "ynx-trust-backup",
+      "path": "bin/ynx-trust-backup",
+      "sha256": "adecf2a78967a695623e7fce93ae938c0d1be3dfed8c86d39ff2d2a43fdd4120",
+      "bytes": 3702258,
+      "signingClass": "adhoc-local"
+    },
+    {
+      "name": "ynx-trust-center-413ce425c1d5-darwin-arm64.tar.gz",
+      "path": "ynx-trust-center-413ce425c1d5-darwin-arm64.tar.gz",
+      "sha256": "f60e779fb20fcfbedf1ca6c7af705d393d6c5af4d04538adf5522f15c28d142d",
+      "bytes": 4186755,
+      "signingClass": "unsigned-local"
+    }
+  ],
+  "metadata": [
+    {
+      "path": "bundle/bom.cdx.json",
+      "sha256": "8f42dbd3a0bff20163829c07771a99fe9e8691d88745aa57f78fa413e82f4468",
+      "bytes": 1619
+    },
+    {
+      "path": "bundle/THIRD_PARTY_NOTICES.txt",
+      "sha256": "4e234e8eb5e6b240785e5773058a21246cd652d2a1c4e771bd68ffb43b22f9da",
+      "bytes": 644
+    }
+  ],
+  "verificationFile": "verification.json",
+  "provenanceFile": "provenance.json",
+  "artifactAvailability": "local build output only; not committed or hosted"
+}
