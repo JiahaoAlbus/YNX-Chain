@@ -223,7 +223,7 @@
       "category": "data-fabric-integration",
       "requirement": "Canonical economics envelopes and burn-separated Billing Ledger records accepted by Data Fabric with idempotency, restart and tamper rejection.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "externalBlocked",
       "evidence": ["internal/economics/integration_adapter.go", "internal/economics/integration_store.go", "evidence/economics/integration-store-72591ce.json"],
       "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
       "tests": ["make economics-integration-adapter-check", "make economics-integration-store-check"],
@@ -231,7 +231,7 @@
       "publicProof": null,
       "blockedBy": ["26 Data Fabric owner acceptance"],
       "owner": "17 Economics",
-      "nextAction": "Provide the accepted Store and exact negative vectors; do not claim central acceptance.",
+      "nextAction": "Await 26 Data Fabric owner acceptance of the delivered Store and exact negative vectors; do not claim central acceptance.",
       "lastUpdated": "2026-07-27T06:33:12Z"
     },
     {
@@ -255,7 +255,7 @@
       "category": "shared-testnet",
       "requirement": "Direct accepted transaction, block, receipt, Data Fabric record, Explorer proof and Monitor proof for economics transitions on the shared YNX Testnet.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "externalBlocked",
       "evidence": ["internal/economics/shared_testnet_acceptance.go", "internal/economics/shared_testnet_acceptance_test.go", "internal/economics/shared_testnet_acceptance_store.go", "internal/economics/shared_testnet_acceptance_store_test.go", "cmd/ynx-economics-shared-testnet-acceptance", "release/integration/ynxt-economics-shared-testnet-evidence.schema.json", "release/integration/ynxt-economics-contract.json#sharedTestnetAcceptance", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#economics-shared-testnet-acceptance-validator-v1"],
       "sourceCommit": "4a5f4b774d2fc4afc532b246d6f39f4b44577466",
       "tests": ["make economics-shared-testnet-acceptance-check", "go test -race ./internal/economics -count=1", "go test -race ./cmd/ynx-economics-shared-testnet-acceptance -count=1", "make static-check", "make no-placeholder-check", "make secret-scan"],
@@ -367,7 +367,7 @@
       "category": "artifact-installation",
       "requirement": "Installable or runnable CLI/server artifacts with immutable hash, bytes, signing class, provenance and cold-start evidence where applicable.",
       "applicability": "required-for-cli-server",
-      "status": "inProgress",
+      "status": "externalBlocked",
       "evidence": ["scripts/release/build-economics-testnet-cli.mjs", "scripts/verify/economics-testnet-cli-artifact-check.mjs", "release/economics-testnet-cli-artifact.json", "product-release.json#artifactCandidate"],
       "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
       "tests": ["make economics-testnet-cli-artifact-check", "make economics-testnet-cli-artifact-evidence", "make static-check", "make no-placeholder-check"],
@@ -375,7 +375,7 @@
       "publicProof": null,
       "blockedBy": ["hosted immutable artifact service", "production signing authority"],
       "owner": "17 Economics",
-      "nextAction": "Commit the five-binary builder and verification contract, regenerate persisted artifact evidence at that exact commit, then retain hosting and signing as external blockers.",
+      "nextAction": "Upload and production-sign the verified five-binary artifact only after immutable hosting and signing authority are supplied; retain false hosted and production-signed states until then.",
       "lastUpdated": "2026-07-27T15:35:18Z"
     },
     {
@@ -383,7 +383,7 @@
       "category": "git-recovery",
       "requirement": "Commit, push or verified recovery bundle, exact SHA, clean or accurately recorded dirty state and non-destructive recovery instructions.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "verifiedComplete",
       "evidence": ["release/recovery/ynxt-economics-f14d002.manifest.json", "release/recovery/README.md", "origin/codex/final-tokenomics@4a5f4b774d2fc4afc532b246d6f39f4b44577466"],
       "sourceCommit": "4a5f4b774d2fc4afc532b246d6f39f4b44577466",
       "tests": ["git bundle verify release/recovery/ynxt-economics-f14d002.bundle", "git ls-remote --heads origin refs/heads/codex/final-tokenomics"],
@@ -391,7 +391,7 @@
       "publicProof": null,
       "blockedBy": [],
       "owner": "17 Economics",
-      "nextAction": "Commit and push the five-binary artifact and contract synchronization slice, then verify Local SHA equals Remote SHA and a clean worktree.",
+      "nextAction": "Keep Local SHA equal to Remote SHA and preserve a clean worktree after every subsequent evidence update.",
       "lastUpdated": "2026-07-27T15:35:18Z"
     }
   ]
