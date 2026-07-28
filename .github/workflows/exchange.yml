@@ -1,0 +1,66 @@
+name: exchange
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/exchange.yml"
+      - "Makefile"
+      - "chain-metadata/**"
+      - "docs/guides/EXCHANGE_GUIDE.md"
+      - "exchange/**"
+      - "internal/api/**"
+      - "internal/chain/**"
+      - "internal/consensus/**"
+      - "internal/mutationfreeze/**"
+      - "scripts/fixtures/generate-exchange-vectors/**"
+      - "scripts/lib/exchange-candidate.mjs"
+      - "scripts/package/exchange-**"
+      - "scripts/verify/exchange-**"
+      - "sdk/js/**"
+      - "testdata/exchange-signed-transactions.json"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/exchange.yml"
+      - "Makefile"
+      - "chain-metadata/**"
+      - "docs/guides/EXCHANGE_GUIDE.md"
+      - "exchange/**"
+      - "internal/api/**"
+      - "internal/chain/**"
+      - "internal/consensus/**"
+      - "internal/mutationfreeze/**"
+      - "scripts/fixtures/generate-exchange-vectors/**"
+      - "scripts/lib/exchange-candidate.mjs"
+      - "scripts/package/exchange-**"
+      - "scripts/verify/exchange-**"
+      - "sdk/js/**"
+      - "testdata/exchange-signed-transactions.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: make exchange-vector-check
+      - run: make exchange-package-integrity-check
+      - run: make exchange-integration-check
+      - run: make exchange-package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-exchange-${{ github.sha }}
+          path: tmp/packages/exchange/
+          if-no-files-found: error
+          retention-days: 30

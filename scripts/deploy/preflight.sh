@@ -4,6 +4,7 @@ set -euo pipefail
 make env-check
 make no-placeholder-check
 make secret-scan
+make dependency-audit
 make static-check
 make objective-state-check
 make deploy-readiness-gate-check
