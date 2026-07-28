@@ -1,6 +1,7 @@
 import express, { type Request, type Response } from 'express';
 import { readFile } from 'node:fs/promises';
 import { auth, createCsrfToken, createToken, loadUsers, permissionsForRole, requireMutationProtection, requirePermission, verifyUser } from './auth.js';
+import { PublicStatusError, PublicStatusReplayGuard, filePublicStatusSource, parsePublicStatusSource, publicStatusFailure, type PublicStatusSource } from './public-status.js';
 import { IncidentTransitionError, OpsStore } from './store.js';
 import type { IncidentAction, Permission, Principal, Role } from './types.js';
 
@@ -20,7 +21,7 @@ async function probe(id:string,label:string,url:string):Promise<Probe>{
   finally{clearTimeout(timeout);}
 }
 
-export async function createApp(options:{store?:OpsStore;secret?:string;integrityKey?:string;rpcUrl?:string;explorerUrl?:string;indexerUrl?:string;aiUrl?:string;users?:ReturnType<typeof loadUsers>;walletVerifier?:WalletVerifier;walletRoles?:Record<string,Role>;walletOrigin?:string;allowedOrigins?:string[]}={}){
+export async function createApp(options:{store?:OpsStore;secret?:string;integrityKey?:string;rpcUrl?:string;explorerUrl?:string;indexerUrl?:string;aiUrl?:string;users?:ReturnType<typeof loadUsers>;walletVerifier?:WalletVerifier;walletRoles?:Record<string,Role>;walletOrigin?:string;allowedOrigins?:string[];publicStatusSource?:PublicStatusSource|null;publicStatusMaxAgeSeconds?:number;publicStatusIntegrityKey?:string;publicStatusExpectedSource?:string}={}){
   const secret=options.secret??process.env.YNX_MONITOR_SESSION_SECRET;if(!secret||secret.length<24)throw new Error('YNX_MONITOR_SESSION_SECRET must contain at least 24 characters');
   const users=options.users??loadUsers();const integrityKey=options.integrityKey??process.env.YNX_MONITOR_STATE_INTEGRITY_KEY;if(!options.store&&(!integrityKey||integrityKey.length<32))throw new Error('YNX_MONITOR_STATE_INTEGRITY_KEY must contain at least 32 characters');const store=options.store??new OpsStore(process.env.YNX_MONITOR_STATE_PATH||'tmp/monitor/state.json',integrityKey!);await store.load();
   const rpc=(options.rpcUrl??process.env.YNX_MONITOR_RPC_URL??'http://127.0.0.1:6420').replace(/\/$/,'');
@@ -32,11 +33,22 @@ export async function createApp(options:{store?:OpsStore;secret?:string;integrit
   const configuredOrigins=process.env.YNX_MONITOR_ALLOWED_ORIGINS?.split(',').map(value=>value.trim()).filter(Boolean);
   const allowedOrigins=options.allowedOrigins??configuredOrigins??[walletOrigin];
   const walletRoles=options.walletRoles??(process.env.YNX_MONITOR_WALLET_ROLES?JSON.parse(process.env.YNX_MONITOR_WALLET_ROLES):{});
+  const publicStatusPath=process.env.YNX_MONITOR_PUBLIC_STATUS_PATH?.trim();
+  const publicStatusSource=options.publicStatusSource===null?undefined:options.publicStatusSource??(publicStatusPath?filePublicStatusSource(publicStatusPath):undefined);
+  const configuredPublicStatusMaxAge=Number(process.env.YNX_MONITOR_PUBLIC_STATUS_MAX_AGE_SECONDS??300);
+  const publicStatusMaxAgeSeconds=options.publicStatusMaxAgeSeconds??configuredPublicStatusMaxAge;
+  if(!Number.isInteger(publicStatusMaxAgeSeconds)||publicStatusMaxAgeSeconds<30||publicStatusMaxAgeSeconds>86_400)throw new Error('YNX_MONITOR_PUBLIC_STATUS_MAX_AGE_SECONDS must be an integer between 30 and 86400');
+  const publicStatusIntegrityKey=options.publicStatusIntegrityKey??process.env.YNX_MONITOR_PUBLIC_STATUS_INTEGRITY_KEY;
+  if(publicStatusSource&&(!publicStatusIntegrityKey||publicStatusIntegrityKey.length<32))throw new Error('YNX_MONITOR_PUBLIC_STATUS_INTEGRITY_KEY must contain at least 32 characters when public status is configured');
+  const publicStatusExpectedSource=options.publicStatusExpectedSource??process.env.YNX_MONITOR_PUBLIC_STATUS_EXPECTED_SOURCE;
+  if(publicStatusSource&&(!publicStatusExpectedSource||!/^[a-z0-9][a-z0-9._:-]{0,119}$/i.test(publicStatusExpectedSource)))throw new Error('YNX_MONITOR_PUBLIC_STATUS_EXPECTED_SOURCE must identify the approved publisher when public status is configured');
+  const publicStatusReplayGuard=new PublicStatusReplayGuard();
   const walletVerifier=options.walletVerifier??(process.env.YNX_MONITOR_WALLET_AUTH_URL?async(input)=>{const response=await fetch(process.env.YNX_MONITOR_WALLET_AUTH_URL!,{method:'POST',headers:{'content-type':'application/json',...(process.env.YNX_MONITOR_WALLET_AUTH_KEY?{'x-ynx-gateway-key':process.env.YNX_MONITOR_WALLET_AUTH_KEY}:{})},body:JSON.stringify(input)});if(!response.ok)throw new Error('wallet_gateway_rejected');const body=await response.json() as {account?:string};if(!body.account)throw new Error('wallet_gateway_invalid_response');return{account:body.account};}:undefined);
   const startedAt=new Date().toISOString();
   const app=express();app.disable('x-powered-by');app.use(express.json({limit:'128kb'}));
   app.get('/health',(_req,res)=>res.json({status:'available',scope:'monitor-control-plane-process',stateLoaded:true,startedAt,checkedAt:new Date().toISOString()}));
   app.get('/version',(_req,res)=>res.json({schemaVersion:'ynx.monitor.version.v1',service:'ynx-monitor-control-plane',contractVersion:'ynx.monitor.integration.v1',commit:process.env.YNX_MONITOR_SOURCE_COMMIT||null,release:process.env.YNX_MONITOR_RELEASE||null,startedAt}));
+  app.get('/status',async(_req,res)=>{res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');if(!publicStatusSource)return res.status(503).json(publicStatusFailure('public_status_unavailable'));try{const snapshot=publicStatusReplayGuard.accept(parsePublicStatusSource(await publicStatusSource(),{maxAgeSeconds:publicStatusMaxAgeSeconds,integrityKey:publicStatusIntegrityKey!,expectedSource:publicStatusExpectedSource!}));return res.json({...snapshot,servedAt:new Date().toISOString()});}catch(error){const code=error instanceof PublicStatusError?error.code:'public_status_unavailable';return res.status(503).json(publicStatusFailure(code));}});
   const sessionResponse=(principal:Principal)=>{const token=createToken(principal,secret);return{token,csrfToken:createCsrfToken(token,secret),principal,permissions:permissionsForRole(principal.role),expiresIn:3600};};
   app.post('/ops/login',async(req,res)=>{const principal=verifyUser(users,bounded(req.body?.username,80),bounded(req.body?.password,200));if(!principal)return res.status(401).json({error:'invalid_credentials'});await store.audit(principal,'session.login','monitor','authenticated');return res.json(sessionResponse(principal));});
   app.post('/ops/wallet/challenges',async(req,res)=>{if(!walletVerifier)return res.status(503).json({error:'wallet_gateway_not_configured'});const accountHint=bounded(req.body?.accountHint,160)||undefined;const{challenge,nonce}=await store.createWalletChallenge(walletOrigin,accountHint);return res.status(201).json({challengeId:challenge.id,nonce,origin:challenge.origin,network:'ynx_6423-1',chainId:6423,purpose:'Sign in to YNX Monitor',issuedAt:challenge.issuedAt,expiresAt:challenge.expiresAt});});
