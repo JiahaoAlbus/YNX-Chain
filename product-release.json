@@ -3,9 +3,9 @@
   "releaseId": "ynxt-economics-local-testnet-evidence-2026-07-27",
   "product": "YNXT Economics",
   "asOf": "2026-07-27T15:35:18Z",
-  "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+  "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
   "runtimeSourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
-  "artifactBuilderSourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+  "artifactBuilderSourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
   "sharedTestnetAcceptanceSourceCommit": "4a5f4b774d2fc4afc532b246d6f39f4b44577466",
   "sharedTestnetValidatorSourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
   "publicMetadataSourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
@@ -124,13 +124,14 @@
     }
   ],
   "artifactCandidate": {
-    "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+    "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
     "target": "darwin/arm64",
     "binaries": [
       "ynx-economics-runtime",
       "ynx-staking-risk-runtime",
       "ynx-economics-integration-store",
-      "ynx-economics-local-testnet-evidence"
+      "ynx-economics-local-testnet-evidence",
+      "ynx-economics-shared-testnet-acceptance"
     ],
     "builder": "scripts/release/build-economics-testnet-cli.mjs",
     "verification": "scripts/verify/economics-testnet-cli-artifact-check.mjs",
@@ -139,7 +140,7 @@
     "coldStartVerified": true,
     "persistedEvidence": true,
     "evidence": "release/economics-testnet-cli-artifact.json",
-    "packageHash": "sha256:22a3fbdebbda790cf319ee9e725b01872107689afd9ca229655c66dd7e68958b",
+    "packageHash": "sha256:065ca08e0c1064122d95bbca58b4bae3191c62507bab5b3c77ab7b4aa8e4aa60",
     "signingClass": "unsigned_local_testnet_cli",
     "removalVerified": true,
     "productionSigned": false,
@@ -147,10 +148,10 @@
   },
   "installationEvidence": {
     "path": "release/economics-testnet-cli-artifact.json",
-    "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+    "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
     "artifactId": "ynxt-economics-testnet-cli-darwin-arm64",
     "target": "darwin/arm64",
-    "packageHash": "sha256:22a3fbdebbda790cf319ee9e725b01872107689afd9ca229655c66dd7e68958b",
+    "packageHash": "sha256:065ca08e0c1064122d95bbca58b4bae3191c62507bab5b3c77ab7b4aa8e4aa60",
     "signingClass": "unsigned_local_testnet_cli",
     "installedLocal": true,
     "transient": true,

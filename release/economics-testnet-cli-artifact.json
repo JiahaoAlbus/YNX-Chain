@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "evidenceClass": "local-unsigned-testnet-cli-artifact",
-  "generatedAt": "2026-07-27T15:09:31+08:00",
-  "sourceCommit": "175eaec4b04f22bdb5aa2652bb7d69921beb6e06",
+  "generatedAt": "2026-07-27T23:47:21+08:00",
+  "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
   "storeSourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
   "artifact": {
     "id": "ynxt-economics-testnet-cli-darwin-arm64",
@@ -12,36 +12,42 @@
       "goarch": "arm64"
     },
     "toolchain": "go version go1.25.12 darwin/arm64",
-    "packageHash": "sha256:22a3fbdebbda790cf319ee9e725b01872107689afd9ca229655c66dd7e68958b",
+    "packageHash": "sha256:065ca08e0c1064122d95bbca58b4bae3191c62507bab5b3c77ab7b4aa8e4aa60",
     "files": [
       {
         "path": "README.txt",
         "bytes": 613,
-        "sha256": "cea3e5d08e5e4ee65fd176cfdb221a9393708b652e00b0e787dcdd6c7e3be6a9",
-        "mode": "0600"
+        "sha256": "53084b00a6b37c805ab6cd6b8f4f1a22ac7a29b297b15bc503a7c4b611119619",
+        "mode": "0644"
       },
       {
         "path": "bin/ynx-economics-integration-store",
         "bytes": 4390530,
-        "sha256": "60b07fb7b157e122f11bed151f2a8a494f3e11ddb4037cd16b3bcb234cdfc760",
+        "sha256": "037904530ab02f1c9bbef44e10da873207597912dad1f248507a02d8eff32cd3",
         "mode": "0755"
       },
       {
         "path": "bin/ynx-economics-local-testnet-evidence",
         "bytes": 4219362,
-        "sha256": "54db4f4eedf6db3aa078403aa4f2a662d9b064fd0073dab16fa80b0a90dbc7df",
+        "sha256": "53ecef3fe3492a0487165ea98ae983efed32d7cac60a1700e8f1c089dece5dce",
         "mode": "0755"
       },
       {
         "path": "bin/ynx-economics-runtime",
         "bytes": 3936882,
-        "sha256": "aeffabac83ad5e7857fd169179849cb184df18abc2b73d70c4cbeb797bfbad9d",
+        "sha256": "cf71f53bb0863e03e94fe73d57b8e425ee36356fa7b76709e6c6025c0a80cbf4",
+        "mode": "0755"
+      },
+      {
+        "path": "bin/ynx-economics-shared-testnet-acceptance",
+        "bytes": 4027474,
+        "sha256": "9526f6e05b5eb63beda0488cac97932ca4ba2dcb53a0fa2dc7199f7b4b780009",
         "mode": "0755"
       },
       {
         "path": "bin/ynx-staking-risk-runtime",
         "bytes": 3988338,
-        "sha256": "09bc6893f8fa22774554c6a4d49ace5da0160c6cdcda105c24563a99e87ce4ce",
+        "sha256": "081956858379442af56ee32741ccedd950f5a82a906483b6eb234a9f72962ba2",
         "mode": "0755"
       }
     ],
@@ -63,6 +69,7 @@
       "ynx-economics-integration-store",
       "ynx-economics-local-testnet-evidence",
       "ynx-economics-runtime",
+      "ynx-economics-shared-testnet-acceptance",
       "ynx-staking-risk-runtime"
     ],
     "executableMode": "0755",
@@ -74,7 +81,16 @@
     "storeStateHash": "sha256:c4673098638660439cc69a5bbef21239e034c92a18d4b77c46ca9398022b41ed",
     "transactionId": "econ-local-tx-abbeda604c4fae1d357982ad6bb1011e3d134fa437eb0c52e91464d41704aa70",
     "blockHash": "sha256:cb1eebecdd4708636da415bd9a79d67ef6eec519d1b5cb8358d7363ab750ed4a",
-    "evidenceHash": "sha256:ed2ac4a7dc035a3dddaa021e09763526d74cd72cc3a3ea77faee45ce8fa91348"
+    "evidenceHash": "sha256:ed2ac4a7dc035a3dddaa021e09763526d74cd72cc3a3ea77faee45ce8fa91348",
+    "sharedAcceptanceVersion": {
+      "cliSchemaVersion": 1,
+      "storeSchemaVersion": 1,
+      "evidenceSchemaVersion": 1,
+      "contractId": "ynx.economics.integration.v1",
+      "releaseClass": "shared-testnet-acceptance-validator",
+      "publicDeployment": false,
+      "production": false
+    }
   },
   "releaseTruth": {
     "installedLocal": true,
