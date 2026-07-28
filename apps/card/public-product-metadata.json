@@ -7,7 +7,7 @@
   "title": "YNX Card — Controlled Testnet Card Preview",
   "metaDescription": "Explore the YNX Card Testnet Preview with sandbox card lifecycle, user-configurable spending controls, signed provider events and explicit issuer availability.",
   "h1": "A controlled Card preview for YNX Testnet",
-  "sourceCommit": "01415dc4413dd8d4e33756a52682ca0f2a6675ec",
+  "sourceCommit": "a06cae385adb24c216ebff4283984dd3d088bfb3",
   "releaseVersion": "1.0.0-testnet-preview",
   "status": {
     "label": "Testnet Preview",
