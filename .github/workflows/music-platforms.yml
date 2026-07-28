@@ -56,9 +56,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          app_path="$RUNNER_TEMP/YNXMusicDerived/Build/Products/Debug-iphonesimulator/YNXMusic.app"
+          test "$(plutil -extract CFBundleExecutable raw "$app_path/Info.plist")" = "YNXMusic"
+          test -x "$app_path/YNXMusic"
           xcrun simctl boot "$SIMULATOR_UDID"
           xcrun simctl bootstatus "$SIMULATOR_UDID" -b
-          xcrun simctl install "$SIMULATOR_UDID" "$RUNNER_TEMP/YNXMusicDerived/Build/Products/Debug-iphonesimulator/YNXMusic.app"
+          xcrun simctl install "$SIMULATOR_UDID" "$app_path"
           xcrun simctl launch "$SIMULATOR_UDID" com.ynxweb4.music
           sleep 5
           xcrun simctl openurl "$SIMULATOR_UDID" 'ynxmusic://auth/callback?unexpected=tamper'
