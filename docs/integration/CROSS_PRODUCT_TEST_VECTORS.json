@@ -1,7 +1,7 @@
 {
   "schemaVersion": "ynx.monitor.cross-product-vectors.v1",
   "product": "13-monitor",
-  "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
+  "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
   "vectors": [
     {
       "id": "MON-AUTH-REPLAY-001",
@@ -12,6 +12,19 @@
         "First submission creates a short Monitor session bound to the authorized role.",
         "Second submission fails with challenge_invalid_expired_or_replayed.",
         "No broader scope or alternate product session is issued."
+      ],
+      "localEvidence": "apps/monitor/server/auth.test.ts"
+    },
+    {
+      "id": "MON-ORIGIN-CSRF-001",
+      "dependencyOwner": "13-monitor",
+      "precondition": "An authenticated Monitor session has a server-issued csrfToken and the deployment has an exact operator-origin allowlist.",
+      "action": "Submit an authenticated mutation with no Origin, an untrusted Origin, no CSRF token, an invalid CSRF token, and then the exact trusted Origin plus the session-bound token.",
+      "expected": [
+        "Missing Origin fails with origin_required.",
+        "A non-allowlisted Origin fails with origin_not_allowed.",
+        "Missing or invalid session-bound CSRF evidence fails with csrf_token_required or csrf_token_invalid.",
+        "Only the trusted Origin plus the token bound to the presented session reaches role and explicit-approval checks."
       ],
       "localEvidence": "apps/monitor/server/auth.test.ts"
     },
@@ -129,5 +142,5 @@
       "localEvidence": null
     }
   ],
-  "lastUpdated": "2026-07-27"
+  "lastUpdated": "2026-07-28"
 }

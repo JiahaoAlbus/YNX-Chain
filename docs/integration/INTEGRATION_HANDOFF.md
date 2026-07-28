@@ -2,14 +2,14 @@
 
 Status: Candidate, not frozen  
 Owner: `13-monitor`  
-Source commit: `0e5b128fe3022ebc99a5401b107b57b11edc1efb`  
-Last updated: 2026-07-27
+Source commit: `95817f417bb9d08a8450c09fca884bb89d240eba`  
+Last updated: 2026-07-28
 
-## Delivered in this checkpoint
+## Protected local delivery
 
-YNX Monitor now provides explicit least-privilege authorization for `viewer`, transitional `operator`, `incident_commander`, `backup_recovery`, and `security_reviewer`. Sensitive routes check permissions rather than a broad role name. Password and Wallet-backed sessions return the effective permission set so the UI and server consume the same contract.
+The source commit above is pushed to `origin/codex/final-monitor`; local and upstream SHA were verified equal. It provides scoped Monitor authorization for `viewer`, transitional `operator`, `incident_commander`, `backup_recovery`, and `security_reviewer`, plus the versioned incident, backup, restore-evidence, and rollback-proposal control plane.
 
-The current permission split is:
+The permission split remains:
 
 | Permission | Incident Commander | Backup/Recovery | Security Reviewer | Transitional Operator |
 |---|---:|---:|---:|---:|
@@ -23,50 +23,59 @@ The current permission split is:
 | `rollback:propose` | No | Yes | No | Yes |
 | `rollback:verify` | No | No | Yes | Yes |
 
-The Monitor incident runtime now uses the versioned lifecycle:
+The incident lifecycle is:
 
 `open → acknowledged → investigating → mitigated → recovery_verifying → resolved → postmortem_complete`
 
-It supports owner assignment, append-first notes and timeline evidence, ordered transitions, idempotent retry, independent recovery verification, postmortem, restart persistence, tamper rejection, authenticated JSON evidence export, and capability-gated responsive UI. Invalid transitions return an explicit conflict and do not modify state. Recovery cannot be verified without evidence, and Incident Commander cannot self-verify recovery.
+It supports owner assignment, append-first notes and timeline evidence, ordered transitions, idempotent retry, independent recovery verification, postmortem, restart persistence, tamper rejection, authenticated JSON evidence export, and capability-gated responsive UI. Invalid transitions preserve state. Recovery cannot be verified without evidence, and Incident Commander cannot self-verify recovery.
 
-The recovery evidence runtime now records typed backup artifacts with SHA-256, byte size, retention, storage, encryption, RPO/RTO targets, and source evidence. Restore drills record start/end, observed RPO/RTO, integrity/application checks, failure details, and direct evidence. Security Reviewer verification must be performed by a different actor from the Backup/Recovery reporter, and an accepted restore requires a previously verified backup.
+Typed backup records bind SHA-256, byte size, retention, storage, encryption, RPO/RTO targets, and source evidence. Restore drills bind start/end, observed RPO/RTO, integrity/application checks, failure details, and direct evidence. Security Reviewer verification must be performed by an actor different from the reporter, and an accepted restore requires a previously verified backup.
 
-Rollback remains a proposal only. Proposals bind the candidate release, previous release, reason, and dry-run evidence. A different Security Reviewer may mark the proposal `verified-not-executed` or `rejected-not-executed`; Monitor never executes infrastructure commands, moves assets, modifies Wallet authority, changes a Quant mandate, or resumes a paused system.
+Rollback remains a proposal only. Monitor records candidate/previous release identity, reason, dry-run evidence, and independent review, but never executes infrastructure commands, moves assets, changes Wallet authority, modifies a Quant mandate, or resumes a paused system.
+
+## Origin and CSRF boundary
+
+Every authenticated non-`GET`/`HEAD`/`OPTIONS` request under `/ops` now requires:
+
+- an exact Origin from `YNX_MONITOR_ALLOWED_ORIGINS`, falling back to the canonical `YNX_MONITOR_PUBLIC_ORIGIN`;
+- `X-YNX-CSRF-Token` containing the HMAC token issued with and bound to the presented Monitor session.
+
+Missing Origin, an untrusted Origin, a missing CSRF token, and an invalid token fail closed with `origin_required`, `origin_not_allowed`, `csrf_token_required`, and `csrf_token_invalid`. Old browser sessions that lack the new CSRF field are discarded and must authenticate again.
 
 ## Health and version semantics
 
 - `/health` reports only the Monitor control-plane process and state-store readiness. It does not imply that chain, Oracle, Quant, provider, or public services are healthy.
-- `/version` exposes the Monitor service and contract versions. Commit and release remain `null` until a real source commit and release identity are injected.
+- `/version` exposes Monitor service and contract versions. Commit and release remain `null` until a real deployment injects them.
 
-## Verification
+## Verification bound to the source commit
 
-- `cd apps/monitor && npm test` — 17 tests passed, 0 failed, including typed backup/restore/rollback positive and fail-closed vectors.
-- `cd apps/monitor && npm run build` — current TypeScript and production Vite build passed.
-- `cd apps/monitor && npm run test:e2e` — managed desktop/mobile lifecycle suite passed 8/8 after two abandoned managed-harness listeners were identified and safely terminated.
+- `cd apps/monitor && npm test` — 18 passed, 0 failed, including Origin/CSRF negative vectors.
+- `cd apps/monitor && npm run build` — TypeScript and production Vite build passed.
+- `cd apps/monitor && npm run test:e2e` — managed desktop/mobile suite passed 8/8.
+- `cd apps/monitor && npm audit --omit=dev --audit-level=high` — 0 vulnerabilities.
+- Git protection — `codex/final-monitor` pushed; local SHA equals upstream SHA at `95817f417bb9d08a8450c09fca884bb89d240eba`.
+
+The repository-wide `go test ./...` preflight was also run and failed in cross-product consensus, faucet, trust, and missing EVM artifact tests outside `13-monitor` ownership. These failures are recorded in `product-release.json`; Monitor does not claim the full monorepo preflight passed and did not modify those owners' code.
 
 ## Consumer contract
 
-The candidate machine-readable contract is `release/integration/monitor-contract.json`. Cross-product vectors are in `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`.
+The machine-readable candidate is `release/integration/monitor-contract.json`; cross-product vectors are in `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`.
 
-Consumers must not infer health from HTTP 200 alone. Every telemetry adapter must preserve owner-provided `source`, `version`, `asOf`, stale/failure state, and evidence references. Monitor may present and alert on owner facts; it must not redefine chain finality, Oracle prices, Quant PnL, solvency, or asset state.
+Consumers must not infer health from HTTP 200 alone. Every telemetry adapter must preserve owner-provided `source`, `version`, `asOf`, stale/failure state, and evidence references. Monitor may present and alert on owner facts; it must not redefine chain finality, Oracle prices, Quant PnL, solvency, asset state, or release execution.
 
 ## Required owner inputs
 
-- `02-wallet-auth`: accepted Monitor product registration, challenge verification, role assignment, expiry, and revoke semantics.
+- `02-wallet-auth`: accepted Monitor product registration, challenge verification, device/product/scope binding, expiry, and revoke semantics.
 - `01-chain-core`: finality, validator, peer, state-sync, snapshot, lane, and execution-conflict telemetry.
 - `07-exchange`, `27-dex`, `19-oracle-market-data`: sequence, market, liquidity, liquidation, and source-quality telemetry.
 - `08-quant-lab`: strategy, mandate, risk, kill-switch, cost, PnL, fee, and reconciliation telemetry.
 - `17-tokenomics`, `21-bridge`, `16-resource-market`, `26-data-fabric`: capital, reserve, exposure, provider, service, revenue, burn, and canonical-event telemetry.
-- `28-website`: public `/monitor` entry and redacted public-status presentation.
+- `28-website`: public `/monitor` entry and consumption of the redacted public-status projection.
 - `29-integration`: unique contract freeze and shared Testnet endpoints.
-- `30-security-sre-release`: release identity, artifact, backup, restore, rollback, and security evidence.
+- `30-security-sre-release`: release identity, artifacts, backup, restore, rollback, security evidence, and ownership of the recorded repository preflight failures.
 
-## Current blockers
+## Current blockers and next action
 
-This checkpoint is local and tested across unit/API, production build, and managed desktop/mobile browser E2E. It is not yet bound to protected source commits, accepted by central integration, deployed to shared Testnet, hosted publicly, or represented as Production. The broad `operator` role remains solely as a migration bridge and must not be assigned to new principals after scoped roles are available.
+The current phase remains `PROTECT`: Monitor-local tests, build, E2E, dependency audit, push, and SHA equality pass, but the repository-wide phase-transition preflight is not green and `29-integration` has not frozen the contract. No Testnet, hosted private operator, public status, public deployment, production signing, artifact, install, or cold-start claim is made.
 
-The typed recovery runtime records and verifies evidence only. No local fixture proves that a real backup exists, a real restore succeeded, or a real rollback was executed. Those claims require accepted Security/SRE release manifests and an isolated restore or rollback drill.
-
-## Exact next engineering action
-
-Create an implementation checkpoint, bind this handoff and machine-readable contract to its exact source commit, push `codex/final-monitor` with upstream, and verify local/remote SHA equality. After protection, continue with origin/CSRF enforcement and the separate redacted public-status contract while central recovery inputs remain unavailable.
+The next autonomous slice is the fail-closed redacted public-status projection and private-data leakage test vectors, followed by Monitor-specific threat-model and supply-chain evidence. The transitional `operator` role remains migration-only and must not be assigned to new principals once scoped-role migration is accepted.

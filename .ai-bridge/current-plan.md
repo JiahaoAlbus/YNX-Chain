@@ -1,48 +1,29 @@
-# YNX Monitor Active Plan
+# YNX Monitor Current Plan
 
-Phase: PROTECT → FREEZE  
-Goal state: Active  
-Last updated: 2026-07-27
+Current phase: `PROTECT`  
+Goal state: `ACTIVE`  
+Implementation source: `95817f417bb9d08a8450c09fca884bb89d240eba`
 
-## Current protected working-tree slice
+## Protected checkpoint
 
-### Least-privilege RBAC and incident lifecycle
+- Exact worktree and branch verified.
+- No concurrent writer detected.
+- Implementation source pushed to `origin/codex/final-monitor`.
+- Local and upstream SHA verified equal.
+- Monitor tests: 18/18 passed.
+- Production TypeScript/Vite build passed.
+- Managed desktop/mobile E2E: 8/8 passed.
+- Production dependency audit: 0 vulnerabilities.
+- Authenticated mutations now require exact Origin allowlisting and a session-bound CSRF token.
 
-- Viewer, transitional Operator, Incident Commander, Backup/Recovery, and Security Reviewer.
-- Permission-based server and UI gates with explicit capabilities in password and Wallet-backed sessions.
-- Versioned incident lifecycle: `open → acknowledged → investigating → mitigated → recovery_verifying → resolved → postmortem_complete`.
-- Ordered fail-closed transitions, owner assignment, append-first timeline, independent recovery verification, postmortem, restart persistence, HMAC tamper rejection, and authenticated evidence export.
+## Phase gate
 
-### Typed backup, restore, and rollback evidence
+The repository-wide `go test ./...` preflight was run and is not green. Failures are in cross-product consensus signing-key permissions, faucet/trust signer permissions, and missing compiled EVM test artifacts. They are outside `13-monitor` ownership and are recorded without cross-worktree modification. Formal transition to `FREEZE` remains blocked, even though the Monitor source and candidate contract are protected.
 
-- Backup artifacts record SHA-256, byte size, retention, storage, encryption, RPO/RTO targets, and source evidence.
-- Restore drills record timing, observed RPO/RTO, integrity/application checks, failure details, and evidence.
-- Security Reviewer verification must be independent from the registering or reporting actor.
-- Accepted restore evidence requires a previously verified backup.
-- Rollback proposals bind candidate and previous releases plus dry-run evidence.
-- Monitor records `approved-not-executed`, `verified-not-executed`, or `rejected-not-executed`; it never executes recovery or infrastructure actions.
-- The legacy evidence-only backup route remains for old clients and is never treated as a verified backup artifact.
+## Evidence binding
 
-### Managed browser harness
+Contract, release, coverage, integration handoff, cross-product vectors, dependency acceptance, evidence index, feature evidence, decisions, questions, and execution log are bound to the protected implementation source. They preserve truthful separation between Monitor-local verification and the failed monorepo preflight.
 
-- Dedicated frontend/backend ports, isolated per-run state, and direct Playwright process ownership.
-- Two abandoned managed-harness listeners were identified and safely terminated.
-- Current desktop/mobile lifecycle suite passes without server reuse.
+## Exact next engineering action
 
-## Verification bound to the current working tree
-
-- `cd apps/monitor && npm test` — 17/17 passed.
-- `cd apps/monitor && npm run build` — passed.
-- `cd apps/monitor && npm run test:e2e` — 8/8 passed.
-- Contract and evidence JSON parsing — pending final verification.
-- Final `show_changes` review — pending.
-
-## Exact next engineering actions
-
-1. Validate all machine-readable release, coverage, and integration files.
-2. Rerun tests, production build, managed E2E, and applicable smoke/security checks against the final diff.
-3. Review the complete diff with `show_changes` and fix any release-truth or compatibility defect.
-4. Commit implementation and tests as the source checkpoint.
-5. Bind evidence files to that exact source SHA in a separate evidence commit.
-6. Push `codex/final-monitor`, establish upstream without force, and verify local/remote SHA equality.
-7. Continue the highest-priority autonomous security/public-status slice; do not claim central integration, Testnet, public deployment, or real recovery execution.
+Implement a separate fail-closed public-status projection that exposes only approved public service state and public incident messages. Add leakage tests proving that usernames, internal evidence references, topology, stacks, paths, audit details, and private recovery records cannot enter the public response. Then continue the Monitor threat model and supply-chain evidence while central owner contracts remain unavailable.

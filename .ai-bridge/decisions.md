@@ -59,3 +59,15 @@ Rationale: Monitor has no infrastructure credentials or asset authority. Executi
 Decision: `/ops/backup-records` remains available for existing clients, but its records are untyped compatibility evidence and cannot satisfy verified backup or restore gates. New consumers must use `/ops/backups` and the versioned verification routes.
 
 Rationale: Preserving old clients must not promote incomplete data into release-grade recovery truth.
+
+## 2026-07-28 — Exact Origin and session-bound CSRF
+
+Decision: Every authenticated Monitor mutation requires an exact allowlisted browser Origin and `X-YNX-CSRF-Token` containing an HMAC value bound to the presented short Monitor session. Missing, malformed, untrusted, or mismatched evidence fails closed before permission and explicit-approval processing.
+
+Rationale: Bearer possession alone must not make a browser mutation sufficient. Binding the anti-CSRF value to the current session prevents reuse with another session, while exact Origin allowlisting separates the private operator workspace from arbitrary browser origins. Old stored sessions without the new field are invalidated rather than silently weakened.
+
+## 2026-07-28 — Phase transition requires the full preflight
+
+Decision: The implementation source may be committed, pushed, and recorded as Monitor-local tested while the product phase remains `PROTECT` when the required repository-wide preflight is non-green. Failures owned by consensus, faucet, trust, or artifact-generation threads are preserved as explicit blockers and are not repaired by modifying their code from the Monitor worktree.
+
+Rationale: A protected checkpoint and a passing product-local suite are evidence, not permission to skip the ordered phase gate or cross-thread ownership boundary. This preserves both release truth and worktree isolation.

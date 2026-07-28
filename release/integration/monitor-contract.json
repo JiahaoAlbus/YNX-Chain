@@ -3,7 +3,7 @@
   "contractStatus": "candidate",
   "owner": "13-monitor",
   "product": "YNX Monitor",
-  "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
+  "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -71,6 +71,13 @@
     "migration": {
       "operator": "Transitional broad compatibility role. New assignments should use scoped roles.",
       "removalGate": "Remove only after deployed role assignments and rollback evidence confirm no operator-only dependency."
+    },
+    "mutationProtection": {
+      "allowedOriginsConfig": "YNX_MONITOR_ALLOWED_ORIGINS",
+      "defaultOriginConfig": "YNX_MONITOR_PUBLIC_ORIGIN",
+      "sessionResponseField": "csrfToken",
+      "mutationHeader": "X-YNX-CSRF-Token",
+      "semantics": "Every authenticated non-GET/HEAD/OPTIONS /ops request requires an exact allowlisted Origin and an HMAC token bound to the presented Monitor session. Missing, untrusted, or invalid values fail closed."
     }
   },
   "health": {
@@ -96,43 +103,208 @@
       "postmortem_complete"
     ],
     "actions": {
-      "acknowledge": { "from": ["open"], "to": "acknowledged", "permission": "incident:manage" },
-      "investigate": { "from": ["acknowledged"], "to": "investigating", "permission": "incident:manage" },
-      "mitigate": { "from": ["investigating"], "to": "mitigated", "permission": "incident:manage" },
-      "begin_recovery": { "from": ["mitigated"], "to": "recovery_verifying", "permission": "incident:manage" },
-      "verify_recovery": { "from": ["recovery_verifying"], "to": "resolved", "permission": "incident:recovery_verify", "evidenceRequired": true },
-      "complete_postmortem": { "from": ["resolved"], "to": "postmortem_complete", "permission": "incident:postmortem", "evidenceRequired": true },
-      "reopen": { "from": ["resolved", "postmortem_complete"], "to": "investigating", "permission": "incident:manage" }
+      "acknowledge": {
+        "from": [
+          "open"
+        ],
+        "to": "acknowledged",
+        "permission": "incident:manage"
+      },
+      "investigate": {
+        "from": [
+          "acknowledged"
+        ],
+        "to": "investigating",
+        "permission": "incident:manage"
+      },
+      "mitigate": {
+        "from": [
+          "investigating"
+        ],
+        "to": "mitigated",
+        "permission": "incident:manage"
+      },
+      "begin_recovery": {
+        "from": [
+          "mitigated"
+        ],
+        "to": "recovery_verifying",
+        "permission": "incident:manage"
+      },
+      "verify_recovery": {
+        "from": [
+          "recovery_verifying"
+        ],
+        "to": "resolved",
+        "permission": "incident:recovery_verify",
+        "evidenceRequired": true
+      },
+      "complete_postmortem": {
+        "from": [
+          "resolved"
+        ],
+        "to": "postmortem_complete",
+        "permission": "incident:postmortem",
+        "evidenceRequired": true
+      },
+      "reopen": {
+        "from": [
+          "resolved",
+          "postmortem_complete"
+        ],
+        "to": "investigating",
+        "permission": "incident:manage"
+      }
     },
     "idempotency": "Repeating an action after its target state returns changed=false without duplicating audit or timeline entries.",
     "persistence": "Versioned incident state is stored inside the HMAC-protected Monitor state envelope.",
     "exportSchema": "ynx.monitor.incident-export.v1"
   },
   "api": [
-    { "method": "GET", "path": "/health", "auth": "none", "result": "truthful process and state readiness" },
-    { "method": "GET", "path": "/version", "auth": "none", "result": "service, contract, commit, release, and start identity" },
-    { "method": "POST", "path": "/ops/login", "auth": "none", "result": "short authenticated session plus explicit permissions" },
-    { "method": "POST", "path": "/ops/wallet/challenges", "auth": "none", "result": "one-time YNX Monitor wallet challenge" },
-    { "method": "POST", "path": "/ops/wallet/sessions", "auth": "central Wallet/Auth verification", "result": "short product-scoped session plus explicit permissions" },
-    { "method": "GET", "path": "/ops/me", "auth": "session", "result": "principal and permissions" },
-    { "method": "GET", "path": "/ops/overview", "auth": "session", "result": "bounded current probes, alerts, incidents, backup records, and rollback proposals" },
-    { "method": "GET", "path": "/ops/audit", "auth": "session", "result": "append-first bounded audit records" },
-    { "method": "GET", "path": "/ops/logs", "auth": "session", "result": "allowlisted bounded redacted log tail" },
-    { "method": "POST", "path": "/ops/incidents", "auth": "incident:create", "result": "versioned incident with source evidence and opening timeline entry" },
-    { "method": "POST", "path": "/ops/incidents/{id}/assign", "auth": "incident:manage", "result": "owner assignment and timeline/audit evidence" },
-    { "method": "POST", "path": "/ops/incidents/{id}/notes", "auth": "incident:manage", "result": "append-first incident note and evidence" },
-    { "method": "POST", "path": "/ops/incidents/{id}/actions/{action}", "auth": "action-specific permission", "result": "ordered fail-closed transition or explicit rejection" },
-    { "method": "POST", "path": "/ops/incidents/{id}/postmortem", "auth": "incident:postmortem", "result": "postmortem only after independently verified recovery" },
-    { "method": "GET", "path": "/ops/incidents/{id}/export", "auth": "session", "result": "no-store authenticated JSON evidence export" },
-    { "method": "POST", "path": "/ops/alerts/{id}/acknowledge", "auth": "alert:acknowledge plus exact approval phrase", "result": "acknowledged alert and audit event" },
-    { "method": "POST", "path": "/ops/backups", "auth": "backup:record", "result": "typed artifact identity, SHA-256, bytes, retention, storage, encryption, RPO/RTO, and evidence; no backup execution claim" },
-    { "method": "POST", "path": "/ops/backups/{id}/verify", "auth": "backup:verify and independent actor", "result": "final digest/accessibility verification with evidence" },
-    { "method": "POST", "path": "/ops/restore-drills", "auth": "backup:record", "result": "reported restore result, observed RPO/RTO, integrity/application checks, and evidence" },
-    { "method": "POST", "path": "/ops/restore-drills/{id}/verify", "auth": "backup:verify and independent actor", "result": "accepted or rejected restore evidence; accepted results require a verified backup" },
-    { "method": "POST", "path": "/ops/backup-records", "auth": "backup:record", "result": "legacy evidence-only compatibility record; no backup execution claim" },
-    { "method": "POST", "path": "/ops/rollback-proposals", "auth": "rollback:propose plus exact approval phrase", "result": "candidate/previous release and dry-run evidence recorded as approved-not-executed" },
-    { "method": "POST", "path": "/ops/rollback-proposals/{id}/verify", "auth": "rollback:verify and independent actor", "result": "verified-not-executed or rejected-not-executed evidence" },
-    { "method": "POST", "path": "/ops/incidents/{id}/ai", "auth": "session", "result": "advisory-only evidence summary or truthful provider failure" }
+    {
+      "method": "GET",
+      "path": "/health",
+      "auth": "none",
+      "result": "truthful process and state readiness"
+    },
+    {
+      "method": "GET",
+      "path": "/version",
+      "auth": "none",
+      "result": "service, contract, commit, release, and start identity"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/login",
+      "auth": "none",
+      "result": "short authenticated session, explicit permissions, and session-bound CSRF token"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/wallet/challenges",
+      "auth": "none",
+      "result": "one-time YNX Monitor wallet challenge"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/wallet/sessions",
+      "auth": "central Wallet/Auth verification",
+      "result": "short authenticated session, explicit permissions, and session-bound CSRF token"
+    },
+    {
+      "method": "GET",
+      "path": "/ops/me",
+      "auth": "session",
+      "result": "principal and permissions"
+    },
+    {
+      "method": "GET",
+      "path": "/ops/overview",
+      "auth": "session",
+      "result": "bounded current probes, alerts, incidents, backup records, and rollback proposals"
+    },
+    {
+      "method": "GET",
+      "path": "/ops/audit",
+      "auth": "session",
+      "result": "append-first bounded audit records"
+    },
+    {
+      "method": "GET",
+      "path": "/ops/logs",
+      "auth": "session",
+      "result": "allowlisted bounded redacted log tail"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/incidents",
+      "auth": "incident:create",
+      "result": "versioned incident with source evidence and opening timeline entry"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/incidents/{id}/assign",
+      "auth": "incident:manage",
+      "result": "owner assignment and timeline/audit evidence"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/incidents/{id}/notes",
+      "auth": "incident:manage",
+      "result": "append-first incident note and evidence"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/incidents/{id}/actions/{action}",
+      "auth": "action-specific permission",
+      "result": "ordered fail-closed transition or explicit rejection"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/incidents/{id}/postmortem",
+      "auth": "incident:postmortem",
+      "result": "postmortem only after independently verified recovery"
+    },
+    {
+      "method": "GET",
+      "path": "/ops/incidents/{id}/export",
+      "auth": "session",
+      "result": "no-store authenticated JSON evidence export"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/alerts/{id}/acknowledge",
+      "auth": "alert:acknowledge plus exact approval phrase",
+      "result": "acknowledged alert and audit event"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/backups",
+      "auth": "backup:record",
+      "result": "typed artifact identity, SHA-256, bytes, retention, storage, encryption, RPO/RTO, and evidence; no backup execution claim"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/backups/{id}/verify",
+      "auth": "backup:verify and independent actor",
+      "result": "final digest/accessibility verification with evidence"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/restore-drills",
+      "auth": "backup:record",
+      "result": "reported restore result, observed RPO/RTO, integrity/application checks, and evidence"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/restore-drills/{id}/verify",
+      "auth": "backup:verify and independent actor",
+      "result": "accepted or rejected restore evidence; accepted results require a verified backup"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/backup-records",
+      "auth": "backup:record",
+      "result": "legacy evidence-only compatibility record; no backup execution claim"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/rollback-proposals",
+      "auth": "rollback:propose plus exact approval phrase",
+      "result": "candidate/previous release and dry-run evidence recorded as approved-not-executed"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/rollback-proposals/{id}/verify",
+      "auth": "rollback:verify and independent actor",
+      "result": "verified-not-executed or rejected-not-executed evidence"
+    },
+    {
+      "method": "POST",
+      "path": "/ops/incidents/{id}/ai",
+      "auth": "session",
+      "result": "advisory-only evidence summary or truthful provider failure"
+    }
   ],
   "canonicalAuditActions": [
     "session.login",
@@ -198,7 +370,11 @@
     "ai_gateway_not_configured",
     "log_source_not_allowed",
     "log_source_unavailable",
-    "not_found"
+    "not_found",
+    "origin_required",
+    "origin_not_allowed",
+    "csrf_token_required",
+    "csrf_token_invalid"
   ],
   "state": {
     "envelopeVersion": 2,
@@ -223,15 +399,39 @@
     "storeReleased": false
   },
   "dependencies": [
-    { "owner": "02-wallet-auth", "requiredContract": "wallet challenge verification and role-bound product session" },
-    { "owner": "01-chain-core", "requiredContract": "node, validator, peer, finality, state-sync, and execution telemetry" },
-    { "owner": "08-quant-lab", "requiredContract": "read-only strategy, risk, mandate, cost, PnL, and reconciliation telemetry" },
-    { "owner": "17-tokenomics", "requiredContract": "read-only solvency, treasury, staking, safety, reserve, revenue, and burn telemetry" },
-    { "owner": "19-oracle-market-data", "requiredContract": "source/version/asOf/confidence/stale market-data facts" },
-    { "owner": "26-data-fabric", "requiredContract": "canonical event and billing telemetry" },
-    { "owner": "29-integration", "requiredContract": "contract freeze, shared testnet endpoints, and public proof acceptance" },
-    { "owner": "30-security-sre-release", "requiredContract": "release, artifact, backup, rollback, and security evidence" }
+    {
+      "owner": "02-wallet-auth",
+      "requiredContract": "wallet challenge verification and role-bound product session"
+    },
+    {
+      "owner": "01-chain-core",
+      "requiredContract": "node, validator, peer, finality, state-sync, and execution telemetry"
+    },
+    {
+      "owner": "08-quant-lab",
+      "requiredContract": "read-only strategy, risk, mandate, cost, PnL, and reconciliation telemetry"
+    },
+    {
+      "owner": "17-tokenomics",
+      "requiredContract": "read-only solvency, treasury, staking, safety, reserve, revenue, and burn telemetry"
+    },
+    {
+      "owner": "19-oracle-market-data",
+      "requiredContract": "source/version/asOf/confidence/stale market-data facts"
+    },
+    {
+      "owner": "26-data-fabric",
+      "requiredContract": "canonical event and billing telemetry"
+    },
+    {
+      "owner": "29-integration",
+      "requiredContract": "contract freeze, shared testnet endpoints, and public proof acceptance"
+    },
+    {
+      "owner": "30-security-sre-release",
+      "requiredContract": "release, artifact, backup, rollback, and security evidence"
+    }
   ],
   "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-  "lastUpdated": "2026-07-27"
+  "lastUpdated": "2026-07-28"
 }

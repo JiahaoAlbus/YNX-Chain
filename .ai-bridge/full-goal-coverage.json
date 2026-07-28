@@ -10,40 +10,56 @@
   },
   "currentPhase": "PROTECT",
   "goalState": "active",
-  "generatedAt": "2026-07-27",
-  "workingTreeState": "dirty-tested-checkpoint",
+  "generatedAt": "2026-07-28",
+  "workingTreeState": "evidence-bound-checkpoint-ready",
   "requirements": [
     {
       "id": "MON-RECOVER-001",
       "category": "recovery",
       "requirement": "Recover the latest Monitor work without destructive Git operations and verify the exact product worktree and branch.",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["CodexPro exact workspace and branch match", "clean baseline observed before this checkpoint"],
-      "sourceCommit": null,
-      "tests": [],
+      "status": "verifiedComplete",
+      "evidence": [
+        "Exact worktree and codex/final-monitor branch verified",
+        "Clean baseline and no concurrent writer verified",
+        "Local/remote branches, 20 commits, reflog, tags, GitHub runs/releases/artifacts, processes, and .ai-bridge inventory captured"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "git status clean at takeover",
+        "local/upstream SHA equality verified"
+      ],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["Remote SHA, reflog, tags, and CI inventory are not yet captured in repository evidence"],
+      "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Capture bounded Git and remote recovery evidence without modifying other worktrees.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Maintain non-destructive recovery evidence on each subsequent checkpoint.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-PROTECT-001",
       "category": "recovery",
       "requirement": "Protect every verified slice with review, commit, push, and local/remote SHA equality.",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["RBAC, incident lifecycle, typed recovery evidence, production build, and managed desktop/mobile E2E passed against the implementation checkpoint", "implementation commit created; evidence commit and remote equality pending"],
-      "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
-      "tests": ["cd apps/monitor && npm test — 17/17 passed", "cd apps/monitor && npm run build — passed", "cd apps/monitor && npm run test:e2e — 8/8 passed"],
+      "status": "verifiedComplete",
+      "evidence": [
+        "show_changes reviewed",
+        "implementation commit pushed to origin/codex/final-monitor",
+        "Local SHA equals upstream SHA at 95817f417bb9d08a8450c09fca884bb89d240eba"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "cd apps/monitor && npm test — 18/18 passed",
+        "cd apps/monitor && npm run build — passed",
+        "cd apps/monitor && npm run test:e2e — 8/8 passed",
+        "cd apps/monitor && npm audit --omit=dev --audit-level=high — 0 vulnerabilities"
+      ],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["Implementation checkpoint, evidence-binding commit, upstream creation, push, and remote SHA equality remain"],
+      "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Create the implementation checkpoint, bind evidence to its source SHA, push the final branch, and verify local/remote equality.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Repeat review, commit, push, and SHA equality for every additional slice.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-FREEZE-001",
@@ -51,15 +67,24 @@
       "requirement": "Freeze the unique Monitor auth, role, permission, event, error, health, and migration contract.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["release/integration/monitor-contract.json candidate bound to implementation source"],
-      "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
-      "tests": ["Monitor RBAC unit tests"],
+      "evidence": [
+        "release/integration/monitor-contract.json candidate bound to implementation source",
+        "Origin/CSRF mutation contract and errors added"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "Monitor RBAC and mutation-protection tests",
+        "Machine-readable contract and cross-product vectors parsed successfully"
+      ],
       "artifact": "release/integration/monitor-contract.json",
       "publicProof": null,
-      "blockedBy": ["29-integration acceptance and source commit binding"],
+      "blockedBy": [
+        "29-integration acceptance",
+        "Repository-wide preflight failures outside 13-monitor ownership prevent formal phase transition"
+      ],
       "owner": "13-monitor",
-      "nextAction": "Bind the candidate contract to a source commit and submit it to 29-integration for freeze.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Submit the source-bound candidate to 29-integration after central preflight owners close the recorded failures.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-RBAC-001",
@@ -67,15 +92,24 @@
       "requirement": "Provide Viewer, Operator, Incident Commander, Backup/Recovery, and Security Reviewer roles with least-privilege permissions.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["apps/monitor/server/auth.ts", "apps/monitor/server/rbac.test.ts", "apps/monitor/src/api.ts", "apps/monitor/src/App.tsx"],
-      "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
-      "tests": ["17/17 Monitor tests passed on 2026-07-27", "production TypeScript/Vite build passed", "managed desktop/mobile E2E passed 8/8"],
+      "evidence": [
+        "apps/monitor/server/auth.ts",
+        "apps/monitor/server/rbac.test.ts",
+        "apps/monitor/src/api.ts",
+        "apps/monitor/src/App.tsx"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "18/18 Monitor tests passed on 2026-07-28",
+        "production TypeScript/Vite build passed",
+        "managed desktop/mobile E2E passed 8/8"
+      ],
       "artifact": "apps/monitor",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Bind this tested tree to a checkpoint commit and remove the transitional broad operator role after migration evidence exists.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Remove the transitional broad operator role only after scoped-role migration evidence exists.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-AUTH-001",
@@ -83,15 +117,24 @@
       "requirement": "Use canonical Wallet login, short sessions, expiry, replay rejection, role/scope binding, and fail-closed authorization.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["centrally verified wallet challenge flow", "one-time challenge consumption", "explicit capability response"],
-      "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
-      "tests": ["accepts a centrally verified wallet once and rejects replay", "rejects missing and invalid authentication"],
+      "evidence": [
+        "centrally verified wallet challenge flow",
+        "one-time challenge consumption",
+        "explicit capability response"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "accepts a centrally verified wallet once and rejects replay",
+        "rejects missing and invalid authentication"
+      ],
       "artifact": "apps/monitor/server",
       "publicProof": null,
-      "blockedBy": ["No live central Wallet/Auth endpoint evidence yet"],
+      "blockedBy": [
+        "No live central Wallet/Auth endpoint evidence yet"
+      ],
       "owner": "13-monitor",
       "nextAction": "Run the same vectors against the accepted central Wallet/Auth testnet endpoint.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-STATE-001",
@@ -99,15 +142,21 @@
       "requirement": "Persist operational state with integrity protection and reject tampered state during restart.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["HMAC-bound versioned OpsStore", "atomic temporary-file replacement"],
-      "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
-      "tests": ["signed operational state survives restart", "tampered operational state is rejected at restart"],
+      "evidence": [
+        "HMAC-bound versioned OpsStore",
+        "atomic temporary-file replacement"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "signed operational state survives restart",
+        "tampered operational state is rejected at restart"
+      ],
       "artifact": "apps/monitor/server/store.ts",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
       "nextAction": "Add explicit schema migration and rollback migration fixtures beyond the current version-2 envelope.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-ALERT-001",
@@ -115,15 +164,22 @@
       "requirement": "Derive alerts from real probe failures, support acknowledgement, recovery, deduplication, and append-first audit evidence.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["probe-driven alert creation", "acknowledgement approval phrase", "recovery state transition"],
-      "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
-      "tests": ["requires exact operator approval and writes audit", "scoped security reviewer acknowledgement"],
+      "evidence": [
+        "probe-driven alert creation",
+        "acknowledgement approval phrase",
+        "recovery state transition"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "requires exact operator approval and writes audit",
+        "scoped security reviewer acknowledgement"
+      ],
       "artifact": "apps/monitor/server/store.ts",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
       "nextAction": "Add severity, correlation, owner, escalation, and notification queue semantics.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-INCIDENT-001",
@@ -131,15 +187,30 @@
       "requirement": "Implement the full incident lifecycle: severity, dedup/correlation, acknowledge, owner, timeline, runbook, mitigation, recovery verification, postmortem, communication boundary, and export.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["versioned fail-closed incident state machine", "owner assignment and append-first timeline", "independent Backup/Recovery verification", "postmortem and authenticated JSON evidence export", "capability-gated responsive UI", "managed desktop/mobile lifecycle E2E passed"],
-      "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
-      "tests": ["ordered transition and invalid skip rejection", "idempotent transition retry", "cross-role recovery and postmortem denial", "restart persistence", "17/17 Monitor tests passed", "production build passed", "8/8 managed browser E2E passed"],
+      "evidence": [
+        "versioned fail-closed incident state machine",
+        "owner assignment and append-first timeline",
+        "independent Backup/Recovery verification",
+        "postmortem and authenticated JSON evidence export",
+        "capability-gated responsive UI",
+        "managed desktop/mobile lifecycle E2E passed"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "ordered transition and invalid skip rejection",
+        "idempotent transition retry",
+        "cross-role recovery and postmortem denial",
+        "restart persistence",
+        "18/18 Monitor tests passed",
+        "production build passed",
+        "8/8 managed browser E2E passed"
+      ],
       "artifact": "apps/monitor",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Bind the tested lifecycle to a protected source commit, then add dedup/correlation, escalation, runbook attachment, and public communication approval.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Add dedup/correlation, escalation, runbook attachment, and public communication approval.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-BACKUP-001",
@@ -147,15 +218,27 @@
       "requirement": "Maintain backup inventory, hashes, retention, restore-drill evidence, and restricted Backup/Recovery authority.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["typed backup artifact identity, SHA-256, byte size, retention, storage, encryption, RPO/RTO, and evidence", "reported restore drill with observed RPO/RTO, integrity/application checks, failure semantics, and independent Security Reviewer verification", "accepted restore evidence requires a previously verified backup", "legacy evidence-only route remains explicitly unverified compatibility data"],
-      "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
-      "tests": ["typed backup and restore lifecycle positive path", "malformed digest rejection", "missing evidence rejection", "premature restore acceptance rejection", "same-actor verification rejection", "17/17 Monitor tests passed"],
+      "evidence": [
+        "typed backup artifact identity, SHA-256, byte size, retention, storage, encryption, RPO/RTO, and evidence",
+        "reported restore drill with observed RPO/RTO, integrity/application checks, failure semantics, and independent Security Reviewer verification",
+        "accepted restore evidence requires a previously verified backup",
+        "legacy evidence-only route remains explicitly unverified compatibility data"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "typed backup and restore lifecycle positive path",
+        "malformed digest rejection",
+        "missing evidence rejection",
+        "premature restore acceptance rejection",
+        "same-actor verification rejection",
+        "18/18 Monitor tests passed"
+      ],
       "artifact": "apps/monitor/server",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Bind the tested recovery schemas to a protected source commit, then add the complete typed operator UI and a real isolated restore drill with Security/SRE evidence.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Add the complete typed operator UI and a real isolated restore drill with Security/SRE evidence.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-ROLLBACK-001",
@@ -163,15 +246,26 @@
       "requirement": "Create dry-run rollback proposals with candidate/previous release identity, multi-role verification, and a non-execution boundary.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["rollback proposals bind candidate release, previous release, reason, and dry-run evidence", "independent Security Reviewer verification produces verified-not-executed or rejected-not-executed", "same-actor and incomplete verification fail closed", "central infrastructure owner remains the execution boundary"],
-      "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
-      "tests": ["approved-not-executed proposal", "missing review evidence rejection", "same-actor verification rejection", "independent verified-not-executed review", "no infrastructure execution path"],
+      "evidence": [
+        "rollback proposals bind candidate release, previous release, reason, and dry-run evidence",
+        "independent Security Reviewer verification produces verified-not-executed or rejected-not-executed",
+        "same-actor and incomplete verification fail closed",
+        "central infrastructure owner remains the execution boundary"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "approved-not-executed proposal",
+        "missing review evidence rejection",
+        "same-actor verification rejection",
+        "independent verified-not-executed review",
+        "no infrastructure execution path"
+      ],
       "artifact": "apps/monitor/server",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Bind the tested proposal contract to a protected source commit, then run it against accepted candidate/previous release manifests and central rollback dry-run evidence.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Run the proposal contract against accepted candidate/previous release manifests and central rollback dry-run evidence.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-PRIVATE-OPS-001",
@@ -179,15 +273,27 @@
       "requirement": "Keep the private operator workspace authenticated and separate from public status surfaces.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["all /ops routes require authenticated session after login endpoints", "restricted operations UI"],
-      "sourceCommit": "0e5b128fe3022ebc99a5401b107b57b11edc1efb",
-      "tests": ["missing authentication rejected", "viewer mutation rejected"],
+      "evidence": [
+        "apps/monitor/server/auth.ts",
+        "apps/monitor/server/auth.test.ts",
+        "apps/monitor/src/api.ts",
+        "apps/monitor/src/App.tsx",
+        "Exact YNX_MONITOR_ALLOWED_ORIGINS gate and session-bound X-YNX-CSRF-Token"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "rejects missing, untrusted, and invalid mutation protection",
+        "18/18 Monitor tests passed",
+        "managed browser E2E passed 8/8"
+      ],
       "artifact": "apps/monitor",
       "publicProof": null,
-      "blockedBy": [],
+      "blockedBy": [
+        "No private hosted operator origin or accepted central Wallet/Auth deployment evidence yet"
+      ],
       "owner": "13-monitor",
-      "nextAction": "Add origin/CSRF enforcement and deploy behind a private operator origin.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Deploy behind an accepted private operator origin and execute central Wallet/Auth expiry, revoke, wrong-product, and wrong-device vectors.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-PUBLIC-STATUS-001",
@@ -211,15 +317,21 @@
       "requirement": "Monitor validators, peers, blocks/finality, rounds/views, leaders, QC/precommit, DAG backlog, execution conflicts, state sync, snapshots, double-sign, transaction lanes, and public chain services.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["node, identity, validator, peer, peer-sync, explorer, and indexer probes"],
-      "sourceCommit": null,
-      "tests": ["real-service smoke script exists"],
+      "evidence": [
+        "node, identity, validator, peer, peer-sync, explorer, and indexer probes"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "real-service smoke script exists"
+      ],
       "artifact": "apps/monitor/server/app.ts",
       "publicProof": null,
-      "blockedBy": ["Several authoritative chain telemetry endpoints are not yet integrated"],
+      "blockedBy": [
+        "Several authoritative chain telemetry endpoints are not yet integrated"
+      ],
       "owner": "13-monitor",
       "nextAction": "Add typed adapters for finality, round/view, precommit, state-sync, lane, and conflict telemetry with stale semantics.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-TRADING-001",
@@ -232,7 +344,9 @@
       "tests": [],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["Accepted Exchange, DEX, and Oracle monitor contracts are not yet bound"],
+      "blockedBy": [
+        "Accepted Exchange, DEX, and Oracle monitor contracts are not yet bound"
+      ],
       "owner": "13-monitor",
       "nextAction": "Implement fail-closed consumer adapters against frozen owner contracts and negative stale/sequence tests.",
       "lastUpdated": "2026-07-27"
@@ -248,7 +362,9 @@
       "tests": [],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["Accepted Quant contract and live endpoint evidence are not yet bound"],
+      "blockedBy": [
+        "Accepted Quant contract and live endpoint evidence are not yet bound"
+      ],
       "owner": "13-monitor",
       "nextAction": "Build a read-only Quant telemetry adapter and explicit stale/revoked/expired/risk-breach states.",
       "lastUpdated": "2026-07-27"
@@ -264,7 +380,9 @@
       "tests": [],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["Accepted Economics, Bridge, Resource, and Data Fabric contracts are not yet bound"],
+      "blockedBy": [
+        "Accepted Economics, Bridge, Resource, and Data Fabric contracts are not yet bound"
+      ],
       "owner": "13-monitor",
       "nextAction": "Implement source-labelled capital telemetry adapters without deriving unsupported financial facts.",
       "lastUpdated": "2026-07-27"
@@ -275,15 +393,19 @@
       "requirement": "Monitor Wallet/Auth, Pay, Merchant, Card, Shop, Cloud, AI, Mail, Search, Website, downloads, and provider health.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["AI, Explorer, Indexer, and Node health probes"],
-      "sourceCommit": null,
+      "evidence": [
+        "AI, Explorer, Indexer, and Node health probes"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
       "tests": [],
       "artifact": "apps/monitor/server/app.ts",
       "publicProof": null,
-      "blockedBy": ["Remaining product health/version contracts are not yet integrated"],
+      "blockedBy": [
+        "Remaining product health/version contracts are not yet integrated"
+      ],
       "owner": "13-monitor",
       "nextAction": "Introduce a versioned provider registry and typed health/version adapter per product owner.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-AUTOMATION-001",
@@ -307,15 +429,20 @@
       "requirement": "Restrict AI to summaries, hypotheses, and runbook drafts; AI must not execute operations.",
       "applicability": "required",
       "status": "implementedLocal",
-      "evidence": ["advisory-only prompt and audit context", "explicit prohibited action list"],
-      "sourceCommit": null,
+      "evidence": [
+        "advisory-only prompt and audit context",
+        "explicit prohibited action list"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
       "tests": [],
       "artifact": "apps/monitor/server/app.ts",
       "publicProof": null,
-      "blockedBy": ["Provider-backed test and injection/stream failure vectors remain"],
+      "blockedBy": [
+        "Provider-backed test and injection/stream failure vectors remain"
+      ],
       "owner": "13-monitor",
       "nextAction": "Add prompt-injection, cancellation, timeout, partial-stream, and provider-unavailable tests.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-LOGS-001",
@@ -323,15 +450,22 @@
       "requirement": "Provide bounded allowlisted log access with secret redaction, request audit, and no internal stack leakage.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["allowlisted sources", "64 KiB tail bound", "200-line bound", "credential redaction patterns"],
-      "sourceCommit": null,
-      "tests": ["viewer can read the not-configured bounded log response"],
+      "evidence": [
+        "allowlisted sources",
+        "64 KiB tail bound",
+        "200-line bound",
+        "credential redaction patterns"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "viewer can read the not-configured bounded log response"
+      ],
       "artifact": "apps/monitor/server/app.ts",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
       "nextAction": "Add configured-source redaction fixtures, path failure tests, and Security Reviewer-specific audit views.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-SLO-001",
@@ -339,15 +473,19 @@
       "requirement": "Measure p50/p95/p99, availability, error rate, alert delay, throughput, concurrency, provider latency, RTO/RPO, and capacity without extrapolating from a demo.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["truthful bounded current-probe SLO language"],
-      "sourceCommit": null,
-      "tests": ["truthful SLO copy test"],
+      "evidence": [
+        "truthful bounded current-probe SLO language"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "truthful SLO copy test"
+      ],
       "artifact": "apps/monitor/src/App.tsx",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
       "nextAction": "Add a reproducible load harness and persisted histogram evidence before claiming historical SLOs.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-UNIT-ECONOMICS-001",
@@ -371,15 +509,28 @@
       "requirement": "Deliver a responsive Web/PWA Monitor with truthful loading, empty, failure, offline, permission, expired, and recovery states.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["PWA manifest and service worker", "responsive capability-gated incident lifecycle UI", "production Vite bundle", "managed E2E harness with isolated ports and state", "desktop/mobile managed lifecycle E2E passed 8/8"],
-      "sourceCommit": null,
-      "tests": ["production build passed", "accessibility and responsive source tests passed", "managed desktop/mobile E2E passed 8/8"],
+      "evidence": [
+        "PWA manifest and service worker",
+        "responsive capability-gated incident lifecycle UI",
+        "production Vite bundle",
+        "managed E2E harness with isolated ports and state",
+        "desktop/mobile managed lifecycle E2E passed 8/8"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "production build passed",
+        "accessibility and responsive source tests passed",
+        "managed desktop/mobile E2E passed 8/8"
+      ],
       "artifact": "apps/monitor",
       "publicProof": null,
-      "blockedBy": ["Hosted artifact and install/cold-start evidence are absent", "Typed recovery UI and browser-level accessibility evidence remain"],
+      "blockedBy": [
+        "Hosted artifact and install/cold-start evidence are absent",
+        "Typed recovery UI and browser-level accessibility evidence remain"
+      ],
       "owner": "13-monitor",
-      "nextAction": "Bind the passing web slice to a protected source commit, then complete typed recovery UI, offline, 390px, RTL, dark/light, install, and cold-start evidence against a hosted candidate.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Complete typed recovery UI, offline, 390px, RTL, dark/light, install, and cold-start evidence against a hosted candidate.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-MOBILE-001",
@@ -387,15 +538,17 @@
       "requirement": "Provide a mobile-appropriate read-only and alert-focused experience.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["responsive PWA and mobile screenshot baseline"],
-      "sourceCommit": null,
+      "evidence": [
+        "responsive PWA and mobile screenshot baseline"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
       "tests": [],
       "artifact": "apps/monitor/screenshots/monitor-mobile.png",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
       "nextAction": "Verify 390px interaction, large text, reduced motion, offline alerts, and restrict mutation affordances on mobile layouts.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-I18N-001",
@@ -403,15 +556,23 @@
       "requirement": "Support 12 languages including real Arabic RTL for navigation and dynamic operational states.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["12 locale registry", "Arabic document direction switching"],
-      "sourceCommit": null,
-      "tests": ["all supported locales resolve every required key", "Arabic Intl test"],
+      "evidence": [
+        "12 locale registry",
+        "Arabic document direction switching"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "all supported locales resolve every required key",
+        "Arabic Intl test"
+      ],
       "artifact": "apps/monitor/src/i18n.ts",
       "publicProof": null,
-      "blockedBy": ["New scoped role display names are not yet localized"],
+      "blockedBy": [
+        "New scoped role display names are not yet localized"
+      ],
       "owner": "13-monitor",
       "nextAction": "Localize scoped role names and all new incident/recovery/error states across all 12 locales.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-A11Y-001",
@@ -419,15 +580,21 @@
       "requirement": "Support keyboard use, labels, focus, screen readers, contrast, dynamic text, reduced motion, and mobile overflow safety.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["labelled navigation/login/errors/approval controls"],
-      "sourceCommit": null,
-      "tests": ["accessibility source test passed"],
+      "evidence": [
+        "labelled navigation/login/errors/approval controls"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "accessibility source test passed"
+      ],
       "artifact": "apps/monitor/src",
       "publicProof": null,
-      "blockedBy": ["Automated browser accessibility scan and manual screen-reader evidence remain"],
+      "blockedBy": [
+        "Automated browser accessibility scan and manual screen-reader evidence remain"
+      ],
       "owner": "13-monitor",
       "nextAction": "Run browser-level keyboard, focus, contrast, large-text, and screen-reader checks.",
-      "lastUpdated": "2026-07-27"
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-SECURITY-001",
@@ -435,47 +602,76 @@
       "requirement": "Complete threat model, boundaries, secret scan, SAST/DAST, dependency/license review, SBOM, artifact scan, provenance, and reproducible build evidence.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["fail-closed auth", "integrity-protected state", "bounded log redaction", "least-privilege RBAC"],
-      "sourceCommit": null,
-      "tests": ["auth, replay, tamper, and RBAC tests"],
+      "evidence": [
+        "fail-closed auth",
+        "integrity-protected state",
+        "bounded log redaction",
+        "least-privilege RBAC",
+        "Exact Origin allowlist",
+        "HMAC session-bound CSRF tokens",
+        "Missing/untrusted/invalid mutation vectors",
+        "npm production dependency audit reports 0 vulnerabilities"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "auth, replay, tamper, and RBAC tests"
+      ],
       "artifact": "apps/monitor",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Add Monitor-specific threat model, SBOM/provenance generation, dependency/license checks, SAST/DAST, and artifact scan evidence.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Create the Monitor threat model, SBOM/provenance generation, license review, SAST/DAST, and artifact scan evidence.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-INTEGRATION-001",
       "category": "integration",
       "requirement": "Publish Integration Contract, Handoff, cross-product test vectors, and dependency acceptance without modifying owner worktrees.",
       "applicability": "required",
-      "status": "implementedLocal",
-      "evidence": ["candidate integration files under release/integration and docs/integration"],
-      "sourceCommit": null,
-      "tests": ["JSON parse validation pending"],
+      "status": "testedLocal",
+      "evidence": [
+        "candidate integration files under release/integration and docs/integration"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "Machine-readable contract and cross-product vectors parsed successfully"
+      ],
       "artifact": "docs/integration",
       "publicProof": null,
-      "blockedBy": ["29-integration acceptance and checkpoint commit"],
+      "blockedBy": [
+        "29-integration acceptance",
+        "Repository-wide preflight failures outside 13-monitor ownership prevent formal phase transition"
+      ],
       "owner": "13-monitor",
-      "nextAction": "Validate schemas, bind source commit, and request dependency owner acceptance.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Request 29-integration and dependency-owner acceptance without redefining central protocols.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-EVIDENCE-001",
       "category": "evidence",
       "requirement": "Maintain source-bound feature, test, artifact, install, recovery, security, testnet, and public evidence indexes.",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["this full-goal coverage matrix", "local test and build output"],
-      "sourceCommit": null,
-      "tests": [],
-      "artifact": ".ai-bridge/full-goal-coverage.json",
+      "status": "testedLocal",
+      "evidence": [
+        "EVIDENCE_INDEX.md",
+        "FEATURE_COMPLETION_EVIDENCE.md",
+        "product-release.json",
+        ".ai-bridge/execution-log.jsonl"
+      ],
+      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "tests": [
+        "Machine-readable release, coverage, contract, and vector JSON parse validation",
+        "Evidence files explicitly separate local proof from absent Testnet/public/artifact proof"
+      ],
+      "artifact": [
+        "EVIDENCE_INDEX.md",
+        "FEATURE_COMPLETION_EVIDENCE.md"
+      ],
       "publicProof": null,
-      "blockedBy": ["Source commit, hosted artifacts, and public/testnet evidence remain"],
+      "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Create EVIDENCE_INDEX.md and FEATURE_COMPLETION_EVIDENCE.md after checkpoint commit binding.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Keep the evidence index synchronized with each protected source and add direct Testnet, artifact, hosted, and public evidence only when it exists.",
+      "lastUpdated": "2026-07-28"
     },
     {
       "id": "MON-TESTNET-001",
@@ -488,7 +684,9 @@
       "tests": [],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["Shared testnet endpoints and accepted owner contracts are not yet bound"],
+      "blockedBy": [
+        "Shared testnet endpoints and accepted owner contracts are not yet bound"
+      ],
       "owner": "13-monitor",
       "nextAction": "Complete local adapters and negative vectors, then run a shared testnet incident and recovery drill.",
       "lastUpdated": "2026-07-27"
@@ -504,7 +702,9 @@
       "tests": [],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["Deploy authority, public origin, Website integration, and artifact hosting"],
+      "blockedBy": [
+        "Deploy authority, public origin, Website integration, and artifact hosting"
+      ],
       "owner": "13-monitor",
       "nextAction": "Finish autonomous local release/security work before generating a minimal operator input request.",
       "lastUpdated": "2026-07-27"
@@ -520,10 +720,18 @@
       "tests": [],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["RECOVER, PROTECT, FREEZE, INTEGRATE, TESTNET, and PUBLIC gates remain incomplete"],
+      "blockedBy": [
+        "RECOVER, PROTECT, FREEZE, INTEGRATE, TESTNET, and PUBLIC gates remain incomplete"
+      ],
       "owner": "13-monitor",
       "nextAction": "Do not expand until the preceding gates have direct evidence.",
       "lastUpdated": "2026-07-27"
     }
-  ]
+  ],
+  "phaseGate": {
+    "nextPhase": "FREEZE",
+    "status": "blocked",
+    "reason": "Repository-wide go test ./... preflight has cross-product failures outside 13-monitor ownership; Monitor-local tests, build, E2E, audit, push, and SHA equality pass.",
+    "evidence": "product-release.json#verifiedLocal.repositoryPreflight"
+  }
 }

@@ -2,13 +2,13 @@
 
 Status: Open  
 Owner: `13-monitor`  
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 
 No dependency is accepted merely because an endpoint returns HTTP 200. Acceptance requires a versioned contract, owner identity, source commit, authentication boundary, freshness semantics, failure semantics, negative vectors, and shared-Testnet evidence.
 
 | Owner | Dependency | Current state | Acceptance gate |
 |---|---|---|---|
-| `02-wallet-auth` | Product-scoped Wallet challenge and role assignment | Adapter and local replay tests exist | Accepted product registration, expiry/revoke vectors, wrong-product/device/scope rejection, shared-Testnet proof |
+| `02-wallet-auth` | Product-scoped Wallet challenge and role assignment | Adapter, local replay tests, and Monitor-owned exact Origin/session-bound CSRF mutation gates pass | Accepted product registration, expiry/revoke vectors, wrong-product/device/scope rejection, accepted private operator origin, shared-Testnet proof |
 | `01-chain-core` | Node, validator, peer, finality, state-sync, snapshot, lane, conflict telemetry | Basic node/validator/peer probes exist | Frozen schemas, source/version/asOf fields, stale/failure semantics, negative and restart vectors |
 | `07-exchange` | Order, fill, sequence, funding, liquidation, insurance, ADL telemetry | Not integrated | Frozen read-only API and sequence-gap/stale vectors |
 | `27-dex` | Pool, reserve, route, solver, MEV, LP telemetry | Not integrated | Frozen read-only API and reorg/stale/reconciliation vectors |

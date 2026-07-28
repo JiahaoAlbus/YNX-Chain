@@ -1,34 +1,28 @@
 # YNX Monitor Agent Status
 
-- Product: 13｜YNX Monitor
-- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/13-monitor`
-- Branch: `codex/final-monitor`
-- Phase: PROTECT → FREEZE
-- Goal: Active
-- Working tree: Dirty only for evidence binding; implementation checkpoint committed
-- Baseline HEAD: `d4b4a3e5d7d6cc5df515664eaf48f1e63a8af496`
-- Implementation source commit: `0e5b128fe3022ebc99a5401b107b57b11edc1efb`
-- Upstream: Not configured
-- Push / remote SHA: Pending
+Status: `ACTIVE`  
+Current phase: `PROTECT`  
+Implementation source: `95817f417bb9d08a8450c09fca884bb89d240eba`  
+Branch: `codex/final-monitor` tracking `origin/codex/final-monitor`
 
-## Locally verified slices
+## Direct state
 
-1. Least-privilege Monitor RBAC across server, Wallet/password session responses, and UI capability gates.
-2. Versioned incident lifecycle with ordered fail-closed transitions, owner assignment, timeline, independent recovery verification, postmortem, restart persistence, tamper rejection, and authenticated export.
-3. Typed backup inventory and restore-drill evidence with hashes, retention, RPO/RTO, independent verification, and fail-closed negative paths.
-4. Candidate/previous release rollback proposals with dry-run evidence, independent review, and a strict non-execution boundary.
-5. Truthful process-scoped `/health` and source-bound `/version` semantics.
-6. Managed Playwright configuration with dedicated ports, isolated state, and direct frontend/backend process ownership.
-7. Candidate contract, handoff, cross-product vectors, dependency acceptance, release status, and full-goal coverage matrix.
+- Worktree and branch matched the required target.
+- Takeover baseline was clean; no unpushed commit or concurrent writer was found.
+- Implementation source is pushed and local/upstream SHA equality was verified.
+- GitHub inventory found no Monitor branch Actions run, Release, or Artifact; no claim is made for those states.
+- Monitor-local verification is green: 18 tests, production build, 8 managed E2E tests, and 0 production dependency vulnerabilities.
+- Exact Origin allowlisting and session-bound CSRF enforcement protect authenticated mutations.
+- `EVIDENCE_INDEX.md` and `FEATURE_COMPLETION_EVIDENCE.md` now provide source-bound audit entry points without promoting absent Testnet, public, artifact, or signing proof.
 
-## Verification
+## Non-green evidence
 
-- Monitor unit/API tests: 17 passed, 0 failed.
-- Production build: passed against the current recovery API diff.
-- Managed desktop/mobile E2E: 8 passed after two abandoned harness listeners were safely terminated.
-- Public/Testnet/central integration: not claimed.
-- Real backup, restore, rollback execution, and signed release artifact: not claimed.
+`go test ./...` fails in cross-product packages outside Monitor ownership: consensus transaction key-permission enforcement, BFT/consensus missing compiled EVM fixtures, faucet unsafe-key enforcement, and Trust signer permissions. These failures block the formal phase transition and are preserved in the release record; this thread did not modify those owners' code.
 
-## Exact next action
+## Truthful release state
 
-Validate machine-readable evidence, rerun the final test/build/E2E gates, review the complete diff, create a source implementation commit, bind evidence to that SHA in a second commit, push with upstream, and verify local/remote equality. The long-term goal remains ACTIVE.
+`implementedLocal=true` and `testedLocal=true` remain supported. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned`, and `storeReleased` remain false. No real backup, restore, rollback execution, shared Testnet, hosted private operator, public status, public artifact, or production release is claimed.
+
+## Next action
+
+Implement and test the redacted public-status projection, then continue Monitor-specific threat-model, SBOM/provenance, license, SAST/DAST, and artifact gates while owner dependencies remain unresolved.
