@@ -20,6 +20,30 @@ type Store struct {
 	state           State
 }
 
+const currentStateSchemaVersion = 1
+
+type stateMigration struct {
+	from int
+	to   int
+	up   func(*State) error
+	down func(*State) error
+}
+
+var stateMigrations = []stateMigration{
+	{
+		from: 0,
+		to:   1,
+		up: func(state *State) error {
+			state.SchemaVersion = 1
+			return nil
+		},
+		down: func(state *State) error {
+			state.SchemaVersion = 0
+			return nil
+		},
+	},
+}
+
 func OpenStore(root string, integrityKey []byte) (*Store, error) {
 	if root == "" {
 		return nil, errors.New("video store root is required")
@@ -33,12 +57,23 @@ func OpenStore(root string, integrityKey []byte) (*Store, error) {
 	s := &Store{root: root, statePath: filepath.Join(root, "state.json"), integrityKey: append([]byte(nil), integrityKey...), state: emptyState()}
 	b, err := os.ReadFile(s.statePath)
 	if err == nil {
-		if err = json.Unmarshal(b, &s.state); err != nil {
+		var loaded State
+		if err = json.Unmarshal(b, &loaded); err != nil {
 			return nil, err
 		}
+		s.state = loaded
 		normalize(&s.state)
 		if err = s.verifyIntegrity(); err != nil {
 			return nil, err
+		}
+		migrated, migrationErr := migrateState(&s.state, currentStateSchemaVersion)
+		if migrationErr != nil {
+			return nil, migrationErr
+		}
+		if migrated {
+			if err = s.persistLocked(); err != nil {
+				return nil, fmt.Errorf("persist migrated video state: %w", err)
+			}
 		}
 	} else if !os.IsNotExist(err) {
 		return nil, err
@@ -46,7 +81,11 @@ func OpenStore(root string, integrityKey []byte) (*Store, error) {
 	return s, nil
 }
 
-func emptyState() State { s := State{}; normalize(&s); return s }
+func emptyState() State {
+	s := State{SchemaVersion: currentStateSchemaVersion}
+	normalize(&s)
+	return s
+}
 func normalize(s *State) {
 	if s.Videos == nil {
 		s.Videos = map[string]*Video{}
@@ -108,6 +147,10 @@ func (s *Store) update(fn func(*State) error) error {
 	if err := validateAuditChain(s.state.Audit); err != nil {
 		return err
 	}
+	return s.persistLocked()
+}
+
+func (s *Store) persistLocked() error {
 	s.state.Integrity = ""
 	canonical, err := json.Marshal(s.state)
 	if err != nil {
@@ -134,6 +177,46 @@ func (s *Store) update(fn func(*State) error) error {
 	}
 	f.Close()
 	return os.Rename(tmp, s.statePath)
+}
+
+func migrateState(state *State, target int) (bool, error) {
+	if target < 0 || target > currentStateSchemaVersion {
+		return false, fmt.Errorf("unsupported video state target schema version %d", target)
+	}
+	if state.SchemaVersion > currentStateSchemaVersion {
+		return false, fmt.Errorf("video state schema version %d is newer than supported version %d", state.SchemaVersion, currentStateSchemaVersion)
+	}
+	changed := false
+	for state.SchemaVersion < target {
+		migration, ok := findStateMigration(state.SchemaVersion, state.SchemaVersion+1)
+		if !ok {
+			return changed, fmt.Errorf("missing video state migration %d to %d", state.SchemaVersion, state.SchemaVersion+1)
+		}
+		if err := migration.up(state); err != nil {
+			return changed, fmt.Errorf("migrate video state %d to %d: %w", migration.from, migration.to, err)
+		}
+		changed = true
+	}
+	for state.SchemaVersion > target {
+		migration, ok := findStateMigration(state.SchemaVersion-1, state.SchemaVersion)
+		if !ok {
+			return changed, fmt.Errorf("missing video state rollback migration %d to %d", state.SchemaVersion, state.SchemaVersion-1)
+		}
+		if err := migration.down(state); err != nil {
+			return changed, fmt.Errorf("rollback video state %d to %d: %w", migration.to, migration.from, err)
+		}
+		changed = true
+	}
+	return changed, nil
+}
+
+func findStateMigration(from, to int) (stateMigration, bool) {
+	for _, migration := range stateMigrations {
+		if migration.from == from && migration.to == to {
+			return migration, true
+		}
+	}
+	return stateMigration{}, false
 }
 
 func (s *Store) verifyIntegrity() error {

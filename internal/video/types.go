@@ -170,6 +170,7 @@ type GatewayNonce struct {
 }
 
 type State struct {
+	SchemaVersion int                          `json:"schema_version,omitempty"`
 	Videos        map[string]*Video            `json:"videos"`
 	Channels      map[string]*Channel          `json:"channels"`
 	Subscriptions map[string]Subscription      `json:"subscriptions"`
