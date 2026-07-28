@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "ynx-public-product-metadata/v1",
+  "productId": "13",
+  "product": "YNX Monitor",
+  "slug": "monitor",
+  "owner": "13-monitor",
+  "sourceCommit": "85643347c5ecce238d6000caccfc3d85223d7e1e",
+  "canonicalRoute": "/monitor",
+  "title": "YNX Monitor — Operational status and incident evidence",
+  "metaDescription": "Review approved YNX operational status, incidents and recovery evidence without exposing private operator data.",
+  "h1": "Operational evidence with strict authority boundaries",
+  "features": [
+    "Scoped incident and recovery roles",
+    "Ordered incident lifecycle",
+    "Typed backup, restore and rollback evidence",
+    "Signed redacted public-status projection",
+    "Fail-closed stale, tamper and replay handling"
+  ],
+  "risks": [
+    "Monitor presents owner facts but does not define chain finality, prices, solvency or release execution.",
+    "The public-status projection is locally tested and has no approved hosted publisher feed.",
+    "No public operator deployment or production artifact is claimed."
+  ],
+  "status": {
+    "channel": "integration-candidate",
+    "publiclyAvailable": false,
+    "publicStatusPublisherApproved": false
+  },
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "faq": [
+    {
+      "question": "Does Monitor health mean every YNX service is healthy?",
+      "answer": "No. Monitor process health and each owner-provided service status are separate facts."
+    },
+    {
+      "question": "Can Monitor execute a rollback?",
+      "answer": "No. Monitor records proposals and independent verification but does not execute infrastructure changes."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "type": "WebApplication",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web"
+  }
+}

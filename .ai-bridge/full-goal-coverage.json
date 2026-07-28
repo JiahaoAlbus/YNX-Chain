@@ -10,6 +10,7 @@
   },
   "currentPhase": "PROTECT",
   "goalState": "active",
+  "sourceCommit": "85643347c5ecce238d6000caccfc3d85223d7e1e",
   "generatedAt": "2026-07-28",
   "workingTreeState": "public-status-evidence-bound-checkpoint-ready",
   "requirements": [
