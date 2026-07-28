@@ -35,7 +35,7 @@ function run(command, commandArgs, options = {}) {
 function runAudit(omitDevelopment) {
   const commandArgs = ["audit"];
   if (omitDevelopment) commandArgs.push("--omit=dev");
-  commandArgs.push("--audit-level=high", "--json");
+  commandArgs.push("--audit-level=high", "--json", "--fetch-timeout=15000", "--fetch-retries=0");
   const result = run("npm", commandArgs, { allowedExitCodes: [0, 1] });
   try {
     return JSON.parse(String(result.stdout ?? ""));
@@ -78,11 +78,16 @@ function trackedRuntimeImports(packageName) {
     if (relativePath.startsWith("docs/") || relativePath.startsWith("release/") || relativePath.startsWith("artifacts/")) return false;
     return /\.(?:c?js|mjs|ts|tsx|go)$/.test(relativePath);
   });
-  const importPattern = new RegExp(`(?:from\\s*|require\\s*\\()?["']${packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:["'/])`);
+  const importPatterns = [
+    new RegExp(`\\bfrom\\s*["']${packageName}(?:["'/])`),
+    new RegExp(`\\brequire\\s*\\(\\s*["']${packageName}(?:["'/])`),
+    new RegExp(`\\bimport\\s*\\(\\s*["']${packageName}(?:["'/])`)
+  ];
   return candidates.filter((relativePath) => {
     const absolutePath = path.join(root, relativePath);
     try {
-      return importPattern.test(fs.readFileSync(absolutePath, "utf8"));
+      const contents = fs.readFileSync(absolutePath, "utf8");
+      return importPatterns.some((importPattern) => importPattern.test(contents));
     } catch {
       return false;
     }
