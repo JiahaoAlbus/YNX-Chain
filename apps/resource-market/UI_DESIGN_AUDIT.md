@@ -1,6 +1,6 @@
 # YNX Resource Market UI design audit
 
-Audited on 2026-07-22 against the running Web product, not a static mock.
+Audited on 2026-07-29 against the running Web product, not a static mock.
 
 ## Information architecture
 
@@ -17,7 +17,7 @@ Desktop uses horizontal product navigation and a centered two-column provider/bu
 
 ## Accessibility and responsive checks
 
-- Skip link, semantic navigation/headings, labelled inputs, live status, keyboard focus, 44-pixel touch targets, reduced motion, dark mode, and a persistent large-text control.
+- Skip link, semantic navigation/headings, labelled inputs, live status, keyboard focus, 44-pixel touch targets, reduced motion, dark mode, and a persistent large-text control. The browser gate audits every operator form control for an accessible name.
 - 12 locales and independent AI-language persistence; Arabic critical settlement copy is RTL while `.market-shell` remains LTR.
 - Current-run browser tests passed at 1440×900 and 390×844 with no horizontal overflow.
 
@@ -29,10 +29,10 @@ Desktop uses horizontal product navigation and a centered two-column provider/bu
 - `docs/handoffs/evidence/ui-audit-current/resource-desktop-final-dark.png`
 - `docs/handoffs/evidence/ui-audit-current/resource-mobile-390x844.jpg`
 
-Five browser tests exercise desktop/mobile empty state, provider registration, independent verification, offer publication, matching, quote creation, exact intent acceptance, sealed-auction bidding, pending legacy capacity, honest AI failure, 12-locale static-market coverage and persistence, Arabic direction and no horizontal overflow. The accepted-intent test explicitly verifies that asset settlement remains unconfirmed.
+Six browser tests exercise desktop/mobile empty state, provider registration, independent verification, offer publication, matching, quote creation, exact intent acceptance, sealed-auction bidding, pending legacy capacity, honest AI failure, 12-locale static-market coverage and persistence, Arabic direction, large text at 390 pixels and no horizontal overflow. They also audit every operator form control for an accessible name and prove that Arabic runtime failures show a localized safe label, stable error code and request ID without leaking server-originated English prose. The accepted-intent test explicitly verifies that asset settlement remains unconfirmed.
 
 ## Fixed issues and limits
 
 Fixed: generic left-heavy dashboard composition, oversized modules, always-expanded language choices, whole-shell Arabic reversal, weak quote-versus-settlement distinction, and mobile header overflow.
 
-Remaining product limitations: all lifecycle and operator actions now have dedicated UI forms, but those forms do not yet have individual browser automation. The 143 canonical static market strings have catalogs in all 12 locales; interpolated runtime notices and server-originated errors are not yet comprehensively localized. No authoritative central Gateway or settlement service is deployed, so the UI never upgrades a quote or local intent to settled without evidence.
+Remaining product limitations: the 143 canonical static market strings and safe runtime status/error boundary have functional coverage in all 12 locales, but the translations still require professional linguistic review and manual VoiceOver/TalkBack validation. No authoritative central Gateway or settlement service is deployed, so the UI never upgrades a quote or local intent to settled without evidence.
