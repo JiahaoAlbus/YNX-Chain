@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "ynx-product-release/v1",
+  "productId": "21",
+  "product": "YNX Bridge & Interoperability",
+  "slug": "bridge",
+  "owner": "21-bridge",
+  "version": "1.0.0-testnet-candidate",
+  "branch": "codex/final-bridge",
+  "sourceCommit": "914249bc9772f9e813470291f3ad7c57205edbe9",
+  "phase": "TESTNET",
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "verifiedCapabilities": [
+    "fail-closed lifecycle and destination-availability state machine",
+    "read-only public SDK and canonical App Gateway boundary",
+    "threshold-relayer attestation verification without trustless-proof claims",
+    "provider outage, recovery, restart and integrity-linked incident evidence",
+    "deterministic build, migration, restore and rollback gates"
+  ],
+  "publicReadOnlyEvidence": {
+    "origin": "https://rest.ynxweb4.com/app/bridge",
+    "mutationPubliclyEnabled": false,
+    "ynxAssetRouteAvailable": false,
+    "fundedTransferVerified": false
+  },
+  "externalInputs": [
+    "approved YNX provider route and contracts",
+    "funded Testnet assets",
+    "independent Security/SRE acceptance",
+    "shared Testnet dependency acceptance"
+  ]
+}

@@ -3,7 +3,7 @@
   "product": "YNX Bridge & Interoperability",
   "productSlug": "ynx-bridge",
   "branch": "codex/final-bridge",
-  "sourceCommit": "3060deee4132bcd6bdc0d9284e0291391fa3bc4e",
+  "sourceCommit": "914249bc9772f9e813470291f3ad7c57205edbe9",
   "status": "ACTIVE",
   "currentPhase": "TESTNET",
   "completedPhases": ["RECOVER", "PROTECT", "FREEZE", "INTEGRATE"],

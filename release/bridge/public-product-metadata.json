@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "ynx-public-product-metadata/v1",
+  "productId": "21",
+  "product": "YNX Bridge & Interoperability",
+  "slug": "bridge",
+  "owner": "21-bridge",
+  "sourceCommit": "914249bc9772f9e813470291f3ad7c57205edbe9",
+  "canonicalRoute": "/bridge",
+  "title": "YNX Bridge — Verify cross-network transfer state",
+  "metaDescription": "Inspect provider, route, proof, destination confirmation, availability, incident and recovery evidence without confusing progress with completed asset delivery.",
+  "h1": "Cross-network evidence before asset availability",
+  "features": [
+    "Explicit quote-to-availability lifecycle",
+    "Separate source finality, proof, destination confirmation and availability",
+    "Provider outage and recovery history",
+    "Read-only public status and SDK surface",
+    "Fail-closed refund, dispute and correction states"
+  ],
+  "risks": [
+    "No approved provider currently exposes a verified YNX asset route.",
+    "No funded YNX Testnet deposit or withdrawal has been accepted.",
+    "Threshold-relayer attestations are not light-client or trustless consensus proofs."
+  ],
+  "status": {
+    "channel": "testnet-candidate",
+    "publicReadOnlyStatusAvailable": true,
+    "publicMutationEnabled": false,
+    "ynxAssetRouteAvailable": false,
+    "fundedTransferVerified": false
+  },
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": "https://rest.ynxweb4.com/app/bridge/status",
+  "faq": [
+    {
+      "question": "Does destination confirmation mean the asset is available?",
+      "answer": "No. Consumers must require destination_available and destinationAssetAvailable=true."
+    },
+    {
+      "question": "Is a YNX bridge route live?",
+      "answer": "No approved provider route or funded YNX Testnet transfer is currently verified."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "type": "WebApplication",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web"
+  }
+}
