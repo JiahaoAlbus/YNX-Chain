@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 2,
+  "contractId": "ynx-creator-studio-integration-v2",
+  "productId": "34",
+  "productName": "YNX Creator Studio",
+  "slug": "creator-studio",
+  "owner": "34-creator-studio",
+  "serviceId": "ynx-creator-studio",
+  "status": "candidate",
+  "sourceCommit": "192da88b0ca3897278893711fb08e1373b0562b2",
+  "generatedAt": "2026-07-27T15:47:21Z",
+  "stateSchemaVersion": 2,
+  "walletTuple": {
+    "productClientId": "ynx-creator-studio-web-v1",
+    "requestingProduct": "ynx-creator-studio",
+    "bundleId": "com.ynxweb4.creator-studio.web",
+    "callback": "https://creator.video.ynxweb4.com/wallet-auth/callback",
+    "deviceAlgorithm": "p256-sha256",
+    "sessionHeader": "X-YNX-App-Session",
+    "deviceHeader": "X-YNX-Device-ID",
+    "requiredScopes": [
+      "ai.video.propose",
+      "pay.payout.intent",
+      "video.creator",
+      "video.read"
+    ],
+    "acceptanceState": "not accepted centrally"
+  },
+  "gatewayAttestation": {
+    "domain": "YNX_VIDEO_GATEWAY_REQUEST_V2",
+    "requiredClaims": [
+      "account",
+      "bundleId",
+      "callback",
+      "chainId",
+      "expiresAt",
+      "issuedAt",
+      "productClientId",
+      "productDeviceAlgorithm",
+      "productDeviceKey",
+      "requestDigest",
+      "requestingProduct",
+      "scopes",
+      "sessionBinding"
+    ],
+    "requestBindings": [
+      "bodySha256",
+      "method",
+      "nonce",
+      "requestTime",
+      "requestUri"
+    ],
+    "nonceRule": "consume atomically before mutation; replay and changed replay fail closed"
+  },
+  "roles": {
+    "owner": ["team.admin", "content.manage", "analytics.read", "revenue.read", "payout.intent", "moderation.local", "ai.propose"],
+    "editor": ["content.edit", "content.publish", "rights.declare", "moderation.content", "ai.propose"],
+    "uploader": ["content.upload", "processing.retry", "asset.manage", "ai.propose"],
+    "analyst": ["analytics.read"],
+    "finance": ["analytics.read", "revenue.read", "revenue.dispute"],
+    "moderator": ["moderation.content", "appeal.submit"],
+    "viewer": ["content.read.team"]
+  },
+  "roleRules": [
+    "owner cannot be delegated",
+    "role administration is owner-only",
+    "role change and revoke advance channel auth version",
+    "every request re-evaluates persisted membership",
+    "finance cannot redirect or create owner payout intent"
+  ],
+  "rightsRules": [
+    "public or unlisted publication requires an active rights declaration",
+    "declaration source_sha256 must equal the uploaded media sha256",
+    "contributor splits must total 10000 basis points and use canonical YNX Wallet addresses",
+    "declarer and channel owner cannot self-verify rights",
+    "commercial eligibility and revenue require independently verified rights",
+    "expired, rejected or lineage-mismatched rights remove audience access"
+  ],
+  "api": {
+    "basePrefix": "/video",
+    "public": [
+      "GET /health",
+      "GET /version",
+      "GET /v1/channels/{channelId}",
+      "GET /v1/videos",
+      "GET /v1/videos/{videoId}",
+      "GET /v1/videos/{videoId}/comments",
+      "GET /media/{boundedObjectKey}"
+    ],
+    "creator": [
+      "GET /v1/studio",
+      "POST /v1/channels",
+      "GET /v1/channels/{channelId}/team",
+      "POST /v1/channels/{channelId}/team/invites",
+      "POST /v1/team/invites/{inviteId}/accept",
+      "POST /v1/channels/{channelId}/team/{account}/role",
+      "DELETE /v1/channels/{channelId}/team/{account}",
+      "POST /v1/uploads",
+      "POST /v1/videos/{videoId}/metadata",
+      "POST /v1/videos/{videoId}/retry-processing",
+      "POST /v1/videos/{videoId}/publish",
+      "POST /v1/videos/{videoId}/rights",
+      "POST /v1/videos/{videoId}/monetization",
+      "POST /v1/payout-intents",
+      "POST /v1/revenue/{recordId}/disputes",
+      "POST /v1/ai/jobs",
+      "POST /v1/ai/jobs/{jobId}/run",
+      "POST /v1/ai/jobs/{jobId}/stream",
+      "POST /v1/ai/jobs/{jobId}/review",
+      "POST /v1/ai/jobs/{jobId}/cancel",
+      "DELETE /v1/ai/jobs/{jobId}"
+    ],
+    "globalModerator": [
+      "POST /v1/rights/{declarationId}/review",
+      "POST /v1/videos/{videoId}/takedown",
+      "POST /v1/appeals/{appealId}/review",
+      "POST /v1/monetization/{videoId}/review",
+      "POST /v1/revenue"
+    ]
+  },
+  "canonicalEvents": {
+    "owner": "YNX 26 Data Fabric after central acceptance",
+    "candidateNames": [
+      "creator.team.invited",
+      "creator.team.accepted",
+      "creator.team.role_changed",
+      "creator.team.revoked",
+      "creator.content.uploaded",
+      "creator.content.processing_failed",
+      "creator.content.published",
+      "creator.rights.declared",
+      "creator.rights.reviewed",
+      "creator.revenue.recorded",
+      "creator.revenue.disputed",
+      "creator.ai.proposal_decided"
+    ],
+    "currentLocalRepresentation": "append-only local AuditEvent actions; not a frozen central event schema"
+  },
+  "errors": {
+    "currentWireShape": {"error": "human-readable fail-closed message"},
+    "currentHttpClasses": {
+      "400": "validation or invalid state transition",
+      "401": "missing/invalid session",
+      "403": "wrong account, role, scope or moderator boundary",
+      "404": "missing or non-audience-visible resource",
+      "413": "quota or object-size boundary"
+    },
+    "frozenErrorCodes": false,
+    "nextAction": "YNX 29 must freeze stable machine error codes before central integration"
+  },
+  "healthVersion": {
+    "health": "GET /health",
+    "version": "GET /version",
+    "publicDeploymentEvidence": false
+  },
+  "migration": {
+    "currentStateSchema": 2,
+    "verifyBeforeNormalize": true,
+    "copyOnWriteAtomicUpdate": true,
+    "legacyReadTest": "TestLegacyStateMigratesAfterIntegrityVerification",
+    "rollbackMigration": "not yet implemented"
+  },
+  "dependencies": [
+    {"product": "YNX Wallet/Auth", "owner": "YNX 02", "status": "acceptance required"},
+    {"product": "YNX Pay", "owner": "YNX 04", "status": "receipt/refund/payout acceptance required"},
+    {"product": "YNX Trust Center", "owner": "YNX 15", "status": "rights/takedown/appeal acceptance required"},
+    {"product": "YNX Data Fabric", "owner": "YNX 26", "status": "canonical event and billing ledger acceptance required"},
+    {"product": "YNX Explorer", "owner": "YNX 12", "status": "public evidence acceptance required"},
+    {"product": "YNX Monitor", "owner": "YNX 13", "status": "telemetry/health acceptance required"},
+    {"product": "YNX Integration", "owner": "YNX 29", "status": "schema/error/event freeze required"},
+    {"product": "YNX Security/SRE", "owner": "YNX 30", "status": "scanner/artifact/release validation required"},
+    {"product": "YNX Website", "owner": "YNX 28", "status": "public metadata consumption required"}
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "installedLocalBoundary": "static Web source served and cold-read by local smoke only; no central install or hosted artifact"
+  },
+  "truthBoundary": "This contract is a Creator Studio-owned integration candidate. It is not central acceptance, shared Testnet verification, public deployment, production signing or real-value revenue evidence."
+}

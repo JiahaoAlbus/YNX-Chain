@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "productId": "34",
+  "productName": "YNX Creator Studio",
+  "slug": "creator-studio",
+  "owner": "34-creator-studio",
+  "serviceId": "ynx-creator-studio",
+  "sourceCommit": "192da88b0ca3897278893711fb08e1373b0562b2",
+  "canonicalRoute": "/creator-studio",
+  "title": "YNX Creator Studio — Content, rights, teams, and revenue evidence",
+  "metaDescription": "A Web-first YNX Testnet creator console for team access, content workflows, rights review, analytics evidence, revenue records, and bounded AI proposals.",
+  "h1": "Create with explicit rights, roles, and evidence",
+  "directAnswer": "YNX Creator Studio is the professional control console for creator teams. Its local candidate manages content, rights, analytics, revenue evidence, moderation, and human-reviewed AI proposals while Wallet, Pay, Trust, and Data Fabric remain separate authorities.",
+  "features": [
+    "Channel-owned team roles with immediate persisted revocation",
+    "Source-hash-bound rights declarations and independent review",
+    "Fail-closed media processing and publication boundaries",
+    "Evidence-derived analytics and revenue records",
+    "Human-reviewed AI proposals that cannot publish or move assets"
+  ],
+  "risks": [
+    "The current candidate is locally tested but not centrally integrated or publicly deployed.",
+    "Local Testnet revenue and analytics records are not proof of real-world value, audience, availability, or profitability.",
+    "Central Wallet, Pay, Trust, Data Fabric, monitoring, security, and release acceptance remain required.",
+    "Production signing, immutable hosted downloads, store release, and public runtime evidence are absent."
+  ],
+  "faq": [
+    {
+      "question": "Can a team member redirect creator payouts?",
+      "answer": "No. Team and AI roles cannot sign, withdraw, or redirect creator assets; payout intent remains owner-controlled and requires canonical Wallet and Pay acceptance."
+    },
+    {
+      "question": "Can the creator verify their own commercial rights?",
+      "answer": "No. Commercial eligibility requires an independent rights review whose declaration remains bound to the uploaded source SHA-256."
+    },
+    {
+      "question": "Can AI publish content automatically?",
+      "answer": "No. AI output is a proposal that requires explicit human review and cannot publish, assert rights, move funds, or change team authority."
+    },
+    {
+      "question": "Is Creator Studio publicly released?",
+      "answer": "No. The repository contains a locally tested Web candidate. Central integration, staging, public deployment, hosted artifacts, production signing, and store release are not evidenced."
+    }
+  ],
+  "structuredDataRecommendation": {
+    "types": ["SoftwareApplication", "FAQPage"],
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Web"
+  },
+  "publicUrls": {
+    "canonical": null,
+    "support": null,
+    "privacy": null,
+    "security": null,
+    "status": null
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "websiteHandoff": {
+    "owner": "28-website",
+    "ssrOrSsgRequired": true,
+    "jsonLdRequired": true,
+    "sitemapRequired": true,
+    "searchConsoleRequired": true,
+    "bingRequired": true,
+    "indexNowRequired": true,
+    "consumed": false
+  }
+}

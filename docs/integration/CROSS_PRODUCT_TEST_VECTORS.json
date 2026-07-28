@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 2,
+  "productId": "ynx-creator-studio",
+  "sourceCommit": "192da88b0ca3897278893711fb08e1373b0562b2",
+  "generatedAt": "2026-07-27T15:47:21Z",
+  "status": "candidate",
+  "identities": {
+    "channelOwner": "canonical YNX Wallet account A",
+    "editor": "canonical YNX Wallet account B",
+    "analyst": "canonical YNX Wallet account C",
+    "finance": "canonical YNX Wallet account D",
+    "globalModerator": "canonical YNX Wallet account E with central moderator entitlement",
+    "attacker": "canonical YNX Wallet account F without team membership"
+  },
+  "vectors": [
+    {
+      "id": "CS-WALLET-001",
+      "dependencyOwner": "YNX 02 Wallet/Auth",
+      "name": "accepted product tuple and exact scopes",
+      "preconditions": ["Creator Studio tuple is registered centrally", "device challenge and product session are active"],
+      "request": {"productClientId": "ynx-creator-studio-web-v1", "bundleId": "com.ynxweb4.creator-studio.web", "scopes": ["ai.video.propose", "pay.payout.intent", "video.creator", "video.read"]},
+      "expected": {"result": "accepted", "sessionBinding": "present", "wildcardScopes": false}
+    },
+    {
+      "id": "CS-WALLET-NEG-001",
+      "dependencyOwner": "YNX 02 Wallet/Auth",
+      "name": "wrong product or bundle fails closed",
+      "mutation": ["requestingProduct changed", "bundleId changed", "scope widened"],
+      "expected": {"http": 403, "productMutation": false, "audit": true}
+    },
+    {
+      "id": "CS-GATEWAY-NEG-001",
+      "dependencyOwner": "YNX 02 Wallet/Auth and App Gateway owner",
+      "name": "replay and changed replay fail closed",
+      "steps": ["submit signed mutation with unique nonce", "replay exact request", "reuse nonce with changed body"],
+      "expected": ["first request may succeed", "exact replay returns stored idempotent result or conflict according to gateway contract", "changed replay is rejected before mutation"]
+    },
+    {
+      "id": "CS-TEAM-001",
+      "dependencyOwner": "YNX 34",
+      "name": "team invite, acceptance and bounded editor action",
+      "steps": ["owner invites editor role", "only named editor accepts", "editor uploads media", "owner remains canonical content owner"],
+      "expected": {"inviteState": "accepted", "memberRole": "editor", "contentOwner": "channelOwner", "audit": true}
+    },
+    {
+      "id": "CS-TEAM-NEG-001",
+      "dependencyOwner": "YNX 34 and YNX 02",
+      "name": "wrong account, replay, owner delegation and noncanonical identity are rejected",
+      "expected": {"http": 400, "membershipCreated": false, "ownerDelegated": false}
+    },
+    {
+      "id": "CS-TEAM-NEG-002",
+      "dependencyOwner": "YNX 34 and YNX 02",
+      "name": "role revoke invalidates authority immediately",
+      "steps": ["editor performs allowed metadata mutation", "owner revokes editor", "revoked editor retries mutation with otherwise valid product session"],
+      "expected": {"http": 403, "channelAuthVersionAdvanced": true, "postRevokeMutation": false}
+    },
+    {
+      "id": "CS-RIGHTS-001",
+      "dependencyOwner": "YNX 34 and YNX 15 Trust Center",
+      "name": "source-bound rights and independent verification",
+      "steps": ["editor declares rights with source_sha256 equal to uploaded media", "owner self-review is rejected", "global moderator verifies evidence", "editor publishes public"],
+      "expected": {"rightsState": "verified", "publicAudienceAccess": true, "selfReview": false}
+    },
+    {
+      "id": "CS-RIGHTS-NEG-001",
+      "dependencyOwner": "YNX 34",
+      "name": "missing or mismatched rights block publication",
+      "mutations": ["no declaration", "source_sha256 changed", "contributor split does not total 10000", "noncanonical contributor account"],
+      "expected": {"publication": false, "revenueEligibility": false, "audit": true}
+    },
+    {
+      "id": "CS-RIGHTS-NEG-002",
+      "dependencyOwner": "YNX 34 and YNX 15 Trust Center",
+      "name": "expiry or rejection removes audience access",
+      "steps": ["publish with active declaration", "advance beyond rights end or reject declaration", "query discovery, media and watch endpoints"],
+      "expected": {"discoverable": false, "mediaAudienceAccess": false, "watchRecorded": false, "ownerRecoveryAccess": true}
+    },
+    {
+      "id": "CS-ANALYTICS-001",
+      "dependencyOwner": "YNX 26 Data Fabric and YNX 34",
+      "name": "analytics use only authoritative persisted events",
+      "steps": ["record accepted watch event", "record accepted subscription event", "read as analyst", "read as editor"],
+      "expected": {"analystSeesUsage": true, "editorSeesAnalytics": false, "sourceEnvelopeRequired": true, "syntheticProjection": false}
+    },
+    {
+      "id": "CS-REVENUE-001",
+      "dependencyOwner": "YNX 04 Pay and YNX 26 Data Fabric",
+      "name": "verified receipt and usage allocation create owner revenue",
+      "preconditions": ["video is published", "rights are independently verified", "monetization is approved", "Pay receipt is authoritative", "usage events belong to video"],
+      "expected": {"revenueOwner": "channelOwner", "receiptAllocatedOnce": true, "usageAllocatedOnce": true, "realValueClaim": false}
+    },
+    {
+      "id": "CS-REVENUE-NEG-001",
+      "dependencyOwner": "YNX 04 Pay and YNX 26 Data Fabric",
+      "name": "receipt replay, usage replay and rights loss fail closed",
+      "expected": {"revenueRecordCreated": false, "duplicateAllocation": false, "payoutAuthorityChanged": false}
+    },
+    {
+      "id": "CS-PAYOUT-NEG-001",
+      "dependencyOwner": "YNX 02 Wallet/Auth and YNX 04 Pay",
+      "name": "finance role cannot redirect payout",
+      "steps": ["finance reads canonical revenue", "finance attempts payout intent as itself", "owner creates Wallet-confirmed payout intent"],
+      "expected": {"financePayout": false, "ownerPayoutRequiresWalletApproval": true}
+    },
+    {
+      "id": "CS-AI-001",
+      "dependencyOwner": "YNX 14 AI and YNX 34",
+      "name": "AI proposal requires preview and explicit review",
+      "steps": ["prepare job with context classes and output language", "run through server-side provider", "preview output", "approve or reject"],
+      "expected": {"automaticPublish": false, "automaticRightsClaim": false, "automaticPayment": false, "audit": true}
+    },
+    {
+      "id": "CS-TRUST-001",
+      "dependencyOwner": "YNX 15 Trust Center",
+      "name": "takedown and appeal case linkage",
+      "preconditions": ["Trust contract is centrally accepted"],
+      "expected": {"canonicalTrustCaseId": "required", "localStateFollowsCanonicalEvent": true, "creatorMayAppeal": true, "creatorMayOverrideTrust": false}
+    },
+    {
+      "id": "CS-RECOVERY-001",
+      "dependencyOwner": "YNX 30 Security/SRE and YNX 34",
+      "name": "backup restore preserves integrity and revocation",
+      "steps": ["create team, rights and content state", "revoke team member", "create backup", "restore into empty destination", "reopen state", "retry revoked mutation"],
+      "expected": {"hmacValid": true, "rightsPreserved": true, "revocationPreserved": true, "revokedMutation": false}
+    },
+    {
+      "id": "CS-OBS-001",
+      "dependencyOwner": "YNX 13 Monitor",
+      "name": "health, version and correlation evidence",
+      "expected": {"health": "truthful", "versionSourceCommit": "required", "requestId": "required", "errorId": "required", "auditId": "required", "staticGreenHealth": false}
+    },
+    {
+      "id": "CS-WEBSITE-001",
+      "dependencyOwner": "YNX 28 Website",
+      "name": "website state remains distinct from runtime deployment",
+      "expected": {"canonicalRoute": "/creator-studio", "websitePublishedMayDifferFromRuntime": true, "deployedPublic": false, "inventedDownloadUrl": false}
+    }
+  ],
+  "truthBoundary": "These are mergeable candidate vectors. Only dependency-owner execution and evidence can change integratedCentral, testnetVerified or publicVerified state."
+}
