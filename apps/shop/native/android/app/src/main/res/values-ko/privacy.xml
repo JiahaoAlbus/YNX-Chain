@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">내 Shop 데이터</string>
+    <string name="privacy_data_description">프로필, 장바구니, 주문, AI 기록 및 구매자 감사 내역을 내보냅니다. 삭제하면 프로필, 주소, 장바구니 및 AI 기록이 제거되고 종료 상태의 주문은 가명 처리됩니다. 공개 체인의 결제 주소와 거래 증거는 계속 검증할 수 있습니다.</string>
+    <string name="privacy_export_button">Shop 데이터 내보내기</string>
+    <string name="privacy_export_ready">Shop 데이터 내보내기가 준비되었습니다.</string>
+    <string name="privacy_export_unavailable">Shop 데이터를 내보낼 수 없습니다.</string>
+    <string name="privacy_share_label">Shop 데이터 JSON 저장</string>
+    <string name="privacy_delete_button">개인 Shop 데이터 삭제</string>
+    <string name="privacy_delete_warning">결제, 이행, 반품, 환불 또는 분쟁 절차가 종료 상태에 도달해야 삭제할 수 있습니다. 종료 주문은 가명 처리되며 공개 체인 결제 증거는 유지됩니다.</string>
+    <string name="privacy_delete_action">삭제</string>
+    <string name="privacy_exact_required">삭제 확인 문구를 정확히 입력하세요.</string>
+    <string name="privacy_deleted">개인 Shop 데이터가 삭제되었습니다. 종료 주문은 가명 처리되었으며 공개 체인 결제 증거는 유지됩니다.</string>
+    <string name="privacy_delete_failed">삭제가 완료되지 않았습니다. 진행 중인 절차를 먼저 해결해야 할 수 있습니다.</string>
+</resources>

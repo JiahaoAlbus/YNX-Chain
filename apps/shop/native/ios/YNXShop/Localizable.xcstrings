@@ -4908,6 +4908,918 @@
           }
         }
       }
+    },
+    "privacy_data_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your Shop data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的商城数据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的商城資料"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shopデータ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "내 Shop 데이터"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus datos de Shop"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos données Shop"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Shop-Daten"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seus dados da Shop"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ваши данные Shop"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بياناتك في المتجر"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data Shop Anda"
+          }
+        }
+      }
+    },
+    "privacy_data_description": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export your profile, cart, orders, AI records and buyer audit history. Deletion removes profile, addresses, cart and AI records, and pseudonymizes terminal orders. Public-chain settlement addresses and transaction evidence remain verifiable."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出你的资料、购物车、订单、AI 记录和买家审计历史。删除会移除资料、地址、购物车和 AI 记录，并对终态订单去标识化；公开链上的结算地址与交易证据仍可验证。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯出你的資料、購物車、訂單、AI 紀錄與買家稽核歷史。刪除會移除資料、地址、購物車與 AI 紀錄，並對終態訂單去識別化；公開鏈上的結算地址與交易證據仍可驗證。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロフィール、カート、注文、AI記録、購入者監査履歴をエクスポートできます。削除ではプロフィール、住所、カート、AI記録を消去し、終端状態の注文を仮名化します。公開チェーン上の決済アドレスと取引証拠は検証可能なまま保持されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "프로필, 장바구니, 주문, AI 기록 및 구매자 감사 내역을 내보냅니다. 삭제하면 프로필, 주소, 장바구니 및 AI 기록이 제거되고 종료 상태의 주문은 가명 처리됩니다. 공개 체인의 결제 주소와 거래 증거는 계속 검증할 수 있습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporta tu perfil, carrito, pedidos, registros de IA y auditoría del comprador. La eliminación borra perfil, direcciones, carrito y registros de IA, y seudonimiza los pedidos terminales. Las direcciones de liquidación y la evidencia de transacciones en la cadena pública siguen siendo verificables."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportez votre profil, panier, commandes, dossiers IA et historique d’audit acheteur. La suppression efface profil, adresses, panier et dossiers IA, et pseudonymise les commandes terminales. Les adresses de règlement et preuves de transaction sur chaîne publique restent vérifiables."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportieren Sie Profil, Warenkorb, Bestellungen, KI-Datensätze und Käufer-Auditverlauf. Beim Löschen werden Profil, Adressen, Warenkorb und KI-Datensätze entfernt und abgeschlossene Bestellungen pseudonymisiert. Abrechnungsadressen und Transaktionsnachweise auf der öffentlichen Chain bleiben überprüfbar."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporte perfil, carrinho, pedidos, registros de IA e histórico de auditoria do comprador. A exclusão remove perfil, endereços, carrinho e registros de IA, e pseudonimiza pedidos em estado terminal. Endereços de liquidação e evidências de transação na cadeia pública continuam verificáveis."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспортируйте профиль, корзину, заказы, записи ИИ и журнал аудита покупателя. При удалении стираются профиль, адреса, корзина и записи ИИ, а завершённые заказы псевдонимизируются. Адреса расчётов и доказательства транзакций в публичной сети остаются проверяемыми."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "صدّر ملفك وسلة التسوق والطلبات وسجلات الذكاء الاصطناعي وسجل تدقيق المشتري. يحذف الإجراء الملف والعناوين والسلة وسجلات الذكاء الاصطناعي ويستبدل هوية الطلبات النهائية بمعرّف مستعار. تبقى عناوين التسوية وأدلة المعاملات على السلسلة العامة قابلة للتحقق."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ekspor profil, keranjang, pesanan, catatan AI, dan riwayat audit pembeli. Penghapusan menghapus profil, alamat, keranjang, serta catatan AI dan menyamarkan identitas pesanan berstatus akhir. Alamat penyelesaian dan bukti transaksi pada rantai publik tetap dapat diverifikasi."
+          }
+        }
+      }
+    },
+    "privacy_export_button": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export Shop data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出商城数据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯出商城資料"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shopデータを書き出す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop 데이터 내보내기"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar datos de Shop"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporter les données Shop"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop-Daten exportieren"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar dados da Shop"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспортировать данные Shop"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تصدير بيانات المتجر"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ekspor data Shop"
+          }
+        }
+      }
+    },
+    "privacy_export_ready": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop data export is ready."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商城数据导出已准备完成。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商城資料匯出已準備完成。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shopデータの書き出し準備ができました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop 데이터 내보내기가 준비되었습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La exportación de datos de Shop está lista."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’export des données Shop est prêt."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Export der Shop-Daten ist bereit."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A exportação dos dados da Shop está pronta."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспорт данных Shop готов."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أصبح تصدير بيانات المتجر جاهزاً."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ekspor data Shop siap."
+          }
+        }
+      }
+    },
+    "privacy_export_unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop data export unavailable."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商城数据导出不可用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商城資料匯出無法使用。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shopデータを書き出せません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop 데이터를 내보낼 수 없습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La exportación de datos de Shop no está disponible."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’export des données Shop est indisponible."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Export der Shop-Daten ist nicht verfügbar."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A exportação dos dados da Shop está indisponível."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспорт данных Shop недоступен."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تصدير بيانات المتجر غير متاح."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ekspor data Shop tidak tersedia."
+          }
+        }
+      }
+    },
+    "privacy_share_label": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save Shop data JSON"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存商城数据 JSON"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存商城資料 JSON"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ShopデータJSONを保存"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop 데이터 JSON 저장"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar JSON de datos de Shop"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer le JSON des données Shop"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop-Daten als JSON speichern"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Salvar JSON dos dados da Shop"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить JSON данных Shop"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حفظ بيانات المتجر بصيغة JSON"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simpan JSON data Shop"
+          }
+        }
+      }
+    },
+    "privacy_delete_button": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete personal Shop data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除个人商城数据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除個人商城資料"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "個人Shopデータを削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "개인 Shop 데이터 삭제"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar datos personales de Shop"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer les données personnelles Shop"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Persönliche Shop-Daten löschen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluir dados pessoais da Shop"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить персональные данные Shop"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حذف بيانات المتجر الشخصية"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hapus data pribadi Shop"
+          }
+        }
+      }
+    },
+    "privacy_delete_warning": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active payment, fulfillment, return, refund or dispute workflows must reach a terminal state before deletion. Finalized orders are pseudonymized; authoritative public-chain settlement evidence remains retained."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "付款、履约、退货、退款或争议流程必须进入终态后才能删除。终态订单会被去标识化；权威公开链结算证据继续保留。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "付款、履約、退貨、退款或爭議流程必須進入終態後才能刪除。終態訂單會去識別化；權威公開鏈結算證據繼續保留。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払い、履行、返品、返金、紛争の処理は、削除前に終端状態へ到達する必要があります。終端注文は仮名化され、公開チェーンの決済証拠は保持されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "결제, 이행, 반품, 환불 또는 분쟁 절차가 종료 상태에 도달해야 삭제할 수 있습니다. 종료 주문은 가명 처리되며 공개 체인 결제 증거는 유지됩니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los procesos activos de pago, preparación, devolución, reembolso o disputa deben alcanzar un estado terminal antes de eliminar. Los pedidos finalizados se seudonimizan; se conserva la evidencia autorizada de liquidación en cadena pública."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les processus actifs de paiement, préparation, retour, remboursement ou litige doivent atteindre un état terminal avant suppression. Les commandes finalisées sont pseudonymisées ; la preuve de règlement officielle sur chaîne publique est conservée."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktive Zahlungs-, Erfüllungs-, Rückgabe-, Erstattungs- oder Streitfallabläufe müssen vor dem Löschen einen Endzustand erreichen. Abgeschlossene Bestellungen werden pseudonymisiert; der maßgebliche Abrechnungsnachweis auf der öffentlichen Chain bleibt erhalten."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fluxos ativos de pagamento, atendimento, devolução, reembolso ou disputa devem chegar a um estado terminal antes da exclusão. Pedidos finalizados são pseudonimizados; a evidência oficial de liquidação na cadeia pública permanece retida."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Активные процессы оплаты, исполнения, возврата, возмещения или спора должны перейти в конечное состояние до удаления. Завершённые заказы псевдонимизируются; официальный расчётный материал публичной сети сохраняется."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يجب أن تصل عمليات الدفع والتنفيذ والإرجاع والاسترداد أو النزاع النشطة إلى حالة نهائية قبل الحذف. تُستبدل هوية الطلبات النهائية بمعرّف مستعار، وتبقى أدلة التسوية المعتمدة على السلسلة العامة محفوظة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alur pembayaran, pemenuhan, pengembalian, pengembalian dana, atau sengketa yang aktif harus mencapai status akhir sebelum penghapusan. Identitas pesanan akhir disamarkan; bukti penyelesaian resmi pada rantai publik tetap disimpan."
+          }
+        }
+      }
+    },
+    "privacy_delete_action": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluir"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حذف"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hapus"
+          }
+        }
+      }
+    },
+    "privacy_exact_required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter the exact deletion confirmation phrase."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入完全一致的删除确认短语。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請輸入完全一致的刪除確認短語。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除確認フレーズを完全一致で入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제 확인 문구를 정확히 입력하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe exactamente la frase de confirmación de eliminación."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saisissez exactement la phrase de confirmation de suppression."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geben Sie die Bestätigungsphrase zum Löschen exakt ein."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digite exatamente a frase de confirmação de exclusão."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите точную фразу подтверждения удаления."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أدخل عبارة تأكيد الحذف المطابقة تماماً."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masukkan frasa konfirmasi penghapusan dengan tepat."
+          }
+        }
+      }
+    },
+    "privacy_deleted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal Shop data deleted. Terminal orders were pseudonymized; public-chain settlement evidence remains retained."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "个人商城数据已删除。终态订单已去标识化；公开链结算证据继续保留。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "個人商城資料已刪除。終態訂單已去識別化；公開鏈結算證據繼續保留。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "個人Shopデータを削除しました。終端注文は仮名化され、公開チェーンの決済証拠は保持されます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "개인 Shop 데이터가 삭제되었습니다. 종료 주문은 가명 처리되었으며 공개 체인 결제 증거는 유지됩니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se eliminaron tus datos personales de Shop. Los pedidos terminales se seudonimizaron y se conserva la evidencia de liquidación en cadena pública."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos données personnelles Shop ont été supprimées. Les commandes terminales ont été pseudonymisées et la preuve de règlement sur chaîne publique est conservée."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Persönliche Shop-Daten wurden gelöscht. Abgeschlossene Bestellungen wurden pseudonymisiert; der Abrechnungsnachweis auf der öffentlichen Chain bleibt erhalten."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os dados pessoais da Shop foram excluídos. Pedidos terminais foram pseudonimizados e a evidência de liquidação na cadeia pública permanece retida."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Персональные данные Shop удалены. Завершённые заказы псевдонимизированы; доказательства расчётов в публичной сети сохранены."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حُذفت بيانات المتجر الشخصية. استُبدلت هوية الطلبات النهائية بمعرّف مستعار، وبقيت أدلة التسوية على السلسلة العامة محفوظة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data pribadi Shop dihapus. Identitas pesanan akhir disamarkan dan bukti penyelesaian pada rantai publik tetap disimpan."
+          }
+        }
+      }
+    },
+    "privacy_delete_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletion not completed. Active workflows may still require resolution."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除未完成。可能仍有需要处理的活动流程。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除未完成。可能仍有需要處理的進行中流程。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除できませんでした。処理中のワークフローを解決する必要がある可能性があります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "삭제가 완료되지 않았습니다. 진행 중인 절차를 먼저 해결해야 할 수 있습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se completó la eliminación. Puede que aún deban resolverse procesos activos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suppression non terminée. Des processus actifs doivent peut-être encore être résolus."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen nicht abgeschlossen. Aktive Abläufe müssen möglicherweise noch geklärt werden."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A exclusão não foi concluída. Fluxos ativos ainda podem precisar de resolução."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удаление не завершено. Возможно, сначала нужно завершить активные процессы."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يكتمل الحذف. قد توجد عمليات نشطة تحتاج إلى معالجة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penghapusan belum selesai. Alur aktif mungkin masih perlu diselesaikan."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
