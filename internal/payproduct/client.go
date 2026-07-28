@@ -39,6 +39,29 @@ func NewHTTPPayAPI(baseURL, apiKey string) (*HTTPPayAPI, error) {
 	}
 	return &HTTPPayAPI{BaseURL: u.String(), APIKey: apiKey, Client: &http.Client{Timeout: 15 * time.Second}}, nil
 }
+func (c *HTTPPayAPI) Health(ctx context.Context) error {
+	client := c.Client
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+"/health", nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	applyCorrelationHeaders(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("central Pay API health unavailable: %w", err)
+	}
+	defer resp.Body.Close()
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("central Pay API health returned %d", resp.StatusCode)
+	}
+	return nil
+}
+
 func (c *HTTPPayAPI) CreateIntent(ctx context.Context, merchant, payout string, amount int64, key string) (chain.PayIntent, error) {
 	var out chain.PayIntent
 	err := c.do(ctx, http.MethodPost, "/pay/intents", map[string]any{"merchant": merchant, "payoutAddress": payout, "amount": amount, "idempotencyKey": key}, &out)
@@ -94,6 +117,7 @@ func (c *HTTPPayAPI) do(ctx context.Context, method, path string, body any, out 
 	}
 	req.Header.Set("Authorization", "Bearer "+c.APIKey)
 	req.Header.Set("Content-Type", "application/json")
+	applyCorrelationHeaders(req)
 	resp, err := c.Client.Do(req)
 	if err != nil {
 		return fmt.Errorf("central Pay API unavailable: %w", err)

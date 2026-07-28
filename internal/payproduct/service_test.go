@@ -33,6 +33,7 @@ type fakePay struct {
 	invoice       chain.Invoice
 	settlement    chain.PaySettlement
 	settlementErr error
+	healthErr     error
 	intentCalls   int
 	invoiceCalls  int
 	now           func() time.Time
@@ -48,6 +49,12 @@ func (a *blockingAI) Complete(ctx context.Context, _, _ string) (string, string,
 
 func (fixedAI) Complete(context.Context, string, string) (string, string, string, int64, error) {
 	return "YNX AI Gateway", "provider-backed-test-model", "Risk explanation grounded in the selected invoice; human approval does not move funds.", 42, nil
+}
+
+func (f *fakePay) Health(context.Context) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.healthErr
 }
 
 func (f *fakePay) CreateIntent(_ context.Context, m, p string, a int64, k string) (chain.PayIntent, error) {

@@ -546,6 +546,7 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 	req.Header.Set("X-YNX-Payload-SHA256", d.PayloadHash)
 	req.Header.Set("X-YNX-Signature-Version", fmt.Sprint(d.SecretVersion))
 	req.Header.Set("X-YNX-Signature", "v"+fmt.Sprint(d.SecretVersion)+"="+d.Signature)
+	applyCorrelationHeaders(req)
 	resp, sendErr := s.client.Do(req)
 	d.Attempt++
 	d.UpdatedAt = s.now()

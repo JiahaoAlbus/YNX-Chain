@@ -455,6 +455,7 @@ func (p *HTTPBridgeProvider) do(ctx context.Context, method, path string, body a
 	}
 	req.Header.Set("Authorization", "Bearer "+p.APIKey)
 	req.Header.Set("Content-Type", "application/json")
+	applyCorrelationHeaders(req)
 	resp, err := p.Client.Do(req)
 	if err != nil {
 		return err

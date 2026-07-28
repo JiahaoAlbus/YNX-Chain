@@ -278,6 +278,7 @@ func (p *HTTPSponsorshipProvider) do(ctx context.Context, method, path string, b
 	}
 	req.Header.Set("Authorization", "Bearer "+p.APIKey)
 	req.Header.Set("Content-Type", "application/json")
+	applyCorrelationHeaders(req)
 	resp, err := p.Client.Do(req)
 	if err != nil {
 		return err

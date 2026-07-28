@@ -174,6 +174,7 @@ func (p *HTTPAIProvider) Complete(ctx context.Context, session, prompt string) (
 		return "YNX AI Gateway", p.Model, "", 0, err
 	}
 	req.Header.Set("Authorization", "Bearer "+p.APIKey)
+	applyCorrelationHeaders(req)
 	resp, err := p.Client.Do(req)
 	if err != nil {
 		return "YNX AI Gateway", p.Model, "", 0, err
