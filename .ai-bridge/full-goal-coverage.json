@@ -63,15 +63,15 @@
       "requirement": "Migrate legacy manager roles to canonical admin without accepting manager in new requests.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["Snapshot v6 normalization in internal/commerce/store.go", "v2 manager to admin migration", "revocation, invitation and Seller event collection initialization"],
-      "sourceCommit": "937cf10f387bd1d31d86652ab06d74bc6185f35c",
-      "tests": ["TestSnapshotV2ManagerMigratesToAdmin", "TestSellerRoleCapabilitiesFailClosed", "TestSellerRoleRevocationEventsPersistAcrossRestart", "TestSellerTeamInvitationPersistsAcrossRestart"],
+      "evidence": ["Snapshot v6 normalization in internal/commerce/store.go", "v2 manager to admin migration", "revocation, invitation and Seller event collection initialization", "Fail-closed future-version guard", "Non-destructive v3/v4/v5 rollback export with authenticated snapshot integrity and lossy-field refusal", "shopd --export-rollback operator command"],
+      "sourceCommit": "5368440acfbc7d31ffca1b499aa76dd6e533f391",
+      "tests": ["TestSnapshotV2ManagerMigratesToAdmin", "TestSellerRoleCapabilitiesFailClosed", "TestSellerRoleRevocationEventsPersistAcrossRestart", "TestSellerTeamInvitationPersistsAcrossRestart", "TestSnapshotFutureVersionRejectedWithoutMutation", "TestSnapshotRollbackExportV5PreservesRepresentableStateAndRestores", "TestSnapshotRollbackExportVersionBoundaries", "TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations", "TestSnapshotRollbackExportTamperAndFutureBackupFailClosed", "go test -race -count=1 ./internal/commerce/..."],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "10-seller-console",
-      "nextAction": "Add explicit downgrade refusal and rollback-migration operator evidence for Snapshot v6.",
-      "lastUpdated": "2026-07-27T15:26:37Z"
+      "nextAction": "Run the source-bound export/restore drill against an authenticated staging copy before a production-class schema migration.",
+      "lastUpdated": "2026-07-29T01:55:00+08:00"
     },
     {
       "id": "SC-RBAC-003",
