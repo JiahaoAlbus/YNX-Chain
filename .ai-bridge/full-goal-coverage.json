@@ -149,16 +149,16 @@
       "category": "merchant-operations",
       "requirement": "Support merchant invoices, payment records, receipts, refunds, disputes, search/filter/pagination and confirmed bulk operations.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": ["invoice, settlement, refund and dispute service/routes exist", "web UI exposes primary records"],
-      "sourceCommit": "60f860791a09e41a3bf0509184d5a91ea926e985",
-      "tests": ["TestAuthoritativePaymentPersistenceIdempotencyAndTamper", "TestSettlementMismatchExpiryAndWebhookRetry", "TestGatewayBoundPaymentCreatesPayerCases"],
+      "status": "testedLocal",
+      "evidence": ["invoice, settlement, refund and dispute service/routes exist", "merchant-scoped operation schema v1", "HMAC-authenticated filter-bound pagination", "preview-confirmed idempotent bulk webhook retry with persisted progress and restart interruption"],
+      "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b",
+      "tests": ["TestAuthoritativePaymentPersistenceIdempotencyAndTamper", "TestSettlementMismatchExpiryAndWebhookRetry", "TestGatewayBoundPaymentCreatesPayerCases", "TestMerchantOperationsTenantFiltersCursorAndRedaction", "TestBulkWebhookRetryPreviewIsTenantScoped", "TestMerchantOperationsHTTPRBACAndValidation", "TestBulkWebhookRetryInProgressStateBecomesInterruptedAfterRestart"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "05-merchant-console",
-      "nextAction": "Implement and test payment links/QR, complete search/filter/pagination and confirmed bulk-operation contracts.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Add payment-link/QR presentation and execute bulk retry against a controlled public receiver without promoting local evidence to central integration.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "PAY-001",

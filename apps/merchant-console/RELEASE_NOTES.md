@@ -6,6 +6,9 @@
 - Added RBAC/Webhook/Settlement fuzz, fault, soak and benchmark coverage.
 - Added a versioned nine-category Provider Hub with server-side probe evidence and fail-closed health.
 - Added snapshot v1/v2-to-v3 migration, merchant data-request persistence and future-version rejection tests.
+- Added snapshot v4 bulk-operation persistence, merchant-scoped operation search
+  and HMAC cursor pagination, plus preview-confirmed idempotent webhook bulk retry
+  with audited restart interruption.
 - Added read-only capital capability and transparent settlement waterfall APIs/UI without invented cost or merchant-net values.
 - Replaced fixed health success with direct liveness/store evidence and unverified dependency readiness.
 - Added frontend CycloneDX SBOM and backend module inventory.

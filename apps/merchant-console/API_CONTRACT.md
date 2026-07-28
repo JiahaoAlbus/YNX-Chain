@@ -31,6 +31,9 @@ surface and does not claim a deployed endpoint.
 | `POST /v1/merchant/sessions` | canonical Wallet/Gateway assertion | registered owner/staff account | 201 | Exchange exact product/device/account approval for a short session |
 | `POST /v1/merchant/members` | merchant session | `members` (owner) | 200 | Grant/update one Wallet account role; last active owner is protected |
 | `GET /v1/merchant/state` | merchant session | `read` | 200 | Merchant-scoped operational snapshot |
+| `GET /v1/merchant/operations` | merchant session | `read` | 200 | Tenant-scoped operation search, filters and authenticated cursor pagination |
+| `POST /v1/merchant/webhooks/bulk-retry/preview` | merchant session | `webhook` | 200 | Exact retry preview and short-lived state-bound confirmation |
+| `POST /v1/merchant/webhooks/bulk-retry` | merchant session | `webhook` | 200 | Idempotent per-item retry result after confirmation |
 | `GET /v1/merchant/analytics` | merchant session | `read` | 200 | Analytics derived only from persisted authoritative records |
 | `POST /v1/merchant/catalog` | merchant session | `invoice` | 201 | Create idempotent catalog item |
 | `POST /v1/merchant/invoices` | merchant session | `invoice` | 201 | Create signed central-Pay-backed invoice |

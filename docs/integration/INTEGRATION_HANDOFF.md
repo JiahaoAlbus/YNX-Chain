@@ -1,9 +1,12 @@
 # YNX Merchant Console integration handoff
 
-Status: **Active / FREEZE**  
-Owner: `05-merchant-console`  
-Contract: `release/integration/merchant-console-contract.json`  
-Runtime source commit: `b0934a09df9d2dbea67abb596ad84154ab168312`
+Status: **Active / FREEZE**
+
+Owner: `05-merchant-console`
+
+Contract: `release/integration/merchant-console-contract.json`
+
+Runtime source commit: `1111aee53654b3d3fba7d74f12107a3e98edd93b`
 
 ## What is locally authoritative
 
@@ -32,6 +35,9 @@ Any product, client, bundle, callback, chain, scope, device, digest, nonce, time
 - Central-Pay-backed invoice and exact settlement evidence acceptance: tested locally with deterministic adapters.
 - Refund/dispute records: tested locally; they never move funds.
 - Webhook signature, retry, redirect/SSRF/DNS-rebinding containment: tested locally.
+- Tenant-scoped operations search/filter/time-window/HMAC cursor and explicit
+  preview-confirmed bulk webhook retry: tested locally. In-progress restart state
+  becomes audited `interrupted`; a fresh preview is required.
 - Reconciliation schema v1: golden-tested locally.
 - Merchant data export schema v1, owner-only permission, tenant isolation, runtime-material redaction, v1/v2→v3 migration and audited cooling-off/blocker/cancel deletion requests: tested locally.
 - Provider registry and server-side probe evidence: tested locally; official adapters are not yet complete.
@@ -60,8 +66,8 @@ Any product, client, bundle, callback, chain, scope, device, digest, nonce, time
 
 ## Recovery state
 
-The final branch is remotely synchronized through runtime commit `b0934a09df9d2dbea67abb596ad84154ab168312`. The prior verified bundle at `release/recovery/merchant-console-accd603.bundle` remains historical recovery evidence only; Git synchronization is not shared-Testnet, artifact-hosting or deployment proof.
+The runtime evidence is bound to commit `1111aee53654b3d3fba7d74f12107a3e98edd93b`; remote synchronization must be rechecked after this evidence update. The prior verified bundle at `release/recovery/merchant-console-accd603.bundle` remains historical recovery evidence only; Git synchronization is not shared-Testnet, artifact-hosting or deployment proof.
 
 ## Next integration action
 
-Validate `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, submit the contract to 29 Integration, then implement the highest-priority autonomous gaps: signed Quant/Billing evidence ingestion, approved deletion execution/legal-hold/shutdown controls, official sandbox adapters, operational search/pagination/bulk confirmation, full authenticated i18n/a11y, and reproducible capacity evidence.
+Validate `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, submit the contract to 29 Integration, then implement the highest-priority autonomous gaps: signed Quant/Billing evidence ingestion, approved deletion execution/legal-hold/shutdown controls, official sandbox adapters, full authenticated i18n/a11y, and reproducible capacity evidence.

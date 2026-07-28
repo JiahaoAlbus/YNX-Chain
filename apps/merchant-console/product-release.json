@@ -2,7 +2,7 @@
   "productId": "pay-merchant",
   "name": "YNX Merchant Console",
   "branch": "codex/final-merchant-console",
-  "commit": "c9eb7e41054fa4f88a3c0f2cc5352a3d187f4504",
+  "commit": "1111aee53654b3d3fba7d74f12107a3e98edd93b",
   "version": "1.0.0",
   "surfaces": ["web"],
   "implementedLocal": true,
@@ -19,7 +19,7 @@
   "artifactUrls": [],
   "sha256": {
     "dist/index.html": "e1a4818843b06e6f72247f864e6257532f7cd4e39fbb632b9c11852921e81a5e",
-    "dist/app.js": "59bdf760465b047d0085dc4781a6bdcad74100c4c041846e586d6bf5eff3c1c9",
+    "dist/app.js": "20b0ee50fc8a8195ec4153efc309f819315137d02b87daff1d63d62b9b125015",
     "dist/styles.css": "61aa804580352a32c848f9294f1e200367ea95980255359bf59a4c165dc6e881",
     "dist/a11y.css": "5ce379ece02d4e12a6dae5d0576dc50d21ab2633d1d4f4de97ae2d36c8c83faf",
     "dist/manifest.webmanifest": "7cdab34fc2558a2651f7c7444a502f0fedd56dbfca180642dbc98186af99d7ed",
@@ -28,11 +28,11 @@
     "artifacts/sbom/backend-modules.json": "2e7b2e5aebd9fd5abc33e689bdc26d764d64412dda177630640407230b708a1d",
     "artifacts/sbom/backend.cdx.json": "512441688ca876cac0fe247aac6fe182ef478a66deeca48e71cc63a8b32e9167",
     "artifacts/vendor/wallet-auth-verification.json": "5a29a97fb3a3af5e29802a95bdee1f4640420ec0e67ea8c54309e31fadea9b12",
-    "evidence/reproducible-build.json": "5a770c56ef7bbcd47e3a47b8d51e614c68385a059c320b1c5dc5c4d73fbf72cf"
+    "evidence/reproducible-build.json": "aa541f32aac744a772f2a2be5f250bb563d56170a6ac2197552179fbdfa21b16"
   },
   "bytes": {
     "dist/index.html": 1040,
-    "dist/app.js": 128655,
+    "dist/app.js": 129169,
     "dist/styles.css": 5918,
     "dist/a11y.css": 328,
     "dist/manifest.webmanifest": 228,
@@ -47,9 +47,9 @@
   "minOS": {"web": "current evergreen browsers"},
   "installEvidence": [],
   "ciEvidence": [{"classification": "github-actions-branch-ci", "runId": 30276842541, "runNumber": 8, "sourceCommit": "c9eb7e41054fa4f88a3c0f2cc5352a3d187f4504", "status": "completed", "conclusion": "success", "jobs": {"frontend": "success", "backend": "success"}, "localReproduction": ["npm ci", "npm run check (14/14 plus source scan and build)", "npm audit --audit-level=high", "go vet ./internal/payproduct/...", "three 5-second fuzz targets"], "uploadedArtifacts": 0, "releasePublished": false}],
-  "runtimeEvidence": [{"classification": "local-runtime-release-metadata", "sourceCommit": "1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9", "endpoints": ["/health", "/version"], "headers": ["X-YNX-Commit", "X-YNX-Release", "X-YNX-Build-Time", "X-YNX-Started-At"], "test": "TestVersionExposesAuditableReleaseMetadata"}, {"classification": "local-merchant-data-rights", "sourceCommit": "b0934a09df9d2dbea67abb596ad84154ab168312", "schemaVersions": {"snapshot": 3, "dataExport": 1, "retentionPolicy": "merchant-data-retention-v1"}, "endpoints": ["/v1/merchant/data-rights", "/v1/merchant/data-export", "/v1/merchant/data-deletion-requests", "/v1/merchant/data-deletion-requests/{id}/cancel"], "tests": ["TestMerchantDataExportRedactsRuntimeMaterialAndRequiresOwner", "TestMerchantDeletionRequestIsIdempotentBlockedAndCancelable", "TestMerchantDataRightsHTTPRoutesRequireOwnerSessionAndKeepStatePrivate", "TestMerchantDeletionWithoutObligationsUsesCoolingOff", "TestLegacySnapshotsMigrateAndFutureVersionFails"]}],
+  "runtimeEvidence": [{"classification": "local-runtime-release-metadata", "sourceCommit": "1f7963c8153a8a75cbbec0baadd1471ca5f2c9e9", "endpoints": ["/health", "/version"], "headers": ["X-YNX-Commit", "X-YNX-Release", "X-YNX-Build-Time", "X-YNX-Started-At"], "test": "TestVersionExposesAuditableReleaseMetadata"}, {"classification": "local-merchant-data-rights", "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b", "schemaVersions": {"snapshot": 4, "dataExport": 1, "retentionPolicy": "merchant-data-retention-v1"}, "endpoints": ["/v1/merchant/data-rights", "/v1/merchant/data-export", "/v1/merchant/data-deletion-requests", "/v1/merchant/data-deletion-requests/{id}/cancel"], "tests": ["TestMerchantDataExportRedactsRuntimeMaterialAndRequiresOwner", "TestMerchantDeletionRequestIsIdempotentBlockedAndCancelable", "TestMerchantDataRightsHTTPRoutesRequireOwnerSessionAndKeepStatePrivate", "TestMerchantDeletionWithoutObligationsUsesCoolingOff", "TestLegacySnapshotsMigrateAndFutureVersionFails"]}, {"classification": "local-merchant-operations", "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b", "schemaVersions": {"snapshot": 4, "operations": 1, "bulkWebhookRetry": 1}, "endpoints": ["/v1/merchant/operations", "/v1/merchant/webhooks/bulk-retry/preview", "/v1/merchant/webhooks/bulk-retry"], "tests": ["TestMerchantOperationsTenantFiltersCursorAndRedaction", "TestBulkWebhookRetryPreviewIsTenantScoped", "TestMerchantOperationsHTTPRBACAndValidation", "TestBulkWebhookRetryInProgressStateBecomesInterruptedAfterRestart"]}],
   "recoveryEvidence": [{"classification": "local-unsigned-recovery-drill", "path": "evidence/backup-restore-drill.json", "sha256": "eab7eee06310e9519d2d7f5945ce977a0e8a6a5ad5e95aff906e2a5cdfa6e045", "bytes": 3024, "sourceCommit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef"}, {"classification": "local-git-recovery-bundle", "path": "../../release/recovery/merchant-console-accd603.bundle", "sha256": "1af965dcb1a47bedb7b2144c444dc1974d2b293f66d2ff36b1b1d12f7401ab78", "bytes": 26410, "containedHead": "accd603c8b43b42b1ef9bc77442610f3ad81c547", "requiredBase": "60f860791a09e41a3bf0509184d5a91ea926e985", "remoteSynchronized": false}],
-  "reproducibilityEvidence": [{"classification": "local-unsigned-reproducible-build-check", "path": "evidence/reproducible-build.json", "sha256": "5a770c56ef7bbcd47e3a47b8d51e614c68385a059c320b1c5dc5c4d73fbf72cf", "bytes": 1232, "sourceCommit": "70f637de4a5b7e21da1b0743b6c96b8b572b9a11", "runs": 2, "byteIdentical": true}],
+  "reproducibilityEvidence": [{"classification": "local-unsigned-reproducible-build-check", "path": "evidence/reproducible-build.json", "sha256": "aa541f32aac744a772f2a2be5f250bb563d56170a6ac2197552179fbdfa21b16", "bytes": 1232, "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b", "runs": 2, "byteIdentical": true}],
   "centralIntegration": "Canonical pay-merchant Wallet entry and same-origin /app/pay-merchant proxy are requested but not deployed.",
   "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Authenticated business views retain untranslated English copy; full 12-language, screen-reader, keyboard, zoom and automated accessibility-rule acceptance is incomplete.", "Existing proof screenshots predate canonical Wallet integration.", "Observability is process-local; OpenTelemetry, durable export, alerts and a staging dashboard are not configured.", "Official provider adapters/credentials, executable capital services, production-sized remote restore evidence, end-to-end capacity and public Testnet evidence remain incomplete.", "Merchant data export and deletion-request/cancel controls are locally tested, but approved deletion execution, legal-hold disposition, provider-specific deletion evidence and orderly shutdown exit remain incomplete.", "The final branch is synchronized through CI repair commit c9eb7e4 and GitHub Actions run 30276842541 is green; the workflow uploads no Merchant Console artifact and no visible latest GitHub Release exists, so hosting/release/Testnet/deployment states remain false."],
   "generatedAt": "2026-07-27T11:00:00+01:00"

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "contractId": "ynx.integration.merchant-console.v1",
   "product": {
     "number": "05",
@@ -7,7 +7,7 @@
     "slug": "merchant-console",
     "name": "YNX Merchant Console",
     "owner": "05-merchant-console",
-    "sourceCommit": "b0934a09df9d2dbea67abb596ad84154ab168312",
+    "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b",
     "branch": "codex/final-merchant-console"
   },
   "network": {
@@ -55,12 +55,15 @@
     "merchantSession": [
       {"method": "POST", "path": "/v1/merchant/members", "permission": "members"},
       {"method": "GET", "path": "/v1/merchant/state", "permission": "read"},
+      {"method": "GET", "path": "/v1/merchant/operations", "permission": "read", "schemaVersion": 1},
       {"method": "GET", "path": "/v1/merchant/analytics", "permission": "read"},
       {"method": "POST", "path": "/v1/merchant/catalog", "permission": "invoice"},
       {"method": "POST", "path": "/v1/merchant/invoices", "permission": "invoice"},
       {"method": "PUT", "path": "/v1/merchant/webhook", "permission": "webhook"},
       {"method": "POST", "path": "/v1/merchant/webhook/rotate", "permission": "webhook"},
       {"method": "POST", "path": "/v1/merchant/webhooks/{id}/retry", "permission": "webhook"},
+      {"method": "POST", "path": "/v1/merchant/webhooks/bulk-retry/preview", "permission": "webhook", "schemaVersion": 1},
+      {"method": "POST", "path": "/v1/merchant/webhooks/bulk-retry", "permission": "webhook", "schemaVersion": 1},
       {"method": "GET", "path": "/v1/merchant/reconciliation.csv", "permission": "reconcile"},
       {"method": "GET", "path": "/v1/merchant/data-rights", "permission": "data-manage"},
       {"method": "GET", "path": "/v1/merchant/data-export", "permission": "data-manage", "schemaVersion": 1},
@@ -96,6 +99,9 @@
     "webhook.secret.rotate",
     "webhook.endpoint.update",
     "webhook.deliver",
+    "webhook.bulk-retry.start",
+    "webhook.bulk-retry.finish",
+    "webhook.bulk-retry.interrupted",
     "provider.configure",
     "provider.test",
     "provider.disable",
@@ -111,6 +117,8 @@
     "Paid or committed status requires exact accepted central Pay evidence; a UI action or webhook cannot create settlement authority.",
     "Refund and dispute routes create reviewable records only and never move funds.",
     "Browser clients never receive provider credentials, webhook secret material, merchant signing keys or long-lived bearer tokens.",
+    "Operation cursors are merchant/filter-bound, short-lived and HMAC authenticated; operation results exclude webhook authentication material.",
+    "Bulk webhook retry requires an actor/merchant/delivery/state-bound expiring preview, an idempotency key and per-item persisted progress; restart marks unfinished operations interrupted and requires a fresh preview.",
     "AI output cannot execute payment, refund, payout, secret rotation, role change or settlement mutation.",
     "Merchant data rights are owner-only; exports are tenant-scoped and exclude authorization, session, replay, provider credential and webhook authentication material.",
     "Deletion requests require exact merchant confirmation, idempotency, a seven-day cooling-off period and retention blockers; request routes never delete data automatically or claim provider/public-chain deletion.",
@@ -131,9 +139,10 @@
     {"owner": "30-security-sre", "contract": "release, provenance, hosting, backup and incident standards", "state": "localPartial"}
   ],
   "migration": {
-    "snapshotCurrent": 3,
+    "snapshotCurrent": 4,
     "snapshotV1Migration": "testedLocal",
     "snapshotV2Migration": "testedLocal",
+    "snapshotV3Migration": "testedLocal",
     "futureSchemaPolicy": "reject",
     "reconciliationSchema": 1,
     "rollbackEvidence": "local-only"

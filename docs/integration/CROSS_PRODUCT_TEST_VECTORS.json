@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contractId": "ynx.integration.merchant-console.v1",
-  "sourceCommit": "b0934a09df9d2dbea67abb596ad84154ab168312",
+  "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b",
   "status": "local-vectors-tested-central-execution-pending",
   "vectors": [
     {
@@ -142,6 +142,22 @@
       "expected": ["nested integrity verified", "exact source commit guarded", "active service lock blocks restore", "rollback copy retained", "record counts and SHA evidence emitted"],
       "localTests": ["TestBackupVerifyRestoreAndRollbackDrill", "TestBackupTamperWrongKeyAndInvalidSourceCommitFailClosed", "TestRunningServiceLockBlocksRestoreAndOwnershipChangeBlocksUnlock"],
       "centralState": "pending-production-sized-staging-drill"
+    },
+    {
+      "id": "MC-OPS-CURSOR-001",
+      "owners": ["05-merchant-console"],
+      "purpose": "Page tenant operations without leaking another merchant or accepting a cursor under different filters.",
+      "expected": ["stable newest-first order", "merchant isolation", "filter-bound HMAC cursor", "expiry and tamper rejection", "no webhook secret, signature or payload hash"],
+      "localTests": ["TestMerchantOperationsTenantFiltersCursorAndRedaction", "TestMerchantOperationsHTTPRBACAndValidation"],
+      "centralState": "not-required-for-local-read"
+    },
+    {
+      "id": "MC-WEBHOOK-BULK-001",
+      "owners": ["05-merchant-console", "30-security-sre"],
+      "purpose": "Retry up to 50 merchant webhook deliveries only after an exact preview and confirmation.",
+      "expected": ["tenant and actor binding", "state-digest stale-preview rejection", "idempotent replay without repeated attempts", "per-item persisted progress", "restart interruption is audited and requires a fresh preview"],
+      "localTests": ["TestBulkWebhookRetryPreviewIsTenantScoped", "TestBulkWebhookRetryInProgressStateBecomesInterruptedAfterRestart"],
+      "centralState": "pending-public-receiver-and-security-review"
     }
   ]
 }

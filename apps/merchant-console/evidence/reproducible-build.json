@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "classification": "local-unsigned-reproducible-build-check",
-  "sourceCommit": "70f637de4a5b7e21da1b0743b6c96b8b572b9a11",
+  "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b",
   "buildCommand": "node scripts/build.mjs",
   "runs": 2,
   "artifacts": {
@@ -10,8 +10,8 @@
       "bytes": 328
     },
     "app.js": {
-      "sha256": "59bdf760465b047d0085dc4781a6bdcad74100c4c041846e586d6bf5eff3c1c9",
-      "bytes": 128655
+      "sha256": "20b0ee50fc8a8195ec4153efc309f819315137d02b87daff1d63d62b9b125015",
+      "bytes": 129169
     },
     "index.html": {
       "sha256": "e1a4818843b06e6f72247f864e6257532f7cd4e39fbb632b9c11852921e81a5e",
