@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "ynx-governance-local-capacity/v1",
+  "sourceCommit": "494633950eb7deed82cd3a078d244ef4c49b8c5a",
+  "measuredAt": "2026-07-22T15:01:42.829117Z",
+  "environment": {
+    "goVersion": "go1.25.7",
+    "goarch": "arm64",
+    "gomaxprocs": 8,
+    "goos": "darwin"
+  },
+  "state": "empty authoritative local state",
+  "requests": 10000,
+  "concurrency": 16,
+  "errors": 0,
+  "durationMilliseconds": 236,
+  "throughputPerSecond": 42366.17942128672,
+  "latencyMicroseconds": {
+    "max": 2064,
+    "p50": 291,
+    "p95": 777,
+    "p99": 1056
+  },
+  "endpoints": [
+    "/health",
+    "/governance/proposals",
+    "/governance/roles",
+    "/governance/appeals",
+    "/governance/emergencies"
+  ],
+  "claimBoundary": "local httptest public-read probe only; no staging, public network, mutation, BFT, or production-scale claim"
+}
