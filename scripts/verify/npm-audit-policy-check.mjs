@@ -196,7 +196,12 @@ function main() {
     if (!staleExceptionFailures.some((failure) => failure.includes("remediated dependency graph"))) return ["self-test failed to reject a stale exception"];
 
     const widenedPolicy = clone(policy);
-    widenedPolicy.expectedAuditVulnerabilities.pop();
+    widenedPolicy.expectedAuditVulnerabilities.push({
+      name: "unexpected-package",
+      severity: "high",
+      direct: false,
+      via: ["unexpected-advisory"]
+    });
     const widenedFailures = validateBundle({ policy: widenedPolicy, packageJson, lock, fullAudit, productionAudit });
     if (!widenedFailures.some((failure) => failure.includes("full audit graph changed"))) return ["self-test failed to reject an audit graph mismatch"];
 
