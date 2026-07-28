@@ -1,5 +1,10 @@
 {
   "schemaVersion": 2,
+  "productId": "26",
+  "productName": "YNX Data Fabric & Billing Ledger",
+  "slug": "data-fabric",
+  "owner": "26-data-fabric",
+  "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
   "product": {
     "id": "ynx-data-fabric",
     "name": "YNX Data Fabric",
