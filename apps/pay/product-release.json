@@ -3,7 +3,7 @@
   "productId": "pay",
   "name": "YNX Pay",
   "branch": "codex/final-pay",
-  "sourceCommit": "1eb2764c95368d5a62483028891eb6c3f67f2c1a",
+  "sourceCommit": "0600d5ab87a9062ccc5b757affe30e234f1b7730",
   "commit": "2303ceeed6ff8e7a8606b87a2e7155702e4e27b1",
   "version": "1.4.0",
   "releaseClass": "local-candidate",
@@ -22,7 +22,11 @@
     "stableSettlement": "externalBlocked",
     "bridgeEntry": "testedLocal-provider-unconfigured",
     "quantServiceBilling": "testedLocal-external-verifier-unaccepted",
-    "storeBackupRestore": "testedLocal-offline"
+    "storeBackupRestore": "testedLocal-offline",
+    "observabilityRuntime": "testedLocal",
+    "webPwa": "testedLocal-functional",
+    "securitySupplyChain": "testedLocal-unsigned-unhosted",
+    "localReadCapacity": "testedLocal-loopback-only"
   },
   "contracts": {
     "canonical": "release/integration/pay-contract.json",
@@ -108,6 +112,19 @@
       "result": "fail-outside-pay",
       "verifiedAt": "2026-07-27",
       "details": "Pay package passed. Unchanged Consensus/Faucet/Trust permission tests failed in the current host environment and unchanged IDE tests lacked a generated contract artifact."
+    },
+    {
+      "command": "npm run check",
+      "cwd": "apps/pay",
+      "result": "pass",
+      "verifiedAt": "2026-07-29",
+      "details": "TypeScript, 13 unit tests, Android/iOS/Web exports and 2 Chromium Web/PWA keyboard/accessible-name/390px/Arabic RTL checks passed."
+    },
+    {
+      "command": "govulncheck, npm audit high gate, secret scan, module verify and deterministic build",
+      "result": "pass",
+      "verifiedAt": "2026-07-29",
+      "details": "0 called Go vulnerabilities, 0 high/critical npm vulnerabilities, two reproducible Linux/amd64 binaries and two source-bound CycloneDX SBOMs; artifacts are unsigned and unhosted."
     }
   ],
   "centralIntegration": "Contract and vectors are ready locally; central Wallet registry, App Gateway routes and owner acceptance are not deployed or verified.",
@@ -123,8 +140,10 @@
     "No current source-bound Android/iOS install and cold-launch evidence.",
     "No public service URL, hosted immutable artifact, production signature or store release.",
     "Quant verification is implemented locally, but no Quant/Data Fabric verifier key, staging evidence stream, or fresh Testnet service-fee payment has been accepted by the integration owner.",
-    "Local fixture migration, backup, restore, rollback and corruption recovery are verified; production-volume RTO/RPO, remote backup retention, deployed observability and capacity/unit-economics measurements remain incomplete.",
+    "Local fixture migration, backup, restore, rollback and corruption recovery are verified; production-volume RTO/RPO and remote backup retention remain incomplete.",
+    "Observability and a 1,000-request local loopback capacity gate are tested, but deployed dashboards/alerts, staging workload capacity and invoice-backed unit economics remain incomplete.",
+    "Web/PWA export and functional keyboard/RTL/390px checks pass; complete dark-theme, 200% large-text and manual screen-reader acceptance remain incomplete.",
     "Stablecoin and Bridge production-capable providers remain unavailable until approved owner/provider contracts exist."
   ],
-  "generatedAt": "2026-07-27T15:49:17+01:00"
+  "generatedAt": "2026-07-29T03:55:00+08:00"
 }
