@@ -88,8 +88,14 @@ test('provider and buyer workspaces create verified offer, quote and accepted in
   await expect(page.getByText('service started', {exact: true})).toBeVisible();
   await lifecycle.getByLabel('Operation').selectOption('prepare_meter');
   await lifecycle.getByLabel('Quantity').fill('50');
-  await lifecycle.getByLabel('Usage start').fill('2026-07-22T10:00');
-  await lifecycle.getByLabel('Usage end').fill('2026-07-22T10:05');
+  const usageWindow = await page.evaluate(() => {
+    const localInput = (value) => new Date(value.getTime() - value.getTimezoneOffset() * 60_000)
+      .toISOString().slice(0, 16);
+    const start = new Date(Date.now() + 60_000);
+    return {start: localInput(start), end: localInput(new Date(start.getTime() + 5 * 60_000))};
+  });
+  await lifecycle.getByLabel('Usage start').fill(usageWindow.start);
+  await lifecycle.getByLabel('Usage end').fill(usageWindow.end);
   await lifecycle.getByLabel('Meter source reference').fill('ynx-evidence://ui/meter');
   await lifecycle.getByRole('button', {name: 'Preview or submit operation'}).click();
   await expect(page.locator('#lifecycle-result')).toContainText('canonicalJson');
@@ -144,6 +150,51 @@ test('all locales cover the complete static market corpus, persist, and preserve
   await page.reload();
   await page.locator('.locale-menu summary').click();
   await expect(page.locator('.locale-select')).toHaveValue('id');
+});
+
+test('all operator forms remain labelled and Arabic runtime errors do not leak server prose', async ({page}) => {
+  await page.setViewportSize({width: 390, height: 844});
+  await page.goto('/');
+  const formAudit = await page.evaluate(() => {
+    const forms = [...document.querySelectorAll('#market form')];
+    const missing = [];
+    for (const form of forms) {
+      for (const control of form.querySelectorAll('input, select, textarea, button')) {
+        const label = control.labels?.[0]?.textContent?.trim()
+          || control.getAttribute('aria-label')
+          || control.textContent?.trim();
+        if (!label) missing.push(`${form.id}:${control.tagName}:${control.getAttribute('name') || control.id}`);
+      }
+    }
+    return {forms: forms.length, missing};
+  });
+  expect(formAudit.forms).toBeGreaterThanOrEqual(12);
+  expect(formAudit.missing).toEqual([]);
+
+  await page.locator('.locale-menu summary').click();
+  await page.locator('.locale-select').selectOption('ar');
+  await page.evaluate(() => document.querySelector('#text-size').click());
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(page.locator('body')).toHaveClass(/large-text/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+
+  await page.route('**/api/market/state', async (route) => {
+    await route.fulfill({
+      status: 503,
+      contentType: 'application/json',
+      headers: {'X-Request-ID': 'req_runtime_localization'},
+      body: JSON.stringify({
+        error: 'INTERNAL ENGLISH DETAIL MUST NOT LEAK',
+        code: 'market_unavailable',
+        requestId: 'req_runtime_localization',
+      }),
+    });
+  });
+  await page.locator('#market-refresh').click();
+  await expect(page.locator('#status')).toContainText('غير متاح');
+  await expect(page.locator('#status')).toContainText('market_unavailable');
+  await expect(page.locator('#status')).toContainText('req_runtime_localization');
+  await expect(page.locator('#status')).not.toContainText('INTERNAL ENGLISH DETAIL MUST NOT LEAK');
 });
 
 function YNXMarketI18nValue(code, _counts, catalog) {
