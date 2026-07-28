@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1.0",
   "product": "YNX Search",
-  "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
+  "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
   "vectors": [
     {
       "id": "SEARCH-SOURCE-REGISTER-VALID",
@@ -156,6 +156,27 @@
       "precondition": "local commit differs from staging health commit",
       "action": "read product-release.json",
       "expected": "deployedStaging remains historical true, currentSourceDeployed=false, public and hosted states false"
+    },
+    {
+      "id": "SEARCH-RECOVERY-TAMPER",
+      "owners": ["23-search", "30-security-sre-release"],
+      "precondition": "a Source Registry v4 backup object or its manifest has changed",
+      "action": "verify or restore the backup",
+      "expected": "integrity rejection before destination creation"
+    },
+    {
+      "id": "SEARCH-RECOVERY-DESTINATION",
+      "owners": ["23-search", "30-security-sre-release"],
+      "precondition": "operator selects the live database, backup bundle, or an existing file",
+      "action": "restore or reindex",
+      "expected": "fail closed; no overwrite and no in-place downgrade"
+    },
+    {
+      "id": "SEARCH-RECOVERY-RIGHTS",
+      "owners": ["23-search", "26-data-fabric", "30-security-sre-release"],
+      "precondition": "backup contains metadata-only, snippet-only, or AI-ineligible sources",
+      "action": "restore and deterministic reindex",
+      "expected": "source-use rights remain unchanged; prohibited snippets and AI context remain unavailable"
     }
   ]
 }

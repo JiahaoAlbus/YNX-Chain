@@ -1,8 +1,11 @@
 # YNX Search Integration Handoff
 
-Version: 1.1.0  
-Product owner: `23-search`  
-Source commit: `66bc18ea697be99a990143ab0b843652c49931b7`  
+Version: 1.2.0
+
+Product owner: `23-search`
+
+Source commit: `adc4d74c9e4f3a2992be36a812305a6d3b426f15`
+
 Current phase: `FREEZE`
 
 ## Product boundary
@@ -34,7 +37,7 @@ deployed.
   raw evidence references.
 - AI retrieval includes only sources with explicit AI retrieval rights. User
   filters cannot override the server-enforced AI-only retrieval boundary.
-- Search result schema v3 exposes source, scope, data class, language, freshness,
+- Search result schema v4 exposes source, scope, source-use rights, data class, language, freshness,
   receipt, remedies, query intent, policy version, and versioned ranking factors.
   Authority and quality remain labeled registered-policy and
   governance-completeness proxies.
@@ -45,7 +48,10 @@ deployed.
 - Six deterministic public feeds and a SHA-256 manifest exist under
   `release/public/search`; they are local artifacts and are not hosted.
 - Remedy cases and Wallet callback challenges are persistent and replay-safe.
-- 20 unit/integration tests, service smoke including AI data-right override denial,
+- Source Registry v4 backups bind exact database bytes, manifest metadata, index
+  receipts, and the deterministic public projection. Restore/reindex are
+  separate-path-only and preserve source-use boundaries.
+- 29 unit/integration tests, service smoke including AI data-right override denial,
   dependency-independent secret scan, deterministic feed verification, six
   Playwright scenarios, shared permissions tests, and production dependency audit
   pass locally.
@@ -93,14 +99,15 @@ structured data without exposing repository or local engineering metadata.
 
 ### 29 Integration
 
-Freeze `release/integration/search-contract.json` v1.2.0, dependency acceptance,
+Freeze `release/integration/search-contract.json` v1.3.0, dependency acceptance,
 event and error ownership, migration order, and the shared Testnet sequence.
 
 ### 30 Security/SRE/Release
 
 Review outbound network policy, secret scan, dependency lock, SBOM, artifact
-provenance, deployment least privilege, backup/restore, and current-source staging
-promotion.
+provenance, deployment least privilege, the local recovery format, and
+current-source staging promotion. Local recovery is not encrypted, off-site
+durability evidence, or an operational RPO.
 
 ## Integration gates
 

@@ -66,11 +66,19 @@ rejection. Rollback therefore requires:
 
 A destructive in-place downgrade is prohibited.
 
+## Verified local recovery
+
+- Source Registry v4 backup manifest with SHA-256 and policy-version binding;
+- exact-byte separate-path restore with overwrite and in-place rejection;
+- deterministic public projection reindex with metadata/snippet/AI rights preserved;
+- tamper, traversal, receipt drift, count drift and unsafe destination rejection.
+
+This local format is not encrypted, off-site durability evidence, or an operational
+RPO. Those remain release-policy work.
+
 ## Remaining verification
 
-- versioned v4 backup and restore drill with manifest and integrity validation;
-- rollback drill using a separate destination;
 - retention expiry and deletion job;
-- reindex from an approved registry and raw observation source;
+- reindex from a production-approved registry and raw observation source;
 - old Browser client acceptance;
 - current-source staging migration and restart evidence.

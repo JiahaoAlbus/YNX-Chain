@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "feedName": "public-releases",
   "version": "1.0.0",
-  "asOf": "2026-07-27T00:00:00.000Z",
-  "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
+  "asOf": "2026-07-29T00:00:00.000Z",
+  "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
   "coverage": "YNX Search release record only",
   "items": [
     {
@@ -13,7 +13,7 @@
       "releaseClass": "Testnet Preview",
       "status": "active",
       "canonicalUrl": "https://ynxweb4.com/search",
-      "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
+      "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
       "deployedPublic": false,
       "downloadHosted": false,
       "productionSigned": false,

@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "feedName": "public-search-index",
   "version": "1.0.0",
-  "asOf": "2026-07-27T00:00:00.000Z",
-  "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
+  "asOf": "2026-07-29T00:00:00.000Z",
+  "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
   "coverage": "metadata-only public discovery index; not the live Search corpus",
   "items": [
     {

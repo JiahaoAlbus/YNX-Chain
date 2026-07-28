@@ -6,7 +6,7 @@
     "slug": "search",
     "owner": "23-search",
     "phase": "FREEZE",
-    "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7"
+    "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15"
   },
   "allowedStatuses": [
     "notStarted",
@@ -60,9 +60,9 @@
       "requirement": "Pre-v4 source registries lacking explicit reviewed public data classes migrate fail-closed and require renewed governance review.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["apps/search/src/store.js", "apps/search/test/search.test.js", "apps/search/MIGRATION_COMPATIBILITY.md"],
-      "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
-      "tests": ["legacy v3 source registries migrate fail-closed until public data-class review"],
+      "evidence": ["apps/search/src/store.js", "apps/search/src/recovery.js", "apps/search/scripts/recovery-drill.mjs", "apps/search/test/recovery.test.js", "apps/search/MIGRATION_COMPATIBILITY.md"],
+      "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
+      "tests": ["legacy v3 source registries migrate fail-closed until public data-class review", "v4 backup verifies, restores exact bytes, and reindexes the public projection", "recovery preserves source-use limits without widening metadata or snippet rights", "backup verification rejects tampered bytes, manifest traversal, and receipt drift", "restore and reindex prohibit in-place, in-bundle, and overwrite operations"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
@@ -371,8 +371,8 @@
       "publicProof": null,
       "blockedBy": [],
       "owner": "23-search",
-      "nextAction": "Implement a Source Registry v4 backup manifest, SHA-256 integrity verification, separate-path restore, rollback denial, and deterministic reindex drill.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Obtain Security/SRE recovery-policy acceptance and add encrypted off-site retention plus operational RPO evidence.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "SEARCH-SEC-001",

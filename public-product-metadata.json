@@ -8,7 +8,7 @@
   "h1": "Search YNX with sources you can verify",
   "status": "Testnet Preview",
   "releaseVersion": "0.4.0-data-policy-preview",
-  "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
+  "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
   "brand": {
     "officialSiteName": "YNX Chain",
     "ecosystemName": "YNX Web4",
@@ -32,6 +32,8 @@
     "bounded lexical retrieval",
     "correction, removal and appeal",
     "citation-bound AI with explicit consent",
+    "source-terms-aware snippets and AI retrieval",
+    "hash-verified backup, separate-path restore and deterministic public reindex",
     "12 languages and Arabic RTL",
     "light, dark and responsive PWA"
   ],

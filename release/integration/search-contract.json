@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.2.0",
+  "schemaVersion": "1.3.0",
   "contractId": "ynx.search.integration.v1",
   "product": {
     "number": 23,
@@ -7,7 +7,7 @@
     "slug": "search",
     "owner": "23-search"
   },
-  "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
+  "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -131,13 +131,14 @@
       "migration": "pre-v4 entries lacking explicit reviewed public data classes are disabled and marked source-registry-v4 until reviewed"
     },
     "searchResult": {
-      "version": 3,
+      "version": 4,
       "required": [
         "resultType",
         "title",
         "sourceUrl",
         "sourceLabel",
         "sourceScope",
+        "sourceUse",
         "dataClass",
         "language",
         "freshness.publishedAt",
@@ -186,6 +187,19 @@
       "version": 1,
       "kinds": ["removal", "correction", "appeal"],
       "states": ["submitted", "under-review", "accepted", "rejected", "corrected", "removed"]
+    },
+    "recovery": {
+      "version": "1.0.0",
+      "databaseVersion": 4,
+      "dataPolicyVersion": "1.0.0",
+      "sourceUsePolicyVersion": "1.0.0",
+      "integrity": ["SHA-256 exact bytes", "manifest digest", "public index projection digest", "index receipt binding"],
+      "restore": "new separate path only; existing, in-place and in-bundle destinations rejected",
+      "reindex": "deterministic public projection; private cases, AI audit and Wallet challenges excluded",
+      "encryption": "not implemented",
+      "offsiteDurability": "not verified",
+      "operationalRpo": "not verified",
+      "centralAcceptance": "pending"
     }
   },
   "auth": {
