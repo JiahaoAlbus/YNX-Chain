@@ -253,6 +253,9 @@ func NewService(policy Policy) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: governance registry startup gate: %v", ErrInvalid, err)
 	}
+	if err = validatePolicyParameterRules(policy.ParameterRules, registries); err != nil {
+		return nil, fmt.Errorf("%w: governance policy registry gate: %v", ErrForbidden, err)
+	}
 	return &Service{policy: policy, registries: registries, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, voteNonces: map[string]struct{}{}, delegations: map[string]Delegation{}, delegationHistory: map[string][]Delegation{}, delegationNonces: map[string]struct{}{}, timelocks: map[string]*TimelockRecord{}, upgrades: map[string]*UpgradeRecord{}, canaries: map[string]*CanaryRecord{}, canaryNonces: map[string]struct{}{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
 }
 
@@ -261,6 +264,9 @@ func (s *Service) Create(input ProposalInput, now time.Time) (Proposal, error) {
 	defer s.mu.Unlock()
 	now = now.UTC()
 	if err := validateProposal(input, now, s.policy.VotingPeriod+s.policy.Timelock+s.policy.TimelockGrace, s.policy.MaxLifetime, s.policy.ParameterRules); err != nil {
+		return Proposal{}, err
+	}
+	if err := validateProposalParameterChanges(input, s.registries); err != nil {
 		return Proposal{}, err
 	}
 	if _, exists := s.nonces[input.Nonce]; exists {
@@ -463,6 +469,9 @@ func (s *Service) OpenVoting(id string, now time.Time) (Proposal, error) {
 	if p.Electorate == nil || p.Electorate.Status != "approved" || uint64(len(p.Electorate.Approvals)) < s.policy.ElectorateApprovalThreshold {
 		return Proposal{}, ErrNotReady
 	}
+	if err = validateProposalParameterChanges(p.Input, s.registries); err != nil {
+		return Proposal{}, err
+	}
 	snapshot := p.Electorate.Snapshot
 	power, eligiblePower, err := effectiveVotingPower(snapshot)
 	if err != nil {
@@ -487,6 +496,9 @@ func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 	}
 	if p.Status != StatusVotingActive || now.Before(p.VotingEndsAt) {
 		return Proposal{}, ErrNotReady
+	}
+	if err = validateProposalParameterChanges(p.Input, s.registries); err != nil {
+		return Proposal{}, err
 	}
 	var participated, yes, no, veto uint64
 	participated, yes, no, veto = proposalTally(p)
@@ -551,6 +563,13 @@ func (s *Service) prepareExecutionLocked(id, manifestHash string, now time.Time)
 	}
 	if record.Status == TimelockSubmitted || record.Status == TimelockExecuted || record.Status == TimelockFailed || record.Status == TimelockRolledBack {
 		return nil, nil, nil, ErrReplay
+	}
+	current, ok := s.proposals[id]
+	if !ok {
+		return nil, nil, nil, ErrNotFound
+	}
+	if err := validateProposalParameterChanges(current.Input, s.registries); err != nil {
+		return nil, nil, nil, err
 	}
 	p, err := s.mutable(id, now)
 	if err != nil {

@@ -63,9 +63,9 @@ func TestActionHashBindsDiffCommitReleaseAndUpgradeManifest(t *testing.T) {
 	secondInput := proposalInput(now)
 	secondInput.Nonce = "proposal-action-hash-02"
 	secondInput.Release = "governance-test-v2"
-	secondInput.Changes[0].Path = "/bridge/dailyLimit"
-	secondInput.Changes[0].After = "24"
-	value := int64(24)
+	secondInput.Changes[0].Path = "/bridge/exposureLimit"
+	secondInput.Changes[0].After = "46000000"
+	value := int64(46_000_000)
 	secondInput.Changes[0].Numeric = &value
 	second, err := s.Create(secondInput, now)
 	if err != nil {

@@ -42,8 +42,8 @@ func TestAppealCorrectionRequiresExecutedFollowUpAndPersists(t *testing.T) {
 	}
 	in := proposalInput(now.Add(4 * time.Hour))
 	in.Nonce = "proposal-nonce-correction"
-	value := int64(30)
-	in.Changes[0].After = "30"
+	value := int64(46_000_000)
+	in.Changes[0].After = "46000000"
 	in.Changes[0].Numeric = &value
 	followUp := executeInput(t, s, in, now.Add(4*time.Hour))
 	appeal, err = s.ResolveAppeal(appeal.ID, followUp.ID, "ynx1observer", "accepted", "Correction accepted through an executed public follow-up proposal.", []string{"sha256:public-correction-resolution"}, now.Add(8*time.Hour))

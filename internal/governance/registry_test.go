@@ -11,7 +11,7 @@ func TestEmbeddedRegistriesAreCompleteBoundedAndCrossReferenced(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(registries.Objects.Objects) != 34 || len(registries.Parameters.Parameters) != 32 || len(registries.Roles.Roles) != 12 {
+	if len(registries.Objects.Objects) != 34 || len(registries.Parameters.Parameters) != 34 || len(registries.Roles.Roles) != 12 {
 		t.Fatalf("unexpected registry sizes: objects=%d parameters=%d roles=%d", len(registries.Objects.Objects), len(registries.Parameters.Parameters), len(registries.Roles.Roles))
 	}
 	if len(registries.Digest) != 64 {
@@ -28,12 +28,22 @@ func TestEmbeddedRegistriesAreCompleteBoundedAndCrossReferenced(t *testing.T) {
 		if _, ok := objects[parameter.ObjectID]; !ok {
 			t.Fatalf("unknown parameter owner: %+v", parameter)
 		}
-		if parameter.AllowedRange.Minimum == nil || parameter.AllowedRange.Maximum == nil || *parameter.AllowedRange.Minimum >= *parameter.AllowedRange.Maximum || parameter.MaximumChangePerProposal <= 0 || parameter.MaximumChangePerWindow <= 0 {
-			t.Fatalf("unsafe bounds: %+v", parameter)
-		}
-		var current int64
-		if err = json.Unmarshal(parameter.CurrentValue, &current); err != nil || current < *parameter.AllowedRange.Minimum || current > *parameter.AllowedRange.Maximum {
-			t.Fatalf("current value outside bounds: %+v err=%v", parameter, err)
+		switch parameter.ValueType {
+		case "integer":
+			if parameter.AllowedRange.Minimum == nil || parameter.AllowedRange.Maximum == nil || *parameter.AllowedRange.Minimum >= *parameter.AllowedRange.Maximum || parameter.MaximumChangePerProposal <= 0 || parameter.MaximumChangePerWindow <= 0 {
+				t.Fatalf("unsafe bounds: %+v", parameter)
+			}
+			var current int64
+			if err = json.Unmarshal(parameter.CurrentValue, &current); err != nil || current < *parameter.AllowedRange.Minimum || current > *parameter.AllowedRange.Maximum {
+				t.Fatalf("current value outside bounds: %+v err=%v", parameter, err)
+			}
+		case "sha256":
+			var current string
+			if err = json.Unmarshal(parameter.CurrentValue, &current); err != nil || current != "" || parameter.AllowedRange.Minimum != nil || parameter.AllowedRange.Maximum != nil {
+				t.Fatalf("unsafe manifest parameter: %+v err=%v", parameter, err)
+			}
+		default:
+			t.Fatalf("unsupported parameter type: %+v", parameter)
 		}
 	}
 	foundEmergencyCouncil := false

@@ -18,7 +18,7 @@ func testService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := NewService(Policy{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: 2 * time.Minute, MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, TimelockGrace: 6 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}, "/protocol/release": {Scope: ScopeProtocolUpgrade, Numeric: false}, "/consensus/release": {Scope: ScopeConsensusUpgrade, Numeric: false}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2})
+	s, err := NewService(Policy{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: 2 * time.Minute, MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, TimelockGrace: 6 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]ParameterRule{"/bridge/exposureLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 0, Maximum: 500_000_000}, "/protocol/upgradeManifestHash": {Scope: ScopeProtocolUpgrade, Numeric: false}, "/consensus/upgradeManifestHash": {Scope: ScopeConsensusUpgrade, Numeric: false}, "/governance/upgradeThresholdBps": {Scope: ScopeProtocolUpgrade, Numeric: true, Minimum: 6667, Maximum: 10000}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,8 +29,8 @@ func testService(t *testing.T) *Service {
 }
 
 func proposalInput(now time.Time) ProposalInput {
-	value := int64(25)
-	return ProposalInput{Nonce: "proposal-nonce-0001", ProposalType: "bridge_limit_change", Scope: ScopeBridge, Proposer: "delegator-01", Owner: "protocol-team", Summary: "Reduce the public testnet bridge daily limit", Motivation: "Limit testnet bridge exposure while provider reliability evidence is accumulated.", TechnicalImpact: "Updates the canonical bridge daily-limit parameter without changing custody or signer scope.", EconomicImpact: "Caps aggregate bridge exposure during testnet operations.", SecurityRisk: "Reduces loss radius while provider monitoring is evaluated.", UserImpact: "Users may reach the lower daily bridge cap during the bounded testnet canary.", ProviderImpact: "Bridge providers must enforce the signed limit and publish rejection evidence.", Migration: "Apply the versioned policy after canary verification.", Rollback: "Restore the prior signed policy manifest if verification fails.", CanaryPlan: "Run a bounded bridge-provider canary before expanding the daily exposure limit.", VerificationPlan: "Verify parameter state, provider enforcement, audit events, and public API output.", ConflictDisclosure: "No proposer, owner, provider, or related-party compensation conflict is disclosed.", Dependencies: []string{"01-chain-core", "21-bridge", "26-data-fabric"}, Evidence: []string{"sha256:bridge-risk-analysis"}, Changes: []ParameterChange{{Path: "/bridge/dailyLimit", Before: "100", After: "25", Minimum: 10, Maximum: 100, Numeric: &value}}, SourceCommit: strings.Repeat("c", 64), Release: "governance-test-v1", ExpiresAt: now.Add(7 * 24 * time.Hour)}
+	value := int64(45_000_000)
+	return ProposalInput{Nonce: "proposal-nonce-0001", ProposalType: "bridge_limit_change", Scope: ScopeBridge, Proposer: "delegator-01", Owner: "protocol-team", Summary: "Reduce the public testnet bridge exposure limit", Motivation: "Limit testnet bridge exposure while provider reliability evidence is accumulated.", TechnicalImpact: "Updates the canonical bridge exposure parameter without changing custody or signer scope.", EconomicImpact: "Caps aggregate bridge exposure during testnet operations.", SecurityRisk: "Reduces loss radius while provider monitoring is evaluated.", UserImpact: "Users may reach the lower bridge exposure cap during the bounded testnet canary.", ProviderImpact: "Bridge providers must enforce the signed limit and publish rejection evidence.", Migration: "Apply the versioned policy after canary verification.", Rollback: "Restore the prior signed policy manifest if verification fails.", CanaryPlan: "Run a bounded bridge-provider canary before expanding the aggregate exposure limit.", VerificationPlan: "Verify parameter state, provider enforcement, audit events, and public API output.", ConflictDisclosure: "No proposer, owner, provider, or related-party compensation conflict is disclosed.", Dependencies: []string{"01-chain-core", "21-bridge", "26-data-fabric"}, Evidence: []string{"sha256:bridge-risk-analysis"}, Changes: []ParameterChange{{Path: "/bridge/exposureLimit", Before: "50000000", After: "45000000", Minimum: 0, Maximum: 500_000_000, Numeric: &value}}, SourceCommit: strings.Repeat("c", 64), Release: "governance-test-v1", ExpiresAt: now.Add(7 * 24 * time.Hour)}
 }
 
 func openVoting(t *testing.T, s *Service, id string, snapshot VotingSnapshot, now time.Time) (Proposal, error) {
@@ -124,16 +124,24 @@ func TestBoundsReplayConflictRecusalAndRollback(t *testing.T) {
 	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
 	s := testService(t)
 	in := proposalInput(now)
-	bad := int64(101)
+	bad := int64(500_000_001)
 	in.Changes[0].Numeric = &bad
 	if _, err := s.Create(in, now); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("bounds: %v", err)
 	}
 	in = proposalInput(now)
 	in.Nonce = "proposal-nonce-widen"
-	in.Changes[0].Maximum = 1000
+	in.Changes[0].Maximum = 1_000_000_000
 	if _, err := s.Create(in, now); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("proposal-defined widened bound: %v", err)
+	}
+	in = proposalInput(now)
+	in.Nonce = "proposal-nonce-rate-limit"
+	tooLargeDelta := int64(40_000_000)
+	in.Changes[0].After = "40000000"
+	in.Changes[0].Numeric = &tooLargeDelta
+	if _, err := s.Create(in, now); !errors.Is(err, ErrForbidden) || !strings.Contains(err.Error(), "per-proposal") {
+		t.Fatalf("authoritative per-proposal change limit: %v", err)
 	}
 	in = proposalInput(now)
 	in.Nonce = "proposal-nonce-path"

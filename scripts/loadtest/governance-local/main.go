@@ -50,7 +50,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "YNX_SOURCE_COMMIT must be a 40-hex commit and request/concurrency bounds must be respected")
 		os.Exit(2)
 	}
-	policy := governance.Policy{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: 2 * time.Minute, MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]governance.ParameterRule{"/bridge/dailyLimit": {Scope: governance.ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}}, GenesisRoleManifestHash: strings.Repeat("f", 64), ElectorateApprovalThreshold: 2}
+	policy := governance.Policy{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: 2 * time.Minute, MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, TimelockGrace: 6 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]governance.ParameterRule{"/bridge/exposureLimit": {Scope: governance.ScopeBridge, Numeric: true, Minimum: 0, Maximum: 500_000_000}}, GenesisRoleManifestHash: strings.Repeat("f", 64), ElectorateApprovalThreshold: 2}
 	service, err := governance.NewService(policy)
 	if err != nil {
 		panic(err)

@@ -13,10 +13,10 @@ func upgradeProposalInput(now time.Time) ProposalInput {
 	input.ProposalType = "protocol_upgrade"
 	input.Scope = ScopeProtocolUpgrade
 	input.Summary = "Upgrade the public testnet protocol runtime to the signed v2 release"
-	input.Changes = []ParameterChange{{Path: "/protocol/release", Before: "v1", After: "v2"}}
 	input.SourceCommit = strings.Repeat("d", 40)
 	input.Release = "ynx-protocol-v2"
 	input.UpgradeHash = strings.Repeat("a", 64)
+	input.Changes = []ParameterChange{{Path: "/protocol/upgradeManifestHash", Before: "", After: input.UpgradeHash}}
 	return input
 }
 
@@ -69,17 +69,18 @@ func TestUpgradeRegistryBindsManifestAndRejectsConflicts(t *testing.T) {
 
 	duplicateManifest := upgradeProposalInput(now)
 	duplicateManifest.Nonce = "proposal-upgrade-nonce-0002"
-	duplicateManifest.Changes[0].After = "v2.0.1"
+	threshold := int64(7500)
+	duplicateManifest.Changes = append(duplicateManifest.Changes, ParameterChange{Path: "/governance/upgradeThresholdBps", Before: "8000", After: "7500", Minimum: 6667, Maximum: 10000, Numeric: &threshold})
 	if _, err = service.Create(duplicateManifest, now.Add(time.Minute)); !errors.Is(err, ErrConflict) {
 		t.Fatalf("duplicate upgrade manifest accepted: %v", err)
 	}
 
 	activeScope := upgradeProposalInput(now)
 	activeScope.Nonce = "proposal-upgrade-nonce-0003"
-	activeScope.Changes[0].After = "v3"
 	activeScope.SourceCommit = strings.Repeat("e", 64)
 	activeScope.Release = "ynx-protocol-v3"
 	activeScope.UpgradeHash = strings.Repeat("b", 64)
+	activeScope.Changes[0].After = activeScope.UpgradeHash
 	if _, err = service.Create(activeScope, now.Add(2*time.Minute)); !errors.Is(err, ErrConflict) {
 		t.Fatalf("second active upgrade in one scope accepted: %v", err)
 	}

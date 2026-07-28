@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -132,17 +133,39 @@ func LoadEmbeddedRegistries() (RegistrySet, error) {
 	if err := validateRegistries(out); err != nil {
 		return RegistrySet{}, err
 	}
+	digest, err := canonicalRegistryDigest(out)
+	if err != nil {
+		return RegistrySet{}, err
+	}
+	out.Digest = digest
+	return out, nil
+}
+
+func canonicalRegistryDigest(registries RegistrySet) (string, error) {
 	canonical, err := json.Marshal(struct {
 		Objects    GovernanceObjectRegistry `json:"objects"`
 		Parameters ParameterRegistry        `json:"parameters"`
 		Roles      RoleRegistry             `json:"roles"`
-	}{out.Objects, out.Parameters, out.Roles})
+	}{registries.Objects, registries.Parameters, registries.Roles})
 	if err != nil {
-		return RegistrySet{}, err
+		return "", err
 	}
 	digest := sha256.Sum256(canonical)
-	out.Digest = hex.EncodeToString(digest[:])
-	return out, nil
+	return hex.EncodeToString(digest[:]), nil
+}
+
+func validateRegistryIntegrity(registries RegistrySet) error {
+	if err := validateRegistries(registries); err != nil {
+		return err
+	}
+	digest, err := canonicalRegistryDigest(registries)
+	if err != nil {
+		return err
+	}
+	if !strings.EqualFold(registries.Digest, digest) {
+		return fmt.Errorf("%w: governance registry digest mismatch", ErrForbidden)
+	}
+	return nil
 }
 
 func decodeRegistryFile(path string, target any) error {
@@ -212,6 +235,23 @@ func validateRegistries(registries RegistrySet) error {
 		if delay, err := time.ParseDuration(parameter.RequiredTimelock); err != nil || delay <= 0 {
 			return fmt.Errorf("%w: parameter %q requires a positive timelock", ErrInvalid, parameter.ParameterID)
 		}
+		switch parameter.ValueType {
+		case "integer":
+			if parameter.AllowedRange.Minimum == nil || parameter.AllowedRange.Maximum == nil || *parameter.AllowedRange.Minimum >= *parameter.AllowedRange.Maximum || parameter.MaximumChangePerProposal <= 0 || parameter.MaximumChangePerWindow <= 0 {
+				return fmt.Errorf("%w: integer parameter %q lacks authoritative bounds", ErrInvalid, parameter.ParameterID)
+			}
+			var current int64
+			if err := json.Unmarshal(parameter.CurrentValue, &current); err != nil || current < *parameter.AllowedRange.Minimum || current > *parameter.AllowedRange.Maximum {
+				return fmt.Errorf("%w: integer parameter %q has invalid current value", ErrInvalid, parameter.ParameterID)
+			}
+		case "sha256":
+			var current string
+			if err := json.Unmarshal(parameter.CurrentValue, &current); err != nil || (current != "" && (!validHash(current) || current != strings.ToLower(current))) || parameter.AllowedRange.Minimum != nil || parameter.AllowedRange.Maximum != nil || parameter.MaximumChangePerProposal != 0 || parameter.MaximumChangePerWindow != 0 || parameter.Window != "" || parameter.Cooldown != "" {
+				return fmt.Errorf("%w: sha256 parameter %q has invalid type bounds", ErrInvalid, parameter.ParameterID)
+			}
+		default:
+			return fmt.Errorf("%w: unsupported parameter value type %q", ErrInvalid, parameter.ValueType)
+		}
 		if parameter.Cooldown != "" {
 			if cooldown, err := time.ParseDuration(parameter.Cooldown); err != nil || cooldown < 0 {
 				return fmt.Errorf("%w: parameter %q has invalid cooldown", ErrInvalid, parameter.ParameterID)
@@ -233,6 +273,89 @@ func validateRegistries(registries RegistrySet) error {
 			if parameter, ok := parameters[parameterID]; !ok || parameter.ObjectID != object.ObjectID {
 				return fmt.Errorf("%w: object %q has invalid parameter binding %q", ErrInvalid, object.ObjectID, parameterID)
 			}
+		}
+	}
+	return nil
+}
+
+func validatePolicyParameterRules(rules map[string]ParameterRule, registries RegistrySet) error {
+	if err := validateRegistryIntegrity(registries); err != nil {
+		return err
+	}
+	parameters := make(map[string]ParameterRegistryEntry, len(registries.Parameters.Parameters))
+	for _, parameter := range registries.Parameters.Parameters {
+		parameters[parameter.Path] = parameter
+	}
+	for path, rule := range rules {
+		parameter, ok := parameters[path]
+		if !ok {
+			return fmt.Errorf("%w: policy parameter %s is absent from the authoritative registry", ErrForbidden, path)
+		}
+		numeric := parameter.ValueType == "integer"
+		if rule.Scope != parameter.Scope || rule.Numeric != numeric {
+			return fmt.Errorf("%w: policy parameter %s diverges from authoritative type or scope", ErrForbidden, path)
+		}
+		if numeric {
+			if parameter.AllowedRange.Minimum == nil || parameter.AllowedRange.Maximum == nil || rule.Minimum != *parameter.AllowedRange.Minimum || rule.Maximum != *parameter.AllowedRange.Maximum {
+				return fmt.Errorf("%w: policy parameter %s diverges from authoritative bounds", ErrForbidden, path)
+			}
+		} else if rule.Minimum != 0 || rule.Maximum != 0 {
+			return fmt.Errorf("%w: non-numeric policy parameter %s cannot define numeric bounds", ErrForbidden, path)
+		}
+	}
+	return nil
+}
+
+func validateProposalParameterChanges(input ProposalInput, registries RegistrySet) error {
+	if err := validateRegistryIntegrity(registries); err != nil {
+		return err
+	}
+	parameters := make(map[string]ParameterRegistryEntry, len(registries.Parameters.Parameters))
+	for _, parameter := range registries.Parameters.Parameters {
+		parameters[parameter.Path] = parameter
+	}
+	for _, change := range input.Changes {
+		parameter, ok := parameters[change.Path]
+		if !ok || parameter.Scope != input.Scope {
+			return fmt.Errorf("%w: parameter path is not registered for proposal scope", ErrForbidden)
+		}
+		switch parameter.ValueType {
+		case "integer":
+			if change.Numeric == nil || parameter.AllowedRange.Minimum == nil || parameter.AllowedRange.Maximum == nil {
+				return fmt.Errorf("%w: integer parameter %s requires a canonical numeric value", ErrInvalid, change.Path)
+			}
+			before, err := strconv.ParseInt(strings.TrimSpace(change.Before), 10, 64)
+			if err != nil {
+				return fmt.Errorf("%w: integer parameter %s has invalid prior value", ErrInvalid, change.Path)
+			}
+			after, err := strconv.ParseInt(strings.TrimSpace(change.After), 10, 64)
+			if err != nil || after != *change.Numeric {
+				return fmt.Errorf("%w: integer parameter %s has inconsistent machine diff", ErrInvalid, change.Path)
+			}
+			if after < *parameter.AllowedRange.Minimum || after > *parameter.AllowedRange.Maximum {
+				return fmt.Errorf("%w: parameter %s outside authoritative registry bounds", ErrForbidden, change.Path)
+			}
+			delta := after - before
+			if delta < 0 {
+				delta = -delta
+			}
+			if parameter.MaximumChangePerProposal > 0 && delta > parameter.MaximumChangePerProposal {
+				return fmt.Errorf("%w: parameter %s exceeds authoritative per-proposal change limit", ErrForbidden, change.Path)
+			}
+			if (change.Minimum != 0 || change.Maximum != 0) && (change.Minimum != *parameter.AllowedRange.Minimum || change.Maximum != *parameter.AllowedRange.Maximum) {
+				return fmt.Errorf("%w: proposal cannot redefine authoritative registry bounds", ErrForbidden)
+			}
+		case "sha256":
+			before := strings.TrimSpace(change.Before)
+			after := strings.TrimSpace(change.After)
+			if change.Numeric != nil || after != strings.ToLower(after) || !validHash(after) || (before != "" && (before != strings.ToLower(before) || !validHash(before))) {
+				return fmt.Errorf("%w: parameter %s requires a canonical sha256 machine diff", ErrInvalid, change.Path)
+			}
+			if (input.Scope == ScopeProtocolUpgrade || input.Scope == ScopeConsensusUpgrade) && !strings.EqualFold(after, input.UpgradeHash) {
+				return fmt.Errorf("%w: upgrade manifest parameter does not match proposal upgrade hash", ErrForbidden)
+			}
+		default:
+			return fmt.Errorf("%w: unsupported authoritative parameter type", ErrForbidden)
 		}
 	}
 	return nil

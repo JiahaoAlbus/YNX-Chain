@@ -188,7 +188,7 @@ func Load(path string) (*Service, error) {
 	}
 	for i := range envelope.Payload.Proposals {
 		p := envelope.Payload.Proposals[i]
-		if err = validateRestoredProposal(&p, s.policy); err != nil {
+		if err = validateRestoredProposal(&p, s.policy, s.registries); err != nil {
 			return nil, err
 		}
 		if _, ok := s.proposals[p.ID]; ok {
@@ -441,7 +441,7 @@ func Load(path string) (*Service, error) {
 	return s, nil
 }
 
-func validateRestoredProposal(p *Proposal, policy Policy) error {
+func validateRestoredProposal(p *Proposal, policy Policy, registries RegistrySet) error {
 	fingerprint := proposalFingerprint(p.Input)
 	expectedActionHash := hash("action", fingerprint, strings.ToLower(p.Input.SourceCommit), p.Input.Release, strings.ToLower(p.Input.UpgradeHash))
 	if p.ID != hash("proposal", p.Input.Nonce, p.Input.Proposer, fingerprint) || p.ActionHash != expectedActionHash || p.Conflicts == nil || p.Votes == nil || p.VoteHistory == nil || p.VotingPower == nil || p.BasePower == nil || p.Delegations == nil || p.DelegatedPower == nil || p.DelegationOverrides == nil || p.CreatedAt.IsZero() || p.UpdatedAt.Before(p.CreatedAt) {
@@ -449,6 +449,9 @@ func validateRestoredProposal(p *Proposal, policy Policy) error {
 	}
 	if err := validateProposal(p.Input, p.CreatedAt, policy.VotingPeriod+policy.Timelock+policy.TimelockGrace, policy.MaxLifetime, policy.ParameterRules); err != nil {
 		return fmt.Errorf("%w: restored proposal input no longer satisfies canonical policy: %v", ErrForbidden, err)
+	}
+	if err := validateProposalParameterChanges(p.Input, registries); err != nil {
+		return fmt.Errorf("%w: restored proposal input no longer satisfies authoritative parameter registry: %v", ErrForbidden, err)
 	}
 	if err := validateProposalTransitions(p); err != nil {
 		return err

@@ -151,7 +151,7 @@ func prepare(work, httpAddress, rpcURL, executionSigner string) error {
 			VotingPeriod: testnetVotingPeriod.String(), Timelock: testnetTimelock.String(), TimelockGrace: "5m",
 			MaxLifetime: "30m", EmergencyThreshold: 3, EmergencyMaxDuration: "10m",
 			ParameterRules: map[string]governance.ParameterRule{
-				"/bridge/dailyLimit": {Scope: governance.ScopeBridge, Numeric: true, Minimum: 10, Maximum: 1000},
+				"/bridge/exposureLimit": {Scope: governance.ScopeBridge, Numeric: true, Minimum: 0, Maximum: 500_000_000},
 			},
 			GenesisRoleManifestHash: manifestHash, ElectorateApprovalThreshold: 2,
 		},
@@ -210,7 +210,7 @@ func run(work, rpcValues, executionKeyPath, sourceCommit string, executionNonce 
 		return err
 	}
 	now := time.Now().UTC()
-	numeric := int64(200)
+	numeric := int64(55_000_000)
 	proposalInput := governance.ProposalInput{
 		Nonce: "testnet-proposal-" + randomHex(12), ProposalType: "bridge_limit_change",
 		Scope: governance.ScopeBridge, Owner: "bridge-protocol-owner",
@@ -229,7 +229,7 @@ func run(work, rpcValues, executionKeyPath, sourceCommit string, executionNonce 
 		Dependencies:       []string{"Chain Core", "CometBFT", "Gateway assertion"},
 		Evidence:           []string{"sha256:governance-testnet-multiprocess-drill"},
 		Changes: []governance.ParameterChange{{
-			Path: "/bridge/dailyLimit", Before: "100", After: "200", Minimum: 10, Maximum: 1000, Numeric: &numeric,
+			Path: "/bridge/exposureLimit", Before: "50000000", After: "55000000", Minimum: 0, Maximum: 500_000_000, Numeric: &numeric,
 		}},
 		SourceCommit: strings.ToLower(sourceCommit), Release: "governance-testnet-drill",
 		ExpiresAt: now.Add(25 * time.Minute),

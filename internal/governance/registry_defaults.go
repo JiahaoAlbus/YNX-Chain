@@ -165,5 +165,30 @@ func defaultGovernanceRegistries(roles RoleRegistry) (GovernanceObjectRegistry, 
 			objects.Objects[index].ParameterIDs = append(objects.Objects[index].ParameterIDs, parameterID)
 		}
 	}
+	manifestParameters := []struct {
+		id, objectID, path string
+		scope              Scope
+		role               GovernanceRole
+		threshold          uint64
+		quorum             uint64
+		timelock           string
+	}{
+		{"protocol-upgrade-manifest", "protocol-upgrade", "/protocol/upgradeManifestHash", ScopeProtocolUpgrade, RoleTechnicalCouncil, 8000, 6700, "336h"},
+		{"consensus-upgrade-manifest", "consensus-upgrade", "/consensus/upgradeManifestHash", ScopeConsensusUpgrade, RoleTechnicalCouncil, 8000, 6700, "336h"},
+	}
+	for _, spec := range manifestParameters {
+		parameterID := "govparam." + spec.id
+		objectID := "govobj." + spec.objectID
+		parameters.Parameters = append(parameters.Parameters, ParameterRegistryEntry{
+			ParameterID: parameterID, ObjectID: objectID, Path: spec.path, Scope: spec.scope,
+			ValueType: "sha256", CurrentValue: json.RawMessage(`""`), AllowedRange: AllowedRange{Unit: "sha256"},
+			RequiredRole: spec.role, RequiredThresholdBPS: spec.threshold, RequiredQuorumBPS: spec.quorum,
+			RequiredTimelock: spec.timelock, SourceCommit: registrySourceCommit, Release: registryRelease,
+			Evidence: []string{"registry://governance-parameter/" + parameterID}, AuditID: "audit." + parameterID + ".v1",
+		})
+		if index, ok := objectIndex[spec.objectID]; ok {
+			objects.Objects[index].ParameterIDs = append(objects.Objects[index].ParameterIDs, parameterID)
+		}
+	}
 	return objects, parameters
 }
