@@ -25,7 +25,7 @@ func NewServer(service *Service) *Server {
 	s.routes()
 	return s
 }
-func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
+func (s *Server) Handler() http.Handler { return s.ObservedHandler() }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /v1/settlement-assets", s.settlementAssets)

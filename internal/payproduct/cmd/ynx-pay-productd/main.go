@@ -6,15 +6,24 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct"
+)
+
+var (
+	buildCommit  = "unknown"
+	buildRelease = "local"
+	buildTime    = "unknown"
 )
 
 func main() {
@@ -70,9 +79,15 @@ func main() {
 		}
 	}()
 	addr := env("YNX_PAY_PRODUCT_ADDR", "127.0.0.1:6431")
-	server := &http.Server{Addr: addr, Handler: payproduct.NewServer(service).Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second}
-	log.Printf("ynx-pay-product listening on %s", addr)
-	log.Fatal(server.ListenAndServe())
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})
+	productServer := payproduct.NewServerWithLogger(service, build, logger)
+	server := &http.Server{Addr: addr, Handler: productServer.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second, ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError)}
+	logger.Info("service_start", "service", "ynx-pay-product", "address", addr, "commit", build.Commit, "release", build.Release, "build_time", build.BuildTime)
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Error("service_exit", "service", "ynx-pay-product", "error", "listen_failed")
+		os.Exit(1)
+	}
 }
 func positiveInt(name string) int64 {
 	v, err := strconv.ParseInt(required(name), 10, 64)
