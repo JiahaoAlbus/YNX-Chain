@@ -38,7 +38,7 @@ func TestCursorMigratesV1AndRewindsWhenVaultIndexingIsEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if poller.cursor.SchemaVersion != 5 || poller.cursor.NextBlock != 10 || poller.cursor.LastBlockHash != "" || poller.cursor.StrategyVault != vault || poller.cursor.FairFlow != fairFlow {
+	if poller.cursor.SchemaVersion != 6 || poller.cursor.Factory != factory || poller.cursor.NextBlock != 10 || poller.cursor.LastBlockHash != "" || poller.cursor.StrategyVault != vault || poller.cursor.FairFlow != fairFlow {
 		t.Fatalf("cursor=%#v", poller.cursor)
 	}
 	backup, err := os.ReadFile(path + ".schema-v1.bak")
@@ -76,7 +76,7 @@ func TestCursorMigratesV2AndRewindsWhenFairFlowIndexingIsEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if poller.cursor.SchemaVersion != 5 || poller.cursor.NextBlock != 10 || poller.cursor.LastBlockHash != "" || poller.cursor.FairFlow != fairFlow {
+	if poller.cursor.SchemaVersion != 6 || poller.cursor.Factory != factory || poller.cursor.NextBlock != 10 || poller.cursor.LastBlockHash != "" || poller.cursor.FairFlow != fairFlow {
 		t.Fatalf("cursor=%#v", poller.cursor)
 	}
 	backup, err := os.ReadFile(path + ".schema-v2.bak")
@@ -106,7 +106,7 @@ func TestCursorMigratesV3AndRewindsWhenLPProtectionIndexingIsEnabled(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if poller.cursor.SchemaVersion != 5 || poller.cursor.NextBlock != 10 || poller.cursor.LastBlockHash != "" || poller.cursor.LPProtection != protection {
+	if poller.cursor.SchemaVersion != 6 || poller.cursor.Factory != factory || poller.cursor.NextBlock != 10 || poller.cursor.LastBlockHash != "" || poller.cursor.LPProtection != protection {
 		t.Fatalf("cursor=%#v", poller.cursor)
 	}
 	backup, err := os.ReadFile(path + ".schema-v3.bak")
@@ -139,7 +139,7 @@ func TestCursorMigratesV4AndBindsStableFactory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if poller.cursor.SchemaVersion != 5 || poller.cursor.NextBlock != 10 || poller.cursor.StableFactory != stableFactory || poller.cursor.Pools[0].ContractVersion != "ynx-dex-cpmm-v1" || poller.cursor.Pools[0].SwapFeeBps != 30 {
+	if poller.cursor.SchemaVersion != 6 || poller.cursor.Factory != factory || poller.cursor.NextBlock != 10 || poller.cursor.StableFactory != stableFactory || poller.cursor.Pools[0].ContractVersion != "ynx-dex-cpmm-v1" || poller.cursor.Pools[0].SwapFeeBps != 30 {
 		t.Fatalf("cursor=%#v", poller.cursor)
 	}
 	backup, err := os.ReadFile(path + ".schema-v4.bak")
@@ -150,6 +150,47 @@ func TestCursorMigratesV4AndBindsStableFactory(t *testing.T) {
 	other.StableFactory = "0x00000000000000000000000000000000000000f8"
 	if _, err := NewEVMPoller(store, other); err == nil || !strings.Contains(err.Error(), "binding mismatch") {
 		t.Fatalf("Stable factory substitution accepted: %v", err)
+	}
+}
+
+func TestCursorMigratesV5AndBindsFactory(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "cursor.json")
+	factory := "0x00000000000000000000000000000000000000f1"
+	legacy := pollCursor{
+		SchemaVersion: 5,
+		NextBlock:     90,
+		LastBlockHash: fmt.Sprintf("0x%064x", 89),
+		Pools: []poolIdentity{{
+			Address: "0x0000000000000000000000000000000000000011", Token0: "0x0000000000000000000000000000000000000001",
+			Token1: "0x0000000000000000000000000000000000000002", CreatedBlock: 10,
+			ContractVersion: "ynx-dex-cpmm-v1", SwapFeeBps: 30,
+		}},
+	}
+	payload, _ := json.Marshal(legacy)
+	mac := hmac.New(sha256.New, testSecret)
+	_, _ = mac.Write(payload)
+	data, _ := json.MarshalIndent(cursorEnvelope{Cursor: legacy, Integrity: hex.EncodeToString(mac.Sum(nil))}, "", "  ")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, _ := OpenStore(filepath.Join(directory, "state.json"), testSecret)
+	cfg := EVMPollerConfig{RPCURL: "http://rpc.invalid", Factory: factory, StartBlock: 10, CursorPath: path, CursorSecret: testSecret}
+	poller, err := NewEVMPoller(store, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if poller.cursor.SchemaVersion != 6 || poller.cursor.Factory != factory || poller.cursor.NextBlock != 10 || poller.cursor.LastBlockHash != "" {
+		t.Fatalf("cursor=%#v", poller.cursor)
+	}
+	backup, err := os.ReadFile(path + ".schema-v5.bak")
+	if err != nil || !bytes.Equal(backup, data) {
+		t.Fatalf("backup %v", err)
+	}
+	other := cfg
+	other.Factory = "0x00000000000000000000000000000000000000f9"
+	if _, err := NewEVMPoller(store, other); err == nil || !strings.Contains(err.Error(), "Factory binding mismatch") {
+		t.Fatalf("Factory substitution accepted: %v", err)
 	}
 }
 

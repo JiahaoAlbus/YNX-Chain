@@ -51,6 +51,7 @@ type poolIdentity struct {
 
 type pollCursor struct {
 	SchemaVersion int            `json:"schemaVersion"`
+	Factory       string         `json:"factory"`
 	StrategyVault string         `json:"strategyVault,omitempty"`
 	FairFlow      string         `json:"fairFlow,omitempty"`
 	LPProtection  string         `json:"lpProtection,omitempty"`
@@ -163,7 +164,7 @@ func NewEVMPoller(store *Store, cfg EVMPollerConfig) (*EVMPoller, error) {
 	if cfg.Client == nil {
 		cfg.Client = &http.Client{Timeout: 12 * time.Second}
 	}
-	poller := &EVMPoller{store: store, cfg: cfg, cursor: pollCursor{SchemaVersion: 5, StrategyVault: strings.ToLower(cfg.StrategyVault), FairFlow: strings.ToLower(cfg.FairFlow), LPProtection: strings.ToLower(cfg.LPProtection), StableFactory: strings.ToLower(cfg.StableFactory), NextBlock: cfg.StartBlock, Pools: []poolIdentity{}}}
+	poller := &EVMPoller{store: store, cfg: cfg, cursor: pollCursor{SchemaVersion: 6, Factory: strings.ToLower(cfg.Factory), StrategyVault: strings.ToLower(cfg.StrategyVault), FairFlow: strings.ToLower(cfg.FairFlow), LPProtection: strings.ToLower(cfg.LPProtection), StableFactory: strings.ToLower(cfg.StableFactory), NextBlock: cfg.StartBlock, Pools: []poolIdentity{}}}
 	if err := poller.loadCursor(); err != nil {
 		return nil, err
 	}
@@ -936,14 +937,14 @@ func (poller *EVMPoller) loadCursor() error {
 	payload, _ := json.Marshal(envelope.Cursor)
 	mac := hmac.New(sha256.New, poller.cfg.CursorSecret)
 	_, _ = mac.Write(payload)
-	if envelope.Cursor.SchemaVersion < 1 || envelope.Cursor.SchemaVersion > 5 || !hmac.Equal([]byte(envelope.Integrity), []byte(hex.EncodeToString(mac.Sum(nil)))) || envelope.Cursor.NextBlock < poller.cfg.StartBlock {
+	if envelope.Cursor.SchemaVersion < 1 || envelope.Cursor.SchemaVersion > 6 || !hmac.Equal([]byte(envelope.Integrity), []byte(hex.EncodeToString(mac.Sum(nil)))) || envelope.Cursor.NextBlock < poller.cfg.StartBlock {
 		return errors.New("EVM cursor integrity verification failed")
 	}
 	for _, pool := range envelope.Cursor.Pools {
 		if !addressPattern.MatchString(pool.Address) || !addressPattern.MatchString(pool.Token0) || !addressPattern.MatchString(pool.Token1) || pool.CreatedBlock < poller.cfg.StartBlock {
 			return errors.New("invalid pool in EVM cursor")
 		}
-		if envelope.Cursor.SchemaVersion == 5 && (!isPoolContractVersion(pool.ContractVersion) || pool.SwapFeeBps == 0 || pool.SwapFeeBps > 100) {
+		if envelope.Cursor.SchemaVersion >= 5 && (!isPoolContractVersion(pool.ContractVersion) || pool.SwapFeeBps == 0 || pool.SwapFeeBps > 100) {
 			return errors.New("invalid typed pool in EVM cursor")
 		}
 	}
@@ -956,15 +957,19 @@ func (poller *EVMPoller) loadCursor() error {
 	if envelope.Cursor.SchemaVersion >= 4 && !strings.EqualFold(envelope.Cursor.LPProtection, poller.cfg.LPProtection) {
 		return errors.New("EVM cursor LP protection binding mismatch")
 	}
-	if envelope.Cursor.SchemaVersion == 5 && !strings.EqualFold(envelope.Cursor.StableFactory, poller.cfg.StableFactory) {
+	if envelope.Cursor.SchemaVersion >= 5 && !strings.EqualFold(envelope.Cursor.StableFactory, poller.cfg.StableFactory) {
 		return errors.New("EVM cursor Stable factory binding mismatch")
 	}
-	if envelope.Cursor.SchemaVersion < 5 {
+	if envelope.Cursor.SchemaVersion >= 6 && !strings.EqualFold(envelope.Cursor.Factory, poller.cfg.Factory) {
+		return errors.New("EVM cursor Factory binding mismatch")
+	}
+	if envelope.Cursor.SchemaVersion < 6 {
 		legacyVersion := envelope.Cursor.SchemaVersion
 		if err := preserveLegacyState(fmt.Sprintf("%s.schema-v%d.bak", poller.cfg.CursorPath, legacyVersion), data); err != nil {
 			return fmt.Errorf("preserve EVM cursor schema v%d rollback: %w", legacyVersion, err)
 		}
-		envelope.Cursor.SchemaVersion = 5
+		envelope.Cursor.SchemaVersion = 6
+		envelope.Cursor.Factory = strings.ToLower(poller.cfg.Factory)
 		envelope.Cursor.StrategyVault = strings.ToLower(poller.cfg.StrategyVault)
 		envelope.Cursor.FairFlow = strings.ToLower(poller.cfg.FairFlow)
 		envelope.Cursor.LPProtection = strings.ToLower(poller.cfg.LPProtection)
@@ -973,10 +978,8 @@ func (poller *EVMPoller) loadCursor() error {
 			envelope.Cursor.Pools[index].ContractVersion = "ynx-dex-cpmm-v1"
 			envelope.Cursor.Pools[index].SwapFeeBps = 30
 		}
-		if (legacyVersion == 1 && (poller.cfg.StrategyVault != "" || poller.cfg.FairFlow != "" || poller.cfg.LPProtection != "" || poller.cfg.StableFactory != "")) || (legacyVersion == 2 && (poller.cfg.FairFlow != "" || poller.cfg.LPProtection != "" || poller.cfg.StableFactory != "")) || (legacyVersion == 3 && (poller.cfg.LPProtection != "" || poller.cfg.StableFactory != "")) || (legacyVersion == 4 && poller.cfg.StableFactory != "") {
-			envelope.Cursor.NextBlock = poller.cfg.StartBlock
-			envelope.Cursor.LastBlockHash = ""
-		}
+		envelope.Cursor.NextBlock = poller.cfg.StartBlock
+		envelope.Cursor.LastBlockHash = ""
 		poller.cursor = envelope.Cursor
 		return poller.persistCursor()
 	}
