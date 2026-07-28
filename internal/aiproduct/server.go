@@ -40,6 +40,7 @@ type Server struct {
 	client      *http.Client
 	mux         *http.ServeMux
 	static      fs.FS
+	registry    ProductAIRegistry
 	mu          sync.Mutex
 	generations map[string]activeGeneration
 	visitors    map[string][]time.Time
@@ -73,7 +74,11 @@ func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
 	if cfg.GenerationTimeout <= 0 {
 		cfg.GenerationTimeout = 45 * time.Second
 	}
-	s := &Server{cfg: cfg, store: store, client: &http.Client{Timeout: cfg.GenerationTimeout + 5*time.Second}, mux: http.NewServeMux(), static: static, generations: map[string]activeGeneration{}, visitors: map[string][]time.Time{}}
+	registry, err := loadProductAIRegistry()
+	if err != nil {
+		return nil, err
+	}
+	s := &Server{cfg: cfg, store: store, client: &http.Client{Timeout: cfg.GenerationTimeout + 5*time.Second}, mux: http.NewServeMux(), static: static, registry: registry, generations: map[string]activeGeneration{}, visitors: map[string][]time.Time{}}
 	s.routes()
 	return s, nil
 }
@@ -83,6 +88,7 @@ func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /api/meta", s.handleMeta)
+	s.mux.HandleFunc("GET /api/product-ai-registry", s.handleProductAIRegistry)
 	if s.cfg.AllowLocalFixtureAuth {
 		s.mux.HandleFunc("POST /api/auth/challenges", s.handleChallenge)
 		s.mux.HandleFunc("POST /api/auth/challenges/{id}/verify", s.handleVerify)
@@ -173,7 +179,11 @@ func (s *Server) allow(key string, limit int, now time.Time) bool {
 }
 
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"product": ProductID, "chainId": ChainID, "network": ChainNetwork, "nativeAsset": NativeAsset, "walletCallback": s.cfg.ExactWalletCallback, "scopes": FormalScopes, "build": s.cfg.Build, "integratedCentral": false, "generationLive": false, "localFixtureAuthEnabled": s.cfg.AllowLocalFixtureAuth, "authAuthority": "production canonical integration pending; sign-in fails closed unless explicit local fixture mode is enabled", "truthBoundary": "provider output only appears after a successful provider-backed Gateway stream"})
+	writeJSON(w, http.StatusOK, map[string]any{"product": ProductID, "chainId": ChainID, "network": ChainNetwork, "nativeAsset": NativeAsset, "walletCallback": s.cfg.ExactWalletCallback, "scopes": FormalScopes, "build": s.cfg.Build, "productAIRegistryVersion": s.registry.RegistryVersion, "productAIRegistryProducts": len(s.registry.Products), "integratedCentral": false, "generationLive": false, "localFixtureAuthEnabled": s.cfg.AllowLocalFixtureAuth, "authAuthority": "production canonical integration pending; sign-in fails closed unless explicit local fixture mode is enabled", "truthBoundary": "provider output only appears after a successful provider-backed Gateway stream"})
+}
+
+func (s *Server) handleProductAIRegistry(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"registry": s.registry, "executionBoundary": "registry tools are advice, draft, explanation, research, simulation, or preview capabilities; no tool executes external actions", "contextBoundary": "unknown, unselected, cross-product cached, and restricted credential-bearing context is denied by default"})
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -437,16 +447,17 @@ func (s *Server) handleAttachmentDelete(w http.ResponseWriter, r *http.Request, 
 }
 
 type generationInput struct {
-	GenerationID    string   `json:"generationId"`
-	Prompt          string   `json:"prompt"`
-	Provider        string   `json:"provider"`
-	Model           string   `json:"model"`
-	IncludedContext []string `json:"includedContext"`
-	ExcludedContext []string `json:"excludedContext"`
-	RetryOf         string   `json:"retryOf"`
-	OutputLanguage  string   `json:"outputLanguage"`
-	AttachmentIDs   []string `json:"attachmentIds,omitempty"`
-	ContinueFrom    string   `json:"continueFrom,omitempty"`
+	GenerationID    string                    `json:"generationId"`
+	Prompt          string                    `json:"prompt"`
+	Provider        string                    `json:"provider"`
+	Model           string                    `json:"model"`
+	IncludedContext []string                  `json:"includedContext"`
+	ExcludedContext []string                  `json:"excludedContext"`
+	ProductContexts []ProductContextSelection `json:"productContexts,omitempty"`
+	RetryOf         string                    `json:"retryOf"`
+	OutputLanguage  string                    `json:"outputLanguage"`
+	AttachmentIDs   []string                  `json:"attachmentIds,omitempty"`
+	ContinueFrom    string                    `json:"continueFrom,omitempty"`
 }
 
 func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session ProductSession) {
@@ -493,6 +504,11 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	resolvedProductContexts, err := s.validateProductContextSelections(session, conversationID, in.IncludedContext, in.ProductContexts, time.Now().UTC())
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if len(cleanList(in.AttachmentIDs)) > 0 && !listContains(cleanList(in.IncludedContext), "selected_files") {
 		writeError(w, http.StatusBadRequest, "attachmentIds require selected_files in includedContext")
 		return
@@ -532,7 +548,10 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	payload := map[string]any{"session": conversationID, "prompt": in.Prompt, "outputLanguage": in.OutputLanguage, "includedContext": cleanList(in.IncludedContext), "excludedContext": cleanList(in.ExcludedContext), "attachments": attachments, "continueFrom": in.ContinueFrom}
+	payload := map[string]any{"session": conversationID, "prompt": in.Prompt, "outputLanguage": in.OutputLanguage, "includedContext": cleanList(in.IncludedContext), "excludedContext": cleanList(in.ExcludedContext), "attachments": attachments, "productContexts": resolvedProductContexts, "continueFrom": in.ContinueFrom}
+	if len(resolvedProductContexts) > 0 {
+		payload["accountHash"] = hashProductAccount(session.Account, conversationID)
+	}
 	resp, err := s.gatewayRequest(ctx, http.MethodPost, "/ai/stream", payload)
 	if err != nil {
 		s.streamFailure(w, "timeout_or_gateway_unavailable", in.GenerationID)

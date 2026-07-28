@@ -9,6 +9,7 @@ const artifacts=await json("artifact-manifest.json");
 const integration=await json("integration/central-integration.json");
 const contract=await json("../../release/integration/ynx-ai-contract.json");
 const vectors=await json("../../docs/integration/CROSS_PRODUCT_TEST_VECTORS.json");
+const productRegistry=await json("../../internal/aiproduct/product-ai-registry.json");
 const required=["productId","name","branch","commit","version","surfaces","implementedLocal","testedLocal","installedLocal","integratedCentral","deployedStaging","deployedPublic","downloadHosted","productionSigned","storeReleased","publicUrls","healthUrls","artifactUrls","sha256","bytes","signingClass","minOS","installEvidence","centralIntegration","knownLimitations","generatedAt"];
 for(const field of required)assert.ok(Object.hasOwn(release,field),`product-release missing ${field}`);
 assert.equal(release.productId,"ynx-ai");
@@ -25,6 +26,28 @@ assert.deepEqual(release.healthUrls,[]);
 assert.deepEqual(release.artifactUrls,[]);
 assert.equal(integration.claims.integratedCentral,false);
 assert.equal(integration.claims.generationLive,false);
+assert.equal(productRegistry.schemaVersion,"ynx.ai.product-registry.v1");
+assert.equal(productRegistry.registryVersion,"1.0.0");
+assert.deepEqual(Object.values(productRegistry.defaultPolicy),Array(Object.keys(productRegistry.defaultPolicy).length).fill("deny"));
+const expectedRegistryProducts=["ai","browser","calendar","card","cloud","creator-studio","developer","docs","exchange","explorer","finance","mail","monitor","music","pay","quant","resource","search","seller","shop","social","trust","video","wallet"];
+assert.deepEqual(productRegistry.products.map(item=>item.id).sort(),expectedRegistryProducts);
+const forbiddenToolVerbs=new Set(["sign","pay","refund","trade","swap","withdraw","issue","freeze","publish","send","delete","ban","mint","burn","execute","deploy","change","rollback"]);
+for(const product of productRegistry.products){
+  for(const field of ["id","displayName","owner","workflows","allowedContexts","forbiddenContexts","dataClasses","maxContextBytes","tools","requiredApproval","retention","providerModelPolicy","costBudget","audit"])assert.ok(Object.hasOwn(product,field),`registry product ${product.id} missing ${field}`);
+  assert.ok(product.maxContextBytes>0&&product.maxContextBytes<=1048576,`registry product ${product.id} has invalid context budget`);
+  assert.equal(product.costBudget.maxContextBytes,product.maxContextBytes,`registry product ${product.id} cost/context budget drift`);
+  assert.equal(product.providerModelPolicy.selection,"gateway_model_registry_only");
+  assert.equal(product.providerModelPolicy.fallback,"truthful_unavailable");
+  assert.equal(product.providerModelPolicy.localModelCandidate,"explicit_capability_only");
+  assert.equal(product.audit.rawContextStored,false);
+  for(const field of ["requestId","accountHash","conversationId","productId","contextType","dataClass","sourceOwner","sourceVersion","asOf","permissionId","referenceHashes"])assert.ok(product.audit.requiredFields.includes(field),`registry product ${product.id} audit missing ${field}`);
+  for(const tool of product.tools)assert.equal(forbiddenToolVerbs.has(tool.split("_")[0]),false,`registry product ${product.id} exposes executable tool ${tool}`);
+  for(const context of product.allowedContexts){
+    assert.ok(context.maxBytes>0&&context.maxBytes<=product.maxContextBytes,`registry context ${product.id}/${context.type} exceeds product budget`);
+    assert.ok(context.maxAgeSeconds>0,`registry context ${product.id}/${context.type} lacks freshness bound`);
+    assert.ok(["session_scope","explicit_selection","explicit_selection_and_permission"].includes(context.approval),`registry context ${product.id}/${context.type} has invalid approval`);
+  }
+}
 assert.equal(contract.schemaVersion,"ynx.ai.integration.v1");
 assert.equal(contract.product.id,"ynx-ai");
 assert.equal(contract.product.owner,"14-ai");
@@ -76,9 +99,13 @@ try{
   if(error?.code!=="ENOENT")throw error;
 }
 
-const [server,gatewayServer,web,mobile,workflow,envExample,uiAudit,evidence,sbom,dependencyReview,gatewayPatch,walletPatch]=await Promise.all([
+const [server,gatewayServer,gatewayRuntime,productRegistryRuntime,gatewayRegistryPolicy,contentGuard,web,mobile,workflow,envExample,uiAudit,evidence,sbom,dependencyReview,gatewayPatch,walletPatch]=await Promise.all([
   readFile(new URL("../../internal/aiproduct/server.go",root),"utf8"),
   readFile(new URL("../../internal/aigateway/server.go",root),"utf8"),
+  readFile(new URL("../../internal/aigateway/gateway.go",root),"utf8"),
+  readFile(new URL("../../internal/aiproduct/product_registry.go",root),"utf8"),
+  readFile(new URL("../../internal/aigateway/product_registry_policy.go",root),"utf8"),
+  readFile(new URL("../../internal/aigateway/content_guard.go",root),"utf8"),
   readFile(new URL("web/app.js",root),"utf8"),
   readFile(new URL("mobile/src/api.ts",root),"utf8"),
   readFile(new URL("../../.github/workflows/ynx-ai-mobile.yml",root),"utf8"),
@@ -100,6 +127,34 @@ assert.match(gatewayServer,/DisallowUnknownFields\(\)/);
 assert.match(gatewayServer,/http\.MaxBytesReader/);
 assert.match(gatewayServer,/provider_rate_limited/);
 assert.match(gatewayServer,/map\[string\]string\{\"code\": code, \"error\": message, \"requestId\": requestID\}/);
+assert.match(server,/loadProductAIRegistry\(\)/);
+assert.match(server,/handleProductAIRegistry/);
+assert.match(server,/validateProductContextSelections/);
+assert.match(productRegistryRuntime,/go:embed product-ai-registry\.json/);
+assert.match(productRegistryRuntime,/PermissionByGatewayID/);
+assert.match(productRegistryRuntime,/ReferenceIDs\s+\[\]string `json:\"-\"`/);
+assert.match(productRegistryRuntime,/hashProductAccount/);
+assert.match(productRegistryRuntime,/hashProductReference/);
+assert.match(server,/payload\[\"accountHash\"\] = hashProductAccount\(session\.Account, conversationID\)/);
+assert.match(gatewayServer,/AccountHash\s+string\s+`json:\"accountHash\"`/);
+assert.match(gatewayServer,/productContextAudit/);
+assert.match(gatewayServer,/request_authorized/);
+assert.match(gatewayServer,/audit_unavailable/);
+assert.match(gatewayRuntime,/type ProductContextAudit struct/);
+assert.match(gatewayRuntime,/AccountHash\s+string\s+`json:\"accountHash,omitempty\"`/);
+assert.match(gatewayRuntime,/ProductContexts\s+\[\]ProductContextAudit\s+`json:\"productContexts,omitempty\"`/);
+assert.match(gatewayRuntime,/json\.Marshal\(entry\.ProductContexts\)/);
+assert.match(gatewayRuntime,/entry\.AccountHash, entry\.PromptHash, contextPayload/);
+assert.match(gatewayServer,/guardGenerationContent\(input\)/);
+assert.match(gatewayServer,/validProductContextReference/);
+assert.match(gatewayRegistryPolicy,/gatewayProductContextPolicies/);
+assert.match(contentGuard,/restricted_context/);
+assert.match(contentGuard,/containsIndirectPromptInjection/);
+assert.match(contentGuard,/containsPaymentCardNumber/);
+for(const product of productRegistry.products){
+  assert.ok(gatewayRegistryPolicy.includes(`"${product.id}":`),`Gateway registry snapshot missing product ${product.id}`);
+  for(const context of product.allowedContexts)assert.ok(gatewayRegistryPolicy.includes(`"${context.type}":`),`Gateway registry snapshot missing context ${product.id}/${context.type}`);
+}
 assert.match(server,/AllowLocalFixtureAuth/);
 assert.match(envExample,/YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH=0/);
 for(const command of ["xcodebuild","simctl install","simctl launch","simctl openurl","shasum -a 256"])assert.ok(workflow.includes(command),`iOS CI missing ${command}`);

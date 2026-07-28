@@ -1,0 +1,1848 @@
+{
+  "schemaVersion": "ynx.ai.product-registry.v1",
+  "registryVersion": "1.0.0",
+  "defaultPolicy": {
+    "unknownProduct": "deny",
+    "unknownContext": "deny",
+    "unselectedPrivateContext": "deny",
+    "crossProductContextReuse": "deny",
+    "secretBearingContext": "deny",
+    "toolExecution": "deny"
+  },
+  "products": [
+    {
+      "id": "ai",
+      "displayName": "YNX AI",
+      "owner": "14-ai",
+      "workflows": [
+        "draft",
+        "explain",
+        "summarize",
+        "translate",
+        "research",
+        "preview",
+        "generate_patch",
+        "simulate"
+      ],
+      "allowedContexts": [
+        {
+          "type": "conversation",
+          "label": "conversation",
+          "dataClasses": [
+            "private"
+          ],
+          "maxBytes": 262144,
+          "approval": "session_scope",
+          "requiredScope": "ai:conversations",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "14-ai",
+          "maxAgeSeconds": 86400
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "private"
+      ],
+      "maxContextBytes": 262144,
+      "tools": [
+        "preview_tool_call",
+        "draft_product_output",
+        "explain_policy"
+      ],
+      "requiredApproval": "session_scope",
+      "retention": {
+        "mode": "account_policy",
+        "maxDays": 90
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 262144
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "wallet",
+      "displayName": "YNX Wallet",
+      "owner": "02-wallet-auth",
+      "workflows": [
+        "explain",
+        "summarize",
+        "draft",
+        "preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_wallet_records",
+          "label": "wallet-record",
+          "dataClasses": [
+            "financial"
+          ],
+          "maxBytes": 131072,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "wallet:records:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "02-wallet-auth",
+          "maxAgeSeconds": 60
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context",
+        "wallet_secret_material",
+        "unsigned_or_unapproved_authority_escalation"
+      ],
+      "dataClasses": [
+        "financial"
+      ],
+      "maxContextBytes": 131072,
+      "tools": [
+        "explain_wallet_record",
+        "draft_wallet_support_request",
+        "preview_unsigned_intent"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 131072
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "social",
+      "displayName": "YNX Social",
+      "owner": "03-social",
+      "workflows": [
+        "draft",
+        "summarize",
+        "translate",
+        "moderation_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_social_content",
+          "label": "social-content",
+          "dataClasses": [
+            "communications"
+          ],
+          "maxBytes": 262144,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "social:content:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "03-social",
+          "maxAgeSeconds": 300
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context",
+        "unselected_private_messages"
+      ],
+      "dataClasses": [
+        "communications"
+      ],
+      "maxContextBytes": 262144,
+      "tools": [
+        "draft_social_content",
+        "summarize_selected_thread",
+        "preview_moderation_reason"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 262144
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "pay",
+      "displayName": "YNX Pay",
+      "owner": "04-pay",
+      "workflows": [
+        "explain",
+        "summarize",
+        "draft",
+        "dispute_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_pay_receipts",
+          "label": "payment-receipt",
+          "dataClasses": [
+            "financial"
+          ],
+          "maxBytes": 131072,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "pay:receipts:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "04-pay",
+          "maxAgeSeconds": 60
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "financial"
+      ],
+      "maxContextBytes": 131072,
+      "tools": [
+        "explain_payment_receipt",
+        "draft_payment_support_request",
+        "preview_dispute_evidence"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 131072
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "card",
+      "displayName": "YNX Card",
+      "owner": "06-card",
+      "workflows": [
+        "explain",
+        "summarize",
+        "draft",
+        "risk_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_card_activity",
+          "label": "card-activity",
+          "dataClasses": [
+            "financial"
+          ],
+          "maxBytes": 131072,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "card:activity:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "06-card",
+          "maxAgeSeconds": 60
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context",
+        "full_pan",
+        "cvv",
+        "pin"
+      ],
+      "dataClasses": [
+        "financial"
+      ],
+      "maxContextBytes": 131072,
+      "tools": [
+        "explain_card_activity",
+        "draft_card_support_request",
+        "preview_card_risk"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 131072
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "exchange",
+      "displayName": "YNX Exchange",
+      "owner": "07-exchange",
+      "workflows": [
+        "explain",
+        "summarize",
+        "research",
+        "risk_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_exchange_records",
+          "label": "exchange-record",
+          "dataClasses": [
+            "financial"
+          ],
+          "maxBytes": 196608,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "exchange:records:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "07-exchange",
+          "maxAgeSeconds": 15
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "financial"
+      ],
+      "maxContextBytes": 196608,
+      "tools": [
+        "explain_order_or_trade",
+        "summarize_exchange_activity",
+        "preview_exchange_risk"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 196608
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "quant",
+      "displayName": "YNX Quant Lab",
+      "owner": "08-quant-lab",
+      "workflows": [
+        "strategy_explanation",
+        "code_draft",
+        "test_draft",
+        "backtest_summary",
+        "oos_comparison",
+        "parameter_suggestion",
+        "risk_attribution",
+        "failure_diagnosis",
+        "research_report"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_quant_research",
+          "label": "quant-research",
+          "dataClasses": [
+            "research"
+          ],
+          "maxBytes": 524288,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "quant:research:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "08-quant-lab",
+          "maxAgeSeconds": 300
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context",
+        "deployment_credentials",
+        "live_order_authority",
+        "leverage_or_risk_override"
+      ],
+      "dataClasses": [
+        "research"
+      ],
+      "maxContextBytes": 524288,
+      "tools": [
+        "explain_strategy",
+        "draft_quant_code",
+        "draft_quant_tests",
+        "summarize_backtest",
+        "compare_oos_walk_forward",
+        "draft_research_report"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 524288
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "shop",
+      "displayName": "YNX Shop",
+      "owner": "09-shop",
+      "workflows": [
+        "explain",
+        "summarize",
+        "draft",
+        "support_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_shop_orders",
+          "label": "shop-order",
+          "dataClasses": [
+            "commerce"
+          ],
+          "maxBytes": 196608,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "shop:orders:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "09-shop",
+          "maxAgeSeconds": 300
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "commerce"
+      ],
+      "maxContextBytes": 196608,
+      "tools": [
+        "explain_order",
+        "draft_shop_support_request",
+        "summarize_selected_orders"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 196608
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "seller",
+      "displayName": "Seller Console",
+      "owner": "10-seller-console",
+      "workflows": [
+        "summarize",
+        "draft",
+        "research",
+        "operations_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_seller_records",
+          "label": "seller-record",
+          "dataClasses": [
+            "commerce"
+          ],
+          "maxBytes": 262144,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "seller:records:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "10-seller-console",
+          "maxAgeSeconds": 300
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "commerce"
+      ],
+      "maxContextBytes": 262144,
+      "tools": [
+        "summarize_seller_records",
+        "draft_listing_copy",
+        "preview_seller_operation"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 262144
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "developer",
+      "displayName": "YNX Developer",
+      "owner": "11-developer",
+      "workflows": [
+        "code_draft",
+        "test_draft",
+        "explain",
+        "review",
+        "generate_patch"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_code_context",
+          "label": "source-code",
+          "dataClasses": [
+            "source-code"
+          ],
+          "maxBytes": 524288,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "developer:code:read",
+          "authority": "user-selected",
+          "sourceOwner": "11-developer",
+          "maxAgeSeconds": 3600
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "source-code"
+      ],
+      "maxContextBytes": 524288,
+      "tools": [
+        "draft_code",
+        "draft_tests",
+        "explain_code",
+        "review_selected_diff",
+        "generate_patch_preview"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 524288
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "explorer",
+      "displayName": "YNX Explorer",
+      "owner": "12-explorer",
+      "workflows": [
+        "explain",
+        "summarize",
+        "research"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_public_chain_records",
+          "label": "public-chain-record",
+          "dataClasses": [
+            "public"
+          ],
+          "maxBytes": 262144,
+          "approval": "explicit_selection",
+          "requiredScope": "",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "01-chain-core",
+          "maxAgeSeconds": 15
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "public"
+      ],
+      "maxContextBytes": 262144,
+      "tools": [
+        "explain_transaction",
+        "summarize_block",
+        "research_public_chain_state"
+      ],
+      "requiredApproval": "explicit_selection",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 262144
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "monitor",
+      "displayName": "YNX Monitor",
+      "owner": "13-monitor",
+      "workflows": [
+        "explain",
+        "summarize",
+        "diagnose",
+        "incident_draft"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_monitor_incidents",
+          "label": "monitor-incident",
+          "dataClasses": [
+            "operational"
+          ],
+          "maxBytes": 262144,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "monitor:incidents:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "13-monitor",
+          "maxAgeSeconds": 30
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "operational"
+      ],
+      "maxContextBytes": 262144,
+      "tools": [
+        "explain_metric",
+        "summarize_incident",
+        "draft_incident_update",
+        "diagnose_failure"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 262144
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "trust",
+      "displayName": "YNX Trust Center",
+      "owner": "15-trust-center",
+      "workflows": [
+        "explain",
+        "summarize",
+        "draft",
+        "appeal_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_trust_records",
+          "label": "trust-record",
+          "dataClasses": [
+            "trust-sensitive"
+          ],
+          "maxBytes": 196608,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "trust:records:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "15-trust-center",
+          "maxAgeSeconds": 300
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "trust-sensitive"
+      ],
+      "maxContextBytes": 196608,
+      "tools": [
+        "explain_trust_record",
+        "draft_appeal",
+        "summarize_selected_evidence"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 196608
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "resource",
+      "displayName": "YNX Resource",
+      "owner": "resource",
+      "workflows": [
+        "explain",
+        "summarize",
+        "forecast",
+        "optimization_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_resource_usage",
+          "label": "resource-usage",
+          "dataClasses": [
+            "operational"
+          ],
+          "maxBytes": 196608,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "resource:usage:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "resource",
+          "maxAgeSeconds": 60
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "operational"
+      ],
+      "maxContextBytes": 196608,
+      "tools": [
+        "explain_resource_usage",
+        "summarize_capacity",
+        "preview_resource_optimization"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 196608
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "cloud",
+      "displayName": "YNX Cloud",
+      "owner": "cloud",
+      "workflows": [
+        "summarize",
+        "explain",
+        "translate",
+        "draft"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_cloud_files",
+          "label": "cloud-file",
+          "dataClasses": [
+            "private-content"
+          ],
+          "maxBytes": 524288,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "cloud:files:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "cloud",
+          "maxAgeSeconds": 300
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context",
+        "unselected_cloud_files"
+      ],
+      "dataClasses": [
+        "private-content"
+      ],
+      "maxContextBytes": 524288,
+      "tools": [
+        "summarize_selected_cloud_file",
+        "explain_selected_cloud_file",
+        "draft_from_selected_cloud_file"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 524288
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "browser",
+      "displayName": "YNX Browser",
+      "owner": "browser",
+      "workflows": [
+        "summarize",
+        "research",
+        "explain",
+        "draft"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_browser_history",
+          "label": "browser-history",
+          "dataClasses": [
+            "private-history"
+          ],
+          "maxBytes": 262144,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "browser:history:read",
+          "authority": "user-selected",
+          "sourceOwner": "browser",
+          "maxAgeSeconds": 300
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context",
+        "unselected_browser_history"
+      ],
+      "dataClasses": [
+        "private-history"
+      ],
+      "maxContextBytes": 262144,
+      "tools": [
+        "summarize_selected_history",
+        "research_selected_pages",
+        "explain_selected_page"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 262144
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "search",
+      "displayName": "YNX Search",
+      "owner": "search",
+      "workflows": [
+        "research",
+        "summarize",
+        "compare",
+        "explain"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_search_results",
+          "label": "search-result",
+          "dataClasses": [
+            "public"
+          ],
+          "maxBytes": 262144,
+          "approval": "explicit_selection",
+          "requiredScope": "",
+          "authority": "third-party",
+          "sourceOwner": "search",
+          "maxAgeSeconds": 300
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "public"
+      ],
+      "maxContextBytes": 262144,
+      "tools": [
+        "research_selected_results",
+        "summarize_search_results",
+        "compare_sources"
+      ],
+      "requiredApproval": "explicit_selection",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 262144
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "finance",
+      "displayName": "YNX Finance",
+      "owner": "finance",
+      "workflows": [
+        "explain",
+        "summarize",
+        "categorize",
+        "budget_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_finance_records",
+          "label": "finance-record",
+          "dataClasses": [
+            "financial"
+          ],
+          "maxBytes": 262144,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "finance:records:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "finance",
+          "maxAgeSeconds": 60
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context",
+        "unselected_financial_history"
+      ],
+      "dataClasses": [
+        "financial"
+      ],
+      "maxContextBytes": 262144,
+      "tools": [
+        "explain_finance_record",
+        "summarize_selected_finances",
+        "preview_budget"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 262144
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "mail",
+      "displayName": "YNX Mail",
+      "owner": "mail",
+      "workflows": [
+        "summarize",
+        "draft",
+        "translate",
+        "extract_actions"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_mail_messages",
+          "label": "mail-message",
+          "dataClasses": [
+            "communications"
+          ],
+          "maxBytes": 262144,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "mail:messages:read",
+          "authority": "user-selected",
+          "sourceOwner": "mail",
+          "maxAgeSeconds": 300
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context",
+        "unselected_mailbox"
+      ],
+      "dataClasses": [
+        "communications"
+      ],
+      "maxContextBytes": 262144,
+      "tools": [
+        "summarize_selected_mail",
+        "draft_mail_reply",
+        "translate_selected_mail",
+        "extract_mail_actions"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 262144
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "music",
+      "displayName": "YNX Music",
+      "owner": "music",
+      "workflows": [
+        "explain",
+        "summarize",
+        "recommendation_preview",
+        "playlist_draft"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_music_library",
+          "label": "music-library",
+          "dataClasses": [
+            "private-profile"
+          ],
+          "maxBytes": 131072,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "music:library:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "music",
+          "maxAgeSeconds": 3600
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "private-profile"
+      ],
+      "maxContextBytes": 131072,
+      "tools": [
+        "explain_music_item",
+        "summarize_selected_library",
+        "draft_playlist"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 131072
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "video",
+      "displayName": "YNX Video",
+      "owner": "video",
+      "workflows": [
+        "summarize",
+        "draft",
+        "translate",
+        "edit_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_video_assets",
+          "label": "video-asset",
+          "dataClasses": [
+            "private-content"
+          ],
+          "maxBytes": 262144,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "video:assets:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "video",
+          "maxAgeSeconds": 3600
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "private-content"
+      ],
+      "maxContextBytes": 262144,
+      "tools": [
+        "summarize_video_asset",
+        "draft_video_metadata",
+        "translate_video_metadata",
+        "preview_video_edit"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 262144
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "creator-studio",
+      "displayName": "YNX Creator Studio",
+      "owner": "creator-studio",
+      "workflows": [
+        "draft",
+        "summarize",
+        "translate",
+        "publish_preview"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_creator_assets",
+          "label": "creator-asset",
+          "dataClasses": [
+            "private-content"
+          ],
+          "maxBytes": 524288,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "creator:assets:read",
+          "authority": "ynx-authoritative",
+          "sourceOwner": "creator-studio",
+          "maxAgeSeconds": 3600
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context",
+        "unapproved_publish_authority"
+      ],
+      "dataClasses": [
+        "private-content"
+      ],
+      "maxContextBytes": 524288,
+      "tools": [
+        "draft_creator_copy",
+        "summarize_creator_asset",
+        "translate_creator_copy",
+        "preview_publish_package"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 524288
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "docs",
+      "displayName": "YNX Docs",
+      "owner": "docs",
+      "workflows": [
+        "summarize",
+        "draft",
+        "translate",
+        "review"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_documents",
+          "label": "document",
+          "dataClasses": [
+            "private-content"
+          ],
+          "maxBytes": 524288,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "docs:documents:read",
+          "authority": "user-selected",
+          "sourceOwner": "docs",
+          "maxAgeSeconds": 3600
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "private-content"
+      ],
+      "maxContextBytes": 524288,
+      "tools": [
+        "summarize_selected_document",
+        "draft_from_selected_document",
+        "translate_selected_document",
+        "review_selected_document"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 524288
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    },
+    {
+      "id": "calendar",
+      "displayName": "YNX Calendar",
+      "owner": "calendar",
+      "workflows": [
+        "summarize",
+        "draft",
+        "schedule_preview",
+        "extract_actions"
+      ],
+      "allowedContexts": [
+        {
+          "type": "selected_calendar_events",
+          "label": "calendar-event",
+          "dataClasses": [
+            "communications"
+          ],
+          "maxBytes": 131072,
+          "approval": "explicit_selection_and_permission",
+          "requiredScope": "calendar:events:read",
+          "authority": "user-selected",
+          "sourceOwner": "calendar",
+          "maxAgeSeconds": 300
+        }
+      ],
+      "forbiddenContexts": [
+        "private_key",
+        "seed_phrase",
+        "pem_signing_material",
+        "pan_or_cvv",
+        "unselected_private_history",
+        "cross_product_cached_context"
+      ],
+      "dataClasses": [
+        "communications"
+      ],
+      "maxContextBytes": 131072,
+      "tools": [
+        "summarize_selected_events",
+        "draft_calendar_message",
+        "preview_schedule",
+        "extract_event_actions"
+      ],
+      "requiredApproval": "explicit_selection_and_permission",
+      "retention": {
+        "mode": "request_only",
+        "maxDays": 0
+      },
+      "providerModelPolicy": {
+        "selection": "gateway_model_registry_only",
+        "fallback": "truthful_unavailable",
+        "localModelCandidate": "explicit_capability_only"
+      },
+      "costBudget": {
+        "providerCost": "disclose_when_reported",
+        "userBudget": "required_before_paid_request",
+        "freeQuota": "explicit_not_inferred",
+        "maxContextBytes": 131072
+      },
+      "audit": {
+        "requiredFields": [
+          "requestId",
+          "accountHash",
+          "conversationId",
+          "productId",
+          "contextType",
+          "dataClass",
+          "sourceOwner",
+          "sourceVersion",
+          "asOf",
+          "permissionId",
+          "referenceHashes"
+        ],
+        "rawContextStored": false
+      }
+    }
+  ]
+}

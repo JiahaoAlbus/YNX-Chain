@@ -514,7 +514,7 @@ func (s *Store) SetPolicy(account string, p DataPolicy) (DataPolicy, error) {
 	if p.RetentionDays < 1 || p.RetentionDays > 90 {
 		return DataPolicy{}, errors.New("retentionDays must be between 1 and 90")
 	}
-	allowed := map[string]bool{"conversation": true, "selected_chain_records": true, "selected_files": true, "selected_trust_records": true}
+	allowed := map[string]bool{"conversation": true, "selected_chain_records": true, "selected_files": true, "selected_trust_records": true, selectedProductContext: true}
 	seen := map[string]bool{}
 	clean := []string{}
 	for _, value := range p.AllowedContextTypes {
