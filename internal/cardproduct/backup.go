@@ -463,6 +463,11 @@ func normalizeSnapshot(snapshot *Snapshot) {
 	if snapshot.Audit == nil {
 		snapshot.Audit = []AuditEvent{}
 	}
+	for index := range snapshot.Audit {
+		if snapshot.Audit[index].ID == "" && snapshot.Audit[index].Hash != "" {
+			snapshot.Audit[index].ID = auditIDFromHash(snapshot.Audit[index].Hash)
+		}
+	}
 }
 
 func validateBackupSnapshot(snapshot Snapshot) error {
@@ -500,8 +505,8 @@ func validateBackupSnapshot(snapshot Snapshot) error {
 		}
 	}
 	for index, entry := range snapshot.Audit {
-		if entry.Sequence == 0 || entry.Hash == "" {
-			return errors.New("card backup audit entry is incomplete")
+		if entry.Sequence == 0 || entry.Hash == "" || entry.ID != auditIDFromHash(entry.Hash) {
+			return errors.New("card backup audit entry is incomplete or has an invalid audit id")
 		}
 		if index > 0 {
 			previous := snapshot.Audit[index-1]
@@ -509,8 +514,7 @@ func validateBackupSnapshot(snapshot Snapshot) error {
 				return errors.New("card backup audit chain is discontinuous")
 			}
 		}
-		material := strings.Join([]string{fmt.Sprint(entry.Sequence), entry.Type, entry.ObjectID, entry.Account, entry.At.UTC().Format(time.RFC3339Nano), entry.PreviousHash}, "\n")
-		if entry.Hash != hashBytes([]byte(material)) {
+		if entry.Hash != auditHash(entry) {
 			return errors.New("card backup audit hash verification failed")
 		}
 	}

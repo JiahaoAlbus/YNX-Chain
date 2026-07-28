@@ -121,6 +121,9 @@ type AIRun struct {
 }
 
 type AuditEvent struct {
+	ID           string    `json:"auditId"`
+	RequestID    string    `json:"requestId,omitempty"`
+	TraceID      string    `json:"traceId,omitempty"`
 	Sequence     uint64    `json:"sequence"`
 	Type         string    `json:"type"`
 	ObjectID     string    `json:"objectId"`

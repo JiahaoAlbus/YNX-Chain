@@ -36,7 +36,8 @@ func main() {
 		log.Fatal(err)
 	}
 	addr := env("YNX_CARD_PRODUCT_ADDR", "127.0.0.1:6432")
-	server := &http.Server{Addr: addr, Handler: cardproduct.NewServer(service, buildinfo.Info{Commit: commit, Release: release, BuildTime: buildTime}).Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second}
+	cardServer := cardproduct.NewServerWithObservability(service, buildinfo.Info{Commit: commit, Release: release, BuildTime: buildTime}, cardproduct.ObservabilityConfig{LogWriter: os.Stdout})
+	server := &http.Server{Addr: addr, Handler: cardServer.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("ynx-card-productd listening on %s mode=%s", addr, env("YNX_CARD_PROVIDER_MODE", "unavailable"))
 	log.Fatal(server.ListenAndServe())
 }
