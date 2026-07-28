@@ -1,0 +1,62 @@
+name: chain-core
+
+on:
+  push:
+    branches:
+      - codex/final-chain-core
+    paths:
+      - ".github/workflows/chain-core.yml"
+      - "Makefile"
+      - "cmd/**"
+      - "internal/**"
+      - "docs/architecture/STREAMBFT_CANDIDATE.md"
+      - "docs/formal/streambft/**"
+      - "docs/integration/**"
+      - "release/**"
+      - "scripts/verify/chain-core-release-check.mjs"
+      - "scripts/verify/streambft-candidate-check.sh"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/chain-core.yml"
+      - "Makefile"
+      - "cmd/**"
+      - "internal/**"
+      - "docs/architecture/STREAMBFT_CANDIDATE.md"
+      - "docs/formal/streambft/**"
+      - "docs/integration/**"
+      - "release/**"
+      - "scripts/verify/chain-core-release-check.mjs"
+      - "scripts/verify/streambft-candidate-check.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chain-core-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Chain Core source and release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run hardhat:build
+      - run: make static-check
+      - run: make streambft-candidate-check
+      - run: make consensus-abci-check
+      - run: make chain-core-release-check
+      - run: make no-placeholder-check
+      - run: make secret-scan

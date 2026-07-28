@@ -1,6 +1,6 @@
 {
   "schema": "ynx-product-release/v1",
-  "generatedAt": "2026-07-27T13:38:17Z",
+  "generatedAt": "2026-07-28T10:20:00Z",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -9,9 +9,9 @@
     "canonicalRoute": "/chain"
   },
   "source": {
-    "implementationCommit": "5c08b24462a2",
+    "implementationCommit": "72e7890b79e3",
     "committedStateVersion": 11,
-    "contractVersion": "1.10.0",
+    "contractVersion": "1.11.0",
     "releaseRecordVersion": 1
   },
   "network": {
@@ -76,7 +76,8 @@
     "evm-committed-bounded-contract-code-call-and-resource-estimate",
     "sponsored-user-operation-bundler-end-to-end",
     "strategy-vault-lifecycle-and-emergency-exit-guardrails",
-    "indexer-durable-checkpoint-wal-and-tamper-rejection"
+    "indexer-durable-checkpoint-wal-and-tamper-rejection",
+    "streambft-overflow-safe-quorum-resource-and-timeout-accounting"
   ],
   "currentSourceBoundaries": [
     "Current source is not deployed on the authoritative public runtime.",
@@ -96,6 +97,9 @@
     "release/integration/chain-core-contract.json",
     "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "scripts/verify/consensus-eip1559-commit-check.sh",
-    "scripts/verify/bft-evm-fee-history-check.sh"
+    "scripts/verify/bft-evm-fee-history-check.sh",
+    "release/public-product-metadata.json",
+    "docs/integration/WEBSITE_HANDOFF.md",
+    "scripts/verify/chain-core-release-check.mjs"
   ]
 }

@@ -2,6 +2,7 @@
 .PHONY: bft-evm-receipt-check bft-evm-legacy-transfer-check bft-evm-access-list-transfer-check bft-evm-dynamic-fee-transfer-check bft-evm-fee-suggestion-check bft-evm-fee-history-check bft-ide-contract-check native-wallet-check chat-api-check square-api-check app-gateway-check app-account-ownership-check browser-signer-check mobile-check mobile-product-split-check mobile-android-native-check mobile-android-release-check mobile-android-release-installed-check mobile-biometric-installed-check asset-primitives-check
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check
 .PHONY: yusd-sandbox-check liquid-staking-candidate-check safety-module-candidate-check account-abstraction-check solvency-check integration-contract-check consensus-state-sync-check consensus-eip1559-commit-check consensus-fee-history-check
+.PHONY: chain-core-release-check
 
 setup:
 	go mod tidy
@@ -468,6 +469,9 @@ consensus-fee-history-check:
 
 streambft-candidate-check:
 	bash ./scripts/verify/streambft-candidate-check.sh
+
+chain-core-release-check:
+	node ./scripts/verify/chain-core-release-check.mjs
 
 asset-primitives-check:
 	bash ./scripts/verify/asset-primitives-check.sh
