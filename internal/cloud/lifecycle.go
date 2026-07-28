@@ -228,6 +228,9 @@ func (s *Service) executeStorageTransition(ctx context.Context, transition Stora
 		CopyRequired: transition.CopyRequired,
 	})
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return s.interruptStorageTransition(transition.ID, err)
+		}
 		return s.failStorageTransition(transition.ID, err)
 	}
 	if result.TransitionID != transition.ID || result.Ref == "" || result.Hash != transition.Hash || result.From != transition.From || result.To != transition.To || result.Status != "completed" || result.ProviderEvidence == "" || result.AsOf.IsZero() {
@@ -295,6 +298,112 @@ func (s *Service) failStorageTransition(transitionID string, cause error) (Stora
 		return StorageTransition{}, err
 	}
 	return transition, cause
+}
+
+func (s *Service) interruptStorageTransition(transitionID string, cause error) (StorageTransition, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	transition, ok := s.state.StorageTransitions[transitionID]
+	if !ok {
+		return StorageTransition{}, ErrNotFound
+	}
+	if transition.Status != "pending" {
+		return StorageTransition{}, errors.New("storage lifecycle interruption no longer matches pending state")
+	}
+	before, _ := json.Marshal(s.state)
+	transition.LastError = "execution interrupted; recovery pending"
+	transition.UpdatedAt = s.cfg.Now()
+	s.state.StorageTransitions[transition.ID] = transition
+	if err := s.persist("storage.transition.interrupted", transition.Owner, transition.ObjectID, map[string]any{"product": transition.Product, "transitionId": transition.ID, "version": transition.Version, "from": transition.From, "to": transition.To}); err != nil {
+		restorePersistentState(before, &s.state)
+		return StorageTransition{}, err
+	}
+	return transition, cause
+}
+
+func (s *Service) claimPendingStorageTransition(transitionID string) (StorageTransition, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	transition, ok := s.state.StorageTransitions[transitionID]
+	if !ok || transition.Status != "pending" || s.lifecycleActive[transitionID] {
+		return StorageTransition{}, false, nil
+	}
+	object, ok := s.state.Objects[transition.ObjectID]
+	if !ok || object.Owner != transition.Owner || object.Product != transition.Product {
+		return StorageTransition{}, false, errors.New("storage lifecycle recovery no longer matches object state")
+	}
+	_, version, err := versionIndex(s.state, transition.ObjectID, transition.Version)
+	if err != nil || version.Hash != transition.Hash || version.BlobPath != transition.Ref || normalizedVersionStorageClass(version) != transition.From {
+		return StorageTransition{}, false, errors.New("storage lifecycle recovery no longer matches version state")
+	}
+	before, _ := json.Marshal(s.state)
+	transition.Attempts++
+	transition.LastError = ""
+	transition.UpdatedAt = s.cfg.Now()
+	s.state.StorageTransitions[transition.ID] = transition
+	s.lifecycleActive[transition.ID] = true
+	if err := s.persist("storage.transition.recovered", transition.Owner, transition.ObjectID, map[string]any{"product": transition.Product, "transitionId": transition.ID, "version": transition.Version, "attempt": transition.Attempts}); err != nil {
+		restorePersistentState(before, &s.state)
+		delete(s.lifecycleActive, transition.ID)
+		return StorageTransition{}, false, err
+	}
+	return transition, true, nil
+}
+
+func (s *Service) RecoverPendingStorageTransitions(ctx context.Context, limit int) (StorageTransitionWorkerResult, error) {
+	if limit < 1 || limit > 64 {
+		return StorageTransitionWorkerResult{}, ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return StorageTransitionWorkerResult{}, err
+	}
+	s.mu.Lock()
+	pending := make([]StorageTransition, 0)
+	for _, transition := range s.state.StorageTransitions {
+		if transition.Status == "pending" && !s.lifecycleActive[transition.ID] {
+			pending = append(pending, transition)
+		}
+	}
+	s.mu.Unlock()
+	sort.Slice(pending, func(i, j int) bool {
+		if !pending[i].RequestedAt.Equal(pending[j].RequestedAt) {
+			return pending[i].RequestedAt.Before(pending[j].RequestedAt)
+		}
+		return pending[i].ID < pending[j].ID
+	})
+	if len(pending) > limit {
+		pending = pending[:limit]
+	}
+	result := StorageTransitionWorkerResult{TransitionIDs: make([]string, 0, len(pending))}
+	for _, candidate := range pending {
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
+		transition, claimed, err := s.claimPendingStorageTransition(candidate.ID)
+		if err != nil {
+			return result, err
+		}
+		if !claimed {
+			continue
+		}
+		result.Claimed++
+		result.TransitionIDs = append(result.TransitionIDs, transition.ID)
+		completed, err := s.executeStorageTransition(ctx, transition)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				result.Interrupted++
+				return result, err
+			}
+			result.Failed++
+			continue
+		}
+		if completed.Status != "completed" {
+			result.Failed++
+			continue
+		}
+		result.Completed++
+	}
+	return result, nil
 }
 
 func (s *Service) StorageTransitions(actor, product, objectID string) ([]StorageTransition, error) {
