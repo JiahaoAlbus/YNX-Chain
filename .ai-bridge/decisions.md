@@ -19,3 +19,7 @@ Updated: 2026-07-27
 15. **A deterministic policy harness is not a UI interaction recording.** It can close the persistence-logic gate while the WKWebView, network response and NSSavePanel evidence remains explicitly open.
 16. **Invalid Search configuration fails locally.** macOS falls back to `about:blank`, not a third-party example domain or a fabricated Search success.
 17. **Preview archives are normalized and ordered.** Same-host reproducibility must compare two complete builds; it does not imply cross-host reproducibility or production provenance.
+18. **macOS pending Wallet state is signed before persistence.** Nonce, expiry, chain, product, client, bundle, callback, algorithm and ordered scopes are covered by the product-device P-256 key; legacy unsigned keys are removed.
+19. **Callback parsing is exact and bounded.** Route, query and top-level JSON fields reject unknown, duplicate, escaped-duplicate, malformed and oversized input before any local state is consumed.
+20. **Security telemetry is content-free by construction.** Native logs expose stable public error codes, never URLs, Nonces, encoded responses, sources, filenames or Private-page content.
+21. **A same-bundle installed copy is not current-source evidence.** LaunchServices protocol probes must identify the exact executable hash. A mismatched user app is preserved and excluded until a non-destructive reviewed install workflow proves ownership.

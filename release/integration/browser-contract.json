@@ -1,16 +1,18 @@
 {
   "schemaVersion": "ynx.browser.integration.v1",
-  "contractVersion": "0.2.2-candidate",
+  "contractVersion": "0.2.3-candidate",
   "status": "candidate-not-centrally-frozen",
   "owner": {
     "productNumber": 22,
     "productSlug": "browser",
     "responsibility": "Browser runtime, platform clients, local privacy/security mediation, and exact Wallet review handoff"
   },
-  "sourceCommit": "f2f9aaed8d3e4231d37c94de352077008a338572",
+  "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
   "implementationCommits": {
     "downloadPrivacy": "668cb44dab95374ba9e5342d754b6ec568564f2b",
     "reproducibleMacosPreview": "f2f9aaed8d3e4231d37c94de352077008a338572",
+    "macosWalletCallback": "d9580e6b9d09a9d2eec69fbcb6d35a9ddf6997ed",
+    "privacySafeMacosAudit": "bde6939223693d5cdf5d05f309ac888c091ab815",
     "stateLifecycle": "91685b728cefefabec9414317f2663d659062edc",
     "windowsWalletBuilder": "0515ff50b22547840c6554b29c4af3cd17484800"
   },

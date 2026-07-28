@@ -3,10 +3,10 @@
   "productNumber": 22,
   "productName": "YNX Browser",
   "productSlug": "browser",
-  "version": "0.2.2-checkpoint",
+  "version": "0.2.3-checkpoint",
   "goalStatus": "active",
   "phase": "FREEZE",
-  "sourceCommit": "f2f9aaed8d3e4231d37c94de352077008a338572",
+  "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
   "asOf": "2026-07-27",
   "releaseStates": {
     "implementedLocal": true,
@@ -24,7 +24,7 @@
       "command": "cd apps/browser && npm run check",
       "result": "pass",
       "nodeTests": 14,
-      "nativeSwiftTests": 3,
+      "nativeSwiftTests": 20,
       "smoke": "pass",
       "productionSourceGate": "pass",
       "macosReproducibility": "pass"
@@ -34,13 +34,29 @@
       "result": "pass",
       "tests": 15,
       "failures": 0,
-      "boundary": "All four Browser platform request builders bind the reviewed registry tuples; central Wallet acceptance remains pending"
+      "boundary": "All four Browser platform request builders bind the reviewed registry tuples; central Wallet/Auth acceptance remains pending."
     },
     "privateDownloadIsolation": {
       "sourceCommit": "668cb44dab95374ba9e5342d754b6ec568564f2b",
       "result": "tested-native-policy",
       "details": "The WKDownload delegate calls a shared native persistence function. Three Swift tests prove normal source/filename persistence, zero Private metadata writes, and byte-for-byte preservation of the normal record after a Private completion.",
       "truthBoundary": "No completed WKWebView network download plus NSSavePanel interaction recording is claimed."
+    },
+    "macosWalletCallback": {
+      "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
+      "callbackRuntimeCommit": "d9580e6b9d09a9d2eec69fbcb6d35a9ddf6997ed",
+      "evidence": "apps/browser/evidence/macos-wallet-callback-bde6939.json",
+      "result": "tested-local-negative-paths",
+      "nativeTests": 17,
+      "totalNativeTestsIncludingDownloads": 20,
+      "runtimeObservedCodes": [
+        "BR-WALLET-CALLBACK-MALFORMED",
+        "BR-WALLET-CALLBACK-ROUTE",
+        "BR-WALLET-CALLBACK-DUPLICATE",
+        "BR-WALLET-CALLBACK-STATE-MISSING"
+      ],
+      "details": "Signed pending state, exact route and query parsing, strict JSON field validation, byte limits, expiry, replay and product/device binding failures are fail closed. Real current-binary protocol probes recorded privacy-safe OSLog error codes only.",
+      "truthBoundary": "No accepted Gateway signature, device challenge, central Product Session, approval, revocation or positive shared-Testnet callback is claimed."
     },
     "stateLifecycle": {
       "sourceCommit": "91685b728cefefabec9414317f2663d659062edc",
@@ -53,35 +69,33 @@
       "details": "non-exportable Windows CNG P-256 identity, signed pending request state, exact single-field callback parsing, nonce/time/chain/client/bundle binding, single-use consumption and no local Product Session"
     },
     "productionSourceGate": {
-      "sourceCommit": "668cb44dab95374ba9e5342d754b6ec568564f2b",
+      "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
       "result": "pass",
-      "details": "Browser production source trees contain no deployment filler, TODO/FIXME/coming-soon markers, fake-success markers or common embedded-secret patterns"
+      "details": "Browser production source trees contain no deployment filler, TODO/FIXME/coming-soon markers, fake-success markers or common embedded-secret patterns; macOS security audit templates exclude URL, nonce, response, source and filename values."
     },
     "macosTestnetPreview": {
-      "sourceCommit": "f2f9aaed8d3e4231d37c94de352077008a338572",
-      "runtimeCommit": "668cb44dab95374ba9e5342d754b6ec568564f2b",
-      "evidence": "apps/browser/evidence/macos-release-f2f9aae.json",
+      "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
+      "evidence": "apps/browser/evidence/macos-wallet-callback-bde6939.json",
       "releaseBuild": "pass",
       "package": "pass",
       "archiveIntegrity": "pass",
       "sameHostReproducibility": "pass",
       "reproducibilityBuildsCompared": 2,
       "coldStart": "pass",
-      "gracefulQuit": "pass",
       "restart": "pass",
       "architecture": "arm64",
       "signingClass": "adhoc",
       "gatekeeper": "rejected",
-      "zipBytes": 109273,
-      "zipSha256": "df24eb70667572b3122137f41883bc9d6b02bec8e7728e727b44bcb09cc176ce",
-      "binarySha256": "822947dd8a9146e66274d3ebce1ff56d2e3e2a476493d8069611d7d88e9769dc",
-      "truthBoundary": "Local ad-hoc-signed Testnet Preview only; not installed, notarized, production signed, hosted or store released. Reproducibility is verified only on the evidence host and toolchain."
+      "zipBytes": 138216,
+      "zipSha256": "fa22ac3924f68f25658257b42341f5af44274a5faa8ceceb57a2a76ef94bf2f7",
+      "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+      "truthBoundary": "Local ad-hoc-signed Testnet Preview only; not current-source installed, notarized, production signed, hosted or store released. Reproducibility is verified only on the evidence host and toolchain."
     }
   },
   "notVerifiedThisCheckpoint": {
+    "macosPositiveWalletCallback": "no accepted Gateway signature, device challenge or central Product Session was available for verification",
+    "macosInstall": "LaunchServices knew a different source-mismatched user Applications copy; current-source installedLocal remains false and controlled probes explicitly targeted the repository Dist app",
     "macosPrivateDownloadInteraction": "the exact native persistence policy is tested, but a completed WKWebView normal/Private network download pair through NSSavePanel is not yet recorded",
-    "macosDeepLinkCallback": "ynxbrowser callback interaction and exact rejection-state evidence remain open",
-    "macosInstall": "app launched from repository dist; no user application-location install is claimed",
     "windowsBuild": {
       "result": "blocked",
       "reason": "dotnet is not installed in the current macOS workspace; no Windows compile, package, install or protocol-registration success is claimed"
@@ -103,5 +117,5 @@
     "boundary": "Previous evidence remains historical and is not automatically attributed to this checkpoint"
   },
   "externalInputs": [],
-  "nextAction": "Extract and test the macOS preliminary Wallet callback validator for malformed, expiry, nonce, chain, client, bundle and replay rejection, then exercise the installed protocol path without claiming a Product Session before Gateway and Wallet/Auth verification."
+  "nextAction": "Implement a non-destructive current-source macOS install and LaunchServices verification workflow that detects source-mismatched copies, preserves the existing user app, installs the reviewed artifact under an immutable evidence name, and proves the registered protocol resolves to the exact binary hash."
 }
