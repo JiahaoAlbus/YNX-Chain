@@ -1,5 +1,53 @@
 # Next Action
 
+## Current Integration priority (2026-07-28)
+
+Current single action: integrate and re-verify the accepted product candidates on
+the current `main` baseline, beginning with the Governance candidate now merged at
+`340e6a8`, while keeping public deployment, production, Mainnet, audit and
+third-party acceptance claims false until their required external evidence exists.
+
+Why this is next:
+
+- `main` is synchronized with `origin/main` at `340e6a8`; the Docs / Compliance
+  authority layer and Governance `v0.3.0-integration` candidate are already
+  preserved in repository history.
+- Governance has a bounded local control plane, deterministic builds, a standalone
+  read-only UI, central Chain Core / Comet execution adapters and a multiprocess
+  four-validator lifecycle. These are integration-candidate facts, not public
+  deployment proof.
+- The repository had a Governance CI script but no matching root Make target.
+  `make governance-check` is now the canonical local entrypoint, paired with
+  `make governance-testnet-drill`; both are included in the central preflight.
+- npm audit calls now use bounded fetch timeouts and no retry amplification so a
+  broken registry path fails closed instead of hanging an integration run.
+- Shared Testnet acceptance still needs exact Explorer, Monitor, Trust, Data
+  Fabric, Security/SRE and central Integration evidence. Production custody,
+  deployment destinations, independent review and owner-authorized external
+  actions remain outside local engineering authority.
+
+Required execution and proof:
+
+- Run `make governance-check`, `make governance-testnet-drill` and the repository
+  preflight from a clean, current baseline.
+- Keep every release-state boolean evidence-bound. A local lifecycle, mock-free UI
+  build or candidate tag must not be promoted to staging, public, production,
+  Mainnet, audited or independently accepted.
+- Replay each subsequently accepted product handoff against current `main`, resolve
+  central contract conflicts once, and update the integration matrix with exact
+  source commits and focused test evidence.
+- Collect operator input only when the remaining step truly requires credentials,
+  custody review, legal approval, external-provider capacity, DNS/hosting control
+  or an explicitly approved remote mutation.
+
+Completion standard:
+
+- Current-main local gates pass and their exact source identity is recorded.
+- Shared Testnet evidence covers the central dependencies without fabricated
+  endpoints, transactions, availability or third-party acceptance.
+- Remaining blockers are reduced to an exact, minimal external-input list before
+  any public rollout or production claim.
+
 ## Current Docs / Compliance priority (2026-07-25)
 
 Current single action: preserve and publish the verified 0.2.0 candidate authority layer on `codex/final-docs-compliance`, then collect exact owner handoffs for protected sibling-worktree changes before changing any public product, economic, security, deployment or availability claim.

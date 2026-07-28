@@ -10,7 +10,7 @@ jq empty release/governance/product-release.json release/governance/public-produ
 npm --prefix apps/governance run lint
 npm --prefix apps/governance test
 npm --prefix apps/governance run build
-npm --prefix apps/governance audit --audit-level=moderate
+npm --prefix apps/governance audit --audit-level=moderate --fetch-timeout=15000 --fetch-retries=0
 
 scan_text() {
   local case_mode="$1"
