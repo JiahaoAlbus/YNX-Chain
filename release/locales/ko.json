@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Machine Draft",
+  "locale": "ko",
+  "direction": "ltr",
+  "coverage": ["chainDescription", "assetDescription"],
+  "reviewStatus": "Machine draft; not human reviewed or legal reviewed",
+  "strings": {
+    "chainDescription": "YNX Chain은 Web4 레이어 1 생태계입니다.",
+    "assetDescription": "YNXT는 Testnet의 네이티브 자산입니다."
+  },
+  "fallbackLocale": "en",
+  "terminologySource": "docs/public/LOCALIZATION_TERMINOLOGY.md"
+}

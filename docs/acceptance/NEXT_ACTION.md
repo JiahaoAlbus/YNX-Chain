@@ -1,5 +1,42 @@
 # Next Action
 
+## Current Docs / Compliance priority (2026-07-25)
+
+Current single action: preserve and publish the verified 0.2.0 candidate authority layer on `codex/final-docs-compliance`, then collect exact owner handoffs for protected sibling-worktree changes before changing any public product, economic, security, deployment or availability claim.
+
+Why this is next:
+
+- The recovered package now has a 12-class authoritative fact index, local schemas, evidence and supersession records, nine evidence-linked Claims, 12 locale records, a conflict report and a fail-closed public disclosure gate.
+- Public tags, releases and artifacts predate the current documentation work, and no current documentation-branch CI run, release or artifact was observed.
+- Wallet/Auth, Tokenomics, Oracle, Bridge, Data Fabric and Security/SRE contain protected dirty work; Music and Quant contain local-ahead commits. None is an accepted public fact until its owner commits, tests and hands it off.
+- Current endpoint observations are mixed and come through an ineligible workstation proxy path. The www site, App Gateway and Faucet returned HTTP 200, while the root site, Explorer and EVM RPC timed out. This proves neither portfolio-wide availability nor an outage.
+- Mainnet launch, public StreamBFT activation, central integration, public deployment, immutable hosting, production signing, legal approval and independent audit remain false or blocked.
+
+Files owned by this action:
+
+- `release/facts`, `release/schemas`, `release/locales` and bounded `release/evidence`
+- `scripts/verify/public-disclosure-gate.mjs` and the documentation compliance entrypoint
+- Docs/Compliance recovery, integration, acceptance, brand and release records
+- a dedicated Docs/Compliance CI or release handoff, without modifying sibling product implementations
+
+Required execution and proof:
+
+- Run the public disclosure gate, integrated documentation compliance check, no-placeholder check, secret scan and objective-state check.
+- Review the complete current-worktree diff and preserve every pre-existing recovery file.
+- Commit only YNX 18-owned files and verify local/remote branch identity after push.
+- Require each sibling owner handoff to include exact source commit, clean handoff state, focused tests, release-state booleans, evidence paths, allowed wording, forbidden wording, expiry and dependencies.
+- Keep missing support, privacy, security-report and service-status URLs blocked until the Website/Operations owner supplies approved routes and deployment evidence.
+
+Completion standard:
+
+- The candidate fact package and both local gates pass from a clean committed branch.
+- GitHub CI records the Docs/Compliance checks for the exact candidate commit.
+- A release or immutable artifact, when created, includes digest, byte count and source identity and remains explicitly candidate and unsigned unless stronger evidence exists.
+- Dirty or local-ahead owner work is not silently copied, deleted, reset or promoted.
+- No Testnet observation is rewritten as Mainnet, production, legal approval, audit approval, guaranteed economic outcome or independent availability proof.
+
+## Historical Chain Core action (2026-07-16)
+
 Highest-priority bounded delivery (2026-07-16):
 
 Current single action: preserve deployed release `02f4ccd8770c` and protected Prometheus, harden the now-layered direct public ingress diagnosis without weakening timeouts, and prove repeated zero-failure direct-route chain/API continuity from multiple non-primary regions. Restore provider-backed AI only after the external account can return a real successful response.

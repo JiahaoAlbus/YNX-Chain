@@ -1,22 +1,19 @@
-# YNX Bridge Open Questions
+# Open Questions
 
-These are tracked engineering or external-dependency questions. They are not requests for routine user confirmation.
+## Owner evidence still required
 
-## Autonomous questions
+- Which exact clean commits and focused tests will Wallet/Auth, Tokenomics, Oracle,
+  Bridge, Data Fabric and Security/SRE hand off for public fact integration?
+- When will Website/Operations provide approved canonical support, privacy, security
+  reporting and service-status routes?
+- Which independent network vantage will verify root site, Explorer, EVM RPC, Gateway
+  and Faucet without the current workstation proxy-path limitation?
+- Which exact artifact, digest, byte count and hosting record will define the first
+  immutable Docs/Compliance candidate package?
+- Who are the named legal, economic and independent-audit reviewers, and what scope,
+  jurisdiction, expiry and approval evidence will each own?
+- Which Chain Core release will establish any future public StreamBFT activation or
+  Mainnet transition, separately from Testnet Chain ID 6423?
 
-1. Which existing repository CI conventions should the Bridge-specific workflow reuse while preserving Bridge ownership and test scope?
-2. Which Bridge artifact set is appropriate for a server/API product: platform binaries, container image layout, SDK package, source archive, or a combination?
-3. Which stale Bridge evidence records bind historical deployment commits intentionally, and which should be advanced to the current runtime source commit?
-4. Which consumer-owner test vectors can be exercised locally before central shared-Testnet acceptance is available?
-5. Which staging operator can provide a mutation-freeze window and exact pre-migration backup for the remote rollback rehearsal without exposing credentials?
-
-## External questions
-
-1. Which YNX-supported provider or proof-based route is approved as the first executable Testnet architecture?
-2. What are the verified source and destination contract addresses, verification URLs, decimals, symbols, authority model, and supply ceilings?
-3. Which secure signer or MPC/HSM path and independent operator set are approved for threshold execution?
-4. Which funded Testnet accounts and assets may be used without exposing private credentials in repository or chat?
-5. Who owns deployment approval, legal review, support, privacy, security disclosure, and public status URLs?
-6. Which central consumer source commits constitute Wallet, Explorer, Monitor, Trust, Pay, Exchange, DEX, and Finance acceptance?
-
-External questions remain blocked inputs. The thread must continue all autonomous CI, artifact, migration, restore, metadata, contract-test, and evidence work before producing the final minimized operator request.
+Until each owner answers with direct evidence, the corresponding release state or
+public claim remains false, blocked or candidate-only.

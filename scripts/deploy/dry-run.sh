@@ -244,33 +244,35 @@ done
 grep -Fq "REST_DOMAIN=rest.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing REST_DOMAIN"; exit 1; }
 grep -Fq "INDEXER_DOMAIN=indexer.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing INDEXER_DOMAIN"; exit 1; }
 node scripts/verify/release-manifest-check.mjs "$release_dir" "$commit" "$release"
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/release-manifest.json" || { echo "release tarball missing release manifest"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./caddy/ynx-chain.caddy" || { echo "release tarball missing Caddy ingress snippet"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./scripts/install-caddy-ingress.sh" || { echo "release tarball missing Caddy ingress install script"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./scripts/check-local-services.sh" || { echo "release tarball missing local service check script"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-ai-gatewayd" || { echo "release tarball missing AI Gateway binary"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-ai-gatewayd.env" || { echo "release tarball missing AI Gateway env"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-payd" || { echo "release tarball missing Pay Gateway binary"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-payd.env" || { echo "release tarball missing Pay Gateway env"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-trustd" || { echo "release tarball missing Trust Gateway binary"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-trustd.env" || { echo "release tarball missing Trust Gateway env"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-resourced" || { echo "release tarball missing Resource Gateway binary"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-resourced.env" || { echo "release tarball missing Resource Gateway env"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-bridged" || { echo "release tarball missing Bridge coordinator binary"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-bridged.env" || { echo "release tarball missing Bridge coordinator env"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-bridged.service" || { echo "release tarball missing Bridge coordinator systemd unit"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-stablecoind" || { echo "release tarball missing Stablecoin control binary"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-stablecoind.env" || { echo "release tarball missing Stablecoin control env"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-stablecoind.service" || { echo "release tarball missing Stablecoin control systemd unit"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-chatd" || { echo "release tarball missing Chat binary"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-chatd.env" || { echo "release tarball missing Chat env"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-chatd.service" || { echo "release tarball missing Chat systemd unit"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-squared" || { echo "release tarball missing Square binary"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-squared.env" || { echo "release tarball missing Square env"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-squared.service" || { echo "release tarball missing Square systemd unit"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-app-gatewayd" || { echo "release tarball missing App Gateway binary"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-app-gatewayd.env" || { echo "release tarball missing App Gateway env"; exit 1; }
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-app-gatewayd.service" || { echo "release tarball missing App Gateway systemd unit"; exit 1; }
+archive_listing="$tmp/release-archive-files.txt"
+tar -tzf "tmp/deploy/${release}.tar.gz" > "$archive_listing"
+grep -Fxq "./config/release-manifest.json" "$archive_listing" || { echo "release tarball missing release manifest"; exit 1; }
+grep -Fxq "./caddy/ynx-chain.caddy" "$archive_listing" || { echo "release tarball missing Caddy ingress snippet"; exit 1; }
+grep -Fxq "./scripts/install-caddy-ingress.sh" "$archive_listing" || { echo "release tarball missing Caddy ingress install script"; exit 1; }
+grep -Fxq "./scripts/check-local-services.sh" "$archive_listing" || { echo "release tarball missing local service check script"; exit 1; }
+grep -Fxq "./bin/ynx-ai-gatewayd" "$archive_listing" || { echo "release tarball missing AI Gateway binary"; exit 1; }
+grep -Fxq "./config/ynx-ai-gatewayd.env" "$archive_listing" || { echo "release tarball missing AI Gateway env"; exit 1; }
+grep -Fxq "./bin/ynx-payd" "$archive_listing" || { echo "release tarball missing Pay Gateway binary"; exit 1; }
+grep -Fxq "./config/ynx-payd.env" "$archive_listing" || { echo "release tarball missing Pay Gateway env"; exit 1; }
+grep -Fxq "./bin/ynx-trustd" "$archive_listing" || { echo "release tarball missing Trust Gateway binary"; exit 1; }
+grep -Fxq "./config/ynx-trustd.env" "$archive_listing" || { echo "release tarball missing Trust Gateway env"; exit 1; }
+grep -Fxq "./bin/ynx-resourced" "$archive_listing" || { echo "release tarball missing Resource Gateway binary"; exit 1; }
+grep -Fxq "./config/ynx-resourced.env" "$archive_listing" || { echo "release tarball missing Resource Gateway env"; exit 1; }
+grep -Fxq "./bin/ynx-bridged" "$archive_listing" || { echo "release tarball missing Bridge coordinator binary"; exit 1; }
+grep -Fxq "./config/ynx-bridged.env" "$archive_listing" || { echo "release tarball missing Bridge coordinator env"; exit 1; }
+grep -Fxq "./systemd/ynx-bridged.service" "$archive_listing" || { echo "release tarball missing Bridge coordinator systemd unit"; exit 1; }
+grep -Fxq "./bin/ynx-stablecoind" "$archive_listing" || { echo "release tarball missing Stablecoin control binary"; exit 1; }
+grep -Fxq "./config/ynx-stablecoind.env" "$archive_listing" || { echo "release tarball missing Stablecoin control env"; exit 1; }
+grep -Fxq "./systemd/ynx-stablecoind.service" "$archive_listing" || { echo "release tarball missing Stablecoin control systemd unit"; exit 1; }
+grep -Fxq "./bin/ynx-chatd" "$archive_listing" || { echo "release tarball missing Chat binary"; exit 1; }
+grep -Fxq "./config/ynx-chatd.env" "$archive_listing" || { echo "release tarball missing Chat env"; exit 1; }
+grep -Fxq "./systemd/ynx-chatd.service" "$archive_listing" || { echo "release tarball missing Chat systemd unit"; exit 1; }
+grep -Fxq "./bin/ynx-squared" "$archive_listing" || { echo "release tarball missing Square binary"; exit 1; }
+grep -Fxq "./config/ynx-squared.env" "$archive_listing" || { echo "release tarball missing Square env"; exit 1; }
+grep -Fxq "./systemd/ynx-squared.service" "$archive_listing" || { echo "release tarball missing Square systemd unit"; exit 1; }
+grep -Fxq "./bin/ynx-app-gatewayd" "$archive_listing" || { echo "release tarball missing App Gateway binary"; exit 1; }
+grep -Fxq "./config/ynx-app-gatewayd.env" "$archive_listing" || { echo "release tarball missing App Gateway env"; exit 1; }
+grep -Fxq "./systemd/ynx-app-gatewayd.service" "$archive_listing" || { echo "release tarball missing App Gateway systemd unit"; exit 1; }
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
 grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
 grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Trust Gateway domain block"; exit 1; }

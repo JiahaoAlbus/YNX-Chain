@@ -1,45 +1,42 @@
 #!/usr/bin/env bash
-set -Eeuo pipefail
+set -euo pipefail
 
-cd "$(dirname "$0")/../.."
+scan_targets=(Makefile README.md configs internal cmd contracts chain-metadata scripts docs)
+bad='example\.com|your_key_here|changeme|fake TPS|fake TVL|fake user|NYXT'
 
-node <<'NODE'
-const fs = require("node:fs");
-const path = require("node:path");
+found=1
+if command -v rg >/dev/null 2>&1; then
+  if rg -n --hidden -g '!.git/**' -g '!tools/scaffold-ynx-chain.mjs' -g '!scripts/validate/no-placeholder-check.sh' -g '!scripts/deploy/lib.sh' -g '!docs/architecture/ZERO_PLACEHOLDER_POLICY.md' -e "$bad" "${scan_targets[@]}"; then
+    found=0
+  else
+    scan_status=$?
+    if [[ "$scan_status" -ne 1 ]]; then
+      echo "placeholder scan failed with exit code $scan_status" >&2
+      exit "$scan_status"
+    fi
+  fi
+else
+  echo "ripgrep unavailable; using recursive grep fallback" >&2
+  if grep -RInE \
+    --exclude='scaffold-ynx-chain.mjs' \
+    --exclude='no-placeholder-check.sh' \
+    --exclude='lib.sh' \
+    --exclude='ZERO_PLACEHOLDER_POLICY.md' \
+    --exclude-dir='.git' \
+    -- "$bad" "${scan_targets[@]}"; then
+    found=0
+  else
+    scan_status=$?
+    if [[ "$scan_status" -ne 1 ]]; then
+      echo "placeholder scan failed with exit code $scan_status" >&2
+      exit "$scan_status"
+    fi
+  fi
+fi
 
-const targets = ["Makefile", "README.md", "configs", "internal", "cmd", "contracts", "chain-metadata", "scripts", "docs"];
-const excluded = new Set([
-  "tools/scaffold-ynx-chain.mjs",
-  "scripts/validate/no-placeholder-check.sh",
-  "scripts/deploy/lib.sh",
-  "docs/architecture/ZERO_PLACEHOLDER_POLICY.md",
-]);
-const forbidden = /example\.com|your_key_here|changeme|fake TPS|fake TVL|fake user|NYXT/i;
-const findings = [];
+if [[ "$found" -eq 0 ]]; then
+  echo "disallowed deployment filler or fake claim found"
+  exit 1
+fi
 
-function scan(entry) {
-  const normalized = entry.split(path.sep).join("/");
-  if (normalized === ".git" || normalized.startsWith(".git/") || excluded.has(normalized)) return;
-  const stat = fs.lstatSync(entry);
-  if (stat.isSymbolicLink()) return;
-  if (stat.isDirectory()) {
-    for (const child of fs.readdirSync(entry).sort()) scan(path.join(entry, child));
-    return;
-  }
-  if (!stat.isFile()) return;
-  const bytes = fs.readFileSync(entry);
-  if (bytes.includes(0)) return;
-  const lines = bytes.toString("utf8").split(/\r?\n/);
-  lines.forEach((line, index) => {
-    if (forbidden.test(line)) findings.push(`${normalized}:${index + 1}:${line.trim()}`);
-  });
-}
-
-for (const target of targets) if (fs.existsSync(target)) scan(target);
-if (findings.length) {
-  console.error(findings.join("\n"));
-  console.error("disallowed deployment filler or fake claim found");
-  process.exit(1);
-}
-console.log("no disallowed deployment filler found in runtime, docs, or scripts");
-NODE
+echo "no disallowed deployment filler found in runtime, docs, or scripts"

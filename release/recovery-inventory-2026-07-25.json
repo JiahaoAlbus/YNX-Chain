@@ -1,0 +1,84 @@
+{
+  "$schema": "./schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Candidate",
+  "observedAt": "2026-07-25T14:16:21+08:00",
+  "workspace": {
+    "branch": "codex/final-docs-compliance",
+    "headShort": "c8c4ff7263e5",
+    "remoteHeadMatchedAfterFetch": true,
+    "preexistingUntrackedPathsPreserved": [
+      "release/conflict-report.json",
+      "release/evidence/public-url-probe-2026-07-25.json",
+      "release/facts/"
+    ]
+  },
+  "gitRecovery": {
+    "documentationCommitsAfterOriginalBaseline": 5,
+    "localAheadBranches": [
+      {"branch": "codex/ecosystem-music", "aheadBy": 1},
+      {"branch": "codex/final-quant-lab", "aheadBy": 16}
+    ],
+    "tagCount": 4,
+    "registeredWorktrees": 30,
+    "prunableTemporaryWorktreesPreserved": 1
+  },
+  "githubControlPlane": {
+    "actionsObserved": 50,
+    "currentDocsBranchRunObserved": false,
+    "latestTokenomicsRunConclusion": "failure",
+    "releaseCount": 4,
+    "allReleasesPrerelease": true,
+    "artifactCount": 28,
+    "docsComplianceReleasePresent": false,
+    "docsComplianceArtifactPresent": false
+  },
+  "protectedSiblingWork": [
+    {"owner": "YNX 02 Wallet/Auth", "state": "Dirty", "summary": "Wallet App and clipboard privacy candidate work", "publicFactStatus": "Not accepted"},
+    {"owner": "YNX 17 Economics/Tokenomics", "state": "Dirty", "summary": "Staking risk runtime candidate work; latest remote CI failed", "publicFactStatus": "Not accepted"},
+    {"owner": "YNX 19 Oracle/Market Data", "state": "Dirty", "summary": "Public API, query, service, tests, and integration evidence", "publicFactStatus": "Not accepted"},
+    {"owner": "YNX 21 Bridge/Interoperability", "state": "Dirty", "summary": "Bridge gateway state-machine and service/type changes", "publicFactStatus": "Not accepted"},
+    {"owner": "YNX 26 Data Fabric/Billing/Ledger", "state": "Dirty", "summary": "Goal and evidence-index recovery records", "publicFactStatus": "Not accepted"},
+    {"owner": "YNX 30 Security/SRE/Release", "state": "Staged dirty", "summary": "Deployment workflow, Kubernetes security controls, monitoring, backup, and release automation", "publicFactStatus": "Not accepted"}
+  ],
+  "backgroundProcesses": {
+    "localYnxRuntimeObserved": false,
+    "codexProServersObserved": 7,
+    "multipleTunnelRetryProcessesObserved": true,
+    "action": "Left untouched"
+  },
+  "publicEndpointObservations": {
+    "vantage": "Current workstation proxy path; not independent direct-public proof",
+    "dnsUsesBenchmarkRange": true,
+    "results": [
+      {"component": "root site", "result": "TLS connection timeout", "status": "Blocked"},
+      {"component": "www site", "result": "HTTP 200", "status": "Candidate"},
+      {"component": "App Gateway", "result": "HTTP 200", "status": "Candidate"},
+      {"component": "Explorer", "result": "TLS connection timeout", "status": "Blocked"},
+      {"component": "EVM RPC", "result": "TLS connection timeout", "status": "Blocked"},
+      {"component": "Faucet", "result": "HTTP 200; chain ID 6423 reported", "status": "Candidate"}
+    ],
+    "conclusion": "The scan proves neither portfolio-wide availability nor a portfolio-wide outage."
+  },
+  "verification": {
+    "publicDisclosureGate": "Passed: 29 JSON records, 12 authoritative fact classes, 9 release states",
+    "docsComplianceCheck": "Passed: 44 named artifacts, 11 indexed JSON records, 13 search pages, 43 public documents and integrated disclosure gate",
+    "noPlaceholderCheck": "Passed with bounded recursive grep fallback because ripgrep was unavailable",
+    "credentialPatternCheck": "Passed with bounded recursive grep fallback excluding dependency and generated-output directories",
+    "objectiveStateCheck": "Passed with readme positioning and strict SSH policy checks",
+    "goPackageRegression": "Passed: go test ./... across all Go packages"
+  },
+  "releaseConclusion": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "independentPublicProof": false,
+    "legalApproved": false,
+    "auditApproved": false,
+    "mainnetLive": false
+  }
+}
