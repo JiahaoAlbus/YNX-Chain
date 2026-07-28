@@ -260,6 +260,11 @@ function validateMatrix(matrix, productMap, collector) {
     collector.expect(allowedStatuses.includes(product.centralAcceptance?.status), `matrix product ${product.id} has invalid central status`);
     collector.expect(typeof product.refs?.stableDuringScan === "boolean", `matrix product ${product.id} lacks stableDuringScan`);
     collector.expect(!Object.hasOwn(product.worktree ?? {}, "path"), `matrix product ${product.id} leaks an absolute worktree path`);
+    const coverageCounts = product.evidence?.coverage?.counts ?? {};
+    collector.expect(
+      product.evidence?.coverage?.open === (coverageCounts.notStarted ?? 0) + (coverageCounts.inProgress ?? 0),
+      `matrix product ${product.id} open coverage must count only notStarted and inProgress items`
+    );
     const acceptedCommit = product.centralAcceptance?.acceptedSourceCommit;
     if (acceptedCommit !== null) {
       collector.expect(validSha(acceptedCommit), `matrix product ${product.id} acceptedSourceCommit is invalid`);

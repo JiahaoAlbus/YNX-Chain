@@ -244,7 +244,7 @@ function extractCoverage(record) {
     if (allowedStatuses.has(item?.status)) counts[item.status] += 1;
     else invalid += 1;
   }
-  const open = items.filter((item) => !["verifiedComplete", "externalBlocked", "notApplicable"].includes(item?.status)).length;
+  const open = items.filter((item) => ["notStarted", "inProgress"].includes(item?.status)).length;
   return { total: items.length, open, invalid, counts };
 }
 
