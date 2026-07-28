@@ -291,6 +291,74 @@ func TestAuthenticatedStateFailsClosedAndRestoresVerifiedBackup(t *testing.T) {
 	}
 }
 
+func TestCommercePersistenceSchemaMigrationRollbackAndRecovery(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "commerce-schema.json")
+	key := bytes.Repeat([]byte{0x37}, 32)
+	legacy := emptySnapshot()
+	legacy.Version = PersistenceSchemaVersionV1
+	legacy.BuyerProfiles["buyer"] = BuyerProfile{}
+	legacy.Carts["buyer"] = Cart{}
+	legacy.RequestWindow["buyer"] = []time.Time{time.Date(2026, 7, 28, 10, 0, 0, 0, time.UTC)}
+	data, err := encodePersisted(legacy, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	migrated, err := OpenWithIntegrity(path, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if migrated.s.Version != CurrentPersistenceSchemaVersion || len(migrated.s.BuyerProfiles) != 1 || len(migrated.s.Carts) != 1 || len(migrated.s.RequestWindow) != 1 {
+		t.Fatalf("forward migration lost state: %+v", migrated.s)
+	}
+
+	report, err := RollbackCommercePersistence(path, key, PersistenceSchemaVersionV1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.FromVersion != CurrentPersistenceSchemaVersion || report.ToVersion != PersistenceSchemaVersionV1 || report.BuyerProfilesOmitted != 1 || report.CartsOmitted != 1 || report.RateWindowsOmitted != 1 {
+		t.Fatalf("unexpected rollback report: %+v", report)
+	}
+	rolledBackBytes, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rolledBack Snapshot
+	if err = decodePersisted(rolledBackBytes, key, &rolledBack); err != nil {
+		t.Fatal(err)
+	}
+	if rolledBack.Version != PersistenceSchemaVersionV1 || rolledBack.BuyerProfiles != nil || rolledBack.Carts != nil || rolledBack.RequestWindow != nil {
+		t.Fatalf("rollback did not omit v2-only state: %+v", rolledBack)
+	}
+
+	if err = RestoreCommercePersistenceRollback(path, key); err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := OpenWithIntegrity(path, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if recovered.s.Version != CurrentPersistenceSchemaVersion || len(recovered.s.BuyerProfiles) != 1 || len(recovered.s.Carts) != 1 || len(recovered.s.RequestWindow) != 1 {
+		t.Fatalf("rollback recovery point lost state: %+v", recovered.s)
+	}
+
+	future := emptySnapshot()
+	future.Version = CurrentPersistenceSchemaVersion + 1
+	futureData, err := encodePersisted(future, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, futureData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = OpenWithIntegrity(path, key); !errors.Is(err, ErrPersistenceVersion) {
+		t.Fatalf("future schema did not fail closed: %v", err)
+	}
+}
+
 type fakeAI struct {
 	result string
 	err    error
