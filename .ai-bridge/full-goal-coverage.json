@@ -9,6 +9,7 @@
   "owner": "19 Oracle",
   "phase": "INTEGRATE",
   "goalStatus": "active",
+  "sourceCommit": "a3c3275c15f31a4f5de96c6f4ebce0b04245db79",
   "sourceGoal": "YNX Chain Founder-Grade Coordinated Final Goal Prompts / product 19",
   "lastUpdated": "2026-07-27T10:00:00Z",
   "requirements": [
