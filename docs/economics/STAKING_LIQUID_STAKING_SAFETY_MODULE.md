@@ -2,14 +2,15 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.0-candidate |
-| Effective date | 2026-07-22 |
+| Version | 0.1.1-candidate |
+| Effective date | 2026-07-28 |
+| Source commit | `2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012` |
 | Accepted central source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
 | Economic candidate reviewed | `ff01dcee4c93acfb138dcde91f7605e408b706d5` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
-| Review status | Gap and design disclosure; not an activated staking-economics policy |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-28 |
+| Superseded version | 0.1.0-candidate |
+| Review status | Gap and design disclosure; not an activated staking, liquid-staking, reward, slashing or Safety Module policy |
 
 ## Direct answer
 
