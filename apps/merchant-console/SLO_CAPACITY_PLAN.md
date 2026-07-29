@@ -24,9 +24,25 @@ Apple M2, darwin/arm64, 2026-07-22, one benchmark process:
 | Webhook signing material | 280.2 ns/op | 344 B/op, 4 allocs/op |
 | Settlement evidence validation | 16.60 ns/op | 0 B/op, 0 allocs/op |
 
+Apple M2, darwin/arm64, 2026-07-29, repeatable in-process HTTP capacity
+gate (`TestMerchantHTTPReadCapacity`, 1,000 authenticated reads at concurrency
+25):
+
+| Requests | Failures | Throughput | p50 | p95 | p99 |
+|---:|---:|---:|---:|---:|---:|
+| 1,000 | 0 | 25,948.0 req/s | 745 µs | 1.951375 ms | 3.0495 ms |
+
+This is a local handler and file-store baseline, not a public-network,
+multi-instance, provider, or production capacity claim. The gate records all
+percentiles from the same request population and fails on any non-2xx response.
+
 Local recovery functional baseline: a 427-byte empty snapshot completed backup, independent verification, guarded restore and rollback verification between `2026-07-22T14:48:47.514235Z` and `2026-07-22T14:48:47.586604Z`. This approximately 72 ms interval is not an RTO claim; production-size and remote storage measurements remain required.
 
-These measurements do not prove HTTP throughput, concurrent-user capacity or provider capacity. Before staging release, run 1/10/50/100 concurrency levels for at least 30 minutes each and record p50/p95/p99, throughput, error rate, CPU, RSS, file-store growth, queue depth and provider latency.
+These measurements establish a bounded HTTP throughput/concurrency baseline,
+but do not prove public-network, multi-instance, long-soak or provider capacity.
+Before staging release, run 1/10/50/100 concurrency levels for at least 30
+minutes each and record p50/p95/p99, throughput, error rate, CPU, RSS,
+file-store growth, queue depth and provider latency.
 
 The service now exposes a monitor-key-protected, process-local snapshot of request count, response bytes and bounded duration buckets by route template/status. This is sufficient to validate instrumentation behavior locally, but it resets on restart and is not the durable multi-instance source required for the objectives above.
 
