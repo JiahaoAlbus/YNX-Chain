@@ -31,6 +31,16 @@
       "integrationCommit": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
       "acceptedAt": "2026-07-29T21:03:26Z",
       "receipt": "release/integration/evidence/product-26-central-acceptance-01131b46.json"
+    },
+    {
+      "productId": "02",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-wallet-auth",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "f28b0aa29a0d93a2b7f20a00b835c4a1aa6175b3",
+      "integrationCommit": "94acfeced03f5fcb829b06b7fce0dce8dacb4f11",
+      "acceptedAt": "2026-07-29T22:28:25Z",
+      "receipt": "release/integration/evidence/product-02-central-acceptance-94acfece.json"
     }
   ]
 }

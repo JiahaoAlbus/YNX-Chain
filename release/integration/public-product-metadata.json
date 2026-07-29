@@ -30,7 +30,7 @@
     "Capital-safety and user-exit acceptance controls"
   ],
   "risks": [
-    "Security/SRE source is centrally accepted; remaining Phase 0 authorities and shared-Testnet proof are still incomplete.",
+    "Chain Core, Wallet/Auth, Data Fabric and Security/SRE source candidates are centrally accepted; remaining owner authorities and shared-Testnet proof are still incomplete.",
     "A Website page is not evidence that a product runtime is publicly deployed.",
     "Testnet acceptance does not authorize Mainnet, production signing or store release."
   ],
