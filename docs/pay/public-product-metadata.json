@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "1eb2764c95368d5a62483028891eb6c3f67f2c1a",
+  "sourceCommit": "21a2f0412598ef94dd33ff132456c63d5cee6798",
   "productId": "pay",
   "name": "YNX Pay",
   "aliases": ["YNX Payment"],
@@ -19,7 +19,7 @@
     "A submitted transaction is not paid until authoritative finality and invoice matching complete",
     "External routes and sponsorship may be unavailable"
   ],
-  "status": "local-testnet-candidate",
+  "status": "integration-candidate-not-publicly-source-bound",
   "downloads": [],
   "screenshots": [],
   "supportUrl": null,

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "pay",
-  "sourceCommit": "2303ceeed6ff8e7a8606b87a2e7155702e4e27b1",
+  "sourceCommit": "21a2f0412598ef94dd33ff132456c63d5cee6798",
   "vectors": [
     {
       "id": "pay-wallet-valid-session",

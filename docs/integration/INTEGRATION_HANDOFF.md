@@ -4,7 +4,8 @@
 
 - Product owner: `04-pay`
 - Branch: `codex/final-pay`
-- Source commit: `2303ceeed6ff8e7a8606b87a2e7155702e4e27b1`
+- Source commit: `21a2f0412598ef94dd33ff132456c63d5cee6798`
+- Integration PR: `#11` (open; exact CI result must be bound before acceptance)
 - Canonical machine contract: `release/integration/pay-contract.json`
 - Central freeze owner: `29-integration`
 

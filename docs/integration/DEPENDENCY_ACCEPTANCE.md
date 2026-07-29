@@ -2,6 +2,10 @@
 
 ## Current checkpoint
 
+- Integration candidate: `21a2f0412598ef94dd33ff132456c63d5cee6798`
+- Pull request: `#11` is open and mergeable; CI and central-owner acceptance remain pending.
+- Public runtime observation: `pay.ynxweb4.com/health` reports `98a18815d4ee`, so it does not accept or deploy the current candidate.
+
 | Dependency | Owner | Local adapter/contract | Accepted centrally | Direct evidence required |
 |---|---|---:|---:|---|
 | Chain settlement and finality | 01 Chain Core | Yes | No current acceptance recorded | Fresh Testnet transaction, committed block, receipt and replay rejection |
