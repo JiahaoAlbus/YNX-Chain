@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "ynx-integration-manifest/v1",
+  "product": "governance",
+  "canonicalRoute": "/governance",
+  "productBinding": "https://governance.test.ynx.network",
+  "upstream": {
+    "service": "ynx-governanced",
+    "origin": "http://127.0.0.1:6441",
+    "healthPath": "/health"
+  },
+  "session": {
+    "authority": "ynx-app-gatewayd",
+    "tokenHeader": "X-YNX-App-Session",
+    "deviceHeader": "X-YNX-Device-ID",
+    "requiredBinding": "https://governance.test.ynx.network",
+    "forwardPlaintextToken": false,
+    "requiredIntrospectionFields": [
+      "account",
+      "deviceId",
+      "sessionId",
+      "product",
+      "issuedAt",
+      "expiresAt",
+      "status"
+    ],
+    "failClosedChecks": [
+      "wrong_product",
+      "wrong_origin",
+      "wrong_device",
+      "unknown_session",
+      "expired_session",
+      "revoked_session",
+      "scope_widening"
+    ]
+  },
+  "routing": {
+    "publicReadPrefixes": [
+      "GET /governance/proposals",
+      "GET /governance/emergencies"
+    ],
+    "protectedMutationPrefix": "POST /governance/",
+    "maxRequestBytes": 262144,
+    "stripClientIdentityFields": true,
+    "authoritativeIdentityHeaders": [
+      "X-YNX-Verified-Account",
+      "X-YNX-Verified-Device-ID",
+      "X-YNX-Verified-Session-ID",
+      "X-YNX-Verified-Product",
+      "X-YNX-Gateway-Timestamp",
+      "X-YNX-Gateway-Nonce",
+      "X-YNX-Gateway-Signature"
+    ],
+    "assertion": {
+      "algorithm": "HMAC-SHA-256",
+      "maximumClockSkewSeconds": 30,
+      "nonceReplayProtection": true,
+      "bodyBound": true,
+      "canonicalMessageFields": ["method", "escapedPath", "bodySha256", "account", "deviceId", "sessionId", "product", "unixTimestamp", "nonce"],
+      "minimumKeyBytes": 32
+    }
+  },
+  "authorization": {
+    "roleSource": "ynx-governance-authoritative-state",
+    "wildcardScopesAllowed": false,
+    "singleAdministratorAllowed": false,
+    "roleExpiryRequired": true,
+    "removalRequiresExecutedProposal": true
+  },
+  "status": {
+    "implementedLocal": false,
+    "testedLocal": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

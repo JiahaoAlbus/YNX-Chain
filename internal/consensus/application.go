@@ -18,7 +18,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 9
+	ApplicationVersion   = 12
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -73,6 +73,8 @@ type executionState struct {
 	evmReceipts                []BFTEVMReceipt
 	evmLogs                    []BFTEVMLog
 	ideIdempotency             []BFTIDEIdempotency
+	governanceExecutions       []BFTGovernanceExecution
+	governanceExecutionAudit   []BFTGovernanceExecutionAudit
 }
 
 type transactionExecution struct {
@@ -327,6 +329,14 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	case req.Path == "/governance/transparency":
 		response.Value, _ = json.Marshal(a.committed.Transparency)
 		return response, nil
+	case req.Path == "/governance/executions":
+		response.Value, _ = json.Marshal(a.committed.GovernanceExecutions)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/governance/executions/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/governance/executions/"), a.committed.GovernanceExecutions, func(v BFTGovernanceExecution) string { return v.ProposalID }, "governance execution")
+	case req.Path == "/governance/execution-audit":
+		response.Value, _ = json.Marshal(a.committed.GovernanceExecutionAudit)
+		return response, nil
 	case req.Path == "/ide/contracts":
 		response.Value, _ = json.Marshal(a.committed.Contracts)
 		return response, nil
@@ -485,6 +495,7 @@ func (a *Application) cloneExecutionState() executionState {
 		resourcePools: cloneBFTResourcePools(a.committed.ResourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), a.committed.ResourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(a.committed.ResourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), a.committed.ResourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), a.committed.ResourceSponsorAudit...),
 		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), trustLabels: cloneTrustLabels(a.committed.TrustLabels), trustEvidence: cloneTrustEvidence(a.committed.TrustEvidence), trackingReviews: cloneTrackingReviews(a.committed.TrackingReviews), transparency: cloneTransparencyEntries(a.committed.Transparency),
 		contracts: cloneBFTContracts(a.committed.Contracts), evmReceipts: cloneBFTEVMReceipts(a.committed.EVMReceipts), evmLogs: cloneBFTEVMLogs(a.committed.EVMLogs), ideIdempotency: append([]BFTIDEIdempotency(nil), a.committed.IDEIdempotency...),
+		governanceExecutions: append([]BFTGovernanceExecution(nil), a.committed.GovernanceExecutions...), governanceExecutionAudit: append([]BFTGovernanceExecutionAudit(nil), a.committed.GovernanceExecutionAudit...),
 	}
 }
 
@@ -571,6 +582,9 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 	}
 	if isIDEAction(tx.Action) {
 		return a.applyIDEAction(state, payload, tx, height, blockTime)
+	}
+	if isProtocolGovernanceAction(tx.Action) {
+		return a.applyProtocolGovernanceAction(state, payload, tx, height, blockTime, validationOnly)
 	}
 	if err := a.chargeApplicationAction(&state, tx); err != nil {
 		return executionState{}, transactionExecution{}, err
