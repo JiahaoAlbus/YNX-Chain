@@ -1,6 +1,6 @@
 # Product 30 Last Success
 
-Updated: 2026-07-29T12:18:00Z
+Updated: 2026-07-29T14:50:00Z
 
 1. Preserved the legacy branch and pushed its final checkpoint.
 2. Built and verified a complete recovery bundle:
@@ -23,3 +23,5 @@ Updated: 2026-07-29T12:18:00Z
 16. Verified every visible check on PR `#16` succeeded at exact pushed head `9c9931aa5e610a1456ce2950006ff0b0c39c50d9`.
 17. Enabled administrator enforcement on the authoritative branch and read back the complete effective lock: six strict checks, independent review controls, administrator enforcement, linear history, conversation resolution, and force-push/deletion denial.
 18. Verified Product 29 integrated the Product 30 candidate and central PR `#17` passed all exact-head checks at `7777942bb17a1e67483f5909287e79592ca0f1cf`.
+19. Product 29 issued a fail-closed central source acceptance for owner commit `4277317bb4999ac4edfbc321590b54d95e1839f9`; PR `#17` passed 15/15 checks at `edefd412abc14c89cfdd7c5171e5db90aed9cb58`.
+20. Published GitHub prerelease `security-platform-v0.2.0-source-candidate` at frozen source `900c314ddb8f6f56b8713e7df194f26ee0590e06` with five uploaded assets whose GitHub digests and sizes match the local archive, SBOM, provenance, manifest and test signature.

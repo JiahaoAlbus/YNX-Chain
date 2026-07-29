@@ -1,6 +1,6 @@
 # Product 30 Decision Log
 
-Updated: 2026-07-29T12:18:00Z
+Updated: 2026-07-29T14:50:00Z
 
 1. `JiahaoAlbus/YNX-Chain` is authoritative; `JiahaoAlbus/YNX` is legacy and receives no further Product 30 writes.
 2. Preserve the legacy branch and complete bundle before migration; do not rewrite unrelated repository history.
@@ -15,3 +15,5 @@ Updated: 2026-07-29T12:18:00Z
 11. Enable administrator enforcement now that recovery writes are protected and the candidate has passed exact-head CI; preserve the complete REST readback as final-lock evidence.
 12. Keep required signed commits separate from administrator enforcement. Do not enable signing policy until an approved production signing identity and compatibility plan exist.
 13. Classify `FINAL-001` as `externalBlocked` only for true production authorities and public infrastructure. Product 30 local/source/CI/handoff work is complete; Product 29 central acceptance remains tracked by Product 29 rather than misclassified as an external blocker.
+14. Publish the source Candidate Release from frozen source `900c314…`, not from a later documentation/evidence checkpoint, so the tag, archive, SBOM, provenance and manifest bind the same source commit.
+15. Set candidate `downloadHosted=true` only after GitHub returned all five uploaded asset digests and sizes. Keep immutable production hosting, production signing, staging, public runtime, store and Mainnet states separate and false.

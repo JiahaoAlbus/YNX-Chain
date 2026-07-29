@@ -147,10 +147,10 @@
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": true,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   },
@@ -166,6 +166,7 @@
     "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json",
     "evidence/security-platform/GITHUB_CI_7be79d5.json",
     "evidence/security-platform/GITHUB_DEPENDENCY_GRAPH_2026-07-29.json",
+    "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json",
     "evidence/security-platform/GITHUB_BRANCH_PROTECTION_2026-07-27.json",
     "evidence/security-platform/GITHUB_CI_aa5d5e9.json",
     "release/security-platform/operator-inputs.request.json"

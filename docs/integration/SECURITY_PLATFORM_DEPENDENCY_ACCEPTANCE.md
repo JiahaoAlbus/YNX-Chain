@@ -17,7 +17,7 @@ Product 30 has frozen its candidate contract at `release/integration/security-pl
 | 21 Bridge | signer/MPC/HSM, pause and recovery contract | pending | no Bridge allow policy emitted |
 | 26 Data Fabric | canonical audit/event/ledger integrity schema | pending | local evidence is not central ledger evidence |
 | 28 Website | public status, hosted artifact and SEO target ownership | pending | SEO targets are probes only; no public pass claim |
-| 29 Integration | unique release contract, merge order and shared Testnet | pending | `integratedCentral=false` |
+| 29 Integration | unique release contract, merge order and shared Testnet | source accepted; shared Testnet pending | `integratedCentral=true`, `sharedTestnetVerified=false` |
 | 31 Governance | policy, timelock and emergency-control authority | pending | no automatic policy or emergency execution |
 
 ## Acceptance rule

@@ -2,18 +2,18 @@
   "schemaVersion": 1,
   "product": "YNX Security Platform",
   "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
-  "asOf": "2026-07-29T06:08:33Z",
-  "source": "authoritative YNX-Chain repository and direct local evidence",
+  "asOf": "2026-07-29T14:48:41Z",
+  "source": "authoritative YNX-Chain repository, Product 29 central decision, GitHub source prerelease, and direct local evidence",
   "version": "0.2.0-candidate",
   "confidence": "direct-evidence-only",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": true,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   },
@@ -46,13 +46,18 @@
     ],
     "installedLocal": [
       "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json"
+    ],
+    "integratedCentral": [
+      "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json"
+    ],
+    "downloadHosted": [
+      "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/security-platform-v0.2.0-source-candidate"
     ]
   },
   "blockedStates": {
-    "integratedCentral": "central owners have not accepted the candidate contract",
     "deployedStaging": "no staging deployment run or URL evidence",
     "deployedPublic": "no public deployment or health evidence",
-    "downloadHosted": "artifact exists only in Git and has no immutable hosted download URL",
     "productionSigned": "current artifact is test-signed with an ephemeral local signer; no approved production signer or signature evidence",
     "storeReleased": "no store release evidence"
   },

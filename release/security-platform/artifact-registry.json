@@ -235,8 +235,10 @@
       "publicReleaseEligible": false,
       "revokedAt": null,
       "supersededBy": null,
-      "hostedStatus": "not-hosted",
-      "downloadUrl": null,
+      "hostedStatus": "github-source-prerelease",
+      "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/security-platform-v0.2.0-source-candidate/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar",
+      "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/security-platform-v0.2.0-source-candidate",
+      "releaseTag": "security-platform-v0.2.0-source-candidate",
       "productionSigned": false
     }
   ]

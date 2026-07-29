@@ -1,13 +1,13 @@
 # Product 30 Current State
 
-Updated: 2026-07-29T12:18:00Z
+Updated: 2026-07-29T14:50:00Z
 
 - Status: ACTIVE
 - Phase: INTEGRATE
 - Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/30-security-platform`
 - Authoritative repository: `JiahaoAlbus/YNX-Chain`
 - Authoritative branch: `codex/final-security-platform`
-- Last pushed checkpoint: `9c9931aa5e610a1456ce2950006ff0b0c39c50d9`
+- Last pushed checkpoint: `4277317bb4999ac4edfbc321590b54d95e1839f9`
 - Frozen release source: `900c314ddb8f6f56b8713e7df194f26ee0590e06`
 - Draft PR: `https://github.com/JiahaoAlbus/YNX-Chain/pull/16`
 - Legacy repository: `JiahaoAlbus/YNX` (read-only for this product)
@@ -21,6 +21,10 @@ The 24 runtime dependency alerts exposed by enabling the dependency graph have l
 
 All external GitHub Actions in the authoritative repository are pinned to immutable 40-character commits. The authoritative Product 30 branch now has six strict required checks, CODEOWNERS review, stale-review dismissal, last-push approval, administrator enforcement, linear history, conversation resolution, and force-push/deletion denial. Required signed commits remain false because no approved production signing identity or compatibility plan exists.
 
-PR `#16` passed all visible checks at exact pushed head `9c9931aa5e610a1456ce2950006ff0b0c39c50d9`. Product 29 integrated that candidate, and central PR `#17` passed all exact-head checks at `7777942bb17a1e67483f5909287e79592ca0f1cf`. Product 30 owner coverage now has zero `notStarted` or `inProgress` rows and is classified `READY_FOR_SOURCE_RELEASE`; central acceptance remains Product 29-owned. Public, staging, hosted-download, production-signing, store, and Mainnet states remain false.
+PR `#16` passed all visible checks at exact pushed head `4277317bb4999ac4edfbc321590b54d95e1839f9`. Product 29 centrally accepted that owner source through merge `3ee6477d82ecffea954387ce88135793bddb1271`, and central PR `#17` passed 15/15 exact-head checks at `edefd412abc14c89cfdd7c5171e5db90aed9cb58`.
+
+The source-only GitHub prerelease `security-platform-v0.2.0-source-candidate` targets frozen source `900c314ddb8f6f56b8713e7df194f26ee0590e06` and hosts the exact source archive, CycloneDX SBOM, in-toto provenance, manifest and detached ephemeral test signature. The archive digest is `063872f860f74e91f107c036afd321b812e4ec49510290fe042e4a9a0ee59258`. `downloadHosted=true` now means candidate GitHub hosting only; it does not mean immutable production hosting or production signing.
+
+Product 30 owner coverage has zero `notStarted` or `inProgress` rows and remains `READY_FOR_SOURCE_RELEASE`. Shared Testnet, staging, public runtime, production signing, store, and Mainnet states remain false.
 
 The former untracked `output/` directory was classified as legacy failed public-gate captures and documentation reports, then moved intact to `/Users/huangjiahao/Desktop/YNX Recovery Bundles/security-platform-legacy-output-20260729`. All 69 files and 249,856 bytes were preserved; deterministic tree SHA-256 is `d1a681f81b0f0e758805f854eba90541c818bb30506aa6d938083bbe33c3425f`.

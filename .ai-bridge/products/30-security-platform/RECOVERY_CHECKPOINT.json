@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "product": "30-security-platform",
   "status": "ACTIVE",
-  "updatedAt": "2026-07-29T12:18:00Z",
+  "updatedAt": "2026-07-29T14:50:00Z",
   "workspace": "/Users/huangjiahao/Desktop/YNX Final Worktrees/30-security-platform",
   "authoritativeRepository": "JiahaoAlbus/YNX-Chain",
   "authoritativeRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
   "branch": "codex/final-security-platform",
-  "lastPushedCheckpoint": "9c9931aa5e610a1456ce2950006ff0b0c39c50d9",
+  "lastPushedCheckpoint": "4277317bb4999ac4edfbc321590b54d95e1839f9",
   "frozenReleaseSource": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
   "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/16",
   "legacy": {
@@ -27,16 +27,17 @@
     "branchProtection": "evidence/security-platform/GITHUB_BRANCH_PROTECTION_AUTHORITATIVE_2026-07-29.json",
     "branchProtectionFinalLock": "evidence/security-platform/GITHUB_BRANCH_PROTECTION_FINAL_LOCK_2026-07-29.json",
     "recordMigration": "evidence/security-platform/LOCAL_RECORD_MIGRATION_2026-07-29.json",
-    "dependencyRemediation": "evidence/security-platform/LOCAL_DEPENDENCY_REMEDIATION_2026-07-29.json"
+    "dependencyRemediation": "evidence/security-platform/LOCAL_DEPENDENCY_REMEDIATION_2026-07-29.json",
+    "centralAcceptanceAndSourceRelease": "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json"
   },
   "truth": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": true,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   },
@@ -49,8 +50,20 @@
     "owner": "29-integration",
     "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/17",
     "candidateIntegrated": true,
-    "exactGreenHead": "7777942bb17a1e67483f5909287e79592ca0f1cf",
-    "acceptanceIssued": false
+    "exactGreenHead": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
+    "acceptedOwnerCommit": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+    "integrationCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+    "acceptanceIssued": true
+  },
+  "sourceCandidateRelease": {
+    "tag": "security-platform-v0.2.0-source-candidate",
+    "targetCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+    "publishedAt": "2026-07-29T14:48:41Z",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/security-platform-v0.2.0-source-candidate",
+    "artifactSha256": "063872f860f74e91f107c036afd321b812e4ec49510290fe042e4a9a0ee59258",
+    "assetCount": 5,
+    "prerelease": true,
+    "productionSigned": false
   },
   "preservedLegacyOutput": {
     "originalPath": "output/",
@@ -60,5 +73,5 @@
     "treeSha256": "d1a681f81b0f0e758805f854eba90541c818bb30506aa6d938083bbe33c3425f",
     "classification": "untracked legacy public-security failure captures and documentation reports; preserved, not release proof"
   },
-  "nextAction": "Push this final owner-coverage checkpoint, obtain exact-head green PR checks, then return to Product 29 for machine-readable central acceptance and matrix refresh."
+  "nextAction": "Push the source-prerelease truth checkpoint, obtain exact-head green PR checks, then return to Product 29 to rebind central acceptance and refresh release/asset evidence."
 }

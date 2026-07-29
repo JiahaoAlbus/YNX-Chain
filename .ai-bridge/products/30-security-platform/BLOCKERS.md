@@ -1,11 +1,11 @@
 # Product 30 Blockers
 
-Updated: 2026-07-29T12:18:00Z
+Updated: 2026-07-29T14:50:00Z
 
 ## Autonomous central integration work still open
 
-- Product 29 must accept the exact final Product 30 checkpoint and refresh the authoritative 36-product release matrix.
-- Product 28 has not yet consumed the current public metadata.
+- Product 29 must rebind central acceptance to the exact Product 30 checkpoint containing the source-prerelease truth records and refresh the authoritative 36-product release matrix.
+- Product 28 has not yet consumed the current public metadata and candidate download.
 - Shared-Testnet cross-product old-client compatibility, migration, export/delete, retention and retirement drills remain unexecuted.
 - GitHub default-branch closure of 24 locally remediated dependency alerts remains pending central merge to `main`.
 

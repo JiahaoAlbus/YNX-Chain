@@ -6,7 +6,7 @@
   "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
-  "lastUpdated": "2026-07-29T12:18:00Z",
+  "lastUpdated": "2026-07-29T14:50:00Z",
   "items": [
     {
       "id": "RECOVER-001",
@@ -62,15 +62,15 @@
       "requirement": "Maintain separate evidence-backed release states for implementation, testing, installation, integration, staging, public deployment, hosting, signing, and store release.",
       "applicability": "applicable",
       "status": "testedLocal",
-      "evidence": ["release/security-platform/platform-status.json", "release/security-platform/product-release.json", "release/integration/security-platform-contract.json", "scripts/security-platform.mjs"],
+      "evidence": ["release/security-platform/platform-status.json", "release/security-platform/product-release.json", "release/integration/security-platform-contract.json", "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json", "scripts/security-platform.mjs"],
       "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
       "tests": ["npm run security:verify", "npm run security:test"],
       "artifact": "release/security-platform/product-release.json",
       "publicProof": null,
-      "blockedBy": ["central integration, staging, public deployment, hosted download and production signing remain false pending direct evidence"],
+      "blockedBy": ["shared Testnet, staging, public deployment, production signing and store release remain false pending direct evidence"],
       "owner": "YNX-30",
       "nextAction": "Preserve independent state transitions and update a boolean only with direct evidence.",
-      "lastUpdated": "2026-07-29T06:08:33Z"
+      "lastUpdated": "2026-07-29T14:50:00Z"
     },
     {
       "id": "ZERO-FAKE-001",
@@ -286,15 +286,15 @@
       "requirement": "Track each artifact by source commit, build run, hash, bytes, SBOM, signature class, minimum OS, install evidence, revocation and expiry.",
       "applicability": "applicable",
       "status": "testedLocal",
-      "evidence": ["release/security-platform/artifact-registry.json", "release/artifacts/900c314ddb8f6f56b8713e7df194f26ee0590e06", "evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json", "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json"],
+      "evidence": ["release/security-platform/artifact-registry.json", "release/artifacts/900c314ddb8f6f56b8713e7df194f26ee0590e06", "evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json", "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json", "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json"],
       "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
       "tests": ["scripts/security-artifact.test.mjs", "npm run security:test"],
       "artifact": "release/security-platform/artifact-registry.json",
       "publicProof": null,
-      "blockedBy": ["immutable hosted URL", "production signature"],
+      "blockedBy": ["immutable production hosted URL", "production signature"],
       "owner": "YNX-30",
       "nextAction": "Host and production-sign only through the approved release train; do not promote the test signature.",
-      "lastUpdated": "2026-07-29T06:08:33Z"
+      "lastUpdated": "2026-07-29T14:50:00Z"
     },
     {
       "id": "CAPACITY-001",
@@ -349,16 +349,16 @@
       "category": "central-integration",
       "requirement": "Maintain the security-platform integration contract, handoff, dependency acceptance and cross-product test vectors for owner acceptance.",
       "applicability": "applicable",
-      "status": "implementedLocal",
-      "evidence": ["release/integration/security-platform-contract.json", "docs/integration/INTEGRATION_HANDOFF.md", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json", "docs/integration/DEPENDENCY_ACCEPTANCE.md"],
+      "status": "integratedCentral",
+      "evidence": ["release/integration/security-platform-contract.json", "docs/integration/INTEGRATION_HANDOFF.md", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json", "docs/integration/DEPENDENCY_ACCEPTANCE.md", "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json"],
       "sourceCommit": "8577f8a6086946297faddf1ffc7e04ca8359af05",
       "tests": ["scripts/security-integration-contract.test.mjs", "npm run security:test"],
       "artifact": "release/integration/security-platform-contract.json",
       "publicProof": null,
-      "blockedBy": ["29 Integration acceptance and shared testnet evidence"],
+      "blockedBy": ["shared Testnet evidence"],
       "owner": "YNX-30",
-      "nextAction": "Rebind contract and handoff evidence to the current release source commit and request central acceptance through repository artifacts.",
-      "lastUpdated": "2026-07-27T14:32:45Z"
+      "nextAction": "Retain the accepted source binding and proceed to shared Testnet security, monitoring and recovery verification.",
+      "lastUpdated": "2026-07-29T14:50:00Z"
     },
     {
       "id": "PUBLIC-METADATA-001",
@@ -366,15 +366,15 @@
       "requirement": "Publish truthful product metadata, canonical route, SEO content, support/privacy/security/status references and artifact manifest for Website consumption.",
       "applicability": "applicable",
       "status": "testedLocal",
-      "evidence": ["release/security-platform/public-product-metadata.json", "release/security-platform/product-release.json"],
+      "evidence": ["release/security-platform/public-product-metadata.json", "release/security-platform/product-release.json", "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json"],
       "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
       "tests": ["npm run security:verify"],
       "artifact": "release/security-platform/public-product-metadata.json",
       "publicProof": null,
       "blockedBy": ["approved support/privacy/status URLs", "Website deployment evidence"],
       "owner": "YNX-30",
-      "nextAction": "Product 28 must consume the current-source metadata while preserving deployedPublic=false and downloadHosted=false.",
-      "lastUpdated": "2026-07-29T06:08:33Z"
+      "nextAction": "Product 28 must consume the current-source metadata while preserving deployedPublic=false and clearly labeling the hosted artifact as a test-signed source prerelease.",
+      "lastUpdated": "2026-07-29T14:50:00Z"
     },
     {
       "id": "UI-001",
@@ -446,15 +446,15 @@
       "requirement": "Complete staging, public deployment, immutable hosting, production signing, public health/version/security/status evidence and Website consumption.",
       "applicability": "applicable",
       "status": "externalBlocked",
-      "evidence": ["release/security-platform/platform-status.json states all external deployment and signing states false", "release/security-platform/product-release.json", "evidence/security-platform/PUBLIC_GATE_2026-07-22.md"],
+      "evidence": ["release/security-platform/platform-status.json keeps external deployment and signing states false", "release/security-platform/product-release.json", "evidence/security-platform/PUBLIC_GATE_2026-07-22.md", "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json"],
       "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
       "tests": ["public gate evidence records failures honestly"],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["approved staging/production cluster", "production signer", "immutable artifact host", "DNS/TLS", "support/privacy/status URLs", "29/28 owner acceptance"],
+      "blockedBy": ["approved staging/production cluster", "production signer", "immutable production artifact host", "DNS/TLS", "support/privacy/status URLs", "28 Website consumption and public verification"],
       "owner": "YNX-30",
-      "nextAction": "Finish every local and CI gate, then generate minimized operator inputs without requesting secret values in chat.",
-      "lastUpdated": "2026-07-27T14:32:45Z"
+      "nextAction": "Use the published source candidate for shared-Testnet review, then request only minimized production operator inputs without secret values in chat.",
+      "lastUpdated": "2026-07-29T14:50:00Z"
     },
     {
       "id": "FINAL-001",
@@ -462,15 +462,15 @@
       "requirement": "Pass full tests, build, install, smoke, migration, restore, security, remote CI, release, artifact, public evidence and clean local/remote parity before completion.",
       "applicability": "applicable",
       "status": "externalBlocked",
-      "evidence": ["authoritative clean clone installed and cold-started", "frozen release-source security suite 172/172 passed", "current branch security suite 179/179 passed", "central contract tooling plus all Go command/internal tests and go vet passed", "local Kubernetes render passed", "local production dependency audit reported zero vulnerabilities", "GitHub Security Platform Gates run 30426721604 succeeded at 7be79d5", "GitHub Security run 30426721645 succeeded at 7be79d5", "draft PR https://github.com/JiahaoAlbus/YNX-Chain/pull/16 was green at exact pushed head 9c9931aa5e610a1456ce2950006ff0b0c39c50d9", "Product 29 integrated the Product 30 candidate and its draft PR https://github.com/JiahaoAlbus/YNX-Chain/pull/17 passed all exact-head checks at 7777942bb17a1e67483f5909287e79592ca0f1cf"],
+      "evidence": ["authoritative clean clone installed and cold-started", "frozen release-source security suite 172/172 passed", "current branch security suite 179/179 passed", "central contract tooling plus all Go command/internal tests and go vet passed", "local Kubernetes render passed", "local production dependency audit reported zero vulnerabilities", "GitHub Security Platform Gates run 30426721604 succeeded at 7be79d5", "GitHub Security run 30426721645 succeeded at 7be79d5", "draft PR https://github.com/JiahaoAlbus/YNX-Chain/pull/16 was green at exact pushed head 4277317bb4999ac4edfbc321590b54d95e1839f9", "Product 29 central acceptance passed at Integration exact green head edefd412abc14c89cfdd7c5171e5db90aed9cb58", "GitHub source prerelease security-platform-v0.2.0-source-candidate hosts the source archive, SBOM, provenance, manifest and test signature bound to 900c314ddb8f6f56b8713e7df194f26ee0590e06"],
       "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
       "tests": ["npm run security:verify", "npm run security:test", "go test ./...", "go vet ./...", "npm run security:integration", "npm run security:notices", "npm run security:build-scripts", "npm audit --omit=dev --audit-level=high", "node scripts/security-ci-policy.mjs", "GitHub protected-branch checks"],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["approved staging and production cluster identities and operator authority", "production artifact signer and transparency evidence", "immutable artifact hosting", "DNS/TLS and approved support/privacy/security/status endpoints"],
+      "blockedBy": ["approved staging and production cluster identities and operator authority", "production artifact signer and transparency evidence", "immutable production artifact hosting", "DNS/TLS and approved support/privacy/security/status endpoints"],
       "owner": "YNX-30",
-      "nextAction": "Retain source-release readiness while Product 29 performs central acceptance; keep staging, public, hosted-download and production-signing states false until direct external evidence exists.",
-      "lastUpdated": "2026-07-29T12:18:00Z"
+      "nextAction": "Retain central source acceptance and the hosted source prerelease; keep shared-Testnet, staging, public runtime and production-signing states false until direct evidence exists.",
+      "lastUpdated": "2026-07-29T14:50:00Z"
     }
   ]
 }
