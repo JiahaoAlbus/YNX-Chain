@@ -1,7 +1,7 @@
 # Governance Integration Handoff
 
 Owner: `31-governance`  
-Source commit: `89edb99d1ec0ee00d92dd0a0d965c6c88daba31d`  
+Source commit: `cd328bd5817f32efba259e0ad8948f202ebaf654`  
 Branch: `codex/final-governance`  
 Lifecycle: `ACTIVE`  
 Current phase: `INTEGRATE`
@@ -37,5 +37,19 @@ release authority or direct signer custody.
 5. Link correction and appeal evidence through Trust without granting Trust
    governance execution authority.
 6. Execute the cross-product vectors in this directory and retain exact receipts.
+
+## Website acceptance evidence
+
+A bounded public probe on 2026-07-29 found that `https://ynxweb4.com/governance`
+redirects to `https://www.ynxweb4.com/governance` and returns HTTP 200, but the
+HTML is the generic root application shell with title `YNX Chain — Web4 Layer-1
+Ecosystem` and canonical `https://ynxweb4.com/`. This is not a Governance
+product page and does not satisfy public deployment or Website acceptance.
+
+Product 28 must consume `release/governance/public-product-metadata.json` and
+`release/governance/product-release.json`, render a Governance-specific title,
+canonical URL, H1, status, evidence, API, support and security destinations, and
+expose the accepted source commit. The raw machine-readable observation is
+`release/evidence/governance-public-route-probe-2026-07-29.json`.
 
 Public, production, Mainnet, audit and independent-acceptance states remain false.

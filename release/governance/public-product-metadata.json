@@ -1,6 +1,7 @@
 {
   "schemaVersion": "ynx-public-product-metadata/v1",
-  "sourceCommit": "0ed74c9e737ca6d5bbdf226f6ca487dc398b4755",
+  "sourceCommit": "cd328bd5817f32efba259e0ad8948f202ebaf654",
+  "sourceCommitScope": "tested governance candidate baseline after origin/main reconciliation",
   "name": "YNX Governance",
   "aliases": ["YNX Protocol Governance", "YNX Protocol Control"],
   "canonicalRoute": "/governance",
@@ -26,6 +27,15 @@
     "channel": "integration-candidate",
     "publiclyAvailable": false,
     "externalExecutionEnabled": false
+  },
+  "publicRouteObservation": {
+    "url": "https://ynxweb4.com/governance",
+    "httpStatus": 200,
+    "governanceSpecific": false,
+    "productPageAccepted": false,
+    "observedTitle": "YNX Chain — Web4 Layer-1 Ecosystem",
+    "observedCanonical": "https://ynxweb4.com/",
+    "evidence": "release/evidence/governance-public-route-probe-2026-07-29.json"
   },
   "downloads": [],
   "supportUrl": null,

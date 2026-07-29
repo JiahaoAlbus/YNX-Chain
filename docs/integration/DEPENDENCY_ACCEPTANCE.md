@@ -1,6 +1,6 @@
 # Governance Dependency Acceptance
 
-Source commit: `89edb99d1ec0ee00d92dd0a0d965c6c88daba31d`
+Source commit: `cd328bd5817f32efba259e0ad8948f202ebaf654`
 
 | Dependency | Owner | Required evidence | Current state |
 | --- | --- | --- | --- |
@@ -13,6 +13,7 @@ Source commit: `89edb99d1ec0ee00d92dd0a0d965c6c88daba31d`
 | Canonical events | 26 Data Fabric | versioned event registration, ordering and replay behavior | pending |
 | Integration | 29 Integration | conflict resolution and accepted source commit | pending |
 | Security and signer custody | 30 Security/SRE | custody, artifact, restore and incident evidence | local candidate present; production acceptance pending |
+| Public website | 28 Website | Governance-specific canonical route, title, H1, status, evidence, API, support and security destinations | HTTP 200 currently serves the generic root shell; product-page acceptance failed |
 
 Governance remains fail-closed when any required identity, execution, event,
 monitoring or custody dependency is unavailable. No dependent product state is

@@ -2,9 +2,10 @@
   "schemaVersion": "ynx-product-release/v1",
   "product": "YNX Governance & Protocol Control",
   "slug": "governance",
-  "version": "0.4.0-integration",
-  "generatedAt": "2026-07-29T01:57:00Z",
-  "sourceCommit": "0ed74c9e737ca6d5bbdf226f6ca487dc398b4755",
+  "version": "0.4.1-integration",
+  "generatedAt": "2026-07-29T02:53:28Z",
+  "sourceCommit": "cd328bd5817f32efba259e0ad8948f202ebaf654",
+  "sourceCommitScope": "tested governance candidate baseline after origin/main reconciliation",
   "branch": "codex/final-governance",
   "phase": "INTEGRATE",
   "status": "Active",
@@ -106,6 +107,26 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "ci": {
+    "workflow": "governance",
+    "runId": 30417486460,
+    "sourceCommit": "cd328bd5817f32efba259e0ad8948f202ebaf654",
+    "status": "completed",
+    "conclusion": "success",
+    "verifiedSteps": [
+      "governance control-plane verification",
+      "Playwright Chromium browser gate",
+      "four-validator governance Testnet lifecycle"
+    ]
+  },
+  "publicRoute": {
+    "url": "https://ynxweb4.com/governance",
+    "httpReachable": true,
+    "productPageAccepted": false,
+    "deployedPublic": false,
+    "evidence": "release/evidence/governance-public-route-probe-2026-07-29.json",
+    "reason": "The path serves the generic root application shell and root canonical URL rather than Governance-specific content."
+  },
   "evidence": {
     "targetedTests": [
       "bash scripts/verify/governance-check.sh",
@@ -167,7 +188,7 @@
       "governance UI production build, type-check, 12-locale render tests, Arabic RTL, keyboard activation, 390px real-Chrome overflow check, and zero-vulnerability npm audit",
       "reachable Go vulnerability scan reports zero vulnerabilities after upgrading gRPC to 1.82.1"
     ],
-    "sourceCommit": "0ed74c9e737ca6d5bbdf226f6ca487dc398b4755"
+    "sourceCommit": "cd328bd5817f32efba259e0ad8948f202ebaf654"
   },
   "dependencies": {
     "chainCore": "canonical_execution_adapter_configured_and_locally_verified",

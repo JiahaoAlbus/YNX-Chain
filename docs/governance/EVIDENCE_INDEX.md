@@ -14,5 +14,7 @@
 - Reproducible local artifact hashes, SBOM summary, and truthful release status: `docs/governance/evidence/local-artifact-provenance-c085e078577f.json`
 - Release packager: `scripts/package/governance-release.mjs`
 - Third-party license notice: `docs/governance/THIRD_PARTY_NOTICES.md`
+- Exact successful Governance Actions runs: `30416918267` on `4e6c67488e81f5ec82995de81dd25a33861d7dc3` and `30417486460` on `cd328bd5817f32efba259e0ad8948f202ebaf654`
+- Public-route rejection evidence: `release/evidence/governance-public-route-probe-2026-07-29.json`
 
-CI run URLs, shared-Testnet transaction hashes, public deployment receipts, production signatures, hosted downloads, and remote backup drills are not yet present and must not be inferred. Local browser and artifact evidence is not deployment evidence.
+Exact product CI evidence is present. Shared central-Testnet acceptance receipts, Governance-specific public deployment, production signatures, current-candidate hosted downloads, and remote backup drills are not yet present and must not be inferred. The current HTTP 200 at `/governance` serves the generic root shell and is explicitly rejected as product deployment evidence.
