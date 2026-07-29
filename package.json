@@ -15,10 +15,13 @@
     "@account-abstraction/contracts": "0.8.0",
     "@noble/curves": "1.4.2",
     "@noble/hashes": "1.4.0",
-    "@nomicfoundation/hardhat-ethers": "^4.0.13",
+    "@nomicfoundation/hardhat-ethers": "^4.0.15",
     "ethers": "^6.17.0",
-    "hardhat": "^3.9.0",
+    "hardhat": "^3.11.1",
     "typescript": "^5.9.0",
     "undici": "^6.27.0"
+  },
+  "overrides": {
+    "adm-zip": "0.6.0"
   }
 }

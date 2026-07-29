@@ -1,36 +1,28 @@
-# Wallet/Auth Dependency Acceptance
+# YNX Resource Market dependency acceptance
 
-Source commit: `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6`
+No dependency is accepted from file existence, HTTP 200, local mocks or documentation alone. Each row requires direct Testnet or deployment evidence bound to an immutable source commit.
 
-This file records acceptance conditions only. A dependency is not accepted merely because an adapter, schema or local test exists.
+| Owner | Required contract | Current status | Acceptance evidence required | Failure behavior |
+| --- | --- | --- | --- | --- |
+| 01 Chain Core | Authoritative transaction finality, unique transaction identity and settlement receipt evidence | External blocked | Deployed Testnet endpoint; final transaction hash; asset, amount and finality proof; negative replay and mismatch vectors | Keep order `settlement_pending`; never create receipt or release capacity |
+| 02 Wallet/Auth | Exact Resource Market registry, challenge, completion, introspection, expiry and revocation | External blocked | Registry merge commit; deployed Gateway; wrong-product, wrong-device, scope-widening, expiry, revoke and replay results | Reject product session and perform no mutation |
+| 12 Explorer | Public transaction, receipt and source-commit proof | External blocked | Public HTTPS transaction/receipt URL linked to authoritative settlement | Do not claim public settlement evidence |
+| 13 Monitor | Provider health, stale capacity, meter failure, settlement mismatch/replay and incident alerts | External blocked | Deployed alert rules, triggered negative vectors, incident and recovery evidence | Product remains locally observable only |
+| 15 Trust Center | Provider failure, dispute, notice, appeal and correction linkage | Locally implemented, central acceptance pending | Cross-product case IDs and final decision evidence without asset authority | Keep dispute local and do not infer refund |
+| 26 Data Fabric | Canonical usage, billing, fee and settlement events with idempotent lineage | External blocked | Event schema freeze, replay-safe ingestion, meter/receipt reconciliation and ledger query evidence | Do not emit or claim authoritative billing ledger state |
+| 28 Website | `/resource-market` public entry, support/privacy/security/status routes, metadata and downloads | External blocked | Deployed canonical route, remote smoke, indexability and immutable artifact URLs | Keep all public and hosted release booleans false |
+| 29 Integration | Freeze contract version, owner, events, errors, vectors and shared Testnet order | External blocked | Signed acceptance record for `resource-market-integration-v1`; all cross-product vectors pass | Do not maintain a second compatibility protocol |
+| 30 Security/SRE/Release | Secrets, artifact provenance, backup/restore, deployment and release acceptance | External blocked | Source-bound SBOM, scans, immutable hashes, restore drill, deployment record and external review status | Keep production signing and release booleans false |
 
-| Owner | Required input | Acceptance evidence | Current state |
-| --- | --- | --- | --- |
-| 01 Chain Core | Canonical chain identity, EVM chain ID, EntryPoint, transaction/receipt schemas, public RPC and Testnet contract addresses | Tx/UserOperation hash, block, receipt and source commit from the accepted Testnet | Blocked: no direct accepted deployment evidence in this worktree |
-| App Gateway | Canonical adapter and Node-host merge, durable atomic replay/revocation/mandate storage, exact build identity, health/readiness/version/metrics | Central merge SHA, migration result, restart test, exact `/version` response and public or staging endpoint evidence | Adapter and local observability host ready; not merged/deployed |
-| 26 Data Fabric | Canonical Wallet events and billing-ledger mappings | Accepted schema/version plus event ingestion and replay evidence | Contract ready; not accepted centrally |
-| 19 Oracle | Capital-product and stablecoin facts with source/as-of/version/failure state | Signed or authoritative reference response and outage behavior | Contract required |
-| 12 Explorer | Authorization, Product Session, revocation, transaction, UserOperation and mandate indexing | Explorer URLs or API responses bound to authoritative hashes | Contract required |
-| 13 Monitor | Gateway, Session, Sponsor, Bundler, Paymaster and mandate metrics/alerts | Acceptance of bounded labels/redacted events plus dashboard/alert evidence with request, error and audit correlation | Local Gateway metric/event contract ready; not accepted centrally |
-| 15 Trust Center | Appeal, correction and mandate-dispute linkage | Case schema and immutable audit-ID correlation | Contract required |
-| 29 Integration | Unique protocol freeze, merge order and shared Testnet execution | Accepted contract SHA plus all required shared vectors passing | Handoff ready; shared Testnet not executed |
+## Resource Market autonomous acceptance
 
-## Fail-closed rules while blocked
+The product-owned portion is accepted locally only when all of the following pass against the same source commit:
 
-- A missing central registration stays disabled.
-- A missing Product Session, P-256 proof, required scope or active mandate is rejected.
-- A missing Chain receipt, Bundler receipt, Paymaster decision, Explorer record or Monitor record cannot be represented as deployed or complete.
-- Provider and owner outages return explicit failure states; they do not fall back to mock balances, mock receipts or hard-coded success.
-- Wallet/Auth does not reproduce Chain Core, Data Fabric, Oracle, Explorer, Monitor, Trust Center or Integration authority inside this worktree.
+- Resource engine and HTTP product tests, including race detection.
+- Stable error-code contract tests.
+- Settlement transaction replay rejection and signed-meter reconciliation.
+- Product HTTP smoke, health/version truth boundaries and scoped state/export.
+- Contract and cross-product vector schema validation.
+- Backup/restore and migration compatibility checks.
 
-## Accepted local evidence
-
-- `packages/wallet-auth/testdata/strategy-mandate-v2.json`
-- `packages/wallet-auth/test/strategy-vector.test.mjs`
-- `packages/wallet-auth/test/strategy-gateway-adapter.test.mjs`
-- `packages/wallet-auth/test/mandate-lifecycle.test.mjs`
-- `packages/wallet-auth/test/gateway-node-host.test.mjs`
-- `apps/wallet/proof/gateway-observability-local-2026-07-27.json`
-- `release/integration/wallet-auth-contract.json`
-
-The local evidence proves implementation and deterministic validation only. It does not satisfy central integration, Testnet deployment or public evidence gates.
+Local acceptance is not central integration, public Testnet proof or production release.

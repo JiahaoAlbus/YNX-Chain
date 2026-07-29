@@ -1,87 +1,56 @@
-# YNX Wallet/Auth Integration Handoff
+# YNX Resource Market integration handoff
 
-## Authority and source
+## Identity
 
-- Owner: `02-wallet-auth`
-- Source commit: `c7a6bded387223429f0708f80b50f086d8ff944d`
-- Current gate: `INTEGRATE`
-- Machine-readable contract: `release/integration/wallet-auth-contract.json`
-- Shared StrategyMandate vector: `packages/wallet-auth/testdata/strategy-mandate-v2.json`
+- Product owner: `16-resource-market`
+- Contract: `release/integration/resource-market-contract.json`
+- Contract version: `resource-market-integration-v1`
+- Implementation source: `a940d2efa824bd9f43522ed792c9a563b55e1e11`
+- Current phase: `FREEZE → INTEGRATE`
+- Current product status: local candidate; not centrally integrated, staged, public, production-signed or store-released.
 
-This handoff freezes the Wallet-owned identity, device, approval, Product Session, revocation and StrategyMandate boundaries. It does not claim that App Gateway, Chain Core, Data Fabric, Explorer, Monitor, Oracle, Trust Center or the shared Testnet have merged or deployed this candidate.
+## Authority split
 
-## Frozen protocol
+Resource Market owns provider registration, verified capacity, offers, matching, auctions, reservation, service lifecycle, signed usage metering and local dispute evidence. It does not own Wallet identity, asset finality, billing-ledger authority, public Explorer proof, central monitoring, public Website entry or protocol freeze.
 
-The accepted local protocol binds the network and chain, requesting product, product client, bundle, callback, P-256 product-device public key, account, ordered scopes, purpose, nonce, issuance and expiry, request digest, approval digest and session binding. Unknown fields, scope widening or reordering, callback replacement, product/device/bundle substitution, future timestamps, replay, storage tamper, expiry and revoked state fail closed.
+A quote, accepted intent, reservation, service start, meter, service completion, HTTP success or provider statement is never asset settlement. Reservations are bound to the exact Offer referenced by the accepted Quote; capacity from a sibling Offer cannot satisfy or release that reservation. Settlement is accepted only when an authorized settlement identity supplies a non-empty asset, transaction hash, evidence and source; amounts exactly reconcile to signed meters; the order is `settlement_pending`; and the normalized transaction hash has not already been consumed by another receipt.
 
-Current versions:
+## Canonical integration inputs
 
-| Component | Version |
-| --- | ---: |
-| Authorization Request / Wallet Approval / Device Challenge / Product Session | 1 |
-| Product Session HTTP proof | 1 |
-| Central Registry document | 2 |
-| Product registration | 3 |
-| Gateway adapter snapshot | 2 |
-| Gateway HTTP kernel | 1 |
-| Gateway Node state | 1 |
-| Gateway observability | 1 |
-| Gateway encrypted backup | 1 |
-| StrategyMandate | 2 |
-| StrategyAction | 1 |
-| StrategyMandate store | 1 |
+- Wallet registry: `apps/resource-market/integration/canonical-wallet-registry.json`
+- Wallet vectors: `apps/resource-market/integration/canonical-wallet-v1-test-vector.json`
+- Existing central manifest: `apps/resource-market/integration/central-integration-manifest.json`
+- Frozen product contract: `release/integration/resource-market-contract.json`
+- Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 
-Registry v2 contains 26 sorted, unique registrations. `quant` is present but remains `pending-review` and disabled until the central owner explicitly approves it. The v1-to-v2 migration only accepts the exact prior 25-product set and deterministically adds the disabled Quant registration.
+## Required central behavior
 
-## Gateway merge surface
+1. Product 02 registers the exact client, bundle, callback, ordered scopes and P-256 product-device algorithm.
+2. Product 29 freezes the exact method/path/body product-session proof semantics and one-to-one proxy route mapping.
+3. Product 01 provides authoritative transaction finality and settlement evidence; product 16 does not infer finality.
+4. Product 26 accepts only signed-meter and confirmed-settlement events, preserving idempotency and lineage.
+5. Product 12 exposes public receipt evidence only after authoritative settlement.
+6. Product 13 alerts on stale providers, metering failures, settlement reconciliation failure and receipt replay rejection.
+7. Product 15 links provider failure and dispute/appeal evidence without gaining asset authority.
+8. Product 28 publishes only release states that have direct evidence.
 
-The App Gateway owner should mount `CanonicalWalletGatewayHttpKernel` rather than reimplement Wallet semantics. Session completion carries no Product Session proof because the session does not exist yet. Every later operation requires an unconsumed P-256 proof supplied separately from the canonical business body and bound to method, canonical path and the raw-body SHA-256 digest.
+## Stable errors
 
-| Operation | Path | Required scope | Additional binding |
-| --- | --- | --- | --- |
-| Complete Product Session | `/v1/wallet/sessions/complete` | none | Wallet approval plus product-device challenge; proof header is null |
-| Introspect | `/v1/wallet/sessions/introspect` | requested subset | Product, bundle, device, exact body and active revocation state |
-| Revoke session | `/v1/wallet/sessions/revoke` | none | Exact session, device and path-bound proof |
-| Revoke own approval | `/v1/wallet/approvals/revoke` | none | Proof must come from a session created by the approval being revoked |
-| Revoke own product device | `/v1/wallet/devices/revoke` | none | Proof must come from the product device being revoked |
-| All-device logout | `/v1/wallet/accounts/logout-all` | `wallet:sessions` | Exact canonical Wallet client and bundle only; writes account-wide cutoff |
-| Activate mandate | `/v1/wallet/mandates/activate` | `quant:mandate:create` | Account, product and exact session binding |
-| Authorize strategy action | `/v1/wallet/mandates/authorize-action` | `quant:mandate:execute` | Mandate digest, nonce domain, action nonce, typed target and all limits |
-| Inventory | `/v1/wallet/mandates` | `quant:account` | Account and product |
-| Revoke / kill / emergency exit | `/v1/wallet/mandates/*` | `quant:mandate:revoke` | Existing mandate ownership and exact Product Session |
+The product returns a stable `code` with `errorId`, `requestId` and `traceId`. Settlement integrations must preserve at least:
 
-The host must persist Gateway snapshot v2 atomically with the returned state digest. Product Session replay state, Product Sessions, revocations, StrategyMandates, action nonces, terminal controls and audit data share one transaction boundary. A failed request restores the pre-request snapshot and must not consume a proof. A restart must not restore consumed proofs, action nonces, revoked mandates or killed mandates to an executable state.
+- `RESOURCE_SELF_DEALING_REJECTED`
+- `RESOURCE_AMOUNT_OUT_OF_RANGE`
+- `RESOURCE_CAPACITY_UNAVAILABLE`
+- `RESOURCE_METER_WINDOW_INVALID`
+- `RESOURCE_METER_LIMIT`
+- `RESOURCE_SETTLEMENT_STATE_INVALID`
+- `RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED`
+- `RESOURCE_SETTLEMENT_RECONCILIATION`
+- `RESOURCE_SETTLEMENT_REPLAY`
 
-The source-bound Node host also provides unauthenticated loopback `GET /health`, `/ready`, `/version` and `/metrics`. Every response carries generated request and trace IDs; failures carry an error ID. Metrics use a fixed route label set and bounded public error codes, while canonical JSON events exclude bodies, Product Session proofs, authorization headers, custody material, signatures, provider secrets and state paths. Event-sink failure is isolated and counted. Any process marked `remoteDeployed=true` must present a full lowercase source commit, release identifier and canonical UTC build time; runtime readiness remains separate from public-deployment readiness.
+No consumer may translate these failures into success, paid, settled or refunded.
 
-## Asset authority boundary
+## Acceptance gate
 
-An exchange mandate is valid only for an explicit subaccount identifier, with no withdrawals, no owner change, an independent nonce domain and immediate revocation. A DEX mandate must enumerate typed Vault, Pool and Router targets and the exact method union. Arbitrary transfer, `transferFrom`, approvals, unlimited approval, ownership transfer, admin change and upgrade selectors are prohibited.
-
-Quant, AI, App Gateway and other products receive no private key, seed, arbitrary withdrawal authority or owner-change authority. They may submit a bounded action for Wallet/Gateway authorization; they may not sign on the user's behalf.
-
-## Verification already completed
-
-- Wallet/Auth package: 100/100 tests passed.
-- Gateway HTTP kernel: twelve exact routes, canonical-body enforcement, separate proof transport, immutable registry, exact state digest, restart, replay, request-level rollback, self-scoped approval/device revoke and Wallet-only all-device logout tested.
-- Gateway Node host: 8/8 tests plus a real loopback CLI smoke cover health/readiness/version/metrics, generated request/trace/error IDs, exact remote build identity, bounded metric labels, redacted events, Node-only package export and event-sink failure isolation.
-- Gateway encrypted backup: 6/6 focused tests cover exact non-empty restore, consumed-proof replay rejection, wrong-key/tamper/permission/rollback failure, no-overwrite semantics, validated legacy timestamp normalization, unsupported future schema rejection and redacted CLI output. The 20-sample source-bound local drill is recorded at `apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json`.
-- Product Session proof: replay, method/path/body substitution and device mismatch rejected.
-- StrategyMandate: activation, action authorization, restart persistence, failed-operation proof atomicity, replay rejection, revoke, kill and emergency exit tested.
-- Registry v1-to-v2 and Gateway snapshot v1-to-v2 migration tested.
-- Browser SDK: 7/7 passed from its independent lockfile; JS SDK: 5/5 passed.
-- SDK package dry run and `umask 0022; go test ./...` passed; the MCP default `umask 0077` was recorded as a fixture precondition because it automatically tightened two non-Wallet unsafe-permission test files.
-
-These are local implementation and test facts. No direct YNX Testnet mandate transaction, public Gateway endpoint, central event acceptance, Explorer proof or Monitor proof has been recorded yet.
-
-## Owner-specific next actions
-
-1. **App Gateway**: merge the adapter and Node-host boundary, supply durable transactional storage, expose the exact operations without bearer-token compatibility, and bind readiness/version to an exact deployed build identity.
-2. **01 Chain Core**: provide the accepted EntryPoint, EVM/RPC identity, receipt schema and Testnet deployment facts.
-3. **26 Data Fabric**: accept the canonical Wallet event names and billing-ledger mappings without becoming the Wallet authority.
-4. **19 Oracle**: supply source-labelled capital-product and stablecoin reference facts.
-5. **12 Explorer / 13 Monitor**: index authoritative sessions, approvals, mandates, actions, UserOperations, sponsor decisions and revocations; accept the bounded Gateway metrics/events and prove dashboards, SLO alerts and request/error/audit correlation.
-6. **15 Trust Center**: bind mandate disputes and corrections to immutable audit IDs without gaining asset authority.
-7. **29 Integration**: freeze the merge order and run the shared Testnet vectors.
-
-Until those actions produce direct evidence, `integratedCentral`, `deployedStaging` and `deployedPublic` remain false.
+Central integration remains false until every applicable dependency row in `DEPENDENCY_ACCEPTANCE.md` has direct evidence and the vectors in `CROSS_PRODUCT_TEST_VECTORS.json` pass against deployed Testnet services. Local tests are not public or central proof.

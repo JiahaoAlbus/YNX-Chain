@@ -1,86 +1,141 @@
 {
   "schemaVersion": 1,
-  "owner": "02-wallet-auth",
-  "sourceCommit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
+  "contractVersion": "resource-market-integration-v1",
+  "product": "ynx-resource-market",
+  "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
   "vectors": [
     {
-      "id": "wallet-auth-gateway-p256-v1",
-      "path": "packages/wallet-auth/testdata/gateway-p256-v1.json",
-      "consumers": ["app-gateway", "android", "ios", "29-integration"],
-      "requiredAssertions": ["exact-signing-domain", "wrong-device-rejected", "challenge-replay-rejected", "expiry-rejected"]
+      "id": "RM-AUTH-WRONG-PRODUCT-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "16-resource-market"],
+      "precondition": "A valid product-session proof was issued for a different requestingProduct or productClientId.",
+      "action": "Submit the proof to POST /api/market/actions.",
+      "expectedHttpStatus": 401,
+      "expectedCode": "RESOURCE_REQUEST_REJECTED",
+      "expectedState": "no mutation; proof not accepted for Resource Market",
+      "publicClaimAllowed": false
     },
     {
-      "id": "wallet-product-session-http-proof-v1",
-      "path": "packages/wallet-auth/testdata/product-session-http-proof-v1.json",
-      "consumers": ["app-gateway", "all-products", "29-integration"],
-      "requiredAssertions": ["method-bound", "path-bound", "body-digest-bound", "nonce-replay-rejected", "bundle-substitution-rejected"]
+      "id": "RM-AUTH-REPLAY-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "16-resource-market"],
+      "precondition": "A valid exact-method/path/body product-session proof has already been consumed once.",
+      "action": "Replay the same proof against the same request.",
+      "expectedHttpStatus": 401,
+      "expectedCode": "RESOURCE_REQUEST_REJECTED",
+      "expectedState": "no second mutation; replay set remains persisted",
+      "publicClaimAllowed": false
     },
     {
-      "id": "wallet-gateway-http-kernel-v1",
-      "path": "packages/wallet-auth/test/gateway-http.test.mjs",
-      "consumers": ["app-gateway", "29-integration", "13-monitor"],
-      "requiredAssertions": ["canonical-business-body", "proof-outside-body", "immutable-registry", "request-atomic-rollback", "state-digest-restart", "response-bounded", "internal-error-redacted", "approval-revoke-self-scoped", "device-revoke-self-scoped", "all-device-logout-wallet-only", "revocation-survives-restart"]
+      "id": "RM-SETTLEMENT-PREMATURE-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "16-resource-market"],
+      "precondition": "Order is accepted, capacity_reserved, service_started, metered_usage or service_completed but not settlement_pending.",
+      "action": "Settlement authority submits confirm_settlement.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_STATE_INVALID",
+      "expectedState": "order state unchanged; no receipt created; capacity not released",
+      "publicClaimAllowed": false
     },
     {
-      "id": "wallet-gateway-observability-v1",
-      "path": "apps/wallet/proof/gateway-observability-local-2026-07-27.json",
-      "executableTest": "packages/wallet-auth/test/gateway-node-host.test.mjs",
-      "consumers": ["app-gateway", "13-monitor", "29-integration"],
-      "requiredAssertions": ["health-readiness-version-separated", "exact-remote-build-identity-required", "request-trace-error-identifiers", "bounded-route-and-error-labels", "request-body-and-proof-redacted", "event-sink-failure-isolated", "local-runtime-does-not-imply-public-deployment"]
+      "id": "RM-SETTLEMENT-RECONCILE-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "16-resource-market", "26-data-fabric"],
+      "precondition": "Order is settlement_pending with signed metering totals.",
+      "action": "Settlement authority submits a receipt whose grossCost, providerNet or protocolFee differs from signed metering.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_RECONCILIATION",
+      "expectedState": "order remains settlement_pending; no receipt created; reserved capacity retained",
+      "publicClaimAllowed": false
     },
     {
-      "id": "wallet-central-lifecycle-v1",
-      "path": "packages/wallet-auth/testdata/central-lifecycle-v1.json",
-      "consumers": ["app-gateway", "26-data-fabric", "12-explorer", "13-monitor", "29-integration"],
-      "requiredAssertions": ["completion-atomic", "restart-safe", "session-revoke", "approval-revoke", "device-revoke", "all-device-logout"]
+      "id": "RM-SETTLEMENT-REPLAY-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "12-explorer", "16-resource-market", "26-data-fabric"],
+      "precondition": "A normalized transaction hash has already been consumed by an existing Resource Market receipt.",
+      "action": "Settlement authority submits the same transaction hash with different case or surrounding whitespace for another order.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_REPLAY",
+      "expectedEngineErrorContains": "already consumed",
+      "expectedState": "second order remains settlement_pending; no second receipt created; no double capacity release",
+      "publicClaimAllowed": false
     },
     {
-      "id": "wallet-strategy-mandate-v2",
-      "path": "packages/wallet-auth/testdata/strategy-mandate-v2.json",
-      "consumers": ["quant", "exchange", "dex", "app-gateway", "26-data-fabric", "12-explorer", "13-monitor", "15-trust-center", "29-integration"],
-      "digests": {
-        "mandate": "132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270",
-        "action": "ba22184ba59fb7195df56128c832f26b582e9da0600f04687f234d83b31a8e45",
-        "actionNonceKey": "1d01253d409b8e4ca16085cbd5aa7893e15e778e4659b218629235b0c8dda479"
-      },
-      "requiredAssertions": [
-        "exact-account-product-session-binding",
-        "independent-nonce-domain",
-        "typed-vault-pool-router-boundary",
-        "no-withdraw",
-        "no-owner-change",
-        "no-arbitrary-transfer",
-        "no-unlimited-approval",
-        "scope-widening-rejected",
-        "wrong-target-rejected",
-        "limit-exceeded-rejected",
-        "future-action-rejected",
-        "unknown-field-rejected",
-        "replay-rejected-after-restart",
-        "revoke-kill-emergency-exit-persisted"
-      ]
+      "id": "RM-METER-TAMPER-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "Provider worker key is active and a canonical meter payload was signed.",
+      "action": "Change quantity, interval, order, provider, source or signature before record_usage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_PROOF_REJECTED",
+      "expectedState": "no meter, billing event or order transition",
+      "publicClaimAllowed": false
     },
     {
-      "id": "wallet-native-transfer-v1",
-      "path": "packages/wallet-auth/testdata/mobile-native-transfer-v1.json",
-      "consumers": ["01-chain-core", "wallet", "12-explorer", "29-integration"],
-      "requiredAssertions": ["ynx1-address", "0x-compatibility", "exact-chain-id", "signature-tamper-rejected", "receipt-matches-source-commit"]
+      "id": "RM-METER-OVERLAP-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "At least one signed usage interval is already accepted for the order.",
+      "action": "Submit another interval that overlaps any accepted interval or begins before evidenced service start.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_METER_WINDOW_INVALID",
+      "expectedState": "no additional meter or billing event; accepted usage remains unchanged",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-METER-LIMIT-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "The order already contains one or more accepted signed usage segments.",
+      "action": "Submit a segment that makes cumulative usage exceed ordered units or breaks cumulative fee lineage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_METER_LIMIT",
+      "expectedState": "no additional meter; cumulative quantity and fee totals remain bounded",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-MATCH-SELF-DEAL-001",
+      "category": "matching",
+      "owners": ["16-resource-market", "29-integration"],
+      "precondition": "The authenticated buyer wallet is the wallet that owns the selected provider offer.",
+      "action": "Create a fixed-price quote or submit an auction bid for the provider's own capacity.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SELF_DEALING_REJECTED",
+      "expectedState": "no quote, bid, order, reservation, usage or settlement mutation",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-CAPACITY-OFFER-SCOPE-001",
+      "category": "capacity",
+      "owners": ["16-resource-market", "29-integration"],
+      "precondition": "One provider publishes two offers for the same resource and the first offer is fully reserved while the second retains capacity.",
+      "action": "Request or reserve additional units against the exhausted first offer.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_CAPACITY_UNAVAILABLE",
+      "expectedState": "the exhausted offer remains unavailable; sibling offer capacity is not borrowed; existing reservations remain unchanged",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-BILLING-OVERFLOW-001",
+      "category": "billing-integrity",
+      "owners": ["16-resource-market", "26-data-fabric", "29-integration"],
+      "precondition": "A requested quote, auction allocation, signed meter aggregation, settlement aggregation or dispute refund calculation would exceed the non-negative signed 64-bit amount range.",
+      "action": "Execute the affected market action with an authenticated product session and otherwise valid lineage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_AMOUNT_OUT_OF_RANGE",
+      "expectedState": "no quote, bid clearing, meter, receipt, refund, reservation release or dispute decision mutation",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-FAILURE-NO-FAKE-REFUND-001",
+      "category": "failure-dispute",
+      "owners": ["15-trust-center", "16-resource-market", "26-data-fabric"],
+      "precondition": "Provider reports failure for an active reserved order.",
+      "action": "Observe order, receipt and dispute state before an independently evidenced final decision and authoritative refund transaction.",
+      "expectedHttpStatus": 200,
+      "expectedCode": null,
+      "expectedState": "order becomes provider_failed; reservation releases; no receipt or refund is fabricated; dispute may be opened",
+      "publicClaimAllowed": true
     }
-  ],
-  "testCommands": [
-    {"cwd": "packages/wallet-auth", "command": "npm test", "expected": "94/94"},
-    {"cwd": "packages/wallet-auth", "command": "node --test test/gateway-node-host.test.mjs", "expected": "8/8"},
-    {"cwd": "packages/wallet-auth", "command": "npm run vector:strategy", "expected": "deterministic digests unchanged"},
-    {"cwd": "packages/wallet-auth", "command": "npm pack --dry-run", "expected": "pass"},
-    {"cwd": "sdk/browser", "command": "npm ci --ignore-scripts, then npm test", "expected": "7/7"},
-    {"cwd": "sdk/js", "command": "npm test", "expected": "5/5"},
-    {"cwd": ".", "command": "umask 0022; go test ./...", "expected": "pass"}
-  ],
-  "status": {
-    "implementedLocal": true,
-    "testedLocal": true,
-    "integratedCentral": false,
-    "executedSharedTestnet": false,
-    "publicEvidence": false
-  }
+  ]
 }

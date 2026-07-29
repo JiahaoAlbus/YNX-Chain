@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-resource-market-v1",
+  "status": "external-inputs-required-for-nonlocal-states",
+  "secretHandling": "Provide references and approvals through owner-approved secure channels. Never place private keys, seed phrases, PEM contents, validator keys or full provider credentials in chat or git.",
+  "requests": [
+    {
+      "id": "central-wallet-resource-rollout",
+      "kind": "deployment-approval",
+      "requiredFor": ["integratedCentral", "deployedStaging"],
+      "minimum": "Approved owner and target commit or pull request for the supplied Wallet registry, challenge/completion/revocation routes, Product Session proof introspection and authoritative Resource route map"
+    },
+    {
+      "id": "public-origins-and-dns",
+      "kind": "domain-dns",
+      "requiredFor": ["deployedStaging", "deployedPublic", "downloadHosted"],
+      "minimum": "Approved HTTPS staging and public origins, canonical /resource-market route, DNS owner and remote health/version endpoints"
+    },
+    {
+      "id": "testnet-providers-and-secure-settlement",
+      "kind": "provider-approval-and-secure-signer-path",
+      "requiredFor": ["real-workload-evidence", "publicSettlementReceiptVerified"],
+      "minimum": "At least two approved independent Testnet provider identities/endpoints, workload credentials by secret-manager reference, bounded settlement signer path and funded public test account approval; no secret material"
+    },
+    {
+      "id": "mobile-signing-and-stores",
+      "kind": "secure-signer-path",
+      "requiredFor": ["productionSigned", "storeReleased", "ios-install-evidence"],
+      "minimum": "Owner-controlled Android/iOS signing workflows, Apple build host or CI, store accounts and signing/recovery ceremony references"
+    },
+    {
+      "id": "policy-support-and-localization-review",
+      "kind": "legal-support-urls-and-review",
+      "requiredFor": ["deployedPublic", "linguistic-review"],
+      "minimum": "Approved jurisdiction, privacy/security/support/status HTTPS URLs and accountable professional reviewers for all 12 locale catalogs"
+    },
+    {
+      "id": "artifact-hosting",
+      "kind": "immutable-hosting-approval",
+      "requiredFor": ["downloadHosted"],
+      "minimum": "Approved immutable artifact host and publication owner for source-bound hashes, bytes, signing class and installation instructions"
+    }
+  ]
+}

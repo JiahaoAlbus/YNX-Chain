@@ -1,0 +1,31 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "YNX-Trust-Resource-0.3.0-unreleased-candidate",
+  "documentNamespace": "urn:ynx:spdx:trust-resource:0.3.0:c7e4445598a74e60aa0ed05b9580790527bf71be",
+  "creationInfo": {
+    "created": "2026-07-18T19:50:00Z",
+    "creators": ["Tool: YNX dependency inventory"]
+  },
+  "packages": [
+    {"name":"ynx-trust-center","SPDXID":"SPDXRef-Trust","versionInfo":"0.2.0-candidate","downloadLocation":"NOASSERTION","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION","primaryPackagePurpose":"APPLICATION"},
+    {"name":"ynx-resource-market","SPDXID":"SPDXRef-Resource","versionInfo":"0.2.0-candidate","downloadLocation":"NOASSERTION","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION","primaryPackagePurpose":"APPLICATION"},
+    {"name":"Go standard library","SPDXID":"SPDXRef-GoStdlib","versionInfo":"toolchain-managed","downloadLocation":"NOASSERTION","filesAnalyzed":false,"licenseConcluded":"BSD-3-Clause","licenseDeclared":"BSD-3-Clause","primaryPackagePurpose":"LIBRARY"},
+    {"name":"@playwright/test","SPDXID":"SPDXRef-PlaywrightTest","versionInfo":"1.61.1","downloadLocation":"https://www.npmjs.com/package/@playwright/test","filesAnalyzed":false,"licenseConcluded":"Apache-2.0","licenseDeclared":"Apache-2.0","primaryPackagePurpose":"LIBRARY","comment":"development/test only"},
+    {"name":"playwright","SPDXID":"SPDXRef-Playwright","versionInfo":"1.61.1","downloadLocation":"https://www.npmjs.com/package/playwright","filesAnalyzed":false,"licenseConcluded":"Apache-2.0","licenseDeclared":"Apache-2.0","primaryPackagePurpose":"LIBRARY","comment":"development/test only"},
+    {"name":"playwright-core","SPDXID":"SPDXRef-PlaywrightCore","versionInfo":"1.61.1","downloadLocation":"https://www.npmjs.com/package/playwright-core","filesAnalyzed":false,"licenseConcluded":"Apache-2.0","licenseDeclared":"Apache-2.0","primaryPackagePurpose":"LIBRARY","comment":"development/test only"},
+    {"name":"fsevents","SPDXID":"SPDXRef-FSEvents","versionInfo":"2.3.2","downloadLocation":"https://www.npmjs.com/package/fsevents","filesAnalyzed":false,"licenseConcluded":"MIT","licenseDeclared":"MIT","primaryPackagePurpose":"LIBRARY","comment":"optional development/test dependency"}
+  ],
+  "relationships": [
+    {"spdxElementId":"SPDXRef-DOCUMENT","relationshipType":"DESCRIBES","relatedSpdxElement":"SPDXRef-Trust"},
+    {"spdxElementId":"SPDXRef-DOCUMENT","relationshipType":"DESCRIBES","relatedSpdxElement":"SPDXRef-Resource"},
+    {"spdxElementId":"SPDXRef-Trust","relationshipType":"DEPENDS_ON","relatedSpdxElement":"SPDXRef-GoStdlib"},
+    {"spdxElementId":"SPDXRef-Resource","relationshipType":"DEPENDS_ON","relatedSpdxElement":"SPDXRef-GoStdlib"},
+    {"spdxElementId":"SPDXRef-Trust","relationshipType":"TEST_DEPENDENCY_OF","relatedSpdxElement":"SPDXRef-PlaywrightTest"},
+    {"spdxElementId":"SPDXRef-Resource","relationshipType":"TEST_DEPENDENCY_OF","relatedSpdxElement":"SPDXRef-PlaywrightTest"}
+  ],
+  "annotations": [
+    {"annotationDate":"2026-07-18T19:50:00Z","annotationType":"OTHER","annotator":"Tool: YNX dependency inventory","comment":"Product runtime packages include internal YNX packages and the Go standard library. The repository-wide go.mod contains shared dependencies for other YNX products and is outside this product-specific SBOM. npm lockfiles were inspected; listed non-root packages declare Apache-2.0 or MIT licenses. Regeneration against the final source commit is required."}
+  ]
+}
