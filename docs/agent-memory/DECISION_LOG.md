@@ -65,3 +65,15 @@
 - Decision: Require every exact-head workflow run to be terminal and successful; one successful workflow cannot make the whole exact head green.
 - Decision: Classify unproven test, CI, clean-tree or evidence states as `HOLD_FOR_RECOVERY`, even when historical evidence suggests high maturity.
 - Result: The first authoritative snapshot reports 0 Public-Testnet-ready, 1 Source-Release-ready and 35 Hold-for-Recovery products without inflating readiness.
+
+## 2026-07-29 — Accept Product 30 source centrally
+
+- Decision: Accept Product 30 only at synchronized owner SHA `4277317bb4999ac4edfbc321590b54d95e1839f9`, contained by Integration merge `3ee6477d82ecffea954387ce88135793bddb1271`.
+- Evidence: Owner coverage has zero open rows; exact-head CI is terminal and green; 179/179 security tests and the complete Integration protection preflight pass in the merged tree.
+- Decision: Store the decision and central test receipt separately, and make the generator invalidate acceptance if source SHA, merge ancestry, worktree cleanliness, CI or receipt drifts.
+- Boundary: `integratedCentral=true` does not set shared Testnet, staging, public, hosted artifact, production signing, store or Mainnet states.
+
+## 2026-07-29 — Separate source readiness from public readiness
+
+- Decision: Keep Product 30 classified `READY_FOR_SOURCE_RELEASE` after central acceptance because its explicit production/public blockers and absent shared-Testnet proof remain true.
+- Result: The authoritative snapshot reports 0 Public-Testnet-ready, 2 Source-Release-ready and 34 Hold-for-Recovery products.

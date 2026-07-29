@@ -31,13 +31,15 @@
           "evidence": {"type": "object"},
           "centralAcceptance": {
             "type": "object",
-            "required": ["status", "reason", "acceptedSourceCommit", "acceptedBy", "acceptedAt"],
+            "required": ["status", "reason", "acceptedSourceCommit", "acceptedBy", "acceptedAt", "decisionEvidence", "integrationCommit"],
             "properties": {
               "status": {"enum": ["notStarted", "inProgress", "implementedLocal", "testedLocal", "integratedCentral", "testnetVerified", "publicVerified", "externalBlocked", "notApplicable", "verifiedComplete"]},
               "reason": {"type": "string", "minLength": 1},
               "acceptedSourceCommit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
               "acceptedBy": {"const": "29-integration"},
-              "acceptedAt": {"type": ["string", "null"], "format": "date-time"}
+              "acceptedAt": {"type": ["string", "null"], "format": "date-time"},
+              "decisionEvidence": {"type": ["string", "null"]},
+              "integrationCommit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"}
             },
             "additionalProperties": false
           },

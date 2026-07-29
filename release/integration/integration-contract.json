@@ -3,8 +3,8 @@
   "owner": "29-integration",
   "product": "YNX Integration / Founder Control",
   "branch": "codex/final-integration",
-  "sourceCommit": "562888318863435382d839958130246973dc1206",
-  "currentPhase": "PROTECT",
+  "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+  "currentPhase": "INTEGRATE",
   "phaseOrder": ["RECOVER", "PROTECT", "FREEZE", "INTEGRATE", "TESTNET", "PUBLIC", "EXPAND"],
   "acceptanceAuthority": {
     "singleOwner": "29-integration",

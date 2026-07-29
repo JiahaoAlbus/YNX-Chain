@@ -1,8 +1,8 @@
 # Dependency Acceptance
 
 Authority: `29-integration`  
-Source baseline: `562888318863435382d839958130246973dc1206`  
-Current gate: `PROTECT`
+Source baseline: `3ee6477d82ecffea954387ce88135793bddb1271`
+Current gate: `INTEGRATE`
 
 This record defines the central dependency acceptance boundary. Product-owner branches remain candidate inputs until the exact source commit and its evidence are reviewed by the named authority owner and by Integration. A branch, CI run, artifact, public page or local smoke result cannot promote another product by implication.
 
@@ -18,7 +18,7 @@ This record defines the central dependency acceptance boundary. Product-owner br
 | Unique Quant Engine | 08 Quant Lab | one engine identity; Exchange/DEX/Paper adapters; independent risk engine; mandate enforcement; no-withdraw/private-key boundary | Pending branch scan and owner contract review |
 | Economics and parameter registry | 17 Tokenomics | fee authority; reserve/redemption; treasury and safety module; high-water-mark rules; no fee on unrealized PnL | Pending branch scan and owner contract review |
 | Governance and timelock | 31 Governance | proposal/vote/timelock/canary/rollback; emergency scope; audit and duplicate-execution rejection | Pending branch scan and owner contract review |
-| Security, release, backup, artifact policy | 30 Security/SRE | Threat Model; secret/SAST/DAST/dependency/license scans; SBOM/provenance; restore drill; incident and alert evidence | Candidate observed in `JiahaoAlbus/YNX` on synchronized branch `codex/final-security-platform`; central acceptance remains pending while its coverage has autonomous/open items |
+| Security, release, backup, artifact policy | 30 Security/SRE | Threat Model; secret/SAST/DAST/dependency/license scans; SBOM/provenance; restore drill; incident and alert evidence | Centrally source-accepted at `4277317bb4999ac4edfbc321590b54d95e1839f9` through Integration merge `3ee6477d82ecffea954387ce88135793bddb1271`; shared-Testnet and production/public gates remain separate |
 | Website public registry and SEO | 28 Website | accepted metadata consumption; canonical route; runtime/public status separation; immutable download; public probes | Pending branch scan and owner contract review |
 | Protocol freeze, merge order, shared Testnet, public proof | 29 Integration | 01–36 matrix; conflict resolution; dependency acceptance; cross-product vectors; exact accepted commits | In progress in this branch |
 
@@ -36,10 +36,11 @@ This record defines the central dependency acceptance boundary. Product-owner br
 
 Phase 0 authorities are reviewed first: 01, 17, 19, 21, 26, 30 and 31. Phase 1 depends on their accepted versions. Phase 2 and Phase 3 cannot pass central Testnet acceptance while a required Phase 0 authority is missing. Phase 4 public promotion remains blocked until product runtime state, Website state, artifact state and public proof are separately verified.
 
-## Current blocker
+## Current boundary
 
-The Security/SRE candidate is no longer missing: Integration resolves its separate
-repository, exact synchronized branch and clean worktree. It is not centrally
-accepted yet because its owner coverage still contains autonomous/open items.
-Security-dependent public and production promotions therefore remain fail-closed
-while the verified local candidate can now participate in contract review.
+Security/SRE source acceptance is complete and machine-bound to its exact owner
+SHA, Integration merge ancestry, exact-head CI and central test receipt. It does
+not accept the remaining Phase 0 authorities and does not prove shared Testnet,
+provider-bound monitoring, staging, public runtime, immutable hosting,
+production signing, store release or Mainnet. Those promotions remain
+fail-closed.

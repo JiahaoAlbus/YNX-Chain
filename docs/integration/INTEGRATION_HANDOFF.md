@@ -2,9 +2,9 @@
 
 Owner: `29-integration`  
 Branch: `codex/final-integration`  
-Protected source baseline: `d05ddf0a9d0d5a7b05b6c792eec547bfde06b215`  
+Protected source baseline: `3ee6477d82ecffea954387ce88135793bddb1271`
 Lifecycle state: `ACTIVE`  
-Current gate: `PROTECT`
+Current gate: `INTEGRATE`
 
 ## Purpose
 
@@ -18,15 +18,16 @@ This branch is the only central owner for protocol freeze, dependency acceptance
 - The branch was a direct ancestor of `origin/main` and had no unique commits. It was fast-forwarded by 20 commits to `562888318863435382d839958130246973dc1206`, then pushed after one bounded network retry.
 - The inherited `.ai-bridge` plan belonged to 18 Docs/Compliance and is being replaced with Integration-specific state.
 - The old product matrix covered 23 products and contained stale 2026-07-16 branch SHAs. It remains historical evidence and is not the current central authority.
-- The original central-repository scan missed products in separate repositories. The registry and scanner now resolve Website from `JiahaoAlbus/YNX-Chain-website` and Security/SRE from `JiahaoAlbus/YNX`, including their exact synchronized branches and clean worktrees without recording absolute paths in the matrix.
+- The original central-repository scan missed products in separate repositories. The registry and scanner now resolve Website from `JiahaoAlbus/YNX-Chain-website` and Security/SRE from authoritative `JiahaoAlbus/YNX-Chain`, including exact synchronized branches and clean worktrees without recording absolute paths in the matrix. `JiahaoAlbus/YNX` remains legacy recovery material only.
 - The first full Go run exposed umask-sensitive unsafe-permission fixtures and missing generated contract artifacts. The fixtures now explicitly create the unsafe mode, while Runtime permission checks remain unchanged; contract-dependent tests are preceded by the pinned Hardhat build.
 - Main now locks Hardhat 3.11.1, `@nomicfoundation/hardhat-ethers` 4.0.15 and `adm-zip` 0.6.0. Full and production-only npm audits are clean, so the former time-bounded High-advisory exception is closed. Security/SRE acceptance remains an independent production-release gate.
 - The 2026-07-29 recovery verified the configured MCP, exact Worktree, Branch, Chain repository Remote, Local/Remote SHA equality, tags, reflog, stash, LFS and registered 01–36 Worktrees from live Git state.
 - Commit `d05ddf0a9d0d5a7b05b6c792eec547bfde06b215` protects the current central acceptance and GitHub evidence snapshot. The exact clean commit then passed `make integration-protect-preflight`.
-- GitHub Actions currently has no run for the Integration branch because repository CI is configured for `main` pushes and pull requests targeting `main`; CI remains unclaimed until a real pull request run exists.
+- Draft PR `#17` now supplies exact-head Integration CI; the last protected head `7777942bb17a1e67483f5909287e79592ca0f1cf` passed every visible check.
 - The coverage generator now consumes the generated acceptance matrix for every product, including the separate Security/SRE repository, instead of retaining the historical false claim that product 30 was unobserved.
 - Coverage refresh now fails closed unless the matrix contains each product ID `01`–`36` exactly once; its negative self-test is part of `integration-protect-preflight`.
 - npm policy mutation tests now run against deterministic offline audit fixtures. Real full and production-only Registry audits remain separate and use only bounded retry for recognized transient network failures.
+- Product 30 final owner source `4277317bb4999ac4edfbc321590b54d95e1839f9` is contained by merge `3ee6477d82ecffea954387ce88135793bddb1271` and is centrally accepted through a fail-closed decision bound to clean synchronized refs, exact-head CI and 179/179 central-tree security tests.
 
 ## New central artifacts
 
@@ -36,6 +37,9 @@ This branch is the only central owner for protocol freeze, dependency acceptance
 - `scripts/verify/integration-acceptance-check.mjs`: fail-closed central matrix and contract validator.
 - `release/integration/acceptance-matrix.json`: generated exact-ref acceptance inventory.
 - `release/integration/github-evidence.json`: generated Actions, Release and Artifact inventory when GitHub is reachable.
+- `release/integration/central-acceptance-decisions.json`: explicit accepted owner SHAs and Integration merge bindings.
+- `release/integration/evidence/product-30-central-acceptance-3ee6477d.json`: Product 30 exact CI, test, artifact and truth-state receipt.
+- `release/integration/PRODUCT_RELEASE_MATRIX.json`: authoritative 36-product state and readiness classification.
 - `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`: mandatory happy and fail-closed vectors.
 - `docs/integration/DEPENDENCY_ACCEPTANCE.md`: unique authority and dependency gate.
 - `.ai-bridge/full-goal-coverage.json`: complete Integration coverage matrix.
@@ -56,11 +60,11 @@ Product-owner state is never promoted automatically. Integration records an acce
 
 ## Immediate execution order
 
-1. Generate the 01–36 local/remote/worktree/evidence matrix.
-2. Validate the registry, contract, coverage and cross-product vectors.
-3. Protect the scanner and first evidence snapshot with Commit and Push.
-4. Review Phase 0 authority bundles in dependency order.
-5. Keep dependent products fail-closed where Security/SRE or another authority is absent, while continuing autonomous contract and negative-vector work.
+1. Protect Product 30 central acceptance with Commit, Push and exact-head PR `#17` CI.
+2. Audit the active release-train PRs and freeze the unique Phase 0 contract versions and merge order.
+3. Review the remaining Phase 0 authority bundles one product Worktree at a time.
+4. Execute the shared-Testnet cross-product, failure, recovery and attack vectors only after their dependencies are accepted.
+5. Keep every staging, public, hosted, signed, store and Mainnet state fail-closed until direct evidence exists.
 
 ## Prohibited promotions
 

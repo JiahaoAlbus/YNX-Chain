@@ -4,10 +4,10 @@
   "owner": "29-integration",
   "product": "YNX Integration / Founder Control",
   "slug": "integration",
-  "release": "0.1.1-controller-candidate",
+  "release": "0.1.2-controller-candidate",
   "releaseClass": "controller-candidate",
   "network": "YNX Testnet",
-  "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
+  "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -28,7 +28,8 @@
     ],
     "testedLocal": [
       "release/integration/evidence/protect-preflight-d05ddf0a.json",
-      "release/integration/evidence/protect-preflight-20191a3e.json"
+      "release/integration/evidence/protect-preflight-20191a3e.json",
+      "release/integration/evidence/product-30-central-acceptance-3ee6477d.json"
     ],
     "installedLocal": [],
     "integratedCentral": [],
@@ -38,15 +39,15 @@
     "productionSigned": [],
     "storeReleased": []
   },
-  "currentPhase": "PROTECT",
+  "currentPhase": "INTEGRATE",
   "lifecycleState": "ACTIVE",
   "websitePublished": false,
   "runtimeDeployedPublic": false,
   "mainnetAccepted": false,
   "knownBlockers": [
-    "The Security/SRE candidate is present in its separate repository, but its remaining autonomous/open coverage items still block central and production acceptance.",
-    "The former Hardhat development-tooling advisory is remediated in the locked dependency graph; Security/SRE acceptance remains independently required for production release.",
-    "Phase 0 owner contracts and central negative vectors have not yet been accepted.",
+    "Security/SRE source is centrally accepted, but shared-Testnet security/monitoring/recovery drills and true production authorities remain separately unverified.",
+    "The former Hardhat development-tooling advisory is remediated in the locked dependency graph; default-branch alert closure remains pending the central merge to main.",
+    "The remaining Phase 0 owner contracts and central negative vectors have not yet been accepted.",
     "No shared Public Testnet or independent public proof has been accepted by Integration."
   ]
 }

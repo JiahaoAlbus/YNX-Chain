@@ -2,8 +2,8 @@
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
   "authority": "release/integration/product-registry.json",
-  "generatedAt": "2026-07-29T11:59:21.099Z",
-  "controllerSourceCommit": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
+  "generatedAt": "2026-07-29T13:53:04.377Z",
+  "controllerSourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
   "readinessClasses": [
     "READY_FOR_PUBLIC_TESTNET",
     "READY_FOR_SOURCE_RELEASE",
@@ -31,12 +31,12 @@
   "summary": {
     "totalProducts": 36,
     "readyForPublicTestnet": 0,
-    "readyForSourceRelease": 1,
-    "holdForRecovery": 35,
-    "synced": 36,
-    "clean": 11,
+    "readyForSourceRelease": 2,
+    "holdForRecovery": 34,
+    "synced": 35,
+    "clean": 10,
     "exactHeadCiSuccess": 14,
-    "centrallyAccepted": 0
+    "centrallyAccepted": 1
   },
   "repositoryQueries": {
     "JiahaoAlbus/YNX-Chain": {
@@ -212,14 +212,16 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "full-goal coverage has 4 autonomous or unresolved items",
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: full-goal coverage has 4 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "02",
@@ -364,13 +366,15 @@
         "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "03",
@@ -515,13 +519,15 @@
         "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "04",
@@ -697,7 +703,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -705,7 +713,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "05",
@@ -857,7 +865,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -870,7 +880,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "06",
@@ -1015,7 +1025,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1024,7 +1036,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "07",
@@ -1185,7 +1197,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1195,7 +1209,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "08",
@@ -1340,7 +1354,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1351,7 +1367,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "09",
@@ -1496,7 +1512,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1508,7 +1526,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "10",
@@ -1653,7 +1671,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1665,7 +1685,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "11",
@@ -1826,7 +1846,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1837,7 +1859,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "12",
@@ -1982,7 +2004,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1991,7 +2015,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "13",
@@ -2152,13 +2176,15 @@
         "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: testedLocal is not directly proven by release metadata and coverage.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "14",
@@ -2303,7 +2329,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -2312,7 +2340,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "15",
@@ -2473,7 +2501,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -2481,7 +2511,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "16",
@@ -2675,7 +2705,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -2683,7 +2715,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "17",
@@ -2835,14 +2867,16 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "18",
@@ -3006,7 +3040,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -3017,7 +3053,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "19",
@@ -3169,7 +3205,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -3178,7 +3216,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "20",
@@ -3323,7 +3361,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -3334,7 +3374,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "21",
@@ -3495,13 +3535,15 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "full-goal coverage has 8 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: full-goal coverage has 8 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "22",
@@ -3646,7 +3688,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -3656,7 +3700,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "23",
@@ -3801,7 +3845,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -3812,7 +3858,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "24",
@@ -3981,11 +4027,13 @@
         "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [],
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "25",
@@ -4149,7 +4197,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "fullGoalCoverage lacks an exact sourceCommit",
@@ -4158,7 +4208,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: fullGoalCoverage lacks an exact sourceCommit.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "26",
@@ -4310,7 +4360,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -4319,7 +4371,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "27",
@@ -4464,7 +4516,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -4475,7 +4529,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "28",
@@ -4632,13 +4686,15 @@
         "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "29",
@@ -4652,11 +4708,11 @@
       "expectedRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "actualRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "branch": "codex/final-integration",
-      "localSha": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
-      "remoteSha": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
+      "localSha": "3ee6477d82ecffea954387ce88135793bddb1271",
+      "remoteSha": "7777942bb17a1e67483f5909287e79592ca0f1cf",
       "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
-      "dirty": false,
-      "ahead": 0,
+      "dirty": true,
+      "ahead": 2,
       "behind": 0,
       "tests": {
         "coverage": {
@@ -4683,32 +4739,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
+            "sourceCommit": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 3
+            "distance": 4
           },
           "productRelease": {
             "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 41
+            "distance": 45
           },
           "publicMetadata": {
             "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 41
+            "distance": 45
           },
           "integrationContract": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 100
+            "distance": 104
           }
         },
         "requiredEvidencePaths": {
@@ -4725,66 +4781,17 @@
       },
       "ci": {
         "available": true,
-        "exactHeadSha": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
+        "exactHeadSha": "3ee6477d82ecffea954387ce88135793bddb1271",
         "exactHeadComplete": false,
         "exactHeadSuccess": false,
-        "runs": [
-          {
-            "id": 30449511706,
-            "workflow": "Trust Resource Native Preview",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511706"
-          },
-          {
-            "id": 30449511693,
-            "workflow": "governance",
-            "conclusion": "",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511693"
-          },
-          {
-            "id": 30449511681,
-            "workflow": "exchange",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511681"
-          },
-          {
-            "id": 30449511651,
-            "workflow": "Security",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511651"
-          },
-          {
-            "id": 30449511558,
-            "workflow": "docs-compliance",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511558"
-          },
-          {
-            "id": 30449511556,
-            "workflow": "ci",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511556"
-          },
-          {
-            "id": 30449511536,
-            "workflow": "Resource Market Candidate Gates",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511536"
-          },
-          {
-            "id": 30449511528,
-            "workflow": "Security Platform Gates",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511528"
-          }
-        ],
+        "runs": [],
         "error": null
       },
       "pullRequest": {
         "baseRefName": "main",
         "baseRefOid": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
         "headRefName": "codex/final-integration",
-        "headRefOid": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
+        "headRefOid": "7777942bb17a1e67483f5909287e79592ca0f1cf",
         "isDraft": true,
         "mergeable": "MERGEABLE",
         "number": 17,
@@ -4844,20 +4851,26 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
+        "local and remote final branch SHAs differ",
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 57 autonomous or unresolved items",
+        "Local SHA does not equal Remote SHA",
+        "Worktree is not clean",
         "exact-head successful CI is not proven"
       ],
-      "nextAction": "Resolve: full-goal coverage has 57 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "nextAction": "Resolve: local and remote final branch SHAs differ.",
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "30",
       "productName": "YNX Security / SRE",
-      "classification": "HOLD_FOR_RECOVERY",
-      "classificationReason": "At least one repository, synchronization, clean-tree, test, CI or evidence gate remains unproven.",
+      "classification": "READY_FOR_SOURCE_RELEASE",
+      "classificationReason": "Source and exact-head CI are protected; central Testnet or public-runtime gates remain separate.",
       "expectedRepository": "JiahaoAlbus/YNX-Chain",
       "actualRepository": "JiahaoAlbus/YNX-Chain",
       "expectedWorktree": "YNX Final Worktrees/30-security-platform",
@@ -4865,8 +4878,8 @@
       "expectedRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "actualRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "branch": "codex/final-security-platform",
-      "localSha": "9c9931aa5e610a1456ce2950006ff0b0c39c50d9",
-      "remoteSha": "9c9931aa5e610a1456ce2950006ff0b0c39c50d9",
+      "localSha": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+      "remoteSha": "4277317bb4999ac4edfbc321590b54d95e1839f9",
       "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
       "dirty": false,
       "ahead": 0,
@@ -4874,17 +4887,17 @@
       "tests": {
         "coverage": {
           "total": 29,
-          "open": 2,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 2,
+            "inProgress": 0,
             "implementedLocal": 4,
-            "testedLocal": 18,
+            "testedLocal": 19,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 1,
+            "externalBlocked": 2,
             "notApplicable": 1,
             "verifiedComplete": 3
           },
@@ -4900,28 +4913,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 6
+            "distance": 7
           },
           "productRelease": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 6
+            "distance": 7
           },
           "publicMetadata": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 6
+            "distance": 7
           },
           "integrationContract": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 6
+            "distance": 7
           }
         },
         "requiredEvidencePaths": {
@@ -4938,63 +4951,63 @@
       },
       "ci": {
         "available": true,
-        "exactHeadSha": "9c9931aa5e610a1456ce2950006ff0b0c39c50d9",
+        "exactHeadSha": "4277317bb4999ac4edfbc321590b54d95e1839f9",
         "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
-            "id": 30446178803,
+            "id": 30452588226,
             "workflow": "ci",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30446178803"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588226"
           },
           {
-            "id": 30446178576,
-            "workflow": "docs-compliance",
+            "id": 30452588095,
+            "workflow": "Security",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30446178576"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588095"
           },
           {
-            "id": 30446178553,
-            "workflow": "Trust Resource Native Preview",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30446178553"
-          },
-          {
-            "id": 30446178516,
+            "id": 30452588091,
             "workflow": "governance",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30446178516"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588091"
           },
           {
-            "id": 30446178509,
+            "id": 30452588075,
+            "workflow": "Trust Resource Native Preview",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588075"
+          },
+          {
+            "id": 30452588052,
+            "workflow": "docs-compliance",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588052"
+          },
+          {
+            "id": 30452588017,
+            "workflow": "Security Platform Gates",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588017"
+          },
+          {
+            "id": 30452588010,
             "workflow": "exchange",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30446178509"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588010"
           },
           {
-            "id": 30446178507,
+            "id": 30452584329,
             "workflow": "Security",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30446178507"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452584329"
           },
           {
-            "id": 30446178485,
+            "id": 30452584170,
             "workflow": "Security Platform Gates",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30446178485"
-          },
-          {
-            "id": 30446175126,
-            "workflow": "Security",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30446175126"
-          },
-          {
-            "id": 30446174383,
-            "workflow": "Security Platform Gates",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30446174383"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452584170"
           }
         ],
         "error": null
@@ -5003,7 +5016,7 @@
         "baseRefName": "main",
         "baseRefOid": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
         "headRefName": "codex/final-security-platform",
-        "headRefOid": "9c9931aa5e610a1456ce2950006ff0b0c39c50d9",
+        "headRefOid": "4277317bb4999ac4edfbc321590b54d95e1839f9",
         "isDraft": true,
         "mergeable": "MERGEABLE",
         "number": 16,
@@ -5141,7 +5154,7 @@
         "installedLocal": true,
         "migrationVerified": true,
         "restoreVerified": true,
-        "integratedCentral": false,
+        "integratedCentral": true,
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
@@ -5153,17 +5166,17 @@
         "externallyBlocked": true
       },
       "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
-        "acceptedSourceCommit": null,
+        "status": "integratedCentral",
+        "reason": "The synchronized owner source, clean worktree, required evidence, exact-head CI, central merge ancestry and central test receipt all passed.",
+        "acceptedSourceCommit": "4277317bb4999ac4edfbc321590b54d95e1839f9",
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": "2026-07-29T13:20:22Z",
+        "decisionEvidence": "release/integration/evidence/product-30-central-acceptance-3ee6477d.json",
+        "integrationCommit": "3ee6477d82ecffea954387ce88135793bddb1271"
       },
-      "blockers": [
-        "full-goal coverage has 2 autonomous or unresolved items"
-      ],
-      "nextAction": "Resolve: full-goal coverage has 2 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "blockers": [],
+      "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "31",
@@ -5345,14 +5358,16 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "32",
@@ -5521,7 +5536,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -5530,7 +5547,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "33",
@@ -5675,7 +5692,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "public metadata is missing from the branch tree",
@@ -5684,7 +5703,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: public metadata is missing from the branch tree.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "34",
@@ -5866,7 +5885,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -5874,7 +5895,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "35",
@@ -6019,7 +6040,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -6029,7 +6052,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     },
     {
       "productNumber": "36",
@@ -6174,7 +6197,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -6185,7 +6210,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:59:21.099Z"
+      "updatedAt": "2026-07-29T13:53:04.377Z"
     }
   ]
 }

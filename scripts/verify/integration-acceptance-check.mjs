@@ -19,7 +19,8 @@ const paths = {
   handoff: "docs/integration/INTEGRATION_HANDOFF.md",
   productRelease: "release/integration/product-release.json",
   publicMetadata: "release/integration/public-product-metadata.json",
-  githubEvidence: "release/integration/github-evidence.json"
+  githubEvidence: "release/integration/github-evidence.json",
+  decisions: "release/integration/central-acceptance-decisions.json"
 };
 const allowedStatuses = [
   "notStarted",
@@ -258,6 +259,8 @@ function validateMatrix(matrix, productMap, collector) {
     collector.expect(typeof product.nextAction === "string" && product.nextAction.length > 0, `matrix product ${product.id} lacks nextAction`);
     collector.expect(product.centralAcceptance?.acceptedBy === "29-integration", `matrix product ${product.id} acceptedBy is invalid`);
     collector.expect(allowedStatuses.includes(product.centralAcceptance?.status), `matrix product ${product.id} has invalid central status`);
+    collector.expect(Object.hasOwn(product.centralAcceptance ?? {}, "decisionEvidence"), `matrix product ${product.id} lacks decisionEvidence`);
+    collector.expect(Object.hasOwn(product.centralAcceptance ?? {}, "integrationCommit"), `matrix product ${product.id} lacks integrationCommit`);
     collector.expect(typeof product.refs?.stableDuringScan === "boolean", `matrix product ${product.id} lacks stableDuringScan`);
     collector.expect(!Object.hasOwn(product.worktree ?? {}, "path"), `matrix product ${product.id} leaks an absolute worktree path`);
     const coverageCounts = product.evidence?.coverage?.counts ?? {};
@@ -274,6 +277,10 @@ function validateMatrix(matrix, productMap, collector) {
       collector.expect(product.blockers.length === 0, `matrix product ${product.id} was accepted with blockers`);
       collector.expect(Object.values(product.evidence?.recordMatches ?? {}).every(Boolean), `matrix product ${product.id} was accepted with foreign evidence`);
       collector.expect(Object.values(product.evidence?.sourceBindings ?? {}).every((binding) => binding?.reachable === true), `matrix product ${product.id} was accepted with unreachable evidence`);
+      collector.expect(validSha(product.centralAcceptance?.integrationCommit), `matrix product ${product.id} accepted without an integration commit`);
+      collector.expect(reachableFromHead(product.centralAcceptance?.integrationCommit), `matrix product ${product.id} integration commit is not reachable`);
+      collector.expect(command("git", ["merge-base", "--is-ancestor", acceptedCommit, product.centralAcceptance?.integrationCommit], true) !== null, `matrix product ${product.id} source is not an ancestor of its integration commit`);
+      collector.expect(typeof product.centralAcceptance?.decisionEvidence === "string" && exists(product.centralAcceptance.decisionEvidence), `matrix product ${product.id} acceptance receipt is missing`);
     }
     if (acceptedCentralStatuses.has(product.centralAcceptance?.status)) collector.expect(acceptedCommit !== null, `matrix product ${product.id} reached ${product.centralAcceptance.status} without an accepted source commit`);
     if (product.centralAcceptance?.status === "verifiedComplete") collector.expect(product.blockers.length === 0, `matrix product ${product.id} is verifiedComplete with blockers`);
@@ -297,6 +304,42 @@ function validateMatrix(matrix, productMap, collector) {
     collector.expect(matrix?.repository?.clean === true, "release gate requires a clean Integration worktree observation");
     collector.expect(matrix?.repository?.ahead === 0 && matrix?.repository?.behind === 0, "release gate requires Local SHA equal to Remote SHA");
     collector.expect(products.every((product) => ["verifiedComplete", "externalBlocked", "notApplicable"].includes(product.centralAcceptance?.status)), "release gate requires every product row to be terminal");
+  }
+}
+
+function validateDecisions(decisions, matrix, productMap, collector) {
+  collector.expect(decisions?.schemaVersion === "1.0.0", "central acceptance decisions schemaVersion must be 1.0.0");
+  collector.expect(decisions?.owner === "29-integration", "central acceptance decisions owner must be 29-integration");
+  collector.expect(Array.isArray(decisions?.decisions), "central acceptance decisions must be an array");
+  const rows = Array.isArray(decisions?.decisions) ? decisions.decisions : [];
+  const seen = new Set();
+  const matrixById = new Map((matrix?.products ?? []).map((product) => [product.id, product]));
+  for (const decision of rows) {
+    const expected = productMap.get(decision?.productId);
+    const observed = matrixById.get(decision?.productId);
+    collector.expect(Boolean(expected), `decision references unknown product ${decision?.productId}`);
+    collector.expect(!seen.has(decision?.productId), `duplicate central decision for product ${decision?.productId}`);
+    seen.add(decision?.productId);
+    collector.expect(decision?.status === "integratedCentral", `decision ${decision?.productId} status is invalid`);
+    collector.expect(decision?.repository === (expected?.repository ?? "JiahaoAlbus/YNX-Chain"), `decision ${decision?.productId} repository mismatch`);
+    collector.expect(decision?.branch === expected?.branch, `decision ${decision?.productId} branch mismatch`);
+    collector.expect(validSha(decision?.acceptedSourceCommit), `decision ${decision?.productId} source commit is invalid`);
+    collector.expect(validSha(decision?.integrationCommit), `decision ${decision?.productId} integration commit is invalid`);
+    collector.expect(validDateTime(decision?.acceptedAt), `decision ${decision?.productId} acceptedAt is invalid`);
+    collector.expect(typeof decision?.receipt === "string" && exists(decision.receipt), `decision ${decision?.productId} receipt is missing`);
+    collector.expect(observed?.centralAcceptance?.status === "integratedCentral", `decision ${decision?.productId} did not produce integratedCentral`);
+    collector.expect(observed?.centralAcceptance?.acceptedSourceCommit === decision?.acceptedSourceCommit, `decision ${decision?.productId} source differs from matrix`);
+    collector.expect(observed?.centralAcceptance?.integrationCommit === decision?.integrationCommit, `decision ${decision?.productId} integration commit differs from matrix`);
+    collector.expect(observed?.centralAcceptance?.decisionEvidence === decision?.receipt, `decision ${decision?.productId} receipt differs from matrix`);
+    if (typeof decision?.receipt === "string" && exists(decision.receipt)) {
+      const receipt = readJson(decision.receipt);
+      collector.expect(receipt?.status === "passed", `decision ${decision?.productId} receipt did not pass`);
+      collector.expect(receipt?.productId === decision?.productId, `decision ${decision?.productId} receipt product mismatch`);
+      collector.expect(receipt?.acceptedSourceCommit === decision?.acceptedSourceCommit, `decision ${decision?.productId} receipt source mismatch`);
+      collector.expect(receipt?.integrationCommit === decision?.integrationCommit, `decision ${decision?.productId} receipt integration mismatch`);
+      collector.expect(receipt?.exactHeadCi?.verified === true && receipt?.exactHeadCi?.sourceCommit === decision?.acceptedSourceCommit, `decision ${decision?.productId} receipt CI mismatch`);
+      collector.expect(Array.isArray(receipt?.tests) && receipt.tests.length > 0 && receipt.tests.every((test) => test?.status === "passed"), `decision ${decision?.productId} receipt tests are incomplete`);
+    }
   }
 }
 
@@ -363,6 +406,7 @@ function validateBundle(overrides = {}) {
   const coverage = overrides.coverage ?? readJson(paths.coverage);
   const vectors = overrides.vectors ?? readJson(paths.vectors);
   const matrix = overrides.matrix ?? readJson(paths.matrix);
+  const decisions = overrides.decisions ?? readJson(paths.decisions);
   const productRelease = overrides.productRelease ?? readJson(paths.productRelease);
   const publicMetadata = overrides.publicMetadata ?? readJson(paths.publicMetadata);
   const productMap = validateRegistry(registry, collector);
@@ -370,6 +414,7 @@ function validateBundle(overrides = {}) {
   validateCoverage(coverage, productMap, collector);
   validateVectors(vectors, productMap, collector);
   validateMatrix(matrix, productMap, collector);
+  validateDecisions(decisions, matrix, productMap, collector);
   validateProductRelease(productRelease, collector);
   validatePublicMetadata(publicMetadata, collector);
   collector.expect(exists(paths.dependencyAcceptance), "Dependency Acceptance document is missing");
@@ -397,11 +442,18 @@ function runSelfTest() {
   falseAcceptance.products[0].centralAcceptance.acceptedSourceCommit = null;
   const acceptanceFailures = validateBundle({ matrix: falseAcceptance });
   if (!acceptanceFailures.some((failure) => failure.includes("without an accepted source commit"))) return ["self-test did not reject an unbound central acceptance"];
+  const decisions = readJson(paths.decisions);
+  const staleDecision = clone(decisions);
+  staleDecision.decisions[0].acceptedSourceCommit = "0000000000000000000000000000000000000000";
+  const staleDecisionFailures = validateBundle({ decisions: staleDecision });
+  if (!staleDecisionFailures.some((failure) => failure.includes("source differs from matrix") || failure.includes("receipt source mismatch"))) {
+    return ["self-test did not reject a stale central acceptance decision"];
+  }
   return [];
 }
 
 try {
-  const requiredFiles = [paths.registry, paths.matrix, paths.coverage, paths.contract, paths.vectors, paths.dependencyAcceptance, paths.handoff, paths.productRelease, paths.publicMetadata];
+  const requiredFiles = [paths.registry, paths.matrix, paths.coverage, paths.contract, paths.vectors, paths.dependencyAcceptance, paths.handoff, paths.productRelease, paths.publicMetadata, paths.decisions];
   const missing = requiredFiles.filter((relativePath) => !exists(relativePath));
   if (missing.length > 0) {
     console.error(`integration acceptance check failed: missing ${missing.join(", ")}`);

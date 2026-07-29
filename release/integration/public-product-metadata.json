@@ -4,7 +4,7 @@
   "owner": "29-integration",
   "product": "YNX Integration / Founder Control",
   "slug": "integration",
-  "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
+  "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
   "siteUrl": "https://ynxweb4.com",
   "canonicalUrl": "https://ynxweb4.com/integration",
   "canonicalRoute": "/integration",
@@ -14,7 +14,7 @@
   "summary": "The Integration controller validates exact product commits and evidence. It does not replace product owners or treat candidate, preview, simulator, unsigned or test-signed outputs as production releases.",
   "status": {
     "lifecycle": "ACTIVE",
-    "phase": "PROTECT",
+    "phase": "INTEGRATE",
     "websitePublished": false,
     "runtimeDeployedPublic": false,
     "downloadHosted": false,
@@ -30,7 +30,7 @@
     "Capital-safety and user-exit acceptance controls"
   ],
   "risks": [
-    "Central acceptance remains incomplete while Phase 0 authority bundles or Security/SRE evidence are unavailable.",
+    "Security/SRE source is centrally accepted; remaining Phase 0 authorities and shared-Testnet proof are still incomplete.",
     "A Website page is not evidence that a product runtime is publicly deployed.",
     "Testnet acceptance does not authorize Mainnet, production signing or store release."
   ],

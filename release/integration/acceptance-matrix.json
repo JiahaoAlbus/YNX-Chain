@@ -2,31 +2,31 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-29T11:59:21.099Z",
-  "controllerSourceCommit": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
+  "generatedAt": "2026-07-29T13:53:04.377Z",
+  "controllerSourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
+    "localHead": "3ee6477d82ecffea954387ce88135793bddb1271",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
-    "ahead": 0,
+    "remoteHead": "7777942bb17a1e67483f5909287e79592ca0f1cf",
+    "ahead": 2,
     "behind": 0,
-    "clean": true
+    "clean": false
   },
   "summary": {
     "totalProducts": 36,
     "localBranches": 36,
     "remoteBranches": 36,
     "registeredWorktrees": 36,
-    "cleanWorktrees": 11,
-    "dirtyWorktrees": 25,
-    "syncedBranches": 36,
+    "cleanWorktrees": 10,
+    "dirtyWorktrees": 26,
+    "syncedBranches": 35,
     "upstreamConfigured": 36,
     "implementedLocalCandidates": 5,
-    "inProgress": 31,
+    "inProgress": 30,
     "notStarted": 0,
-    "centrallyAccepted": 0
+    "centrallyAccepted": 1
   },
   "products": [
     {
@@ -147,7 +147,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "full-goal coverage has 4 autonomous or unresolved items"
@@ -276,7 +278,9 @@
         "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [],
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion."
@@ -403,7 +407,9 @@
         "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [],
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion."
@@ -532,7 +538,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes"
@@ -662,7 +670,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -797,7 +807,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -929,7 +941,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1065,7 +1079,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1198,7 +1214,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1333,7 +1351,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1467,7 +1487,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1600,7 +1622,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -1731,7 +1755,9 @@
         "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [],
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion."
@@ -1859,7 +1885,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes"
@@ -1991,7 +2019,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -2123,7 +2153,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes"
@@ -2255,7 +2287,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes"
@@ -2390,7 +2424,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -2523,7 +2559,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes"
@@ -2654,7 +2692,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -2789,7 +2829,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "full-goal coverage has 8 autonomous or unresolved items"
@@ -2921,7 +2963,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -3054,7 +3098,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -3190,7 +3236,9 @@
         "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [],
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion."
@@ -3318,7 +3366,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "fullGoalCoverage lacks an exact sourceCommit",
@@ -3448,7 +3498,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -3582,7 +3634,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -3713,7 +3767,9 @@
         "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [],
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion."
@@ -3744,22 +3800,22 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
-        "remoteSha": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
-        "ahead": 0,
+        "localSha": "3ee6477d82ecffea954387ce88135793bddb1271",
+        "remoteSha": "7777942bb17a1e67483f5909287e79592ca0f1cf",
+        "ahead": 2,
         "behind": 0,
         "upstreamConfigured": true,
         "upstreamRef": "origin/codex/final-integration",
         "repositoryMatches": true,
-        "synced": true,
+        "synced": false,
         "stableDuringScan": true
       },
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
-        "clean": true,
-        "changedEntries": 0,
+        "observedHead": "3ee6477d82ecffea954387ce88135793bddb1271",
+        "clean": false,
+        "changedEntries": 21,
         "statusError": null
       },
       "evidence": {
@@ -3804,32 +3860,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
+            "sourceCommit": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 3
+            "distance": 4
           },
           "productRelease": {
             "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 41
+            "distance": 45
           },
           "publicMetadata": {
             "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 41
+            "distance": 45
           },
           "integrationContract": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 100
+            "distance": 104
           }
         },
         "claimedReleaseStates": {
@@ -3851,12 +3907,16 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
+        "local and remote final branch SHAs differ",
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 57 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 57 autonomous or unresolved items."
+      "nextAction": "Resolve: local and remote final branch SHAs differ."
     },
     {
       "id": "30",
@@ -3872,8 +3932,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "9c9931aa5e610a1456ce2950006ff0b0c39c50d9",
-        "remoteSha": "9c9931aa5e610a1456ce2950006ff0b0c39c50d9",
+        "localSha": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+        "remoteSha": "4277317bb4999ac4edfbc321590b54d95e1839f9",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3885,7 +3945,7 @@
       "worktree": {
         "registered": true,
         "pathToken": "30-security-platform",
-        "observedHead": "9c9931aa5e610a1456ce2950006ff0b0c39c50d9",
+        "observedHead": "4277317bb4999ac4edfbc321590b54d95e1839f9",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
@@ -3904,17 +3964,17 @@
         },
         "coverage": {
           "total": 29,
-          "open": 2,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 2,
+            "inProgress": 0,
             "implementedLocal": 4,
-            "testedLocal": 18,
+            "testedLocal": 19,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 1,
+            "externalBlocked": 2,
             "notApplicable": 1,
             "verifiedComplete": 3
           },
@@ -3936,28 +3996,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 6
+            "distance": 7
           },
           "productRelease": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 6
+            "distance": 7
           },
           "publicMetadata": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 6
+            "distance": 7
           },
           "integrationContract": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 6
+            "distance": 7
           }
         },
         "claimedReleaseStates": {
@@ -4212,16 +4272,16 @@
         "exactCommitBound": false
       },
       "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
-        "acceptedSourceCommit": null,
+        "status": "integratedCentral",
+        "reason": "The synchronized owner source, clean worktree, required evidence, exact-head CI, central merge ancestry and central test receipt all passed.",
+        "acceptedSourceCommit": "4277317bb4999ac4edfbc321590b54d95e1839f9",
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": "2026-07-29T13:20:22Z",
+        "decisionEvidence": "release/integration/evidence/product-30-central-acceptance-3ee6477d.json",
+        "integrationCommit": "3ee6477d82ecffea954387ce88135793bddb1271"
       },
-      "blockers": [
-        "full-goal coverage has 2 autonomous or unresolved items"
-      ],
-      "nextAction": "Resolve: full-goal coverage has 2 autonomous or unresolved items."
+      "blockers": [],
+      "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release."
     },
     {
       "id": "31",
@@ -4346,7 +4406,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes"
@@ -4480,7 +4542,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -4615,7 +4679,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "public metadata is missing from the branch tree",
@@ -4750,7 +4816,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -4882,7 +4950,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
@@ -5015,7 +5085,9 @@
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
-        "acceptedAt": null
+        "acceptedAt": null,
+        "decisionEvidence": null,
+        "integrationCommit": null
       },
       "blockers": [
         "registered final worktree has uncommitted changes",

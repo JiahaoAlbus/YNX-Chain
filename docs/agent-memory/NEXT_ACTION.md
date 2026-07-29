@@ -1,10 +1,10 @@
 # Next Action
 
-Updated: `2026-07-29T12:04:46Z`
+Updated: `2026-07-29T13:50:00Z`
 
-1. Commit and push this exact-source receipt and recovery memory, then wait for every PR #17 check at the final exact head.
-2. Return to Product 30 alone: enable final administrator branch-protection enforcement, truthfully close the achieved handoff row, update memory, push and obtain exact-head green PR #16 CI.
-3. Regenerate Product 29's matrices from the new Product 30 head and record a machine-readable central acceptance decision only after its owner coverage is terminal.
-4. Audit the current open/draft release-train PRs and freeze the unique central protocol versions before shared Testnet execution.
+1. Commit the Product 30 central decision, fail-closed validator, refreshed coverage and 36-product matrices.
+2. Run the exact-clean Product 29 protection preflight, persist its receipt and recovery checkpoint, push, verify Local SHA equals Remote SHA, and wait for every PR #17 check at the exact final head.
+3. Audit PRs `#7`, `#11`, `#13`, `#14`, `#15`, `#16` and `#17`, then freeze the unique central protocol versions and safe merge order.
+4. Process the next product Worktree one at a time, prioritizing Phase 0 dependencies required for shared Testnet.
 
 Do not promote a candidate because it is merged into this branch. `main`, Testnet, runtime, Website and production states require separate direct evidence.

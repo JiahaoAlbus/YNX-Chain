@@ -10,6 +10,7 @@ const args = new Set(process.argv.slice(2));
 const registryPath = "release/integration/product-registry.json";
 const matrixPath = "release/integration/acceptance-matrix.json";
 const githubEvidencePath = "release/integration/github-evidence.json";
+const decisionsPath = "release/integration/central-acceptance-decisions.json";
 const githubRepository = "JiahaoAlbus/YNX-Chain";
 const finalWorktreesRoot = path.dirname(root);
 const allowedStatuses = new Set([
@@ -76,6 +77,120 @@ function writeJson(relativePath, value) {
   const absolutePath = path.join(root, relativePath);
   fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
   fs.writeFileSync(absolutePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function validSha(value) {
+  return typeof value === "string" && /^[0-9a-f]{40}$/.test(value);
+}
+
+function safeRelativePath(value) {
+  return typeof value === "string"
+    && value.length > 0
+    && !path.isAbsolute(value)
+    && !value.split(/[\\/]/).includes("..");
+}
+
+function validateDecisions(decisions, registry) {
+  if (decisions?.schemaVersion !== "1.0.0") fail("central acceptance decisions schemaVersion must be 1.0.0");
+  if (decisions?.owner !== "29-integration") fail("central acceptance decisions owner must be 29-integration");
+  if (!Array.isArray(decisions?.decisions)) fail("central acceptance decisions must contain a decisions array");
+  const products = new Map(registry.products.map((product) => [product.id, product]));
+  const seen = new Set();
+  for (const decision of decisions.decisions) {
+    const product = products.get(decision?.productId);
+    if (!product) fail(`central acceptance decision references unknown product ${decision?.productId}`);
+    if (seen.has(decision.productId)) fail(`duplicate central acceptance decision for product ${decision.productId}`);
+    seen.add(decision.productId);
+    if (decision.status !== "integratedCentral") fail(`central acceptance decision ${decision.productId} has unsupported status`);
+    if (decision.repository !== (product.repository ?? registry.defaultRepository)) fail(`central acceptance decision ${decision.productId} repository mismatch`);
+    if (decision.branch !== product.branch) fail(`central acceptance decision ${decision.productId} branch mismatch`);
+    if (!validSha(decision.acceptedSourceCommit)) fail(`central acceptance decision ${decision.productId} source commit is invalid`);
+    if (!validSha(decision.integrationCommit)) fail(`central acceptance decision ${decision.productId} integration commit is invalid`);
+    if (Number.isNaN(Date.parse(decision.acceptedAt ?? ""))) fail(`central acceptance decision ${decision.productId} acceptedAt is invalid`);
+    if (!safeRelativePath(decision.receipt)) fail(`central acceptance decision ${decision.productId} receipt path is invalid`);
+  }
+  return new Map(decisions.decisions.map((decision) => [decision.productId, decision]));
+}
+
+function exactHeadCi(githubEvidence, repository, sourceCommit) {
+  if (githubEvidence?.repository !== repository || githubEvidence?.availability?.runs !== true) {
+    return { verified: false, runs: [] };
+  }
+  const runs = (githubEvidence.runs ?? []).filter((run) => run.headSha === sourceCommit);
+  return {
+    verified: runs.length > 0
+      && runs.every((run) => run.status === "completed")
+      && runs.every((run) => ["success", "skipped", "neutral"].includes(run.conclusion)),
+    runs
+  };
+}
+
+function applyCentralDecision({ acceptance, decision, product, localSha, remoteSha, worktree, controllerSourceCommit, githubEvidence }) {
+  if (!decision) {
+    return {
+      ...acceptance,
+      acceptedSourceCommit: null,
+      acceptedAt: null,
+      decisionEvidence: null,
+      integrationCommit: null
+    };
+  }
+
+  const failures = [];
+  if (acceptance.status !== "implementedLocal" || acceptance.blockers.length > 0) failures.push("owner candidate is not acceptance-ready");
+  if (decision.acceptedSourceCommit !== localSha || decision.acceptedSourceCommit !== remoteSha) failures.push("decision source differs from synchronized owner refs");
+  if (worktree.clean !== true) failures.push("owner worktree is not clean");
+  if (git(["merge-base", "--is-ancestor", decision.acceptedSourceCommit, decision.integrationCommit], { allowFailure: true }) === null) {
+    failures.push("accepted source is not an ancestor of the integration commit");
+  }
+  if (git(["merge-base", "--is-ancestor", decision.integrationCommit, controllerSourceCommit], { allowFailure: true }) === null) {
+    failures.push("integration commit is not reachable from the controller head");
+  }
+  const ci = exactHeadCi(githubEvidence, decision.repository, decision.acceptedSourceCommit);
+  if (!ci.verified) failures.push("all exact-head owner CI runs are not terminal and successful");
+  const receiptPath = path.join(root, decision.receipt);
+  let receipt = null;
+  try {
+    receipt = JSON.parse(fs.readFileSync(receiptPath, "utf8"));
+  } catch {
+    failures.push("central acceptance receipt is missing or invalid");
+  }
+  if (receipt) {
+    if (receipt.status !== "passed") failures.push("central acceptance receipt did not pass");
+    if (receipt.productId !== product.id) failures.push("central acceptance receipt product mismatch");
+    if (receipt.acceptedSourceCommit !== decision.acceptedSourceCommit) failures.push("central acceptance receipt source mismatch");
+    if (receipt.integrationCommit !== decision.integrationCommit) failures.push("central acceptance receipt integration commit mismatch");
+    if (!Array.isArray(receipt.tests) || receipt.tests.length === 0 || receipt.tests.some((test) => test?.status !== "passed")) {
+      failures.push("central acceptance receipt tests are incomplete");
+    }
+    if (receipt.exactHeadCi?.verified !== true || receipt.exactHeadCi?.sourceCommit !== decision.acceptedSourceCommit) {
+      failures.push("central acceptance receipt exact-head CI is incomplete");
+    }
+  }
+
+  if (failures.length > 0) {
+    return {
+      status: "inProgress",
+      reason: "A central acceptance decision exists but failed closed against current source, integration, CI, or test evidence.",
+      blockers: [...new Set([...acceptance.blockers, ...failures])],
+      nextAction: `Repair or revoke the stale central decision for Product ${product.id}.`,
+      acceptedSourceCommit: null,
+      acceptedAt: null,
+      decisionEvidence: decision.receipt,
+      integrationCommit: decision.integrationCommit
+    };
+  }
+
+  return {
+    status: "integratedCentral",
+    reason: "The synchronized owner source, clean worktree, required evidence, exact-head CI, central merge ancestry and central test receipt all passed.",
+    blockers: [],
+    nextAction: "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
+    acceptedSourceCommit: decision.acceptedSourceCommit,
+    acceptedAt: decision.acceptedAt,
+    decisionEvidence: decision.receipt,
+    integrationCommit: decision.integrationCommit
+  };
 }
 
 function normalizeBranchRef(branch) {
@@ -436,6 +551,7 @@ function runSelfTest() {
   if (sanitizeRemote("https://token@github.com/example/repo.git") !== "https://[redacted]@github.com/example/repo.git") fail("remote sanitization self-test failed");
   const registry = readJson(registryPath);
   validateRegistry(registry);
+  validateDecisions(readJson(decisionsPath), registry);
   const head = refSha("HEAD");
   const binding = sourceBinding({ sourceCommit: head }, head);
   if (!binding.valid || !binding.exact || binding.distance !== 0) fail("source binding self-test failed");
@@ -560,9 +676,14 @@ function main() {
 
   const registry = readJson(registryPath);
   validateRegistry(registry);
+  const decisions = readJson(decisionsPath);
+  const decisionsByProduct = validateDecisions(decisions, registry);
   const generatedAt = new Date().toISOString();
   const controllerSourceCommit = refSha("HEAD");
   if (!controllerSourceCommit) fail("unable to resolve HEAD");
+  const githubEvidence = args.has("--github")
+    ? collectGithubEvidence(controllerSourceCommit, generatedAt)
+    : readJson(githubEvidencePath);
   const currentBranch = git(["branch", "--show-current"]).trim();
   const upstreamRefRaw = git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], { allowFailure: true });
   const upstreamRef = upstreamRefRaw?.trim() || null;
@@ -621,7 +742,7 @@ function main() {
     const localExists = Boolean(localSha);
     const remoteExists = Boolean(remoteSha);
     const synced = localExists && remoteExists && localSha === remoteSha;
-    const acceptance = deriveAcceptance({
+    const candidateAcceptance = deriveAcceptance({
       localExists,
       remoteExists,
       synced,
@@ -631,10 +752,20 @@ function main() {
       bindings,
       recordMatches
     });
-    if (!repositoryMatches) acceptance.blockers.unshift(`repository origin does not match ${repository}`);
+    if (!repositoryMatches) candidateAcceptance.blockers.unshift(`repository origin does not match ${repository}`);
     const localShaAfter = refSha(localRef, repositoryRoot);
     const stableDuringScan = localShaAfter === localSha;
-    if (!stableDuringScan) acceptance.blockers.unshift("local final branch moved during the central scan");
+    if (!stableDuringScan) candidateAcceptance.blockers.unshift("local final branch moved during the central scan");
+    const acceptance = applyCentralDecision({
+      acceptance: candidateAcceptance,
+      decision: decisionsByProduct.get(product.id),
+      product,
+      localSha,
+      remoteSha,
+      worktree,
+      controllerSourceCommit,
+      githubEvidence
+    });
 
     productRows.push({
       id: product.id,
@@ -670,9 +801,11 @@ function main() {
       centralAcceptance: {
         status: acceptance.status,
         reason: acceptance.reason,
-        acceptedSourceCommit: null,
+        acceptedSourceCommit: acceptance.acceptedSourceCommit,
         acceptedBy: "29-integration",
-        acceptedAt: null
+        acceptedAt: acceptance.acceptedAt,
+        decisionEvidence: acceptance.decisionEvidence,
+        integrationCommit: acceptance.integrationCommit
       },
       blockers: acceptance.blockers,
       nextAction: acceptance.nextAction
@@ -721,9 +854,7 @@ function main() {
   };
 
   writeJson(matrixPath, matrix);
-  if (args.has("--github")) {
-    writeJson(githubEvidencePath, collectGithubEvidence(controllerSourceCommit, generatedAt));
-  }
+  if (args.has("--github")) writeJson(githubEvidencePath, githubEvidence);
   console.log(`wrote ${matrixPath} for ${matrix.summary.totalProducts} products`);
   if (args.has("--github")) console.log(`wrote ${githubEvidencePath}`);
 }
