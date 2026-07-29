@@ -1,118 +1,100 @@
 {
-  "schemaVersion": 1,
-  "requestId": "ynx-data-fabric-external-inputs-v1",
-  "product": "ynx-data-fabric",
-  "generatedAt": "2026-07-29T20:26:00Z",
-  "handling": {
-    "submitSecretsInChat": false,
-    "secretDelivery": "Provide only an access-controlled secret-manager reference and grant the deployment identity least-privilege read access.",
-    "prohibitedValues": [
+  "schemaVersion": "1.0.0",
+  "requestStatus": "required-before-production-signed-and-reviewed-release",
+  "generatedAt": "2026-07-27",
+  "sourceCommit": "601d13bd677729ff59819ea70076a7de461328f2",
+  "satisfiedByEvidence": [
+    {
+      "capability": "central integration, staging deployment, public deployment and immutable hosted download",
+      "evidence": "release/evidence/website-public-acceptance-2026-07-26.json"
+    },
+    {
+      "capability": "canonical public routes, sitemap, robots and IndexNow submission",
+      "evidence": "https://ynxweb4.com/docs"
+    }
+  ],
+  "notApplicableStates": {
+    "installedLocal": "This documentation package is consumed by the Website build and has no standalone installer.",
+    "storeReleased": "No product store distributes this documentation package."
+  },
+  "instructions": {
+    "responseChannel": "approved control plane or named owner handoff",
+    "neverProvideInChatOrRepository": [
       "private key",
       "seed phrase",
-      "PEM content",
-      "complete API secret",
       "validator key",
-      "payment card data"
-    ]
+      "PEM or keystore",
+      "CVV or full card data",
+      "complete API secret",
+      "raw identity document"
+    ],
+    "secretMethod": "Provide only a secret-manager reference/path and access owner after the receiving service account and rotation policy are approved."
   },
   "inputs": [
     {
-      "id": "canonical-wallet-gateway-approval",
-      "requiredFor": ["integratedCentral"],
-      "secret": false,
-      "request": {
-        "productRegistrationApprovalId": null,
-        "acceptedBundleIds": [],
-        "introspectionEndpoint": null,
-        "walletBridgeOwner": null
-      },
-      "acceptance": "The owner returns real signed pass/fail vectors for replay, tamper, wrong product, wrong bundle, wrong device, scope widening, expiry, and revocation using the v1 schemas."
+      "id": "production-signing-approval",
+      "ownerClass": "security-custody-owner",
+      "requiredFor": [
+        "productionSigned"
+      ],
+      "provide": [
+        "approved secure signer reference/path",
+        "public signing certificate or public-key chain",
+        "artifact signing policy and signing-class decision",
+        "two-person approval record",
+        "rotation, revocation and offline recovery evidence"
+      ],
+      "prohibited": "Do not provide secret key material."
     },
     {
-      "id": "staging-data-services",
-      "requiredFor": ["deployedStaging"],
-      "secret": true,
-      "request": {
-        "postgresTlsEndpoint": null,
-        "postgresCredentialSecretReference": null,
-        "jetstreamTlsEndpoint": null,
-        "jetstreamCredentialSecretReference": null,
-        "warehouseTlsEndpoint": null,
-        "warehouseCredentialSecretReference": null,
-        "deploymentIdentity": null,
-        "approvedRegionAndRetentionPolicy": null
-      },
-      "acceptance": "Endpoints, TLS identity, least-privilege grants, backup destination, retention policy, and outage/failover test authority are approved for an isolated Testnet environment."
+      "id": "search-and-independent-public-proof",
+      "ownerClass": "website-domain-and-search-owner",
+      "requiredFor": [
+        "independentPublicProof",
+        "Search Console verification",
+        "Bing Webmaster Tools verification"
+      ],
+      "provide": [
+        "DNS/domain-control evidence reference",
+        "Search Console property and sitemap submission receipt",
+        "Bing property and sitemap submission receipt",
+        "independent monitor or search-engine fetch evidence with URL and observation time"
+      ],
+      "prohibited": "Do not provide complete provider credentials; provide an approved credential reference only if automation is authorized."
     },
     {
-      "id": "product-producer-and-reconciliation-acceptance",
-      "requiredFor": ["integratedCentral"],
-      "secret": false,
-      "request": {
-        "producerOwnerApprovalIds": {},
-        "acceptedEventContractVersions": {},
-        "acceptedSagaCompensationVersions": {},
-        "exchangeObservationContract": null,
-        "dexObservationContract": null,
-        "quantObservationContract": null
-      },
-      "acceptance": "Each authoritative product owner accepts its exact Envelope v2 event types, fee semantics, Saga compensation and fail-closed vectors; Exchange, DEX and Quant owners additionally accept read-only observation, finality, unavailable-source and correction semantics."
+      "id": "named-review-approvals",
+      "ownerClass": "qualified-legal-economic-security-and-audit-reviewers",
+      "requiredFor": [
+        "legalReview",
+        "securityReview",
+        "economicReview",
+        "independentAudit"
+      ],
+      "provide": [
+        "named reviewer and organization",
+        "scope, jurisdiction and reviewed artifact digests",
+        "approval, findings or explicit rejection",
+        "effective date and review expiry",
+        "required remediation and prohibited public claims"
+      ]
     },
     {
-      "id": "testnet-authority-observers",
-      "requiredFor": ["integratedCentral", "deployedStaging"],
-      "secret": true,
-      "request": {
-        "chainObserverEndpointAndPublicAddress": null,
-        "payObserverEndpoint": null,
-        "exchangeObserverEndpoint": null,
-        "dexObserverEndpointAndPublicAddresses": null,
-        "quantObserverEndpoint": null,
-        "observerCredentialSecretReferences": []
-      },
-      "acceptance": "Each owner approves read-only observation, finality semantics, rate limits, retention/data rights, stable reference IDs, and evidence hashes; unavailable observations remain unavailable rather than zero."
-    },
-    {
-      "id": "public-routing-and-support",
-      "requiredFor": ["deployedPublic"],
-      "secret": false,
-      "request": {
-        "canonicalUrl": null,
-        "healthUrl": null,
-        "statusUrl": null,
-        "supportUrl": null,
-        "privacyUrl": null,
-        "securityUrl": null,
-        "dnsAndTlsApprovalId": null,
-        "legalPublicationApprovalId": null,
-        "onCallOwner": null
-      },
-      "acceptance": "URLs resolve through approved DNS/TLS, support and incident ownership are staffed, and privacy/security/legal text is approved before Website publication."
-    },
-    {
-      "id": "artifact-signing-and-hosting",
-      "requiredFor": ["downloadHosted", "productionSigned"],
-      "secret": true,
-      "request": {
-        "secureSignerPathReference": null,
-        "signingClassAndApprovalId": null,
-        "immutableArtifactDestination": null,
-        "provenanceIdentity": null,
-        "releaseApprover": null
-      },
-      "acceptance": "The build receives signer access through the approved secure service, never raw key material, and publishes immutable URLs with source commit, SHA-256, bytes, OS/architecture, signing class, SBOM, provenance, install and cold-start evidence."
-    },
-    {
-      "id": "testnet-capacity-and-drill-authority",
-      "requiredFor": ["deployedStaging"],
-      "secret": false,
-      "request": {
-        "approvedLoadAndFailureWindow": null,
-        "resourceBudgetOwner": null,
-        "rtoRpoTargets": null,
-        "backupRetentionApprovalId": null
-      },
-      "acceptance": "The owner authorizes bounded load, broker/database failure, restore/PITR and recovery drills with explicit cost ceiling and observability coverage."
+      "id": "brand-media-rights-approval",
+      "ownerClass": "brand-and-legal-owner",
+      "requiredFor": [
+        "approved public logo variants",
+        "screenshots",
+        "press distribution"
+      ],
+      "provide": [
+        "asset source and rights record",
+        "approved hashes, bytes and dimensions",
+        "light, dark and icon variant approvals",
+        "screenshot route, state, privacy and release approval",
+        "named brand reviewer"
+      ]
     }
-  ]
+  ],
+  "releaseRule": "Missing input keeps only the affected review, proof, signing or media capability false or unavailable. It must never be replaced by fabricated configuration, provider health, approval, signature or rights evidence."
 }

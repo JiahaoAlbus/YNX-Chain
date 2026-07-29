@@ -49,6 +49,7 @@ const requiredCoverageFields = [
 
 const requiredIntegrationFiles = [
   "release/integration/ynx-data-fabric-contract.json",
+  "release/data-fabric/operator-inputs.request.json",
   "docs/integration/INTEGRATION_HANDOFF.md",
   "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "docs/integration/DEPENDENCY_ACCEPTANCE.md",
@@ -204,6 +205,7 @@ export function verifyReleaseTruth({ root, expectedSourceCommit }) {
   const eventContracts = readJSON(resolvedRoot, "integration/product-event-contracts.json");
   const publicMetadata = readJSON(resolvedRoot, "public-product-metadata.json");
   const crossProductVectors = readJSON(resolvedRoot, "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json");
+  const operatorInputs = readJSON(resolvedRoot, "release/data-fabric/operator-inputs.request.json");
 
   const releaseName = `ynx-data-fabric-${expectedSourceCommit.slice(0, 12)}`;
   assert(productRelease.schemaVersion === 2, "product release schemaVersion must be 2");
@@ -221,6 +223,9 @@ export function verifyReleaseTruth({ root, expectedSourceCommit }) {
   assert(publicMetadata.schemaVersion === 2, "public metadata schemaVersion must be 2");
   assert(publicMetadata.releaseStatus?.release === releaseName, "public metadata release is stale");
   assert(publicMetadata.releaseStatus?.channel === "testnet-preview", "public metadata channel is invalid");
+  assert(operatorInputs.product === "ynx-data-fabric", "operator input request product is invalid");
+  assert(operatorInputs.handling?.submitSecretsInChat === false, "operator input request must prohibit secrets in chat");
+  assert(Array.isArray(operatorInputs.inputs) && operatorInputs.inputs.length >= 7, "operator input request is incomplete");
 
   assert(sameJSON(productRelease.states, expectedStates), "product release states overclaim or understate verified evidence");
   assert(sameJSON(releaseRecord.states, expectedStates), "release record states drifted from product release");

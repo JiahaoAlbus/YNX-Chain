@@ -14,6 +14,7 @@ const files = [
   "product-release.json",
   "release/release-record.json",
   "release/integration/ynx-data-fabric-contract.json",
+  "release/data-fabric/operator-inputs.request.json",
   "integration/product-event-contracts.json",
   "public-product-metadata.json",
   ".ai-bridge/current-plan.md",

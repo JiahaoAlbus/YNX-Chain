@@ -30,6 +30,6 @@
 - Added PostgreSQL logical backup/catalog verification and empty-target single-transaction restore with private child-environment credentials, non-overwrite protection, migration checksum, full integrity audit, and exact count verification.
 - Added strict canonical introspection request/response schemas and an owner-specific Wallet/Gateway/product/Website/warehouse integration handoff with exact acceptance evidence.
 - Upgraded the Go toolchain and reachable affected dependencies to fixed versions after official vulnerability analysis, and added pinned `govulncheck` to CI.
-- Added one consolidated operator-input request for central registration, staging services, Testnet observers, public routing/support, secure signing/hosting, and approved capacity/recovery drills; secret values must remain in approved secret systems.
+- Added one consolidated product-owned operator-input request at `release/data-fabric/operator-inputs.request.json` for central registration, producer/reconciliation acceptance, staging services, Testnet observers, public routing/support, secure signing/hosting, and approved capacity/recovery drills; secret values must remain in approved secret systems. The shared root documentation-release request remains owned by the central documentation package.
 
 No release version or source commit has been assigned. Product-level implementation/testing, central integration, installation, staging/public deployment, hosted downloads, production signing and store release remain false.
