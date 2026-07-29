@@ -1,7 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "product": "YNX Video",
-  "sourceCommit": "11e64797c64cd64d1c6e53f0295c17997bde6f97",
+  "sourceCommit": "cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e",
+  "contractId": "ynx-video-integration-v2",
   "vectors": [
     {"id":"wallet-happy","owner":"YNX 02","expect":"accepted","given":"exact product, bundle, callback, device key, sorted scopes, body digest, nonce and bounded expiry"},
     {"id":"wallet-replay","owner":"YNX 02","expect":"rejected","given":"identical consumed nonce and attestation"},
@@ -13,6 +14,9 @@
     {"id":"trust-delegated-appeal","owner":"YNX 15","expect":"authoritative submission","given":"accepted delegated creator session and exact appeal digest"},
     {"id":"rights-expired","owner":"YNX 33","expect":"publication rejected","given":"public or unlisted visibility with expired rights declaration"},
     {"id":"scanner-unready","owner":"YNX 33","expect":"processing unavailable","given":"malware scanner configuration or signatures unavailable"},
+    {"id":"media-derivative-lineage","owner":"YNX 33","expect":"accepted with persisted bytes, sha256 and derivative source binding","given":"HLS playlist and every segment exist under the video prefix and hash successfully against the original object key and digest"},
+    {"id":"media-missing-legacy-derivative","owner":"YNX 33","expect":"video becomes private and failed","given":"schema v1 record lacks integrity metadata and one stored derivative is missing during v2 startup backfill"},
+    {"id":"media-key-escape","owner":"YNX 33","expect":"processing rejected","given":"processor returns an absolute, traversal or cross-video object key"},
     {"id":"ai-autopublish","owner":"YNX 14","expect":"rejected","given":"AI suggestion attempts to publish, remove, demonetize, claim rights or execute Pay"},
     {"id":"restricted-media","owner":"YNX 29","expect":"unauthorized response without raw object disclosure","given":"private media request from unrelated Product Session"}
   ]

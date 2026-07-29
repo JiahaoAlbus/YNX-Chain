@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
-  "contractId": "ynx-video-integration-v1",
+  "schemaVersion": 2,
+  "contractId": "ynx-video-integration-v2",
   "owner": "YNX 33",
   "product": "YNX Video",
-  "sourceCommit": "11e64797c64cd64d1c6e53f0295c17997bde6f97",
-  "phase": "FREEZE",
+  "sourceCommit": "cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e",
+  "phase": "INTEGRATE",
   "authority": {
     "videoState": "YNX 33",
     "walletIdentityAndSessions": "YNX 02",
@@ -32,11 +32,21 @@
     "requestHeaders": ["X-YNX-App-Session", "X-YNX-Device-ID"],
     "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
   },
+  "mediaIntegrity": {
+    "stateSchemaVersion": 2,
+    "uploadDigest": "caller-declared sha256 verified in constant time",
+    "variantFields": ["bytes", "sha256", "lineage", "source_object_key", "source_sha256"],
+    "lineageValues": ["original", "derivative"],
+    "coveredAssets": ["hls-playlist", "hls-segment", "original-fallback"],
+    "legacyBackfill": "stored objects are rehashed on service startup",
+    "legacyFailureBoundary": "a missing or unverifiable legacy asset makes the video private and failed",
+    "rawPublicBucket": false
+  },
   "canonicalStates": {
-    "processing": ["uploaded", "scanning", "scan_failed", "transcoding", "processing_failed", "ready"],
+    "processing": ["scanning", "transcoding", "ready", "failed", "published"],
     "visibility": ["private", "unlisted", "public"],
-    "appeal": ["draft", "submitted_local", "accepted", "rejected"],
-    "payIntent": ["awaiting_wallet_confirmation", "confirmed", "failed"]
+    "appeal": ["submitted", "accepted", "denied"],
+    "payIntent": ["awaiting_wallet_confirmation"]
   },
   "security": {
     "replayProtection": "persistent nonce consumption before mutation",
@@ -45,11 +55,23 @@
     "rawPublicBucket": false,
     "aiAutonomousPublishOrRemoval": false
   },
+  "verification": {
+    "commands": [
+      "go test ./internal/video/...",
+      "go test -race ./internal/video/...",
+      "go vet ./internal/video/...",
+      "npm --prefix apps/video run check",
+      "npm --prefix apps/video run smoke"
+    ],
+    "result": "passedLocal",
+    "verifiedAt": "2026-07-29T02:44:54Z"
+  },
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": true,
     "integratedCentral": false,
+    "testnetVerified": false,
     "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,
@@ -64,5 +86,5 @@
     {"owner":"YNX 29","contract":"Shared-testnet integration freeze","status":"pending"},
     {"owner":"YNX 30","contract":"Artifact, deployment and security gate","status":"pending"}
   ],
-  "truthBoundary": "This file freezes the product-owned contract only. It is not evidence of central acceptance, shared-testnet integration, public deployment or production signing."
+  "truthBoundary": "This file freezes the product-owned contract and local verification only. It is not evidence of central acceptance, shared-testnet execution, public deployment, production signing or store release."
 }
