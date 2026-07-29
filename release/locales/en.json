@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Source",
+  "locale": "en",
+  "direction": "ltr",
+  "coverage": ["chainDescription", "assetDescription"],
+  "reviewStatus": "Source terminology; legal, financial, safety, and runtime copy still requires named review",
+  "strings": {
+    "chainDescription": "YNX Chain is a Web4 Layer-1 ecosystem.",
+    "assetDescription": "YNXT is the native Testnet asset."
+  },
+  "fallbackLocale": "en",
+  "terminologySource": "docs/public/LOCALIZATION_TERMINOLOGY.md"
+}

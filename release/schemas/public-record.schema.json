@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ynxweb4.com/schemas/public-record.schema.json",
+  "title": "YNX public record",
+  "type": "object",
+  "required": ["schemaVersion", "version", "sourceCommit", "lastReviewed", "status"],
+  "properties": {
+    "$schema": {"type": "string", "minLength": 1},
+    "schemaVersion": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "version": {"type": "string", "minLength": 1},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "lastReviewed": {"type": "string", "format": "date"},
+    "status": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": true
+}

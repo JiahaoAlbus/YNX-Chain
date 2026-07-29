@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "resource-market-integration-v1",
+  "product": "ynx-resource-market",
+  "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
+  "vectors": [
+    {
+      "id": "RM-AUTH-WRONG-PRODUCT-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "16-resource-market"],
+      "expectedCode": "RESOURCE_REQUEST_REJECTED"
+    },
+    {
+      "id": "RM-AUTH-REPLAY-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "16-resource-market"],
+      "expectedCode": "RESOURCE_REQUEST_REJECTED"
+    },
+    {
+      "id": "RM-SETTLEMENT-PREMATURE-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "16-resource-market"],
+      "expectedCode": "RESOURCE_SETTLEMENT_STATE_INVALID"
+    },
+    {
+      "id": "RM-SETTLEMENT-RECONCILE-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "16-resource-market", "26-data-fabric"],
+      "expectedCode": "RESOURCE_SETTLEMENT_RECONCILIATION"
+    },
+    {
+      "id": "RM-SETTLEMENT-REPLAY-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "12-explorer", "16-resource-market", "26-data-fabric"],
+      "expectedCode": "RESOURCE_SETTLEMENT_REPLAY"
+    },
+    {
+      "id": "RM-METER-TAMPER-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "expectedCode": "RESOURCE_PROOF_REJECTED"
+    },
+    {
+      "id": "RM-METER-OVERLAP-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "expectedCode": "RESOURCE_METER_WINDOW_INVALID"
+    },
+    {
+      "id": "RM-METER-LIMIT-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "expectedCode": "RESOURCE_METER_LIMIT"
+    },
+    {
+      "id": "RM-MATCH-SELF-DEAL-001",
+      "category": "matching",
+      "owners": ["16-resource-market", "29-integration"],
+      "expectedCode": "RESOURCE_SELF_DEALING_REJECTED"
+    },
+    {
+      "id": "RM-CAPACITY-OFFER-SCOPE-001",
+      "category": "capacity",
+      "owners": ["16-resource-market", "29-integration"],
+      "expectedCode": "RESOURCE_CAPACITY_UNAVAILABLE"
+    },
+    {
+      "id": "RM-BILLING-OVERFLOW-001",
+      "category": "billing-integrity",
+      "owners": ["16-resource-market", "26-data-fabric", "29-integration"],
+      "expectedCode": "RESOURCE_AMOUNT_OUT_OF_RANGE"
+    },
+    {
+      "id": "RM-FAILURE-NO-FAKE-REFUND-001",
+      "category": "failure-dispute",
+      "owners": ["15-trust-center", "16-resource-market", "26-data-fabric"],
+      "expectedCode": null
+    }
+  ]
+}

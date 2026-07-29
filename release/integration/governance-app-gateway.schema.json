@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynx.network/integration/governance-app-gateway-v1.json",
+  "title": "YNX Governance App Gateway Integration Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "product", "canonicalRoute", "productBinding", "upstream", "session", "routing", "authorization", "status"],
+  "properties": {
+    "schemaVersion": {"const": "ynx-integration-manifest/v1"},
+    "product": {"const": "governance"},
+    "canonicalRoute": {"const": "/governance"},
+    "productBinding": {"type": "string", "pattern": "^https://"},
+    "upstream": {"type": "object"},
+    "session": {"type": "object"},
+    "routing": {"type": "object"},
+    "authorization": {"type": "object"},
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["implementedLocal", "testedLocal", "installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"],
+      "properties": {
+        "implementedLocal": {"type": "boolean"},
+        "testedLocal": {"type": "boolean"},
+        "installedLocal": {"type": "boolean"},
+        "integratedCentral": {"type": "boolean"},
+        "deployedStaging": {"type": "boolean"},
+        "deployedPublic": {"type": "boolean"},
+        "downloadHosted": {"type": "boolean"},
+        "productionSigned": {"type": "boolean"},
+        "storeReleased": {"type": "boolean"}
+      }
+    }
+  }
+}

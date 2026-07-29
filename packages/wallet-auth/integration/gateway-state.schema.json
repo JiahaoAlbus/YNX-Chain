@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynxweb4.com/wallet-auth/gateway-state-v2.json",
+  "title": "YNX Canonical Wallet Gateway Adapter State v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "registryVersion", "sessionStore", "consumedProductProofs", "mandateStore"],
+  "properties": {
+    "schemaVersion": {"const": 2},
+    "registryVersion": {"const": 2},
+    "sessionStore": {
+      "type": "object",
+      "description": "Exact CentralWalletSessionStore snapshot. Runtime parser remains authoritative and rejects unknown fields, missing tombstones, replay divergence and audit tamper."
+    },
+    "consumedProductProofs": {
+      "type": "array",
+      "maxItems": 20000,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
+    "mandateStore": {
+      "type": "object",
+      "description": "Exact StrategyMandateStore v1 snapshot containing mandates, action nonces, terminal controls, emergency exits and hash-chained audit. Runtime parser remains authoritative."
+    }
+  }
+}

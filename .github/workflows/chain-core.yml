@@ -1,0 +1,86 @@
+name: chain-core
+
+on:
+  push:
+    branches:
+      - codex/final-chain-core
+    paths:
+      - ".github/workflows/chain-core.yml"
+      - "Makefile"
+      - "cmd/**"
+      - "internal/**"
+      - "docs/architecture/STREAMBFT_CANDIDATE.md"
+      - "docs/formal/streambft/**"
+      - "docs/integration/**"
+      - "release/**"
+      - "scripts/validate/**"
+      - "scripts/verify/integration-contract-check.mjs"
+      - "scripts/verify/chain-core-release-check.mjs"
+      - "scripts/verify/streambft-candidate-check.sh"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/chain-core.yml"
+      - "Makefile"
+      - "cmd/**"
+      - "internal/**"
+      - "docs/architecture/STREAMBFT_CANDIDATE.md"
+      - "docs/formal/streambft/**"
+      - "docs/integration/**"
+      - "release/**"
+      - "scripts/validate/**"
+      - "scripts/verify/integration-contract-check.mjs"
+      - "scripts/verify/chain-core-release-check.mjs"
+      - "scripts/verify/streambft-candidate-check.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chain-core-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Chain Core source and release gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
+        with:
+          go-version: "1.25"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run hardhat:build
+      - run: make static-check
+      - run: make streambft-candidate-check
+      - run: make consensus-abci-check
+      - run: make integration-contract-check
+      - run: make chain-core-release-check
+      - run: make no-placeholder-check
+      - run: make secret-scan
+      - name: Upload Chain Core handoff
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: chain-core-handoff-${{ github.sha }}
+          path: |
+            FEATURE_COMPLETION_EVIDENCE.md
+            docs/architecture/STREAMBFT_CANDIDATE.md
+            docs/integration/CHAIN_CORE_INTEGRATION_HANDOFF.md
+            docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json
+            docs/integration/CHAIN_CORE_DEPENDENCY_ACCEPTANCE.md
+            docs/integration/WEBSITE_HANDOFF.md
+            release/integration/chain-core-contract.json
+            release/chain-core/artifact-registry.json
+            release/chain-core/product-release.json
+            release/chain-core/public-product-metadata.json
+          if-no-files-found: error
+          retention-days: 90
