@@ -283,8 +283,24 @@ type State struct {
 }
 
 type Analytics struct {
-	Views        int64 `json:"views"`
-	WatchSeconds int64 `json:"watch_seconds"`
-	Subscribers  int64 `json:"subscribers"`
-	RevenueYNXT  int64 `json:"revenue_ynxt"`
+	Source         string            `json:"source"`
+	AsOf           time.Time         `json:"as_of"`
+	Version        string            `json:"version"`
+	Coverage       AnalyticsCoverage `json:"coverage"`
+	Views          int64             `json:"views"`
+	UniqueUsers    int64             `json:"unique_users"`
+	CompletedViews int64             `json:"completed_views"`
+	WatchSeconds   int64             `json:"watch_seconds"`
+	Subscribers    int64             `json:"subscribers"`
+	RevenueYNXT    int64             `json:"revenue_ynxt"`
+}
+
+type AnalyticsCoverage struct {
+	Scope                  string `json:"scope"`
+	ChannelCount           int64  `json:"channel_count"`
+	VideoCount             int64  `json:"video_count"`
+	WatchEventCount        int64  `json:"watch_event_count"`
+	SubscriptionEventCount int64  `json:"subscription_event_count"`
+	RevenueEventCount      int64  `json:"revenue_event_count"`
+	RevenueIncluded        bool   `json:"revenue_included"`
 }

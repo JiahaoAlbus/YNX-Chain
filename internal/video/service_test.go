@@ -185,6 +185,12 @@ func TestUploadPublishMetricsAndRestart(t *testing.T) {
 	if err != nil || a.Views != 1 || a.WatchSeconds != 12 || a.Subscribers != 1 || a.RevenueYNXT != 0 {
 		t.Fatalf("metrics must derive from events: %+v %v", a, err)
 	}
+	if a.Source != "ynx.creator-studio.persisted-events" || a.Version != "analytics.v1" || !a.AsOf.Equal(time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)) {
+		t.Fatalf("analytics provenance is not authoritative: %+v", a)
+	}
+	if a.UniqueUsers != 1 || a.CompletedViews != 1 || a.Coverage.ChannelCount != 1 || a.Coverage.VideoCount != 1 || a.Coverage.WatchEventCount != 1 || a.Coverage.SubscriptionEventCount != 1 || a.Coverage.RevenueEventCount != 0 || !a.Coverage.RevenueIncluded {
+		t.Fatalf("analytics coverage is incomplete or misleading: %+v", a)
+	}
 	s2, err := NewService(s.cfg)
 	if err != nil {
 		t.Fatal(err)

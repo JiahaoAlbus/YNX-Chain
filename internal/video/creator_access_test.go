@@ -73,10 +73,16 @@ func TestCreatorTeamRBACAndImmediateRevocation(t *testing.T) {
 	if err != nil || editorAnalytics.Views != 0 || editorAnalytics.WatchSeconds != 0 || editorAnalytics.Subscribers != 0 || editorAnalytics.RevenueYNXT != 0 {
 		t.Fatalf("editor received analyst or finance data: %+v %v", editorAnalytics, err)
 	}
+	if editorAnalytics.Coverage.ChannelCount != 0 || editorAnalytics.Coverage.VideoCount != 0 || editorAnalytics.Coverage.RevenueIncluded {
+		t.Fatalf("editor analytics coverage leaked unauthorized scope: %+v", editorAnalytics)
+	}
 	acceptRole(t, s, channel.Owner, channel.ID, testAnalystAccount, CreatorRoleAnalyst)
 	analytics, err := s.Analytics(testAnalystAccount)
 	if err != nil || analytics.Views != 1 || analytics.WatchSeconds != 9 || analytics.Subscribers != 1 || analytics.RevenueYNXT != 0 {
 		t.Fatalf("analyst received wrong evidence view: %+v %v", analytics, err)
+	}
+	if analytics.UniqueUsers != 1 || analytics.CompletedViews != 1 || analytics.Coverage.WatchEventCount != 1 || analytics.Coverage.SubscriptionEventCount != 1 || analytics.Coverage.RevenueIncluded {
+		t.Fatalf("analyst coverage or finance boundary is wrong: %+v", analytics)
 	}
 	if err = s.UpdateMetadata(testAnalystAccount, video.ID, "forbidden", ""); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("analyst mutated content: %v", err)
