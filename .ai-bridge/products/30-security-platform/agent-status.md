@@ -30,7 +30,7 @@ Updated: 2026-07-29T06:08:33Z
 
 ## Current blockers
 
-- Authoritative branch protection is not configured yet.
+- Authoritative branch protection is configured with six strict required checks and review/history safeguards; administrator enforcement remains disabled during active recovery.
 - Required signed commits are not enabled because no approved commit-signing identity or compatibility plan is established.
 - No staging deployment, public deployment, immutable hosted download or production signature exists.
 

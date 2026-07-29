@@ -174,15 +174,15 @@
       "requirement": "Protect the final branch with strict required checks, independent review, CODEOWNERS, linear history, conversation resolution and force-push/deletion denial.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": ["GitHub API returned Branch not protected for YNX-Chain main and codex/final-security-platform on 2026-07-29"],
-      "sourceCommit": "7be79d5b921e2b044fff43d5eb3f10fcad2eac11",
-      "tests": ["GET /repos/JiahaoAlbus/YNX-Chain/branches/codex%2Ffinal-security-platform/protection"],
-      "artifact": null,
+      "evidence": ["evidence/security-platform/GITHUB_BRANCH_PROTECTION_AUTHORITATIVE_2026-07-29.json", "GitHub branch protection REST API returned strict checks, review controls, linear history, conversation resolution and force-push/deletion denial"],
+      "sourceCommit": "91bbf2862042676d55e62810eaa85624a076dc30",
+      "tests": ["PUT and GET /repos/JiahaoAlbus/YNX-Chain/branches/codex%2Ffinal-security-platform/protection"],
+      "artifact": "evidence/security-platform/GITHUB_BRANCH_PROTECTION_AUTHORITATIVE_2026-07-29.json",
       "publicProof": null,
-      "blockedBy": ["authoritative product branch protection is not configured", "approved commit-signing identity and compatibility plan are absent"],
+      "blockedBy": ["administrator enforcement remains disabled during active recovery", "approved commit-signing identity and compatibility plan are absent"],
       "owner": "YNX-30",
-      "nextAction": "Configure and read back strict protection on the authoritative product branch after pushing the current workflow checkpoint.",
-      "lastUpdated": "2026-07-29T06:08:33Z"
+      "nextAction": "Enable administrator enforcement during final repository lock; evaluate required signed commits only after an approved signing identity exists.",
+      "lastUpdated": "2026-07-29T06:16:00Z"
     },
     {
       "id": "SUPPLY-CHAIN-001",
@@ -467,7 +467,7 @@
       "tests": ["npm run security:verify", "npm run security:test", "npm test", "npm run security:integration", "npm run security:notices", "npm audit --omit=dev --audit-level=high", "npm run lint", "node scripts/security-ci-policy.mjs", "GitHub protected-branch checks"],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["authoritative branch protection not yet configured", "central owner acceptance", "no staging/public evidence", "no immutable hosted or production-signed artifact"],
+      "blockedBy": ["administrator branch-protection bypass remains during active recovery", "central owner acceptance", "no staging/public evidence", "no immutable hosted or production-signed artifact"],
       "owner": "YNX-30",
       "nextAction": "Protect the authoritative branch, obtain green PR checks, then hand the exact contract to Product 29 for central integration.",
       "lastUpdated": "2026-07-29T06:08:33Z"

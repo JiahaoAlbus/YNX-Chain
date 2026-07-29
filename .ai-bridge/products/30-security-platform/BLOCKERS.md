@@ -4,11 +4,11 @@ Updated: 2026-07-29T06:08:33Z
 
 ## Autonomous work still open
 
-- Authoritative branch protection is not yet configured.
 - PR checks must be rerun after immutable Action pins and dependency-graph enablement.
 - Product 29 has not yet accepted the integration contract.
 - Product 28 has not yet consumed the current public metadata.
 - Machine-readable schema migration/rollback compatibility fixtures remain incomplete.
+- Administrator enforcement remains disabled during active recovery; final repository lock is pending.
 
 ## External evidence still unavailable
 

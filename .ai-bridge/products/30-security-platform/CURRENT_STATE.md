@@ -15,6 +15,6 @@ Updated: 2026-07-29T06:08:33Z
 
 The authoritative source artifact, SBOM, provenance, ephemeral test signature, tamper-rejection evidence, clean clone installation, CLI cold start, Kubernetes render, production dependency audit, and 172/172 security tests pass. GitHub push CI also passes in the authoritative repository.
 
-All external GitHub Actions in the authoritative repository have been changed from floating major tags to immutable 40-character commits in the current pending checkpoint. Public, staging, hosted-download, production-signing, and store states remain false.
+All external GitHub Actions in the authoritative repository are pinned to immutable 40-character commits. The authoritative Product 30 branch now has six strict required checks, CODEOWNERS review, stale-review dismissal, last-push approval, linear history, conversation resolution, and force-push/deletion denial. Public, staging, hosted-download, production-signing, and store states remain false.
 
 The untracked `output/` directory predates the authoritative branch switch and is preserved without deletion or attribution until provenance is established.
