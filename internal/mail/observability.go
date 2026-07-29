@@ -33,6 +33,9 @@ func (w *mailObservedWriter) WriteHeader(status int) {
 		return
 	}
 	w.status = status
+	if status >= http.StatusBadRequest && w.Header().Get("X-Error-ID") == "" {
+		w.Header().Set("X-Error-ID", mailErrorID(status))
+	}
 	w.ResponseWriter.WriteHeader(status)
 }
 

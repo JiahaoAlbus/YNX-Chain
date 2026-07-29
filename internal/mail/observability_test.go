@@ -30,7 +30,9 @@ func TestMailObservabilityCorrelatesAndRedacts(t *testing.T) {
 	invalid.Header.Set("X-Request-ID", "bad")
 	notFound := httptest.NewRecorder()
 	handler.ServeHTTP(notFound, invalid)
-	if notFound.Code != http.StatusNotFound || !strings.HasPrefix(notFound.Header().Get("X-Request-ID"), "mail_") {
+	if notFound.Code != http.StatusNotFound ||
+		!strings.HasPrefix(notFound.Header().Get("X-Request-ID"), "mail_") ||
+		notFound.Header().Get("X-Error-ID") != "YNX-MAIL-NOT-FOUND" {
 		t.Fatalf("safe request ID fallback failed: status=%d headers=%v", notFound.Code, notFound.Header())
 	}
 

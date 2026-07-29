@@ -344,8 +344,27 @@ func respond(w http.ResponseWriter, value any, err error) {
 }
 func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
+	if status >= http.StatusBadRequest && w.Header().Get("X-Error-ID") == "" {
+		w.Header().Set("X-Error-ID", mailErrorID(status))
+	}
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(value)
+}
+
+func mailErrorID(status int) string {
+	switch status {
+	case http.StatusUnauthorized:
+		return "YNX-MAIL-SESSION-REJECTED"
+	case http.StatusForbidden:
+		return "YNX-MAIL-PERMISSION-REJECTED"
+	case http.StatusNotFound:
+		return "YNX-MAIL-NOT-FOUND"
+	default:
+		if status >= http.StatusInternalServerError {
+			return "YNX-MAIL-INTERNAL-ERROR"
+		}
+		return "YNX-MAIL-REQUEST-REJECTED"
+	}
 }
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
