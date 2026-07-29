@@ -141,16 +141,16 @@
       "category": "saga",
       "requirement": "Integrate Wallet, Pay, Shop, Merchant, Exchange, DEX, Quant, Trust, Resource, Cloud, AI, Mail and Creator Saga adapters.",
       "applicability": "applicable",
-      "status": "inProgress",
+      "status": "externalBlocked",
       "evidence": ["thirteen canonical Saga definitions exist", "Pay bridge and Pay Ledger adapter are locally tested", "other product contracts remain integratedCentral=false"],
       "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
       "tests": ["internal/datafabricapi/product_flow_test.go", "internal/datafabricpay/bridge_test.go", "internal/bftgateway/pay_test.go"],
       "artifact": "integration/product-event-contracts.json",
       "publicProof": null,
-      "blockedBy": [],
+      "blockedBy": ["authoritative producer-owner Envelope v2 acceptance", "owner-approved Saga compensation semantics and pass/fail vectors"],
       "owner": "YNX Data Fabric with product owners",
-      "nextAction": "Implement and accept the next highest-risk producer adapter without modifying another product worktree.",
-      "lastUpdated": "2026-07-29T20:25:09Z"
+      "nextAction": "Resume owner-specific adapters only from accepted owner contracts; the generic producer ingress, canonical Saga definitions and Pay adapter remain fail closed meanwhile.",
+      "lastUpdated": "2026-07-29T20:26:00Z"
     },
     {
       "id": "DF-LEDGER-001",
@@ -205,16 +205,16 @@
       "category": "reconciliation",
       "requirement": "Reconcile Ledger entries against chain, Pay, Exchange, DEX and Quant authorities with coverage and unavailable-source truth.",
       "applicability": "applicable",
-      "status": "inProgress",
+      "status": "externalBlocked",
       "evidence": ["internal/datafabric/reconciliation.go", "internal/datafabricpostgres/reconciliation.go", "Pay chain/pay observations are locally tested"],
       "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
       "tests": ["internal/datafabric/reconciliation_test.go", "internal/datafabricpayledger/processor_test.go"],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": [],
+      "blockedBy": ["accepted Exchange observation contract", "accepted DEX observation contract and deployed addresses", "accepted Quant observation contract"],
       "owner": "YNX Data Fabric with authority owners",
-      "nextAction": "Add accepted Exchange, DEX and Quant observation adapters and operator resolution receipts.",
-      "lastUpdated": "2026-07-29T20:25:09Z"
+      "nextAction": "Implement authority-specific observation adapters only after the owners accept finality, unavailable-source and correction semantics; never substitute zeros or fixtures.",
+      "lastUpdated": "2026-07-29T20:26:00Z"
     },
     {
       "id": "DF-PRIVACY-001",

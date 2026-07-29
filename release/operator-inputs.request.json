@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "requestId": "ynx-data-fabric-external-inputs-v1",
   "product": "ynx-data-fabric",
-  "generatedAt": "2026-07-22T17:30:00Z",
+  "generatedAt": "2026-07-29T20:26:00Z",
   "handling": {
     "submitSecretsInChat": false,
     "secretDelivery": "Provide only an access-controlled secret-manager reference and grant the deployment identity least-privilege read access.",
@@ -43,6 +43,20 @@
         "approvedRegionAndRetentionPolicy": null
       },
       "acceptance": "Endpoints, TLS identity, least-privilege grants, backup destination, retention policy, and outage/failover test authority are approved for an isolated Testnet environment."
+    },
+    {
+      "id": "product-producer-and-reconciliation-acceptance",
+      "requiredFor": ["integratedCentral"],
+      "secret": false,
+      "request": {
+        "producerOwnerApprovalIds": {},
+        "acceptedEventContractVersions": {},
+        "acceptedSagaCompensationVersions": {},
+        "exchangeObservationContract": null,
+        "dexObservationContract": null,
+        "quantObservationContract": null
+      },
+      "acceptance": "Each authoritative product owner accepts its exact Envelope v2 event types, fee semantics, Saga compensation and fail-closed vectors; Exchange, DEX and Quant owners additionally accept read-only observation, finality, unavailable-source and correction semantics."
     },
     {
       "id": "testnet-authority-observers",
