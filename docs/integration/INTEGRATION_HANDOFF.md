@@ -3,7 +3,7 @@
 ## Authority
 
 - Product owner: `06-card`
-- Source commit: `01415dc4413dd8d4e33756a52682ca0f2a6675ec`
+- Source commit: `d79872f5df4da0566e11ef40e5314ea68d9846f4`
 - Recovery provenance: `bdd5ca02ad42b712db66a5173ecfad09340aa42c`
 - Canonical contract: `release/integration/ynx-card-contract.json`
 - Product identity: `ynx-card` / `ynx-card-v1` / `com.ynxweb4.card`
@@ -41,6 +41,16 @@ Google Pay, production signing, store release or public deployment.
 - Versioned `ynx.card.backup.v1` backup verification, verified rollback,
   bounded migration compatibility, corrupt-primary quarantine and missing-primary
   cold restore through `ynx-card-product-admin`.
+- Account-scoped `ynx.card.account-export.v1` export with provider-reference and
+  correlation-ID redaction; the redacted audit projection is rehashed into a
+  self-consistent export chain.
+- Bounded retention for notifications, AI runs, idempotency, expired Gateway
+  nonces, orphan provider replay records and pseudonymized deletion receipts.
+  Durable Card and financial event records are not removed by routine retention.
+- Fail-closed account deletion: every open provider card is closed before local
+  erasure; raw account/provider identifiers are removed, audit subjects are
+  pseudonymized and rehashed, and an idempotent deletion receipt is retained.
+  The HTTP route requires the dedicated `card:data:delete` scope.
 - Truthful `/health`, fail-closed `/ready` and `/version` endpoints.
 - Android/iOS Expo source, 12 locales and Arabic RTL.
 - Product-local security gate rejecting signing material, private-key/token
@@ -54,6 +64,11 @@ Google Pay, production signing, store release or public deployment.
 - `go build ./internal/cardproduct/cmd/ynx-card-product-admin` — passed.
 - Backup/restore drills cover tamper rejection, verified rollback, bounded migration,
   corrupt-primary quarantine and missing-primary cold restore.
+- Data lifecycle tests cover export redaction, retention boundaries, fail-closed
+  provider closure, deletion idempotency, persisted identifier removal, audit-chain
+  reconstruction and rejection without `card:data:delete`.
+- `origin/main` was merged at `d79872f5df4da0566e11ef40e5314ea68d9846f4`;
+  Card tests and race tests remained green after the merge.
 - `npm test` in `apps/card` — 8/8 passed at the recovery checkpoint.
 - `npm run typecheck` in `apps/card` — passed at the recovery checkpoint.
 - `npm run bundle-check` in `apps/card` — Android and iOS Hermes exports passed
@@ -106,14 +121,13 @@ approved secret infrastructure, never Git or chat.
 
 ## Open engineering gates
 
-1. Account-scoped export/delete, retention enforcement, encrypted off-host backup policy and timed RPO/RTO evidence.
-2. Structured logs, request/error/audit IDs, metrics and traces.
-3. Android native unsigned build/install/cold-start/deep-link evidence.
-4. iOS Simulator native build/install/callback evidence.
-5. Threat model, SBOM, dependency/license review and DAST.
-6. SLO/capacity measurements and unit-economics disclosure.
-7. Central integration, staging, hosted artifacts and public evidence.
-8. Official issuer sandbox selection and provider-specific signature mapping;
+1. Scheduled encrypted off-host backup retention, central privacy-workflow acceptance and timed RPO/RTO evidence.
+2. Android native unsigned build/install/cold-start/deep-link evidence.
+3. iOS Simulator native build/install/callback evidence.
+4. Threat model, SBOM, dependency/license review and DAST.
+5. SLO/capacity measurements and unit-economics disclosure.
+6. Central integration, staging, hosted artifacts and public evidence.
+7. Official issuer sandbox selection and provider-specific signature mapping;
    credentials are requested only after autonomous adapter work is complete.
 
 ## Release truth
