@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "21",
+  "productName": "YNX Bridge & Interoperability",
+  "phase": "TESTNET",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/21-bridge",
+  "branch": "codex/final-bridge",
+  "localSha": "8c96a3fd22b7f32dbdb5b99f5048b1f527db63ef",
+  "remoteSha": "8c96a3fd22b7f32dbdb5b99f5048b1f527db63ef",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "go test -race ./internal/bridgegateway ./cmd/ynx-bridged ./internal/appgateway ./cmd/ynx-app-gatewayd",
+    "make bridge-integration-check bridge-evidence-check bridge-restore-check no-placeholder-check secret-scan",
+    "two concurrent bridge restore drills"
+  ],
+  "latestCiRuns": [
+    {
+      "workflow": "bridge",
+      "runId": 30418066262,
+      "jobId": 90468772242,
+      "sourceCommit": "8c96a3fd22b7f32dbdb5b99f5048b1f527db63ef",
+      "conclusion": "success",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30418066262"
+    }
+  ],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [
+    {
+      "id": 8710873711,
+      "name": "ynx-bridge-verification-8c96a3fd22b7f32dbdb5b99f5048b1f527db63ef",
+      "digest": "sha256:36cef9b1f4928263ca1f591c322597add85c6ac49c5df2b38a6652414aeb33ec",
+      "bytes": 42334,
+      "expiresAt": "2026-08-28T02:55:04Z",
+      "releaseArtifact": false
+    }
+  ],
+  "publicRoutes": [
+    {
+      "url": "https://rest.ynxweb4.com/app/bridge/status",
+      "scope": "public-read-only-runtime-status",
+      "verified": true
+    },
+    {
+      "url": "https://ynxweb4.com/bridge",
+      "scope": "public-product-route",
+      "verified": true,
+      "productSpecificMetadataVerified": false
+    }
+  ],
+  "completed": [
+    "recovered exact repository state",
+    "protected and pushed restore port isolation fix",
+    "passed Bridge CI for implementation and evidence refresh commits",
+    "corrected stale Gateway and deployment status documents",
+    "created Website metadata correction handoff"
+  ],
+  "remaining": [
+    "publish immutable unsigned Testnet candidate artifacts",
+    "verify release download, install and cold start",
+    "obtain cross-owner dependency acceptance",
+    "redeploy latest verified runtime source",
+    "obtain executable route, contracts, funding, signer custody and independent review",
+    "execute funded deposit, withdrawal and recovery evidence"
+  ],
+  "blockers": [
+    "BRIDGE-EXT-001",
+    "BRIDGE-EXT-002",
+    "BRIDGE-EXT-003",
+    "BRIDGE-EXT-004"
+  ],
+  "nextAction": "Build and verify an immutable unsigned Testnet candidate package with binary, SDK, SBOM, provenance, SHA-256 manifest, installation and cold-start evidence, then publish a GitHub pre-release without changing execution truth states.",
+  "updatedAt": "2026-07-29T02:55:04Z"
+}
