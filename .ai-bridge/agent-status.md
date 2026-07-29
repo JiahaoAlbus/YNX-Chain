@@ -1,47 +1,44 @@
-# Agent Status
+# YNX Pay agent status
 
-## Result
+- Product: 04｜YNX Pay
+- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay`
+- Branch: `codex/final-pay`
+- Base HEAD at recovery: `27b811cabcf16b663a085652412be01561195629`
+- Split implementation commit: `6477a42b0b96761a74b676c4f18f2e987b628a3d`
+- Split consumer-flow commit: `a405604714645df1084ed9e06cc7d7b6f9a4d4b0`
+- Quant/service-billing commit: `8118cea0404030f6818a4769cc847f8716f60490`
+- Store recovery commit: `2303ceeed6ff8e7a8606b87a2e7155702e4e27b1`
+- Current phase: FREEZE
+- Goal status: Active
 
-Completed the 2026-07-25 YNX 18 recovery and authority-layer implementation in
-`codex/final-docs-compliance` without resetting, cleaning, deleting, force-pushing or
-modifying sibling worktrees.
+## Completed in this checkpoint
 
-## Delivered
-
-- Recovered and preserved the pre-existing fact, conflict and endpoint evidence files.
-- Added local schemas, a 12-class authoritative fact index, evidence and supersession
-  records, nine evidence-linked Claims and 12 locale records.
-- Repaired the dangling Mainnet FAQ Claim reference and replaced symbolic `git:HEAD`
-  identities with the exact recovery source commit.
-- Added a fail-closed public disclosure gate and integrated it with the existing
-  documentation compliance check and Makefile.
-- Fixed three validation paths that previously treated missing ripgrep as success.
-- Added the Docs/Compliance Integration Manifest, recovery inventory, current state
-  overlays and a dedicated GitHub Actions workflow.
-- Kept public observations component-specific and explicitly ineligible as independent
-  direct-public proof.
+- Added executable Split Payment runtime with merchant-signed immutable shares.
+- Added Wallet/Gateway share claim and deterministic authoritative child Invoice v4.
+- Bound Split settlement to the claiming payer and rejected wrong-payer evidence.
+- Added persistence normalization, aggregate Split states, idempotency, audit and public payer redaction.
+- Preserved Invoice v1/v2/v3 signature verification.
+- Added canonical Pay integration contract, handoff, dependency acceptance and cross-product vectors.
+- Added Pay client Invoice v4 and Split parsing, claim API, signature verification, total reconciliation and payer-leak rejection.
+- Added the complete local Split consumer flow: strict lookup, QR/deep links, signed plan display, 12-language/Arabic RTL shares, secure claim recovery, automatic Wallet-auth continuation and child Invoice review.
+- Added externally verified Quant/service billing: Ed25519 verifier registry, stale/tamper/key-collision rejection, net-flow-adjusted high-water-mark calculation, deposit exclusion, Invoice v5 evidence/payer binding, owner/finance RBAC, public redaction and wrong-payer rejection.
+- Added client-side Quant evidence digest/signature/calculation verification and 12-language fee review; missing verifier fails unavailable before Wallet review.
+- Added strict store snapshot-version rejection and fsync-backed atomic persistence.
+- Added immutable `0600` backups, exact-byte verification, SHA/bytes/record receipts, offline restore, verified rollback and corrupt-destination quarantine.
+- Added fixture migration/rollback drills, corruption/wrong-key/future-version rejection, and a fail-closed `ynx-pay-store` operator CLI.
+- Added full-goal coverage matrix.
 
 ## Verification
 
-- `make public-disclosure-check` — passed: 29 JSON records, 12 fact classes, 9 release states.
-- `make docs-compliance-check` — passed: 44 named artifacts, 11 indexed JSON records,
-  13 search pages, 43 public documents and the integrated disclosure gate.
-- `make no-placeholder-check` — passed with bounded grep fallback.
-- `make secret-scan` — passed with bounded dependency-aware grep fallback.
-- `make objective-state-check` — passed, including README positioning and strict SSH policy.
-- Docs/Compliance GitHub Actions YAML parsed successfully.
-- `go test ./...` — passed across all Go packages.
+- `go test ./internal/payproduct/... -count=1`: PASS
+- `go test -race ./internal/payproduct/... -count=1`: PASS; macOS linker emitted a non-fatal LC_DYSYMTAB warning.
+- `go vet ./internal/payproduct/...`: PASS.
+- `go build ./internal/payproduct/cmd/ynx-pay-store`: PASS; generated local binary removed after verification.
+- `npm run check` in `apps/pay`: PASS; TypeScript, 13/13 tests and Android/iOS Hermes bundles, including Quant Invoice v5 and external-evidence verification.
+- `make pay-api-check`: PASS.
+- `bash internal/payproduct/smoke.sh`: PASS; recovery CLI packages, Merchant Console and Android/iOS exports included.
+- `go test ./... -count=1`: FAIL outside Pay in unchanged Consensus/Faucet/Trust permission tests and missing IDE contract artifact; Pay package PASS.
 
-## Remaining external blockers
+## Truthful release state
 
-Central Website/Gateway integration, independent public availability evidence,
-canonical support/privacy/security/status routes, immutable package hosting,
-production signing, Mainnet launch, public StreamBFT activation, named legal review,
-economic review and independent audit remain false, blocked or pending their owners.
-Protected dirty or local-ahead sibling work remains unmerged candidate input.
-
-## Review note
-
-The final review diff is represented by the committed Git change set. The
-`implementation-diff.patch` file remains empty to avoid a self-referential patch that
-would include its own generated content.
+`implementedLocal=true`, `testedLocal=true`; all installed, central integration, staging, public, hosted, production-signed and store states remain false.

@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "product": "pay",
+  "capability": "quant-service-billing",
+  "sourceCommit": "8118cea0404030f6818a4769cc847f8716f60490",
+  "authority": {
+    "evidenceOwners": ["08-quant-lab", "26-data-fabric-billing-ledger"],
+    "paymentOwner": "04-pay",
+    "integrationFreezeOwner": "29-integration",
+    "acceptedEvidence": "Ed25519 signed external ledger evidence from an explicitly configured verifier key ID",
+    "frontendDeclaredPnlAccepted": false,
+    "managerDeclaredPnlAccepted": false,
+    "missingVerifierBehavior": "unavailable"
+  },
+  "evidence": {
+    "domain": "YNX_QUANT_BILLING_EVIDENCE_V1",
+    "version": 1,
+    "requiredBindings": [
+      "evidenceId",
+      "merchantId",
+      "payerAccountHash",
+      "invoicePayerAccountHash",
+      "serviceReference",
+      "periodStart",
+      "periodEnd",
+      "startEquityYnxt",
+      "endEquityYnxt",
+      "netExternalFlowsYnxt",
+      "previousHighWaterMarkYnxt",
+      "performanceFeeBps",
+      "computeFeeYnxt",
+      "dataFeeYnxt",
+      "subscriptionFeeYnxt",
+      "managementFeeYnxt",
+      "asset",
+      "network",
+      "source",
+      "sourceVersion",
+      "asOf",
+      "expiresAt",
+      "evidenceKeyId",
+      "evidencePublicKey",
+      "signatureAlgorithm"
+    ],
+    "network": "ynx_6423-1",
+    "asset": "YNXT",
+    "signatureAlgorithm": "ed25519",
+    "maximumPerformanceFeeBps": 5000,
+    "maximumConfiguredEvidenceAgeDays": 7,
+    "defaultEvidenceAgeHours": 24,
+    "rawPayerPubliclyExposed": false,
+    "publicCrossDomainPayerBinding": true
+  },
+  "calculation": {
+    "domain": "YNX_QUANT_HIGH_WATER_MARK_V1",
+    "adjustedEndEquity": "endEquityYnxt - netExternalFlowsYnxt",
+    "highWaterMarkBase": "max(previousHighWaterMarkYnxt, startEquityYnxt)",
+    "eligibleProfit": "max(0, adjustedEndEquity - highWaterMarkBase)",
+    "performanceFee": "floor(eligibleProfit * performanceFeeBps / 10000)",
+    "totalServiceFee": "computeFeeYnxt + dataFeeYnxt + subscriptionFeeYnxt + managementFeeYnxt + performanceFee",
+    "newHighWaterMark": "max(previousHighWaterMarkYnxt, adjustedEndEquity - performanceFee)",
+    "integerArithmetic": true,
+    "depositClassifiedAsProfit": false,
+    "withdrawalAdjustment": true,
+    "overflowBehavior": "reject"
+  },
+  "payment": {
+    "invoiceVersion": 5,
+    "signedBindings": ["serviceBillId", "serviceEvidenceDigest", "expectedPayerHash"],
+    "wrongPayerBehavior": "reject authoritative settlement",
+    "paidAuthority": "authoritative-central-pay-api",
+    "merchantRoles": ["owner", "finance"],
+    "publicRoutes": [
+      {"method": "GET", "path": "/v1/quant-bills/{id}"}
+    ],
+    "merchantRoutes": [
+      {"method": "POST", "path": "/v1/merchant/quant-bills"}
+    ]
+  },
+  "client": {
+    "verifierConfiguration": "EXPO_PUBLIC_YNX_QUANT_VERIFIERS",
+    "independentEvidenceSignatureVerification": true,
+    "independentEvidenceDigestVerification": true,
+    "independentHighWaterMarkRecalculation": true,
+    "invoiceV5BindingVerification": true,
+    "supportedLocales": 12,
+    "arabicRTL": true,
+    "missingOrInvalidVerifierBehavior": "unavailable before Wallet review"
+  },
+  "tests": [
+    "TestQuantBillingUsesSignedExternalHighWaterMarkEvidence",
+    "TestQuantBillingRejectsTamperStaleAndUnapprovedEvidence",
+    "TestQuantVerifierConfigurationRejectsNormalizedIDCollision",
+    "TestQuantBillingExcludesDepositsFromPerformanceProfit",
+    "TestQuantBillingHTTPRoleAndPublicRedaction",
+    "TestDecodeVerifierMapAcceptsExactEd25519PublicKeys",
+    "TestDecodeVerifierMapFailsClosed",
+    "version 5 invoice requires service evidence bindings",
+    "Quant bill independently verifies signed high-water-mark evidence"
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicEvidenceKeyAccepted": false,
+    "freshTestnetPaymentProven": false
+  }
+}

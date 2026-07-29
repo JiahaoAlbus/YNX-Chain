@@ -1,0 +1,1 @@
+{"extends":"expo/tsconfig.base","compilerOptions":{"strict":true,"noUncheckedIndexedAccess":true},"exclude":["src/**/*.test.ts","tests","playwright.config.ts","dist","dist-web"]}

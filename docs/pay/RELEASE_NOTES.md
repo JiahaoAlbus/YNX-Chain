@@ -1,0 +1,23 @@
+# YNX Pay Testnet release notes
+
+## Unreleased
+
+Recovered the canonical-Wallet Pay, Merchant Console and sandbox Card work into the dedicated Pay delivery branch. Local settlement verification binds Wallet-signed intent data to the invoice and authoritative central Pay response. Merchant sessions are short-lived and product/device scoped. Refund requests, disputes and signed webhook retries remain human/operator workflows and cannot create paid state.
+
+Added an optional HTTPS paymaster adapter. It is disabled unless an operator supplies an approved endpoint, server credential, sponsor identity and positive budgets. Quotes bind the Wallet account, product device, smart account, merchant, invoice and call-data hash. First-payment eligibility and global/user/merchant daily budgets fail closed. A provider-backed committed UserOperation receipt is persisted with sponsor attribution but cannot mark the invoice paid.
+
+Added an optional HTTPS bridge/interop adapter and explainable route engine. Native, active-sponsored and external candidates disclose normalized cost, fees, FX, bridge risk, time, finality, health and evidence source. External routes require an explicit user risk ceiling. The bridge lifecycle cannot skip normal stages, and destination confirmation only makes funds eligible for a later Wallet-approved YNX payment; it never marks an invoice paid.
+
+Added authoritative partial/full refund completion. Payer requests remain non-financial records. Submission requires an owner/finance merchant session and an exact merchant-Wallet signature bound to the request, payer, amount, asset and refund transaction. Aggregate active refunds cannot exceed the paid amount. `refunded` appears only after a matching committed central Pay receipt; the original payment receipt remains immutable.
+
+Added a typed settlement-asset registry and `GET /v1/settlement-assets`. Native YNXT, Testnet stablecoins and fiat are separate classes. Stablecoin enablement requires an exact YNX contract, decimals, provider and legal approval, healthy status, attestations, limits, pause/depeg controls and complete provenance. YUSD additionally requires reserve, mint/burn, redemption and supply-reconciliation evidence. Circle's official lists do not currently include YNX chain ID 6423, so USDC/CCTP is explicitly unavailable and has no configured or inferred contract address.
+
+Completed the local webhook dead-letter lifecycle. Five failed attempts now enter a terminal `dead_letter` state and are excluded from automatic retries. Owner/developer manual replay requires a reason and idempotency key, creates a newly signed delivery ID linked to the original, and records the Wallet-authenticated actor in audit. Existing stored `failed` deliveries migrate to `dead_letter` without being silently retried.
+
+Added invoice v3 tip support. Merchants submit a positive base amount and an optional non-negative tip capped at the base amount. The central Pay intent and invoice use the reconciled total; the merchant signature separately binds base, tip and total along with the complete fee ledger. Pay rejects inconsistent fields and shows base/tip in all twelve supported locales before Wallet review. Legacy v1 and v2 signature verification remains intact.
+
+Added non-executing recurring drafts. Owner/finance users can persist a merchant-signed payer, amount, cadence, start and occurrence ceiling. The model hard-codes `automaticChargeEnabled=false` and `walletApprovalEveryOccurrence=true`; creation makes no central intent, invoice, transaction or standing Wallet mandate. Future occurrence generation is still unavailable and is not represented as complete.
+
+Added source-bound store recovery at `2303ceeed6ff8e7a8606b87a2e7155702e4e27b1`. Store writes now use a same-directory temporary file, `0600` permissions, file fsync, atomic rename and non-Windows directory fsync; unsupported future snapshot versions fail closed. The new `ynx-pay-store` CLI verifies stores, creates immutable SHA/bytes/record-count backup receipts, and performs offline restore from one validated source read. It preserves a valid destination as a verified rollback artifact or preserves a corrupt destination as quarantine evidence. Fixture tests cover legacy-field migration, rollback, corruption, wrong keys, future versions and immutable-output rejection. Production-volume RTO/RPO and remote retention remain separate gates.
+
+This is not a public release. Central Gateway integration, current device installation proof, fresh Testnet payment/refund/sponsorship evidence, hosted downloads, production signing and store release are not complete.

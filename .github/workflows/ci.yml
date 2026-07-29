@@ -35,3 +35,41 @@ jobs:
       - run: make ecosystem-package
       - run: make exchange-package
       - run: make mainnet-readiness
+
+  pay-card-ios-native:
+    runs-on: macos-15
+    env:
+      # ExpoModulesJSI currently declares Swift tools 6.2. The macOS 15
+      # runner defaults to Xcode 16.4 / Swift 6.1, while Xcode 26.2 is
+      # installed on the same image and provides the required toolchain.
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: pay
+            scheme: YNXPay
+          - app: card
+            scheme: YNXCard
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
+      - run: npm ci
+      - run: npx pod-install ios
+      - name: Build iOS Simulator app without signing
+        run: >-
+          xcodebuild
+          -workspace ios/${{ matrix.scheme }}.xcworkspace
+          -scheme ${{ matrix.scheme }}
+          -configuration Release
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build
