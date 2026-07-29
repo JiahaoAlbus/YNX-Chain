@@ -2,6 +2,8 @@
 .PHONY: bft-evm-receipt-check bft-ide-contract-check native-wallet-check chat-api-check square-api-check app-gateway-check app-account-ownership-check browser-signer-check mobile-check mobile-product-split-check mobile-android-native-check mobile-android-release-check mobile-android-release-installed-check mobile-biometric-installed-check
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check governance-check governance-testnet-drill
 .PHONY: integration-coverage-refresh integration-coverage-refresh-check integration-acceptance-refresh integration-acceptance-check integration-release-acceptance-check integration-product-release-matrix-refresh integration-product-release-matrix-check integration-npm-audit-policy-check integration-npm-audit-policy-check-test integration-protect-preflight
+.PHONY: bft-evm-legacy-transfer-check bft-evm-access-list-transfer-check bft-evm-dynamic-fee-transfer-check bft-evm-fee-suggestion-check bft-evm-fee-history-check asset-primitives-check
+.PHONY: yusd-sandbox-check liquid-staking-candidate-check safety-module-candidate-check account-abstraction-check solvency-check integration-contract-check consensus-state-sync-check consensus-eip1559-commit-check consensus-fee-history-check streambft-candidate-check chain-core-release-check
 
 setup:
 	go mod tidy
@@ -182,6 +184,21 @@ bft-gateway-check:
 
 bft-evm-receipt-check:
 	bash ./scripts/verify/bft-evm-receipt-check.sh
+
+bft-evm-legacy-transfer-check:
+	bash ./scripts/verify/bft-evm-legacy-transfer-check.sh
+
+bft-evm-access-list-transfer-check:
+	bash ./scripts/verify/bft-evm-access-list-transfer-check.sh
+
+bft-evm-dynamic-fee-transfer-check:
+	bash ./scripts/verify/bft-evm-dynamic-fee-transfer-check.sh
+
+bft-evm-fee-suggestion-check:
+	bash ./scripts/verify/bft-evm-fee-suggestion-check.sh
+
+bft-evm-fee-history-check:
+	bash ./scripts/verify/bft-evm-fee-history-check.sh
 
 bft-ide-contract-check:
 	bash ./scripts/verify/bft-ide-contract-check.sh
@@ -457,6 +474,17 @@ bridge-api-check:
 stablecoin-issuer-check:
 	bash ./scripts/verify/stablecoin-issuer-check.sh
 
+yusd-sandbox-check:
+	go test -race ./internal/yusdsandbox ./cmd/ynx-yusd-sandboxd
+
+liquid-staking-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-liquid-staking-sim
+	go run ./cmd/ynx-liquid-staking-sim -input economics/examples/liquid-staking-stress.json >/dev/null
+
+safety-module-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-safety-module-sim -run 'SafetyModule'
+	go run ./cmd/ynx-safety-module-sim -input economics/examples/safety-module-shortfall.json >/dev/null
+
 resource-market-check:
 	bash ./scripts/verify/resource-market-check.sh
 
@@ -477,6 +505,35 @@ consensus-signed-transfer-check:
 
 consensus-quorum-check:
 	bash ./scripts/verify/consensus-quorum-check.sh
+
+consensus-state-sync-check:
+	bash ./scripts/verify/consensus-state-sync-check.sh
+
+consensus-eip1559-commit-check:
+	bash ./scripts/verify/consensus-eip1559-commit-check.sh
+
+consensus-fee-history-check:
+	bash ./scripts/verify/consensus-fee-history-check.sh
+
+streambft-candidate-check:
+	bash ./scripts/verify/streambft-candidate-check.sh
+
+chain-core-release-check:
+	node ./scripts/verify/chain-core-release-check.mjs
+
+asset-primitives-check:
+	bash ./scripts/verify/asset-primitives-check.sh
+
+account-abstraction-check:
+	go test -count=1 ./internal/assetauth ./internal/consensus ./internal/bftgateway ./internal/bundler ./cmd/ynx-bundlerd -run 'SmartAccount|UserOperation|Paymaster|Sponsored|Bundler'
+	go test -race -count=1 ./internal/assetauth ./internal/consensus ./internal/bftgateway ./internal/bundler -run 'SmartAccount|UserOperation|Paymaster|Sponsored|Bundler'
+
+solvency-check:
+	go test -count=1 ./internal/consensus ./internal/bftgateway -run 'Solvency|Staking'
+	go test -race -count=1 ./internal/consensus ./internal/bftgateway -run 'Solvency|Staking'
+
+integration-contract-check:
+	node ./scripts/verify/integration-contract-check.mjs
 
 governance-check:
 	bash ./scripts/verify/governance-check.sh

@@ -5,6 +5,7 @@ const BECH32_REVERSE = Object.freeze(Object.fromEntries([...BECH32_CHARSET].map(
 
 export {ynxTestnet} from "./ynx-testnet.js";
 export {YNXWalletError, ensureYNXTestnet, ynxTestnetAddEthereumChainParameter} from "./wallet.js";
+export {createStrategyMandate, createUserOperation, sessionScope, userOperationDigest} from "./primitives.js";
 
 export class YNXSDKError extends Error {
   constructor(message, {cause, status, code} = {}) {

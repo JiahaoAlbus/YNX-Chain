@@ -42,7 +42,10 @@ func TestGatewayRequiresDedicatedKeys(t *testing.T) {
 	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 111))
 	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
 	unsafe := t.TempDir() + "/unsafe.key"
-	if err := os.WriteFile(unsafe, key.Serialize(), 0o644); err != nil {
+	if err := os.WriteFile(unsafe, key.Serialize(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(unsafe, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Chmod(unsafe, 0o644); err != nil {

@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -112,8 +113,16 @@ func TestFaucetRequiresKey(t *testing.T) {
 func TestBFTFaucetSignsLocallyAndSerializesConcurrentNonces(t *testing.T) {
 	privateKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 21))
 	faucetAddress, _ := consensus.NativeAddress(privateKey.PubKey().SerializeCompressed())
-	recipientOne := nativeAddress(t, 22)
-	recipientTwo := nativeAddress(t, 23)
+	recipientOneEVM := nativeAddress(t, 22)
+	recipientTwoEVM := nativeAddress(t, 23)
+	recipientOneYNX, err := accountaddress.Encode(recipientOneEVM)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recipientTwoYNX, err := accountaddress.Encode(recipientTwoEVM)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	var mu sync.Mutex
 	account := chain.ConsensusAccount{Address: faucetAddress, Balance: 100, Lots: map[string]int64{"faucet": 100}}
@@ -166,22 +175,34 @@ func TestBFTFaucetSignsLocallyAndSerializesConcurrentNonces(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	type requestCase struct {
+		requested string
+		native    string
+		evm       string
+	}
+	cases := []requestCase{
+		{requested: recipientOneEVM, native: recipientOneYNX, evm: recipientOneEVM},
+		{requested: recipientTwoYNX, native: recipientTwoYNX, evm: recipientTwoEVM},
+	}
 	var wg sync.WaitGroup
-	errors := make(chan error, 2)
-	for index, recipient := range []string{recipientOne, recipientTwo} {
+	errors := make(chan error, len(cases))
+	for index, testCase := range cases {
 		wg.Add(1)
-		go func(index int, recipient string) {
+		go func(index int, testCase requestCase) {
 			defer wg.Done()
-			response, status, err := service.Request(context.Background(), Request{Address: recipient}, fmt.Sprintf("127.0.0.%d:9000", index+1))
-			if err != nil || status != http.StatusCreated || response.Transaction.To != recipient || response.TruthfulStatus != "bft-gateway-signed-faucet" {
-				errors <- fmt.Errorf("recipient=%s status=%d response=%+v err=%v", recipient, status, response, err)
+			response, status, err := service.Request(context.Background(), Request{Address: testCase.requested}, fmt.Sprintf("127.0.0.%d:9000", index+1))
+			if err != nil || status != http.StatusCreated || response.Address != testCase.requested || response.CanonicalAddress != testCase.native || response.EVMAddress != testCase.evm || response.Transaction.To != testCase.evm || response.TruthfulStatus != "bft-gateway-signed-faucet" {
+				errors <- fmt.Errorf("recipient=%+v status=%d response=%+v err=%v", testCase, status, response, err)
 			}
-		}(index, recipient)
+		}(index, testCase)
 	}
 	wg.Wait()
 	close(errors)
 	for err := range errors {
 		t.Error(err)
+	}
+	if _, status, err := service.Request(context.Background(), Request{Address: recipientTwoEVM}, "127.0.0.2:9000"); err == nil || status != http.StatusTooManyRequests {
+		t.Fatalf("native alias bypassed EVM-address rate limit: status=%d err=%v", status, err)
 	}
 	mu.Lock()
 	sort.Slice(observedNonces, func(i, j int) bool { return observedNonces[i] < observedNonces[j] })
@@ -196,6 +217,46 @@ func TestBFTFaucetSignsLocallyAndSerializesConcurrentNonces(t *testing.T) {
 	health := service.CheckHealth(context.Background())
 	if !health.OK || !health.UpstreamOK || health.UpstreamMode != UpstreamBFT || health.FaucetAddress != faucetAddress || health.TruthfulStatus != "bft-gateway-signed-faucet" {
 		t.Fatalf("unexpected BFT health: %+v", health)
+	}
+	faucetYNX, err := accountaddress.Encode(faucetAddress)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, status, err := service.Request(context.Background(), Request{Address: faucetYNX}, "127.0.0.9:9000"); err == nil || status != http.StatusBadRequest {
+		t.Fatalf("YNX alias allowed faucet self-funding: status=%d err=%v", status, err)
+	}
+}
+
+func TestBFTFaucetHealthRejectsWrongChainAndZeroHeight(t *testing.T) {
+	privateKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 30))
+	faucetAddress, _ := consensus.NativeAddress(privateKey.PubKey().SerializeCompressed())
+	for _, testCase := range []struct {
+		name    string
+		chainID int64
+		height  uint64
+		error   string
+	}{
+		{name: "wrong-chain", chainID: 1, height: 50, error: "does not match"},
+		{name: "zero-height", chainID: 6423, height: 0, error: "committed block"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/status" {
+					http.NotFound(w, r)
+					return
+				}
+				_ = json.NewEncoder(w).Encode(map[string]any{"chainId": testCase.chainID, "height": testCase.height, "nativeCurrencySymbol": "YNXT"})
+			}))
+			defer gateway.Close()
+			service, err := New(Config{RPCURL: gateway.URL, UpstreamMode: UpstreamBFT, FaucetKey: hex.EncodeToString(privateKey.Serialize()), FaucetAddress: faucetAddress, ChainID: 6423, DefaultAmount: 10, MaxAmount: 10, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			health := service.CheckHealth(context.Background())
+			if health.OK || health.UpstreamOK || !strings.Contains(health.LastError, testCase.error) {
+				t.Fatalf("unsafe upstream passed health gate: %+v", health)
+			}
+		})
 	}
 }
 
@@ -287,7 +348,10 @@ func TestBFTFaucetRejectsUpstreamFailureAndUnsafeCustody(t *testing.T) {
 	}
 
 	keyPath := t.TempDir() + "/faucet.key"
-	if err := os.WriteFile(keyPath, privateKey.Serialize(), 0o644); err != nil {
+	if err := os.WriteFile(keyPath, privateKey.Serialize(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(keyPath, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Chmod(keyPath, 0o644); err != nil {

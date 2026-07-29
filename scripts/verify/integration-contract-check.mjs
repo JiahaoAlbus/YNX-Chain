@@ -1,0 +1,282 @@
+#!/usr/bin/env node
+
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+
+const readJSON = (path) => JSON.parse(readFileSync(path, "utf8"));
+const fail = (message) => {
+  throw new Error(`integration-contract-check: ${message}`);
+};
+const requireValue = (condition, message) => {
+  if (!condition) fail(message);
+};
+const requireRoute = (source, route) => {
+  requireValue(source.includes(`HandleFunc(\"${route}\"`), `runtime route missing: ${route}`);
+};
+const rejectInternalStrings = (value, path = "root") => {
+  if (typeof value === "string") {
+    requireValue(!value.includes("/Users/"), `${path} leaks a local user path`);
+    requireValue(!value.includes("Worktree"), `${path} leaks an internal workspace term`);
+    requireValue(!value.includes("codex/"), `${path} leaks an internal branch`);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => rejectInternalStrings(entry, `${path}[${index}]`));
+    return;
+  }
+  if (value && typeof value === "object") {
+    Object.entries(value).forEach(([key, entry]) => rejectInternalStrings(entry, `${path}.${key}`));
+  }
+};
+
+const release = readJSON("release/chain-core/product-release.json");
+const contract = readJSON("release/integration/chain-core-contract.json");
+const vectors = readJSON("docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json");
+const metadata = readJSON("chain-metadata/ynx-testnet.json");
+const stateSource = readFileSync("internal/consensus/state.go", "utf8");
+const applicationSource = readFileSync("internal/consensus/application.go", "utf8");
+const ethereumTransactionSource = readFileSync("internal/consensus/ethereum_transaction.go", "utf8");
+const snapshotSource = readFileSync("internal/consensus/snapshot.go", "utf8");
+const gatewaySource = readFileSync("internal/bftgateway/gateway.go", "utf8");
+const evmSource = readFileSync("internal/bftgateway/evm.go", "utf8");
+const bundlerSource = readFileSync("internal/bundler/server.go", "utf8");
+const quantGatewaySource = readFileSync("internal/bftgateway/quant.go", "utf8");
+const assetAuthorizationSource = readFileSync("internal/consensus/asset_authorization_action.go", "utf8");
+const signerCliSource = readFileSync("cmd/ynx-consensus-tx/main.go", "utf8");
+const consensusLabSource = readFileSync("cmd/ynx-consensus-lab/main.go", "utf8");
+const quorumCheckSource = readFileSync("scripts/verify/consensus-quorum-check.sh", "utf8");
+const eip1559CommitCheckSource = readFileSync("scripts/verify/consensus-eip1559-commit-check.sh", "utf8");
+const feeHistoryCheckSource = readFileSync("scripts/verify/bft-evm-fee-history-check.sh", "utf8");
+const consensusFeeHistoryCheckSource = readFileSync("scripts/verify/consensus-fee-history-check.sh", "utf8");
+
+requireValue(release.schema === "ynx-product-release/v1", "unexpected product release schema");
+requireValue(contract.schema === "ynx-integration-contract/v1", "unexpected contract schema");
+requireValue(vectors.schema === "ynx-cross-product-test-vectors/v1", "unexpected vector schema");
+requireValue(release.source.implementationCommit === contract.sourceCommit, "release and contract source commits differ");
+requireValue(release.source.contractVersion === contract.contractVersion, "release and contract versions differ");
+requireValue(contract.sourceCommit === vectors.sourceCommit, "contract and vectors source commits differ");
+requireValue(/^[0-9a-f]{40}$/.test(contract.sourceCommit), "source commit must be a full 40-character Git identifier");
+execFileSync("git", ["merge-base", "--is-ancestor", contract.sourceCommit, "HEAD"], { stdio: "ignore" });
+
+requireValue(metadata.chainId === 6423, "metadata EVM chain ID drift");
+requireValue(metadata.nativeCurrency?.symbol === "YNXT", "metadata native asset drift");
+requireValue(contract.networkIdentity.cosmosChainId === "ynx_6423-1", "Cosmos chain ID drift");
+requireValue(contract.networkIdentity.evmChainIdDecimal === metadata.chainId, "contract and metadata EVM chain ID differ");
+requireValue(contract.networkIdentity.evmChainIdHex === "0x1917", "hex EVM chain ID drift");
+requireValue(contract.networkIdentity.nativeAsset === metadata.nativeCurrency.symbol, "contract and metadata native asset differ");
+requireValue(stateSource.includes("const CommittedStateVersion = 12"), "runtime committed-state version drift");
+requireValue(stateSource.includes('calculateHashFor("YNX_ABCI_STATE_V12", CommittedStateVersion)'), "runtime AppHash domain drift");
+requireValue(applicationSource.includes("ApplicationVersion   = 18"), "runtime ABCI application version drift");
+for (const method of ["ListSnapshots", "OfferSnapshot", "LoadSnapshotChunk", "ApplySnapshotChunk"]) {
+  requireValue(snapshotSource.includes(`func (a *Application) ${method}`), `runtime state sync method missing: ${method}`);
+}
+requireValue(snapshotSource.includes("stateSyncSnapshotMaxBytes         = 64 << 20"), "runtime state sync size bound drift");
+requireValue(contract.stateSchema.committedStateVersion === 12, "contract committed-state version drift");
+requireValue(contract.stateSchema.applicationVersion === 18, "contract ABCI application version drift");
+requireValue(contract.stateSchema.appHashDomain === "YNX_ABCI_STATE_V12", "contract AppHash domain drift");
+requireValue(contract.stateSchema.stateSyncSnapshotFormat === 1, "contract state sync format drift");
+requireValue(contract.stateSchema.stateSyncSnapshotMaxBytes === 67108864, "contract state sync size bound drift");
+requireValue(contract.recovery.abciStateSync.implementedLocal === true && contract.recovery.abciStateSync.testedLocal === true, "state sync recovery status drift");
+requireValue(contract.recovery.abciStateSync.trustedAppHashRequired === true && contract.recovery.abciStateSync.atomicPersistence === true, "state sync safety boundary drift");
+requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplete === false, "local recovery evidence cannot claim a remote drill");
+
+for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
+  requireRoute(gatewaySource, route);
+}
+requireValue(contract.contractVersion === "1.12.0", "unexpected Chain Core contract version");
+requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
+requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
+requireValue(contract.evmRpc.historicalContractState === false, "EVM RPC cannot claim historical contract state");
+requireValue(contract.evmRpc.pendingBlockAvailable === false, "EVM RPC cannot claim a pending block");
+requireValue(contract.evmRpc.boundedContractRuntimeMode === "pinned-artifact-bounded-evm-subset", "bounded EVM runtime mode drift");
+requireValue(contract.evmRpc.boundedCallNonZeroValue === false, "bounded EVM call cannot claim non-zero value support");
+requireValue(contract.evmRpc.boundedCallStateOverrides === false, "bounded EVM call cannot claim state override support");
+for (const method of contract.evmRpc.methods) {
+  requireValue(gatewaySource.includes(`case \"${method}\"`) || gatewaySource.includes(`\"${method}\"`), `runtime EVM method missing: ${method}`);
+}
+for (const implementation of ["evmFeeHistory", "evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedBlockTransactionResult", "evmCommittedAccountResult", "evmCommittedContractCode", "evmCommittedContractCall", "evmCommittedResult"]) {
+  requireValue(evmSource.includes(`func (g *Gateway) ${implementation}`), `runtime EVM implementation missing: ${implementation}`);
+}
+for (const fragment of ["EthereumLegacyTransferType", "EthereumAccessListTransferType", "EthereumDynamicFeeTransferType", "EthereumTransferGasLimit", "EthereumCompatibilityBaseFeePerGas", "DecodeEthereumLegacyTransaction", "DecodeEthereumAccessListTransaction", "DecodeEthereumDynamicFeeTransaction", "DecodeEthereumValueTransfer", "func (tx EthereumLegacyTransaction) Verify", "func (tx EthereumAccessListTransaction) Verify", "func (tx EthereumDynamicFeeTransaction) Verify", "func (tx EthereumValueTransfer) MaximumGasFee"]) {
+  requireValue(ethereumTransactionSource.includes(fragment), `bounded Ethereum transaction runtime evidence missing: ${fragment}`);
+}
+const legacyProfile = contract.evmRpc.ethereumLegacyTransactionProfile;
+requireValue(legacyProfile.transactionType === "0x0" && legacyProfile.chainId === 6423 && legacyProfile.gasLimit === 21000, "bounded EIP-155 identity or gas profile drift");
+requireValue(legacyProfile.contractCreation === false && legacyProfile.calldata === false && legacyProfile.accessLists === false && legacyProfile.typedTransactions === false, "bounded EIP-155 unsupported feature boundary drift");
+requireValue(legacyProfile.signatureRecovery === true && legacyProfile.dualHashIdentity === true && legacyProfile.receiptAuditValidation === true, "bounded EIP-155 evidence profile drift");
+const accessListProfile = contract.evmRpc.ethereumAccessListTransactionProfile;
+requireValue(accessListProfile.transactionType === "0x1" && accessListProfile.standard === "EIP-2930" && accessListProfile.chainId === 6423 && accessListProfile.gasLimit === 21000, "bounded EIP-2930 identity or gas profile drift");
+requireValue(accessListProfile.accessList === "empty-only" && accessListProfile.contractCreation === false && accessListProfile.calldata === false && accessListProfile.eip1559Fees === false, "bounded EIP-2930 unsupported feature boundary drift");
+requireValue(accessListProfile.signatureRecovery === true && accessListProfile.yParity === true && accessListProfile.dualHashIdentity === true && accessListProfile.receiptAuditValidation === true, "bounded EIP-2930 evidence profile drift");
+const dynamicFeeProfile = contract.evmRpc.ethereumDynamicFeeTransactionProfile;
+requireValue(dynamicFeeProfile.transactionType === "0x2" && dynamicFeeProfile.standard === "EIP-1559" && dynamicFeeProfile.chainId === 6423 && dynamicFeeProfile.gasLimit === 21000, "bounded EIP-1559 identity or gas profile drift");
+requireValue(dynamicFeeProfile.accessList === "empty-only" && dynamicFeeProfile.contractCreation === false && dynamicFeeProfile.calldata === false && dynamicFeeProfile.baseFeePerGas === 0 && dynamicFeeProfile.effectiveGasPrice === "maxPriorityFeePerGas", "bounded EIP-1559 compatibility boundary drift");
+requireValue(dynamicFeeProfile.maximumFeeExposureRequired === true && dynamicFeeProfile.maximumAffordabilityCheck === "value-plus-maxFeePerGas-times-gasLimit" && dynamicFeeProfile.finalDebit === "value-plus-effectiveGasPrice-times-gasLimit" && dynamicFeeProfile.dynamicBaseFeeMarket === false && dynamicFeeProfile.burn === false && dynamicFeeProfile.signatureRecovery === true && dynamicFeeProfile.yParity === true && dynamicFeeProfile.dualHashIdentity === true && dynamicFeeProfile.receiptAuditValidation === true, "bounded EIP-1559 evidence profile drift");
+const feeSuggestionProfile = contract.evmRpc.feeSuggestionProfile;
+requireValue(feeSuggestionProfile.minimumAcceptedGasPrice === 1 && feeSuggestionProfile.gasPriceResponse === "0x1" && feeSuggestionProfile.maxPriorityFeePerGasResponse === "0x1", "minimum gas price suggestion drift");
+requireValue(feeSuggestionProfile.params === "omitted-or-empty-array-only" && feeSuggestionProfile.marketEstimate === false && feeSuggestionProfile.historicalFeeHistory === "conditional-retained-committed-only" && feeSuggestionProfile.ethFeeHistorySupported === true && feeSuggestionProfile.dynamicBaseFeeMarket === false, "fee suggestion truth boundary drift");
+const feeHistoryProfile = contract.evmRpc.feeHistoryProfile;
+requireValue(feeHistoryProfile.blockCount === "canonical-hex-quantity-1-to-1024" && feeHistoryProfile.newestBlock === "retained-committed-block-only" && feeHistoryProfile.retainedRangeClamped === true, "fee history range boundary drift");
+requireValue(feeHistoryProfile.baseFeePerGas === 0 && feeHistoryProfile.gasUsedSource === "CometBFT block_results" && feeHistoryProfile.gasLimitSource === "CometBFT committed consensus_params block.max_gas" && feeHistoryProfile.positiveMaxGasRequired === true && feeHistoryProfile.nonPositiveMaxGasRpcCode === -32004, "fee history evidence boundary drift");
+requireValue(feeHistoryProfile.rewardPercentiles === "omitted-or-empty-array-only" && feeHistoryProfile.rewardEstimatesAvailable === false && feeHistoryProfile.pendingAvailable === false && feeHistoryProfile.dynamicBaseFeeMarket === false, "fee history unsupported feature boundary drift");
+requireValue(ethereumTransactionSource.includes("EthereumMinimumGasPrice") && evmSource.includes("evmFeeSuggestionResult"), "fee suggestion runtime binding missing");
+requireValue(evmSource.includes("committedBlockGasLimit") && evmSource.includes('"/consensus_params"') && evmSource.includes("evmFeeHistoryUnavailable") && gatewaySource.includes('case "eth_feeHistory"'), "fee history runtime binding missing");
+requireValue(feeHistoryCheckSource.includes("positive CometBFT consensus max_gas") && feeHistoryCheckSource.includes("fails closed"), "fee history verification gate drift");
+const localFeeHistoryProof = feeHistoryProfile.localFourValidatorProof;
+requireValue(localFeeHistoryProof.consensusMaxGas === 42000 && localFeeHistoryProof.committedGasUsed === 21000 && localFeeHistoryProof.gasUsedRatio === 0.5 && localFeeHistoryProof.transactionType === "0x2" && localFeeHistoryProof.validatorCount === 4 && localFeeHistoryProof.public === false && localFeeHistoryProof.productionSigned === false, "four-validator fee history proof profile drift");
+requireValue(consensusFeeHistoryCheckSource.includes("max_gas=42000") && consensusFeeHistoryCheckSource.includes("gasUsedRatio=0.5") && consensusFeeHistoryCheckSource.includes("public/production flags remain false"), "four-validator fee history proof gate drift");
+const signerCliProfile = contract.evmRpc.signerCliProfile;
+requireValue(signerCliProfile.command === "ynx-consensus-tx" && JSON.stringify(signerCliProfile.envelopes) === JSON.stringify(["ynx", "eip155", "eip2930", "eip1559"]), "signer CLI envelope profile drift");
+requireValue(JSON.stringify(signerCliProfile.outputFormats) === JSON.stringify(["raw", "json"]) && signerCliProfile.keyFilePermissions === "0600" && signerCliProfile.privateKeyOutput === false && signerCliProfile.dualHashEvidence === true, "signer CLI security or evidence profile drift");
+for (const fragment of ["envelopeEIP155", "envelopeEIP2930", "envelopeEIP1559", 'format != "raw" && format != "json"', "PayloadHex", "CometHash", "loadPrivateKey", "info.Mode().Perm()&0o077"]) {
+  requireValue(signerCliSource.includes(fragment), `signer CLI runtime evidence missing: ${fragment}`);
+}
+requireValue(contract.localConsensusLab.fixtureBalanceConfigurable === true && contract.localConsensusLab.fixtureBalancePositiveOnly === true && contract.localConsensusLab.ephemeralLocalOnly === true && contract.localConsensusLab.publicDeploymentEvidence === false, "local consensus lab boundary drift");
+requireValue(consensusLabSource.includes("fixture-balance") && consensusLabSource.includes("localMigrationFixture"), "configurable consensus fixture runtime evidence missing");
+const fourValidatorProof = contract.recovery.fourValidatorEIP1559CommitProof;
+requireValue(fourValidatorProof.script === "scripts/verify/consensus-eip1559-commit-check.sh" && fourValidatorProof.mode === "local-ephemeral-four-validator" && fourValidatorProof.validatorCount === 4 && fourValidatorProof.gatewayBroadcastCommit === true && fourValidatorProof.ethereumAndCometDualIdentityValidated === true && fourValidatorProof.blockNumberAndHashReadbackValidated === true && fourValidatorProof.cometTransactionMembershipValidated === true && fourValidatorProof.auditedReceiptValidated === true && fourValidatorProof.allValidatorAppHashEqual === true && fourValidatorProof.allValidatorReceiptEvidenceEqual === true && fourValidatorProof.allValidatorAccountStateEqual === true && fourValidatorProof.accountBalanceAndNonceReadbackValidated === true && fourValidatorProof.backupRollbackReplayIncludesDynamicFeeState === true && fourValidatorProof.wrongChainRejected === true && fourValidatorProof.replayRejected === true && fourValidatorProof.deployedPublic === false && fourValidatorProof.productionSigned === false, "four-validator EIP-1559 proof boundary drift");
+requireValue(quorumCheckSource.includes("dynamicFeeTransaction") && quorumCheckSource.includes("rollbackReplay=true"), "quorum EIP-1559 rollback evidence missing");
+requireValue(eip1559CommitCheckSource.includes("eth_sendRawTransaction") && eip1559CommitCheckSource.includes("deployedPublic: false"), "independent EIP-1559 commit evidence missing");
+requireValue(evmSource.includes('result["accessList"] = []any{}') && evmSource.includes('result["yParity"]'), "typed Ethereum JSON-RPC transaction mapping missing");
+requireValue(evmSource.includes('result["maxPriorityFeePerGas"]') && evmSource.includes('result["maxFeePerGas"]') && evmSource.includes('"baseFeePerGas"'), "EIP-1559 JSON-RPC fee mapping missing");
+requireValue(gatewaySource.includes('case "eth_gasPrice", "eth_maxPriorityFeePerGas"') && evmSource.includes("consensus.EthereumMinimumGasPrice"), "fee suggestion runtime mapping missing");
+const committedBroadcastEvidence = contract.evmRpc.committedBroadcastEvidence;
+requireValue(committedBroadcastEvidence.broadcastCommitRequired === true && committedBroadcastEvidence.blockMembershipRequired === true && committedBroadcastEvidence.appHashRequired === true && committedBroadcastEvidence.dataHashRequiredWhenTransactionsPresent === true, "committed broadcast block evidence profile drift");
+requireValue(committedBroadcastEvidence.blockResultsGasMustMatchBroadcast === true && committedBroadcastEvidence.receiptAuditMustMatchBlockTransaction === true && committedBroadcastEvidence.ethereumAndCometHashesMustMatchTheirDomains === true, "committed broadcast transaction evidence profile drift");
+requireValue(committedBroadcastEvidence.duplicateCometCacheErrorRpcCode === -32003 && committedBroadcastEvidence.upstreamOrEvidenceMismatchRpcCode === -32603, "committed broadcast error classification drift");
+for (const fragment of ["committedEthereumTransaction(ctx, externalHash)", "committed Ethereum CometBFT evidence does not match broadcast result", "committed Ethereum receipt evidence does not match broadcast transaction", "tx already exists in cache"]) {
+  requireValue(gatewaySource.includes(fragment), `committed Ethereum broadcast runtime evidence missing: ${fragment}`);
+}
+requireValue(evmSource.includes("committed Ethereum block is missing a valid AppHash") && evmSource.includes("committed Ethereum block is missing a valid data hash"), "committed Ethereum AppHash/DataHash validation missing");
+requireValue(evmSource.includes("consensus.ValidateBFTEVMReceipt(receipt)"), "committed Ethereum receipt audit validation missing");
+requireValue(evmSource.includes("consensus.ValidateBFTEVMReceipt(ideReceipt)"), "JSON-RPC receipt audit validation missing");
+requireValue(contract.evmRpc.rejectionCodes.invalidParams === -32602, "EVM invalid-parameter code drift");
+requireValue(contract.evmRpc.rejectionCodes.transactionRejected === -32003, "EVM transaction-rejection code drift");
+requireValue(contract.evmRpc.rejectionCodes.feeHistoryUnavailable === -32004, "EVM fee-history-unavailable code drift");
+requireValue(contract.evmRpc.rejectionCodes.upstreamOrEvidenceFailure === -32603, "EVM upstream/evidence code drift");
+requireValue(evmSource.includes("validateCommittedBlockLookupTagSyntax"), "EVM block lookup syntax gate missing");
+requireValue(gatewaySource.includes("result, code, err = g.evmCommittedBlockTransactionResult"), "EVM block lookup RPC code propagation missing");
+requireValue(contract.accountAbstraction.paymasterFeeYNXT === 1, "Paymaster fee contract drift");
+requireValue(contract.accountAbstraction.replayRejectedByNonceDomain === true, "UserOperation replay boundary drift");
+requireValue(contract.accountAbstraction.testedThroughRealLocalABCICometGatewayBundler === true, "Bundler local E2E evidence missing");
+requireValue(contract.accountAbstraction.publicBundlerDeployed === false, "local Bundler evidence cannot claim public deployment");
+for (const fragment of ["matchesCommittedUserOperation", "http.MethodGet", "\"/accounts/\"", "http.MethodPost", "\"/aa/user-operations\""]) {
+  requireValue(bundlerSource.includes(fragment), `Bundler runtime evidence missing: ${fragment}`);
+}
+requireValue(contract.strategyVault.ownerOnlyWithdrawal === true && contract.strategyVault.ownerOnlyEmergencyExit === true, "Strategy Vault owner boundary drift");
+requireValue(contract.strategyVault.withdrawalAvailableAfterKillOrRevoke === true, "Strategy Vault exit availability drift");
+requireValue(contract.strategyVault.closedVaultCanBeRefunded === false, "closed Strategy Vault cannot accept funding");
+for (const fragment of ["mandateAllowsVaultFunding", "strategy vault is closed", "strategy vault funding is disabled by mandate state"]) {
+  requireValue(assetAuthorizationSource.includes(fragment), `Strategy Vault runtime guard missing: ${fragment}`);
+}
+for (const fragment of ["validQuantAuditEvidence", "validCommittedMandateRecord", "validCommittedVaultRecord"]) {
+  requireValue(quantGatewaySource.includes(fragment), `Quant Gateway evidence validator missing: ${fragment}`);
+}
+
+const statusKeys = [
+  "implementedLocal",
+  "testedLocal",
+  "installedLocal",
+  "integratedCentral",
+  "deployedStaging",
+  "deployedPublic",
+  "downloadHosted",
+  "productionSigned",
+  "storeReleased"
+];
+for (const key of statusKeys) {
+  requireValue(typeof release.releaseStatus[key] === "boolean", `release status ${key} must be boolean`);
+  requireValue(release.releaseStatus[key] === contract.releaseStatus[key], `release status ${key} differs from contract`);
+}
+requireValue(release.releaseStatus.deployedPublic === false, "current source cannot claim public deployment");
+requireValue(release.deployedBaseline.publicFourValidatorBft === false, "deployed baseline cannot claim public BFT");
+requireValue(release.deployedBaseline.matchesCurrentSource === false, "deployed baseline cannot claim current-source equality");
+requireValue(contract.authBoundary.state === "dependency-not-accepted", "Wallet/Auth boundary must remain explicit until accepted");
+requireValue(contract.authBoundary.failClosed === true, "Wallet/Auth dependency must fail closed");
+requireValue(contract.authBoundary.parallelAuthProtocolAllowed === false, "parallel authentication protocol must remain forbidden");
+
+const ids = new Set();
+for (const vector of vectors.vectors) {
+  requireValue(typeof vector.id === "string" && vector.id.length > 0, "vector ID missing");
+  requireValue(!ids.has(vector.id), `duplicate vector ID: ${vector.id}`);
+  ids.add(vector.id);
+  requireValue(vector.expected === "accept" || vector.expected === "reject", `invalid expected result for ${vector.id}`);
+  if (vector.expected === "reject") {
+    requireValue(typeof vector.errorClass === "string" && vector.errorClass.length > 0, `negative vector lacks errorClass: ${vector.id}`);
+  }
+}
+for (const required of [
+  "native-transfer-valid-accept",
+  "native-transfer-replay-reject",
+  "evm-eip155-legacy-value-transfer-accept",
+  "evm-eip155-wrong-chain-reject",
+  "evm-eip155-malformed-or-typed-reject",
+  "evm-eip155-replay-reject",
+  "evm-eip2930-empty-access-list-value-transfer-accept",
+  "evm-eip2930-non-empty-access-list-reject",
+  "evm-eip2930-calldata-or-contract-creation-reject",
+  "evm-eip2930-wrong-chain-or-unsupported-typed-reject",
+  "evm-eip2930-replay-reject",
+  "evm-eip1559-zero-base-fee-transfer-accept",
+  "evm-eip1559-invalid-fee-relation-reject",
+  "evm-eip1559-max-fee-affordability-reject",
+  "evm-eip1559-non-empty-access-list-reject",
+  "evm-eip1559-calldata-or-contract-creation-reject",
+  "evm-eip1559-wrong-chain-replay-or-unsupported-type-reject",
+  "evm-receipt-audit-tamper-reject",
+  "evm-committed-block-evidence-accept",
+  "evm-block-transaction-count-index-accept",
+  "evm-block-transaction-pending-or-missing-null-accept",
+  "evm-block-transaction-out-of-range-null-accept",
+  "evm-block-transaction-malformed-quantity-reject",
+  "evm-block-transaction-malformed-hash-reject",
+  "evm-block-transaction-wrong-parameter-count-reject",
+  "evm-block-transaction-upstream-evidence-failure-reject",
+  "evm-current-account-state-accept",
+  "evm-historical-account-state-reject",
+  "evm-signed-ynxt-broadcast-accept",
+  "evm-signed-ynxt-replay-reject",
+  "evm-bounded-contract-code-call-accept",
+  "evm-bounded-contract-historical-state-reject",
+  "evm-bounded-contract-value-or-state-override-reject",
+  "wallet-product-session-wrong-product-reject",
+  "wallet-product-session-scope-widening-reject",
+  "user-operation-sponsored-batch-accept",
+  "bundler-sponsored-user-operation-e2e-accept",
+  "bundler-sponsored-user-operation-replay-reject",
+  "strategy-mandate-revoked-action-reject",
+  "strategy-vault-engine-withdraw-reject",
+  "strategy-vault-funding-after-kill-reject",
+  "strategy-vault-funding-after-revoke-or-expiry-reject",
+  "strategy-vault-emergency-exit-after-kill-accept",
+  "strategy-vault-refund-after-close-reject",
+  "strategy-vault-rejected-mutation-atomicity",
+  "staking-withdraw-before-maturity-reject",
+  "solvency-liability-proof-tamper-reject",
+  "abci-state-sync-roundtrip-accept",
+  "abci-state-sync-tampered-chunk-reject",
+  "validator-backup-rollback-replay-accept",
+  "evm-gas-price-minimum-suggestion-accept",
+  "evm-max-priority-fee-minimum-suggestion-accept",
+  "evm-fee-suggestion-invalid-params-reject",
+  "evm-fee-history-committed-positive-max-gas-accept",
+  "evm-fee-history-retained-range-clamp-accept",
+  "evm-fee-history-reward-percentiles-reject",
+  "evm-fee-history-non-positive-max-gas-reject",
+  "evm-fee-history-gas-evidence-mismatch-reject",
+  "consensus-signer-cli-bounded-envelopes-accept",
+  "consensus-lab-configurable-fixture-balance-accept",
+  "consensus-four-validator-eip1559-commit-rollback-accept",
+  "evm-broadcast-committed-evidence-binding-accept",
+  "evm-broadcast-committed-evidence-mismatch-reject",
+  "evm-comet-cache-duplicate-reject",
+  "consensus-four-validator-positive-max-gas-fee-history-accept"
+]) {
+  requireValue(ids.has(required), `required cross-product vector missing: ${required}`);
+}
+
+rejectInternalStrings(release, "release");
+rejectInternalStrings(contract, "contract");
+rejectInternalStrings(vectors, "vectors");
+
+console.log(`integration contract check passed: ${ids.size} vectors, state v12, source ${contract.sourceCommit}`);

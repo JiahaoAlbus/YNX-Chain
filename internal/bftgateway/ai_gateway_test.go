@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -86,6 +87,29 @@ func TestGatewayCommitsAndQueriesSignedAIWorkflow(t *testing.T) {
 	getJSON(t, server.URL+"/accounts/"+signer, &account)
 	if account.Nonce != 3 || account.Balance != 97 || account.ResourceUsage.AICreditsUsed != 3 {
 		t.Fatalf("unexpected signer account: %+v", account)
+	}
+	var fees struct {
+		SchemaVersion int                     `json:"schemaVersion"`
+		Source        string                  `json:"source"`
+		Failure       bool                    `json:"failure"`
+		Events        []consensus.BFTFeeEvent `json:"events"`
+		Coverage      struct {
+			Total, Matched, Returned int
+			Complete                 bool
+		} `json:"coverage"`
+	}
+	getJSON(t, server.URL+"/economics/fees?payer="+signer+"&limit=10", &fees)
+	if fees.SchemaVersion != 1 || fees.Source != "ynx-consensus-abci" || fees.Failure || len(fees.Events) != 3 || fees.Coverage.Total != 3 || !fees.Coverage.Complete {
+		t.Fatalf("unexpected authoritative fee response: %+v", fees)
+	}
+	var exact struct {
+		Event   consensus.BFTFeeEvent `json:"event"`
+		Source  string                `json:"source"`
+		Failure bool                  `json:"failure"`
+	}
+	getJSON(t, server.URL+"/economics/fees/"+fees.Events[0].ID, &exact)
+	if exact.Failure || exact.Source != "ynx-consensus-abci" || exact.Event.ID != fees.Events[0].ID {
+		t.Fatalf("unexpected exact fee response: %+v", exact)
 	}
 
 	postSignedAction(t, server.URL+"/ai/actions/wrong/approve", approvalRaw, http.StatusBadRequest, nil)
@@ -189,11 +213,15 @@ func postSignedAction(t *testing.T, endpoint string, raw []byte, expected int, o
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if resp.StatusCode != expected {
-		t.Fatalf("POST %s expected %d got %d", endpoint, expected, resp.StatusCode)
+		t.Fatalf("POST %s expected %d got %d: %s", endpoint, expected, resp.StatusCode, string(body))
 	}
 	if out != nil {
-		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+		if err := json.Unmarshal(body, out); err != nil {
 			t.Fatal(err)
 		}
 	}
