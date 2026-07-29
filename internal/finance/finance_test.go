@@ -15,6 +15,7 @@ import (
 
 const testAccount = "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
 const testCursorKey = "finance-test-cursor-signing-key-000000000001"
+const testOperationsKey = "finance-test-operations-key-000000000001"
 
 type fakeAI struct{ result map[string]any }
 
@@ -72,10 +73,10 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	upstreams, _ := NewUpstreams(explorer.URL, pay.URL, "pay-secret", "https://support.example/disputes")
 	service := &Service{Store: store, Upstreams: upstreams, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"}}
 	auth, session := testAuthenticator(t, "central-token-main")
-	if _, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: "too-short"}); err == nil || !strings.Contains(err.Error(), "cursor signing key") {
+	if _, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: "too-short", OperationsKey: testOperationsKey}); err == nil || !strings.Contains(err.Error(), "cursor signing key") {
 		t.Fatalf("short cursor key was not rejected: %v", err)
 	}
-	server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey, WebDir: filepath.Join("..", "..", "apps", "finance", "web")})
+	server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey, WebDir: filepath.Join("..", "..", "apps", "finance", "web")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +219,7 @@ func TestUnavailableSourcesStayUnavailableAndOriginFailsClosed(t *testing.T) {
 	up, _ := NewUpstreams(explorer.URL, "", "", "")
 	service := &Service{Store: store, Upstreams: up, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"}}
 	auth, session := testAuthenticator(t, "central-token-unavailable")
-	server, _ := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey})
+	server, _ := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey})
 	ts := httptest.NewServer(server.Handler())
 	defer ts.Close()
 	var p Portfolio

@@ -64,3 +64,21 @@ The restore implementation writes through a private temporary file, synchronizes
 - Restore failure after a pre-restore copy exists: verify that copy against the receipt or local hash evidence, then use the authenticated rollback process in `MIGRATION_COMPATIBILITY.md`.
 
 No deployed restore drill, remote RTO/RPO result or production backup policy acceptance is claimed by this local runbook.
+
+## Runtime observability
+
+The Finance API emits one JSON access record per completed HTTP request. Records contain only timestamp, service/version, request ID, method, matched route pattern, status, duration and stable error ID. They intentionally exclude authorization headers, Wallet accounts, request bodies, query strings, balances, activity, notes, budgets and remote addresses.
+
+Clients may supply `X-Request-ID` using 8–128 characters from `A-Z`, `a-z`, `0-9`, `.`, `_`, `:`, and `-`. Invalid or absent IDs are replaced with a generated `fin_...` value. Error responses include the same request ID plus a stable `YNX-FIN-*` error ID in both JSON and `X-Error-ID`.
+
+`GET /metrics` is an operational endpoint protected by `X-YNX-Operations-Key`. Supply a unique high-entropy `YNX_FINANCE_OPERATIONS_KEY` of at least 32 characters from the operator secret manager. Do not reuse Wallet, Pay, AI, cursor, backup or production signing credentials.
+
+The `finance-metrics-v1` response contains process-scoped request counts, status classes, latency buckets, source availability outcomes, process instance ID, start time and uptime. Counters reset on every process restart and do not claim persistence or central Monitor ingestion. The payload contains no user financial data.
+
+```bash
+curl --fail --silent \
+  -H "X-YNX-Operations-Key: ${YNX_FINANCE_OPERATIONS_KEY}" \
+  http://127.0.0.1:6436/metrics
+```
+
+For incident correlation, search structured logs by `requestId` and then use the stable `errorId` to group the failure class. Never ask a user to send an authorization token, full financial response or state file as troubleshooting evidence.

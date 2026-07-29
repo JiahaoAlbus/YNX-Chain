@@ -68,6 +68,14 @@ Remote smoke on 2026-07-18 proved Explorer health and public transaction access,
 - Full `go test ./...` was also attempted and failed only outside Finance ownership: consensus/Faucet/Trust key-permission tests and missing IDE contract artifacts. `internal/finance` passed in that run; these failures are recorded for their owners rather than modified here.
 - The authoritative Finance integration contract, handoff, dependency acceptance and cross-product negative vectors now live under `release/integration/` and `docs/integration/`.
 
+## 2026-07-29 observability checkpoint
+
+- Every Finance HTTP response now carries a validated or generated `X-Request-ID`; errors also carry a stable `YNX-FIN-*` identifier in `X-Error-ID` and the JSON body.
+- JSON access/error logs record matched route patterns and status/latency correlation only. Tests reject leakage of bearer tokens, Wallet accounts, query strings and authorization header names.
+- `GET /metrics` is protected by a distinct `YNX_FINANCE_OPERATIONS_KEY` and returns the versioned `finance-metrics-v1` process snapshot: route/status/latency counters, source outcomes, start time, process instance and explicit restart semantics.
+- Metrics are in-memory and reset on restart. Central Monitor ingestion, persistence and deployed alerting remain false.
+- `go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1`, the equivalent race run and `npm run smoke --prefix apps/finance` passed for this slice.
+
 ## Exact release state
 
 `implementedLocal=true`, `testedLocal=true`, Android `installedLocal=true`. iOS local install, central integration, functional staging API, public deployment, production signing and store release are false. The APK is local-test-signed only. A Web preview attempt was not counted as deployment unless a reachable URL and `/api/health` evidence are later recorded. See `apps/finance/product-release.json` for machine-readable status.

@@ -30,7 +30,7 @@ npm ci --prefix apps/finance/gateway
 npm start --prefix apps/finance/gateway
 ```
 
-The default API is `127.0.0.1:6436`; the edge Gateway is `127.0.0.1:8787`. `YNX_FINANCE_CURSOR_SIGNING_KEY` is mandatory, must contain at least 32 high-entropy characters, must be supplied through the operator secret manager and must not reuse a Wallet, Pay or provider credential. `YNX_FINANCE_EXCHANGE_ACTION_URL`, `YNX_FINANCE_DEX_ACTION_URL`, `YNX_FINANCE_QUANT_ACTION_URL` and `YNX_FINANCE_ECONOMICS_ACTION_URL` are optional reviewed HTTPS navigation routes; they do not configure data adapters or make a source available. Production needs TLS ingress, persistent Gateway replay/revocation storage, cursor-key rotation with a controlled pagination restart, a backed-up Finance state volume, a Pay read key and centrally reviewed support/privacy/dispute URLs.
+The default API is `127.0.0.1:6436`; the edge Gateway is `127.0.0.1:8787`. `YNX_FINANCE_CURSOR_SIGNING_KEY` and `YNX_FINANCE_OPERATIONS_KEY` are mandatory, distinct secrets with at least 32 high-entropy characters supplied through the operator secret manager; neither may reuse a Wallet, Pay, AI, backup, provider or signing credential. The operations key protects the process-scoped, financial-data-free `GET /metrics` endpoint. `YNX_FINANCE_EXCHANGE_ACTION_URL`, `YNX_FINANCE_DEX_ACTION_URL`, `YNX_FINANCE_QUANT_ACTION_URL` and `YNX_FINANCE_ECONOMICS_ACTION_URL` are optional reviewed HTTPS navigation routes; they do not configure data adapters or make a source available. Production needs TLS ingress, persistent Gateway replay/revocation storage, secret rotation procedures, a backed-up Finance state volume, a Pay read key and centrally reviewed support/privacy/dispute URLs.
 
 ## Backup and recovery
 

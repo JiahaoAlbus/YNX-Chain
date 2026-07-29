@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -22,6 +23,9 @@ type ServerConfig struct {
 	AllowedOrigins   []string
 	WebDir           string
 	CursorSigningKey string
+	OperationsKey    string
+	LogWriter        io.Writer
+	Now              func() time.Time
 }
 
 type Server struct {
@@ -32,6 +36,9 @@ type Server struct {
 	rateMu    sync.Mutex
 	rate      map[string][]time.Time
 	cursorKey []byte
+	metrics   *financeMetrics
+	logger    *log.Logger
+	now       func() time.Time
 }
 
 func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server, error) {
@@ -44,15 +51,24 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	if len(cfg.CursorSigningKey) < 32 {
 		return nil, errors.New("finance cursor signing key must contain at least 32 characters")
 	}
-	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}, cursorKey: []byte(cfg.CursorSigningKey)}
+	if len(cfg.OperationsKey) < 32 {
+		return nil, errors.New("finance operations key must contain at least 32 characters")
+	}
+	now := cfg.Now
+	if now == nil {
+		now = time.Now
+	}
+	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}, cursorKey: []byte(cfg.CursorSigningKey), logger: newJSONLogger(cfg.LogWriter), now: now}
+	s.metrics = newFinanceMetrics(s.now())
 	s.routes()
 	return s, nil
 }
 
-func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
+func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.mux)) }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /metrics", s.metricsEndpoint)
 	s.mux.HandleFunc("POST /api/auth/logout", s.protected("", s.logout))
 	s.mux.HandleFunc("GET /api/overview", s.protected("finance.portfolio.read", s.overview))
 	s.mux.HandleFunc("GET /api/portfolio", s.protected("finance.portfolio.read", s.portfolio))
@@ -95,7 +111,7 @@ func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, sessio
 		return
 	}
 	state := s.service.Store.Account(session.Account)
-	p := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
 	if !p.ExplorerStatus.Available {
 		writeError(w, 503, "source_unavailable", "Explorer evidence is unavailable; classification was not changed")
 		return
@@ -108,7 +124,7 @@ func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, sessio
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "truthfulStatus": "runtime-upstream-backed"})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "truthfulStatus": "runtime-upstream-backed"})
 }
 
 type handler func(http.ResponseWriter, *http.Request, Session)
@@ -165,26 +181,28 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, _ Session) {
 
 func (s *Server) overview(w http.ResponseWriter, r *http.Request, session Session) {
 	state := s.service.Store.Account(session.Account)
-	portfolio := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	portfolio := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
 	writeJSON(w, http.StatusOK, map[string]any{"portfolio": portfolio, "profile": state, "budgetProgress": s.service.BudgetProgress(session.Account, portfolio, time.Now().UTC()), "alerts": s.service.Alerts(session.Account, portfolio), "support": s.service.Support, "boundaries": productBoundaries()})
 }
 func (s *Server) portfolio(w http.ResponseWriter, r *http.Request, session Session) {
 	state := s.service.Store.Account(session.Account)
-	writeJSON(w, http.StatusOK, s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications))
+	writeJSON(w, http.StatusOK, s.observedPortfolio(r.Context(), session.Account, state.Classifications))
 }
 
 func (s *Server) sources(w http.ResponseWriter, _ *http.Request, _ Session) {
+	sources := s.service.Upstreams.ReadSources(s.now().UTC())
+	s.observeReadSources(sources)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"consumerEnvelopeVersion": ReadSourceEnvelopeVersion,
 		"readOnly":                true,
-		"sources":                 s.service.Upstreams.ReadSources(time.Now().UTC()),
+		"sources":                 sources,
 		"integrationState":        "owner-contracts-pending",
 	})
 }
 
 func (s *Server) activityPage(w http.ResponseWriter, r *http.Request, session Session) {
 	state := s.service.Store.Account(session.Account)
-	p := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
 	limit := 25
 	if raw := r.URL.Query().Get("limit"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
@@ -343,7 +361,7 @@ func (s *Server) createNote(w http.ResponseWriter, r *http.Request, session Sess
 		return
 	}
 	state := s.service.Store.Account(session.Account)
-	p := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
 	if input.RecordID != "" && !p.ExplorerStatus.Available {
 		writeError(w, 503, "source_unavailable", "Explorer evidence is unavailable; linked note was not created")
 		return
@@ -383,7 +401,7 @@ func (s *Server) statement(w http.ResponseWriter, r *http.Request, session Sessi
 		return
 	}
 	state := s.service.Store.Account(session.Account)
-	portfolio := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	portfolio := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
 	activities := []Activity{}
 	incoming, outgoing, fees := int64(0), int64(0), int64(0)
 	for _, item := range portfolio.Activity {
@@ -431,7 +449,7 @@ func (s *Server) monthlyReview(w http.ResponseWriter, r *http.Request, session S
 	from := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	to := from.AddDate(0, 1, 0)
 	state := s.service.Store.Account(session.Account)
-	p := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
 	incoming, outgoing, fees := int64(0), int64(0), int64(0)
 	count := 0
 	byCategory := map[string]int64{}
@@ -457,7 +475,7 @@ func (s *Server) export(w http.ResponseWriter, r *http.Request, session Session)
 		format = "json"
 	}
 	state := s.service.Store.Account(session.Account)
-	p := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
 	if format == "json" {
 		w.Header().Set("Content-Disposition", `attachment; filename="ynx-finance-export.json"`)
 		writeJSON(w, 200, map[string]any{"exportedAt": time.Now().UTC(), "account": session.Account, "portfolio": p, "profile": state, "audit": s.service.Store.Audit(session.Account)})
@@ -520,7 +538,7 @@ func (s *Server) startAI(w http.ResponseWriter, r *http.Request, session Session
 		return
 	}
 	state := s.service.Store.Account(session.Account)
-	p := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
 	if !p.ExplorerStatus.Available {
 		writeError(w, 503, "source_unavailable", "AI cannot use activity while Explorer evidence is unavailable")
 		return
@@ -632,7 +650,10 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	_ = json.NewEncoder(w).Encode(value)
 }
 func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, map[string]string{"code": code, "error": message})
+	errorID := stableErrorID(code)
+	requestID := requestIDFromWriter(w)
+	w.Header().Set(errorIDHeader, errorID)
+	writeJSON(w, status, map[string]string{"code": code, "error": message, "errorId": errorID, "requestId": requestID})
 }
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
