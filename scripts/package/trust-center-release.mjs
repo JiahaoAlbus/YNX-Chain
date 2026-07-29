@@ -71,6 +71,18 @@ const buildEnvironment = {
   SOURCE_DATE_EPOCH: String(commitEpoch)
 };
 
+const moduleVerificationEnvironment = {
+  ...process.env,
+  PATH: `${path.dirname(goCommand)}${path.delimiter}${process.env.PATH || ""}`,
+  GOTOOLCHAIN: "local",
+  GOPROXY: process.env.GOPROXY && process.env.GOPROXY !== "off"
+    ? process.env.GOPROXY
+    : "https://proxy.golang.org,direct",
+  GOSUMDB: process.env.GOSUMDB && process.env.GOSUMDB !== "off"
+    ? process.env.GOSUMDB
+    : "sum.golang.org"
+};
+
 for (const spec of binarySpecs) {
   buildBinary(spec, path.join(buildA, spec.name));
   buildBinary(spec, path.join(buildB, spec.name));
@@ -99,7 +111,11 @@ for (const spec of binarySpecs) {
   });
 }
 
-execFileSync(goCommand, ["mod", "verify"], { cwd: root, env: buildEnvironment, stdio: "pipe" });
+execFileSync(goCommand, ["mod", "verify"], {
+  cwd: root,
+  env: moduleVerificationEnvironment,
+  stdio: "pipe"
+});
 
 const linkedModules = linkedDependencyModules(binaries);
 const moduleMetadata = linkedModules.length > 0 ? goModuleMetadata() : new Map();

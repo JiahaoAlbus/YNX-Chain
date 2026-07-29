@@ -1,6 +1,7 @@
 name: trust-center
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - codex/final-trust-center
