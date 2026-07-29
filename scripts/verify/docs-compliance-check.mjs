@@ -79,6 +79,67 @@ const publicMetadata = JSON.parse(fs.readFileSync("release/public-product-metada
 const operatorInputs = JSON.parse(fs.readFileSync("release/operator-inputs.request.json", "utf8"));
 const websiteHandoff = fs.readFileSync("docs/public/WEBSITE_INTEGRATION_HANDOFF.md", "utf8");
 const stateKeys = ["implementedLocal", "testedLocal", "installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"];
+
+if (release.schemaVersion === "ynx-product-release/v1") {
+  const expectedWalletStates = {
+    implementedLocal: true,
+    testedLocal: true,
+    installedLocal: true,
+    integratedCentral: false,
+    deployedStaging: false,
+    deployedPublic: false,
+    downloadHosted: true,
+    productionSigned: false,
+    storeReleased: false,
+  };
+  if (release.productId !== "02" || release.owner !== "02-wallet-auth" || release.slug !== "wallet-auth") {
+    failures.push("Wallet owner release identity is invalid");
+  }
+  if (!/^[0-9a-f]{40}$/.test(release.sourceCommit ?? "")) {
+    failures.push("Wallet owner release source commit is not a full Git SHA");
+  } else {
+    const sourceReachable = spawnSync("git", ["merge-base", "--is-ancestor", release.sourceCommit, "HEAD"], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+    });
+    if (sourceReachable.status !== 0) failures.push("Wallet owner release source commit is not reachable from HEAD");
+  }
+  for (const [key, value] of Object.entries(expectedWalletStates)) {
+    if (release.releaseStates?.[key] !== value) failures.push(`Wallet owner release state is stale or overstated: ${key}`);
+  }
+  if (
+    publicMetadata.schemaVersion !== "ynx-public-product-metadata/v1" ||
+    publicMetadata.productId !== "02" ||
+    publicMetadata.sourceCommit !== release.sourceCommit ||
+    publicMetadata.canonicalUrl !== "https://ynxweb4.com/wallet" ||
+    publicMetadata.status?.walletRuntimeDeployed !== false ||
+    publicMetadata.status?.productionSigned !== false ||
+    publicMetadata.status?.storeReleased !== false
+  ) {
+    failures.push("Wallet public metadata identity or release boundary is invalid");
+  }
+  if (
+    release.sourceCandidate?.tag !== "wallet-auth-v1.0.0-source-candidate" ||
+    release.sourceCandidate?.sourceArchiveSha256 !== "e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db" ||
+    !fs.existsSync("release/evidence/wallet-auth-source-candidate-2026-07-29.json")
+  ) {
+    failures.push("Wallet source-candidate release evidence is missing or inconsistent");
+  }
+  const disclosureGate = spawnSync(process.execPath, ["scripts/verify/public-disclosure-gate.mjs"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+  if (disclosureGate.status !== 0) {
+    failures.push(`public disclosure gate failed:\n${(disclosureGate.stderr || disclosureGate.stdout || "no output").trim()}`);
+  }
+  if (failures.length > 0) {
+    process.stderr.write(`${failures.join("\n")}\n`);
+    process.exit(1);
+  }
+  process.stdout.write(`Wallet owner docs compliance passed: ${required.length} named artifacts, ${jsonFiles.length} JSON records, ${stateKeys.length} fail-closed product states, source-candidate evidence, and the public disclosure gate\n`);
+  process.exit(0);
+}
+
 const expectedStates = {implementedLocal: true, testedLocal: true, installedLocal: false, integratedCentral: true, deployedStaging: true, deployedPublic: true, downloadHosted: true, productionSigned: false, storeReleased: false};
 for (const key of stateKeys) {
   if (typeof release.states?.[key] !== "boolean") failures.push(`release state is not boolean: ${key}`);
