@@ -259,7 +259,7 @@ func (s *Service) snapshotHealth(build buildinfo.Info) Health {
 
 func (s *Service) Authorized(value string) bool {
 	value = strings.TrimSpace(strings.TrimPrefix(value, "Bearer "))
-	return value != "" && equalHash(value, s.cfg.APIKey)
+	return value != "" && equalSecret(value, s.cfg.APIKey)
 }
 
 func (s *Service) Allow(remoteAddr, accessKey string, now time.Time) bool {
@@ -697,9 +697,11 @@ func hashText(value string) string {
 	sum := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(sum[:])
 }
-func equalHash(a, b string) bool {
-	aHash, bHash := sha256.Sum256([]byte(a)), sha256.Sum256([]byte(b))
-	return subtle.ConstantTimeCompare(aHash[:], bHash[:]) == 1
+func equalSecret(a, b string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 func clientIP(remoteAddr string) string {
 	if host, _, err := net.SplitHostPort(remoteAddr); err == nil {

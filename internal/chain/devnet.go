@@ -668,7 +668,7 @@ func (d *Devnet) RecentTransactions(limit int) []Transaction {
 	if limit <= 0 || limit > 100 {
 		limit = 25
 	}
-	txs := make([]Transaction, 0, limit)
+	txs := make([]Transaction, 0, 100)
 	for i := len(d.pending) - 1; i >= 0 && len(txs) < limit; i-- {
 		txs = append(txs, d.pending[i])
 	}
@@ -830,7 +830,7 @@ func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (Validato
 	}
 	now := time.Now().UTC()
 	key := validatorPeerSyncKey(input.Source, input.Target)
-	lag := int64(input.SourceHeight) - int64(input.TargetHeight)
+	lag := boundedHeightLag(input.SourceHeight, input.TargetHeight)
 	status := input.Status
 	if status == "" {
 		if lag <= 1 && lag >= -1 {
@@ -865,6 +865,21 @@ func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (Validato
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return sync, err
+}
+
+func boundedHeightLag(source, target uint64) int64 {
+	if source >= target {
+		delta := source - target
+		if delta > math.MaxInt64 {
+			return math.MaxInt64
+		}
+		return int64(delta)
+	}
+	delta := target - source
+	if delta > math.MaxInt64 {
+		return math.MinInt64
+	}
+	return -int64(delta)
 }
 
 func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {

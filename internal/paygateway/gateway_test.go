@@ -32,6 +32,18 @@ const (
 	testMerchantID  = "merchant_gateway_test"
 )
 
+func TestEqualSecret(t *testing.T) {
+	if !equalSecret("fixed-length-api-key", "fixed-length-api-key") {
+		t.Fatal("equal secrets did not match")
+	}
+	if equalSecret("fixed-length-api-key", "different-api-key!!!") {
+		t.Fatal("different secrets matched")
+	}
+	if equalSecret("short", "longer") {
+		t.Fatal("different-length secrets matched")
+	}
+}
+
 func TestGatewayRequiresDedicatedSecrets(t *testing.T) {
 	base := Config{ChainURL: "http://127.0.0.1:6420"}
 	if _, err := New(base); err == nil || !strings.Contains(err.Error(), "YNX_PAY_MERCHANT_ID") {
