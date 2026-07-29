@@ -5,8 +5,19 @@
   "slug": "wallet-auth",
   "owner": "02-wallet-auth",
   "branch": "codex/final-wallet-auth",
-  "sourceCommit": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
+  "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
   "version": "1.0.0-testnet-preview",
+  "sourceCandidate": {
+    "tag": "wallet-auth-v1.0.0-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-auth-v1.0.0-source-candidate",
+    "releaseId": 362065169,
+    "publishedAt": "2026-07-29T21:39:35Z",
+    "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+    "sourceArchiveSha256": "e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db",
+    "sbomSha256": "4b1c905a01ce7fc9f923973c9a97a2de3662a515251d387ba3a7ecdcc087dd85",
+    "prerelease": true,
+    "sourceOnly": true
+  },
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,

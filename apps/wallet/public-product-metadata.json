@@ -10,6 +10,13 @@
   "features": ["Self-custody accounts", "Product-scoped sessions", "Exact permission review", "Signed Testnet transfers", "Recovery and revocation"],
   "risks": ["Testnet assets have no real-world value", "Recovery material cannot be restored by YNX", "Smart Account and capital candidates are not centrally deployed"],
   "releaseStatus": "testnet-engineering-preview",
+  "sourceCandidate": {
+    "tag": "wallet-auth-v1.0.0-source-candidate",
+    "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-auth-v1.0.0-source-candidate",
+    "sourceArchiveSha256": "e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db",
+    "sourceOnly": true
+  },
   "sourceRelease": {
     "tag": "wallet-auth-v1.0.0-testnet-preview.2",
     "sourceCommit": "6c9d67765f5c05967ca3984e2a5ac6902d8779ec",

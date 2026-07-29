@@ -4,7 +4,7 @@
   "product": "YNX Wallet / Auth",
   "slug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
+  "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
   "name": "YNX Wallet",
   "aliases": ["YNX Auth", "YNX Web4 Identity"],
   "canonicalRoute": "/wallet",
@@ -20,6 +20,13 @@
     "walletRuntimeDeployed": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "sourceCandidate": {
+    "tag": "wallet-auth-v1.0.0-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-auth-v1.0.0-source-candidate",
+    "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+    "sourceArchiveSha256": "e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db",
+    "sourceOnly": true
   },
   "downloads": [
     {"platform":"android","signingClass":"local-test-signed","url":"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-Android-test-da82c8b.apk","sha256":"3d7dd0b349721f2364a2ec0519269bee2933c8b718ba26fc68e7e3354ae15256"},

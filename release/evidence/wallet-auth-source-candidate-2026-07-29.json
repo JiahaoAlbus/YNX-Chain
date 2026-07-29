@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "ynx-source-release-evidence/v1",
+  "productId": "02",
+  "product": "YNX Wallet / Auth",
+  "owner": "02-wallet-auth",
+  "release": {
+    "id": 362065169,
+    "tag": "wallet-auth-v1.0.0-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-auth-v1.0.0-source-candidate",
+    "targetCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+    "publishedAt": "2026-07-29T21:39:35Z",
+    "prerelease": true,
+    "draft": false
+  },
+  "verification": {
+    "downloadedAllAssets": true,
+    "assetCount": 6,
+    "allDownloadedDigestsMatched": true
+  },
+  "assets": [
+    {
+      "name": "ynx-wallet-auth-source-c7a6bded3872.tar.gz",
+      "bytes": 2300303,
+      "sha256": "e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db"
+    },
+    {
+      "name": "ynx-chain-wallet-auth-1.0.0.tgz",
+      "bytes": 70559,
+      "sha256": "30348e99a12f6857821fae452cd5f07b907cd4cd0143275c2dd8c7a602f78669"
+    },
+    {
+      "name": "YNX-Wallet-sbom.cdx.json",
+      "bytes": 868642,
+      "sha256": "4b1c905a01ce7fc9f923973c9a97a2de3662a515251d387ba3a7ecdcc087dd85"
+    },
+    {
+      "name": "YNX-Wallet-source-candidate-manifest.json",
+      "bytes": 1475,
+      "sha256": "af5df1c785d557a0f59a672ad46952ae4c8c955e598a1969da9d2af73ec9c239"
+    },
+    {
+      "name": "YNX-Wallet-product-release-at-source.json",
+      "bytes": 10622,
+      "sha256": "358d621970fa8ca6135880c1fe3c7c82131179b1398562a20f7b2fa9888d3332"
+    },
+    {
+      "name": "YNX-Wallet-public-product-metadata-at-source.json",
+      "bytes": 2528,
+      "sha256": "c25285be845aab3a39fe2e8ed7535d2d40ef8d853bb6b78a1cbc9ea76a7f424f"
+    }
+  ],
+  "boundaries": {
+    "sourceOnlyCandidate": true,
+    "productionSigned": false,
+    "storeReleased": false,
+    "walletRuntimeDeployed": false,
+    "smartAccountTestnetDeployed": false,
+    "externalSecurityAudit": false
+  }
+}

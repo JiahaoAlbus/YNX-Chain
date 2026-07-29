@@ -5,7 +5,7 @@
   "slug": "wallet-auth",
   "productSlug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
+  "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
   "phase": "INTEGRATE",
   "network": {
     "nativeChainId": "ynx_6423-1",

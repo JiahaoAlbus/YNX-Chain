@@ -2,7 +2,7 @@
 
 Status: Active. Current phase: INTEGRATE. The local encrypted Gateway backup/restore and version-compatibility slice is complete and source-bound.
 
-1. Preserve the canonical Wallet/Auth implementation source `a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f` and its verified 100/100 package test checkpoint.
+1. Preserve the canonical Wallet/Auth implementation source `c7a6bded387223429f0708f80b50f086d8ff944d`, its verified 100/100 package test checkpoint and the six-asset source-only prerelease.
 2. Preserve the local backup/restore evidence at `apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json`: 6/6 focused tests, exact non-empty restore, replay-state preservation, tamper/policy/permission rejection, validated legacy normalization, future-schema rejection and a 20-sample local drill.
 3. Submit the exact Registry, Gateway HTTP/Node host, backup, observability, StrategyMandate and shared-vector contract to the central App Gateway and `29-integration`; do not create a second compatibility protocol.
 4. After central acceptance, run installed Wallet→Social, Wallet→Pay, Wallet→Quant→Exchange and Wallet→Quant→DEX flows plus central durable-store restore, Explorer and Monitor evidence.
