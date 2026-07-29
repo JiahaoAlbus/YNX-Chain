@@ -245,7 +245,13 @@ done
 grep -Fq "REST_DOMAIN=rest.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing REST_DOMAIN"; exit 1; }
 grep -Fq "INDEXER_DOMAIN=indexer.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing INDEXER_DOMAIN"; exit 1; }
 node scripts/verify/release-manifest-check.mjs "$release_dir" "$commit" "$release"
-tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/release-manifest.json" || { echo "release tarball missing release manifest"; exit 1; }
+tar_listing="$tmp/release-tar.list"
+tar -tzf "tmp/deploy/${release}.tar.gz" > "$tar_listing"
+grep -Fq "./config/release-manifest.json" "$tar_listing" || { echo "release tarball missing release manifest"; exit 1; }
+# The archive was fully validated above. GNU tar reports a broken pipe when
+# grep -q intentionally stops reading after a match, so scope pipefail off for
+# these repeated membership probes only.
+set +o pipefail
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./caddy/ynx-chain.caddy" || { echo "release tarball missing Caddy ingress snippet"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./scripts/install-caddy-ingress.sh" || { echo "release tarball missing Caddy ingress install script"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./scripts/check-local-services.sh" || { echo "release tarball missing local service check script"; exit 1; }
@@ -279,6 +285,7 @@ tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-squared.servic
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-app-gatewayd" || { echo "release tarball missing App Gateway binary"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-app-gatewayd.env" || { echo "release tarball missing App Gateway env"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-app-gatewayd.service" || { echo "release tarball missing App Gateway systemd unit"; exit 1; }
+set -o pipefail
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
 grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
 grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Trust Gateway domain block"; exit 1; }
