@@ -1,36 +1,37 @@
 # Next Action
 
-## Current Docs / Compliance priority (2026-07-27)
+## Current Docs / Compliance priority (2026-07-29)
 
-Current single action: finish the full-goal coverage checkpoint, then inventory and normalize the complete metadata tuple across the highest-authority public documents without changing substantive claims unless accepted owner evidence changed.
+Current single action: normalize and inventory the next bounded authority cohort—Trading Core / UltraLiquidity / FairFlow, Wallet/Auth smart-account mandate, Bridge/Oracle/Data Fabric, Quant architecture, Trust/appeals/market integrity and Product Architecture—without changing substantive claims unless accepted owner evidence changed.
 
 Why this is next:
 
-- The documentation authority package is centrally integrated, publicly rendered and immutably hosted as an unsigned candidate; these states have direct Website evidence.
-- `.ai-bridge/full-goal-coverage.json` now maps 22 unified requirements and eight YNX 18 product-specific requirements to evidence, status, owner, blocker and next action.
-- The standard integration contract, handoff, cross-product vectors and dependency acceptance records now exist and fail closed through the coverage gate.
-- Several legacy whitepaper, economics, security, legal and brand documents still lack a uniform version/effective-date/source/release/review/change-log/supersession tuple.
+- Source `e36832d5be0c498d8a2f27869f8d70fc112e9442` closed the partial staking metadata slice and is remotely protected, CI-successful and represented by an unexpired artifact.
+- The metadata inventory now validates fourteen high-authority documents and the deterministic Website-content package requires the staking disclosure.
+- The accepted public package remains the prior unsigned candidate; the newer `e36832d` candidate is not Website-accepted, publicly hosted or production signed.
+- The product branch is nine commits ahead of and 47 commits behind `origin/main`; broad compatibility and merge order belong to YNX 29, not an unreviewed product-owner merge.
 - Production signing, named reviews, independent proof and unaccepted owner-runtime facts remain false, blocked or Candidate; they are not reasons to stop autonomous metadata engineering.
 
 Files owned by the next slice:
 
-- a bounded machine-readable document metadata inventory;
-- metadata validation in `scripts/verify` and `make docs-compliance-check`;
-- high-authority YNX 18 public documents only;
-- coverage, evidence, release and Handoff state updates.
+- `release/document-metadata-inventory.json` and the fail-closed metadata gate;
+- the six named high-authority documents and deterministic package inputs;
+- coverage, evidence, integration and Website Handoff records;
+- recovery state under `docs/agent-memory/`.
 
 Required execution and proof:
 
-- Run `make full-goal-coverage-check`, `make public-disclosure-check`, `make docs-compliance-check`, `make no-placeholder-check`, `make secret-scan` and `make objective-state-check`.
+- Preserve accepted owner facts and explicitly label Draft, Candidate, gap and non-activation boundaries.
+- Run `make document-metadata-check`, `make docs-release-package-check`, `make docs-compliance-check`, `make public-disclosure-check`, `make full-goal-coverage-check`, `make no-placeholder-check`, `make secret-scan`, `make static-check` and `make objective-state-check`.
+- Build and verify the exact committed-source Website-content archive.
 - Review the complete YNX 18 diff, commit, push and verify local/remote SHA equality.
-- Preserve the current public release-state boundary: integrated/public/hosted candidate is true; production signing, named approval, independent proof and Mainnet activation are not established.
-- Keep sibling dirty or local-ahead work protected and unaccepted until exact owner handoffs exist.
+- Preserve the current public release-state boundary: integrated/public/hosted candidate is true for the accepted package; Website acceptance, hosted download and production signing are false for the newer candidate.
 
 Completion standard for the next slice:
 
-- Every inventoried high-authority document has a validated metadata tuple or an explicit bounded gap.
+- Each newly inventoried document has the exact seven-field metadata tuple and matching change log.
 - No source commit, review, legal, economic, security, audit, deployment or availability claim is inferred.
-- The coverage matrix, standard contract, evidence records and next action remain mutually consistent.
+- Coverage, evidence, contract, Handoff, release truth and recovery state remain mutually consistent.
 - The checkpoint is committed, pushed, SHA-verified and clean.
 
 ## Historical Chain Core action (2026-07-16)

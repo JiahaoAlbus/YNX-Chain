@@ -9,8 +9,8 @@
   "productOwner": "YNX 18 Whitepaper / Compliance / Brand",
   "currentPhase": "PUBLIC",
   "goalStatus": "active",
-  "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12",
-  "lastUpdated": "2026-07-27",
+  "sourceCommit": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
+  "lastUpdated": "2026-07-29",
   "statusVocabulary": ["notStarted", "inProgress", "implementedLocal", "testedLocal", "integratedCentral", "testnetVerified", "publicVerified", "externalBlocked", "notApplicable", "verifiedComplete"],
   "entries": [
     {
@@ -190,8 +190,8 @@
     {
       "id": "YNX18-P08", "category": "document-versioning", "requirement": "Give public documents version, effective date, source commit, product release, last review, change log and supersession identity.",
       "applicability": "applicable", "applicabilityReason": "The goal requires versioned and supersedable public documents.", "status": "inProgress",
-      "evidence": ["release/document-metadata-inventory.json", "release/evidence/document-metadata-2026-07-27.json", "release/facts/superseded-facts.json", "docs/public/search/WHAT_IS_YNX_CHAIN.md", "docs/coordination/DOCS_COMPLIANCE_INTEGRATION_MANIFEST.md"], "sourceCommit": "2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012", "tests": ["scripts/verify/document-metadata-gate.mjs", "scripts/verify/docs-compliance-check.mjs", "scripts/verify/docs-release-package-check.mjs", "scripts/verify/public-disclosure-gate.mjs"], "artifact": ["release/document-metadata-inventory.json", "release/evidence/document-metadata-2026-07-27.json"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
-      "blockedBy": ["The remaining third-cohort public documents still require metadata normalization; named professional reviews and Website acceptance of the current candidate remain external."], "owner": "YNX 18", "nextAction": "Normalize staking, trading core, Wallet/Auth mandate, Bridge/Oracle/Data Fabric, Quant, Trust, Product Architecture and principal guide documents; keep the CI-verified 2d38cac candidate unhosted and unaccepted until direct YNX 28 evidence returns.", "lastUpdated": "2026-07-27"
+      "evidence": ["release/document-metadata-inventory.json", "release/evidence/document-metadata-2026-07-29.json", "release/facts/superseded-facts.json", "docs/public/search/WHAT_IS_YNX_CHAIN.md", "docs/coordination/DOCS_COMPLIANCE_INTEGRATION_MANIFEST.md"], "sourceCommit": "e36832d5be0c498d8a2f27869f8d70fc112e9442", "tests": ["scripts/verify/document-metadata-gate.mjs", "scripts/verify/docs-compliance-check.mjs", "scripts/verify/docs-release-package-check.mjs", "scripts/verify/public-disclosure-gate.mjs"], "artifact": ["release/document-metadata-inventory.json", "release/evidence/document-metadata-2026-07-29.json"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": ["The remaining third-cohort public documents still require metadata normalization; named professional reviews and Website acceptance of the current candidate remain external."], "owner": "YNX 18", "nextAction": "Normalize trading core, Wallet/Auth mandate, Bridge/Oracle/Data Fabric, Quant, Trust, Product Architecture and principal guide documents; keep the CI-verified e36832d candidate unhosted and unaccepted until direct YNX 28 evidence returns.", "lastUpdated": "2026-07-29"
     }
   ]
 }

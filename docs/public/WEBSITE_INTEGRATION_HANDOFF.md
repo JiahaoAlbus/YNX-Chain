@@ -2,13 +2,13 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 1.1.2-candidate |
-| Effective date | 2026-07-27 |
-| Source commit | `2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012` |
+| Version | 1.1.3-candidate |
+| Effective date | 2026-07-29 |
+| Source commit | `e36832d5be0c498d8a2f27869f8d70fc112e9442` |
 | Product release | 0.2.0-candidate |
-| Last reviewed | 2026-07-27 |
-| Superseded version | 1.1.1-candidate |
-| Review status | Website integration handoff; the 2d38cac package is locally and CI verified but not yet Website-accepted or publicly hosted |
+| Last reviewed | 2026-07-29 |
+| Superseded version | 1.1.2-candidate |
+| Review status | Website integration handoff; the e36832d package is locally and CI verified but not yet Website-accepted or publicly hosted |
 
 ## Canonical identity
 
@@ -78,14 +78,17 @@ review are recorded.
 
 ## Next website-content candidate
 
-Source `2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012` expands the machine-readable
-high-authority document metadata inventory to thirteen technical, economic, security,
-legal, brand and Website documents. The locally verified deterministic archive is
-`ynx-website-content-2d38cacd11a4.zip`, 268,746 bytes, SHA-256
-`4ee1913606d4fdd17af44b0b206a0adfc21044747a69577c7e7f498829318861`. GitHub
-Actions run `30280631459` passed for the same source; artifact `8658642162` is
-unexpired. The deterministic archive digest and GitHub artifact-container digest are
-separate evidence values.
+Source `e36832d5be0c498d8a2f27869f8d70fc112e9442` expands the machine-readable
+high-authority document metadata inventory to fourteen technical, economic, security,
+legal, brand and Website documents, including the bounded staking, liquid-staking and
+Safety Module disclosure. The locally verified deterministic archive is
+`ynx-website-content-e36832d5be0c.zip`, 277,277 bytes, SHA-256
+`87b3cb20ddbe3d7e879a751c791b3fc90cb0b01face5d17fcad3c8da23d4f420`. GitHub
+Actions run `30416936231` passed for the same source; artifact `8710484610` is
+unexpired through 2026-08-28 and has workflow-container digest
+`sha256:e9069e9b4c0d9696a23ea148698c2cbc45dcfa66a8a091a13df53b00386be300`.
+The deterministic archive digest and GitHub artifact-container digest are separate
+evidence values.
 
 This candidate is not yet Website-accepted, publicly hosted or production signed.
 The currently hosted archive and release booleans remain governed by
@@ -102,6 +105,9 @@ responses and artifact hashes. No release boolean may change without direct proo
 
 ## Change log
 
+- 1.1.3-candidate (2026-07-29): Rebound the next Website-content candidate to the
+  fourteen-document `e36832d` package, exact local archive hash and successful CI
+  artifact without promoting Website acceptance, hosted-download or signing states.
 - 1.1.2-candidate (2026-07-27): Rebound the next Website-content candidate to the
   thirteen-document `2d38cac` package and exact CI evidence without promoting Website
   acceptance, hosted-download or signing states.

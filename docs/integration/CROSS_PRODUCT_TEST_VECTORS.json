@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "contractVersion": "0.1.0-candidate",
-  "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12",
+  "contractVersion": "0.1.1-candidate",
+  "sourceCommit": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
   "owner": "YNX 18 Whitepaper / Compliance / Brand",
   "vectors": [
     {"id": "YNX18-V01", "case": "network identity", "input": {"evmChainId": 6423, "cosmosChainId": "ynx_6423-1"}, "expected": "Publish as YNX Testnet only."},
@@ -15,6 +15,7 @@
     {"id": "YNX18-V09", "case": "supersession", "input": {"claimWithdrawn": true, "supersededBy": null}, "expectedError": "YNX18_DISCLOSURE_SUPERSESSION_MISSING"},
     {"id": "YNX18-V10", "case": "Arabic locale", "input": {"locale": "ar", "direction": "rtl", "reviewClass": "Machine Draft"}, "expected": "Accept locally; do not claim named human review or complete runtime RTL verification."},
     {"id": "YNX18-V11", "case": "operator proxy observation", "input": {"httpStatus": 200, "vantage": "operator-controlled"}, "expected": "May support the named component state; must not be labeled independent proof."},
-    {"id": "YNX18-V12", "case": "unknown required contract field", "input": {"contractVersion": "future", "unknownRequired": true}, "expected": "Fail closed and request a versioned migration decision."}
+    {"id": "YNX18-V12", "case": "unknown required contract field", "input": {"contractVersion": "future", "unknownRequired": true}, "expected": "Fail closed and request a versioned migration decision."},
+    {"id": "YNX18-V13", "case": "new candidate state separation", "input": {"acceptedPackageDownloadHosted": true, "candidateWebsiteAccepted": false, "candidateDownloadHosted": false}, "expected": "Preserve the accepted package state and keep the newer candidate unaccepted and unhosted."}
   ]
 }

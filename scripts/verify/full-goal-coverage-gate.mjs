@@ -113,7 +113,7 @@ function validate(matrix, { checkFiles = true } = {}) {
 function validateIntegration(matrix, contract, vectors, release) {
   const failures = [];
   if (contract?.schemaVersion !== "1.0.0") failures.push("integration contract schemaVersion must be 1.0.0");
-  if (contract?.contractVersion !== "0.1.0-candidate") failures.push("integration contractVersion is invalid");
+  if (contract?.contractVersion !== "0.1.1-candidate") failures.push("integration contractVersion is invalid");
   if (contract?.productNumber !== 18 || contract?.productSlug !== matrix.productSlug) failures.push("integration contract product identity does not match coverage matrix");
   if (contract?.sourceCommit !== matrix.sourceCommit) failures.push("integration contract sourceCommit does not match coverage matrix");
   if (!Array.isArray(contract?.canonicalEvents) || contract.canonicalEvents.length !== 0) failures.push("YNX 18 must not claim ownership of Data Fabric canonical events");

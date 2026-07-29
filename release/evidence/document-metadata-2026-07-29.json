@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "1.0.0",
+  "evidenceId": "YNX18-DOCUMENT-METADATA-2026-07-29",
+  "productNumber": 18,
+  "productSlug": "docs-compliance-brand",
+  "evidenceClass": "local-and-ci-tested-candidate",
+  "sourceCommit": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
+  "recordedAt": "2026-07-29T10:33:32+08:00",
+  "scope": "Fourteen high-authority public documents use the seven-field versioning tuple; the staking, liquid-staking and Safety Module disclosure is now inventory-bound and included in the deterministic Website-content candidate.",
+  "documentsValidated": 14,
+  "requiredMetadataFields": 7,
+  "tests": [
+    {
+      "command": "make document-metadata-check",
+      "result": "passed",
+      "detail": "Fourteen documents matched all seven metadata fields; duplicate-path, invalid-commit, metadata-mismatch and missing-change-log mutations were rejected."
+    },
+    {
+      "command": "make docs-release-package-check",
+      "result": "passed",
+      "detail": "Deterministic package builder and verifier negative self-tests passed."
+    },
+    {
+      "command": "make docs-compliance-check",
+      "result": "passed",
+      "detail": "The documentation, disclosure, full-goal coverage and document-metadata gates passed together."
+    },
+    {
+      "command": "make public-disclosure-check",
+      "result": "passed",
+      "detail": "Thirty JSON records, twelve authoritative fact classes and nine release states passed."
+    },
+    {
+      "command": "make full-goal-coverage-check",
+      "result": "passed",
+      "detail": "Thirty requirements remained evidence-bound in PUBLIC phase with the long-term goal Active."
+    },
+    {
+      "command": "make no-placeholder-check",
+      "result": "passed",
+      "detail": "No disallowed deployment filler was found; bounded recursive grep fallback was used because ripgrep was unavailable."
+    },
+    {
+      "command": "make secret-scan",
+      "result": "passed",
+      "detail": "Credential-pattern scan passed using the bounded recursive grep fallback."
+    },
+    {
+      "command": "make static-check",
+      "result": "passed",
+      "detail": "Go vet, Shell syntax and JavaScript syntax checks passed."
+    },
+    {
+      "command": "make objective-state-check",
+      "result": "passed",
+      "detail": "README positioning and objective-state records passed."
+    },
+    {
+      "command": "node scripts/verify/docs-release-package-check.mjs tmp/packages/docs-release",
+      "result": "passed",
+      "detail": "The exact committed-source archive passed source-commit, byte-count, SHA-256, manifest completeness and required-input verification."
+    }
+  ],
+  "artifact": {
+    "name": "ynx-website-content-e36832d5be0c.zip",
+    "bytes": 277277,
+    "sha256": "87b3cb20ddbe3d7e879a751c791b3fc90cb0b01face5d17fcad3c8da23d4f420",
+    "productionSigned": false,
+    "downloadHosted": false,
+    "websiteAccepted": false
+  },
+  "continuousIntegration": {
+    "workflow": "docs-compliance",
+    "runId": 30416936231,
+    "result": "success",
+    "headSha": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
+    "artifactId": 8710484610,
+    "artifactName": "ynx-website-content-e36832d5be0c498d8a2f27869f8d70fc112e9442",
+    "artifactBytes": 82767,
+    "artifactDigest": "sha256:e9069e9b4c0d9696a23ea148698c2cbc45dcfa66a8a091a13df53b00386be300",
+    "expired": false,
+    "expiresAt": "2026-08-28T02:28:58Z"
+  },
+  "git": {
+    "branch": "codex/final-docs-compliance",
+    "remote": "origin/codex/final-docs-compliance",
+    "localRemoteEqual": true,
+    "ahead": 0,
+    "behind": 0,
+    "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+    "aheadOfMain": 9,
+    "behindMain": 47
+  },
+  "pullRequest": {
+    "openForCurrentSource": false,
+    "latestMergedNumber": 6,
+    "latestMergedSource": "3dee634ea695f4a69d3f5dcbecec205c46257e12"
+  },
+  "release": {
+    "productSpecificGitHubRelease": false,
+    "tag": null
+  },
+  "limitations": [
+    "The e36832d candidate is not the currently Website-accepted or publicly hosted archive.",
+    "Website acceptance, public hosting and production signing require separate direct evidence from their owners.",
+    "The product branch is 47 commits behind origin/main and has nine product-specific commits not in origin/main; compatibility must be resolved through the Integration owner rather than an unreviewed cross-product merge.",
+    "No active staking, liquid-staking, reward, slashing or Safety Module policy is claimed.",
+    "Named legal, economic, consensus, security, privacy and asset-rights reviews remain external."
+  ]
+}

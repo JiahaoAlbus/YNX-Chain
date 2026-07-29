@@ -5,8 +5,8 @@
 | Product | YNX Whitepaper / Compliance / Brand |
 | Product slug | `docs-compliance-brand` |
 | Contract | `release/integration/docs-compliance-brand-contract.json` |
-| Contract version | `0.1.0-candidate` |
-| Source baseline | `3dee634ea695f4a69d3f5dcbecec205c46257e12` |
+| Contract version | `0.1.1-candidate` |
+| Source baseline | `e36832d5be0c498d8a2f27869f8d70fc112e9442` |
 | Release | `0.2.0-candidate` |
 | Current phase | PUBLIC |
 | Goal status | Active |
@@ -37,6 +37,22 @@ and an immutable unsigned candidate archive is hosted. Production signing, store
 release, named legal/economic/security approval and independent public proof are not
 established. The exact Website and archive evidence remains in
 `release/evidence/website-public-acceptance-2026-07-26.json`.
+
+## Newer integration candidate
+
+Source `e36832d5be0c498d8a2f27869f8d70fc112e9442` validates fourteen high-authority
+documents and adds the staking, liquid-staking and Safety Module disclosure to the
+required Website-content package. GitHub Actions run `30416936231` succeeded and artifact
+`8710484610` is unexpired through 2026-08-28. The deterministic package is
+`ynx-website-content-e36832d5be0c.zip`, 277,277 bytes, SHA-256
+`87b3cb20ddbe3d7e879a751c791b3fc90cb0b01face5d17fcad3c8da23d4f420`.
+
+This newer candidate is not Website-accepted, publicly hosted or production signed.
+Consumers must preserve the release states of the accepted package separately from the
+candidate states recorded in `release/integration/docs-compliance-brand-contract.json`.
+YNX 29 must resolve compatibility and merge order because this product branch is nine
+commits ahead of and 47 commits behind `origin/main`; YNX 18 must not perform an
+unreviewed broad merge that could overwrite other products.
 
 ## Owner handoff boundary
 
