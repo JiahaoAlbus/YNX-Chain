@@ -2,25 +2,25 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-29T19:23:53.881Z",
-  "controllerSourceCommit": "329092c19794ee376248750c2b138090e8418e08",
+  "generatedAt": "2026-07-29T19:28:40.723Z",
+  "controllerSourceCommit": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "329092c19794ee376248750c2b138090e8418e08",
+    "localHead": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
     "upstreamRef": "origin/codex/final-integration",
     "remoteHead": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
-    "ahead": 84,
+    "ahead": 85,
     "behind": 0,
-    "clean": false
+    "clean": true
   },
   "summary": {
     "totalProducts": 36,
     "localBranches": 36,
     "remoteBranches": 36,
     "registeredWorktrees": 36,
-    "cleanWorktrees": 10,
-    "dirtyWorktrees": 26,
+    "cleanWorktrees": 11,
+    "dirtyWorktrees": 25,
     "syncedBranches": 35,
     "upstreamConfigured": 36,
     "implementedLocalCandidates": 5,
@@ -4143,9 +4143,9 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "329092c19794ee376248750c2b138090e8418e08",
+        "localSha": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
         "remoteSha": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
-        "ahead": 84,
+        "ahead": 85,
         "behind": 0,
         "upstreamConfigured": true,
         "upstreamRef": "origin/codex/final-integration",
@@ -4156,9 +4156,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "329092c19794ee376248750c2b138090e8418e08",
-        "clean": false,
-        "changedEntries": 7,
+        "observedHead": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -4175,14 +4175,14 @@
         },
         "coverage": {
           "total": 71,
-          "open": 54,
+          "open": 53,
           "invalid": 0,
           "counts": {
             "notStarted": 21,
-            "inProgress": 33,
+            "inProgress": 32,
             "implementedLocal": 7,
             "testedLocal": 4,
-            "integratedCentral": 2,
+            "integratedCentral": 3,
             "testnetVerified": 0,
             "publicVerified": 0,
             "externalBlocked": 0,
@@ -4203,32 +4203,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
+            "sourceCommit": "329092c19794ee376248750c2b138090e8418e08",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 86
+            "distance": 1
           },
           "productRelease": {
             "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 85
+            "distance": 86
           },
           "publicMetadata": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 90
+            "distance": 91
           },
           "integrationContract": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 90
+            "distance": 91
           }
         },
         "release": {
@@ -4266,8 +4266,7 @@
       },
       "blockers": [
         "local and remote final branch SHAs differ",
-        "registered final worktree has uncommitted changes",
-        "full-goal coverage has 54 autonomous or unresolved items"
+        "full-goal coverage has 53 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: local and remote final branch SHAs differ."
     },

@@ -21,11 +21,10 @@ Protect Product 01 Chain Core's completed source candidate through central accep
 
 ## Next actions
 
-1. Commit the Product 01 acceptance state.
-2. Refresh all generated central evidence against the committed Integration source and create a second source-bound checkpoint.
-3. Run the clean exact-source protection preflight.
-4. Push without force, restore exact branch protection, verify local/tracking/REST SHA equality and wait for every PR #17 check at the exact final head.
-5. Recover Product 26 Data Fabric next because Product 02 depends on Products 01, 26 and 30.
+1. Commit the generated evidence refreshed against exact central-acceptance source `6de79e31a7dd44fcb7df9edbf65a3090da6967c3`.
+2. Run the clean exact-source protection preflight.
+3. Push without force, restore exact branch protection, verify local/tracking/REST SHA equality and wait for every PR #17 check at the exact final head.
+4. Recover Product 26 Data Fabric next because Product 02 depends on Products 01, 26 and 30.
 
 ## Guardrails
 

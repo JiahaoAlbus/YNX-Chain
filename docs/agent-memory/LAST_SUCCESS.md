@@ -1,8 +1,10 @@
 # Last Success
 
-Updated: `2026-07-29T19:26:24Z`
+Updated: `2026-07-29T19:29:29Z`
 
 Product 01 Chain Core was centrally accepted from protected exact owner head `324f376dac2db434673ccec2c6d212ed3d23f79e`.
+
+The acceptance state was committed at `6de79e31a7dd44fcb7df9edbf65a3090da6967c3`, then all central generated evidence was refreshed against that exact reachable source.
 
 Direct evidence:
 

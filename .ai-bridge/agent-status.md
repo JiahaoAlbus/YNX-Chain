@@ -1,6 +1,6 @@
 # YNX 29 Integration Agent Status
 
-Updated: 2026-07-29T19:26:24Z
+Updated: 2026-07-29T19:29:29Z
 Lifecycle: ACTIVE
 Stage: INTEGRATE
 
@@ -10,8 +10,9 @@ Stage: INTEGRATE
 - Branch: `codex/final-integration`
 - Last synchronized remote checkpoint: `b1929a5159dc50e02124f6827ccdc6dff7fce9cb`
 - Product 01 merge commit: `329092c19794ee376248750c2b138090e8418e08`
+- Product 01 central-acceptance commit: `6de79e31a7dd44fcb7df9edbf65a3090da6967c3`
 - Product 01 accepted owner source: `324f376dac2db434673ccec2c6d212ed3d23f79e`
-- Current tree is intentionally dirty only with generated central-acceptance state and its receipt. No other product worktree is being modified.
+- Current tree is intentionally dirty only with generated evidence refreshed against central-acceptance commit `6de79e31a7dd44fcb7df9edbf65a3090da6967c3`. No other product worktree is being modified.
 
 ## Centrally accepted products
 
@@ -35,7 +36,7 @@ The receipt is `release/integration/evidence/product-01-central-acceptance-32909
 
 - 36 products registered; all 36 branches, remotes, worktrees and upstreams observed.
 - 35 synchronized worktrees; Product 29 is intentionally ahead pending this checkpoint push.
-- 10 clean and 26 dirty owner worktrees.
+- 11 clean and 25 dirty owner worktrees.
 - 2 centrally accepted products.
 - Product Release Matrix: 3 `READY_FOR_SOURCE_RELEASE`, 33 `HOLD_FOR_RECOVERY`, 0 `READY_FOR_PUBLIC_TESTNET`.
 
@@ -56,4 +57,4 @@ Passed in the merged central tree:
 
 ## Exact next action
 
-Commit the Product 01 central-acceptance state, refresh generated evidence against that commit, create the source-bound checkpoint, push through the protected branch without force, restore and verify protection, then require exact-final-head PR #17 CI before advancing to Product 26.
+Commit the source-bound generated evidence, run the clean exact-source protection preflight, push through the protected branch without force, restore and verify protection, then require exact-final-head PR #17 CI before advancing to Product 26.
