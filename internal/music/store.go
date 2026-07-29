@@ -12,8 +12,23 @@ import (
 	"strings"
 )
 
+const currentStateSchemaVersion = 2
+
+type stateDocumentHeader struct {
+	SchemaVersion int `json:"schemaVersion"`
+}
+
+type stateMigration func(json.RawMessage) (json.RawMessage, error)
+
+// Migrations are registered by source schema version and must advance exactly
+// one version. Unknown and future schemas fail closed rather than being decoded
+// opportunistically.
+var stateMigrationRegistry = map[int]stateMigration{
+	1: migrateStateV1ToV2,
+}
+
 func newState() persistentState {
-	return persistentState{SchemaVersion: 1, Profiles: map[string]Profile{}, Tracks: map[string]Track{}, Playlists: map[string]Playlist{}, Listeners: map[string]ListenerState{}, Usage: map[string]UsageRecord{}, Allocations: map[string]RevenueAllocation{}, Settlements: map[string]SettlementIntent{}, Cases: map[string]Case{}, AIProposals: map[string]AIProposal{}, Idempotency: map[string]string{}, Audit: []AuditEvent{}}
+	return persistentState{SchemaVersion: currentStateSchemaVersion, Profiles: map[string]Profile{}, Tracks: map[string]Track{}, Playlists: map[string]Playlist{}, Listeners: map[string]ListenerState{}, Usage: map[string]UsageRecord{}, Allocations: map[string]RevenueAllocation{}, Settlements: map[string]SettlementIntent{}, Cases: map[string]Case{}, AIProposals: map[string]AIProposal{}, Idempotency: map[string]string{}, Audit: []AuditEvent{}}
 }
 
 func loadState(path, mediaDir string) (persistentState, bool, error) {
@@ -24,9 +39,13 @@ func loadState(path, mediaDir string) (persistentState, bool, error) {
 	if err != nil {
 		return persistentState{}, false, fmt.Errorf("read music state: %w", err)
 	}
-	var state persistentState
-	if json.Unmarshal(data, &state) != nil || state.SchemaVersion != 1 || state.IntegrityHash == "" {
-		return persistentState{}, false, errors.New("music state schema or integrity hash is invalid")
+	var originalHeader stateDocumentHeader
+	if err := json.Unmarshal(data, &originalHeader); err != nil {
+		return persistentState{}, false, errors.New("music state schema is invalid")
+	}
+	state, err := decodePersistedState(data)
+	if err != nil {
+		return persistentState{}, false, err
 	}
 	if state.Profiles == nil || state.Tracks == nil || state.Playlists == nil || state.Listeners == nil || state.Usage == nil || state.Allocations == nil || state.Settlements == nil || state.Cases == nil || state.AIProposals == nil || state.Idempotency == nil || state.Audit == nil {
 		return persistentState{}, false, errors.New("music state collections are invalid")
@@ -56,7 +75,83 @@ func loadState(path, mediaDir string) (persistentState, bool, error) {
 		}
 		state.Tracks[id] = track
 	}
+	if originalHeader.SchemaVersion != currentStateSchemaVersion {
+		if err := saveState(path, &state); err != nil {
+			return persistentState{}, false, fmt.Errorf("persist migrated music state: %w", err)
+		}
+	}
 	return state, true, nil
+}
+
+func decodePersistedState(data []byte) (persistentState, error) {
+	migrated, err := migrateStateDocument(data, stateMigrationRegistry)
+	if err != nil {
+		return persistentState{}, err
+	}
+	var state persistentState
+	if err := json.Unmarshal(migrated, &state); err != nil || state.SchemaVersion != currentStateSchemaVersion || state.IntegrityHash == "" {
+		return persistentState{}, errors.New("music state schema or integrity hash is invalid")
+	}
+	return state, nil
+}
+
+func migrateStateDocument(data []byte, registry map[int]stateMigration) ([]byte, error) {
+	current := append([]byte(nil), data...)
+	for {
+		var header stateDocumentHeader
+		if err := json.Unmarshal(current, &header); err != nil {
+			return nil, errors.New("music state schema is invalid")
+		}
+		if header.SchemaVersion <= 0 {
+			return nil, fmt.Errorf("music state schema version %d is unsupported", header.SchemaVersion)
+		}
+		if header.SchemaVersion > currentStateSchemaVersion {
+			return nil, fmt.Errorf("music state schema version %d is newer than supported version %d", header.SchemaVersion, currentStateSchemaVersion)
+		}
+		if header.SchemaVersion == currentStateSchemaVersion {
+			return current, nil
+		}
+		migration, ok := registry[header.SchemaVersion]
+		if !ok {
+			return nil, fmt.Errorf("music state migration from schema version %d is unavailable", header.SchemaVersion)
+		}
+		next, err := migration(json.RawMessage(current))
+		if err != nil {
+			return nil, fmt.Errorf("migrate music state schema version %d: %w", header.SchemaVersion, err)
+		}
+		var nextHeader stateDocumentHeader
+		if err := json.Unmarshal(next, &nextHeader); err != nil || nextHeader.SchemaVersion != header.SchemaVersion+1 {
+			return nil, fmt.Errorf("music state migration from schema version %d did not advance exactly one version", header.SchemaVersion)
+		}
+		current = append(current[:0], next...)
+	}
+}
+
+func migrateStateV1ToV2(raw json.RawMessage) (json.RawMessage, error) {
+	var legacy persistentState
+	if err := json.Unmarshal(raw, &legacy); err != nil || legacy.SchemaVersion != 1 || legacy.IntegrityHash == "" {
+		return nil, errors.New("music state schema v1 document is invalid")
+	}
+	if legacy.Profiles == nil || legacy.Tracks == nil || legacy.Playlists == nil || legacy.Listeners == nil || legacy.Usage == nil || legacy.Allocations == nil || legacy.Settlements == nil || legacy.Cases == nil || legacy.AIProposals == nil || legacy.Idempotency == nil || legacy.Audit == nil {
+		return nil, errors.New("music state schema v1 collections are invalid")
+	}
+	expected, err := stateIntegrity(legacy)
+	if err != nil || expected != legacy.IntegrityHash {
+		return nil, errors.New("music state schema v1 integrity verification failed")
+	}
+	if err := verifyAuditChain(legacy.Audit); err != nil {
+		return nil, err
+	}
+	legacy.SchemaVersion = 2
+	legacy.IntegrityHash, err = stateIntegrity(legacy)
+	if err != nil {
+		return nil, err
+	}
+	migrated, err := json.Marshal(legacy)
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(migrated), nil
 }
 
 func verifyAuditChain(audit []AuditEvent) error {
