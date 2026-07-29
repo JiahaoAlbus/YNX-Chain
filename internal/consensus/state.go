@@ -16,7 +16,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-const CommittedStateVersion = 11
+const CommittedStateVersion = 12
 
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
@@ -68,6 +68,8 @@ type CommittedState struct {
 	EVMReceipts                []BFTEVMReceipt                 `json:"evmReceipts"`
 	EVMLogs                    []BFTEVMLog                     `json:"evmLogs"`
 	IDEIdempotency             []BFTIDEIdempotency             `json:"ideIdempotency"`
+	GovernanceExecutions       []BFTGovernanceExecution        `json:"governanceExecutions"`
+	GovernanceExecutionAudit   []BFTGovernanceExecutionAudit   `json:"governanceExecutionAudit"`
 	AppHash                    string                          `json:"appHash"`
 }
 
@@ -117,6 +119,8 @@ type committedStateHashDocument struct {
 	EVMReceipts                []BFTEVMReceipt                 `json:"evmReceipts"`
 	EVMLogs                    []BFTEVMLog                     `json:"evmLogs"`
 	IDEIdempotency             []BFTIDEIdempotency             `json:"ideIdempotency"`
+	GovernanceExecutions       []BFTGovernanceExecution        `json:"governanceExecutions,omitempty"`
+	GovernanceExecutionAudit   []BFTGovernanceExecutionAudit   `json:"governanceExecutionAudit,omitempty"`
 }
 
 func initialCommittedState(migration chain.ConsensusMigrationState) CommittedState {
@@ -167,6 +171,8 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		EVMReceipts:                []BFTEVMReceipt{},
 		EVMLogs:                    []BFTEVMLog{},
 		IDEIdempotency:             []BFTIDEIdempotency{},
+		GovernanceExecutions:       []BFTGovernanceExecution{},
+		GovernanceExecutionAudit:   []BFTGovernanceExecutionAudit{},
 		AppHash:                    migration.StateHash,
 	}
 }
@@ -219,6 +225,8 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		EVMReceipts:                cloneBFTEVMReceipts(execution.evmReceipts),
 		EVMLogs:                    cloneBFTEVMLogs(execution.evmLogs),
 		IDEIdempotency:             append([]BFTIDEIdempotency(nil), execution.ideIdempotency...),
+		GovernanceExecutions:       append([]BFTGovernanceExecution(nil), execution.governanceExecutions...),
+		GovernanceExecutionAudit:   append([]BFTGovernanceExecutionAudit(nil), execution.governanceExecutionAudit...),
 	}
 	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() {
 		state.AppHash = migration.StateHash
@@ -317,6 +325,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateIDECommittedState(s); err != nil {
 		return err
 	}
+	if err := validateGovernanceExecutionCommittedState(s); err != nil {
+		return err
+	}
 	if err := validateFeeEvents(s.FeeEvents); err != nil {
 		return err
 	}
@@ -372,7 +383,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 }
 
 func (s CommittedState) calculateHash() (string, error) {
-	return s.calculateHashFor("YNX_ABCI_STATE_V11", CommittedStateVersion)
+	return s.calculateHashFor("YNX_ABCI_STATE_V12", CommittedStateVersion)
 }
 
 func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
@@ -422,6 +433,8 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 		EVMReceipts:                s.EVMReceipts,
 		EVMLogs:                    s.EVMLogs,
 		IDEIdempotency:             s.IDEIdempotency,
+		GovernanceExecutions:       s.GovernanceExecutions,
+		GovernanceExecutionAudit:   s.GovernanceExecutionAudit,
 	}
 	payload, err := json.Marshal(doc)
 	if err != nil {
@@ -432,7 +445,7 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.FeeEvents)+len(s.StrategyMandates)+len(s.StrategyVaults)+len(s.AssetAuditEvents)+len(s.SmartAccounts)+len(s.Paymasters)+len(s.UserOperationEvents)+len(s.StakeDelegations)+len(s.Unbondings)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
+	return len(s.FeeEvents)+len(s.StrategyMandates)+len(s.StrategyVaults)+len(s.AssetAuditEvents)+len(s.SmartAccounts)+len(s.Paymasters)+len(s.UserOperationEvents)+len(s.StakeDelegations)+len(s.Unbondings)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit) != 0
 }
 
 func validateFeeEvents(events []BFTFeeEvent) error {
@@ -639,6 +652,27 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 			state.AppHash, err = state.calculateHash()
 			if err != nil {
 				return CommittedState{}, fmt.Errorf("migrate v10 committed state hash: %w", err)
+			}
+		}
+	}
+	if state.Version == 11 {
+		expected := migration.StateHash
+		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
+			expected, err = state.calculateHashFor("YNX_ABCI_STATE_V11", 11)
+			if err != nil {
+				return CommittedState{}, fmt.Errorf("calculate v11 committed state hash: %w", err)
+			}
+		}
+		if !strings.EqualFold(state.AppHash, expected) {
+			return CommittedState{}, errors.New("v11 committed state app hash is invalid")
+		}
+		state.Version = CommittedStateVersion
+		state.GovernanceExecutions = []BFTGovernanceExecution{}
+		state.GovernanceExecutionAudit = []BFTGovernanceExecutionAudit{}
+		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
+			state.AppHash, err = state.calculateHash()
+			if err != nil {
+				return CommittedState{}, fmt.Errorf("migrate v11 committed state hash: %w", err)
 			}
 		}
 	}

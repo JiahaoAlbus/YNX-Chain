@@ -71,10 +71,10 @@ jobs:
           path: |
             FEATURE_COMPLETION_EVIDENCE.md
             docs/architecture/STREAMBFT_CANDIDATE.md
-            docs/integration/INTEGRATION_HANDOFF.md
+            docs/integration/CHAIN_CORE_INTEGRATION_HANDOFF.md
             docs/integration/WEBSITE_HANDOFF.md
             release/integration/chain-core-contract.json
-            release/product-release.json
-            release/public-product-metadata.json
+            release/chain-core/product-release.json
+            release/chain-core/public-product-metadata.json
           if-no-files-found: error
           retention-days: 90

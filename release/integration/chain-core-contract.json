@@ -3,11 +3,11 @@
   "product": "chain-core",
   "owner": "01-chain-core",
   "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
-  "contractVersion": "1.11.0",
+  "contractVersion": "1.12.0",
   "stateSchema": {
-    "committedStateVersion": 11,
-    "applicationVersion": 17,
-    "appHashDomain": "YNX_ABCI_STATE_V11",
+    "committedStateVersion": 12,
+    "applicationVersion": 18,
+    "appHashDomain": "YNX_ABCI_STATE_V12",
     "stateSyncSnapshotFormat": 1,
     "stateSyncSnapshotMaxBytes": 67108864
   },
@@ -252,8 +252,8 @@
     "boundedContractRuntimeMode": "pinned-artifact-bounded-evm-subset",
     "boundedCallNonZeroValue": false,
     "boundedCallStateOverrides": false,
-    "estimateGasSemantics": "0x1 after successful bounded evaluation because ABCI v17 accounts one consensus resource unit per accepted transaction; not Ethereum gas pricing",
-    "stateRootSemantics": "CometBFT AppHash over YNX committed state v11",
+    "estimateGasSemantics": "0x1 after successful bounded evaluation because ABCI v18 accounts one consensus resource unit per accepted transaction; not Ethereum gas pricing",
+    "stateRootSemantics": "CometBFT AppHash over YNX committed state v12",
     "transactionsRootSemantics": "CometBFT data hash; not an Ethereum MPT",
     "rejectionCodes": {
       "invalidParams": -32602,

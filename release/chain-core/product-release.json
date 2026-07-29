@@ -1,0 +1,107 @@
+{
+  "schema": "ynx-product-release/v1",
+  "generatedAt": "2026-07-28T10:20:00Z",
+  "product": {
+    "id": "chain-core",
+    "name": "YNX Chain Core",
+    "owner": "01-chain-core",
+    "repository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "canonicalRoute": "/chain"
+  },
+  "source": {
+    "implementationCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
+    "committedStateVersion": 12,
+    "contractVersion": "1.12.0",
+    "releaseRecordVersion": 1
+  },
+  "network": {
+    "name": "YNX Testnet",
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainIdDecimal": 6423,
+    "evmChainIdHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "nativeAddressPrefix": "ynx1",
+    "evmCompatibilityAddressPrefix": "0x"
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "deployedBaseline": {
+    "release": "ynx-chain-02f4ccd8770c",
+    "commit": "02f4ccd8770c",
+    "topology": "authoritative-producer-with-three-read-only-authenticated-followers",
+    "publicFourValidatorBft": false,
+    "matchesCurrentSource": false,
+    "evidence": "release/recovery-evidence.json"
+  },
+  "currentSourceCapabilities": [
+    "signed-native-transfer",
+    "nonce-and-replay-rejection",
+    "fixed-fee-consensus-ledger",
+    "strategy-mandate",
+    "strategy-vault",
+    "validator-delegation-and-exit",
+    "smart-account",
+    "user-operation",
+    "bundler",
+    "paymaster",
+    "treasury-snapshot",
+    "native-liability-solvency-proof",
+    "abci-state-sync-snapshot",
+    "validator-backup-restore-rollback",
+    "cometbft-candidate-package",
+    "evm-network-and-block-rpc",
+    "evm-block-transaction-count-and-index-lookup",
+    "evm-account-balance-and-nonce-rpc",
+    "evm-signed-ynxt-broadcast",
+    "evm-eip155-legacy-value-transfer-and-dual-hash-identity",
+    "evm-eip2930-empty-access-list-value-transfer-and-dual-hash-identity",
+    "evm-eip1559-zero-base-fee-value-transfer-and-dual-hash-identity",
+    "evm-zero-base-fee-minimum-gas-price-suggestions",
+    "evm-committed-zero-base-fee-history",
+    "bounded-ethereum-signer-cli-and-json-evidence",
+    "configurable-local-consensus-fixture-balance",
+    "local-four-validator-eip1559-commit-and-rollback-proof",
+    "local-four-validator-positive-max-gas-fee-history-proof",
+    "evm-committed-receipt-audit-validation",
+    "evm-committed-transaction-receipt-and-logs",
+    "evm-committed-bounded-contract-code-call-and-resource-estimate",
+    "sponsored-user-operation-bundler-end-to-end",
+    "strategy-vault-lifecycle-and-emergency-exit-guardrails",
+    "indexer-durable-checkpoint-wal-and-tamper-rejection",
+    "streambft-overflow-safe-quorum-resource-and-timeout-accounting"
+    ,
+    "governance-execution-begin-verify-and-audit"
+  ],
+  "currentSourceBoundaries": [
+    "Current source is not deployed on the authoritative public runtime.",
+    "The public topology is not four-validator CometBFT voting.",
+    "StreamBFT remains a local shadow candidate and is not eligible for cutover.",
+    "Wallet/Auth Product Session integration is not frozen or accepted centrally.",
+    "Ethereum compatibility accepts only chain-bound EIP-155 legacy type-0, EIP-2930 type-0x01 empty-access-list and EIP-1559 type-0x02 zero-base-fee value transfers with exactly 21000 gas; non-empty access lists, contract creation, calldata and a dynamic base-fee market are not supported.",
+    "eth_gasPrice and eth_maxPriorityFeePerGas return the protocol minimum accepted value 0x1; eth_feeHistory returns only retained committed zero-base-fee history when CometBFT exposes a positive committed max_gas, rejects reward-percentile estimates, and returns -32004 rather than fabricating gasUsedRatio when max_gas is non-positive.",
+    "The signer CLI and four-validator EIP-1559 proofs are local tooling and local ephemeral evidence, not public deployment or production signing.",
+    "No owner production signer, public BFT cutover approval, or independent public proof is recorded."
+  ],
+  "evidence": [
+    "FEATURE_COMPLETION_EVIDENCE.md",
+    "CURRENT_RECOVERY_AUDIT.md",
+    "release/recovery-evidence.json",
+    ".ai-bridge/products/01-chain-core/full-goal-coverage.json",
+    "release/integration/chain-core-contract.json",
+    "docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json",
+    "scripts/verify/consensus-eip1559-commit-check.sh",
+    "scripts/verify/bft-evm-fee-history-check.sh",
+    "release/chain-core/public-product-metadata.json",
+    "docs/integration/WEBSITE_HANDOFF.md",
+    "scripts/verify/chain-core-release-check.mjs"
+  ]
+}

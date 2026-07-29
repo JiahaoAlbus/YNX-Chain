@@ -1,23 +1,29 @@
 # Decisions
 
-- The attached long-term Chain Core goal is authoritative and remains active until real Testnet and public evidence gates pass.
-- Chain-owned protocol facts are frozen locally; Wallet/Auth scope names remain owned by Wallet/Auth and must not be invented in Chain Core.
-- Product-level `deployedPublic` remains false because the current source commit is not the deployed public runtime.
-- Existing public runtime evidence is preserved as a separate deployed baseline rather than relabeled as current source.
-- CometBFT remains the safety baseline; StreamBFT stays a shadow candidate.
-- ABCI State Sync accepts only format 1 snapshots bound to the trusted-height AppHash, migration anchor and strict v11 committed-state validation.
-- Snapshot persistence must complete before in-memory state changes; persistence failure aborts without partial restore.
-- Local backup/rollback evidence may use disposable validator keys, but no local drill may set remote or public recovery status true.
-- EVM block transaction count and transaction-by-block-index methods are committed-state read compatibility backed by CometBFT evidence; they do not imply Ethereum execution equivalence.
-- `eth_sendRawTransaction` accepts the canonical signed YNX envelope plus bounded chain-6423 EIP-155 type `0x0`, EIP-2930 type `0x1` empty-access-list and EIP-1559 type `0x2` zero-base-fee value transfers. All Ethereum profiles require exact sender recovery, zero-based nonce and 21000-gas semantics. Type `0x2` requires `0 < maxPriorityFeePerGas <= maxFeePerGas`, affordability for value plus maximum fee exposure, and final debit at the effective priority price. Non-empty access lists, contract creation, calldata and a dynamic base-fee market remain unsupported and must not be claimed.
-- Every ABCI-returned EVM receipt must pass canonical audit-hash and structural validation, then match CometBFT transaction hash, block height, sender, recipient and action evidence before a gateway returns it.
-- Unrelated concurrent dirty work in `internal/indexer/indexer.go` was protected and excluded from the EVM slice staging and commit; it was reviewed, tested and committed separately as `bf08b68`.
-- Indexer checkpoint and WAL files are local authority state and must fail closed on unsafe permissions, non-regular files, unknown fields, trailing data, block/transaction invariant mismatch, conflicting duplicate WAL records or caller-visible mutable aliases.
-- Exact checkpoint/WAL overlap after an atomic checkpoint but before WAL deletion is a valid recovery window and must not be rejected when the block record is identical.
-- Objective-state security scanning must not silently disappear when `rg` is absent; the portable `grep` fallback is part of the gate.
-- Machine release, integration and coverage records bind to the latest runtime implementation commit, while a later documentation-only commit must not be misrepresented as a different deployed runtime.
-- `eth_gasPrice` and `eth_maxPriorityFeePerGas` expose the minimum accepted protocol value `0x1` for the frozen zero-base-fee compatibility profile; `eth_feeHistory` is permitted only from retained committed block evidence with positive exact-height CometBFT `max_gas`, zero base fees and no reward estimates. Non-positive `max_gas` returns `-32004` and inconsistent committed gas evidence returns `-32603` rather than fabricating market history.
-- Gateway broadcast success for bounded Ethereum transfers requires committed raw-transaction membership, valid AppHash/DataHash, matching block-results gas and an audited receipt that matches the broadcast identity and parties.
-- A CometBFT `tx already exists in cache` response is a deterministic duplicate/replay rejection and maps to JSON-RPC `-32003`; unrelated upstream or committed-evidence failures remain `-32603`.
-- Local four-validator EIP-1559 commit and rollback evidence remains explicitly ephemeral, `deployedPublic=false` and `productionSigned=false`; it cannot be promoted to public proof without current-source deployment and independent evidence.
-- `eth_getStorageAt` is limited to current committed AppHash-persisted storage for bounded pinned contracts. It accepts canonical lowercase addresses and canonical hex-quantity positions, returns a 32-byte zero word for missing contracts or slots, rejects historical state, and validates all returned storage keys and words before release. This does not claim Ethereum MPT proofs, arbitrary EVM storage, archive-state support or generalized execution.
+## 2026-07-27 — Capacity reservation authority
+
+A reservation is authoritative only for the exact Offer referenced by the accepted Quote. Provider-level totals are retained as a derived aggregate, but they cannot be used to borrow capacity across sibling Offers.
+
+## 2026-07-27 — Self-dealing
+
+A Provider wallet cannot purchase its own fixed-price capacity or submit an auction bid when it is also the procurement buyer. These paths fail closed and expose `RESOURCE_SELF_DEALING_REJECTED` through the API contract.
+
+## 2026-07-27 — Schema 6 migration
+
+Pre-v6 snapshots derive Offer and Provider reservation ledgers solely from active orders with valid Quote→Offer lineage and persist the upgrade at startup. Once a snapshot is schema 6, ledger mismatch is treated as semantic tampering and startup fails closed; it is never silently repaired.
+
+## 2026-07-27 — Release truth
+
+Passing local tests, Race, Vet and cold-start smoke does not set central, staging, public, hosted, signed or store-release booleans. The product remains `ACTIVE` in `INTEGRATE`.
+
+## 2026-07-27 — Amount arithmetic
+
+All monetary values remain non-negative signed 64-bit integers at the Resource Market boundary. Quote, auction, metering, settlement and dispute calculations use checked arithmetic; overflow returns `RESOURCE_AMOUNT_OUT_OF_RANGE` before any authoritative state mutation. Central consumers must preserve this failure and must not clamp, wrap or reinterpret it as a successful charge, settlement or refund.
+
+## 2026-07-29 — Tested-source evidence binding
+
+Release metadata binds `d683c7d28ce129daad358c84680e5980cf8ad069`, the exact source verified by Resource Market Candidate Gates run `30417957999`. Later checkpoint-only commits do not replace that tested source identity.
+
+## 2026-07-29 — Operator input ownership
+
+The repository-wide `release/operator-inputs.request.json` remains a central/shared file from main. Resource Market-specific deployment, provider, signer, localization and hosting inputs live at `apps/resource-market/operator-inputs.request.json` to avoid overwriting another Owner's central evidence.

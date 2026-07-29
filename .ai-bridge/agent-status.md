@@ -1,11 +1,25 @@
-# Agent Status
+# Agent status
 
-- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/01-chain-core`; branch: `codex/final-chain-core`; server modes: bash `full`, write `workspace`, tool `full`.
-- Last verified pushed checkpoints: runtime `c89b6f97dc1d06113ab12b8eab3afca2f5a338a1`; capability gate `9155c76`. Local and `origin/codex/final-chain-core` matched after each push.
-- The BFT Gateway now implements bounded current-state `eth_getStorageAt` over AppHash-persisted pinned-contract `RuntimeStorage`.
-- Storage reads require canonical lowercase EVM addresses, canonical lowercase hex-quantity positions and a current committed block tag. Unknown contracts and unknown slots return a 32-byte zero word.
-- Contract artifact identity plus every persisted runtime storage key/value are validated before release; malformed storage evidence fails closed as an internal evidence error.
-- Proof covers a committed counter mutation from constructor value `7` to slot-0 value `12`, unknown slot and unknown contract zero behavior, malformed quantity rejection and historical-state rejection.
-- Passed: `go test ./internal/bftgateway`, `go test -race ./internal/bftgateway`, `make bft-ide-contract-check`, `go test ./internal/...`, and `make bft-evm-receipt-check`.
-- Concurrent unrelated StreamBFT changes in `internal/streambft/fees.go`, `internal/streambft/proposal.go`, `internal/streambft/streambft_test.go`, `internal/streambft/types.go`, and `scripts/verify/streambft-candidate-check.sh` were preserved unstaged and were not edited, reset or included in Chain Core EVM commits.
-- Evidence remains local TESTNET evidence. `deployedPublic=false` and `productionSigned=false`; central integration, staging, hosted download, public deployment and store release remain false.
+- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market`
+- Branch: `codex/final-resource-market`
+- Stage: `INTEGRATE`
+- Goal status: `ACTIVE`
+- Tested source: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Tested source remote status: pushed and verified equal on `origin/codex/final-resource-market`
+- Evidence synchronization timestamp: `2026-07-29T02:54:25Z`
+- Pull request: `#12` open and mergeable
+
+## Verified gates for the tested source
+
+- `go test -count=1 ./...`
+- `go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct`
+- `go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market`
+- `bash apps/resource-market/check.sh`
+- Resource Market Candidate Gates `30417957999`: success
+- General CI `30417957996`: success
+- Docs compliance `30417958003`: success
+- Resource Market iOS Simulator build in `30417957987`: success
+
+## Current truth
+
+The product remains a tested local candidate. It is not yet merged to main, centrally integrated, authoritative-settlement verified, staged, public, download-hosted, production-signed, store-released, or professionally approved. Public settlement, two independent public providers and real Cloud/AI/Developer/Quant consumption remain unproven.

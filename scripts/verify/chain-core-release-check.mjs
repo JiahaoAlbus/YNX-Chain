@@ -8,8 +8,8 @@ const expect = (condition, message) => {
   }
 };
 
-const releasePath = "release/product-release.json";
-const metadataPath = "release/public-product-metadata.json";
+const releasePath = "release/chain-core/product-release.json";
+const metadataPath = "release/chain-core/public-product-metadata.json";
 const contractPath = "release/integration/chain-core-contract.json";
 for (const path of [releasePath, metadataPath, contractPath, "docs/integration/WEBSITE_HANDOFF.md"]) {
   expect(existsSync(path), `missing required Chain Core release artifact: ${path}`);
@@ -51,7 +51,7 @@ const requiredRoutes = metadata.website?.requiredRoutes ?? {};
 for (const route of ["product", "userManual", "developerDocs", "api", "faq", "security", "status", "support"]) {
   expect(typeof requiredRoutes[route] === "string" && requiredRoutes[route].startsWith("/chain"), `missing Website route: ${route}`);
 }
-expect(metadata.website?.targetOrigin === "https://huangjeo.com", "Website target origin must be huangjeo.com");
+expect(metadata.website?.targetOrigin === "https://ynxweb4.com", "Website target origin must be ynxweb4.com");
 expect(metadata.website?.publicationStatus === "external-blocked", "unpublished Website handoff must remain externally blocked");
 
 for (const path of metadata.evidence ?? []) {

@@ -29,7 +29,7 @@ grep -q "43.164.132.81" docs/acceptance/GOAL_DIGEST.md
 grep -q "ynx_9102-1" docs/acceptance/GOAL_DIGEST.md
 
 grep -q "State snapshot baseline commit:" docs/acceptance/PROJECT_STATE.md
-grep -q "Last pushed runtime commit" docs/acceptance/PROJECT_STATE.md
+grep -q "Last pushed commit" docs/acceptance/PROJECT_STATE.md
 grep -q "Chain repo state:" docs/acceptance/PROJECT_STATE.md
 grep -q "Website repo state:" docs/acceptance/PROJECT_STATE.md
 grep -q "Remote deployment state:" docs/acceptance/PROJECT_STATE.md
@@ -37,7 +37,7 @@ grep -q "Current blockers:" docs/acceptance/PROJECT_STATE.md
 grep -q "Largest real gap" docs/acceptance/PROJECT_STATE.md
 
 grep -q "Current single action:" docs/acceptance/NEXT_ACTION.md
-grep -q "Files in the current slice:" docs/acceptance/NEXT_ACTION.md
+grep -q "Files to touch:" docs/acceptance/NEXT_ACTION.md
 grep -q "Validation commands:" docs/acceptance/NEXT_ACTION.md
 grep -q "Completion standard:" docs/acceptance/NEXT_ACTION.md
 grep -q "Explicitly not doing" docs/acceptance/NEXT_ACTION.md
@@ -51,18 +51,37 @@ grep -q "Transparency Report" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
 
 node ./scripts/verify/readme-positioning-check.mjs
 
-strict_ssh_report="$(mktemp)"
+strict_ssh_report="$(mktemp -t ynx-strict-ssh-policy.XXXXXX)"
 trap 'rm -f "$strict_ssh_report"' EXIT
+strict_ssh_found=1
 
 if command -v rg >/dev/null 2>&1; then
-  rg -n "StrictHostKeyChecking=accept-new" scripts/deploy scripts/ops scripts/verify \
-    --glob '!scripts/verify/objective-state-check.sh' >"$strict_ssh_report" || true
+  if rg -n "StrictHostKeyChecking=accept-new" scripts/deploy scripts/ops scripts/verify --glob '!scripts/verify/objective-state-check.sh' >"$strict_ssh_report"; then
+    strict_ssh_found=0
+  else
+    scan_status=$?
+    if [[ "$scan_status" -ne 1 ]]; then
+      echo "strict SSH policy scan failed with exit code $scan_status" >&2
+      exit "$scan_status"
+    fi
+  fi
 else
-  grep -RIn --include='*.sh' --exclude='objective-state-check.sh' \
-    "StrictHostKeyChecking=accept-new" scripts/deploy scripts/ops scripts/verify >"$strict_ssh_report" || true
+  echo "ripgrep unavailable; using bounded recursive grep fallback" >&2
+  if grep -RIn --binary-files=without-match \
+    --exclude='objective-state-check.sh' \
+    -- "StrictHostKeyChecking=accept-new" \
+    scripts/deploy scripts/ops scripts/verify >"$strict_ssh_report"; then
+    strict_ssh_found=0
+  else
+    scan_status=$?
+    if [[ "$scan_status" -ne 1 ]]; then
+      echo "strict SSH policy scan failed with exit code $scan_status" >&2
+      exit "$scan_status"
+    fi
+  fi
 fi
 
-if test -s "$strict_ssh_report"; then
+if [[ "$strict_ssh_found" -eq 0 ]]; then
   cat "$strict_ssh_report"
   echo "strict ssh policy failed: deployment, ops, and verification scripts must not auto-accept new host keys"
   exit 1

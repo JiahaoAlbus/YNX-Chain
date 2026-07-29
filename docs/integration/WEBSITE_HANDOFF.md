@@ -1,6 +1,6 @@
 # Chain Core Website Handoff
 
-Status: source-complete handoff; huangjeo.com publication is externally blocked.
+Status: source-complete handoff; ynxweb4.com publication is externally blocked.
 
 This package gives the Website owner an evidence-bound information architecture for
 YNX Chain Core. It does not claim that the target routes are deployed. Public copy
@@ -49,4 +49,4 @@ streambft-candidate-check`, static checks and the Chain Core GitHub Actions work
 pass for the handoff commit. Website acceptance remains external until the Website
 owner imports the metadata, implements the routes, passes responsive/dark/RTL/a11y
 checks, deploys through Vercel and returns the production deployment URL, deployment
-SHA and anonymous public probes for huangjeo.com.
+SHA and anonymous public probes for ynxweb4.com.
