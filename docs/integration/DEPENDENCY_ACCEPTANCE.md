@@ -1,6 +1,6 @@
 # YNX Docs Dependency Acceptance
 
-Runtime source commit: `5d04c144987fd35d09925db72bd882719a2e7df9`
+Runtime source commit: `3c404c4f4d2c9967e660882349a19c94aebd08f1`
 
 Contract: `release/integration/docs-contract.json`
 
@@ -13,7 +13,7 @@ Status: pending central acceptance; local adapters and fail-closed vectors are r
 | YNX 14 | AI Gateway provider/model/cost/status/cancel/review | Selected-version context and fail-closed product boundary | Pending | Real provider Testnet E2E with cost and rejected-result audit |
 | YNX 15 | Trust evidence and appeal | Distinct evidence JSON fields; source/export hashes; no plaintext | Pending | Accepted evidence schema plus Trust receipt/report/appeal test |
 | YNX 26 | Canonical events and Billing Ledger | Candidate event list in contract | Pending | Frozen event version, idempotency and billing semantics |
-| YNX 12/13 | Explorer/Monitor evidence | No accepted integration yet | Pending | Traceable event/health/version evidence and alert probe |
+| YNX 12/13 | Explorer/Monitor evidence | Local health, readiness, version, Prometheus metrics and request/trace/error correlation IDs pass targeted tests | Pending | Accepted metric/trace schema, dashboard ingestion and alert probe |
 | YNX 29 | Protocol freeze and shared Testnet | Contract and cross-product vectors ready | Pending | Conflict review, frozen version and execution order |
 | YNX 30 | Security/SRE/release/backup/artifact gate | Targeted unit/race/vet/build checks and local hash-verified backup/restore drill pass | Pending | Accept backup schema; provide release policy, SBOM/provenance, scans and public gate |
 | YNX 28 | Canonical `/docs` Website page | Product metadata will be generated locally | Pending | Metadata consumption and separate website/runtime publication proof |

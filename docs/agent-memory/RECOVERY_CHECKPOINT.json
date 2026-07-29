@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "35",
+  "productName": "YNX Docs",
+  "phase": "PROTECT",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/35-docs",
+  "branch": "codex/final-docs",
+  "localSha": "3c404c4f4d2c9967e660882349a19c94aebd08f1",
+  "remoteSha": "3c404c4f4d2c9967e660882349a19c94aebd08f1",
+  "checkpointCommit": "SELF",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "go test ./internal/cloud -count=1",
+    "go test -race ./internal/cloud -count=1",
+    "go vet ./internal/cloud",
+    "go test ./apps/cloud/cmd/ynx-cloudd"
+  ],
+  "latestCiRuns": [],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [],
+  "publicRoutes": [
+    {
+      "url": "https://ynxweb4.com/docs",
+      "websitePublished": false,
+      "runtimeDeployed": false,
+      "verifiedForSourceCommit": false
+    }
+  ],
+  "completed": [
+    "recovered correct worktree branch and repository",
+    "verified runtime source local and upstream SHA equality",
+    "implemented and tested health readiness version and Prometheus metrics",
+    "implemented and tested request trace and error correlation IDs",
+    "implemented structured request logs without sensitive payloads",
+    "updated candidate integration contract and cross-product observability vector"
+  ],
+  "remaining": [
+    "central contract freeze and owner acceptance",
+    "Monitor dashboard ingestion and alert probes",
+    "shared Testnet E2E",
+    "collaboration bake-off and protocol freeze",
+    "rollback migration and old-client drills",
+    "device installation and complete Web/mobile evidence",
+    "SLO capacity RPO and unit-economics evidence",
+    "SBOM provenance scanned artifacts signing and hosting",
+    "Website and public runtime deployment proof"
+  ],
+  "blockers": [
+    "YNX 13/29/30 observability acceptance and alert evidence pending",
+    "shared Testnet central dependencies pending"
+  ],
+  "nextAction": "Submit source commit 3c404c4f4d2c9967e660882349a19c94aebd08f1 and DOCS-OBSERVABILITY-IDENTITY to YNX 13/29/30, record the frozen schema, then execute dashboard ingestion and alert recovery probes against the same SHA.",
+  "updatedAt": "2026-07-29T02:36:11Z",
+  "notes": "localSha and remoteSha identify the verified runtime source. checkpointCommit SELF means the Git commit containing this file; resolve it with git rev-parse HEAD after checkout. dirty describes the expected state after the containing checkpoint commit is pushed."
+}

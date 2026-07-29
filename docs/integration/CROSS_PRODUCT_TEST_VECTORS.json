@@ -1,7 +1,7 @@
 {
   "schemaVersion": "ynx.docs.test-vectors.v1",
   "product": "YNX Docs",
-  "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
+  "sourceCommit": "3c404c4f4d2c9967e660882349a19c94aebd08f1",
   "status": "localVectorsReadyCentralExecutionPending",
   "vectors": [
     {
@@ -150,6 +150,22 @@
       "input": {"actor": "ynx1…", "action": "document.export", "objectId": "obj_docs", "hash": "sha256"},
       "expected": {"distinctJsonFields": ["actor", "action", "objectId", "hash"], "plaintextPresent": false},
       "localEvidence": ["TestRemoteContractsFailClosedAndBindEvidence", "go vet ./internal/cloud"]
+    },
+    {
+      "id": "DOCS-OBSERVABILITY-IDENTITY",
+      "owners": ["YNX 35", "YNX 13", "YNX 29", "YNX 30"],
+      "precondition": "Docs runtime starts with an injected immutable build identity.",
+      "input": {"paths": ["/health", "/ready", "/version", "/metrics"], "requestId": "request-123", "traceId": "trace-456"},
+      "expected": {
+        "httpStatus": 200,
+        "buildCommitReturned": true,
+        "truthfulPublicBoundary": "local-bounded-docs-runtime-not-publicly-deployed",
+        "correlationHeadersPreserved": true,
+        "unsafeCorrelationIdRejected": true,
+        "errorIdOnFailure": true,
+        "prometheusMetricPrefix": "ynx_docs_"
+      },
+      "localEvidence": ["TestDocsRuntimeObservabilityEndpointsAndCorrelationIDs", "go test -race ./internal/cloud -count=1", "go vet ./internal/cloud"]
     }
   ]
 }

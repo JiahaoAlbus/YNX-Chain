@@ -6,7 +6,7 @@
   "releaseChannel": "development",
   "goalStatus": "ACTIVE",
   "phase": "PROTECT",
-  "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
+  "sourceCommit": "3c404c4f4d2c9967e660882349a19c94aebd08f1",
   "stateSchemaVersion": 2,
   "contract": {
     "id": "ynx-docs-v1",
@@ -59,6 +59,17 @@
     }
   },
   "supportedExportFormats": ["text", "markdown", "html", "json"],
+  "runtimeObservability": {
+    "health": "/health",
+    "ready": "/ready",
+    "version": "/version",
+    "metrics": "/metrics",
+    "correlationHeaders": ["X-Request-ID", "X-Trace-ID", "X-Error-ID"],
+    "structuredRequestLogs": true,
+    "testedLocal": true,
+    "monitorIntegrated": false,
+    "publiclyProbed": false
+  },
   "unsupportedOrUnverified": [
     "PDF export",
     "central owner acceptance",
@@ -82,6 +93,7 @@
       "go test ./cmd/ynx-docs-operator",
       "go test -race ./cmd/ynx-docs-operator",
       "go vet ./cmd/ynx-docs-operator",
+      "TestDocsRuntimeObservabilityEndpointsAndCorrelationIDs via go test ./internal/cloud -count=1",
       "npm --prefix apps/docs test",
       "npm --prefix apps/docs run check",
       "pnpm run check in apps/docs/mobile",

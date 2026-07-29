@@ -4,7 +4,7 @@
   "aliases": ["Docs", "YNX Documents"],
   "slug": "docs",
   "canonicalRoute": "/docs",
-  "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
+  "sourceCommit": "3c404c4f4d2c9967e660882349a19c94aebd08f1",
   "website": {
     "websitePublished": false,
     "deployedPublic": false,
@@ -30,6 +30,7 @@
     "Text, Markdown, HTML and JSON export with source/output hashes",
     "Review-first AI drafts limited to selected document versions",
     "Audit and Trust evidence without document plaintext",
+    "Health, readiness, version and Prometheus metrics with request/trace/error correlation IDs",
     "Offline operator backup and hash-verified restore with ephemeral credentials excluded"
   ],
   "risksAndLimits": [

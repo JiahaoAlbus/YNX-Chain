@@ -4,7 +4,7 @@
 
 - Product: YNX Docs
 - Owner: YNX 35
-- Runtime source commit: `5d04c144987fd35d09925db72bd882719a2e7df9`
+- Runtime source commit: `3c404c4f4d2c9967e660882349a19c94aebd08f1`
 - Candidate contract: `release/integration/docs-contract.json`
 - Test vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - Current phase: PROTECT, requesting FREEZE review
@@ -12,7 +12,7 @@
 
 ## Runtime delivered locally
 
-The current runtime provides Wallet-gated Web/mobile entry, document/folder listing and creation, deterministic optimistic autosave, offline draft recovery, explicit conflict handling, rename/move/duplicate, version history and restore, comments with exact-version anchors and thread resolution, permission/link/access-request services, versioned Text/Markdown/HTML/JSON export with two-hash evidence, bounded AI review, persisted audit/Trust adapters, and an offline operator backup/restore drill that verifies state and object hashes while excluding sessions, nonces and presence.
+The current runtime provides Wallet-gated Web/mobile entry, document/folder listing and creation, deterministic optimistic autosave, offline draft recovery, explicit conflict handling, rename/move/duplicate, version history and restore, comments with exact-version anchors and thread resolution, permission/link/access-request services, versioned Text/Markdown/HTML/JSON export with two-hash evidence, bounded AI review, persisted audit/Trust adapters, health/readiness/version endpoints, Prometheus metrics, structured request logs and request/trace/error correlation IDs, plus an offline operator backup/restore drill that verifies state and object hashes while excluding sessions, nonces and presence.
 
 The service is implemented in `internal/cloud` but YNX Docs remains a separate product. HTTP authorization enforces the product boundary: Cloud sessions cannot read or mutate Docs objects, folders containing Docs cannot be moved/copied/shared by a Cloud session, Docs audit events are filtered from Cloud, and Cloud cannot submit Docs content to AI.
 

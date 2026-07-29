@@ -7,7 +7,7 @@
     "product": "YNX Docs",
     "slug": "docs"
   },
-  "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
+  "sourceCommit": "3c404c4f4d2c9967e660882349a19c94aebd08f1",
   "stateSchemaVersion": 2,
   "network": {
     "chainId": "ynx_6423-1",
@@ -105,6 +105,16 @@
   "httpApi": {
     "basePath": "/api/v1",
     "health": "GET /health",
+    "ready": "GET /ready",
+    "version": "GET /version",
+    "metrics": "GET /metrics",
+    "observability": {
+      "correlationHeaders": ["X-Request-ID", "X-Trace-ID"],
+      "errorHeader": "X-Error-ID",
+      "structuredLogEvent": "ynx_docs_http_request",
+      "metricPrefix": "ynx_docs_",
+      "healthTruthBoundary": "local-bounded-docs-runtime-not-publicly-deployed"
+    },
     "routes": [
       {"method": "POST", "path": "/session", "scope": null},
       {"method": "DELETE", "path": "/session", "scope": "authenticated"},
