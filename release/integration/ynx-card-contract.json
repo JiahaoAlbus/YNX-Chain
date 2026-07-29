@@ -5,7 +5,7 @@
     "id": "ynx-card",
     "name": "YNX Card",
     "owner": "06-card",
-    "sourceCommit": "01415dc4413dd8d4e33756a52682ca0f2a6675ec",
+    "sourceCommit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
     "branch": "codex/final-card"
   },
   "network": {
@@ -24,6 +24,21 @@
       "card:controls:write",
       "card:dispute:write"
     ],
+    "routeScopes": {
+      "default": [
+        "account:read",
+        "card:application:write",
+        "card:controls:write",
+        "card:dispute:write"
+      ],
+      "DELETE /v1/account/data": [
+        "account:read",
+        "card:application:write",
+        "card:controls:write",
+        "card:data:delete",
+        "card:dispute:write"
+      ]
+    },
     "assertionDomain": "YNX_PRODUCT_GATEWAY_ASSERTION_V1",
     "requiredBindings": [
       "chainId",
@@ -54,6 +69,9 @@
       {"method": "GET", "path": "/ready", "auth": "public", "purpose": "issuer-dependent readiness"},
       {"method": "GET", "path": "/version", "auth": "public", "purpose": "build and schema identity"},
       {"method": "GET", "path": "/v1/account/state", "auth": "gateway_assertion"},
+      {"method": "GET", "path": "/v1/account/export", "auth": "gateway_assertion", "schema": "ynx.card.account-export.v1"},
+      {"method": "POST", "path": "/v1/account/retention", "auth": "gateway_assertion", "schema": "ynx.card.data-lifecycle.v1"},
+      {"method": "DELETE", "path": "/v1/account/data", "auth": "gateway_assertion", "scope": "card:data:delete", "schema": "ynx.card.data-lifecycle.v1"},
       {"method": "POST", "path": "/v1/card/applications", "auth": "gateway_assertion"},
       {"method": "POST", "path": "/v1/cards/{id}/actions", "auth": "gateway_assertion"},
       {"method": "PUT", "path": "/v1/cards/{id}/controls", "auth": "gateway_assertion"},
@@ -130,9 +148,26 @@
     "CARD_INTERNAL": 500
   },
   "sensitiveDataBoundary": {
-    "persisted": ["opaqueProviderCardId", "providerName", "sandboxNetwork", "last4", "expiry", "status", "controls", "events", "disputes", "audit"],
+    "persisted": ["opaqueProviderCardId", "providerName", "sandboxNetwork", "last4", "expiry", "status", "controls", "events", "disputes", "audit", "pseudonymizedDeletionReceipt"],
     "forbidden": ["PAN", "CVV", "CVC", "PIN", "trackData", "magneticStripeData", "rawKYC", "identityDocument", "issuerSecret", "walletPrivateKey", "mobileSigningKey"],
     "secureDisplay": "provider-hosted only; not implemented until an official provider is selected"
+  },
+  "dataLifecycle": {
+    "schema": "ynx.card.data-lifecycle.v1",
+    "exportSchema": "ynx.card.account-export.v1",
+    "exportRedactions": ["eligibilityReference", "providerApplicationReference", "providerCardId", "providerEventId", "relatedProviderEventId", "requestId", "traceId"],
+    "defaultRetention": {
+      "notifications": "2160h0m0s",
+      "aiRuns": "720h0m0s",
+      "idempotency": "720h0m0s",
+      "providerReplayRecords": "9600h0m0s",
+      "deletionReceipts": "720h0m0s"
+    },
+    "deletionConfirmation": "DELETE YNX CARD DATA",
+    "deletionScope": "card:data:delete",
+    "providerClosureBeforeDeletion": "required_fail_closed",
+    "auditBehavior": "pseudonymize account/object/correlation fields, rebuild hash chain, append account_data_deleted receipt audit",
+    "durableFinancialEventRetention": "not removed by bounded routine retention"
   },
   "dataFabricHandoff": {
     "owner": "26-data-fabric",
@@ -152,7 +187,7 @@
     "currentStateVersion": 1,
     "backupSchemaVersion": "ynx.card.backup.v1",
     "backupIntegrityDomain": "YNX_CARD_BACKUP_V1",
-    "backwardCompatibility": "bounded v0 fixture migrates to state v1 by initializing notifications; this is test compatibility and not a claim of prior production deployment",
+    "backwardCompatibility": "bounded v0 fixture migrates to state v1 by initializing notifications and deletion receipts; existing state-v1 documents missing deletionReceipts normalize to an empty map; this is test compatibility and not a claim of prior production deployment",
     "rollbackMigration": "a verified pre-restore v1 backup is created and has been restored in the local drill",
     "failClosedOnUnknownVersion": true,
     "maximumBackupBytes": 67108864

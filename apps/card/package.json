@@ -5,6 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
+    "generate-sbom": "node scripts/generate-sbom.mjs",
     "security-check": "node scripts/security-check.mjs",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",

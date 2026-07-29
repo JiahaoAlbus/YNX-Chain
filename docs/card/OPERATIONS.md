@@ -1,6 +1,6 @@
 # YNX Card Operations
 
-Source commit: `01415dc4413dd8d4e33756a52682ca0f2a6675ec`
+Source commit: `d79872f5df4da0566e11ef40e5314ea68d9846f4`
 
 ## Operator boundary
 
@@ -35,6 +35,24 @@ Stop Card writes before offline restore.
 
 After restore, open the state with the Card service, run `/health`, `/ready` and `/version`, then execute the Card smoke tests before reopening writes.
 
+## Account data lifecycle
+
+- `GET /v1/account/export` returns an account-scoped `ynx.card.account-export.v1` projection. Provider application/card/event references and request/trace correlation identifiers are removed; the exported audit projection is rehashed after redaction.
+- `POST /v1/account/retention` applies bounded retention to notifications, AI drafts, account idempotency entries, expired Gateway nonces, orphan provider replay records and expired deletion receipts. It does not delete Card or financial event records.
+- `DELETE /v1/account/data` requires the exact confirmation `DELETE YNX CARD DATA`, a valid idempotency key and the dedicated `card:data:delete` Gateway scope. The service closes every non-closed provider Card before local deletion. Any issuer closure error aborts local deletion.
+- Successful deletion removes account-owned Card records and raw provider identifiers, pseudonymizes matching audit subjects, rebuilds audit hashes and stores a bounded idempotent deletion receipt. The HTTP response omits the internal idempotency digest.
+- Reapplication removes the prior deletion receipt and starts a new lifecycle. Do not bypass the service with direct state-file edits.
+
+## Default bounded retention
+
+| Record class | Default maximum age |
+|---|---:|
+| Notifications | 90 days |
+| AI runs | 30 days |
+| Account idempotency records | 30 days |
+| Orphan provider replay records | 400 days |
+| Deletion receipts | 30 days |
+
 ## Unfinished operational gates
 
-Scheduled encrypted off-host backups, retention enforcement, timed RPO/RTO evidence, account-scoped export/delete, alerting and centralized incident integration remain open. This document does not claim those controls are complete.
+Scheduled encrypted off-host backups, scheduled retention invocation, central privacy-workflow acceptance, timed RPO/RTO evidence, alerting and centralized incident integration remain open. This document does not claim those controls are complete.

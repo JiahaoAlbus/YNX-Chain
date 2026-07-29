@@ -1,6 +1,6 @@
 # YNX Card Migration Compatibility
 
-Source commit: `01415dc4413dd8d4e33756a52682ca0f2a6675ec`
+Source commit: `d79872f5df4da0566e11ef40e5314ea68d9846f4`
 
 ## Current formats
 
@@ -12,7 +12,7 @@ Source commit: `01415dc4413dd8d4e33756a52682ca0f2a6675ec`
 
 ## Tested compatibility path
 
-A bounded v0 fixture without notifications migrates to state v1 by creating an empty notifications map. This fixture proves migration and rollback mechanics; it is not evidence that v0 was previously deployed in production.
+A bounded v0 fixture without notifications or deletion receipts migrates to state v1 by creating empty maps for both. Existing state-v1 documents written before the data-lifecycle slice also normalize a missing `deletionReceipts` field to an empty map before subsequent persistence. These paths prove migration and rollback mechanics; they are not evidence that v0 was previously deployed in production.
 
 The local drill verifies:
 
@@ -25,5 +25,7 @@ The local drill verifies:
 ## Compatibility truth
 
 - Existing state-v1 clients remain the only supported runtime clients.
-- Account-scoped export/delete, retention enforcement and old-mobile-client API compatibility are separate open gates.
+- Account export, retention and deletion are additive HTTP routes; existing Card routes and persisted state version remain unchanged.
+- Older Wallet/Gateway integrations must not call account deletion until they support the dedicated `card:data:delete` scope. Requests signed with only the default Card scopes fail closed.
+- Old-mobile-client API compatibility remains a separate open gate.
 - No destructive migration may run without a verified rollback destination on a distinct absolute path.

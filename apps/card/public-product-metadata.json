@@ -5,9 +5,9 @@
   "aliases": ["Card", "YNX Card Testnet Preview"],
   "canonicalRoute": "/card",
   "title": "YNX Card — Controlled Testnet Card Preview",
-  "metaDescription": "Explore the YNX Card Testnet Preview with sandbox card lifecycle, user-configurable spending controls, signed provider events and explicit issuer availability.",
+  "metaDescription": "Explore the YNX Card Testnet Preview with sandbox card lifecycle, user-configurable controls, signed provider events, privacy export and bounded account-data deletion.",
   "h1": "A controlled Card preview for YNX Testnet",
-  "sourceCommit": "a06cae385adb24c216ebff4283984dd3d088bfb3",
+  "sourceCommit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
   "releaseVersion": "1.0.0-testnet-preview",
   "status": {
     "label": "Testnet Preview",
@@ -33,6 +33,8 @@
     "Spend, online, international, ATM, MCC and country controls",
     "Signed, replay-protected provider event timeline",
     "Bounded webhook-key rotation and fail-closed event ordering",
+    "Privacy export with provider-sensitive reference redaction",
+    "Bounded retention and account deletion with issuer closure, pseudonymized audit and dedicated authorization scope",
     "Dispute initiation and review-only AI explanations",
     "Twelve locales including Arabic RTL"
   ],
@@ -77,5 +79,5 @@
     "releaseNotesSource": "apps/card/product-release.json"
   },
   "websiteIntegrationOwner": "28-website",
-  "generatedAt": "2026-07-27"
+  "generatedAt": "2026-07-29"
 }

@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 )
 
@@ -76,6 +77,9 @@ func (s *Store) Update(fn func(*Snapshot) error) error {
 	if err := fn(&s.data); err != nil {
 		s.data = before
 		return err
+	}
+	if reflect.DeepEqual(s.data, before) {
+		return nil
 	}
 	if err := s.persistLocked(); err != nil {
 		s.data = before

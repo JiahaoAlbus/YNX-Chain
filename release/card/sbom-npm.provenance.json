@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "ynx.card.sbom-provenance.v1",
+  "productId": "ynx-card",
+  "sourceCommit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
+  "generator": "apps/card/scripts/generate-sbom.mjs",
+  "inputs": {
+    "packageLock": {
+      "path": "apps/card/package-lock.json",
+      "sha256": "651350befa33df3a56b015833527f535e6cf15f9f7a93c91904d821cd5e37e8f"
+    },
+    "generator": {
+      "path": "apps/card/scripts/generate-sbom.mjs",
+      "sha256": "1abc1a4461d4a476f4b98266f84dbd6f8e5c428b421afebabec07badeeba5432"
+    }
+  },
+  "output": {
+    "path": "release/card/sbom-npm.cdx.json",
+    "sha256": "90b5c06d17bba8460554ec3d24a5e7f7b75a7fc811bb8329535396a45cf6654f",
+    "bytes": 563134,
+    "componentCount": 533,
+    "format": "CycloneDX 1.5 JSON"
+  },
+  "reproducibility": {
+    "deterministicOrdering": true,
+    "wallClockExcluded": true,
+    "randomValuesExcluded": true,
+    "command": "npm run generate-sbom"
+  }
+}
