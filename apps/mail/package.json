@@ -9,6 +9,7 @@
     "build": "go build -ldflags \"-X main.buildCommit=$(git rev-parse HEAD) -X main.buildRelease=ynx-mail-${npm_package_version}-testnet-preview-source -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)\" -o /tmp/ynx-maild .",
     "package:desktop": "sh scripts/package-desktop.sh",
     "proof:desktop": "sh tests/desktop-install-proof.sh",
+    "supply-chain": "node scripts/generate-supply-chain-evidence.mjs",
     "build:android": "cd native/android && ./gradlew --no-daemon :app:assembleDebug",
     "browser:proof": "node tests/browser-proof.cjs",
     "check:ios": "swiftc -frontend -parse native/ios/YNXMail/YNXMailApp.swift && plutil -lint native/ios/YNXMail/Info.plist native/ios/YNXMail.xcodeproj/project.pbxproj",
