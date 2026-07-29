@@ -297,18 +297,18 @@ function discoverEvidencePaths(product, paths) {
   const slug = product.slug;
   const integrationProduct = product.id === "29";
   return {
-    fullGoalCoverage: firstExisting(paths, [".ai-bridge/full-goal-coverage.json"], ["full-goal-coverage.json"]),
+    fullGoalCoverage: firstExisting(paths, [product.fullGoalCoveragePath, ".ai-bridge/full-goal-coverage.json"].filter(Boolean), ["full-goal-coverage.json"]),
     productRelease: firstExisting(
       paths,
       integrationProduct
         ? ["release/integration/product-release.json", "release/product-release.json", "product-release.json"]
-        : [`release/${slug}/product-release.json`, `apps/${slug}/product-release.json`, `docs/${slug}/product-release.json`, slug === "governance" ? "release/governance/product-release.json" : null, "release/product-release.json", "product-release.json"].filter(Boolean)
+        : [product.productReleasePath, `release/${slug}/product-release.json`, `apps/${slug}/product-release.json`, `docs/${slug}/product-release.json`, slug === "governance" ? "release/governance/product-release.json" : null, "release/product-release.json", "product-release.json"].filter(Boolean)
     ),
     publicMetadata: firstExisting(
       paths,
       integrationProduct
         ? ["release/integration/public-product-metadata.json", "release/public-product-metadata.json", "public-product-metadata.json"]
-        : [`release/${slug}/public-product-metadata.json`, `apps/${slug}/public-product-metadata.json`, `docs/${slug}/public-product-metadata.json`, slug === "governance" ? "release/governance/public-product-metadata.json" : null, "release/public-product-metadata.json", "public-product-metadata.json"].filter(Boolean)
+        : [product.publicMetadataPath, `release/${slug}/public-product-metadata.json`, `apps/${slug}/public-product-metadata.json`, `docs/${slug}/public-product-metadata.json`, slug === "governance" ? "release/governance/public-product-metadata.json" : null, "release/public-product-metadata.json", "public-product-metadata.json"].filter(Boolean)
     ),
     integrationContract: firstExisting(
       paths,
@@ -316,9 +316,9 @@ function discoverEvidencePaths(product, paths) {
         ? ["release/integration/integration-contract.json", `release/integration/${slug}-contract.json`]
         : [product.integrationContractPath, `release/integration/${slug}-contract.json`, `release/integration/ynx-${slug}-contract.json`, "release/integration/integration-contract.json"].filter(Boolean)
     ),
-    integrationHandoff: firstExisting(paths, ["docs/integration/INTEGRATION_HANDOFF.md", `docs/handoffs/${slug}.md`], ["INTEGRATION_HANDOFF.md"]),
-    crossProductTestVectors: firstExisting(paths, ["docs/integration/CROSS_PRODUCT_TEST_VECTORS.json", "release/integration/CROSS_PRODUCT_TEST_VECTORS.json"], ["CROSS_PRODUCT_TEST_VECTORS.json"]),
-    dependencyAcceptance: firstExisting(paths, ["docs/integration/DEPENDENCY_ACCEPTANCE.md"], ["DEPENDENCY_ACCEPTANCE.md"])
+    integrationHandoff: firstExisting(paths, [product.integrationHandoffPath, "docs/integration/INTEGRATION_HANDOFF.md", `docs/handoffs/${slug}.md`].filter(Boolean), ["INTEGRATION_HANDOFF.md"]),
+    crossProductTestVectors: firstExisting(paths, [product.crossProductTestVectorsPath, "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json", "release/integration/CROSS_PRODUCT_TEST_VECTORS.json"].filter(Boolean), ["CROSS_PRODUCT_TEST_VECTORS.json"]),
+    dependencyAcceptance: firstExisting(paths, [product.dependencyAcceptancePath, "docs/integration/DEPENDENCY_ACCEPTANCE.md"].filter(Boolean), ["DEPENDENCY_ACCEPTANCE.md"])
   };
 }
 
@@ -557,8 +557,9 @@ function main() {
   for (const product of registry.products) {
     const repository = product.repository ?? registry.defaultRepository;
     const externalRepository = repository !== registry.defaultRepository;
+    const separateWorktree = externalRepository || product.separateWorktree === true;
     const expectedExternalWorktree = path.join(finalWorktreesRoot, product.worktreeSlug);
-    const repositoryRoot = externalRepository ? expectedExternalWorktree : root;
+    const repositoryRoot = separateWorktree ? expectedExternalWorktree : root;
     const repositoryOrigin = repositoryFromRemote(git(["remote", "get-url", "origin"], { allowFailure: true, cwd: repositoryRoot })?.trim() ?? null);
     const repositoryMatches = repositoryOrigin === repository;
     const localRef = `refs/heads/${product.branch}`;
@@ -571,7 +572,7 @@ function main() {
     const expectedMerge = `refs/heads/${product.branch}`;
     const externalHead = refSha("HEAD", repositoryRoot);
     const externalBranch = git(["branch", "--show-current"], { allowFailure: true, cwd: repositoryRoot })?.trim() || null;
-    const worktreeRecord = externalRepository
+    const worktreeRecord = separateWorktree
       ? (repositoryMatches ? { path: repositoryRoot, head: externalHead, branch: externalBranch, detached: false } : null)
       : worktreesByBranch.get(product.branch);
     const worktree = inspectWorktree(worktreeRecord);

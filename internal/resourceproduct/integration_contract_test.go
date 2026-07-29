@@ -76,7 +76,7 @@ func TestResourceIntegrationContractAndVectorsStayAligned(t *testing.T) {
 	}
 
 	var vectors resourceCrossProductVectors
-	readJSONFixture(t, "../../docs/integration/CROSS_PRODUCT_TEST_VECTORS.json", &vectors)
+	readJSONFixture(t, "../../docs/integration/RESOURCE_MARKET_CROSS_PRODUCT_TEST_VECTORS.json", &vectors)
 	if vectors.ContractVersion != contract.ContractVersion {
 		t.Fatalf("vector contract=%q contract=%q", vectors.ContractVersion, contract.ContractVersion)
 	}

@@ -143,7 +143,7 @@ function validateRegistry(registry, collector) {
   const security = products.find((product) => product.id === "30");
   collector.expect(integration?.branch === "codex/final-integration" && integration?.owner === "29-integration", "product 29 authority mapping is invalid");
   collector.expect(
-    security?.repository === "JiahaoAlbus/YNX"
+    security?.repository === "JiahaoAlbus/YNX-Chain"
       && security?.branch === "codex/final-security-platform"
       && security?.owner === "30-security-platform",
     "product 30 authority mapping is invalid"
