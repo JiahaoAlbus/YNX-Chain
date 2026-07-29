@@ -2,26 +2,26 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-29T11:15:57.603Z",
-  "controllerSourceCommit": "77bacb42f9a27814204504f85e6b501ee3e54b6e",
+  "generatedAt": "2026-07-29T11:19:28.203Z",
+  "controllerSourceCommit": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "77bacb42f9a27814204504f85e6b501ee3e54b6e",
+    "localHead": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "af4b1b891c510b3c2cd9030a045bc633ed987758",
-    "ahead": 35,
+    "remoteHead": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
+    "ahead": 0,
     "behind": 0,
-    "clean": false
+    "clean": true
   },
   "summary": {
     "totalProducts": 36,
     "localBranches": 36,
     "remoteBranches": 36,
     "registeredWorktrees": 36,
-    "cleanWorktrees": 10,
-    "dirtyWorktrees": 26,
-    "syncedBranches": 35,
+    "cleanWorktrees": 11,
+    "dirtyWorktrees": 25,
+    "syncedBranches": 36,
     "upstreamConfigured": 36,
     "implementedLocalCandidates": 5,
     "inProgress": 31,
@@ -3520,22 +3520,22 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "77bacb42f9a27814204504f85e6b501ee3e54b6e",
-        "remoteSha": "af4b1b891c510b3c2cd9030a045bc633ed987758",
-        "ahead": 35,
+        "localSha": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
+        "remoteSha": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
+        "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
         "upstreamRef": "origin/codex/final-integration",
         "repositoryMatches": true,
-        "synced": false,
+        "synced": true,
         "stableDuringScan": true
       },
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "77bacb42f9a27814204504f85e6b501ee3e54b6e",
-        "clean": false,
-        "changedEntries": 4,
+        "observedHead": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -3577,28 +3577,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 36
+            "distance": 37
           },
           "productRelease": {
             "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 37
+            "distance": 38
           },
           "publicMetadata": {
             "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 37
+            "distance": 38
           },
           "integrationContract": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 96
+            "distance": 97
           }
         },
         "claimedReleaseStates": {
@@ -3622,11 +3622,9 @@
         "acceptedAt": null
       },
       "blockers": [
-        "local and remote final branch SHAs differ",
-        "registered final worktree has uncommitted changes",
         "full-goal coverage has 58 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: local and remote final branch SHAs differ."
+      "nextAction": "Resolve: full-goal coverage has 58 autonomous or unresolved items."
     },
     {
       "id": "30",
