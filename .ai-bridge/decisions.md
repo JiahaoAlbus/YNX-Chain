@@ -1,6 +1,6 @@
 # YNX Creator Studio — Decisions
 
-Updated: 2026-07-27T15:47:21Z
+Updated: 2026-07-29T02:33:33Z
 
 1. Creator Studio remains a Web-first independent product. Viewer, listener and Social experiences remain outside this product surface.
 2. Channel ownership is canonical. Team roles may operate within bounded permissions, but uploaded media, revenue records and payout ownership remain attached to the channel owner.
@@ -13,4 +13,9 @@ Updated: 2026-07-27T15:47:21Z
 9. State updates are copy-on-write transactions. HMAC verification occurs before schema normalization; failed mutations or failed disk replacement do not change authoritative in-memory state.
 10. Existing Video registry/App Gateway files are integration candidates, not central acceptance evidence. Creator Studio publishes a separate owner contract rather than rewriting another owner's integration truth.
 11. No mock scanner, fake revenue, fake audience, self-issued Wallet session or static success may satisfy Testnet/Public gates.
-12. This evidence slice may describe protected source commit `192da88b0ca3897278893711fb08e1373b0562b2`; the later evidence commit is not retroactively described as runtime source evidence.
+12. The historical freeze package describes protected source commit `192da88b0ca3897278893711fb08e1373b0562b2`; later evidence commits do not retroactively rewrite that runtime evidence.
+13. Analytics values are derived only from persisted local events in actor-authorized scope and expose `source`, `as_of`, `version` and explicit coverage; no extrapolation or synthetic projection is allowed.
+14. Unique analytics users are exposed as a count only. Viewer identities are not returned in the analytics envelope.
+15. Analyst access excludes revenue evidence, Editor access excludes analytics, and Finance access remains separately authorized on every read.
+16. Mainline `.ai-bridge` files from other product owners are not Creator Studio product facts. Add/add merge conflicts are resolved by retaining Creator Studio-specific recovery state while preserving all non-conflicting mainline source changes.
+17. `ynxweb4.com` is the only official YNX product website domain. `huangjeo.com` is not a Creator Studio canonical, release, status, support or handoff domain; valid `mcpXX.huangjeo.com` service addresses remain distinct.

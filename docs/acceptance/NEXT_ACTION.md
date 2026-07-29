@@ -1,5 +1,90 @@
 # Next Action
 
+## Current Integration priority (2026-07-28)
+
+Current single action: integrate and re-verify the accepted product candidates on
+the current `main` baseline, beginning with the Governance candidate now merged at
+`340e6a8`, while keeping public deployment, production, Mainnet, audit and
+third-party acceptance claims false until their required external evidence exists.
+
+Why this is next:
+
+- `main` is synchronized with `origin/main` at `340e6a8`; the Docs / Compliance
+  authority layer and Governance `v0.3.0-integration` candidate are already
+  preserved in repository history.
+- Governance has a bounded local control plane, deterministic builds, a standalone
+  read-only UI, central Chain Core / Comet execution adapters and a multiprocess
+  four-validator lifecycle. These are integration-candidate facts, not public
+  deployment proof.
+- The repository had a Governance CI script but no matching root Make target.
+  `make governance-check` is now the canonical local entrypoint, paired with
+  `make governance-testnet-drill`; both are included in the central preflight.
+- npm audit calls now use bounded fetch timeouts and no retry amplification so a
+  broken registry path fails closed instead of hanging an integration run.
+- Shared Testnet acceptance still needs exact Explorer, Monitor, Trust, Data
+  Fabric, Security/SRE and central Integration evidence. Production custody,
+  deployment destinations, independent review and owner-authorized external
+  actions remain outside local engineering authority.
+
+Required execution and proof:
+
+- Run `make governance-check`, `make governance-testnet-drill` and the repository
+  preflight from a clean, current baseline.
+- Keep every release-state boolean evidence-bound. A local lifecycle, mock-free UI
+  build or candidate tag must not be promoted to staging, public, production,
+  Mainnet, audited or independently accepted.
+- Replay each subsequently accepted product handoff against current `main`, resolve
+  central contract conflicts once, and update the integration matrix with exact
+  source commits and focused test evidence.
+- Collect operator input only when the remaining step truly requires credentials,
+  custody review, legal approval, external-provider capacity, DNS/hosting control
+  or an explicitly approved remote mutation.
+
+Completion standard:
+
+- Current-main local gates pass and their exact source identity is recorded.
+- Shared Testnet evidence covers the central dependencies without fabricated
+  endpoints, transactions, availability or third-party acceptance.
+- Remaining blockers are reduced to an exact, minimal external-input list before
+  any public rollout or production claim.
+
+## Current Docs / Compliance priority (2026-07-25)
+
+Current single action: preserve and publish the verified 0.2.0 candidate authority layer on `codex/final-docs-compliance`, then collect exact owner handoffs for protected sibling-worktree changes before changing any public product, economic, security, deployment or availability claim.
+
+Why this is next:
+
+- The recovered package now has a 12-class authoritative fact index, local schemas, evidence and supersession records, nine evidence-linked Claims, 12 locale records, a conflict report and a fail-closed public disclosure gate.
+- Public tags, releases and artifacts predate the current documentation work, and no current documentation-branch CI run, release or artifact was observed.
+- Wallet/Auth, Tokenomics, Oracle, Bridge, Data Fabric and Security/SRE contain protected dirty work; Music and Quant contain local-ahead commits. None is an accepted public fact until its owner commits, tests and hands it off.
+- Current endpoint observations are mixed and come through an ineligible workstation proxy path. The www site, App Gateway and Faucet returned HTTP 200, while the root site, Explorer and EVM RPC timed out. This proves neither portfolio-wide availability nor an outage.
+- Mainnet launch, public StreamBFT activation, central integration, public deployment, immutable hosting, production signing, legal approval and independent audit remain false or blocked.
+
+Files owned by this action:
+
+- `release/facts`, `release/schemas`, `release/locales` and bounded `release/evidence`
+- `scripts/verify/public-disclosure-gate.mjs` and the documentation compliance entrypoint
+- Docs/Compliance recovery, integration, acceptance, brand and release records
+- a dedicated Docs/Compliance CI or release handoff, without modifying sibling product implementations
+
+Required execution and proof:
+
+- Run the public disclosure gate, integrated documentation compliance check, no-placeholder check, secret scan and objective-state check.
+- Review the complete current-worktree diff and preserve every pre-existing recovery file.
+- Commit only YNX 18-owned files and verify local/remote branch identity after push.
+- Require each sibling owner handoff to include exact source commit, clean handoff state, focused tests, release-state booleans, evidence paths, allowed wording, forbidden wording, expiry and dependencies.
+- Keep missing support, privacy, security-report and service-status URLs blocked until the Website/Operations owner supplies approved routes and deployment evidence.
+
+Completion standard:
+
+- The candidate fact package and both local gates pass from a clean committed branch.
+- GitHub CI records the Docs/Compliance checks for the exact candidate commit.
+- A release or immutable artifact, when created, includes digest, byte count and source identity and remains explicitly candidate and unsigned unless stronger evidence exists.
+- Dirty or local-ahead owner work is not silently copied, deleted, reset or promoted.
+- No Testnet observation is rewritten as Mainnet, production, legal approval, audit approval, guaranteed economic outcome or independent availability proof.
+
+## Historical Chain Core action (2026-07-16)
+
 Highest-priority bounded delivery (2026-07-16):
 
 Current single action: preserve deployed release `02f4ccd8770c` and protected Prometheus, harden the now-layered direct public ingress diagnosis without weakening timeouts, and prove repeated zero-failure direct-route chain/API continuity from multiple non-primary regions. Restore provider-backed AI only after the external account can return a real successful response.

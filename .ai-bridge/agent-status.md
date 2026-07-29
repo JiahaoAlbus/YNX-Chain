@@ -6,31 +6,37 @@
 - Stage: FREEZE
 - Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/34-creator-studio`
 - Branch: `codex/final-creator-studio`
-- Protected source commit: `192da88b0ca3897278893711fb08e1373b0562b2`
-- Remote verification: local and `origin/codex/final-creator-studio` matched at the protected source commit before this evidence slice.
-- Dirty state: evidence and contract files are currently being authored after the protected runtime commit.
-- Concurrent writer: none detected at takeover.
+- Latest protected product source: `36e66e8bf5da191e6dc8ea61169fb522a96cd014`
+- Remote verification: the latest product source was pushed to `origin/codex/final-creator-studio` before mainline synchronization.
+- Merge state: `origin/main` compatibility merge in progress; only product-local `.ai-bridge` add/add conflicts required resolution.
+- Dirty state: merge plus evidence/recovery synchronization.
+- Concurrent writer: none detected during recovery.
 
 ## Green product-owned gates
 
-- `npm run check` — `apps/creator-studio`
-- `npm run smoke` — `apps/creator-studio`
-- `go test ./internal/video/...`
-- `go test -race ./internal/video/...`
-- `go vet ./internal/video/...`
-- repository-owned FFmpeg HLS processing integration test
-- backup/restore, path traversal, migration and transactional rollback tests
+- `go test ./internal/video`
+- `go test -race ./internal/video`
+- `go vet ./internal/video`
+- Creator Web `npm run check`
+- Creator Web `npm run smoke`
+- Repository-owned FFmpeg HLS processing integration test
+- Backup/restore, path-traversal, migration and transactional rollback tests
 
-## Current blockers
+## Delivered in the latest product source
+
+- Analytics envelopes expose persisted-event `source`, UTC `as_of`, schema `version` and explicit authorization-bounded coverage.
+- Analytics include privacy-preserving unique-user and completed-view counts.
+- Analysts receive usage evidence without revenue; Editors receive no analytics scope; Finance remains separately authorized.
+
+## Current blockers and truth boundaries
 
 - Central Wallet/Auth/App Gateway registration and owner acceptance are not applied.
-- Shared Testnet Pay/Data Fabric revenue/refund evidence is not available.
-- Trust delegated takedown/appeal acceptance is not available.
-- Monitor/Explorer/Trust public evidence is not available.
-- Website `/creator-studio` consumption and public deployment are not available.
-- Local ClamAV daemon configuration/signature database are unavailable; scanner process smoke fails closed.
-- Full-repository regression includes unrelated owner failures documented in the evidence index.
+- Shared Pay/Data Fabric revenue/refund evidence and Trust delegated case acceptance are absent.
+- Monitor/Explorer public evidence and Website consumption are absent.
+- No Creator Studio PR, branch CI run, Release, hosted artifact or public deployment exists yet.
+- Repository CI does not run on direct feature-branch pushes; it runs on `main` pushes and pull requests targeting `main`.
+- Local ClamAV process smoke remains fail closed because the daemon configuration does not parse and the local signature database is absent.
 
 ## Next action
 
-Freeze machine-readable contracts and release facts, commit/push them, then resume runtime delivery with analytics provenance and content lifecycle/version history.
+Complete the mainline merge, rerun all Creator Studio-owned gates, synchronize release/evidence/recovery facts, then implement content lifecycle and immutable version history.
