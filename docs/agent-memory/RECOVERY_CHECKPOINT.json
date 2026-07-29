@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "32",
+  "productName": "YNX Music",
+  "phase": "PROTECT_ACTIVE",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/32-music",
+  "branch": "codex/final-music",
+  "runtimeSourceSha": "22653153c62529f782f44b0a35177b531ae7e8af",
+  "localSha": "38d51649edb857328bffc0da6b0b805de4973536",
+  "remoteSha": "38d51649edb857328bffc0da6b0b805de4973536",
+  "checkpointCarrier": "the commit containing this file; resolve with git rev-parse HEAD",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "go test ./internal/music",
+    "go test -race ./internal/music",
+    "go test ./apps/music/...",
+    "go vet ./internal/music ./apps/music/...",
+    "go build ./apps/music/cmd/ynx-musicd"
+  ],
+  "latestCiRuns": [
+    {
+      "workflow": "music-platforms",
+      "runId": 30417406111,
+      "headSha": "22653153c62529f782f44b0a35177b531ae7e8af",
+      "conclusion": "success",
+      "jobs": {
+        "service": "success",
+        "android": "success",
+        "iosSimulator": "success"
+      }
+    }
+  ],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [
+    {
+      "class": "github-actions",
+      "runId": 30417406111,
+      "uploaded": true,
+      "inventoryFetched": false,
+      "inventoryFailure": "TLS handshake timeout on two bounded GitHub API attempts"
+    },
+    {
+      "class": "local-historical-manifest",
+      "path": "apps/music/ARTIFACT_MANIFEST.json",
+      "sourceSha": "74716a19d95fc191b54102adc02000a91fafec24",
+      "current": false
+    }
+  ],
+  "publicRoutes": [
+    {
+      "route": "https://ynxweb4.com/music",
+      "verified": false
+    }
+  ],
+  "completed": [
+    "schema-v2 migration registry",
+    "verified schema-v1 to v2 migration",
+    "fail-closed future and tampered schema handling",
+    "state-plus-media backup manifest",
+    "clean-directory restore with integrity reconciliation",
+    "operator backup and restore CLI modes",
+    "exact-source green service Android and iOS Simulator CI",
+    "release evidence and public metadata truth update"
+  ],
+  "remaining": [
+    "non-empty schema-v1 golden with media listener replay and audit state",
+    "downgrade or minimum-compatible-version policy",
+    "remote restore drill with measured RTO and RPO",
+    "central owner acceptance and shared Testnet vectors",
+    "Android physical-device install and cold-start",
+    "exact-current artifact hashes SBOM provenance and immutable hosting",
+    "public runtime and ynxweb4.com/music deployment",
+    "production signing and store release"
+  ],
+  "blockers": [
+    "MUSIC-CENTRAL-001",
+    "MUSIC-RELEASE-002",
+    "MUSIC-RIGHTS-003"
+  ],
+  "nextAction": "Add a non-empty sanitized schema-v1 golden with track, artwork, listener history, Trust and Pay replay claims and a multi-event audit chain; verify migration plus backup/restore under Race.",
+  "updatedAt": "2026-07-29T02:57:07Z"
+}
