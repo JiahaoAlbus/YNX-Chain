@@ -46,6 +46,7 @@ jobs:
           -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO clean build
       - name: Install, cold launch and verify Wallet deep link
+        timeout-minutes: 10
         working-directory: apps/wallet
         run: |
           set -euo pipefail
@@ -55,6 +56,7 @@ jobs:
           test -n "$DEVICE"
           mkdir -p proof/ci-ios
           xcrun simctl shutdown "$DEVICE" 2>/dev/null || true
+          xcrun simctl erase "$DEVICE"
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" "$APP"
