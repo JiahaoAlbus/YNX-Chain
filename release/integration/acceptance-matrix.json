@@ -2,17 +2,17 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-29T19:28:40.723Z",
-  "controllerSourceCommit": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
+  "generatedAt": "2026-07-29T21:04:23.811Z",
+  "controllerSourceCommit": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
+    "localHead": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
-    "ahead": 85,
+    "remoteHead": "40eb0105fdc7385262a5dff165268db6caff1e64",
+    "ahead": 47,
     "behind": 0,
-    "clean": true
+    "clean": false
   },
   "summary": {
     "totalProducts": 36,
@@ -24,9 +24,9 @@
     "syncedBranches": 35,
     "upstreamConfigured": 36,
     "implementedLocalCandidates": 5,
-    "inProgress": 29,
+    "inProgress": 28,
     "notStarted": 0,
-    "centrallyAccepted": 2
+    "centrallyAccepted": 3
   },
   "products": [
     {
@@ -73,6 +73,8 @@
         "coverage": {
           "total": 12,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -259,6 +261,8 @@
         "coverage": {
           "total": 40,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -398,6 +402,8 @@
         "coverage": {
           "total": 12,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -539,6 +545,8 @@
         "coverage": {
           "total": 28,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -681,6 +689,8 @@
         "coverage": {
           "total": 31,
           "open": 5,
+          "autonomousOpen": 5,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -828,6 +838,8 @@
         "coverage": {
           "total": 24,
           "open": 9,
+          "autonomousOpen": 7,
+          "downstreamOpen": 2,
           "invalid": 0,
           "counts": {
             "notStarted": 4,
@@ -918,7 +930,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 9 autonomous or unresolved items"
+        "full-goal coverage has 7 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -972,6 +984,8 @@
         "coverage": {
           "total": 52,
           "open": 23,
+          "autonomousOpen": 22,
+          "downstreamOpen": 1,
           "invalid": 0,
           "counts": {
             "notStarted": 14,
@@ -1062,7 +1076,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 23 autonomous or unresolved items",
+        "full-goal coverage has 22 autonomous or unresolved items",
         "fullGoalCoverage lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
@@ -1120,6 +1134,8 @@
         "coverage": {
           "total": 40,
           "open": 8,
+          "autonomousOpen": 6,
+          "downstreamOpen": 2,
           "invalid": 0,
           "counts": {
             "notStarted": 2,
@@ -1210,7 +1226,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 8 autonomous or unresolved items",
+        "full-goal coverage has 6 autonomous or unresolved items",
         "publicMetadata lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
@@ -1265,6 +1281,8 @@
         "coverage": {
           "total": 29,
           "open": 4,
+          "autonomousOpen": 4,
+          "downstreamOpen": 0,
           "invalid": 2,
           "counts": {
             "notStarted": 0,
@@ -1412,6 +1430,8 @@
         "coverage": {
           "total": 25,
           "open": 9,
+          "autonomousOpen": 7,
+          "downstreamOpen": 2,
           "invalid": 0,
           "counts": {
             "notStarted": 1,
@@ -1502,7 +1522,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 9 autonomous or unresolved items",
+        "full-goal coverage has 7 autonomous or unresolved items",
         "fullGoalCoverage lacks an exact sourceCommit",
         "productRelease lacks an exact sourceCommit"
       ],
@@ -1558,6 +1578,8 @@
         "coverage": {
           "total": 31,
           "open": 14,
+          "autonomousOpen": 13,
+          "downstreamOpen": 1,
           "invalid": 0,
           "counts": {
             "notStarted": 5,
@@ -1648,7 +1670,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 14 autonomous or unresolved items",
+        "full-goal coverage has 13 autonomous or unresolved items",
         "productRelease lacks an exact sourceCommit",
         "integrationContract lacks an exact sourceCommit"
       ],
@@ -1703,6 +1725,8 @@
         "coverage": {
           "total": 23,
           "open": 15,
+          "autonomousOpen": 15,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 6,
@@ -1851,6 +1875,8 @@
         "coverage": {
           "total": 32,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -1996,6 +2022,8 @@
         "coverage": {
           "total": 27,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -2140,6 +2168,8 @@
         "coverage": {
           "total": 19,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 1,
           "counts": {
             "notStarted": 0,
@@ -2284,6 +2314,8 @@
         "coverage": {
           "total": 22,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -2428,6 +2460,8 @@
         "coverage": {
           "total": 24,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -2575,6 +2609,8 @@
         "coverage": {
           "total": 30,
           "open": 7,
+          "autonomousOpen": 7,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -2720,6 +2756,8 @@
         "coverage": {
           "total": 43,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -2863,6 +2901,8 @@
         "coverage": {
           "total": 25,
           "open": 7,
+          "autonomousOpen": 7,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -3010,6 +3050,8 @@
         "coverage": {
           "total": 46,
           "open": 8,
+          "autonomousOpen": 6,
+          "downstreamOpen": 2,
           "invalid": 0,
           "counts": {
             "notStarted": 1,
@@ -3099,9 +3141,9 @@
         "integrationCommit": null
       },
       "blockers": [
-        "full-goal coverage has 8 autonomous or unresolved items"
+        "full-goal coverage has 6 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 8 autonomous or unresolved items."
+      "nextAction": "Resolve: full-goal coverage has 6 autonomous or unresolved items."
     },
     {
       "id": "22",
@@ -3154,6 +3196,8 @@
         "coverage": {
           "total": 25,
           "open": 7,
+          "autonomousOpen": 6,
+          "downstreamOpen": 1,
           "invalid": 0,
           "counts": {
             "notStarted": 3,
@@ -3244,7 +3288,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 7 autonomous or unresolved items"
+        "full-goal coverage has 6 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -3299,6 +3343,8 @@
         "coverage": {
           "total": 26,
           "open": 12,
+          "autonomousOpen": 11,
+          "downstreamOpen": 1,
           "invalid": 0,
           "counts": {
             "notStarted": 2,
@@ -3397,7 +3443,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 12 autonomous or unresolved items",
+        "full-goal coverage has 11 autonomous or unresolved items",
         "productRelease lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
@@ -3455,6 +3501,8 @@
         "coverage": {
           "total": 23,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -3595,6 +3643,8 @@
         "coverage": {
           "total": 25,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -3704,8 +3754,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
-        "remoteSha": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+        "localSha": "2a09d7455a5fef9eee56ca736be4b600d40a1831",
+        "remoteSha": "2a09d7455a5fef9eee56ca736be4b600d40a1831",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3717,9 +3767,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "26-data-fabric",
-        "observedHead": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
-        "clean": false,
-        "changedEntries": 9,
+        "observedHead": "2a09d7455a5fef9eee56ca736be4b600d40a1831",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -3736,17 +3786,19 @@
         },
         "coverage": {
           "total": 35,
-          "open": 7,
+          "open": 3,
+          "autonomousOpen": 0,
+          "downstreamOpen": 3,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 7,
+            "inProgress": 3,
             "implementedLocal": 3,
-            "testedLocal": 21,
+            "testedLocal": 23,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 1,
+            "externalBlocked": 3,
             "notApplicable": 1,
             "verifiedComplete": 2
           },
@@ -3764,32 +3816,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+            "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 6
           },
           "productRelease": {
-            "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+            "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 6
           },
           "publicMetadata": {
-            "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+            "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 6
           },
           "integrationContract": {
-            "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+            "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 6
           }
         },
         "release": {
@@ -3797,7 +3849,7 @@
           "version": null,
           "channel": "testnet-preview",
           "environment": null,
-          "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+          "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
           "releasedAt": null,
           "releaseStatus": null,
           "publicEvidence": []
@@ -3817,19 +3869,16 @@
         "exactCommitBound": false
       },
       "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
-        "acceptedSourceCommit": null,
+        "status": "integratedCentral",
+        "reason": "The synchronized owner source, clean worktree, required evidence, exact-head CI, central merge ancestry and central test receipt all passed.",
+        "acceptedSourceCommit": "2a09d7455a5fef9eee56ca736be4b600d40a1831",
         "acceptedBy": "29-integration",
-        "acceptedAt": null,
-        "decisionEvidence": null,
-        "integrationCommit": null
+        "acceptedAt": "2026-07-29T21:03:26Z",
+        "decisionEvidence": "release/integration/evidence/product-26-central-acceptance-01131b46.json",
+        "integrationCommit": "01131b469dc8b1ae0a52e68583ccf4fba38a825e"
       },
-      "blockers": [
-        "registered final worktree has uncommitted changes",
-        "full-goal coverage has 7 autonomous or unresolved items"
-      ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "blockers": [],
+      "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release."
     },
     {
       "id": "27",
@@ -3883,6 +3932,8 @@
         "coverage": {
           "total": 34,
           "open": 13,
+          "autonomousOpen": 13,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 5,
@@ -4026,6 +4077,8 @@
         "coverage": {
           "total": 14,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -4143,9 +4196,9 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
-        "remoteSha": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
-        "ahead": 85,
+        "localSha": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
+        "remoteSha": "40eb0105fdc7385262a5dff165268db6caff1e64",
+        "ahead": 47,
         "behind": 0,
         "upstreamConfigured": true,
         "upstreamRef": "origin/codex/final-integration",
@@ -4156,9 +4209,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
-        "clean": true,
-        "changedEntries": 0,
+        "observedHead": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
+        "clean": false,
+        "changedEntries": 6,
         "statusError": null
       },
       "evidence": {
@@ -4176,6 +4229,8 @@
         "coverage": {
           "total": 71,
           "open": 53,
+          "autonomousOpen": 52,
+          "downstreamOpen": 1,
           "invalid": 0,
           "counts": {
             "notStarted": 21,
@@ -4203,32 +4258,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "329092c19794ee376248750c2b138090e8418e08",
+            "sourceCommit": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 49
           },
           "productRelease": {
             "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 86
+            "distance": 135
           },
           "publicMetadata": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 91
+            "distance": 140
           },
           "integrationContract": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 91
+            "distance": 140
           }
         },
         "release": {
@@ -4266,7 +4321,8 @@
       },
       "blockers": [
         "local and remote final branch SHAs differ",
-        "full-goal coverage has 53 autonomous or unresolved items"
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 52 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: local and remote final branch SHAs differ."
     },
@@ -4317,6 +4373,8 @@
         "coverage": {
           "total": 29,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -4699,6 +4757,8 @@
         "coverage": {
           "total": 14,
           "open": 0,
+          "autonomousOpen": 0,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
@@ -4845,6 +4905,8 @@
         "coverage": {
           "total": 32,
           "open": 19,
+          "autonomousOpen": 18,
+          "downstreamOpen": 1,
           "invalid": 0,
           "counts": {
             "notStarted": 5,
@@ -4935,7 +4997,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 19 autonomous or unresolved items",
+        "full-goal coverage has 18 autonomous or unresolved items",
         "fullGoalCoverage lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
@@ -4992,6 +5054,8 @@
         "coverage": {
           "total": 50,
           "open": 13,
+          "autonomousOpen": 13,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 4,
@@ -5139,6 +5203,8 @@
         "coverage": {
           "total": 35,
           "open": 19,
+          "autonomousOpen": 19,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 8,
@@ -5283,6 +5349,8 @@
         "coverage": {
           "total": 35,
           "open": 14,
+          "autonomousOpen": 14,
+          "downstreamOpen": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 6,
@@ -5439,6 +5507,8 @@
         "coverage": {
           "total": 40,
           "open": 24,
+          "autonomousOpen": 23,
+          "downstreamOpen": 1,
           "invalid": 0,
           "counts": {
             "notStarted": 10,
@@ -5529,7 +5599,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 24 autonomous or unresolved items",
+        "full-goal coverage has 23 autonomous or unresolved items",
         "fullGoalCoverage lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."

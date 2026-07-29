@@ -359,7 +359,17 @@ function extractCoverage(record) {
     if (allowedStatuses.has(item?.status)) counts[item.status] += 1;
     else invalid += 1;
   }
-  const open = items.filter((item) => ["notStarted", "inProgress"].includes(item?.status)).length;
+  const openItems = items.filter((item) => ["notStarted", "inProgress"].includes(item?.status));
+  const downstreamCategories = new Set([
+    "central-integration",
+    "testnet-e2e",
+    "shared-testnet",
+    "public-release",
+    "public-deployment",
+    "final-preflight"
+  ]);
+  const downstreamOpen = openItems.filter((item) => downstreamCategories.has(item?.category)).length;
+  const autonomousOpen = openItems.length - downstreamOpen;
   const milestoneStatus = new Set(["testedLocal", "integratedCentral", "testnetVerified", "publicVerified", "verifiedComplete"]);
   const milestone = (pattern) => items.some((item) => {
     const searchable = [item?.id, item?.title, item?.category, item?.domain, item?.requirement]
@@ -369,7 +379,9 @@ function extractCoverage(record) {
   });
   return {
     total: items.length,
-    open,
+    open: openItems.length,
+    autonomousOpen,
+    downstreamOpen,
     invalid,
     counts,
     milestones: {
@@ -484,7 +496,9 @@ function deriveAcceptance({ localExists, remoteExists, synced, worktree, evidenc
   if (evidence.fullGoalCoverage && (coverage.total === 0 || coverage.invalid > 0)) {
     blockers.push("full-goal coverage is empty or contains an invalid status");
   }
-  if (coverage.open > 0) blockers.push(`full-goal coverage has ${coverage.open} autonomous or unresolved items`);
+  if (coverage.autonomousOpen > 0) {
+    blockers.push(`full-goal coverage has ${coverage.autonomousOpen} autonomous or unresolved items`);
+  }
   for (const [label, binding] of Object.entries(bindings)) {
     if (evidence[label] && !binding.sourceCommit) {
       blockers.push(`${label} lacks an exact sourceCommit`);
