@@ -3,7 +3,7 @@ name: YNX Finance release evidence
 on:
   workflow_dispatch:
   push:
-    branches: [codex/ecosystem-finance]
+    branches: [codex/final-finance]
     paths:
       - 'apps/finance/**'
       - 'internal/finance/**'
