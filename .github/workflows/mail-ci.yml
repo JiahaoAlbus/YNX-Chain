@@ -1,0 +1,58 @@
+name: YNX Mail CI
+
+on:
+  push:
+    branches:
+      - codex/final-mail
+    paths:
+      - "apps/mail/**"
+      - "internal/mail/**"
+      - ".github/workflows/mail-ci.yml"
+      - "go.mod"
+      - "go.sum"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "apps/mail/**"
+      - "internal/mail/**"
+      - ".github/workflows/mail-ci.yml"
+      - "go.mod"
+      - "go.sum"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ynx-mail-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mail:
+    name: Mail correctness, privacy and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/mail/package-lock.json
+      - name: Go unit tests
+        run: go test ./internal/mail
+      - name: Go race detector
+        run: go test -race ./internal/mail
+      - name: Go vet
+        run: go vet ./internal/mail
+      - name: Product contract tests
+        run: npm test --prefix apps/mail
+      - name: Product build
+        run: npm run build --prefix apps/mail
+      - name: Runtime smoke
+        run: npm run smoke --prefix apps/mail
