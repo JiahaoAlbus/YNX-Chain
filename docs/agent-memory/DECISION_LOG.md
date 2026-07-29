@@ -58,3 +58,10 @@
 
 - Decision: Keep Product 30 central acceptance null while its source coverage contains two non-terminal rows, even though its PR is green and its branch is merged into the Integration candidate.
 - Reason: Code inclusion, owner completion and central acceptance are distinct evidence states.
+
+## 2026-07-29 — Fail closed in the Product Release Matrix
+
+- Decision: Generate `release/integration/PRODUCT_RELEASE_MATRIX.json` from direct branch, Worktree, coverage, CI, PR and artifact evidence.
+- Decision: Require every exact-head workflow run to be terminal and successful; one successful workflow cannot make the whole exact head green.
+- Decision: Classify unproven test, CI, clean-tree or evidence states as `HOLD_FOR_RECOVERY`, even when historical evidence suggests high maturity.
+- Result: The first authoritative snapshot reports 0 Public-Testnet-ready, 1 Source-Release-ready and 35 Hold-for-Recovery products without inflating readiness.

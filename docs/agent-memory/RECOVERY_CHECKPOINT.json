@@ -6,8 +6,8 @@
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
   "branch": "codex/final-integration",
   "repository": "JiahaoAlbus/YNX-Chain",
-  "localSha": "9168e63d0331be69738367a6299247c6263c278a",
-  "remoteSha": "9168e63d0331be69738367a6299247c6263c278a",
+  "localSha": "6e9a6fef8ec31a898da1252410bb651e18e251c3",
+  "remoteSha": "6e9a6fef8ec31a898da1252410bb651e18e251c3",
   "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
   "dirty": false,
   "ahead": 0,
@@ -19,7 +19,15 @@
     "make integration-protect-preflight"
   ],
   "latestCiRuns": [],
-  "pullRequests": [],
+  "pullRequests": [
+    {
+      "number": 17,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/17",
+      "draft": true,
+      "mergeable": true,
+      "lastFullyGreenHead": "3930a14d504eb68c45753f5329705fb86001ac23"
+    }
+  ],
   "integratedCandidates": [
     {
       "productNumber": "16",
@@ -35,12 +43,16 @@
   ],
   "matrix": {
     "path": "release/integration/acceptance-matrix.json",
+    "releaseMatrixPath": "release/integration/PRODUCT_RELEASE_MATRIX.json",
     "totalProducts": 36,
     "syncedBranches": 36,
     "registeredWorktrees": 36,
     "implementedLocalCandidates": 5,
     "inProgress": 31,
-    "centrallyAccepted": 0
+    "centrallyAccepted": 0,
+    "readyForPublicTestnet": 0,
+    "readyForSourceRelease": 1,
+    "holdForRecovery": 35
   },
   "githubEvidence": {
     "path": "release/integration/github-evidence.json",
@@ -64,17 +76,16 @@
   ],
   "remaining": [
     "commit and push this recovery-memory checkpoint",
-    "open Product 29 PR and obtain exact-head green CI",
-    "generate detailed Product Release Matrix and readiness classes",
+    "obtain exact-head green CI for the final Product 29 matrix checkpoint",
     "record explicit Product 30 central acceptance after truthful coverage closure",
     "freeze central protocols and audit the release train",
     "execute shared Testnet, E2E, releases and public proof"
   ],
   "blockers": [
-    "no Product 29 PR or exact-head CI yet",
+    "final Product 29 matrix checkpoint exact-head CI is pending",
     "zero centrally accepted products",
     "shared Testnet and public deployment remain unverified"
   ],
-  "nextAction": "Push this memory checkpoint, open the Product 29 PR, bind CI to its exact head, then build the detailed Product Release Matrix.",
-  "updatedAt": "2026-07-29T11:22:02Z"
+  "nextAction": "Push this memory checkpoint, obtain exact-head green PR #17 CI, then return to Product 30 alone to close its two non-terminal coverage rows truthfully.",
+  "updatedAt": "2026-07-29T12:04:46Z"
 }

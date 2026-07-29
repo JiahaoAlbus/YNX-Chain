@@ -1,13 +1,13 @@
 # Blockers
 
-Updated: `2026-07-29T11:22:02Z`
+Updated: `2026-07-29T12:04:46Z`
 
 No local execution-infrastructure or external blocker is active.
 
 Autonomous remaining work:
 
-- Product 29 has no PR or exact-head CI evidence yet.
-- The detailed Product Release Matrix and three-way readiness classification are not yet generated.
+- Product 29 PR #17 exists and was fully green at `3930a14d…`; the final matrix checkpoint requires its own exact-head CI completion.
+- The detailed Product Release Matrix exists; 35 products remain conservatively classified `HOLD_FOR_RECOVERY`.
 - Product 30 has two non-terminal coverage rows; the central scanner correctly reports them instead of falsely accepting the product.
 - No owner product is centrally accepted yet.
 - Central protocol freeze, shared Testnet, cross-product E2E, release train and public proof remain incomplete.

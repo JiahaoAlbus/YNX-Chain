@@ -1,6 +1,6 @@
 # YNX 29 Current State
 
-Updated: `2026-07-29T11:22:02Z`
+Updated: `2026-07-29T12:04:46Z`
 
 ## Identity and protected source
 
@@ -8,8 +8,8 @@ Updated: `2026-07-29T11:22:02Z`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration`
 - Branch: `codex/final-integration`
 - Repository and origin: `JiahaoAlbus/YNX-Chain`
-- Protected source SHA: `9168e63d0331be69738367a6299247c6263c278a`
-- Protected remote SHA: `9168e63d0331be69738367a6299247c6263c278a`
+- Protected source SHA: `6e9a6fef8ec31a898da1252410bb651e18e251c3`
+- Protected remote SHA: `6e9a6fef8ec31a898da1252410bb651e18e251c3`
 - Observed `origin/main`: `82241913b4dacf6bb6adebb537b7fa175c3aff59`
 - Local / Remote ahead-behind at protection: `0 / 0`
 - Worktree was clean for the exact-source protection preflight.
@@ -41,9 +41,10 @@ Updated: `2026-07-29T11:22:02Z`
 
 ## Exact-source verification
 
-`make integration-protect-preflight` passed on clean source `9168e63d…`, including:
+`make integration-protect-preflight` passed on clean source `6e9a6fef…`, including:
 
 - registry and acceptance negative self-tests;
+- Product Release Matrix negative self-test and stored-matrix validation;
 - contract tooling;
 - full and production npm vulnerability policy;
 - all Go tests;
@@ -51,20 +52,22 @@ Updated: `2026-07-29T11:22:02Z`
 - Go vet;
 - every shell and Node syntax check.
 
-Evidence: `release/integration/evidence/protect-preflight-9168e63d.json`.
+Evidence: `release/integration/evidence/protect-preflight-6e9a6fef.json`.
 
 ## Current 36-product inventory
 
 - 36/36 local branches, remote branches, registered Worktrees, synchronized refs and upstreams observed.
 - 11 clean and 25 dirty Worktrees at the point-in-time scan; dirty owner Worktrees remain protected, not normalized.
 - 5 `implementedLocal` candidates, 31 `inProgress`, 0 centrally accepted.
+- The new authoritative `PRODUCT_RELEASE_MATRIX.json` records every required source, Git, test, CI, PR, release, artifact, SBOM, provenance, Website, state and readiness field.
+- Readiness snapshot: 0 `READY_FOR_PUBLIC_TESTNET`, 1 `READY_FOR_SOURCE_RELEASE`, 35 `HOLD_FOR_RECOVERY`; conservative classification is deliberate.
 - Product 28 is clean, synchronized and an `implementedLocal` website candidate in the correct Website repository.
 - Product 30 is clean and synchronized in the correct Chain repository. Its evidence is now read correctly; two owner coverage rows still require truthful final classification before central promotion.
 
 ## GitHub and public boundary
 
 - Product 30 draft PR #16 is exact-head green, including CodeQL, dependency review and the 6m24s governance drill.
-- No Product 29 PR existed at the time of this checkpoint; creating it and binding CI to the exact new head is the immediate action.
+- Product 29 draft PR #17 exists and is mergeable. Its exact `3930a14d…` head completed all checks green; the newer matrix head is undergoing its own exact-head checks.
 - GitHub snapshot availability: runs, releases and artifacts all available; 200 runs, 169 successes, 11 prereleases and 150 active artifacts observed.
 - `https://ynxweb4.com/integration` and shared Testnet acceptance remain unverified.
 - No production, signing, store or Mainnet claim is authorized.
