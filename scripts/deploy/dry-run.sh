@@ -5,6 +5,14 @@ cd "$(dirname "$0")/../.."
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
+file_mode() {
+  if stat -c '%a' "$1" >/dev/null 2>&1; then
+    stat -c '%a' "$1"
+  else
+    stat -f '%Lp' "$1"
+  fi
+}
+
 cat > "$tmp/deploy.env" <<EOF
 TESTNET_DOMAIN=testnet.ynx.test
 WEBSITE_DOMAIN=www.ynx.test
@@ -266,8 +274,8 @@ grep -Fxq "./wallet-auth/scripts/ynx-wallet-gatewayd.mjs" "$archive_listing" || 
 grep -Fxq "./wallet-auth/node_modules/@noble/hashes/package.json" "$archive_listing" || { echo "release tarball missing Wallet Gateway runtime dependencies"; exit 1; }
 grep -Fxq "./config/ynx-wallet-gatewayd.env" "$archive_listing" || { echo "release tarball missing Wallet Gateway env"; exit 1; }
 grep -Fxq "./systemd/ynx-wallet-gatewayd.service" "$archive_listing" || { echo "release tarball missing Wallet Gateway systemd unit"; exit 1; }
-[[ "$(stat -f '%Lp' "$release_dir/wallet-auth/src/gateway-http.js" 2>/dev/null || stat -c '%a' "$release_dir/wallet-auth/src/gateway-http.js")" == "644" ]] || { echo "Wallet Gateway runtime source is not world-readable"; exit 1; }
-[[ "$(stat -f '%Lp' "$release_dir/wallet-auth/scripts/ynx-wallet-gatewayd.mjs" 2>/dev/null || stat -c '%a' "$release_dir/wallet-auth/scripts/ynx-wallet-gatewayd.mjs")" == "755" ]] || { echo "Wallet Gateway launcher is not executable"; exit 1; }
+[[ "$(file_mode "$release_dir/wallet-auth/src/gateway-http.js")" == "644" ]] || { echo "Wallet Gateway runtime source is not world-readable"; exit 1; }
+[[ "$(file_mode "$release_dir/wallet-auth/scripts/ynx-wallet-gatewayd.mjs")" == "755" ]] || { echo "Wallet Gateway launcher is not executable"; exit 1; }
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
 grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
 grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Trust Gateway domain block"; exit 1; }
