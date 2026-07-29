@@ -1,19 +1,19 @@
-# Open Questions
+# Open questions and external inputs
 
-## Owner evidence still required
+No ordinary engineering decision is waiting for user confirmation.
 
-- Which exact clean commits and focused tests will Wallet/Auth, Tokenomics, Oracle,
-  Bridge, Data Fabric and Security/SRE hand off for public fact integration?
-- When will Website/Operations provide approved canonical support, privacy, security
-  reporting and service-status routes?
-- Which independent network vantage will verify root site, Explorer, EVM RPC, Gateway
-  and Faucet without the current workstation proxy-path limitation?
-- Which exact artifact, digest, byte count and hosting record will define the first
-  immutable Docs/Compliance candidate package?
-- Who are the named legal, economic and independent-audit reviewers, and what scope,
-  jurisdiction, expiry and approval evidence will each own?
-- Which Chain Core release will establish any future public StreamBFT activation or
-  Mainnet transition, separately from Testnet Chain ID 6423?
+## Central owner acceptance
 
-Until each owner answers with direct evidence, the corresponding release state or
-public claim remains false, blocked or candidate-only.
+- `02-wallet-auth`: accept the Resource Market product client, exact Product Session proof semantics and callback tuple.
+- `01-chain-core` and `26-data-fabric`: provide authoritative settlement finality and billing-ledger acceptance for signed usage.
+- `12-explorer`, `13-monitor` and `15-trust-center`: accept receipt proof, alert/incident and dispute/appeal vectors.
+- `29-integration`: freeze the shared contract and execute all cross-product vectors against deployed Testnet services.
+
+## Public and operator inputs
+
+- Two independently operated public Provider endpoints with real CPU/Developer/Quant/AI workloads.
+- Testnet funding and authorized settlement identity.
+- Website/DNS deployment authority, support/privacy/security/status URLs and production signing assets.
+- Jurisdiction-specific retention, dispute, refund and insurance review.
+
+These inputs block central, Testnet and public verification. No remaining ordinary local engineering decision requires user confirmation; the next action is PR merge followed by central acceptance and deployed Testnet execution.

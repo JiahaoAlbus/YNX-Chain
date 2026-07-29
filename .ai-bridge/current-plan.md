@@ -1,18 +1,20 @@
-# Restore authoritative docs and disclosure package
+# Current plan
 
-Updated: 2026-07-25T06:16:49.783Z
-Workspace: [LOCAL_WORKTREE]/18-docs-compliance
-Target agent: Codex (codex)
+- Product: YNX Resource Market (`16-resource-market`)
+- Stage: `INTEGRATE`
+- Long-term goal: `ACTIVE`
+- Protected tested source: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Branch: `codex/final-resource-market`
+- Pull request: `#12`
 
-## Plan
+## Protected checkpoint
 
-Operate only in [LOCAL_WORKTREE]/18-docs-compliance on codex/final-docs-compliance. Preserve every pre-existing untracked fact/evidence file and all sibling-worktree dirty changes. Build a fail-closed public disclosure authority layer: add release schemas, complete missing evidence and superseded-facts records, repair FAQ/claims/localization references, bind records to exact recovery baseline c8c4ff7263e50afc4c731dac8157aa85e02232dc, add a public-disclosure gate, integrate it with docs-compliance-check, and record the 2026-07-25 recovery inventory. Append—not replace—current recovery findings to DOCS_COMPLIANCE_RECOVERY_AUDIT.md and NEXT_ACTION.md. Add a cross-thread Integration Manifest that treats all sibling dirty work as protected candidate input, never as merged/deployed/public fact. Public endpoint observations must remain component-level, operator-host/proxy-path evidence: www and API/Faucet returned 200 during the bounded scan; root domain, Explorer and EVM timed out; local DNS resolved YNX names into 198.18.0.0/15 and is ineligible as independent proof. Run public disclosure, docs compliance, no-placeholder, secret-scan and objective-state checks. Review with show_changes. Do not reset, clean, delete, force-push, modify sibling worktrees, execute value-moving transactions, or promote Mainnet/BFT/public deployment/legal/audit claims.
+The tested source is pushed and remote-equal. GitHub Resource Market Candidate Gates run `30417957999` passed correctness, Race, Vet, govulncheck, npm audit, browser tests, Ubuntu API/DAST smoke, candidate binary build, SHA-256 generation, Go dependency inventory, SPDX npm SBOM generation and secret scanning. General CI, docs compliance and the Resource Market iOS Simulator build also passed. Product release and public metadata bind this tested source.
 
-## Implementation contract
+## Exact next autonomous action
 
-- Work from this plan in small, reviewable steps.
-- Keep edits scoped to the requested task and existing project conventions.
-- Run focused verification before handing work back.
-- Update .ai-bridge/agent-status.md with files touched, checks run, results, blockers, and review notes.
-- Save the final review diff to .ai-bridge/implementation-diff.patch when practical.
-- Append notable execution events to .ai-bridge/execution-log.jsonl when the implementation agent supports logging.
+Complete PR `#12` checks and merge only after GitHub reports all required checks successful. After merge, submit the frozen Resource Market integration contract and vectors to Product `29`, then execute the full success and provider-failure/retry/refund sequence with two independent Testnet providers and authoritative settlement.
+
+## External dependencies that remain
+
+Central Wallet/Gateway acceptance, authoritative Chain/Data Fabric settlement, Explorer/Monitor/Trust integration, two independent public providers, Testnet funding, public deployment/DNS, production signing, artifact hosting and legal/security review remain unproven. These boundaries must remain false in release metadata until direct evidence exists.

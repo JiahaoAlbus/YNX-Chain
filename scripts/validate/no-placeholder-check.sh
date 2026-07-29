@@ -1,12 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-scan_targets=(Makefile README.md configs internal cmd contracts chain-metadata scripts docs)
-bad='example\.com|your_key_here|changeme|fake TPS|fake TVL|fake user|NYXT'
+scan_targets=(Makefile README.md .github apps configs internal cmd contracts chain-metadata scripts docs)
+bad='example\.com|your_key_here|changeme|fake TPS|fake TVL|fake user|fake provider|fake transaction|fake price|fake revenue|fake APY|fake liquidity|hard-coded success|coming soon|NYXT'
 
 found=1
 if command -v rg >/dev/null 2>&1; then
-  if rg -n --hidden -g '!.git/**' -g '!tools/scaffold-ynx-chain.mjs' -g '!scripts/validate/no-placeholder-check.sh' -g '!scripts/deploy/lib.sh' -g '!docs/architecture/ZERO_PLACEHOLDER_POLICY.md' -e "$bad" "${scan_targets[@]}"; then
+  if rg -n --hidden \
+    -g '!.git/**' \
+    -g '!**/node_modules/**' \
+    -g '!**/dist/**' \
+    -g '!**/build/**' \
+    -g '!tools/scaffold-ynx-chain.mjs' \
+    -g '!scripts/validate/no-placeholder-check.sh' \
+    -g '!scripts/deploy/lib.sh' \
+    -g '!docs/architecture/ZERO_PLACEHOLDER_POLICY.md' \
+    -g '!docs/coordination/PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
+    -e "$bad" "${scan_targets[@]}"; then
     found=0
   else
     scan_status=$?
@@ -22,7 +32,11 @@ else
     --exclude='no-placeholder-check.sh' \
     --exclude='lib.sh' \
     --exclude='ZERO_PLACEHOLDER_POLICY.md' \
+    --exclude='PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
     --exclude-dir='.git' \
+    --exclude-dir='node_modules' \
+    --exclude-dir='dist' \
+    --exclude-dir='build' \
     -- "$bad" "${scan_targets[@]}"; then
     found=0
   else

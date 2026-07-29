@@ -1,0 +1,9 @@
+# Observability
+
+Every HTTP request receives `X-Request-ID` and `X-Trace-ID`. Valid caller request IDs and W3C `traceparent` trace IDs are preserved; malformed or missing values are replaced. Structured JSON server-span logs include request ID, trace ID, method, normalized path, status, duration and time. Bodies, authorization values, device keys, provider credentials and filesystem paths are excluded. API failures produced through the shared error boundary also return `X-Error-ID` plus request/trace correlation fields without an internal stack.
+
+`GET /metrics` returns process-scoped request, 4xx and 5xx counts, error rate, active requests, average/max latency and uptime with source and coverage. `GET /health` reports only directly known local initialization checks and configuration truth. `GET /version` identifies the candidate class and market schema. `GET /status` evaluates local 5xx-rate and active-request saturation guardrails and returns explicit local-only coverage. Market state, meters, receipts, disputes and audits carry their own identifiers and evidence.
+
+Current limitations are explicit: metrics and structured spans are in-process and reset or remain only in process logs; durable trace/metric export, a deployed SLO dashboard, alert delivery, public status page and monitor integration are not deployed. Until those are directly verified, observability is locally implemented but not operationally integrated.
+
+Alert design: page on sustained 5xx rate, persistence failure, settlement mismatch, invalid meter surge, provider failure burst, bond exhaustion, backup failure, queue saturation or health failure. Tickets—not pages—cover approaching retention, provider maintenance and cost anomalies. User-visible errors return stable error/request IDs and never internal stacks or secrets.

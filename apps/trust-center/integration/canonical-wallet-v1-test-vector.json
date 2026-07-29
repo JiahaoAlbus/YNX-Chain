@@ -1,0 +1,135 @@
+{
+  "testOnly": true,
+  "generatedBy": "@ynx-chain/wallet-auth",
+  "registryEntry": {
+    "schemaVersion": 2,
+    "productClientId": "ynx-trust-center-v1",
+    "requestingProduct": "trust-center",
+    "bundleId": "com.ynxweb4.trust",
+    "callbacks": [
+      "ynxtrust://wallet-auth/callback"
+    ],
+    "scopes": [
+      "account:read",
+      "trust:appeal",
+      "trust:evidence:read",
+      "trust:evidence:write",
+      "trust:transparency"
+    ],
+    "maxScopes": 5,
+    "productDeviceAlgorithms": [
+      "p256-sha256"
+    ]
+  },
+  "authorizationRequest": {
+    "version": "1",
+    "nonce": "nonce_trust_abcdefghijklmnopqrstuvwxyz12",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "trust-center",
+    "productClientId": "ynx-trust-center-v1",
+    "bundleId": "com.ynxweb4.trust",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "callback": "ynxtrust://wallet-auth/callback",
+    "scopes": [
+      "account:read",
+      "trust:appeal",
+      "trust:evidence:read",
+      "trust:evidence:write",
+      "trust:transparency"
+    ],
+    "purpose": "Inspect bounded Trust requests, evidence, review and appeal records",
+    "issuedAt": "2026-07-18T05:59:00.000Z",
+    "expiresAt": "2026-07-18T06:04:00.000Z"
+  },
+  "walletApproval": {
+    "version": "1",
+    "requestDigest": "670021183171962a148f7b645e1bbbe9e302a79b36f8f39a4dba65db4ea5e7f2",
+    "nonce": "nonce_trust_abcdefghijklmnopqrstuvwxyz12",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "trust-center",
+    "productClientId": "ynx-trust-center-v1",
+    "bundleId": "com.ynxweb4.trust",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "callback": "ynxtrust://wallet-auth/callback",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "accountPublicKey": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "grantedScopes": [
+      "account:read",
+      "trust:appeal",
+      "trust:evidence:read",
+      "trust:evidence:write",
+      "trust:transparency"
+    ],
+    "purpose": "Inspect bounded Trust requests, evidence, review and appeal records",
+    "issuedAt": "2026-07-18T06:00:00.000Z",
+    "expiresAt": "2026-07-18T06:04:00.000Z",
+    "walletSignature": "be6fef45405991b338cd42c9f10d7a302c4394389ee90758a09c823c95a4528626fdecef167174dbe40a10f29d03939ba3112dd744295c17e048f637da5fb999"
+  },
+  "gatewayCompletion": {
+    "challenge": {
+      "version": "1",
+      "challenge": "gateway_trust_challenge_abcdefghijklmnop",
+      "requestDigest": "670021183171962a148f7b645e1bbbe9e302a79b36f8f39a4dba65db4ea5e7f2",
+      "productClientId": "ynx-trust-center-v1",
+      "bundleId": "com.ynxweb4.trust",
+      "productDeviceAlgorithm": "p256-sha256",
+      "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+      "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+      "scopes": [
+        "account:read",
+        "trust:appeal",
+        "trust:evidence:read",
+        "trust:evidence:write",
+        "trust:transparency"
+      ],
+      "issuedAt": "2026-07-18T06:00:00.000Z",
+      "expiresAt": "2026-07-18T06:03:00.000Z"
+    },
+    "deviceSignature": "MEUCIQDJj9kWiBdwJ3gM7gWveS1iUloSXm2MN4h7ABdyTB7ffwIgKPuSSs8jNWP1ywG93gmGhB9023NktI2ssSC-BdRceuY"
+  },
+  "expectedSession": {
+    "verifierVersion": "wallet-auth-v1",
+    "sessionBinding": "e669eda068dbb26a5ed1ab248a5378ff2199679e737d62ac673be12c11b52f08",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "trust-center",
+    "productClientId": "ynx-trust-center-v1",
+    "bundleId": "com.ynxweb4.trust",
+    "callback": "ynxtrust://wallet-auth/callback",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "deviceBinding": "84862e1695e453cc90dc184da08306a16d9ab3cd61287e7ee8b62c40bf6e6640",
+    "requestDigest": "670021183171962a148f7b645e1bbbe9e302a79b36f8f39a4dba65db4ea5e7f2",
+    "approvalDigest": "405b7eaed10cc4637f9d09a00d4ebcda04464dd364ef7ceac3c153ffd00a0232",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "scopes": [
+      "account:read",
+      "trust:appeal",
+      "trust:evidence:read",
+      "trust:evidence:write",
+      "trust:transparency"
+    ],
+    "nonce": "nonce_trust_abcdefghijklmnopqrstuvwxyz12",
+    "purpose": "Inspect bounded Trust requests, evidence, review and appeal records",
+    "issuedAt": "2026-07-18T06:00:00.000Z",
+    "expiresAt": "2026-07-18T06:03:00.000Z"
+  },
+  "productSessionProof": {
+    "body": "{\"kind\":\"trust\"}",
+    "proof": {
+      "version": "1",
+      "sessionBinding": "e669eda068dbb26a5ed1ab248a5378ff2199679e737d62ac673be12c11b52f08",
+      "productClientId": "ynx-trust-center-v1",
+      "bundleId": "com.ynxweb4.trust",
+      "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+      "method": "POST",
+      "path": "/api/authority/intents",
+      "bodyDigest": "afa34797827470ed0ad2c759fc92c8a41c047841dd0d197af4e7778b8580e8eb",
+      "nonce": "proof_trust_abcdefghijklmnopqrstuvwxyz",
+      "issuedAt": "2026-07-18T06:00:00.000Z",
+      "expiresAt": "2026-07-18T06:00:30.000Z",
+      "signature": "MEQCICB70nJUhw4hofQ9f0ENYjfXHZZ2UIRqBHo8IUtr_zZGAiA15xGpkVgJrdU_-DwvLI6tKDoqDkRPj56Y_ex4XPrh6g"
+    }
+  }
+}
