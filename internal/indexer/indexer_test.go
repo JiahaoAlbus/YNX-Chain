@@ -713,3 +713,23 @@ func TestIndexerHealthFailsClosedUntilFirstSuccessfulSync(t *testing.T) {
 		t.Fatalf("unexpected version response: %+v", version)
 	}
 }
+
+func TestLatestBlocksUsesBoundedValidatedLimit(t *testing.T) {
+	db := Database{Blocks: make(map[string]chain.Block, 200)}
+	for height := 1; height <= 200; height++ {
+		db.Blocks[strconv.Itoa(height)] = chain.Block{Height: uint64(height)}
+	}
+
+	latest := LatestBlocks(db, 100)
+	if len(latest) != 100 || cap(latest) != 100 {
+		t.Fatalf("expected a fixed 100-block bound, got len=%d cap=%d", len(latest), cap(latest))
+	}
+	if latest[0].Height != 200 || latest[len(latest)-1].Height != 101 {
+		t.Fatalf("latest blocks are not descending and bounded: first=%d last=%d", latest[0].Height, latest[len(latest)-1].Height)
+	}
+
+	fallback := LatestBlocks(db, int(^uint(0)>>1))
+	if len(fallback) != 25 {
+		t.Fatalf("invalid caller limit did not fall back to 25: %d", len(fallback))
+	}
+}
