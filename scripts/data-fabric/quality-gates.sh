@@ -20,6 +20,7 @@ jq empty \
   product-release.json \
   infra/data-fabric/grafana-dashboard.json
 
+node scripts/data-fabric/evidence-path-check.mjs
 node scripts/data-fabric/release-truth-check-check.mjs
 node scripts/data-fabric/policy-scan.mjs secret
 

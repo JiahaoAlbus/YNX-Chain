@@ -25,7 +25,7 @@
       "expected": ["new reversal or adjustment entries", "no historical overwrite", "per-currency balance preserved", "duplicate refund rejected or idempotently acknowledged"],
       "compensation": "manual review only for contradictory authoritative facts",
       "status": "testedLocal",
-      "evidence": ["internal/datafabricpayledger/processor_test.go", "internal/datafabricapi/ledger_correction_api_test.go"]
+      "evidence": ["internal/datafabricpayledger/processor_test.go", "internal/datafabricapi/server_test.go"]
     },
     {
       "id": "DF-XP-003",
@@ -69,7 +69,7 @@
       "expected": ["fail closed", "no upstream mutation", "structured audit error"],
       "compensation": "obtain a fresh authorized session and intent",
       "status": "testedLocal",
-      "evidence": ["internal/datafabricapi/authorizer_test.go", "internal/datafabricapi/server_test.go"]
+      "evidence": ["internal/datafabricapi/server_test.go"]
     },
     {
       "id": "DF-XP-007",
