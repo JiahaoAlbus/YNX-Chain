@@ -1,33 +1,27 @@
 # Current Plan
 
-Phase: `TESTNET` execution and evidence compatibility.
+Phase: `PROTECT → INTEGRATE`.
 
-Protected baselines:
+Current implementation baseline:
 
-- Integration contract and cross-product vectors: `8eb801f`.
-- Four-validator Block Hash/AppHash, 3/4 precommit, stop/recovery and replay proof: `f03c93e`.
-- ABCI State Sync snapshot runtime and tests: `913f207`.
-- Backup, restore and rollback replay to current AppHash: `74fc8dc`.
-- Committed EVM block-transaction count and transaction-by-block-index lookups: `7b59af3`.
-- Durable Indexer checkpoint/WAL validation and tamper rejection: `bf08b68`.
-- Bounded EIP-155, EIP-2930 and zero-base-fee EIP-1559 transfers: `5469ed2`, `6959df9`, `d6505fb`.
-- Zero-base-fee gas suggestions and committed `eth_feeHistory`: `acb8c47`, `fdb005c`.
-- Committed EIP-1559 Gateway/Comet evidence and four-validator rollback proof: `57a13ba`.
-- Real four-validator positive-`max_gas` fee-history proof: `5c08b24`.
-- Committed bounded `eth_getStorageAt` runtime and capability gate: `c89b6f9`, `9155c76`.
+- Product 01 protected source: `e3e6ea36635a106ac219ccb488745f238ea934d1`.
+- Current central baseline: `82241913b4dacf6bb6adebb537b7fa175c3aff59`.
+- Verified two-parent merge: `cb20b1591f81328a26ce5c412600135ffb6894bb`.
+- Recovery bundle SHA-256: `572cbab576f29e26e013565b35aeff10dcc4b59d2072a5988fdaaa87cb5affa8`.
 
-Completed recoverable slice:
+Completed in this slice:
 
-1. Added current-committed `eth_getStorageAt` for the bounded pinned-contract runtime.
-2. Bound reads to canonical lowercase addresses, canonical storage-position quantities and current committed state only.
-3. Return exact AppHash-persisted 32-byte storage words, with zero words for unknown contracts or slots.
-4. Reject malformed/historical requests and fail closed on malformed ABCI storage keys or values.
-5. Proved slot mutation, unknown slot/contract behavior, invalid input rejection, bounded IDE persistence and regression behavior.
-6. Pushed runtime `c89b6f97dc1d` and capability checkpoint `9155c76`; local and remote SHAs matched after each push.
+1. Preserved the complete Product 01 branch before integration.
+2. Resolved all 19 merge conflicts while keeping central global authority files identical to `origin/main`.
+3. Moved Product 01 coordination, acceptance and release evidence into product-scoped paths.
+4. Integrated governance execution into committed state v12 / ABCI v18 with exact v11 migration verification.
+5. Corrected Product 01 Website metadata to the official `https://ynxweb4.com` origin without modifying external Website state.
+6. Passed the full Go, Chain Core, StreamBFT, Governance, dependency, root CI, docs, exchange, Trust and Resource local gates.
+7. Bound scoped Release, Contract, Handoff and coverage records to the exact merge source without changing public or production booleans.
 
-Next runtime slice:
+Next actions:
 
-1. Continue the next autonomous TESTNET EVM RPC compatibility or recovery gap using committed evidence only.
-2. Prefer bounded read compatibility that can be proved against current CometBFT/ABCI state without fabricating Ethereum trie or historical-state semantics.
-3. Prepare remote-current-source deployment and follower-first recovery adapters, but do not claim deployment until real authority and infrastructure exist.
-4. Preserve fail-closed evidence binding and do not claim generalized Ethereum execution, a dynamic fee market, production signing, central integration or public deployment.
+1. Commit and push the source-bound evidence checkpoint.
+2. Verify local SHA, tracking SHA and GitHub remote SHA equality, then verify PR checks and install strict branch protection.
+3. Close remaining autonomous Smart Account/service-surface gaps or classify only genuine owner/infrastructure dependencies as external.
+4. Re-run the exact clean release suite and submit the final Product 01 source candidate to central integration.

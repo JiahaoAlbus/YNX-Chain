@@ -1,7 +1,7 @@
 {
   "schema": "ynx-public-product-metadata/v1",
-  "generatedAt": "2026-07-28T10:20:00Z",
-  "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
+  "generatedAt": "2026-07-28T18:50:00Z",
+  "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -31,14 +31,15 @@
     "independentPublicProof": false
   },
   "capabilities": [
-    "committed-state-v11-and-abci-v17",
+    "committed-state-v12-and-abci-v18",
     "signed-native-transfer-and-replay-rejection",
     "bounded-eip155-eip2930-eip1559-value-transfers",
     "committed-evm-transaction-receipt-log-and-fee-history-reads",
     "state-sync-snapshot-and-validator-backup-restore",
     "four-validator-local-cometbft-safety-baseline",
     "streambft-shadow-lanes-dag-qc-safety-pacemaker-and-deterministic-execution",
-    "streambft-overflow-safe-quorum-resource-and-timeout-accounting"
+    "streambft-overflow-safe-quorum-resource-and-timeout-accounting",
+    "governance-execution-begin-verify-and-audit"
   ],
   "boundaries": [
     "The authoritative public runtime does not run this source candidate.",

@@ -1,11 +1,11 @@
 # Agent Status
 
-- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/01-chain-core`; branch: `codex/final-chain-core`; server modes: bash `full`, write `workspace`, tool `full`.
-- Last verified pushed checkpoints: runtime `c89b6f97dc1d06113ab12b8eab3afca2f5a338a1`; capability gate `9155c76`. Local and `origin/codex/final-chain-core` matched after each push.
-- The BFT Gateway now implements bounded current-state `eth_getStorageAt` over AppHash-persisted pinned-contract `RuntimeStorage`.
-- Storage reads require canonical lowercase EVM addresses, canonical lowercase hex-quantity positions and a current committed block tag. Unknown contracts and unknown slots return a 32-byte zero word.
-- Contract artifact identity plus every persisted runtime storage key/value are validated before release; malformed storage evidence fails closed as an internal evidence error.
-- Proof covers a committed counter mutation from constructor value `7` to slot-0 value `12`, unknown slot and unknown contract zero behavior, malformed quantity rejection and historical-state rejection.
-- Passed: `go test ./internal/bftgateway`, `go test -race ./internal/bftgateway`, `make bft-ide-contract-check`, `go test ./internal/...`, and `make bft-evm-receipt-check`.
-- Concurrent unrelated StreamBFT changes in `internal/streambft/fees.go`, `internal/streambft/proposal.go`, `internal/streambft/streambft_test.go`, `internal/streambft/types.go`, and `scripts/verify/streambft-candidate-check.sh` were preserved unstaged and were not edited, reset or included in Chain Core EVM commits.
-- Evidence remains local TESTNET evidence. `deployedPublic=false` and `productionSigned=false`; central integration, staging, hosted download, public deployment and store release remain false.
+- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/01-chain-core`; branch: `codex/final-chain-core`.
+- Protected pre-merge source: `e3e6ea36635a106ac219ccb488745f238ea934d1`; complete recovery bundle: `/Users/huangjiahao/Desktop/YNX Recovery Bundles/chain-core-e3e6ea36.bundle`, SHA-256 `572cbab576f29e26e013565b35aeff10dcc4b59d2072a5988fdaaa87cb5affa8`.
+- Current implementation baseline: two-parent merge `cb20b1591f81328a26ce5c412600135ffb6894bb`, preserving Product 01 and integrating `origin/main` at `82241913b4dacf6bb6adebb537b7fa175c3aff59`.
+- Committed state is v12, AppHash domain is `YNX_ABCI_STATE_V12`, and ABCI application version is 18. v11 state is verified under its original hash domain before deterministic migration.
+- Governance execution begin/verify/audit is committed into v12 state without inventing legacy history.
+- Full Go tests, Chain Core workflow gates, StreamBFT race tests, Governance UI/build/audit, root production dependency audit, root CI targets, disclosure/docs gates, exchange integration, Trust and Resource gates pass locally.
+- Documentation release packaging passes only from clean tracked source and passed after the merge commit.
+- Current-source public deployment, production signing, hosted download, central acceptance and independent public proof remain false.
+- The evidence-binding commit and remote/CI verification are the current protection action.

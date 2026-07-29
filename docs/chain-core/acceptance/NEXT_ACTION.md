@@ -1,24 +1,24 @@
 # Next Action
 
-Current implementation baseline: `5c08b24462a2`.
+Current implementation baseline: `cb20b1591f81`.
 
 Completed local Testnet slice:
 
 - committed `eth_feeHistory` from retained CometBFT blocks, exact `block_results` gas and positive exact-height consensus `max_gas`;
 - real disposable four-validator proof with `max_gas=42000`, a committed bounded type-0x02 transfer using 21000 gas, zero base fees, `gasUsedRatio=0.5` and an empty reward row;
 - equal block/AppHash/account evidence and false public/production flags;
-- Release Record and Integration Contract v1.10.0 plus 71 unique vectors bound to `5c08b24462a2`.
+- Release Record and Integration Contract v1.12.0 bind the v12/ABCI v18 source merge and retained vectors to `cb20b1591f81`.
 
 Current single action:
 
-1. Commit and push the v1.10.0 evidence freeze.
+1. Commit and push the v1.12.0 central-baseline merge and evidence binding.
 2. Verify Local SHA equals Remote SHA and the worktree is clean.
 3. Continue the next autonomous TESTNET compatibility or recovery gap without widening public claims.
 
 Files in the current slice:
 
 - Release Record, Integration Contract, cross-product vectors and Handoff;
-- acceptance evidence and `.ai-bridge` state bound to runtime `5c08b24462a2`.
+- acceptance evidence and `.ai-bridge` state bound to runtime `cb20b1591f81`.
 
 Validation commands:
 
@@ -31,7 +31,7 @@ Validation commands:
 
 Completion standard:
 
-- v1.10.0 records and 71 vectors bind to `5c08b24462a2`;
+- v1.12.0 records and vectors bind to `cb20b1591f81`;
 - all unsupported public and production flags remain false;
 - Commit and Push complete, Local SHA equals Remote SHA and the worktree is clean.
 
