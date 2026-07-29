@@ -2,8 +2,8 @@
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
   "authority": "release/integration/product-registry.json",
-  "generatedAt": "2026-07-29T21:04:23.811Z",
-  "controllerSourceCommit": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
+  "generatedAt": "2026-07-29T21:05:40.470Z",
+  "controllerSourceCommit": "47a122286529523824a2c640c43d0245b03d6029",
   "readinessClasses": [
     "READY_FOR_PUBLIC_TESTNET",
     "READY_FOR_SOURCE_RELEASE",
@@ -34,7 +34,7 @@
     "readyForSourceRelease": 3,
     "holdForRecovery": 33,
     "synced": 35,
-    "clean": 11,
+    "clean": 12,
     "exactHeadCiSuccess": 4,
     "centrallyAccepted": 3
   },
@@ -325,7 +325,7 @@
       },
       "blockers": [],
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "02",
@@ -507,7 +507,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "03",
@@ -674,7 +674,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "04",
@@ -855,7 +855,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "05",
@@ -1029,7 +1029,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "06",
@@ -1199,7 +1199,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "07",
@@ -1388,7 +1388,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "08",
@@ -1560,7 +1560,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "09",
@@ -1733,7 +1733,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "10",
@@ -1906,7 +1906,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "11",
@@ -2096,7 +2096,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "12",
@@ -2271,7 +2271,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "13",
@@ -2453,7 +2453,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: testedLocal is not directly proven by release metadata and coverage.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "14",
@@ -2623,7 +2623,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "15",
@@ -2817,7 +2817,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "16",
@@ -3011,7 +3011,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "17",
@@ -3180,7 +3180,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "18",
@@ -3365,7 +3365,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "19",
@@ -3535,7 +3535,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "20",
@@ -3707,7 +3707,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "21",
@@ -3884,7 +3884,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: full-goal coverage has 6 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "22",
@@ -4063,7 +4063,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "23",
@@ -4251,7 +4251,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "24",
@@ -4443,7 +4443,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "25",
@@ -4634,7 +4634,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: fullGoalCoverage lacks an exact sourceCommit.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "26",
@@ -4868,7 +4868,7 @@
       },
       "blockers": [],
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "27",
@@ -5040,7 +5040,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "28",
@@ -5227,7 +5227,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "29",
@@ -5241,25 +5241,25 @@
       "expectedRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "actualRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "branch": "codex/final-integration",
-      "localSha": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
+      "localSha": "47a122286529523824a2c640c43d0245b03d6029",
       "remoteSha": "40eb0105fdc7385262a5dff165268db6caff1e64",
       "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
-      "dirty": true,
-      "ahead": 47,
+      "dirty": false,
+      "ahead": 48,
       "behind": 0,
       "tests": {
         "coverage": {
           "total": 71,
-          "open": 53,
-          "autonomousOpen": 52,
+          "open": 52,
+          "autonomousOpen": 51,
           "downstreamOpen": 1,
           "invalid": 0,
           "counts": {
             "notStarted": 21,
-            "inProgress": 32,
+            "inProgress": 31,
             "implementedLocal": 7,
             "testedLocal": 4,
-            "integratedCentral": 3,
+            "integratedCentral": 4,
             "testnetVerified": 0,
             "publicVerified": 0,
             "externalBlocked": 0,
@@ -5274,32 +5274,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
+            "sourceCommit": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 49
+            "distance": 1
           },
           "productRelease": {
             "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 135
+            "distance": 136
           },
           "publicMetadata": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 140
+            "distance": 141
           },
           "integrationContract": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 140
+            "distance": 141
           }
         },
         "requiredEvidencePaths": {
@@ -5316,7 +5316,7 @@
       },
       "ci": {
         "available": true,
-        "exactHeadSha": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
+        "exactHeadSha": "47a122286529523824a2c640c43d0245b03d6029",
         "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
@@ -5419,14 +5419,12 @@
       },
       "blockers": [
         "local and remote final branch SHAs differ",
-        "registered final worktree has uncommitted changes",
-        "full-goal coverage has 52 autonomous or unresolved items",
+        "full-goal coverage has 51 autonomous or unresolved items",
         "Local SHA does not equal Remote SHA",
-        "Worktree is not clean",
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: local and remote final branch SHAs differ.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "30",
@@ -5777,7 +5775,7 @@
       },
       "blockers": [],
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "31",
@@ -5966,7 +5964,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "32",
@@ -6154,7 +6152,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "33",
@@ -6324,7 +6322,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: public metadata is missing from the branch tree.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "34",
@@ -6506,7 +6504,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "35",
@@ -6688,7 +6686,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     },
     {
       "productNumber": "36",
@@ -6868,7 +6866,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T21:04:23.811Z"
+      "updatedAt": "2026-07-29T21:05:40.470Z"
     }
   ]
 }
