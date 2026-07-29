@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynx.network/data-fabric/event-envelope-v1.schema.json",
+  "title": "YNX Canonical Event Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "eventType", "schemaVersion", "product", "service", "aggregateId", "actor", "correlationId", "sequence", "timestamp", "effectiveAt", "sourceCommit", "sourceRelease", "integrity", "privacyClassification", "retentionClass", "auditId", "source", "payload"],
+  "properties": {
+    "eventId": {"$ref": "#/$defs/id"},
+    "eventType": {"type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9_-]*){2,7}$"},
+    "schemaVersion": {"const": "1.0"},
+    "product": {"$ref": "#/$defs/slug"},
+    "service": {"$ref": "#/$defs/slug"},
+    "aggregateId": {"$ref": "#/$defs/id"},
+    "actor": {
+      "type": "object", "additionalProperties": false, "required": ["actorId"],
+      "properties": {"actorId": {"$ref": "#/$defs/id"}, "accountId": {"$ref": "#/$defs/id"}, "sessionId": {"$ref": "#/$defs/id"}}
+    },
+    "correlationId": {"$ref": "#/$defs/id"},
+    "causationId": {"$ref": "#/$defs/id"},
+    "sequence": {"type": "integer", "minimum": 1},
+    "timestamp": {"$ref": "#/$defs/timestamp"},
+    "effectiveAt": {"$ref": "#/$defs/timestamp"},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{7,64}$"},
+    "sourceRelease": {"type": "string", "minLength": 1},
+    "integrity": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "keyId", "digest", "signature"],
+      "properties": {"algorithm": {"const": "hmac-sha256"}, "keyId": {"$ref": "#/$defs/id"}, "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "signature": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+    },
+    "privacyClassification": {"enum": ["public", "internal", "confidential", "restricted"]},
+    "retentionClass": {"enum": ["transient", "operational", "financial-7y", "audit-7y", "legal-hold"]},
+    "auditId": {"$ref": "#/$defs/id"},
+    "source": {
+      "type": "object", "additionalProperties": false, "required": ["source", "asOf", "version", "status"],
+      "properties": {
+        "source": {"type": "string", "minLength": 1}, "asOf": {"$ref": "#/$defs/timestamp"}, "version": {"type": "string", "minLength": 1},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "coverage": {"type": "number", "minimum": 0, "maximum": 1},
+        "status": {"enum": ["authoritative", "third-party", "estimated", "ai-inferred", "cached", "user-input", "unavailable"]}, "failure": {"type": "string"}
+      },
+      "allOf": [{"if": {"properties": {"status": {"const": "unavailable"}}}, "then": {"required": ["failure"], "properties": {"failure": {"minLength": 1}}}}]
+    },
+    "payload": {}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"},
+    "slug": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"},
+    "timestamp": {"type": "string", "format": "date-time", "pattern": "Z$"}
+  }
+}

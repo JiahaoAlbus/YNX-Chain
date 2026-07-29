@@ -18,6 +18,8 @@ const allowedUpgradeFailures = new Set([
   "release.manifest.evidence.present", "release.manifest.commit", "release.manifest.release", "release.manifest.chaindChecksum",
   "rpc.status.buildCommit", "rpc.status.buildRelease",
   "rpc.nodeIdentity.buildCommit", "rpc.nodeIdentity.buildRelease",
+  "rpc.nodeIdentity.peerSyncFreshness",
+  "explorer.health.truthful",
   "ai.health.buildCommit", "ai.health.buildRelease",
   "pay.health.buildCommit", "pay.health.buildRelease",
   "trust.health.buildCommit", "trust.health.buildRelease",

@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 2,
+  "productId": "ynx-data-fabric",
+  "productName": "YNX Data Fabric & Billing Ledger",
+  "release": "ynx-data-fabric-84872ff9042e",
+  "channel": "testnet-preview",
+  "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+  "sourceRelease": "ynx-data-fabric-84872ff9042e",
+  "generatedAt": "2026-07-29T20:40:02Z",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "compatibility": {
+    "eventEnvelope": "2.0",
+    "acceptedEventEnvelopes": ["1.0", "2.0"],
+    "schemaRegistry": "2.0",
+    "fileStoreSchema": 1,
+    "backupManifestSchema": 1,
+    "postgresMigration": 6,
+    "minimumOS": "Linux x86_64 for packaged runtime; source builds remain platform-dependent"
+  },
+  "delivery": {
+    "productClass": "headless-data-plane-with-responsive-operator-console",
+    "runtimePlatforms": ["Linux server", "command line", "Go SDK", "systemd package"],
+    "nativeStoreApps": "notApplicable",
+    "candidateArtifactClass": "ephemeral-unsigned-testnet-package-installed-and-cold-started-in-linux-ci",
+    "containerPublished": false
+  },
+  "publicHealthURL": null,
+  "artifacts": [],
+  "evidence": {
+    "localVerification": {
+      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+      "status": "passed",
+      "environment": "macOS development environment with standard umask for cross-repository permission vectors",
+      "commands": [
+        "go test ./internal/datafabric -count=1",
+        "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1",
+        "go test -race ./internal/datafabric -count=1",
+        "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json",
+        "bash -lc 'umask 022; exec go test ./... -count=1'",
+        "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1",
+        "bash scripts/data-fabric/quality-gates.sh"
+      ]
+    },
+    "remoteCI": {
+      "runId": 30488889722,
+      "workflow": "data-fabric",
+      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+      "headCommit": "a737b19c92ae53f89792694cfe0d6de16567ae49",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-07-29T20:33:05Z",
+      "duration": "3m28s",
+      "artifactsPublished": false,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30488889722"
+    },
+    "sourceCandidate": {
+      "tag": "data-fabric-v0.2.0-source-candidate",
+      "releaseId": 362040034,
+      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+      "targetCommit": "8cbc3dba0cbd139a0ba6bf7ba716b406856b32f5",
+      "publishedAt": "2026-07-29T20:45:26Z",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/data-fabric-v0.2.0-source-candidate",
+      "assetCount": 7,
+      "archive": {
+        "name": "ynx-data-fabric-source-8cbc3dba0cbd.tar.gz",
+        "bytes": 6906686,
+        "sha256": "83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848"
+      },
+      "verification": "downloaded-all-assets-and-matched-sha256",
+      "publicStateChanged": false
+    }
+  },
+  "limitations": [
+    "No central product-owner acceptance receipt exists for the full producer set.",
+    "No shared Testnet, staging or public runtime receipt is recorded for this source.",
+    "No immutable public download, production signature or public health endpoint is recorded.",
+    "The successful Linux CI package and cold-start path is a Testnet candidate class, not a public production release."
+  ],
+  "nextAction": "Continue central producer acceptance and shared-Testnet integration while keeping all public and production states false until direct receipts exist."
+}

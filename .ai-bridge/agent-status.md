@@ -1,25 +1,23 @@
-# Agent status
+# Agent Status — YNX Data Fabric
 
-- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market`
-- Branch: `codex/final-resource-market`
-- Stage: `INTEGRATE`
-- Goal status: `ACTIVE`
-- Tested source: `d683c7d28ce129daad358c84680e5980cf8ad069`
-- Tested source remote status: pushed and verified equal on `origin/codex/final-resource-market`
-- Evidence synchronization timestamp: `2026-07-29T02:54:25Z`
-- Pull request: `#12` open and mergeable
+- Status: `ACTIVE`
+- Phase: `INTEGRATE`
+- Workspace: exact configured YNX 26 Worktree verified
+- Branch: `codex/final-data-fabric`
+- Engineering Source Commit: `3a1bcceddc9e680761ce9563bb3d6cd823037222`
+- Remote Source Commit: identical after push verification
+- Source CI: GitHub Actions Run `30279794834`, completed successfully
+- Concurrent writer: none detected for this Worktree
+- Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
 
-## Verified gates for the tested source
+## Verified capabilities
 
-- `go test -count=1 ./...`
-- `go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct`
-- `go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market`
-- `bash apps/resource-market/check.sh`
-- Resource Market Candidate Gates `30417957999`: success
-- General CI `30417957996`: success
-- Docs compliance `30417958003`: success
-- Resource Market iOS Simulator build in `30417957987`: success
+Canonical Envelope v2 and v1 migration compatibility, Schema Registry v2, transactional Outbox and Inbox, idempotent consumers, retry, DLQ, replay, Saga recovery, immutable double-entry corrections, atomic usage billing, Pay BFT ingestion and refund reconciliation, API, SDK, CLI, PostgreSQL migrations through 0006, backup and restore, operator console, Linux package installation and cold-start gates.
 
-## Current truth
+## Unverified or incomplete states
 
-The product remains a tested local candidate. It is not yet merged to main, centrally integrated, authoritative-settlement verified, staged, public, download-hosted, production-signed, store-released, or professionally approved. Public settlement, two independent public providers and real Cloud/AI/Developer/Quant consumption remain unproven.
+Central owner acceptance, complete product adapter set, shared Testnet E2E, staging deployment, public deployment, immutable public download, production signing, production-shaped capacity and failover, live support and status endpoints.
+
+## Exact next action
+
+Review, commit and push the verified release-truth evidence slice, verify Local SHA equals Remote SHA, then continue central integration without changing another product Worktree. Product remains `ACTIVE`; it is not complete or publicly released.

@@ -12,13 +12,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/assetauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 )
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 12
+	ApplicationVersion   = 18
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -27,12 +28,14 @@ const (
 
 type Application struct {
 	abcitypes.BaseApplication
-	mu           sync.RWMutex
-	migration    chain.ConsensusMigrationState
-	committed    CommittedState
-	pending      *CommittedState
-	statePath    string
-	feeRecipient string
+	mu              sync.RWMutex
+	migration       chain.ConsensusMigrationState
+	committed       CommittedState
+	pending         *CommittedState
+	statePath       string
+	feeRecipient    string
+	snapshotExports map[uint64]stateSyncSnapshotExport
+	snapshotRestore *stateSyncSnapshotRestore
 }
 
 type transactionError struct {
@@ -42,11 +45,22 @@ type transactionError struct {
 
 type executionState struct {
 	accounts                   []chain.ConsensusAccount
+	nativeTransfers            []BFTNativeTransfer
+	feeEvents                  []BFTFeeEvent
+	strategyMandates           []assetauth.StrategyMandate
+	strategyVaults             []assetauth.StrategyVault
+	assetAuditEvents           []BFTAssetAuditEvent
+	smartAccounts              []assetauth.SmartAccount
+	paymasters                 []BFTPaymaster
+	userOperationEvents        []BFTUserOperationEvent
+	stakeDelegations           []BFTStakeDelegation
+	unbondings                 []BFTUnbondingEntry
 	permissions                []BFTAIPermission
 	actions                    []BFTAIAction
 	auditEvents                []BFTAIAuditEvent
 	payIntents                 []BFTPayIntent
 	payInvoices                []BFTPayInvoice
+	paySettlements             []BFTPaySettlement
 	payRefunds                 []BFTPayRefund
 	payWebhooks                []BFTPayWebhook
 	payEvents                  []BFTPayEvent
@@ -80,6 +94,22 @@ type executionState struct {
 type transactionExecution struct {
 	typeName string
 	event    abcitypes.Event
+	hash     string
+	gas      int64
+}
+
+func (e transactionExecution) resultHash(payload []byte) string {
+	if e.hash != "" {
+		return e.hash
+	}
+	return SignedTransactionHash(payload)
+}
+
+func (e transactionExecution) gasUsed() int64 {
+	if e.gas > 0 {
+		return e.gas
+	}
+	return 1
 }
 
 func (e *transactionError) Error() string { return e.err.Error() }
@@ -200,6 +230,76 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		}
 		response.Value = payload
 		return response, nil
+	case req.Path == "/economics/fees":
+		response.Value, _ = json.Marshal(a.committed.FeeEvents)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/economics/fees/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/economics/fees/"), a.committed.FeeEvents, func(v BFTFeeEvent) string { return v.ID }, "Fee event")
+	case req.Path == "/quant/mandates":
+		response.Value, _ = json.Marshal(a.committed.StrategyMandates)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/quant/mandates/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/quant/mandates/"), a.committed.StrategyMandates, func(v assetauth.StrategyMandate) string { return v.ID }, "Strategy mandate")
+	case req.Path == "/quant/vaults":
+		response.Value, _ = json.Marshal(a.committed.StrategyVaults)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/quant/vaults/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/quant/vaults/"), a.committed.StrategyVaults, func(v assetauth.StrategyVault) string { return v.ID }, "Strategy vault")
+	case req.Path == "/quant/audit":
+		response.Value, _ = json.Marshal(a.committed.AssetAuditEvents)
+		return response, nil
+	case req.Path == "/aa/accounts":
+		response.Value, _ = json.Marshal(a.committed.SmartAccounts)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/aa/accounts/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/aa/accounts/"), a.committed.SmartAccounts, func(v assetauth.SmartAccount) string { return v.Address }, "Smart account")
+	case req.Path == "/aa/paymasters":
+		response.Value, _ = json.Marshal(a.committed.Paymasters)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/aa/paymasters/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/aa/paymasters/"), a.committed.Paymasters, func(v BFTPaymaster) string { return v.Policy.ID }, "Paymaster")
+	case req.Path == "/aa/user-operations":
+		response.Value, _ = json.Marshal(a.committed.UserOperationEvents)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/aa/user-operations/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/aa/user-operations/"), a.committed.UserOperationEvents, func(v BFTUserOperationEvent) string { return v.ID }, "User operation")
+	case req.Path == "/staking/delegations":
+		response.Value, _ = json.Marshal(a.committed.StakeDelegations)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/staking/delegations/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/staking/delegations/"), a.committed.StakeDelegations, func(v BFTStakeDelegation) string { return v.ID }, "Stake delegation")
+	case req.Path == "/staking/unbondings":
+		response.Value, _ = json.Marshal(a.committed.Unbondings)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/staking/unbondings/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/staking/unbondings/"), a.committed.Unbondings, func(v BFTUnbondingEntry) string { return v.ID }, "Unbonding entry")
+	case req.Path == "/staking/summary":
+		response.Value, _ = json.Marshal(stakingRecordSummary(a.migration, a.committed))
+		return response, nil
+	case req.Path == "/treasury/snapshot":
+		response.Value, _ = json.Marshal(buildTreasurySnapshot(a.migration, a.committed))
+		return response, nil
+	case req.Path == "/solvency/snapshot":
+		snapshot, err := buildSolvencySnapshot(a.migration, a.committed)
+		if err != nil {
+			return nil, err
+		}
+		response.Value, _ = json.Marshal(snapshot)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/solvency/liabilities/"):
+		address := strings.TrimSpace(strings.TrimPrefix(req.Path, "/solvency/liabilities/"))
+		if !IsNativeAddress(address) {
+			response.Code, response.Log = 1, "canonical YNX liability address is required"
+			return response, nil
+		}
+		proof, err := buildSolvencyLiabilityProof(a.committed, address)
+		if err != nil {
+			response.Code, response.Log = 1, err.Error()
+			return response, nil
+		}
+		response.Key = []byte(address)
+		response.Value, _ = json.Marshal(proof)
+		return response, nil
 	case strings.HasPrefix(req.Path, "/accounts/"):
 		address := strings.TrimSpace(strings.TrimPrefix(req.Path, "/accounts/"))
 		index, ok := accountIndex(a.committed.Accounts, address)
@@ -246,6 +346,8 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/intents/"), a.committed.PayIntents, func(v BFTPayIntent) string { return v.ID }, "Pay intent")
 	case strings.HasPrefix(req.Path, "/pay/invoices/"):
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/invoices/"), a.committed.PayInvoices, func(v BFTPayInvoice) string { return v.ID }, "Pay invoice")
+	case strings.HasPrefix(req.Path, "/pay/settlements/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/settlements/"), a.committed.PaySettlements, func(v BFTPaySettlement) string { return v.ID }, "Pay settlement")
 	case strings.HasPrefix(req.Path, "/pay/refunds/"):
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/refunds/"), a.committed.PayRefunds, func(v BFTPayRefund) string { return v.ID }, "Pay refund")
 	case strings.HasPrefix(req.Path, "/pay/webhooks/"):
@@ -377,7 +479,7 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	default:
 		response.Code = 1
-		response.Log = "supported query paths include migration, state, accounts, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
+		response.Log = "supported query paths include migration, state, accounts, economics fees, Quant mandates/vaults/audit, account abstraction, staking, Treasury, solvency, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
 		return response, nil
 	}
 }
@@ -390,7 +492,8 @@ func (a *Application) CheckTx(_ context.Context, req *abcitypes.RequestCheckTx) 
 	if err != nil {
 		return &abcitypes.ResponseCheckTx{Code: transactionCode(err), Log: err.Error()}, nil
 	}
-	return &abcitypes.ResponseCheckTx{Code: abcitypes.CodeTypeOK, Data: []byte(SignedTransactionHash(req.Tx)), GasWanted: 1, GasUsed: 1, Info: tx.typeName}, nil
+	gas := tx.gasUsed()
+	return &abcitypes.ResponseCheckTx{Code: abcitypes.CodeTypeOK, Data: []byte(tx.resultHash(req.Tx)), GasWanted: gas, GasUsed: gas, Info: tx.typeName}, nil
 }
 
 func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
@@ -455,8 +558,8 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		}
 		results[i] = &abcitypes.ExecTxResult{
 			Code:    abcitypes.CodeTypeOK,
-			Data:    []byte(SignedTransactionHash(payload)),
-			GasUsed: 1,
+			Data:    []byte(tx.resultHash(payload)),
+			GasUsed: tx.gasUsed(),
 			Log:     tx.typeName,
 			Events:  events,
 		}
@@ -489,8 +592,8 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 
 func (a *Application) cloneExecutionState() executionState {
 	return executionState{
-		accounts: cloneAccounts(a.committed.Accounts), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
-		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
+		accounts: cloneAccounts(a.committed.Accounts), nativeTransfers: append([]BFTNativeTransfer(nil), a.committed.NativeTransfers...), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), strategyMandates: cloneStrategyMandates(a.committed.StrategyMandates), strategyVaults: cloneStrategyVaults(a.committed.StrategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), a.committed.AssetAuditEvents...), smartAccounts: cloneSmartAccounts(a.committed.SmartAccounts), paymasters: clonePaymasters(a.committed.Paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), a.committed.UserOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), a.committed.StakeDelegations...), unbondings: cloneUnbondings(a.committed.Unbondings), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
+		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), paySettlements: append([]BFTPaySettlement(nil), a.committed.PaySettlements...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
 		resourcePools: cloneBFTResourcePools(a.committed.ResourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), a.committed.ResourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(a.committed.ResourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), a.committed.ResourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), a.committed.ResourceSponsorAudit...),
 		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), trustLabels: cloneTrustLabels(a.committed.TrustLabels), trustEvidence: cloneTrustEvidence(a.committed.TrustEvidence), trackingReviews: cloneTrackingReviews(a.committed.TrackingReviews), transparency: cloneTransparencyEntries(a.committed.Transparency),
@@ -500,12 +603,27 @@ func (a *Application) cloneExecutionState() executionState {
 }
 
 func (a *Application) applyTransaction(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
+	// Every transaction executes against an isolated copy. Action handlers may
+	// charge fees or mutate nested records before a later business-rule check;
+	// an error must never leak those partial writes into the surrounding block.
+	state = cloneExecutionStateValue(state)
 	kind, err := TransactionEnvelopeType(payload)
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
 	if kind == SignedActionType {
-		return a.applyApplicationAction(state, payload, height, blockTime)
+		next, execution, err := a.applyApplicationAction(state, payload, height, blockTime)
+		if err != nil {
+			return executionState{}, transactionExecution{}, err
+		}
+		tx, _ := DecodeSignedApplicationAction(payload)
+		if tx.Fee > 0 {
+			next.feeEvents = append(next.feeEvents, newCurrentFeeEvent(ApplicationActionHash(payload), tx.Action, tx.Signer, a.feeRecipient, tx.Fee, height, blockTime))
+		}
+		return next, execution, nil
+	}
+	if kind == EthereumLegacyTransferType || kind == EthereumAccessListTransferType || kind == EthereumDynamicFeeTransferType {
+		return a.applyEthereumValueTransfer(state, payload, height, blockTime)
 	}
 	tx, err := DecodeSignedTransaction(payload)
 	if err != nil {
@@ -541,13 +659,108 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	if err := moveTraceableLots(&accounts[senderIndex], &accounts[receiverIndex], tx.Amount); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
 	}
+	if err := moveTraceableLots(&accounts[senderIndex], &accounts[feeIndex], tx.Fee); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
+	}
 	accounts[senderIndex].Balance -= tx.Amount + tx.Fee
 	accounts[senderIndex].Nonce++
 	accounts[senderIndex].ResourceUsage.BandwidthUsed++
 	accounts[receiverIndex].Balance += tx.Amount
 	accounts[feeIndex].Balance += tx.Fee
 	state.accounts = accounts
+	state.feeEvents = append(state.feeEvents, newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
+	receipt := BFTNativeTransfer{TransactionHash: SignedTransactionHash(payload), From: tx.From, To: tx.To, Amount: tx.Amount, Fee: tx.Fee, BlockHeight: height, CommittedAt: blockTime.UTC()}
+	state.nativeTransfers = insertPayRecord(state.nativeTransfers, receipt, func(v BFTNativeTransfer) string { return v.TransactionHash })
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
+}
+
+func (a *Application) applyEthereumValueTransfer(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
+	tx, err := DecodeEthereumValueTransfer(payload)
+	if err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	if err := tx.Verify(a.migration.Network.ChainID); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	maximumGasFee, err := tx.MaximumGasFee()
+	if err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	accounts := state.accounts
+	senderIndex, ok := accountIndex(accounts, tx.From)
+	if !ok {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("Ethereum transaction sender account does not exist"))
+	}
+	sender := accounts[senderIndex]
+	if tx.Nonce != sender.Nonce {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, fmt.Errorf("Ethereum transaction nonce %d must equal current account nonce %d", tx.Nonce, sender.Nonce))
+	}
+	if sender.Nonce == math.MaxUint64 {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, errors.New("Ethereum transaction sender nonce is exhausted"))
+	}
+	if tx.Value > math.MaxInt64-maximumGasFee || sender.Balance < tx.Value+maximumGasFee {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("insufficient YNXT balance for Ethereum value and maximum gas fee exposure"))
+	}
+	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("sender bandwidth usage overflow"))
+	}
+	if _, exists := bftEVMReceiptIndex(state.evmReceipts, tx.Hash); exists {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, errors.New("Ethereum transaction hash was already committed"))
+	}
+	accounts, _ = ensureAccount(accounts, tx.To)
+	accounts, _ = ensureAccount(accounts, a.feeRecipient)
+	senderIndex, _ = accountIndex(accounts, tx.From)
+	receiverIndex, _ := accountIndex(accounts, tx.To)
+	feeIndex, _ := accountIndex(accounts, a.feeRecipient)
+	if err := moveTraceableLots(&accounts[senderIndex], &accounts[receiverIndex], tx.Value); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
+	}
+	if err := moveTraceableLots(&accounts[senderIndex], &accounts[feeIndex], tx.Fee); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
+	}
+	accounts[senderIndex].Balance -= tx.Value + tx.Fee
+	accounts[senderIndex].Nonce++
+	accounts[senderIndex].ResourceUsage.BandwidthUsed++
+	accounts[receiverIndex].Balance += tx.Value
+	accounts[feeIndex].Balance += tx.Fee
+	state.accounts = accounts
+	state.feeEvents = append(state.feeEvents, newEthereumGasFeeEvent(tx.Hash, tx.EnvelopeType, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
+	receipt := BFTEVMReceipt{
+		TxHash: tx.Hash, From: tx.From, To: tx.To, Action: tx.EnvelopeType,
+		Status: "success", EncodedResult: "0x", Logs: []BFTEVMLog{}, BlockHeight: height,
+	}
+	receipt.AuditHash = bftEVMReceiptAuditHash(receipt)
+	state.evmReceipts = insertBFTEVMReceipt(state.evmReceipts, receipt)
+	envelope := "ethereum_legacy_eip155"
+	if tx.EnvelopeType == EthereumAccessListTransferType {
+		envelope = "ethereum_access_list_eip2930_empty"
+	} else if tx.EnvelopeType == EthereumDynamicFeeTransferType {
+		envelope = "ethereum_dynamic_fee_eip1559_zero_base_fee"
+	}
+	return state, transactionExecution{
+		typeName: tx.EnvelopeType,
+		hash:     tx.Hash,
+		gas:      int64(tx.GasLimit),
+		event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{
+			{Key: "sender", Value: tx.From, Index: true},
+			{Key: "recipient", Value: tx.To, Index: true},
+			{Key: "amount", Value: fmt.Sprint(tx.Value), Index: true},
+			{Key: "envelope", Value: envelope, Index: true},
+			{Key: "ethereum_hash", Value: tx.Hash, Index: true},
+		}},
+	}, nil
+}
+
+func cloneExecutionStateValue(state executionState) executionState {
+	return executionState{
+		accounts: cloneAccounts(state.accounts), nativeTransfers: append([]BFTNativeTransfer(nil), state.nativeTransfers...), feeEvents: append([]BFTFeeEvent(nil), state.feeEvents...), strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), smartAccounts: cloneSmartAccounts(state.smartAccounts), paymasters: clonePaymasters(state.paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), state.userOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), state.stakeDelegations...), unbondings: cloneUnbondings(state.unbondings), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),
+		payIntents: append([]BFTPayIntent(nil), state.payIntents...), payInvoices: append([]BFTPayInvoice(nil), state.payInvoices...), paySettlements: append([]BFTPaySettlement(nil), state.paySettlements...), payRefunds: append([]BFTPayRefund(nil), state.payRefunds...), payWebhooks: append([]BFTPayWebhook(nil), state.payWebhooks...), payEvents: append([]BFTPayEvent(nil), state.payEvents...), payIdempotency: append([]BFTPayIdempotency(nil), state.payIdempotency...),
+		resourceQuotes: append([]BFTResourceQuote(nil), state.resourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), state.resourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), state.resourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), state.resourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), state.resourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), state.resourceIdempotency...),
+		resourcePools: cloneBFTResourcePools(state.resourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), state.resourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(state.resourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), state.resourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), state.resourceSponsorAudit...),
+		governanceRequests: cloneGovernanceRequests(state.governanceRequests), trustAppeals: cloneTrustAppeals(state.trustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), state.trustCorrections...), trustLabels: cloneTrustLabels(state.trustLabels), trustEvidence: cloneTrustEvidence(state.trustEvidence), trackingReviews: cloneTrackingReviews(state.trackingReviews), transparency: cloneTransparencyEntries(state.transparency),
+		contracts: cloneBFTContracts(state.contracts), evmReceipts: cloneBFTEVMReceipts(state.evmReceipts), evmLogs: cloneBFTEVMLogs(state.evmLogs), ideIdempotency: append([]BFTIDEIdempotency(nil), state.ideIdempotency...),
+		governanceExecutions: append([]BFTGovernanceExecution(nil), state.governanceExecutions...), governanceExecutionAudit: append([]BFTGovernanceExecutionAudit(nil), state.governanceExecutionAudit...),
+	}
 }
 
 func (a *Application) applyApplicationAction(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
@@ -582,6 +795,15 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 	}
 	if isIDEAction(tx.Action) {
 		return a.applyIDEAction(state, payload, tx, height, blockTime)
+	}
+	if isAssetAuthorizationAction(tx.Action) {
+		return a.applyAssetAuthorizationAction(state, payload, tx, height, blockTime, validationOnly)
+	}
+	if isAccountAbstractionAction(tx.Action) {
+		return a.applyAccountAbstractionAction(state, payload, tx, height, blockTime, validationOnly)
+	}
+	if isStakingAction(tx.Action) {
+		return a.applyStakingAction(state, payload, tx, height, blockTime, validationOnly)
 	}
 	if isProtocolGovernanceAction(tx.Action) {
 		return a.applyProtocolGovernanceAction(state, payload, tx, height, blockTime, validationOnly)
@@ -699,6 +921,9 @@ func (a *Application) chargeApplicationAction(state *executionState, tx SignedAp
 	state.accounts, _ = ensureAccount(state.accounts, a.feeRecipient)
 	signerIndex, _ = accountIndex(state.accounts, tx.Signer)
 	feeIndex, _ := accountIndex(state.accounts, a.feeRecipient)
+	if err := moveTraceableLots(&state.accounts[signerIndex], &state.accounts[feeIndex], tx.Fee); err != nil {
+		return invalidTransaction(CodeInsufficientYNXT, err)
+	}
 	state.accounts[signerIndex].Balance -= tx.Fee
 	state.accounts[signerIndex].Nonce++
 	state.accounts[signerIndex].ResourceUsage.AICreditsUsed += tx.AIUnits

@@ -1,0 +1,26 @@
+[Unit]
+Description=YNX Data Fabric Testnet Outbox, Saga, Billing, and Ledger worker
+After=network-online.target ynx-data-fabricd.service
+Wants=network-online.target
+Requires=ynx-data-fabricd.service
+
+[Service]
+User=ynx-data-fabric
+Group=ynx-data-fabric
+EnvironmentFile=/etc/ynx-data-fabric/data-fabric.env
+ExecStart=/usr/local/bin/ynx-data-fabric-worker
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

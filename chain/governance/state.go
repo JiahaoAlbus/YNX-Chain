@@ -142,7 +142,7 @@ func (s *ChainState) ApplyProposalCreate(env *ActionEnvelope, payload *ProposalC
 
 	s.Proposals[proposalID] = proposal
 	s.AccountNonces[env.Signer] = env.AccountNonce + 1
-	
+
 	return proposal, nil
 }
 

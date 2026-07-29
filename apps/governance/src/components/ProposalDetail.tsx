@@ -107,7 +107,7 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
+
     if (days > 0) return `${days}d ${hours}h`;
     return `${hours}h`;
   };
@@ -209,7 +209,7 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
       {/* Details */}
       <div style={styles.detailsCard}>
         <h2 style={styles.sectionTitle}>Proposal Details</h2>
-        
+
         <div style={styles.detailSection}>
           <h3 style={styles.detailLabel}>Economic Impact</h3>
           <p style={styles.detailText}>{proposal.input.economicImpact}</p>

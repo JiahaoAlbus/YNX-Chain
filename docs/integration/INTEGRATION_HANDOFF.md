@@ -1,56 +1,62 @@
-# YNX Resource Market integration handoff
+# YNX Data Fabric Integration Handoff
 
-## Identity
+Source Commit: `3a1bcceddc9e680761ce9563bb3d6cd823037222`
+Release Candidate: `ynx-data-fabric-3a1bcceddc9e`
+Owner: YNX Data Fabric
+Phase: `INTEGRATE`
+Status: `ACTIVE`
 
-- Product owner: `16-resource-market`
-- Contract: `release/integration/resource-market-contract.json`
-- Contract version: `resource-market-integration-v1`
-- Implementation source: `a940d2efa824bd9f43522ed792c9a563b55e1e11`
-- Current phase: `FREEZE → INTEGRATE`
-- Current product status: local candidate; not centrally integrated, staged, public, production-signed or store-released.
+## Frozen contract package
 
-## Authority split
-
-Resource Market owns provider registration, verified capacity, offers, matching, auctions, reservation, service lifecycle, signed usage metering and local dispute evidence. It does not own Wallet identity, asset finality, billing-ledger authority, public Explorer proof, central monitoring, public Website entry or protocol freeze.
-
-A quote, accepted intent, reservation, service start, meter, service completion, HTTP success or provider statement is never asset settlement. Reservations are bound to the exact Offer referenced by the accepted Quote; capacity from a sibling Offer cannot satisfy or release that reservation. Settlement is accepted only when an authorized settlement identity supplies a non-empty asset, transaction hash, evidence and source; amounts exactly reconcile to signed meters; the order is `settlement_pending`; and the normalized transaction hash has not already been consumed by another receipt.
-
-## Canonical integration inputs
-
-- Wallet registry: `apps/resource-market/integration/canonical-wallet-registry.json`
-- Wallet vectors: `apps/resource-market/integration/canonical-wallet-v1-test-vector.json`
-- Existing central manifest: `apps/resource-market/integration/central-integration-manifest.json`
-- Frozen product contract: `release/integration/resource-market-contract.json`
+- Machine contract: `release/integration/ynx-data-fabric-contract.json`
+- Canonical Envelope v2: `schemas/data-fabric/event-envelope-v2.schema.json`
+- Compatibility Envelope v1: `schemas/data-fabric/event-envelope-v1.schema.json`
+- Schema Registry v2: `schemas/data-fabric/schema-registry-v2.json`
+- Product event ownership: `integration/product-event-contracts.json`
 - Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- Full goal coverage: `.ai-bridge/full-goal-coverage.json`
 
-## Required central behavior
+## Release state
 
-1. Product 02 registers the exact client, bundle, callback, ordered scopes and P-256 product-device algorithm.
-2. Product 29 freezes the exact method/path/body product-session proof semantics and one-to-one proxy route mapping.
-3. Product 01 provides authoritative transaction finality and settlement evidence; product 16 does not infer finality.
-4. Product 26 accepts only signed-meter and confirmed-settlement events, preserving idempotency and lineage.
-5. Product 12 exposes public receipt evidence only after authoritative settlement.
-6. Product 13 alerts on stale providers, metering failures, settlement reconciliation failure and receipt replay rejection.
-7. Product 15 links provider failure and dispute/appeal evidence without gaining asset authority.
-8. Product 28 publishes only release states that have direct evidence.
+| State | Value | Direct basis |
+|---|---:|---|
+| implementedLocal | true | Runtime, API, SDK, CLI, Ledger, Saga, migrations, backup and release tooling are present |
+| testedLocal | true | Targeted tests, Data Fabric Race and full Go test with standard umask passed |
+| installedLocal | true | Linux CI installs and cold-starts the source-bound Testnet package |
+| integratedCentral | false | No complete owner-acceptance receipt set exists |
+| deployedStaging | false | No staging deployment receipt exists |
+| deployedPublic | false | No public runtime or health receipt exists |
+| downloadHosted | false | No immutable public artifact receipt exists |
+| productionSigned | false | Only test-fixture signing is exercised |
+| storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-## Stable errors
+Remote CI Run `30279794834` completed successfully for the Source Commit. The workflow publishes no downloadable artifact.
 
-The product returns a stable `code` with `errorId`, `requestId` and `traceId`. Settlement integrations must preserve at least:
+## Current executable integration
 
-- `RESOURCE_SELF_DEALING_REJECTED`
-- `RESOURCE_AMOUNT_OUT_OF_RANGE`
-- `RESOURCE_CAPACITY_UNAVAILABLE`
-- `RESOURCE_METER_WINDOW_INVALID`
-- `RESOURCE_METER_LIMIT`
-- `RESOURCE_SETTLEMENT_STATE_INVALID`
-- `RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED`
-- `RESOURCE_SETTLEMENT_RECONCILIATION`
-- `RESOURCE_SETTLEMENT_REPLAY`
+The YNX Pay BFT bridge reads authoritative Pay state, emits canonical Pay events, drives the Pay Saga and posts receipt and refund effects to the immutable Billing Ledger. This path is locally and CI tested but is not yet centrally accepted or shared-Testnet verified.
 
-No consumer may translate these failures into success, paid, settled or refunded.
+## Required merge and acceptance order
 
-## Acceptance gate
+1. YNX Integration freezes Envelope v2, Registry v2, error codes, scope names and ownership.
+2. Wallet/Auth and App Gateway run signed request, replay, wrong tuple, expiry and revoke vectors.
+3. Pay and Chain Core run the shared-Testnet invoice, settlement, receipt, refund and reconciliation vector.
+4. Exchange, DEX and Quant owners add registered events, fee boundaries, compensation and reconciliation vectors.
+5. Remaining product owners add their registered producer and Saga vectors.
+6. Explorer, Monitor and Trust consume correlated evidence.
+7. Security/SRE runs production-shaped broker, database, backup, restore, alert, artifact and signer gates.
+8. Website consumes only the truthful public metadata after runtime and immutable hosting receipts exist.
 
-Central integration remains false until every applicable dependency row in `DEPENDENCY_ACCEPTANCE.md` has direct evidence and the vectors in `CROSS_PRODUCT_TEST_VECTORS.json` pass against deployed Testnet services. Local tests are not public or central proof.
+## Non-negotiable boundaries
+
+- HTTP success is not Saga completion.
+- Analytics cannot modify the operational Event Store or Billing Ledger.
+- Network exactly-once delivery is not claimed; controlled effects are idempotent and Inbox-bound.
+- Corrections append new entries; history is never silently overwritten.
+- Data Fabric does not own Wallet identity, assets, prices, chain finality or product business authority.
+- No private key, seed, PEM, PAN, CVV, provider secret or raw private Mail, Social or Cloud content belongs in events, analytics, handoff files or logs.
+
+## Next exact action
+
+Submit the source-bound contract to YNX Integration, then execute `DF-XP-006` and `DF-XP-014` in dependency order. Until those receipts exist, phase remains `INTEGRATE` and every central, staging and public state remains false.

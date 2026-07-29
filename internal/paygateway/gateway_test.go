@@ -364,6 +364,39 @@ func TestBFTPayRejectsInconsistentCommittedResponse(t *testing.T) {
 	}
 }
 
+func TestBFTPayBuildsSettlementAndRefundCompletionActions(t *testing.T) {
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 103))
+	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	service, err := New(Config{
+		ChainURL: "http://127.0.0.1:26657", MerchantID: "merchant_bft_completion",
+		APIKey: testAPIKey, WebhookSigningKey: testWebhookKey, UpstreamMode: UpstreamBFT,
+		SignerKey: fmt.Sprintf("%064x", 103), SignerAddress: address, ChainID: 6423,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	invoiceID, refundID := strings.Repeat("a", 24), strings.Repeat("b", 24)
+	transactionHash := "0x" + strings.Repeat("c", 64)
+	settlementBody, err := service.PrepareBody("/pay/invoices/"+invoiceID+"/settle", []byte(`{"payer":"`+address+`","transactionHash":"`+transactionHash+`","idempotencyKey":"settlement-key"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	action, payload, keyRef, requestHash, err := service.bftPayPayload("/pay/invoices/"+invoiceID+"/settle", settlementBody)
+	settlement, ok := payload.(consensus.PaySettlementPayload)
+	if err != nil || !ok || action != consensus.ActionPayInvoiceSettle || settlement.InvoiceID != invoiceID || settlement.Payer != address || settlement.TransactionHash != transactionHash || keyRef != "settlement-key" || requestHash != consensus.PaySettlementRequestHash(settlement.Merchant, invoiceID, address, transactionHash, keyRef) {
+		t.Fatalf("invalid BFT settlement action: action=%s payload=%+v err=%v", action, payload, err)
+	}
+	completionBody, err := service.PrepareBody("/pay/refunds/"+refundID+"/complete", []byte(`{"transactionHash":"`+transactionHash+`","idempotencyKey":"completion-key"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	action, payload, keyRef, requestHash, err = service.bftPayPayload("/pay/refunds/"+refundID+"/complete", completionBody)
+	completion, ok := payload.(consensus.PayRefundCompletionPayload)
+	if err != nil || !ok || action != consensus.ActionPayRefundComplete || completion.RefundID != refundID || completion.TransactionHash != transactionHash || keyRef != "completion-key" || requestHash != consensus.PayRefundCompletionRequestHash(completion.Merchant, refundID, transactionHash, keyRef) {
+		t.Fatalf("invalid BFT refund completion action: action=%s payload=%+v err=%v", action, payload, err)
+	}
+}
+
 func newChainServer(t *testing.T) *httptest.Server {
 	t.Helper()
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))

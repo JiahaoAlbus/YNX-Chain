@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-07-18T00:00:00.000Z",
+  "candidateStatus": "implemented-local-tested-local-pending-central-review",
+  "centralGatewayStatus": "not-integrated-central-not-deployed",
+  "policy": "All 25 registrations remain fail-closed and disabled until the owning product and central integration controller approve the exact tuple.",
+  "conflicts": [
+    {
+      "productId": "social",
+      "candidate": {"productClientId":"ynx-social-v1","bundleId":"com.ynx.social","callback":"ynx-social://com.ynx.social","scopes":["account:read","profile:link"]},
+      "legacyWalletFixture": {"productClientId":"ynx-social-v1","bundleId":"com.ynxweb4.social","callback":"ynxsocial://wallet-auth/callback","scopes":["account:read","profile:link"]},
+      "resolution": "Candidate follows the current Social worktree identity; legacy fixture remains test-only and cannot be enabled centrally."
+    },
+    {
+      "productId": "gateway",
+      "candidate": {"accountAlgorithm":"secp256k1","productDeviceAlgorithm":"p256-sha256","sessionEnvelope":"wallet-auth-v1"},
+      "observedCentral": {"productDeviceAlgorithm":"ed25519","sessionEnvelope":"legacy appgateway ownership flow"},
+      "resolution": "Central integration must adopt the canonical verifier and transactional lifecycle as an explicit reviewed change; this Wallet branch does not modify central Gateway code."
+    },
+    {
+      "productId": "all",
+      "candidate": {"registrationCount":25,"enabledCount":0},
+      "observedCentral": {"registrationCount":0,"enabledCount":0},
+      "resolution": "This file is a merge-ready candidate and conflict inventory, not evidence of central deployment."
+    }
+  ]
+}

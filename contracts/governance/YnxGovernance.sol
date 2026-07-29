@@ -10,7 +10,7 @@ contract YnxGovernance {
     // Governance domain identifier
     string public constant DOMAIN = "ynx-governance-action/v1";
     uint256 public immutable chainId;
-    
+
     // Proposal states
     enum ProposalStatus {
         Deposit,
@@ -24,7 +24,7 @@ contract YnxGovernance {
         Cancelled,
         Expired
     }
-    
+
     // Proposal structure
     struct Proposal {
         bytes32 id;
@@ -42,7 +42,7 @@ contract YnxGovernance {
         bytes32 upgradeHash;
         bool exists;
     }
-    
+
     // Vote structure
     struct Vote {
         address voter;
@@ -52,7 +52,7 @@ contract YnxGovernance {
         uint256 castHeight;
         bytes32 txHash;
     }
-    
+
     // Role structure
     struct Role {
         address account;
@@ -62,7 +62,7 @@ contract YnxGovernance {
         bytes32 proposalId;
         bool active;
     }
-    
+
     // Emergency action structure
     struct Emergency {
         bytes32 id;
@@ -75,7 +75,7 @@ contract YnxGovernance {
         uint256 closedAt;
         bool active;
     }
-    
+
     // State storage
     mapping(bytes32 => Proposal) public proposals;
     mapping(bytes32 => mapping(address => Vote)) public votes;
@@ -83,7 +83,7 @@ contract YnxGovernance {
     mapping(address => Role) public roles;
     mapping(bytes32 => Emergency) public emergencies;
     mapping(address => uint256) public accountNonces;
-    
+
     // Events
     event ProposalCreated(bytes32 indexed proposalId, address indexed proposer, string scope);
     event VoteCast(bytes32 indexed proposalId, address indexed voter, uint8 position, uint256 power);
@@ -93,7 +93,7 @@ contract YnxGovernance {
     event RoleRemoved(address indexed account, string role);
     event EmergencyCreated(bytes32 indexed emergencyId, string scope, string target);
     event EmergencyClosed(bytes32 indexed emergencyId, uint256 closedAt);
-    
+
     // Errors
     error UnauthorizedAction(address caller);
     error ProposalNotFound(bytes32 proposalId);
@@ -103,11 +103,11 @@ contract YnxGovernance {
     error TimelockNotExpired(bytes32 proposalId, uint256 remainingTime);
     error RoleExpired(address account);
     error EmergencyNotActive(bytes32 emergencyId);
-    
+
     constructor(uint256 _chainId) {
         chainId = _chainId;
     }
-    
+
     /**
      * @notice Create a new governance proposal
      * @param proposalId Unique proposal identifier (hash of canonical envelope)
@@ -122,7 +122,7 @@ contract YnxGovernance {
         bytes32 upgradeHash
     ) external {
         require(!proposals[proposalId].exists, "Proposal already exists");
-        
+
         proposals[proposalId] = Proposal({
             id: proposalId,
             proposer: msg.sender,
@@ -139,10 +139,10 @@ contract YnxGovernance {
             upgradeHash: upgradeHash,
             exists: true
         });
-        
+
         emit ProposalCreated(proposalId, msg.sender, scope);
     }
-    
+
     /**
      * @notice Cast a vote on a proposal
      * @param proposalId Proposal to vote on
@@ -165,7 +165,7 @@ contract YnxGovernance {
         if (votes[proposalId][msg.sender].voter != address(0)) {
             revert AlreadyVoted(proposalId, msg.sender);
         }
-        
+
         votes[proposalId][msg.sender] = Vote({
             voter: msg.sender,
             position: position,
@@ -174,12 +174,12 @@ contract YnxGovernance {
             castHeight: block.number,
             txHash: blockhash(block.number - 1)
         });
-        
+
         voteCount[proposalId]++;
-        
+
         emit VoteCast(proposalId, msg.sender, position, power);
     }
-    
+
     /**
      * @notice Execute a timelocked proposal
      * @param proposalId Proposal to execute
@@ -193,14 +193,14 @@ contract YnxGovernance {
         if (block.timestamp < proposal.timelockEndsAt) {
             revert TimelockNotExpired(proposalId, proposal.timelockEndsAt - block.timestamp);
         }
-        
+
         proposal.status = ProposalStatus.Executed;
         proposal.executedAt = block.timestamp;
         proposal.executedHeight = block.number;
-        
+
         emit ProposalExecuted(proposalId, block.number, blockhash(block.number - 1));
     }
-    
+
     /**
      * @notice Assign a governance role
      * @param account Account to assign role to
@@ -223,10 +223,10 @@ contract YnxGovernance {
             proposalId: proposalId,
             active: true
         });
-        
+
         emit RoleAssigned(account, roleName, expiresAt);
     }
-    
+
     /**
      * @notice Create an emergency pause action
      * @param emergencyId Unique emergency identifier
@@ -244,10 +244,10 @@ contract YnxGovernance {
     ) external {
         require(!emergencies[emergencyId].active, "Emergency already active");
         require(duration <= 7 days, "Duration exceeds maximum");
-        
+
         address[] memory approvals = new address[](1);
         approvals[0] = msg.sender;
-        
+
         emergencies[emergencyId] = Emergency({
             id: emergencyId,
             scope: scope,
@@ -259,10 +259,10 @@ contract YnxGovernance {
             closedAt: 0,
             active: true
         });
-        
+
         emit EmergencyCreated(emergencyId, scope, target);
     }
-    
+
     /**
      * @notice Close an emergency action
      * @param emergencyId Emergency to close
@@ -270,13 +270,13 @@ contract YnxGovernance {
     function closeEmergency(bytes32 emergencyId) external {
         Emergency storage emergency = emergencies[emergencyId];
         if (!emergency.active) revert EmergencyNotActive(emergencyId);
-        
+
         emergency.active = false;
         emergency.closedAt = block.timestamp;
-        
+
         emit EmergencyClosed(emergencyId, block.timestamp);
     }
-    
+
     /**
      * @notice Get proposal details
      */
@@ -284,14 +284,14 @@ contract YnxGovernance {
         if (!proposals[proposalId].exists) revert ProposalNotFound(proposalId);
         return proposals[proposalId];
     }
-    
+
     /**
      * @notice Get vote details
      */
     function getVote(bytes32 proposalId, address voter) external view returns (Vote memory) {
         return votes[proposalId][voter];
     }
-    
+
     /**
      * @notice Check if account has active role
      */

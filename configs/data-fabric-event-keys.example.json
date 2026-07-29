@@ -1,0 +1,9 @@
+{
+  "keys": [
+    {
+      "keyId": "key.pay.testnet.0001",
+	  "product": "pay",
+      "keyFile": "/etc/ynx-data-fabric/keys/pay-testnet.key"
+    }
+  ]
+}

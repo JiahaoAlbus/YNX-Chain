@@ -78,7 +78,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	server := httptest.NewServer(NewServerWithBuild(svc, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 
-	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
+	for _, path := range []string{"/health", "/version", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -179,8 +179,20 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
 		t.Fatal(err)
 	}
-	if health.Build.Commit != "abc123" || health.Build.Release != "ynx-chain-abc123" || health.Build.BuildTime != "2026-07-10T00:00:00Z" {
+	if health.Build.Commit != "abc123" || health.Build.Release != "ynx-chain-abc123" || health.Build.BuildTime != "2026-07-10T00:00:00Z" || health.StartedAt.IsZero() {
 		t.Fatalf("health missing build identity: %+v", health.Build)
+	}
+	versionResponse, err := http.Get(server.URL + "/version")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer versionResponse.Body.Close()
+	var version map[string]any
+	if err := json.NewDecoder(versionResponse.Body).Decode(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version["service"] != "ynx-explorerd" || version["startedAt"] == "" || version["build"].(map[string]any)["commit"] != "abc123" {
+		t.Fatalf("unexpected version response: %+v", version)
 	}
 
 	streamCtx, cancelStream := context.WithCancel(context.Background())
@@ -223,5 +235,49 @@ func TestFeeDetailUsesRealSponsorTransactionEvidence(t *testing.T) {
 	direct := FeeDetailFromTx(chain.Transaction{Hash: "direct", From: tx.From, Fee: 1})
 	if direct.Sponsor != "" || direct.ResourceSource != "direct-ynxt-fee-or-resource-endpoint" {
 		t.Fatalf("direct transaction was mislabeled as sponsored: %+v", direct)
+	}
+}
+
+func TestExplorerFailsClosedOnRPCIndexerIdentityMismatch(t *testing.T) {
+	rpc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/status" {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(Status{Network: "YNX Testnet", ChainID: 6423, NativeCoinName: "YNXT", NativeCurrencySymbol: "YNXT", Decimals: 18})
+	}))
+	defer rpc.Close()
+	indexerHTTP := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/health" {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(IndexerHealth{OK: true, Service: "ynx-indexerd", Network: "another-network", ChainID: 1, NativeSymbol: "YNXT"})
+	}))
+	defer indexerHTTP.Close()
+	svc, err := New(Config{RPCURL: rpc.URL, IndexerURL: indexerHTTP.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Summary(context.Background()); err == nil || !strings.Contains(err.Error(), "chain identity mismatch") {
+		t.Fatalf("mismatched RPC and indexer identity did not fail closed: %v", err)
+	}
+}
+
+func TestExplorerRejectsNonCanonicalIndexerService(t *testing.T) {
+	rpc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(Status{Network: "YNX Testnet", ChainID: 6423, NativeCoinName: "YNXT", NativeCurrencySymbol: "YNXT", Decimals: 18})
+	}))
+	defer rpc.Close()
+	indexerHTTP := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(IndexerHealth{OK: true, Service: "unknown-indexer", Network: "YNX Testnet", ChainID: 6423, NativeSymbol: "YNXT"})
+	}))
+	defer indexerHTTP.Close()
+	svc, err := New(Config{RPCURL: rpc.URL, IndexerURL: indexerHTTP.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Summary(context.Background()); err == nil || !strings.Contains(err.Error(), "indexer dependency identity mismatch") {
+		t.Fatalf("non-canonical indexer identity did not fail closed: %v", err)
 	}
 }
