@@ -58,6 +58,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/seller/stores", s.sellerStores)
 	s.mux.HandleFunc("PUT /api/seller/stores/{id}", s.updateStore)
 	s.mux.HandleFunc("POST /api/seller/stores/{id}/activate", s.activateStore)
+	s.mux.HandleFunc("POST /api/seller/stores/{id}/exports", s.exportSellerData)
 	s.mux.HandleFunc("GET /api/seller/stores/{id}/roles", s.roles)
 	s.mux.HandleFunc("PUT /api/seller/stores/{id}/roles", s.setRole)
 	s.mux.HandleFunc("POST /api/seller/stores/{id}/roles/{account}/revoke", s.revokeRole)
@@ -499,6 +500,22 @@ func (s *Server) updateStore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, 200, v)
+}
+func (s *Server) exportSellerData(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in struct{ Purpose string }
+	if !decode(w, r, &in) {
+		return
+	}
+	v, err := s.store.ExportSellerData(sess.Account, r.PathValue("id"), in.Purpose)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusCreated, map[string]any{"export": v})
 }
 func (s *Server) roles(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "seller")
