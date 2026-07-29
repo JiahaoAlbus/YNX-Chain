@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "allowed": {
+    "node_modules/esbuild": {
+      "postinstall": "node install.js"
+    },
+    "node_modules/fsevents": {
+      "lockFlagOnlyReviewed": true
+    }
+  }
+}

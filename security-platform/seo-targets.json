@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "source": "website-owner handoff targets pending central acceptance",
+  "targets": [
+    {
+      "id": "website-production",
+      "environment": "production",
+      "baseUrl": "https://ynxweb4.com/",
+      "expectedCanonical": "https://ynxweb4.com/",
+      "sitemapPath": "/sitemap.xml",
+      "indexable": true,
+      "requireStructuredData": true,
+      "requireHreflang": false
+    },
+    {
+      "id": "explorer-production",
+      "environment": "production",
+      "baseUrl": "https://explorer.ynxweb4.com/",
+      "expectedCanonical": "https://explorer.ynxweb4.com/",
+      "sitemapPath": "/sitemap.xml",
+      "indexable": true,
+      "requireStructuredData": false,
+      "requireHreflang": false
+    },
+    {
+      "id": "website-staging",
+      "environment": "staging",
+      "baseUrl": "https://staging.ynxweb4.com/",
+      "expectedCanonical": "https://staging.ynxweb4.com/",
+      "sitemapPath": "/sitemap.xml",
+      "indexable": false,
+      "requireStructuredData": false,
+      "requireHreflang": false
+    }
+  ]
+}

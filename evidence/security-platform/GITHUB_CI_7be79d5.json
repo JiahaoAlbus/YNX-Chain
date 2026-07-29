@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "scenario": "authoritative-repository-exact-source-ci",
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "branch": "codex/final-security-platform",
+  "sourceCommit": "7be79d5b921e2b044fff43d5eb3f10fcad2eac11",
+  "verifiedAt": "2026-07-29T06:06:13Z",
+  "result": "passed-remote",
+  "runs": [
+    {
+      "workflow": "Security Platform Gates",
+      "runId": 30426721604,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30426721604",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        "Policy, tests, supply chain, and manifests",
+        "Deployment remains operator-controlled"
+      ]
+    },
+    {
+      "workflow": "Security",
+      "runId": 30426721645,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30426721645",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        "source-analysis (javascript-typescript)",
+        "source-analysis (go)",
+        "dependency-and-build-script-audit",
+        "go-static-analysis"
+      ],
+      "skippedByDesign": [
+        "dependency-review runs only for pull_request"
+      ]
+    }
+  ],
+  "pullRequest": {
+    "number": 16,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/16",
+    "state": "OPEN",
+    "draft": true,
+    "mergeableAtVerification": true
+  },
+  "limitations": [
+    "CI validates the named repository commit and does not mutate a cluster",
+    "no production signing, staging deployment, public deployment, or hosted-download claim is inferred"
+  ]
+}

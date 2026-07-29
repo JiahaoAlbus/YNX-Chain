@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "branch": "codex/final-security-platform",
+  "verifiedAt": "2026-07-29T12:18:00Z",
+  "source": "GitHub branch protection REST API administrator-enforcement response and complete protection readback",
+  "operation": {
+    "method": "POST",
+    "path": "/repos/JiahaoAlbus/YNX-Chain/branches/codex%2Ffinal-security-platform/protection/enforce_admins",
+    "result": {
+      "enabled": true
+    }
+  },
+  "readback": {
+    "method": "GET",
+    "path": "/repos/JiahaoAlbus/YNX-Chain/branches/codex%2Ffinal-security-platform/protection",
+    "requiredStatusChecks": {
+      "strict": true,
+      "contexts": [
+        "Policy, tests, supply chain, and manifests",
+        "Deployment remains operator-controlled",
+        "source-analysis (javascript-typescript)",
+        "source-analysis (go)",
+        "dependency-and-build-script-audit",
+        "go-static-analysis"
+      ]
+    },
+    "pullRequestReviews": {
+      "dismissStaleReviews": true,
+      "requireCodeOwnerReviews": true,
+      "requireLastPushApproval": true,
+      "requiredApprovingReviewCount": 1
+    },
+    "enforceAdmins": true,
+    "requiredSignatures": false,
+    "requiredLinearHistory": true,
+    "requiredConversationResolution": true,
+    "allowForcePushes": false,
+    "allowDeletions": false
+  },
+  "limitations": [
+    "required signed commits remain disabled until an approved production signing identity and compatibility plan exist"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "algorithm": "Ed25519",
+  "signingClass": "test-signed",
+  "signingIdentity": "local-ephemeral-test-signer",
+  "manifestSha256": "4303bcfd75c191a71820854f20f35d08b679a0fe757df57dbe41de685b0ed0bd",
+  "publicKeyFingerprint": "sha256:eebfb046d15ced9661fa983f1fee24ee2882b57a28e37f00cafab4e46bd2b801",
+  "publicKeyJwk": {
+    "crv": "Ed25519",
+    "x": "13VXXe9tgW6jhjT33YHDlW6XBdU4g-Oju3lBsiyDJ8k",
+    "kty": "OKP"
+  },
+  "signature": "3n8czlDEUO/NDhS4Ufsi4cmv5cd8K50PJJFMIqBQ0EfxmimVdP4T1ZHge/00Yo7aoGvzqry/FrJejQ1Dj0YqBw==",
+  "createdAt": "2026-07-27T15:48:52.229Z",
+  "expiresAt": "2026-08-26T15:48:52.229Z",
+  "revokedAt": null,
+  "transparencyRecord": null,
+  "privateMaterialPersisted": false,
+  "publicReleaseEligible": false
+}

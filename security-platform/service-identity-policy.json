@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "policyId": "ynx.service-identity.v1",
+  "status": "candidate",
+  "source": "30-security-sre-release",
+  "serviceIdentityRequired": true,
+  "sharedAuthenticationFactorAllowed": false,
+  "requiredIdentityFields": [
+    "serviceId",
+    "productId",
+    "environment",
+    "workloadIdentity",
+    "certificateSubject",
+    "certificateIssuer",
+    "trustDomain",
+    "sanUri",
+    "audiences",
+    "scopes",
+    "notBefore",
+    "expiresAt",
+    "rotationDueAt",
+    "serialNumber",
+    "revoked",
+    "owner"
+  ],
+  "transport": {
+    "mutualTlsRequired": true,
+    "minimumTlsVersion": "TLSv1.3",
+    "clientCertificateRequired": true,
+    "serverCertificateRequired": true,
+    "untrustedIssuerRejected": true,
+    "expiredCertificateRejected": true,
+    "revokedCertificateRejected": true,
+    "staleCertificateRejected": true,
+    "wrongSubjectRejected": true,
+    "wrongSanRejected": true
+  },
+  "binding": {
+    "serviceId": true,
+    "productId": true,
+    "environment": true,
+    "trustDomain": true,
+    "audience": true,
+    "scope": true,
+    "owner": true
+  },
+  "replayProtection": {
+    "nonceRequired": true,
+    "minimumNonceCharacters": 16,
+    "defaultReplayWindowSeconds": 300,
+    "defaultClockSkewSeconds": 60,
+    "nonceReuseRejected": true,
+    "staleRequestRejected": true,
+    "futureRequestRejected": true
+  },
+  "rotation": {
+    "expiryEnforced": true,
+    "rotationDeadlineEnforced": true,
+    "dualCertificateTransitionRequired": true,
+    "oldCertificateRevocationRequired": true,
+    "dependentServiceVerificationRequired": true,
+    "auditRequired": true
+  },
+  "revocation": {
+    "registryRequired": true,
+    "serialNumberBindingRequired": true,
+    "externalRevocationService": "not-configured"
+  },
+  "audit": {
+    "decisionFields": [
+      "serviceId",
+      "productId",
+      "environment",
+      "workloadIdentity",
+      "audience",
+      "scopes",
+      "serialNumber",
+      "owner",
+      "decisionAt"
+    ],
+    "certificateMaterialRecorded": false,
+    "authenticationMaterialRecorded": false
+  },
+  "errorCodes": [
+    "SERVICE_IDENTITY_INVALID",
+    "SERVICE_ENVIRONMENT_MISMATCH",
+    "SERVICE_AUDIENCE_MISMATCH",
+    "SERVICE_SCOPE_DENIED",
+    "CERTIFICATE_NOT_YET_VALID",
+    "CERTIFICATE_EXPIRED",
+    "CERTIFICATE_STALE",
+    "CERTIFICATE_REVOKED",
+    "CERTIFICATE_ISSUER_UNTRUSTED",
+    "CLOCK_SKEW_EXCEEDED",
+    "REQUEST_STALE",
+    "REPLAY_DETECTED"
+  ],
+  "productionInputs": [
+    "certificate-authority",
+    "trust-domain-owner",
+    "workload-identity-provider",
+    "revocation-service",
+    "rotation-owner",
+    "environment-specific-service-registry"
+  ]
+}

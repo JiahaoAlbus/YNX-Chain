@@ -1,0 +1,4161 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:53b037eb-6fff-41e3-ab14-9231fad5bb5f",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "ynx-security-platform",
+      "version": "53b037eb6fff51e3cb149231fad5bb5f2599527f"
+    },
+    "properties": [
+      {
+        "name": "ynx:sourceCommit",
+        "value": "53b037eb6fff51e3cb149231fad5bb5f2599527f"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "@adraffy/ens-normalize",
+      "version": "1.11.1",
+      "purl": "pkg:npm/%40adraffy%2Fens-normalize@1.11.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@adraffy/ens-normalize"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@cspotcode/source-map-support",
+      "version": "0.8.1",
+      "purl": "pkg:npm/%40cspotcode%2Fsource-map-support@0.8.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@cspotcode/source-map-support"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/aix-ppc64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Faix-ppc64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/aix-ppc64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/android-arm",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-arm@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/android-arm"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/android-arm64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-arm64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/android-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/android-x64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-x64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/android-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fdarwin-arm64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/darwin-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/darwin-x64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fdarwin-x64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/darwin-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/freebsd-arm64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Ffreebsd-arm64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/freebsd-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/freebsd-x64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Ffreebsd-x64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/freebsd-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-arm",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Flinux-arm@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-arm"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-arm64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Flinux-arm64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-ia32",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Flinux-ia32@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-ia32"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-loong64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Flinux-loong64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-loong64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-mips64el",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Flinux-mips64el@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-mips64el"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-ppc64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Flinux-ppc64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-ppc64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-riscv64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Flinux-riscv64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-riscv64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-s390x",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Flinux-s390x@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-s390x"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-x64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Flinux-x64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/netbsd-arm64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fnetbsd-arm64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/netbsd-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/netbsd-x64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fnetbsd-x64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/netbsd-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/openbsd-arm64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fopenbsd-arm64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/openbsd-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/openbsd-x64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fopenbsd-x64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/openbsd-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/openharmony-arm64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fopenharmony-arm64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/openharmony-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/sunos-x64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fsunos-x64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/sunos-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/win32-arm64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-arm64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/win32-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/win32-ia32",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-ia32@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/win32-ia32"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/win32-x64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-x64@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/win32-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@eslint-community/eslint-utils",
+      "version": "4.9.1",
+      "purl": "pkg:npm/%40eslint-community%2Feslint-utils@4.9.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@eslint-community/eslint-utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@eslint-community/regexpp",
+      "version": "4.12.2",
+      "purl": "pkg:npm/%40eslint-community%2Fregexpp@4.12.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@eslint-community/regexpp"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@eslint/config-array",
+      "version": "0.23.1",
+      "purl": "pkg:npm/%40eslint%2Fconfig-array@0.23.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@eslint/config-array"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@eslint/config-helpers",
+      "version": "0.5.2",
+      "purl": "pkg:npm/%40eslint%2Fconfig-helpers@0.5.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@eslint/config-helpers"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@eslint/core",
+      "version": "1.1.0",
+      "purl": "pkg:npm/%40eslint%2Fcore@1.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@eslint/core"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@eslint/js",
+      "version": "10.0.1",
+      "purl": "pkg:npm/%40eslint%2Fjs@10.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@eslint/js"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@eslint/object-schema",
+      "version": "3.0.1",
+      "purl": "pkg:npm/%40eslint%2Fobject-schema@3.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@eslint/object-schema"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@eslint/plugin-kit",
+      "version": "0.6.0",
+      "purl": "pkg:npm/%40eslint%2Fplugin-kit@0.6.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@eslint/plugin-kit"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@humanfs/core",
+      "version": "0.19.1",
+      "purl": "pkg:npm/%40humanfs%2Fcore@0.19.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@humanfs/core"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@humanfs/node",
+      "version": "0.16.7",
+      "purl": "pkg:npm/%40humanfs%2Fnode@0.16.7",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@humanfs/node"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@humanwhocodes/module-importer",
+      "version": "1.0.1",
+      "purl": "pkg:npm/%40humanwhocodes%2Fmodule-importer@1.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@humanwhocodes/module-importer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@humanwhocodes/retry",
+      "version": "0.4.3",
+      "purl": "pkg:npm/%40humanwhocodes%2Fretry@0.4.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@humanwhocodes/retry"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@isaacs/balanced-match",
+      "version": "4.0.1",
+      "purl": "pkg:npm/%40isaacs%2Fbalanced-match@4.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@isaacs/balanced-match"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@isaacs/brace-expansion",
+      "version": "5.0.1",
+      "purl": "pkg:npm/%40isaacs%2Fbrace-expansion@5.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@isaacs/brace-expansion"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@isaacs/cliui",
+      "version": "8.0.2",
+      "purl": "pkg:npm/%40isaacs%2Fcliui@8.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@isaacs/cliui"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@jridgewell/resolve-uri",
+      "version": "3.1.2",
+      "purl": "pkg:npm/%40jridgewell%2Fresolve-uri@3.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@jridgewell/resolve-uri"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@jridgewell/sourcemap-codec",
+      "version": "1.5.5",
+      "purl": "pkg:npm/%40jridgewell%2Fsourcemap-codec@1.5.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@jridgewell/sourcemap-codec"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@jridgewell/trace-mapping",
+      "version": "0.3.9",
+      "purl": "pkg:npm/%40jridgewell%2Ftrace-mapping@0.3.9",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@jridgewell/trace-mapping"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/curves",
+      "version": "1.2.0",
+      "purl": "pkg:npm/%40noble%2Fcurves@1.2.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethers/node_modules/@noble/curves"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/curves",
+      "version": "1.4.2",
+      "purl": "pkg:npm/%40noble%2Fcurves@1.4.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@noble/curves"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/curves",
+      "version": "1.8.2",
+      "purl": "pkg:npm/%40noble%2Fcurves@1.8.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/micro-eth-signer/node_modules/@noble/curves"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "1.3.2",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.3.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethers/node_modules/@noble/hashes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "1.4.0",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@noble/curves/node_modules/@noble/hashes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "1.4.0",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@scure/bip32/node_modules/@noble/hashes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "1.4.0",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@scure/bip39/node_modules/@noble/hashes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "1.4.0",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethereum-cryptography/node_modules/@noble/hashes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "1.7.2",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.7.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/micro-eth-signer/node_modules/@noble/hashes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "1.8.0",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.8.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@noble/hashes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-darwin-arm64",
+      "version": "0.12.0-next.23",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-darwin-arm64@0.12.0-next.23",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-darwin-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-darwin-x64",
+      "version": "0.12.0-next.23",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-darwin-x64@0.12.0-next.23",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-darwin-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-linux-arm64-gnu",
+      "version": "0.12.0-next.23",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-arm64-gnu@0.12.0-next.23",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-linux-arm64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-linux-arm64-musl",
+      "version": "0.12.0-next.23",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-arm64-musl@0.12.0-next.23",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-linux-arm64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-linux-x64-gnu",
+      "version": "0.12.0-next.23",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-x64-gnu@0.12.0-next.23",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-linux-x64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-linux-x64-musl",
+      "version": "0.12.0-next.23",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-x64-musl@0.12.0-next.23",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-linux-x64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-win32-x64-msvc",
+      "version": "0.12.0-next.23",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-win32-x64-msvc@0.12.0-next.23",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-win32-x64-msvc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr",
+      "version": "0.12.0-next.23",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr@0.12.0-next.23",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-errors",
+      "version": "3.0.7",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-errors@3.0.7",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-errors"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-ethers",
+      "version": "4.0.5",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-ethers@4.0.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-ethers"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-mocha",
+      "version": "3.0.9",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-mocha@3.0.9",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-mocha"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-network-helpers",
+      "version": "3.0.3",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-network-helpers@3.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-network-helpers"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-utils",
+      "version": "3.0.6",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-utils@3.0.6",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-utils",
+      "version": "4.0.0",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-utils@4.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-errors/node_modules/@nomicfoundation/hardhat-utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-utils",
+      "version": "4.0.0",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-utils@4.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-ethers/node_modules/@nomicfoundation/hardhat-utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-vendored",
+      "version": "3.0.1",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-vendored@3.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-vendored"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-zod-utils",
+      "version": "3.0.1",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-zod-utils@3.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-zod-utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-darwin-arm64",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-darwin-arm64@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-darwin-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-darwin-x64",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-darwin-x64@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-darwin-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-linux-arm64-gnu",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-arm64-gnu@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-linux-arm64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-linux-arm64-musl",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-arm64-musl@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-linux-arm64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-linux-x64-gnu",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-x64-gnu@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-linux-x64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-linux-x64-musl",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-x64-musl@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-linux-x64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-win32-x64-msvc",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-win32-x64-msvc@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-win32-x64-msvc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@openzeppelin/contracts",
+      "version": "5.4.0",
+      "purl": "pkg:npm/%40openzeppelin%2Fcontracts@5.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@openzeppelin/contracts"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@pkgjs/parseargs",
+      "version": "0.11.0",
+      "purl": "pkg:npm/%40pkgjs%2Fparseargs@0.11.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@pkgjs/parseargs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-android-arm-eabi",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-android-arm-eabi@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-android-arm-eabi"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-android-arm64",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-android-arm64@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-android-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-darwin-arm64",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-darwin-arm64@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-darwin-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-darwin-x64",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-darwin-x64@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-darwin-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-freebsd-arm64",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-freebsd-arm64@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-freebsd-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-freebsd-x64",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-freebsd-x64@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-freebsd-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-arm-gnueabihf",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-arm-gnueabihf@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-arm-gnueabihf"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-arm-musleabihf",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-arm-musleabihf@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-arm-musleabihf"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-arm64-gnu",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-arm64-gnu@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-arm64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-arm64-musl",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-arm64-musl@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-arm64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-loong64-gnu",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-loong64-gnu@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-loong64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-loong64-musl",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-loong64-musl@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-loong64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-ppc64-gnu",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-ppc64-gnu@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-ppc64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-ppc64-musl",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-ppc64-musl@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-ppc64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-riscv64-gnu",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-riscv64-gnu@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-riscv64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-riscv64-musl",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-riscv64-musl@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-riscv64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-s390x-gnu",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-s390x-gnu@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-s390x-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-x64-gnu",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-x64-gnu@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-x64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-linux-x64-musl",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-linux-x64-musl@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-linux-x64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-openbsd-x64",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-openbsd-x64@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-openbsd-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-openharmony-arm64",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-openharmony-arm64@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-openharmony-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-win32-arm64-msvc",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-win32-arm64-msvc@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-win32-arm64-msvc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-win32-ia32-msvc",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-win32-ia32-msvc@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-win32-ia32-msvc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-win32-x64-gnu",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-win32-x64-gnu@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-win32-x64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@rollup/rollup-win32-x64-msvc",
+      "version": "4.57.1",
+      "purl": "pkg:npm/%40rollup%2Frollup-win32-x64-msvc@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@rollup/rollup-win32-x64-msvc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@scure/base",
+      "version": "1.1.9",
+      "purl": "pkg:npm/%40scure%2Fbase@1.1.9",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@scure/base"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@scure/base",
+      "version": "1.2.6",
+      "purl": "pkg:npm/%40scure%2Fbase@1.2.6",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/micro-packed/node_modules/@scure/base"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@scure/bip32",
+      "version": "1.4.0",
+      "purl": "pkg:npm/%40scure%2Fbip32@1.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@scure/bip32"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@scure/bip39",
+      "version": "1.3.0",
+      "purl": "pkg:npm/%40scure%2Fbip39@1.3.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@scure/bip39"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@sentry/core",
+      "version": "9.47.1",
+      "purl": "pkg:npm/%40sentry%2Fcore@9.47.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@sentry/core"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@standard-schema/spec",
+      "version": "1.1.0",
+      "purl": "pkg:npm/%40standard-schema%2Fspec@1.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@standard-schema/spec"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@streamparser/json-node",
+      "version": "0.0.22",
+      "purl": "pkg:npm/%40streamparser%2Fjson-node@0.0.22",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@streamparser/json-node"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@streamparser/json",
+      "version": "0.0.22",
+      "purl": "pkg:npm/%40streamparser%2Fjson@0.0.22",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@streamparser/json"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@tsconfig/node10",
+      "version": "1.0.12",
+      "purl": "pkg:npm/%40tsconfig%2Fnode10@1.0.12",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@tsconfig/node10"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@tsconfig/node12",
+      "version": "1.0.11",
+      "purl": "pkg:npm/%40tsconfig%2Fnode12@1.0.11",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@tsconfig/node12"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@tsconfig/node14",
+      "version": "1.0.3",
+      "purl": "pkg:npm/%40tsconfig%2Fnode14@1.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@tsconfig/node14"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@tsconfig/node16",
+      "version": "1.0.4",
+      "purl": "pkg:npm/%40tsconfig%2Fnode16@1.0.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@tsconfig/node16"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/chai",
+      "version": "5.2.3",
+      "purl": "pkg:npm/%40types%2Fchai@5.2.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@types/chai"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/deep-eql",
+      "version": "4.0.2",
+      "purl": "pkg:npm/%40types%2Fdeep-eql@4.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@types/deep-eql"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/esrecurse",
+      "version": "4.3.1",
+      "purl": "pkg:npm/%40types%2Fesrecurse@4.3.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@types/esrecurse"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/estree",
+      "version": "1.0.8",
+      "purl": "pkg:npm/%40types%2Festree@1.0.8",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@types/estree"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/json-schema",
+      "version": "7.0.15",
+      "purl": "pkg:npm/%40types%2Fjson-schema@7.0.15",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@types/json-schema"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/node",
+      "version": "22.7.5",
+      "purl": "pkg:npm/%40types%2Fnode@22.7.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethers/node_modules/@types/node"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/node",
+      "version": "26.0.0",
+      "purl": "pkg:npm/%40types%2Fnode@26.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@types/node"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@typescript-eslint/eslint-plugin",
+      "version": "8.55.0",
+      "purl": "pkg:npm/%40typescript-eslint%2Feslint-plugin@8.55.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/eslint-plugin"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@typescript-eslint/parser",
+      "version": "8.55.0",
+      "purl": "pkg:npm/%40typescript-eslint%2Fparser@8.55.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/parser"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@typescript-eslint/project-service",
+      "version": "8.55.0",
+      "purl": "pkg:npm/%40typescript-eslint%2Fproject-service@8.55.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/project-service"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@typescript-eslint/scope-manager",
+      "version": "8.55.0",
+      "purl": "pkg:npm/%40typescript-eslint%2Fscope-manager@8.55.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/scope-manager"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@typescript-eslint/tsconfig-utils",
+      "version": "8.55.0",
+      "purl": "pkg:npm/%40typescript-eslint%2Ftsconfig-utils@8.55.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/tsconfig-utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@typescript-eslint/type-utils",
+      "version": "8.55.0",
+      "purl": "pkg:npm/%40typescript-eslint%2Ftype-utils@8.55.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/eslint-plugin/node_modules/@typescript-eslint/type-utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@typescript-eslint/types",
+      "version": "8.55.0",
+      "purl": "pkg:npm/%40typescript-eslint%2Ftypes@8.55.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/types"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@typescript-eslint/typescript-estree",
+      "version": "8.55.0",
+      "purl": "pkg:npm/%40typescript-eslint%2Ftypescript-estree@8.55.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/typescript-estree"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@typescript-eslint/utils",
+      "version": "8.55.0",
+      "purl": "pkg:npm/%40typescript-eslint%2Futils@8.55.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/eslint-plugin/node_modules/@typescript-eslint/utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@typescript-eslint/visitor-keys",
+      "version": "8.55.0",
+      "purl": "pkg:npm/%40typescript-eslint%2Fvisitor-keys@8.55.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/visitor-keys"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@vitest/expect",
+      "version": "4.0.18",
+      "purl": "pkg:npm/%40vitest%2Fexpect@4.0.18",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@vitest/expect"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@vitest/mocker",
+      "version": "4.0.18",
+      "purl": "pkg:npm/%40vitest%2Fmocker@4.0.18",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@vitest/mocker"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@vitest/pretty-format",
+      "version": "4.0.18",
+      "purl": "pkg:npm/%40vitest%2Fpretty-format@4.0.18",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@vitest/pretty-format"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@vitest/runner",
+      "version": "4.0.18",
+      "purl": "pkg:npm/%40vitest%2Frunner@4.0.18",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@vitest/runner"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@vitest/snapshot",
+      "version": "4.0.18",
+      "purl": "pkg:npm/%40vitest%2Fsnapshot@4.0.18",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@vitest/snapshot"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@vitest/spy",
+      "version": "4.0.18",
+      "purl": "pkg:npm/%40vitest%2Fspy@4.0.18",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@vitest/spy"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@vitest/utils",
+      "version": "4.0.18",
+      "purl": "pkg:npm/%40vitest%2Futils@4.0.18",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@vitest/utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@ynx/contracts",
+      "version": "0.0.1",
+      "purl": "pkg:npm/%40ynx%2Fcontracts@0.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "packages/contracts"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@ynx/sdk",
+      "version": "0.0.1",
+      "purl": "pkg:npm/%40ynx%2Fsdk@0.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "packages/sdk"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "acorn-jsx",
+      "version": "5.3.2",
+      "purl": "pkg:npm/acorn-jsx@5.3.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/acorn-jsx"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "acorn-walk",
+      "version": "8.3.4",
+      "purl": "pkg:npm/acorn-walk@8.3.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/acorn-walk"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "acorn",
+      "version": "8.15.0",
+      "purl": "pkg:npm/acorn@8.15.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/acorn"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "adm-zip",
+      "version": "0.4.16",
+      "purl": "pkg:npm/adm-zip@0.4.16",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/adm-zip"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "aes-js",
+      "version": "4.0.0-beta.5",
+      "purl": "pkg:npm/aes-js@4.0.0-beta.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/aes-js"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ajv",
+      "version": "6.15.0",
+      "purl": "pkg:npm/ajv@6.15.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ajv"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ansi-colors",
+      "version": "4.1.3",
+      "purl": "pkg:npm/ansi-colors@4.1.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ansi-colors"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ansi-regex",
+      "version": "5.0.1",
+      "purl": "pkg:npm/ansi-regex@5.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ansi-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ansi-regex",
+      "version": "6.2.2",
+      "purl": "pkg:npm/ansi-regex@6.2.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@isaacs/cliui/node_modules/ansi-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ansi-regex",
+      "version": "6.2.2",
+      "purl": "pkg:npm/ansi-regex@6.2.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/string-width/node_modules/ansi-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ansi-regex",
+      "version": "6.2.2",
+      "purl": "pkg:npm/ansi-regex@6.2.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/wrap-ansi/node_modules/ansi-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ansi-styles",
+      "version": "4.3.0",
+      "purl": "pkg:npm/ansi-styles@4.3.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ansi-styles"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ansi-styles",
+      "version": "6.2.3",
+      "purl": "pkg:npm/ansi-styles@6.2.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/wrap-ansi/node_modules/ansi-styles"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "arg",
+      "version": "4.1.3",
+      "purl": "pkg:npm/arg@4.1.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/arg"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "argparse",
+      "version": "2.0.1",
+      "purl": "pkg:npm/argparse@2.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/argparse"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "assertion-error",
+      "version": "2.0.1",
+      "purl": "pkg:npm/assertion-error@2.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/assertion-error"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "balanced-match",
+      "version": "1.0.2",
+      "purl": "pkg:npm/balanced-match@1.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/balanced-match"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "base-x",
+      "version": "5.0.1",
+      "purl": "pkg:npm/base-x@5.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/base-x"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "brace-expansion",
+      "version": "2.0.2",
+      "purl": "pkg:npm/brace-expansion@2.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/typescript-estree/node_modules/brace-expansion"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "brace-expansion",
+      "version": "2.0.2",
+      "purl": "pkg:npm/brace-expansion@2.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/glob/node_modules/brace-expansion"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "brace-expansion",
+      "version": "2.0.2",
+      "purl": "pkg:npm/brace-expansion@2.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/mocha/node_modules/brace-expansion"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "browser-stdout",
+      "version": "1.3.1",
+      "purl": "pkg:npm/browser-stdout@1.3.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/browser-stdout"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "bs58",
+      "version": "6.0.0",
+      "purl": "pkg:npm/bs58@6.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/bs58"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "bs58check",
+      "version": "4.0.0",
+      "purl": "pkg:npm/bs58check@4.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/bs58check"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "camelcase",
+      "version": "6.3.0",
+      "purl": "pkg:npm/camelcase@6.3.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/camelcase"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chai",
+      "version": "6.2.2",
+      "purl": "pkg:npm/chai@6.2.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/chai"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chalk",
+      "version": "4.1.2",
+      "purl": "pkg:npm/chalk@4.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/chalk"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chalk",
+      "version": "5.6.2",
+      "purl": "pkg:npm/chalk@5.6.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-mocha/node_modules/chalk"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chalk",
+      "version": "5.6.2",
+      "purl": "pkg:npm/chalk@5.6.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/hardhat/node_modules/chalk"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chokidar",
+      "version": "4.0.3",
+      "purl": "pkg:npm/chokidar@4.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/chokidar"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cliui",
+      "version": "8.0.1",
+      "purl": "pkg:npm/cliui@8.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/cliui"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "color-convert",
+      "version": "2.0.1",
+      "purl": "pkg:npm/color-convert@2.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/color-convert"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "color-name",
+      "version": "1.1.4",
+      "purl": "pkg:npm/color-name@1.1.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/color-name"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "create-require",
+      "version": "1.1.1",
+      "purl": "pkg:npm/create-require@1.1.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/create-require"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cross-spawn",
+      "version": "7.0.6",
+      "purl": "pkg:npm/cross-spawn@7.0.6",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/cross-spawn"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "debug",
+      "version": "4.4.3",
+      "purl": "pkg:npm/debug@4.4.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/debug"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "decamelize",
+      "version": "4.0.0",
+      "purl": "pkg:npm/decamelize@4.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/decamelize"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "deep-is",
+      "version": "0.1.4",
+      "purl": "pkg:npm/deep-is@0.1.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/deep-is"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "diff",
+      "version": "4.0.4",
+      "purl": "pkg:npm/diff@4.0.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/diff"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "diff",
+      "version": "7.0.0",
+      "purl": "pkg:npm/diff@7.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/mocha/node_modules/diff"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "eastasianwidth",
+      "version": "0.2.0",
+      "purl": "pkg:npm/eastasianwidth@0.2.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/eastasianwidth"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "emoji-regex",
+      "version": "8.0.0",
+      "purl": "pkg:npm/emoji-regex@8.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/cliui/node_modules/emoji-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "emoji-regex",
+      "version": "8.0.0",
+      "purl": "pkg:npm/emoji-regex@8.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/string-width-cjs/node_modules/emoji-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "emoji-regex",
+      "version": "8.0.0",
+      "purl": "pkg:npm/emoji-regex@8.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/wrap-ansi-cjs/node_modules/emoji-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "emoji-regex",
+      "version": "8.0.0",
+      "purl": "pkg:npm/emoji-regex@8.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/yargs/node_modules/emoji-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "emoji-regex",
+      "version": "9.2.2",
+      "purl": "pkg:npm/emoji-regex@9.2.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/emoji-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "enquirer",
+      "version": "2.4.1",
+      "purl": "pkg:npm/enquirer@2.4.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/enquirer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "env-paths",
+      "version": "2.2.1",
+      "purl": "pkg:npm/env-paths@2.2.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/env-paths"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "es-module-lexer",
+      "version": "1.7.0",
+      "purl": "pkg:npm/es-module-lexer@1.7.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/es-module-lexer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "esbuild",
+      "version": "0.27.3",
+      "purl": "pkg:npm/esbuild@0.27.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/esbuild"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "escalade",
+      "version": "3.2.0",
+      "purl": "pkg:npm/escalade@3.2.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/escalade"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "escape-string-regexp",
+      "version": "4.0.0",
+      "purl": "pkg:npm/escape-string-regexp@4.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/escape-string-regexp"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "eslint-scope",
+      "version": "9.1.0",
+      "purl": "pkg:npm/eslint-scope@9.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/eslint-scope"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "eslint-visitor-keys",
+      "version": "3.4.3",
+      "purl": "pkg:npm/eslint-visitor-keys@3.4.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@eslint-community/eslint-utils/node_modules/eslint-visitor-keys"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "eslint-visitor-keys",
+      "version": "4.2.1",
+      "purl": "pkg:npm/eslint-visitor-keys@4.2.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/eslint-visitor-keys"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "eslint-visitor-keys",
+      "version": "5.0.0",
+      "purl": "pkg:npm/eslint-visitor-keys@5.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/eslint/node_modules/eslint-visitor-keys"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "eslint-visitor-keys",
+      "version": "5.0.0",
+      "purl": "pkg:npm/eslint-visitor-keys@5.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/espree/node_modules/eslint-visitor-keys"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "eslint",
+      "version": "10.0.0",
+      "purl": "pkg:npm/eslint@10.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/eslint"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "espree",
+      "version": "11.1.0",
+      "purl": "pkg:npm/espree@11.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/espree"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "esquery",
+      "version": "1.7.0",
+      "purl": "pkg:npm/esquery@1.7.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/esquery"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "esrecurse",
+      "version": "4.3.0",
+      "purl": "pkg:npm/esrecurse@4.3.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/esrecurse"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "estraverse",
+      "version": "5.3.0",
+      "purl": "pkg:npm/estraverse@5.3.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/estraverse"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "estree-walker",
+      "version": "3.0.3",
+      "purl": "pkg:npm/estree-walker@3.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/estree-walker"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "esutils",
+      "version": "2.0.3",
+      "purl": "pkg:npm/esutils@2.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/esutils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ethereum-cryptography",
+      "version": "2.2.1",
+      "purl": "pkg:npm/ethereum-cryptography@2.2.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethereum-cryptography"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ethers",
+      "version": "6.17.0",
+      "purl": "pkg:npm/ethers@6.17.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethers"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "expect-type",
+      "version": "1.3.0",
+      "purl": "pkg:npm/expect-type@1.3.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/expect-type"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fast-deep-equal",
+      "version": "3.1.3",
+      "purl": "pkg:npm/fast-deep-equal@3.1.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/fast-deep-equal"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fast-equals",
+      "version": "5.4.0",
+      "purl": "pkg:npm/fast-equals@5.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/fast-equals"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fast-json-stable-stringify",
+      "version": "2.1.0",
+      "purl": "pkg:npm/fast-json-stable-stringify@2.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/fast-json-stable-stringify"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fast-levenshtein",
+      "version": "2.0.6",
+      "purl": "pkg:npm/fast-levenshtein@2.0.6",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/fast-levenshtein"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fdir",
+      "version": "6.5.0",
+      "purl": "pkg:npm/fdir@6.5.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/fdir"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file-entry-cache",
+      "version": "8.0.0",
+      "purl": "pkg:npm/file-entry-cache@8.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/file-entry-cache"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "find-up",
+      "version": "5.0.0",
+      "purl": "pkg:npm/find-up@5.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/find-up"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flat-cache",
+      "version": "4.0.1",
+      "purl": "pkg:npm/flat-cache@4.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/flat-cache"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flat",
+      "version": "5.0.2",
+      "purl": "pkg:npm/flat@5.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/flat"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "flatted",
+      "version": "3.3.3",
+      "purl": "pkg:npm/flatted@3.3.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/flatted"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "foreground-child",
+      "version": "3.3.1",
+      "purl": "pkg:npm/foreground-child@3.3.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/foreground-child"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fsevents",
+      "version": "2.3.3",
+      "purl": "pkg:npm/fsevents@2.3.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/fsevents"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "get-caller-file",
+      "version": "2.0.5",
+      "purl": "pkg:npm/get-caller-file@2.0.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/get-caller-file"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "get-tsconfig",
+      "version": "4.13.6",
+      "purl": "pkg:npm/get-tsconfig@4.13.6",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/get-tsconfig"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "glob-parent",
+      "version": "6.0.2",
+      "purl": "pkg:npm/glob-parent@6.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/glob-parent"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "glob",
+      "version": "10.5.0",
+      "purl": "pkg:npm/glob@10.5.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/glob"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "globals",
+      "version": "17.4.0",
+      "purl": "pkg:npm/globals@17.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/globals"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hardhat",
+      "version": "3.1.7",
+      "purl": "pkg:npm/hardhat@3.1.7",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/hardhat"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "has-flag",
+      "version": "4.0.0",
+      "purl": "pkg:npm/has-flag@4.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/has-flag"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "he",
+      "version": "1.2.0",
+      "purl": "pkg:npm/he@1.2.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/he"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ignore",
+      "version": "5.3.2",
+      "purl": "pkg:npm/ignore@5.3.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ignore"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ignore",
+      "version": "7.0.5",
+      "purl": "pkg:npm/ignore@7.0.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/eslint-plugin/node_modules/ignore"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "imurmurhash",
+      "version": "0.1.4",
+      "purl": "pkg:npm/imurmurhash@0.1.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/imurmurhash"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "is-extglob",
+      "version": "2.1.1",
+      "purl": "pkg:npm/is-extglob@2.1.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/is-extglob"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "is-fullwidth-code-point",
+      "version": "3.0.0",
+      "purl": "pkg:npm/is-fullwidth-code-point@3.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/is-fullwidth-code-point"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "is-glob",
+      "version": "4.0.3",
+      "purl": "pkg:npm/is-glob@4.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/is-glob"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "is-path-inside",
+      "version": "3.0.3",
+      "purl": "pkg:npm/is-path-inside@3.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/is-path-inside"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "is-plain-obj",
+      "version": "2.1.0",
+      "purl": "pkg:npm/is-plain-obj@2.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/is-plain-obj"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "is-unicode-supported",
+      "version": "0.1.0",
+      "purl": "pkg:npm/is-unicode-supported@0.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/is-unicode-supported"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "isexe",
+      "version": "2.0.0",
+      "purl": "pkg:npm/isexe@2.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/isexe"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "jackspeak",
+      "version": "3.4.3",
+      "purl": "pkg:npm/jackspeak@3.4.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/jackspeak"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "js-yaml",
+      "version": "4.3.0",
+      "purl": "pkg:npm/js-yaml@4.3.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/js-yaml"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "json-buffer",
+      "version": "3.0.1",
+      "purl": "pkg:npm/json-buffer@3.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/json-buffer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "json-schema-traverse",
+      "version": "0.4.1",
+      "purl": "pkg:npm/json-schema-traverse@0.4.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/json-schema-traverse"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "json-stable-stringify-without-jsonify",
+      "version": "1.0.1",
+      "purl": "pkg:npm/json-stable-stringify-without-jsonify@1.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/json-stable-stringify-without-jsonify"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "json-stream-stringify",
+      "version": "3.1.6",
+      "purl": "pkg:npm/json-stream-stringify@3.1.6",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/json-stream-stringify"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "keyv",
+      "version": "4.5.4",
+      "purl": "pkg:npm/keyv@4.5.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/keyv"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "levn",
+      "version": "0.4.1",
+      "purl": "pkg:npm/levn@0.4.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/levn"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "locate-path",
+      "version": "6.0.0",
+      "purl": "pkg:npm/locate-path@6.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/locate-path"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "log-symbols",
+      "version": "4.1.0",
+      "purl": "pkg:npm/log-symbols@4.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/log-symbols"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "lru-cache",
+      "version": "10.4.3",
+      "purl": "pkg:npm/lru-cache@10.4.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/lru-cache"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "magic-string",
+      "version": "0.30.21",
+      "purl": "pkg:npm/magic-string@0.30.21",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/magic-string"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "make-error",
+      "version": "1.3.6",
+      "purl": "pkg:npm/make-error@1.3.6",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/make-error"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "micro-eth-signer",
+      "version": "0.14.0",
+      "purl": "pkg:npm/micro-eth-signer@0.14.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/micro-eth-signer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "micro-packed",
+      "version": "0.7.3",
+      "purl": "pkg:npm/micro-packed@0.7.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/micro-packed"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "minimatch",
+      "version": "10.1.2",
+      "purl": "pkg:npm/minimatch@10.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/minimatch"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "minimatch",
+      "version": "9.0.5",
+      "purl": "pkg:npm/minimatch@9.0.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "minimatch",
+      "version": "9.0.5",
+      "purl": "pkg:npm/minimatch@9.0.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/glob/node_modules/minimatch"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "minimatch",
+      "version": "9.0.5",
+      "purl": "pkg:npm/minimatch@9.0.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/mocha/node_modules/minimatch"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "minipass",
+      "version": "7.1.2",
+      "purl": "pkg:npm/minipass@7.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/minipass"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "mocha",
+      "version": "11.7.5",
+      "purl": "pkg:npm/mocha@11.7.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/mocha"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ms",
+      "version": "2.1.3",
+      "purl": "pkg:npm/ms@2.1.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ms"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "nanoid",
+      "version": "3.3.11",
+      "purl": "pkg:npm/nanoid@3.3.11",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/nanoid"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "natural-compare",
+      "version": "1.4.0",
+      "purl": "pkg:npm/natural-compare@1.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/natural-compare"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "obug",
+      "version": "2.1.1",
+      "purl": "pkg:npm/obug@2.1.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/obug"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "optionator",
+      "version": "0.9.4",
+      "purl": "pkg:npm/optionator@0.9.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/optionator"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "p-limit",
+      "version": "3.1.0",
+      "purl": "pkg:npm/p-limit@3.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/p-limit"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "p-locate",
+      "version": "5.0.0",
+      "purl": "pkg:npm/p-locate@5.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/p-locate"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "p-map",
+      "version": "7.0.4",
+      "purl": "pkg:npm/p-map@7.0.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/p-map"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "package-json-from-dist",
+      "version": "1.0.1",
+      "purl": "pkg:npm/package-json-from-dist@1.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/package-json-from-dist"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path-exists",
+      "version": "4.0.0",
+      "purl": "pkg:npm/path-exists@4.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/path-exists"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path-key",
+      "version": "3.1.1",
+      "purl": "pkg:npm/path-key@3.1.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/path-key"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "path-scurry",
+      "version": "1.11.1",
+      "purl": "pkg:npm/path-scurry@1.11.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/path-scurry"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pathe",
+      "version": "2.0.3",
+      "purl": "pkg:npm/pathe@2.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/pathe"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "picocolors",
+      "version": "1.1.1",
+      "purl": "pkg:npm/picocolors@1.1.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/picocolors"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "picomatch",
+      "version": "4.0.3",
+      "purl": "pkg:npm/picomatch@4.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/picomatch"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "postcss",
+      "version": "8.5.6",
+      "purl": "pkg:npm/postcss@8.5.6",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/postcss"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "prelude-ls",
+      "version": "1.2.1",
+      "purl": "pkg:npm/prelude-ls@1.2.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/prelude-ls"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "prettier",
+      "version": "3.8.1",
+      "purl": "pkg:npm/prettier@3.8.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/prettier"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "punycode",
+      "version": "2.3.1",
+      "purl": "pkg:npm/punycode@2.3.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/punycode"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "randombytes",
+      "version": "2.1.0",
+      "purl": "pkg:npm/randombytes@2.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/randombytes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "readdirp",
+      "version": "4.1.2",
+      "purl": "pkg:npm/readdirp@4.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/readdirp"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "require-directory",
+      "version": "2.1.1",
+      "purl": "pkg:npm/require-directory@2.1.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/require-directory"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "resolve-pkg-maps",
+      "version": "1.0.0",
+      "purl": "pkg:npm/resolve-pkg-maps@1.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/resolve-pkg-maps"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "resolve.exports",
+      "version": "2.0.3",
+      "purl": "pkg:npm/resolve.exports@2.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/resolve.exports"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "rfdc",
+      "version": "1.4.1",
+      "purl": "pkg:npm/rfdc@1.4.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/rfdc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "rollup",
+      "version": "4.57.1",
+      "purl": "pkg:npm/rollup@4.57.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/rollup"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "safe-buffer",
+      "version": "5.2.1",
+      "purl": "pkg:npm/safe-buffer@5.2.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/safe-buffer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "semver",
+      "version": "7.7.4",
+      "purl": "pkg:npm/semver@7.7.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/semver"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "serialize-javascript",
+      "version": "6.0.2",
+      "purl": "pkg:npm/serialize-javascript@6.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/serialize-javascript"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shebang-command",
+      "version": "2.0.0",
+      "purl": "pkg:npm/shebang-command@2.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/shebang-command"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shebang-regex",
+      "version": "3.0.0",
+      "purl": "pkg:npm/shebang-regex@3.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/shebang-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "siginfo",
+      "version": "2.0.0",
+      "purl": "pkg:npm/siginfo@2.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/siginfo"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "signal-exit",
+      "version": "4.1.0",
+      "purl": "pkg:npm/signal-exit@4.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/signal-exit"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "source-map-js",
+      "version": "1.2.1",
+      "purl": "pkg:npm/source-map-js@1.2.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/source-map-js"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "stackback",
+      "version": "0.0.2",
+      "purl": "pkg:npm/stackback@0.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/stackback"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "std-env",
+      "version": "3.10.0",
+      "purl": "pkg:npm/std-env@3.10.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/std-env"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "string-width",
+      "version": "4.2.3",
+      "purl": "pkg:npm/string-width@4.2.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/cliui/node_modules/string-width"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "string-width",
+      "version": "4.2.3",
+      "purl": "pkg:npm/string-width@4.2.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/string-width-cjs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "string-width",
+      "version": "4.2.3",
+      "purl": "pkg:npm/string-width@4.2.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/wrap-ansi-cjs/node_modules/string-width"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "string-width",
+      "version": "4.2.3",
+      "purl": "pkg:npm/string-width@4.2.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/yargs/node_modules/string-width"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "string-width",
+      "version": "5.1.2",
+      "purl": "pkg:npm/string-width@5.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/string-width"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "strip-ansi",
+      "version": "6.0.1",
+      "purl": "pkg:npm/strip-ansi@6.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/strip-ansi"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "strip-ansi",
+      "version": "6.0.1",
+      "purl": "pkg:npm/strip-ansi@6.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/strip-ansi-cjs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "strip-ansi",
+      "version": "7.1.2",
+      "purl": "pkg:npm/strip-ansi@7.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@isaacs/cliui/node_modules/strip-ansi"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "strip-ansi",
+      "version": "7.1.2",
+      "purl": "pkg:npm/strip-ansi@7.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/string-width/node_modules/strip-ansi"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "strip-ansi",
+      "version": "7.1.2",
+      "purl": "pkg:npm/strip-ansi@7.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/wrap-ansi/node_modules/strip-ansi"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "strip-json-comments",
+      "version": "3.1.1",
+      "purl": "pkg:npm/strip-json-comments@3.1.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/strip-json-comments"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "supports-color",
+      "version": "7.2.0",
+      "purl": "pkg:npm/supports-color@7.2.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/supports-color"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "supports-color",
+      "version": "8.1.1",
+      "purl": "pkg:npm/supports-color@8.1.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/mocha/node_modules/supports-color"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tinybench",
+      "version": "2.9.0",
+      "purl": "pkg:npm/tinybench@2.9.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/tinybench"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tinyexec",
+      "version": "1.0.2",
+      "purl": "pkg:npm/tinyexec@1.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/tinyexec"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tinyglobby",
+      "version": "0.2.15",
+      "purl": "pkg:npm/tinyglobby@0.2.15",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/tinyglobby"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tinyrainbow",
+      "version": "3.0.3",
+      "purl": "pkg:npm/tinyrainbow@3.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/tinyrainbow"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ts-api-utils",
+      "version": "2.4.0",
+      "purl": "pkg:npm/ts-api-utils@2.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ts-api-utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ts-node",
+      "version": "10.9.2",
+      "purl": "pkg:npm/ts-node@10.9.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ts-node"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tslib",
+      "version": "2.7.0",
+      "purl": "pkg:npm/tslib@2.7.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/tslib"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tsx",
+      "version": "4.21.0",
+      "purl": "pkg:npm/tsx@4.21.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/tsx"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "type-check",
+      "version": "0.4.0",
+      "purl": "pkg:npm/type-check@0.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/type-check"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "typescript",
+      "version": "5.9.3",
+      "purl": "pkg:npm/typescript@5.9.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/typescript"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "undici-types",
+      "version": "6.19.8",
+      "purl": "pkg:npm/undici-types@6.19.8",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethers/node_modules/undici-types"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "undici-types",
+      "version": "8.3.0",
+      "purl": "pkg:npm/undici-types@8.3.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/undici-types"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "undici",
+      "version": "6.23.0",
+      "purl": "pkg:npm/undici@6.23.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/undici"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "uri-js",
+      "version": "4.4.1",
+      "purl": "pkg:npm/uri-js@4.4.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/uri-js"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "v8-compile-cache-lib",
+      "version": "3.0.1",
+      "purl": "pkg:npm/v8-compile-cache-lib@3.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/v8-compile-cache-lib"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "vite",
+      "version": "7.3.1",
+      "purl": "pkg:npm/vite@7.3.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/vite"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "vitest",
+      "version": "4.0.18",
+      "purl": "pkg:npm/vitest@4.0.18",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/vitest"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "which",
+      "version": "2.0.2",
+      "purl": "pkg:npm/which@2.0.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/which"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "why-is-node-running",
+      "version": "2.3.0",
+      "purl": "pkg:npm/why-is-node-running@2.3.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/why-is-node-running"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "word-wrap",
+      "version": "1.2.5",
+      "purl": "pkg:npm/word-wrap@1.2.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/word-wrap"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "workerpool",
+      "version": "9.3.4",
+      "purl": "pkg:npm/workerpool@9.3.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/workerpool"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "wrap-ansi",
+      "version": "7.0.0",
+      "purl": "pkg:npm/wrap-ansi@7.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/cliui/node_modules/wrap-ansi"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "wrap-ansi",
+      "version": "7.0.0",
+      "purl": "pkg:npm/wrap-ansi@7.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/wrap-ansi-cjs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "wrap-ansi",
+      "version": "8.1.0",
+      "purl": "pkg:npm/wrap-ansi@8.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/wrap-ansi"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ws",
+      "version": "8.21.0",
+      "purl": "pkg:npm/ws@8.21.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ws"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "y18n",
+      "version": "5.0.8",
+      "purl": "pkg:npm/y18n@5.0.8",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/y18n"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "yargs-parser",
+      "version": "21.1.1",
+      "purl": "pkg:npm/yargs-parser@21.1.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/yargs-parser"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "yargs-unparser",
+      "version": "2.0.0",
+      "purl": "pkg:npm/yargs-unparser@2.0.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/yargs-unparser"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "yargs",
+      "version": "17.7.2",
+      "purl": "pkg:npm/yargs@17.7.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/yargs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "yn",
+      "version": "3.1.1",
+      "purl": "pkg:npm/yn@3.1.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/yn"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "yocto-queue",
+      "version": "0.1.0",
+      "purl": "pkg:npm/yocto-queue@0.1.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/yocto-queue"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "zod",
+      "version": "3.25.76",
+      "purl": "pkg:npm/zod@3.25.76",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/zod"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx.security-platform.integration.v1",
+  "product": "30-security-platform",
+  "owner": "30-security-sre-release",
+  "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+  "contractStatus": "candidate",
+  "authority": {
+    "owns": [
+      "security-framework",
+      "security-policy",
+      "policy-enforcement-tools",
+      "ci-cd-gates",
+      "sensitive-material-management-contract",
+      "artifact-registry",
+      "release-controls",
+      "backup-restore-controls",
+      "monitoring-integration-contract",
+      "incident-response-contract",
+      "security-evidence"
+    ],
+    "doesNotOwn": [
+      "user-assets",
+      "user-signatures",
+      "business-transactions",
+      "treasury-execution",
+      "governance-execution",
+      "business-risk-parameters",
+      "mint-burn",
+      "bridge-transfers",
+      "payments",
+      "validator-signing-material",
+      "treasury-signing-material",
+      "provider-authentication-material"
+    ]
+  },
+  "interfaces": {
+    "cli": [
+      "npm run security:verify",
+      "npm run security:test",
+      "npm run security:integration",
+      "node scripts/security-disaster-recovery.mjs local-drill",
+      "node scripts/security-rotation.mjs status|plan|rotate|finalize",
+      "node scripts/security-seo-monitor.mjs regression|scan-log"
+    ],
+    "http": [],
+    "events": [
+      "security.finding.recorded.v1",
+      "security.artifact.verified.v1",
+      "security.backup.created.v1",
+      "security.restore.completed.v1",
+      "security.rotation.transitioned.v1",
+      "security.rotation.finalized.v1",
+      "security.incident.linked.v1"
+    ]
+  },
+  "auth": {
+    "walletTuple": "not-applicable",
+    "signedIntent": "required for owner-controlled product actions; not implemented by this platform",
+    "serviceIdentity": "required for service-to-service runtime integration",
+    "sharedAuthenticationFactorAllowed": false,
+    "browserLongLivedAuthenticationAllowed": false,
+    "failClosed": true
+  },
+  "scopes": [
+    "security:policy:read",
+    "security:evidence:write",
+    "security:artifact:verify",
+    "security:backup:operate",
+    "security:restore:verify",
+    "security:incident:link"
+  ],
+  "errorCodes": [
+    "SECURITY_POLICY_DENIED",
+    "SERVICE_IDENTITY_INVALID",
+    "SERVICE_ENVIRONMENT_MISMATCH",
+    "SERVICE_AUDIENCE_MISMATCH",
+    "SERVICE_SCOPE_DENIED",
+    "CERTIFICATE_NOT_YET_VALID",
+    "CERTIFICATE_EXPIRED",
+    "CERTIFICATE_STALE",
+    "CERTIFICATE_REVOKED",
+    "CERTIFICATE_ISSUER_UNTRUSTED",
+    "CLOCK_SKEW_EXCEEDED",
+    "REQUEST_STALE",
+    "REPLAY_DETECTED",
+    "SENSITIVE_INVENTORY_INCOMPLETE",
+    "ARTIFACT_UNSIGNED",
+    "ARTIFACT_DIGEST_MISMATCH",
+    "BACKUP_INTEGRITY_FAILED",
+    "RESTORE_INTEGRITY_FAILED",
+    "RELEASE_EVIDENCE_INCOMPLETE"
+  ],
+  "healthContract": {
+    "requiredFields": [
+      "commit",
+      "release",
+      "startedAt",
+      "dependencies",
+      "database",
+      "queue",
+      "storage",
+      "provider",
+      "schemaVersion",
+      "migrationVersion",
+      "degraded",
+      "lastSuccessfulOperation",
+      "errorState",
+      "paused"
+    ],
+    "hardCodedHealthyAllowed": false,
+    "implemented": false
+  },
+  "migration": {
+    "contractVersion": 1,
+    "inventorySchema": "security-platform/secret-inventory.schema.json",
+    "backwardCompatibility": "metadata-only v1",
+    "rollback": "retain the previous accepted contract and inventory metadata; never restore authentication material from Git"
+  },
+  "testVectors": "docs/integration/SECURITY_PLATFORM_CROSS_PRODUCT_TEST_VECTORS.json",
+  "dependencies": [
+    "01-chain-core",
+    "02-wallet-auth",
+    "13-monitor",
+    "15-trust",
+    "18-docs-compliance",
+    "19-oracle",
+    "21-bridge",
+    "26-data-fabric",
+    "28-website",
+    "29-integration",
+    "31-governance"
+  ],
+  "externalInputs": [
+    "production-sensitive-material-manager",
+    "certificate-authority",
+    "secure-artifact-signer",
+    "production-infrastructure",
+    "deployment-authority",
+    "dns-domain",
+    "incident-contact",
+    "on-call-personnel",
+    "external-security-audit",
+    "legal-disclosure-review"
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": true,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "evidence": [
+    "evidence/security-platform/PLATFORM_INFRASTRUCTURE_2026-07-23.md",
+    "evidence/security-platform/LOCAL_RESTORE_DRILL_58fe679.json",
+    "evidence/security-platform/LOCAL_MTLS_DRILL_0cb9b58.json",
+    "evidence/security-platform/LOCAL_ARTIFACT_DRILL_53b037e.json",
+    "evidence/security-platform/LOCAL_ARTIFACT_DRILL_fa5f3ed.json",
+    "evidence/security-platform/LOCAL_ARTIFACT_DRILL_1853dd4.json",
+    "evidence/security-platform/LOCAL_ARTIFACT_DRILL_aa5d5e9.json",
+    "evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json",
+    "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json",
+    "evidence/security-platform/GITHUB_CI_7be79d5.json",
+    "evidence/security-platform/GITHUB_DEPENDENCY_GRAPH_2026-07-29.json",
+    "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json",
+    "evidence/security-platform/GITHUB_BRANCH_PROTECTION_2026-07-27.json",
+    "evidence/security-platform/GITHUB_CI_aa5d5e9.json",
+    "release/security-platform/operator-inputs.request.json"
+  ]
+}

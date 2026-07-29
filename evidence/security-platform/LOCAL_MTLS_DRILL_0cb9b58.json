@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "scenario": "local-ephemeral-ca-mtls-and-service-identity-policy",
+  "sourceCommit": "0cb9b5891cdcf74ce3e4c727470dcb0b60a8933c",
+  "environment": "local",
+  "startedAt": "2026-07-25T06:55:23.980Z",
+  "completedAt": "2026-07-25T06:55:24.745Z",
+  "result": "passed-local",
+  "tls": {
+    "minimumVersion": "TLSv1.3",
+    "mutualAuthentication": true,
+    "trustedClientConnected": true,
+    "untrustedIssuerRejected": true,
+    "serverRejectedClientErrors": 1,
+    "peer": {
+      "subjectCN": "oracle-reporter",
+      "issuerCN": "YNX Local Test CA",
+      "subjectAltName": "URI:spiffe://ynx.local/testnet/19-oracle/oracle-reporter",
+      "serialNumber": "9CB585649E4F1ACF",
+      "fingerprint256": "2A:EC:B2:56:06:6F:15:45:F5:EB:42:C6:68:8E:31:D1:BD:54:53:0F:C1:80:47:7A:23:FE:D2:D7:C6:9C:5B:2D"
+    }
+  },
+  "vectors": [
+    {
+      "id": "valid-service-identity",
+      "pass": true,
+      "observed": "allow",
+      "expected": "allow"
+    },
+    {
+      "id": "wrong-service",
+      "pass": true,
+      "observed": "SERVICE_IDENTITY_INVALID",
+      "expected": "SERVICE_IDENTITY_INVALID"
+    },
+    {
+      "id": "wrong-environment",
+      "pass": true,
+      "observed": "SERVICE_ENVIRONMENT_MISMATCH",
+      "expected": "SERVICE_ENVIRONMENT_MISMATCH"
+    },
+    {
+      "id": "wrong-audience",
+      "pass": true,
+      "observed": "SERVICE_AUDIENCE_MISMATCH",
+      "expected": "SERVICE_AUDIENCE_MISMATCH"
+    },
+    {
+      "id": "least-privilege-scope",
+      "pass": true,
+      "observed": "SERVICE_SCOPE_DENIED",
+      "expected": "SERVICE_SCOPE_DENIED"
+    },
+    {
+      "id": "revoked-certificate",
+      "pass": true,
+      "observed": "CERTIFICATE_REVOKED",
+      "expected": "CERTIFICATE_REVOKED"
+    },
+    {
+      "id": "stale-certificate",
+      "pass": true,
+      "observed": "CERTIFICATE_STALE",
+      "expected": "CERTIFICATE_STALE"
+    },
+    {
+      "id": "untrusted-issuer-policy",
+      "pass": true,
+      "observed": "CERTIFICATE_ISSUER_UNTRUSTED",
+      "expected": "CERTIFICATE_ISSUER_UNTRUSTED"
+    },
+    {
+      "id": "replay",
+      "pass": true,
+      "observed": "REPLAY_DETECTED",
+      "expected": "REPLAY_DETECTED"
+    },
+    {
+      "id": "clock-skew",
+      "pass": true,
+      "observed": "CLOCK_SKEW_EXCEEDED",
+      "expected": "CLOCK_SKEW_EXCEEDED"
+    }
+  ],
+  "privateMaterialPersisted": false,
+  "limitations": [
+    "ephemeral local CA only",
+    "no production certificate authority",
+    "no external revocation service",
+    "no production rotation automation",
+    "no central workload identity acceptance"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-07-22T15:50:00Z",
+  "source": "repository configuration and direct endpoint observations",
+  "providers": [
+    {
+      "id": "github-actions",
+      "name": "GitHub Actions and CodeQL",
+      "authority": "CI execution, dependency review, and static-analysis evidence only; never YNX chain or user authority",
+      "licenseReview": "not-reviewed",
+      "termsReview": "not-reviewed",
+      "jurisdictionReview": "not-reviewed",
+      "authentication": "GitHub-provided short-lived workflow token with job-scoped permissions",
+      "rateLimit": "provider-enforced; exact repository allowance not yet recorded",
+      "dataRetention": "workflow logs and artifacts use repository settings; platform artifact upload requests 14 days",
+      "dataRights": "source and generated CI evidence are sent only through repository-authorized workflows",
+      "version": "official major-version actions declared in .github/workflows",
+      "health": "latest reachable run 29930788053 detected a dependency failure; subsequent local access is TLS-unavailable",
+      "fallback": "run equivalent local gates and retain results as local-only evidence",
+      "outageBehavior": "block remote-CI completion claims and deployment promotion"
+    },
+    {
+      "id": "npm-registry",
+      "name": "npm Registry Advisory and Package Service",
+      "authority": "JavaScript package metadata, package bytes, and vulnerability advisories only",
+      "licenseReview": "not-reviewed",
+      "termsReview": "not-reviewed",
+      "jurisdictionReview": "not-reviewed",
+      "authentication": "anonymous reads for public dependencies; no publish credential is configured by this platform",
+      "rateLimit": "provider-enforced and not measured",
+      "dataRetention": "request telemetry controlled by provider and not yet legally reviewed",
+      "dataRights": "only lockfile dependency identifiers and normal registry request metadata are transmitted",
+      "version": "lockfileVersion 3 and npm 11.5.1 local evidence",
+      "health": "package installation succeeded; advisory requests were intermittently unavailable",
+      "fallback": "use the committed lockfile and local cache for builds, but do not claim a current vulnerability audit",
+      "outageBehavior": "fail the remote audit gate or leave it unproven; never convert outage to success"
+    },
+    {
+      "id": "ynx-public-testnet",
+      "name": "YNX Public Testnet Endpoints",
+      "authority": "YNX public chain and service observations within each endpoint contract",
+      "licenseReview": "not-applicable",
+      "termsReview": "not-reviewed",
+      "jurisdictionReview": "not-reviewed",
+      "authentication": "public reads and deliberately unauthenticated denial probes only",
+      "rateLimit": "not measured",
+      "dataRetention": "read-only gate stores reviewed response evidence locally; public release artifacts exclude raw captures",
+      "dataRights": "public endpoint responses only",
+      "version": "expected chain ynx_9102-1 and EVM chain 0x238e",
+      "health": "public gate on 2026-07-22 recorded 12 pass, 7 warning, and 47 failure checks",
+      "fallback": "no authoritative fallback; preserve last observation with timestamp and report outage",
+      "outageBehavior": "keep deployedPublic false and block promotion"
+    }
+  ]
+}
