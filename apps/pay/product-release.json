@@ -3,11 +3,11 @@
   "productId": "pay",
   "name": "YNX Pay",
   "branch": "codex/final-pay",
-  "sourceCommit": "0600d5ab87a9062ccc5b757affe30e234f1b7730",
-  "commit": "2303ceeed6ff8e7a8606b87a2e7155702e4e27b1",
+  "sourceCommit": "21a2f0412598ef94dd33ff132456c63d5cee6798",
+  "commit": "21a2f0412598ef94dd33ff132456c63d5cee6798",
   "version": "1.4.0",
-  "releaseClass": "local-candidate",
-  "phase": "FREEZE",
+  "releaseClass": "integration-candidate",
+  "phase": "INTEGRATE",
   "goalStatus": "active",
   "surfaces": ["api", "merchant-web", "android", "ios"],
   "capabilities": {
@@ -75,13 +75,13 @@
     {
       "command": "go test ./internal/payproduct/... -count=1",
       "result": "pass",
-      "verifiedAt": "2026-07-27",
-      "details": "Fixture migration, immutable backup, verified restore, rollback, corrupt-destination quarantine, wrong-key/corruption/future-version rejection and fail-closed CLI parsing passed."
+      "verifiedAt": "2026-07-29",
+      "details": "Re-ran after merging current main. Fixture migration, immutable backup, verified restore, rollback, corrupt-destination quarantine, wrong-key/corruption/future-version rejection and fail-closed CLI parsing passed."
     },
     {
       "command": "go test -race ./internal/payproduct/... -count=1",
       "result": "pass",
-      "verifiedAt": "2026-07-27",
+      "verifiedAt": "2026-07-29",
       "warning": "non-fatal macOS linker LC_DYSYMTAB warning"
     },
     {
@@ -124,10 +124,10 @@
       "command": "govulncheck, npm audit high gate, secret scan, module verify and deterministic build",
       "result": "pass",
       "verifiedAt": "2026-07-29",
-      "details": "0 called Go vulnerabilities, 0 high/critical npm vulnerabilities, two reproducible Linux/amd64 binaries and two source-bound CycloneDX SBOMs; artifacts are unsigned and unhosted."
+      "details": "Security and dependency checks passed for source 0600d5ab87a9062ccc5b757affe30e234f1b7730. Its reproducible binaries and CycloneDX SBOMs are unsigned, unhosted, and not current-source artifacts for this integration commit."
     }
   ],
-  "centralIntegration": "Contract and vectors are ready locally; central Wallet registry, App Gateway routes and owner acceptance are not deployed or verified.",
+  "centralIntegration": "Pull request 11 is open and mergeable for the exact tested source commit; central Wallet registry, App Gateway routes, integration-owner acceptance and merged-main deployment are not yet verified.",
   "historicalEvidence": {
     "androidApkSha256": "14698734aef4d1d5b4b33eedae328d3fcfd37c161a949bd2a89ff3419bc15a44",
     "androidApkBytes": 102623957,
@@ -138,12 +138,12 @@
   "knownLimitations": [
     "Fresh authoritative Testnet payment, two-account Split flow, sponsorship receipt and refund proof are blocked on accepted central Gateway/Testnet deployment.",
     "No current source-bound Android/iOS install and cold-launch evidence.",
-    "No public service URL, hosted immutable artifact, production signature or store release.",
+    "The public health endpoint is online but reports build 98a18815d4ee rather than the current Pay candidate; there is no current-source public service URL, hosted immutable artifact, production signature or store release.",
     "Quant verification is implemented locally, but no Quant/Data Fabric verifier key, staging evidence stream, or fresh Testnet service-fee payment has been accepted by the integration owner.",
     "Local fixture migration, backup, restore, rollback and corruption recovery are verified; production-volume RTO/RPO and remote backup retention remain incomplete.",
     "Observability and a 1,000-request local loopback capacity gate are tested, but deployed dashboards/alerts, staging workload capacity and invoice-backed unit economics remain incomplete.",
     "Web/PWA export and functional keyboard/RTL/390px checks pass; complete dark-theme, 200% large-text and manual screen-reader acceptance remain incomplete.",
     "Stablecoin and Bridge production-capable providers remain unavailable until approved owner/provider contracts exist."
   ],
-  "generatedAt": "2026-07-29T03:55:00+08:00"
+  "generatedAt": "2026-07-29T02:34:00Z"
 }
