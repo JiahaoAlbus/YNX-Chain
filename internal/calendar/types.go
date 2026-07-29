@@ -6,12 +6,13 @@ import (
 )
 
 const (
-	ProductID       = "com.ynx.calendar"
-	ProductClientID = "ynx-calendar-v1"
-	BundleID        = "com.ynxweb4.calendar"
-	CallbackURL     = "ynxcalendar://wallet-auth/callback"
-	RequiredScope   = "calendar:account"
-	RecoveryScope   = "calendar:recover"
+	ProductID          = "com.ynx.calendar"
+	ProductClientID    = "ynx-calendar-v1"
+	BundleID           = "com.ynxweb4.calendar"
+	CallbackURL        = "ynxcalendar://wallet-auth/callback"
+	RequiredScope      = "calendar:account"
+	RecoveryScope      = "calendar:recover"
+	StateSchemaVersion = 1
 )
 
 type WalletProof struct {
@@ -223,6 +224,7 @@ type AccountExport struct {
 	Audit         []AuditEntry       `json:"audit"`
 }
 type State struct {
+	SchemaVersion      int                         `json:"schema_version"`
 	Users              map[string]User             `json:"users"`
 	Challenges         map[string]Challenge        `json:"challenges"`
 	Sessions           map[string]Session          `json:"sessions"`
