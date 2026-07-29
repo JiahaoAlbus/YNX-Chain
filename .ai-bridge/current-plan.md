@@ -2,36 +2,41 @@
 
 ## Current stage
 
-FREEZE. Authenticated recovery is protected at `23bcdea565bcfcb7d211512e654f916faf817df3`; the fail-closed cross-product consumer boundary is protected at `592195a1a4c5bed434d984482a1e87202de213ce`. `codex/final-finance` tracks `origin/codex/final-finance`, and local/remote SHA equality has been verified. Central Wallet acceptance, owner source contracts, shared Testnet proof, staging, public deployment and production signing remain incomplete.
+FREEZE. The latest validated product source is `d2e20f4dcb17012b3d30eae7aa348ab245f37324` on `codex/final-finance`; it was pushed and local/remote source SHA equality was verified. Authenticated recovery remains protected at `23bcdea565bcfcb7d211512e654f916faf817df3`, and the fail-closed source consumer boundary remains protected at `592195a1a4c5bed434d984482a1e87202de213ce`.
 
 ## Protected scope
 
 - Explorer health/native-asset validation, bounded activity and explicit provenance.
 - Account/snapshot-bound HMAC-SHA-256 activity cursors.
 - Version-1 strict Finance state validation, authenticated backup and offline restore.
-- Finance-owned `finance-source-read-envelope-v1` consumer proposal.
-- `/api/sources` plus Web and native pending-source states for Exchange, DEX, Quant and Economics.
-- Strict source/owner/network/asset/Wallet-account/owner-version/payload-schema/capability binding.
-- Fail-closed wrong binding, unknown field, future/incomplete provenance, empty payload, unaccepted capability and mutation-disguise rejection.
-- Optional HTTPS navigation only; action URLs cannot configure an adapter, grant authority or make a source available.
-- Twelve localized native source-status strings, including Arabic on the existing RTL path.
+- Finance-owned `finance-source-read-envelope-v1` consumer proposal and fail-closed pending sources.
+- Validated/generated `X-Request-ID` correlation and stable `YNX-FIN-*` error IDs.
+- Structured JSON route/status/latency logs with financial data, tokens, bodies, query strings and remote addresses excluded.
+- Protected `GET /metrics` using a distinct `YNX_FINANCE_OPERATIONS_KEY`.
+- Versioned `finance-metrics-v1` process counters for route/status/latency and source outcomes with explicit restart reset semantics.
 
-## Verified gates for the protected source-contract commit
+## Verified gates
 
 - `go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1`
 - `go test -race ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1`
-- `npm run smoke --prefix apps/finance` — 8/8 product/Web/Wallet vectors plus server/admin builds.
-- `npm run typecheck --prefix apps/finance/mobile`
-- `npm test --prefix apps/finance/mobile` — 6/6, including locale completeness and Arabic formatting.
+- `npm run smoke --prefix apps/finance` — Finance security gate and 8/8 product/Web/Wallet vectors passed.
 - `bash scripts/validate/no-placeholder-check.sh`
 - `bash scripts/validate/secret-scan.sh`
+- `git diff --check`
 
-The first push of `592195a1a4c5bed434d984482a1e87202de213ce` returned a remote 502; the bounded retry succeeded and local SHA equals upstream. The full repository Go preflight remains failed outside Finance ownership because Consensus/IDE artifacts and Consensus/Faucet/Trust permission tests are not healthy on this host. Mobile bundle and dependency audit blockers remain unchanged.
+Dedicated observability tests cover request-ID propagation and replacement, stable error correlation, fail-closed metrics authentication, route/status/source counters, financial-data exclusions and process restart reset. No central Monitor integration, persistence, deployed alerting or production capacity is claimed.
 
-## Next autonomous runtime slice
+## GitHub truth
 
-Implement request IDs, stable public error IDs, structured JSON access/error logs and bounded in-process metrics for API latency/status/source outcomes. Add `/metrics` or an equivalent authenticated/operational endpoint with explicit version and no user financial payloads. Cover request-ID propagation, error correlation, source availability counters and restart behavior without claiming central Monitor integration.
+- Source branch pushed: true.
+- PR for `codex/final-finance`: none found before the current metadata checkpoint.
+- Workflow runs attached to source SHA: none returned before a PR trigger.
+- GitHub Release for source SHA: not claimed.
+
+## Next autonomous slice
+
+Create a deterministic account-free Finance API capacity harness. Measure local request count, concurrency, throughput, error rate and p50/p95/p99 latency for `/health`, protected-auth rejection and authenticated `/metrics`. Publish `apps/finance/SLO_CAPACITY_PLAN.md` with local-only thresholds, alert semantics and explicit non-production limits.
 
 ## Following priority
 
-Create `SLO_CAPACITY_PLAN.md` and `UNIT_ECONOMICS.md`, run bounded local latency/concurrency/storage-growth measurements, then hand the exact metrics contract to Monitor/Data Fabric. Separately, each source owner must freeze one exact read payload contract before Finance adds a payload adapter; all four sources remain unavailable until then.
+Create `UNIT_ECONOMICS.md`, prepare the exact `finance-metrics-v1` handoff for Monitor/Data Fabric, open the Finance PR and verify CI for its exact final SHA. Central Wallet acceptance, owner source contracts, authorized Pay smoke, shared Testnet proof, staging, public deployment and production signing remain incomplete.

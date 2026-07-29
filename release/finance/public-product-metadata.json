@@ -4,7 +4,7 @@
   "product": "YNX Finance",
   "slug": "finance",
   "owner": "24-finance",
-  "sourceCommit": "31ac90ec6a8bd665f1fe630f87ba9221c836288a",
+  "sourceCommit": "d2e20f4dcb17012b3d30eae7aa348ab245f37324",
   "canonicalRoute": "/finance",
   "title": "YNX Finance — Read-only portfolio evidence and planning",
   "metaDescription": "Review source-bound YNX balances, activity, receipts and portfolio evidence without granting custody or execution authority.",
