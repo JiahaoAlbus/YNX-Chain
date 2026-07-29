@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "12",
+  "productName": "YNX Explorer",
+  "phase": "PROTECT",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/12-explorer",
+  "branch": "codex/final-explorer",
+  "localSha": "0a2c1e15763152398bf67156ace6bd6a60379276",
+  "remoteSha": "0a2c1e15763152398bf67156ace6bd6a60379276",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "runtimeSourceSha": "57b0038312a58e48c97c73f8efaf4473764b9890",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "go test ./internal/explorer ./cmd/ynx-explorerd",
+    "go test -race ./internal/explorer",
+    "go build ./cmd/ynx-explorerd",
+    "apps/explorer: npm test (16/16)",
+    "apps/explorer: npm run build",
+    "apps/explorer: npm run test:a11y (1/1)",
+    "apps/explorer: npm run test:e2e (10/10)",
+    "apps/explorer: npm run security:scan (40 files)",
+    "bash scripts/verify/explorer-check.sh (local Testnet SSE replay 1->2 and snapshot reset)"
+  ],
+  "latestCiRuns": [],
+  "ciStatus": "unconfirmed-tls-handshake-timeout",
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [
+    {
+      "path": "apps/explorer/dist",
+      "class": "local-unsigned-web-build",
+      "hosted": false,
+      "sha256": null
+    }
+  ],
+  "publicRoutes": [
+    {
+      "url": "https://ynxweb4.com/explorer",
+      "status": "not-verified-deployed"
+    }
+  ],
+  "completed": [
+    "configured-key cursor restart continuity tested locally",
+    "monotonic bounded SSE event history",
+    "Last-Event-ID retained successor replay",
+    "explicit stream-reset snapshot recovery",
+    "slow-client disconnect recovery",
+    "native EventSource reconnect preservation",
+    "bounded polling fallback",
+    "real local-Testnet SSE replay/reset smoke",
+    "runtime and evidence source binding"
+  ],
+  "remaining": [
+    "29 Integration contract freeze and shared-Testnet acceptance",
+    "Indexer restart-and-reorg recovery evidence",
+    "accepted owner read models for market, Quant, economics, solvency and product release",
+    "immutable hosted artifact with SBOM and provenance",
+    "public deployment and ynxweb4.com/explorer verification",
+    "current-SHA GitHub Actions confirmation"
+  ],
+  "blockers": [
+    "EXEC-INFRA-GITHUB-ACTIONS-001",
+    "EXP-29-FREEZE-001",
+    "EXP-30-RELEASE-001",
+    "EXP-28-PUBLIC-001"
+  ],
+  "nextAction": "Implement a reproducible Indexer restart-and-reorg recovery drill, assert rollback/canonical re-indexing invariants, run targeted Race and local-Testnet gates, then commit, push and source-bind the result.",
+  "updatedAt": "2026-07-29T02:53:36Z"
+}
