@@ -1,5 +1,9 @@
 {
   "schemaVersion": "ynx.ai.integration.v1",
+  "productId": "14",
+  "slug": "ai",
+  "owner": "14-ai",
+  "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
   "contractVersion": "1.1.0",
   "product": {
     "number": 14,

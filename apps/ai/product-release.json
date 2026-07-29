@@ -1,5 +1,9 @@
 {
   "productId": "ynx-ai",
+  "product": "YNX AI",
+  "slug": "ai",
+  "owner": "14-ai",
+  "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
   "name": "YNX AI",
   "branch": "codex/final-ai",
   "commit": "8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154",

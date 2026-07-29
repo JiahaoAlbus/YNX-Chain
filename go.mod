@@ -2,6 +2,8 @@ module github.com/JiahaoAlbus/YNX-Chain
 
 go 1.25.0
 
+toolchain go1.25.12
+
 require (
 	github.com/cometbft/cometbft v0.38.23
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
