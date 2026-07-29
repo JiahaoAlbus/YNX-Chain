@@ -1,6 +1,6 @@
 {
   "schemaVersion": "ynx-public-product-metadata/v1",
-  "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+  "sourceCommit": "0ed74c9e737ca6d5bbdf226f6ca487dc398b4755",
   "name": "YNX Governance",
   "aliases": ["YNX Protocol Governance", "YNX Protocol Control"],
   "canonicalRoute": "/governance",

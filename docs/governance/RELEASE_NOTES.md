@@ -1,5 +1,16 @@
 # Release notes
 
+## v0.4.0-integration (Candidate)
+
+- Added 12 locale boundaries with locale-aware dates and Arabic RTL.
+- Made proposal cards native keyboard controls and added semantic loading, error, filter, navigation, and section state.
+- Added truthful conflict, recusal, execution receipt, and audit-transition views to proposal detail.
+- Added a repeatable system-Chrome test covering keyboard activation, 390px overflow, Arabic RTL, and the conflict, execution, and audit views.
+- Verified the exact Product Session product, device, scope, expiry, revocation, body binding, and replay boundaries locally.
+- Source evidence: `0ed74c9e737ca6d5bbdf226f6ca487dc398b4755`.
+
+Shared-Testnet acceptance, Explorer/Monitor/Trust/Security evidence, production signer custody, public deployment, public destinations, and immutable hosting remain external blockers.
+
 ## v0.3.0-integration (Candidate)
 
 This Governance integration candidate binds protocol changes to an authoritative registry, submits signed execution intents through the canonical Chain Core/Comet adapter, verifies execution receipts, and exposes an honest read-only UI.

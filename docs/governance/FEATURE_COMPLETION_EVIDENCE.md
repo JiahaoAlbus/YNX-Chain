@@ -14,19 +14,19 @@
 | Multiprocess four-validator lifecycle drill | Yes | Yes | Local evidence only |
 | Public read APIs, health, version, metrics, and audit | Yes | Yes | No public endpoint |
 | Governance UI against the real public API contract | Yes | Yes | No public endpoint |
-| UI dependency lock, build, type-check, render smoke test, and vulnerability audit | Yes | Yes | CI pending for current evidence commit |
+| UI dependency lock, build, type-check, locale tests, real-Chrome test, and vulnerability audit | Yes | Yes | No public endpoint |
 | Deterministic Go binaries, secret scan, and forbidden-text scan | Yes | Yes | CI pending for current evidence commit |
 | Solidity governance contracts | Yes | No | No deployment |
 | Explorer, Monitor, Trust, Data Fabric, and Security/SRE acceptance | No | No | No |
 | Shared Testnet acceptance | No | No | No |
 | Website handoff and Vercel/DNS deployment | No | No | No |
 | Production signing and public downloads | No | No | No |
-| 12-language and RTL localization | No | No | No |
+| 12-language boundaries, locale-aware dates, and Arabic RTL | Yes | Yes | Local Chrome evidence only |
 
 ## Immutable implementation evidence
 
 - Authoritative registry gates: `b1b460d8e798f50381c819c80294c679a7fc6d1f`
-- Verifiable UI and CI gate: `ea949aacac147505360528583bd7fade12f7cac8`
+- Accessible 12-locale UI, browser gate, and patched gRPC runtime: `0ed74c9e737ca6d5bbdf226f6ca487dc398b4755`
 - Multiprocess Testnet lifecycle: `27921c8298e22616f983c87fd0d8c51a49495cfd`
 - Chain receipt verification: `7e342ec`
 - Comet execution client: `0640f26`
@@ -37,11 +37,13 @@
 
 - `bash scripts/verify/governance-check.sh`
 - `go test ./...`
+- `GOTOOLCHAIN=go1.25.12 go run golang.org/x/vuln/cmd/govulncheck@latest ./internal/governance ./chain/governance ./cmd/ynx-governanced ./cmd/ynx-governance-state`
 - `npm --prefix apps/governance test`
 - `npm --prefix apps/governance run build`
+- `npm --prefix apps/governance run test:browser`
 - `npm --prefix apps/governance audit --audit-level=moderate`
 
-The local checks passed on 2026-07-28. They do not substitute for GitHub Actions, shared-Testnet transaction evidence, public hosting, or external audit evidence.
+The local checks passed on 2026-07-29, including zero reachable Go vulnerabilities after the gRPC 1.82.1 upgrade. They do not substitute for GitHub Actions, shared-Testnet transaction evidence, public hosting, or external audit evidence.
 
 ## External blockers
 

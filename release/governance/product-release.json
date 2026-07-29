@@ -2,9 +2,9 @@
   "schemaVersion": "ynx-product-release/v1",
   "product": "YNX Governance & Protocol Control",
   "slug": "governance",
-  "version": "0.3.0-integration",
-  "generatedAt": "2026-07-28T10:18:11Z",
-  "sourceCommit": "ea949aacac147505360528583bd7fade12f7cac8",
+  "version": "0.4.0-integration",
+  "generatedAt": "2026-07-29T01:57:00Z",
+  "sourceCommit": "0ed74c9e737ca6d5bbdf226f6ca487dc398b4755",
   "branch": "codex/final-governance",
   "phase": "INTEGRATE",
   "status": "Active",
@@ -22,7 +22,7 @@
     {
       "id": "verifiable-governance-ui",
       "status": "complete",
-      "details": "The read-only React UI consumes the real nested proposal and public signed-vote API contracts, removes fake wallet and unsigned-vote controls, builds reproducibly from a lockfile, has a render smoke test, and audits with zero known npm vulnerabilities."
+      "details": "The read-only React UI consumes real proposal, diff, vote, timelock, conflict, execution, and audit records; supports 12 locale boundaries and Arabic RTL; uses semantic keyboard controls; passes a 390px real-Chrome check; builds from a lockfile; and audits with zero known npm vulnerabilities."
     },
     {
       "id": "canonical-proposal-state-machine",
@@ -109,8 +109,10 @@
   "evidence": {
     "targetedTests": [
       "bash scripts/verify/governance-check.sh",
-      "go test ./internal/governance ./chain/governance",
-      "npm --prefix apps/governance test"
+      "go test -race -count=1 ./internal/governance ./chain/governance",
+      "GOTOOLCHAIN=go1.25.12 go run golang.org/x/vuln/cmd/govulncheck@latest ./internal/governance ./chain/governance ./cmd/ynx-governanced ./cmd/ynx-governance-state",
+      "npm --prefix apps/governance test",
+      "npm --prefix apps/governance run test:browser"
     ],
     "fullRepositoryTests": [
       "go test ./..."
@@ -162,13 +164,14 @@
       "authoritative registry drift rejection before voting, finalization, execution, and restore",
       "canonical Chain Core execution submission and receipt reconciliation",
       "four-validator multiprocess governance Testnet lifecycle",
-      "governance UI production build, type-check, render smoke test, and zero-vulnerability npm audit"
+      "governance UI production build, type-check, 12-locale render tests, Arabic RTL, keyboard activation, 390px real-Chrome overflow check, and zero-vulnerability npm audit",
+      "reachable Go vulnerability scan reports zero vulnerabilities after upgrading gRPC to 1.82.1"
     ],
-    "sourceCommit": "ea949aacac147505360528583bd7fade12f7cac8"
+    "sourceCommit": "0ed74c9e737ca6d5bbdf226f6ca487dc398b4755"
   },
   "dependencies": {
     "chainCore": "canonical_execution_adapter_configured_and_locally_verified",
-    "walletAuth": "gateway_assertion_adapter_configured",
+    "walletAuth": "exact_product_device_scope_expiry_revocation_and_replay_contract_locally_verified",
     "explorer": "not_integrated",
     "monitor": "not_integrated",
     "trust": "local_appeal_adapter_only",
@@ -184,7 +187,7 @@
     "Persistent Upgrade integrity, exact manifest execution, restart recovery, and execution or rollback receipt correlation are implemented and tested locally.",
     "Signed Canary cohort and independent signed health-result integrity, abort thresholds, restart recovery, and exact-manifest execution gating are implemented and tested locally.",
     "Authoritative parameter-registry validation is enforced at startup, proposal creation, voting, finalization, execution preparation, and restore.",
-    "The governance UI builds from a committed lockfile, reads the real public API contract, exposes no fake mutation controls, and passes its local CI gate with zero known npm vulnerabilities.",
+    "The governance UI builds from a committed lockfile, reads the real public API contract, renders proposal, diff, vote, timelock, conflict, execution, and audit states across 12 locale boundaries, passes Arabic RTL, keyboard, and 390px real-Chrome checks, exposes no fake mutation controls, and has zero known npm vulnerabilities.",
     "Canonical Chain Core submission and receipt reconciliation are implemented and exercised in a local multiprocess four-validator lifecycle.",
     "A passed vote is not reported as execution.",
     "A submitted execution is not reported as verified.",
