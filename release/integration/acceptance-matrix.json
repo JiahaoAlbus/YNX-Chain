@@ -2,14 +2,14 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-28T16:51:56.104Z",
-  "controllerSourceCommit": "d46ad4b751604443e9c43b1fd24cba571ebd94bc",
+  "generatedAt": "2026-07-29T02:29:14.029Z",
+  "controllerSourceCommit": "40dcf3eeb152a1fb4887d0c7f6a79f095dd6f185",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "d46ad4b751604443e9c43b1fd24cba571ebd94bc",
+    "localHead": "40dcf3eeb152a1fb4887d0c7f6a79f095dd6f185",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "d46ad4b751604443e9c43b1fd24cba571ebd94bc",
+    "remoteHead": "40dcf3eeb152a1fb4887d0c7f6a79f095dd6f185",
     "ahead": 0,
     "behind": 0,
     "clean": false
@@ -19,12 +19,12 @@
     "localBranches": 36,
     "remoteBranches": 36,
     "registeredWorktrees": 36,
-    "cleanWorktrees": 16,
-    "dirtyWorktrees": 20,
-    "syncedBranches": 35,
+    "cleanWorktrees": 17,
+    "dirtyWorktrees": 19,
+    "syncedBranches": 36,
     "upstreamConfigured": 36,
-    "implementedLocalCandidates": 0,
-    "inProgress": 36,
+    "implementedLocalCandidates": 5,
+    "inProgress": 31,
     "notStarted": 0,
     "centrallyAccepted": 0
   },
@@ -161,8 +161,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "0dbdacd4c4fba6a07c585bf5799bc7089e3bfbf4",
-        "remoteSha": "0dbdacd4c4fba6a07c585bf5799bc7089e3bfbf4",
+        "localSha": "69f8688d2181731c21f91422556ae8acca5ab339",
+        "remoteSha": "69f8688d2181731c21f91422556ae8acca5ab339",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -174,9 +174,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "02-wallet-auth",
-        "observedHead": "0dbdacd4c4fba6a07c585bf5799bc7089e3bfbf4",
+        "observedHead": "69f8688d2181731c21f91422556ae8acca5ab339",
         "clean": false,
-        "changedEntries": 9,
+        "changedEntries": 1,
         "statusError": null
       },
       "evidence": {
@@ -190,65 +190,65 @@
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 39,
-          "open": 2,
+          "total": 40,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 2,
+            "inProgress": 0,
             "implementedLocal": 1,
-            "testedLocal": 24,
+            "testedLocal": 25,
             "integratedCentral": 0,
             "testnetVerified": 1,
-            "publicVerified": 0,
+            "publicVerified": 1,
             "externalBlocked": 8,
             "notApplicable": 2,
-            "verifiedComplete": 1
+            "verifiedComplete": 2
           }
         },
         "recordMatches": {
           "fullGoalCoverage": true,
-          "productRelease": false,
-          "publicMetadata": false,
+          "productRelease": true,
+          "publicMetadata": true,
           "integrationContract": true
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           },
           "productRelease": {
-            "sourceCommit": "046bc4f23f78d3c80881f6d2ed7dac88f35bf8a4",
+            "sourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 74
+            "distance": 1
           },
           "publicMetadata": {
-            "sourceCommit": "2e3c893c7c97e7bc713af4e9a74438ffd125289f",
+            "sourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 85
+            "distance": 1
           },
           "integrationContract": {
-            "sourceCommit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
+            "sourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 29
+            "distance": 1
           }
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
-          "installedLocal": false,
-          "integratedCentral": true,
-          "deployedStaging": true,
-          "deployedPublic": true,
+          "installedLocal": true,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
           "downloadHosted": true,
           "productionSigned": false,
           "storeReleased": false
@@ -263,11 +263,7 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
-        "productRelease belongs to a different product or authority owner",
-        "publicMetadata belongs to a different product or authority owner",
-        "full-goal coverage has 2 autonomous or unresolved items",
-        "fullGoalCoverage lacks an exact sourceCommit"
+        "registered final worktree has uncommitted changes"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -286,8 +282,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "a9f1638d6650dbb743f6b7237a919b99ad24e290",
-        "remoteSha": "a9f1638d6650dbb743f6b7237a919b99ad24e290",
+        "localSha": "ff4d34f3339b0fbfe73dc78f08e69e69e581e73a",
+        "remoteSha": "ff4d34f3339b0fbfe73dc78f08e69e69e581e73a",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -299,9 +295,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "03-social",
-        "observedHead": "a9f1638d6650dbb743f6b7237a919b99ad24e290",
-        "clean": true,
-        "changedEntries": 0,
+        "observedHead": "ff4d34f3339b0fbfe73dc78f08e69e69e581e73a",
+        "clean": false,
+        "changedEntries": 287,
         "statusError": null
       },
       "evidence": {
@@ -316,17 +312,17 @@
         },
         "coverage": {
           "total": 12,
-          "open": 4,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 4,
+            "inProgress": 0,
             "implementedLocal": 1,
-            "testedLocal": 5,
+            "testedLocal": 7,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 1,
+            "externalBlocked": 3,
             "notApplicable": 0,
             "verifiedComplete": 1
           }
@@ -339,32 +335,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+            "sourceCommit": "6ff91db0b7ce7509d1967e3936c7a0a85d45ea12",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 2
           },
           "productRelease": {
-            "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+            "sourceCommit": "6ff91db0b7ce7509d1967e3936c7a0a85d45ea12",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 2
           },
           "publicMetadata": {
-            "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+            "sourceCommit": "6ff91db0b7ce7509d1967e3936c7a0a85d45ea12",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 2
           },
           "integrationContract": {
-            "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+            "sourceCommit": "6ff91db0b7ce7509d1967e3936c7a0a85d45ea12",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 2
           }
         },
         "claimedReleaseStates": {
@@ -388,9 +384,9 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage has 4 autonomous or unresolved items"
+        "registered final worktree has uncommitted changes"
       ],
-      "nextAction": "Resolve: full-goal coverage has 4 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "04",
@@ -409,8 +405,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "bcd4969e6760e38cf0301c6a27352d4ec6d989ec",
-        "remoteSha": "bcd4969e6760e38cf0301c6a27352d4ec6d989ec",
+        "localSha": "21a2f0412598ef94dd33ff132456c63d5cee6798",
+        "remoteSha": "21a2f0412598ef94dd33ff132456c63d5cee6798",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -422,7 +418,7 @@
       "worktree": {
         "registered": true,
         "pathToken": "04-pay",
-        "observedHead": "bcd4969e6760e38cf0301c6a27352d4ec6d989ec",
+        "observedHead": "21a2f0412598ef94dd33ff132456c63d5cee6798",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
@@ -439,17 +435,17 @@
         },
         "coverage": {
           "total": 28,
-          "open": 4,
+          "open": 0,
           "invalid": 0,
           "counts": {
-            "notStarted": 2,
-            "inProgress": 2,
+            "notStarted": 0,
+            "inProgress": 0,
             "implementedLocal": 3,
-            "testedLocal": 16,
+            "testedLocal": 19,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 4,
+            "externalBlocked": 5,
             "notApplicable": 0,
             "verifiedComplete": 1
           }
@@ -462,32 +458,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "2303ceeed6ff8e7a8606b87a2e7155702e4e27b1",
+            "sourceCommit": "0600d5ab87a9062ccc5b757affe30e234f1b7730",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 3
+            "distance": 80
           },
           "productRelease": {
-            "sourceCommit": "1eb2764c95368d5a62483028891eb6c3f67f2c1a",
+            "sourceCommit": "0600d5ab87a9062ccc5b757affe30e234f1b7730",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 80
           },
           "publicMetadata": {
             "sourceCommit": "1eb2764c95368d5a62483028891eb6c3f67f2c1a",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 84
           },
           "integrationContract": {
             "sourceCommit": "2303ceeed6ff8e7a8606b87a2e7155702e4e27b1",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 3
+            "distance": 86
           }
         },
         "claimedReleaseStates": {
@@ -504,16 +500,14 @@
         "exactCommitBound": false
       },
       "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
+        "status": "implementedLocal",
+        "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
         "acceptedAt": null
       },
-      "blockers": [
-        "full-goal coverage has 4 autonomous or unresolved items"
-      ],
-      "nextAction": "Resolve: full-goal coverage has 4 autonomous or unresolved items."
+      "blockers": [],
+      "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion."
     },
     {
       "id": "05",
@@ -531,8 +525,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "67accef05e4f9351a7d4a9201ebd74bb5dbc430e",
-        "remoteSha": "67accef05e4f9351a7d4a9201ebd74bb5dbc430e",
+        "localSha": "dd68953a94d43f6f5ac140da7c7aa94298601238",
+        "remoteSha": "dd68953a94d43f6f5ac140da7c7aa94298601238",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -544,9 +538,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "05-merchant-console",
-        "observedHead": "67accef05e4f9351a7d4a9201ebd74bb5dbc430e",
-        "clean": false,
-        "changedEntries": 11,
+        "observedHead": "dd68953a94d43f6f5ac140da7c7aa94298601238",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -561,13 +555,13 @@
         },
         "coverage": {
           "total": 31,
-          "open": 10,
+          "open": 9,
           "invalid": 0,
           "counts": {
             "notStarted": 1,
-            "inProgress": 9,
+            "inProgress": 8,
             "implementedLocal": 1,
-            "testedLocal": 15,
+            "testedLocal": 16,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
@@ -598,18 +592,18 @@
             "distance": null
           },
           "publicMetadata": {
-            "sourceCommit": null,
-            "valid": false,
-            "exact": false,
-            "reachable": false,
-            "distance": null
-          },
-          "integrationContract": {
-            "sourceCommit": "b0934a09df9d2dbea67abb596ad84154ab168312",
+            "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 3
+            "distance": 1
+          },
+          "integrationContract": {
+            "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b",
+            "valid": true,
+            "exact": false,
+            "reachable": true,
+            "distance": 1
           }
         },
         "claimedReleaseStates": {
@@ -633,14 +627,12 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
         "publicMetadata belongs to a different product or authority owner",
-        "full-goal coverage has 10 autonomous or unresolved items",
+        "full-goal coverage has 9 autonomous or unresolved items",
         "fullGoalCoverage lacks an exact sourceCommit",
-        "productRelease lacks an exact sourceCommit",
-        "publicMetadata lacks an exact sourceCommit"
+        "productRelease lacks an exact sourceCommit"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: publicMetadata belongs to a different product or authority owner."
     },
     {
       "id": "06",
@@ -673,8 +665,8 @@
         "registered": true,
         "pathToken": "06-card",
         "observedHead": "5a9c881400994955af47389a52f76740775c2537",
-        "clean": true,
-        "changedEntries": 0,
+        "clean": false,
+        "changedEntries": 3,
         "statusError": null
       },
       "evidence": {
@@ -761,9 +753,10 @@
         "acceptedAt": null
       },
       "blockers": [
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 9 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 9 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "07",
@@ -782,8 +775,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
-        "remoteSha": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+        "localSha": "413eb5cc3606b664aa554b95039f4880b40c9654",
+        "remoteSha": "413eb5cc3606b664aa554b95039f4880b40c9654",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -795,43 +788,43 @@
       "worktree": {
         "registered": true,
         "pathToken": "07-exchange",
-        "observedHead": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
-        "clean": false,
-        "changedEntries": 23,
+        "observedHead": "413eb5cc3606b664aa554b95039f4880b40c9654",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
         "paths": {
-          "fullGoalCoverage": null,
-          "productRelease": null,
-          "publicMetadata": null,
-          "integrationContract": null,
-          "integrationHandoff": "docs/handoffs/exchange.md",
-          "crossProductTestVectors": null,
-          "dependencyAcceptance": null
+          "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
+          "productRelease": "apps/exchange/product-release.json",
+          "publicMetadata": "apps/exchange/public-product-metadata.json",
+          "integrationContract": "release/integration/exchange-contract.json",
+          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
+          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 52,
+          "open": 23,
           "invalid": 0,
           "counts": {
-            "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
+            "notStarted": 14,
+            "inProgress": 9,
+            "implementedLocal": 3,
+            "testedLocal": 17,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
+            "externalBlocked": 7,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 2
           }
         },
         "recordMatches": {
-          "fullGoalCoverage": false,
-          "productRelease": false,
-          "publicMetadata": false,
-          "integrationContract": false
+          "fullGoalCoverage": true,
+          "productRelease": true,
+          "publicMetadata": true,
+          "integrationContract": true
         },
         "sourceBindings": {
           "fullGoalCoverage": {
@@ -842,25 +835,25 @@
             "distance": null
           },
           "productRelease": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 2
           },
           "publicMetadata": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 2
           },
           "integrationContract": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 2
           }
         },
         "claimedReleaseStates": {
@@ -874,7 +867,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
-        "exactCommitBound": true
+        "exactCommitBound": false
       },
       "centralAcceptance": {
         "status": "inProgress",
@@ -884,15 +877,10 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
-        "full-goal coverage is missing from the branch tree",
-        "product release is missing from the branch tree",
-        "public metadata is missing from the branch tree",
-        "integration contract is missing from the branch tree",
-        "cross-product test vectors is missing from the branch tree",
-        "dependency acceptance is missing from the branch tree"
+        "full-goal coverage has 23 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: full-goal coverage has 23 autonomous or unresolved items."
     },
     {
       "id": "08",
@@ -914,8 +902,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "9ad81540fbe716bf81c3d5e037cac55e4519bf0b",
-        "remoteSha": "9ad81540fbe716bf81c3d5e037cac55e4519bf0b",
+        "localSha": "073dda5792d2b42fde2d5f981ff68cbab34baa1d",
+        "remoteSha": "073dda5792d2b42fde2d5f981ff68cbab34baa1d",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -927,9 +915,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "08-quant-lab",
-        "observedHead": "9ad81540fbe716bf81c3d5e037cac55e4519bf0b",
-        "clean": false,
-        "changedEntries": 2,
+        "observedHead": "073dda5792d2b42fde2d5f981ff68cbab34baa1d",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -949,8 +937,8 @@
           "counts": {
             "notStarted": 2,
             "inProgress": 6,
-            "implementedLocal": 7,
-            "testedLocal": 24,
+            "implementedLocal": 6,
+            "testedLocal": 25,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
@@ -971,14 +959,14 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 4
           },
           "productRelease": {
             "sourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 4
           },
           "publicMetadata": {
             "sourceCommit": null,
@@ -992,7 +980,7 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 4
           }
         },
         "claimedReleaseStates": {
@@ -1016,11 +1004,10 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
         "full-goal coverage has 8 autonomous or unresolved items",
         "publicMetadata lacks an exact sourceCommit"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: full-goal coverage has 8 autonomous or unresolved items."
     },
     {
       "id": "09",
@@ -1039,8 +1026,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "3123d6838c95a1e0c59760de446eb78a52745843",
-        "remoteSha": "3123d6838c95a1e0c59760de446eb78a52745843",
+        "localSha": "c929056bfd083d124dff7998166bc1ee86d71393",
+        "remoteSha": "c929056bfd083d124dff7998166bc1ee86d71393",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -1052,9 +1039,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "09-shop",
-        "observedHead": "3123d6838c95a1e0c59760de446eb78a52745843",
+        "observedHead": "c929056bfd083d124dff7998166bc1ee86d71393",
         "clean": false,
-        "changedEntries": 1,
+        "changedEntries": 3,
         "statusError": null
       },
       "evidence": {
@@ -1069,13 +1056,13 @@
         },
         "coverage": {
           "total": 29,
-          "open": 7,
+          "open": 6,
           "invalid": 0,
           "counts": {
             "notStarted": 1,
-            "inProgress": 6,
+            "inProgress": 5,
             "implementedLocal": 1,
-            "testedLocal": 13,
+            "testedLocal": 14,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
@@ -1096,7 +1083,7 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 3
           },
           "productRelease": {
             "sourceCommit": null,
@@ -1110,14 +1097,14 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 3
           },
           "integrationContract": {
             "sourceCommit": "0347320463466cf9a265c7447fbced0218a32cab",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 3
           }
         },
         "claimedReleaseStates": {
@@ -1142,7 +1129,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 7 autonomous or unresolved items",
+        "full-goal coverage has 6 autonomous or unresolved items",
         "productRelease lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
@@ -1165,8 +1152,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "0541cf6d89206a0de96a661dc977e5d9d6f7a56b",
-        "remoteSha": "0541cf6d89206a0de96a661dc977e5d9d6f7a56b",
+        "localSha": "c99eb890fa0945d04090a760d29a226ba4b0f1f1",
+        "remoteSha": "c99eb890fa0945d04090a760d29a226ba4b0f1f1",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -1178,9 +1165,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "10-seller-console",
-        "observedHead": "0541cf6d89206a0de96a661dc977e5d9d6f7a56b",
-        "clean": false,
-        "changedEntries": 3,
+        "observedHead": "c99eb890fa0945d04090a760d29a226ba4b0f1f1",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -1243,7 +1230,7 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 3
           }
         },
         "claimedReleaseStates": {
@@ -1267,13 +1254,12 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
         "public metadata is missing from the branch tree",
         "full-goal coverage has 11 autonomous or unresolved items",
         "fullGoalCoverage lacks an exact sourceCommit",
         "productRelease lacks an exact sourceCommit"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: public metadata is missing from the branch tree."
     },
     {
       "id": "11",
@@ -1292,8 +1278,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
-        "remoteSha": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
+        "localSha": "541ee4f347a792f63e9d07747b226a03154e4f61",
+        "remoteSha": "541ee4f347a792f63e9d07747b226a03154e4f61",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -1305,9 +1291,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "11-developer",
-        "observedHead": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
-        "clean": false,
-        "changedEntries": 9,
+        "observedHead": "541ee4f347a792f63e9d07747b226a03154e4f61",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -1345,11 +1331,11 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+            "sourceCommit": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 1
           },
           "productRelease": {
             "sourceCommit": null,
@@ -1394,13 +1380,12 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
         "public metadata is missing from the branch tree",
         "full-goal coverage has 14 autonomous or unresolved items",
         "productRelease lacks an exact sourceCommit",
         "integrationContract lacks an exact sourceCommit"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: public metadata is missing from the branch tree."
     },
     {
       "id": "12",
@@ -1432,8 +1417,8 @@
         "registered": true,
         "pathToken": "12-explorer",
         "observedHead": "bb34e20994f04be2d5bef7cad220545887855ddc",
-        "clean": true,
-        "changedEntries": 0,
+        "clean": false,
+        "changedEntries": 1,
         "statusError": null
       },
       "evidence": {
@@ -1520,9 +1505,10 @@
         "acceptedAt": null
       },
       "blockers": [
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 15 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 15 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "13",
@@ -1554,8 +1540,8 @@
         "registered": true,
         "pathToken": "13-monitor",
         "observedHead": "2f0cfbd549da2b20f7079ced7c897c43fe8b0005",
-        "clean": true,
-        "changedEntries": 0,
+        "clean": false,
+        "changedEntries": 1,
         "statusError": null
       },
       "evidence": {
@@ -1642,9 +1628,10 @@
         "acceptedAt": null
       },
       "blockers": [
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 16 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 16 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "14",
@@ -1662,8 +1649,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "95e7385f99ee1f7c585f6ee406784783e25b8ead",
-        "remoteSha": "95e7385f99ee1f7c585f6ee406784783e25b8ead",
+        "localSha": "c1a29c435af78cb9dc5a2c82d6e869cf7f24fe6f",
+        "remoteSha": "c1a29c435af78cb9dc5a2c82d6e869cf7f24fe6f",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -1675,136 +1662,7 @@
       "worktree": {
         "registered": true,
         "pathToken": "14-ai",
-        "observedHead": "95e7385f99ee1f7c585f6ee406784783e25b8ead",
-        "clean": false,
-        "changedEntries": 13,
-        "statusError": null
-      },
-      "evidence": {
-        "paths": {
-          "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
-          "productRelease": "apps/ai/product-release.json",
-          "publicMetadata": null,
-          "integrationContract": "release/integration/ynx-ai-contract.json",
-          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
-          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
-        },
-        "coverage": {
-          "total": 27,
-          "open": 8,
-          "invalid": 0,
-          "counts": {
-            "notStarted": 2,
-            "inProgress": 6,
-            "implementedLocal": 0,
-            "testedLocal": 14,
-            "integratedCentral": 0,
-            "testnetVerified": 0,
-            "publicVerified": 0,
-            "externalBlocked": 3,
-            "notApplicable": 0,
-            "verifiedComplete": 2
-          }
-        },
-        "recordMatches": {
-          "fullGoalCoverage": true,
-          "productRelease": true,
-          "publicMetadata": false,
-          "integrationContract": true
-        },
-        "sourceBindings": {
-          "fullGoalCoverage": {
-            "sourceCommit": null,
-            "valid": false,
-            "exact": false,
-            "reachable": false,
-            "distance": null
-          },
-          "productRelease": {
-            "sourceCommit": null,
-            "valid": false,
-            "exact": false,
-            "reachable": false,
-            "distance": null
-          },
-          "publicMetadata": {
-            "sourceCommit": null,
-            "valid": false,
-            "exact": false,
-            "reachable": false,
-            "distance": null
-          },
-          "integrationContract": {
-            "sourceCommit": null,
-            "valid": false,
-            "exact": false,
-            "reachable": false,
-            "distance": null
-          }
-        },
-        "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
-        },
-        "exactCommitBound": true
-      },
-      "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
-        "acceptedSourceCommit": null,
-        "acceptedBy": "29-integration",
-        "acceptedAt": null
-      },
-      "blockers": [
-        "registered final worktree has uncommitted changes",
-        "public metadata is missing from the branch tree",
-        "full-goal coverage has 8 autonomous or unresolved items",
-        "fullGoalCoverage lacks an exact sourceCommit",
-        "productRelease lacks an exact sourceCommit",
-        "integrationContract lacks an exact sourceCommit"
-      ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
-    },
-    {
-      "id": "15",
-      "product": "YNX Trust Center",
-      "repository": "JiahaoAlbus/YNX-Chain",
-      "branch": "codex/final-trust-center",
-      "phase": "3",
-      "owner": "15-trust-center",
-      "dependencies": [
-        "02",
-        "12",
-        "13",
-        "26",
-        "30",
-        "31"
-      ],
-      "refs": {
-        "localExists": true,
-        "remoteExists": true,
-        "localSha": "413ce425c1d5bd43d89bb3813209840d8320f1f3",
-        "remoteSha": "413ce425c1d5bd43d89bb3813209840d8320f1f3",
-        "ahead": 0,
-        "behind": 0,
-        "upstreamConfigured": true,
-        "upstreamRef": "origin/codex/final-trust-center",
-        "repositoryMatches": true,
-        "synced": true,
-        "stableDuringScan": true
-      },
-      "worktree": {
-        "registered": true,
-        "pathToken": "15-trust-center",
-        "observedHead": "413ce425c1d5bd43d89bb3813209840d8320f1f3",
+        "observedHead": "c1a29c435af78cb9dc5a2c82d6e869cf7f24fe6f",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
@@ -1812,28 +1670,28 @@
       "evidence": {
         "paths": {
           "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
-          "productRelease": "product-release.json",
+          "productRelease": "apps/ai/product-release.json",
           "publicMetadata": "public-product-metadata.json",
-          "integrationContract": "release/integration/trust-center-contract.json",
+          "integrationContract": "release/integration/ynx-ai-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
           "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 19,
-          "open": 2,
+          "total": 27,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 2,
-            "implementedLocal": 2,
-            "testedLocal": 10,
+            "inProgress": 0,
+            "implementedLocal": 0,
+            "testedLocal": 20,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 4,
+            "externalBlocked": 5,
             "notApplicable": 0,
-            "verifiedComplete": 1
+            "verifiedComplete": 2
           }
         },
         "recordMatches": {
@@ -1844,151 +1702,28 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "d31811280ba741026c74a836a212f78fe88c172a",
+            "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 1
           },
           "productRelease": {
-            "sourceCommit": "d31811280ba741026c74a836a212f78fe88c172a",
+            "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 1
           },
           "publicMetadata": {
-            "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356",
+            "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 6
+            "distance": 1
           },
           "integrationContract": {
-            "sourceCommit": "d31811280ba741026c74a836a212f78fe88c172a",
-            "valid": true,
-            "exact": false,
-            "reachable": true,
-            "distance": 2
-          }
-        },
-        "claimedReleaseStates": {
-          "implementedLocal": true,
-          "testedLocal": true,
-          "installedLocal": false,
-          "integratedCentral": false,
-          "deployedStaging": false,
-          "deployedPublic": false,
-          "downloadHosted": false,
-          "productionSigned": false,
-          "storeReleased": false
-        },
-        "exactCommitBound": false
-      },
-      "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
-        "acceptedSourceCommit": null,
-        "acceptedBy": "29-integration",
-        "acceptedAt": null
-      },
-      "blockers": [
-        "full-goal coverage has 2 autonomous or unresolved items"
-      ],
-      "nextAction": "Resolve: full-goal coverage has 2 autonomous or unresolved items."
-    },
-    {
-      "id": "16",
-      "product": "YNX Resource Market",
-      "repository": "JiahaoAlbus/YNX-Chain",
-      "branch": "codex/final-resource-market",
-      "phase": "3",
-      "owner": "16-resource-market",
-      "dependencies": [
-        "02",
-        "04",
-        "20",
-        "26",
-        "30"
-      ],
-      "refs": {
-        "localExists": true,
-        "remoteExists": true,
-        "localSha": "f7f38c49261d61521a9967d9782ae43ef09e4883",
-        "remoteSha": "f7f38c49261d61521a9967d9782ae43ef09e4883",
-        "ahead": 0,
-        "behind": 0,
-        "upstreamConfigured": true,
-        "upstreamRef": "origin/codex/final-resource-market",
-        "repositoryMatches": true,
-        "synced": true,
-        "stableDuringScan": true
-      },
-      "worktree": {
-        "registered": true,
-        "pathToken": "16-resource-market",
-        "observedHead": "f7f38c49261d61521a9967d9782ae43ef09e4883",
-        "clean": false,
-        "changedEntries": 1,
-        "statusError": null
-      },
-      "evidence": {
-        "paths": {
-          "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
-          "productRelease": "apps/resource-market/product-release.json",
-          "publicMetadata": "apps/resource-market/public-product-metadata.json",
-          "integrationContract": "release/integration/resource-market-contract.json",
-          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
-          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
-        },
-        "coverage": {
-          "total": 22,
-          "open": 3,
-          "invalid": 1,
-          "counts": {
-            "notStarted": 0,
-            "inProgress": 3,
-            "implementedLocal": 2,
-            "testedLocal": 11,
-            "integratedCentral": 0,
-            "testnetVerified": 0,
-            "publicVerified": 0,
-            "externalBlocked": 4,
-            "notApplicable": 1,
-            "verifiedComplete": 0
-          }
-        },
-        "recordMatches": {
-          "fullGoalCoverage": true,
-          "productRelease": true,
-          "publicMetadata": true,
-          "integrationContract": true
-        },
-        "sourceBindings": {
-          "fullGoalCoverage": {
-            "sourceCommit": null,
-            "valid": false,
-            "exact": false,
-            "reachable": false,
-            "distance": null
-          },
-          "productRelease": {
-            "sourceCommit": null,
-            "valid": false,
-            "exact": false,
-            "reachable": false,
-            "distance": null
-          },
-          "publicMetadata": {
-            "sourceCommit": null,
-            "valid": false,
-            "exact": false,
-            "reachable": false,
-            "distance": null
-          },
-          "integrationContract": {
-            "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
+            "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
             "valid": true,
             "exact": false,
             "reachable": true,
@@ -2009,6 +1744,249 @@
         "exactCommitBound": false
       },
       "centralAcceptance": {
+        "status": "implementedLocal",
+        "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
+        "acceptedSourceCommit": null,
+        "acceptedBy": "29-integration",
+        "acceptedAt": null
+      },
+      "blockers": [],
+      "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion."
+    },
+    {
+      "id": "15",
+      "product": "YNX Trust Center",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-trust-center",
+      "phase": "3",
+      "owner": "15-trust-center",
+      "dependencies": [
+        "02",
+        "12",
+        "13",
+        "26",
+        "30",
+        "31"
+      ],
+      "refs": {
+        "localExists": true,
+        "remoteExists": true,
+        "localSha": "1baeccada8e72eab8277803973d0e598dcf19b51",
+        "remoteSha": "1baeccada8e72eab8277803973d0e598dcf19b51",
+        "ahead": 0,
+        "behind": 0,
+        "upstreamConfigured": true,
+        "upstreamRef": "origin/codex/final-trust-center",
+        "repositoryMatches": true,
+        "synced": true,
+        "stableDuringScan": true
+      },
+      "worktree": {
+        "registered": true,
+        "pathToken": "15-trust-center",
+        "observedHead": "1baeccada8e72eab8277803973d0e598dcf19b51",
+        "clean": true,
+        "changedEntries": 0,
+        "statusError": null
+      },
+      "evidence": {
+        "paths": {
+          "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
+          "productRelease": "product-release.json",
+          "publicMetadata": "public-product-metadata.json",
+          "integrationContract": "release/integration/trust-center-contract.json",
+          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
+          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+        },
+        "coverage": {
+          "total": 19,
+          "open": 0,
+          "invalid": 0,
+          "counts": {
+            "notStarted": 0,
+            "inProgress": 0,
+            "implementedLocal": 2,
+            "testedLocal": 11,
+            "integratedCentral": 0,
+            "testnetVerified": 0,
+            "publicVerified": 0,
+            "externalBlocked": 5,
+            "notApplicable": 0,
+            "verifiedComplete": 1
+          }
+        },
+        "recordMatches": {
+          "fullGoalCoverage": true,
+          "productRelease": true,
+          "publicMetadata": true,
+          "integrationContract": true
+        },
+        "sourceBindings": {
+          "fullGoalCoverage": {
+            "sourceCommit": "cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3",
+            "valid": true,
+            "exact": false,
+            "reachable": true,
+            "distance": 2
+          },
+          "productRelease": {
+            "sourceCommit": "cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3",
+            "valid": true,
+            "exact": false,
+            "reachable": true,
+            "distance": 2
+          },
+          "publicMetadata": {
+            "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356",
+            "valid": true,
+            "exact": false,
+            "reachable": true,
+            "distance": 9
+          },
+          "integrationContract": {
+            "sourceCommit": "d31811280ba741026c74a836a212f78fe88c172a",
+            "valid": true,
+            "exact": false,
+            "reachable": true,
+            "distance": 5
+          }
+        },
+        "claimedReleaseStates": {
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": true,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
+        },
+        "exactCommitBound": false
+      },
+      "centralAcceptance": {
+        "status": "implementedLocal",
+        "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
+        "acceptedSourceCommit": null,
+        "acceptedBy": "29-integration",
+        "acceptedAt": null
+      },
+      "blockers": [],
+      "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion."
+    },
+    {
+      "id": "16",
+      "product": "YNX Resource Market",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-resource-market",
+      "phase": "3",
+      "owner": "16-resource-market",
+      "dependencies": [
+        "02",
+        "04",
+        "20",
+        "26",
+        "30"
+      ],
+      "refs": {
+        "localExists": true,
+        "remoteExists": true,
+        "localSha": "be6ac6326e30f33f1da2ca51585ed52e1ce54382",
+        "remoteSha": "be6ac6326e30f33f1da2ca51585ed52e1ce54382",
+        "ahead": 0,
+        "behind": 0,
+        "upstreamConfigured": true,
+        "upstreamRef": "origin/codex/final-resource-market",
+        "repositoryMatches": true,
+        "synced": true,
+        "stableDuringScan": true
+      },
+      "worktree": {
+        "registered": true,
+        "pathToken": "16-resource-market",
+        "observedHead": "be6ac6326e30f33f1da2ca51585ed52e1ce54382",
+        "clean": false,
+        "changedEntries": 295,
+        "statusError": null
+      },
+      "evidence": {
+        "paths": {
+          "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
+          "productRelease": "apps/resource-market/product-release.json",
+          "publicMetadata": "apps/resource-market/public-product-metadata.json",
+          "integrationContract": "release/integration/resource-market-contract.json",
+          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
+          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+        },
+        "coverage": {
+          "total": 22,
+          "open": 0,
+          "invalid": 0,
+          "counts": {
+            "notStarted": 0,
+            "inProgress": 0,
+            "implementedLocal": 2,
+            "testedLocal": 15,
+            "integratedCentral": 0,
+            "testnetVerified": 0,
+            "publicVerified": 0,
+            "externalBlocked": 4,
+            "notApplicable": 1,
+            "verifiedComplete": 0
+          }
+        },
+        "recordMatches": {
+          "fullGoalCoverage": true,
+          "productRelease": true,
+          "publicMetadata": true,
+          "integrationContract": true
+        },
+        "sourceBindings": {
+          "fullGoalCoverage": {
+            "sourceCommit": "c15178c5ca0d7e248b09b5cbd1bd7f2fe10e4195",
+            "valid": true,
+            "exact": false,
+            "reachable": true,
+            "distance": 1
+          },
+          "productRelease": {
+            "sourceCommit": "c15178c5ca0d7e248b09b5cbd1bd7f2fe10e4195",
+            "valid": true,
+            "exact": false,
+            "reachable": true,
+            "distance": 1
+          },
+          "publicMetadata": {
+            "sourceCommit": "c15178c5ca0d7e248b09b5cbd1bd7f2fe10e4195",
+            "valid": true,
+            "exact": false,
+            "reachable": true,
+            "distance": 1
+          },
+          "integrationContract": {
+            "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
+            "valid": true,
+            "exact": false,
+            "reachable": true,
+            "distance": 6
+          }
+        },
+        "claimedReleaseStates": {
+          "implementedLocal": false,
+          "testedLocal": false,
+          "installedLocal": true,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
+        },
+        "exactCommitBound": false
+      },
+      "centralAcceptance": {
         "status": "inProgress",
         "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
         "acceptedSourceCommit": null,
@@ -2016,12 +1994,7 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
-        "full-goal coverage is empty or contains an invalid status",
-        "full-goal coverage has 3 autonomous or unresolved items",
-        "fullGoalCoverage lacks an exact sourceCommit",
-        "productRelease lacks an exact sourceCommit",
-        "publicMetadata lacks an exact sourceCommit"
+        "registered final worktree has uncommitted changes"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -2043,8 +2016,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "07feb0e8cebc54dc9b08cb3fba461d74d4b16b5c",
-        "remoteSha": "07feb0e8cebc54dc9b08cb3fba461d74d4b16b5c",
+        "localSha": "4af13fe12c4031e29e61646305c9fa6dc267ebe3",
+        "remoteSha": "4af13fe12c4031e29e61646305c9fa6dc267ebe3",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -2056,9 +2029,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "17-tokenomics",
-        "observedHead": "07feb0e8cebc54dc9b08cb3fba461d74d4b16b5c",
-        "clean": true,
-        "changedEntries": 0,
+        "observedHead": "4af13fe12c4031e29e61646305c9fa6dc267ebe3",
+        "clean": false,
+        "changedEntries": 1,
         "statusError": null
       },
       "evidence": {
@@ -2073,19 +2046,19 @@
         },
         "coverage": {
           "total": 24,
-          "open": 4,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 4,
+            "inProgress": 0,
             "implementedLocal": 3,
             "testedLocal": 14,
             "integratedCentral": 0,
             "testnetVerified": 2,
             "publicVerified": 0,
-            "externalBlocked": 1,
+            "externalBlocked": 4,
             "notApplicable": 0,
-            "verifiedComplete": 0
+            "verifiedComplete": 1
           }
         },
         "recordMatches": {
@@ -2100,28 +2073,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "productRelease": {
             "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 2
           },
           "publicMetadata": {
             "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 33
+            "distance": 34
           },
           "integrationContract": {
             "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 33
+            "distance": 34
           }
         },
         "claimedReleaseStates": {
@@ -2145,9 +2118,9 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage has 4 autonomous or unresolved items"
+        "registered final worktree has uncommitted changes"
       ],
-      "nextAction": "Resolve: full-goal coverage has 4 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "18",
@@ -2170,8 +2143,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "5e98b0aa508157a6d2889bbfb78bb50c1abaf3a8",
-        "remoteSha": "5e98b0aa508157a6d2889bbfb78bb50c1abaf3a8",
+        "localSha": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
+        "remoteSha": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -2183,9 +2156,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "18-docs-compliance",
-        "observedHead": "5e98b0aa508157a6d2889bbfb78bb50c1abaf3a8",
-        "clean": false,
-        "changedEntries": 1,
+        "observedHead": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -2227,21 +2200,21 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 7
+            "distance": 9
           },
           "productRelease": {
             "sourceCommit": "046bc4f23f78d3c80881f6d2ed7dac88f35bf8a4",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 9
+            "distance": 11
           },
           "publicMetadata": {
             "sourceCommit": "2e3c893c7c97e7bc713af4e9a74438ffd125289f",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 20
+            "distance": 22
           },
           "integrationContract": {
             "sourceCommit": null,
@@ -2272,13 +2245,12 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
         "integration contract is missing from the branch tree",
         "productRelease belongs to a different product or authority owner",
         "publicMetadata belongs to a different product or authority owner",
         "full-goal coverage has 7 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: integration contract is missing from the branch tree."
     },
     {
       "id": "19",
@@ -2295,8 +2267,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "6352bcef47b786dada07eb21f24f6ecccd091572",
-        "remoteSha": "6352bcef47b786dada07eb21f24f6ecccd091572",
+        "localSha": "e3130d43a25711a9f8330ade04652a5ba455e974",
+        "remoteSha": "e3130d43a25711a9f8330ade04652a5ba455e974",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -2308,9 +2280,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "19-oracle-market-data",
-        "observedHead": "6352bcef47b786dada07eb21f24f6ecccd091572",
-        "clean": true,
-        "changedEntries": 0,
+        "observedHead": "e3130d43a25711a9f8330ade04652a5ba455e974",
+        "clean": false,
+        "changedEntries": 2,
         "statusError": null
       },
       "evidence": {
@@ -2325,13 +2297,13 @@
         },
         "coverage": {
           "total": 43,
-          "open": 1,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 1,
+            "inProgress": 0,
             "implementedLocal": 0,
-            "testedLocal": 24,
+            "testedLocal": 25,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 3,
@@ -2352,28 +2324,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 2
           },
           "productRelease": {
             "sourceCommit": "6ba6c39a6661724e07205a265201ac7fa36c91bb",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 5
           },
           "publicMetadata": {
             "sourceCommit": "a3c3275c15f31a4f5de96c6f4ebce0b04245db79",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 2
           },
           "integrationContract": {
             "sourceCommit": "f71d5ca5c2ede28477fbadff36701a9f040e311f",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 14
+            "distance": 15
           }
         },
         "claimedReleaseStates": {
@@ -2397,9 +2369,9 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage has 1 autonomous or unresolved items"
+        "registered final worktree has uncommitted changes"
       ],
-      "nextAction": "Resolve: full-goal coverage has 1 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "20",
@@ -2418,8 +2390,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "e5e417ea484809949389712d95b0e18fdbd2e45a",
-        "remoteSha": "e5e417ea484809949389712d95b0e18fdbd2e45a",
+        "localSha": "3ad63bb7cb52254270b7f059a1b263fa721d78c2",
+        "remoteSha": "3ad63bb7cb52254270b7f059a1b263fa721d78c2",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -2431,9 +2403,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "20-cloud",
-        "observedHead": "e5e417ea484809949389712d95b0e18fdbd2e45a",
-        "clean": false,
-        "changedEntries": 4,
+        "observedHead": "3ad63bb7cb52254270b7f059a1b263fa721d78c2",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -2482,7 +2454,7 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 3
           },
           "publicMetadata": {
             "sourceCommit": null,
@@ -2496,7 +2468,7 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 3
           }
         },
         "claimedReleaseStates": {
@@ -2520,12 +2492,11 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
         "full-goal coverage has 8 autonomous or unresolved items",
         "fullGoalCoverage lacks an exact sourceCommit",
         "publicMetadata lacks an exact sourceCommit"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: full-goal coverage has 8 autonomous or unresolved items."
     },
     {
       "id": "21",
@@ -2559,8 +2530,8 @@
         "registered": true,
         "pathToken": "21-bridge",
         "observedHead": "49d657c740c3488df06da68b92b414adca6026b8",
-        "clean": true,
-        "changedEntries": 0,
+        "clean": false,
+        "changedEntries": 1,
         "statusError": null
       },
       "evidence": {
@@ -2647,9 +2618,10 @@
         "acceptedAt": null
       },
       "blockers": [
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 8 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 8 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "22",
@@ -2683,8 +2655,8 @@
         "registered": true,
         "pathToken": "22-browser",
         "observedHead": "49c9ba14057b79076c36f2ee83f77a7dd9bdfb56",
-        "clean": true,
-        "changedEntries": 0,
+        "clean": false,
+        "changedEntries": 2,
         "statusError": null
       },
       "evidence": {
@@ -2771,9 +2743,10 @@
         "acceptedAt": null
       },
       "blockers": [
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 7 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 7 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "23",
@@ -2793,22 +2766,22 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "0ef7895c87e0c96de1633d9d3449ec88a1cdb893",
-        "remoteSha": "66bc18ea697be99a990143ab0b843652c49931b7",
-        "ahead": 1,
+        "localSha": "f16c87654f812b1edbdfa0b2508c5994a49a77a6",
+        "remoteSha": "f16c87654f812b1edbdfa0b2508c5994a49a77a6",
+        "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
         "upstreamRef": "origin/codex/final-search",
         "repositoryMatches": true,
-        "synced": false,
+        "synced": true,
         "stableDuringScan": true
       },
       "worktree": {
         "registered": true,
         "pathToken": "23-search",
-        "observedHead": "0ef7895c87e0c96de1633d9d3449ec88a1cdb893",
+        "observedHead": "f16c87654f812b1edbdfa0b2508c5994a49a77a6",
         "clean": false,
-        "changedEntries": 13,
+        "changedEntries": 2,
         "statusError": null
       },
       "evidence": {
@@ -2846,7 +2819,7 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
+            "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
             "valid": true,
             "exact": false,
             "reachable": true,
@@ -2860,14 +2833,14 @@
             "distance": null
           },
           "publicMetadata": {
-            "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
+            "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
             "valid": true,
             "exact": false,
             "reachable": true,
             "distance": 1
           },
           "integrationContract": {
-            "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
+            "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
             "valid": true,
             "exact": false,
             "reachable": true,
@@ -2895,12 +2868,11 @@
         "acceptedAt": null
       },
       "blockers": [
-        "local and remote final branch SHAs differ",
         "registered final worktree has uncommitted changes",
         "full-goal coverage has 12 autonomous or unresolved items",
         "productRelease lacks an exact sourceCommit"
       ],
-      "nextAction": "Resolve: local and remote final branch SHAs differ."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "24",
@@ -2936,8 +2908,8 @@
         "registered": true,
         "pathToken": "24-finance",
         "observedHead": "8efa53277b15470ca20762c7af51930374cd9ecf",
-        "clean": true,
-        "changedEntries": 0,
+        "clean": false,
+        "changedEntries": 2,
         "statusError": null
       },
       "evidence": {
@@ -3024,9 +2996,10 @@
         "acceptedAt": null
       },
       "blockers": [
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 9 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 9 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "25",
@@ -3044,8 +3017,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "fedfed5e4017f36556c5a1df730859c9ac044105",
-        "remoteSha": "fedfed5e4017f36556c5a1df730859c9ac044105",
+        "localSha": "aec6dd1e7fae0bfe51633faf7b0995ad215c9e2a",
+        "remoteSha": "aec6dd1e7fae0bfe51633faf7b0995ad215c9e2a",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3057,9 +3030,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "25-mail",
-        "observedHead": "fedfed5e4017f36556c5a1df730859c9ac044105",
-        "clean": false,
-        "changedEntries": 2,
+        "observedHead": "aec6dd1e7fae0bfe51633faf7b0995ad215c9e2a",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -3146,14 +3119,13 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
         "full-goal coverage has 6 autonomous or unresolved items",
         "fullGoalCoverage lacks an exact sourceCommit",
         "productRelease lacks an exact sourceCommit",
         "publicMetadata lacks an exact sourceCommit",
         "integrationContract sourceCommit is not reachable from the final branch"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: full-goal coverage has 6 autonomous or unresolved items."
     },
     {
       "id": "26",
@@ -3183,8 +3155,8 @@
         "registered": true,
         "pathToken": "26-data-fabric",
         "observedHead": "ebb47c426aa665c538f9fe55208aaa02de3a627e",
-        "clean": true,
-        "changedEntries": 0,
+        "clean": false,
+        "changedEntries": 4,
         "statusError": null
       },
       "evidence": {
@@ -3271,9 +3243,10 @@
         "acceptedAt": null
       },
       "blockers": [
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 7 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 7 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "27",
@@ -3294,8 +3267,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "6f264aef423b55fb12f277166f57137777037c20",
-        "remoteSha": "6f264aef423b55fb12f277166f57137777037c20",
+        "localSha": "f933440d5cb791044476eb69c58c522d5c91d8a1",
+        "remoteSha": "f933440d5cb791044476eb69c58c522d5c91d8a1",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3307,9 +3280,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "27-dex",
-        "observedHead": "6f264aef423b55fb12f277166f57137777037c20",
-        "clean": false,
-        "changedEntries": 4,
+        "observedHead": "f933440d5cb791044476eb69c58c522d5c91d8a1",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -3324,13 +3297,13 @@
         },
         "coverage": {
           "total": 34,
-          "open": 14,
+          "open": 13,
           "invalid": 0,
           "counts": {
-            "notStarted": 6,
+            "notStarted": 5,
             "inProgress": 8,
             "implementedLocal": 3,
-            "testedLocal": 12,
+            "testedLocal": 13,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
@@ -3351,7 +3324,7 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 3
           },
           "productRelease": {
             "sourceCommit": null,
@@ -3365,10 +3338,10 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 3
           },
           "integrationContract": {
-            "sourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+            "sourceCommit": "7d61369e02ab4d50a9fc36c927dc487e47ce9814",
             "valid": true,
             "exact": false,
             "reachable": true,
@@ -3396,11 +3369,10 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
-        "full-goal coverage has 14 autonomous or unresolved items",
+        "full-goal coverage has 13 autonomous or unresolved items",
         "productRelease lacks an exact sourceCommit"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: full-goal coverage has 13 autonomous or unresolved items."
     },
     {
       "id": "28",
@@ -3417,8 +3389,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "59d145f9af66ac46260212f8659521148b4de13d",
-        "remoteSha": "59d145f9af66ac46260212f8659521148b4de13d",
+        "localSha": "1b8a919cf29fbc79d342a2ef3d7499df08268b03",
+        "remoteSha": "1b8a919cf29fbc79d342a2ef3d7499df08268b03",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3430,7 +3402,7 @@
       "worktree": {
         "registered": true,
         "pathToken": "28-website",
-        "observedHead": "59d145f9af66ac46260212f8659521148b4de13d",
+        "observedHead": "1b8a919cf29fbc79d342a2ef3d7499df08268b03",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
@@ -3447,19 +3419,19 @@
         },
         "coverage": {
           "total": 14,
-          "open": 5,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 5,
+            "inProgress": 0,
             "implementedLocal": 0,
-            "testedLocal": 7,
+            "testedLocal": 8,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 1,
+            "externalBlocked": 4,
             "notApplicable": 0,
-            "verifiedComplete": 1
+            "verifiedComplete": 2
           }
         },
         "recordMatches": {
@@ -3470,28 +3442,28 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "1e998b5a2d09ab389fe0652f739aab7d1a352eb9",
+            "sourceCommit": "eaf279c9aad22059d5a832bc6455b926509d4b22",
             "valid": true,
             "exact": false,
             "reachable": true,
             "distance": 1
           },
           "productRelease": {
-            "sourceCommit": "1e998b5a2d09ab389fe0652f739aab7d1a352eb9",
+            "sourceCommit": "eaf279c9aad22059d5a832bc6455b926509d4b22",
             "valid": true,
             "exact": false,
             "reachable": true,
             "distance": 1
           },
           "publicMetadata": {
-            "sourceCommit": "1e998b5a2d09ab389fe0652f739aab7d1a352eb9",
+            "sourceCommit": "eaf279c9aad22059d5a832bc6455b926509d4b22",
             "valid": true,
             "exact": false,
             "reachable": true,
             "distance": 1
           },
           "integrationContract": {
-            "sourceCommit": "1e998b5a2d09ab389fe0652f739aab7d1a352eb9",
+            "sourceCommit": "eaf279c9aad22059d5a832bc6455b926509d4b22",
             "valid": true,
             "exact": false,
             "reachable": true,
@@ -3512,16 +3484,14 @@
         "exactCommitBound": false
       },
       "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
+        "status": "implementedLocal",
+        "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
         "acceptedAt": null
       },
-      "blockers": [
-        "full-goal coverage has 5 autonomous or unresolved items"
-      ],
-      "nextAction": "Resolve: full-goal coverage has 5 autonomous or unresolved items."
+      "blockers": [],
+      "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion."
     },
     {
       "id": "29",
@@ -3549,8 +3519,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "d46ad4b751604443e9c43b1fd24cba571ebd94bc",
-        "remoteSha": "d46ad4b751604443e9c43b1fd24cba571ebd94bc",
+        "localSha": "40dcf3eeb152a1fb4887d0c7f6a79f095dd6f185",
+        "remoteSha": "40dcf3eeb152a1fb4887d0c7f6a79f095dd6f185",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3562,9 +3532,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "d46ad4b751604443e9c43b1fd24cba571ebd94bc",
+        "observedHead": "40dcf3eeb152a1fb4887d0c7f6a79f095dd6f185",
         "clean": false,
-        "changedEntries": 1,
+        "changedEntries": 2,
         "statusError": null
       },
       "evidence": {
@@ -3606,28 +3576,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 12
+            "distance": 13
           },
           "productRelease": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 56
+            "distance": 57
           },
           "publicMetadata": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 56
+            "distance": 57
           },
           "integrationContract": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 56
+            "distance": 57
           }
         },
         "claimedReleaseStates": {
@@ -3792,8 +3762,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "146c2a0ad85136815f03b2272688c5220cef7842",
-        "remoteSha": "146c2a0ad85136815f03b2272688c5220cef7842",
+        "localSha": "4e6c67488e81f5ec82995de81dd25a33861d7dc3",
+        "remoteSha": "4e6c67488e81f5ec82995de81dd25a33861d7dc3",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3805,7 +3775,7 @@
       "worktree": {
         "registered": true,
         "pathToken": "31-governance",
-        "observedHead": "146c2a0ad85136815f03b2272688c5220cef7842",
+        "observedHead": "4e6c67488e81f5ec82995de81dd25a33861d7dc3",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
@@ -3822,19 +3792,19 @@
         },
         "coverage": {
           "total": 14,
-          "open": 5,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 5,
+            "inProgress": 0,
             "implementedLocal": 0,
-            "testedLocal": 7,
+            "testedLocal": 9,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 1,
+            "externalBlocked": 3,
             "notApplicable": 0,
-            "verifiedComplete": 1
+            "verifiedComplete": 2
           }
         },
         "recordMatches": {
@@ -3845,32 +3815,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+            "sourceCommit": "0ed74c9e737ca6d5bbdf226f6ca487dc398b4755",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 2
           },
           "productRelease": {
-            "sourceCommit": "ea949aacac147505360528583bd7fade12f7cac8",
+            "sourceCommit": "0ed74c9e737ca6d5bbdf226f6ca487dc398b4755",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 29
+            "distance": 2
           },
           "publicMetadata": {
-            "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+            "sourceCommit": "0ed74c9e737ca6d5bbdf226f6ca487dc398b4755",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 2
           },
           "integrationContract": {
-            "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+            "sourceCommit": "0ed74c9e737ca6d5bbdf226f6ca487dc398b4755",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 2
           }
         },
         "claimedReleaseStates": {
@@ -3887,16 +3857,14 @@
         "exactCommitBound": false
       },
       "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
+        "status": "implementedLocal",
+        "reason": "The final branch is synchronized and clean, and the required owner evidence bundle is present and source-reachable; central tests and acceptance remain pending.",
         "acceptedSourceCommit": null,
         "acceptedBy": "29-integration",
         "acceptedAt": null
       },
-      "blockers": [
-        "full-goal coverage has 5 autonomous or unresolved items"
-      ],
-      "nextAction": "Resolve: full-goal coverage has 5 autonomous or unresolved items."
+      "blockers": [],
+      "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion."
     },
     {
       "id": "32",
@@ -3918,8 +3886,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "85f1727d00e6dcf4a9b60d897b3180b1fa0e0b41",
-        "remoteSha": "85f1727d00e6dcf4a9b60d897b3180b1fa0e0b41",
+        "localSha": "8eafbd3f13c38e3ae80e5619dd80d441744f4309",
+        "remoteSha": "8eafbd3f13c38e3ae80e5619dd80d441744f4309",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3931,9 +3899,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "32-music",
-        "observedHead": "85f1727d00e6dcf4a9b60d897b3180b1fa0e0b41",
+        "observedHead": "8eafbd3f13c38e3ae80e5619dd80d441744f4309",
         "clean": false,
-        "changedEntries": 3,
+        "changedEntries": 2,
         "statusError": null
       },
       "evidence": {
@@ -3982,21 +3950,21 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 4
           },
           "publicMetadata": {
             "sourceCommit": "74716a19d95fc191b54102adc02000a91fafec24",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 4
           },
           "integrationContract": {
             "sourceCommit": "74716a19d95fc191b54102adc02000a91fafec24",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 4
           }
         },
         "claimedReleaseStates": {
@@ -4045,8 +4013,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "e9816e3ca95e1927c3398ecf169601f206d446c2",
-        "remoteSha": "e9816e3ca95e1927c3398ecf169601f206d446c2",
+        "localSha": "89e401f4bf4a71454757eee225ae1756501c93a4",
+        "remoteSha": "89e401f4bf4a71454757eee225ae1756501c93a4",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -4058,7 +4026,7 @@
       "worktree": {
         "registered": true,
         "pathToken": "33-video",
-        "observedHead": "e9816e3ca95e1927c3398ecf169601f206d446c2",
+        "observedHead": "89e401f4bf4a71454757eee225ae1756501c93a4",
         "clean": false,
         "changedEntries": 2,
         "statusError": null
@@ -4075,13 +4043,13 @@
         },
         "coverage": {
           "total": 50,
-          "open": 16,
+          "open": 14,
           "invalid": 0,
           "counts": {
             "notStarted": 4,
-            "inProgress": 12,
+            "inProgress": 10,
             "implementedLocal": 0,
-            "testedLocal": 25,
+            "testedLocal": 27,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
@@ -4098,11 +4066,11 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "11e64797c64cd64d1c6e53f0295c17997bde6f97",
+            "sourceCommit": "e9816e3ca95e1927c3398ecf169601f206d446c2",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 3
+            "distance": 1
           },
           "productRelease": {
             "sourceCommit": null,
@@ -4123,7 +4091,7 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 3
+            "distance": 4
           }
         },
         "claimedReleaseStates": {
@@ -4149,7 +4117,7 @@
       "blockers": [
         "registered final worktree has uncommitted changes",
         "public metadata is missing from the branch tree",
-        "full-goal coverage has 16 autonomous or unresolved items",
+        "full-goal coverage has 14 autonomous or unresolved items",
         "productRelease lacks an exact sourceCommit"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
@@ -4174,8 +4142,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "192da88b0ca3897278893711fb08e1373b0562b2",
-        "remoteSha": "192da88b0ca3897278893711fb08e1373b0562b2",
+        "localSha": "743dcfe42ed6ef17d861bf3ac8edb9b1ba1d830d",
+        "remoteSha": "743dcfe42ed6ef17d861bf3ac8edb9b1ba1d830d",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -4187,86 +4155,86 @@
       "worktree": {
         "registered": true,
         "pathToken": "34-creator-studio",
-        "observedHead": "192da88b0ca3897278893711fb08e1373b0562b2",
+        "observedHead": "743dcfe42ed6ef17d861bf3ac8edb9b1ba1d830d",
         "clean": false,
-        "changedEntries": 3,
+        "changedEntries": 4,
         "statusError": null
       },
       "evidence": {
         "paths": {
-          "fullGoalCoverage": null,
+          "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
           "productRelease": "apps/creator-studio/product-release.json",
-          "publicMetadata": null,
-          "integrationContract": null,
-          "integrationHandoff": null,
-          "crossProductTestVectors": null,
-          "dependencyAcceptance": null
+          "publicMetadata": "apps/creator-studio/public-product-metadata.json",
+          "integrationContract": "release/integration/creator-studio-contract.json",
+          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
+          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
         },
         "coverage": {
-          "total": 0,
-          "open": 0,
+          "total": 35,
+          "open": 19,
           "invalid": 0,
           "counts": {
-            "notStarted": 0,
-            "inProgress": 0,
-            "implementedLocal": 0,
-            "testedLocal": 0,
+            "notStarted": 8,
+            "inProgress": 11,
+            "implementedLocal": 2,
+            "testedLocal": 10,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
-            "externalBlocked": 0,
-            "notApplicable": 0,
+            "externalBlocked": 3,
+            "notApplicable": 1,
             "verifiedComplete": 0
           }
         },
         "recordMatches": {
-          "fullGoalCoverage": false,
+          "fullGoalCoverage": true,
           "productRelease": true,
-          "publicMetadata": false,
-          "integrationContract": false
+          "publicMetadata": true,
+          "integrationContract": true
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "192da88b0ca3897278893711fb08e1373b0562b2",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           },
           "productRelease": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "192da88b0ca3897278893711fb08e1373b0562b2",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           },
           "publicMetadata": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "192da88b0ca3897278893711fb08e1373b0562b2",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           },
           "integrationContract": {
-            "sourceCommit": null,
-            "valid": false,
+            "sourceCommit": "192da88b0ca3897278893711fb08e1373b0562b2",
+            "valid": true,
             "exact": false,
-            "reachable": false,
-            "distance": null
+            "reachable": true,
+            "distance": 1
           }
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
-        "exactCommitBound": true
+        "exactCommitBound": false
       },
       "centralAcceptance": {
         "status": "inProgress",
@@ -4277,13 +4245,7 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "full-goal coverage is missing from the branch tree",
-        "public metadata is missing from the branch tree",
-        "integration contract is missing from the branch tree",
-        "integration handoff is missing from the branch tree",
-        "cross-product test vectors is missing from the branch tree",
-        "dependency acceptance is missing from the branch tree",
-        "productRelease lacks an exact sourceCommit"
+        "full-goal coverage has 19 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
@@ -4304,8 +4266,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "056a2fc11fc5d2a99d1c1d8398f952e2cbc8ea2c",
-        "remoteSha": "056a2fc11fc5d2a99d1c1d8398f952e2cbc8ea2c",
+        "localSha": "88565a72796d55761a9002a4e3c947bc1b721adc",
+        "remoteSha": "88565a72796d55761a9002a4e3c947bc1b721adc",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -4317,9 +4279,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "35-docs",
-        "observedHead": "056a2fc11fc5d2a99d1c1d8398f952e2cbc8ea2c",
+        "observedHead": "88565a72796d55761a9002a4e3c947bc1b721adc",
         "clean": false,
-        "changedEntries": 6,
+        "changedEntries": 1,
         "statusError": null
       },
       "evidence": {
@@ -4337,8 +4299,8 @@
           "open": 15,
           "invalid": 0,
           "counts": {
-            "notStarted": 7,
-            "inProgress": 8,
+            "notStarted": 6,
+            "inProgress": 9,
             "implementedLocal": 3,
             "testedLocal": 16,
             "integratedCentral": 0,
@@ -4357,28 +4319,28 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+            "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
             "valid": true,
             "exact": false,
             "reachable": true,
             "distance": 1
           },
           "productRelease": {
-            "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+            "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
             "valid": true,
             "exact": false,
             "reachable": true,
             "distance": 1
           },
           "publicMetadata": {
-            "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+            "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
             "valid": true,
             "exact": false,
             "reachable": true,
             "distance": 1
           },
           "integrationContract": {
-            "sourceCommit": "376d8a42a641cf312d2b7330af0ed8566371c2e5",
+            "sourceCommit": "5d04c144987fd35d09925db72bd882719a2e7df9",
             "valid": true,
             "exact": false,
             "reachable": true,
@@ -4429,8 +4391,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-        "remoteSha": "9cf30f16c4312b4438d087b1df58cec68df54f15",
+        "localSha": "519f732ac8e7f3495009a23d7a603712499c6fd1",
+        "remoteSha": "519f732ac8e7f3495009a23d7a603712499c6fd1",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -4442,9 +4404,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "36-calendar",
-        "observedHead": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-        "clean": false,
-        "changedEntries": 8,
+        "observedHead": "519f732ac8e7f3495009a23d7a603712499c6fd1",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
@@ -4459,13 +4421,13 @@
         },
         "coverage": {
           "total": 40,
-          "open": 25,
+          "open": 24,
           "invalid": 0,
           "counts": {
             "notStarted": 10,
-            "inProgress": 15,
+            "inProgress": 14,
             "implementedLocal": 3,
-            "testedLocal": 9,
+            "testedLocal": 10,
             "integratedCentral": 0,
             "testnetVerified": 0,
             "publicVerified": 0,
@@ -4489,25 +4451,25 @@
             "distance": null
           },
           "productRelease": {
-            "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+            "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 1
           },
           "publicMetadata": {
-            "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+            "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 1
           },
           "integrationContract": {
-            "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+            "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 1
           }
         },
         "claimedReleaseStates": {
@@ -4531,11 +4493,10 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
-        "full-goal coverage has 25 autonomous or unresolved items",
+        "full-goal coverage has 24 autonomous or unresolved items",
         "fullGoalCoverage lacks an exact sourceCommit"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "nextAction": "Resolve: full-goal coverage has 24 autonomous or unresolved items."
     }
   ]
 }
