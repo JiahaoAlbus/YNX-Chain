@@ -4,9 +4,9 @@
   "owner": "YNX-30",
   "branch": "codex/final-security-platform",
   "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
-  "phase": "FREEZE",
+  "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
-  "lastUpdated": "2026-07-29T06:08:33Z",
+  "lastUpdated": "2026-07-29T12:18:00Z",
   "items": [
     {
       "id": "RECOVER-001",
@@ -173,16 +173,16 @@
       "category": "ci-cd",
       "requirement": "Protect the final branch with strict required checks, independent review, CODEOWNERS, linear history, conversation resolution and force-push/deletion denial.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": ["evidence/security-platform/GITHUB_BRANCH_PROTECTION_AUTHORITATIVE_2026-07-29.json", "GitHub branch protection REST API returned strict checks, review controls, linear history, conversation resolution and force-push/deletion denial"],
+      "status": "testedLocal",
+      "evidence": ["evidence/security-platform/GITHUB_BRANCH_PROTECTION_AUTHORITATIVE_2026-07-29.json", "evidence/security-platform/GITHUB_BRANCH_PROTECTION_FINAL_LOCK_2026-07-29.json", "GitHub branch protection REST API returned strict checks, administrator enforcement, review controls, linear history, conversation resolution and force-push/deletion denial"],
       "sourceCommit": "91bbf2862042676d55e62810eaa85624a076dc30",
-      "tests": ["PUT and GET /repos/JiahaoAlbus/YNX-Chain/branches/codex%2Ffinal-security-platform/protection"],
-      "artifact": "evidence/security-platform/GITHUB_BRANCH_PROTECTION_AUTHORITATIVE_2026-07-29.json",
+      "tests": ["PUT and GET /repos/JiahaoAlbus/YNX-Chain/branches/codex%2Ffinal-security-platform/protection", "POST /repos/JiahaoAlbus/YNX-Chain/branches/codex%2Ffinal-security-platform/protection/enforce_admins and final GET readback"],
+      "artifact": "evidence/security-platform/GITHUB_BRANCH_PROTECTION_FINAL_LOCK_2026-07-29.json",
       "publicProof": null,
-      "blockedBy": ["administrator enforcement remains disabled during active recovery", "approved commit-signing identity and compatibility plan are absent"],
+      "blockedBy": ["approved production commit-signing identity and compatibility plan are absent"],
       "owner": "YNX-30",
-      "nextAction": "Enable administrator enforcement during final repository lock; evaluate required signed commits only after an approved signing identity exists.",
-      "lastUpdated": "2026-07-29T06:16:00Z"
+      "nextAction": "Keep administrator enforcement and all required checks locked; enable required signed commits only after an approved signing identity and compatibility plan exist.",
+      "lastUpdated": "2026-07-29T12:18:00Z"
     },
     {
       "id": "SUPPLY-CHAIN-001",
@@ -461,16 +461,16 @@
       "category": "final-preflight",
       "requirement": "Pass full tests, build, install, smoke, migration, restore, security, remote CI, release, artifact, public evidence and clean local/remote parity before completion.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": ["authoritative clean clone installed and cold-started", "frozen release-source security suite 172/172 passed", "current branch security suite 179/179 passed", "central contract tooling plus all Go command/internal tests and go vet passed", "local Kubernetes render passed", "local production dependency audit reported zero vulnerabilities", "GitHub Security Platform Gates run 30426721604 succeeded at 7be79d5", "GitHub Security run 30426721645 succeeded at 7be79d5", "draft PR https://github.com/JiahaoAlbus/YNX-Chain/pull/16"],
+      "status": "externalBlocked",
+      "evidence": ["authoritative clean clone installed and cold-started", "frozen release-source security suite 172/172 passed", "current branch security suite 179/179 passed", "central contract tooling plus all Go command/internal tests and go vet passed", "local Kubernetes render passed", "local production dependency audit reported zero vulnerabilities", "GitHub Security Platform Gates run 30426721604 succeeded at 7be79d5", "GitHub Security run 30426721645 succeeded at 7be79d5", "draft PR https://github.com/JiahaoAlbus/YNX-Chain/pull/16 was green at exact pushed head 9c9931aa5e610a1456ce2950006ff0b0c39c50d9", "Product 29 integrated the Product 30 candidate and its draft PR https://github.com/JiahaoAlbus/YNX-Chain/pull/17 passed all exact-head checks at 7777942bb17a1e67483f5909287e79592ca0f1cf"],
       "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
-      "tests": ["npm run security:verify", "npm run security:test", "npm test", "npm run security:integration", "npm run security:notices", "npm audit --omit=dev --audit-level=high", "npm run lint", "node scripts/security-ci-policy.mjs", "GitHub protected-branch checks"],
+      "tests": ["npm run security:verify", "npm run security:test", "go test ./...", "go vet ./...", "npm run security:integration", "npm run security:notices", "npm run security:build-scripts", "npm audit --omit=dev --audit-level=high", "node scripts/security-ci-policy.mjs", "GitHub protected-branch checks"],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["administrator branch-protection bypass remains during active recovery", "central owner acceptance", "no staging/public evidence", "no immutable hosted or production-signed artifact"],
+      "blockedBy": ["approved staging and production cluster identities and operator authority", "production artifact signer and transparency evidence", "immutable artifact hosting", "DNS/TLS and approved support/privacy/security/status endpoints"],
       "owner": "YNX-30",
-      "nextAction": "Protect the authoritative branch, obtain green PR checks, then hand the exact contract to Product 29 for central integration.",
-      "lastUpdated": "2026-07-29T06:08:33Z"
+      "nextAction": "Retain source-release readiness while Product 29 performs central acceptance; keep staging, public, hosted-download and production-signing states false until direct external evidence exists.",
+      "lastUpdated": "2026-07-29T12:18:00Z"
     }
   ]
 }

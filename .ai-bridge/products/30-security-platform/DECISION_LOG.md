@@ -1,6 +1,6 @@
 # Product 30 Decision Log
 
-Updated: 2026-07-29T06:08:33Z
+Updated: 2026-07-29T12:18:00Z
 
 1. `JiahaoAlbus/YNX-Chain` is authoritative; `JiahaoAlbus/YNX` is legacy and receives no further Product 30 writes.
 2. Preserve the legacy branch and complete bundle before migration; do not rewrite unrelated repository history.
@@ -12,3 +12,6 @@ Updated: 2026-07-29T06:08:33Z
 8. Pin every external GitHub Action to an immutable 40-character commit, including workflows not originally owned by Product 30, because repository-wide supply-chain integrity is a Product 30 gate.
 9. Classify the old untracked `output/` as legacy failed public-gate captures, preserve it intact in the recovery area with a deterministic digest, and never present it as release proof.
 10. Keep the PR draft until central integration and shared-Testnet/public-release acceptance are evidenced.
+11. Enable administrator enforcement now that recovery writes are protected and the candidate has passed exact-head CI; preserve the complete REST readback as final-lock evidence.
+12. Keep required signed commits separate from administrator enforcement. Do not enable signing policy until an approved production signing identity and compatibility plan exist.
+13. Classify `FINAL-001` as `externalBlocked` only for true production authorities and public infrastructure. Product 30 local/source/CI/handoff work is complete; Product 29 central acceptance remains tracked by Product 29 rather than misclassified as an external blocker.
