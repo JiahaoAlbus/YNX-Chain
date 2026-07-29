@@ -9,9 +9,9 @@
     "title": "YNX Trust Center | Evidence, Appeals and Transparency",
     "metaDescription": "Review sourced evidence, request validity, appeals, corrections and transparency through a due-process-first YNX Testnet product.",
     "h1": "Evidence and due process, without hidden asset control",
-    "status": "local-candidate",
-    "statusAsOf": "2026-07-27",
-    "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356"
+    "status": "testnet-preview",
+    "statusAsOf": "2026-07-29",
+    "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51"
   },
   "directAnswer": "YNX Trust Center is the YNX Testnet product for request validity, sourced evidence, independent review, appeals, corrections and aggregate transparency. It cannot freeze, seize, blacklist or transfer native YNXT and AI cannot issue a final decision or punishment.",
   "features": [
@@ -22,11 +22,15 @@
     "Finite sourced labels and expiry",
     "Aggregate transparency reporting",
     "Product-scoped Wallet session adapter",
-    "Tamper-evident persistent state"
+    "Subject-scoped JSON export",
+    "Tamper-evident persistent state",
+    "Verified immutable backup and clean restore",
+    "Reproducible server and CLI release bundle"
   ],
   "riskAndStatus": [
     "Shared-Testnet central Gateway registration is not complete.",
-    "No public deployment, hosted download, production signing or store release is claimed.",
+    "The hosted GitHub artifact is an unsigned Testnet preview, not a production-signed or store-released build.",
+    "The canonical ynxweb4.com product route is not yet publicly verified.",
     "AI is an explanation and drafting layer only.",
     "Testnet records and assets have no mainnet or production status."
   ],
@@ -41,17 +45,30 @@
     },
     {
       "question": "Is the product publicly deployed?",
-      "answer": "No. The current release is locally implemented and tested, while central integration and public deployment remain blocked."
+      "answer": "No. A verified unsigned Testnet preview is hosted on GitHub, while central integration and the canonical ynxweb4.com deployment remain incomplete."
     }
   ],
   "platforms": {
     "web": "testedLocal",
     "android": "implementedLocal",
     "ios": "implementedLocal",
-    "server": "testedLocal"
+    "server": "installedLocal",
+    "backupCLI": "installedLocal"
   },
-  "downloads": [],
+  "downloads": [
+    {
+      "platform": "linux-amd64",
+      "release": "trust-center-v0.1.0-testnet-preview.1",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/trust-center-v0.1.0-testnet-preview.1/ynx-trust-center-1baeccada8e7-linux-amd64.tar.gz",
+      "sha256": "92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850",
+      "bytes": 4526557,
+      "signingClass": "unsigned-local",
+      "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51"
+    }
+  ],
   "urls": {
+    "canonical": "https://ynxweb4.com/trust-center",
+    "releaseEvidence": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/trust-center-v0.1.0-testnet-preview.1",
     "support": null,
     "privacy": null,
     "security": null,
@@ -60,13 +77,14 @@
   "structuredDataSuggestion": {
     "types": ["SoftwareApplication", "WebApplication", "FAQPage"],
     "applicationCategory": "SecurityApplication",
-    "operatingSystem": "Web, Android, iOS",
+    "operatingSystem": "Web, Linux, Android, iOS",
     "isAccessibleForFree": true,
     "releaseNotesSource": "RELEASE_NOTES.md"
   },
   "websiteOwnerActions": [
-    "Verify the canonical route before publishing.",
+    "Verify and publish https://ynxweb4.com/trust-center as the only canonical product route.",
+    "Mirror release metadata and checksum without changing the unsigned Testnet-preview boundary.",
     "Publish support, privacy, security and status URLs only after those routes exist.",
-    "Do not expose branch names, local paths, internal hosts or unverified release claims."
+    "Do not expose branch names, local paths, internal hosts or unverified production claims."
   ]
 }

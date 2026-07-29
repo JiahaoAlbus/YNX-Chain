@@ -11,7 +11,7 @@
 | AI explanation provider | 14 AI | Optional adapter tested locally | Provider-backed run succeeds or accurately reports unavailable; no mutation authority |
 | Canonical events | 26 Data Fabric | Candidate event names only | Integration freezes event schema/version and validates downstream ingestion |
 | Public product route | 28 Website | Metadata candidate only | Canonical URL, support/privacy/security/status and public proof exist |
-| Artifact/release controls | 30 Security/SRE | Local backup/restore is tested; artifact controls incomplete | SBOM, provenance, encrypted remote custody, independent restore, immutable hashes and signing class are verified |
+| Artifact/release controls | 30 Security/SRE | Source-bound CI, hosted unsigned preview, SBOM, provenance, checksums and local restore evidence exist | Accept production provenance, encrypted remote custody, independent restore, immutable release policy and signing class |
 
 ## Required invariants
 
@@ -62,4 +62,4 @@ The accepting owner must return:
 
 `NOT ACCEPTED FOR CENTRAL INTEGRATION`
 
-Reason: the product-local candidate has exact route-level scope enforcement, subject export and verified local backup/restore, but central client registration, shared-Testnet vectors, policy-approved deletion/retention, artifact provenance and public deployment evidence are incomplete.
+Reason: the product candidate has exact route-level scope enforcement, subject export, verified backup/restore, successful source-bound CI and a hosted unsigned Testnet preview. Central client registration, authoritative shared-Testnet vectors, policy-approved deletion/retention, production release acceptance and the canonical ynxweb4.com deployment remain incomplete.

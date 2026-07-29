@@ -6,7 +6,7 @@
   "branch": "codex/final-trust-center",
   "phase": "FREEZE",
   "goalStatus": "active",
-  "sourceCommit": "cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3",
+  "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
   "lastUpdated": "2026-07-29",
   "entries": [
     {
@@ -270,15 +270,15 @@
       "category": "security-supply-chain",
       "requirement": "Provide threat model, SBOM, dependency/license review, secret scan and artifact provenance.",
       "applicability": "required",
-      "status": "testedLocal",
-      "evidence": ["THREAT_MODEL.md", "scripts/package/trust-center-release.mjs", "evidence/trust-center-release-cb1dcbc/artifact-manifest.json", "evidence/trust-center-release-cb1dcbc/bom.cdx.json", "evidence/trust-center-release-cb1dcbc/THIRD_PARTY_NOTICES.txt", "evidence/trust-center-release-cb1dcbc/provenance.json", "evidence/trust-center-release-cb1dcbc/verification.json"],
-      "sourceCommit": "cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3",
-      "tests": ["GOTOOLCHAIN=go1.25.12 govulncheck ./apps/trust-center ./cmd/ynx-trust-backup ./internal/trustproduct", "GOTOOLCHAIN=go1.25.12 node scripts/package/trust-center-release.mjs --evidence evidence/trust-center-release-cb1dcbc"],
-      "artifact": "evidence/trust-center-release-cb1dcbc/artifact-manifest.json",
-      "publicProof": null,
+      "status": "installedLocal",
+      "evidence": ["THREAT_MODEL.md", "scripts/package/trust-center-release.mjs", "GitHub Actions run 30416831778", "GitHub prerelease trust-center-v0.1.0-testnet-preview.1", "hosted artifact-manifest.json", "hosted bom.cdx.json", "hosted THIRD_PARTY_NOTICES.txt", "hosted provenance.json", "hosted verification.json", "hosted SHA256SUMS"],
+      "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
+      "tests": ["go test -race ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center", "go vet ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center", "GitHub Actions trust-center run 30416831778"],
+      "artifact": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/trust-center-v0.1.0-testnet-preview.1/ynx-trust-center-1baeccada8e7-linux-amd64.tar.gz",
+      "publicProof": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/trust-center-v0.1.0-testnet-preview.1",
       "blockedBy": null,
       "owner": "15-trust-center",
-      "nextAction": "Preserve the pinned clean vulnerability scan and deterministic evidence; require independent attestation, immutable hosting, and production signing before promotion.",
+      "nextAction": "Obtain independent production attestation, encrypted remote custody, immutable release-policy acceptance and production signing before promotion.",
       "lastUpdated": "2026-07-29"
     },
     {
@@ -303,15 +303,15 @@
       "requirement": "Provide public HTTPS service, hosted artifacts, website route, SEO and public evidence.",
       "applicability": "required",
       "status": "externalBlocked",
-      "evidence": ["Public metadata and handoff package are prepared locally; no deployment is claimed"],
-      "sourceCommit": "4e78f47e9b2dedee71c12adf9790374412b45356",
-      "tests": [],
+      "evidence": ["Source-bound unsigned GitHub Testnet preview is hosted", "public-product-metadata.json carries the canonical ynxweb4.com route and exact download checksum", "canonical website deployment is not claimed"],
+      "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
+      "tests": ["GitHub prerelease asset digest and SHA-256 verified"],
       "artifact": "public-product-metadata.json",
-      "publicProof": null,
-      "blockedBy": "Website/DNS/deployment authority, hosting, signing and independent public verification.",
+      "publicProof": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/trust-center-v0.1.0-testnet-preview.1",
+      "blockedBy": "28 Website must publish and independently verify https://ynxweb4.com/trust-center; production signing and central integration remain separate gates.",
       "owner": "28-website-and-release-operators",
-      "nextAction": "Publish only after shared-Testnet and artifact gates pass.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Consume the current metadata and release evidence, then publish the canonical route without promoting production or central-integration claims.",
+      "lastUpdated": "2026-07-29"
     }
   ]
 }

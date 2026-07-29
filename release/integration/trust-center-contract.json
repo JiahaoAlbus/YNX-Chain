@@ -4,7 +4,7 @@
   "consumerOwner": "29-integration",
   "product": "ynx-trust-center",
   "clientId": "ynx-trust-center-v1",
-  "sourceCommit": "d31811280ba741026c74a836a212f78fe88c172a",
+  "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
   "network": {
     "name": "YNX Testnet",
     "cosmosChainId": "ynx_6423-1",
@@ -189,11 +189,11 @@
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": false,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   },

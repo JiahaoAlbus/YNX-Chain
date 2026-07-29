@@ -4,9 +4,9 @@
 
 - Product: YNX Trust Center
 - Branch: `codex/final-trust-center`
-- Runtime commit: `d31811280ba741026c74a836a212f78fe88c172a`
-- Date: 2026-07-27
-- Status: Active, local candidate
+- Runtime and hosted artifact commit: `1baeccada8e72eab8277803973d0e598dcf19b51`
+- Date: 2026-07-29
+- Status: Active Testnet preview; not centrally integrated or publicly deployed
 
 ## Runtime evidence
 
@@ -28,6 +28,9 @@
 | TRUST-EV-014 | Restored earlier checkpoint cold-starts with byte/state equivalence | `cmd/ynx-trust-backup` | package and CLI tests |
 | TRUST-EV-015 | Trust Gateway unsafe signer-key permissions fail deterministically | `internal/trustgateway/gateway_test.go` | Trust Gateway package test |
 | TRUST-EV-016 | Real local Trust product server smoke succeeds | `apps/trust-center/check.sh` | output `trust-center-check: ok` |
+| TRUST-EV-017 | Release binaries and archive are reproducible | GitHub Actions run `30416831778` | two-build hashes and deterministic archive pass |
+| TRUST-EV-018 | Hosted preview includes SBOM, provenance, notices and checksums | GitHub prerelease `trust-center-v0.1.0-testnet-preview.1` | seven uploaded release assets |
+| TRUST-EV-019 | Hosted archive is bound to the verified source commit | release asset and `verification.json` | SHA-256 `92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850` |
 
 ## Contract and release evidence
 
@@ -38,31 +41,24 @@
 - `docs/integration/INTEGRATION_HANDOFF.md`
 - `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- `docs/handoffs/trust-center-website.md`
 - `FEATURE_COMPLETION_EVIDENCE.md`
 - `THREAT_MODEL.md`
-- `evidence/trust-center-release-cb1dcbc/`: source-bound artifact manifest,
-  CycloneDX SBOM, notices/licenses, local provenance, verification and checksums.
+- `evidence/trust-center-release-cb1dcbc/`: retained source-bound local artifact evidence.
+- GitHub Actions run `30416831778`: successful Linux amd64 build/install/security gate at `1baeccad`.
+- GitHub prerelease `trust-center-v0.1.0-testnet-preview.1`: hosted unsigned archive, SBOM, provenance, verification, checksum and notices.
 
 ## Verified commands
 
 ```text
-go test -race ./internal/trustproduct ./cmd/ynx-trust-backup
+go test -race ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center
 go vet ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center
-go test ./internal/trustgateway ./internal/trustproduct ./apps/trust-center ./cmd/ynx-trust-backup
 ./apps/trust-center/check.sh
+node scripts/package/trust-center-release.mjs --allow-dirty --out tmp/trust-center-release-ci-fix --evidence tmp/trust-center-evidence-ci-fix
+GitHub Actions trust-center run 30416831778
 ```
 
-All commands above passed at the runtime checkpoint.
-
-The release gate also passed at source
-`cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3` with Go 1.25.12 and pinned
-`govulncheck` 1.6.0. It produced identical binaries across two builds,
-deterministic archive SHA-256
-`f9c09886115a2ea36c83ab2d58e637378675bb73ea84ccb770ae97ae82b28d13`,
-a linked-runtime CycloneDX SBOM and notices, focused secret/placeholder scans,
-module verification, a clean vulnerability-database result, and local
-install/cold-start build-identity evidence. The binaries remain local,
-unsigned/adhoc, unhosted and independently unattested.
+All commands above passed for the Trust product slice. The GitHub run used Go 1.25.12 and pinned `govulncheck` 1.6.0, produced identical binaries across two builds, deterministic archive SHA-256 `92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850`, a linked-runtime CycloneDX SBOM and notices, focused secret/placeholder scans, module verification, a clean vulnerability-database result, and clean install/cold-start identity evidence.
 
 ## Failed broader command
 
@@ -70,14 +66,14 @@ unsigned/adhoc, unhosted and independently unattested.
 
 ## GitHub evidence
 
-Direct inspection found:
-
-- branch and upstream: present;
-- Local SHA = Remote SHA: true at the runtime checkpoint;
-- Actions runs for `codex/final-trust-center`: none;
-- Trust-specific GitHub Release: none;
-- Trust-specific GitHub Artifact: none.
+- Branch and upstream: present.
+- Local/remote match at artifact source `1baeccada8e72eab8277803973d0e598dcf19b51`: true.
+- Successful Actions run: `30416831778`.
+- Workflow artifact ID: `8710457317`; digest `sha256:c01af21b81c56e3c3687c039fd568a46fd28e9b782465aa5ee2645ba17972a7c`.
+- Prerelease: `trust-center-v0.1.0-testnet-preview.1`.
+- Hosted archive: `ynx-trust-center-1baeccada8e7-linux-amd64.tar.gz`, 4,526,557 bytes.
+- Hosted archive SHA-256: `92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850`.
 
 ## Explicitly absent evidence
 
-No evidence currently proves central Gateway registration, authoritative shared-Testnet execution, current Android install/cold launch, iOS build/Simulator execution, staging/public deployment, hosted artifacts, production signing, store release, encrypted remote backup custody or independent audit.
+No evidence currently proves canonical central Gateway registration, authoritative shared-Testnet execution, current Android install/cold launch, iOS build/Simulator execution, staging/public deployment, the live `https://ynxweb4.com/trust-center` route, production signing, store release, encrypted remote backup custody or independent production audit.

@@ -5,11 +5,11 @@
 - Product: `15 | YNX Trust Center`
 - Product client: `ynx-trust-center-v1`
 - Source branch: `codex/final-trust-center`
-- Runtime source commit: `d31811280ba741026c74a836a212f78fe88c172a`
+- Runtime and hosted artifact source commit: `1baeccada8e72eab8277803973d0e598dcf19b51`
 - Current phase: `FREEZE`
 - Goal status: `Active`
 
-This handoff describes a locally implemented and tested candidate. It does not claim central integration, shared-Testnet execution, public hosting, production signing, store release or independent audit.
+This handoff describes a locally implemented, tested and installed candidate with a hosted unsigned GitHub Testnet prerelease. It does not claim central integration, authoritative shared-Testnet execution, staging/public deployment, production signing, store release or independent production audit.
 
 ## Product boundary
 
@@ -91,15 +91,16 @@ Repository-wide `go test ./...` remains red outside the Trust slice because gene
 
 ## GitHub evidence truth
 
-At this checkpoint:
+At the source-bound preview checkpoint:
 
 - final branch exists and tracks `origin/codex/final-trust-center`;
-- local and remote SHA match `d31811280ba741026c74a836a212f78fe88c172a`;
-- no branch-specific Actions run exists;
-- no Trust Release exists;
-- no Trust Artifact exists.
+- local and remote SHA matched `1baeccada8e72eab8277803973d0e598dcf19b51` when the artifact was produced;
+- GitHub Actions run `30416831778` passed the Trust release workflow;
+- workflow artifact `8710457317` was uploaded with digest `sha256:c01af21b81c56e3c3687c039fd568a46fd28e9b782465aa5ee2645ba17972a7c`;
+- GitHub prerelease `trust-center-v0.1.0-testnet-preview.1` hosts the unsigned archive, SBOM, provenance, verification, checksums and notices;
+- archive SHA-256 is `92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850` for 4,526,557 bytes.
 
-Therefore install, central integration, staging, public deployment, hosted download, production signing and store release remain false.
+Therefore `installedLocal` and `downloadHosted` are true. Central integration, staging/public deployment, production signing and store release remain false.
 
 ## Required Integration actions
 
@@ -115,10 +116,10 @@ Therefore install, central integration, staging, public deployment, hosted downl
 
 - `implementedLocal`: true
 - `testedLocal`: true
-- `installedLocal`: false
+- `installedLocal`: true
 - `integratedCentral`: false
 - `deployedStaging`: false
 - `deployedPublic`: false
-- `downloadHosted`: false
+- `downloadHosted`: true
 - `productionSigned`: false
 - `storeReleased`: false

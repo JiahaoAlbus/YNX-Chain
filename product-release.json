@@ -3,11 +3,11 @@
   "productNumber": 15,
   "productName": "YNX Trust Center",
   "productSlug": "trust-center",
-  "releaseStatus": "active",
+  "releaseStatus": "testnet-preview",
   "phase": "FREEZE",
-  "sourceCommit": "cb1dcbc8cba432e90fe9b58870bcfbe67896c1f3",
+  "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
   "sourceBranch": "codex/final-trust-center",
-  "asOf": "2026-07-27",
+  "asOf": "2026-07-29",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -15,7 +15,7 @@
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   },
@@ -34,7 +34,7 @@
   },
   "verifiedTests": [
     {
-      "command": "go test -race ./internal/trustproduct ./cmd/ynx-trust-backup",
+      "command": "go test -race ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center",
       "result": "pass"
     },
     {
@@ -42,12 +42,17 @@
       "result": "pass"
     },
     {
-      "command": "go test ./internal/trustgateway ./internal/trustproduct ./apps/trust-center ./cmd/ynx-trust-backup",
+      "command": "./apps/trust-center/check.sh",
       "result": "pass"
     },
     {
-      "command": "./apps/trust-center/check.sh",
+      "command": "node scripts/package/trust-center-release.mjs --allow-dirty --out tmp/trust-center-release-ci-fix --evidence tmp/trust-center-evidence-ci-fix",
       "result": "pass"
+    },
+    {
+      "command": "GitHub Actions trust-center run 30416831778",
+      "result": "pass",
+      "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51"
     }
   ],
   "repositoryPreflight": {
@@ -62,10 +67,30 @@
   "githubEvidence": {
     "branchExists": true,
     "upstreamConfigured": true,
-    "localRemoteShaMatch": true,
-    "branchActionsRuns": false,
-    "trustRelease": false,
-    "trustArtifact": false
+    "localRemoteShaMatchAtArtifactSource": true,
+    "branchActionsRuns": true,
+    "latestSuccessfulRunId": 30416831778,
+    "latestSuccessfulRunCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
+    "trustRelease": true,
+    "trustArtifact": true
+  },
+  "release": {
+    "tag": "trust-center-v0.1.0-testnet-preview.1",
+    "name": "YNX Trust Center 0.1.0 Testnet Preview 1",
+    "prerelease": true,
+    "publishedAt": "2026-07-29T02:31:24Z",
+    "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/trust-center-v0.1.0-testnet-preview.1",
+    "artifact": {
+      "name": "ynx-trust-center-1baeccada8e7-linux-amd64.tar.gz",
+      "sha256": "92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850",
+      "bytes": 4526557,
+      "signingClass": "unsigned-local",
+      "hosted": true
+    },
+    "sbom": "bom.cdx.json",
+    "provenance": "provenance.json",
+    "verification": "verification.json"
   },
   "releaseEvidence": [
     "internal/trustproduct/authority_test.go",
@@ -80,6 +105,9 @@
     "evidence/trust-center-release-cb1dcbc/bom.cdx.json",
     "evidence/trust-center-release-cb1dcbc/provenance.json",
     "evidence/trust-center-release-cb1dcbc/verification.json",
+    "GitHub Actions run 30416831778",
+    "GitHub prerelease trust-center-v0.1.0-testnet-preview.1",
+    "docs/handoffs/trust-center-website.md",
     ".ai-bridge/full-goal-coverage.json"
   ],
   "externalBlockers": [
@@ -93,17 +121,17 @@
     },
     {
       "owner": "30-security-sre-release",
-      "requirement": "Approve encrypted remote backup custody, independent restore evidence, release provenance and deployment controls."
+      "requirement": "Approve encrypted remote backup custody, independent restore evidence, production provenance and deployment controls."
     },
     {
       "owner": "founder-release-operator",
-      "requirement": "Provide healthy install targets, production signing assets and store accounts."
+      "requirement": "Provide healthy native install targets, production signing assets and store accounts."
     },
     {
       "owner": "28-website",
-      "requirement": "Publish the canonical product route, hosted artifacts and public evidence only after integration and release gates pass."
+      "requirement": "Publish the canonical ynxweb4.com/trust-center route and public evidence after integration and website gates pass."
     }
   ],
-  "nextAutonomousAction": "Preserve the local artifact gate and await the named legal/privacy, central-integration, hosting, signing and deployment authorities without promoting release states.",
+  "nextAutonomousAction": "Run current Web 390px, RTL, keyboard and accessibility evidence, then refresh mobile build/install gates without promoting central or public deployment states.",
   "completionClaim": false
 }

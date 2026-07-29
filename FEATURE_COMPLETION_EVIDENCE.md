@@ -1,11 +1,13 @@
 # YNX Trust Center Feature Completion Evidence
 
-Runtime evidence is bound to source commit `d31811280ba741026c74a836a212f78fe88c172a` unless a more specific commit is listed. This is an active local candidate, not a central/public release.
+Runtime and hosted artifact evidence is bound to source commit `1baeccada8e72eab8277803973d0e598dcf19b51` unless a more specific commit is listed. This is an active Testnet preview, not a centrally integrated or publicly deployed release.
 
 ## Status vocabulary
 
-- **testedLocal**: runtime behavior is covered by a passing current-commit test.
-- **implementedLocal**: source exists but the required current install/run evidence is incomplete.
+- **testedLocal**: runtime behavior is covered by a passing current-source test.
+- **installedLocal**: a source-bound artifact was installed into a clean root and cold-start identity was verified.
+- **downloadHosted**: an immutable GitHub prerelease asset is available with exact bytes and SHA-256.
+- **implementedLocal**: source exists but required current install/run evidence is incomplete.
 - **externalBlocked**: autonomous product work for the item is exhausted and a canonical external owner/input is required.
 - **inProgress**: autonomous work remains.
 
@@ -25,35 +27,33 @@ Runtime evidence is bound to source commit `d31811280ba741026c74a836a212f78fe88c
 | Authority proxy fail-closed | testedLocal | explicit 503 and no local substitution | Shared-Testnet authority |
 | Subject-scoped JSON export | testedLocal | `77ad082`; read scope, cross-subject isolation and omission policy | Deletion/retention policy |
 | Persistent restart/tamper rejection | testedLocal | snapshot v2 admission checks | Independent SRE acceptance |
-| Legacy v1 migration | testedLocal | atomic v1→v2 reseal | Packaged release migration evidence |
-| Immutable backup/restore | testedLocal | `d318112`; manifest/state hashes, no overwrite, cold-start equivalence | Encrypted remote custody and measured RTO/RPO |
-| Web product smoke | testedLocal | `./apps/trust-center/check.sh` | Current-commit browser/a11y evidence |
+| Legacy v1 migration | testedLocal | atomic v1→v2 reseal | Production migration drill |
+| Immutable backup/restore | installedLocal | `d318112`; manifest/state hashes, no overwrite, cold-start equivalence | Encrypted remote custody and measured RTO/RPO |
+| Web product smoke | testedLocal | `./apps/trust-center/check.sh` | Current browser/a11y evidence |
 | 12-language/RTL implementation | implementedLocal | Web/Android/iOS dictionaries and semantic contracts | Rerun current suites/screenshots |
 | Android source/build | implementedLocal | standalone project; historical build | Current install/cold launch; signing |
 | iOS source | implementedLocal | standalone SwiftUI project | Xcode/Simulator/signing evidence |
 | Central integration | externalBlocked | frozen contract and vectors | 29 Integration registration/execution |
 | Public deployment | externalBlocked | public metadata candidate | Website/DNS/deployment/public proof |
-| Production signing/store | externalBlocked | all booleans remain false | Founder release assets/accounts |
+| Production signing/store | externalBlocked | all production booleans remain false | Founder release assets/accounts |
 | Data deletion/retention | externalBlocked | subject export completed; destructive lifecycle deliberately withheld | Legal/privacy owner must freeze durations and mandatory audit-preservation exceptions |
-| Artifact provenance/SBOM | testedLocal | `cb1dcbc`; deterministic double build, CycloneDX SBOM, notices, SHA-256 manifest, local provenance, focused secret/placeholder scans, `go mod verify`, Go 1.25.12 `govulncheck`, clean install and cold start | Independent attestation, immutable hosting and production signing |
+| Artifact provenance/SBOM | installedLocal | GitHub Actions run `30416831778`; deterministic double build, CycloneDX SBOM, notices, SHA-256 manifest, provenance, focused scans, `go mod verify`, Go 1.25.12 `govulncheck`, clean install and cold start | Independent production attestation and signing |
+| Hosted Testnet download | downloadHosted | GitHub prerelease `trust-center-v0.1.0-testnet-preview.1`; archive SHA-256 `92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850` | Canonical ynxweb4.com download handoff |
 
 ## Current verification
 
 Passed:
 
 ```text
-go test -race ./internal/trustproduct ./cmd/ynx-trust-backup
+go test -race ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center
 go vet ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center
-go test ./internal/trustgateway ./internal/trustproduct ./apps/trust-center ./cmd/ynx-trust-backup
 ./apps/trust-center/check.sh
+node scripts/package/trust-center-release.mjs --allow-dirty --out tmp/trust-center-release-ci-fix --evidence tmp/trust-center-evidence-ci-fix
+GitHub Actions trust-center run 30416831778
 ```
 
 `go test ./...` is still red outside the Trust slice due to missing generated Solidity devtool artifacts and two host-permission fixtures. It is not represented as a passing repository preflight.
 
 ## Checkpoint conclusion
 
-The current checkpoint closes exact local scope enforcement, subject-scoped
-export, verified local backup/restore, and the local supply-chain/reproducible
-artifact gate. It does not complete policy-approved deletion/retention, central
-integration, native mobile installation, shared Testnet, immutable hosting,
-production signing or public release. The long-term goal remains active.
+The current checkpoint closes exact local scope enforcement, subject-scoped export, verified backup/restore, source-bound CI, reproducible artifact evidence and hosted unsigned Testnet download. It does not complete policy-approved deletion/retention, central integration, native mobile installation, authoritative shared Testnet, the canonical `https://ynxweb4.com/trust-center` deployment, production signing or store release. The long-term goal remains active.
