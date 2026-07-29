@@ -14,6 +14,7 @@ runtime_targets=(
   apps/quant-lab/public-product-metadata.json
   apps/quant-lab/product-release.json
   apps/quant-lab/security-verification.json
+  apps/quant-lab/scripts/verify-desktop-candidate.py
   release/integration/ynx-quant-lab-contract.json
   docs/integration
   .ai-bridge/full-goal-coverage.json
@@ -123,13 +124,30 @@ if [[ -f "$mac_archive" && -f "$windows_archive" ]]; then
     expected_bytes=$(jq -r ".artifacts[$index].bytes" apps/quant-lab/product-release.json)
     actual_hash=$(shasum -a 256 "$artifact" | awk '{print $1}')
     actual_bytes=$(wc -c <"$artifact" | tr -d ' ')
-    test "$actual_hash" = "$expected_hash"
-    test "$actual_bytes" = "$expected_bytes"
+    if [[ "$actual_hash" != "$expected_hash" ]]; then
+      echo "Quant desktop archive SHA-256 mismatch for $(basename "$artifact"): expected $expected_hash, got $actual_hash" >&2
+      exit 1
+    fi
+    if [[ "$actual_bytes" != "$expected_bytes" ]]; then
+      echo "Quant desktop archive byte mismatch for $(basename "$artifact"): expected $expected_bytes, got $actual_bytes" >&2
+      exit 1
+    fi
   done
   if command -v codesign >/dev/null 2>&1; then
     codesign --verify --deep --strict "$desktop_output/macos/YNX Quant Lab.app"
   fi
   "$python_bin" apps/quant-lab/scripts/scan-desktop-archive.py "$mac_archive" "$windows_archive" >/dev/null
+  if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" && "${YNX_VERIFY_DESKTOP_COLD_START:-1}" == "1" ]]; then
+    desktop_evidence=$(mktemp)
+    trap 'rm -f "$desktop_evidence"' EXIT
+    "$python_bin" apps/quant-lab/scripts/verify-desktop-candidate.py \
+      "$mac_archive" \
+      --expected-commit "$release_source" \
+      --expected-sha256 "$(jq -r '.artifacts[0].sha256' apps/quant-lab/product-release.json)" \
+      --expected-bytes "$(jq -r '.artifacts[0].bytes' apps/quant-lab/product-release.json)" \
+      --output "$desktop_evidence"
+    jq -e '.installedLocal == true and .coldStartVerified == true and .productionSigned == false and .deployedPublic == false' "$desktop_evidence" >/dev/null
+  fi
 fi
 
 if [[ "${YNX_REQUIRE_DOCKER_RUNTIME:-0}" == "1" ]]; then

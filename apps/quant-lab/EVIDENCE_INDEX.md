@@ -12,7 +12,7 @@
 - Python and TypeScript clients: `apps/quant-lab/sdk`
 - self-host candidates: `apps/quant-lab/Dockerfile`, `compose.yaml`, and `k8s`
 
-## Local evidence collected 2026-07-22 and refreshed 2026-07-27
+## Local evidence collected 2026-07-22 and refreshed 2026-07-29
 
 - Go package tests and vet: pass
 - UI catalog/contract tests: pass
@@ -31,8 +31,9 @@
   isolated restore and audit-chain continuity passed
 - macOS arm64 desktop: bundle built twice reproducibly, ad-hoc signature verified,
   then cold-launched from a fresh Applications-layout extraction with API/version,
-  health, metrics, frontend and clean shutdown checks; this is test signing, not
-  production signing or notarization
+  health, metrics, frontend and clean shutdown checks; machine-readable evidence:
+  `apps/quant-lab/evidence/local-macos-desktop-cold-start-20260729.json`; this is
+  test signing, not production signing or notarization
 - Windows x64 desktop: cross-compiled and archived only; not launched or installed
 - hostile Origin, oversized JSON and cross-origin WebSocket DAST probes: pass
 - local ZIP structural/credential scan: both desktop candidates pass; no external
@@ -43,10 +44,10 @@ Reproducible candidates built from source commit
 `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`:
 
 - macOS arm64 ZIP: 7,377,983 bytes; SHA-256
-  `eb44973099a41a4fcaf79fbc636cdaa11c08c9bb3ac4ca79650e26b42dda964f`;
+  `7df2bb3fd2f59ef3594a770004866feb8dff3495c3836bfeadec03d98dae2739`;
   ad-hoc test signature; fresh extracted cold-start verified
 - Windows x64 ZIP: 8,094,598 bytes; SHA-256
-  `e6b8c2031b38d7efb1f8b138b9b161851327b82f2a2362d7367ecbbdbdd9ea82`;
+  `4cdacd903aee1ab7aeafc9943258f42cf8522b19a8eda3e4f618b963c0a2f392`;
   unsigned cross-compile; no Windows execution evidence
 - Linux arm64 local OCI image: 41,667,295 bytes; local image ID
   `sha256:70e32c90601dc50c4770d04d40bd684a8bde52848e969afb9e8ddfbbaceb3f35`;
@@ -56,6 +57,11 @@ Reproducible candidates built from source commit
 Browser screenshots are generated under ignored `tmp/quant-lab-evidence` and are
 not immutable release evidence. A final release must copy selected evidence into
 a commit-addressed artifact, hash it, and attach a hosted immutable URL.
+
+The 2026-07-29 desktop refresh used Go 1.25.7 on Darwin arm64. Source inputs
+and archive byte counts remained stable, but hashes differed from the earlier
+host/toolchain evidence; the current hashes reproduced across two clean builds
+and the macOS archive was re-verified from a fresh extraction.
 
 ## Missing remote evidence
 
