@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -118,6 +119,12 @@ func TestUploadPublishMetricsAndRestart(t *testing.T) {
 	if v.Status != "ready" || len(v.Variants) != 2 {
 		t.Fatalf("unexpected processing result: %+v", v)
 	}
+	if v.Variants[0].Lineage != "derivative" || v.Variants[0].SourceObjectKey != v.ObjectKey || v.Variants[0].SourceSHA256 != v.SHA256 || v.Variants[0].Bytes <= 0 || len(v.Variants[0].SHA256) != 64 {
+		t.Fatalf("derivative integrity metadata missing: %+v", v.Variants[0])
+	}
+	if v.Variants[1].Lineage != "original" || v.Variants[1].Bytes != v.Bytes || v.Variants[1].SHA256 != v.SHA256 || v.Variants[1].SourceObjectKey != "" || v.Variants[1].SourceSHA256 != "" {
+		t.Fatalf("original lineage metadata missing: %+v", v.Variants[1])
+	}
 	if err := s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -140,6 +147,73 @@ func TestUploadPublishMetricsAndRestart(t *testing.T) {
 		t.Fatalf("restart lost state: %v %+v", err, found)
 	}
 }
+
+func TestLegacyMediaVariantIntegrityBackfillsOnRestart(t *testing.T) {
+	s, c := fixture(t, nil)
+	v := upload(t, s, c, "Legacy lineage")
+	if err := s.store.update(func(st *State) error {
+		st.SchemaVersion = 1
+		for i := range st.Videos[v.ID].Variants {
+			st.Videos[v.ID].Variants[i].Bytes = 0
+			st.Videos[v.ID].Variants[i].SHA256 = ""
+			st.Videos[v.ID].Variants[i].Lineage = ""
+			st.Videos[v.ID].Variants[i].SourceObjectKey = ""
+			st.Videos[v.ID].Variants[i].SourceSHA256 = ""
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	s2, err := NewService(s.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := s2.Video(c.Owner, v.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s2.store.state.SchemaVersion != currentStateSchemaVersion || !mediaVariantIntegrityComplete(migrated) {
+		t.Fatalf("legacy media integrity was not backfilled: schema=%d video=%+v", s2.store.state.SchemaVersion, migrated)
+	}
+}
+
+func TestMissingLegacyDerivativeFailsClosedOnRestart(t *testing.T) {
+	s, c := fixture(t, nil)
+	v := upload(t, s, c, "Missing derivative")
+	if err := s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(s.cfg.Root, "objects", v.ID, "stream.m3u8")); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.store.update(func(st *State) error {
+		st.SchemaVersion = 1
+		for i := range st.Videos[v.ID].Variants {
+			st.Videos[v.ID].Variants[i].Bytes = 0
+			st.Videos[v.ID].Variants[i].SHA256 = ""
+			st.Videos[v.ID].Variants[i].Lineage = ""
+			st.Videos[v.ID].Variants[i].SourceObjectKey = ""
+			st.Videos[v.ID].Variants[i].SourceSHA256 = ""
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	s2, err := NewService(s.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := s2.Video(c.Owner, v.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if migrated.Status != "failed" || migrated.Visibility != VisibilityPrivate || !strings.Contains(migrated.Failure, "asset integrity migration failed") {
+		t.Fatalf("missing derivative did not fail closed: %+v", migrated)
+	}
+}
+
 func TestBoundsAuthorizationAndFailClosedProcessing(t *testing.T) {
 	s, c := fixture(t, nil)
 	_, err := s.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("x", "x.mov", "video/quicktime", []byte("xx")))
@@ -448,8 +522,22 @@ func TestRepositoryOwnedMediaTranscodesWithFFmpeg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(v.Variants) != 2 || v.Variants[0].MIME != "application/vnd.apple.mpegurl" || v.Variants[1].MIME != "video/mp4" {
+	if len(v.Variants) < 3 || v.Variants[0].MIME != "application/vnd.apple.mpegurl" || v.Variants[len(v.Variants)-1].MIME != "video/mp4" {
 		t.Fatalf("adaptive output missing: %+v", v.Variants)
+	}
+	for i, asset := range v.Variants {
+		if asset.Bytes <= 0 || len(asset.SHA256) != 64 {
+			t.Fatalf("asset %d integrity metadata missing: %+v", i, asset)
+		}
+		if i == len(v.Variants)-1 {
+			if asset.Lineage != "original" || asset.SHA256 != v.SHA256 || asset.Bytes != v.Bytes {
+				t.Fatalf("original lineage invalid: %+v", asset)
+			}
+			continue
+		}
+		if asset.Lineage != "derivative" || asset.SourceObjectKey != v.ObjectKey || asset.SourceSHA256 != v.SHA256 {
+			t.Fatalf("derivative lineage invalid: %+v", asset)
+		}
 	}
 	if v.Probe == nil || v.Probe.VideoCodec == "" || v.Probe.Width <= 0 || v.Probe.Height <= 0 || v.Probe.DurationSecond <= 0 || v.Probe.FrameRate <= 0 {
 		t.Fatalf("persisted media probe missing or invalid: %+v", v.Probe)

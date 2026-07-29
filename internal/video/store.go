@@ -20,7 +20,7 @@ type Store struct {
 	state           State
 }
 
-const currentStateSchemaVersion = 1
+const currentStateSchemaVersion = 2
 
 type stateMigration struct {
 	from int
@@ -39,6 +39,27 @@ var stateMigrations = []stateMigration{
 		},
 		down: func(state *State) error {
 			state.SchemaVersion = 0
+			return nil
+		},
+	},
+	{
+		from: 1,
+		to:   2,
+		up: func(state *State) error {
+			state.SchemaVersion = 2
+			return nil
+		},
+		down: func(state *State) error {
+			for _, video := range state.Videos {
+				for i := range video.Variants {
+					video.Variants[i].Bytes = 0
+					video.Variants[i].SHA256 = ""
+					video.Variants[i].Lineage = ""
+					video.Variants[i].SourceObjectKey = ""
+					video.Variants[i].SourceSHA256 = ""
+				}
+			}
+			state.SchemaVersion = 1
 			return nil
 		},
 	},

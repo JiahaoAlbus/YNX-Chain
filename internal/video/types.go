@@ -56,11 +56,16 @@ type MediaProbe struct {
 }
 
 type MediaVariant struct {
-	Name      string `json:"name"`
-	ObjectKey string `json:"object_key"`
-	MIME      string `json:"mime"`
-	Width     int    `json:"width,omitempty"`
-	Height    int    `json:"height,omitempty"`
+	Name            string `json:"name"`
+	ObjectKey       string `json:"object_key"`
+	MIME            string `json:"mime"`
+	Width           int    `json:"width,omitempty"`
+	Height          int    `json:"height,omitempty"`
+	Bytes           int64  `json:"bytes"`
+	SHA256          string `json:"sha256"`
+	Lineage         string `json:"lineage"`
+	SourceObjectKey string `json:"source_object_key,omitempty"`
+	SourceSHA256    string `json:"source_sha256,omitempty"`
 }
 type CaptionTrack struct {
 	Language      string `json:"language"`

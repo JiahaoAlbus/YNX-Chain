@@ -89,6 +89,9 @@ func NewService(cfg Config) (*Service, error) {
 		return nil, err
 	}
 	s := &Service{store: store, cfg: cfg, aiCancels: map[string]context.CancelFunc{}}
+	if err = s.backfillMediaVariantIntegrity(); err != nil {
+		return nil, err
+	}
 	if err = s.recoverInterrupted(); err != nil {
 		return nil, err
 	}
@@ -426,9 +429,15 @@ func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*
 		s.failVideo(videoID, "transcode_failed: "+err.Error())
 		return nil, err
 	}
-	var contentType string
-	_ = s.store.read(func(st State) error { contentType = st.Videos[videoID].ContentType; return nil })
-	variants = append(variants, MediaVariant{Name: "original-fallback", ObjectKey: videoID + "/original", MIME: contentType})
+	var source Video
+	_ = s.store.read(func(st State) error { source = *st.Videos[videoID]; return nil })
+	variants = append(variants, MediaVariant{Name: "original-fallback", ObjectKey: source.ObjectKey, MIME: source.ContentType})
+	variants, err = s.finalizeMediaVariants(&source, variants)
+	if err != nil {
+		_ = cleanProcessingOutputs(filepath.Dir(original))
+		s.failVideo(videoID, "asset_integrity_failed: "+err.Error())
+		return nil, err
+	}
 	if used, usageErr := s.usageForOwner(actor); usageErr != nil {
 		return nil, usageErr
 	} else if used > s.cfg.AccountQuotaBytes {
@@ -984,6 +993,12 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		return v, err
 	}
 	variants = append(variants, MediaVariant{Name: "original-fallback", ObjectKey: vid + "/original", MIME: in.ContentType})
+	variants, err = s.finalizeMediaVariants(v, variants)
+	if err != nil {
+		_ = cleanProcessingOutputs(objDir)
+		s.failVideo(vid, "asset_integrity_failed: "+err.Error())
+		return v, err
+	}
 	if used, usageErr := s.usageForOwner(actor); usageErr != nil {
 		return v, usageErr
 	} else if used > s.cfg.AccountQuotaBytes {
@@ -1015,6 +1030,71 @@ func (s *Service) probeMedia(ctx context.Context, original string) (*MediaProbe,
 		return nil, err
 	}
 	return &probe, nil
+}
+
+func (s *Service) finalizeMediaVariants(source *Video, variants []MediaVariant) ([]MediaVariant, error) {
+	if source == nil || source.ID == "" || source.ObjectKey == "" || source.SHA256 == "" || source.Bytes <= 0 {
+		return nil, errors.New("source media integrity metadata is incomplete")
+	}
+	if len(variants) == 0 {
+		return nil, errors.New("processor returned no media assets")
+	}
+	prefix := source.ID + "/"
+	seen := make(map[string]struct{}, len(variants))
+	for i := range variants {
+		asset := &variants[i]
+		asset.Name = strings.TrimSpace(asset.Name)
+		asset.ObjectKey = strings.TrimPrefix(filepath.Clean("/"+asset.ObjectKey), "/")
+		asset.MIME = strings.TrimSpace(asset.MIME)
+		if asset.Name == "" || asset.MIME == "" {
+			return nil, errors.New("media asset name and MIME are required")
+		}
+		if !strings.HasPrefix(asset.ObjectKey, prefix) {
+			return nil, fmt.Errorf("media asset %q is outside video prefix", asset.ObjectKey)
+		}
+		if _, duplicate := seen[asset.ObjectKey]; duplicate {
+			return nil, fmt.Errorf("duplicate media asset key %q", asset.ObjectKey)
+		}
+		seen[asset.ObjectKey] = struct{}{}
+		path, err := s.cfg.Objects.Resolve(asset.ObjectKey)
+		if err != nil {
+			return nil, fmt.Errorf("resolve media asset %q: %w", asset.ObjectKey, err)
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return nil, fmt.Errorf("open media asset %q: %w", asset.ObjectKey, err)
+		}
+		h := sha256.New()
+		bytesWritten, copyErr := io.Copy(h, f)
+		closeErr := f.Close()
+		if copyErr != nil {
+			return nil, fmt.Errorf("hash media asset %q: %w", asset.ObjectKey, copyErr)
+		}
+		if closeErr != nil {
+			return nil, fmt.Errorf("close media asset %q: %w", asset.ObjectKey, closeErr)
+		}
+		if bytesWritten <= 0 {
+			return nil, fmt.Errorf("media asset %q is empty", asset.ObjectKey)
+		}
+		asset.Bytes = bytesWritten
+		asset.SHA256 = hex.EncodeToString(h.Sum(nil))
+		if asset.ObjectKey == source.ObjectKey {
+			if asset.Bytes != source.Bytes || asset.SHA256 != source.SHA256 {
+				return nil, errors.New("original fallback no longer matches source integrity metadata")
+			}
+			asset.Lineage = "original"
+			asset.SourceObjectKey = ""
+			asset.SourceSHA256 = ""
+		} else {
+			asset.Lineage = "derivative"
+			asset.SourceObjectKey = source.ObjectKey
+			asset.SourceSHA256 = source.SHA256
+		}
+	}
+	if _, ok := seen[source.ObjectKey]; !ok {
+		return nil, errors.New("original fallback asset is missing")
+	}
+	return variants, nil
 }
 
 func verifyVideoSignature(path, mime string) error {
@@ -1092,6 +1172,78 @@ func (s *Service) failVideo(videoID, failure string) { s.setStatus(videoID, "fai
 func activeTakedown(v *Video) bool {
 	return v != nil && v.Takedown != nil && v.Takedown.State == "active"
 }
+
+func (s *Service) backfillMediaVariantIntegrity() error {
+	type result struct {
+		variants []MediaVariant
+		failure  string
+	}
+	pending := map[string]result{}
+	if err := s.store.read(func(st State) error {
+		for id, video := range st.Videos {
+			if video == nil || len(video.Variants) == 0 || mediaVariantIntegrityComplete(video) {
+				continue
+			}
+			copy := *video
+			copy.Variants = append([]MediaVariant(nil), video.Variants...)
+			variants, err := s.finalizeMediaVariants(&copy, copy.Variants)
+			if err != nil {
+				pending[id] = result{failure: "asset integrity migration failed: " + err.Error()}
+				continue
+			}
+			pending[id] = result{variants: variants}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	if len(pending) == 0 {
+		return nil
+	}
+	return s.store.update(func(st *State) error {
+		for id, result := range pending {
+			video := st.Videos[id]
+			if video == nil {
+				continue
+			}
+			video.UpdatedAt = s.cfg.Now().UTC()
+			if result.failure != "" {
+				video.Status = "failed"
+				video.Visibility = VisibilityPrivate
+				video.Failure = result.failure
+				s.audit(st, "system", "video.asset_integrity.migration_failed", "video", id, result.failure)
+				continue
+			}
+			video.Variants = result.variants
+			s.audit(st, "system", "video.asset_integrity.backfilled", "video", id, fmt.Sprintf("assets=%d", len(result.variants)))
+		}
+		return nil
+	})
+}
+
+func mediaVariantIntegrityComplete(video *Video) bool {
+	if video == nil || len(video.Variants) == 0 {
+		return false
+	}
+	originalFound := false
+	for _, asset := range video.Variants {
+		if asset.Bytes <= 0 || len(asset.SHA256) != sha256.Size*2 {
+			return false
+		}
+		if asset.ObjectKey == video.ObjectKey {
+			if asset.Lineage != "original" || asset.SHA256 != video.SHA256 || asset.Bytes != video.Bytes || asset.SourceObjectKey != "" || asset.SourceSHA256 != "" {
+				return false
+			}
+			originalFound = true
+			continue
+		}
+		if asset.Lineage != "derivative" || asset.SourceObjectKey != video.ObjectKey || asset.SourceSHA256 != video.SHA256 {
+			return false
+		}
+	}
+	return originalFound
+}
+
 func (s *Service) recoverInterrupted() error {
 	return s.store.update(func(st *State) error {
 		for _, v := range st.Videos {

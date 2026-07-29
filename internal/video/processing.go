@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -202,5 +203,22 @@ func (p FFmpegProcessor) Transcode(ctx context.Context, input, outputDir string)
 	if data, err := exec.CommandContext(ctx, bin, args...).CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("transcode failed: %w: %s", err, string(data))
 	}
-	return []MediaVariant{{Name: "adaptive-hls", ObjectKey: filepath.Base(outputDir) + "/stream.m3u8", MIME: "application/vnd.apple.mpegurl"}}, nil
+	prefix := filepath.Base(outputDir)
+	variants := []MediaVariant{{Name: "adaptive-hls", ObjectKey: prefix + "/stream.m3u8", MIME: "application/vnd.apple.mpegurl"}}
+	segments, err := filepath.Glob(filepath.Join(outputDir, "segment-*.ts"))
+	if err != nil {
+		return nil, fmt.Errorf("enumerate HLS segments: %w", err)
+	}
+	if len(segments) == 0 {
+		return nil, errors.New("transcode produced no HLS segments")
+	}
+	sort.Strings(segments)
+	for i, segment := range segments {
+		variants = append(variants, MediaVariant{
+			Name:      fmt.Sprintf("hls-segment-%04d", i),
+			ObjectKey: prefix + "/" + filepath.Base(segment),
+			MIME:      "video/mp2t",
+		})
+	}
+	return variants, nil
 }

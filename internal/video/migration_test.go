@@ -25,7 +25,7 @@ func TestLegacyStateMigratesAndPersistsSchemaVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(persisted), `"schema_version": 1`) {
+	if !strings.Contains(string(persisted), `"schema_version": 2`) {
 		t.Fatalf("migrated state did not persist schema version: %s", persisted)
 	}
 	if _, err = OpenStore(root, key); err != nil {
