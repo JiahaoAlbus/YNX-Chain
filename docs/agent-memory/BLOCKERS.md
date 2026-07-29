@@ -5,10 +5,10 @@
 ### VID-INFRA-CLAMAV
 
 - Owner: local execution environment
-- Evidence: prior readiness checks report an invalid ClamAV daemon configuration and no proven usable signature database.
+- Evidence: `docs/handoffs/video-evidence/clamav-readiness-20260729.txt` records ClamAV 1.5.3, an unparsable `/opt/homebrew/etc/clamav/freshclam.conf`, and no supported database files in `/opt/homebrew/var/lib/clamav`.
 - Impact: the complete current-source Upload → Scan → Probe → Transcode → HLS → Publish → Play loop cannot be marked Testnet verified.
 - Product behavior: fail closed; scanner unready does not become a product success.
-- Autonomous work remaining: read-only version/readiness audit, raw evidence capture, and retry if a valid local database already exists.
+- Autonomous work remaining: retry the loopback E2E only after valid scanner configuration/signatures exist; continue all independent product-owned work now.
 - Recovery condition: scanner readiness passes and the owned-media loopback E2E succeeds against the current source SHA.
 
 ## Cross-product acceptance

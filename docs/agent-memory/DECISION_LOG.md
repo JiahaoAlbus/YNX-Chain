@@ -19,3 +19,11 @@ Historical Android debug and iOS Simulator hashes/install evidence remain preser
 ## 2026-07-29 — Integration contract v2 is a handoff, not acceptance
 
 `ynx-video-integration-v2` includes media-integrity fields and fail-closed legacy semantics. Its existence proves product-owned implementation and local verification only; YNX 29 central acceptance and shared-testnet execution remain separate states.
+
+## 2026-07-29 — Installed scanner is not a ready scanner
+
+ClamAV 1.5.3 exists locally, but `freshclam.conf` is unparsable and the default database directory contains no supported signatures. The evidence is classified as execution infrastructure, while YNX Video remains fail closed and `testnetVerified` remains false.
+
+## 2026-07-29 — Local restore evidence is scope-qualified
+
+The current-source recovery CLI restored a minimal initialized schema-v2 store with matching state hashes and successful reopen. `restoreVerified` is true only for that local scope; populated media-object, remote durable storage, HA and production disaster recovery remain false.

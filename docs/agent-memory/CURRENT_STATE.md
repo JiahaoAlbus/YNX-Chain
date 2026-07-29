@@ -1,6 +1,6 @@
 # YNX 33 current state
 
-Updated at: `2026-07-29T02:56:17Z`
+Updated at: `2026-07-29T03:09:09Z`
 
 ## Identity
 
@@ -9,8 +9,8 @@ Updated at: `2026-07-29T02:56:17Z`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/33-video`
 - Repository: `JiahaoAlbus/YNX-Chain`
 - Branch: `codex/final-video`
-- Last verified branch head before this memory checkpoint: `1572846c4ef676b6b6844e9678e3139df913f36c`
-- Last verified remote head before this memory checkpoint: `1572846c4ef676b6b6844e9678e3139df913f36c`
+- Last verified branch head before this evidence checkpoint: `3c7ea829e31278d9728f75c155cceab152e3d16a`
+- Last verified remote head before this evidence checkpoint: `3c7ea829e31278d9728f75c155cceab152e3d16a`
 - Main SHA: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
 - Ahead / behind at verification: `0 / 0`
 - Dirty state at verification: clean
@@ -27,6 +27,8 @@ Updated at: `2026-07-29T02:56:17Z`
 - `npm --prefix apps/video run check`
 - `npm --prefix apps/video run smoke`
 - JSON validation for integration contract, vectors, coverage and product release records
+- Current-source `video-recover` backup and restore with matching state SHA-256
+- Restored schema-v2 store reopen using the current-source server binary
 
 ## GitHub state
 
@@ -42,7 +44,7 @@ Updated at: `2026-07-29T02:56:17Z`
 - builtLocal: historical native artifacts only; not current-source
 - installedLocal: false for current source
 - migrationVerified: true for schema v2
-- restoreVerified: false for current source
+- restoreVerified: true for the current-source CLI against a minimal initialized local store; production/populated-object restore remains false
 - integratedCentral: false
 - testnetVerified: false
 - deployedStaging: false
@@ -62,6 +64,8 @@ Updated at: `2026-07-29T02:56:17Z`
 - Added startup backfill for legacy variant integrity metadata.
 - Made missing or unverifiable legacy assets private and failed, with audit evidence.
 - Published `ynx-video-integration-v2`, updated cross-product vectors and corrected product-release truth for historical native artifacts.
+- Captured a source-bound ClamAV readiness audit proving the local updater configuration and signature database are unusable; Testnet remains false.
+- Built and ran the current-source recovery CLI, measured a 0.47s backup and 1.15s restore, matched state hashes, and reopened the restored store.
 
 ## Current risks
 
@@ -74,6 +78,8 @@ Updated at: `2026-07-29T02:56:17Z`
 ## Evidence
 
 - `docs/handoffs/video-evidence/MEDIA_INTEGRITY.md`
+- `docs/handoffs/video-evidence/clamav-readiness-20260729.txt`
+- `docs/handoffs/video-evidence/backup-restore-20260729.txt`
 - `docs/handoffs/video-evidence/EVIDENCE_INDEX.md`
 - `docs/integration/INTEGRATION_HANDOFF.md`
 - `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`

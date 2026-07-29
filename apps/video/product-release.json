@@ -9,7 +9,8 @@
   "testedLocal": true,
   "installedLocal": false,
   "migrationVerified": true,
-  "restoreVerified": false,
+  "restoreVerified": true,
+  "restoreVerificationScope": "current-source CLI against a minimal initialized local schema-v2 store; not production or populated media-object recovery",
   "integratedCentral": false,
   "testnetVerified": false,
   "deployedStaging": false,
@@ -49,7 +50,8 @@
   },
   "minOS": {"androidApi": 26, "ios": "17.0"},
   "localVerification": {
-    "verifiedAt": "2026-07-29T02:44:54Z",
+    "verificationCommit": "3c7ea829e31278d9728f75c155cceab152e3d16a",
+    "verifiedAt": "2026-07-29T03:09:09Z",
     "commands": [
       "go test ./internal/video/...",
       "go test -race ./internal/video/...",
@@ -58,6 +60,15 @@
       "npm --prefix apps/video run smoke"
     ],
     "result": "passed"
+  },
+  "recoveryEvidence": {
+    "path": "docs/handoffs/video-evidence/backup-restore-20260729.txt",
+    "backupSeconds": 0.47,
+    "restoreSeconds": 1.15,
+    "stateSHA256": "d10b2e736c2e0ae632bd44853d1bfee71a2699dce1dca07e8677c0e98abf1774",
+    "archiveSHA256": "88fc291cc41a7a5499b0c2132b02d4b3e524556b92e0917a3bbe3e5e4faf4f50",
+    "restoredStoreReopened": true,
+    "productionBoundary": false
   },
   "centralIntegration": {
     "status": "integration-request-only",

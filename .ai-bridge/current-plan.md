@@ -15,14 +15,17 @@ Remote branch: `origin/codex/final-video`
 - Added SHA-256, byte count and original/derivative lineage to the HLS playlist, every generated HLS segment and the original fallback.
 - Upgraded persisted state to schema v2. Legacy variants are backfilled from stored objects; a missing legacy asset is made private and failed instead of remaining publishable.
 - Passed `go test ./internal/video/...`, `go test -race ./internal/video/...`, `go vet ./internal/video/...`, Viewer checks and Viewer smoke.
-- Pushed `cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e`; local and remote final-branch heads matched.
+- Confirmed ClamAV 1.5.3 is installed but `freshclam.conf` is unparsable and no supported signature database exists; the current-source loopback E2E remains correctly blocked.
+- Built current-source recovery binaries, created a verified backup in 0.47s, restored it in 1.15s, matched source/restored state SHA-256, and reopened the restored local store.
+- Pushed implementation, integration evidence and durable Agent Memory through `3c7ea829e31278d9728f75c155cceab152e3d16a`; local and remote final-branch heads matched before this evidence slice.
 
 ## Highest-priority next actions
 
-1. Restore a valid local ClamAV configuration/signature database and rerun the complete current-source loopback media E2E.
-2. Rebuild current-source Android/iOS artifacts and refresh hashes, provenance and install evidence.
-3. Rerun a current-source backup/restore drill and record measured local RTO/RPO without production extrapolation.
+1. Rebuild current-source Android artifacts, capture exact hashes/signing class, and rerun emulator install/cold-start/restart/deep-link evidence if the local SDK/emulator are available.
+2. Identify or add a product-scoped final-branch GitHub Actions workflow, then capture a run bound to the exact SHA without weakening shared gates.
+3. Extend recovery evidence to a populated media-object store and add bounded capacity measurements.
 4. Complete observability, SLO/capacity, unit economics and public metadata packages.
+5. Retry the complete ClamAV-backed loopback media E2E only after valid external scanner configuration/signatures exist.
 
 ## Known blockers that do not stop autonomous work
 

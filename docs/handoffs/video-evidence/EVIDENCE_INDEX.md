@@ -3,6 +3,8 @@
 - `media-smoke.json`: real loopback ClamAV/FFmpeg/HLS lifecycle using owned media.
 - `RECOVERY_AND_AUDIT.md`: persistence, idempotency, backup/restore and limits.
 - `MEDIA_INTEGRITY.md`: source-bound HLS asset hashes, bytes, lineage, schema v2 migration and fail-closed legacy backfill evidence.
+- `clamav-readiness-20260729.txt`: read-only proof that the executable exists but updater configuration and signatures are unusable; Testnet remains false.
+- `backup-restore-20260729.txt`: current-source CLI build, measured backup/restore, matching state hashes and restored-store reopen evidence.
 - `test-gates.txt`: exact local gates and the unchanged full-repo baseline failure.
 - `artifact-manifest.json`: exact local build hashes, sizes and signing classes.
 - `android-final/`: exact debug APK install, launch, deep link, restart and signing.

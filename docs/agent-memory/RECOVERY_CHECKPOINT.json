@@ -5,8 +5,8 @@
   "phase": "INTEGRATE",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/33-video",
   "branch": "codex/final-video",
-  "localSha": "1572846c4ef676b6b6844e9678e3139df913f36c",
-  "remoteSha": "1572846c4ef676b6b6844e9678e3139df913f36c",
+  "localSha": "3c7ea829e31278d9728f75c155cceab152e3d16a",
+  "remoteSha": "3c7ea829e31278d9728f75c155cceab152e3d16a",
   "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
   "dirty": false,
   "ahead": 0,
@@ -17,12 +17,24 @@
     "go vet ./internal/video/...",
     "npm --prefix apps/video run check",
     "npm --prefix apps/video run smoke",
-    "JSON validation for integration and release records"
+    "JSON validation for integration and release records",
+    "current-source video-recover backup",
+    "current-source video-recover restore",
+    "source and restored state SHA-256 match",
+    "restored schema-v2 store reopen"
   ],
   "latestCiRuns": [],
   "pullRequests": [],
   "release": null,
   "artifacts": [
+    {
+      "class": "local-backup-archive",
+      "currentForSource": true,
+      "sourceCommit": "3c7ea829e31278d9728f75c155cceab152e3d16a",
+      "bytes": 467,
+      "sha256": "88fc291cc41a7a5499b0c2132b02d4b3e524556b92e0917a3bbe3e5e4faf4f50",
+      "hosted": false
+    },
     {
       "class": "historical-android-debug",
       "currentForSource": false,
@@ -44,12 +56,14 @@
     "legacy media integrity backfill",
     "missing legacy derivative fail-closed behavior",
     "integration contract v2 and cross-product vectors",
-    "truthful separation of current source and historical native artifacts"
+    "truthful separation of current source and historical native artifacts",
+    "read-only ClamAV readiness audit",
+    "current-source minimal local backup restore and reopen drill"
   ],
   "remaining": [
     "valid ClamAV current-source loopback E2E",
     "current-source Android and iOS artifacts and install evidence",
-    "current-source backup restore drill and measured RTO RPO",
+    "populated media-object backup restore and bounded capacity drill",
     "final-branch GitHub Actions run",
     "central owner acceptance and shared-testnet execution",
     "public metadata and website handoff",
@@ -61,7 +75,7 @@
     "VID-INT-001",
     "VID-REL-001"
   ],
-  "nextAction": "Run the bounded read-only ClamAV version and readiness audit, then execute the owned-media loopback E2E only if scanner readiness passes.",
-  "updatedAt": "2026-07-29T02:56:17Z",
-  "checkpointNote": "localSha and remoteSha are the last verified clean synchronized heads before this memory checkpoint commit; recover from the current remote branch head and verify again before editing."
+  "nextAction": "Rebuild the current-source Android debug/test artifact, record exact hash bytes package SDK and signing class, then run emulator lifecycle evidence if the local SDK and emulator are available.",
+  "updatedAt": "2026-07-29T03:09:09Z",
+  "checkpointNote": "localSha and remoteSha are the last verified clean synchronized heads before this evidence checkpoint commit; recover from the current remote branch head and verify again before editing."
 }
