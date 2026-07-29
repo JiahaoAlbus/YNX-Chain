@@ -91,6 +91,22 @@
       "artifactsPublished": false,
       "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30488889722"
     },
+    "sourceCandidate": {
+      "tag": "data-fabric-v0.2.0-source-candidate",
+      "releaseId": 362040034,
+      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+      "targetCommit": "8cbc3dba0cbd139a0ba6bf7ba716b406856b32f5",
+      "publishedAt": "2026-07-29T20:45:26Z",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/data-fabric-v0.2.0-source-candidate",
+      "assetCount": 7,
+      "archive": {
+        "name": "ynx-data-fabric-source-8cbc3dba0cbd.tar.gz",
+        "bytes": 6906686,
+        "sha256": "83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848"
+      },
+      "verification": "downloaded-all-assets-and-matched-sha256",
+      "publicStateChanged": false
+    },
     "coverage": ".ai-bridge/full-goal-coverage.json",
     "integrationContract": "release/integration/ynx-data-fabric-contract.json",
     "handoff": "docs/integration/INTEGRATION_HANDOFF.md",

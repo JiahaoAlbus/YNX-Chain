@@ -12,6 +12,7 @@ Release Candidate: `ynx-data-fabric-84872ff9042e`
 - Reachable vulnerability `GO-2026-6061` was removed by upgrading `google.golang.org/grpc` from `v1.79.3` to `v1.82.1`.
 - Full repository tests, Data Fabric Race tests, Vet and `govulncheck` pass locally; reachable vulnerabilities are zero.
 - The aligned engineering Source Commit is frozen, present in the remote branch, and verified by successful GitHub Actions run `30488889722` at descendant checkpoint `a737b19c92ae53f89792694cfe0d6de16567ae49`.
+- Source-only prerelease `data-fabric-v0.2.0-source-candidate` is published at checkpoint `8cbc3dba0cbd139a0ba6bf7ba716b406856b32f5`; all seven assets were downloaded and their SHA-256 values matched, including archive digest `83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848`.
 - Central integration, shared Testnet, staging, public deployment, hosted download and production signing remain false without direct receipts.
 
 ## Current slice

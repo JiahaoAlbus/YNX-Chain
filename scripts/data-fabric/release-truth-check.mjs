@@ -281,6 +281,26 @@ export function verifyReleaseTruth({ root, expectedSourceCommit, repositoryRoot 
   for (const field of ["runId", "workflow", "sourceCommit", "headCommit", "status", "conclusion", "startedAt", "duration", "artifactsPublished", "url"]) {
     assert(productRemoteCI?.[field] === remoteCI?.[field], `product and release record remote CI ${field} drifted`);
   }
+  const sourceCandidate = releaseRecord.evidence?.sourceCandidate;
+  assert(sameJSON(productRelease.evidence?.sourceCandidate, sourceCandidate), "product and release record source candidate evidence drifted");
+  assert(sourceCandidate?.tag === "data-fabric-v0.2.0-source-candidate", "source candidate tag is invalid");
+  assert(sourceCandidate?.sourceCommit === expectedSourceCommit, "source candidate is not source-bound");
+  assert(Number.isInteger(sourceCandidate?.releaseId) && sourceCandidate.releaseId > 0, "source candidate release ID is invalid");
+  assert(/^[0-9a-f]{40}$/.test(sourceCandidate?.targetCommit || ""), "source candidate target commit is invalid");
+  assert(sourceCandidate?.assetCount === 7, "source candidate asset inventory is incomplete");
+  assert(sourceCandidate?.archive?.name === `ynx-data-fabric-source-${sourceCandidate.targetCommit.slice(0, 12)}.tar.gz`, "source candidate archive name is invalid");
+  assert(Number.isSafeInteger(sourceCandidate?.archive?.bytes) && sourceCandidate.archive.bytes > 0, "source candidate archive byte count is invalid");
+  assert(/^[0-9a-f]{64}$/.test(sourceCandidate?.archive?.sha256 || ""), "source candidate archive digest is invalid");
+  assert(sourceCandidate?.verification === "downloaded-all-assets-and-matched-sha256", "source candidate back-read verification is absent");
+  assert(sourceCandidate?.publicStateChanged === false, "source candidate must not change public release states");
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", expectedSourceCommit, sourceCandidate.targetCommit], {
+      cwd: path.resolve(repositoryRoot),
+      stdio: "ignore",
+    });
+  } catch {
+    fail("source candidate target is not a descendant of the engineering source commit");
+  }
 
   verifyCoverage(resolvedRoot, expectedSourceCommit, releaseName);
   verifyPublicBoundary(publicMetadata, productRelease);
