@@ -1,6 +1,6 @@
 # YNX 29 Current State
 
-Updated: `2026-07-29T02:44:44Z`
+Updated: `2026-07-29T03:02:49Z`
 
 ## Identity
 
@@ -9,8 +9,8 @@ Updated: `2026-07-29T02:44:44Z`
 - Branch: `codex/final-integration`
 - Repository: `JiahaoAlbus/YNX-Chain`
 - Remote: `https://github.com/JiahaoAlbus/YNX-Chain.git`
-- Protected source SHA: `20191a3e7f561882b7393686fc0ea39d7a08a5ed`
-- Protected remote SHA: `20191a3e7f561882b7393686fc0ea39d7a08a5ed`
+- Protected source SHA: `d05ddf0a9d0d5a7b05b6c792eec547bfde06b215`
+- Protected remote SHA: `d05ddf0a9d0d5a7b05b6c792eec547bfde06b215`
 - `origin/main` SHA observed after fetch: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
 - Ahead / behind at protected checkpoint: `0 / 0`
 - Current dirty state: yes — Integration-owned coverage, release, metadata, handoff, test receipt and recovery-memory changes are under review; no unknown change is being discarded.
@@ -20,7 +20,7 @@ Updated: `2026-07-29T02:44:44Z`
 - Lifecycle: `ACTIVE`
 - Gate: `PROTECT`
 - `implementedLocal`: true
-- `testedLocal`: true for protected source `20191a3e…`
+- `testedLocal`: true for protected source `d05ddf0a…`
 - `integratedCentral`: false
 - `testnetVerified`: false
 - `deployedPublic`: false
@@ -31,9 +31,10 @@ Updated: `2026-07-29T02:44:44Z`
 
 ## Latest successful tests
 
-Exact clean protected source `20191a3e…` passed:
+Exact clean protected source `d05ddf0a…` passed:
 
 - `node scripts/ops/refresh-integration-acceptance.mjs --self-test`
+- `node scripts/ops/refresh-integration-coverage.mjs --self-test`
 - `node scripts/verify/integration-acceptance-check.mjs --self-test`
 - `node scripts/verify/integration-acceptance-check.mjs`
 - `make integration-protect-preflight`
@@ -45,7 +46,7 @@ Exact clean protected source `20191a3e…` passed:
   - secret scan
   - `go vet` and shell/Node syntax checks
 
-Durable receipt: `release/integration/evidence/protect-preflight-20191a3e.json`.
+Durable receipt: `release/integration/evidence/protect-preflight-d05ddf0a.json`.
 
 ## GitHub
 
@@ -57,7 +58,7 @@ Durable receipt: `release/integration/evidence/protect-preflight-20191a3e.json`.
 
 ## Central acceptance snapshot
 
-`release/integration/acceptance-matrix.json` at protected source recorded:
+`release/integration/acceptance-matrix.json`, protected in commit `20191a3e…`, recorded:
 
 - 36 products registered locally and remotely
 - 36 registered final Worktrees
@@ -83,7 +84,7 @@ The matrix is a point-in-time inventory. Concurrent product-owner work remains p
 - Verified MCP 29, Worktree, Branch and repository identity against Fable5.
 - Audited Git Root, Remote, branch/upstream, Worktrees, status, tags, stash, reflog, submodules and LFS.
 - Preserved and pushed the generated central matrix and GitHub evidence at `20191a3e…`.
-- Re-ran the full Integration protection gate on that exact clean commit.
+- Protected the hardened recovery/acceptance implementation at `d05ddf0a…` and re-ran the full Integration protection gate on that exact clean commit.
 - Corrected the coverage generator so product coverage is derived from the current acceptance matrix, including the separate Security/SRE repository.
 - Added a fail-closed coverage-generator self-test for missing, duplicate or incomplete 01–36 product rows and placed it in the protection gate.
 - Made npm policy self-tests deterministic and offline while retaining a separate real Registry audit with bounded transient-network retry.

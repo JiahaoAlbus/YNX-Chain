@@ -1,8 +1,8 @@
 # Last Success
 
-Updated: `2026-07-29T02:44:44Z`
+Updated: `2026-07-29T03:02:49Z`
 
-The latest protected source checkpoint is `20191a3e7f561882b7393686fc0ea39d7a08a5ed` on `codex/final-integration`.
+The latest protected source checkpoint is `d05ddf0a9d0d5a7b05b6c792eec547bfde06b215` on `codex/final-integration`.
 
 Direct successes:
 
@@ -17,6 +17,7 @@ Evidence:
 
 - `release/integration/acceptance-matrix.json`
 - `release/integration/github-evidence.json`
+- `release/integration/evidence/protect-preflight-d05ddf0a.json`
 - `release/integration/evidence/protect-preflight-20191a3e.json`
 
 Production boundary:

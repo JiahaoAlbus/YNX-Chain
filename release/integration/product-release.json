@@ -7,7 +7,7 @@
   "release": "0.1.1-controller-candidate",
   "releaseClass": "controller-candidate",
   "network": "YNX Testnet",
-  "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
+  "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -27,6 +27,7 @@
       "scripts/ops/refresh-integration-coverage.mjs"
     ],
     "testedLocal": [
+      "release/integration/evidence/protect-preflight-d05ddf0a.json",
       "release/integration/evidence/protect-preflight-20191a3e.json"
     ],
     "installedLocal": [],

@@ -5,14 +5,15 @@
   "phase": "PROTECT",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
   "branch": "codex/final-integration",
-  "localSha": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
-  "remoteSha": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
+  "localSha": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
+  "remoteSha": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
   "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
   "dirty": true,
   "ahead": 0,
   "behind": 0,
   "latestSuccessfulTests": [
     "node scripts/ops/refresh-integration-acceptance.mjs --self-test",
+    "node scripts/ops/refresh-integration-coverage.mjs --self-test",
     "node scripts/verify/integration-acceptance-check.mjs --self-test",
     "node scripts/verify/integration-acceptance-check.mjs",
     "make integration-protect-preflight"
@@ -29,6 +30,11 @@
     },
     {
       "kind": "local-preflight-receipt",
+      "evidence": "release/integration/evidence/protect-preflight-d05ddf0a.json",
+      "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215"
+    },
+    {
+      "kind": "local-preflight-receipt",
       "evidence": "release/integration/evidence/protect-preflight-20191a3e.json",
       "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed"
     }
@@ -42,8 +48,8 @@
   "completed": [
     "MCP, Worktree, Branch and Remote identity recovered from live state",
     "generated 36-product acceptance matrix protected and pushed",
-    "exact protected source passed Integration preflight",
-    "coverage generator now derives product rows from the acceptance matrix",
+    "hardened Integration checkpoint d05ddf0a protected and passed exact-commit preflight",
+    "coverage generator now derives product rows from the acceptance matrix and rejects invalid 01-36 cardinality",
     "Integration release and public metadata aligned to direct evidence and ynxweb4.com"
   ],
   "remaining": [
@@ -60,6 +66,6 @@
     "Security/SRE and other owner bundles retain autonomous coverage gaps",
     "shared Testnet and public deployment are unverified"
   ],
-  "nextAction": "Run the full protection gate on the current Integration-owned slice, review the diff, Commit and Push, then open a PR to main and inspect CI for the exact head SHA.",
-  "updatedAt": "2026-07-29T02:44:44Z"
+  "nextAction": "Protect the source-bound d05ddf0a metadata and receipt update, then open a PR to main and inspect CI for the exact head SHA.",
+  "updatedAt": "2026-07-29T03:02:49Z"
 }
