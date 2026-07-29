@@ -14,13 +14,13 @@ This platform owns the security framework, enforcement tools, release evidence, 
 
 - Local implementation: accepted by Product 30 tests.
 - Local tests: accepted; security suite and repository suite pass.
-- Remote validation: passed in `JiahaoAlbus/YNX-Chain` at `7be79d5b921e2b044fff43d5eb3f10fcad2eac11`; the earlier `aa5d5e9` CI evidence belongs to the legacy repository and remains historical only.
-- Branch controls: the authoritative branch workflow is validation-only and all external Actions are pinned to immutable commit SHAs; repository protection is still pending.
+- Remote validation: PR `#16` passed all exact-head checks at `4277317bb4999ac4edfbc321590b54d95e1839f9`; the earlier `aa5d5e9` CI evidence belongs to the legacy repository and remains historical only.
+- Branch controls: the authoritative branch workflow is validation-only, all external Actions are pinned to immutable commit SHAs, and the branch has six strict checks, independent review controls, administrator enforcement, linear history, conversation resolution and force-push/deletion denial.
 - Local encrypted restore drill: passed for the committed `security-platform/` metadata set.
 - Local reproducible artifact drill: passed for source commit `900c314ddb8f6f56b8713e7df194f26ee0590e06`, including SBOM, provenance, test signature, tamper rejection, wrong-identity rejection, and unsigned-public rejection.
 - Clean installation: passed from a fresh authoritative-repository clone detached at exact candidate source `900c314ddb8f6f56b8713e7df194f26ee0590e06`; locked install, lifecycle audit, dependency rebuild, CLI verification, notices, manifest render, production dependency audit, and 172/172 tests passed.
-- Artifact distribution: not hosted; the active artifact remains local/test-signed and is not public-release eligible.
-- Central integration: not accepted.
+- Artifact distribution: the source-only GitHub prerelease `security-platform-v0.2.0-source-candidate` hosts the exact archive, SBOM, provenance, manifest and detached ephemeral test signature. It remains non-production, test-signed and not public-release eligible.
+- Central integration: source accepted by Product 29 for owner commit `4277317bb4999ac4edfbc321590b54d95e1839f9`; shared Testnet acceptance remains separate.
 - Staging deployment: not evidenced.
 - Public deployment: not evidenced.
 - Production signing: not evidenced.
@@ -74,8 +74,11 @@ Until accepted by the relevant owner:
 npm run security:verify
 npm run security:test
 npm run security:integration
-npm test
-npm run lint
+npm run security:notices
+npm run security:build-scripts
+npm audit --omit=dev --audit-level=high
+go test ./...
+go vet ./...
 ```
 
 Shared vectors: `docs/integration/SECURITY_PLATFORM_CROSS_PRODUCT_TEST_VECTORS.json`.

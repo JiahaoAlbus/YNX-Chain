@@ -15,10 +15,10 @@
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": true,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   },
@@ -33,7 +33,7 @@
   "risks": [
     "not publicly deployed",
     "current source artifact is test-signed, not production-signed",
-    "immutable hosted download is unavailable",
+    "the source candidate is hosted as a mutable GitHub prerelease, not an immutable production artifact",
     "live cross-region restore evidence is pending"
   ],
   "artifactCandidate": {
@@ -43,9 +43,17 @@
     "bytes": 2590720,
     "signingClass": "test-signed",
     "publicReleaseEligible": false,
-    "downloadUrl": null
+    "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/security-platform-v0.2.0-source-candidate/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar"
   },
-  "downloads": [],
+  "downloads": [
+    {
+      "label": "Source candidate archive",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/security-platform-v0.2.0-source-candidate/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar",
+      "sha256": "063872f860f74e91f107c036afd321b812e4ec49510290fe042e4a9a0ee59258",
+      "releaseClass": "source-only-test-signed-prerelease",
+      "productionRelease": false
+    }
+  ],
   "supportUrl": null,
   "privacyUrl": null,
   "securityUrl": null,
@@ -53,7 +61,7 @@
   "faq": [
     {
       "question": "Is the YNX Security Platform publicly deployed?",
-      "answer": "No. The current candidate is implemented, tested, and clean-installed locally from the authoritative repository, but central integration, staging, and public deployment are not yet verified."
+      "answer": "No. The current source candidate is implemented, tested, clean-installed and centrally source-accepted, but shared Testnet, staging and public deployment are not verified."
     },
     {
       "question": "Is the current artifact production-signed?",
@@ -61,7 +69,7 @@
     },
     {
       "question": "What release evidence is available?",
-      "answer": "The current candidate includes a reproducible source archive, SHA-256 digest, CycloneDX SBOM, provenance statement, test-signature verification, tamper-rejection tests, and successful protected-branch CI for the exact source commit."
+      "answer": "The GitHub source prerelease includes a reproducible source archive, SHA-256 digest, CycloneDX SBOM, provenance statement, test-signature verification, tamper-rejection tests, and successful protected-branch CI. It is not production-signed."
     }
   ],
   "structuredDataType": "SoftwareApplication",

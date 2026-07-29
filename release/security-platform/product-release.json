@@ -2,39 +2,42 @@
   "schemaVersion": 2,
   "product": "YNX Security Platform",
   "version": "0.2.0-candidate",
-  "channel": "development",
-  "environment": "local",
+  "channel": "source-candidate",
+  "environment": "github-prerelease",
   "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
   "branch": "codex/final-security-platform",
   "buildRun": "local-reproducibility-drill:900c314ddb8f6f56b8713e7df194f26ee0590e06",
-  "releasedAt": null,
+  "releasedAt": "2026-07-29T14:48:41Z",
   "artifacts": [
     "security-platform-source-900c314"
   ],
   "statusRecord": "release/security-platform/platform-status.json",
   "productionSigned": false,
   "deployedPublic": false,
-  "releaseStatus": "local-test-signed-candidate",
+  "releaseStatus": "published-source-prerelease-test-signed",
   "securityFindings": {
     "releaseBlocking": 0,
     "acceptedRisks": [
-      "local source archive only",
+      "source-only GitHub prerelease",
       "ephemeral test signature only",
       "no production certificate chain or transparency record",
-      "no hosted immutable download URL"
+      "GitHub prerelease hosting is not immutable production hosting"
     ]
   },
   "approval": {
     "localEngineeringVerification": true,
     "productionReleaseApproval": false
   },
-  "publicEvidence": [],
+  "publicEvidence": [
+    "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/security-platform-v0.2.0-source-candidate"
+  ],
   "blockedBy": [
     "production secure signer and signing approval",
-    "immutable hosted download and independent verification",
+    "immutable production artifact host and independent production verification",
     "staging deployment and rollback evidence",
     "public deployment and health/version/security/status URLs",
-    "central owner acceptance recorded by Product 29"
+    "shared-Testnet security, monitoring and recovery verification"
   ],
   "legacyRepositoryVerification": [
     "evidence/security-platform/GITHUB_CI_aa5d5e9.json",
