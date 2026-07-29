@@ -13,7 +13,7 @@ Branch: `codex/final-monitor` tracking `origin/codex/final-monitor`
 - Exact Origin allowlisting and session-bound CSRF enforcement protect authenticated mutations.
 - `/status` is locally tested as a separate signed, source-pinned, Incident-Commander-approved, stale/replay-aware public projection with strict private-data rejection.
 - Threat model, CycloneDX SBOM, third-party notices, dependency review, DAST plan, build manifest, local unsigned provenance, and security summary are source-bound under `release/monitor/security/`.
-- `.github/workflows/monitor-ci.yml` defines product-specific CI; the workflow definition is not promoted to a successful run until remote evidence exists.
+- `.github/workflows/monitor-ci.yml` run `30418246140` succeeded for `9df7d117c5d0c37f191a888acb81125ca3183b33` and uploaded CI evidence artifact `8710923775` with digest `sha256:2f2e1394d42ba5381f5cc95e7009d16f11032cacde3d6cc2f26f04a8d76e930c`; it is not a release artifact.
 
 ## Non-green evidence
 

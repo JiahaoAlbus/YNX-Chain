@@ -48,7 +48,7 @@ This index separates source-bound local evidence from central, Testnet, artifact
 | Production build | `cd apps/monitor && npm run build` | Passed |
 | Desktop/mobile browser E2E | `cd apps/monitor && npm run test:e2e` | 8 passed, 0 failed |
 | Local supply-chain gate | `cd apps/monitor && npm run security:check` | Passed: audit 0, credential/SAST 0, 163 packages reviewed, two identical clean builds, artifact scan 0 |
-| Product-specific GitHub Actions | `.github/workflows/monitor-ci.yml` | Added; remote run state must be checked after push |
+| Product-specific GitHub Actions | `.github/workflows/monitor-ci.yml`, run `30418246140` | Success for `9df7d117c5d0c37f191a888acb81125ca3183b33`; CI evidence artifact `8710923775`, digest `sha256:2f2e1394d42ba5381f5cc95e7009d16f11032cacde3d6cc2f26f04a8d76e930c` |
 | Real-service smoke | `cd apps/monitor && npm run smoke` | Failed because all eight central dependency endpoints were unavailable; no Testnet/healthy claim |
 | Repository preflight | `go test ./...` | Failed outside `13-monitor`; details in `product-release.json` |
 
@@ -71,7 +71,7 @@ No direct evidence currently supports any of the following claims:
 - accepted central Wallet/Auth or other owner contracts;
 - shared Testnet incident, Quant kill-switch, provider/region failure, restore, or rollback drill;
 - hosted private operator workspace or redacted public-status endpoint;
-- a successful GitHub Actions run, GitHub Release, hosted Monitor artifact, signed/hosted provenance, immutable download, installation, or cold start;
+- GitHub Release, hosted release artifact, signed/hosted provenance, immutable download, installation, or cold start;
 - hosted DAST evidence, staging, or public runtime deployment;
 - production signing or store release.
 

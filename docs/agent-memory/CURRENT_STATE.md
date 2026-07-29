@@ -1,6 +1,6 @@
 # YNX Monitor Current State
 
-Updated at: `2026-07-29T02:48:31Z`  
+Updated at: `2026-07-29T03:03:12Z`  
 Product: `13 — YNX Monitor`  
 Goal state: `ACTIVE`  
 Phase: `PROTECT`
@@ -13,8 +13,8 @@ Phase: `PROTECT`
 - Protected implementation source: `5914e02134cd17ad20c6d8c9846864861cdfd4a3`
 - Upstream: `origin/codex/final-monitor`
 - Main reference: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
-- Ahead/behind at takeover: `0 / 0`; final equality must be rechecked after the evidence checkpoint push.
-- Dirty state at this write: generated evidence, metadata, CI, integration, and agent-memory checkpoint changes are intentionally pending commit.
+- Ahead/behind after the published security checkpoint: `0 / 0` at `9df7d117c5d0c37f191a888acb81125ca3183b33`.
+- Dirty state at this write: only the CI-result synchronization checkpoint is pending commit; final equality must be rechecked after push.
 
 ## Latest successful validation
 
@@ -30,11 +30,13 @@ Phase: `PROTECT`
 
 ## CI, PR, release, and deployment
 
-- Product workflow: `.github/workflows/monitor-ci.yml` added; remote run does not exist until the checkpoint is pushed.
+- Product workflow: `.github/workflows/monitor-ci.yml`.
+- Successful run: `30418246140` for `9df7d117c5d0c37f191a888acb81125ca3183b33`.
+- CI evidence artifact: `8710923775`, digest `sha256:2f2e1394d42ba5381f5cc95e7009d16f11032cacde3d6cc2f26f04a8d76e930c`, expires 2026-08-28; this is not a release artifact.
 - Pull requests for `codex/final-monitor`: none found.
 - Monitor GitHub release/tag: none found.
 - Local security evidence: `release/monitor/security/`.
-- Hosted artifact: none.
+- Hosted release artifact: none.
 - Public deployment: none.
 - Approved public-status publisher: none.
 - `ynxweb4.com/monitor`: no deployment evidence.

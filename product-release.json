@@ -152,6 +152,22 @@
       ],
       "date": "2026-07-29"
     },
+    "githubActions": {
+      "workflow": "monitor-ci",
+      "runId": 30418246140,
+      "sourceCommit": "9df7d117c5d0c37f191a888acb81125ca3183b33",
+      "status": "completed",
+      "conclusion": "success",
+      "artifact": {
+        "id": 8710923775,
+        "name": "ynx-monitor-security-9df7d117c5d0c37f191a888acb81125ca3183b33",
+        "sizeBytes": 24108,
+        "digest": "sha256:2f2e1394d42ba5381f5cc95e7009d16f11032cacde3d6cc2f26f04a8d76e930c",
+        "expiresAt": "2026-08-28T02:58:29Z",
+        "releaseArtifact": false
+      },
+      "date": "2026-07-29"
+    },
     "browserE2E": {
       "managedHarnessBaseline": {
         "result": "passed",

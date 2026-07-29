@@ -68,7 +68,7 @@ This document records feature-level evidence only. It does not declare the produ
 - `cd apps/monitor && npm run build`: passed.
 - `cd apps/monitor && npm run test:e2e`: 8 passed, 0 failed.
 - `cd apps/monitor && npm run security:check`: passed with 0 audit vulnerabilities, 0 credential findings, 0 SAST findings, 163 reviewed production packages, two identical clean builds, and 0 artifact findings.
-- `.github/workflows/monitor-ci.yml` runs the same gate on branch and pull-request changes and uploads source-bound evidence; the remote run is verified separately after push.
+- `.github/workflows/monitor-ci.yml` run `30418246140` passed for `9df7d117c5d0c37f191a888acb81125ca3183b33` and uploaded CI evidence artifact `8710923775` with digest `sha256:2f2e1394d42ba5381f5cc95e7009d16f11032cacde3d6cc2f26f04a8d76e930c`; this is not a release artifact.
 - `cd apps/monitor && npm run smoke`: failed because all eight configured central service endpoints were unavailable; no Testnet or dependency-health claim is made.
 - Protected implementation source: `5914e02134cd17ad20c6d8c9846864861cdfd4a3`.
 
@@ -86,7 +86,7 @@ The following requirements are not completed by the evidence above:
 - SLO load histograms, capacity evidence, and unit economics;
 - hosted DAST execution, signed/hosted provenance, immutable artifact publication, installation, and cold start;
 - hosted private operator, public `/monitor`, downloads, status page, support/privacy/security URLs, and SEO consumption;
-- successful GitHub Actions evidence, Release, production signing, or store release;
+- GitHub Release, hosted release artifact, production signing, or store release;
 - central acceptance of the disclosed npm registry mirror and remediation of the shared secret-scan false-pass behavior when ripgrep is absent.
 
 ## Non-green full preflight
