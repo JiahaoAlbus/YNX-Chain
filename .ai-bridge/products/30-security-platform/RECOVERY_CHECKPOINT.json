@@ -26,7 +26,8 @@
     "dependencyGraph": "evidence/security-platform/GITHUB_DEPENDENCY_GRAPH_2026-07-29.json"
     ,
     "branchProtection": "evidence/security-platform/GITHUB_BRANCH_PROTECTION_AUTHORITATIVE_2026-07-29.json",
-    "recordMigration": "evidence/security-platform/LOCAL_RECORD_MIGRATION_2026-07-29.json"
+    "recordMigration": "evidence/security-platform/LOCAL_RECORD_MIGRATION_2026-07-29.json",
+    "dependencyRemediation": "evidence/security-platform/LOCAL_DEPENDENCY_REMEDIATION_2026-07-29.json"
   },
   "truth": {
     "implementedLocal": true,

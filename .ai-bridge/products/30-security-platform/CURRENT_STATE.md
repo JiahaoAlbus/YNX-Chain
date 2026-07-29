@@ -17,6 +17,8 @@ The frozen release source artifact, SBOM, provenance, ephemeral test signature, 
 
 The machine-readable record migration boundary is now executable and fixture-tested: forward/rollback, additive-field preservation, unknown-version rejection, pre-mutation backup, checksums/counts, minimum-client gating, irreversible-event rollback denial, and dry-run behavior pass 7/7 locally.
 
+The 24 runtime dependency alerts exposed by enabling the dependency graph have local remediations: the repository requires Go 1.25.12, vulnerable Go modules are above their patched versions, mobile overrides select patched `brace-expansion` and `uuid`, `govulncheck` reports zero reachable vulnerabilities, and mobile/package production audits report zero vulnerabilities. GitHub alert closure is pending the pushed lockfile scan.
+
 All external GitHub Actions in the authoritative repository are pinned to immutable 40-character commits. The authoritative Product 30 branch now has six strict required checks, CODEOWNERS review, stale-review dismissal, last-push approval, linear history, conversation resolution, and force-push/deletion denial. Public, staging, hosted-download, production-signing, and store states remain false.
 
 The untracked `output/` directory predates the authoritative branch switch and is preserved without deletion or attribution until provenance is established.

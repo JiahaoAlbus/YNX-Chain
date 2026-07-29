@@ -17,3 +17,5 @@ Updated: 2026-07-29T06:08:33Z
 10. Passed every visible check on authoritative PR `#16`, including dependency review, governance, full CI, CodeQL and both native iOS builds.
 11. Added and passed 7/7 executable machine-readable record migration and rollback tests plus a deterministic dry run.
 12. Ran the central contract-tooling precondition, then passed all Go command/internal tests and `go vet ./...`.
+13. Remediated 24 newly exposed runtime dependency alerts locally and raised the Go toolchain floor to the patched 1.25.12; official `govulncheck` reports zero reachable vulnerabilities.
+14. Mobile locked install/audit, 53/53 tests, typecheck, Android bundle and iOS bundle pass with patched transitive dependencies.

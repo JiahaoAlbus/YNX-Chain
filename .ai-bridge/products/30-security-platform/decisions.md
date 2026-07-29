@@ -17,3 +17,5 @@ Updated: 2026-07-29T06:08:33Z
 13. Set `installedLocal=true` only after the exact `900c314...` source passed a fresh authoritative clone, locked install, rebuild, cold start, render, audit and 172/172 tests.
 14. Enable vulnerability alerts because the official dependency-review gate failed closed while the dependency graph was disabled.
 15. Pin all external Actions in the repository, not only Product 30 workflows, because floating workflow dependencies violate the platform supply-chain gate.
+16. Treat the 24 alerts revealed by enabling the dependency graph as real runtime blockers; upgrade direct and transitive locks instead of dismissing alerts.
+17. Raise the repository Go patch floor to 1.25.12 because official `govulncheck` found 14 reachable standard-library vulnerabilities in 1.25.7.
