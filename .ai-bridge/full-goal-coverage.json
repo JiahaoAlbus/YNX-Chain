@@ -9,8 +9,8 @@
     "owner": "12-explorer"
   },
   "stage": "PROTECT",
-  "sourceCommit": "967a97cb8d3873b88f817a571477aff7f0b46450",
-  "lastUpdated": "2026-07-27",
+  "sourceCommit": "57b0038312a58e48c97c73f8efaf4473764b9890",
+  "lastUpdated": "2026-07-29",
   "entries": [
     {
       "id": "EXP-DATA-001",
@@ -67,14 +67,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/indexer/cursor.go", "internal/indexer/indexer.go", "internal/indexer/server.go", "internal/explorer/explorer.go", "internal/explorer/server.go", "apps/explorer/src/api.ts", "apps/explorer/src/App.tsx"],
-      "sourceCommit": "eb3d19091feff85a7cdbc09c20ed06ed402c74a7",
-      "tests": ["internal/indexer/cursor_test.go", "internal/explorer/explorer_test.go", "apps/explorer/src/api.test.ts", "apps/explorer/tests/explorer.spec.ts", "go test -race ./internal/indexer ./internal/explorer"],
+      "sourceCommit": "1d403f82e1e3a17ee892e43187752e2d564767c5",
+      "tests": ["internal/indexer/cursor_test.go", "internal/explorer/explorer_test.go", "apps/explorer/src/api.test.ts", "apps/explorer/tests/explorer.spec.ts", "scripts/verify/indexer-cursor-restart-check.sh", "go test -race ./internal/indexer ./internal/explorer"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "12-explorer",
-      "nextAction": "Bind tests to the pushed source commit and execute configured-key restart continuity as an integration drill.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Submit the configured-key restart vector to 29 Integration and obtain the approved multi-instance secret reference/rotation pattern from 30 Security/SRE.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "EXP-SSE-001",
@@ -82,15 +82,15 @@
       "requirement": "SSE reconnect, gap detection, bounded polling fallback and snapshot recovery.",
       "applicability": "applicable",
       "status": "testedLocal",
-      "evidence": ["apps/explorer/src/live.ts", "internal/explorer/server.go"],
-      "sourceCommit": "eb3d19091feff85a7cdbc09c20ed06ed402c74a7",
-      "tests": ["apps/explorer/src/live.test.ts"],
+      "evidence": ["apps/explorer/src/live.ts", "internal/explorer/server.go", "release/integration/explorer-contract.json", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"],
+      "sourceCommit": "57b0038312a58e48c97c73f8efaf4473764b9890",
+      "tests": ["apps/explorer/src/live.test.ts", "internal/explorer/server_stream_test.go", "scripts/verify/explorer-check.sh", "go test -race ./internal/explorer"],
       "artifact": "apps/explorer/dist",
       "publicProof": null,
       "blockedBy": [],
       "owner": "12-explorer",
-      "nextAction": "Add explicit Last-Event-ID gap recovery and indexer restart/reorg integration evidence.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Submit explorer.stream-recovery.v1 to 29 Integration and add reproducible Indexer restart-and-reorg recovery evidence.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "EXP-CONSENSUS-001",

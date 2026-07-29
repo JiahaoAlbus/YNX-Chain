@@ -3,7 +3,7 @@
   "product": "YNX Explorer",
   "slug": "explorer",
   "owner": "12-explorer",
-  "sourceCommit": "3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb",
+  "sourceCommit": "57b0038312a58e48c97c73f8efaf4473764b9890",
   "status": "candidate-source-bound-awaiting-central-freeze",
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -52,8 +52,13 @@
       "method": "GET",
       "path": "/api/stream",
       "responseSchema": "explorer.dashboard-event.v1",
+      "recoverySchema": "explorer.stream-recovery.v1",
       "transport": "SSE",
-      "failureSemantics": "Client reconnects with bounded polling fallback and explicit stale/catching-up state"
+      "requestRecoveryHeader": "Last-Event-ID",
+      "responseRecoveryHeader": "X-YNX-Stream-Recovery: live|replay|snapshot",
+      "historyLimit": 64,
+      "eventIdSemantics": "Monotonic process-local decimal sequence; a server restart makes prior IDs unavailable and requires snapshot recovery.",
+      "failureSemantics": "Retained successors replay in order; invalid, expired, future or unavailable IDs emit stream-reset before the next full dashboard snapshot; slow clients are disconnected so native Last-Event-ID reconnect can recover; bounded polling remains active until a stream snapshot arrives."
     }
   ],
   "cursor": {
@@ -67,7 +72,8 @@
     "configuredKeyEnvironmentReference": "YNX_INDEXER_CURSOR_KEY",
     "configuredKeyMinimumBytes": 32,
     "defaultPersistence": "process-scoped",
-    "restartSemantics": "Without a configured key, pre-restart cursors expire and fail closed."
+    "restartSemantics": "Without a configured key, pre-restart cursors expire and fail closed. With the same approved 32-byte-or-longer configured key, a cursor whose anchor remains retained continues across restart.",
+    "restartContinuityEvidence": "scripts/verify/indexer-cursor-restart-check.sh"
   },
   "canonicalRoutes": {
     "block": "/block/{height}",
@@ -77,7 +83,8 @@
   },
   "canonicalEvents": [
     "dashboard",
-    "status"
+    "upstream-error",
+    "stream-reset"
   ],
   "errorCodes": [
     {

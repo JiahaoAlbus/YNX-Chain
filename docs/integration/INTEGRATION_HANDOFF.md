@@ -7,7 +7,7 @@
 - Contract status: source-bound candidate awaiting 29 Integration freeze
 - Goal status: Active
 - Stage: PROTECT
-- Source commit: `3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb`
+- Source commit: `57b0038312a58e48c97c73f8efaf4473764b9890`
 - Public deployment: not claimed
 
 ## Implemented slice
@@ -47,7 +47,13 @@ A successful source record is retained as HTTP 200 with `partial/unknown` freshn
 
 `YNX_INDEXER_CURSOR_KEY` is an optional secret reference for stable cursor validation across restarts. It must contain at least 32 bytes and must be supplied through the approved secret mechanism; it must not be committed or pasted into chat.
 
-When the key is absent, the Indexer generates a process-scoped random key. In that mode, cursors issued before a restart expire and fail closed. `/health` and `/ynx/overview` expose `cursorPersistence` so operators and clients do not assume restart-stable pagination.
+When the key is absent, the Indexer generates a process-scoped random key. In that mode, cursors issued before a restart expire and fail closed. `/health` and `/ynx/overview` expose `cursorPersistence` so operators and clients do not assume restart-stable pagination. Configured-key continuity is now verified locally by `scripts/verify/indexer-cursor-restart-check.sh`.
+
+## SSE recovery contract
+
+`GET /api/stream` assigns monotonic process-local decimal event IDs and retains the latest 64 events. A reconnect carrying a retained `Last-Event-ID` receives every retained successor before live delivery and reports `X-YNX-Stream-Recovery: replay`.
+
+Invalid, expired, future or restart-invalidated IDs report `X-YNX-Stream-Recovery: snapshot` and emit `stream-reset` using `explorer.stream-recovery.v1`; the next `dashboard` event is a complete snapshot. Slow clients are disconnected instead of silently losing buffered events, allowing native EventSource reconnection to apply the same recovery contract. The web client preserves native EventSource reconnect behavior and runs bounded polling only until a stream snapshot resumes.
 
 ## Failure semantics
 
@@ -62,14 +68,14 @@ Passed against the current source:
 - Explorer/Indexer Go suites and command packages;
 - Explorer/Indexer Race tests;
 - Explorer/Indexer binary build;
-- `npm test`: 15 tests;
+- `npm test`: 16 tests, including native Last-Event-ID preservation and stream-reset recovery;
 - production web build;
 - accessibility contract: 1 test;
 - Playwright desktop/mobile: 10 tests, including visible evidence-source metadata;
-- disposable local-Testnet Indexer resume/metrics smoke;
-- disposable local-Testnet Explorer API/search/evidence-envelope/metrics smoke;
+- disposable local-Testnet Indexer resume/metrics and configured-key cursor restart smoke;
+- disposable local-Testnet Explorer API/search/evidence-envelope/metrics plus SSE replay `1 -> 2` and future-ID snapshot reset smoke;
 - Explorer npm audit: 0 vulnerabilities;
-- Explorer product security scan: 38 source and release files.
+- Explorer product security scan: 40 source and release files.
 
 Repository-wide `go test ./...` remains red only in other-owner key-permission and Hardhat selector-metadata paths. Root Hardhat tooling reports three High advisories through `adm-zip` with no npm fix; these packages are not shipped by Explorer.
 
@@ -84,6 +90,7 @@ Freeze `explorer.integration.v1`, especially:
 - canonical Summary field ownership;
 - `invalid_cursor` versus `upstream_unavailable` semantics;
 - public evidence envelope requirements;
+- `Last-Event-ID`, `stream-reset` and recovery-header semantics;
 - final public Explorer origin.
 
 ### 30 Security / SRE / Release
@@ -100,4 +107,4 @@ Chain Core, Economics, Oracle, Data Fabric, Exchange, DEX and Quant must provide
 
 ## Next engineering action
 
-Freeze `explorer.public-evidence.v1` and its error semantics through 29 Integration. The next local runtime work is configured-key cursor restart continuity followed by explicit SSE `Last-Event-ID` gap recovery and indexer restart/reorg evidence.
+Freeze `explorer.integration.v1`, `explorer.public-evidence.v1` and the cursor/SSE recovery vectors through 29 Integration. The next local runtime work is reproducible Indexer restart-and-reorg recovery evidence, followed by accepted owner read models for market, Quant, economics, solvency and product-release domains.

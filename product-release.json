@@ -8,11 +8,11 @@
   },
   "goalStatus": "active",
   "stage": "PROTECT",
-  "releaseCandidate": "verified-local-checkpoint-3e5cd9c",
-  "sourceCommit": "3e5cd9c7d49adcc631d47e310e2ffbce08ae3eeb",
+  "releaseCandidate": "verified-local-checkpoint-57b0038",
+  "sourceCommit": "57b0038312a58e48c97c73f8efaf4473764b9890",
   "sourceBranch": "codex/final-explorer",
-  "asOf": "2026-07-27",
-  "truthfulStatus": "cursor-deep-link-summary-and-versioned-public-evidence-slices-locally-verified",
+  "asOf": "2026-07-29",
+  "truthfulStatus": "cursor-restart-public-evidence-and-sse-gap-recovery-slices-locally-verified",
   "capabilities": {
     "canonicalEvidenceDeepLinks": "testedLocal",
     "browserHistoryRestoration": "testedLocal",
@@ -25,7 +25,11 @@
     "cursorTamperRejection": "testedLocal",
     "cursorCrossFeedRejection": "testedLocal",
     "cursorFailureClassification": "testedLocal",
+    "cursorConfiguredKeyRestartContinuity": "testedLocal",
     "sseReconnectAndFallback": "testedLocal",
+    "sseLastEventIdReplay": "testedLocal",
+    "sseGapSnapshotRecovery": "testedLocal",
+    "sseSlowClientRecovery": "testedLocal",
     "pwa": "testedLocal",
     "twelveLocales": "testedLocal",
     "productSecurityScan": "testedLocal"
@@ -53,7 +57,7 @@
       "command": "npm test",
       "scope": "apps/explorer",
       "result": "passed",
-      "evidence": "15 tests passed, including versioned evidence clients, canonical/legacy Summary compatibility, routing, cursor clients and live freshness."
+      "evidence": "16 tests passed, including native EventSource Last-Event-ID preservation, explicit stream-reset handling, bounded polling fallback, versioned evidence clients, routing and cursor clients."
     },
     {
       "command": "npm run build",
@@ -83,7 +87,7 @@
       "command": "bash scripts/verify/explorer-check.sh",
       "scope": "disposable local Testnet",
       "result": "passed",
-      "evidence": "Explorer transaction, versioned public-evidence envelope, account, resource, token, validator, fee, search, HTML and metrics paths passed against a disposable local Testnet."
+      "evidence": "Explorer transaction, versioned public-evidence envelope, account, resource, token, validator, fee, search, HTML and metrics paths passed against a disposable local Testnet; SSE event IDs 1->2 were replayed with Last-Event-ID and a future ID produced an explicit stream-reset snapshot recovery."
     },
     {
       "command": "npm audit --json",
@@ -95,7 +99,7 @@
       "command": "npm run security:scan",
       "scope": "Explorer runtime, BFF, Indexer, integration and release files",
       "result": "passed",
-      "evidence": "38 product source and release files passed secret, filler and unfinished-marker scanning."
+      "evidence": "40 product source and release files passed secret, filler and unfinished-marker scanning."
     },
     {
       "command": "go test ./...",
@@ -142,5 +146,5 @@
     "Whole-repository preflight is red in other-owner packages; no Explorer-owned regression remains in the targeted gates.",
     "Shared root Hardhat tooling has three unresolved High advisories with no npm fix."
   ],
-  "nextAction": "Submit explorer.public-evidence.v1 and its source-bound vectors for 29 Integration freeze, then execute configured-key cursor restart continuity and explicit SSE Last-Event-ID gap recovery."
+  "nextAction": "Submit explorer.integration.v1, explorer.public-evidence.v1 and the source-bound cursor/SSE recovery vectors to 29 Integration, then add reproducible Indexer restart-and-reorg recovery evidence."
 }

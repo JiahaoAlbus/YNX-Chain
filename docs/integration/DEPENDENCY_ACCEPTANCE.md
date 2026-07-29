@@ -26,7 +26,8 @@ The following local contracts are internally consistent but are not yet centrall
 - `explorer.summary.v1`
 - `explorer.block-page.v1`
 - `explorer.transaction-page.v1`
-- cursor envelope version 1
+- cursor envelope version 1, including locally verified configured-key restart continuity
+- `explorer.stream-recovery.v1` with retained `Last-Event-ID` replay and explicit snapshot reset
 - canonical `/block`, `/tx` and `/address` routes
 - HTTP 400 cursor rejection versus HTTP 502 dependency failure
 
