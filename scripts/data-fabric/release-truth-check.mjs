@@ -116,18 +116,9 @@ function trackedEngineeringFiles(repoRoot) {
     "sdk/datafabric/",
     "schemas/data-fabric/",
     "infra/data-fabric/",
-    "scripts/data-fabric/",
   ];
-  const excluded = new Set([
-    "scripts/data-fabric/evidence-path-check.mjs",
-    "scripts/data-fabric/policy-scan.mjs",
-    "scripts/data-fabric/quality-gates.sh",
-    "scripts/data-fabric/release-truth-check.mjs",
-    "scripts/data-fabric/release-truth-check-check.mjs",
-  ]);
 
   return tracked.filter((file) => {
-    if (excluded.has(file)) return false;
     return exactFiles.has(file) || prefixes.some((prefix) => file.startsWith(prefix));
   });
 }

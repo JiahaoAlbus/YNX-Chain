@@ -18,7 +18,7 @@ package_dir="$work/package"
 scripts/data-fabric/package-public-testnet-release.sh "$package_dir" >/dev/null
 archive_sha="$(jq -er '.artifact.sha256' "$package_dir/${release}-release-index.json")"
 cold_start="$work/cold-start-evidence.json"
-if [[ "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]]; then
+if [[ "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" && "${YNX_DATA_FABRIC_TEST_SIGNING_ALGORITHM:-auto}" != "rsa" ]]; then
   bash scripts/data-fabric/generate-cold-start-evidence.sh "$package_dir" "$cold_start" >/dev/null
 else
   jq -n \
