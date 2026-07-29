@@ -1,0 +1,9 @@
+captured_at=2026-07-18T15:58:00Z
+source_commit=33eaf45a148f5bf6449ab42adfc3e4e03e2857b9
+command=adb -s emulator-5580 shell am start -W -S -a android.intent.action.VIEW -d 'ynxvideo://watch?id=owned-test' com.ynxweb4.video
+Status: ok
+LaunchState: COLD
+Activity: com.ynxweb4.video/.MainActivity
+TotalTime: 20041
+WaitTime: 20378
+topResumedActivity=com.ynxweb4.video/.MainActivity

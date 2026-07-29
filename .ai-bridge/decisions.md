@@ -1,23 +1,21 @@
-# Decisions
+# YNX Creator Studio — Decisions
 
-## 2026-07-25 recovery authority decisions
+Updated: 2026-07-29T02:33:33Z
 
-1. The recovered documentation fact package is bound to source commit
-   `c8c4ff7263e50afc4c731dac8157aa85e02232dc`; later package commits do not rewrite
-   the historical evidence source.
-2. Dirty or local-ahead sibling worktrees are protected candidate inputs, not merged,
-   deployed or public facts.
-3. Release states are independent. Local implementation or tests do not imply
-   installation, central integration, staging deployment, public deployment, hosted
-   download, production signing or store release.
-4. Testnet identity, Mainnet launch and public StreamBFT activation are separate claims.
-   Mainnet and public consensus activation remain blocked without direct owner evidence.
-5. Operator-host observations through the current proxy path are component-level
-   candidate evidence only and cannot establish independent public availability.
-6. Missing legal, economic, provider or independent-audit approval keeps the related
-   claim blocked; no superlative, guarantee or approval language is inferred.
-7. English locale records are source terminology. Other locale records remain machine
-   drafts until named human review; Arabic additionally requires runtime RTL validation.
-8. The public disclosure gate is fail-closed for missing files, missing schemas,
-   symbolic source identities, broken Claim references, unsupported release states and
-   missing evidence locations.
+1. Creator Studio remains a Web-first independent product. Viewer, listener and Social experiences remain outside this product surface.
+2. Channel ownership is canonical. Team roles may operate within bounded permissions, but uploaded media, revenue records and payout ownership remain attached to the channel owner.
+3. Team accounts and contributor split accounts must decode as canonical YNX Wallet addresses. Free-form identities are rejected.
+4. Role administration is owner-only. `owner` cannot be delegated. Role change or revocation increments `Channel.AuthVersion`; requests re-evaluate persisted membership and fail closed.
+5. Public or unlisted publication requires an active rights declaration bound to the exact uploaded SHA-256. Commercial eligibility and revenue require independent verified rights.
+6. Rights review is a global moderation boundary. The declarer and channel owner cannot self-verify. Creator Studio does not expose a creator-side rights review control.
+7. Expired, rejected or lineage-mismatched rights remove audience access immediately. Rejection also returns the video to private/ready recovery state.
+8. Finance role may inspect revenue and submit a dispute, but cannot create a payout intent for itself. Payout destination authority remains the canonical owner Wallet flow.
+9. State updates are copy-on-write transactions. HMAC verification occurs before schema normalization; failed mutations or failed disk replacement do not change authoritative in-memory state.
+10. Existing Video registry/App Gateway files are integration candidates, not central acceptance evidence. Creator Studio publishes a separate owner contract rather than rewriting another owner's integration truth.
+11. No mock scanner, fake revenue, fake audience, self-issued Wallet session or static success may satisfy Testnet/Public gates.
+12. The historical freeze package describes protected source commit `192da88b0ca3897278893711fb08e1373b0562b2`; later evidence commits do not retroactively rewrite that runtime evidence.
+13. Analytics values are derived only from persisted local events in actor-authorized scope and expose `source`, `as_of`, `version` and explicit coverage; no extrapolation or synthetic projection is allowed.
+14. Unique analytics users are exposed as a count only. Viewer identities are not returned in the analytics envelope.
+15. Analyst access excludes revenue evidence, Editor access excludes analytics, and Finance access remains separately authorized on every read.
+16. Mainline `.ai-bridge` files from other product owners are not Creator Studio product facts. Add/add merge conflicts are resolved by retaining Creator Studio-specific recovery state while preserving all non-conflicting mainline source changes.
+17. `ynxweb4.com` is the only official YNX product website domain. `huangjeo.com` is not a Creator Studio canonical, release, status, support or handoff domain; valid `mcpXX.huangjeo.com` service addresses remain distinct.

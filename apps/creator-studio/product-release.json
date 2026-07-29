@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 2,
+  "productId": "34",
+  "name": "YNX Creator Studio",
+  "slug": "creator-studio",
+  "owner": "34-creator-studio",
+  "serviceId": "ynx-creator-studio",
+  "branch": "codex/final-creator-studio",
+  "commit": "8a7e9b930f89be5587e6547aa23241db70d436f4",
+  "sourceCommit": "8a7e9b930f89be5587e6547aa23241db70d436f4",
+  "version": "0.2.0-testnet-preview",
+  "surfaces": [
+    "web"
+  ],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "testnetVerified": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "releasePublished": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "testnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "releasePublished": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "verification": {
+    "sourceCommit": "8a7e9b930f89be5587e6547aa23241db70d436f4",
+    "tests": [
+      "go test ./internal/video",
+      "go test -race ./internal/video",
+      "go vet ./internal/video",
+      "npm run check (apps/creator-studio)",
+      "npm run smoke (apps/creator-studio)",
+      "npm ci",
+      "npm run hardhat:build",
+      "npm run contracts:selectors",
+      "go test ./..."
+    ],
+    "result": "passed locally",
+    "githubActions": [],
+    "boundary": "GitHub Actions has no run for this branch because repository CI triggers on main pushes and pull requests targeting main."
+  },
+  "analyticsEnvelope": {
+    "source": "ynx.creator-studio.persisted-events",
+    "version": "analytics.v1",
+    "asOf": "UTC read time",
+    "coverage": true,
+    "uniqueUsersCountOnly": true,
+    "centralDataFabricAccepted": false
+  },
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {},
+  "bytes": {},
+  "signingClass": "not applicable; unhosted Web source",
+  "minOS": {
+    "browser": "current evergreen browser"
+  },
+  "installEvidence": {
+    "web": "local source check and loopback smoke only",
+    "boundary": "not installed, centrally registered, deployed or hosted"
+  },
+  "centralIntegration": {
+    "status": "integration-request-only",
+    "registryCandidate": "internal/video/integration/registry-v2.json",
+    "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json",
+    "ownerContract": "release/integration/creator-studio-contract.json"
+  },
+  "knownLimitations": [
+    "No central Wallet/Gateway registration or deployed route",
+    "No shared Testnet execution or public deployment",
+    "No live provider AI, Trust delegated appeal or Pay settlement acceptance",
+    "Analytics provenance and coverage are local persisted-event evidence; central Data Fabric acceptance remains absent",
+    "No Creator Studio Release, artifact, SBOM, provenance, hosted download or production signature",
+    "Content draft review scheduling unpublish and immutable version history remain incomplete"
+  ],
+  "generatedAt": "2026-07-29T02:44:50Z"
+}

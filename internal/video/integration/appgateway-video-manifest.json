@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "service": "video",
+  "sourceMainCommit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+  "requiredWalletVerifier": "wallet-auth-v1",
+  "requiredRegistry": "internal/video/integration/registry-v2.json",
+  "upstream": {
+    "urlEnv": "YNX_APP_GATEWAY_VIDEO_URL",
+    "keyEnv": "YNX_APP_GATEWAY_VIDEO_API_KEY",
+    "keyHeader": "X-YNX-Video-Key",
+    "transport": "exact loopback HTTP origin"
+  },
+  "browserSessionHeader": "X-YNX-App-Session",
+  "browserDeviceHeader": "X-YNX-Device-ID",
+  "publicRoutes": [
+    "GET /video/health",
+    "GET /video/version",
+    "GET /video/v1/channels/{channelId}",
+    "GET /video/v1/videos",
+    "GET /video/v1/videos/{videoId}",
+    "GET /video/v1/videos/{videoId}/comments",
+    "GET /video/media/{boundedObjectKey}"
+  ],
+  "protectedRoutePrefix": "/video/v1/",
+  "protectedMethods": [
+    "DELETE",
+    "GET",
+    "POST"
+  ],
+  "upstreamAttestation": {
+    "domain": "YNX_VIDEO_GATEWAY_REQUEST_V2",
+    "requiredClaims": [
+      "account",
+      "bundleId",
+      "callback",
+      "chainId",
+      "expiresAt",
+      "issuedAt",
+      "productClientId",
+      "productDeviceAlgorithm",
+      "productDeviceKey",
+      "requestDigest",
+      "requestingProduct",
+      "scopes",
+      "sessionBinding"
+    ],
+    "requestBindings": [
+      "bodySha256",
+      "method",
+      "nonce",
+      "requestTime",
+      "requestUri"
+    ],
+    "noncePersistence": "consume atomically before the product mutation; replay and changed replay fail closed"
+  },
+  "status": "integration-request-only",
+  "truthBoundary": "This manifest does not modify or deploy central App Gateway. integratedCentral remains false until the total controller applies and tests it."
+}
