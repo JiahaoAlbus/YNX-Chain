@@ -150,6 +150,21 @@ bft-gateway-check:
 bft-evm-receipt-check:
 	bash ./scripts/verify/bft-evm-receipt-check.sh
 
+bft-evm-legacy-transfer-check:
+	bash ./scripts/verify/bft-evm-legacy-transfer-check.sh
+
+bft-evm-access-list-transfer-check:
+	bash ./scripts/verify/bft-evm-access-list-transfer-check.sh
+
+bft-evm-dynamic-fee-transfer-check:
+	bash ./scripts/verify/bft-evm-dynamic-fee-transfer-check.sh
+
+bft-evm-fee-suggestion-check:
+	bash ./scripts/verify/bft-evm-fee-suggestion-check.sh
+
+bft-evm-fee-history-check:
+	bash ./scripts/verify/bft-evm-fee-history-check.sh
+
 bft-ide-contract-check:
 	bash ./scripts/verify/bft-ide-contract-check.sh
 
@@ -424,6 +439,17 @@ bridge-api-check:
 stablecoin-issuer-check:
 	bash ./scripts/verify/stablecoin-issuer-check.sh
 
+yusd-sandbox-check:
+	go test -race ./internal/yusdsandbox ./cmd/ynx-yusd-sandboxd
+
+liquid-staking-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-liquid-staking-sim
+	go run ./cmd/ynx-liquid-staking-sim -input economics/examples/liquid-staking-stress.json >/dev/null
+
+safety-module-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-safety-module-sim -run 'SafetyModule'
+	go run ./cmd/ynx-safety-module-sim -input economics/examples/safety-module-shortfall.json >/dev/null
+
 resource-market-check:
 	bash ./scripts/verify/resource-market-check.sh
 
@@ -470,6 +496,9 @@ account-abstraction-check:
 solvency-check:
 	go test -count=1 ./internal/consensus ./internal/bftgateway -run 'Solvency|Staking'
 	go test -race -count=1 ./internal/consensus ./internal/bftgateway -run 'Solvency|Staking'
+
+integration-contract-check:
+	node ./scripts/verify/integration-contract-check.mjs
 
 governance-check:
 	bash ./scripts/verify/governance-check.sh

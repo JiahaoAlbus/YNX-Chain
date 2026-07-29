@@ -35,7 +35,7 @@ for vector in \
   evm-block-transaction-malformed-hash-reject \
   evm-block-transaction-wrong-parameter-count-reject \
   evm-block-transaction-upstream-evidence-failure-reject; do
-  grep -Fq "\"id\": \"${vector}\"" docs/integration/CROSS_PRODUCT_TEST_VECTORS.json
+  grep -Fq "\"id\": \"${vector}\"" docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json
 done
 
 echo "bft-evm-receipt-check passed: network identity, signed raw YNXT broadcast with rejection mapping, ABCI-backed latest balance/nonce, Comet block-by-number/hash plus transaction count/index lookup with AppHash/DataHash/gas evidence, frozen null/invalid-parameter/upstream-failure vectors, committed bounded code/storage/call/current-resource estimate, transaction lookup, receipt gas/index/block evidence, bounded contract logs and bloom, bounded filters, and fail-closed validation are verified"

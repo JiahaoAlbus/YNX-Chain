@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "5c08b24462a2",
+  "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,

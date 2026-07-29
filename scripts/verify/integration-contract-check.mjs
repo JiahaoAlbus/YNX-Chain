@@ -29,9 +29,9 @@ const rejectInternalStrings = (value, path = "root") => {
   }
 };
 
-const release = readJSON("release/product-release.json");
+const release = readJSON("release/chain-core/product-release.json");
 const contract = readJSON("release/integration/chain-core-contract.json");
-const vectors = readJSON("docs/integration/CROSS_PRODUCT_TEST_VECTORS.json");
+const vectors = readJSON("docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json");
 const metadata = readJSON("chain-metadata/ynx-testnet.json");
 const stateSource = readFileSync("internal/consensus/state.go", "utf8");
 const applicationSource = readFileSync("internal/consensus/application.go", "utf8");
@@ -55,7 +55,7 @@ requireValue(vectors.schema === "ynx-cross-product-test-vectors/v1", "unexpected
 requireValue(release.source.implementationCommit === contract.sourceCommit, "release and contract source commits differ");
 requireValue(release.source.contractVersion === contract.contractVersion, "release and contract versions differ");
 requireValue(contract.sourceCommit === vectors.sourceCommit, "contract and vectors source commits differ");
-requireValue(/^[0-9a-f]{12}$/.test(contract.sourceCommit), "source commit must be a 12-character Git identifier");
+requireValue(/^[0-9a-f]{40}$/.test(contract.sourceCommit), "source commit must be a full 40-character Git identifier");
 execFileSync("git", ["merge-base", "--is-ancestor", contract.sourceCommit, "HEAD"], { stdio: "ignore" });
 
 requireValue(metadata.chainId === 6423, "metadata EVM chain ID drift");
@@ -64,16 +64,16 @@ requireValue(contract.networkIdentity.cosmosChainId === "ynx_6423-1", "Cosmos ch
 requireValue(contract.networkIdentity.evmChainIdDecimal === metadata.chainId, "contract and metadata EVM chain ID differ");
 requireValue(contract.networkIdentity.evmChainIdHex === "0x1917", "hex EVM chain ID drift");
 requireValue(contract.networkIdentity.nativeAsset === metadata.nativeCurrency.symbol, "contract and metadata native asset differ");
-requireValue(stateSource.includes("const CommittedStateVersion = 11"), "runtime committed-state version drift");
-requireValue(stateSource.includes('calculateHashFor("YNX_ABCI_STATE_V11", CommittedStateVersion)'), "runtime AppHash domain drift");
-requireValue(applicationSource.includes("ApplicationVersion   = 17"), "runtime ABCI application version drift");
+requireValue(stateSource.includes("const CommittedStateVersion = 12"), "runtime committed-state version drift");
+requireValue(stateSource.includes('calculateHashFor("YNX_ABCI_STATE_V12", CommittedStateVersion)'), "runtime AppHash domain drift");
+requireValue(applicationSource.includes("ApplicationVersion   = 18"), "runtime ABCI application version drift");
 for (const method of ["ListSnapshots", "OfferSnapshot", "LoadSnapshotChunk", "ApplySnapshotChunk"]) {
   requireValue(snapshotSource.includes(`func (a *Application) ${method}`), `runtime state sync method missing: ${method}`);
 }
 requireValue(snapshotSource.includes("stateSyncSnapshotMaxBytes         = 64 << 20"), "runtime state sync size bound drift");
-requireValue(contract.stateSchema.committedStateVersion === 11, "contract committed-state version drift");
-requireValue(contract.stateSchema.applicationVersion === 17, "contract ABCI application version drift");
-requireValue(contract.stateSchema.appHashDomain === "YNX_ABCI_STATE_V11", "contract AppHash domain drift");
+requireValue(contract.stateSchema.committedStateVersion === 12, "contract committed-state version drift");
+requireValue(contract.stateSchema.applicationVersion === 18, "contract ABCI application version drift");
+requireValue(contract.stateSchema.appHashDomain === "YNX_ABCI_STATE_V12", "contract AppHash domain drift");
 requireValue(contract.stateSchema.stateSyncSnapshotFormat === 1, "contract state sync format drift");
 requireValue(contract.stateSchema.stateSyncSnapshotMaxBytes === 67108864, "contract state sync size bound drift");
 requireValue(contract.recovery.abciStateSync.implementedLocal === true && contract.recovery.abciStateSync.testedLocal === true, "state sync recovery status drift");
@@ -83,7 +83,7 @@ requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplet
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
 }
-requireValue(contract.contractVersion === "1.10.0", "unexpected Chain Core contract version");
+requireValue(contract.contractVersion === "1.12.0", "unexpected Chain Core contract version");
 requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
 requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
 requireValue(contract.evmRpc.historicalContractState === false, "EVM RPC cannot claim historical contract state");
@@ -279,4 +279,4 @@ rejectInternalStrings(release, "release");
 rejectInternalStrings(contract, "contract");
 rejectInternalStrings(vectors, "vectors");
 
-console.log(`integration contract check passed: ${ids.size} vectors, state v11, source ${contract.sourceCommit}`);
+console.log(`integration contract check passed: ${ids.size} vectors, state v12, source ${contract.sourceCommit}`);

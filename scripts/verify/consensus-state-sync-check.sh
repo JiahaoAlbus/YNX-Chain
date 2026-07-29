@@ -26,4 +26,4 @@ grep -Fq 'saveCommittedState(a.statePath, state, a.migration)' internal/consensu
 go test ./internal/consensus -run 'StateSyncSnapshot|ServesStateSync|StateSyncPersistence' -count=1
 go test -race ./internal/consensus -run 'StateSyncSnapshot|ServesStateSync|StateSyncPersistence' -count=1
 
-echo "consensus-state-sync-check passed: ABCI snapshot export/import, trusted AppHash binding, strict v11 validation, socket round-trip, durable restart, tamper rejection, bounded payload and persistence-failure atomicity"
+echo "consensus-state-sync-check passed: ABCI snapshot export/import, trusted AppHash binding, strict v12 validation with exact v11 migration, socket round-trip, durable restart, tamper rejection, bounded payload and persistence-failure atomicity"

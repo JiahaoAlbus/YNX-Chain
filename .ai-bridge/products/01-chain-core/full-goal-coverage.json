@@ -53,9 +53,9 @@
     "entryCount": 12,
     "byStatus": {
       "notStarted": 0,
-      "inProgress": 4,
+      "inProgress": 0,
       "implementedLocal": 0,
-      "testedLocal": 4,
+      "testedLocal": 8,
       "integratedCentral": 0,
       "testnetVerified": 2,
       "publicVerified": 0,
@@ -95,7 +95,7 @@
         "Run final test, build, smoke, security, migration, restore and public evidence; update handoff, commit, push, verify local equals remote and keep the goal Active or Blocked while evidence is incomplete."
       ],
       "applicability": "applicable",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
         "CURRENT_RECOVERY_AUDIT.md",
         "SECURITY_BOUNDARIES.md",
@@ -120,8 +120,8 @@
         "hosted signed artifact and independent public evidence"
       ],
       "owner": "01-chain-core",
-      "nextAction": "Continue closing the highest-priority autonomous TESTNET, integration, security and release gaps without changing public booleans prematurely.",
-      "lastUpdated": "2026-07-27T10:46:42Z"
+      "nextAction": "Preserve the passed local compliance baseline and obtain central Wallet/Auth, hosted artifact, current-source public deployment and independent proof without changing public booleans prematurely.",
+      "lastUpdated": "2026-07-28T19:08:00Z"
     },
     {
       "id": "CHAIN-GOV-002",
@@ -319,7 +319,7 @@
         "Quant, AI and product services cannot withdraw, change owner, widen permissions or bypass revoke."
       ],
       "applicability": "applicable",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
         "internal/assetauth",
         "internal/bundler",
@@ -342,8 +342,8 @@
         "real DEX router and pool integration"
       ],
       "owner": "01-chain-core + 02-wallet-auth + execution owners",
-      "nextAction": "Close passkey, guardian and stablecoin-gas gaps and run real Exchange and DEX end-to-end flows.",
-      "lastUpdated": "2026-07-27T10:46:42Z"
+      "nextAction": "Run the locally tested passkey, guardian recovery, batched UserOperation, Paymaster and Vault primitives through accepted Wallet approval, stablecoin settlement, Exchange and DEX owner adapters.",
+      "lastUpdated": "2026-07-28T19:08:00Z"
     },
     {
       "id": "CHAIN-SVC-001",
@@ -358,7 +358,7 @@
         "Every service returns real health, version, commit, release, dependency status, startedAt and metrics and has systemd or container, least privilege, backup and rollback."
       ],
       "applicability": "applicable",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
         "cmd",
         "internal",
@@ -379,8 +379,8 @@
         "central Wallet, Oracle and Data Fabric acceptance"
       ],
       "owner": "01-chain-core + central owners",
-      "nextAction": "Finish gRPC and central service acceptance, then run a current-source remote service audit.",
-      "lastUpdated": "2026-07-27T10:46:42Z"
+      "nextAction": "Bind the locally tested service and gRPC surfaces to accepted central owners, then run a current-source remote service audit.",
+      "lastUpdated": "2026-07-28T19:08:00Z"
     },
     {
       "id": "CHAIN-EVM-IDX-001",
@@ -509,7 +509,7 @@
         "Local SHA equals remote SHA, worktree is clean and no dirty change is unrecorded."
       ],
       "applicability": "applicable",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
         ".ai-bridge/products/01-chain-core/full-goal-coverage.json",
         "release/chain-core/product-release.json",
@@ -521,13 +521,13 @@
       "artifact": [],
       "publicProof": [],
       "blockedBy": [
-        "remaining autonomous TESTNET and integration gaps",
         "current-source public deployment and proof",
+        "central owner acceptance",
         "hosted artifact and production signing evidence"
       ],
       "owner": "01-chain-core",
-      "nextAction": "Continue the highest-priority autonomous TESTNET gap; Goal remains Active.",
-      "lastUpdated": "2026-07-27T10:46:42Z"
+      "nextAction": "Submit the exact protected source candidate to central integration; public Testnet, hosted artifact, production signing and independent proof remain externally gated.",
+      "lastUpdated": "2026-07-28T19:08:00Z"
     },
     {
       "id": "CHAIN-PROTECT-001",

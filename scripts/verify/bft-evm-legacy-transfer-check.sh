@@ -10,7 +10,7 @@ grep -Fq 'EthereumLegacyTransferType' internal/consensus/ethereum_transaction.go
 grep -Fq 'EthereumTransferGasLimit' internal/consensus/ethereum_transaction.go
 grep -Fq 'unsupported typed Ethereum transaction envelope' internal/consensus/action_transaction.go
 grep -Fq '{Key: "ethereum_hash", Value: tx.Hash, Index: true}' internal/consensus/application.go
-grep -Fq 'ApplicationVersion   = 17' internal/consensus/application.go
+grep -Fq 'ApplicationVersion   = 18' internal/consensus/application.go
 grep -Fq 'DecodeEthereumValueTransfer' internal/bftgateway/evm.go
 grep -Fq 'committedEthereumTransaction' internal/bftgateway/evm.go
 grep -Fq 'consensus.ValidateBFTEVMReceipt(receipt)' internal/bftgateway/evm.go
