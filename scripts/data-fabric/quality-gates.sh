@@ -3,6 +3,15 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
+mode="owner"
+branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
+if [[ "${1:-}" == "--integrated" || "$branch" == "codex/final-integration" ]]; then
+  mode="integrated"
+elif [[ $# -gt 0 ]]; then
+  echo "usage: $0 [--integrated]" >&2
+  exit 2
+fi
+
 node scripts/data-fabric/policy-scan.mjs runtime
 node scripts/data-fabric/policy-scan.mjs public
 
@@ -20,8 +29,12 @@ jq empty \
   product-release.json \
   infra/data-fabric/grafana-dashboard.json
 
-node scripts/data-fabric/evidence-path-check.mjs
-node scripts/data-fabric/release-truth-check-check.mjs
+if [[ "$mode" == "integrated" ]]; then
+  node scripts/verify/integration-acceptance-check.mjs
+else
+  node scripts/data-fabric/evidence-path-check.mjs
+  node scripts/data-fabric/release-truth-check-check.mjs
+fi
 node scripts/data-fabric/policy-scan.mjs secret
 
 git diff --check
