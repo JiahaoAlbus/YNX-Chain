@@ -99,7 +99,14 @@ func (s *Server) security(next http.Handler) http.Handler {
 	})
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	write(w, 200, map[string]any{"ok": true, "service": "ynx-shopd", "version": BuildVersion, "commit": BuildCommit, "chainId": ChainID, "chain": ChainName, "nativeSymbol": NativeSymbol, "persistence": s.store.path != "", "integrityProtected": len(s.store.integrityKey) > 0})
+	startedAt := s.metrics.snapshot().StartedAt
+	dependencies := map[string]string{
+		"walletGateway": availability(s.cfg.Auth != nil && s.cfg.Auth.Available()),
+		"pay":           availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""),
+		"trust":         availability(s.cfg.Trust != nil && s.cfg.Trust.Available()),
+		"ai":            availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""),
+	}
+	write(w, 200, map[string]any{"ok": true, "status": "healthy", "service": "ynx-shopd", "version": BuildVersion, "commit": BuildCommit, "startedAt": startedAt, "chainId": ChainID, "chain": ChainName, "nativeSymbol": NativeSymbol, "persistence": s.store.path != "", "integrityProtected": len(s.store.integrityKey) > 0, "dependencies": dependencies})
 }
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, map[string]any{"service": "ynx-shopd", "version": BuildVersion, "commit": BuildCommit, "chain": ChainName, "nativeSymbol": NativeSymbol})

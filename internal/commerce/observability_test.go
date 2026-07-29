@@ -13,6 +13,33 @@ import (
 	"time"
 )
 
+func TestHealthReportsExactRuntimeAndDependencyBoundaries(t *testing.T) {
+	store, err := Open("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(store, ServerConfig{}).Handler())
+	defer server.Close()
+	response, err := http.Get(server.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("health status=%d", response.StatusCode)
+	}
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	for _, expected := range []string{`"status":"healthy"`, `"version":"0.2.0-testnet-preview"`, `"commit":"development"`, `"startedAt":`, `"integrityProtected":false`, `"walletGateway":"unavailable"`, `"pay":"unavailable"`, `"trust":"unavailable"`, `"ai":"unavailable"`} {
+		if !strings.Contains(text, expected) {
+			t.Fatalf("health missing %q in %s", expected, text)
+		}
+	}
+}
+
 func TestPrometheusMetricsExposeBoundedRuntimeAndState(t *testing.T) {
 	store, err := Open("")
 	if err != nil {
