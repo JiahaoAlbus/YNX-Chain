@@ -13,6 +13,7 @@
     "feeds:verify": "node scripts/verify-public-feeds.mjs",
     "recovery": "node scripts/recovery.mjs",
     "recovery:drill": "node scripts/recovery-drill.mjs",
+    "capacity": "node scripts/capacity.mjs",
     "check": "npm test && npm run smoke && npm run security && npm run feeds:verify && npm run recovery:drill"
   },
   "engines": {

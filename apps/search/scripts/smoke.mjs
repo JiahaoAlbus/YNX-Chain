@@ -55,6 +55,18 @@ try {
   if (health.provider.globalCoverage !== false || health.provider.coverage !== "registered-authorized-sources-only") {
     throw new Error("provider truth contract missing");
   }
+  if (!healthResponse.headers.get("x-request-id") || !healthResponse.headers.get("x-trace-id") || health.observability?.metrics !== "unavailable") {
+    throw new Error("observability health contract missing");
+  }
+
+  const invalidQueryResponse = await fetch(`${origin}/api/search?q=`);
+  const invalidQuery = await invalidQueryResponse.json();
+  if (invalidQueryResponse.status !== 400 || !invalidQuery.errorId || invalidQueryResponse.headers.get("x-error-id") !== invalidQuery.errorId) {
+    throw new Error("bounded error correlation missing");
+  }
+
+  const metricsUnavailable = await fetch(`${origin}/api/metrics`);
+  if (metricsUnavailable.status !== 503) throw new Error("metrics endpoint must fail closed without operator configuration");
 
   const indexStatus = await (await fetch(`${origin}/api/index/status`)).json();
   const serializedStatus = JSON.stringify(indexStatus);
