@@ -32,7 +32,7 @@ The Explorer now has locally verified opaque cursor/deep-link, public-evidence a
 - Local and remote evidence checkpoint were equal at `0a2c1e15763152398bf67156ace6bd6a60379276` before this memory update.
 - No PR exists for `codex/final-explorer`.
 - No Explorer-specific GitHub Release was found.
-- GitHub Actions status is unconfirmed because `gh run list` encountered a TLS handshake timeout.
+- GitHub Actions query succeeded on retry and returned no runs for `codex/final-explorer`; no CI success is claimed for the current SHA.
 - Central contract freeze, immutable artifact hosting, SBOM/provenance, public ingress and public deployment remain false.
 
 ## Exact next action

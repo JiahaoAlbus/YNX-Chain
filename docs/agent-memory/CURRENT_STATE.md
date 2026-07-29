@@ -29,7 +29,7 @@
 ## GitHub and release state
 
 - Pull requests for `codex/final-explorer`: none found.
-- GitHub Actions for the current branch: unconfirmed because `gh run list` hit a TLS handshake timeout.
+- GitHub Actions for the current branch: query succeeded on retry and returned no runs; no CI success is claimed for the current SHA.
 - Explorer-specific GitHub Release: none found.
 - Immutable hosted artifact: none.
 - SBOM / provenance bound to this Explorer candidate: not published.
@@ -54,7 +54,7 @@
 - Add reproducible Indexer restart-and-reorg recovery evidence.
 - Add accepted read models for market, Quant, economics, solvency and product-release evidence after owner contracts exist.
 - Resolve public ingress, immutable artifact, SBOM/provenance, public deployment and `ynxweb4.com/explorer` verification through the owning products.
-- Retry current-SHA GitHub Actions inspection when GitHub API transport is healthy.
+- Add or trigger a repository CI workflow for the exact current branch SHA, then record every required job conclusion.
 
 ## Current risks
 

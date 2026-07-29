@@ -1,14 +1,14 @@
 # Blockers and Boundaries
 
-## Execution infrastructure
+## CI evidence gap
 
-- `EXEC-INFRA-GITHUB-ACTIONS-001`
-  - Owner: GitHub API transport / local execution path
-  - Evidence: `gh run list --branch codex/final-explorer` failed with `TLS handshake timeout` on 2026-07-29.
-  - Impact: Current-SHA Actions status is unconfirmed.
-  - Product status: This is not an Explorer product blocker and must not be represented as `externalBlocked`.
-  - Recovery condition: GitHub API transport responds normally.
-  - First action after recovery: Query branch runs and match `headSha` exactly to the current remote SHA.
+- `EXP-CI-EVIDENCE-001`
+  - Owner: Product 12 workflow / repository CI configuration
+  - Evidence: `gh run list --branch codex/final-explorer` succeeded on retry and returned no runs.
+  - Impact: No GitHub Actions success is available for the current branch SHA; local verification remains the only test evidence.
+  - Product status: This is an evidence gap, not proof of CI failure and not an external infrastructure blocker.
+  - Recovery condition: A repository workflow runs against the exact current branch SHA.
+  - First action after recovery: Match the run `headSha`, inspect every required job and record the conclusion without inferring success from branch push.
 
 ## Cross-product acceptance boundaries
 

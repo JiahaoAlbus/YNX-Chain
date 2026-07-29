@@ -35,7 +35,7 @@
 - Disposable local-Testnet Explorer smoke: passed, including SSE replay `1 -> 2` and future-ID snapshot reset.
 - Explorer security scan: 40 files passed.
 - Whole-repository preflight remains red only in other-owner paths.
-- GitHub Actions status remains unconfirmed after a TLS handshake timeout.
+- GitHub Actions query succeeded on retry and returned no branch runs; no CI success is claimed for the current SHA.
 
 ## Exact next action
 

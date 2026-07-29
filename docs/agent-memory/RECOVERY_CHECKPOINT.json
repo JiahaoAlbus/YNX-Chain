@@ -24,7 +24,7 @@
     "bash scripts/verify/explorer-check.sh (local Testnet SSE replay 1->2 and snapshot reset)"
   ],
   "latestCiRuns": [],
-  "ciStatus": "unconfirmed-tls-handshake-timeout",
+  "ciStatus": "query-succeeded-no-runs-found",
   "pullRequests": [],
   "release": null,
   "artifacts": [
@@ -61,7 +61,7 @@
     "current-SHA GitHub Actions confirmation"
   ],
   "blockers": [
-    "EXEC-INFRA-GITHUB-ACTIONS-001",
+    "EXP-CI-EVIDENCE-001",
     "EXP-29-FREEZE-001",
     "EXP-30-RELEASE-001",
     "EXP-28-PUBLIC-001"
