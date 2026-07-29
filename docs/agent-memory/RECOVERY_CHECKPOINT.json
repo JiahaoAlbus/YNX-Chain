@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "10",
+  "productName": "YNX Seller Console",
+  "phase": "FREEZE-local-completion-and-external-acceptance-preparation",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/10-seller-console",
+  "branch": "codex/final-seller-console",
+  "localSha": "365318525937cb0b0c69f19ac7859094bc2e7cbe",
+  "remoteSha": "365318525937cb0b0c69f19ac7859094bc2e7cbe",
+  "runtimeSourceSha": "a90d1ee59eec38c15ce42b39420f2625ed758dd0",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "recordingNote": "This memory is committed after localSha; recover actual HEAD, upstream and dirty state from Git before execution.",
+  "latestSuccessfulTests": [
+    "go test ./internal/commerce/...",
+    "go test -race ./internal/commerce (passed with a non-failing macOS LC_DYSYMTAB linker warning)",
+    "go vet ./internal/commerce/...",
+    "npm test in apps/seller-console (3 passed)",
+    "npm run build in apps/seller-console",
+    "seven release/integration/public JSON documents parsed successfully"
+  ],
+  "latestCiRuns": [],
+  "ciObservation": "No GitHub Actions runs were returned for codex/final-seller-console.",
+  "pullRequests": [
+    {
+      "status": "unverified",
+      "reason": "bounded GitHub TLS handshake timeout during PR inspection"
+    }
+  ],
+  "release": null,
+  "releaseObservation": "No release claim is made; bounded GitHub TLS handshake timeout prevented a fresh release-list verification.",
+  "artifacts": [],
+  "evidenceArtifacts": [
+    "apps/seller-console/product-release.json",
+    "apps/seller-console/public-product-metadata.json",
+    "release/integration/seller-console-contract.json",
+    "release/integration/seller-console-website-handoff.json",
+    "release/integration/operator-inputs.request.json",
+    "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+    "docs/operations/MIGRATION_COMPATIBILITY.md"
+  ],
+  "publicRoutes": [
+    {
+      "url": "https://ynxweb4.com/seller-console",
+      "status": "requested-not-verified",
+      "deployedPublic": false,
+      "canonicalVerified": false
+    }
+  ],
+  "completed": [
+    "canonical eight-role Seller authority",
+    "Wallet-account-bound invitations",
+    "existing-member-only role updates",
+    "owner-only store-scoped revocation adapter",
+    "transactional Audit and local Seller Outbox",
+    "Snapshot v6 migration and future-version refusal",
+    "HMAC backup and verified restore primitives",
+    "bounded non-destructive v3/v4/v5 rollback export",
+    "owner-only store-scoped Seller data export",
+    "preview-first bounded transient retention",
+    "integration contract and cross-product vectors",
+    "migration and dependency documentation",
+    "public metadata and Owner 28 Website handoff"
+  ],
+  "remaining": [
+    "bounded provider registry",
+    "central Wallet/Pay/Trust/Data Fabric/Monitor acceptance",
+    "shared Testnet execution",
+    "authenticated staging-copy migration/restore drill",
+    "SLO/capacity/performance/accessibility/security completion",
+    "immutable artifact, hashes, SBOM and provenance",
+    "PR/merge/release verification",
+    "Owner 28 public deployment and canonical verification"
+  ],
+  "blockers": [
+    "SC-BLOCK-WALLET-001",
+    "SC-BLOCK-PAY-001",
+    "SC-BLOCK-TRUST-001",
+    "SC-BLOCK-DATA-001",
+    "SC-BLOCK-INTEGRATION-001",
+    "SC-BLOCK-WEBSITE-001",
+    "SC-BLOCK-SECURITY-001"
+  ],
+  "executionInfrastructureObservations": ["SC-INFRA-GITHUB-TLS-001"],
+  "nextAction": "Implement the bounded provider registry with Owner-only lifecycle, external access-material references only, truthful mode and health, bounded test attempts, outage/rate-limit behavior, restart and persistence-failure tests; then run Seller gates, commit, push and bind evidence.",
+  "updatedAt": "2026-07-29T02:41:03Z"
+}
