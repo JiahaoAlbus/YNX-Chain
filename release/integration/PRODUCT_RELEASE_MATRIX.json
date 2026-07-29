@@ -2,8 +2,8 @@
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
   "authority": "release/integration/product-registry.json",
-  "generatedAt": "2026-07-29T11:37:49.499Z",
-  "controllerSourceCommit": "3930a14d504eb68c45753f5329705fb86001ac23",
+  "generatedAt": "2026-07-29T11:59:21.099Z",
+  "controllerSourceCommit": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
   "readinessClasses": [
     "READY_FOR_PUBLIC_TESTNET",
     "READY_FOR_SOURCE_RELEASE",
@@ -34,8 +34,8 @@
     "readyForSourceRelease": 1,
     "holdForRecovery": 35,
     "synced": 36,
-    "clean": 10,
-    "exactHeadCiSuccess": 15,
+    "clean": 11,
+    "exactHeadCiSuccess": 14,
     "centrallyAccepted": 0
   },
   "repositoryQueries": {
@@ -143,6 +143,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "e3e6ea36635a106ac219ccb488745f238ea934d1",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -218,7 +219,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: full-goal coverage has 4 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "02",
@@ -306,6 +307,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "ce48aaee6088ca8ea826ad329a00dad882ce718c",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -368,7 +370,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "03",
@@ -456,6 +458,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "4bd9178e3ab132c41d429817457aa0086ca58a24",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -518,7 +521,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "04",
@@ -606,7 +609,8 @@
       "ci": {
         "available": true,
         "exactHeadSha": "4b17b29b652b61100f6a7e7715b1d3c3316c3914",
-        "exactHeadSuccess": true,
+        "exactHeadComplete": true,
+        "exactHeadSuccess": false,
         "runs": [
           {
             "id": 30418246174,
@@ -697,10 +701,11 @@
       },
       "blockers": [
         "registered final worktree has uncommitted changes",
-        "Worktree is not clean"
+        "Worktree is not clean",
+        "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "05",
@@ -788,6 +793,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "f42bdf1191b691185d314f9bc8f0a5cc89bcb877",
+        "exactHeadComplete": true,
         "exactHeadSuccess": false,
         "runs": [
           {
@@ -864,7 +870,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "06",
@@ -952,6 +958,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "0c11385fe41f4dea3c26299c5193a043cc979376",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -1017,7 +1024,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "07",
@@ -1105,6 +1112,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "71ae6f32249d4a2709c32c6c24de4e842329a280",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -1187,7 +1195,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "08",
@@ -1275,6 +1283,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "65f77b071b1664a2b171424954eae46e245586f9",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -1342,7 +1351,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "09",
@@ -1430,6 +1439,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "7f4b2de9b9e530dc3e0b8a4a4632a90035945fc5",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -1498,7 +1508,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "10",
@@ -1586,6 +1596,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "bb354e83953d6399360071a72294902a6abb48a2",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -1654,7 +1665,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "11",
@@ -1742,6 +1753,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -1825,7 +1837,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "12",
@@ -1913,6 +1925,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "29e04766d9e919cefe9f8cf1bb39f443b02bb67b",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -1978,7 +1991,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "13",
@@ -2066,6 +2079,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "beab398566496f7a56368f9f8526e1132aa1a2a4",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -2144,7 +2158,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: testedLocal is not directly proven by release metadata and coverage.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "14",
@@ -2232,6 +2246,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "20f4a71a6836449342cd6ee5426b7a77e2b2f4f9",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -2297,7 +2312,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "15",
@@ -2385,6 +2400,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "4d40557229b4232119026cb8c012db3bef2f1be9",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -2465,7 +2481,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "16",
@@ -2553,6 +2569,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -2666,7 +2683,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "17",
@@ -2754,6 +2771,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "261c267417ef166762214453efdcdc28c1230e51",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -2824,7 +2842,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "18",
@@ -2912,6 +2930,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "759c545367faf66a5168d9cf5b3cf64e0057233d",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -2998,7 +3017,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "19",
@@ -3086,6 +3105,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "f04c3a61b7783781febb04ea6786498eb02dfb85",
+        "exactHeadComplete": true,
         "exactHeadSuccess": false,
         "runs": [
           {
@@ -3158,7 +3178,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "20",
@@ -3246,6 +3266,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "9763907e7a5f469ae5ba911669437912bd8ac819",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -3313,7 +3334,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "21",
@@ -3401,6 +3422,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -3479,7 +3501,7 @@
         "full-goal coverage has 8 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: full-goal coverage has 8 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "22",
@@ -3567,6 +3589,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "2beece6f66a330811f474f24189e53aacb5bb636",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -3633,7 +3656,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "23",
@@ -3721,6 +3744,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "f2f69e398c4ca8fa671298f1e40030c3ae44a726",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -3788,7 +3812,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "24",
@@ -3876,6 +3900,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "f66648ae49d01149b0220748943f98438a15f21d",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -3960,7 +3985,7 @@
       },
       "blockers": [],
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "25",
@@ -4048,6 +4073,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "0734e15b86cbeb47df0ec3d00c1e3457807e2f91",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -4132,7 +4158,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: fullGoalCoverage lacks an exact sourceCommit.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "26",
@@ -4220,6 +4246,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+        "exactHeadComplete": true,
         "exactHeadSuccess": false,
         "runs": [
           {
@@ -4292,7 +4319,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "27",
@@ -4380,6 +4407,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "87f9fd0e5c2e6c664a3092e230ce54fd956acb7e",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -4447,7 +4475,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "28",
@@ -4535,6 +4563,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "1b8a919cf29fbc79d342a2ef3d7499df08268b03",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -4609,7 +4638,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "29",
@@ -4623,10 +4652,10 @@
       "expectedRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "actualRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "branch": "codex/final-integration",
-      "localSha": "3930a14d504eb68c45753f5329705fb86001ac23",
-      "remoteSha": "3930a14d504eb68c45753f5329705fb86001ac23",
+      "localSha": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
+      "remoteSha": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
       "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
-      "dirty": true,
+      "dirty": false,
       "ahead": 0,
       "behind": 0,
       "tests": {
@@ -4658,28 +4687,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "productRelease": {
             "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 40
+            "distance": 41
           },
           "publicMetadata": {
             "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 40
+            "distance": 41
           },
           "integrationContract": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 99
+            "distance": 100
           }
         },
         "requiredEvidencePaths": {
@@ -4696,16 +4725,66 @@
       },
       "ci": {
         "available": true,
-        "exactHeadSha": "3930a14d504eb68c45753f5329705fb86001ac23",
+        "exactHeadSha": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
-        "runs": [],
+        "runs": [
+          {
+            "id": 30449511706,
+            "workflow": "Trust Resource Native Preview",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511706"
+          },
+          {
+            "id": 30449511693,
+            "workflow": "governance",
+            "conclusion": "",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511693"
+          },
+          {
+            "id": 30449511681,
+            "workflow": "exchange",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511681"
+          },
+          {
+            "id": 30449511651,
+            "workflow": "Security",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511651"
+          },
+          {
+            "id": 30449511558,
+            "workflow": "docs-compliance",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511558"
+          },
+          {
+            "id": 30449511556,
+            "workflow": "ci",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511556"
+          },
+          {
+            "id": 30449511536,
+            "workflow": "Resource Market Candidate Gates",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511536"
+          },
+          {
+            "id": 30449511528,
+            "workflow": "Security Platform Gates",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30449511528"
+          }
+        ],
         "error": null
       },
       "pullRequest": {
         "baseRefName": "main",
         "baseRefOid": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
         "headRefName": "codex/final-integration",
-        "headRefOid": "3930a14d504eb68c45753f5329705fb86001ac23",
+        "headRefOid": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
         "isDraft": true,
         "mergeable": "MERGEABLE",
         "number": 17,
@@ -4768,13 +4847,11 @@
         "acceptedAt": null
       },
       "blockers": [
-        "registered final worktree has uncommitted changes",
         "full-goal coverage has 57 autonomous or unresolved items",
-        "Worktree is not clean",
         "exact-head successful CI is not proven"
       ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "nextAction": "Resolve: full-goal coverage has 57 autonomous or unresolved items.",
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "30",
@@ -4862,6 +4939,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "9c9931aa5e610a1456ce2950006ff0b0c39c50d9",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -5085,7 +5163,7 @@
         "full-goal coverage has 2 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: full-goal coverage has 2 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "31",
@@ -5173,6 +5251,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "6dd844410bf1c163217ea5d8eafb59bbc3ab7005",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -5273,7 +5352,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "32",
@@ -5361,6 +5440,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "09b658b02d43558ecc1763e24dbcd4930d6d65b9",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -5450,7 +5530,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "33",
@@ -5538,6 +5618,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "8a4957fdb15941db0416c1f0a23cb44ba297077e",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -5603,7 +5684,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: public metadata is missing from the branch tree.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "34",
@@ -5691,6 +5772,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "f45bf8b2c10bcdd9d553b790801de079fa593d6a",
+        "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
@@ -5792,7 +5874,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "35",
@@ -5880,6 +5962,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "ba8afbbdbbb1cf63a73aeff14cc910ccc7a689e6",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -5946,7 +6029,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     },
     {
       "productNumber": "36",
@@ -6034,6 +6117,7 @@
       "ci": {
         "available": true,
         "exactHeadSha": "b00f32da16218edb90fcc9f9b504607e374077ce",
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
         "error": null
@@ -6101,7 +6185,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T11:37:49.499Z"
+      "updatedAt": "2026-07-29T11:59:21.099Z"
     }
   ]
 }

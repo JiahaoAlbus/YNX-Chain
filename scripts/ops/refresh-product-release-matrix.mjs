@@ -242,7 +242,8 @@ function main() {
     const repository = row.repository;
     const repoEvidence = repositoryEvidence.get(repository);
     const headRuns = (repoEvidence?.runs?.data ?? []).filter((run) => run.headSha === row.refs.localSha);
-    const exactHeadSuccess = headRuns.some((run) => run.status === "completed" && run.conclusion === "success");
+    const exactHeadComplete = headRuns.length > 0 && headRuns.every((run) => run.status === "completed");
+    const exactHeadSuccess = exactHeadComplete && headRuns.every((run) => ["success", "skipped", "neutral"].includes(run.conclusion));
     const pullRequest = (repoEvidence?.pullRequests?.data ?? []).find((pr) => pr.headRefName === row.branch) ?? null;
     const identityTokens = [
       registered?.slug,
@@ -267,6 +268,7 @@ function main() {
     const ci = {
       available: repoEvidence?.runs?.available === true,
       exactHeadSha: row.refs.localSha,
+      exactHeadComplete,
       exactHeadSuccess,
       runs: headRuns.map((run) => ({
         id: run.databaseId,
