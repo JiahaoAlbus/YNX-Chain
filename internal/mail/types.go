@@ -188,21 +188,72 @@ type AccountExport struct {
 	Audit         []AuditEntry  `json:"audit"`
 }
 
+// CanonicalMailEvent is the private-minimized, source-bound envelope exported
+// through the Mail-owned Data Fabric outbox. It deliberately excludes message
+// bodies, subjects, attachment content, mailbox addresses, credentials and raw
+// provider webhook payloads.
+type CanonicalMailEvent struct {
+	ID                     string        `json:"id"`
+	SchemaVersion          string        `json:"schema_version"`
+	Type                   string        `json:"type"`
+	Product                string        `json:"product"`
+	Owner                  string        `json:"owner"`
+	SourceCommit           string        `json:"source_commit"`
+	Sequence               uint64        `json:"sequence"`
+	MessageID              string        `json:"message_id,omitempty"`
+	ThreadIDHash           string        `json:"thread_id_hash,omitempty"`
+	ActorIDHash            string        `json:"actor_id_hash,omitempty"`
+	RecipientHash          string        `json:"recipient_hash,omitempty"`
+	RecipientCount         int           `json:"recipient_count,omitempty"`
+	NativeRecipientCount   int           `json:"native_recipient_count,omitempty"`
+	InternetRecipientCount int           `json:"internet_recipient_count,omitempty"`
+	Channel                string        `json:"channel,omitempty"`
+	State                  DeliveryState `json:"state,omitempty"`
+	ReasonCode             string        `json:"reason_code,omitempty"`
+	Provider               string        `json:"provider,omitempty"`
+	ProviderMessageID      string        `json:"provider_message_id,omitempty"`
+	ProviderEventIDHash    string        `json:"provider_event_id_hash,omitempty"`
+	ProviderEventType      string        `json:"provider_event_type,omitempty"`
+	Attempt                int           `json:"attempt,omitempty"`
+	Authority              string        `json:"authority"`
+	Source                 string        `json:"source"`
+	Coverage               string        `json:"coverage"`
+	PrivacyClass           string        `json:"privacy_class"`
+	Applied                bool          `json:"applied"`
+	MailServerDelivered    bool          `json:"mail_server_delivered"`
+	UserReadClaimed        bool          `json:"user_read_claimed"`
+	OccurredAt             time.Time     `json:"occurred_at"`
+	AsOf                   time.Time     `json:"as_of"`
+	RecordedAt             time.Time     `json:"recorded_at"`
+}
+
+type CanonicalMailEventBatch struct {
+	SchemaVersion string               `json:"schema_version"`
+	Product       string               `json:"product"`
+	Acknowledged  uint64               `json:"acknowledged_sequence"`
+	Through       uint64               `json:"through_sequence"`
+	PendingAfter  int                  `json:"pending_after_batch"`
+	Events        []CanonicalMailEvent `json:"events"`
+}
+
 type State struct {
-	Users          map[string]User            `json:"users"`
-	Challenges     map[string]Challenge       `json:"challenges"`
-	Sessions       map[string]Session         `json:"sessions"`
-	WalletRequests map[string]bool            `json:"wallet_requests"`
-	Drafts         map[string]Draft           `json:"drafts"`
-	Messages       map[string]Message         `json:"messages"`
-	Mailboxes      []MailboxItem              `json:"mailboxes"`
-	Blocks         map[string]map[string]bool `json:"blocks"`
-	Reports        map[string]AbuseReport     `json:"reports"`
-	AIJobs         map[string]AIJob           `json:"ai_jobs"`
-	ProviderEvents map[string]ProviderEvent   `json:"provider_events"`
-	Suppressions   map[string]Suppression     `json:"suppressions"`
-	DeadLetters    map[string]DeadLetter      `json:"dead_letters"`
-	ProviderHealth map[string]ProviderHealth  `json:"provider_health"`
-	Rate           map[string][]time.Time     `json:"rate"`
-	Audit          []AuditEntry               `json:"audit"`
+	Users                  map[string]User            `json:"users"`
+	Challenges             map[string]Challenge       `json:"challenges"`
+	Sessions               map[string]Session         `json:"sessions"`
+	WalletRequests         map[string]bool            `json:"wallet_requests"`
+	Drafts                 map[string]Draft           `json:"drafts"`
+	Messages               map[string]Message         `json:"messages"`
+	Mailboxes              []MailboxItem              `json:"mailboxes"`
+	Blocks                 map[string]map[string]bool `json:"blocks"`
+	Reports                map[string]AbuseReport     `json:"reports"`
+	AIJobs                 map[string]AIJob           `json:"ai_jobs"`
+	ProviderEvents         map[string]ProviderEvent   `json:"provider_events"`
+	Suppressions           map[string]Suppression     `json:"suppressions"`
+	DeadLetters            map[string]DeadLetter      `json:"dead_letters"`
+	ProviderHealth         map[string]ProviderHealth  `json:"provider_health"`
+	Rate                   map[string][]time.Time     `json:"rate"`
+	Audit                  []AuditEntry               `json:"audit"`
+	DataFabricEvents       []CanonicalMailEvent       `json:"data_fabric_events"`
+	DataFabricAck          uint64                     `json:"data_fabric_ack"`
+	NextDataFabricSequence uint64                     `json:"next_data_fabric_sequence"`
 }

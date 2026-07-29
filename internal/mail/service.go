@@ -35,29 +35,46 @@ type AIGateway interface {
 }
 
 type Service struct {
-	store    *Store
-	verifier WalletVerifier
-	ai       AIGateway
-	bridge   InternetBridge
-	signer   ed25519.PrivateKey
-	now      func() time.Time
-	random   io.Reader
-	cancelMu sync.Mutex
-	cancels  map[string]context.CancelFunc
+	store        *Store
+	verifier     WalletVerifier
+	ai           AIGateway
+	bridge       InternetBridge
+	signer       ed25519.PrivateKey
+	sourceCommit string
+	now          func() time.Time
+	random       io.Reader
+	cancelMu     sync.Mutex
+	cancels      map[string]context.CancelFunc
+}
+
+type ServiceOptions struct {
+	InternetBridge InternetBridge
+	SourceCommit   string
 }
 
 func NewService(store *Store, verifier WalletVerifier, ai AIGateway, signer ed25519.PrivateKey) (*Service, error) {
-	return NewServiceWithInternetBridge(store, verifier, ai, nil, signer)
+	return NewServiceWithOptions(store, verifier, ai, signer, ServiceOptions{})
 }
 
 func NewServiceWithInternetBridge(store *Store, verifier WalletVerifier, ai AIGateway, bridge InternetBridge, signer ed25519.PrivateKey) (*Service, error) {
+	return NewServiceWithOptions(store, verifier, ai, signer, ServiceOptions{InternetBridge: bridge})
+}
+
+func NewServiceWithOptions(store *Store, verifier WalletVerifier, ai AIGateway, signer ed25519.PrivateKey, options ServiceOptions) (*Service, error) {
 	if store == nil || verifier == nil {
 		return nil, errors.New("mail store and wallet verifier are required")
 	}
 	if len(signer) != ed25519.PrivateKeySize {
 		return nil, errors.New("mail sender identity key is required")
 	}
-	return &Service{store: store, verifier: verifier, ai: ai, bridge: bridge, signer: signer, now: time.Now, random: rand.Reader, cancels: map[string]context.CancelFunc{}}, nil
+	sourceCommit := strings.TrimSpace(options.SourceCommit)
+	if sourceCommit == "" {
+		sourceCommit = "local-unbound"
+	}
+	if len(sourceCommit) > 128 {
+		return nil, errors.New("mail source commit identifier is too long")
+	}
+	return &Service{store: store, verifier: verifier, ai: ai, bridge: options.InternetBridge, signer: signer, sourceCommit: sourceCommit, now: time.Now, random: rand.Reader, cancels: map[string]context.CancelFunc{}}, nil
 }
 
 func (s *Service) InternetBridgeStatus() InternetBridgeStatus {
@@ -466,6 +483,21 @@ func (s *Service) SendDraftContext(ctx context.Context, token, draftID string) (
 		st.Messages[message.ID] = message
 		st.Mailboxes = append(st.Mailboxes, MailboxItem{MessageID: message.ID, OwnerID: sess.UserID, Folder: "sent", Read: true, CreatedAt: now})
 		delete(st.Drafts, draftID)
+		if err := s.emitSendApprovedEvent(st, message, now); err != nil {
+			return err
+		}
+		for _, delivery := range message.Deliveries {
+			switch {
+			case delivery.Channel == "ynx_native" && delivery.State == DeliveryDelivered:
+				if err := s.emitDeliveryEvent(st, EventMailNativeDelivered, message, delivery, "ynx_mail_state", now, "", "", true); err != nil {
+					return err
+				}
+			case delivery.Channel == "internet_provider" && delivery.State == DeliveryFailed:
+				if err := s.emitDeliveryEvent(st, EventMailInternetFailed, message, delivery, "ynx_mail_state", now, "", "", true); err != nil {
+					return err
+				}
+			}
+		}
 		s.audit(st, sess.UserID, "mail_send_approved", message.ID, map[string]any{"delivery_states": message.Deliveries})
 		out = message
 		return nil
@@ -669,6 +701,15 @@ func (s *Service) RetryDeliveryContext(ctx context.Context, token, messageID, re
 		delivery.UpdatedAt = now
 		message.Deliveries[index] = delivery
 		st.Messages[message.ID] = message
+		if delivery.Channel == "ynx_native" && delivery.State == DeliveryDelivered {
+			if err := s.emitDeliveryEvent(st, EventMailNativeDelivered, message, delivery, "ynx_mail_state", now, "", "", true); err != nil {
+				return err
+			}
+		} else if delivery.Channel == "internet_provider" && delivery.State == DeliveryFailed {
+			if err := s.emitDeliveryEvent(st, EventMailInternetFailed, message, delivery, "ynx_mail_state", now, "", "", true); err != nil {
+				return err
+			}
+		}
 		s.audit(st, sess.UserID, "delivery_retry", message.ID, map[string]any{"recipient": recipient, "state": delivery.State, "reason": delivery.Reason})
 		out = message
 		return nil

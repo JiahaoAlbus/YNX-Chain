@@ -38,7 +38,7 @@ func main() {
 		From:          os.Getenv("YNX_MAIL_RESEND_FROM"),
 		WebhookSecret: os.Getenv("YNX_MAIL_RESEND_WEBHOOK_SECRET"),
 	}
-	service, err := mailservice.NewServiceWithInternetBridge(store, verifier, ai, internetBridge, signer)
+	service, err := mailservice.NewServiceWithOptions(store, verifier, ai, signer, mailservice.ServiceOptions{InternetBridge: internetBridge, SourceCommit: buildCommit})
 	fatal(err)
 	webFS, err := fs.Sub(assets, "web")
 	fatal(err)

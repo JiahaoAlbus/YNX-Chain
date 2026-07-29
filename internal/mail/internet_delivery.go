@@ -64,6 +64,9 @@ func (s *Service) updateInternetSubmission(messageID, recipient string, submissi
 				"reason":         delivery.Reason,
 				"attempt":        delivery.Attempt,
 			})
+			if err := s.emitDeliveryEvent(st, EventMailInternetSubmissionFailed, message, delivery, "ynx_mail_state", now, "", "", true); err != nil {
+				return err
+			}
 		} else {
 			acceptedAt := submission.AcceptedAt.UTC()
 			if acceptedAt.IsZero() {
@@ -87,6 +90,9 @@ func (s *Service) updateInternetSubmission(messageID, recipient string, submissi
 				"user_read_claimed":     false,
 				"mail_server_delivered": false,
 			})
+			if err := s.emitDeliveryEvent(st, EventMailInternetProviderAccepted, message, delivery, "provider_submission_response", acceptedAt, "", "api.accepted", true); err != nil {
+				return err
+			}
 		}
 		message.Deliveries[index] = delivery
 		st.Messages[message.ID] = message
@@ -148,10 +154,26 @@ func (s *Service) HandleInternetWebhook(headers http.Header, raw []byte) (duplic
 					"user_read_claimed":     false,
 					"mail_server_delivered": event.State == DeliveryDelivered,
 				})
-				return nil
+				eventType := EventMailInternetProviderEventIgnored
+				if applied {
+					eventType = canonicalProviderEventType(event.State)
+				}
+				return s.emitDeliveryEvent(st, eventType, message, delivery, "verified_provider_event", event.OccurredAt, event.EventID, event.Type, applied)
 			}
 		}
-		return nil
+		return s.emitCanonicalEvent(st, canonicalEventInput{
+			Type:                EventMailInternetProviderEventIgnored,
+			Provider:            event.Provider,
+			ProviderMessageID:   event.ProviderMessageID,
+			ProviderEventIDHash: digest(event.EventID),
+			ProviderEventType:   event.Type,
+			Authority:           "verified_provider_event",
+			Source:              event.Provider,
+			Coverage:            "unmatched_provider_event",
+			OccurredAt:          event.OccurredAt,
+			Applied:             false,
+			MailServerDelivered: false,
+		})
 	})
 	return duplicate, matched, event, err
 }
