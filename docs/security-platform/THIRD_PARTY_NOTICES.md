@@ -119,6 +119,7 @@ Go module license identifiers are not asserted by `go.mod`; each distribution re
 | github.com/alecthomas/kingpin/v2\tv2.4.0\t | local | none | not-recorded |
 | github.com/alecthomas/units\tv0.0.0-20211218093645-b94a6e3cc137\t | local | none | not-recorded |
 | github.com/andybalholm/brotli\tv1.0.5\t | local | none | not-recorded |
+| github.com/antithesishq/antithesis-sdk-go\tv0.6.0-default-no-op\t | local | none | not-recorded |
 | github.com/armon/go-metrics\tv0.4.1\t | local | none | not-recorded |
 | github.com/aws/aws-sdk-go-v2/service/cloudwatch\tv1.8.1\t | local | none | not-recorded |
 | github.com/aws/aws-sdk-go-v2\tv1.9.1\t | local | none | not-recorded |
@@ -217,6 +218,8 @@ Go module license identifiers are not asserted by `go.mod`; each distribution re
 | github.com/google/btree\tv1.1.3\t | local | none | not-recorded |
 | github.com/google/flatbuffers\tv1.12.1\t | local | none | not-recorded |
 | github.com/google/go-cmp\tv0.7.0\t | local | none | not-recorded |
+| github.com/google/go-tpm-tools\tv0.3.13-0.20230620182252-4639ecce2aba\t | local | none | not-recorded |
+| github.com/google/go-tpm\tv0.9.8\t | local | none | not-recorded |
 | github.com/google/gofuzz\tv1.2.0\t | local | none | not-recorded |
 | github.com/google/orderedcode\tv0.0.1\t | local | none | not-recorded |
 | github.com/google/s2a-go\tv0.1.7\t | local | none | not-recorded |
@@ -266,7 +269,7 @@ Go module license identifiers are not asserted by `go.mod`; each distribution re
 | github.com/kevinburke/ssh_config\tv1.2.0\t | local | none | not-recorded |
 | github.com/kisielk/errcheck\tv1.5.0\t | local | none | not-recorded |
 | github.com/kisielk/gotool\tv1.0.0\t | local | none | not-recorded |
-| github.com/klauspost/compress\tv1.17.11\t | local | none | not-recorded |
+| github.com/klauspost/compress\tv1.18.5\t | local | none | not-recorded |
 | github.com/Knetic/govaluate\tv3.0.1-0.20171022003610-9aa49832a739+incompatible\t | local | none | not-recorded |
 | github.com/kr/fs\tv0.1.0\t | local | none | not-recorded |
 | github.com/kr/pretty\tv0.3.1\t | local | none | not-recorded |
@@ -295,10 +298,10 @@ Go module license identifiers are not asserted by `go.mod`; each distribution re
 | github.com/modern-go/reflect2\tv1.0.2\t | local | none | not-recorded |
 | github.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\t | local | none | not-recorded |
 | github.com/mwitkow/go-conntrack\tv0.0.0-20190716064945-2f068394615f\t | local | none | not-recorded |
-| github.com/nats-io/jwt/v2\tv2.2.1-0.20220330180145-442af02fd36a\t | local | none | not-recorded |
-| github.com/nats-io/nats-server/v2\tv2.8.4\t | local | none | not-recorded |
-| github.com/nats-io/nats.go\tv1.34.0\t | local | none | not-recorded |
-| github.com/nats-io/nkeys\tv0.4.7\t | local | none | not-recorded |
+| github.com/nats-io/jwt/v2\tv2.8.1\t | local | none | not-recorded |
+| github.com/nats-io/nats-server/v2\tv2.12.7\t | local | none | not-recorded |
+| github.com/nats-io/nats.go\tv1.52.0\t | local | none | not-recorded |
+| github.com/nats-io/nkeys\tv0.4.15\t | local | none | not-recorded |
 | github.com/nats-io/nuid\tv1.0.1\t | local | none | not-recorded |
 | github.com/Nvveen/Gotty\tv0.0.0-20120604004816-cd527374f1e5\t | local | none | not-recorded |
 | github.com/nxadm/tail\tv1.4.4\t | local | none | not-recorded |
@@ -401,7 +404,7 @@ Go module license identifiers are not asserted by `go.mod`; each distribution re
 | golang.org/x/sys\tv0.45.0\t | local | none | not-recorded |
 | golang.org/x/term\tv0.43.0\t | local | none | not-recorded |
 | golang.org/x/text\tv0.37.0\t | local | none | not-recorded |
-| golang.org/x/time\tv0.5.0\t | local | none | not-recorded |
+| golang.org/x/time\tv0.15.0\t | local | none | not-recorded |
 | golang.org/x/tools\tv0.44.0\t | local | none | not-recorded |
 | golang.org/x/xerrors\tv0.0.0-20220907171357-04be3eba64a2\t | local | none | not-recorded |
 | gonum.org/v1/gonum\tv0.17.0\t | local | none | not-recorded |
