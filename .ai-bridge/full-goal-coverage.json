@@ -53,13 +53,13 @@
     "entryCount": 12,
     "byStatus": {
       "notStarted": 0,
-      "inProgress": 7,
+      "inProgress": 4,
       "implementedLocal": 0,
-      "testedLocal": 2,
+      "testedLocal": 4,
       "integratedCentral": 0,
       "testnetVerified": 2,
       "publicVerified": 0,
-      "externalBlocked": 0,
+      "externalBlocked": 1,
       "notApplicable": 0,
       "verifiedComplete": 1
     }
@@ -248,7 +248,7 @@
         "Retain CometBFT whenever the candidate cannot prove overall superiority."
       ],
       "applicability": "applicable",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
         "internal/streambft",
         "docs/formal/streambft/StreamBFT.tla",
@@ -257,14 +257,16 @@
       ],
       "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
       "tests": [
-        "StreamBFT unit and candidate checks"
+        "scripts/verify/streambft-candidate-check.sh",
+        "go test -race -count=1 ./internal/streambft",
+        "overflow-safe quorum, equivocation, locked-branch, deterministic parallel/sequential state-root, pacemaker, lane isolation, resource and canary fail-closed tests"
       ],
       "artifact": [],
       "publicProof": [],
       "blockedBy": [],
       "owner": "01-chain-core",
-      "nextAction": "Execute and archive the remaining model-check, differential replay, WAN, Byzantine and long-soak matrix.",
-      "lastUpdated": "2026-07-27T10:46:42Z"
+      "nextAction": "Retain CometBFT and keep canary/public promotion false until model-check, differential replay, WAN, Byzantine and long-soak evidence independently proves the composite win gate.",
+      "lastUpdated": "2026-07-29T03:35:00Z"
     },
     {
       "id": "CHAIN-EXEC-001",
@@ -278,7 +280,7 @@
         "Congestion in one business cannot block Wallet Recovery, Trust Appeal or unrelated lanes."
       ],
       "applicability": "applicable",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
         "chain/mempool",
         "chain/execution",
@@ -287,13 +289,21 @@
         "internal/streambft"
       ],
       "sourceCommit": "5c08b24462a28a9d768a18f8849f26548e2e4191",
-      "tests": [],
+      "tests": [
+        "TestProposalUsesCanonicalLanesAndIndependentLimits",
+        "TestLaneSaturationCannotDisplaceRecoveryOrPay",
+        "TestDeterministicParallelExecutionMatchesSequentialFallback",
+        "TestStateRootAndExecutionAreDeterministicAcrossInputOrder",
+        "TestLaneFeeMarketsAreIndependent",
+        "TestExecutionResourceAccountingRejectsOverflow",
+        "go test -race -count=1 ./internal/streambft"
+      ],
       "artifact": [],
       "publicProof": [],
       "blockedBy": [],
       "owner": "01-chain-core",
-      "nextAction": "Complete saturation, priority-inversion, deterministic state-root and governance-parameter tests.",
-      "lastUpdated": "2026-07-27T10:46:42Z"
+      "nextAction": "Repeat the tested local execution/fee isolation matrix under staging workload and governed parameter changes before any public activation claim.",
+      "lastUpdated": "2026-07-29T03:35:00Z"
     },
     {
       "id": "CHAIN-ASSET-001",
@@ -461,7 +471,7 @@
         "Explorer and Monitor expose public evidence."
       ],
       "applicability": "applicable",
-      "status": "inProgress",
+      "status": "externalBlocked",
       "evidence": [
         "tmp/consensus-quorum-evidence.json",
         "release/recovery-evidence.json",
@@ -482,8 +492,8 @@
         "12-explorer and 13-monitor public integration"
       ],
       "owner": "01-chain-core + execution and public-evidence owners",
-      "nextAction": "Finish Exchange and DEX shared Testnet flows, then deploy follower-first and collect public cross-region evidence.",
-      "lastUpdated": "2026-07-27T10:46:42Z"
+      "nextAction": "After deployment authority, funding and accepted owner surfaces exist, run Exchange/DEX flows, deploy follower-first and collect public cross-region evidence.",
+      "lastUpdated": "2026-07-29T03:35:00Z"
     },
     {
       "id": "CHAIN-RELEASE-001",
