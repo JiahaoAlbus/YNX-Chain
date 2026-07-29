@@ -3,9 +3,9 @@
   "productId": "ynx-resource-market-v1",
   "name": "YNX Resource Market",
   "branch": "codex/final-resource-market",
-  "sourceCommit": "bd90d78296525b0fa1ee9a5b95fcdc6d9294749d",
+  "sourceCommit": "d683c7d28ce129daad358c84680e5980cf8ad069",
   "sourceBaselineCommit": "c7e4445598a74e60aa0ed05b9580790527bf71be",
-  "candidateSourceCommit": "bd90d78296525b0fa1ee9a5b95fcdc6d9294749d",
+  "candidateSourceCommit": "d683c7d28ce129daad358c84680e5980cf8ad069",
   "workingTreeDirty": false,
   "version": "0.3.0-candidate",
   "surfaces": ["web", "api", "android-debug-source", "ios-source"],
@@ -43,6 +43,7 @@
     "localSecurityGatesPassedWithPatchedToolchain": true,
     "reproducibleUnsignedLocalBinaryMeasured": true,
     "androidDebugBuildInstalledAndColdStarted": true,
+    "iosSimulatorBuildTested": true,
     "providerBuyerQuoteUIFlowTested": true,
     "workerSigningRegistryIntegrated": true,
     "backupRestoreDrillRecorded": true,
@@ -83,5 +84,5 @@
     "A current Android debug APK is installed and cold-started on an Android 16 emulator; iOS installation, production signature, public deployment and hosted download are not proven.",
     "Local measured capacity evidence covers matching reads; offer-scoped reservation, release integrity and fail-closed amount overflow are locally tested but do not establish public or settlement capacity."
   ],
-  "generatedAt": "2026-07-29T02:38:10Z"
+  "generatedAt": "2026-07-29T02:54:25Z"
 }

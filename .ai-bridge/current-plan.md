@@ -3,17 +3,18 @@
 - Product: YNX Resource Market (`16-resource-market`)
 - Stage: `INTEGRATE`
 - Long-term goal: `ACTIVE`
-- Protected runtime source: `a940d2efa824bd9f43522ed792c9a563b55e1e11`
+- Protected tested source: `d683c7d28ce129daad358c84680e5980cf8ad069`
 - Branch: `codex/final-resource-market`
+- Pull request: `#12`
 
 ## Protected checkpoint
 
-The runtime source above is pushed and remote-equal. It enforces exact Offer-scoped capacity reservations, rejects fixed-price and auction provider self-dealing, migrates the reservation ledger to schema 6, and applies checked non-negative signed-64-bit arithmetic across quote, auction, metering, settlement and dispute paths. Overflow fails before authoritative mutation. Core, Product/API, Race, Vet, JSON-contract and cold-start smoke gates passed.
+The tested source is pushed and remote-equal. GitHub Resource Market Candidate Gates run `30417957999` passed correctness, Race, Vet, govulncheck, npm audit, browser tests, Ubuntu API/DAST smoke, candidate binary build, SHA-256 generation, Go dependency inventory, SPDX npm SBOM generation and secret scanning. General CI, docs compliance and the Resource Market iOS Simulator build also passed. Product release and public metadata bind this tested source.
 
 ## Exact next autonomous action
 
-Make provider-failure retries explicitly bounded and auditable. Persist one-to-one failed-order→retry-order lineage, reject duplicate or chained retry abuse, migrate existing state without inventing retry events, expose stable failure semantics and cross-product negative vectors, then run targeted tests, Race, Vet and the product smoke gate before Commit/Push.
+Complete PR `#12` checks and merge only after GitHub reports all required checks successful. After merge, submit the frozen Resource Market integration contract and vectors to Product `29`, then execute the full success and provider-failure/retry/refund sequence with two independent Testnet providers and authoritative settlement.
 
 ## External dependencies that remain
 
-Central Wallet/Gateway acceptance, authoritative Chain/Data Fabric settlement, Explorer/Monitor/Trust integration, two independently operated public providers, Testnet funding, public deployment/DNS, production signing and legal review remain unproven. They do not block the local retry-integrity slice above.
+Central Wallet/Gateway acceptance, authoritative Chain/Data Fabric settlement, Explorer/Monitor/Trust integration, two independent public providers, Testnet funding, public deployment/DNS, production signing, artifact hosting and legal/security review remain unproven. These boundaries must remain false in release metadata until direct evidence exists.

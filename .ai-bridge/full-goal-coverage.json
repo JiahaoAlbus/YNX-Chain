@@ -5,10 +5,10 @@
   "productSlug": "resource-market",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market",
   "branch": "codex/final-resource-market",
-  "sourceCommit": "c15178c5ca0d7e248b09b5cbd1bd7f2fe10e4195",
+  "sourceCommit": "d683c7d28ce129daad358c84680e5980cf8ad069",
   "stage": "INTEGRATE",
   "goalStatus": "active",
-  "updatedAt": "2026-07-28T19:31:04Z",
+  "updatedAt": "2026-07-29T02:54:25Z",
   "entries": [
     {
       "id": "RM-CORE-001",
@@ -223,16 +223,16 @@
       "category": "ios",
       "requirement": "Build and install the iOS client, verify cold start, Wallet callback, RTL and recovery while preserving production-signing boundaries.",
       "applicability": "applicable",
-      "status": "implementedLocal",
-      "evidence": ["apps/resource-market/mobile/ios"],
-      "sourceCommit": "beca120f3e5e9552f7d9f1bc62aac217f6026b33",
-      "tests": [],
+      "status": "testedLocal",
+      "evidence": ["apps/resource-market/mobile/ios", ".github/workflows/trust-resource-native-preview.yml", "GitHub Actions run 30417957987: ios-simulator-build (apps/resource-market/mobile/ios/YNXResource.xcodeproj, YNXResource)"],
+      "sourceCommit": "d683c7d28ce129daad358c84680e5980cf8ad069",
+      "tests": ["GitHub Actions run 30417957987: Resource Market iOS Simulator build"],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["Xcode simulator build and install evidence"],
+      "blockedBy": ["physical-device install and cold-start evidence", "live canonical Wallet callback", "production signing"],
       "owner": "16-resource-market",
-      "nextAction": "Run a clean iOS Simulator build, install and cold-start verification.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Verify physical-device installation, live canonical Wallet callback, RTL and recovery before any public mobile claim.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "RM-DESKTOP-001",

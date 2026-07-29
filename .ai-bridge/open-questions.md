@@ -16,4 +16,4 @@ No ordinary engineering decision is waiting for user confirmation.
 - Website/DNS deployment authority, support/privacy/security/status URLs and production signing assets.
 - Jurisdiction-specific retention, dispute, refund and insurance review.
 
-These inputs block public verification, not the next local checked-arithmetic slice.
+These inputs block central, Testnet and public verification. No remaining ordinary local engineering decision requires user confirmation; the next action is PR merge followed by central acceptance and deployed Testnet execution.

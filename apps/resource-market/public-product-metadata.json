@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-resource-market-v1",
-  "sourceCommit": "bd90d78296525b0fa1ee9a5b95fcdc6d9294749d",
+  "sourceCommit": "d683c7d28ce129daad358c84680e5980cf8ad069",
   "name": "YNX Resource Market",
   "aliases": ["YNX Infrastructure Market", "YNX Compute Market"],
   "canonicalRoute": "/resource-market",

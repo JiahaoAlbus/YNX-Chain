@@ -19,3 +19,11 @@ Passing local tests, Race, Vet and cold-start smoke does not set central, stagin
 ## 2026-07-27 — Amount arithmetic
 
 All monetary values remain non-negative signed 64-bit integers at the Resource Market boundary. Quote, auction, metering, settlement and dispute calculations use checked arithmetic; overflow returns `RESOURCE_AMOUNT_OUT_OF_RANGE` before any authoritative state mutation. Central consumers must preserve this failure and must not clamp, wrap or reinterpret it as a successful charge, settlement or refund.
+
+## 2026-07-29 — Tested-source evidence binding
+
+Release metadata binds `d683c7d28ce129daad358c84680e5980cf8ad069`, the exact source verified by Resource Market Candidate Gates run `30417957999`. Later checkpoint-only commits do not replace that tested source identity.
+
+## 2026-07-29 — Operator input ownership
+
+The repository-wide `release/operator-inputs.request.json` remains a central/shared file from main. Resource Market-specific deployment, provider, signer, localization and hosting inputs live at `apps/resource-market/operator-inputs.request.json` to avoid overwriting another Owner's central evidence.
