@@ -2,8 +2,8 @@
 
 Owner: **YNX 34**  
 Status: **FREEZE candidate; not centrally integrated**  
-Protected runtime source: `192da88b0ca3897278893711fb08e1373b0562b2`  
-Updated: 2026-07-27T15:47:21Z
+Protected runtime source: `8a7e9b930f89be5587e6547aa23241db70d436f4`  
+Updated: 2026-07-29T02:44:50Z
 
 ## Product boundary
 
@@ -48,6 +48,10 @@ Owner cannot be delegated. Team identities must be canonical YNX Wallet accounts
 ### Rights boundary
 
 Public/unlisted publication requires an active declaration whose source SHA-256 equals the uploaded media SHA-256. Contributor splits use canonical Wallet accounts and total 10,000 basis points. Creator/owner self-review is rejected. Commercial eligibility and revenue require independent verified rights. Expiry, rejection or lineage mismatch removes audience access.
+
+### Analytics boundary
+
+Analytics reads now expose `source=ynx.creator-studio.persisted-events`, `version=analytics.v1`, UTC `as_of`, authorization-bounded channel/video/event coverage, unique-user count and completed-view count. Viewer account identities are not returned. Editors receive no analytics, Analysts receive usage without revenue, and Finance access remains separately authorized. This is local persisted-event provenance, not central Data Fabric acceptance or public audience evidence.
 
 ### Revenue boundary
 

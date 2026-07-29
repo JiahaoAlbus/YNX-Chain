@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "productId": "ynx-creator-studio",
-  "sourceCommit": "192da88b0ca3897278893711fb08e1373b0562b2",
-  "generatedAt": "2026-07-27T15:47:21Z",
+  "sourceCommit": "8a7e9b930f89be5587e6547aa23241db70d436f4",
+  "generatedAt": "2026-07-29T02:44:50Z",
   "status": "candidate",
   "identities": {
     "channelOwner": "canonical YNX Wallet account A",
@@ -81,7 +81,7 @@
       "dependencyOwner": "YNX 26 Data Fabric and YNX 34",
       "name": "analytics use only authoritative persisted events",
       "steps": ["record accepted watch event", "record accepted subscription event", "read as analyst", "read as editor"],
-      "expected": {"analystSeesUsage": true, "editorSeesAnalytics": false, "sourceEnvelopeRequired": true, "syntheticProjection": false}
+      "expected": {"analystSeesUsage": true, "editorSeesAnalytics": false, "analystSeesRevenue": false, "source": "ynx.creator-studio.persisted-events", "version": "analytics.v1", "asOfUtcRequired": true, "coverageRequired": ["channel_count", "video_count", "watch_event_count", "subscription_event_count", "revenue_event_count", "revenue_included"], "uniqueUsersCountOnly": true, "syntheticProjection": false}
     },
     {
       "id": "CS-REVENUE-001",

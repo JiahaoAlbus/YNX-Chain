@@ -7,8 +7,8 @@
   "owner": "34-creator-studio",
   "serviceId": "ynx-creator-studio",
   "status": "candidate",
-  "sourceCommit": "192da88b0ca3897278893711fb08e1373b0562b2",
-  "generatedAt": "2026-07-27T15:47:21Z",
+  "sourceCommit": "8a7e9b930f89be5587e6547aa23241db70d436f4",
+  "generatedAt": "2026-07-29T02:44:50Z",
   "stateSchemaVersion": 2,
   "walletTuple": {
     "productClientId": "ynx-creator-studio-web-v1",
@@ -76,6 +76,31 @@
     "commercial eligibility and revenue require independently verified rights",
     "expired, rejected or lineage-mismatched rights remove audience access"
   ],
+  "analyticsEnvelope": {
+    "source": "ynx.creator-studio.persisted-events",
+    "version": "analytics.v1",
+    "asOf": "UTC time of the authorization-bounded read",
+    "coverageFields": [
+      "scope",
+      "channel_count",
+      "video_count",
+      "watch_event_count",
+      "subscription_event_count",
+      "revenue_event_count",
+      "revenue_included"
+    ],
+    "metrics": [
+      "views",
+      "unique_users",
+      "completed_views",
+      "watch_seconds",
+      "subscribers",
+      "revenue_ynxt"
+    ],
+    "privacyBoundary": "unique users are count-only; viewer account identities are not returned",
+    "authorizationBoundary": "Editor receives no analytics; Analyst receives usage without revenue; Finance may receive revenue for authorized videos",
+    "centralAcceptance": false
+  },
   "api": {
     "basePrefix": "/video",
     "public": [
@@ -174,14 +199,14 @@
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
+    "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false,
-    "installedLocalBoundary": "static Web source served and cold-read by local smoke only; no central install or hosted artifact"
+    "installedLocalBoundary": "static Web source was served by local smoke only; this is testedLocal evidence, not an installation, central registration or hosted artifact"
   },
   "truthBoundary": "This contract is a Creator Studio-owned integration candidate. It is not central acceptance, shared Testnet verification, public deployment, production signing or real-value revenue evidence."
 }
