@@ -4,6 +4,7 @@ set -euo pipefail
 make env-check
 make no-placeholder-check
 make secret-scan
+make dependency-audit
 make static-check
 make objective-state-check
 make deploy-readiness-gate-check
@@ -21,6 +22,8 @@ make monitoring-check
 make authoritative-monitoring-check
 make replication-alert-check
 go test ./cmd/... ./internal/...
+make governance-check
+make governance-testnet-drill
 make faucet-check
 make indexer-check
 make explorer-check
@@ -74,4 +77,4 @@ make mutation-freeze-check
 make replication-compression-check
 make caddy-ingress-check
 make ops-check
-echo "preflight passed for local devnet/testnet deployment package, four-validator consensus lab, production BFT candidate package, and fail-closed BFT Gateway cutover boundary"
+echo "preflight passed for local devnet/testnet deployment package, four-validator consensus and Governance labs, production BFT candidate package, and fail-closed BFT Gateway cutover boundary"
