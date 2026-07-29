@@ -43,7 +43,7 @@
   "riskAndStatus": [
     "Internet provider delivery is not publicly enabled and no verified sender domain or DNS evidence exists.",
     "Provider acceptance does not mean delivered or read; open and click telemetry never establishes YNX user-read state.",
-    "Current Android and desktop artifacts are built and installed locally but are not hosted or production signed; iOS Simulator build/install is not verified because complete Xcode is unavailable.",
+    "Current Android and desktop artifacts are built and installed locally but are not hosted or production signed. Current-source iOS Simulator build, install, cold launch and Wallet callback are verified in GitHub Actions, but the artifact is unsigned, ephemeral and not physical-device, TestFlight or App Store evidence.",
     "The self-contained backup contains sensitive key material and requires an approved encrypted operator boundary.",
     "Message bodies and attachments are not end-to-end encrypted.",
     "The Mail-owned Data Fabric outbox is local-only; authenticated central transport, schema acceptance, billing mapping and replay handling remain incomplete.",

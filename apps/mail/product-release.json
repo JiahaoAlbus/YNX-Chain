@@ -54,6 +54,26 @@
     "ios": "apps/mail/evidence/ios-verification-682bdb0.json",
     "desktop": "apps/mail/evidence/desktop-install-682bdb0.json"
   },
+  "currentSourcePlatformEvidence": {
+    "ios": {
+      "sourceCommit": "771fa4751e01d264e6e995a16fc5d458ba1021e5",
+      "workflowRunId": 30418420264,
+      "jobId": 90469841717,
+      "build": true,
+      "installedSimulator": true,
+      "installedPhysicalDevice": false,
+      "coldLaunch": true,
+      "callbackResolution": true,
+      "artifactName": "YNXMail-unsigned-simulator.app.zip",
+      "sha256": "09d2c2fc4f2f94f8b23d9aa279e7cf61da5a35daa7f676205b1c9d5ec3cacfe2",
+      "bytes": 387434,
+      "signingClass": "unsigned-simulator",
+      "actionsArtifactId": 8711049496,
+      "actionsArtifactExpiresAt": "2026-10-27T03:01:43Z",
+      "publicImmutableDownload": false,
+      "evidence": "apps/mail/evidence/ios-cloud-simulator-771fa47.json"
+    }
+  },
   "centralIntegration": "docs/integration/INTEGRATION_HANDOFF.md",
   "integrationContract": "release/integration/mail-contract.json",
   "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
@@ -68,7 +88,7 @@
     "mailCi": "GitHub Actions YNX Mail CI run 30417833956 at 771fa475: success",
     "desktopInstall": "current-source unsigned local package extracted, cold-started and restarted: pass",
     "androidBuildInstall": "current-source debug/test APK built with JDK 17, installed on API 36 emulator, cold-started, restarted and callback route resolved: pass",
-    "iosStaticVerification": "Swift parse and project/plist lint: pass; Simulator build blocked because complete Xcode is not installed",
+    "iosVerification": "local Swift/project/plist checks pass; GitHub Actions run 30418420264 built, installed, cold-launched and resolved Wallet callback for unsigned iOS Simulator source 771fa475",
     "fullRepositoryPreflight": "Mail passes; shared preflight is blocked only by missing Developer-owned SampleEVMWriteCounter.json artifacts in BFT/Consensus IDE tests",
     "securityScanGate": "shared placeholder and secret scripts are invalid on this host because missing rg produced false-green exit code 0; not counted as pass"
   },
@@ -132,7 +152,7 @@
     "note": "Historical artifacts remain hosted but do not contain the current Internet Bridge source."
   },
   "knownLimitations": [
-    "Current-source Android and desktop artifacts are built and installed locally only; they are not hosted or production signed. iOS Simulator build/install remains blocked because complete Xcode is not installed. Historical 0.2.0 artifacts do not include the Internet Bridge.",
+    "Current-source Android and desktop artifacts are built and installed locally only; they are not hosted or production signed. Current-source iOS Simulator build/install/cold-launch/callback is verified on GitHub Actions, but the artifact is unsigned, ephemeral and not a physical-device, TestFlight or App Store proof. Historical 0.2.0 artifacts do not include the Internet Bridge.",
     "No provider credential, verified sender domain, DNS/SPF/DKIM/DMARC evidence, public webhook, reputation proof or sandbox delivery evidence is present.",
     "Central Wallet registry/verifier and AI POST route are not merged or deployed.",
     "No production signing, persistent staging Web/API, public product URL or store release.",

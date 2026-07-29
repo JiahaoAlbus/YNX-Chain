@@ -28,6 +28,9 @@ const desktopEvidence = JSON.parse(
 const iosEvidence = JSON.parse(
   readFileSync(new URL("../evidence/ios-verification-682bdb0.json", import.meta.url), "utf8"),
 );
+const iosCloudEvidence = JSON.parse(
+  readFileSync(new URL("../evidence/ios-cloud-simulator-771fa47.json", import.meta.url), "utf8"),
+);
 
 test("Mail release record exposes every acceptance state and evidence field", () => {
   for (const key of [
@@ -88,6 +91,18 @@ test("Mail platform evidence matches the release source", () => {
   assert.equal(desktopEvidence.verification.embeddedCommitMatched, true);
   assert.equal(iosEvidence.build.result, "blocked");
   assert.equal(iosEvidence.installedLocal, false);
+  assert.equal(iosCloudEvidence.sourceCommit, release.currentSourcePlatformEvidence.ios.sourceCommit);
+  assert.equal(iosCloudEvidence.workflow.result, "success");
+  assert.equal(iosCloudEvidence.verification.install, "pass");
+  assert.equal(iosCloudEvidence.verification.coldLaunch, "pass");
+  assert.equal(iosCloudEvidence.verification.callbackResolution, "success");
+  assert.equal(iosCloudEvidence.appArtifact.sha256, release.currentSourcePlatformEvidence.ios.sha256);
+  assert.equal(iosCloudEvidence.appArtifact.bytes, release.currentSourcePlatformEvidence.ios.bytes);
+  assert.equal(iosCloudEvidence.appArtifact.signingClass, "unsigned-simulator");
+  assert.equal(iosCloudEvidence.truthBoundary.productionSigned, false);
+  assert.equal(iosCloudEvidence.truthBoundary.publicImmutableDownload, false);
+  assert.equal(release.currentSourcePlatformEvidence.ios.installedSimulator, true);
+  assert.equal(release.currentSourcePlatformEvidence.ios.installedPhysicalDevice, false);
   assert.equal(release.downloadHosted, false);
   assert.deepEqual(release.artifactUrls, []);
 });

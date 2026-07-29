@@ -83,7 +83,7 @@ Security/SRE still own authenticated transport and central acceptance.
 | Android `:app:assembleDebug` with JDK 17 and SDK 36 | Pass; debug/test signed APK |
 | Android API 36 install, cold start, restart and callback route | Pass |
 | `npm run check:ios --prefix apps/mail` | Pass; Swift and project/plist static verification |
-| iOS Simulator build/install | Blocked; complete Xcode is not installed |
+| GitHub Actions iOS Simulator build/install/cold-launch/callback run `30418420264`, job `90469841717`, source `771fa475` | Pass; unsigned Simulator artifact, not physical-device or store evidence |
 | `gofmt -d` on changed Go files | Clean |
 | `go test ./...` | Mail passes; shared repository blocked by non-Mail owner failures recorded below |
 
@@ -108,7 +108,8 @@ repair before Release acceptance.
 - Public product metadata: `apps/mail/public-product-metadata.json`
 - Android install evidence: `apps/mail/evidence/android-install-682bdb0.json`
 - Desktop install evidence: `apps/mail/evidence/desktop-install-682bdb0.json`
-- iOS verification evidence: `apps/mail/evidence/ios-verification-682bdb0.json`
+- Historical current-artifact-set iOS static evidence: `apps/mail/evidence/ios-verification-682bdb0.json`
+- Current-source iOS cloud Simulator evidence: `apps/mail/evidence/ios-cloud-simulator-771fa47.json`
 - Current release record: `apps/mail/product-release.json`
 - Goal coverage: `.ai-bridge/full-goal-coverage.json`
 
@@ -138,7 +139,7 @@ HTTPS webhook, provider terms approval, abuse desk, reputation evidence or real
 sandbox delivery is currently available. These states remain false in
 `product-release.json`.
 
-Current-source Android and desktop packages are rebuilt and installed locally with exact-commit evidence, but remain local-only and are not production signed or hosted. Current-source iOS static checks pass, while Simulator build/install remains blocked because complete Xcode is unavailable. Historical 0.2.0 artifacts remain evidence for the older source only and must not be represented as containing this Internet Bridge.
+Current-source Android and desktop packages are rebuilt and installed locally with exact-commit evidence, but remain local-only and are not production signed or hosted. Current-source iOS static checks pass, and GitHub Actions source `771fa475` now has unsigned Simulator build/install/cold-launch/callback evidence plus an ephemeral Actions artifact. This is not physical-device, TestFlight, immutable public download or App Store evidence. Historical 0.2.0 artifacts remain evidence for the older source only and must not be represented as containing this Internet Bridge.
 
 ## Exact next engineering actions
 
@@ -149,6 +150,7 @@ Current-source Android and desktop packages are rebuilt and installed locally wi
    Integration for authenticated transport, replay and billing acceptance.
 3. Define a centrally authorized operator review/unsuppression path and Monitor
    alerts without granting Mail arbitrary Trust or provider administration.
-4. Complete the current-source iOS Simulator build/install/callback drill and
-   route Android/desktop artifacts through immutable hosting, provenance and
-   approved signing before restoring any hosted/download state to true.
+4. Route current-source Android, desktop and iOS Simulator artifacts through
+   immutable hosting, SBOM, provenance and approved signing; then execute a
+   physical-device/TestFlight path before restoring any hosted, production-signed
+   or store state to true.
