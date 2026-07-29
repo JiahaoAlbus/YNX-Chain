@@ -21,3 +21,18 @@ and requires a Wallet session with the dedicated `data.delete` scope. It returns
 the service's hashed-owner receipt and never converts a pending provider deletion
 into success. `erasureReceipts()` supports receipt recovery after the erasing
 session is revoked and the user explicitly signs in again.
+
+## Client-side encryption candidate
+
+`generateClientSideEncryptionKey`, `encryptClientSideContent`, and
+`decryptClientSideContent` provide a dependency-free Web Crypto AES-256-GCM
+candidate. The encrypted envelope binds ciphertext to an exact product,
+account, caller-generated context ID, and version through authenticated
+additional data. Upload the returned `content` bytes and pass the returned
+`encryption` metadata to Cloud object, multipart, or direct-upload creation.
+
+The raw key and recovery material remain user-held. YNX Cloud never receives
+the key, cannot recover plaintext, and cannot silently change the account,
+product, context ID, or version without authentication failure. Callers must
+store the key outside the uploaded object and must not place it in `keyHint`,
+logs, analytics, URLs, or support tickets.

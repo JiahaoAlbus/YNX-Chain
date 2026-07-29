@@ -4,6 +4,13 @@ export interface CloudObject { id: string; product: Product; owner: string; pare
 export interface ObjectPage { items: CloudObject[]; nextCursor?: string; limit: number; scanned: number }
 export interface ClientOptions { endpoint: string; product: Product; getAccessToken: () => string | Promise<string>; fetch?: typeof fetch; maxRetries?: number }
 export interface RequestOptions { method?: string; body?: unknown; headers?: HeadersInit; signal?: AbortSignal; response?: "json" | "response" | "bytes" | "text"; retry?: number }
+export interface ClientEncryptionContext { product: Product; account: string; contextId: string; version?: number }
+export interface ClientEncryptionEnvelope { schemaVersion: 1; mediaType: "application/vnd.ynx.cloud-encrypted+json"; algorithm: "AES-256-GCM"; context: Required<ClientEncryptionContext>; nonce: string; ciphertext: string; ciphertextSha256: string; plaintextBytes: number }
+export interface ClientEncryptionMetadata { clientSide: true; algorithm: "AES-256-GCM"; keyHint: string; recoveryPolicy: string }
+export interface ClientEncryptionResult { content: Uint8Array; contentType: "application/vnd.ynx.cloud-encrypted+json"; encryption: ClientEncryptionMetadata; envelope: ClientEncryptionEnvelope }
+export declare function generateClientSideEncryptionKey(): Promise<string>;
+export declare function encryptClientSideContent(options: { content: string | ArrayBuffer | ArrayBufferView; key: string; context: ClientEncryptionContext; recoveryPolicy: string; keyHint?: string }): Promise<ClientEncryptionResult>;
+export declare function decryptClientSideContent(options: { content: string | ArrayBuffer | ArrayBufferView; key: string; expectedContext: ClientEncryptionContext }): Promise<Uint8Array>;
 export declare class YNXCloudError extends Error { status: number; requestId: string; errorId: string; retryAfter: number }
 export declare class YNXCloudClient {
   constructor(options: ClientOptions);

@@ -1,5 +1,8 @@
 const RETRYABLE = new Set([429, 503]);
 const IDEMPOTENT = new Set(["GET", "HEAD", "PUT", "DELETE"]);
+const CLIENT_ENCRYPTION_ALGORITHM = "AES-256-GCM";
+const CLIENT_ENVELOPE_MEDIA_TYPE = "application/vnd.ynx.cloud-encrypted+json";
+const CLIENT_ENVELOPE_DOMAIN = "ynx-cloud-client-envelope-v1";
 
 export class YNXCloudError extends Error {
   constructor(message, { status = 0, requestId = "", errorId = "", retryAfter = 0, cause } = {}) {
@@ -32,6 +35,147 @@ function parseRetryAfter(value) {
 }
 
 const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+function cryptoProvider() {
+  const provider = globalThis.crypto;
+  if (!provider?.subtle || typeof provider.getRandomValues !== "function") {
+    throw new YNXCloudError("Web Crypto AES-GCM support is unavailable");
+  }
+  return provider;
+}
+
+function bytes(value, field) {
+  if (typeof value === "string") return new TextEncoder().encode(value);
+  if (value instanceof Uint8Array) return new Uint8Array(value);
+  if (value instanceof ArrayBuffer) return new Uint8Array(value.slice(0));
+  if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));
+  throw new TypeError(`${field} must be a string, ArrayBuffer, or typed array`);
+}
+
+function base64urlEncode(value) {
+  const input = value instanceof Uint8Array ? value : new Uint8Array(value);
+  let binary = "";
+  for (let offset = 0; offset < input.length; offset += 0x8000) {
+    binary += String.fromCharCode(...input.subarray(offset, offset + 0x8000));
+  }
+  if (typeof globalThis.btoa === "function") return globalThis.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  throw new YNXCloudError("Base64 encoding support is unavailable");
+}
+
+function base64urlDecode(value, field) {
+  if (typeof value !== "string" || !/^[A-Za-z0-9_-]+$/.test(value)) throw new TypeError(`${field} must be unpadded base64url`);
+  const padded = value.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - value.length % 4) % 4);
+  if (typeof globalThis.atob === "function") {
+    const binary = globalThis.atob(padded);
+    return Uint8Array.from(binary, character => character.charCodeAt(0));
+  }
+  throw new YNXCloudError("Base64 decoding support is unavailable");
+}
+
+function encryptionContext(context) {
+  if (!context || typeof context !== "object") throw new TypeError("encryption context is required");
+  if (context.product !== "cloud" && context.product !== "docs") throw new TypeError("encryption context product must be cloud or docs");
+  const account = typeof context.account === "string" ? context.account.trim() : "";
+  const contextId = typeof context.contextId === "string" ? context.contextId.trim() : "";
+  const version = context.version === undefined ? 1 : Number(context.version);
+  if (!account || account.length > 256) throw new TypeError("encryption context account is required");
+  if (!contextId || contextId.length > 256) throw new TypeError("encryption context contextId is required");
+  if (!Number.isSafeInteger(version) || version < 1) throw new TypeError("encryption context version must be a positive integer");
+  return { product: context.product, account, contextId, version };
+}
+
+function contextAAD(context) {
+  return new TextEncoder().encode(`${CLIENT_ENVELOPE_DOMAIN}\n${JSON.stringify(context)}`);
+}
+
+async function sha256(provider, value) {
+  return new Uint8Array(await provider.subtle.digest("SHA-256", value));
+}
+
+function equalBytes(left, right) {
+  if (left.length !== right.length) return false;
+  let difference = 0;
+  for (let index = 0; index < left.length; index++) difference |= left[index] ^ right[index];
+  return difference === 0;
+}
+
+function parseClientEnvelope(content) {
+  let parsed;
+  try {
+    parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes(content, "encrypted content")));
+  } catch (cause) {
+    throw new YNXCloudError("Encrypted content is not a valid YNX client envelope", { cause });
+  }
+  if (parsed?.schemaVersion !== 1 || parsed?.algorithm !== CLIENT_ENCRYPTION_ALGORITHM || parsed?.mediaType !== CLIENT_ENVELOPE_MEDIA_TYPE) {
+    throw new YNXCloudError("Encrypted content uses an unsupported envelope version or algorithm");
+  }
+  return parsed;
+}
+
+export async function generateClientSideEncryptionKey() {
+  const provider = cryptoProvider();
+  return base64urlEncode(provider.getRandomValues(new Uint8Array(32)));
+}
+
+export async function encryptClientSideContent({ content, key, context, recoveryPolicy, keyHint = "" } = {}) {
+  const provider = cryptoProvider();
+  const rawKey = base64urlDecode(key, "key");
+  if (rawKey.length !== 32) throw new TypeError("key must contain exactly 32 bytes");
+  const normalizedContext = encryptionContext(context);
+  const policy = typeof recoveryPolicy === "string" ? recoveryPolicy.trim() : "";
+  const hint = typeof keyHint === "string" ? keyHint.trim() : "";
+  if (!policy || policy.length > 512) throw new TypeError("recoveryPolicy is required and must be at most 512 characters");
+  if (hint.length > 128) throw new TypeError("keyHint must be at most 128 characters");
+  const iv = provider.getRandomValues(new Uint8Array(12));
+  const plaintext = bytes(content, "content");
+  const imported = await provider.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, false, ["encrypt"]);
+  const ciphertext = new Uint8Array(await provider.subtle.encrypt({ name: "AES-GCM", iv, additionalData: contextAAD(normalizedContext), tagLength: 128 }, imported, plaintext));
+  const envelope = {
+    schemaVersion: 1,
+    mediaType: CLIENT_ENVELOPE_MEDIA_TYPE,
+    algorithm: CLIENT_ENCRYPTION_ALGORITHM,
+    context: normalizedContext,
+    nonce: base64urlEncode(iv),
+    ciphertext: base64urlEncode(ciphertext),
+    ciphertextSha256: base64urlEncode(await sha256(provider, ciphertext)),
+    plaintextBytes: plaintext.length,
+  };
+  return {
+    content: new TextEncoder().encode(JSON.stringify(envelope)),
+    contentType: CLIENT_ENVELOPE_MEDIA_TYPE,
+    encryption: { clientSide: true, algorithm: CLIENT_ENCRYPTION_ALGORITHM, keyHint: hint, recoveryPolicy: policy },
+    envelope,
+  };
+}
+
+export async function decryptClientSideContent({ content, key, expectedContext } = {}) {
+  const provider = cryptoProvider();
+  const rawKey = base64urlDecode(key, "key");
+  if (rawKey.length !== 32) throw new TypeError("key must contain exactly 32 bytes");
+  const envelope = parseClientEnvelope(content);
+  const normalizedExpected = encryptionContext(expectedContext);
+  const normalizedEnvelope = encryptionContext(envelope.context);
+  if (JSON.stringify(normalizedEnvelope) !== JSON.stringify(normalizedExpected)) {
+    throw new YNXCloudError("Encrypted content context does not match the requested account, product, object, or version");
+  }
+  const iv = base64urlDecode(envelope.nonce, "envelope nonce");
+  if (iv.length !== 12) throw new YNXCloudError("Encrypted content nonce length is invalid");
+  const ciphertext = base64urlDecode(envelope.ciphertext, "envelope ciphertext");
+  const expectedHash = base64urlDecode(envelope.ciphertextSha256, "envelope ciphertext hash");
+  const actualHash = await sha256(provider, ciphertext);
+  if (!equalBytes(expectedHash, actualHash)) throw new YNXCloudError("Encrypted content failed its ciphertext integrity check");
+  const imported = await provider.subtle.importKey("raw", rawKey, { name: "AES-GCM" }, false, ["decrypt"]);
+  let plaintext;
+  try {
+    plaintext = new Uint8Array(await provider.subtle.decrypt({ name: "AES-GCM", iv, additionalData: contextAAD(normalizedEnvelope), tagLength: 128 }, imported, ciphertext));
+  } catch (cause) {
+    throw new YNXCloudError("Encrypted content could not be authenticated or decrypted", { cause });
+  }
+  if (!Number.isSafeInteger(envelope.plaintextBytes) || envelope.plaintextBytes < 0 || plaintext.length !== envelope.plaintextBytes) {
+    throw new YNXCloudError("Encrypted content plaintext length evidence is invalid");
+  }
+  return plaintext;
+}
 
 export class YNXCloudClient {
   constructor({ endpoint, product, getAccessToken, fetch: fetchImpl = globalThis.fetch, maxRetries = 2 }) {
