@@ -19,13 +19,18 @@ jobs:
   build-install-launch:
     runs-on: macos-26
     timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     defaults:
       run:
         working-directory: apps/exchange/mobile
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Record Xcode and Swift toolchain
-        run: xcodebuild -version && swift --version
+      - name: Verify Swift 6.2-compatible Xcode
+        run: |
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+          swift --version
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "22"
