@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0.0",
+  "owner": "29-integration",
+  "sourceCommit": "42a85fb50614f893a4526c50f45b12da58ecfcdc",
+  "verifiedAt": "2026-07-29T14:09:20Z",
+  "worktreeCleanAtStart": true,
+  "command": "make integration-protect-preflight",
+  "result": "passed",
+  "gates": [
+    "integration coverage self-test",
+    "integration acceptance check",
+    "Product Release Matrix self-test",
+    "Product Release Matrix stored-file check",
+    "contract tooling",
+    "npm audit policy with one bounded transient retry",
+    "npm audit policy negative self-test",
+    "go test ./...",
+    "no-placeholder check",
+    "secret scan",
+    "go vet",
+    "shell syntax",
+    "Node syntax",
+    "central acceptance stale-decision negative self-test"
+  ],
+  "acceptedProducts": [
+    {
+      "productId": "30",
+      "acceptedSourceCommit": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+      "decisionEvidence": "release/integration/evidence/product-30-central-acceptance-3ee6477d.json"
+    }
+  ],
+  "claimsExcluded": [
+    "main merge",
+    "shared Testnet verification",
+    "public runtime",
+    "Website publication",
+    "artifact hosting",
+    "production signing",
+    "store release",
+    "Mainnet"
+  ]
+}

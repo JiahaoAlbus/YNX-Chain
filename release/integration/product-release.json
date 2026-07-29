@@ -29,6 +29,7 @@
     "testedLocal": [
       "release/integration/evidence/protect-preflight-d05ddf0a.json",
       "release/integration/evidence/protect-preflight-20191a3e.json",
+      "release/integration/evidence/protect-preflight-42a85fb5.json",
       "release/integration/evidence/product-30-central-acceptance-3ee6477d.json"
     ],
     "installedLocal": [],

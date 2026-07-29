@@ -1,8 +1,8 @@
 # Last Success
 
-Updated: `2026-07-29T13:50:00Z`
+Updated: `2026-07-29T14:09:20Z`
 
-The latest exact-green protected Integration source is `7777942bb17a1e67483f5909287e79592ca0f1cf`. The current central-acceptance slice contains Product 30 through merge `3ee6477d82ecffea954387ce88135793bddb1271` and is awaiting its own protected push.
+The latest exact-green remote Integration source is `7777942bb17a1e67483f5909287e79592ca0f1cf`. The current exact-clean locally verified central-acceptance source is `42a85fb50614f893a4526c50f45b12da58ecfcdc` and is awaiting its protected push.
 
 Direct evidence:
 
@@ -15,5 +15,6 @@ Direct evidence:
 - Product 29 PR #17 completed every check green at `7777942…`; the current slice is not assumed green until pushed and checked.
 - The authoritative Product Release Matrix is generated, fail-closed and validated.
 - Product 30 has one machine-readable central acceptance decision bound to exact owner SHA, merge ancestry, CI and the central test receipt.
+- Exact-clean `make integration-protect-preflight` and the stale-decision negative self-test passed at `42a85fb5…`.
 
 This proves Product 30 central source acceptance. It does not prove merge to `main`, shared Testnet, public runtime, Website publication, production signing or Mainnet.

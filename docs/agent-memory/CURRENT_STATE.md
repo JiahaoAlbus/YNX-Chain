@@ -1,6 +1,6 @@
 # YNX 29 Current State
 
-Updated: `2026-07-29T13:50:00Z`
+Updated: `2026-07-29T14:09:20Z`
 
 ## Identity and protected source
 
@@ -10,6 +10,7 @@ Updated: `2026-07-29T13:50:00Z`
 - Repository and origin: `JiahaoAlbus/YNX-Chain`
 - Last exact-green protected source and remote SHA: `7777942bb17a1e67483f5909287e79592ca0f1cf`
 - Current Product 30 integration merge: `3ee6477d82ecffea954387ce88135793bddb1271`
+- Current exact-clean central-acceptance source: `42a85fb50614f893a4526c50f45b12da58ecfcdc`
 - Observed `origin/main`: `82241913b4dacf6bb6adebb537b7fa175c3aff59`
 - Local / Remote matched at the last protected checkpoint; the central-acceptance slice is not yet pushed.
 
@@ -42,7 +43,7 @@ Updated: `2026-07-29T13:50:00Z`
 
 ## Exact-source verification
 
-`make integration-protect-preflight` passed after the Product 30 merge, including:
+`make integration-protect-preflight` passed from the clean exact central-acceptance source `42a85fb5…`, including:
 
 - registry and acceptance negative self-tests;
 - Product Release Matrix negative self-test and stored-matrix validation;
@@ -53,7 +54,7 @@ Updated: `2026-07-29T13:50:00Z`
 - Go vet;
 - every shell and Node syntax check.
 
-Product 30 additionally passed 179/179 security tests, policy verification, Kubernetes renders, notices, lifecycle-script audit and a zero-vulnerability production npm audit in the central merged tree. The acceptance receipt is `release/integration/evidence/product-30-central-acceptance-3ee6477d.json`.
+Product 30 additionally passed 179/179 security tests, policy verification, Kubernetes renders, notices, lifecycle-script audit and a zero-vulnerability production npm audit in the central merged tree. The acceptance receipt is `release/integration/evidence/product-30-central-acceptance-3ee6477d.json`; the exact-clean protection receipt is `release/integration/evidence/protect-preflight-42a85fb5.json`.
 
 ## Current 36-product inventory
 
