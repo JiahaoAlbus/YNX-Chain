@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "15",
+  "productName": "YNX Trust Center",
+  "phase": "FREEZE",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/15-trust-center",
+  "branch": "codex/final-trust-center",
+  "localSha": "a8383e12cb67296a9c30fa0987a6d500b35b3219",
+  "remoteSha": "a8383e12cb67296a9c30fa0987a6d500b35b3219",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "node --check scripts/package/trust-center-release.mjs",
+    "go test -race ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center",
+    "go vet ./internal/trustproduct ./cmd/ynx-trust-backup ./apps/trust-center",
+    "./apps/trust-center/check.sh",
+    "local reproducible release build with normal proxy environment",
+    "local reproducible release build with inherited GOPROXY=off GOSUMDB=off"
+  ],
+  "latestCiRuns": [
+    {
+      "id": 30416831778,
+      "workflow": "trust-center",
+      "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "pullRequests": [],
+  "release": {
+    "tag": "trust-center-v0.1.0-testnet-preview.1",
+    "name": "YNX Trust Center 0.1.0 Testnet Preview 1",
+    "prerelease": true,
+    "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
+    "artifact": "ynx-trust-center-1baeccada8e7-linux-amd64.tar.gz",
+    "sha256": "92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850",
+    "bytes": 4526557,
+    "signingClass": "unsigned-local"
+  },
+  "artifacts": [
+    {
+      "type": "workflow-artifact",
+      "id": 8710457317,
+      "digest": "sha256:c01af21b81c56e3c3687c039fd568a46fd28e9b782465aa5ee2645ba17972a7c"
+    },
+    {
+      "type": "release-archive",
+      "name": "ynx-trust-center-1baeccada8e7-linux-amd64.tar.gz",
+      "sha256": "92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850"
+    },
+    {
+      "type": "release-evidence",
+      "files": [
+        "artifact-manifest.json",
+        "bom.cdx.json",
+        "provenance.json",
+        "verification.json",
+        "SHA256SUMS",
+        "THIRD_PARTY_NOTICES.txt"
+      ]
+    }
+  ],
+  "publicRoutes": [
+    {
+      "url": "https://ynxweb4.com/trust-center",
+      "deployed": false,
+      "verified": false
+    }
+  ],
+  "completed": [
+    "exact Wallet scope enforcement",
+    "subject-scoped export",
+    "tamper-evident persistence and migration",
+    "verified immutable backup and restore",
+    "reproducible release packaging",
+    "source-bound successful GitHub CI",
+    "hosted unsigned Testnet preview",
+    "SBOM, provenance, checksums, license, vulnerability, secret and placeholder evidence",
+    "integration and website handoff synchronization"
+  ],
+  "remaining": [
+    "current Web desktop/mobile/RTL/keyboard/accessibility evidence",
+    "current Android install and cold launch",
+    "current iOS Xcode/Simulator evidence",
+    "canonical Gateway registration",
+    "authoritative shared-Testnet vectors",
+    "policy-approved deletion and retention",
+    "observability, capacity, SLO and unit-economics evidence",
+    "production release acceptance and signing",
+    "canonical ynxweb4.com deployment and verification",
+    "store release"
+  ],
+  "blockers": [
+    "TRUST-EXT-001",
+    "TRUST-POLICY-001",
+    "TRUST-SECURITY-001",
+    "TRUST-MOBILE-001",
+    "TRUST-WEBSITE-001"
+  ],
+  "nextAction": "Read apps/trust-center package and Playwright configuration, run the current desktop/390px/RTL/keyboard/accessibility UI suite, preserve fresh evidence, update the UI audit and commit/push the independent slice.",
+  "updatedAt": "2026-07-29T02:54:54Z"
+}
