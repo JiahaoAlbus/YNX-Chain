@@ -3,7 +3,7 @@
   "product": "YNX Bridge",
   "releaseClass": "remote-testnet-coordinator-candidate",
   "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
-  "latestVerifiedSourceCommit": "3060deee4132bcd6bdc0d9284e0291391fa3bc4e",
+  "latestVerifiedSourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
   "sourceCommitRequiredBeforeRelease": true,
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
@@ -89,48 +89,80 @@
     "canonicalBridgeClaim": false
   },
   "artifacts": [],
+  "dependencyAudit": {
+    "source": "https://registry.npmjs.org/-/npm/v1/security/advisories/bulk",
+    "auditedPackages": 86,
+    "advisoryCount": 0,
+    "observedAt": "2026-07-29T02:24:08Z"
+  },
   "ciVerification": {
     "workflow": "bridge",
-    "runId": 30278915644,
-    "jobId": 90019987980,
-    "sourceCommit": "3060deee4132bcd6bdc0d9284e0291391fa3bc4e",
+    "runId": 30417171059,
+    "jobId": 90466102715,
+    "sourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
     "conclusion": "success",
-    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30278915644",
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30417171059",
     "verificationArtifact": {
-      "id": 8657978658,
-      "name": "ynx-bridge-verification-3060deee4132bcd6bdc0d9284e0291391fa3bc4e",
-      "bytes": 28048,
-      "expiresAt": "2026-08-26T15:14:08Z",
+      "id": 8710575111,
+      "name": "ynx-bridge-verification-96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+      "bytes": 41474,
+      "digest": "sha256:4264673f262d4318d6be7adeaf52c323fa9da8acf5a3ef76934110eead0ec40b",
+      "expiresAt": "2026-08-28T02:34:54Z",
       "releaseArtifact": false,
       "archiveContentsIndependentlyVerified": false,
-      "archiveVerificationBlocker": "Blob storage TLS handshake timed out twice during bounded download attempts"
+      "archiveVerificationBlocker": "The Actions artifact is expiring verification evidence and has not been promoted to an immutable release package."
     }
   },
   "publicUrls": [
-    {"type":"testnet-read-only","url":"https://rest.ynxweb4.com/app/bridge","evidence":"docs/bridge/public-read-evidence.json"}
+    {
+      "type": "testnet-read-only",
+      "url": "https://rest.ynxweb4.com/app/bridge",
+      "evidence": "docs/bridge/public-read-evidence.json"
+    }
   ],
+  "website": {
+    "canonicalRoute": "https://ynxweb4.com/bridge",
+    "httpStatusObserved": 200,
+    "observedAt": "2026-07-29T02:35:33Z",
+    "productSpecificMetadataVerified": false,
+    "handoff": "docs/bridge/website-handoff.json"
+  },
   "transactionEvidence": [],
   "localEvidence": [
-    {"type":"source-commit","value":"857371f9b19422861c0675ca6cbd89a7750744ad"},
-    {"type":"remote-testnet-evidence","value":"docs/bridge/testnet-deployment-evidence.json"},
-    {"type":"public-read-evidence","value":"docs/bridge/public-read-evidence.json"},
-    {"type":"test-command","value":"go test ./..."},
-    {"type":"test-command","value":"npm test --prefix sdk/bridge"}
+    {
+      "type": "source-commit",
+      "value": "857371f9b19422861c0675ca6cbd89a7750744ad"
+    },
+    {
+      "type": "latest-verified-source-commit",
+      "value": "96a64792a6343ec379763bc7e382c1d0a4a75f3d"
+    },
+    {
+      "type": "remote-testnet-evidence",
+      "value": "docs/bridge/testnet-deployment-evidence.json"
+    },
+    {
+      "type": "public-read-evidence",
+      "value": "docs/bridge/public-read-evidence.json"
+    },
+    {
+      "type": "test-command",
+      "value": "go test -race ./internal/bridgegateway ./cmd/ynx-bridged ./internal/appgateway ./cmd/ynx-app-gatewayd"
+    }
   ],
   "knownAutonomousGaps": [
-    "classify and remediate the 3 high-severity npm advisories reported by npm ci",
     "publish downloadable reproducible server and SDK candidate artifacts",
     "verify downloaded release bytes, installation, and cold start",
     "redeploy and re-probe the latest verified source commit",
-    "obtain central consumer acceptance receipts"
+    "obtain central consumer acceptance receipts",
+    "complete product-specific Website canonical and structured metadata"
   ],
   "remainingReleaseInputs": [
-    "approved provider or proof-based route",
+    "approved Provider or proof-based route",
     "verified source and destination contracts",
     "secure signer path and threshold ceremony",
     "funded Testnet assets and gas",
-    "support, privacy, security, and status URLs",
-    "public deployment authority",
-    "independent security review"
+    "independent security review",
+    "governance authority for public mutation and asset movement"
   ]
 }

@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "03bdf94ccfa879b4df390ffa189f8b0e2c553168",
-  "generatedAt": "2026-07-22T14:32:48.203Z",
+  "sourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+  "generatedAt": "2026-07-29T02:34:20.027Z",
   "classification": "bounded-local-restore-drill",
   "backup": {
-    "sha256": "dc31c3c834d02110a01a49753caa7a53ba82ed8dec325a628644eb40c190a4f7",
-    "bytes": 4237,
+    "sha256": "894ecc9d4fd8d155b9b8d0259a02b9ccf030a26fee26f7fc7f5d0a08584919f5",
+    "bytes": 6604,
     "mode": "600"
   },
   "corruptionRejected": true,
-  "restoreToHealthMs": 14.077083000000016,
+  "restoreToHealthMs": 13.073415999999952,
   "rpoAcceptedMutationLoss": 0,
   "restored": {
     "transferCount": 1,

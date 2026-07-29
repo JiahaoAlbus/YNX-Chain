@@ -4,10 +4,12 @@
   "product": "YNX Bridge & Interoperability",
   "slug": "bridge",
   "owner": "21-bridge",
-  "sourceCommit": "914249bc9772f9e813470291f3ad7c57205edbe9",
+  "sourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+  "runtimeCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
   "canonicalRoute": "/bridge",
+  "canonicalUrl": "https://ynxweb4.com/bridge",
   "title": "YNX Bridge — Verify cross-network transfer state",
-  "metaDescription": "Inspect provider, route, proof, destination confirmation, availability, incident and recovery evidence without confusing progress with completed asset delivery.",
+  "metaDescription": "Inspect Provider, route, proof, destination confirmation, availability, incident and recovery evidence without confusing progress with completed asset delivery.",
   "h1": "Cross-network evidence before asset availability",
   "features": [
     "Explicit quote-to-availability lifecycle",
@@ -17,35 +19,51 @@
     "Fail-closed refund, dispute and correction states"
   ],
   "risks": [
-    "No approved provider currently exposes a verified YNX asset route.",
+    "No approved Provider currently exposes a verified executable YNX asset route.",
     "No funded YNX Testnet deposit or withdrawal has been accepted.",
     "Threshold-relayer attestations are not light-client or trustless consensus proofs."
   ],
   "status": {
-    "channel": "testnet-candidate",
+    "channel": "testnet-read-only-candidate",
     "publicReadOnlyStatusAvailable": true,
     "publicMutationEnabled": false,
+    "externalSubmissionEnabled": false,
+    "userAssetMovementEnabled": false,
     "ynxAssetRouteAvailable": false,
-    "fundedTransferVerified": false
+    "fundedTransferVerified": false,
+    "testnetVerified": false
   },
   "downloads": [],
-  "supportUrl": null,
-  "privacyUrl": null,
-  "securityUrl": null,
-  "statusUrl": "https://rest.ynxweb4.com/app/bridge/status",
+  "supportUrl": "https://ynxweb4.com/support",
+  "privacyUrl": "https://ynxweb4.com/privacy",
+  "securityUrl": "https://ynxweb4.com/security",
+  "statusUrl": "https://ynxweb4.com/status",
+  "runtimeStatusUrl": "https://rest.ynxweb4.com/app/bridge/status",
+  "publicReadOnlyBaseUrl": "https://rest.ynxweb4.com/app/bridge",
+  "websiteVerification": {
+    "routeHttpStatusObserved": 200,
+    "observedAt": "2026-07-29T02:35:33Z",
+    "productSpecificMetadataVerified": false,
+    "gap": "The fetched SPA shell still uses the root canonical URL and generic site metadata."
+  },
   "faq": [
     {
       "question": "Does destination confirmation mean the asset is available?",
       "answer": "No. Consumers must require destination_available and destinationAssetAvailable=true."
     },
     {
-      "question": "Is a YNX bridge route live?",
-      "answer": "No approved provider route or funded YNX Testnet transfer is currently verified."
+      "question": "Is a YNX Bridge route live?",
+      "answer": "No approved executable Provider route or funded YNX Testnet transfer is currently verified."
+    },
+    {
+      "question": "What is publicly deployed?",
+      "answer": "Read-only health, version, route, Provider, asset, transparency, status and state-machine evidence. Public mutation and user asset movement are disabled."
     }
   ],
   "structuredDataSuggestion": {
     "type": "WebApplication",
     "applicationCategory": "FinanceApplication",
-    "operatingSystem": "Web"
+    "operatingSystem": "Web",
+    "url": "https://ynxweb4.com/bridge"
   }
 }

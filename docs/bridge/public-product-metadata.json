@@ -1,25 +1,33 @@
 {
   "schemaVersion": 1,
   "name": "YNX Bridge",
-  "aliases": ["YNX Interoperability"],
+  "aliases": [
+    "YNX Interoperability"
+  ],
   "canonicalRoute": "/bridge",
-  "title": "YNX Bridge | Cross-chain Evidence and Recovery",
-  "metaDescription": "Review YNX cross-chain route availability, lifecycle evidence, exposure limits, reconciliation, and recovery status.",
+  "canonicalUrl": "https://ynxweb4.com/bridge",
+  "title": "YNX Bridge | Cross-network Evidence and Recovery",
+  "metaDescription": "Inspect YNX Bridge route availability, lifecycle evidence, Provider health, exposure, reconciliation and recovery without confusing read-only status with asset delivery.",
   "h1": "YNX Bridge",
-  "brand": {"primary":"#002FA7","background":"#FFFFFF","logoPath":"/assets/ynx-logo.png","iconPath":"/assets/ynx-logo.png"},
+  "brand": {
+    "primary": "#002FA7",
+    "background": "#FFFFFF",
+    "logoPath": "/assets/ynx-logo.png",
+    "iconPath": "/assets/ynx-logo.png"
+  },
   "features": [
-    "explicit source and destination lifecycle",
-    "replay-resistant relayer attestations",
-    "pause and route exposure controls",
-    "source-qualified public reconciliation",
-    "fail-closed route and token allowlist catalogs",
-    "source-qualified local status and support readiness",
-    "failure, retry, recovery, and dispute evidence"
+    "explicit source, proof, destination confirmation and asset-availability lifecycle",
+    "replay-resistant threshold-relayer attestations",
+    "pause, limit and route-exposure controls",
+    "source-qualified reconciliation and recovery evidence",
+    "fail-closed Provider, route and token catalogs",
+    "public read-only Testnet status and evidence"
   ],
   "risks": [
-    "no external Bridge route is currently enabled",
-    "operator reconciliation is not independent proof",
-    "provider, contract, finality, signer, and liquidity risk require route-specific review"
+    "no approved executable YNX Bridge route is available",
+    "no funded YNX Testnet deposit or withdrawal has been verified",
+    "threshold-relayer attestations are not light-client or trustless consensus proofs",
+    "operator reconciliation is not independent chain proof"
   ],
   "status": "public-read-only-testnet-coordinator",
   "screenshots": [],
@@ -29,11 +37,43 @@
   "securityUrl": null,
   "statusUrl": null,
   "runtimeStatusUrl": "https://rest.ynxweb4.com/app/bridge/status",
-  "structuredDataSuggestion": {"type":"SoftwareApplication","applicationCategory":"DeveloperApplication","operatingSystem":"Linux server"},
+  "publicReadOnlyBaseUrl": "https://rest.ynxweb4.com/app/bridge",
+  "officialSiteLinksObserved": {
+    "support": "https://ynxweb4.com/support",
+    "privacy": "https://ynxweb4.com/privacy",
+    "security": "https://ynxweb4.com/security",
+    "status": "https://ynxweb4.com/status",
+    "bridgeSpecificAcceptance": false
+  },
+  "websiteVerification": {
+    "routeHttpStatusObserved": 200,
+    "observedAt": "2026-07-29T02:35:33Z",
+    "productSpecificMetadataVerified": false,
+    "gap": "The fetched SPA shell uses the root canonical URL and generic site title and description. Owner 28-website must render route-specific canonical, Open Graph, JSON-LD, title and description."
+  },
+  "latestVerifiedSourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+  "structuredDataSuggestion": {
+    "type": "WebApplication",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web",
+    "url": "https://ynxweb4.com/bridge"
+  },
   "faq": [
-    {"question":"Is YNX Bridge live?","answer":"The Testnet coordinator has a public read-only status surface, but no executable Bridge route is live and external submission is disabled."},
-    {"question":"When is a transferred asset available?","answer":"Only at the explicit destination_available lifecycle state with destinationAssetAvailable=true after verified destination evidence. A quote, source acceptance, source finality, attestation, provider callback, destination submission, or destination confirmation alone is insufficient."},
-    {"question":"Is CCTP available for YNX?","answer":"No YNX route was listed in the inspected official CCTP testnet contract reference as of 2026-07-22, so the route is unavailable."},
-    {"question":"How are failures handled?","answer":"The lifecycle records failure, retry, refund or recovery, and dispute evidence without hiding an unresolved state."}
+    {
+      "question": "Is YNX Bridge live?",
+      "answer": "A public read-only Testnet evidence surface is live, but no executable YNX Bridge route or user asset movement is enabled."
+    },
+    {
+      "question": "When is a transferred asset available?",
+      "answer": "Only at destination_available with destinationAssetAvailable=true after verified destination evidence; destination confirmation alone is insufficient."
+    },
+    {
+      "question": "Is Circle CCTP available for YNX?",
+      "answer": "The deployed service observes the official CCTP V2 Sandbox API on supported non-YNX domains. No approved or executable YNX CCTP route is verified."
+    },
+    {
+      "question": "Are relayer attestations trustless proofs?",
+      "answer": "No. The implemented threshold-relayer verifier is not a light client and does not support a canonical or trustless Bridge claim."
+    }
   ]
 }

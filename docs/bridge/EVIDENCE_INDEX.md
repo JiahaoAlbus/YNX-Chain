@@ -1,6 +1,11 @@
 # Bridge Evidence Index
 
-- Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`, `internal/appgateway`, `cmd/ynx-app-gatewayd`; deployed Testnet source commit `857371f9b19422861c0675ca6cbd89a7750744ad`
+Updated: 2026-07-29T02:38:24Z
+
+- Latest verified source commit: `96a64792a6343ec379763bc7e382c1d0a4a75f3d`
+- Successful Bridge CI: run `30417171059`, job `90466102715`
+- CI verification artifact: ID `8710575111`, digest `sha256:4264673f262d4318d6be7adeaf52c323fa9da8acf5a3ef76934110eead0ec40b`, expiring 2026-08-28; this is an Actions verification artifact, not an immutable release download.
+- Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`, `internal/appgateway`, `cmd/ynx-app-gatewayd`; deployed Testnet runtime commit `857371f9b19422861c0675ca6cbd89a7750744ad`
 - Remote Testnet coordinator, artifact, permission, App Gateway, and fail-closed runtime proof: `docs/bridge/testnet-deployment-evidence.json`
 - Independent-node public TLS read-only surface and mutation-boundary proof: `docs/bridge/public-read-evidence.json`
 - Quote Runtime and fail-closed vectors: `internal/bridgegateway/service.go`, `internal/bridgegateway/gateway_test.go`, `scripts/verify/bridge-api-check.sh`
@@ -44,7 +49,8 @@
 - Public product metadata: `docs/bridge/public-product-metadata.json`
 - Machine release state: `docs/bridge/product-release.json`
 - Capacity evidence: `docs/bridge/capacity-evidence.json`
-- Restore evidence: `docs/bridge/restore-evidence.json`
+- Restore evidence: `docs/bridge/restore-evidence.json`; restore runner `scripts/verify/bridge-restore-check.sh` allocates an isolated loopback port and passed two concurrent drills on 2026-07-29.
+- Website route evidence: direct HTTP observation of `https://ynxweb4.com/bridge`; route HTTP 200 is proved, but product-specific canonical/title/description/Open Graph/JSON-LD are not proved and are handed to `28-website`.
 - Evidence gate: `scripts/verify/bridge-evidence-check.mjs`
 
 Generated test output is ephemeral and is not public or remote evidence. A release evidence record must bind future logs, artifacts, transaction receipts, API responses, and deployment URLs to the exact source commit that produced them.

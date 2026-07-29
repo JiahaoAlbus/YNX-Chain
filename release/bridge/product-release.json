@@ -4,38 +4,73 @@
   "product": "YNX Bridge & Interoperability",
   "slug": "bridge",
   "owner": "21-bridge",
-  "version": "1.0.0-testnet-candidate",
+  "version": "1.0.0-testnet-read-only-candidate",
   "branch": "codex/final-bridge",
-  "sourceCommit": "914249bc9772f9e813470291f3ad7c57205edbe9",
+  "sourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+  "runtimeCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
   "phase": "TESTNET",
   "releaseStates": {
+    "recovered": true,
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
-    "deployedStaging": false,
-    "deployedPublic": false,
+    "integratedCentral": true,
+    "testnetVerified": false,
+    "deployedStaging": true,
+    "deployedPublic": true,
+    "releasePublished": false,
     "downloadHosted": false,
     "productionSigned": false,
-    "storeReleased": false
+    "storeReleased": false,
+    "mainnetReleased": false
   },
   "verifiedCapabilities": [
     "fail-closed lifecycle and destination-availability state machine",
     "read-only public SDK and canonical App Gateway boundary",
     "threshold-relayer attestation verification without trustless-proof claims",
     "provider outage, recovery, restart and integrity-linked incident evidence",
-    "deterministic build, migration, restore and rollback gates"
+    "deterministic build, migration, restore and rollback gates",
+    "public TLS read-only status and evidence surface"
   ],
   "publicReadOnlyEvidence": {
     "origin": "https://rest.ynxweb4.com/app/bridge",
+    "statusUrl": "https://rest.ynxweb4.com/app/bridge/status",
+    "observedAt": "2026-07-29T02:35:19Z",
+    "runtimeCommit": "857371f9b194",
     "mutationPubliclyEnabled": false,
+    "externalSubmissionEnabled": false,
+    "userAssetMovementEnabled": false,
     "ynxAssetRouteAvailable": false,
     "fundedTransferVerified": false
   },
+  "ci": {
+    "workflow": "bridge",
+    "runId": 30417171059,
+    "jobId": 90466102715,
+    "conclusion": "success",
+    "sourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30417171059"
+  },
+  "verificationArtifact": {
+    "id": 8710575111,
+    "name": "ynx-bridge-verification-96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+    "bytes": 41474,
+    "digest": "sha256:4264673f262d4318d6be7adeaf52c323fa9da8acf5a3ef76934110eead0ec40b",
+    "expiresAt": "2026-08-28T02:34:54Z",
+    "releaseArtifact": false
+  },
+  "website": {
+    "canonicalRoute": "https://ynxweb4.com/bridge",
+    "httpStatusObserved": 200,
+    "productSpecificMetadataVerified": false,
+    "metadataGap": "The fetched SPA shell still publishes the root canonical URL and generic site metadata."
+  },
   "externalInputs": [
-    "approved YNX provider route and contracts",
-    "funded Testnet assets",
+    "approved YNX Provider or proof route and contracts",
+    "funded Testnet assets and gas",
+    "production signer custody and ceremony",
     "independent Security/SRE acceptance",
-    "shared Testnet dependency acceptance"
+    "shared Testnet dependency acceptance",
+    "governance authority for public mutation and asset movement"
   ]
 }

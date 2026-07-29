@@ -1,8 +1,13 @@
 # YNX Bridge Integration Handoff
 
-Status: remote Testnet coordinator, canonical App Gateway integration, public read-only ingress, and supported external-route Provider API probe deployed; approved YNX provider route, YNX contracts, and funded transfer execution are not complete.
+Updated: 2026-07-29T02:38:24Z
 
-Deployed Testnet source commit: `857371f9b19422861c0675ca6cbd89a7750744ad`
+Status: remote Testnet coordinator, canonical App Gateway integration, public read-only ingress, and supported external-route Provider API probe deployed; approved YNX Provider route, YNX contracts, funded transfer execution, and cross-owner acceptance are not complete.
+
+Deployed Testnet runtime commit: `857371f9b19422861c0675ca6cbd89a7750744ad`  
+Latest verified source commit: `96a64792a6343ec379763bc7e382c1d0a4a75f3d`  
+Latest successful Bridge CI: `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30417171059`  
+Verification artifact digest: `sha256:4264673f262d4318d6be7adeaf52c323fa9da8acf5a3ef76934110eead0ec40b`
 
 Integration contract: `release/integration/ynx-bridge-contract.json`  
 Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
@@ -41,4 +46,4 @@ The remote Testnet coordinator and canonical App Gateway upstream are directly v
 - `30-security-sre`: accept secret/signer boundaries, backup, release, and incident controls.
 - `31-governance`: accept provider, limit, pause, contract, and timelock control surface.
 - `29-integration`: freeze the unique protocol version and shared Testnet sequence.
-- `28-website`: publish only evidence-backed `/bridge` status and documentation.
+- `28-website`: publish only evidence-backed `/bridge` status and documentation, and replace the generic SPA shell metadata with route-specific canonical, title, description, Open Graph and JSON-LD records. The product route returns HTTP 200, but product-specific metadata was not verified on 2026-07-29.

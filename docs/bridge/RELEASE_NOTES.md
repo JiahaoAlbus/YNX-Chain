@@ -1,5 +1,13 @@
 # Bridge Release Notes
 
+## Recovery and verification refresh — 2026-07-29
+
+- Recovered the exact `21-bridge` Worktree, branch, remote, local/remote SHA, public runtime, Website route, CI and artifact state without destructive Git operations.
+- Fixed the restore drill's fixed-port collision risk. Commit `96a64792a6343ec379763bc7e382c1d0a4a75f3d` selects an isolated loopback port; a normal drill and two concurrent drills passed.
+- GitHub Actions run `30417171059` passed every Bridge verification step for the repaired commit and uploaded verification artifact `8710575111` with digest `sha256:4264673f262d4318d6be7adeaf52c323fa9da8acf5a3ef76934110eead0ec40b`.
+- Refreshed release and public metadata to distinguish deployed public read-only evidence from disabled mutation, external submission and user asset movement.
+- Verified `https://ynxweb4.com/bridge` returns HTTP 200, while recording that its fetched SPA shell still lacks route-specific canonical, title, description, Open Graph and JSON-LD evidence.
+
 - Added persistence schema v6 with exact reconciliation replay responses. Older keys keep their original record after newer route observations and restart; migrated pre-v6 keys whose original response cannot be reconstructed fail closed.
 - Added public `/bridge/status` and SDK validation that separate local coordinator health from unavailable external Bridge/provider/public/support/refund/emergency-exit states.
 - Re-verify all persisted relayer signatures, source block/finality bindings, payload hashes, audit evidence, quorum status, finalization identity, and source-event indexes at startup. Changed trust-root keys and resealed forged quorum state fail closed.
@@ -26,4 +34,4 @@
 - Added explicit provider identity, UTC daily volume, user outstanding exposure, and enforced large-transfer delay controls.
 - Added per-key/IP rate limits, Request ID/Error ID responses, structured access logs, and denial metrics.
 
-External submission remains disabled. This candidate is not installed, staged, public, production-signed, issuer-supported, funded, or independently audited.
+External submission remains disabled. The coordinator and canonical App Gateway are staged, and a public TLS read-only evidence surface is deployed. The candidate is not an executable YNX route, funded transfer system, production-signed release, issuer-supported route, independently audited Bridge, or Mainnet release.
