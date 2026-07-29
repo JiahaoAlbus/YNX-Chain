@@ -1,44 +1,100 @@
 {
-  "schemaVersion": 1,
-  "productId": "ynx-resource-market-v1",
-  "status": "external-inputs-required-for-nonlocal-states",
-  "secretHandling": "Provide references and approvals through owner-approved secure channels. Never place private keys, seed phrases, PEM contents, validator keys or full provider credentials in chat or git.",
-  "requests": [
+  "schemaVersion": "1.0.0",
+  "requestStatus": "required-before-production-signed-and-reviewed-release",
+  "generatedAt": "2026-07-27",
+  "sourceCommit": "601d13bd677729ff59819ea70076a7de461328f2",
+  "satisfiedByEvidence": [
     {
-      "id": "central-wallet-resource-rollout",
-      "kind": "deployment-approval",
-      "requiredFor": ["integratedCentral", "deployedStaging"],
-      "minimum": "Approved owner and target commit or pull request for the supplied Wallet registry, challenge/completion/revocation routes, Product Session proof introspection and authoritative Resource route map"
+      "capability": "central integration, staging deployment, public deployment and immutable hosted download",
+      "evidence": "release/evidence/website-public-acceptance-2026-07-26.json"
     },
     {
-      "id": "public-origins-and-dns",
-      "kind": "domain-dns",
-      "requiredFor": ["deployedStaging", "deployedPublic", "downloadHosted"],
-      "minimum": "Approved HTTPS staging and public origins, canonical /resource-market route, DNS owner and remote health/version endpoints"
-    },
-    {
-      "id": "testnet-providers-and-secure-settlement",
-      "kind": "provider-approval-and-secure-signer-path",
-      "requiredFor": ["real-workload-evidence", "publicSettlementReceiptVerified"],
-      "minimum": "At least two approved independent Testnet provider identities/endpoints, workload credentials by secret-manager reference, bounded settlement signer path and funded public test account approval; no secret material"
-    },
-    {
-      "id": "mobile-signing-and-stores",
-      "kind": "secure-signer-path",
-      "requiredFor": ["productionSigned", "storeReleased", "ios-install-evidence"],
-      "minimum": "Owner-controlled Android/iOS signing workflows, Apple build host or CI, store accounts and signing/recovery ceremony references"
-    },
-    {
-      "id": "policy-support-and-localization-review",
-      "kind": "legal-support-urls-and-review",
-      "requiredFor": ["deployedPublic", "linguistic-review"],
-      "minimum": "Approved jurisdiction, privacy/security/support/status HTTPS URLs and accountable professional reviewers for all 12 locale catalogs"
-    },
-    {
-      "id": "artifact-hosting",
-      "kind": "immutable-hosting-approval",
-      "requiredFor": ["downloadHosted"],
-      "minimum": "Approved immutable artifact host and publication owner for source-bound hashes, bytes, signing class and installation instructions"
+      "capability": "canonical public routes, sitemap, robots and IndexNow submission",
+      "evidence": "https://ynxweb4.com/docs"
     }
-  ]
+  ],
+  "notApplicableStates": {
+    "installedLocal": "This documentation package is consumed by the Website build and has no standalone installer.",
+    "storeReleased": "No product store distributes this documentation package."
+  },
+  "instructions": {
+    "responseChannel": "approved control plane or named owner handoff",
+    "neverProvideInChatOrRepository": [
+      "private key",
+      "seed phrase",
+      "validator key",
+      "PEM or keystore",
+      "CVV or full card data",
+      "complete API secret",
+      "raw identity document"
+    ],
+    "secretMethod": "Provide only a secret-manager reference/path and access owner after the receiving service account and rotation policy are approved."
+  },
+  "inputs": [
+    {
+      "id": "production-signing-approval",
+      "ownerClass": "security-custody-owner",
+      "requiredFor": [
+        "productionSigned"
+      ],
+      "provide": [
+        "approved secure signer reference/path",
+        "public signing certificate or public-key chain",
+        "artifact signing policy and signing-class decision",
+        "two-person approval record",
+        "rotation, revocation and offline recovery evidence"
+      ],
+      "prohibited": "Do not provide secret key material."
+    },
+    {
+      "id": "search-and-independent-public-proof",
+      "ownerClass": "website-domain-and-search-owner",
+      "requiredFor": [
+        "independentPublicProof",
+        "Search Console verification",
+        "Bing Webmaster Tools verification"
+      ],
+      "provide": [
+        "DNS/domain-control evidence reference",
+        "Search Console property and sitemap submission receipt",
+        "Bing property and sitemap submission receipt",
+        "independent monitor or search-engine fetch evidence with URL and observation time"
+      ],
+      "prohibited": "Do not provide complete provider credentials; provide an approved credential reference only if automation is authorized."
+    },
+    {
+      "id": "named-review-approvals",
+      "ownerClass": "qualified-legal-economic-security-and-audit-reviewers",
+      "requiredFor": [
+        "legalReview",
+        "securityReview",
+        "economicReview",
+        "independentAudit"
+      ],
+      "provide": [
+        "named reviewer and organization",
+        "scope, jurisdiction and reviewed artifact digests",
+        "approval, findings or explicit rejection",
+        "effective date and review expiry",
+        "required remediation and prohibited public claims"
+      ]
+    },
+    {
+      "id": "brand-media-rights-approval",
+      "ownerClass": "brand-and-legal-owner",
+      "requiredFor": [
+        "approved public logo variants",
+        "screenshots",
+        "press distribution"
+      ],
+      "provide": [
+        "asset source and rights record",
+        "approved hashes, bytes and dimensions",
+        "light, dark and icon variant approvals",
+        "screenshot route, state, privacy and release approval",
+        "named brand reviewer"
+      ]
+    }
+  ],
+  "releaseRule": "Missing input keeps only the affected review, proof, signing or media capability false or unavailable. It must never be replaced by fabricated configuration, provider health, approval, signature or rights evidence."
 }

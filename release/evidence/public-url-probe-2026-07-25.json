@@ -1,0 +1,83 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.2",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "observedAt": "2026-07-25T14:16:21+08:00",
+  "status": "Candidate",
+  "vantage": "Current documentation worktree host through its active proxy/VPN path; operator-controlled and ineligible as independent direct-public proof",
+  "dnsEligibility": {
+    "eligibleForDirectPublicProof": false,
+    "reason": "The canonical root and www names resolved into 198.18.0.0/15 on this workstation.",
+    "observed": {
+      "ynxweb4.com": "198.18.0.129",
+      "www.ynxweb4.com": "198.18.0.130"
+    }
+  },
+  "policy": {
+    "connectTimeoutSeconds": 5,
+    "maximumSeconds": 15,
+    "retryCount": 0
+  },
+  "observations": [
+    {
+      "component": "canonical root site",
+      "url": "https://ynxweb4.com",
+      "method": "HEAD",
+      "result": "TLS connection timeout",
+      "exitCode": 28,
+      "status": "Blocked",
+      "publicAvailabilityProved": false
+    },
+    {
+      "component": "www site",
+      "url": "https://www.ynxweb4.com",
+      "method": "HEAD",
+      "result": "HTTP 200 from Vercel",
+      "exitCode": 0,
+      "status": "Candidate",
+      "publicAvailabilityProved": false
+    },
+    {
+      "component": "App Gateway",
+      "url": "https://api.ynxweb4.com/app/health",
+      "method": "GET",
+      "result": "HTTP 200 with component-level health data",
+      "exitCode": 0,
+      "status": "Candidate",
+      "observedBuild": "271197feb48f",
+      "observedUpstreamBoundary": "Chat and Square reported remotely deployed; Pay reported remoteDeployed=false",
+      "publicAvailabilityProved": false
+    },
+    {
+      "component": "Explorer",
+      "url": "https://explorer.ynxweb4.com/health",
+      "method": "GET",
+      "result": "TLS connection timeout",
+      "exitCode": 28,
+      "status": "Blocked",
+      "publicAvailabilityProved": false
+    },
+    {
+      "component": "EVM RPC",
+      "url": "https://evm.ynxweb4.com",
+      "method": "POST eth_chainId",
+      "result": "TLS connection timeout",
+      "exitCode": 28,
+      "status": "Blocked",
+      "publicAvailabilityProved": false
+    },
+    {
+      "component": "Faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "method": "GET",
+      "result": "HTTP 200; chain ID 6423 and release ynx-chain-02f4ccd8770c reported",
+      "exitCode": 0,
+      "status": "Candidate",
+      "observedBuild": "02f4ccd8770c",
+      "publicAvailabilityProved": false
+    }
+  ],
+  "conclusion": "The mixed component results do not prove a portfolio-wide outage or portfolio-wide availability. They block a current independent-public-availability claim and require component-specific wording."
+}

@@ -1,0 +1,271 @@
+package governance
+
+import (
+	"errors"
+	"strings"
+	"testing"
+	"time"
+)
+
+func testService(t *testing.T) *Service {
+	t.Helper()
+	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
+	mk := func(account string, role GovernanceRole, threshold uint64) RoleAssignmentInput {
+		return RoleAssignmentInput{Account: account, Role: role, Scopes: []Scope{ScopeBridge, ScopeProtocolUpgrade, ScopeConsensusUpgrade}, TermStartsAt: now, TermEndsAt: now.Add(365 * 24 * time.Hour), DecisionThreshold: threshold, ConflictDisclosure: "No provider ownership or compensation conflict disclosed.", Evidence: []string{"sha256:test-genesis-role-evidence"}}
+	}
+	roles := []RoleAssignmentInput{mk("technical-1", RoleTechnicalCouncil, 2), mk("technical-2", RoleTechnicalCouncil, 2), mk("security-1", RoleSecurityCouncil, 2), mk("security-2", RoleSecurityCouncil, 2), mk("treasury-1", RoleTreasuryCouncil, 2), mk("treasury-2", RoleTreasuryCouncil, 2), mk("emergency-1", RoleEmergencyCouncil, 3), mk("emergency-2", RoleEmergencyCouncil, 3), mk("emergency-3", RoleEmergencyCouncil, 3)}
+	manifest, err := GenesisRoleManifestHash(roles)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := NewService(Policy{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: 2 * time.Minute, MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, TimelockGrace: 6 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]ParameterRule{"/bridge/exposureLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 0, Maximum: 500_000_000}, "/protocol/upgradeManifestHash": {Scope: ScopeProtocolUpgrade, Numeric: false}, "/consensus/upgradeManifestHash": {Scope: ScopeConsensusUpgrade, Numeric: false}, "/governance/upgradeThresholdBps": {Scope: ScopeProtocolUpgrade, Numeric: true, Minimum: 6667, Maximum: 10000}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.BootstrapRoles(roles, manifest, now); err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+func proposalInput(now time.Time) ProposalInput {
+	value := int64(45_000_000)
+	return ProposalInput{Nonce: "proposal-nonce-0001", ProposalType: "bridge_limit_change", Scope: ScopeBridge, Proposer: "delegator-01", Owner: "protocol-team", Summary: "Reduce the public testnet bridge exposure limit", Motivation: "Limit testnet bridge exposure while provider reliability evidence is accumulated.", TechnicalImpact: "Updates the canonical bridge exposure parameter without changing custody or signer scope.", EconomicImpact: "Caps aggregate bridge exposure during testnet operations.", SecurityRisk: "Reduces loss radius while provider monitoring is evaluated.", UserImpact: "Users may reach the lower bridge exposure cap during the bounded testnet canary.", ProviderImpact: "Bridge providers must enforce the signed limit and publish rejection evidence.", Migration: "Apply the versioned policy after canary verification.", Rollback: "Restore the prior signed policy manifest if verification fails.", CanaryPlan: "Run a bounded bridge-provider canary before expanding the aggregate exposure limit.", VerificationPlan: "Verify parameter state, provider enforcement, audit events, and public API output.", ConflictDisclosure: "No proposer, owner, provider, or related-party compensation conflict is disclosed.", Dependencies: []string{"01-chain-core", "21-bridge", "26-data-fabric"}, Evidence: []string{"sha256:bridge-risk-analysis"}, Changes: []ParameterChange{{Path: "/bridge/exposureLimit", Before: "50000000", After: "45000000", Minimum: 0, Maximum: 500_000_000, Numeric: &value}}, SourceCommit: strings.Repeat("c", 64), Release: "governance-test-v1", ExpiresAt: now.Add(7 * 24 * time.Hour)}
+}
+
+func openVoting(t *testing.T, s *Service, id string, snapshot VotingSnapshot, now time.Time) (Proposal, error) {
+	t.Helper()
+	snapshot = normalizeTestSnapshot(snapshot)
+	_, err := s.SubmitElectorate(id, snapshot, strings.Repeat("9", 64), "ynx-electorate-snapshot/v1", "technical-1", now, now)
+	if err != nil {
+		return Proposal{}, err
+	}
+	_, err = s.ApproveElectorate(id, "technical-1", now.Add(time.Second))
+	if err != nil {
+		return Proposal{}, err
+	}
+	_, err = s.ApproveElectorate(id, "technical-2", now.Add(2*time.Second))
+	if err != nil {
+		return Proposal{}, err
+	}
+	return s.OpenVoting(id, now.Add(3*time.Second))
+}
+
+func TestProposalVoteTimelockExecution(t *testing.T) {
+	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
+	s := testService(t)
+	p, err := s.Create(proposalInput(now), now)
+	if err != nil || p.Status != StatusDeposit {
+		t.Fatalf("create: %+v %v", p, err)
+	}
+	p, err = s.Deposit(p.ID, 100, now.Add(time.Minute))
+	if err != nil || p.Status != StatusDiscussion {
+		t.Fatalf("deposit: %+v %v", p, err)
+	}
+	p, err = s.RecordSimulation(p.ID, Simulation{TechnicalEvidence: "sha256:technical-simulation-pass", EconomicEvidence: "sha256:economic-simulation-pass", SecurityEvidence: "sha256:security-simulation-pass", UserImpactEvidence: "sha256:user-impact-simulation-pass", Passed: true}, now.Add(2*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err = openVoting(t, s, p.ID, VotingSnapshot{BasePower: map[string]uint64{"validator-1": 40, "delegate-1": 30, "observer-1": 10, "inactive-1": 20}}, now.Add(3*time.Minute))
+	if err != nil || p.Status != StatusVoting {
+		t.Fatalf("open: %+v %v", p, err)
+	}
+	for _, vote := range []struct{ v, c string }{{"validator-1", "yes"}, {"delegate-1", "yes"}, {"observer-1", "abstain"}} {
+		if _, err = castTestVote(t, s, p.ID, vote.v, vote.c, now.Add(4*time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err = s.Finalize(p.ID, p.VotingEndsAt.Add(-time.Second)); !errors.Is(err, ErrNotReady) {
+		t.Fatalf("early finalize: %v", err)
+	}
+	p, err = s.Finalize(p.ID, p.VotingEndsAt)
+	if err != nil || p.Status != StatusTimelocked {
+		t.Fatalf("finalize: %+v %v", p, err)
+	}
+	manifest := strings.Repeat("a", 64)
+	if _, err = s.BeginExecution(p.ID, manifest, p.ExecuteAfter.Add(-time.Second)); !errors.Is(err, ErrNotReady) {
+		t.Fatalf("early execution: %v", err)
+	}
+	passTestCanary(t, s, p, manifest)
+	p = submitTestChainExecution(t, s, p, manifest, p.ExecuteAfter)
+	if p.Status != StatusExecuting {
+		t.Fatalf("execute: %+v", p)
+	}
+	receipt := NewExecutionReceipt("0x"+strings.Repeat("d", 64), 11, "0x"+strings.Repeat("e", 64), "0x"+strings.Repeat("f", 64), manifest, "verified", p.ExecuteAfter.Add(time.Minute))
+	tampered := receipt
+	tampered.StateRoot = "0x" + strings.Repeat("1", 64)
+	if _, err = s.verifyExecutionReceipt(p.ID, tampered, nil, p.ExecuteAfter.Add(time.Minute)); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("tampered execution receipt: %v", err)
+	}
+	p, err = s.verifyExecutionReceipt(p.ID, receipt, nil, p.ExecuteAfter.Add(time.Minute))
+	if err != nil || p.Status != StatusVerified {
+		t.Fatalf("verify: %+v %v", p, err)
+	}
+}
+
+func TestProposalAcceptsCanonicalGitSourceCommitAndRejectsMalformedCommit(t *testing.T) {
+	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
+	service := testService(t)
+	input := proposalInput(now)
+	input.SourceCommit = strings.Repeat("a", 40)
+	if _, err := service.Create(input, now); err != nil {
+		t.Fatalf("canonical Git SHA-1 source commit was rejected: %v", err)
+	}
+
+	service = testService(t)
+	input = proposalInput(now)
+	input.SourceCommit = strings.Repeat("a", 39) + "z"
+	if _, err := service.Create(input, now); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("malformed source commit was accepted: %v", err)
+	}
+}
+
+func TestBoundsReplayConflictRecusalAndRollback(t *testing.T) {
+	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
+	s := testService(t)
+	in := proposalInput(now)
+	bad := int64(500_000_001)
+	in.Changes[0].Numeric = &bad
+	if _, err := s.Create(in, now); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("bounds: %v", err)
+	}
+	in = proposalInput(now)
+	in.Nonce = "proposal-nonce-widen"
+	in.Changes[0].Maximum = 1_000_000_000
+	if _, err := s.Create(in, now); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("proposal-defined widened bound: %v", err)
+	}
+	in = proposalInput(now)
+	in.Nonce = "proposal-nonce-rate-limit"
+	tooLargeDelta := int64(40_000_000)
+	in.Changes[0].After = "40000000"
+	in.Changes[0].Numeric = &tooLargeDelta
+	if _, err := s.Create(in, now); !errors.Is(err, ErrForbidden) || !strings.Contains(err.Error(), "per-proposal") {
+		t.Fatalf("authoritative per-proposal change limit: %v", err)
+	}
+	in = proposalInput(now)
+	in.Nonce = "proposal-nonce-path"
+	in.Changes[0].Path = "/bridge/unregisteredLimit"
+	if _, err := s.Create(in, now); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("unknown parameter path: %v", err)
+	}
+	in = proposalInput(now)
+	p, err := s.Create(in, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Create(in, now); !errors.Is(err, ErrReplay) {
+		t.Fatalf("nonce replay: %v", err)
+	}
+	in.Nonce = "proposal-nonce-0002"
+	if _, err = s.Create(in, now); !errors.Is(err, ErrConflict) {
+		t.Fatalf("duplicate diff: %v", err)
+	}
+	p, _ = s.Deposit(p.ID, 100, now.Add(time.Minute))
+	p, _ = s.RecordSimulation(p.ID, Simulation{TechnicalEvidence: "technical evidence hash", EconomicEvidence: "economic evidence hash", SecurityEvidence: "security evidence hash", UserImpactEvidence: "user impact evidence hash", Passed: true}, now.Add(2*time.Minute))
+	p, _ = s.DiscloseConflict(p.ID, ConflictDisclosure{Actor: testVoterID("delegate-conflicted"), Description: "Provider ownership interest disclosed", Recused: true}, now.Add(3*time.Minute))
+	p, _ = openVoting(t, s, p.ID, VotingSnapshot{BasePower: map[string]uint64{"delegate-conflicted": 30, "validator-1": 70}}, now.Add(4*time.Minute))
+	if _, err = castTestVote(t, s, p.ID, "delegate-conflicted", "yes", now.Add(5*time.Minute)); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("recusal: %v", err)
+	}
+	p, _ = castTestVote(t, s, p.ID, "validator-1", "yes", now.Add(5*time.Minute))
+	p, _ = s.Finalize(p.ID, p.VotingEndsAt)
+	passTestCanary(t, s, p, strings.Repeat("b", 64))
+	p = submitTestChainExecution(t, s, p, strings.Repeat("b", 64), p.ExecuteAfter)
+	failed := NewExecutionReceipt("0x"+strings.Repeat("d", 64), 12, "0x"+strings.Repeat("e", 64), "0x"+strings.Repeat("f", 64), strings.Repeat("b", 64), "failed", p.ExecuteAfter.Add(time.Minute))
+	rollback := NewExecutionReceipt("0x"+strings.Repeat("a", 64), 13, "0x"+strings.Repeat("c", 64), "0x"+strings.Repeat("d", 64), strings.Repeat("c", 64), "verified_rollback", p.ExecuteAfter.Add(2*time.Minute))
+	p, err = s.verifyExecutionReceipt(p.ID, failed, &rollback, p.ExecuteAfter.Add(2*time.Minute))
+	if err != nil || p.Status != StatusRolledBack {
+		t.Fatalf("rollback: %+v %v", p, err)
+	}
+}
+
+func TestVotingSnapshotRejectsCyclesAndFreezesDelegatedPower(t *testing.T) {
+	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
+	s := testService(t)
+	p, err := s.Create(proposalInput(now), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _ = s.Deposit(p.ID, 100, now.Add(time.Minute))
+	p, _ = s.RecordSimulation(p.ID, Simulation{TechnicalEvidence: "technical simulation evidence", EconomicEvidence: "economic simulation evidence", SecurityEvidence: "security simulation evidence", UserImpactEvidence: "user-impact simulation evidence", Passed: true}, now.Add(2*time.Minute))
+	cycle := VotingSnapshot{BasePower: map[string]uint64{"alice": 40, "bob": 60}, Delegations: map[string]string{"alice": "bob", "bob": "alice"}}
+	if _, err = s.SubmitElectorate(p.ID, cycle, strings.Repeat("9", 64), "ynx-electorate-snapshot/v1", "technical-1", now.Add(3*time.Minute), now.Add(3*time.Minute)); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("cycle accepted: %v", err)
+	}
+	snapshot := VotingSnapshot{BasePower: map[string]uint64{"alice": 40, "bob": 60}, Delegations: map[string]string{"alice": "bob"}}
+	p, err = openVoting(t, s, p.ID, snapshot, now.Add(3*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.VotingPower[testVoterID("bob")] != 100 || p.VotingPower[testVoterID("alice")] != 0 || p.EligiblePower != 100 {
+		t.Fatalf("power=%v eligible=%d", p.VotingPower, p.EligiblePower)
+	}
+	if _, err = castTestVote(t, s, p.ID, "alice", "yes", now.Add(4*time.Minute)); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("delegator voted: %v", err)
+	}
+	p, err = castTestVote(t, s, p.ID, "bob", "yes", now.Add(4*time.Minute))
+	if err != nil || p.Votes[testVoterID("bob")].Power != 100 {
+		t.Fatalf("delegate vote: %+v %v", p.Votes, err)
+	}
+}
+
+func TestElectorateRequiresDistinctApprovalThreshold(t *testing.T) {
+	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
+	s := testService(t)
+	p, err := s.Create(proposalInput(now), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _ = s.Deposit(p.ID, 100, now.Add(time.Minute))
+	p, _ = s.RecordSimulation(p.ID, Simulation{TechnicalEvidence: "technical simulation evidence", EconomicEvidence: "economic simulation evidence", SecurityEvidence: "security simulation evidence", UserImpactEvidence: "user-impact simulation evidence", Passed: true}, now.Add(2*time.Minute))
+	snapshot := VotingSnapshot{BasePower: map[string]uint64{"validator": 100}}
+	p, err = s.SubmitElectorate(p.ID, snapshot, strings.Repeat("8", 64), "ynx-electorate-snapshot/v1", "technical-1", now.Add(3*time.Minute), now.Add(3*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err = s.ApproveElectorate(p.ID, "technical-1", now.Add(4*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.OpenVoting(p.ID, now.Add(5*time.Minute)); !errors.Is(err, ErrNotReady) {
+		t.Fatalf("single approval opened voting: %v", err)
+	}
+	if _, err = s.ApproveElectorate(p.ID, "technical-1", now.Add(5*time.Minute)); !errors.Is(err, ErrReplay) {
+		t.Fatalf("duplicate approval: %v", err)
+	}
+	p, err = s.ApproveElectorate(p.ID, "technical-2", now.Add(5*time.Minute))
+	if err != nil || p.Electorate.Status != "approved" {
+		t.Fatalf("second approval: %+v %v", p.Electorate, err)
+	}
+	p, err = s.OpenVoting(p.ID, now.Add(6*time.Minute))
+	if err != nil || p.Status != StatusVoting {
+		t.Fatalf("open: %+v %v", p, err)
+	}
+}
+
+func TestFailedSimulationRejectsAndOnlyProposerCanCancel(t *testing.T) {
+	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
+	s := testService(t)
+	p, err := s.Create(proposalInput(now), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _ = s.Deposit(p.ID, 100, now.Add(time.Minute))
+	p, err = s.RecordSimulation(p.ID, Simulation{TechnicalEvidence: "technical simulation failure receipt", EconomicEvidence: "economic simulation failure receipt", SecurityEvidence: "security simulation failure receipt", UserImpactEvidence: "user impact simulation failure receipt", Passed: false}, now.Add(2*time.Minute))
+	if err != nil || p.Status != StatusRejected {
+		t.Fatalf("failed simulation: %+v %v", p, err)
+	}
+	s = testService(t)
+	p, err = s.Create(proposalInput(now), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.CancelProposal(p.ID, "different-account", "Proposal is withdrawn after evidence review.", []string{"sha256:withdrawal-evidence"}, now.Add(time.Minute)); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("non-proposer cancellation: %v", err)
+	}
+	p, err = s.CancelProposal(p.ID, p.Input.Proposer, "Proposal is withdrawn after evidence review.", []string{"sha256:withdrawal-evidence"}, now.Add(time.Minute))
+	if err != nil || p.Status != StatusCancelled || p.Cancellation == nil || p.Cancellation.AuditHash == "" {
+		t.Fatalf("cancellation: %+v %v", p, err)
+	}
+}
