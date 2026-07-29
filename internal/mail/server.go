@@ -23,6 +23,7 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	s := &Server{service: service}
 	build = buildinfo.Normalize(build)
 	mux := http.NewServeMux()
+	observability := newMailObservability()
 	mux.HandleFunc("GET /v1/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"ok":                true,
@@ -60,7 +61,8 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("GET /v1/audit", s.audit)
 	mux.HandleFunc("GET /v1/account/export", s.exportAccount)
 	mux.HandleFunc("DELETE /v1/account", s.deleteAccount)
-	return securityHeaders(mux)
+	mux.HandleFunc("GET /v1/metrics", observability.metrics)
+	return observability.wrap(securityHeaders(mux))
 }
 
 func (s *Server) challenge(w http.ResponseWriter, _ *http.Request) {
