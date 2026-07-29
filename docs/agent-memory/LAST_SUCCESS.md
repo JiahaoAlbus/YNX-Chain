@@ -1,20 +1,22 @@
 # Last Success
 
-Updated: `2026-07-29T14:09:20Z`
+Updated: `2026-07-29T18:07:49Z`
 
-The latest exact-green remote Integration source is `7777942bb17a1e67483f5909287e79592ca0f1cf`. The current exact-clean locally verified central-acceptance source is `42a85fb50614f893a4526c50f45b12da58ecfcdc` and is awaiting its protected push.
+The latest exact-green remote Integration source is `edefd412abc14c89cfdd7c5171e5db90aed9cb58`. The current exact-clean locally verified central-acceptance source is `1982e28052aa9816915af594da056750fa47dbfe` and is awaiting its protected push.
 
 Direct evidence:
 
 - Local and Remote Integration SHAs matched.
-- Product 30 exact owner checkpoint `4277317…` is in the Integration history.
+- Product 30 exact owner checkpoint `e670749…` is in the Integration history through merge `a472d588…`.
 - The authoritative 36-product scan found all 36 branches, remotes, Worktrees and upstreams.
 - Product 30 is read from `JiahaoAlbus/YNX-Chain` and its product-scoped evidence bundle.
 - Product 30 passed 179/179 central-tree security tests plus artifact, migration, render, dependency and fail-closed controls.
 - `make integration-protect-preflight` passed after the final Product 30 merge.
-- Product 29 PR #17 completed every check green at `7777942…`; the current slice is not assumed green until pushed and checked.
+- Product 29 PR #17 completed all 15 checks green at `edefd412…`; the current slice is not assumed green until pushed and checked.
 - The authoritative Product Release Matrix is generated, fail-closed and validated.
-- Product 30 has one machine-readable central acceptance decision bound to exact owner SHA, merge ancestry, CI and the central test receipt.
-- Exact-clean `make integration-protect-preflight` and the stale-decision negative self-test passed at `42a85fb5…`.
+- Product 30 has a machine-readable central acceptance decision bound to exact owner SHA, merge ancestry, 9 successful workflow runs and the central test receipt.
+- Its source-only prerelease has 5 hosted assets; the downloaded archive digest equals `063872f8…`.
+- The release matrix derives publication and hosting from direct GitHub Release and repository registry evidence.
+- Exact-clean Integration preflight plus all 179 Product 30 tests and release gates passed at `1982e280…`.
 
-This proves Product 30 central source acceptance. It does not prove merge to `main`, shared Testnet, public runtime, Website publication, production signing or Mainnet.
+This proves Product 30 central source acceptance and source-candidate hosting. It does not prove merge to `main`, shared Testnet, staging/public runtime, Website publication, production signing or Mainnet.

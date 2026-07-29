@@ -77,3 +77,16 @@
 
 - Decision: Keep Product 30 classified `READY_FOR_SOURCE_RELEASE` after central acceptance because its explicit production/public blockers and absent shared-Testnet proof remain true.
 - Result: The authoritative snapshot reports 0 Public-Testnet-ready, 2 Source-Release-ready and 34 Hold-for-Recovery products.
+
+## 2026-07-29 — Reaccept Product 30 after its source-candidate release
+
+- Decision: Replace the prior central acceptance with exact owner SHA `e670749b83a1b40d09ed717eb3515d539c005c49`, contained by Integration merge `a472d588b4f037c57db6d7941b1b37572f91d114`.
+- Evidence: 9 exact-head workflow runs succeeded; the central merged tree passed 179/179 security tests and the full Integration preflight.
+- Decision: Set only Product 30 `releasePublished=true` and `artifactHosted=true` from a non-draft GitHub prerelease plus a matching registered download URL and digest. Keep production/public states false.
+
+## 2026-07-29 — Freeze the current release train as unsafe to merge
+
+- Decision: Do not merge PRs #7, #11, #13, #14 or #15 while they conflict with `main`.
+- Decision: Do not merge clean PR #16 or #17 without independent review and a protected base branch; draft state is also retained.
+- Evidence: `release/integration/RELEASE_TRAIN_AUDIT.json`.
+- Next: Push and protect the Integration checkpoint, then recover Phase 0 Product 01 before refreshing the audit.

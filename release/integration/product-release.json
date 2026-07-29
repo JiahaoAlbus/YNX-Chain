@@ -7,7 +7,7 @@
   "release": "0.1.2-controller-candidate",
   "releaseClass": "controller-candidate",
   "network": "YNX Testnet",
-  "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+  "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -30,7 +30,9 @@
       "release/integration/evidence/protect-preflight-d05ddf0a.json",
       "release/integration/evidence/protect-preflight-20191a3e.json",
       "release/integration/evidence/protect-preflight-42a85fb5.json",
-      "release/integration/evidence/product-30-central-acceptance-3ee6477d.json"
+      "release/integration/evidence/protect-preflight-1982e280.json",
+      "release/integration/evidence/product-30-central-acceptance-a472d588.json",
+      "release/integration/RELEASE_TRAIN_AUDIT.json"
     ],
     "installedLocal": [],
     "integratedCentral": [],
@@ -46,7 +48,7 @@
   "runtimeDeployedPublic": false,
   "mainnetAccepted": false,
   "knownBlockers": [
-    "Security/SRE source is centrally accepted, but shared-Testnet security/monitoring/recovery drills and true production authorities remain separately unverified.",
+    "Security/SRE source candidate is centrally accepted and hosted as a test-signed GitHub prerelease, but shared-Testnet security/monitoring/recovery drills and true production authorities remain separately unverified.",
     "The former Hardhat development-tooling advisory is remediated in the locked dependency graph; default-branch alert closure remains pending the central merge to main.",
     "The remaining Phase 0 owner contracts and central negative vectors have not yet been accepted.",
     "No shared Public Testnet or independent public proof has been accepted by Integration."
