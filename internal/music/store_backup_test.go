@@ -162,3 +162,177 @@ func TestRestoreRejectsTamperedBackupAndDirtyDestination(t *testing.T) {
 		t.Fatalf("restore accepted tampered media for %s: %v", track.ID, err)
 	}
 }
+
+type richV1Expectations struct {
+	AllocationID        string `json:"allocationId"`
+	ArtworkName         string `json:"artworkName"`
+	AudioName           string `json:"audioName"`
+	AuditEvents         int    `json:"auditEvents"`
+	CaseEvidenceRef     string `json:"caseEvidenceRef"`
+	CaseID              string `json:"caseId"`
+	CaseKind            string `json:"caseKind"`
+	CaseReason          string `json:"caseReason"`
+	Creator             string `json:"creator"`
+	HistoryEntries      int    `json:"historyEntries"`
+	Listener            string `json:"listener"`
+	PayIdempotencyKey   string `json:"payIdempotencyKey"`
+	PlaylistID          string `json:"playlistId"`
+	PositionMillis      int64  `json:"positionMillis"`
+	SettlementID        string `json:"settlementId"`
+	SettlementPayTo     string `json:"settlementPayTo"`
+	TrackID             string `json:"trackId"`
+	TrustIdempotencyKey string `json:"trustIdempotencyKey"`
+	UsageID             string `json:"usageId"`
+}
+
+func copyRichFixtureFile(t *testing.T, source, destination string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(destination, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func TestRichSchemaV1GoldenMigrationBackupRestore(t *testing.T) {
+	fixtureRoot := filepath.Join("testdata", "state-v1-rich")
+	expectationData, err := os.ReadFile(filepath.Join(fixtureRoot, "expectations.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expected richV1Expectations
+	if err := json.Unmarshal(expectationData, &expected); err != nil {
+		t.Fatal(err)
+	}
+	if expected.AuditEvents < 8 || expected.TrackID == "" || expected.SettlementID == "" || expected.CaseID == "" {
+		t.Fatalf("rich fixture expectations are incomplete: %#v", expected)
+	}
+
+	dataRoot := t.TempDir()
+	statePath := filepath.Join(dataRoot, "state.json")
+	mediaDir := filepath.Join(dataRoot, "media")
+	if err := os.Mkdir(mediaDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	copyRichFixtureFile(t, filepath.Join(fixtureRoot, "state.json"), statePath)
+	audioFixture := copyRichFixtureFile(t, filepath.Join(fixtureRoot, "media", expected.AudioName), filepath.Join(mediaDir, expected.AudioName))
+	artworkFixture := copyRichFixtureFile(t, filepath.Join(fixtureRoot, "media", expected.ArtworkName), filepath.Join(mediaDir, expected.ArtworkName))
+
+	state, exists, err := loadState(statePath, mediaDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !exists || state.SchemaVersion != currentStateSchemaVersion {
+		t.Fatalf("rich v1 fixture did not migrate: exists=%v schema=%d", exists, state.SchemaVersion)
+	}
+	if len(state.Audit) != expected.AuditEvents {
+		t.Fatalf("audit chain changed during migration: got=%d want=%d", len(state.Audit), expected.AuditEvents)
+	}
+	track, ok := state.Tracks[expected.TrackID]
+	if !ok || track.ReleaseState != "published" || filepath.Base(track.AudioFile) != expected.AudioName || filepath.Base(track.ArtworkFile) != expected.ArtworkName {
+		t.Fatalf("track did not migrate with private media paths: %#v", track)
+	}
+	listener := state.Listeners[expected.Listener]
+	if listener.Positions[expected.TrackID] != expected.PositionMillis || len(listener.History) != expected.HistoryEntries || listener.Favorites[0] != expected.TrackID || listener.Queue[0] != expected.TrackID {
+		t.Fatalf("listener state did not migrate: %#v", listener)
+	}
+	if _, ok := state.Usage[expected.UsageID]; !ok {
+		t.Fatalf("usage %s missing after migration", expected.UsageID)
+	}
+	if _, ok := state.Playlists[expected.PlaylistID]; !ok {
+		t.Fatalf("playlist %s missing after migration", expected.PlaylistID)
+	}
+	if _, ok := state.Allocations[expected.AllocationID]; !ok {
+		t.Fatalf("allocation %s missing after migration", expected.AllocationID)
+	}
+	if state.Idempotency["pay:"+expected.Creator+":"+expected.PayIdempotencyKey] != expected.SettlementID {
+		t.Fatal("Pay replay claim did not migrate")
+	}
+	if state.Idempotency["trust:"+expected.Listener+":"+expected.TrustIdempotencyKey] != expected.CaseID {
+		t.Fatal("Trust replay claim did not migrate")
+	}
+
+	persisted, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var header stateDocumentHeader
+	if err := json.Unmarshal(persisted, &header); err != nil || header.SchemaVersion != currentStateSchemaVersion {
+		t.Fatalf("rich migrated state was not persisted as schema v%d: header=%#v err=%v", currentStateSchemaVersion, header, err)
+	}
+
+	migrated, err := New(Config{StatePath: statePath, MediaDir: mediaDir, MaxUploadBytes: 1 << 20, Now: time.Now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	migrated.mu.RLock()
+	auditBeforeReplay := len(migrated.state.Audit)
+	migrated.mu.RUnlock()
+	settlement, err := migrated.SettlementIdempotent(expected.Creator, expected.PayIdempotencyKey, expected.AllocationID, expected.SettlementPayTo)
+	if err != nil || settlement.ID != expected.SettlementID {
+		t.Fatalf("Pay replay failed after migration: %#v err=%v", settlement, err)
+	}
+	trustCase, err := migrated.OpenCaseIdempotent(expected.Listener, expected.TrustIdempotencyKey, expected.CaseKind, expected.TrackID, expected.CaseReason, expected.CaseEvidenceRef)
+	if err != nil || trustCase.ID != expected.CaseID {
+		t.Fatalf("Trust replay failed after migration: %#v err=%v", trustCase, err)
+	}
+	migrated.mu.RLock()
+	auditAfterReplay := len(migrated.state.Audit)
+	migrated.mu.RUnlock()
+	if auditAfterReplay != auditBeforeReplay {
+		t.Fatalf("idempotent replay appended audit events: before=%d after=%d", auditBeforeReplay, auditAfterReplay)
+	}
+
+	backupDir := filepath.Join(t.TempDir(), "rich-v1-backup")
+	manifest, err := migrated.CreateBackup(backupDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(manifest.Media) != 2 || manifest.StateSchemaVersion != currentStateSchemaVersion {
+		t.Fatalf("rich backup manifest is incomplete: %#v", manifest)
+	}
+	restoreRoot := filepath.Join(t.TempDir(), "rich-v1-restored")
+	restoredStatePath := filepath.Join(restoreRoot, "state.json")
+	restoredMediaDir := filepath.Join(restoreRoot, "media")
+	if err := RestoreBackup(backupDir, restoredStatePath, restoredMediaDir); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := New(Config{StatePath: restoredStatePath, MediaDir: restoredMediaDir, MaxUploadBytes: 1 << 20, Now: time.Now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	restoredListener, err := restored.Listener(expected.Listener)
+	if err != nil || restoredListener.Positions[expected.TrackID] != expected.PositionMillis || len(restoredListener.History) != expected.HistoryEntries {
+		t.Fatalf("listener did not survive restore: %#v err=%v", restoredListener, err)
+	}
+	restoredAudioPath, _, err := restored.Media(expected.Creator, expected.TrackID, "audio")
+	if err != nil {
+		t.Fatal(err)
+	}
+	restoredArtworkPath, _, err := restored.Media(expected.Creator, expected.TrackID, "artwork")
+	if err != nil {
+		t.Fatal(err)
+	}
+	restoredAudio, err := os.ReadFile(restoredAudioPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restoredArtwork, err := os.ReadFile(restoredArtworkPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(audioFixture, restoredAudio) || !bytes.Equal(artworkFixture, restoredArtwork) {
+		t.Fatal("rich fixture media changed across migration, backup, and restore")
+	}
+	settlement, err = restored.SettlementIdempotent(expected.Creator, expected.PayIdempotencyKey, expected.AllocationID, expected.SettlementPayTo)
+	if err != nil || settlement.ID != expected.SettlementID {
+		t.Fatalf("Pay replay failed after restore: %#v err=%v", settlement, err)
+	}
+	trustCase, err = restored.OpenCaseIdempotent(expected.Listener, expected.TrustIdempotencyKey, expected.CaseKind, expected.TrackID, expected.CaseReason, expected.CaseEvidenceRef)
+	if err != nil || trustCase.ID != expected.CaseID {
+		t.Fatalf("Trust replay failed after restore: %#v err=%v", trustCase, err)
+	}
+}
