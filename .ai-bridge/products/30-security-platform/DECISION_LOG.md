@@ -10,5 +10,5 @@ Updated: 2026-07-29T06:08:33Z
 6. `installedLocal=true` is permitted only after exact-source fresh-clone install and cold-start evidence passed.
 7. Enable vulnerability alerts because the official dependency-review gate failed closed without the dependency graph.
 8. Pin every external GitHub Action to an immutable 40-character commit, including workflows not originally owned by Product 30, because repository-wide supply-chain integrity is a Product 30 gate.
-9. Keep `output/` preserved and untracked until its provenance is established.
+9. Classify the old untracked `output/` as legacy failed public-gate captures, preserve it intact in the recovery area with a deterministic digest, and never present it as release proof.
 10. Keep the PR draft until central integration and shared-Testnet/public-release acceptance are evidenced.

@@ -19,3 +19,4 @@ Updated: 2026-07-29T06:08:33Z
 12. Ran the central contract-tooling precondition, then passed all Go command/internal tests and `go vet ./...`.
 13. Remediated 24 newly exposed runtime dependency alerts locally and raised the Go toolchain floor to the patched 1.25.12; official `govulncheck` reports zero reachable vulnerabilities.
 14. Mobile locked install/audit, 53/53 tests, typecheck, Android bundle and iOS bundle pass with patched transitive dependencies.
+15. Classified and moved 69 untracked legacy failure-capture files into the recovery area with byte-count and tree-digest equality; the Product 30 worktree is clean.

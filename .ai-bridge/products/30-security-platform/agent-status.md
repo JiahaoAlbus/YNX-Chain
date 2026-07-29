@@ -4,11 +4,11 @@ Status: ACTIVE
 Phase: FREEZE → INTEGRATE
 Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/30-security-platform`
 Branch: `codex/final-security-platform`
-Recovery HEAD: `7be79d5b921e2b044fff43d5eb3f10fcad2eac11`
+Recovery HEAD: `413e11186d09cd2a0b243498b97ad429029382ed`
 Current protected source HEAD: `900c314ddb8f6f56b8713e7df194f26ee0590e06`
-Upstream HEAD before this evidence update: `7be79d5b921e2b044fff43d5eb3f10fcad2eac11`
+Upstream HEAD before this evidence update: `413e11186d09cd2a0b243498b97ad429029382ed`
 Ahead/behind: `0/0`
-Workspace state before this evidence update: only preserved untracked `output/`
+Workspace state before this evidence update: clean
 Concurrent writer evidence: none detected; only the CodexPro server process matched the worktree path
 Updated: 2026-07-29T06:08:33Z
 
@@ -33,6 +33,7 @@ Updated: 2026-07-29T06:08:33Z
 - Authoritative branch protection is configured with six strict required checks and review/history safeguards; administrator enforcement remains disabled during active recovery.
 - Required signed commits are not enabled because no approved commit-signing identity or compatibility plan is established.
 - No staging deployment, public deployment, immutable hosted download or production signature exists.
+- Default-branch Dependabot alert closure requires the remediated Product 30 changes to be accepted and merged by the central integration train.
 
 ## Safety boundary
 

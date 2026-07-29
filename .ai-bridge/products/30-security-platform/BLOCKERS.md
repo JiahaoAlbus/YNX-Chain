@@ -9,6 +9,7 @@ Updated: 2026-07-29T06:08:33Z
 - Product 28 has not yet consumed the current public metadata.
 - Administrator enforcement remains disabled during active recovery; final repository lock is pending.
 - Live cross-product old-client compatibility, staging migration, export/delete, retention and retirement drills remain unexecuted.
+- GitHub default-branch closure of 24 remediated dependency alerts remains pending central merge to `main`.
 
 ## External evidence still unavailable
 
