@@ -428,6 +428,11 @@ bridge-integration-check:
 bridge-supply-chain-check:
 	bash ./scripts/verify/bridge-supply-chain-check.sh
 
+.PHONY: bridge-release-candidate-check
+bridge-release-candidate-check:
+	node ./scripts/package/bridge-release-candidate.mjs --output tmp/bridge-release-candidate
+	node ./scripts/verify/bridge-release-candidate.mjs --candidate tmp/bridge-release-candidate --source-root .
+
 bridge-observability-check:
 	node ./scripts/verify/bridge-observability-check.mjs
 

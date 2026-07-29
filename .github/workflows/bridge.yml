@@ -112,6 +112,9 @@ jobs:
       - name: Verify reproducible supply chain
         run: make bridge-supply-chain-check
 
+      - name: Build, install, and cold-start unsigned release candidate
+        run: make bridge-release-candidate-check
+
       - name: Upload Bridge verification evidence
         uses: actions/upload-artifact@v4
         with:
@@ -133,6 +136,7 @@ jobs:
             docs/integration/CROSS_PRODUCT_TEST_VECTORS.json
             docs/integration/DEPENDENCY_ACCEPTANCE.md
             release/integration/ynx-bridge-contract.json
+            tmp/bridge-release-candidate/**
 
   provider-observation:
     name: External provider observation

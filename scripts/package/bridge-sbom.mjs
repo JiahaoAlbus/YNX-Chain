@@ -3,9 +3,9 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
 
-const [binary, output, sourceCommit, release, buildTime] = process.argv.slice(2);
-if (!binary || !output || !sourceCommit || !release || !buildTime) {
-  console.error("usage: bridge-sbom.mjs <binary> <output> <source-commit> <release> <build-time>");
+const [binary, output, sourceCommit, release, buildTime, platform = "linux/amd64", signingClass = "unsigned-local-testnet"] = process.argv.slice(2);
+if (!binary || !output || !sourceCommit || !release || !buildTime || !/^[a-z0-9]+\/[a-z0-9]+$/.test(platform) || !/^[a-z0-9-]+$/.test(signingClass)) {
+  console.error("usage: bridge-sbom.mjs <binary> <output> <source-commit> <release> <build-time> [platform] [signing-class]");
   process.exit(2);
 }
 const body = fs.readFileSync(binary);
@@ -30,6 +30,6 @@ const document = {
     { spdxElementId: "SPDXRef-DOCUMENT", relationshipType: "DESCRIBES", relatedSpdxElement: "SPDXRef-Package-YNX-Bridge" },
     { spdxElementId: "SPDXRef-Package-YNX-Bridge", relationshipType: "DEPENDS_ON", relatedSpdxElement: "SPDXRef-Package-Go-Stdlib" }
   ],
-  artifact: { path: "ynx-bridged", bytes: body.length, sha256, platform: "linux/amd64", signingClass: "unsigned-local-testnet", installedLocal: false, deployedPublic: false }
+  artifact: { path: "ynx-bridged", bytes: body.length, sha256, platform, signingClass, installedLocal: false, deployedPublic: false }
 };
 fs.writeFileSync(output, `${JSON.stringify(document, null, 2)}\n`);
