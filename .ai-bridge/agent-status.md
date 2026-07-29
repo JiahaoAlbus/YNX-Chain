@@ -1,66 +1,59 @@
 # YNX 29 Integration Agent Status
 
-Updated: 2026-07-27T15:37:46Z  
-Lifecycle: ACTIVE  
-Stage: PROTECT
+Updated: 2026-07-29T19:26:24Z
+Lifecycle: ACTIVE
+Stage: INTEGRATE
 
-## Git protection
+## Protected integration source
 
-- Workspace and branch: exact match.
-- Upstream: `origin/codex/final-integration`.
-- Protected baseline before this implementation slice: `562888318863435382d839958130246973dc1206`.
-- Baseline Local SHA equaled Remote SHA after bounded Push retry.
-- Current worktree: intentionally dirty with the Integration acceptance implementation, security policy and test-fixture repairs.
-- Same-worktree concurrency: not observed.
+- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration`
+- Branch: `codex/final-integration`
+- Last synchronized remote checkpoint: `b1929a5159dc50e02124f6827ccdc6dff7fce9cb`
+- Product 01 merge commit: `329092c19794ee376248750c2b138090e8418e08`
+- Product 01 accepted owner source: `324f376dac2db434673ccec2c6d212ed3d23f79e`
+- Current tree is intentionally dirty only with generated central-acceptance state and its receipt. No other product worktree is being modified.
 
-## Direct acceptance inventory
+## Centrally accepted products
 
-- Products registered: 36.
-- Local final branches observed: 35.
-- Remote final branches observed in the refreshed refs: 32.
-- Registered final worktrees observed: 35.
-- Clean product worktrees at the latest scan: 7.
-- Dirty product worktrees at the latest scan: 28.
-- Synchronized local/remote branches at the latest scan: 28.
-- Centrally accepted products: 0.
-- Missing Phase 0 owner: product 30 Security/SRE has no observed final branch or registered worktree.
+1. Product 30 Security/SRE: accepted at owner source `e670749b83a1b40d09ed717eb3515d539c005c49` through Integration merge `a472d588b4f037c57db6d7941b1b37572f91d114`.
+2. Product 01 Chain Core: accepted at owner source `324f376dac2db434673ccec2c6d212ed3d23f79e` through Integration merge `329092c19794ee376248750c2b138090e8418e08`.
 
-## Recovered test failures and repairs
+Product 01 acceptance is bound to:
 
-1. A raw `go test ./...` initially failed four unsafe-key-permission tests because the environment uses `umask=0077`; `os.WriteFile(..., 0644)` created `0600`, so the tests never produced an unsafe file. The fixtures now explicitly `chmod 0644` after creation. Runtime permission enforcement was not relaxed.
-2. Three bounded IDE tests initially failed because ignored Hardhat artifacts were absent. `npm ci` restored the exact lockfile, `make contract-tooling-check` compiled five Solidity files and generated selector metadata, and the dependent Go packages then passed.
-3. `npm audit` reports exactly three High nodes from one unfixed advisory: `hardhat@3.9.0 -> adm-zip@0.4.16`, with `@nomicfoundation/hardhat-ethers` affected transitively. Production-only audit reports zero vulnerabilities.
-4. A time-bounded policy now permits only that exact development-tooling graph through 2026-08-31, prohibits runtime/untrusted-archive exposure, fails on drift or expiry, and blocks production release pending product 30 review or an upstream fix.
+- clean synchronized protected owner branch and merge ancestry;
+- six successful exact-head GitHub workflow runs;
+- zero open owner coverage rows;
+- 71 passing Integration contract vectors;
+- full Go, Chain Core release, BFT/EVM receipt, account-abstraction, solvency, state-sync and StreamBFT checks;
+- a zero-vulnerability production dependency audit;
+- source-only prerelease `chain-core-v0.2.0-source-candidate`;
+- downloaded archive SHA-256 `6828d6c0b008964394716de87646e90ea64b59faaae85be16e030b24c63995b6`.
 
-## Pre-commit component verification passed
+The receipt is `release/integration/evidence/product-01-central-acceptance-329092c1.json`.
 
-- `make integration-acceptance-check`
-- `make contract-tooling-check`
-- `make integration-npm-audit-policy-check`
-- `make integration-npm-audit-policy-check-test`
+## Current inventory
+
+- 36 products registered; all 36 branches, remotes, worktrees and upstreams observed.
+- 35 synchronized worktrees; Product 29 is intentionally ahead pending this checkpoint push.
+- 10 clean and 26 dirty owner worktrees.
+- 2 centrally accepted products.
+- Product Release Matrix: 3 `READY_FOR_SOURCE_RELEASE`, 33 `HOLD_FOR_RECOVERY`, 0 `READY_FOR_PUBLIC_TESTNET`.
+
+## Verification status
+
+Passed in the merged central tree:
+
 - `go test ./...`
-- `make no-placeholder-check`
-- `make secret-scan`
-- `make static-check`
+- `make integration-contract-check`
+- `make chain-core-release-check`
+- `make bft-evm-receipt-check`
+- `make account-abstraction-check solvency-check`
+- `make consensus-state-sync-check streambft-candidate-check`
+- production-only npm audit with zero vulnerabilities
+- Integration acceptance and Product Release Matrix validation
 
-The combined `make integration-protect-preflight` invocation encountered the MCP transport layer returning HTTP 502 twice. Its component commands were rerun individually and each exited zero. Exact-commit rerun is still required before `testedLocal=true`.
-
-## GitHub evidence
-
-- Releases: 4, all prereleases.
-- Artifacts: 57 active artifacts.
-- Artifact names retain preview, simulator, unsigned, test-signed and production-signed class hints without automatic promotion.
-- The latest Actions query failed closed after two TLS handshake timeouts; its count is recorded as unavailable rather than zero.
-
-## Current blockers
-
-1. Product 30 Security/SRE final branch and worktree are absent.
-2. Several final branches are not yet remotely available or synchronized.
-3. Most product-owner worktrees are currently dirty and cannot be accepted.
-4. Required Phase 0 owner bundles and central negative-vector execution remain incomplete.
-5. The Hardhat advisory has a bounded development-only exception but remains a production-release blocker pending Security/SRE acceptance or upstream remediation.
-6. Shared Public Testnet, restore, rollback and independent public-proof acceptance remain incomplete.
+`make integration-release-acceptance-check` correctly remains closed because 67 Integration coverage rows are non-terminal, all cross-product vectors are not yet verified, Product 29 is not yet synchronized and not every product is terminal.
 
 ## Exact next action
 
-Review the complete implementation slice, Commit and Push it, verify Local SHA equals Remote SHA, rerun every component at that exact commit, generate source-bound evidence, promote only directly verified local states and create the evidence checkpoint Commit.
+Commit the Product 01 central-acceptance state, refresh generated evidence against that commit, create the source-bound checkpoint, push through the protected branch without force, restore and verify protection, then require exact-final-head PR #17 CI before advancing to Product 26.

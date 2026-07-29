@@ -2,15 +2,15 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-29T17:51:54.829Z",
-  "controllerSourceCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
+  "generatedAt": "2026-07-29T19:23:53.881Z",
+  "controllerSourceCommit": "329092c19794ee376248750c2b138090e8418e08",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "a472d588b4f037c57db6d7941b1b37572f91d114",
+    "localHead": "329092c19794ee376248750c2b138090e8418e08",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
-    "ahead": 2,
+    "remoteHead": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
+    "ahead": 84,
     "behind": 0,
     "clean": false
   },
@@ -24,9 +24,9 @@
     "syncedBranches": 35,
     "upstreamConfigured": 36,
     "implementedLocalCandidates": 5,
-    "inProgress": 30,
+    "inProgress": 29,
     "notStarted": 0,
-    "centrallyAccepted": 1
+    "centrallyAccepted": 2
   },
   "products": [
     {
@@ -40,8 +40,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "e3e6ea36635a106ac219ccb488745f238ea934d1",
-        "remoteSha": "e3e6ea36635a106ac219ccb488745f238ea934d1",
+        "localSha": "324f376dac2db434673ccec2c6d212ed3d23f79e",
+        "remoteSha": "324f376dac2db434673ccec2c6d212ed3d23f79e",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -53,32 +53,32 @@
       "worktree": {
         "registered": true,
         "pathToken": "01-chain-core",
-        "observedHead": "e3e6ea36635a106ac219ccb488745f238ea934d1",
+        "observedHead": "324f376dac2db434673ccec2c6d212ed3d23f79e",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
         "paths": {
-          "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
-          "productRelease": "release/product-release.json",
-          "publicMetadata": "release/public-product-metadata.json",
+          "fullGoalCoverage": ".ai-bridge/products/01-chain-core/full-goal-coverage.json",
+          "productRelease": "release/chain-core/product-release.json",
+          "publicMetadata": "release/chain-core/public-product-metadata.json",
           "integrationContract": "release/integration/chain-core-contract.json",
-          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
-          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "integrationHandoff": "docs/integration/CHAIN_CORE_INTEGRATION_HANDOFF.md",
+          "crossProductTestVectors": "docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json",
+          "dependencyAcceptance": "docs/integration/CHAIN_CORE_DEPENDENCY_ACCEPTANCE.md",
           "releaseState": null,
-          "artifactRegistry": null
+          "artifactRegistry": "release/chain-core/artifact-registry.json"
         },
         "coverage": {
           "total": 12,
-          "open": 4,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 4,
+            "inProgress": 0,
             "implementedLocal": 0,
-            "testedLocal": 4,
+            "testedLocal": 8,
             "integratedCentral": 0,
             "testnetVerified": 2,
             "publicVerified": 0,
@@ -100,32 +100,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
+            "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "productRelease": {
-            "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
+            "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "publicMetadata": {
-            "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
+            "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "integrationContract": {
-            "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
+            "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           }
         },
         "release": {
@@ -148,7 +148,7 @@
             "integratedCentral": false,
             "deployedStaging": false,
             "deployedPublic": false,
-            "downloadHosted": false,
+            "downloadHosted": true,
             "productionSigned": false,
             "storeReleased": false
           },
@@ -161,26 +161,55 @@
           "integratedCentral": false,
           "deployedStaging": false,
           "deployedPublic": false,
-          "downloadHosted": false,
+          "downloadHosted": true,
           "productionSigned": false,
           "storeReleased": false
         },
-        "artifacts": [],
+        "artifacts": [
+          {
+            "id": "chain-core-source-7c724e5",
+            "kind": "source-archive",
+            "product": "YNX Chain Core",
+            "version": "0.2.0-source-candidate",
+            "release": "source-candidate",
+            "environment": "github-prerelease",
+            "sourceCommit": "7c724e5f330afd4e7863b101cb230d84e3f9cd69",
+            "path": "ynx-chain-core-source-7c724e5f330a.tar.gz",
+            "sha256": "6828d6c0b008964394716de87646e90ea64b59faaae85be16e030b24c63995b6",
+            "bytes": 6474374,
+            "mediaType": "application/gzip",
+            "platform": "source",
+            "architecture": "any",
+            "buildRun": "git-archive:7c724e5f330afd4e7863b101cb230d84e3f9cd69",
+            "signingClass": "unsigned-source",
+            "minimumOs": "Any operating system with gzip and POSIX tar support",
+            "installEvidence": "not-applicable-source-archive",
+            "coldStartEvidence": "not-applicable-source-archive",
+            "reproducibilityStatus": "download-digest-reverified",
+            "verificationStatus": "verified-hosted-source",
+            "verificationEvidence": "GitHub release asset digest and independent post-upload download SHA-256 match",
+            "revocationStatus": "active",
+            "publicReleaseEligible": false,
+            "hostedStatus": "github-source-prerelease",
+            "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/chain-core-v0.2.0-source-candidate/ynx-chain-core-source-7c724e5f330a.tar.gz",
+            "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/chain-core-v0.2.0-source-candidate",
+            "releaseTag": "chain-core-v0.2.0-source-candidate",
+            "productionSigned": false
+          }
+        ],
         "exactCommitBound": false
       },
       "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
-        "acceptedSourceCommit": null,
+        "status": "integratedCentral",
+        "reason": "The synchronized owner source, clean worktree, required evidence, exact-head CI, central merge ancestry and central test receipt all passed.",
+        "acceptedSourceCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e",
         "acceptedBy": "29-integration",
-        "acceptedAt": null,
-        "decisionEvidence": null,
-        "integrationCommit": null
+        "acceptedAt": "2026-07-29T19:22:19Z",
+        "decisionEvidence": "release/integration/evidence/product-01-central-acceptance-329092c1.json",
+        "integrationCommit": "329092c19794ee376248750c2b138090e8418e08"
       },
-      "blockers": [
-        "full-goal coverage has 4 autonomous or unresolved items"
-      ],
-      "nextAction": "Resolve: full-goal coverage has 4 autonomous or unresolved items."
+      "blockers": [],
+      "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release."
     },
     {
       "id": "02",
@@ -4114,9 +4143,9 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "a472d588b4f037c57db6d7941b1b37572f91d114",
-        "remoteSha": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
-        "ahead": 2,
+        "localSha": "329092c19794ee376248750c2b138090e8418e08",
+        "remoteSha": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
+        "ahead": 84,
         "behind": 0,
         "upstreamConfigured": true,
         "upstreamRef": "origin/codex/final-integration",
@@ -4127,9 +4156,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "a472d588b4f037c57db6d7941b1b37572f91d114",
+        "observedHead": "329092c19794ee376248750c2b138090e8418e08",
         "clean": false,
-        "changedEntries": 4,
+        "changedEntries": 7,
         "statusError": null
       },
       "evidence": {
@@ -4174,32 +4203,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+            "sourceCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 86
           },
           "productRelease": {
-            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+            "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 85
           },
           "publicMetadata": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 90
           },
           "integrationContract": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 90
           }
         },
         "release": {
@@ -4207,7 +4236,7 @@
           "version": null,
           "channel": null,
           "environment": null,
-          "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+          "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
           "releasedAt": null,
           "releaseStatus": null,
           "publicEvidence": []

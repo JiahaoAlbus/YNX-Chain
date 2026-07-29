@@ -18,7 +18,7 @@
     "storeReleased"
   ],
   "products": [
-    {"id":"01","product":"YNX Chain Core / StreamBFT","slug":"chain-core","branch":"codex/final-chain-core","worktreeSlug":"01-chain-core","phase":"0","owner":"01-chain-core","dependencies":[]},
+    {"id":"01","product":"YNX Chain Core / StreamBFT","slug":"chain-core","branch":"codex/final-chain-core","worktreeSlug":"01-chain-core","fullGoalCoveragePath":".ai-bridge/products/01-chain-core/full-goal-coverage.json","productReleasePath":"release/chain-core/product-release.json","artifactRegistryPath":"release/chain-core/artifact-registry.json","publicMetadataPath":"release/chain-core/public-product-metadata.json","integrationContractPath":"release/integration/chain-core-contract.json","integrationHandoffPath":"docs/integration/CHAIN_CORE_INTEGRATION_HANDOFF.md","crossProductTestVectorsPath":"docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json","dependencyAcceptancePath":"docs/integration/CHAIN_CORE_DEPENDENCY_ACCEPTANCE.md","phase":"0","owner":"01-chain-core","dependencies":[]},
     {"id":"02","product":"YNX Wallet / Auth","slug":"wallet-auth","branch":"codex/final-wallet-auth","worktreeSlug":"02-wallet-auth","phase":"1","owner":"02-wallet-auth","dependencies":["01","26","30"]},
     {"id":"03","product":"YNX Social","slug":"social","branch":"codex/final-social","worktreeSlug":"03-social","phase":"3","owner":"03-social","dependencies":["02","26","30"]},
     {"id":"04","product":"YNX Pay","slug":"pay","branch":"codex/final-pay","worktreeSlug":"04-pay","phase":"2","owner":"04-pay","dependencies":["01","02","19","26","30"]},

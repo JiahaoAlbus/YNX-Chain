@@ -6,47 +6,48 @@
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
   "branch": "codex/final-integration",
   "repository": "JiahaoAlbus/YNX-Chain",
-  "localSha": "1982e28052aa9816915af594da056750fa47dbfe",
-  "remoteSha": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
+  "localSha": "329092c19794ee376248750c2b138090e8418e08",
+  "remoteSha": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
   "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
   "dirty": true,
-  "ahead": 3,
+  "ahead": 84,
   "behind": 0,
   "latestSuccessfulTests": [
-    "node scripts/ops/refresh-integration-acceptance.mjs --self-test",
-    "node scripts/verify/integration-acceptance-check.mjs",
-    "node scripts/verify/integration-acceptance-check.mjs --self-test",
-    "npm run security:test (179/179)",
-    "npm run security:verify",
-    "npm run security:integration",
-    "npm run security:notices",
-    "npm run security:build-scripts",
-    "npm audit --omit=dev --audit-level=high",
-    "make integration-protect-preflight at 1982e28052aa9816915af594da056750fa47dbfe"
+    "go test ./...",
+    "make integration-contract-check (71 vectors)",
+    "make chain-core-release-check",
+    "make bft-evm-receipt-check",
+    "make account-abstraction-check solvency-check",
+    "make consensus-state-sync-check streambft-candidate-check",
+    "npm audit --omit=dev --audit-level=high (0 vulnerabilities)",
+    "make integration-acceptance-check",
+    "make integration-product-release-matrix-check"
   ],
-  "latestCiRuns": [],
   "pullRequests": [
     {
       "number": 17,
       "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/17",
       "draft": true,
-      "mergeable": true,
-      "lastFullyGreenHead": "edefd412abc14c89cfdd7c5171e5db90aed9cb58"
+      "lastFullyGreenHead": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
+      "finalHeadPending": true
     }
   ],
   "integratedCandidates": [
     {
-      "productNumber": "16",
-      "mainMergeCommit": "82241913b4dacf6bb6adebb537b7fa175c3aff59"
-    },
-    {
       "productNumber": "30",
       "candidateCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
-      "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/16",
-      "ci": "green",
       "centralAcceptance": true,
       "integrationCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
       "acceptanceReceipt": "release/integration/evidence/product-30-central-acceptance-a472d588.json",
+      "sourcePrereleasePublished": true,
+      "sourceArtifactHosted": true
+    },
+    {
+      "productNumber": "01",
+      "candidateCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e",
+      "centralAcceptance": true,
+      "integrationCommit": "329092c19794ee376248750c2b138090e8418e08",
+      "acceptanceReceipt": "release/integration/evidence/product-01-central-acceptance-329092c1.json",
       "sourcePrereleasePublished": true,
       "sourceArtifactHosted": true
     }
@@ -58,11 +59,11 @@
     "syncedBranches": 35,
     "registeredWorktrees": 36,
     "implementedLocalCandidates": 5,
-    "inProgress": 30,
-    "centrallyAccepted": 1,
+    "inProgress": 29,
+    "centrallyAccepted": 2,
     "readyForPublicTestnet": 0,
-    "readyForSourceRelease": 2,
-    "holdForRecovery": 34
+    "readyForSourceRelease": 3,
+    "holdForRecovery": 33
   },
   "githubEvidence": {
     "path": "release/integration/github-evidence.json",
@@ -77,27 +78,24 @@
     }
   ],
   "completed": [
-    "synced current main into Integration without replacing Integration authority files",
-    "merged Product 30 final owner checkpoint",
-    "corrected Product 30 repository and product-scoped evidence discovery",
-    "removed Resource Market global vector filename collision",
-    "refreshed 36-product and GitHub evidence snapshots",
-    "passed Integration protection preflight after the final Product 30 merge",
-    "issued a fail-closed Product 30 central source acceptance bound to exact owner SHA, merge ancestry, CI and tests",
-    "passed exact-clean Integration and Product 30 gates at 1982e28052aa9816915af594da056750fa47dbfe",
-    "published and directly verified Product 30's source-only test-signed prerelease",
-    "audited PRs #7, #11, #13, #14, #15, #16 and #17 without unsafe merges"
+    "protected and source-published Product 01 at exact owner source 324f376dac2db434673ccec2c6d212ed3d23f79e",
+    "merged Product 01 through Integration commit 329092c19794ee376248750c2b138090e8418e08",
+    "passed all Product 01 central acceptance tests",
+    "bound Product 01 acceptance to exact owner CI, source release and downloaded archive digest",
+    "refreshed 36-product acceptance, coverage and release matrices",
+    "retained Product 30's prior central acceptance"
   ],
   "remaining": [
-    "commit and push the exact-clean preflight receipt and recovery memory",
-    "obtain exact-head green CI for the final Product 29 acceptance checkpoint",
-    "recover Phase 0 Product 01 and refresh the release train",
-    "execute shared Testnet, E2E, releases and public proof"
+    "commit and refresh the source-bound Product 01 acceptance checkpoint",
+    "push and obtain exact-final-head green PR 17 CI",
+    "recover and centrally accept Product 26 Data Fabric",
+    "execute remaining products, shared Testnet, E2E, releases and public proof"
   ],
   "blockers": [
-    "final Product 29 central-acceptance checkpoint exact-head CI is pending",
+    "final Product 29 acceptance checkpoint is not yet synchronized or exact-head green",
+    "67 Integration coverage rows and remaining cross-product vectors are non-terminal",
     "shared Testnet and public deployment remain unverified"
   ],
-  "nextAction": "Commit the exact-clean receipt and memory, push, verify Local SHA equals Remote SHA, obtain exact-head green PR #17 CI, then recover Product 01.",
-  "updatedAt": "2026-07-29T18:07:49Z"
+  "nextAction": "Commit Product 01 acceptance, refresh exact-source evidence, push Product 29, verify exact-final-head CI, then recover Product 26.",
+  "updatedAt": "2026-07-29T19:26:24Z"
 }

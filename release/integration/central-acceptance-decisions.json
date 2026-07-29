@@ -3,6 +3,16 @@
   "owner": "29-integration",
   "decisions": [
     {
+      "productId": "01",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-chain-core",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e",
+      "integrationCommit": "329092c19794ee376248750c2b138090e8418e08",
+      "acceptedAt": "2026-07-29T19:22:19Z",
+      "receipt": "release/integration/evidence/product-01-central-acceptance-329092c1.json"
+    },
+    {
       "productId": "30",
       "repository": "JiahaoAlbus/YNX-Chain",
       "branch": "codex/final-security-platform",

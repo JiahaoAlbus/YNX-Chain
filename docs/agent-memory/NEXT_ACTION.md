@@ -1,10 +1,11 @@
 # Next Action
 
-Updated: `2026-07-29T18:07:49Z`
+Updated: `2026-07-29T19:26:24Z`
 
-1. Commit this exact-clean receipt and recovery memory.
-2. Push Product 29, verify Local SHA equals Remote SHA, and wait for every PR #17 check at the exact final head.
-3. Recover Phase 0 Product 01 in its owner Worktree: preserve its current source, resolve PR #7 conflicts, rerun its complete gates, push and obtain exact-head CI.
-4. Refresh the central matrix and audit before accepting or merging any next candidate.
+1. Commit Product 01's generated central-acceptance state.
+2. Refresh the matrices and coverage against that exact commit, then create the source-bound recovery checkpoint.
+3. Run the clean exact-source Integration protection preflight.
+4. Push Product 29 without force, restore and verify exact branch protection, confirm local/tracking/REST SHA equality, and obtain exact-final-head green PR #17 CI.
+5. Move the single writable product worktree to Product 26 Data Fabric, the remaining dependency needed before Product 02 can be centrally accepted.
 
-Do not promote a candidate because it is merged into this branch. `main`, Testnet, runtime, Website and production states require separate direct evidence.
+Do not convert source acceptance into shared Testnet, public deployment, Website, signing, store or Mainnet claims without direct evidence.

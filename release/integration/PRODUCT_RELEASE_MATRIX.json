@@ -2,8 +2,8 @@
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
   "authority": "release/integration/product-registry.json",
-  "generatedAt": "2026-07-29T17:51:54.829Z",
-  "controllerSourceCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
+  "generatedAt": "2026-07-29T19:23:53.881Z",
+  "controllerSourceCommit": "329092c19794ee376248750c2b138090e8418e08",
   "readinessClasses": [
     "READY_FOR_PUBLIC_TESTNET",
     "READY_FOR_SOURCE_RELEASE",
@@ -31,12 +31,12 @@
   "summary": {
     "totalProducts": 36,
     "readyForPublicTestnet": 0,
-    "readyForSourceRelease": 2,
-    "holdForRecovery": 34,
+    "readyForSourceRelease": 3,
+    "holdForRecovery": 33,
     "synced": 35,
     "clean": 10,
-    "exactHeadCiSuccess": 14,
-    "centrallyAccepted": 1
+    "exactHeadCiSuccess": 15,
+    "centrallyAccepted": 2
   },
   "repositoryQueries": {
     "JiahaoAlbus/YNX-Chain": {
@@ -51,11 +51,10 @@
       "pullRequestsAvailable": true,
       "runsAvailable": true,
       "artifactsAvailable": false,
-      "releasesAvailable": false,
+      "releasesAvailable": true,
       "mainSha": "24bde9c9889db98bfb4c961449d0b2e2c268ad39",
       "errors": [
-        "artifact inventory not collected for external repository",
-        "Post \"https://api.github.com/graphql\": net/http: TLS handshake timeout"
+        "artifact inventory not collected for external repository"
       ]
     }
   },
@@ -63,8 +62,8 @@
     {
       "productNumber": "01",
       "productName": "YNX Chain Core / StreamBFT",
-      "classification": "HOLD_FOR_RECOVERY",
-      "classificationReason": "At least one repository, synchronization, clean-tree, test, CI or evidence gate remains unproven.",
+      "classification": "READY_FOR_SOURCE_RELEASE",
+      "classificationReason": "Source and exact-head CI are protected; central Testnet or public-runtime gates remain separate.",
       "expectedRepository": "JiahaoAlbus/YNX-Chain",
       "actualRepository": "JiahaoAlbus/YNX-Chain",
       "expectedWorktree": "YNX Final Worktrees/01-chain-core",
@@ -72,8 +71,8 @@
       "expectedRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "actualRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "branch": "codex/final-chain-core",
-      "localSha": "e3e6ea36635a106ac219ccb488745f238ea934d1",
-      "remoteSha": "e3e6ea36635a106ac219ccb488745f238ea934d1",
+      "localSha": "324f376dac2db434673ccec2c6d212ed3d23f79e",
+      "remoteSha": "324f376dac2db434673ccec2c6d212ed3d23f79e",
       "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
       "dirty": false,
       "ahead": 0,
@@ -81,13 +80,13 @@
       "tests": {
         "coverage": {
           "total": 12,
-          "open": 4,
+          "open": 0,
           "invalid": 0,
           "counts": {
             "notStarted": 0,
-            "inProgress": 4,
+            "inProgress": 0,
             "implementedLocal": 0,
-            "testedLocal": 4,
+            "testedLocal": 8,
             "integratedCentral": 0,
             "testnetVerified": 2,
             "publicVerified": 0,
@@ -103,61 +102,98 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
+            "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "productRelease": {
-            "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
+            "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "publicMetadata": {
-            "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
+            "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "integrationContract": {
-            "sourceCommit": "c0f9b9629f0c648f0f8e38283723bee341bac912",
+            "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           }
         },
         "requiredEvidencePaths": {
-          "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
-          "productRelease": "release/product-release.json",
-          "publicMetadata": "release/public-product-metadata.json",
+          "fullGoalCoverage": ".ai-bridge/products/01-chain-core/full-goal-coverage.json",
+          "productRelease": "release/chain-core/product-release.json",
+          "publicMetadata": "release/chain-core/public-product-metadata.json",
           "integrationContract": "release/integration/chain-core-contract.json",
-          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
-          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "integrationHandoff": "docs/integration/CHAIN_CORE_INTEGRATION_HANDOFF.md",
+          "crossProductTestVectors": "docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json",
+          "dependencyAcceptance": "docs/integration/CHAIN_CORE_DEPENDENCY_ACCEPTANCE.md",
           "releaseState": null,
-          "artifactRegistry": null
+          "artifactRegistry": "release/chain-core/artifact-registry.json"
         }
       },
       "ci": {
         "available": true,
-        "exactHeadSha": "e3e6ea36635a106ac219ccb488745f238ea934d1",
-        "exactHeadComplete": false,
-        "exactHeadSuccess": false,
-        "runs": [],
+        "exactHeadSha": "324f376dac2db434673ccec2c6d212ed3d23f79e",
+        "exactHeadComplete": true,
+        "exactHeadSuccess": true,
+        "runs": [
+          {
+            "id": 30483234339,
+            "workflow": "ci",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30483234339"
+          },
+          {
+            "id": 30483234115,
+            "workflow": "chain-core",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30483234115"
+          },
+          {
+            "id": 30483234054,
+            "workflow": "docs-compliance",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30483234054"
+          },
+          {
+            "id": 30483234022,
+            "workflow": "exchange",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30483234022"
+          },
+          {
+            "id": 30483234010,
+            "workflow": "governance",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30483234010"
+          },
+          {
+            "id": 30483231107,
+            "workflow": "chain-core",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30483231107"
+          }
+        ],
         "error": null
       },
       "pullRequest": {
         "baseRefName": "main",
-        "baseRefOid": "562888318863435382d839958130246973dc1206",
+        "baseRefOid": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
         "headRefName": "codex/final-chain-core",
-        "headRefOid": "e3e6ea36635a106ac219ccb488745f238ea934d1",
+        "headRefOid": "324f376dac2db434673ccec2c6d212ed3d23f79e",
         "isDraft": true,
-        "mergeable": "CONFLICTING",
+        "mergeable": "MERGEABLE",
         "number": 7,
         "reviewDecision": "",
         "state": "OPEN",
@@ -165,7 +201,7 @@
         "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/7"
       },
       "release": {
-        "evidencePath": "release/product-release.json",
+        "evidencePath": "release/chain-core/product-release.json",
         "record": {
           "product": {
             "id": "chain-core",
@@ -186,7 +222,7 @@
             "integratedCentral": false,
             "deployedStaging": false,
             "deployedPublic": false,
-            "downloadHosted": false,
+            "downloadHosted": true,
             "productionSigned": false,
             "storeReleased": false
           },
@@ -199,22 +235,52 @@
           "integratedCentral": false,
           "deployedStaging": false,
           "deployedPublic": false,
-          "downloadHosted": false,
+          "downloadHosted": true,
           "productionSigned": false,
           "storeReleased": false
         },
         "directQueryAvailable": true,
         "githubReleases": [
           {
-            "tagName": "chain-core-v0.1.0-shadow.1",
-            "name": "YNX Chain Core StreamBFT Shadow Candidate 0.1.0",
+            "tagName": "chain-core-v0.2.0-source-candidate",
+            "name": "YNX Chain Core v0.2.0 Source Candidate",
             "isDraft": false,
             "isPrerelease": true,
-            "publishedAt": "2026-07-28T10:25:46Z"
+            "publishedAt": "2026-07-29T19:06:46Z"
           }
         ]
       },
-      "artifacts": [],
+      "artifacts": [
+        {
+          "source": "github-actions",
+          "id": 8736553598,
+          "name": "chain-core-handoff-324f376dac2db434673ccec2c6d212ed3d23f79e",
+          "digest": "sha256:70c5351e1d5fd89c39d3eaf2d107e0f11a992bc5c95315b206bf9738ff9f17a9",
+          "sizeInBytes": 24762,
+          "expired": false
+        },
+        {
+          "source": "github-actions",
+          "id": 8736552988,
+          "name": "chain-core-handoff-081857c43e6f8001e4e546c2362bf7c53c64b5bb",
+          "digest": "sha256:cd953478e4466324a107fdcecbef449c323eaf843b0696744a94d5a7e2095514",
+          "sizeInBytes": 24762,
+          "expired": false
+        },
+        {
+          "source": "repository-registry",
+          "id": "chain-core-source-7c724e5",
+          "name": "ynx-chain-core-source-7c724e5f330a.tar.gz",
+          "digest": "sha256:6828d6c0b008964394716de87646e90ea64b59faaae85be16e030b24c63995b6",
+          "sizeInBytes": 6474374,
+          "expired": false,
+          "sourceCommit": "7c724e5f330afd4e7863b101cb230d84e3f9cd69",
+          "signingClass": "unsigned-source",
+          "hostedStatus": "github-source-prerelease",
+          "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/chain-core-v0.2.0-source-candidate/ynx-chain-core-source-7c724e5f330a.tar.gz",
+          "releaseTag": "chain-core-v0.2.0-source-candidate"
+        }
+      ],
       "sbom": {
         "available": false,
         "evidence": []
@@ -224,7 +290,7 @@
         "evidence": []
       },
       "integrationContract": "release/integration/chain-core-contract.json",
-      "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+      "dependencyAcceptance": "docs/integration/CHAIN_CORE_DEPENDENCY_ACCEPTANCE.md",
       "websiteRoutes": [],
       "publicRuntimeSha": null,
       "states": {
@@ -235,32 +301,29 @@
         "installedLocal": false,
         "migrationVerified": false,
         "restoreVerified": true,
-        "integratedCentral": false,
+        "integratedCentral": true,
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
         "releasePublished": true,
-        "artifactHosted": false,
+        "artifactHosted": true,
         "productionSigned": false,
         "storeReleased": false,
         "mainnetReleased": false,
         "externallyBlocked": true
       },
       "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
-        "acceptedSourceCommit": null,
+        "status": "integratedCentral",
+        "reason": "The synchronized owner source, clean worktree, required evidence, exact-head CI, central merge ancestry and central test receipt all passed.",
+        "acceptedSourceCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e",
         "acceptedBy": "29-integration",
-        "acceptedAt": null,
-        "decisionEvidence": null,
-        "integrationCommit": null
+        "acceptedAt": "2026-07-29T19:22:19Z",
+        "decisionEvidence": "release/integration/evidence/product-01-central-acceptance-329092c1.json",
+        "integrationCommit": "329092c19794ee376248750c2b138090e8418e08"
       },
-      "blockers": [
-        "full-goal coverage has 4 autonomous or unresolved items",
-        "exact-head successful CI is not proven"
-      ],
-      "nextAction": "Resolve: full-goal coverage has 4 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "blockers": [],
+      "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "02",
@@ -440,7 +503,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "03",
@@ -605,7 +668,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "04",
@@ -803,7 +866,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "05",
@@ -982,7 +1045,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "06",
@@ -1150,7 +1213,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "07",
@@ -1343,7 +1406,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "08",
@@ -1513,7 +1576,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "09",
@@ -1684,7 +1747,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "10",
@@ -1855,7 +1918,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "11",
@@ -2049,7 +2112,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "12",
@@ -2222,7 +2285,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "13",
@@ -2408,7 +2471,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: testedLocal is not directly proven by release metadata and coverage.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "14",
@@ -2576,7 +2639,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "15",
@@ -2774,7 +2837,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "16",
@@ -2990,7 +3053,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "17",
@@ -3163,7 +3226,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "18",
@@ -3352,7 +3415,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "19",
@@ -3527,7 +3590,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "20",
@@ -3697,7 +3760,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "21",
@@ -3878,7 +3941,7 @@
         "full-goal coverage has 8 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: full-goal coverage has 8 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "22",
@@ -4055,7 +4118,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "23",
@@ -4241,7 +4304,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "24",
@@ -4436,7 +4499,7 @@
       },
       "blockers": [],
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "25",
@@ -4631,7 +4694,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: fullGoalCoverage lacks an exact sourceCommit.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "26",
@@ -4719,16 +4782,9 @@
       "ci": {
         "available": true,
         "exactHeadSha": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
-        "exactHeadComplete": true,
+        "exactHeadComplete": false,
         "exactHeadSuccess": false,
-        "runs": [
-          {
-            "id": 30417534685,
-            "workflow": "data-fabric",
-            "conclusion": "failure",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30417534685"
-          }
-        ],
+        "runs": [],
         "error": null
       },
       "pullRequest": null,
@@ -4806,7 +4862,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "27",
@@ -4976,7 +5032,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "28",
@@ -5105,8 +5161,16 @@
           "productionSigned": false,
           "storeReleased": false
         },
-        "directQueryAvailable": false,
-        "githubReleases": []
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "website-v0.2.0-candidate",
+            "name": "YNX Chain Website v0.2.0 Candidate",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-28T10:16:00Z"
+          }
+        ]
       },
       "artifacts": [],
       "sbom": {
@@ -5133,7 +5197,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": true,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -5153,7 +5217,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "29",
@@ -5167,11 +5231,11 @@
       "expectedRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "actualRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "branch": "codex/final-integration",
-      "localSha": "a472d588b4f037c57db6d7941b1b37572f91d114",
-      "remoteSha": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
+      "localSha": "329092c19794ee376248750c2b138090e8418e08",
+      "remoteSha": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
       "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
       "dirty": true,
-      "ahead": 2,
+      "ahead": 84,
       "behind": 0,
       "tests": {
         "coverage": {
@@ -5198,32 +5262,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+            "sourceCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 86
           },
           "productRelease": {
-            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+            "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 85
           },
           "publicMetadata": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 90
           },
           "integrationContract": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 90
           }
         },
         "requiredEvidencePaths": {
@@ -5240,7 +5304,7 @@
       },
       "ci": {
         "available": true,
-        "exactHeadSha": "a472d588b4f037c57db6d7941b1b37572f91d114",
+        "exactHeadSha": "329092c19794ee376248750c2b138090e8418e08",
         "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
@@ -5250,7 +5314,7 @@
         "baseRefName": "main",
         "baseRefOid": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
         "headRefName": "codex/final-integration",
-        "headRefOid": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
+        "headRefOid": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
         "isDraft": true,
         "mergeable": "MERGEABLE",
         "number": 17,
@@ -5266,7 +5330,7 @@
           "version": null,
           "channel": null,
           "environment": null,
-          "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+          "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
           "releasedAt": null,
           "releaseStatus": null,
           "publicEvidence": []
@@ -5350,7 +5414,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: local and remote final branch SHAs differ.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "30",
@@ -5699,7 +5763,7 @@
       },
       "blockers": [],
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "31",
@@ -5910,7 +5974,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "32",
@@ -6102,7 +6166,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "33",
@@ -6270,7 +6334,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: public metadata is missing from the branch tree.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "34",
@@ -6474,7 +6538,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "35",
@@ -6654,7 +6718,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     },
     {
       "productNumber": "36",
@@ -6832,7 +6896,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T17:51:54.829Z"
+      "updatedAt": "2026-07-29T19:23:53.881Z"
     }
   ]
 }
