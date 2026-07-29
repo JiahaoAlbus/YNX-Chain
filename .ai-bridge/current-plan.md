@@ -2,28 +2,26 @@
 
 Status: `ACTIVE`
 Phase: `INTEGRATE`
-Engineering Source Commit: `3a1bcceddc9e680761ce9563bb3d6cd823037222`
-Release Candidate: `ynx-data-fabric-3a1bcceddc9e`
+Engineering Source Commit: `b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056`
+Release Candidate: `ynx-data-fabric-b76bf9be8827`
 
 ## Completed and protected
 
-- Exact Worktree and Branch verified; no concurrent writer found.
-- Envelope v2 JSON Schema published and bound by reflection tests to the runtime envelope.
-- Product event contract points to Envelope v2 and Schema Registry v2 while retaining v1 compatibility.
-- Engineering commit pushed; Local and Remote SHA matched.
-- Full Go tests pass with the standard permission-test umask; Data Fabric Race and targeted tests pass.
-- GitHub Actions Run `30279794834` succeeded for the engineering Source Commit.
-- Release truth, full-goal coverage, Integration Contract, Handoff and public metadata are source-bound to the current engineering commit.
-- Legacy recovery summaries are preserved under `recovery/2026-07-23/` and are explicitly non-authoritative.
-- Release Truth positive and negative vectors, policy scans, full Quality Gates, full Go tests and expanded Data Fabric Race pass.
+- Exact YNX 26 Worktree, `codex/final-data-fabric` Branch and `JiahaoAlbus/YNX-Chain` Remote were verified.
+- Evidence manifests no longer reference nonexistent tests or assets; the machine path validator is part of Quality Gates.
+- Reachable vulnerability `GO-2026-6061` was removed by upgrading `google.golang.org/grpc` from `v1.79.3` to `v1.82.1`.
+- Full repository tests, Data Fabric Race tests, Vet and `govulncheck` pass locally; reachable vulnerabilities are zero.
+- Engineering Source Commit was pushed without force and Local/Remote Source SHA matched.
+- Central integration, shared Testnet, staging, public deployment, hosted download and production signing remain false without direct receipts.
 
 ## Current slice
 
-1. Review the complete evidence and recovery archive diff with `show_changes`.
-2. Commit the source-bound evidence slice without changing the engineering Source Commit.
-3. Push, verify Local SHA equals Remote SHA and record the evidence-commit CI result.
-4. Resume the highest-priority central-integration adapter and shared-Testnet work.
+1. Validate the source-bound release records with truthful `remoteCI: pending` state.
+2. Commit and push the evidence-boundary update without changing the engineering Source Commit.
+3. Verify the resulting GitHub Actions run for a descendant commit containing the exact engineering Source Commit.
+4. Replace pending CI state only with the actual successful Run ID, head SHA, timestamps and conclusion.
+5. Resume the highest-priority autonomous central-integration and shared-Testnet work.
 
-## Next engineering action
+## Exact next action
 
-After the evidence slice is protected, implement the highest-priority autonomous central-integration adapter work that does not require modifying another Worktree. Execute the Wallet/App Gateway fail-closed acceptance vector first when owner endpoints are available, then the shared-Testnet Pay vector. Keep phase `INTEGRATE` and all central, staging and public states false until direct receipts exist.
+Run Release Truth and full Quality Gates, protect the pending-evidence commit, then bind the actual successful CI receipt. Keep phase `INTEGRATE` and all central, staging and public states false until direct evidence exists.

@@ -83,7 +83,14 @@ try {
     writeJSON(".ai-bridge/full-goal-coverage.json", coverage);
   });
 
-  process.stdout.write(`${JSON.stringify({ status: "verified", negativeVectors: 4, sourceCommit: expectedSourceCommit })}\n`);
+  expectFailure("fabricated remote CI success", () => {
+    const release = readJSON("release/release-record.json");
+    release.evidence.remoteCI.status = "completed";
+    release.evidence.remoteCI.conclusion = "success";
+    writeJSON("release/release-record.json", release);
+  });
+
+  process.stdout.write(`${JSON.stringify({ status: "verified", negativeVectors: 5, sourceCommit: expectedSourceCommit })}\n`);
 } finally {
   rmSync(fixture, { recursive: true, force: true });
 }

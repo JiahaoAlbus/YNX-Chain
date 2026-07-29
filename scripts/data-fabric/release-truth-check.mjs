@@ -93,6 +93,8 @@ function trackedEngineeringFiles(repoRoot) {
 
   const exactFiles = new Set([
     ".github/workflows/data-fabric.yml",
+    "go.mod",
+    "go.sum",
     "configs/data-fabric.env.example",
     "configs/data-fabric-event-keys.example.json",
     "integration/product-event-contracts.json",
@@ -107,6 +109,7 @@ function trackedEngineeringFiles(repoRoot) {
     "scripts/data-fabric/",
   ];
   const excluded = new Set([
+    "scripts/data-fabric/evidence-path-check.mjs",
     "scripts/data-fabric/policy-scan.mjs",
     "scripts/data-fabric/quality-gates.sh",
     "scripts/data-fabric/release-truth-check.mjs",
@@ -224,9 +227,34 @@ export function verifyReleaseTruth({ root, expectedSourceCommit }) {
   const remoteCI = releaseRecord.evidence?.remoteCI;
   const productRemoteCI = productRelease.evidence?.remoteCI;
   assert(remoteCI?.sourceCommit === expectedSourceCommit, "remote CI evidence is not source-bound");
-  assert(remoteCI?.conclusion === "success", "remote CI evidence is not successful");
+  assert(remoteCI?.workflow === "data-fabric", "remote CI workflow is invalid");
   assert(remoteCI?.artifactsPublished === false, "CI artifacts are overclaimed");
-  for (const field of ["runId", "workflow", "sourceCommit", "status", "conclusion", "startedAt", "duration", "artifactsPublished", "url"]) {
+  const remoteCICompleted =
+    Number.isInteger(remoteCI?.runId) &&
+    /^[0-9a-f]{40}$/.test(remoteCI?.headCommit || "") &&
+    remoteCI?.status === "completed" &&
+    remoteCI?.conclusion === "success" &&
+    typeof remoteCI?.startedAt === "string" &&
+    remoteCI.startedAt.length > 0 &&
+    typeof remoteCI?.duration === "string" &&
+    remoteCI.duration.length > 0;
+  const remoteCIPending =
+    remoteCI?.runId === null &&
+    remoteCI?.headCommit === null &&
+    remoteCI?.status === "pending" &&
+    remoteCI?.conclusion === null &&
+    remoteCI?.startedAt === null &&
+    remoteCI?.duration === null &&
+    remoteCI?.url === null;
+  assert(remoteCICompleted || remoteCIPending, "remote CI evidence is neither truthful pending state nor successful evidence");
+  if (remoteCICompleted) {
+    try {
+      execFileSync("git", ["merge-base", "--is-ancestor", expectedSourceCommit, remoteCI.headCommit], { cwd: resolvedRoot });
+    } catch {
+      fail("remote CI headCommit is not a descendant of the engineering source commit");
+    }
+  }
+  for (const field of ["runId", "workflow", "sourceCommit", "headCommit", "status", "conclusion", "startedAt", "duration", "artifactsPublished", "url"]) {
     assert(productRemoteCI?.[field] === remoteCI?.[field], `product and release record remote CI ${field} drifted`);
   }
 
