@@ -14,7 +14,7 @@
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": false,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -31,7 +31,6 @@
     "protected-branch security gates"
   ],
   "risks": [
-    "authoritative-repository clean installation evidence is pending",
     "not publicly deployed",
     "current source artifact is test-signed, not production-signed",
     "immutable hosted download is unavailable",
@@ -54,7 +53,7 @@
   "faq": [
     {
       "question": "Is the YNX Security Platform publicly deployed?",
-      "answer": "No. The current candidate is implemented and tested locally in the authoritative repository, but clean installation, central integration, staging, and public deployment are not yet verified."
+      "answer": "No. The current candidate is implemented, tested, and clean-installed locally from the authoritative repository, but central integration, staging, and public deployment are not yet verified."
     },
     {
       "question": "Is the current artifact production-signed?",

@@ -146,7 +146,7 @@
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": false,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -163,6 +163,9 @@
     "evidence/security-platform/LOCAL_ARTIFACT_DRILL_1853dd4.json",
     "evidence/security-platform/LOCAL_ARTIFACT_DRILL_aa5d5e9.json",
     "evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json",
+    "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json",
+    "evidence/security-platform/GITHUB_CI_7be79d5.json",
+    "evidence/security-platform/GITHUB_DEPENDENCY_GRAPH_2026-07-29.json",
     "evidence/security-platform/GITHUB_BRANCH_PROTECTION_2026-07-27.json",
     "evidence/security-platform/GITHUB_CI_aa5d5e9.json",
     "release/security-platform/operator-inputs.request.json"

@@ -1,6 +1,6 @@
 # YNX 30 Decisions
 
-Updated: 2026-07-27T15:18:12Z
+Updated: 2026-07-29T06:08:33Z
 
 1. Treat repository and remote evidence as authoritative over archived chat summaries.
 2. Keep the product ACTIVE even though current GitHub workflows are green, because artifact, clean-install, staging, public, hosting and production-signing gates remain incomplete.
@@ -13,3 +13,7 @@ Updated: 2026-07-27T15:18:12Z
 9. Protect the final branch immediately with strict Required Checks, review controls, linear history, force-push/deletion denial and conversation resolution.
 10. Keep administrator enforcement disabled only during active recovery so verified checkpoints can still be pushed directly; enable it during the final repository lock.
 11. Do not enable required signed commits until an approved commit-signing identity and compatibility plan exist; artifact signing remains a separate external-signer gate.
+12. Treat `JiahaoAlbus/YNX-Chain` as authoritative and the preserved `JiahaoAlbus/YNX` branch/bundle as legacy recovery material only.
+13. Set `installedLocal=true` only after the exact `900c314...` source passed a fresh authoritative clone, locked install, rebuild, cold start, render, audit and 172/172 tests.
+14. Enable vulnerability alerts because the official dependency-review gate failed closed while the dependency graph was disabled.
+15. Pin all external Actions in the repository, not only Product 30 workflows, because floating workflow dependencies violate the platform supply-chain gate.

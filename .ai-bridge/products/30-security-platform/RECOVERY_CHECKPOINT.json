@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "product": "30-security-platform",
+  "status": "ACTIVE",
+  "updatedAt": "2026-07-29T06:08:33Z",
+  "workspace": "/Users/huangjiahao/Desktop/YNX Final Worktrees/30-security-platform",
+  "authoritativeRepository": "JiahaoAlbus/YNX-Chain",
+  "authoritativeRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
+  "branch": "codex/final-security-platform",
+  "lastPushedCheckpoint": "7be79d5b921e2b044fff43d5eb3f10fcad2eac11",
+  "frozenReleaseSource": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+  "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/16",
+  "legacy": {
+    "repository": "JiahaoAlbus/YNX",
+    "remote": "https://github.com/JiahaoAlbus/YNX.git",
+    "branch": "legacy/final-security-platform-ynx",
+    "finalCommit": "4b450b413d8ee9cec5d3a298f5c0b66ff551404d",
+    "bundle": "/Users/huangjiahao/Desktop/YNX Recovery Bundles/security-platform-old-repo-4b450b4.bundle",
+    "bundleSha256": "1c826b839e18d6e0ccdb9a587851c2d19d7a7f628b2b784f666aa606c929530c",
+    "bundleBytes": 73989826
+  },
+  "evidence": {
+    "artifact": "evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json",
+    "cleanInstall": "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json",
+    "remoteCi": "evidence/security-platform/GITHUB_CI_7be79d5.json",
+    "dependencyGraph": "evidence/security-platform/GITHUB_DEPENDENCY_GRAPH_2026-07-29.json"
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "preservedUnknownPaths": [
+    "output/"
+  ],
+  "nextAction": "Commit and push current evidence and immutable Action pins; obtain green PR checks; configure and verify authoritative branch protection."
+}

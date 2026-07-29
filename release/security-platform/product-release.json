@@ -21,8 +21,7 @@
       "local source archive only",
       "ephemeral test signature only",
       "no production certificate chain or transparency record",
-      "no hosted immutable download URL",
-      "no authoritative-repository clean installation or CLI cold-start evidence"
+      "no hosted immutable download URL"
     ]
   },
   "approval": {
@@ -33,7 +32,6 @@
   "blockedBy": [
     "production secure signer and signing approval",
     "immutable hosted download and independent verification",
-    "authoritative-repository installation and cold-start evidence",
     "staging deployment and rollback evidence",
     "public deployment and health/version/security/status URLs",
     "central owner acceptance recorded by Product 29"
@@ -41,6 +39,11 @@
   "legacyRepositoryVerification": [
     "evidence/security-platform/GITHUB_CI_aa5d5e9.json",
     "evidence/security-platform/GITHUB_BRANCH_PROTECTION_2026-07-27.json"
+  ],
+  "authoritativeRepositoryVerification": [
+    "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json",
+    "evidence/security-platform/GITHUB_CI_7be79d5.json",
+    "evidence/security-platform/GITHUB_DEPENDENCY_GRAPH_2026-07-29.json"
   ],
   "externalInputRequest": "release/security-platform/operator-inputs.request.json"
 }

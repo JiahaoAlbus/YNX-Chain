@@ -14,11 +14,11 @@ This platform owns the security framework, enforcement tools, release evidence, 
 
 - Local implementation: accepted by Product 30 tests.
 - Local tests: accepted; security suite and repository suite pass.
-- Remote validation: pending for the authoritative-repository source; the earlier `aa5d5e9` CI evidence belongs to the legacy repository and remains historical only.
-- Branch controls: the authoritative branch workflow is validation-only and pinned to immutable Action SHAs; repository protection acceptance remains pending after the first authoritative push.
+- Remote validation: passed in `JiahaoAlbus/YNX-Chain` at `7be79d5b921e2b044fff43d5eb3f10fcad2eac11`; the earlier `aa5d5e9` CI evidence belongs to the legacy repository and remains historical only.
+- Branch controls: the authoritative branch workflow is validation-only and all external Actions are pinned to immutable commit SHAs; repository protection is still pending.
 - Local encrypted restore drill: passed for the committed `security-platform/` metadata set.
 - Local reproducible artifact drill: passed for source commit `900c314ddb8f6f56b8713e7df194f26ee0590e06`, including SBOM, provenance, test signature, tamper rejection, wrong-identity rejection, and unsigned-public rejection.
-- Clean installation: pending for the authoritative-repository artifact; the earlier clean-install evidence belongs to the legacy repository.
+- Clean installation: passed from a fresh authoritative-repository clone detached at exact candidate source `900c314ddb8f6f56b8713e7df194f26ee0590e06`; locked install, lifecycle audit, dependency rebuild, CLI verification, notices, manifest render, production dependency audit, and 172/172 tests passed.
 - Artifact distribution: not hosted; the active artifact remains local/test-signed and is not public-release eligible.
 - Central integration: not accepted.
 - Staging deployment: not evidenced.
