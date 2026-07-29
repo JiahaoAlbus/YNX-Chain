@@ -1,5 +1,14 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-07-29 browser accessibility evidence checkpoint
+
+- Added a deterministic Chrome DevTools Protocol audit harness with no Playwright, Puppeteer or production dependency.
+- Bound 15/15 current-source browser checks and six screenshot SHA-256 values to clean pushed commit `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`.
+- Verified keyboard-first skip navigation, editor focus, roving panel tabs, Chromium accessibility-tree roles/names/live regions, a 3 px visible focus ring, Light/Dark, reduced motion, exact 390 px no-overflow, inert mobile drawers, single-column mobile API Studio, Arabic RTL with code/JSON LTR, large text and a 200% page scale.
+- Developer Web now passes 20/20 tests; static claim/workflow check remains passed.
+- Corrected stale Windows statements: the current-source Windows x64 package is installed-local evidence from run `30280327020`, source `5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e`, while the Artifact remains transient and unhosted.
+- This checkpoint does not change central integration, staging/public deployment, hosted download, production signing or store-release status; all remain false.
+
 ## 2026-07-27 current-source checkpoint
 
 - Added a fail-closed API Studio with OpenAPI 3.0/3.1 JSON validation, reviewed request previews, explicit approval, origin controls, bounded response inspection, deterministic provider-failure simulations, TypeScript client generation and adapter manifests.

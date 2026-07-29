@@ -5,6 +5,7 @@
 - Product: `11-developer`
 - Branch: `codex/final-developer`
 - Runtime source commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
+- Current browser-evidence source: `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`
 - Contract: `release/integration/developer-contract.json`
 - Current phase: `FREEZE`
 
@@ -58,8 +59,9 @@ Review the host broker implementation boundary, origin policy, response limits, 
 ## Test evidence
 
 - `cd packages/developer-client && npm test` — 22 passed
-- `cd apps/developer && npm test` — 17 passed
+- `cd apps/developer && npm test` — 20 passed
 - `cd apps/developer && npm run check` — passed
+- `cd apps/developer && npm run accessibility:audit` — 15/15 browser checks and six current-source screenshots passed on Chrome 150; evidence is bound to clean source `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`
 - `cd apps/developer && npm run build` — passed
 - `cd apps/developer && node --check app.js` — passed
 - `cd apps/developer && npm run live-check` — passed
@@ -72,7 +74,7 @@ Review the host broker implementation boundary, origin policy, response limits, 
 
 ## Truth boundary
 
-`implementedLocal=true` and `testedLocal=true` are supported for runtime commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551`. Current-source API Studio `installedLocal=true` is supported on macOS arm64 by package source commit `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`, ZIP SHA-256 `55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9` and extracted provenance/cold-start evidence. Windows current-source installation remains false; its existing evidence is tied to `c6b4affc03b3255100516c34483096f445c46753`. Central integration, staging/public deployment, hosted downloads, production signing and store release remain false.
+`implementedLocal=true` and `testedLocal=true` are supported for runtime commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551`; current-source browser accessibility evidence is supported by clean source `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`. Current-source API Studio `installedLocal=true` is supported on macOS arm64 by package source `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`, ZIP SHA-256 `55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9`, and on Windows x64 by workflow run `30280327020`, package source `5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e`, ZIP SHA-256 `92d2e85210740c44f2c3f2f08eb3ea1a2a84b30c836106498d4ba48696e62a54`, portable extraction and cold-start evidence. Both packages are unsigned Testnet Preview artifacts; the Windows Artifact is transient. Central integration, staging/public deployment, immutable hosted downloads, production signing and store release remain false.
 
 ## Next integration action
 

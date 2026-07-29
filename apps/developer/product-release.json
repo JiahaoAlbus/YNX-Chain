@@ -2,9 +2,9 @@
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
   "branch": "codex/final-developer",
-  "commit": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
+  "commit": "f38aa95a9ec7ebff68b4d915f41b20ad8f903769",
   "version": "0.2.0",
-  "sourceCheckpoint": "windows-current-source-provenance-2026-07-27",
+  "sourceCheckpoint": "browser-accessibility-evidence-2026-07-29",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -39,7 +39,7 @@
       "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "tests": {
         "developerClient": "22 passed",
-        "developerWeb": "17 passed",
+        "developerWeb": "20 passed",
         "staticCheck": "passed",
         "webBuild": "passed",
         "liveCheck": "passed",
@@ -47,7 +47,8 @@
         "placeholderGate": "passed with grep fallback because rg was unavailable",
         "credentialLeakGate": "passed with grep fallback because rg was unavailable",
         "macosCurrentSourcePackage": "embedded provenance, extracted self-test, ad-hoc classification, cold launch, bundled server observation and child cleanup passed",
-        "windowsCurrentSourcePackage": "GitHub Actions run 30280327020: compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed"
+        "windowsCurrentSourcePackage": "GitHub Actions run 30280327020: compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed",
+        "browserAccessibilityAudit": "15/15 checks and six hashed screenshots passed on Chrome 150 from clean source f38aa95a9ec7ebff68b4d915f41b20ad8f903769"
       },
       "capabilities": [
         "OpenAPI 3.0/3.1 JSON import and validation",
@@ -67,6 +68,31 @@
         "390px responsive controls and focusable polite output announcements"
       ]
     }
+  },
+  "browserAccessibilityEvidence": {
+    "status": "passed",
+    "sourceCommit": "f38aa95a9ec7ebff68b4d915f41b20ad8f903769",
+    "sourceDirtyAtStart": false,
+    "browser": "Chrome/150.0.7871.187",
+    "checksPassed": 15,
+    "checksFailed": 0,
+    "screenshots": 6,
+    "manifest": "apps/developer/evidence/ui/current-accessibility/accessibility-audit.json",
+    "covered": [
+      "keyboard focus order and skip navigation",
+      "roving tab keyboard contract",
+      "Chromium accessibility tree roles, names and live regions",
+      "visible focus indicator",
+      "Light and Dark appearance",
+      "reduced motion",
+      "390px no-overflow and inert mobile drawers",
+      "Arabic RTL with LTR source and JSON",
+      "large interface text",
+      "200 percent page scale"
+    ],
+    "independentCertification": false,
+    "installedDesktopRecapture": false,
+    "publicDeploymentEvidence": false
   },
   "sha256": {
     "macosArm64UnsignedZip": "55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9",
@@ -144,5 +170,5 @@
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The pinned chain compiler response truthfully reports deterministic analyzer output unless a matching production solc artifact exists; no arbitrary EVM or remote public verification claim is made."
   ],
-  "generatedAt": "2026-07-27T15:40:21Z"
+  "generatedAt": "2026-07-29T02:32:41Z"
 }

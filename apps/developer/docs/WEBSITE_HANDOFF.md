@@ -1,0 +1,63 @@
+# YNX Developer Website Handoff
+
+Handoff date: 2026-07-29  
+Product owner: `11-developer`  
+Integration owner: `29-integration`  
+Website owner: `28-website`
+
+## Required public route
+
+- Official domain: `https://ynxweb4.com`
+- Canonical route: `https://ynxweb4.com/developer`
+- Route status: prepared locally, not integrated or deployed
+- Founder domain `huangjeo.com` is not a product, documentation, release, support or canonical URL for this handoff.
+
+## Source and release truth
+
+- Browser-evidence source: `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`
+- Product metadata: `apps/developer/public-product-metadata.json`
+- Product release truth: `apps/developer/product-release.json`
+- Release class: unsigned Testnet Preview
+- `implementedLocal=true`, `testedLocal=true`, `installedLocal=true`
+- `integratedCentral=false`, `deployedStaging=false`, `deployedPublic=false`
+- `downloadHosted=false`, `productionSigned=false`, `storeReleased=false`
+
+## Page content package
+
+The page may truthfully describe YNX Developer as a bounded Web IDE and native Testnet Preview for YNX Chain projects, API Studio workflows, permissioned YNX AI Build and Wallet-only deployment review. It must not claim arbitrary EVM compatibility, private-key custody, provider activation, central integration, a public production release, production signing or immutable hosted downloads.
+
+Recommended evidence cards:
+
+1. Web IDE and API Studio — OpenAPI validation, reviewed previews, explicit approval, host-broker credential references, bounded response inspection and generated client/adapter artifacts.
+2. Accessibility and responsive evidence — 15/15 Chrome checks and six current-source screenshots from a clean pushed source.
+3. Desktop Testnet Preview — locally verified macOS arm64 and Windows x64 packages, both unsigned and unhosted.
+4. Wallet-only boundary — Developer never stores a private key and cannot claim deployment success without an authoritative Wallet-signed receipt.
+
+## Current-source visual assets
+
+Exact hashes are authoritative in `evidence/ui/current-accessibility/accessibility-audit.json`.
+
+- `desktop-light-1440x900.png` — `e58ca52b973bb2a68b210b78d254b8b75a334104bd909b2f0471db23f5c2e6f6`
+- `keyboard-focus-api-studio-1440x900.png` — `622c5ceba9746fcb98bdcf1e2af5c2965b9c88acb41117bc31ec9555eb0aa42a`
+- `desktop-dark-1440x900.png` — `30ec419a760c30cc228b19da8cf4af9af001142c50a15c8b167c9a80679aeb0b`
+- `mobile-light-390x844.png` — `596d3aeda5bc2ca49b6ce9bf187a9f886485a411983d3ad168995953134d958b`
+- `mobile-arabic-rtl-390x844.png` — `459ae141073ba871856e30842de7bcfd0dd90ad39dc591fb2ab9a18af88eabce`
+- `mobile-large-text-390x844.png` — `b7da98bc4d2f883e512e9d3bbf243c288a253fb41a38e082e342127251113fa4`
+
+## Download boundary
+
+No immutable public artifact URL exists. The macOS ZIP is local only. The Windows Artifact is a transient GitHub Actions artifact (`8658611304`) that expires on 2026-08-10 and must not be presented as the official public download. Website owner must keep download CTAs disabled or marked unavailable until Security/SRE supplies approved immutable hosting and production signing evidence.
+
+## Acceptance gates for Website owner
+
+Before setting `deployedPublic=true`, owner 28 must verify:
+
+1. `/developer` is served from the authoritative website repository and Vercel deployment.
+2. Canonical, Open Graph, JSON-LD, sitemap and robots all use `https://ynxweb4.com/developer`.
+3. Page copy preserves every release and signing boundary above.
+4. Screenshot bytes match the supplied SHA-256 values.
+5. Download controls do not expose transient or local-only artifacts.
+6. Public HTTP 200 content visibly identifies YNX Developer rather than a placeholder or generic product page.
+7. The deployed commit and deployment URL are recorded in owner 28 evidence and accepted by owner 29.
+
+Creating this handoff does not prove Website integration or deployment.

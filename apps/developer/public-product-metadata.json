@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "11",
+  "productId": "ynx-developer-v1",
+  "productName": "YNX Developer / YNX AI Build",
+  "version": "0.2.0",
+  "branch": "codex/final-developer",
+  "sourceCommit": "f38aa95a9ec7ebff68b4d915f41b20ad8f903769",
+  "officialDomain": "https://ynxweb4.com",
+  "canonicalPath": "/developer",
+  "canonicalUrl": "https://ynxweb4.com/developer",
+  "routeStatus": "handoff-ready-not-deployed",
+  "deployedPublic": false,
+  "publicRouteVerified": false,
+  "releaseClass": "unsigned-testnet-preview",
+  "summary": "A bounded Web IDE and native Testnet Preview for YNX Chain projects, API Studio workflows, permissioned AI Build and Wallet-only deployment review.",
+  "surfaces": [
+    "web-ide",
+    "api-studio",
+    "ynx-ai-build",
+    "macos-arm64-testnet-preview",
+    "windows-x64-testnet-preview"
+  ],
+  "localEvidence": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "browserAccessibility": {
+      "status": "passed",
+      "sourceCommit": "f38aa95a9ec7ebff68b4d915f41b20ad8f903769",
+      "checksPassed": 15,
+      "screenshots": 6,
+      "manifest": "apps/developer/evidence/ui/current-accessibility/accessibility-audit.json",
+      "independentCertification": false
+    },
+    "macosArm64": {
+      "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
+      "sha256": "55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9",
+      "bytes": 38450127,
+      "signingClass": "adhoc-no-team-id",
+      "hosted": false
+    },
+    "windowsX64": {
+      "sourceCommit": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
+      "runId": 30280327020,
+      "artifactId": 8658611304,
+      "artifactExpiresAt": "2026-08-10T15:33:26Z",
+      "sha256": "92d2e85210740c44f2c3f2f08eb3ea1a2a84b30c836106498d4ba48696e62a54",
+      "bytes": 106341640,
+      "signingClass": "unsigned-no-authenticode",
+      "hosted": false
+    }
+  },
+  "publicEvidence": {
+    "staging": false,
+    "production": false,
+    "downloadHosted": false,
+    "immutableArtifactUrls": [],
+    "healthUrls": [],
+    "verifiedUrls": []
+  },
+  "websiteHandoff": {
+    "targetOwner": "28-website",
+    "integrationOwner": "29-integration",
+    "status": "prepared-local-not-integrated",
+    "requiredRoute": "/developer",
+    "requiredCanonical": "https://ynxweb4.com/developer",
+    "screenshots": [
+      {
+        "path": "apps/developer/evidence/ui/current-accessibility/desktop-light-1440x900.png",
+        "sha256": "e58ca52b973bb2a68b210b78d254b8b75a334104bd909b2f0471db23f5c2e6f6"
+      },
+      {
+        "path": "apps/developer/evidence/ui/current-accessibility/desktop-dark-1440x900.png",
+        "sha256": "30ec419a760c30cc228b19da8cf4af9af001142c50a15c8b167c9a80679aeb0b"
+      },
+      {
+        "path": "apps/developer/evidence/ui/current-accessibility/mobile-light-390x844.png",
+        "sha256": "596d3aeda5bc2ca49b6ce9bf187a9f886485a411983d3ad168995953134d958b"
+      },
+      {
+        "path": "apps/developer/evidence/ui/current-accessibility/mobile-arabic-rtl-390x844.png",
+        "sha256": "459ae141073ba871856e30842de7bcfd0dd90ad39dc591fb2ab9a18af88eabce"
+      }
+    ]
+  },
+  "truthBoundaries": {
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "generatedAt": "2026-07-29T02:32:41Z"
+}

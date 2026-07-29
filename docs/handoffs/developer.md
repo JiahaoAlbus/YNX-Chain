@@ -1,5 +1,16 @@
 # YNX Developer handoff
 
+## 2026-07-29 browser evidence and Windows truth correction
+
+This section supersedes stale current test-count, browser-recapture and Windows-current-source statements below while preserving their historical evidence.
+
+- Current browser-evidence source: `f38aa95a9ec7ebff68b4d915f41b20ad8f903769` on `codex/final-developer`.
+- A dependency-free Chrome DevTools Protocol harness launches the real local Web Product from a clean pushed commit and records keyboard navigation, Chromium accessibility-tree semantics, focus visibility, Light/Dark, reduced motion, exact 390 px layout, inert drawers, Arabic RTL/code LTR, large text, 200% page scale and browser exceptions.
+- The audit passed 15/15 checks and generated six PNGs with exact SHA-256 values in `apps/developer/evidence/ui/current-accessibility/accessibility-audit.json`. Developer Web now passes 20/20 tests; static claim/workflow gate remains passed.
+- Current-source API Studio installed-local evidence now exists on both macOS arm64 and Windows x64. Windows workflow run `30280327020`, job `90024771435`, source `5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e`, ZIP SHA-256 `92d2e85210740c44f2c3f2f08eb3ea1a2a84b30c836106498d4ba48696e62a54`, portable extraction, native self-test, WPF cold launch, bundled server observation and child cleanup passed.
+- The Windows Artifact `8658611304` is transient and expires `2026-08-10T15:33:26Z`; neither desktop package is production-signed or an immutable public download.
+- Central integration, staging/public deployment, hosted downloads, production signing and store release remain false. The current browser audit is product-owner evidence, not an independent accessibility certification or an installed-desktop recapture.
+
 ## 2026-07-27 API Studio runtime and FREEZE checkpoint
 
 This section supersedes stale branch, test-count and current-source statements below while preserving historical desktop artifact evidence at its original source commit.

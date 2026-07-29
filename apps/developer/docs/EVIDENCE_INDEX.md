@@ -13,13 +13,22 @@
 - API Studio core tests: `packages/developer-client/test/api-studio.test.js`
 - API Studio Web boundary tests: `apps/developer/test/api-studio-ui.test.js`
 - Current runtime source checkpoint: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
-- Current targeted verification: Developer client 22/22, Developer Web 17/17, browser syntax, static claim/workflow, standalone Web build, live compile, same-origin proxy, desktop sandbox 2/2 and Windows source boundary.
+- Current browser-evidence harness source: `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`
+- Current targeted verification: Developer client 22/22, Developer Web 20/20, browser syntax, static claim/workflow, standalone Web build, live compile, same-origin proxy, desktop sandbox 2/2, Windows source boundary and current-source Chrome accessibility audit 15/15.
 - Validation-gate evidence: `scripts/validate/no-placeholder-check.sh` and `scripts/validate/secret-scan.sh` execute a verified fallback when `rg` is unavailable; scanner execution errors fail closed.
 
 ## Visual evidence
 
 The audited images and their state explanations are listed in
-`UI_DESIGN_AUDIT.md`. Baseline and final files are under `evidence/ui`.
+`UI_DESIGN_AUDIT.md`. Historical baseline/final files are under `evidence/ui`.
+Current-source deterministic Chrome evidence is under
+`evidence/ui/current-accessibility`; `accessibility-audit.json` binds 15 passed
+checks and six PNG hashes to clean source commit
+`f38aa95a9ec7ebff68b4d915f41b20ad8f903769`. It covers keyboard focus order,
+skip navigation, tab roving, the browser accessibility tree, focus visibility,
+Light/Dark, reduced motion, 390 px overflow, inert mobile drawers, Arabic RTL,
+large text and a 200% page scale. This is product-owner browser evidence, not an
+independent accessibility certification or installed-desktop recapture.
 
 ## Desktop evidence
 
@@ -33,8 +42,11 @@ The audited images and their state explanations are listed in
 - Windows build: `scripts/package-windows.ps1`
 - Windows portable install/cold start: `scripts/verify-windows-package.ps1`
 - Windows host workflow: `.github/workflows/developer-windows.yml`
-- Successful Windows host run:
-  `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29658166198`
+- Successful current-source Windows host run:
+  `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30280327020`
+- Windows job `90024771435`; transient Artifact `8658611304`; outer digest
+  `sha256:888478649d2f9e2241469e439d918260e4ad8b2c7e7cc40861a0e8925ace7762`;
+  expires `2026-08-10T15:33:26Z` and is not an immutable public download.
 
 ## Supply chain
 

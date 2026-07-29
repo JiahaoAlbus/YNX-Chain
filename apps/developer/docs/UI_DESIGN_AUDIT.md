@@ -41,9 +41,28 @@ fallback, dates, numbers and plural rules are unit-tested.
 
 Source commit `8f352d0159eef0ab60fb6411e949cfcf3aafb551` extends the API Studio surface with 12-locale labels, approval semantics, dynamic validation states and bounded localized error classes. Arabic applies RTL to interaction surfaces while source, JSON, response and URL fields remain LTR. Bottom-panel navigation now uses tablist/tab/tabpanel semantics, one roving tab stop and ArrowLeft, ArrowRight, Home and End navigation. The API output is a focusable polite live region, and mobile rules wrap long translated actions at the 390px target.
 
-These current-source properties are covered by static/runtime tests and are installed in the separately verified macOS arm64 package source `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`. The screenshots below were captured for the earlier 2026-07-18 checkpoint and do not by themselves prove that the current source was visually recaptured, installed on Windows or publicly deployed.
+These current-source properties are covered by static/runtime tests and are installed in the separately verified macOS arm64 package source `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca` and Windows x64 package source `5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e`.
+
+### 2026-07-29 current-source browser recapture
+
+A deterministic, dependency-free Chrome DevTools Protocol harness now launches the real local Web Product from a clean pushed source commit, drives keyboard input, reads Chromium's accessibility tree, emulates media/viewport/page scale, and captures PNG evidence. `evidence/ui/current-accessibility/accessibility-audit.json` records 15/15 passed checks and six screenshot SHA-256 values for source `f38aa95a9ec7ebff68b4d915f41b20ad8f903769` using Chrome 150.0.7871.187.
+
+Verified facts include first-tab skip navigation to the editor, one-stop roving panel tabs, named textboxes and navigation/main/tablist/status roles in the browser accessibility tree, a 3 px focus outline, Light/Dark state, reduced-motion animation removal, exact 390 px document width with inert closed drawers, single-column mobile API Studio, Arabic RTL with source/JSON kept LTR, 16 px large-text mode with 38 px controls, and Chromium visual viewport scale 2. No browser runtime exception was observed.
+
+This evidence proves the current source in a local Chrome browser. It does not claim an independent WCAG certification, public deployment, production signing, or a recapture inside the installed macOS/Windows desktop hosts.
 
 ## Screenshot evidence
+
+### Current source (`current-accessibility/`)
+
+- `desktop-light-1440x900.png`
+- `keyboard-focus-api-studio-1440x900.png`
+- `desktop-dark-1440x900.png`
+- `mobile-light-390x844.png`
+- `mobile-arabic-rtl-390x844.png`
+- `mobile-large-text-390x844.png`
+
+### Historical 2026-07-18 checkpoint (`final/`)
 
 - `final/desktop-light-1440x900.png`
 - `final/desktop-dark-1440x900.png`
