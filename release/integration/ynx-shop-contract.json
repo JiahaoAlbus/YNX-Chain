@@ -6,7 +6,7 @@
     "id": "ynx-shop",
     "name": "YNX Shop",
     "owner": "09-shop",
-    "sourceCommit": "0347320463466cf9a265c7447fbced0218a32cab"
+    "sourceCommit": "a9f9ff932ede1091882509a219755b4b18a88c92"
   },
   "status": "candidate-for-29-integration-freeze",
   "network": {
@@ -106,16 +106,33 @@
     "structuredErrorCodeStatus": "not-yet-frozen"
   },
   "healthVersion": {
-    "paths": ["/health", "/version"],
+    "paths": ["/health", "/version", "/metrics"],
     "requiredFields": ["status", "version", "commit", "startedAt", "integrityProtected", "dependencies"],
+    "implementedLocal": true,
+    "testedLocal": true,
     "currentSourceDeployed": false
   },
+  "observability": {
+    "metricsPath": "/metrics",
+    "format": "Prometheus text exposition 0.0.4",
+    "boundedLabels": ["method", "route_group", "status_class", "order_status", "provider"],
+    "forbiddenLabels": ["account", "buyer", "seller", "orderId", "productId", "token", "remoteAddress", "rawPath", "query", "requestBody"],
+    "stateMetrics": ["persistence schema", "stores", "products", "published products", "variants", "inventory", "reservations", "orders by status", "buyer profiles", "carts", "AI jobs", "audit events", "idempotency records", "rate windows"],
+    "dependencyMetrics": ["wallet_gateway", "pay", "trust", "ai"],
+    "localCapacityEvidence": "SLO_CAPACITY_PLAN.md",
+    "publicCapacityVerified": false,
+    "deployedMonitoringVerified": false
+  },
   "migration": {
-    "persistenceSchemaVersion": "not-yet-explicit",
-    "forwardMigration": "required",
-    "rollbackMigration": "required",
-    "oldClientVectors": "required",
-    "status": "in-progress"
+    "persistenceSchemaVersion": 2,
+    "legacySchemaVersion": 1,
+    "forwardMigration": "implemented-and-tested-local",
+    "rollbackMigration": "implemented-and-tested-local-to-v1",
+    "rollbackRecoveryPoint": "<state-path>.schema-rollback",
+    "v1OmittedFields": ["buyerProfiles", "carts", "requestWindow"],
+    "oldClientVectors": "implemented-and-tested-local",
+    "currentSourceStagingMigration": false,
+    "status": "local-tested"
   },
   "releaseState": {
     "implementedLocal": true,

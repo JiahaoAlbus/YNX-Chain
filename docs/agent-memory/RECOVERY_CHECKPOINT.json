@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "09",
+  "productName": "YNX Shop",
+  "phase": "FREEZE_TO_INTEGRATE",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/09-shop",
+  "branch": "codex/final-shop",
+  "implementationSha": "a9f9ff932ede1091882509a219755b4b18a88c92",
+  "localSha": "a9f9ff932ede1091882509a219755b4b18a88c92",
+  "remoteSha": "a9f9ff932ede1091882509a219755b4b18a88c92",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "shaBoundary": "localSha and remoteSha identify the current implementation source before this recovery/evidence document commit; resolve HEAD and origin/codex/final-shop on resume.",
+  "dirty": true,
+  "dirtyReason": "recovery, evidence, release metadata and handoff documents are being updated after the protected implementation checkpoint",
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "go test -race ./internal/commerce/... -count=1",
+    "go test ./internal/commerce -run TestShopConcurrentReadLoadBaseline -count=1 -v",
+    "make no-placeholder-check",
+    "make secret-scan",
+    "git diff --check"
+  ],
+  "latestCiRuns": [],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [],
+  "publicRoutes": [
+    {
+      "url": "https://web4.ynxweb4.com/shop-staging/",
+      "status": "404_not_found",
+      "currentSource": false,
+      "verifiedAt": "2026-07-29T02:39:00Z"
+    },
+    {
+      "url": "https://web4.ynxweb4.com/shop-api-staging/health",
+      "status": "404_not_found",
+      "currentSource": false,
+      "verifiedAt": "2026-07-29T02:39:00Z"
+    },
+    {
+      "url": "https://ynxweb4.com/shop",
+      "status": "200_generic_spa_home_canonical",
+      "currentSource": false,
+      "productPageVerified": false,
+      "verifiedAt": "2026-07-29T02:39:00Z"
+    }
+  ],
+  "completed": [
+    "buyer and seller commerce core",
+    "privacy export and deletion",
+    "twelve-locale privacy controls",
+    "persistence schema v1 to v2 migration",
+    "explicit rollback to v1 and exact v2 recovery restore",
+    "bounded Prometheus metrics",
+    "exact health dependency boundary",
+    "local catalog read capacity baseline",
+    "unit economics and SLO methodology"
+  ],
+  "remaining": [
+    "deterministic current-source Web/API artifact with SHA-256, SBOM and provenance",
+    "current-source Staging deployment and restore/load evidence",
+    "Wallet/Auth registry deployment",
+    "Shop Pay merchant and committed payment/refund evidence",
+    "Data Fabric and shared Testnet acceptance",
+    "current-source Android and iOS build/install evidence",
+    "Shop-specific official website page and downloads",
+    "PR, CI, merge and Shop GitHub Release",
+    "production signing, stores, audit and independent proof"
+  ],
+  "blockers": [
+    "SHOP-EXT-001",
+    "SHOP-EXT-002",
+    "SHOP-EXT-003",
+    "SHOP-EXT-004",
+    "SHOP-EXT-005"
+  ],
+  "nextAction": "Build a deterministic current-source YNX Shop Web/API release bundle from a9f9ff932ede1091882509a219755b4b18a88c92 with exact SHA-256, SBOM, provenance, deterministic rebuild and tamper/false-claim rejection.",
+  "updatedAt": "2026-07-29T02:39:00Z"
+}

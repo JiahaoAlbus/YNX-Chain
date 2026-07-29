@@ -1,6 +1,6 @@
 # YNX Shop integration handoff
 
-Source commit: `0347320463466cf9a265c7447fbced0218a32cab`
+Source commit: `a9f9ff932ede1091882509a219755b4b18a88c92`
 Contract: `release/integration/ynx-shop-contract.json`  
 Test vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`  
 Status: Candidate for 29 Integration freeze; not centrally integrated or current-source deployed.
@@ -46,11 +46,17 @@ Current source adds:
 - pseudonymization of terminal order personal fields
 - preservation of authoritative public-chain settlement evidence and integrity records
 
-The privacy source is tested locally across Commerce, Web and native static contracts. Web/PWA, Android and iOS privacy controls and dynamic results cover all twelve locales, with Arabic RTL wiring and Arabic-script values verified statically. It is not present on the existing staging deployment, which still reports source `38e2f68`.
+The privacy source is tested locally across Commerce, Web and native static contracts. Web/PWA, Android and iOS privacy controls and dynamic results cover all twelve locales, with Arabic RTL wiring and Arabic-script values verified statically. It is not present on a current-source staging deployment.
+
+## Migration and observability handoff
+
+Current persistence schema is v2. A valid v1 snapshot migrates forward atomically; unsupported future versions fail closed. An explicit rollback to v1 first writes an exact v2 recovery point, then omits buyer profiles, carts and rate windows because v1 cannot represent them. Exact restore, HMAC verification, tamper rejection and old-client vectors pass locally. See `MIGRATION_COMPATIBILITY.md`.
+
+`GET /metrics` exposes bounded Prometheus runtime, state and dependency gauges. Raw paths, accounts, order/product IDs, tokens and request data are forbidden as labels. `/health` exposes exact build, process start, integrity and Wallet/Pay/Trust/AI availability. Local load evidence is in `SLO_CAPACITY_PLAN.md`; it is not public capacity. Unit-economics formulas and required verified operator inputs are in `UNIT_ECONOMICS.md`.
 
 ## Release truth
 
-Existing Staging and hosted artifacts are evidence for source `38e2f68deb91d5f26e5aeec2318e260cd0742115`. Current source `0347320463466cf9a265c7447fbced0218a32cab` is implemented and tested locally but is not current-source installed, centrally integrated, staged, public, hosted, production signed or store released.
+Historical Staging and hosted artifacts were evidence for source `38e2f68deb91d5f26e5aeec2318e260cd0742115`, but the historical Shop Staging and API URLs returned HTTP 404 during the 2026-07-29 recovery audit. Current source `a9f9ff932ede1091882509a219755b4b18a88c92` is implemented and tested locally but is not current-source installed, centrally integrated, staged, public, hosted, production signed or store released. `https://ynxweb4.com/shop` returned the generic website shell with a homepage canonical, so a Shop-specific public page is not verified.
 
 ## Acceptance sequence
 

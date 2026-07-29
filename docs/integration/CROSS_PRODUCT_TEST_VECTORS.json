@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "ynx-shop",
-  "sourceCommit": "0347320463466cf9a265c7447fbced0218a32cab",
+  "sourceCommit": "a9f9ff932ede1091882509a219755b4b18a88c92",
   "contract": "release/integration/ynx-shop-contract.json",
   "vectors": [
     {
@@ -80,10 +80,23 @@
       "expected": "Shop ignores/rejects unsupported fields and no asset state changes"
     },
     {
+      "id": "persistence-migration-forward-rollback-restore",
+      "owners": ["09-shop", "30-security-sre"],
+      "preconditions": ["valid schema v1 fixture", "valid schema v2 fixture", "integrity key available through test configuration"],
+      "steps": ["open v1 state", "verify atomic v2 migration", "rollback v2 to v1", "verify v2-only omission counts", "open downgraded state with v1 reader", "restore exact v2 recovery point", "attempt wrong-key and future-schema opens"],
+      "expected": ["stores, products, orders and integrity evidence are preserved", "buyer profiles, carts and rate windows are explicitly omitted only from v1 downgrade", "exact v2 recovery succeeds", "tamper, wrong key and future schema fail closed"]
+    },
+    {
+      "id": "observability-bounded-cardinality-and-health-truth",
+      "owners": ["09-shop", "13-monitor", "30-security-sre"],
+      "steps": ["exercise health, catalog, missing and metrics routes", "scrape /metrics", "inspect labels", "reconcile completed catalog count", "inspect /health dependency map"],
+      "expected": ["request count and latency use fixed route groups", "no account, object ID, token, raw path, query or body is exposed", "health reports exact build/start/integrity and configuration availability", "provider configured state is not represented as remote health"]
+    },
+    {
       "id": "release-truth-current-vs-staging",
       "owners": ["09-shop", "28-website", "29-integration", "30-security-sre"],
-      "steps": ["compare /version commit with release record", "compare artifact hash/bytes/source", "check current contract release booleans"],
-      "expected": ["38e2f68 staging is not labelled as ef97ead", "current source remains not deployed/hosted until direct evidence exists"]
+      "steps": ["compare /version commit with release record", "compare artifact hash/bytes/source", "check current contract release booleans", "verify route content and canonical rather than HTTP status alone"],
+      "expected": ["historical 38e2f68 evidence is not labelled as current source", "404 historical staging is not labelled available", "generic SPA shell is not labelled a Shop product page", "current source remains not deployed/hosted until direct evidence exists"]
     }
   ]
 }

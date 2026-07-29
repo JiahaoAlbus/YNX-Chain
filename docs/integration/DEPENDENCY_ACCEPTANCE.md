@@ -1,6 +1,6 @@
 # YNX Shop dependency acceptance
 
-Source commit: `0347320463466cf9a265c7447fbced0218a32cab`
+Source commit: `a9f9ff932ede1091882509a219755b4b18a88c92`
 
 | Dependency | Owner | Local adapter | Central/public acceptance | Required evidence |
 |---|---|---:|---:|---|
@@ -9,8 +9,8 @@ Source commit: `0347320463466cf9a265c7447fbced0218a32cab`
 | Trust dispute/appeal | 15 Trust Center | Accepted locally | Partially configured on old Staging | Authenticated case create/appeal/correction evidence from a Shop order |
 | Data Fabric canonical events | 26 Data Fabric | Candidate envelope only | Not accepted | Event/schema version freeze and consumer acknowledgement |
 | Explorer public proof | 12 Explorer | No current-source proof | Not accepted | Current order/payment/refund and release evidence indexed publicly |
-| Monitor/SRE | 13 Monitor / 30 Security-SRE | Health/version exist | Current source not deployed | Current commit health/version, alerts, restart/restore, artifact provenance |
-| Website/SEO | 28 Website | Metadata package available | Not accepted | Canonical micro-site, structured data, sitemap/indexing and truthful release status |
+| Monitor/SRE | 13 Monitor / 30 Security-SRE | Exact health, bounded Prometheus metrics and local load evidence pass | Current source not deployed | Private scrape path, deployed alerts, restart/restore, exact artifact provenance and Staging capacity evidence |
+| Website/SEO | 28 Website | Metadata package available | Not accepted; `/shop` is a generic SPA shell and historical Staging routes are 404 | Shop-specific canonical page, structured data, sitemap/indexing and truthful release status |
 | Shared Testnet | 29 Integration | Local workflow tested | Blocked | Wallet + Pay + Trust dependencies accepted and a scheduled execution window |
 | Android build host | Build environment | Source/static checks pass | Blocked | API 36 SDK, current APK build, install, cold start, restart, deep links |
 | iOS build host | Build environment | Source/static checks pass | Blocked | Full Xcode, Simulator build/install/cold start/callback |

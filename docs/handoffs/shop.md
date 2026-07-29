@@ -4,17 +4,19 @@ Updated: 2026-07-27
 
 Current branch: `codex/final-shop`
 
-Current protected source: `0347320463466cf9a265c7447fbced0218a32cab`
+Current protected implementation source: `a9f9ff932ede1091882509a219755b4b18a88c92`
 
 Prior Staging/artifact source: `38e2f68deb91d5f26e5aeec2318e260cd0742115`
 
 Minimum preserved baseline: `ef0456a6111ed9bc59fcd6c34d9a8739713e0865`
 
-## 2026-07-27 current checkpoint
+## 2026-07-29 current checkpoint
 
-Current source adds authenticated buyer data export and deletion across Commerce API, Web/PWA, Android source and iOS source. Deletion fails closed while any order is non-terminal; terminal orders are pseudonymized while authoritative public-chain settlement and integrity evidence remains unchanged. The current source also repairs false-green Placeholder and Secret gates by using a bounded Node scanner when ripgrep is absent, and localizes Web/PWA, Android and iOS privacy labels, warnings and dynamic export/delete states across all twelve locales while preserving Arabic RTL.
+Current source includes authenticated buyer data export/deletion across Commerce API and all client surfaces, twelve-locale privacy controls, persistence schema v1→v2 migration, explicit rollback to v1 with an exact v2 recovery point, bounded Prometheus metrics, exact health dependency fields, and a deterministic local catalog-read capacity test. Deletion still fails closed while any order is non-terminal; terminal orders are pseudonymized while authoritative public-chain settlement and integrity evidence remain unchanged.
 
-Current-source local verification passes for Commerce race tests, buyer Web tests/build, native static contracts, scanner unit tests, Placeholder scan and Secret scan. Android compilation is blocked on this host by the absent Android SDK path. iOS compilation is blocked because only Command Line Tools, not full Xcode, is active. The full repository Go suite currently has unrelated shared baseline failures in three macOS permission assertions and two missing generated-contract consumers; Commerce itself passes.
+Current-source Commerce race tests, migration/rollback vectors, observability tests, local capacity test, Placeholder scan and Secret scan pass. The measured 3,000-request result is local Apple M2 `httptest` evidence only, not public capacity. Android compilation remains blocked on this host by the absent Android SDK path. iOS compilation remains blocked because only Command Line Tools, not full Xcode, is active. The full repository preflight has not been rerun after this observability slice; its last known failures were unrelated shared permission assertions and missing generated-contract consumers.
+
+Recovery auditing on 2026-07-29 found that the historical Shop Staging, health and version routes now return HTTP 404. `https://ynxweb4.com/shop` returns the generic website shell with homepage canonical, so a Shop-specific public route is not verified.
 
 The machine-readable source of truth is now:
 

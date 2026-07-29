@@ -5,7 +5,7 @@
   "version": "0.2.0-testnet-preview",
   "environment": "YNX Testnet",
   "branch": "codex/final-shop",
-  "commit": "0347320463466cf9a265c7447fbced0218a32cab",
+  "commit": "a9f9ff932ede1091882509a219755b4b18a88c92",
   "surfaces": ["web", "pwa", "android", "ios"],
   "implementedLocal": true,
   "testedLocal": true,
@@ -19,8 +19,18 @@
   "currentSource": {
     "privacyRuntimeCommit": "4cd59fcb11e11d221defa88d20ac0d50b7663b99",
     "privacyLocalizationCommit": "0347320463466cf9a265c7447fbced0218a32cab",
-    "privacyLocalizationCommits": ["4267fdbf3ff581043bafef5c357d915f1904b964", "0347320463466cf9a265c7447fbced0218a32cab"],
-    "validationGateCommits": ["77d047076537fffb4290d9389516c73f3a4cbede", "ef97eadea90e2b6f4f24225c52e6093b5d5de567"],
+    "privacyLocalizationCommits": [
+      "4267fdbf3ff581043bafef5c357d915f1904b964",
+      "0347320463466cf9a265c7447fbced0218a32cab"
+    ],
+    "validationGateCommits": [
+      "77d047076537fffb4290d9389516c73f3a4cbede",
+      "ef97eadea90e2b6f4f24225c52e6093b5d5de567"
+    ],
+    "migrationCommit": "d2a55ecffb8800df6046bfa7bd152c1bc956cbcc",
+    "migrationEvidenceCommit": "c929056bfd083d124dff7998166bc1ee86d71393",
+    "observabilityCommit": "14984342ebf49f0b9a1f5ec516b1aef99c6e8879",
+    "healthBoundaryCommit": "a9f9ff932ede1091882509a219755b4b18a88c92",
     "capabilities": {
       "catalog": "testedLocal",
       "profileAndCart": "testedLocal",
@@ -35,10 +45,21 @@
       "iosSource": "testedLocalStatic",
       "webPrivacyLocales": "testedLocal",
       "twelveLocaleFramework": "testedLocalStaticAllSurfaces",
+      "persistenceSchemaV2": "testedLocal",
+      "persistenceForwardMigration": "testedLocal",
+      "persistenceRollbackToV1": "testedLocal",
+      "rollbackRecoveryPointRestore": "testedLocal",
+      "oldClientCompatibilityVectors": "testedLocal",
+      "prometheusMetrics": "testedLocal",
+      "exactHealthDependencyBoundary": "testedLocal",
+      "localCatalogReadCapacityBaseline": "testedLocalNotPublicCapacity",
       "currentSourceStaging": "notDeployed"
     },
     "verification": [
       "pass: go test -race ./internal/commerce/... -count=1",
+      "pass: go test ./internal/commerce -run TestShopConcurrentReadLoadBaseline -count=1 -v",
+      "pass: local load 3000 catalog reads, concurrency 32, zero failures, p95 4.455 ms, p99 5.860 ms, 16060.64 req/s on Apple M2 httptest",
+      "pass: go benchmark 1764-4064 ns/op, 2244 B/op, 27 allocs/op across three samples",
       "pass: npm --prefix apps/shop test",
       "pass: npm --prefix apps/shop run build",
       "pass: npm --prefix apps/shop run smoke",
@@ -47,25 +68,44 @@
       "pass: make no-placeholder-check",
       "pass: make secret-scan"
     ],
+    "capacityEvidence": {
+      "scope": "local in-memory httptest only",
+      "machine": "Apple M2 darwin arm64",
+      "products": 24,
+      "variants": 48,
+      "requests": 3000,
+      "concurrency": 32,
+      "failures": 0,
+      "p50Milliseconds": 1.475,
+      "p95Milliseconds": 4.455,
+      "p99Milliseconds": 5.86,
+      "requestsPerSecond": 16060.64,
+      "publicCapacityClaim": false,
+      "document": "SLO_CAPACITY_PLAN.md"
+    },
     "repositoryPreflight": {
-      "result": "fail-existing-shared-baseline",
+      "result": "fail-existing-shared-generated-contract-baseline",
+      "command": "go test ./...",
+      "verifiedAt": "2026-07-29T02:39:00Z",
       "commerceAffected": false,
+      "passingShopPackage": "internal/commerce",
       "failures": [
-        "three shared macOS file-permission assertions",
-        "two shared packages require a missing generated SampleEVMWriteCounter artifact"
-      ]
+        "internal/bftgateway: one test cannot open artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json",
+        "internal/consensus: two tests cannot open artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json"
+      ],
+      "priorMacPermissionFailuresReproduced": false
     },
     "platformEvidence": {
       "android": {
         "sourceStaticVerified": true,
-        "buildSucceeded": false,
-        "installed": false,
+        "buildSucceededCurrentSource": false,
+        "installedCurrentSource": false,
         "blocker": "Android SDK location is not configured on the current host."
       },
       "ios": {
         "sourceStaticVerified": true,
-        "buildSucceeded": false,
-        "installed": false,
+        "buildSucceededCurrentSource": false,
+        "installedCurrentSource": false,
         "blocker": "Full Xcode and an iOS Simulator are absent on the current host."
       }
     },
@@ -83,32 +123,52 @@
       "handoff": "docs/integration/INTEGRATION_HANDOFF.md",
       "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
       "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
-      "coverage": ".ai-bridge/full-goal-coverage.json"
+      "coverage": ".ai-bridge/full-goal-coverage.json",
+      "observability": "OBSERVABILITY.md",
+      "capacity": "SLO_CAPACITY_PLAN.md",
+      "unitEconomics": "UNIT_ECONOMICS.md",
+      "migrationCompatibility": "MIGRATION_COMPATIBILITY.md"
     }
   },
   "priorEvidence": {
     "sourceCommit": "38e2f68deb91d5f26e5aeec2318e260cd0742115",
-    "deployedStaging": true,
-    "downloadHosted": true,
+    "historicallyDeployedStaging": true,
+    "historicallyDownloadHosted": true,
     "stagingUrl": "https://web4.ynxweb4.com/shop-staging/",
     "healthUrl": "https://web4.ynxweb4.com/shop-api-staging/health",
     "versionUrl": "https://web4.ynxweb4.com/shop-api-staging/version",
     "artifactManifest": "docs/handoffs/shop-artifact-manifest.json",
     "installTranscript": "apps/shop/native/evidence/android-install-20260718.txt",
-    "truthBoundary": "Prior Staging and hosted artifacts do not contain the current privacy and validation changes."
+    "observedAt20260729": "404_not_found",
+    "currentlyAvailable": false,
+    "truthBoundary": "Historical staging and hosted artifacts did not contain current privacy, migration, validation, observability or health-boundary changes, and the historical routes returned HTTP 404 during the 2026-07-29 recovery audit."
+  },
+  "publicRouteEvidence": {
+    "url": "https://ynxweb4.com/shop",
+    "observedAt": "2026-07-29T02:39:00Z",
+    "httpStatus": 200,
+    "finalUrl": "https://www.ynxweb4.com/shop",
+    "productPageVerified": false,
+    "reason": "The response was the generic SPA shell and declared canonical https://ynxweb4.com/ rather than a Shop-specific canonical page."
+  },
+  "github": {
+    "pullRequest": null,
+    "branchWorkflowRuns": [],
+    "shopRelease": null
   },
   "knownLimitations": [
-    "The canonical Gateway has not deployed the Shop product registration, so authenticated staging flows fail closed.",
+    "The canonical Gateway has not deployed the Shop product registration, so authenticated public flows fail closed.",
     "A Shop-specific Pay merchant and payout address are not provisioned; payment and refund remain unavailable rather than simulated.",
-    "Current privacy and validation changes are not deployed to Staging or hosted as immutable artifacts.",
+    "Current source is not deployed to Staging or hosted as immutable artifacts.",
+    "The historical Shop staging and API routes returned HTTP 404 on 2026-07-29.",
+    "The official /shop URL currently serves a generic SPA shell whose canonical points to the homepage, so a Shop-specific public page is not verified.",
     "Current Android and iOS build and install evidence is blocked by missing platform toolchains on this host.",
-    "Web/PWA, Android source and iOS source privacy controls are localized across all twelve locales; device-level native accessibility and build evidence still require platform hosts.",
     "Tax and carrier providers are unavailable; shipment entries remain manual-unverified.",
-    "Prior Android artifacts use Testnet Preview signing and are not production signed or store released.",
-    "The full repository suite has unrelated shared baseline failures that must be resolved before release."
+    "Prior Android artifacts used Testnet Preview signing and were not production signed or store released.",
+    "No current branch PR, branch workflow run, or Shop GitHub Release was found during the 2026-07-29 recovery audit."
   ],
   "goalStatus": "active",
-  "currentStage": "FREEZE",
-  "nextAutonomousAction": "Add versioned privacy persistence migration, rollback and old-client vectors, then add capacity and observability evidence.",
-  "generatedAt": "2026-07-28T06:07:38Z"
+  "currentStage": "FREEZE_TO_INTEGRATE",
+  "nextAutonomousAction": "Build deterministic current-source Web/API artifacts with SHA-256, SBOM and provenance, then prepare an exact current-source Staging deployment package without claiming deployment until direct runtime evidence exists.",
+  "generatedAt": "2026-07-29T02:39:00Z"
 }
