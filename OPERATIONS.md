@@ -133,3 +133,13 @@ The archive includes only `ynx_fabric` and `ynx_analytics`, has a SHA-256/byte/c
 4. For broker failure, repair the destination, then requeue the exact DLQ event through an approved operator workflow. The library supports `RequeueDeadLetter`; an authenticated operator API/CLI is still required before public operation.
 5. For a Saga timeout, inspect completed steps and execute compensations in reverse order. If compensation needs Wallet or venue approval, mark manual recovery and expose `action-required` to the user.
 6. For reconciliation mismatch, never rewrite the prior journal entry. Post a linked correction event and new balanced correction entry.
+
+## Service wind-down and user exit
+
+Service stop is a controlled read-only transition, not deletion. First block new producer and mutation traffic at the canonical Gateway, allow leased work to finish or return to a recoverable state, drain the Outbox, and record the last accepted event, journal, Saga and reconciliation identifiers. Publish a source-bound notice through approved support and status routes only after those routes have named owners and verified delivery.
+
+During the exit window, keep authenticated audit and subject export available, preserve immutable financial and public-chain lineage, and apply erasure only to eligible off-chain personal fields through the recorded pseudonymous erasure flow. Never promise deletion of valid public-chain history or silently rewrite journal entries. Disputes, refunds, manual Saga recovery and correction entries remain routed to their authoritative owners.
+
+At the end of the window, take a maintenance-confirmed backup, verify all hashes, counts, event signatures, ledger balance and reconciliation references, restore into a new empty target, and retain the verified manifest under the approved retention policy. Revoke producer and operator credentials only after exports and recovery obligations finish. DNS, public health and download removal require separate Website, Security/SRE and legal approval; absence of those approvals keeps public release states false.
+
+`scripts/data-fabric/service-stop-exit-check.sh` exercises graceful `SIGTERM`, post-stop integrity, backup/restore, subject export and pseudonymous erasure retention against the declared source candidate. It is a local drill and does not prove live support delivery, a public status route, production retention approval or a deployed wind-down.

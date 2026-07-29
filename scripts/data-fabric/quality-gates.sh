@@ -31,3 +31,4 @@ bash scripts/data-fabric/public-release-promotion-check.sh
 YNX_DATA_FABRIC_TEST_SIGNING_ALGORITHM=rsa bash scripts/data-fabric/public-release-promotion-check.sh
 bash scripts/data-fabric/testnet-deployment-check.sh
 bash scripts/data-fabric/testnet-remote-deploy-check.sh
+bash scripts/data-fabric/service-stop-exit-check.sh

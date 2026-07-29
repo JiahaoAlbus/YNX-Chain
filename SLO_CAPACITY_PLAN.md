@@ -6,6 +6,8 @@ No public capacity or availability claim is approved yet. The current single-nod
 
 ## Exploratory local measurement
 
+`evidence/capacity/local-clean-source-20260729.json` records a clean-source sample bound to `645c1080f2ff054ec16a62800a778f62c861cc6d` on Darwin arm64, Go 1.25.12, 8 logical CPUs, 500 events and concurrency 8. Append p50/p95/p99 were 117.887/149.999/177.217 ms, maximum 194.093 ms, with 67.226 events/s overall. Dispatching 500 records to the append-and-fsync event log took 11,575.723 ms; idempotent replay took 10,018.630 ms. Cold reopen took 7.073 ms, integrity audit 5.747 ms, state was 1,082,505 bytes and event log 774,757 bytes. No operation error occurred. This is exact local evidence for the bounded single-process file implementation, not a PostgreSQL, JetStream, shared-Testnet, availability or public-scale claim.
+
 `evidence/capacity/local-working-tree-20260722.json` records a dirty-working-tree sample on Darwin arm64, Go 1.25.7, 8 logical CPUs, 200 events and concurrency 4. Append p50/p95/p99 were 65.353/73.031/120.950 ms, maximum 125.897 ms, with 61.623 events/s overall. Dispatching 200 records to the append-and-fsync event log took 5121.913 ms; idempotent replay took 4085.531 ms. Cold reopen took 2.921 ms, integrity audit 2.282 ms, state was 413,877 bytes and event log 294,089 bytes. No operation error occurred.
 
 This measurement is exploratory because the working tree was uncommitted and the sample is small. It directly contradicts any high-throughput claim and establishes the database/broker replacement gate. Final evidence must rerun at the exact committed source and larger controlled workloads.
