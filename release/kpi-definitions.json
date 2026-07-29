@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-data-fabric",
+  "measurementStatus": "unavailable",
+  "sourceCommit": null,
+  "release": null,
+  "definitions": [
+    {"id":"activation","unit":"ratio","numerator":"distinct eligible accounts whose first accepted event reaches its declared Saga completed state within 24 hours","denominator":"distinct eligible accounts with a first accepted event","minimumEligible":100},
+    {"id":"retention_7d","unit":"ratio","numerator":"activated accounts with an authoritative accepted event on days 6 through 8","denominator":"activated accounts eligible for the complete window","minimumEligible":100},
+    {"id":"retention_30d","unit":"ratio","numerator":"activated accounts with an authoritative accepted event on days 27 through 33","denominator":"activated accounts eligible for the complete window","minimumEligible":100},
+    {"id":"task_completion","unit":"ratio","numerator":"Sagas with status completed","denominator":"Sagas in completed, compensated, or manual-recovery terminal states","minimumEligible":100},
+    {"id":"crash_free_session","unit":"ratio","numerator":"canonical sessions without an authoritative crash event","denominator":"canonical sessions with complete crash telemetry","minimumCoverage":0.95},
+    {"id":"support_load","unit":"cases_per_1000_activated_accounts","numerator":"approved support cases attributable to Data Fabric","denominator":"activated accounts divided by 1000","minimumEligible":100},
+    {"id":"abuse_rate","unit":"ratio","numerator":"Trust-confirmed abuse events after appeals and corrections","denominator":"authoritative accepted events","minimumEligible":1000},
+    {"id":"provider_cost_per_event","unit":"settlement_currency_minor_units","numerator":"reconciled recognized provider and infrastructure cost","denominator":"authoritative accepted events","minimumCoverage":1},
+    {"id":"gross_margin_candidate","unit":"settlement_currency_minor_units","numerator":"recognized consented service revenue minus recognized attributable cost","denominator":"none","minimumCoverage":1},
+    {"id":"public_testnet_usage","unit":"count","numerator":"release-bound public Testnet authoritative facts","denominator":"none","minimumCoverage":1},
+    {"id":"conversion","unit":"ratio","numerator":"eligible activated accounts beginning a separately consented paid service","denominator":"eligible activated accounts shown the same disclosed offer","minimumEligible":100}
+  ],
+  "requiredMeasurementFields": ["windowStart","windowEnd","asOf","sourceVersion","numerator","denominator","value","coverage","status","failure","sourceCommit","release"],
+  "currentMeasurements": []
+}

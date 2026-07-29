@@ -1,7 +1,7 @@
 # YNX Chain Documentation and Compliance Candidate Release Notes
 
-Date: 2026-07-22  
-Source baseline: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`  
+Date: 2026-07-22
+Source baseline: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`
 Release class: documentation/evidence candidate; not a product launch
 
 ## Included

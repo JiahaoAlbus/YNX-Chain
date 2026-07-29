@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-22T16:55:40Z",
+  "sourceCommit": null,
+  "dirtyWorktree": true,
+  "browser": "Google Chrome 150.0.7871.129",
+  "state": "authoritative-evidence-unavailable",
+  "dataFixtureUsed": false,
+  "canonicalWalletSessionUsed": false,
+  "captures": [
+    {
+      "file": "operator-console-desktop-unavailable-20260722.png",
+      "viewportCSSPixels": {"width": 1440, "height": 1200},
+      "bytes": 92899,
+      "sha256": "3cf691d6088f8c5bca17e600597a7ce7715e19ed790fe833110a026d45cef53b"
+    },
+    {
+      "file": "operator-console-390-unavailable-20260722.png",
+      "viewportCSSPixels": {"width": 390, "height": 1200},
+      "documentScrollWidthCSSPixels": 390,
+      "horizontalOverflow": false,
+      "bytes": 59870,
+      "sha256": "c4fb3c46a4ca9810596432fc9869e5c52be56ac6b98f26e387f2831cf0199a20"
+    }
+  ],
+  "limitations": [
+    "captures only the truthful unavailable state against a static local asset server",
+    "no authoritative API response, canonical Wallet bridge, protected record, mutation, accessibility technology, native-language review, or public endpoint was tested",
+    "not release, staging, public deployment, or independent evidence"
+  ]
+}

@@ -164,7 +164,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	}
 	var status Status
 	getJSON(t, server.URL+"/status", &status)
-	if status.ChainID != 6423 || status.CometChainID != "ynx_6423-1" || status.ConsensusEngine != "cometbft" || status.EarliestBlockHeight != 11 || status.EarliestBlockHash != strings.Repeat("e", 64) || status.PublicCutoverReady || status.MigrationHeight != 16 || status.MigrationBlockHash != strings.ToLower(migrationHash) {
+	if status.ChainID != 6423 || status.CometChainID != "ynx_6423-1" || status.ConsensusEngine != "cometbft" || status.EarliestBlockHeight != 11 || status.EarliestBlockHash != strings.Repeat("e", 64) || status.PublicCutoverReady || status.MigrationHeight != 16 || status.MigrationBlockHash != strings.ToLower(migrationHash) || status.Build.Commit != "abc123" {
 		t.Fatalf("unexpected status: %+v", status)
 	}
 	var block chain.Block

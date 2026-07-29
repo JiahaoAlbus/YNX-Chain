@@ -1,6 +1,6 @@
 # Public Documentation and Testnet Launch Plan
 
-Version: 1.0.0-candidate  
+Version: 1.0.0-candidate
 Status: gated plan; launch not authorized
 
 ## Phases

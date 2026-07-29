@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 39,
+  "title": "YNX Data Fabric — Integrity and Recovery",
+  "uid": "ynx-data-fabric",
+  "tags": ["ynx", "data-fabric", "testnet"],
+  "timezone": "utc",
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "templating": {"list": []},
+  "panels": [
+    {"id":1,"type":"stat","title":"Scrape health","targets":[{"expr":"min(up{job=\"ynx-data-fabric\"})","refId":"A"}],"gridPos":{"h":6,"w":4,"x":0,"y":0}},
+    {"id":2,"type":"stat","title":"Pending Outbox","targets":[{"expr":"sum(ynx_data_fabric_outbox_pending)","refId":"A"}],"gridPos":{"h":6,"w":4,"x":4,"y":0}},
+    {"id":3,"type":"stat","title":"Dead letters","targets":[{"expr":"sum(ynx_data_fabric_dead_letters)","refId":"A"}],"gridPos":{"h":6,"w":4,"x":8,"y":0}},
+    {"id":4,"type":"stat","title":"Sagas in recovery","targets":[{"expr":"sum(ynx_data_fabric_sagas_recovery)","refId":"A"}],"gridPos":{"h":6,"w":4,"x":12,"y":0}},
+    {"id":5,"type":"stat","title":"Reconciliation exceptions","targets":[{"expr":"sum(ynx_data_fabric_reconciliation_mismatches)","refId":"A"}],"gridPos":{"h":6,"w":4,"x":16,"y":0}},
+    {"id":6,"type":"stat","title":"Analytics facts","targets":[{"expr":"sum(ynx_data_fabric_analytics_facts)","refId":"A"}],"gridPos":{"h":6,"w":4,"x":20,"y":0}},
+    {"id":7,"type":"timeseries","title":"Requests and errors","targets":[{"expr":"sum(rate(ynx_data_fabric_requests_total[5m]))","legendFormat":"requests/s","refId":"A"},{"expr":"sum(rate(ynx_data_fabric_errors_total[5m]))","legendFormat":"errors/s","refId":"B"}],"gridPos":{"h":8,"w":12,"x":0,"y":6}},
+    {"id":8,"type":"timeseries","title":"Oldest eligible Outbox age","targets":[{"expr":"clamp_min(time() - max(ynx_data_fabric_outbox_oldest_available_timestamp_seconds), 0)","legendFormat":"seconds","refId":"A"}],"gridPos":{"h":8,"w":12,"x":12,"y":6}},
+    {"id":9,"type":"timeseries","title":"Authoritative record counts","targets":[{"expr":"sum(ynx_data_fabric_events)","legendFormat":"events","refId":"A"},{"expr":"sum(ynx_data_fabric_journal_entries)","legendFormat":"journal entries","refId":"B"},{"expr":"sum(ynx_data_fabric_reconciliations)","legendFormat":"reconciliations","refId":"C"}],"gridPos":{"h":8,"w":24,"x":0,"y":14}}
+  ]
+}

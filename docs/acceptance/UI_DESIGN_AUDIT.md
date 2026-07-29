@@ -1,7 +1,7 @@
 # UI Design Audit
 
-Audit date: 2026-07-22  
-Scope: documentation/Website handoff and central product acceptance evidence  
+Audit date: 2026-07-22
+Scope: documentation/Website handoff and central product acceptance evidence
 Result: partial; no claim of complete product UI acceptance
 
 ## Findings

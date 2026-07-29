@@ -1,0 +1,182 @@
+package datafabric
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+)
+
+type testCredentialProvider struct {
+	t            *testing.T
+	expectedPath string
+}
+
+func (p testCredentialProvider) Credentials(_ context.Context, binding RequestBinding) (CanonicalCredentials, error) {
+	expectedPath := p.expectedPath
+	if expectedPath == "" {
+		expectedPath = "/v1/events"
+	}
+	if binding.Method == "" || binding.Path != expectedPath || len(binding.ContentSHA256) != 64 {
+		p.t.Fatalf("SDK supplied incomplete signing binding: %+v", binding)
+	}
+	return CanonicalCredentials{AppSession: "opaque-session", SessionID: "session.sdk.0001", DeviceID: "device.sdk.0001", Product: "pay", BundleID: "app.ynx.pay", RequestID: "request.sdk.0001", RequestNonce: "nonce.sdk.0001", RequestTime: time.Now().UTC(), DeviceSignature: "canonical-device-signature"}, nil
+}
+
+func TestClientBindsCanonicalCredentialsAndValidatesAppendAcknowledgement(t *testing.T) {
+	event := sdkClientEvent(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for _, header := range []string{"X-YNX-App-Session", "X-YNX-Session-ID", "X-YNX-Device-ID", "X-YNX-Product", "X-YNX-Bundle-ID", "X-YNX-Request-ID", "X-YNX-Request-Nonce", "X-YNX-Timestamp", "X-YNX-Device-Signature", "X-YNX-Content-SHA256"} {
+			if r.Header.Get(header) == "" {
+				t.Errorf("missing canonical header %s", header)
+			}
+		}
+		_ = json.NewEncoder(w).Encode(AppendResult{EventID: event.EventID, Status: "committed-to-outbox", AuditID: event.AuditID})
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, server.Client(), testCredentialProvider{t: t})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := client.AppendEvent(context.Background(), event)
+	if err != nil || result.EventID != event.EventID {
+		t.Fatalf("append failed: %+v %v", result, err)
+	}
+}
+
+func TestClientReplayUsesApprovalControlPlaneAndValidatesCompletionTruth(t *testing.T) {
+	previewHash := strings.Repeat("a", 64)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if dryRun, _ := body["dryRun"].(bool); dryRun {
+			_ = json.NewEncoder(w).Encode(RedeliveryPreviewResult{
+				Preview: RedeliveryPreview{
+					Mode:      RedeliveryReplay,
+					Scope:     RedeliveryScope{Product: "pay", AggregateID: "invoice.sdk.0001", Limit: 10},
+					ScopeHash: previewHash, CandidateCount: 1,
+					Candidates:  []RedeliveryCandidate{{EventID: "event.pay.sdk.replay.0001", EventType: "pay.invoice.created", SchemaVersion: EnvelopeSchemaVersion, AggregateID: "invoice.sdk.0001", Sequence: 1, OccurredAt: time.Now().UTC(), IntegrityHash: strings.Repeat("b", 64), DeliveryStatus: "published"}},
+					GeneratedAt: time.Now().UTC(),
+				},
+				RequiresApproval: true, ExecutionEndpoint: "/v1/replay",
+			})
+			return
+		}
+		idempotencyKey, _ := body["idempotencyKey"].(string)
+		_ = json.NewEncoder(w).Encode(RedeliveryExecutionResult{
+			Run: RedeliveryRun{
+				RunID: "redelivery.sdk.0001", IdempotencyKey: idempotencyKey, Mode: RedeliveryReplay,
+				ApprovalStatus: "approved", ControlVersion: "1.0", SourceCommit: "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+				SourceRelease: "data-fabric-testnet-v0", Status: "completed", CandidateCount: 1, EnqueuedCount: 1,
+			},
+			BusinessCompletion: "pending-consumer-effects", ExactlyOnceClaim: "idempotent-effect-not-broker-delivery",
+		})
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, server.Client(), testCredentialProvider{t: t, expectedPath: "/v1/replay"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err := client.PreviewReplay(context.Background(), RedeliveryPreviewRequest{AggregateID: "invoice.sdk.0001", Limit: 10})
+	if err != nil || preview.Preview.ScopeHash != previewHash || !preview.RequiresApproval {
+		t.Fatalf("SDK replay preview failed: %+v err=%v", preview, err)
+	}
+	result, err := client.ExecuteReplay(context.Background(), RedeliveryExecutionRequest{
+		IdempotencyKey: "idempotency.sdk.replay.0001", AggregateID: "invoice.sdk.0001", Limit: 10,
+		PreviewHash: preview.Preview.ScopeHash, Reason: "approved SDK replay after verified outage",
+		ApprovalID: "approval.sdk.replay.0001", ApprovalStatus: "approved", Confirm: true, AuditID: "audit.sdk.replay.0001",
+	})
+	if err != nil || result.Run.EnqueuedCount != 1 || result.BusinessCompletion != "pending-consumer-effects" {
+		t.Fatalf("SDK replay execution failed: %+v err=%v", result, err)
+	}
+}
+
+func TestClientBindsAndValidatesJournalCorrection(t *testing.T) {
+	now := time.Date(2026, 7, 22, 16, 5, 0, 0, time.UTC)
+	correction := JournalEntry{
+		EntryID: "journal.sdk.reversal.0001", CorrectionOf: "journal.sdk.original.0001",
+		CorrelationID: "correlation.sdk.0001", EventID: "event.pay.sdk.0001",
+		EffectiveAt: now, RecordedAt: now, Description: "exact reversal", RevenueBoundary: "payment-settled",
+		SourceCommit: "719e101", SourceRelease: "data-fabric-testnet-v0", AuditID: "audit.sdk.reversal.0001",
+		Postings: []Posting{
+			{AccountID: "account.sdk.0001", Asset: "USD", Currency: "USD", Side: Credit, Amount: 100, Category: "refund"},
+			{AccountID: "account.provider.sdk.0001", Asset: "USD", Currency: "USD", Side: Debit, Amount: 100, Category: "provider-net"},
+		},
+	}
+	path := "/v1/ledger/journal/" + correction.CorrectionOf + "/corrections"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != path {
+			t.Errorf("unexpected correction request: %s %s", r.Method, r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(JournalCorrectionResult{EntryID: correction.EntryID, CorrectionOf: correction.CorrectionOf, Status: "reversal-recorded", AuditID: correction.AuditID})
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, server.Client(), testCredentialProvider{t: t, expectedPath: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := client.CorrectJournal(context.Background(), correction)
+	if err != nil || result.EntryID != correction.EntryID {
+		t.Fatalf("SDK journal correction failed: %+v err=%v", result, err)
+	}
+}
+
+func TestClientClaimsAndCompletesSagaRecovery(t *testing.T) {
+	now := time.Now().UTC()
+	task := SagaRecoveryTask{
+		TaskID: "saga-recovery.0123456789abcdef0123456789abcdef", SagaID: "saga.pay.sdk.recovery.0001",
+		Product: "pay", AggregateID: "invoice.sdk.recovery.0001", CorrelationID: "correlation.sdk.recovery.0001",
+		StepIndex: 0, Compensation: "void-authorization", Failure: "timeout", AuditID: "audit.sdk.recovery.0001",
+		LeaseOwner: "worker.pay.sdk.0001", LeaseUntil: now.Add(time.Minute), Attempt: 1,
+	}
+	var calls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		switch r.URL.Path {
+		case "/v1/sagas/recovery/claims":
+			_ = json.NewEncoder(w).Encode(SagaRecoveryClaimResult{Tasks: []SagaRecoveryTask{task}, Source: "ynx-saga-recovery", AsOf: now, Version: "data-fabric-testnet-v0", Status: "authoritative"})
+		case "/v1/sagas/" + task.SagaID + "/compensations":
+			_ = json.NewEncoder(w).Encode(SagaInstance{SagaID: task.SagaID, Product: task.Product, Status: SagaCompensated})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	provider := testCredentialProvider{t: t, expectedPath: "/v1/sagas/recovery/claims"}
+	client, err := NewClient(server.URL, server.Client(), provider)
+	if err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := client.ClaimSagaRecoveries(context.Background(), 60, 10)
+	if err != nil || len(claimed.Tasks) != 1 {
+		t.Fatalf("SDK Saga recovery claim failed: %+v %v", claimed, err)
+	}
+	client.credentials = testCredentialProvider{t: t, expectedPath: "/v1/sagas/" + task.SagaID + "/compensations"}
+	instance, err := client.CompleteSagaRecovery(context.Background(), claimed.Tasks[0], "event.pay.sdk.voided.0001")
+	if err != nil || instance.Status != SagaCompensated || calls != 2 {
+		t.Fatalf("SDK Saga recovery completion failed: %+v %v", instance, err)
+	}
+}
+
+func TestClientRejectsInsecureRemoteEndpoint(t *testing.T) {
+	if _, err := NewClient("http://data-fabric.invalid", nil, testCredentialProvider{t: t}); err == nil {
+		t.Fatal("insecure remote endpoint was accepted")
+	}
+}
+
+func sdkClientEvent(t *testing.T) EventEnvelope {
+	t.Helper()
+	now := time.Date(2026, 7, 22, 16, 0, 0, 0, time.UTC)
+	event := EventEnvelope{EventID: "event.pay.sdk.0001", EventType: "pay.invoice.created", SchemaVersion: EnvelopeSchemaVersion, Product: "pay", Service: "invoice", AggregateID: "invoice.sdk.0001", Actor: Actor{ActorID: "actor.sdk.0001", AccountID: "account.sdk.0001", SessionID: "session.sdk.0001"}, CorrelationID: "correlation.sdk.0001", Sequence: 1, Timestamp: now, EffectiveAt: now, SourceCommit: "719e1018267ed5a53e6fae5211c5fd8a1503c35c", SourceRelease: "pay-testnet-v0", PrivacyClassification: "confidential", RetentionClass: "financial-7y", AuditID: "audit.sdk.0001", Source: SourceMetadata{Source: "sdk-test", AsOf: now, Version: "1", Status: "authoritative"}, Payload: json.RawMessage(`{"status":"created"}`)}
+	if err := event.Sign("key.sdk.0001", []byte("0123456789abcdef0123456789abcdef")); err != nil {
+		t.Fatal(err)
+	}
+	return event
+}

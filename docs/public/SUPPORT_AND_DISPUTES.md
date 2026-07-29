@@ -1,6 +1,6 @@
 # Support, Security Reports, Disputes, and Refunds
 
-Version: 1.0.0-candidate  
+Version: 1.0.0-candidate
 Status: workflow specification; public support URL and staffed service not evidenced
 
 YNX operators will never ask for a seed phrase, private key, validator key, PEM file, CVV or complete API secret. Until an official support URL is published in `public-product-metadata.json`, users should not trust an unofficial contact claiming to recover funds or accounts.

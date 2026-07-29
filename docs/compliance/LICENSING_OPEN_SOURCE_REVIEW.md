@@ -1,7 +1,7 @@
 # Licensing and Open-Source Review
 
-Version: 0.1.0-candidate  
-Last reviewed: 2026-07-22  
+Version: 0.1.0-candidate
+Last reviewed: 2026-07-22
 Status: incomplete; counsel and artifact-specific inventory required
 
 ## Current evidence

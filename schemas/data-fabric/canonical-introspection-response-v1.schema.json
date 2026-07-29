@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynx.test/data-fabric/canonical-introspection-response-v1.schema.json",
+  "title": "YNX Data Fabric Canonical Introspection Response v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionId","accountId","deviceId","product","bundleId","scopes","expiresAt","active","requestBound"],
+  "properties": {
+    "sessionId": {"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"},
+    "accountId": {"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"},
+    "deviceId": {"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"},
+    "product": {"type":"string","pattern":"^[a-z0-9][a-z0-9-]{1,62}$"},
+    "bundleId": {"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._-]{2,255}$"},
+    "scopes": {"type":"array","minItems":1,"maxItems":32,"uniqueItems":true,"items":{"type":"string","pattern":"^fabric\\.(events|ledger|sagas|reconciliation|audit|privacy)\\.(read|write|recover|export|erase)$"}},
+    "expiresAt": {"type":"string","format":"date-time"},
+    "active": {"const":true},
+    "requestBound": {"const":true}
+  }
+}

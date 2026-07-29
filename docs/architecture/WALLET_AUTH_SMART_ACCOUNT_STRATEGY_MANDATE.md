@@ -1,7 +1,7 @@
 # Wallet/Auth, Smart Account, and Strategy Mandate
 
-Version: 0.1.0-candidate  
-Last reviewed: 2026-07-22  
+Version: 0.1.0-candidate
+Last reviewed: 2026-07-22
 Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`
 
 ## Accepted local authentication boundary
