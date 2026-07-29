@@ -1,26 +1,18 @@
 # Blockers
 
-Updated: `2026-07-29T02:44:44Z`
+Updated: `2026-07-29T11:22:02Z`
 
-No MCP or local execution-infrastructure blocker is active.
+No local execution-infrastructure or external blocker is active.
 
-## Autonomous blockers
+Autonomous remaining work:
 
-These are work items, not external blockers:
+- Product 29 has no PR or exact-head CI evidence yet.
+- The detailed Product Release Matrix and three-way readiness classification are not yet generated.
+- Product 30 has two non-terminal coverage rows; the central scanner correctly reports them instead of falsely accepting the product.
+- No owner product is centrally accepted yet.
+- Central protocol freeze, shared Testnet, cross-product E2E, release train and public proof remain incomplete.
+- Twenty-five owner Worktrees were dirty during the point-in-time scan and must be processed one at a time.
 
-- No Integration pull request or exact-head CI run exists yet.
-- The central matrix has zero accepted products.
-- Product-owner branches and Worktrees are moving concurrently; stale snapshots cannot be promoted.
-- Security/SRE product 30 is observed, but its central row still reports unresolved autonomous coverage.
-- Phase 0 owner contracts and central negative vectors have not been fully accepted.
-- Shared Testnet, restore, rollback, artifact, release and public-proof gates remain incomplete.
-- Integration website handoff exists locally, but `/integration` deployment is unverified.
+Default-branch Dependabot still reports 24 alerts because the Product 30 remediation is not in `main`; this is autonomous release-train work, not an external blocker.
 
-## External inputs not yet eligible for escalation
-
-Production signer material, irreversible production cutover authority, legal approval, store credentials, paid-provider authority and real-funds permissions may become external blockers only after all autonomous preparation is complete. None is being requested in chat at this stage.
-
-## Transient incidents
-
-- Earlier npm audit policy self-tests encountered `ETIMEDOUT`. The self-test is now deterministic and offline; the separate real Registry audit retains bounded transient-network retry and still fails on persistent network or vulnerability findings. This is not a product blocker.
-- One GitHub release query encountered a TLS handshake timeout after bounded retries. Actions and artifact queries succeeded; release state remains unavailable rather than guessed.
+Production signing, HSM/KMS, stores, paid providers, legal approval, independent audit, production DNS/cloud authority, real assets and Mainnet decision are not requested until autonomous candidate work is exhausted.

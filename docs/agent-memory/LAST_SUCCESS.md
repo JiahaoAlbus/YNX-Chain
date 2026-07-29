@@ -1,25 +1,15 @@
 # Last Success
 
-Updated: `2026-07-29T03:02:49Z`
+Updated: `2026-07-29T11:22:02Z`
 
-The latest protected source checkpoint is `d05ddf0a9d0d5a7b05b6c792eec547bfde06b215` on `codex/final-integration`.
+The latest exact clean protected Integration source is `9168e63d0331be69738367a6299247c6263c278a`.
 
-Direct successes:
+Direct evidence:
 
-- Local and Remote Integration branch SHAs matched after Push.
-- The Worktree was clean before exact-commit verification.
-- `make integration-protect-preflight` passed on the protected source commit.
-- The generated 36-product acceptance matrix passed the fail-closed validator.
-- The scanner and validator negative self-tests passed.
-- The central matrix and GitHub evidence snapshot were committed and remotely recoverable.
+- Local and Remote Integration SHAs matched.
+- Product 30 exact candidate `9c9931aa…` is in the Integration history.
+- The authoritative 36-product scan found all 36 branches, remotes, Worktrees and upstreams.
+- Product 30 is read from `JiahaoAlbus/YNX-Chain` and its product-scoped evidence bundle.
+- `make integration-protect-preflight` passed on the exact clean source.
 
-Evidence:
-
-- `release/integration/acceptance-matrix.json`
-- `release/integration/github-evidence.json`
-- `release/integration/evidence/protect-preflight-d05ddf0a.json`
-- `release/integration/evidence/protect-preflight-20191a3e.json`
-
-Production boundary:
-
-This success proves a protected and tested local Integration controller slice. It does not prove central product acceptance, shared Testnet acceptance, public deployment, release publication, production signing or Mainnet readiness.
+This proves a protected central integration candidate. It does not prove merge to `main`, shared Testnet, public runtime, Website publication, production signing or Mainnet.

@@ -41,3 +41,20 @@
 
 - Decision: Do not claim branch CI when the workflow only runs on `main` or pull requests targeting `main`.
 - Next consequence: Open a real PR and bind CI results to its exact head SHA.
+
+## 2026-07-29 — Integrate Product 30 from the authoritative repository
+
+- Decision: Merge the exact green Product 30 candidate from `JiahaoAlbus/YNX-Chain`; retain `JiahaoAlbus/YNX` only as documented legacy recovery material.
+- Decision: Treat the independent Product 30 checkout as a registered separate Worktree even though it uses the same authoritative repository as Integration.
+- Result: The scanner observes Local SHA = Remote SHA at `9c9931aa…` and reads Product 30's scoped evidence instead of another product's root evidence.
+
+## 2026-07-29 — Eliminate global vector filename collision
+
+- Decision: Preserve Integration's global `CROSS_PRODUCT_TEST_VECTORS.json` and move Resource Market's contract vectors to `RESOURCE_MARKET_CROSS_PRODUCT_TEST_VECTORS.json`.
+- Reason: Two owners cannot safely use one global path with incompatible schemas.
+- Verification: Targeted Resource Market test and the complete Integration preflight passed.
+
+## 2026-07-29 — Do not auto-accept Product 30
+
+- Decision: Keep Product 30 central acceptance null while its source coverage contains two non-terminal rows, even though its PR is green and its branch is merged into the Integration candidate.
+- Reason: Code inclusion, owner completion and central acceptance are distinct evidence states.

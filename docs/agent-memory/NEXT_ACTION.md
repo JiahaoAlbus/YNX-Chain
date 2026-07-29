@@ -1,12 +1,11 @@
 # Next Action
 
-Updated: `2026-07-29T02:44:44Z`
+Updated: `2026-07-29T11:22:02Z`
 
-1. Run the Integration acceptance validator and complete protection preflight against the current coverage-generator, metadata, release and recovery-memory changes.
-2. Review the complete diff and commit it as one Integration-owned evidence/recovery slice.
-3. Push `codex/final-integration` and verify Local SHA equals Remote SHA.
-4. Open a pull request from `codex/final-integration` to `main` to trigger the repository CI workflow.
-5. Inspect every job for the exact PR head SHA; fix failures without weakening gates.
-6. After green CI, regenerate the matrix/GitHub snapshot against the protected source and begin explicit Phase 0 bundle review in dependency order.
+1. Commit and push this exact-source receipt and recovery memory, then verify Local SHA equals Remote SHA.
+2. Open Product 29's pull request to `main` and wait for every check at the exact head SHA.
+3. Extend the central inventory into the authoritative Product Release Matrix with the required release-state booleans and `READY_FOR_PUBLIC_TESTNET`, `READY_FOR_SOURCE_RELEASE`, or `HOLD_FOR_RECOVERY` classification.
+4. Record a machine-readable Product 30 central acceptance decision only after its two remaining owner coverage rows are truthfully reclassified; never hide them.
+5. Audit the current open/draft release-train PRs and freeze the unique central protocol versions before shared Testnet execution.
 
-Do not centrally accept any product merely because its matrix row is `implementedLocal`; acceptance requires exact owner tests, central negative vectors, artifact verification and dependency approval.
+Do not promote a candidate because it is merged into this branch. `main`, Testnet, runtime, Website and production states require separate direct evidence.
