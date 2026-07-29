@@ -161,6 +161,8 @@ async function startChrome() {
     "--headless=new",
     "--remote-debugging-port=0",
     `--user-data-dir=${userDataDir}`,
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
     "--no-first-run",
     "--no-default-browser-check",
     "--disable-background-networking",
@@ -175,9 +177,21 @@ async function startChrome() {
   let stderr = "";
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", (chunk) => { stderr += chunk; });
+  const stop = async () => {
+    if (child.exitCode === null && child.signalCode === null) {
+      const exited = new Promise((resolve) => child.once("exit", resolve));
+      child.kill("SIGTERM");
+      const stopped = await Promise.race([exited.then(() => true), delay(5000).then(() => false)]);
+      if (!stopped && child.exitCode === null && child.signalCode === null) {
+        child.kill("SIGKILL");
+        await exited;
+      }
+    }
+    await rm(userDataDir, {recursive: true, force: true});
+  };
   const activePortFile = path.join(userDataDir, "DevToolsActivePort");
   let active;
-  for (let attempt = 0; attempt < 200; attempt += 1) {
+  for (let attempt = 0; attempt < 600; attempt += 1) {
     if (child.exitCode !== null || child.signalCode !== null) break;
     try {
       const [port, websocketPath] = (await readFile(activePortFile, "utf8")).trim().split(/\r?\n/);
@@ -190,21 +204,14 @@ async function startChrome() {
     }
     await delay(25);
   }
-  assert(active, `Chrome did not expose DevTools; stderr=${stderr.slice(-2000)}`);
+  if (!active) {
+    const diagnostic = stderr.slice(-2000);
+    await stop();
+    throw new Error(`Chrome did not expose DevTools within 15000ms; stderr=${diagnostic}`);
+  }
   return {
     websocketUrl: `ws://127.0.0.1:${active.port}${active.websocketPath}`,
-    close: async () => {
-      if (child.exitCode === null && child.signalCode === null) {
-        const exited = new Promise((resolve) => child.once("exit", resolve));
-        child.kill("SIGTERM");
-        const stopped = await Promise.race([exited.then(() => true), delay(5000).then(() => false)]);
-        if (!stopped && child.exitCode === null && child.signalCode === null) {
-          child.kill("SIGKILL");
-          await exited;
-        }
-      }
-      await rm(userDataDir, {recursive: true, force: true});
-    },
+    close: stop,
   };
 }
 
