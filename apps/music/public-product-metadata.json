@@ -14,7 +14,7 @@
   "productionSigned": false,
   "storeReleased": false,
   "releaseChannel": "testnet-preview",
-  "sourceCommit": "74716a19d95fc191b54102adc02000a91fafec24",
+  "sourceCommit": "22653153c62529f782f44b0a35177b531ae7e8af",
   "statusLabel": "Local testnet candidate; central integration and public deployment are not verified",
   "features": [
     "Wallet-bound listener and creator sessions",
@@ -24,6 +24,7 @@
     "Rights declaration, provenance, evidence reference and territory fields",
     "Review-only YNX Pay settlement intents and YNX Trust dispute adapters",
     "Consent-based AI playlist proposals with approve or reject controls",
+    "Schema-v1 to v2 migration with verified state-and-media backup and clean restore",
     "Twelve interface languages with Arabic right-to-left support"
   ],
   "truthBoundaries": [
@@ -35,8 +36,8 @@
   ],
   "platforms": {
     "web": "implemented-and-tested-locally",
-    "android": "built-locally-not-currently-install-verified",
-    "ios": "source-implemented-current-ci-failing",
+    "android": "exact-sha-ci-built-not-physical-device-install-verified",
+    "ios": "exact-sha-ci-simulator-build-install-cold-start-and-restart-verified",
     "macos": "not-yet-delivered",
     "windows": "not-yet-delivered"
   },
@@ -89,7 +90,7 @@
     },
     {
       "question": "Are Android and iOS downloads available?",
-      "answer": "Not yet. Android artifacts have been built locally but are not immutably hosted, and the current iOS Simulator CI build is failing."
+      "answer": "Not yet. Exact-source Android and iOS Simulator CI builds pass, but artifacts are not immutably hosted, Android has no physical-device installation evidence, and neither platform is production-signed."
     },
     {
       "question": "Is YNX Music deployed publicly?",

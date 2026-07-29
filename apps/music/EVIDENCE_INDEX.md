@@ -1,6 +1,6 @@
 # YNX Music evidence index
 
-Runtime source commit: `74716a19d95fc191b54102adc02000a91fafec24`  
+Runtime source commit: `22653153c62529f782f44b0a35177b531ae7e8af`  
 Release stage: **PROTECT**  
 Long-term status: **ACTIVE**
 
@@ -18,6 +18,10 @@ Evidence is classified by what was actually proved. Local, CI, installed, centra
 | Failed persistence does not mutate memory | `TestMutationDoesNotLeakIntoMemoryWhenPersistenceFails` | Pass | testedLocal |
 | Restart restores private media path without serializing it publicly | `TestPlaybackPositionRecoveryAndUsageIdempotency` | Pass | testedLocal |
 | State tamper fails closed | `TestTamperedStateFailsClosed` | Pass | testedLocal |
+| Schema-v1 golden migrates to persisted schema v2 | `TestSchemaV1GoldenMigratesAndPersistsV2` | Pass; original integrity verified before migration | migrationVerifiedLocal |
+| Future, tampered or non-advancing schema migration fails closed | `TestSchemaMigrationFailsClosed` | Pass | testedLocal |
+| Consistent state-and-media backup and clean restore | `TestBackupRestoreRoundTrip` | Pass with byte-for-byte media verification | restoreVerifiedLocal |
+| Tampered backup and dirty destination fail closed | `TestRestoreRejectsTamperedBackupAndDirtyDestination` | Pass | testedLocal |
 
 ## Wallet, Pay, Trust and AI boundaries
 
@@ -53,7 +57,7 @@ Evidence is classified by what was actually proved. Local, CI, installed, centra
 | Platform | Evidence | Result | Signing/install truth |
 | --- | --- | --- | --- |
 | Android | Local Gradle 105-task build; CI Android job success; `apksigner` certificate verification | Build pass | Debug and instrumentation APKs verified with Android Debug certificate SHA-256 `d4e562…154e`; release APK returned `DOES NOT VERIFY`; current commit not installed/cold-started |
-| iOS | Swift parse local; CI iOS Simulator job | CI build failed | No current app artifact, install, cold start or signing evidence |
+| iOS | Exact-SHA CI run `30417406111`: dynamic Simulator build, install, cold start, tampered callback rejection and restart | Pass | Unsigned Simulator evidence artifact only; no physical-device or production-signing claim |
 | Web | Embedded server smoke | Pass local | No verified public deployment |
 | macOS | None | Not delivered | No native artifact |
 | Windows | None | Not delivered | No native artifact |
@@ -63,18 +67,18 @@ Android hashes and byte counts are recorded in `ARTIFACT_MANIFEST.json`. The fil
 ## CI and remote evidence
 
 - Workflow: `music-platforms`
-- Run ID: `30277833892`
-- Head SHA: `74716a19d95fc191b54102adc02000a91fafec24`
-- Service job: success
+- Run ID: `30417406111`
+- Head SHA: `22653153c62529f782f44b0a35177b531ae7e8af`
+- Service job: success, including Go, Race, smoke, central-contract and i18n gates
 - Android job: success, artifact upload step success
-- iOS Simulator job: failure
-- Workflow conclusion: failure
+- iOS Simulator job: success, including install, cold start, tampered callback rejection and restart
+- Workflow conclusion: success
 - GitHub Release: no Music release found during recovery
-- Final-branch artifact inventory: incomplete because the GitHub artifact API timed out twice; no hosted/public artifact claim was made
+- Workflow artifacts are CI evidence only; no immutable hosted/public download claim is made
 
 ## Cross-owner repository preflight
 
-`go test ./...` passed all Music packages but failed in other owners: Consensus/BFT lacked a DevTools contract artifact, and Consensus TX/Faucet/Trust key-permission expectations failed on the current host. These failures remain outside Music ownership and block a repository-wide final green gate.
+`go test ./...` passed all Music packages but failed in other owners because `artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json` was absent for BFT/Consensus tests. This generated DevTools artifact is outside Music ownership and blocks a repository-wide final green gate; Music did not synthesize or commit another Owner's artifact.
 
 ## Release truth files
 
@@ -89,4 +93,4 @@ Android hashes and byte counts are recorded in `ARTIFACT_MANIFEST.json`. The fil
 
 ## Explicitly absent evidence
 
-No evidence currently proves central owner acceptance, shared Testnet E2E, a licensed public catalog, paid royalty finality, migration/rollback, backup restore drill, capacity/SLO, unit economics, threat-model closure, public runtime deployment, immutable hosted download, production signing or store release.
+No evidence currently proves central owner acceptance, shared Testnet E2E, a licensed public catalog, paid royalty finality, downgrade/rollback migration, remote disaster recovery with measured RTO/RPO, capacity/SLO, unit economics, threat-model closure, public runtime deployment, immutable hosted download, production signing or store release.

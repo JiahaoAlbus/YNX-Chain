@@ -1,47 +1,67 @@
 # YNX Music migration and compatibility
 
-Runtime source commit: `74716a19d95fc191b54102adc02000a91fafec24`
+Runtime source commit: `22653153c62529f782f44b0a35177b531ae7e8af`
 
 ## Current persisted schema
 
-- State schema version: `1`
-- Format: JSON with SHA-256 integrity field
-- Save behavior: temporary file, mode `0600`, atomic rename
-- In-memory publication: copy-on-write after successful durable save
-- Audit: append-only hash chain in the state document
-- Private media paths: omitted from JSON and reconstructed from track IDs after load
+- State schema version: `2`
+- Format: JSON with a SHA-256 integrity field
+- Save behavior: mode `0600`, temporary file, `fsync`, atomic rename
+- In-memory publication: copy-on-write only after a successful durable save
+- Audit: append-only sequence and hash chain inside the state document
+- Private media paths: omitted from JSON and reconstructed from canonical track IDs
+- Future schemas: rejected fail closed
 
-## Compatibility already verified
+## Schema-v1 compatibility
 
-- Existing schema-v1 state can restart and recover profiles, tracks, listener state, usage, allocations, settlements, cases, AI proposals, idempotency and audit.
-- Pre-atomic global Trust and Pay idempotency keys remain readable for exact replay.
-- Private WAV paths are reconstructed without exposing local server paths in API JSON.
-- A tampered state integrity hash fails closed.
-- A failed save does not publish partial memory state or append an audit event.
+Schema v1 remains an accepted legacy input. Startup performs the following bounded migration:
 
-## Missing migration gates
+1. Decode the v1 document and require all state collections.
+2. Verify the original v1 integrity hash before changing any field.
+3. Verify every audit sequence, previous-hash link, payload hash and event hash.
+4. Advance exactly one version to schema v2.
+5. Recompute the state integrity hash.
+6. Verify every referenced private media object and its SHA-256.
+7. Persist the migrated v2 document atomically.
 
-The product does not yet have:
+The committed golden fixture is `internal/music/testdata/state-v1-empty.json`. Tests also prove that a future schema, a tampered v1 integrity hash and a migration that does not advance exactly one version are rejected.
 
-- a versioned migration registry;
-- schema-v1 golden fixtures committed for forward compatibility;
-- schema-v2 implementation;
-- rollback migration or downgrade guard;
-- old-client request/response compatibility matrix;
-- field deprecation windows and removal telemetry;
-- consistent state-plus-media backup;
-- restore drill with integrity reconciliation and measured RTO/RPO;
-- account export/delete migration semantics;
-- service-stop export and creator media recovery package.
+## Backup and clean-directory restore
 
-## Required next implementation
+`ynx-musicd` now supports verified operator modes:
 
-1. Add a migration registry keyed by `SchemaVersion` and refuse unknown future versions.
-2. Commit sanitized v1 golden fixtures that include published/private tracks, media hashes, listener state, Trust/Pay idempotency and audit chain.
-3. Introduce a no-semantic-change v2 migration that externalizes durable media object descriptors while retaining API privacy.
-4. Add rollback support where lossless; otherwise fail with an explicit minimum-compatible version and a backup requirement.
-5. Back up state and media under one manifest containing source commit, schema version, file hashes and byte counts.
-6. Restore into a clean directory, verify state integrity, audit chain, media hashes, authorization and replay behavior.
-7. Measure backup/restore duration and storage growth before assigning RTO/RPO.
+```bash
+ynx-musicd -data /var/lib/ynx-music -backup /var/backups/ynx-music/<checkpoint>
+ynx-musicd -data /var/lib/ynx-music-restored -restore /var/backups/ynx-music/<checkpoint>
+```
 
-Until those gates pass, migration and restore status remain `notStarted` in the full-goal coverage matrix, regardless of ordinary restart success.
+A backup is created under a new destination and contains:
+
+- `manifest.json` with manifest schema, creation time, state schema, state integrity hash, SHA-256 and byte counts;
+- `state.json` copied as a private regular file;
+- only the media objects referenced by the verified state;
+- a canonical sorted media inventory with per-object SHA-256 and byte counts.
+
+Restore requires absent `state.json` and `media/` destinations. It verifies the manifest, state digest, state integrity, audit chain, canonical media inventory, media hashes and private file permissions before publishing the restored state and media. Existing destinations are never overwritten.
+
+## Verified gates
+
+- `go test ./internal/music`
+- `go test -race ./internal/music`
+- `go test ./apps/music/...`
+- `go vet ./internal/music ./apps/music/...`
+- Golden v1 to persisted v2 migration
+- State-and-media backup round trip
+- Tampered backup rejection
+- Dirty restore destination rejection
+
+## Remaining migration and recovery work
+
+- Lossless downgrade support or an explicit minimum-compatible-version policy
+- Golden fixtures containing published/private tracks, artwork, listener history, Trust/Pay replay keys and a non-empty audit chain
+- Backup/restore performance measurements and assigned RTO/RPO
+- Account export/delete migration semantics
+- Service-stop creator media recovery package
+- Hosted encrypted backup retention and key-management policy owned by Security/SRE
+
+Ordinary restart remains separate from disaster recovery. Production recovery status must not be marked complete until remote restore evidence and measured objectives exist.

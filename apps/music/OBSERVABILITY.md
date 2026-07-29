@@ -1,6 +1,6 @@
 # YNX Music observability
 
-Runtime source commit: `74716a19d95fc191b54102adc02000a91fafec24`
+Runtime source commit: `22653153c62529f782f44b0a35177b531ae7e8af`
 
 ## Implemented evidence
 

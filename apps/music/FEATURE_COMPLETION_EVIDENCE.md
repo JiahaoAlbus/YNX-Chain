@@ -1,6 +1,6 @@
 # YNX Music feature completion evidence
 
-Runtime source commit: `74716a19d95fc191b54102adc02000a91fafec24`
+Runtime source commit: `22653153c62529f782f44b0a35177b531ae7e8af`
 
 This document is an evidence ledger, not a completion declaration. The authoritative machine-readable status is `.ai-bridge/full-goal-coverage.json`.
 
@@ -27,9 +27,9 @@ This document is an evidence ledger, not a completion declaration. The authorita
 | Twelve locales and RTL | Yes | Partial | No | No | No | 12 × 55 audit passes; full runtime/legal/provider coverage and assistive testing incomplete |
 | Web delivery | Yes | Yes | No | No | No | Local embedded smoke; no public route proof |
 | Android delivery | Yes | Yes | No | No | No | Local/CI build pass; current commit install/cold-start and hosted artifact absent |
-| iOS delivery | Yes | No | No | No | No | Swift parses; current CI Simulator build fails |
+| iOS delivery | Yes | Yes | No | No | No | Exact-SHA CI run `30417406111` built, installed, cold-started, rejected a tampered callback and restarted in Simulator; physical-device and production signing absent |
 | Desktop delivery | No | No | No | No | No | Delivery path not frozen |
-| Persistence integrity | Yes | Yes | No | No | No | Copy-on-write, integrity hash, audit and restart tests pass; migration/restore absent |
+| Persistence integrity | Yes | Yes | No | No | No | Copy-on-write, audit/media verification, schema-v1 golden→v2 migration and local state-plus-media backup/clean restore tests pass; remote restore and measured RTO/RPO absent |
 | Observability | Partial | Partial | No | No | No | Health/version exist; metrics/traces/ready/alerts/Monitor acceptance missing |
 | Security and supply chain | Partial | Partial | No | No | No | Request hardening, SBOM and notices exist; threat model/scans/provenance incomplete |
 | Public metadata and SEO handoff | Yes | Yes | No | No | No | Local JSON package exists; Website has not accepted or published it |

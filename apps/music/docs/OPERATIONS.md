@@ -24,9 +24,30 @@ Upload to a temporary path, verify SHA-256, atomically rename, install the unit,
 
 ## Backup, recovery and rollback
 
-Stop the service before a consistent backup. Copy `/var/lib/ynx-music` with ownership/mode preserved, verify the state hash on a separate restore directory, and restart. A failed integrity check must remain failed closed; do not edit the digest to force startup.
+Create a verified checkpoint without overwriting an existing destination:
 
-Keep the previous binary as `/opt/ynx/music/ynx-musicd.previous`. Rollback is an atomic binary swap followed by `systemctl restart`; record the old/new health commit. Central registry rollback is owned by Wallet/Auth and must revoke affected session/request digests.
+```bash
+systemctl stop ynx-musicd
+/opt/ynx/music/ynx-musicd \
+  -data /var/lib/ynx-music \
+  -backup /var/backups/ynx-music/<UTC-checkpoint>
+systemctl start ynx-musicd
+```
+
+The command writes a private `manifest.json`, `state.json` and the exact referenced media inventory. It verifies the source state integrity, audit chain, track identities, media SHA-256 values and private file permissions before publishing the backup directory.
+
+Restore only into a clean destination; the command refuses to overwrite either `state.json` or `media/`:
+
+```bash
+/opt/ynx/music/ynx-musicd \
+  -data /var/lib/ynx-music-restored \
+  -restore /var/backups/ynx-music/<UTC-checkpoint>
+/opt/ynx/music/ynx-musicd -data /var/lib/ynx-music-restored -http 127.0.0.1:6540
+```
+
+Verify `/health`, the exact build commit, catalog access, creator ownership, listener recovery and one media range request before replacing the active data directory. A failed digest or integrity check must remain failed closed; never edit a manifest or state digest to force startup. Record elapsed backup/restore time and bytes before assigning RTO/RPO.
+
+Keep the previous binary as `/opt/ynx/music/ynx-musicd.previous`. Binary rollback is an atomic swap followed by `systemctl restart`; record the old/new health commit. State schema v2 accepts and atomically migrates verified schema-v1 inputs, but downgrade from v2 is not yet supported. Central registry rollback is owned by Wallet/Auth and must revoke affected session/request digests.
 
 ## External release gates
 

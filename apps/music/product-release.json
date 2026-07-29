@@ -4,17 +4,21 @@
   "productName": "YNX Music",
   "version": "0.3.0-testnet",
   "channel": "testnet-preview",
-  "sourceCommit": "74716a19d95fc191b54102adc02000a91fafec24",
-  "generatedAt": "2026-07-27T22:05:00+01:00",
+  "sourceCommit": "22653153c62529f782f44b0a35177b531ae7e8af",
+  "generatedAt": "2026-07-29T02:48:59Z",
   "longTermStatus": "ACTIVE",
   "stage": "PROTECT",
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
+    "migrationVerified": true,
+    "restoreVerified": true,
     "installedLocal": false,
     "integratedCentral": false,
+    "testnetVerified": false,
     "deployedStaging": false,
     "deployedPublic": false,
+    "releasePublished": false,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false,
@@ -28,7 +32,9 @@
       "evidence": [
         "go test ./internal/music ./apps/music/...",
         "go test -race ./internal/music",
-        "apps/music/scripts/smoke.sh"
+        "go vet ./internal/music ./apps/music/...",
+        "apps/music/scripts/smoke.sh",
+        "GitHub Actions run 30417406111 service job success"
       ]
     },
     "web": {
@@ -49,34 +55,54 @@
       "releaseSigningClass": "unsigned",
       "minimumOS": "Android 9 / API 28",
       "evidence": [
-        "Gradle testDebugUnitTest assembleDebug assembleDebugAndroidTest assembleRelease",
-        "apps/music/evidence/screenshots/android"
+        "GitHub Actions run 30417406111 Android testDebugUnitTest assembleDebug assembleRelease success",
+        "GitHub Actions artifact upload success",
+        "No physical-device install or production-signing evidence"
       ]
     },
     "ios": {
       "implementedLocal": true,
-      "testedLocal": false,
+      "testedLocal": true,
       "installedLocal": false,
-      "signingClass": "unsigned-simulator-candidate",
+      "installedCiSimulator": true,
+      "signingClass": "unsigned-simulator-evidence",
       "minimumOS": "iOS 16",
       "evidence": [
-        "xcrun swiftc -parse apps/music/ios/YNXMusic/YNXMusicApp.swift",
-        "GitHub run 30277833892 failed before compilation because the hard-coded Simulator instance was absent",
-        "Dynamic Simulator selection repair is pending remote verification"
+        "GitHub Actions run 30417406111 dynamic Simulator build success",
+        "Simulator install, cold start, tampered callback rejection and restart success",
+        "No physical-device install or production-signing evidence"
       ]
     },
     "macos": {
       "implementedLocal": false,
       "testedLocal": false,
       "installedLocal": false,
-      "reason": "Desktop delivery path has not been frozen. The current responsive Web client is not recorded as a native macOS artifact."
+      "reason": "Desktop delivery path has not been frozen. The responsive Web client is not recorded as a native macOS artifact."
     },
     "windows": {
       "implementedLocal": false,
       "testedLocal": false,
       "installedLocal": false,
-      "reason": "Desktop delivery path has not been frozen. The current responsive Web client is not recorded as a native Windows artifact."
+      "reason": "Desktop delivery path has not been frozen. The responsive Web client is not recorded as a native Windows artifact."
     }
+  },
+  "persistence": {
+    "currentSchemaVersion": 2,
+    "legacySchemaVersionsAccepted": [1],
+    "futureSchemaFailClosed": true,
+    "migrationVerifiedLocal": true,
+    "backupVerifiedLocal": true,
+    "restoreVerifiedLocal": true,
+    "remoteRestoreVerified": false,
+    "rtoMeasured": false,
+    "rpoMeasured": false,
+    "evidence": [
+      "TestSchemaV1GoldenMigratesAndPersistsV2",
+      "TestSchemaMigrationFailsClosed",
+      "TestBackupRestoreRoundTrip",
+      "TestRestoreRejectsTamperedBackupAndDirtyDestination",
+      "apps/music/MIGRATION_COMPATIBILITY.md"
+    ]
   },
   "centralDependencies": {
     "walletAuth": {
@@ -107,34 +133,38 @@
   },
   "catalogTruth": {
     "commercialCatalogIncluded": false,
-    "testMediaPolicy": "Only runtime-generated repository test tones or independently supplied owned/licensed/public-domain media may be used.",
+    "testMediaPolicy": "Only runtime-generated repository test tones or independently supplied owned, licensed or public-domain media may be used.",
     "fakePlayCount": false,
     "fakeRoyalty": false,
     "guaranteedIncome": false
   },
   "ci": {
     "workflow": "music-platforms",
-    "runId": 30277833892,
-    "headSha": "74716a19d95fc191b54102adc02000a91fafec24",
+    "runId": 30417406111,
+    "headSha": "22653153c62529f782f44b0a35177b531ae7e8af",
     "statusAtGeneration": "completed",
-    "conclusion": "failure",
+    "conclusion": "success",
     "jobs": {
       "service": "success",
       "android": "success",
-      "iosSimulator": "failure"
+      "iosSimulator": "success"
     }
   },
   "artifacts": {
     "manifest": "ARTIFACT_MANIFEST.json",
+    "workflowRunId": 30417406111,
+    "ciArtifactsUploaded": true,
+    "artifactInventoryFetched": false,
+    "artifactInventoryFetchFailure": "GitHub artifact API TLS handshake timeout on two bounded retries",
     "hosted": false,
     "immutableURLs": false,
     "productionSigned": false
   },
   "knownBlockers": [
     "Central owner acceptance and deployed Testnet endpoints",
-    "Current-commit iOS Simulator CI result",
-    "Current-commit Android install/cold-start evidence",
-    "Migration and restore drill",
+    "Current-commit Android physical-device install and cold-start evidence",
+    "Remote restore drill and measured RTO/RPO",
+    "Schema-v2 downgrade or minimum-compatible-version policy",
     "Threat model and automated security scans",
     "Capacity and unit-economics measurements",
     "Licensed public catalog and rights review",
