@@ -15,10 +15,13 @@ const (
 	MaxAuditEntries = 8192
 )
 
-var CardScopes = []string{"account:read", "card:application:write", "card:controls:write", "card:dispute:write"}
+var (
+	CardScopes       = []string{"account:read", "card:application:write", "card:controls:write", "card:dispute:write"}
+	CardDeleteScopes = []string{"account:read", "card:application:write", "card:controls:write", "card:data:delete", "card:dispute:write"}
+)
 
 type Eligibility struct {
-	Reference string    `json:"reference"`
+	Reference string    `json:"reference,omitempty"`
 	Status    string    `json:"status"`
 	Provider  string    `json:"provider"`
 	UpdatedAt time.Time `json:"updatedAt"`
@@ -27,7 +30,7 @@ type Eligibility struct {
 type Application struct {
 	ID                   string    `json:"id"`
 	Account              string    `json:"account"`
-	EligibilityReference string    `json:"eligibilityReference"`
+	EligibilityReference string    `json:"eligibilityReference,omitempty"`
 	Status               string    `json:"status"`
 	Provider             string    `json:"provider"`
 	ProviderReference    string    `json:"providerReference,omitempty"`
@@ -51,7 +54,7 @@ type Card struct {
 	ID             string    `json:"id"`
 	Account        string    `json:"account"`
 	ApplicationID  string    `json:"applicationId"`
-	ProviderCardID string    `json:"providerCardId"`
+	ProviderCardID string    `json:"providerCardId,omitempty"`
 	Provider       string    `json:"provider"`
 	Network        string    `json:"network"`
 	Last4          string    `json:"last4"`
@@ -66,8 +69,8 @@ type Card struct {
 
 type CardEvent struct {
 	ID              string    `json:"id"`
-	ProviderEventID string    `json:"providerEventId"`
-	ProviderCardID  string    `json:"providerCardId"`
+	ProviderEventID string    `json:"providerEventId,omitempty"`
+	ProviderCardID  string    `json:"providerCardId,omitempty"`
 	CardID          string    `json:"cardId"`
 	Account         string    `json:"account"`
 	Type            string    `json:"type"`
@@ -141,23 +144,34 @@ type IdempotencyRecord struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
+type DataDeletionReceipt struct {
+	ID                string         `json:"id"`
+	AccountPseudonym  string         `json:"accountPseudonym"`
+	IdempotencyDigest string         `json:"idempotencyDigest,omitempty"`
+	ClosedCards       int            `json:"closedCards"`
+	DeletedRecords    map[string]int `json:"deletedRecords"`
+	AuditID           string         `json:"auditId"`
+	DeletedAt         time.Time      `json:"deletedAt"`
+}
+
 type Snapshot struct {
-	Version       int                          `json:"version"`
-	Eligibility   map[string]Eligibility       `json:"eligibility"`
-	Applications  map[string]Application       `json:"applications"`
-	Cards         map[string]Card              `json:"cards"`
-	Events        map[string]CardEvent         `json:"events"`
-	Disputes      map[string]Dispute           `json:"disputes"`
-	Notifications map[string]Notification      `json:"notifications"`
-	AIRuns        map[string]AIRun             `json:"aiRuns"`
-	Idempotency   map[string]IdempotencyRecord `json:"idempotency"`
-	ProviderSeen  map[string]time.Time         `json:"providerSeen"`
-	GatewaySeen   map[string]time.Time         `json:"gatewaySeen"`
-	Audit         []AuditEvent                 `json:"audit"`
+	Version          int                            `json:"version"`
+	Eligibility      map[string]Eligibility         `json:"eligibility"`
+	Applications     map[string]Application         `json:"applications"`
+	Cards            map[string]Card                `json:"cards"`
+	Events           map[string]CardEvent           `json:"events"`
+	Disputes         map[string]Dispute             `json:"disputes"`
+	Notifications    map[string]Notification        `json:"notifications"`
+	AIRuns           map[string]AIRun               `json:"aiRuns"`
+	Idempotency      map[string]IdempotencyRecord   `json:"idempotency"`
+	ProviderSeen     map[string]time.Time           `json:"providerSeen"`
+	GatewaySeen      map[string]time.Time           `json:"gatewaySeen"`
+	DeletionReceipts map[string]DataDeletionReceipt `json:"deletionReceipts"`
+	Audit            []AuditEvent                   `json:"audit"`
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: StateVersion, Eligibility: map[string]Eligibility{}, Applications: map[string]Application{}, Cards: map[string]Card{}, Events: map[string]CardEvent{}, Disputes: map[string]Dispute{}, Notifications: map[string]Notification{}, AIRuns: map[string]AIRun{}, Idempotency: map[string]IdempotencyRecord{}, ProviderSeen: map[string]time.Time{}, GatewaySeen: map[string]time.Time{}, Audit: []AuditEvent{}}
+	return Snapshot{Version: StateVersion, Eligibility: map[string]Eligibility{}, Applications: map[string]Application{}, Cards: map[string]Card{}, Events: map[string]CardEvent{}, Disputes: map[string]Dispute{}, Notifications: map[string]Notification{}, AIRuns: map[string]AIRun{}, Idempotency: map[string]IdempotencyRecord{}, ProviderSeen: map[string]time.Time{}, GatewaySeen: map[string]time.Time{}, DeletionReceipts: map[string]DataDeletionReceipt{}, Audit: []AuditEvent{}}
 }
 
 type AccountState struct {

@@ -35,6 +35,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /metrics", s.metrics)
 	s.mux.HandleFunc("GET /v1/account/state", s.protected(s.state))
+	s.mux.HandleFunc("GET /v1/account/export", s.protected(s.accountExport))
+	s.mux.HandleFunc("POST /v1/account/retention", s.protected(s.accountRetention))
+	s.mux.HandleFunc("DELETE /v1/account/data", s.protectedWithScopes(CardDeleteScopes, s.accountDelete))
 	s.mux.HandleFunc("POST /v1/card/applications", s.protected(s.apply))
 	s.mux.HandleFunc("POST /v1/cards/{id}/actions", s.protected(s.action))
 	s.mux.HandleFunc("PUT /v1/cards/{id}/controls", s.protected(s.controls))
@@ -78,6 +81,8 @@ func (s *Server) version(w http.ResponseWriter, _ *http.Request) {
 		"providerCapabilitySchema": ProviderCapabilitySchema,
 		"providerCapabilities":     s.service.ProviderCapabilities(),
 		"observabilitySchema":      "ynx.card.observability.v1",
+		"dataLifecycleSchema":      DataLifecycleSchema,
+		"retention":                s.service.retention.Disclosure(),
 		"build":                    s.build,
 	})
 }
@@ -89,12 +94,17 @@ func (s *Server) metrics(w http.ResponseWriter, _ *http.Request) {
 type protectedHandler func(http.ResponseWriter, *http.Request, GatewayAssertion, []byte)
 
 func (s *Server) protected(next protectedHandler) http.HandlerFunc {
+	return s.protectedWithScopes(CardScopes, next)
+}
+
+func (s *Server) protectedWithScopes(requiredScopes []string, next protectedHandler) http.HandlerFunc {
+	scopes := append([]string(nil), requiredScopes...)
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, ok := s.readBody(w, r)
 		if !ok {
 			return
 		}
-		assertion, err := s.service.gateway.Verify(r, body)
+		assertion, err := s.service.gateway.VerifyForScopes(r, body, scopes)
 		if err != nil {
 			s.writeError(w, r, http.StatusUnauthorized, err.Error())
 			return
@@ -105,6 +115,27 @@ func (s *Server) protected(next protectedHandler) http.HandlerFunc {
 }
 func (s *Server) state(w http.ResponseWriter, r *http.Request, a GatewayAssertion, _ []byte) {
 	out, err := s.service.State(a.Account)
+	s.respond(w, r, http.StatusOK, out, err)
+}
+func (s *Server) accountExport(w http.ResponseWriter, r *http.Request, a GatewayAssertion, _ []byte) {
+	out, err := s.service.ExportAccount(r.Context(), a.Account)
+	s.respond(w, r, http.StatusOK, out, err)
+}
+func (s *Server) accountRetention(w http.ResponseWriter, r *http.Request, a GatewayAssertion, body []byte) {
+	var in struct{}
+	if !s.decodeBody(w, r, body, &in) {
+		return
+	}
+	out, err := s.service.EnforceAccountRetention(r.Context(), a.Account)
+	s.respond(w, r, http.StatusOK, out, err)
+}
+func (s *Server) accountDelete(w http.ResponseWriter, r *http.Request, a GatewayAssertion, body []byte) {
+	var in DeleteAccountInput
+	if !s.decodeBody(w, r, body, &in) {
+		return
+	}
+	out, err := s.service.DeleteAccount(r.Context(), a.Account, in)
+	out.IdempotencyDigest = ""
 	s.respond(w, r, http.StatusOK, out, err)
 }
 func (s *Server) apply(w http.ResponseWriter, r *http.Request, a GatewayAssertion, body []byte) {
