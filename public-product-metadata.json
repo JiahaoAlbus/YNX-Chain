@@ -6,7 +6,7 @@
   "aliases": ["YNX AI Assistant"],
   "slug": "ai",
   "canonicalRoute": "/ai",
-  "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
+  "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
   "title": "YNX AI — Permission-bound assistance for the YNX ecosystem",
   "metaDescription": "Draft, explain, research, translate and preview with explicit context selection, provider transparency and no autonomous asset or account actions.",
   "h1": "Useful assistance, bounded by your permissions",
@@ -17,6 +17,7 @@
     "Prompt-injection and restricted-credential rejection",
     "Preview and approval records that never execute external actions",
     "Conversation export, deletion and retention controls",
+    "Truthful liveness, Gateway readiness, low-cardinality metrics and structured request logs",
     "Web, Android and iOS product surfaces"
   ],
   "risksAndLimits": [

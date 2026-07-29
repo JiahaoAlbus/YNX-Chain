@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "14",
+  "productName": "YNX AI",
+  "phase": "autonomous-hardening-before-central-integration",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai",
+  "branch": "codex/final-ai",
+  "localSha": "906478672995242972842d3cf6af6d9c66da3cab",
+  "remoteSha": "906478672995242972842d3cf6af6d9c66da3cab",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "checkpointCommitResolution": "This file is committed after localSha; use git rev-parse HEAD for the containing recovery commit.",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "go test -count=1 ./internal/aiproduct",
+    "go test -race -count=1 ./internal/aiproduct",
+    "go vet ./internal/aiproduct ./apps/ai",
+    "node apps/ai/scripts/release-check.mjs",
+    "go test ./...",
+    "go run golang.org/x/vuln/cmd/govulncheck@latest ./internal/aigateway ./internal/aiproduct ./cmd/ynx-ai-gatewayd ./apps/ai",
+    "pnpm run check (apps/ai/mobile)",
+    "pnpm audit --prod --audit-level high (apps/ai/mobile)",
+    "go mod verify"
+  ],
+  "latestCiRuns": [],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [
+    {
+      "path": "apps/ai/mobile/android/app/build/outputs/apk/release/app-release.apk",
+      "sha256": "feca84462a0ae16237bac4c783683958ecf590105345e8f0b205acb9f36501a5",
+      "bytes": 69735849,
+      "signingClass": "test-signed Android Debug certificate",
+      "hosted": false,
+      "sourceCurrent": false
+    },
+    {
+      "path": "apps/ai/sbom.cdx.json",
+      "type": "CycloneDX SBOM",
+      "hosted": false
+    }
+  ],
+  "publicRoutes": [],
+  "completed": [
+    "provider-neutral POST-body SSE and truthful Provider errors",
+    "deny-by-default Product AI Registry",
+    "fail-closed production authentication boundary",
+    "encrypted conversations and attachments with export/delete/retention",
+    "non-executing action approval records",
+    "12 locales including Arabic RTL",
+    "Android preview install and deep-link evidence",
+    "dependency remediation and Go 1.25.12 toolchain gate",
+    "local capacity gate",
+    "request IDs, structured logs, Gateway readiness and low-cardinality metrics",
+    "observability, SLO/capacity and unit-economics evidence documents"
+  ],
+  "remaining": [
+    "versioned migration and rollback implementation",
+    "deterministic backup/restore drill and compatibility evidence",
+    "authenticated mixed-workload and concurrent SSE load harnesses",
+    "Provider fault injection and encrypted-store soak measurements",
+    "automated accessibility and durable state screenshots",
+    "final-source artifact regeneration, provenance and reproducible-build comparison",
+    "central owner acceptance and shared-Testnet execution",
+    "iOS runtime/signing evidence",
+    "public release, hosted downloads and ynxweb4.com /ai deployment evidence"
+  ],
+  "blockers": [
+    "AI-BLK-001",
+    "AI-BLK-002",
+    "AI-BLK-003",
+    "AI-BLK-004",
+    "AI-BLK-005"
+  ],
+  "nextAction": "Implement a bounded versioned backup manifest, atomic encrypted-state restore validation, tamper/wrong-key/rollback tests, and apps/ai/MIGRATION_COMPATIBILITY.md; then run all product, race, vet, release, full-Go and vulnerability gates before commit and push.",
+  "updatedAt": "2026-07-29T02:55:12Z"
+}

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-ai",
-  "generatedAt": "2026-07-27",
+  "generatedAt": "2026-07-29",
   "evidence": [
     {
       "requirement": "Wallet replay/tamper/restart/revoke local fixture behavior",
@@ -60,6 +60,33 @@
       "requirement": "iOS Simulator build/install/cold launch/deep link/hash",
       "source": ".github/workflows/ynx-ai-mobile.yml",
       "status": "runnable-ci-not-yet-run"
+    },
+    {
+      "requirement": "Local liveness, dependency readiness, low-cardinality metrics, bounded request IDs and structured route logs",
+      "source": "internal/aiproduct/observability.go; internal/aiproduct/observability_test.go; apps/ai/OBSERVABILITY.md",
+      "status": "tested-local-race",
+      "tests": [
+        "go test -count=1 ./internal/aiproduct",
+        "go test -race -count=1 ./internal/aiproduct",
+        "go vet ./internal/aiproduct ./apps/ai",
+        "node apps/ai/scripts/release-check.mjs"
+      ],
+      "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+      "centralClaim": false
+    },
+    {
+      "requirement": "Local health-path capacity regression gate and staged measurement plan",
+      "source": "internal/aiproduct/capacity_test.go; apps/ai/LOCAL_ACCEPTANCE_EVIDENCE.md; apps/ai/SLO_CAPACITY_PLAN.md",
+      "status": "tested-local-health-path-only",
+      "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+      "publicClaim": false
+    },
+    {
+      "requirement": "Reachable vulnerability scan after dependency and Go toolchain remediation",
+      "source": "go.mod; apps/ai/DEPENDENCY_REVIEW.md; docs/agent-memory/LAST_SUCCESS.md",
+      "status": "tested-local-zero-reachable-ai-findings",
+      "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+      "scope": "internal/aigateway internal/aiproduct cmd/ynx-ai-gatewayd apps/ai"
     },
     {
       "requirement": "Central Wallet/Gateway/provider",

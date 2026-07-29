@@ -4,7 +4,7 @@
   "productName": "YNX AI",
   "productSlug": "ynx-ai",
   "owner": "14-ai",
-  "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
+  "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai",
   "branch": "codex/final-ai",
   "recoverySources": [
@@ -19,9 +19,9 @@
     "Release and uncommitted historical results"
   ],
   "productOwner": "14-ai",
-  "currentStage": "FREEZE",
+  "currentStage": "AUTONOMOUS_HARDENING",
   "goalState": "active",
-  "lastUpdated": "2026-07-27",
+  "lastUpdated": "2026-07-29",
   "statusDefinitions": [
     "notStarted",
     "inProgress",
@@ -265,15 +265,15 @@
       "requirement": "Show provider, model, token/compute usage, quota, user budget, provider cost, protocol fee, burn/treasury split, and receipt without inventing unavailable values.",
       "applicability": "required",
       "status": "externalBlocked",
-      "evidence": ["Estimated token/resource/money fields are labeled actualUsageReported=false", "Quota and actual provider cost remain unknown when not reported"],
-      "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
-      "tests": ["go test ./internal/aiproduct"],
-      "artifact": null,
+      "evidence": ["Estimated token/resource/money fields are labeled actualUsageReported=false", "Quota and actual provider cost remain unknown when not reported", "apps/ai/UNIT_ECONOMICS.md freezes the non-invention boundary and canonical receipt requirements"],
+      "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+      "tests": ["go test ./internal/aiproduct", "node apps/ai/scripts/release-check.mjs"],
+      "artifact": "apps/ai/UNIT_ECONOMICS.md",
       "publicProof": null,
       "blockedBy": ["Provider usage metadata", "26-data-fabric billing ledger contract", "17-tokenomics fee split contract"],
       "owner": "14-ai + 17-tokenomics + 26-data-fabric",
-      "nextAction": "Implement actual-usage ingestion and canonical billing receipt adapter after contracts freeze; create UNIT_ECONOMICS.md with measured scenarios.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "After owners 17 and 26 freeze their contracts, implement actual-usage ingestion, idempotent receipt acceptance, reconciliation and negative Testnet vectors without promoting estimates to actuals.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "AI-I18N-001",
@@ -376,16 +376,16 @@
       "category": "observability",
       "requirement": "Expose structured logs, metrics, traces, request/error/audit IDs, real health/version/dependency status, alerts, SLO dashboard, incident runbook, and Monitor integration.",
       "applicability": "required",
-      "status": "externalBlocked",
-      "evidence": ["Public /healthz and /api/meta exist", "Request IDs and audit records exist"],
-      "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
-      "tests": ["go test ./internal/aiproduct"],
-      "artifact": null,
+      "status": "testedLocal",
+      "evidence": ["Public /healthz and /api/meta exist", "Dependency-aware /readyz", "Low-cardinality Prometheus /metrics", "Bounded X-Request-ID and route-pattern JSON logs", "apps/ai/OBSERVABILITY.md"],
+      "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+      "tests": ["go test -count=1 ./internal/aiproduct", "go test -race -count=1 ./internal/aiproduct", "node apps/ai/scripts/release-check.mjs"],
+      "artifact": "apps/ai/OBSERVABILITY.md",
       "publicProof": null,
       "blockedBy": ["13-monitor integration contract", "Staging deployment"],
       "owner": "14-ai + 13-monitor + 30-security-sre",
-      "nextAction": "Add metrics/traces and dependency-aware health/version fields, then wire alerts and staged incident evidence.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Submit the scrape/probe contract to owner 13, add trace export only after a backend contract is accepted, and capture staged alert plus incident evidence.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "AI-SLO-001",
@@ -393,15 +393,15 @@
       "requirement": "Measure p50/p95/p99, throughput, concurrent users/streams, queueing, provider latency, rate limits, cold start, error rate, storage growth, RTO/RPO, and availability.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["apps/ai/LOCAL_ACCEPTANCE_EVIDENCE.md", "TestLocalHealthCapacityEvidence"],
-      "sourceCommit": "1cfc0c5085032a3a83745a8e65879d87aa223c63",
-      "tests": ["go test -count=1 -run TestLocalHealthCapacityEvidence -v ./internal/aiproduct"],
-      "artifact": "internal/aiproduct/capacity_test.go",
+      "evidence": ["apps/ai/LOCAL_ACCEPTANCE_EVIDENCE.md", "TestLocalHealthCapacityEvidence", "apps/ai/SLO_CAPACITY_PLAN.md", "Runtime request and readiness counters"],
+      "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+      "tests": ["go test -count=1 -run TestLocalHealthCapacityEvidence -v ./internal/aiproduct", "go test -count=1 ./internal/aiproduct"],
+      "artifact": "apps/ai/SLO_CAPACITY_PLAN.md",
       "publicProof": null,
       "blockedBy": [],
       "owner": "14-ai",
-      "nextAction": "Create SLO_CAPACITY_PLAN.md and a reproducible load/soak/failure harness with honest local and staged measurements.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Add authenticated mixed-workload, concurrent SSE cancellation, Provider fault-injection, encrypted-store soak and backup/restore harnesses; keep staged/public SLO claims false until measured.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "AI-MIGRATION-001",
@@ -470,14 +470,14 @@
   ],
   "summary": {
     "verifiedComplete": 2,
-    "testedLocal": 20,
+    "testedLocal": 21,
     "inProgress": 0,
     "notStarted": 0,
-    "externalBlocked": 5,
+    "externalBlocked": 4,
     "integratedCentral": 0,
     "testnetVerified": 0,
     "publicVerified": 0,
-    "goalMayBeClosed": true,
-    "reason": "All local autonomous requirements are implemented or tested; exact billing, Monitor/staging, central Testnet and public delivery remain externally blocked."
+    "goalMayBeClosed": false,
+    "reason": "Local observability and capacity evidence are now tested, but autonomous migration/restore and deeper load harnesses remain; exact billing, central acceptance, shared Testnet and public delivery also remain incomplete."
   }
 }
