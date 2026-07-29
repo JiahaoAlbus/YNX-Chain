@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "20",
+  "productName": "YNX Cloud",
+  "phase": "testedLocal-exact-sha-ci-evidence-hardening",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud",
+  "branch": "codex/final-cloud",
+  "localSha": "5666b3ebc318fc13749fe3d48b5b607739c56eca",
+  "remoteSha": "5666b3ebc318fc13749fe3d48b5b607739c56eca",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "npm --prefix apps/cloud test: 12/12 passed",
+    "npm --prefix apps/cloud run check: passed",
+    "npm --prefix apps/cloud run security: passed",
+    "go test -count=1 ./internal/cloud ./apps/cloud/cmd/ynx-cloudd: passed",
+    "go test -race -count=1 ./internal/cloud: passed on implementation SHA e05db0b5663c151c1805c99ff3f55f433127aa92"
+  ],
+  "latestCiRuns": [
+    {
+      "workflow": "Cloud security and recovery gates",
+      "runId": 30418539097,
+      "jobId": 90470201097,
+      "headSha": "5666b3ebc318fc13749fe3d48b5b607739c56eca",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "workflow": "Cloud security and recovery gates",
+      "runId": 30417551695,
+      "headSha": "e05db0b5663c151c1805c99ff3f55f433127aa92",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "workflow": "Cloud security and recovery gates",
+      "runId": 30386653191,
+      "headSha": "e7cb63a311115fb8ff643d3cfa4ca1b1c8a89556",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [
+    {
+      "id": 8711035103,
+      "name": "ynx-cloud-trivy-5666b3ebc318fc13749fe3d48b5b607739c56eca",
+      "type": "expiring-ci-vulnerability-report",
+      "expiresAt": "2026-08-28T03:05:08Z",
+      "hostedProductDownload": false
+    },
+    {
+      "path": "apps/cloud/evidence/ci-e05db0b/trivy-ynx-cloud.json",
+      "sha256": "e2fbbb20739e1c16022405fa7ece37437c53d146d7cfffb27b5511121394afd1",
+      "sourceCommit": "e05db0b5663c151c1805c99ff3f55f433127aa92"
+    }
+  ],
+  "publicRoutes": [
+    {
+      "url": "https://ynxweb4.com/cloud",
+      "httpStatus": 200,
+      "kind": "product-status-page",
+      "registeredSourceCommit": "7b3c5f427c17",
+      "runtimeDeployed": false,
+      "metadataStale": true
+    }
+  ],
+  "completed": [
+    "workspace, branch, remote and SHA recovery",
+    "durable restart-safe lifecycle worker recovery",
+    "user-held AES-256-GCM client-encryption candidate",
+    "product/account/context/version authenticated-data binding",
+    "tamper and context mismatch failure tests",
+    "official-domain callback correction",
+    "exact CI report retention and bounded scan evidence",
+    "release truth and website handoff update"
+  ],
+  "remaining": [
+    "production key custody, recovery package and rotation contract",
+    "independent cryptographic audit",
+    "provisioned provider/KMS/scanner acceptance",
+    "CDN and replication or erasure-coding proof",
+    "distributed limiter, sharding and concurrent persisted scale proof",
+    "central Wallet/Auth and owner-29 acceptance",
+    "remote migration and cross-region restore drill",
+    "immutable hosted release, production signing and store release",
+    "owner-28 website handoff deployment"
+  ],
+  "blockers": [
+    "CLOUD-PROVIDER-001",
+    "CLOUD-CENTRAL-001",
+    "CLOUD-WEBSITE-001",
+    "CLOUD-RELEASE-001"
+  ],
+  "nextAction": "Implement versioned client key-custody, recovery-package, rotation and destruction contracts with fail-closed tests, then rerun all Cloud gates and exact-SHA CI.",
+  "updatedAt": "2026-07-29T03:06:00Z"
+}

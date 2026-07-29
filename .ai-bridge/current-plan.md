@@ -1,10 +1,14 @@
-# YNX Cloud active plan
+# YNX 20 Next Execution Slice
 
-Phase: **EXPAND**, with central **INTEGRATE** acceptance still pending.
+Implement production-client key custody for the existing AES-256-GCM client-encryption envelope while preserving the rule that Cloud never receives or recovers raw keys.
 
-1. Keep runtime commit `d11c382da10ab0629c7d322c83c9ddef24925328`, supply-chain commit `76f5c92cee7f5105f9e84059d0ae8fed75337e2c`, and their evidence checkpoints protected on `origin/codex/final-cloud`.
-2. Treat versioned hot/cold/archive lifecycle as tested-local only: Product Session binding, provider-result binding, retry, copy-on-write, archive read closure, schema-v7 migration and unresolved-transition deletion barriers are implemented; provider/CDN/replication proof remains pending.
-3. Continue the highest autonomous scale gap: durable queue/worker separation, restart-safe leases, backpressure and persisted concurrent/sharded capacity evidence.
-4. Preserve exact image-scan evidence from GitHub Actions run `30279314603`; next close immutable image hosting, reproducibility/provenance and production signing as separate proof classes.
-5. Submit the frozen Wallet, object-scope, lifecycle, Data Fabric and Resource Market contracts for owner acceptance without enabling unreviewed registrations.
-6. When provider, central and deployment inputs exist, execute real Object Storage and shared Testnet flows; keep staging, public, hosted, production-signed and store states false until direct proof.
+Required deliverables:
+
+1. Versioned recovery-package, key-rotation and key-destruction records bound to exact product, account, context ID and version.
+2. Hardware-backed/OS-keystore adapter contracts with explicit unavailable and unsupported states.
+3. Fail-closed tests for lost key, wrong account, stale package, rollback, duplicate context, interrupted rotation and package tampering.
+4. Operator and user documentation that explains unrecoverable loss, backup responsibilities, rotation recovery and safe support boundaries.
+5. Updated exact evidence, release truth and integration handoff.
+6. Node, static, security, Go, Race, push and exact-SHA GitHub Actions verification.
+
+Do not modify other product Worktrees. Do not claim public deployment, production recovery, provider KMS, hosted artifacts, production signing or release without direct evidence.
