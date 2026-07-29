@@ -37,6 +37,8 @@ jobs:
         run: npx pod-install ios
       - name: Build unsigned iOS Simulator app
         run: |
+          set -euo pipefail
+          mkdir -p build
           xcodebuild \
             -workspace ios/YNXExchange.xcworkspace \
             -scheme YNXExchange \
