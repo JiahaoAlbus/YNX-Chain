@@ -82,6 +82,7 @@ jobs:
       - run: npm install --prefix sdk/oracle/typescript --ignore-scripts --no-audit --no-fund
       - run: make oracle-web-test
       - run: npm --prefix apps/oracle run test:browser:a11y
+        timeout-minutes: 3
         env:
           CHROME_BIN: /usr/bin/google-chrome
       - run: npm --prefix sdk/oracle/typescript test

@@ -50,9 +50,28 @@ class CDPClient {
   send(method, params = {}, sessionId) {
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
-      this.pending.set(id, {resolve, reject, method});
-      this.socket.send(JSON.stringify({id, method, params, ...(sessionId ? {sessionId} : {})}));
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new Error(`${method}: Chrome DevTools response timed out after 15000ms`));
+      }, 15000);
+      const settle = (callback) => (value) => {
+        clearTimeout(timer);
+        callback(value);
+      };
+      this.pending.set(id, {resolve: settle(resolve), reject: settle(reject), method});
+      try {
+        this.socket.send(JSON.stringify({id, method, params, ...(sessionId ? {sessionId} : {})}));
+      } catch (error) {
+        this.pending.delete(id);
+        clearTimeout(timer);
+        reject(error);
+      }
     });
+  }
+
+  dispatch(method, params = {}, sessionId) {
+    const id = this.nextId++;
+    this.socket.send(JSON.stringify({id, method, params, ...(sessionId ? {sessionId} : {})}));
   }
 
   close() {
@@ -211,6 +230,12 @@ async function press(client, sessionId, key, code, keyCode) {
 
 test("real Chrome verifies Oracle keyboard, RTL, reduced-motion, theme, large-text, and 390px behavior", {timeout: 120000}, async () => {
   const product = await startProductServer();
+  const preflight = await fetch(`${product.origin}/oracle`, {
+    headers: {accept: "text/html"},
+    signal: AbortSignal.timeout(15000),
+  });
+  assert.equal(preflight.status, 200, "Oracle SSR preflight must succeed before browser evidence starts");
+  await preflight.arrayBuffer();
   const chrome = await startChrome();
   const client = new CDPClient(chrome.websocketUrl);
   try {
@@ -235,12 +260,12 @@ test("real Chrome verifies Oracle keyboard, RTL, reduced-motion, theme, large-te
         {name: "prefers-color-scheme", value: "dark"},
       ],
     }, sessionId);
-    await client.send("Page.navigate", {url: `${product.origin}/oracle`}, sessionId);
+    client.dispatch("Page.navigate", {url: `${product.origin}/oracle`}, sessionId);
     await waitFor(
       client,
       sessionId,
-      "document.readyState === 'complete' && document.querySelector('.controls select') && document.documentElement.dataset.theme === 'auto'",
-      "the hydrated Oracle console",
+      "document.readyState === 'complete' && document.querySelector('.controls select') && document.documentElement.dataset.theme === 'auto' && getComputedStyle(document.body).backgroundColor === 'rgb(16, 18, 16)'",
+      "the hydrated Oracle console with dark auto-theme media applied",
     );
 
     const baseline = await evaluate(client, sessionId, `(() => {
