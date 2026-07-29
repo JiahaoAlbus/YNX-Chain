@@ -2,25 +2,25 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-29T11:19:28.203Z",
-  "controllerSourceCommit": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
+  "generatedAt": "2026-07-29T11:37:49.499Z",
+  "controllerSourceCommit": "3930a14d504eb68c45753f5329705fb86001ac23",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
+    "localHead": "3930a14d504eb68c45753f5329705fb86001ac23",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
+    "remoteHead": "3930a14d504eb68c45753f5329705fb86001ac23",
     "ahead": 0,
     "behind": 0,
-    "clean": true
+    "clean": false
   },
   "summary": {
     "totalProducts": 36,
     "localBranches": 36,
     "remoteBranches": 36,
     "registeredWorktrees": 36,
-    "cleanWorktrees": 11,
-    "dirtyWorktrees": 25,
+    "cleanWorktrees": 10,
+    "dirtyWorktrees": 26,
     "syncedBranches": 36,
     "upstreamConfigured": 36,
     "implementedLocalCandidates": 5,
@@ -66,7 +66,9 @@
           "integrationContract": "release/integration/chain-core-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 12,
@@ -83,6 +85,11 @@
             "externalBlocked": 1,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": false,
+            "migrationVerified": false,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -132,6 +139,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -187,7 +195,9 @@
           "integrationContract": "release/integration/wallet-auth-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 40,
@@ -204,6 +214,11 @@
             "externalBlocked": 8,
             "notApplicable": 2,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -253,6 +268,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -306,7 +322,9 @@
           "integrationContract": "release/integration/social-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 12,
@@ -323,6 +341,11 @@
             "externalBlocked": 3,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -372,6 +395,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -427,7 +451,9 @@
           "integrationContract": "release/integration/pay-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 28,
@@ -444,6 +470,11 @@
             "externalBlocked": 5,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -493,6 +524,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -549,7 +581,9 @@
           "integrationContract": "release/integration/merchant-console-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 31,
@@ -566,6 +600,11 @@
             "externalBlocked": 6,
             "notApplicable": 0,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -615,6 +654,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -676,7 +716,9 @@
           "integrationContract": "release/integration/ynx-card-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 24,
@@ -693,6 +735,11 @@
             "externalBlocked": 1,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": false,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -742,6 +789,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -800,7 +848,9 @@
           "integrationContract": "release/integration/exchange-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 52,
@@ -817,6 +867,11 @@
             "externalBlocked": 7,
             "notApplicable": 0,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -866,6 +921,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -928,7 +984,9 @@
           "integrationContract": "release/integration/ynx-quant-lab-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 40,
@@ -945,6 +1003,11 @@
             "externalBlocked": 1,
             "notApplicable": 0,
             "verifiedComplete": 0
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -994,6 +1057,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -1053,7 +1117,9 @@
           "integrationContract": "release/integration/ynx-shop-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 29,
@@ -1070,6 +1136,11 @@
             "externalBlocked": 6,
             "notApplicable": 0,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -1119,6 +1190,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -1180,7 +1252,9 @@
           "integrationContract": "release/integration/seller-console-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 25,
@@ -1197,6 +1271,11 @@
             "externalBlocked": 0,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": false,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -1246,6 +1325,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -1306,7 +1386,9 @@
           "integrationContract": "release/integration/developer-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 31,
@@ -1323,6 +1405,11 @@
             "externalBlocked": 0,
             "notApplicable": 0,
             "verifiedComplete": 0
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": false,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -1372,6 +1459,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -1431,7 +1519,9 @@
           "integrationContract": "release/integration/explorer-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 23,
@@ -1448,6 +1538,11 @@
             "externalBlocked": 1,
             "notApplicable": 0,
             "verifiedComplete": 0
+          },
+          "milestones": {
+            "builtLocal": false,
+            "migrationVerified": false,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -1497,6 +1592,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -1554,7 +1650,9 @@
           "integrationContract": "release/integration/monitor-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 32,
@@ -1571,6 +1669,11 @@
             "externalBlocked": 10,
             "notApplicable": 0,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": false,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -1620,6 +1723,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -1674,7 +1778,9 @@
           "integrationContract": "release/integration/ynx-ai-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 27,
@@ -1691,6 +1797,11 @@
             "externalBlocked": 4,
             "notApplicable": 0,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -1740,6 +1851,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -1798,7 +1910,9 @@
           "integrationContract": "release/integration/trust-center-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 19,
@@ -1815,6 +1929,11 @@
             "externalBlocked": 5,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": false,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -1864,6 +1983,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -1922,7 +2042,9 @@
           "integrationContract": "release/integration/resource-market-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 22,
@@ -1939,6 +2061,11 @@
             "externalBlocked": 4,
             "notApplicable": 1,
             "verifiedComplete": 0
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -1988,6 +2115,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -2046,7 +2174,9 @@
           "integrationContract": "release/integration/ynxt-economics-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 24,
@@ -2063,6 +2193,11 @@
             "externalBlocked": 4,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -2112,6 +2247,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -2173,7 +2309,9 @@
           "integrationContract": null,
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 30,
@@ -2190,6 +2328,11 @@
             "externalBlocked": 1,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -2239,6 +2382,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -2298,7 +2442,9 @@
           "integrationContract": "release/integration/oracle-market-data-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 43,
@@ -2315,6 +2461,11 @@
             "externalBlocked": 12,
             "notApplicable": 1,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -2364,6 +2515,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -2421,7 +2573,9 @@
           "integrationContract": "release/integration/cloud-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 25,
@@ -2438,6 +2592,11 @@
             "externalBlocked": 3,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": false,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -2487,6 +2646,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -2548,7 +2708,9 @@
           "integrationContract": "release/integration/ynx-bridge-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 46,
@@ -2565,6 +2727,11 @@
             "externalBlocked": 8,
             "notApplicable": 2,
             "verifiedComplete": 4
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -2614,6 +2781,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -2672,7 +2840,9 @@
           "integrationContract": "release/integration/browser-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 25,
@@ -2689,6 +2859,11 @@
             "externalBlocked": 0,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -2738,6 +2913,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -2797,7 +2973,9 @@
           "integrationContract": "release/integration/search-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 26,
@@ -2814,6 +2992,11 @@
             "externalBlocked": 0,
             "notApplicable": 0,
             "verifiedComplete": 0
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": false
           }
         },
         "recordMatches": {
@@ -2863,6 +3046,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -2925,7 +3109,9 @@
           "integrationContract": "release/integration/finance-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 23,
@@ -2942,6 +3128,11 @@
             "externalBlocked": 8,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -2991,6 +3182,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -3045,7 +3237,9 @@
           "integrationContract": "release/integration/mail-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 25,
@@ -3062,6 +3256,11 @@
             "externalBlocked": 6,
             "notApplicable": 0,
             "verifiedComplete": 3
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -3111,6 +3310,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -3167,7 +3367,9 @@
           "integrationContract": "release/integration/ynx-data-fabric-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 35,
@@ -3184,6 +3386,11 @@
             "externalBlocked": 1,
             "notApplicable": 1,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -3233,6 +3440,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -3293,7 +3501,9 @@
           "integrationContract": "release/integration/ynx-dex-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 34,
@@ -3310,6 +3520,11 @@
             "externalBlocked": 3,
             "notApplicable": 1,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -3359,6 +3574,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -3416,7 +3632,9 @@
           "integrationContract": "release/integration/website-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 14,
@@ -3433,6 +3651,11 @@
             "externalBlocked": 4,
             "notApplicable": 0,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": false,
+            "restoreVerified": false
           }
         },
         "recordMatches": {
@@ -3482,6 +3705,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -3520,8 +3744,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
-        "remoteSha": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
+        "localSha": "3930a14d504eb68c45753f5329705fb86001ac23",
+        "remoteSha": "3930a14d504eb68c45753f5329705fb86001ac23",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3533,9 +3757,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
-        "clean": true,
-        "changedEntries": 0,
+        "observedHead": "3930a14d504eb68c45753f5329705fb86001ac23",
+        "clean": false,
+        "changedEntries": 5,
         "statusError": null
       },
       "evidence": {
@@ -3546,16 +3770,18 @@
           "integrationContract": "release/integration/integration-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 71,
-          "open": 58,
+          "open": 57,
           "invalid": 0,
           "counts": {
             "notStarted": 21,
-            "inProgress": 37,
-            "implementedLocal": 6,
+            "inProgress": 36,
+            "implementedLocal": 7,
             "testedLocal": 3,
             "integratedCentral": 0,
             "testnetVerified": 0,
@@ -3563,6 +3789,11 @@
             "externalBlocked": 0,
             "notApplicable": 0,
             "verifiedComplete": 4
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": false,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -3573,32 +3804,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "dbe78b6f77ec82e261d8270b021ae9c686b6de11",
+            "sourceCommit": "397fe56a32f09aff5eac0e22c9769ae01d69cc40",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 37
+            "distance": 2
           },
           "productRelease": {
             "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 38
+            "distance": 40
           },
           "publicMetadata": {
             "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 38
+            "distance": 40
           },
           "integrationContract": {
             "sourceCommit": "562888318863435382d839958130246973dc1206",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 97
+            "distance": 99
           }
         },
         "claimedReleaseStates": {
@@ -3612,6 +3843,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -3622,9 +3854,10 @@
         "acceptedAt": null
       },
       "blockers": [
-        "full-goal coverage has 58 autonomous or unresolved items"
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 57 autonomous or unresolved items"
       ],
-      "nextAction": "Resolve: full-goal coverage has 58 autonomous or unresolved items."
+      "nextAction": "Resolve: registered final worktree has uncommitted changes."
     },
     {
       "id": "30",
@@ -3666,7 +3899,9 @@
           "integrationContract": "release/integration/security-platform-contract.json",
           "integrationHandoff": "docs/integration/SECURITY_PLATFORM_INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/SECURITY_PLATFORM_CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/SECURITY_PLATFORM_DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/SECURITY_PLATFORM_DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": "release/security-platform/platform-status.json",
+          "artifactRegistry": "release/security-platform/artifact-registry.json"
         },
         "coverage": {
           "total": 29,
@@ -3683,6 +3918,11 @@
             "externalBlocked": 1,
             "notApplicable": 1,
             "verifiedComplete": 3
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -3722,16 +3962,254 @@
           }
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": true,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
+        "artifacts": [
+          {
+            "id": "security-platform-source-e2c2924",
+            "kind": "source-archive",
+            "sourceCommit": "e2c29248e8a10321cc42507c22e57a34d9746218",
+            "path": "release/artifacts/e2c29248e8a10321cc42507c22e57a34d9746218/ynx-security-platform-e2c29248e8a10321cc42507c22e57a34d9746218.tar",
+            "sha256": "95156e936631602389b5b3e6de898d65b7e05a91c402bad1af2452fb19839a93",
+            "bytes": 61440,
+            "buildRun": "local reproducibility drill 2026-07-22T14:34:00Z",
+            "sbom": "release/artifacts/e2c29248e8a10321cc42507c22e57a34d9746218/ynx-security-platform-e2c29248e8a10321cc42507c22e57a34d9746218.tar.cdx.json",
+            "provenance": "release/artifacts/e2c29248e8a10321cc42507c22e57a34d9746218/ynx-security-platform-e2c29248e8a10321cc42507c22e57a34d9746218.tar.intoto.json",
+            "manifest": "release/artifacts/e2c29248e8a10321cc42507c22e57a34d9746218/ynx-security-platform-e2c29248e8a10321cc42507c22e57a34d9746218.tar.manifest.json",
+            "signature": "release/artifacts/e2c29248e8a10321cc42507c22e57a34d9746218/ynx-security-platform-e2c29248e8a10321cc42507c22e57a34d9746218.tar.manifest.sig.json",
+            "signingClass": "test-signed",
+            "minimumOs": "Any operating system with POSIX tar support",
+            "installEvidence": "evidence/security-platform/ARTIFACT_AND_RESTORE_DRILL_2026-07-22.md",
+            "revocation": "OPERATIONS.md#artifact-build-and-verification",
+            "expiry": "2026-08-21T00:00:00Z",
+            "publicReleaseEligible": false,
+            "revokedAt": "2026-07-22T15:08:00Z",
+            "revocationReason": "Superseded after dependency advisory remediation and archive correction",
+            "verificationStatus": "blocked-unverifiable-legacy",
+            "verificationBlocker": "Historical public verification material is not tracked, so a clean checkout cannot independently verify this test signature"
+          },
+          {
+            "id": "security-platform-source-850b2e3",
+            "kind": "source-archive",
+            "sourceCommit": "850b2e31e3ba7507c73c271bf4737922d3f609eb",
+            "path": "release/artifacts/850b2e31e3ba7507c73c271bf4737922d3f609eb/ynx-security-platform-850b2e31e3ba7507c73c271bf4737922d3f609eb.tar",
+            "sha256": "37ec8070947ec977af99588366c7f372c9ffa6ae62ffcf0b8ecf7e220350f15b",
+            "bytes": 440320,
+            "buildRun": "local reproducibility drill 2026-07-22T15:07:00Z",
+            "sbom": "release/artifacts/850b2e31e3ba7507c73c271bf4737922d3f609eb/ynx-security-platform-850b2e31e3ba7507c73c271bf4737922d3f609eb.tar.cdx.json",
+            "provenance": "release/artifacts/850b2e31e3ba7507c73c271bf4737922d3f609eb/ynx-security-platform-850b2e31e3ba7507c73c271bf4737922d3f609eb.tar.intoto.json",
+            "manifest": "release/artifacts/850b2e31e3ba7507c73c271bf4737922d3f609eb/ynx-security-platform-850b2e31e3ba7507c73c271bf4737922d3f609eb.tar.manifest.json",
+            "signature": "release/artifacts/850b2e31e3ba7507c73c271bf4737922d3f609eb/ynx-security-platform-850b2e31e3ba7507c73c271bf4737922d3f609eb.tar.manifest.sig.json",
+            "signingClass": "test-signed",
+            "minimumOs": "Any operating system with POSIX tar support",
+            "installEvidence": "evidence/security-platform/ARTIFACT_AND_RESTORE_DRILL_2026-07-22.md",
+            "revocation": "OPERATIONS.md#artifact-build-and-verification",
+            "expiry": "2026-08-21T00:00:00Z",
+            "publicReleaseEligible": false,
+            "revokedAt": "2026-07-25T07:15:00Z",
+            "revocationReason": "Clean-checkout verification dependency was not tracked; superseded by the embedded-public-JWK verification format",
+            "verificationStatus": "blocked-unverifiable-legacy",
+            "verificationBlocker": "Historical public verification material is not tracked, so a clean checkout cannot independently verify this test signature"
+          },
+          {
+            "id": "security-platform-source-53b037e",
+            "kind": "source-archive",
+            "product": "YNX Security Platform",
+            "version": "0.2.0-candidate",
+            "release": "development-candidate",
+            "environment": "local",
+            "sourceCommit": "53b037eb6fff51e3cb149231fad5bb5f2599527f",
+            "path": "release/artifacts/53b037eb6fff51e3cb149231fad5bb5f2599527f/ynx-security-platform-53b037eb6fff51e3cb149231fad5bb5f2599527f.tar",
+            "sha256": "a110ba963da7065aa12d6f76aa3f1f7a5a1c1d5fafe171ec4508655894fcdc79",
+            "bytes": 942080,
+            "mediaType": "application/x-tar",
+            "platform": "source",
+            "architecture": "any",
+            "buildRun": "local-reproducibility-drill:53b037eb6fff51e3cb149231fad5bb5f2599527f",
+            "sbom": "release/artifacts/53b037eb6fff51e3cb149231fad5bb5f2599527f/ynx-security-platform-53b037eb6fff51e3cb149231fad5bb5f2599527f.tar.cdx.json",
+            "provenance": "release/artifacts/53b037eb6fff51e3cb149231fad5bb5f2599527f/ynx-security-platform-53b037eb6fff51e3cb149231fad5bb5f2599527f.tar.intoto.json",
+            "manifest": "release/artifacts/53b037eb6fff51e3cb149231fad5bb5f2599527f/ynx-security-platform-53b037eb6fff51e3cb149231fad5bb5f2599527f.tar.manifest.json",
+            "signature": "release/artifacts/53b037eb6fff51e3cb149231fad5bb5f2599527f/ynx-security-platform-53b037eb6fff51e3cb149231fad5bb5f2599527f.tar.manifest.sig.json",
+            "signingClass": "test-signed",
+            "signingIdentity": "local-ephemeral-test-signer",
+            "publicKeyFingerprint": "sha256:d184fd92d6009fcb793471b6865096cb41ea5d79610b43045b627b0a8f768396",
+            "minimumOs": "Any operating system with POSIX tar support",
+            "installEvidence": "not-run-source-archive",
+            "coldStartEvidence": "not-applicable-source-archive",
+            "reproducibilityStatus": "verified-local",
+            "verificationStatus": "verified-local-test-signature",
+            "verificationEvidence": "evidence/security-platform/LOCAL_ARTIFACT_DRILL_53b037e.json",
+            "revocation": "OPERATIONS.md#artifact-build-and-verification",
+            "revocationStatus": "active",
+            "expiry": "2026-08-24T07:28:07.187Z",
+            "publicReleaseEligible": false,
+            "revokedAt": null,
+            "supersededBy": "security-platform-source-fa5f3ed",
+            "hostedStatus": "not-hosted",
+            "downloadUrl": null,
+            "productionSigned": false
+          },
+          {
+            "id": "security-platform-source-fa5f3ed",
+            "kind": "source-archive",
+            "product": "YNX Security Platform",
+            "version": "0.2.0-candidate",
+            "release": "development-candidate",
+            "environment": "local",
+            "sourceCommit": "fa5f3edfdac0fe21ed17028845e4faa09ae89143",
+            "path": "release/artifacts/fa5f3edfdac0fe21ed17028845e4faa09ae89143/ynx-security-platform-fa5f3edfdac0fe21ed17028845e4faa09ae89143.tar",
+            "sha256": "e67b094a1989bcbc29f403ed0772e15b6915e4a4f98fde4a9164111e7c5ea813",
+            "bytes": 1536000,
+            "mediaType": "application/x-tar",
+            "platform": "source",
+            "architecture": "any",
+            "buildRun": "local-reproducibility-drill:fa5f3edfdac0fe21ed17028845e4faa09ae89143",
+            "sbom": "release/artifacts/fa5f3edfdac0fe21ed17028845e4faa09ae89143/ynx-security-platform-fa5f3edfdac0fe21ed17028845e4faa09ae89143.tar.cdx.json",
+            "provenance": "release/artifacts/fa5f3edfdac0fe21ed17028845e4faa09ae89143/ynx-security-platform-fa5f3edfdac0fe21ed17028845e4faa09ae89143.tar.intoto.json",
+            "manifest": "release/artifacts/fa5f3edfdac0fe21ed17028845e4faa09ae89143/ynx-security-platform-fa5f3edfdac0fe21ed17028845e4faa09ae89143.tar.manifest.json",
+            "signature": "release/artifacts/fa5f3edfdac0fe21ed17028845e4faa09ae89143/ynx-security-platform-fa5f3edfdac0fe21ed17028845e4faa09ae89143.tar.manifest.sig.json",
+            "signingClass": "test-signed",
+            "signingIdentity": "local-ephemeral-test-signer",
+            "publicKeyFingerprint": "sha256:d18748ec0b656709ee529ec40a1a334459f7af70320c89b8cb2a8c81efabbcd1",
+            "minimumOs": "Any operating system with POSIX tar support",
+            "installEvidence": "not-run-source-archive",
+            "coldStartEvidence": "not-applicable-source-archive",
+            "reproducibilityStatus": "verified-local",
+            "verificationStatus": "verified-local-test-signature",
+            "verificationEvidence": "evidence/security-platform/LOCAL_ARTIFACT_DRILL_fa5f3ed.json",
+            "revocation": "OPERATIONS.md#artifact-build-and-verification",
+            "revocationStatus": "active",
+            "expiry": "2026-08-26T15:29:04.696Z",
+            "publicReleaseEligible": false,
+            "revokedAt": null,
+            "supersededBy": "security-platform-source-1853dd4",
+            "hostedStatus": "not-hosted",
+            "downloadUrl": null,
+            "productionSigned": false
+          },
+          {
+            "id": "security-platform-source-1853dd4",
+            "kind": "source-archive",
+            "product": "YNX Security Platform",
+            "version": "0.2.0-candidate",
+            "release": "development-candidate",
+            "environment": "local",
+            "sourceCommit": "1853dd46ce1535dc01911308b53f2d14860337c2",
+            "path": "release/artifacts/1853dd46ce1535dc01911308b53f2d14860337c2/ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar",
+            "sha256": "e32f5701d9e636e6555828bbfb36e23c0e93ad96c4706cde0f0a4d667c8ad689",
+            "bytes": 1546240,
+            "mediaType": "application/x-tar",
+            "platform": "source",
+            "architecture": "any",
+            "buildRun": "local-reproducibility-drill:1853dd46ce1535dc01911308b53f2d14860337c2",
+            "sbom": "release/artifacts/1853dd46ce1535dc01911308b53f2d14860337c2/ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar.cdx.json",
+            "provenance": "release/artifacts/1853dd46ce1535dc01911308b53f2d14860337c2/ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar.intoto.json",
+            "manifest": "release/artifacts/1853dd46ce1535dc01911308b53f2d14860337c2/ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar.manifest.json",
+            "signature": "release/artifacts/1853dd46ce1535dc01911308b53f2d14860337c2/ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar.manifest.sig.json",
+            "signingClass": "test-signed",
+            "signingIdentity": "local-ephemeral-test-signer",
+            "publicKeyFingerprint": "sha256:eebfb046d15ced9661fa983f1fee24ee2882b57a28e37f00cafab4e46bd2b801",
+            "minimumOs": "Any operating system with POSIX tar support",
+            "installEvidence": "not-run-source-archive",
+            "coldStartEvidence": "not-applicable-source-archive",
+            "reproducibilityStatus": "verified-local",
+            "verificationStatus": "verified-local-test-signature",
+            "verificationEvidence": "evidence/security-platform/LOCAL_ARTIFACT_DRILL_1853dd4.json",
+            "revocation": "OPERATIONS.md#artifact-build-and-verification",
+            "revocationStatus": "active",
+            "expiry": "2026-08-26T15:48:52.229Z",
+            "publicReleaseEligible": false,
+            "revokedAt": null,
+            "supersededBy": "security-platform-source-aa5d5e9",
+            "hostedStatus": "not-hosted",
+            "downloadUrl": null,
+            "productionSigned": false
+          },
+          {
+            "id": "security-platform-source-aa5d5e9",
+            "kind": "source-archive",
+            "product": "YNX Security Platform",
+            "version": "0.2.0-candidate",
+            "release": "development-candidate",
+            "environment": "local",
+            "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+            "path": "release/artifacts/aa5d5e92d28a872c8d449eadbb7acbadc3094e97/ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar",
+            "sha256": "3ef152e991abdd7db17f6f81c93c05a60d2df21e8397945d55381e494f7dfb28",
+            "bytes": 1556480,
+            "mediaType": "application/x-tar",
+            "platform": "source",
+            "architecture": "any",
+            "buildRun": "local-reproducibility-drill:aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+            "sbom": "release/artifacts/aa5d5e92d28a872c8d449eadbb7acbadc3094e97/ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar.cdx.json",
+            "provenance": "release/artifacts/aa5d5e92d28a872c8d449eadbb7acbadc3094e97/ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar.intoto.json",
+            "manifest": "release/artifacts/aa5d5e92d28a872c8d449eadbb7acbadc3094e97/ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar.manifest.json",
+            "signature": "release/artifacts/aa5d5e92d28a872c8d449eadbb7acbadc3094e97/ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar.manifest.sig.json",
+            "signingClass": "test-signed",
+            "signingIdentity": "local-ephemeral-test-signer",
+            "publicKeyFingerprint": "sha256:0cd3485bb0fa5bd77fc35fd45df7479c82709b4e404e62aa84b08f1d0fc3a75e",
+            "minimumOs": "Any operating system with POSIX tar support and Node.js 24",
+            "installEvidence": "evidence/security-platform/LOCAL_CLEAN_INSTALL_aa5d5e9.json",
+            "coldStartEvidence": "evidence/security-platform/LOCAL_CLEAN_INSTALL_aa5d5e9.json",
+            "reproducibilityStatus": "verified-local",
+            "verificationStatus": "verified-local-test-signature",
+            "verificationEvidence": "evidence/security-platform/LOCAL_ARTIFACT_DRILL_aa5d5e9.json",
+            "revocation": "OPERATIONS.md#artifact-build-and-verification",
+            "revocationStatus": "active",
+            "expiry": "2026-08-28T04:10:33.819Z",
+            "publicReleaseEligible": false,
+            "revokedAt": null,
+            "supersededBy": "security-platform-source-900c314",
+            "hostedStatus": "not-hosted",
+            "downloadUrl": null,
+            "productionSigned": false
+          },
+          {
+            "id": "security-platform-source-900c314",
+            "kind": "source-archive",
+            "product": "YNX Security Platform",
+            "version": "0.2.0-candidate",
+            "release": "development-candidate",
+            "environment": "local",
+            "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+            "path": "release/artifacts/900c314ddb8f6f56b8713e7df194f26ee0590e06/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar",
+            "sha256": "063872f860f74e91f107c036afd321b812e4ec49510290fe042e4a9a0ee59258",
+            "bytes": 2590720,
+            "mediaType": "application/x-tar",
+            "platform": "source",
+            "architecture": "any",
+            "buildRun": "local-reproducibility-drill:900c314ddb8f6f56b8713e7df194f26ee0590e06",
+            "sbom": "release/artifacts/900c314ddb8f6f56b8713e7df194f26ee0590e06/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar.cdx.json",
+            "provenance": "release/artifacts/900c314ddb8f6f56b8713e7df194f26ee0590e06/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar.intoto.json",
+            "manifest": "release/artifacts/900c314ddb8f6f56b8713e7df194f26ee0590e06/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar.manifest.json",
+            "signature": "release/artifacts/900c314ddb8f6f56b8713e7df194f26ee0590e06/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar.manifest.sig.json",
+            "signingClass": "test-signed",
+            "signingIdentity": "local-ephemeral-test-signer",
+            "publicKeyFingerprint": "sha256:f4b36f67a03d8db71015daab7ee26be30dd6b3e9dbefd9c16106bc38f966121c",
+            "minimumOs": "Any operating system with POSIX tar support and Node.js 24",
+            "installEvidence": "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json",
+            "coldStartEvidence": "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json",
+            "reproducibilityStatus": "verified-local",
+            "verificationStatus": "verified-local-test-signature",
+            "verificationEvidence": "evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json",
+            "revocation": "OPERATIONS.md#artifact-build-and-verification",
+            "revocationStatus": "active",
+            "expiry": "2026-08-28T05:53:59.737Z",
+            "publicReleaseEligible": false,
+            "revokedAt": null,
+            "supersededBy": null,
+            "hostedStatus": "not-hosted",
+            "downloadUrl": null,
+            "productionSigned": false
+          }
+        ],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -3788,7 +4266,9 @@
           "integrationContract": "release/integration/governance-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 14,
@@ -3805,6 +4285,11 @@
             "externalBlocked": 3,
             "notApplicable": 0,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -3854,6 +4339,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -3914,7 +4400,9 @@
           "integrationContract": "release/integration/music-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 32,
@@ -3931,6 +4419,11 @@
             "externalBlocked": 1,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": false,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -3980,6 +4473,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -4041,7 +4535,9 @@
           "integrationContract": "release/integration/video-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 50,
@@ -4058,6 +4554,11 @@
             "externalBlocked": 7,
             "notApplicable": 0,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -4107,6 +4608,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -4168,7 +4670,9 @@
           "integrationContract": "release/integration/creator-studio-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 35,
@@ -4185,6 +4689,11 @@
             "externalBlocked": 3,
             "notApplicable": 1,
             "verifiedComplete": 0
+          },
+          "milestones": {
+            "builtLocal": false,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -4234,6 +4743,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -4292,7 +4802,9 @@
           "integrationContract": "release/integration/docs-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 35,
@@ -4309,6 +4821,11 @@
             "externalBlocked": 0,
             "notApplicable": 0,
             "verifiedComplete": 1
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -4358,6 +4875,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
@@ -4417,7 +4935,9 @@
           "integrationContract": "release/integration/calendar-contract.json",
           "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
           "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": null,
+          "artifactRegistry": null
         },
         "coverage": {
           "total": 40,
@@ -4434,6 +4954,11 @@
             "externalBlocked": 0,
             "notApplicable": 1,
             "verifiedComplete": 2
+          },
+          "milestones": {
+            "builtLocal": true,
+            "migrationVerified": true,
+            "restoreVerified": true
           }
         },
         "recordMatches": {
@@ -4483,6 +5008,7 @@
           "productionSigned": null,
           "storeReleased": null
         },
+        "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {

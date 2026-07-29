@@ -245,7 +245,24 @@ function extractCoverage(record) {
     else invalid += 1;
   }
   const open = items.filter((item) => ["notStarted", "inProgress"].includes(item?.status)).length;
-  return { total: items.length, open, invalid, counts };
+  const milestoneStatus = new Set(["testedLocal", "integratedCentral", "testnetVerified", "publicVerified", "verifiedComplete"]);
+  const milestone = (pattern) => items.some((item) => {
+    const searchable = [item?.id, item?.title, item?.category, item?.domain, item?.requirement]
+      .filter((value) => typeof value === "string")
+      .join(" ");
+    return pattern.test(searchable) && milestoneStatus.has(item?.status);
+  });
+  return {
+    total: items.length,
+    open,
+    invalid,
+    counts,
+    milestones: {
+      builtLocal: milestone(/build|package|bundle|artifact/i),
+      migrationVerified: milestone(/migration|schema|upgrade/i),
+      restoreVerified: milestone(/restore|backup|recovery/i)
+    }
+  };
 }
 
 function normalizeIdentity(value) {
@@ -319,6 +336,9 @@ function discoverEvidencePaths(product, paths) {
     integrationHandoff: firstExisting(paths, [product.integrationHandoffPath, "docs/integration/INTEGRATION_HANDOFF.md", `docs/handoffs/${slug}.md`].filter(Boolean), ["INTEGRATION_HANDOFF.md"]),
     crossProductTestVectors: firstExisting(paths, [product.crossProductTestVectorsPath, "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json", "release/integration/CROSS_PRODUCT_TEST_VECTORS.json"].filter(Boolean), ["CROSS_PRODUCT_TEST_VECTORS.json"]),
     dependencyAcceptance: firstExisting(paths, [product.dependencyAcceptancePath, "docs/integration/DEPENDENCY_ACCEPTANCE.md"].filter(Boolean), ["DEPENDENCY_ACCEPTANCE.md"])
+    ,
+    releaseState: firstExisting(paths, [product.releaseStatePath].filter(Boolean)),
+    artifactRegistry: firstExisting(paths, [product.artifactRegistryPath].filter(Boolean))
   };
 }
 
@@ -581,6 +601,8 @@ function main() {
     const evidencePaths = discoverEvidencePaths(product, paths);
     const fullGoalCoverage = readJsonAtCommit(commitForEvidence, evidencePaths.fullGoalCoverage, repositoryRoot);
     const productRelease = readJsonAtCommit(commitForEvidence, evidencePaths.productRelease, repositoryRoot);
+    const releaseStateRecord = readJsonAtCommit(commitForEvidence, evidencePaths.releaseState ?? evidencePaths.productRelease, repositoryRoot);
+    const artifactRegistry = readJsonAtCommit(commitForEvidence, evidencePaths.artifactRegistry, repositoryRoot);
     const publicMetadata = readJsonAtCommit(commitForEvidence, evidencePaths.publicMetadata, repositoryRoot);
     const integrationContract = readJsonAtCommit(commitForEvidence, evidencePaths.integrationContract, repositoryRoot);
     const coverage = extractCoverage(fullGoalCoverage);
@@ -641,7 +663,8 @@ function main() {
         coverage,
         recordMatches,
         sourceBindings: bindings,
-        claimedReleaseStates: extractReleaseStates(productRelease),
+        claimedReleaseStates: extractReleaseStates(releaseStateRecord ?? productRelease),
+        artifacts: Array.isArray(artifactRegistry?.artifacts) ? artifactRegistry.artifacts : [],
         exactCommitBound: Object.values(bindings).filter((binding) => binding.sourceCommit).every((binding) => binding.exact)
       },
       centralAcceptance: {
