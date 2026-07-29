@@ -43,7 +43,7 @@ The Developer owner accepts these local invariants for source commit `8f352d0159
 9. Arabic RTL is scoped to interaction surfaces; source, JSON and URL fields remain LTR.
 10. Keyboard tab navigation follows a deterministic tablist contract and output announcements use a polite live region.
 11. Current-source browser accessibility evidence is accepted locally for clean source `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`: 15/15 Chrome checks and six hashed screenshots passed. This is product-owner evidence, not an independent certification.
-12. Current-source API Studio installation is accepted locally for macOS arm64 package source `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca` and Windows x64 package source `5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e`. Both are unsigned Testnet Preview artifacts; Windows run `30280327020` produced only a transient CI Artifact.
+12. Current-source API Studio installation is accepted locally for macOS arm64 and Windows x64 package source `7f976c1e06292360160325b00fa0875e6a2567f6`. The macOS ZIP SHA-256 is `ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7`; the Windows ZIP SHA-256 is `1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29`. Both are unsigned Testnet Preview artifacts; Windows run `30417693593` produced only a transient CI Artifact pending pre-release publication.
 
 ## Conflict handling
 

@@ -14,7 +14,7 @@
 - API Studio Web boundary tests: `apps/developer/test/api-studio-ui.test.js`
 - Current runtime source checkpoint: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
 - Current browser-evidence harness source: `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`
-- Current targeted verification: Developer client 22/22, Developer Web 20/20, browser syntax, static claim/workflow, standalone Web build, live compile, same-origin proxy, desktop sandbox 2/2, Windows source boundary and current-source Chrome accessibility audit 15/15.
+- Current targeted verification: Developer client 22/22, Developer Web 21/21 locally (20/20 on artifact-source Windows CI), browser syntax, static claim/workflow, standalone Web build, live compile, same-origin proxy, desktop sandbox 2/2, Windows source boundary and current-source Chrome accessibility audit 15/15.
 - Validation-gate evidence: `scripts/validate/no-placeholder-check.sh` and `scripts/validate/secret-scan.sh` execute a verified fallback when `rg` is unavailable; scanner execution errors fail closed.
 
 ## Visual evidence
@@ -34,19 +34,18 @@ independent accessibility certification or installed-desktop recapture.
 
 - macOS build: `scripts/package-local-macos.sh`
 - macOS extracted install/cold start: `scripts/verify-local-macos-package.sh`
-- Current macOS source commit: `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`
-- Current macOS source tree: `a0c61afe7ba9e209eab326dcc02fc6568de201d8`
+- Current macOS source commit: `7f976c1e06292360160325b00fa0875e6a2567f6`
+- Current macOS source tree: `0cf68963a1678e6611296684d522b471add4f652`
 - Current macOS runtime checkpoint: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
-- Current macOS ZIP: SHA-256 `55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9`, 38,450,127 bytes, `adhoc-no-team-id`, local and unhosted
+- Current macOS ZIP: SHA-256 `ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7`, 38,450,128 bytes, `adhoc-no-team-id`, local and unhosted pending pre-release publication
 - Embedded SBOM SHA-256: `801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12`
 - Windows build: `scripts/package-windows.ps1`
 - Windows portable install/cold start: `scripts/verify-windows-package.ps1`
 - Windows host workflow: `.github/workflows/developer-windows.yml`
 - Successful current-source Windows host run:
-  `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30280327020`
-- Windows job `90024771435`; transient Artifact `8658611304`; outer digest
-  `sha256:888478649d2f9e2241469e439d918260e4ad8b2c7e7cc40861a0e8925ace7762`;
-  expires `2026-08-10T15:33:26Z` and is not an immutable public download.
+  `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30417693593`
+- Windows source `7f976c1e06292360160325b00fa0875e6a2567f6`, job `90467659180`, transient Artifact `8710756758`, inner ZIP SHA-256 `1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29`, outer digest `sha256:5c52a2f911525732fb8ded1e5f72ba79d8f8b48ff1907899870afa355c54c289`; expires `2026-08-12T02:46:59Z` and is not yet an immutable public download.
+- Current macOS source `7f976c1e06292360160325b00fa0875e6a2567f6`, ZIP SHA-256 `ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7`, 38,450,128 bytes; extracted self-test/cold-launch/cleanup passed with ad-hoc/no-Team-ID classification.
 
 ## Supply chain
 
@@ -59,5 +58,8 @@ independent accessibility certification or installed-desktop recapture.
 ## Release truth
 
 - `../product-release.json`
+- `../public-product-metadata.json`
 - `ARTIFACT_MANIFEST.json`
+- `../release/SHA256SUMS.txt`
+- `../release/PROVENANCE.json`
 - repository handoff: `docs/handoffs/developer.md`

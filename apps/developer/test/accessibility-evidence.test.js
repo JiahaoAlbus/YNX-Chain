@@ -63,3 +63,45 @@ test("committed accessibility evidence and public metadata preserve exact hashes
   assert.equal(release.deployedPublic, false);
   assert.equal(release.productionSigned, false);
 });
+
+test("release manifests, provenance and website metadata agree on current unsigned artifacts", async () => {
+  const artifactManifest = JSON.parse(await read("docs/ARTIFACT_MANIFEST.json"));
+  const provenance = JSON.parse(await read("release/PROVENANCE.json"));
+  const sums = new Map((await read("release/SHA256SUMS.txt")).trim().split("\n").map((line) => {
+    const [sha256, name] = line.trim().split(/\s+/, 2);
+    return [name, sha256];
+  }));
+  const metadata = JSON.parse(await read("public-product-metadata.json"));
+  const release = JSON.parse(await read("product-release.json"));
+  const contract = JSON.parse(await read("../../release/integration/developer-contract.json"));
+  const manifestByPlatform = new Map(artifactManifest.artifacts.map((artifact) => [artifact.surface, artifact]));
+  const provenanceByPlatform = new Map(provenance.artifacts.map((artifact) => [artifact.platform, artifact]));
+  const macManifest = manifestByPlatform.get("macOS arm64");
+  const windowsManifest = manifestByPlatform.get("Windows x64");
+  const macProvenance = provenanceByPlatform.get("macos-arm64");
+  const windowsProvenance = provenanceByPlatform.get("windows-x64");
+  assert.equal(macManifest.sha256, sums.get(macManifest.name));
+  assert.equal(windowsManifest.sha256, sums.get(windowsManifest.name));
+  assert.equal(macManifest.sha256, macProvenance.sha256);
+  assert.equal(windowsManifest.sha256, windowsProvenance.sha256);
+  assert.equal(macManifest.sha256, release.sha256.macosArm64UnsignedZip);
+  assert.equal(windowsManifest.sha256, release.sha256.windowsX64UnsignedZip);
+  assert.equal(macManifest.sha256, metadata.localEvidence.macosArm64.sha256);
+  assert.equal(windowsManifest.sha256, metadata.localEvidence.windowsX64.sha256);
+  assert.equal(macManifest.sourceCommit, provenance.sourceCommit);
+  assert.equal(windowsManifest.sourceCommit, provenance.sourceCommit);
+  assert.equal(windowsManifest.ciRunId, windowsProvenance.ci.runId);
+  assert.equal(windowsManifest.ciArtifactId, windowsProvenance.ci.artifactId);
+  assert.equal(contract.source.releaseCandidateCommit, provenance.sourceCommit);
+  assert.equal(contract.apiStudio.macosArtifactSha256, macManifest.sha256);
+  assert.equal(contract.apiStudio.windowsArtifactSha256, windowsManifest.sha256);
+  assert.equal(contract.apiStudio.windowsWorkflowRunId, windowsManifest.ciRunId);
+  assert.equal(contract.apiStudio.windowsWorkflowArtifactId, windowsManifest.ciArtifactId);
+  assert.equal(contract.releaseStatus.releasePublished, false);
+  assert.equal(release.releasePublished, false);
+  assert.equal(release.downloadHosted, false);
+  assert.equal(metadata.publicEvidence.downloadHosted, false);
+  assert.equal(metadata.routeStatus, "handoff-ready-not-deployed");
+  assert.equal(provenance.truthBoundaries.productionSigned, false);
+  assert.equal(provenance.truthBoundaries.deployedPublic, false);
+});

@@ -5,9 +5,10 @@
 - Added a deterministic Chrome DevTools Protocol audit harness with no Playwright, Puppeteer or production dependency.
 - Bound 15/15 current-source browser checks and six screenshot SHA-256 values to clean pushed commit `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`.
 - Verified keyboard-first skip navigation, editor focus, roving panel tabs, Chromium accessibility-tree roles/names/live regions, a 3 px visible focus ring, Light/Dark, reduced motion, exact 390 px no-overflow, inert mobile drawers, single-column mobile API Studio, Arabic RTL with code/JSON LTR, large text and a 200% page scale.
-- Developer Web now passes 20/20 tests; static claim/workflow check remains passed.
-- Corrected stale Windows statements: the current-source Windows x64 package is installed-local evidence from run `30280327020`, source `5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e`, while the Artifact remains transient and unhosted.
-- This checkpoint does not change central integration, staging/public deployment, hosted download, production signing or store-release status; all remain false.
+- Developer Web now passes 21/21 local tests, including release-manifest/provenance/metadata consistency; artifact-source Windows CI passed 20/20 before that release-record-only gate was added. Static claim/workflow check remains passed.
+- Rebuilt both current-source desktop Testnet Preview artifacts from `7f976c1e06292360160325b00fa0875e6a2567f6`: macOS ZIP SHA-256 `ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7` (38,450,128 bytes) and Windows ZIP SHA-256 `1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29` (106,341,644 bytes).
+- Windows run `30417693593` passed 22 client tests, 20 Web tests, compile, provenance, native self-test, Authenticode `NotSigned`, portable extraction, WPF cold launch, bundled server observation and cleanup. Artifact `8710756758` remains transient until a GitHub pre-release is published.
+- This checkpoint does not yet change central integration, staging/public Web deployment, hosted download, production signing or store-release status; all remain false.
 
 ## 2026-07-27 current-source checkpoint
 

@@ -14,6 +14,7 @@ Website owner: `28-website`
 
 ## Source and release truth
 
+- Release-candidate source: `7f976c1e06292360160325b00fa0875e6a2567f6`
 - Browser-evidence source: `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`
 - Product metadata: `apps/developer/public-product-metadata.json`
 - Product release truth: `apps/developer/product-release.json`
@@ -46,7 +47,7 @@ Exact hashes are authoritative in `evidence/ui/current-accessibility/accessibili
 
 ## Download boundary
 
-No immutable public artifact URL exists. The macOS ZIP is local only. The Windows Artifact is a transient GitHub Actions artifact (`8658611304`) that expires on 2026-08-10 and must not be presented as the official public download. Website owner must keep download CTAs disabled or marked unavailable until Security/SRE supplies approved immutable hosting and production signing evidence.
+No immutable public artifact URL exists yet. The current macOS ZIP is local only. The current Windows Artifact is a transient GitHub Actions artifact (`8710756758`) that expires on 2026-08-12 and must not be presented as the official public download. Website owner must keep download CTAs disabled or marked unavailable until the GitHub pre-release assets are published and their immutable URLs are recorded. Even after publication, every CTA must say unsigned Testnet Preview; production signing remains unavailable.
 
 ## Acceptance gates for Website owner
 

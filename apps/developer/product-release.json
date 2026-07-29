@@ -2,9 +2,9 @@
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
   "branch": "codex/final-developer",
-  "commit": "f38aa95a9ec7ebff68b4d915f41b20ad8f903769",
+  "commit": "7f976c1e06292360160325b00fa0875e6a2567f6",
   "version": "0.2.0",
-  "sourceCheckpoint": "browser-accessibility-evidence-2026-07-29",
+  "sourceCheckpoint": "current-source-desktop-artifacts-2026-07-29",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -21,6 +21,9 @@
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
+  "releasePublished": false,
+  "releaseTag": null,
+  "releaseUrl": null,
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
@@ -39,15 +42,15 @@
       "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "tests": {
         "developerClient": "22 passed",
-        "developerWeb": "20 passed",
+        "developerWeb": "21 passed locally; artifact-source Windows CI passed 20 before release-record consistency test",
         "staticCheck": "passed",
         "webBuild": "passed",
         "liveCheck": "passed",
         "sameOriginProxy": "passed",
         "placeholderGate": "passed with grep fallback because rg was unavailable",
         "credentialLeakGate": "passed with grep fallback because rg was unavailable",
-        "macosCurrentSourcePackage": "embedded provenance, extracted self-test, ad-hoc classification, cold launch, bundled server observation and child cleanup passed",
-        "windowsCurrentSourcePackage": "GitHub Actions run 30280327020: compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed",
+        "macosCurrentSourcePackage": "source 7f976c1e06292360160325b00fa0875e6a2567f6: embedded provenance, extracted self-test, ad-hoc classification, cold launch, bundled server observation and child cleanup passed",
+        "windowsCurrentSourcePackage": "GitHub Actions run 30417693593 for source 7f976c1e06292360160325b00fa0875e6a2567f6: 22 client tests, 20 Web tests, compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed",
         "browserAccessibilityAudit": "15/15 checks and six hashed screenshots passed on Chrome 150 from clean source f38aa95a9ec7ebff68b4d915f41b20ad8f903769"
       },
       "capabilities": [
@@ -95,16 +98,16 @@
     "publicDeploymentEvidence": false
   },
   "sha256": {
-    "macosArm64UnsignedZip": "55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9",
-    "windowsX64UnsignedZip": "92d2e85210740c44f2c3f2f08eb3ea1a2a84b30c836106498d4ba48696e62a54"
+    "macosArm64UnsignedZip": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
+    "windowsX64UnsignedZip": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29"
   },
   "bytes": {
-    "macosArm64UnsignedZip": 38450127,
-    "windowsX64UnsignedZip": 106341640
+    "macosArm64UnsignedZip": 38450128,
+    "windowsX64UnsignedZip": 106341644
   },
   "artifactSourceCommits": {
-    "macosArm64UnsignedZip": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
-    "windowsX64UnsignedZip": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e"
+    "macosArm64UnsignedZip": "7f976c1e06292360160325b00fa0875e6a2567f6",
+    "windowsX64UnsignedZip": "7f976c1e06292360160325b00fa0875e6a2567f6"
   },
   "artifactRuntimeCheckpoints": {
     "macosArm64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
@@ -123,11 +126,11 @@
     {
       "surface": "macos-arm64-testnet-preview",
       "class": "local-extracted-zip",
-      "sourceCommit": "9bcb984d475a39cc9fcd7e46fbb00adaee0421ca",
-      "sourceTree": "a0c61afe7ba9e209eab326dcc02fc6568de201d8",
+      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
+      "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
       "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "artifactSha256": "55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9",
-      "artifactBytes": 38450127,
+      "artifactSha256": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
+      "artifactBytes": 38450128,
       "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
       "provenanceEmbedded": true,
       "result": "embedded source/tree/runtime/SBOM provenance, resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed"
@@ -135,19 +138,19 @@
     {
       "surface": "windows-x64-testnet-preview",
       "class": "windows-ci-portable-extract",
-      "sourceCommit": "5edacf918fa6a4ebaaa96c2270aa9fd579d1af6e",
-      "sourceTree": "f8687d6cce6e187d96daefd2e30757cf49f7c9dc",
+      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
+      "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
       "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "artifactSha256": "92d2e85210740c44f2c3f2f08eb3ea1a2a84b30c836106498d4ba48696e62a54",
-      "artifactBytes": 106341640,
+      "artifactSha256": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29",
+      "artifactBytes": 106341644,
       "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
       "provenanceEmbedded": true,
       "authenticodeStatus": "NotSigned",
-      "runId": 30280327020,
-      "jobId": 90024771435,
-      "artifactId": 8658611304,
-      "artifactOuterDigest": "sha256:888478649d2f9e2241469e439d918260e4ad8b2c7e7cc40861a0e8925ace7762",
-      "artifactExpiresAt": "2026-08-10T15:33:26Z",
+      "runId": 30417693593,
+      "jobId": 90467659180,
+      "artifactId": 8710756758,
+      "artifactOuterDigest": "sha256:5c52a2f911525732fb8ded1e5f72ba79d8f8b48ff1907899870afa355c54c289",
+      "artifactExpiresAt": "2026-08-12T02:46:59Z",
       "result": "compile, embedded provenance, native self-test, portable extraction, Authenticode NotSigned classification, WPF cold launch, bundled server observation, child cleanup and transient artifact upload passed"
     }
   ],
@@ -166,9 +169,9 @@
     "No provider-backed AI generation was performed because no operator provider credential/configuration was supplied.",
     "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
     "Current-source API Studio is installed and cold-launched in local macOS arm64 and Windows x64 unsigned Testnet Previews; neither is a public, notarized, Authenticode-signed or production release.",
-    "The current Windows artifact is a transient GitHub Actions artifact expiring 2026-08-10 and is not an immutable public product download.",
+    "The current Windows artifact is a transient GitHub Actions artifact expiring 2026-08-12 and is not an immutable public product download until the GitHub pre-release is published.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The pinned chain compiler response truthfully reports deterministic analyzer output unless a matching production solc artifact exists; no arbitrary EVM or remote public verification claim is made."
   ],
-  "generatedAt": "2026-07-29T02:32:41Z"
+  "generatedAt": "2026-07-29T02:47:07Z"
 }

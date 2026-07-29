@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0",
+  "productId": "ynx-developer-v1",
+  "version": "0.2.0",
+  "releaseClass": "unsigned-testnet-preview",
+  "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
+  "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
+  "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+  "artifacts": [
+    {
+      "name": "ynx-developer-testnet-preview-macos-unsigned.zip",
+      "platform": "macos-arm64",
+      "sha256": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
+      "bytes": 38450128,
+      "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
+      "signingClass": "adhoc-no-team-id",
+      "verification": [
+        "embedded source/tree/runtime/SBOM provenance",
+        "extracted resource self-test",
+        "strict ad-hoc and no-Team-ID classification",
+        "real GUI cold launch",
+        "bundled server observation",
+        "child cleanup"
+      ]
+    },
+    {
+      "name": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
+      "platform": "windows-x64",
+      "sha256": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29",
+      "bytes": 106341644,
+      "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+      "signingClass": "unsigned-no-authenticode",
+      "authenticodeStatus": "NotSigned",
+      "ci": {
+        "runId": 30417693593,
+        "jobId": 90467659180,
+        "artifactId": 8710756758,
+        "artifactOuterSha256": "5c52a2f911525732fb8ded1e5f72ba79d8f8b48ff1907899870afa355c54c289",
+        "artifactOuterBytes": 105947991,
+        "artifactExpiresAt": "2026-08-12T02:46:59Z"
+      },
+      "verification": [
+        "22 Developer client tests",
+        "20 Developer Web tests",
+        "embedded source/tree/runtime/SBOM provenance",
+        "portable extraction",
+        "native resource self-test",
+        "Authenticode NotSigned classification",
+        "real WPF cold launch",
+        "bundled server observation",
+        "child cleanup"
+      ]
+    }
+  ],
+  "browserAccessibilityEvidence": {
+    "sourceCommit": "f38aa95a9ec7ebff68b4d915f41b20ad8f903769",
+    "status": "passed",
+    "checksPassed": 15,
+    "screenshots": 6,
+    "manifestSha256": "adcac78fb58c5f0e191fa51252f9cd76192f2154d3974837e2763f397b7d6371"
+  },
+  "truthBoundaries": {
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "mainnetReleased": false
+  },
+  "generatedAt": "2026-07-29T02:47:07Z"
+}
