@@ -783,7 +783,10 @@ func LatestBlocks(db Database, limit int) []chain.Block {
 		}
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(heights)))
-	blocks := make([]chain.Block, 0, min(limit, len(heights)))
+	// Keep allocation independent of the caller-controlled limit. The limit is
+	// validated above, but a fixed cap also makes the memory bound explicit to
+	// static analysis and future callers.
+	blocks := make([]chain.Block, 0, 100)
 	for _, height := range heights {
 		if len(blocks) >= limit {
 			break

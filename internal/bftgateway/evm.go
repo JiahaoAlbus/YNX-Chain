@@ -636,10 +636,21 @@ func (g *Gateway) evmCommittedBlockTransactionResult(ctx context.Context, method
 	if err != nil {
 		return nil, -32602, err
 	}
+	transactionIndex, err := checkedEVMTransactionIndex(index)
+	if err != nil {
+		return nil, -32602, err
+	}
 	if index >= uint64(len(evidence.Block.Transactions)) {
 		return nil, 0, nil
 	}
-	return evmCommittedTransaction(evidence.Block.Transactions[index], uint32(index), evidence.RawTransactions[index]), 0, nil
+	return evmCommittedTransaction(evidence.Block.Transactions[index], transactionIndex, evidence.RawTransactions[index]), 0, nil
+}
+
+func checkedEVMTransactionIndex(index uint64) (uint32, error) {
+	if index > math.MaxUint32 {
+		return 0, errors.New("transaction index exceeds the supported uint32 range")
+	}
+	return uint32(index), nil
 }
 
 func (g *Gateway) committedEVMBlockTransactionEvidence(ctx context.Context, byHash bool, raw json.RawMessage) (committedBlockEvidence, bool, int, error) {
