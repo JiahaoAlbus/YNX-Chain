@@ -1346,21 +1346,31 @@ func (s *Service) Appeal(actor, reportID, reason string) (*Appeal, error) {
 	return a, err
 }
 func (s *Service) Analytics(actor string) (Analytics, error) {
-	var a Analytics
+	a := Analytics{
+		Source:  "ynx.creator-studio.persisted-events",
+		AsOf:    s.cfg.Now().UTC(),
+		Version: "analytics.v1",
+		Coverage: AnalyticsCoverage{
+			Scope: "actor-authorized channels and videos",
+		},
+	}
 	err := s.store.read(func(st State) error {
 		channels := actorChannels(st, actor)
 		metricChannels := map[string]bool{}
 		videos := map[string]bool{}
 		financialVideos := map[string]bool{}
+		uniqueUsers := map[string]bool{}
 		for channelID, role := range channels {
 			if roleAllowed(role, CreatorRoleAnalyst, CreatorRoleFinance) {
 				metricChannels[channelID] = true
+				a.Coverage.ChannelCount++
 			}
 		}
 		for _, video := range st.Videos {
 			if role, ok := channels[video.ChannelID]; ok {
 				if roleAllowed(role, CreatorRoleAnalyst, CreatorRoleFinance) {
 					videos[video.ID] = true
+					a.Coverage.VideoCount++
 				}
 				if roleAllowed(role, CreatorRoleFinance) {
 					financialVideos[video.ID] = true
@@ -1369,20 +1379,29 @@ func (s *Service) Analytics(actor string) (Analytics, error) {
 		}
 		for _, event := range st.WatchEvents {
 			if videos[event.VideoID] {
+				a.Coverage.WatchEventCount++
 				a.Views++
 				a.WatchSeconds += event.Seconds
+				if event.Completed {
+					a.CompletedViews++
+				}
+				uniqueUsers[event.Account] = true
 			}
 		}
+		a.UniqueUsers = int64(len(uniqueUsers))
 		for _, subscription := range st.Subscriptions {
 			if metricChannels[subscription.ChannelID] {
+				a.Coverage.SubscriptionEventCount++
 				a.Subscribers++
 			}
 		}
 		for _, revenue := range st.Revenue {
 			if financialVideos[revenue.VideoID] {
+				a.Coverage.RevenueEventCount++
 				a.RevenueYNXT += revenue.AmountYNXT
 			}
 		}
+		a.Coverage.RevenueIncluded = len(financialVideos) > 0
 		return nil
 	})
 	return a, err
