@@ -3,7 +3,7 @@
   "contractId": "ynx.security-platform.integration.v1",
   "product": "30-security-platform",
   "owner": "30-security-sre-release",
-  "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
   "contractStatus": "candidate",
   "authority": {
     "owns": [
@@ -146,7 +146,7 @@
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
+    "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -162,7 +162,7 @@
     "evidence/security-platform/LOCAL_ARTIFACT_DRILL_fa5f3ed.json",
     "evidence/security-platform/LOCAL_ARTIFACT_DRILL_1853dd4.json",
     "evidence/security-platform/LOCAL_ARTIFACT_DRILL_aa5d5e9.json",
-    "evidence/security-platform/LOCAL_CLEAN_INSTALL_aa5d5e9.json",
+    "evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json",
     "evidence/security-platform/GITHUB_BRANCH_PROTECTION_2026-07-27.json",
     "evidence/security-platform/GITHUB_CI_aa5d5e9.json",
     "release/security-platform/operator-inputs.request.json"

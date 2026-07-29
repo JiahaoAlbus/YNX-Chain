@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "product": "YNX Security Platform",
-  "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
-  "asOf": "2026-07-29T04:13:00Z",
-  "source": "repository, GitHub branch protection, and direct local evidence",
+  "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+  "asOf": "2026-07-29T05:53:59.895Z",
+  "source": "authoritative YNX-Chain repository and direct local evidence",
   "version": "0.2.0-candidate",
   "confidence": "direct-evidence-only",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
+    "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -27,7 +27,8 @@
       "commit:53b037eb6fff51e3cb149231fad5bb5f2599527f",
       "commit:fa5f3edfdac0fe21ed17028845e4faa09ae89143",
       "commit:1853dd46ce1535dc01911308b53f2d14860337c2",
-      "commit:aa5d5e92d28a872c8d449eadbb7acbadc3094e97"
+      "commit:aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+      "commit:900c314ddb8f6f56b8713e7df194f26ee0590e06"
     ],
     "testedLocal": [
       "evidence/security-platform/LOCAL_VERIFICATION_2026-07-22.md",
@@ -40,13 +41,11 @@
       "evidence/security-platform/LOCAL_ARTIFACT_DRILL_1853dd4.json",
       "evidence/security-platform/GITHUB_BRANCH_PROTECTION_2026-07-27.json",
       "evidence/security-platform/LOCAL_ARTIFACT_DRILL_aa5d5e9.json",
-      "evidence/security-platform/GITHUB_CI_aa5d5e9.json"
-    ],
-    "installedLocal": [
-      "evidence/security-platform/LOCAL_CLEAN_INSTALL_aa5d5e9.json"
+      "evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json"
     ]
   },
   "blockedStates": {
+    "installedLocal": "no clean installation and CLI cold-start evidence for the authoritative-repository source artifact",
     "integratedCentral": "central owners have not accepted the candidate contract",
     "deployedStaging": "no staging deployment run or URL evidence",
     "deployedPublic": "no public deployment or health evidence",

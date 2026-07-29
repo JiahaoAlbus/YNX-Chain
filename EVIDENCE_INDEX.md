@@ -28,7 +28,8 @@
 - Encrypted local restore drill: `evidence/security-platform/LOCAL_RESTORE_DRILL_58fe679.json`
 - Local Service Identity and mTLS drill: `evidence/security-platform/LOCAL_MTLS_DRILL_0cb9b58.json`
 - Local reproducible artifact, SBOM, provenance, test-signature, and tamper drills: `evidence/security-platform/LOCAL_ARTIFACT_DRILL_53b037e.json`; `evidence/security-platform/LOCAL_ARTIFACT_DRILL_fa5f3ed.json`; `evidence/security-platform/LOCAL_ARTIFACT_DRILL_1853dd4.json`; `evidence/security-platform/LOCAL_ARTIFACT_DRILL_aa5d5e9.json`
-- Active local test-signed artifact set: `release/artifacts/aa5d5e92d28a872c8d449eadbb7acbadc3094e97/`
+- Authoritative-repository reproducible artifact, SBOM, provenance, test-signature, and tamper drill: `evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json`
+- Active local test-signed artifact set: `release/artifacts/900c314ddb8f6f56b8713e7df194f26ee0590e06/`
 - Clean locked install, build, production dependency audit, and CLI cold start: `evidence/security-platform/LOCAL_CLEAN_INSTALL_aa5d5e9.json`
 - Deployment-candidate review: `evidence/security-platform/PLATFORM_INFRASTRUCTURE_2026-07-23.md`
 - Dependency remediation: `evidence/security-platform/DEPENDENCY_REMEDIATION_2026-07-22.md`

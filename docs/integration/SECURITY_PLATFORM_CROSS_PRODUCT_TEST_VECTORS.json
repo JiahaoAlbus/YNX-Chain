@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "owner": "30-security-sre-release",
-  "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
   "vectors": [
     {
       "id": "service-identity-valid",

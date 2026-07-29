@@ -4,7 +4,7 @@
 
 Owner: `30-security-sre-release`
 
-Source commit: `aa5d5e92d28a872c8d449eadbb7acbadc3094e97`
+Source commit: `900c314ddb8f6f56b8713e7df194f26ee0590e06`
 
 Contract: `release/integration/security-platform-contract.json`
 
@@ -14,11 +14,11 @@ This platform owns the security framework, enforcement tools, release evidence, 
 
 - Local implementation: accepted by Product 30 tests.
 - Local tests: accepted; security suite and repository suite pass.
-- Remote validation: accepted for exact source `aa5d5e92d28a872c8d449eadbb7acbadc3094e97`; CI, Security, and Security Platform Gates completed successfully.
-- Branch controls: strict required checks, code-owner review, last-push approval, linear history, conversation resolution, and force-push/deletion rejection are enabled; administrator enforcement and signed commits remain final-lock actions.
+- Remote validation: pending for the authoritative-repository source; the earlier `aa5d5e9` CI evidence belongs to the legacy repository and remains historical only.
+- Branch controls: the authoritative branch workflow is validation-only and pinned to immutable Action SHAs; repository protection acceptance remains pending after the first authoritative push.
 - Local encrypted restore drill: passed for the committed `security-platform/` metadata set.
-- Local reproducible artifact drill: passed for source commit `aa5d5e92d28a872c8d449eadbb7acbadc3094e97`, including SBOM, provenance, test signature, tamper rejection, wrong-identity rejection, and unsigned-public rejection.
-- Clean installation: a Git archive of the same source passed locked dependency installation, production dependency audit, workspace build, policy verification, and CLI cold start.
+- Local reproducible artifact drill: passed for source commit `900c314ddb8f6f56b8713e7df194f26ee0590e06`, including SBOM, provenance, test signature, tamper rejection, wrong-identity rejection, and unsigned-public rejection.
+- Clean installation: pending for the authoritative-repository artifact; the earlier clean-install evidence belongs to the legacy repository.
 - Artifact distribution: not hosted; the active artifact remains local/test-signed and is not public-release eligible.
 - Central integration: not accepted.
 - Staging deployment: not evidenced.

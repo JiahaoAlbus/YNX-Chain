@@ -10,11 +10,11 @@
   "metaDescription": "Security, release integrity, observability, incident response, and recovery controls for YNX testnet products.",
   "h1": "YNX Security Platform",
   "status": "development-candidate",
-  "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
+    "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -31,17 +31,17 @@
     "protected-branch security gates"
   ],
   "risks": [
-    "installed only as a local CLI candidate, not in an approved staging cluster",
+    "authoritative-repository clean installation evidence is pending",
     "not publicly deployed",
     "current source artifact is test-signed, not production-signed",
     "immutable hosted download is unavailable",
     "live cross-region restore evidence is pending"
   ],
   "artifactCandidate": {
-    "id": "security-platform-source-aa5d5e9",
+    "id": "security-platform-source-900c314",
     "kind": "source-archive",
-    "sha256": "3ef152e991abdd7db17f6f81c93c05a60d2df21e8397945d55381e494f7dfb28",
-    "bytes": 1556480,
+    "sha256": "063872f860f74e91f107c036afd321b812e4ec49510290fe042e4a9a0ee59258",
+    "bytes": 2590720,
     "signingClass": "test-signed",
     "publicReleaseEligible": false,
     "downloadUrl": null
@@ -54,7 +54,7 @@
   "faq": [
     {
       "question": "Is the YNX Security Platform publicly deployed?",
-      "answer": "No. The current candidate is implemented, tested, and installed as a local CLI, but central integration, staging, and public deployment are not yet verified."
+      "answer": "No. The current candidate is implemented and tested locally in the authoritative repository, but clean installation, central integration, staging, and public deployment are not yet verified."
     },
     {
       "question": "Is the current artifact production-signed?",
