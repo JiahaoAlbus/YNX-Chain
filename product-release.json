@@ -4,13 +4,13 @@
     "number": 23,
     "name": "YNX Search",
     "slug": "search",
-    "version": "0.4.0-data-policy-preview",
+    "version": "0.5.0-observability-preview",
     "releaseClass": "Testnet Preview",
     "goalStatus": "active",
     "phase": "FREEZE"
   },
   "source": {
-    "commit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
+    "commit": "88ee867322ec11a243a483c04bab99676cc3416e",
     "repository": "JiahaoAlbus/YNX-Chain"
   },
   "status": {
@@ -35,11 +35,11 @@
     "trustGateway": "unavailable"
   },
   "verification": {
-    "completedAt": "2026-07-27",
+    "completedAt": "2026-07-29",
     "commands": [
       {
         "command": "cd apps/search && npm run check",
-        "result": "pass: 29/29 tests, service smoke, source-right enforcement, product-local secret scan, deterministic feed verification, and recovery drill"
+        "result": "pass: 31/31 tests, service smoke, source-right enforcement, observability correlation, product-local secret scan, deterministic feed verification, and recovery drill"
       },
       {
         "command": "cd apps/search && npm run test:e2e",
@@ -48,6 +48,10 @@
       {
         "command": "cd apps/search && npm audit --omit=dev --audit-level=high",
         "result": "pass: zero vulnerabilities"
+      },
+      {
+        "command": "cd apps/search && YNX_BUILD_COMMIT=88ee867322ec11a243a483c04bab99676cc3416e npm run capacity",
+        "result": "pass: 80/80 loopback HTTP queries, concurrency 8, p50 8.82 ms, p95 22.57 ms, p99 34.03 ms, 713.98 requests/second; local single-process evidence only"
       },
       {
         "command": "cd packages/web4-permissions && npm test",
@@ -61,7 +65,8 @@
     "notes": [
       "The root secret scan was not accepted as evidence because its rg dependency was absent while the script printed success.",
       "The Search product-local scanner is dependency-independent and passed.",
-      "Playwright dependencies required npm ci; two upstream 502 attempts were bounded and the third succeeded."
+      "The capacity result is loopback-only and does not prove staging, public, or production capacity.",
+      "The protected metrics endpoint is implemented but is not yet accepted by central Monitor or deployed on the current staging source."
     ]
   },
   "delivered": [
@@ -82,12 +87,19 @@
     "product-local secret scan",
     "Source Registry v4 exact-byte backup and separate-path restore",
     "deterministic public-index reindex with source-use rights preserved",
-    "tamper, overwrite, in-place and in-bundle recovery rejection"
+    "tamper, overwrite, in-place and in-bundle recovery rejection",
+    "Request, Trace and Error correlation identifiers",
+    "bounded structured request and error logs without query strings or error messages",
+    "fail-closed authenticated Prometheus metrics endpoint",
+    "reproducible local HTTP capacity benchmark with explicit scope boundaries"
   ],
   "evidence": [
     ".ai-bridge/full-goal-coverage.json",
     "release/integration/search-contract.json",
     "apps/search/evidence/EVIDENCE_INDEX.md",
+    "apps/search/evidence/capacity/local-loopback-88ee8673.json",
+    "apps/search/OBSERVABILITY.md",
+    "apps/search/SLO_CAPACITY_PLAN.md",
     "apps/search/evidence/staging/health.json",
     "apps/search/evidence/staging/search-empty.json",
     "apps/search/evidence/ui",
@@ -125,6 +137,6 @@
       "item": "approved production source inventory and external search provider access"
     }
   ],
-  "nextAction": "Obtain central contract and recovery-policy acceptance, then deploy this exact source to staging and execute the shared Testnet sequence.",
+  "nextAction": "Implement and test the provider-neutral external Search adapter with explicit unavailable, rate-limit, retention and source-separation semantics; then obtain central contract acceptance and deploy source commit 88ee867322ec11a243a483c04bab99676cc3416e to staging.",
   "lastUpdated": "2026-07-29"
 }

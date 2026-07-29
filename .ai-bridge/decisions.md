@@ -32,3 +32,23 @@
 12. Repository-wide Go failures in unrelated Chain/Trust/Faucet ownership are
     recorded but will not be fixed from the Search worktree without an accepted
     cross-product change.
+
+## 2026-07-29
+
+13. Runtime correlation uses bounded Request, Trace and Error identifiers. Query
+    strings, request bodies, client IP addresses, error messages, source snippets,
+    Wallet data and authorization evidence are excluded from structured logs and
+    metric labels.
+14. `/api/metrics` fails closed unless an operator configures a bearer reference;
+    it is not public and does not prove central Monitor integration.
+15. Process-local metrics are implementation evidence only. Durable dashboards,
+    alerts, incident linkage and restart continuity remain owned by Monitor/SRE.
+16. Capacity evidence must include exact source, environment, dataset, concurrency,
+    latency and status counts and must remain labeled local, staging or public
+    according to the environment actually measured.
+17. The protected runtime source is
+    `88ee867322ec11a243a483c04bab99676cc3416e`; subsequent evidence-sync commits
+    may advance repository HEAD without changing that runtime source attribution.
+18. The next autonomous runtime slice is a provider-neutral external Search
+    adapter. Missing provider selection or credentials must produce truthful
+    unavailable state, never a fixture-backed production success.

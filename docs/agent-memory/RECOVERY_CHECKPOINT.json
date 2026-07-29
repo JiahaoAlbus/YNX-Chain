@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "23",
+  "productName": "YNX Search",
+  "phase": "FREEZE",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/23-search",
+  "branch": "codex/final-search",
+  "localSha": "88ee867322ec11a243a483c04bab99676cc3416e",
+  "remoteSha": "88ee867322ec11a243a483c04bab99676cc3416e",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "recordScope": "protected runtime source prior to evidence-sync commit",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "apps/search npm run check: 31/31 tests plus smoke, security, feeds and recovery drill",
+    "apps/search npm run test:e2e: 6/6 Chromium scenarios",
+    "apps/search npm audit --omit=dev --audit-level=high: zero vulnerabilities",
+    "apps/search exact-source capacity: 80/80 loopback requests at concurrency 8, p95 22.57 ms, p99 34.03 ms"
+  ],
+  "latestCiRuns": [],
+  "pullRequests": [],
+  "release": {
+    "currentSourcePublished": false,
+    "historicalTag": "ynx-browser-search-v0.2.0-preview.1",
+    "historicalRelease": "YNX Browser & Search 0.2.0 Testnet Preview 1"
+  },
+  "artifacts": [
+    {
+      "path": "release/public/search/public-feed-manifest.json",
+      "state": "local deterministic artifact; not hosted"
+    },
+    {
+      "path": "apps/search/evidence/capacity/local-loopback-88ee8673.json",
+      "state": "local exact-source capacity evidence"
+    }
+  ],
+  "publicRoutes": [
+    {
+      "url": "https://ynxweb4.com/search",
+      "verified": false,
+      "owner": "28-website"
+    },
+    {
+      "url": "https://search-staging.43.153.202.237.sslip.io",
+      "verified": true,
+      "deployedSha": "d68b5d89c0d2e92744bf634c55b776397ec8f896",
+      "currentSource": false
+    }
+  ],
+  "completed": [
+    "Source Registry v4 and fail-closed migration",
+    "explicit public data-class and source-use rights enforcement",
+    "bounded lexical retrieval and explainable ranking",
+    "canonical YNX entity resolution",
+    "citation-bound AI preparation and rights enforcement",
+    "remedy cases and replay-safe Wallet callback challenges",
+    "deterministic public feeds",
+    "exact-byte backup, separate-path restore and deterministic public reindex",
+    "Request, Trace and Error correlation",
+    "bounded structured logs and protected Prometheus metrics",
+    "reproducible local capacity evidence"
+  ],
+  "remaining": [
+    "provider-neutral external Search adapter",
+    "retention expiry and export-delete operational verification",
+    "central owner acceptances",
+    "current-source staging deployment and remote SLO evidence",
+    "PR and CI",
+    "artifact, SBOM and provenance",
+    "current-source release publication",
+    "ynxweb4.com/search public deployment"
+  ],
+  "blockers": [
+    "02-wallet-auth central registry and session acceptance",
+    "14-ai citation Gateway and provider-backed run",
+    "15-trust-center remedy integration",
+    "13-monitor scrape, alerts and dashboard acceptance",
+    "28-website public route and feed hosting",
+    "29-integration contract freeze",
+    "30-security-sre-release staging and artifact gate",
+    "operator provider selection, agreement, credential and approved production source inventory"
+  ],
+  "nextAction": "Implement and test the provider-neutral external Search adapter with explicit unavailable, rate-limit, retention, health, asOf and result-separation semantics before requesting credentials.",
+  "updatedAt": "2026-07-29T02:49:16Z"
+}

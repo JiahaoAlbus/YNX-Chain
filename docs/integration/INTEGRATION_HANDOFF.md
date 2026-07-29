@@ -1,10 +1,10 @@
 # YNX Search Integration Handoff
 
-Version: 1.2.0
+Version: 1.3.0
 
 Product owner: `23-search`
 
-Source commit: `adc4d74c9e4f3a2992be36a812305a6d3b426f15`
+Source commit: `88ee867322ec11a243a483c04bab99676cc3416e`
 
 Current phase: `FREEZE`
 
@@ -51,10 +51,18 @@ deployed.
 - Source Registry v4 backups bind exact database bytes, manifest metadata, index
   receipts, and the deterministic public projection. Restore/reindex are
   separate-path-only and preserve source-use boundaries.
-- 29 unit/integration tests, service smoke including AI data-right override denial,
+- 31 unit/integration tests, service smoke including AI data-right override denial,
   dependency-independent secret scan, deterministic feed verification, six
   Playwright scenarios, shared permissions tests, and production dependency audit
   pass locally.
+- Every response carries Request and Trace correlation; bounded errors add an Error
+  ID. Structured logs exclude query strings, bodies, IP addresses, error messages,
+  source snippets, Wallet data, and authorization evidence.
+- `/api/metrics` is an operator-authenticated, fail-closed Prometheus endpoint.
+  Central Monitor acceptance and current-source staging evidence remain pending.
+- The reproducible local loopback benchmark at this source commit passed 80/80
+  requests at concurrency 8 with p95 22.57 ms; it is not staging, public, or
+  production capacity evidence.
 
 ## Required owner actions
 
@@ -97,9 +105,16 @@ Consume `public-product-metadata.json` and the six public feed files. Publish th
 canonical `/search` route, FAQ, support/privacy/security/status paths, and
 structured data without exposing repository or local engineering metadata.
 
+### 13 Monitor
+
+Scrape `/api/metrics` only through an authenticated private path, preserve the
+normalized low-cardinality labels, alert on server error rate, latency, missing
+scrapes, restart and stale deployed commit, and keep source status separate from
+external provider health. Central Monitor acceptance is not yet proven.
+
 ### 29 Integration
 
-Freeze `release/integration/search-contract.json` v1.3.0, dependency acceptance,
+Freeze `release/integration/search-contract.json` v1.4.0, dependency acceptance,
 event and error ownership, migration order, and the shared Testnet sequence.
 
 ### 30 Security/SRE/Release

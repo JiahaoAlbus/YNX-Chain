@@ -3,7 +3,7 @@
   "feedName": "public-products",
   "version": "1.0.0",
   "asOf": "2026-07-29T00:00:00.000Z",
-  "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
+  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
   "coverage": "YNX product metadata candidates; routes are unverified unless explicitly stated",
   "items": [
     {
@@ -368,7 +368,7 @@
       "summary": "YNX Search is an independent product in the YNX Web4 ecosystem.",
       "publicationStatus": "Testnet Preview",
       "routeVerified": false,
-      "releaseVersion": "0.4.0-data-policy-preview",
+      "releaseVersion": "0.5.0-observability-preview",
       "source": "ynx-search-public-product-metadata"
     },
     {

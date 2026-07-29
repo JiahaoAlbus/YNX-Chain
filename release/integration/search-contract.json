@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.3.0",
+  "schemaVersion": "1.4.0",
   "contractId": "ynx.search.integration.v1",
   "product": {
     "number": 23,
@@ -7,7 +7,7 @@
     "slug": "search",
     "owner": "23-search"
   },
-  "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
+  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -26,12 +26,15 @@
       "search result schema",
       "ranking explanation schema",
       "public search feeds",
-      "search correction and removal case adapter"
+      "search correction and removal case adapter",
+      "request, trace and error correlation schema",
+      "Search runtime metrics and bounded log schema"
     ],
     "externalOwners": {
       "walletAuth": "02-wallet-auth",
       "aiGateway": "14-ai",
       "trustCases": "15-trust-center",
+      "monitor": "13-monitor",
       "publicDocsAndBrand": "18-docs-compliance",
       "browserClient": "22-browser",
       "canonicalEvents": "26-data-fabric",
@@ -51,7 +54,13 @@
       "method": "GET",
       "path": "/api/health",
       "auth": "public",
-      "purpose": "truthful build and dependency status"
+      "purpose": "truthful build, dependency and observability status"
+    },
+    {
+      "method": "GET",
+      "path": "/api/metrics",
+      "auth": "operator-configured Monitor bearer; 503 when unconfigured",
+      "purpose": "bounded Prometheus request, latency, error and uptime metrics"
     },
     {
       "method": "GET",
@@ -200,6 +209,16 @@
       "offsiteDurability": "not verified",
       "operationalRpo": "not verified",
       "centralAcceptance": "pending"
+    },
+    "observability": {
+      "version": "1.0.0",
+      "responseHeaders": ["x-request-id", "x-trace-id", "x-error-id on errors"],
+      "structuredEvents": ["request-completed", "request-error"],
+      "excludedFields": ["query strings", "request bodies", "client IP addresses", "error messages", "source snippets", "Wallet data", "authorization evidence"],
+      "metrics": ["ynx_search_requests_total", "ynx_search_request_duration_milliseconds_sum", "ynx_search_request_duration_milliseconds_max", "ynx_search_server_errors_total", "ynx_search_process_uptime_seconds"],
+      "metricsAuth": "operator-configured bearer; fail closed with 503 when absent",
+      "centralMonitorAcceptance": "pending",
+      "stagingEvidence": "pending current-source deployment"
     }
   },
   "auth": {
@@ -283,6 +302,11 @@
       "status": "pending"
     },
     {
+      "owner": "13-monitor",
+      "required": "authenticated private metrics scrape, durable storage, alerts, dashboard and stale-deployed-SHA detection",
+      "status": "pending"
+    },
+    {
       "owner": "29-integration",
       "required": "contract freeze and shared Testnet acceptance",
       "status": "pending"
@@ -291,6 +315,7 @@
   "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "migration": "apps/search/MIGRATION_COMPATIBILITY.md",
   "health": "/api/health",
+  "metrics": "/api/metrics",
   "version": "/api/health build",
   "externalInputs": [
     "approved production source inventory",

@@ -1,8 +1,8 @@
 # YNX Search Dependency Acceptance
 
-Source commit: `adc4d74c9e4f3a2992be36a812305a6d3b426f15`
+Source commit: `88ee867322ec11a243a483c04bab99676cc3416e`
 
-Contract: `release/integration/search-contract.json` v1.3.0
+Contract: `release/integration/search-contract.json` v1.4.0
 
 Status: pending central acceptance
 
@@ -14,7 +14,8 @@ Status: pending central acceptance
 | 22 Browser | Search client | Independent product route; preserves query and failure state; tolerates result schema v4/data class/source-use fields; distinguishes YNX Index, External Result and AI Answer | Handoff and vectors exist; acceptance pending |
 | 26 Data Fabric | Events and data classes | Canonical Search event names and accepted explicit public-only ingestion labels; private/internal/credential classes rejected | Search-owned Source Registry v4 allowlist and negative gates tested; canonical label acceptance pending |
 | 28 Website | Public entry | `/search`, metadata, FAQ, support/privacy/security/status routes, six public feeds, canonical and structured data | Metadata and deterministic feeds ready locally; hosting and route pending |
-| 29 Integration | Protocol freeze | One accepted source v4, result v4, receipt, event, error, auth and release contract | Proposed v1.3.0; pending freeze |
+| 13 Monitor | Metrics and alerts | Authenticated private scrape, normalized low-cardinality labels, error-rate/latency/restart/missing-scrape/stale-SHA alerts, no query or source content in labels | Request/Trace/Error IDs, bounded logs and protected metrics pass locally; central scrape and alerts pending |
+| 29 Integration | Protocol freeze | One accepted source v4, result v4, receipt, event, error, auth, observability and release contract | Proposed v1.4.0; pending freeze |
 | 30 Security/SRE | Release gate | Outbound policy, lockfile, SBOM, provenance, least privilege, backup/restore and current-source staging verification | Local outbound, data-leak gates, scans, dependency audit and recovery drill pass; policy acceptance and release review pending |
 
 ## Rules

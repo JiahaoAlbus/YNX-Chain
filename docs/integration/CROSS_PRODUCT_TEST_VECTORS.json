@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "product": "YNX Search",
-  "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
+  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
   "vectors": [
     {
       "id": "SEARCH-SOURCE-REGISTER-VALID",
@@ -177,6 +177,34 @@
       "precondition": "backup contains metadata-only, snippet-only, or AI-ineligible sources",
       "action": "restore and deterministic reindex",
       "expected": "source-use rights remain unchanged; prohibited snippets and AI context remain unavailable"
+    },
+    {
+      "id": "SEARCH-OBSERVABILITY-CORRELATION",
+      "owners": ["23-search", "13-monitor", "30-security-sre-release"],
+      "precondition": "request reaches any Search route",
+      "action": "observe response and bounded structured log",
+      "expected": "response has Request and Trace IDs; errors also have one matching Error ID; normalized log excludes query strings, bodies, IP addresses and error messages"
+    },
+    {
+      "id": "SEARCH-METRICS-UNCONFIGURED",
+      "owners": ["23-search", "13-monitor", "30-security-sre-release"],
+      "precondition": "no Search metrics bearer is configured",
+      "action": "GET /api/metrics",
+      "expected": "503 fail-closed response with correlation IDs; no metrics body or synthetic success"
+    },
+    {
+      "id": "SEARCH-METRICS-AUTH",
+      "owners": ["23-search", "13-monitor", "30-security-sre-release"],
+      "precondition": "Search metrics bearer is configured",
+      "action": "scrape without or with the wrong bearer, then with the accepted bearer",
+      "expected": "unauthorized scrapes fail; accepted private scrape returns only bounded route/status/latency/error/uptime metrics with no user or source content labels"
+    },
+    {
+      "id": "SEARCH-CAPACITY-TRUTH",
+      "owners": ["23-search", "13-monitor", "29-integration", "30-security-sre-release"],
+      "precondition": "local loopback benchmark evidence exists",
+      "action": "read the capacity evidence and release record",
+      "expected": "environment, source commit, dataset, concurrency, latency and status counts are present; evidence remains labeled local and does not imply staging, public or production capacity"
     }
   ]
 }

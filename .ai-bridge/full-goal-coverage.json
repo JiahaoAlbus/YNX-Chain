@@ -6,7 +6,7 @@
     "slug": "search",
     "owner": "23-search",
     "phase": "FREEZE",
-    "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15"
+    "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e"
   },
   "allowedStatuses": [
     "notStarted",
@@ -20,7 +20,7 @@
     "notApplicable",
     "verifiedComplete"
   ],
-  "lastUpdated": "2026-07-27",
+  "lastUpdated": "2026-07-29",
   "requirements": [
     {
       "id": "SEARCH-SOURCE-001",
@@ -316,15 +316,15 @@
       "requirement": "Structured logs, request/error/audit IDs, metrics, traces, health, version, alerts, SLO dashboard, incidents, and Monitor integration are present.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["apps/search/src/server.js", "apps/search/deploy"],
-      "sourceCommit": "52c70f74220df06208b6a415580a5a879c4a8cb8",
-      "tests": ["npm run smoke"],
+      "evidence": ["apps/search/src/server.js", "apps/search/src/observability.js", "apps/search/test/observability.test.js", "apps/search/OBSERVABILITY.md", "apps/search/deploy"],
+      "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
+      "tests": ["observability emits bounded IDs, normalized routes, structured logs and metrics", "observability preserves valid correlation headers and strips query strings", "npm run smoke", "npm run check"],
       "artifact": null,
       "publicProof": "apps/search/evidence/staging/health.json",
-      "blockedBy": ["13-monitor ingestion contract"],
+      "blockedBy": ["13-monitor ingestion and alert acceptance", "current source not deployed to staging"],
       "owner": "23-search",
-      "nextAction": "Add structured request metrics, trace IDs, and Monitor handoff.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Obtain central Monitor scrape and alert acceptance, then verify the protected metrics contract on the current staging source.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "SEARCH-SLO-001",
@@ -332,15 +332,15 @@
       "requirement": "Measure crawl, index size, QPS, p50/p95/p99, freshness, provider limits, concurrent queries, case queue, AI citation, storage, reindex, and recovery.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["apps/search/SLO_CAPACITY_PLAN.md"],
-      "sourceCommit": null,
-      "tests": [],
-      "artifact": null,
+      "evidence": ["apps/search/SLO_CAPACITY_PLAN.md", "apps/search/scripts/capacity.mjs", "apps/search/evidence/capacity/local-loopback-88ee8673.json"],
+      "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
+      "tests": ["npm run capacity", "npm run recovery:drill"],
+      "artifact": "apps/search/evidence/capacity/local-loopback-88ee8673.json",
       "publicProof": null,
-      "blockedBy": [],
+      "blockedBy": ["current-source staging deployment", "13-monitor durable metrics acceptance", "live provider limits"],
       "owner": "23-search",
-      "nextAction": "Run reproducible local capacity and reindex/recovery benchmarks.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Run the documented staging concurrency, corpus, resource, restart and scrape-continuity matrix after current-source deployment.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "SEARCH-ECON-001",

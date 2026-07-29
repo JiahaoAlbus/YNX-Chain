@@ -7,8 +7,8 @@
   "metaDescription": "Search reviewed YNX products, documentation, releases, public chain evidence, governance and authorized public sources with visible citations, freshness and correction paths.",
   "h1": "Search YNX with sources you can verify",
   "status": "Testnet Preview",
-  "releaseVersion": "0.4.0-data-policy-preview",
-  "sourceCommit": "adc4d74c9e4f3a2992be36a812305a6d3b426f15",
+  "releaseVersion": "0.5.0-observability-preview",
+  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
   "brand": {
     "officialSiteName": "YNX Chain",
     "ecosystemName": "YNX Web4",
@@ -34,6 +34,8 @@
     "citation-bound AI with explicit consent",
     "source-terms-aware snippets and AI retrieval",
     "hash-verified backup, separate-path restore and deterministic public reindex",
+    "Request, Trace and Error correlation with bounded structured logs",
+    "protected Prometheus metrics and reproducible local capacity evidence",
     "12 languages and Arabic RTL",
     "light, dark and responsive PWA"
   ],
@@ -83,5 +85,5 @@
     "apps/search/evidence/ui/search-ar-rtl-768x1024.png"
   ],
   "websiteOwner": "28-website",
-  "lastUpdated": "2026-07-27"
+  "lastUpdated": "2026-07-29"
 }
