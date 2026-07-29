@@ -26,6 +26,8 @@ const rolePermissions:Record<Role,readonly Permission[]> = {
     'backup:verify',
     'rollback:propose',
     'rollback:verify',
+    'automation:propose',
+    'automation:review',
   ],
   incident_commander: [
     'incident:create',
@@ -37,8 +39,9 @@ const rolePermissions:Record<Role,readonly Permission[]> = {
     'incident:recovery_verify',
     'backup:record',
     'rollback:propose',
+    'automation:propose',
   ],
-  security_reviewer: ['alert:acknowledge','backup:verify','rollback:verify'],
+  security_reviewer: ['alert:acknowledge','backup:verify','rollback:verify','automation:review'],
 };
 
 function isRole(value:unknown):value is Role {

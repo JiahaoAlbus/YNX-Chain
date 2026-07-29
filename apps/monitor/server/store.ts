@@ -3,6 +3,7 @@ import { dirname } from 'node:path';
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import type {
   Alert,
+  AutomationProposal,
   AuditEvent,
   BackupArtifact,
   Incident,
@@ -16,7 +17,7 @@ import type {
   WalletChallenge,
 } from './types.js';
 
-const empty = (): OpsState => ({ incidents:[], alerts:[], audits:[], rollbackProposals:[], backupRecords:[], restoreDrills:[], walletChallenges:[] });
+const empty = (): OpsState => ({ incidents:[], alerts:[], audits:[], rollbackProposals:[], automationProposals:[], backupRecords:[], restoreDrills:[], walletChallenges:[] });
 const stable=(value:unknown)=>JSON.stringify(value);
 const incidentStatuses:readonly IncidentStatus[]=['open','acknowledged','investigating','mitigated','recovery_verifying','resolved','postmortem_complete'];
 
@@ -275,6 +276,12 @@ export class OpsStore {
     );
   }
 
+  private findAutomation(id:string){
+    return this.state.automationProposals.find((record):record is AutomationProposal=>
+      typeof record==='object'&&record!==null&&record.schemaVersion===1&&record.id===id&&'authorityBoundary' in record,
+    );
+  }
+
   async registerBackup(principal:Principal,input:Omit<BackupArtifact,'schemaVersion'|'id'|'registeredAt'|'registeredBy'|'status'|'verification'>){
     const item:BackupArtifact={
       schemaVersion:1,
@@ -368,6 +375,54 @@ export class OpsStore {
     proposal.verification={...input,verifiedAt:new Date().toISOString(),verifiedBy:principal.username};
     proposal.status=input.result==='verified'?'verified-not-executed':'rejected-not-executed';
     await this.audit(principal,'rollback.verify',id,proposal.status,{candidateRelease:proposal.candidateRelease,previousRelease:proposal.previousRelease??null,evidence:input.evidence});
+    return{proposal:structuredClone(proposal),changed:true};
+  }
+
+  async addAutomationProposal(principal:Principal,input:{action:'pause'|'resume';target:string;reason:string;evidence:string[];maxPauseSeconds?:number;pauseProposalId?:string}){
+    if(input.action==='resume'){
+      const pause=input.pauseProposalId&&this.findAutomation(input.pauseProposalId);
+      if(!pause||pause.action!=='pause'||pause.target!==input.target||pause.status!=='approved-not-executed')throw new Error('approved_pause_proposal_required');
+    }
+    const requestedAt=new Date();
+    const proposal:AutomationProposal={
+      schemaVersion:1,
+      id:`automation_${randomUUID()}`,
+      action:input.action,
+      target:input.target,
+      reason:input.reason,
+      evidence:input.evidence,
+      requestedBy:principal.username,
+      requestedAt:requestedAt.toISOString(),
+      expiresAt:new Date(requestedAt.getTime()+5*60_000).toISOString(),
+      ...(input.action==='pause'?{maxPauseSeconds:input.maxPauseSeconds}:{}),
+      ...(input.action==='resume'?{pauseProposalId:input.pauseProposalId}:{}),
+      status:'pending_review',
+      executionBoundary:'central infrastructure owner',
+      authorityBoundary:'pause-or-resume-only; no asset movement or authority expansion',
+    };
+    this.state.automationProposals.unshift(proposal);
+    await this.audit(principal,'automation.propose',proposal.id,'pending_review',{action:proposal.action,target:proposal.target,expiresAt:proposal.expiresAt,maxPauseSeconds:proposal.maxPauseSeconds??null,pauseProposalId:proposal.pauseProposalId??null});
+    return structuredClone(proposal);
+  }
+
+  async reviewAutomationProposal(principal:Principal,id:string,input:{decision:'approved'|'rejected';evidence:string[];notes:string}){
+    const proposal=this.findAutomation(id);
+    if(!proposal)return undefined;
+    if(proposal.requestedBy===principal.username)throw new Error('independent_automation_reviewer_required');
+    if(proposal.review)throw new Error('automation_review_already_final');
+    if(Date.parse(proposal.expiresAt)<=Date.now()){
+      proposal.status='expired-not-executed';
+      await this.audit(principal,'automation.review',id,proposal.status,{action:proposal.action,target:proposal.target});
+      throw new Error('automation_proposal_expired');
+    }
+    if(!input.evidence.length)throw new Error('automation_review_evidence_required');
+    if(proposal.action==='resume'){
+      const pause=proposal.pauseProposalId&&this.findAutomation(proposal.pauseProposalId);
+      if(!pause||pause.status!=='approved-not-executed'||pause.target!==proposal.target)throw new Error('approved_pause_proposal_required');
+    }
+    proposal.review={...input,reviewedAt:new Date().toISOString(),reviewedBy:principal.username};
+    proposal.status=input.decision==='approved'?'approved-not-executed':'rejected-not-executed';
+    await this.audit(principal,'automation.review',id,proposal.status,{action:proposal.action,target:proposal.target,evidence:input.evidence,executionBoundary:proposal.executionBoundary});
     return{proposal:structuredClone(proposal),changed:true};
   }
 

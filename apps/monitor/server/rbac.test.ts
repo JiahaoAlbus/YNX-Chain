@@ -80,6 +80,6 @@ describe('Monitor scoped RBAC',()=>{
     const token=await login(base,'backup_recovery',password);
     const me=await call(base,'/ops/me',token);
     assert.equal(me.status,200);
-    assert.deepEqual(me.body.permissions,['incident:recovery_verify','backup:record','rollback:propose']);
+    assert.deepEqual(me.body.permissions,['incident:recovery_verify','backup:record','rollback:propose','automation:propose']);
   });
 });

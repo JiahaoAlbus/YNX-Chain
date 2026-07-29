@@ -14,7 +14,9 @@ export type Permission =
   | 'backup:record'
   | 'backup:verify'
   | 'rollback:propose'
-  | 'rollback:verify';
+  | 'rollback:verify'
+  | 'automation:propose'
+  | 'automation:review';
 
 export type IncidentStatus =
   | 'open'
@@ -147,6 +149,30 @@ export interface RollbackProposal {
   executionBoundary:'central infrastructure owner';
   verification?:RollbackVerification;
 }
+export interface AutomationReview {
+  decision:'approved'|'rejected';
+  reviewedAt:string;
+  reviewedBy:string;
+  evidence:string[];
+  notes:string;
+}
+export interface AutomationProposal {
+  schemaVersion:1;
+  id:string;
+  action:'pause'|'resume';
+  target:string;
+  reason:string;
+  evidence:string[];
+  requestedBy:string;
+  requestedAt:string;
+  expiresAt:string;
+  maxPauseSeconds?:number;
+  pauseProposalId?:string;
+  status:'pending_review'|'approved-not-executed'|'rejected-not-executed'|'expired-not-executed';
+  executionBoundary:'central infrastructure owner';
+  authorityBoundary:'pause-or-resume-only; no asset movement or authority expansion';
+  review?:AutomationReview;
+}
 export interface Alert { id:string; source:string; state:'firing'|'acknowledged'|'resolved'; firstObservedAt:string; lastObservedAt:string; reason:string; evidenceUrl:string; acknowledgedBy?:string; acknowledgedAt?:string }
 export interface WalletChallenge { id:string; nonceHash:string; accountHint?:string; origin:string; issuedAt:string; expiresAt:string; consumedAt?:string }
 export interface OpsState {
@@ -154,6 +180,7 @@ export interface OpsState {
   alerts:Alert[];
   audits:AuditEvent[];
   rollbackProposals:Array<RollbackProposal|Record<string,unknown>>;
+  automationProposals:Array<AutomationProposal|Record<string,unknown>>;
   backupRecords:Array<BackupArtifact|Record<string,unknown>>;
   restoreDrills:RestoreDrill[];
   walletChallenges:WalletChallenge[];
