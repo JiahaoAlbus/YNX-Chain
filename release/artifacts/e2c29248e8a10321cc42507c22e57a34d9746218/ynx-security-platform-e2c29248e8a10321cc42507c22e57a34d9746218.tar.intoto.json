@@ -1,0 +1,69 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "ynx-security-platform-e2c29248e8a10321cc42507c22e57a34d9746218.tar",
+      "digest": {
+        "sha256": "95156e936631602389b5b3e6de898d65b7e05a91c402bad1af2452fb19839a93"
+      }
+    }
+  ],
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://ynxweb4.com/security-platform/reproducible-git-archive/v1",
+      "externalParameters": {
+        "sourceCommit": "e2c29248e8a10321cc42507c22e57a34d9746218",
+        "paths": [
+          ".github/CODEOWNERS",
+          ".github/workflows/ci.yml",
+          "EVIDENCE_INDEX.md",
+          "FEATURE_COMPLETION_EVIDENCE.md",
+          "MIGRATION_COMPATIBILITY.md",
+          "OBSERVABILITY.md",
+          "OPERATIONS.md",
+          "SLO_CAPACITY_PLAN.md",
+          "THREAT_MODEL.md",
+          "UNIT_ECONOMICS.md",
+          "release",
+          "security-platform",
+          "scripts/security-artifact.mjs",
+          "scripts/security-backup.mjs",
+          "scripts/security-platform.mjs"
+        ]
+      },
+      "internalParameters": {},
+      "resolvedDependencies": [
+        {
+          "uri": "git+https://github.com/JiahaoAlbus/YNX.git",
+          "digest": {
+            "gitCommit": "e2c29248e8a10321cc42507c22e57a34d9746218"
+          }
+        }
+      ]
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://github.com/JiahaoAlbus/YNX/.github/workflows/ci.yml"
+      },
+      "metadata": {
+        "invocationId": "local:e2c29248e8a10321cc42507c22e57a34d9746218",
+        "startedOn": null,
+        "finishedOn": null
+      },
+      "byproducts": [
+        {
+          "name": "ynx-security-platform-e2c29248e8a10321cc42507c22e57a34d9746218.tar.cdx.json",
+          "digest": {
+            "sha256": "85c94ee703c98efa2178060754f230bab6cdde2eb4dd8f8cf6f2af944d34a4b1"
+          }
+        }
+      ]
+    },
+    "ynxRelease": {
+      "bytes": 61440,
+      "signingClass": "unsigned-local",
+      "publicReleaseEligible": false
+    }
+  }
+}

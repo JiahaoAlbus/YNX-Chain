@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "scenario": "clean-git-archive-artifact-and-registry-verification",
+  "sourceCommit": "e4a0ab11890bfc0e2862ce045bfc059b6c0ca15c",
+  "environment": "local-ephemeral-clean-archive",
+  "startedAt": "2026-07-25T07:43:06.308Z",
+  "completedAt": "2026-07-25T07:43:12.116Z",
+  "result": "passed-local",
+  "dependencyInstallPerformed": false,
+  "archivedRepositoryVerifier": "PASS security platform policy, truth, artifacts, secret metadata, and tracked-file gates",
+  "archive": {
+    "sha256": "dd055ee2baaaad5e9f381ad0747f66a3263187b47131669311e9efc2826d41d4",
+    "bytes": 102686720
+  },
+  "release": {
+    "product": "YNX Security Platform",
+    "version": "0.2.0-candidate",
+    "sourceCommit": "53b037eb6fff51e3cb149231fad5bb5f2599527f",
+    "selectedArtifactId": "security-platform-source-53b037e",
+    "productionSigned": false,
+    "deployedPublic": false
+  },
+  "artifact": {
+    "sourceCommit": "53b037eb6fff51e3cb149231fad5bb5f2599527f",
+    "sha256": "a110ba963da7065aa12d6f76aa3f1f7a5a1c1d5fafe171ec4508655894fcdc79",
+    "bytes": 942080,
+    "signingClass": "test-signed",
+    "publicKeyFingerprint": "sha256:d184fd92d6009fcb793471b6865096cb41ea5d79610b43045b627b0a8f768396",
+    "publicReleaseEligible": false,
+    "localArchiveBytesMatch": true,
+    "localArchiveSha256Match": true
+  },
+  "directSignatureVerification": {
+    "verified": true,
+    "signingClass": "test-signed",
+    "signingIdentity": "local-ephemeral-test-signer",
+    "publicKeyFingerprint": "sha256:d184fd92d6009fcb793471b6865096cb41ea5d79610b43045b627b0a8f768396",
+    "expiresAt": "2026-08-24T07:28:07.187Z"
+  },
+  "embeddedPublicJwk": true,
+  "privateMaterialPersisted": false,
+  "hiddenWorktreeFilesAvailable": false,
+  "temporaryWorkspaceRemoved": true,
+  "limitations": [
+    "local Git archive verification only",
+    "no remote CI runner evidence",
+    "no immutable hosted artifact evidence",
+    "no production signature, certificate chain, timestamp, or transparency record",
+    "no installation or cold-start evidence"
+  ]
+}

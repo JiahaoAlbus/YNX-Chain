@@ -1,0 +1,12 @@
+# Product 30 ownership. Repository-wide ownership remains with central Integration.
+/.github/workflows/security-platform-deploy.yml @JiahaoAlbus
+/.github/workflows/security.yml @JiahaoAlbus
+/security-platform/ @JiahaoAlbus
+/release/security-platform/ @JiahaoAlbus
+/release/integration/security-platform-contract.json @JiahaoAlbus
+/release/artifacts/ @JiahaoAlbus
+/scripts/security-*.mjs @JiahaoAlbus
+/infra/k8s/ @JiahaoAlbus
+/evidence/security-platform/ @JiahaoAlbus
+/docs/security-platform/ @JiahaoAlbus
+/docs/integration/SECURITY_PLATFORM_* @JiahaoAlbus

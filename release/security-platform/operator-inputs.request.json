@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Security Platform",
+  "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "status": "external-blocked",
+  "purpose": "Minimum metadata and approvals required to move beyond the verified local candidate. Do not place secret values, private keys, recovery material, bearer tokens, or signing material in this file or in chat.",
+  "requests": [
+    {
+      "id": "central-integration-acceptance",
+      "owners": [
+        "01-chain-core",
+        "02-wallet-auth",
+        "13-monitor",
+        "15-trust",
+        "18-docs-compliance",
+        "19-oracle",
+        "21-bridge",
+        "26-data-fabric",
+        "28-website",
+        "29-integration",
+        "31-governance"
+      ],
+      "required": [
+        "owner name and exact source commit",
+        "versioned contract and positive/negative vectors",
+        "environment, identity, scope, migration, rollback, and evidence paths",
+        "explicit acceptance or rejection by Product 29"
+      ]
+    },
+    {
+      "id": "staging-operation",
+      "owners": [
+        "Security/SRE operator",
+        "cluster owner"
+      ],
+      "required": [
+        "approved cluster context and immutable cluster UID",
+        "approved immutable image digests",
+        "metadata-only Secret Manager references and workload identity",
+        "backup target, TLS hostname, and monitoring/alert route ownership",
+        "signed change approval and exact mutation acknowledgement"
+      ]
+    },
+    {
+      "id": "production-signing-and-release",
+      "owners": [
+        "release authority",
+        "security signing authority"
+      ],
+      "required": [
+        "approved external secure signer identity",
+        "certificate chain, timestamp, transparency record, and revocation route",
+        "independent verification evidence",
+        "production release approval bound to product, environment, source, and artifact digest"
+      ]
+    },
+    {
+      "id": "public-website-and-download",
+      "owners": [
+        "28-website",
+        "13-monitor",
+        "18-docs-compliance"
+      ],
+      "required": [
+        "approved support, privacy, security, and status URLs",
+        "immutable hosted artifact URL with digest and byte count",
+        "public health/version/security/status evidence",
+        "website source commit, deployment identity, and crawler/accessibility acceptance"
+      ]
+    },
+    {
+      "id": "final-repository-lock",
+      "owners": [
+        "repository administrator",
+        "release authority"
+      ],
+      "required": [
+        "enable administrator enforcement after active recovery work is merged",
+        "approve a commit-signing identity and migration plan before requiring signed commits"
+      ]
+    }
+  ],
+  "autonomousWorkExhausted": true,
+  "deploymentAuthorized": false,
+  "productionSigningAuthorized": false,
+  "publicReleaseAuthorized": false
+}

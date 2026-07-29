@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "owner": "30-security-sre-release",
+  "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "vectors": [
+    {
+      "id": "service-identity-valid",
+      "input": {
+        "serviceId": "oracle-reporter",
+        "productId": "19-oracle",
+        "environment": "testnet",
+        "trustDomain": "ynx.testnet",
+        "audience": "data-fabric",
+        "scope": ["market-data:publish"],
+        "revoked": false
+      },
+      "expected": { "allow": true }
+    },
+    {
+      "id": "service-identity-wrong-environment",
+      "inputMutation": { "environment": "production" },
+      "expected": { "allow": false, "errorCode": "SERVICE_ENVIRONMENT_MISMATCH" }
+    },
+    {
+      "id": "service-identity-wrong-audience",
+      "inputMutation": { "audience": "treasury" },
+      "expected": { "allow": false, "errorCode": "SERVICE_AUDIENCE_MISMATCH" }
+    },
+    {
+      "id": "service-identity-revoked",
+      "inputMutation": { "revoked": true },
+      "expected": { "allow": false, "errorCode": "CERTIFICATE_REVOKED" }
+    },
+    {
+      "id": "service-identity-untrusted-issuer",
+      "inputMutation": { "issuer": "untrusted.test" },
+      "expected": { "allow": false, "errorCode": "CERTIFICATE_ISSUER_UNTRUSTED" }
+    },
+    {
+      "id": "service-identity-replay",
+      "inputMutation": { "nonceState": "already-consumed" },
+      "expected": { "allow": false, "errorCode": "REPLAY_DETECTED" }
+    },
+    {
+      "id": "artifact-wrong-digest",
+      "inputMutation": { "artifactDigestMatchesManifest": false },
+      "expected": { "allow": false, "errorCode": "ARTIFACT_DIGEST_MISMATCH" }
+    },
+    {
+      "id": "artifact-unsigned-public",
+      "input": { "public": true, "signingClass": "unsigned" },
+      "expected": { "allow": false, "errorCode": "ARTIFACT_UNSIGNED" }
+    },
+    {
+      "id": "backup-tamper",
+      "inputMutation": { "encryptedEnvelopeHashMatches": false },
+      "expected": { "allow": false, "errorCode": "BACKUP_INTEGRITY_FAILED" }
+    },
+    {
+      "id": "restore-byte-mismatch",
+      "inputMutation": { "restoredSnapshotMatches": false },
+      "expected": { "allow": false, "errorCode": "RESTORE_INTEGRITY_FAILED" }
+    },
+    {
+      "id": "release-evidence-incomplete",
+      "input": { "deployedPublic": true, "publicUrlEvidence": null },
+      "expected": { "allow": false, "errorCode": "RELEASE_EVIDENCE_INCOMPLETE" }
+    }
+  ]
+}

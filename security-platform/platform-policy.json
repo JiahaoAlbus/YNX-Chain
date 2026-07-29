@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "platform": "YNX Security Platform",
+  "source": "YNX authoritative policy",
+  "requiredTruthStates": [
+    "implementedLocal",
+    "testedLocal",
+    "installedLocal",
+    "integratedCentral",
+    "deployedStaging",
+    "deployedPublic",
+    "downloadHosted",
+    "productionSigned",
+    "storeReleased"
+  ],
+  "artifactKinds": [
+    "android-apk",
+    "android-aab",
+    "ios-simulator",
+    "ios-testflight-candidate",
+    "macos",
+    "windows",
+    "web-bundle",
+    "container",
+    "sdk-package",
+    "source-archive"
+  ],
+  "signingClasses": [
+    "unsigned-local",
+    "test-signed",
+    "production-signed"
+  ],
+  "secretClasses": [
+    "validator",
+    "faucet",
+    "deploy",
+    "treasury",
+    "provider",
+    "database",
+    "api",
+    "artifact-signing",
+    "mobile-signing",
+    "tls",
+    "backup-encryption",
+    "recovery"
+  ],
+  "prohibitedTrackedFilePatterns": [
+    "(^|/)\\.env$",
+    "\\.(p12|pfx|jks|keystore)$",
+    "(^|/)(id_rsa|id_ed25519)$"
+  ],
+  "prohibitedContentPatterns": [
+    "-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----",
+    "(mnemonic|seed_phrase|private_key)\\s*[:=]\\s*['\"][^'\"$<]{16,}['\"]"
+  ],
+  "contentScanExemptPrefixes": [
+    "chain/third_party/"
+  ],
+  "contentScanExemptFiles": [
+    "chain/scripts/localnet.sh",
+    "infra/bridge-service/server.test.js",
+    "packages/contracts/hardhat.config.ts"
+  ]
+}

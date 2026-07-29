@@ -1,0 +1,82 @@
+# Monitoring integration candidate. This file is not included by the default
+# Kustomize base and creates no Prometheus, Alertmanager, dashboard, or on-call
+# runtime. Central Monitor ownership and notification routes must be accepted.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-integration-contract
+  namespace: ynx-security-platform
+  labels:
+    security.ynx/status: not-configured
+data:
+  contract.json: |
+    {
+      "schemaVersion": 1,
+      "status": "not-configured",
+      "centralOwner": "13-monitor",
+      "requiredSignals": [
+        "structured-logs",
+        "request-id",
+        "error-id",
+        "audit-id",
+        "deployment-id",
+        "release-id",
+        "incident-id",
+        "metrics",
+        "traces",
+        "synthetic-checks",
+        "dependency-status"
+      ],
+      "requiredGates": [
+        "environment-binding",
+        "retention-acceptance",
+        "notification-owner",
+        "on-call-owner",
+        "escalation-policy",
+        "status-page-contract",
+        "user-data-redaction",
+        "runbook-linkage"
+      ],
+      "runtimeInstalled": false,
+      "alertsActive": false,
+      "publicStatusActive": false
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-platform-prometheus-rules-candidate
+  namespace: ynx-security-platform
+  labels:
+    security.ynx/status: candidate
+data:
+  security-platform.rules.yml: |
+    groups:
+      - name: security_platform_candidate
+        interval: 1m
+        rules:
+          - alert: SecurityPlatformHighErrorBudgetBurn
+            expr: |
+              (1 - (sum(rate(http_requests_total{status=~"2..|3.."}[1h])) / sum(rate(http_requests_total[1h])))) > 0.02
+            for: 5m
+            labels:
+              severity: critical
+              component: security-platform
+            annotations:
+              summary: "Security platform error budget burn exceeds candidate threshold"
+          - alert: SecurityPlatformHighLatencyP99
+            expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[15m])) > 2
+            for: 10m
+            labels:
+              severity: warning
+              component: security-platform
+            annotations:
+              summary: "Security platform p99 latency exceeds candidate threshold"
+          - alert: SecurityPlatformTargetDown
+            expr: up{job=~"ynx-security-.*"} == 0
+            for: 5m
+            labels:
+              severity: critical
+              component: security-platform
+            annotations:
+              summary: "Security platform scrape target is unavailable"

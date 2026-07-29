@@ -1,0 +1,89 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: ynx-services
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-from-gateway
+  namespace: ynx-services
+spec:
+  podSelector:
+    matchLabels:
+      security.ynx/ingress-enabled: "true"
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-internal-service-mesh
+  namespace: ynx-services
+spec:
+  podSelector:
+    matchLabels:
+      security.ynx/service-mesh: "true"
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ynx-services
+      podSelector:
+        matchLabels:
+          security.ynx/service-mesh: "true"
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: ynx-services
+      podSelector:
+        matchLabels:
+          security.ynx/service-mesh: "true"
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring
+  namespace: ynx-services
+spec:
+  podSelector:
+    matchLabels:
+      security.ynx/metrics-enabled: "true"
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090

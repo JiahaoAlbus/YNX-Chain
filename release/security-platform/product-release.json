@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "product": "YNX Security Platform",
+  "version": "0.2.0-candidate",
+  "channel": "development",
+  "environment": "local",
+  "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "branch": "codex/final-security-platform",
+  "buildRun": "local-reproducibility-drill:aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "releasedAt": null,
+  "artifacts": [
+    "security-platform-source-aa5d5e9"
+  ],
+  "statusRecord": "release/security-platform/platform-status.json",
+  "productionSigned": false,
+  "deployedPublic": false,
+  "releaseStatus": "local-test-signed-candidate",
+  "securityFindings": {
+    "releaseBlocking": 0,
+    "acceptedRisks": [
+      "local source archive only",
+      "ephemeral test signature only",
+      "no production certificate chain or transparency record",
+      "no hosted immutable download URL",
+      "development and test dependency audit still reports 18 findings; production dependency audit reports zero"
+    ]
+  },
+  "approval": {
+    "localEngineeringVerification": true,
+    "productionReleaseApproval": false
+  },
+  "publicEvidence": [],
+  "blockedBy": [
+    "production secure signer and signing approval",
+    "immutable hosted download and independent verification",
+    "staging deployment and rollback evidence",
+    "public deployment and health/version/security/status URLs",
+    "central owner acceptance recorded by Product 29"
+  ],
+  "remoteVerification": [
+    "evidence/security-platform/GITHUB_CI_aa5d5e9.json",
+    "evidence/security-platform/LOCAL_CLEAN_INSTALL_aa5d5e9.json",
+    "evidence/security-platform/GITHUB_BRANCH_PROTECTION_2026-07-27.json"
+  ],
+  "externalInputRequest": "release/security-platform/operator-inputs.request.json"
+}
