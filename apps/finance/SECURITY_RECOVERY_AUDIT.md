@@ -1,6 +1,6 @@
 # Security, privacy, recovery and audit review
 
-Reviewed 2026-07-18 for the 1.2.0 Testnet candidate.
+Reviewed 2026-07-29 for the 1.2.0 Testnet candidate.
 
 ## Authentication and authorization
 
@@ -27,7 +27,9 @@ Reviewed 2026-07-18 for the 1.2.0 Testnet candidate.
 
 ## Dependency and release findings
 
-- Finance Go, shared Wallet, gateway and mobile checks pass. On 2026-07-27, `npm audit --omit=dev --prefix apps/finance/mobile` reported 11 advisories: 1 high `brace-expansion` denial-of-service advisory and 10 moderate Expo CLI/config/xcode/`uuid` advisories. A non-force `npm audit fix` was attempted but failed on a local `node_modules` rename conflict; three bounded package-lock-only retries then failed with MCP upstream 502. `--force` was not used because it proposes an incompatible Expo 46 downgrade. The high advisory remains an explicit release blocker until a lockfile-compatible fix is applied and the complete mobile check is rerun.
+- Finance Go, shared Wallet, gateway and mobile checks pass. On 2026-07-29 a non-force lockfile-compatible update removed the high `brace-expansion` denial-of-service advisory without downgrading Expo. TypeScript, 6/6 mobile tests, and Android/iOS Hermes exports passed afterward. Ten moderate Expo CLI/config/xcode `uuid` development-tool advisories remain because npm proposes only an incompatible Expo 46 downgrade; they are tracked and are not represented as resolved.
+- `govulncheck` reports zero reachable vulnerabilities in the Finance runtime and commands. The Finance security/no-placeholder gates pass.
+- The supply-chain gate emits a 529-component CycloneDX mobile SBOM, third-party notices, and local unsigned input provenance bound to an exact source commit. These are local evidence, not an independent attestation or production signature.
 - Expo Modules JSI 57.0.3 has a Swift 6.2 overload ambiguity in its JavaScript Date range guard. The pinned, fail-closed postinstall compatibility patch changes only `abs(milliseconds)` to the equivalent typed `milliseconds.magnitude`; it aborts installation if upstream source changes and must be removed once Expo publishes the correction.
 - Android proof is locally test-signed. iOS production signing, device install, TestFlight/App Store and Play Console are not claimed.
 - Remote Pay receipt access was not tested with a real credential; the 401 result demonstrates failure closure, not receipt integration success.
