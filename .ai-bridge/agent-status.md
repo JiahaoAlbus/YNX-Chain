@@ -5,16 +5,18 @@
 - Branch: `codex/final-quant-lab`
 - Stage: INTEGRATE
 - Goal: Active
-- Last protected remote checkpoint: `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`
+- Last fully verified source checkpoint: `3bff013d86ed5682950a38b114884ce6f17c423d`
+- Agent Memory: `docs/agent-memory/RECOVERY_CHECKPOINT.json`
 
 ## Verified local state
 
-- Integrated Quant release plus container runtime/restart/restore Preflight passed.
-- Linux arm64 local OCI candidate built from pinned base digests and exact Source Commit `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`.
-- Five Compose services started; core ran as UID/GID 65532 with read-only root filesystem, all capabilities dropped and no-new-privileges.
-- Loopback-only Preview mutation, persistent Kill Switch, ordered stop/start, backup SHA verification, isolated named-volume restore and audit-chain continuity passed.
-- macOS and Windows candidates rebuilt twice reproducibly against the same source; macOS strict ad-hoc signature verification and fresh cold start passed with exact version, health, metrics and frontend evidence.
-- Exchange/DEX adapters remain fail-closed and no live-funds capability is enabled.
+- Exact worktree, branch and `JiahaoAlbus/YNX-Chain` remote identity verified.
+- Local and remote branch matched at the source checkpoint.
+- Committed full Quant release Preflight passed on 2026-07-29.
+- MacOS and Windows archives reproduced twice with Go 1.25.7 on Darwin arm64.
+- MacOS archive strict ad-hoc signature and fresh packaged cold start passed with exact version commit, ready health, live funds disabled, build/risk metrics, frontend identity and clean shutdown.
+- Linux arm64 five-service Compose runtime, non-root/read-only/capability boundaries, restart, backup and isolated restore evidence remains valid at artifact source `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`.
+- Exchange and DEX adapters remain fail closed; no live-funds capability is enabled.
 
 ## Truthful incomplete state
 
@@ -24,9 +26,11 @@
 - `downloadHosted=false`
 - `productionSigned=false`
 - `storeReleased=false`
-- Container evidence is local arm64 only; no registry manifest digest, image signature, immutable hosting, external vulnerability scan or Linux amd64 runtime evidence exists.
+- No current product-branch CI run, PR or Quant GitHub Release exists.
+- Container evidence is local Linux arm64 only; no registry manifest digest, signature, immutable hosting, external vulnerability scan or Linux amd64 runtime evidence exists.
+- Windows candidate has not been launched, installed or uninstalled on a Windows host.
 - No real Exchange order/fill, DEX Vault action, Wallet attestation, shared Testnet receipt or public endpoint is claimed.
 
 ## Immediate action
 
-Protect the passing integrated Preflight evidence with Commit/Push and Local=Remote verification, then continue measured local capacity evidence.
+Inspect explicit versioned owner artifacts on the current remote branches for products 02, 07, 19, 26, 27 and 29. Update only Quant-owned integration contracts, dependency acceptance and vectors supported by direct source evidence; keep unresolved versions pending and fail closed.
