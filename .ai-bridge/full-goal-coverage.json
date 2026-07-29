@@ -432,16 +432,25 @@
       "category": "safety",
       "requirement": "Allow only pre-approved bounded pause actions and require fresh review before resume; never expand authority or move assets.",
       "applicability": "required",
-      "status": "notStarted",
-      "evidence": [],
-      "sourceCommit": null,
-      "tests": [],
-      "artifact": null,
+      "status": "testedLocal",
+      "evidence": [
+        "pre-approved deployment-owned target allowlist with fail-closed empty policy",
+        "1–900 second pause bound and five-minute proposal expiry",
+        "separate proposer and reviewer permissions with same-actor rejection",
+        "new linked proposal and fresh independent review required for resume",
+        "approved-not-executed execution boundary with no asset or authority action"
+      ],
+      "sourceCommit": "da552c4e86d8d895dbc10bcab38d93ee3228ddac",
+      "tests": [
+        "apps/monitor/server/automation-lifecycle.test.ts",
+        "npm --prefix apps/monitor run security:check"
+      ],
+      "artifact": "apps/monitor/AUTOMATION_SAFETY.md",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Define signed, expiring, product-scoped pause proposals and keep execution disabled until central owner acceptance.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Configure the production target allowlist and connect approved-not-executed records to the central owner's separately controlled change system.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "MON-AI-001",

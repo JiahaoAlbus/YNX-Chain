@@ -1,6 +1,6 @@
 {
   "schemaVersion": "ynx.monitor.dependency-review.v1",
-  "sourceCommit": "28223d60176b618dd1a7ddb1c5f3ec6ba94b5bbf",
+  "sourceCommit": "da552c4e86d8d895dbc10bcab38d93ee3228ddac",
   "generatedFrom": "apps/monitor/package-lock.json",
   "lockfileVersion": 3,
   "packageCount": 163,
