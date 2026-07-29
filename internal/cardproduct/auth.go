@@ -57,6 +57,13 @@ func NewGatewayVerifier(key []byte, store *Store, now func() time.Time) (*Gatewa
 }
 
 func (v *GatewayVerifier) Verify(r *http.Request, body []byte) (GatewayAssertion, error) {
+	return v.VerifyForScopes(r, body, CardScopes)
+}
+
+func (v *GatewayVerifier) VerifyForScopes(r *http.Request, body []byte, requiredScopes []string) (GatewayAssertion, error) {
+	if len(requiredScopes) == 0 {
+		return GatewayAssertion{}, ErrGatewayUnauthorized
+	}
 	a := GatewayAssertion{
 		Account: strings.TrimSpace(r.Header.Get("X-YNX-Account")), SessionID: strings.TrimSpace(r.Header.Get("X-YNX-Session-ID")),
 		DeviceID: strings.TrimSpace(r.Header.Get("X-YNX-Device-ID")), ProductID: strings.TrimSpace(r.Header.Get("X-YNX-Product")),
@@ -79,7 +86,7 @@ func (v *GatewayVerifier) Verify(r *http.Request, body []byte) (GatewayAssertion
 	now := v.now().UTC()
 	if accountErr != nil || !identifierPattern.MatchString(a.SessionID) || !identifierPattern.MatchString(a.DeviceID) || !identifierPattern.MatchString(a.Nonce) ||
 		a.ProductID != ProductID || a.ClientID != ClientID || a.BundleID != BundleID || a.Callback != Callback || a.ChainID != "ynx_6423-1" ||
-		!sameScopes(a.Scopes, CardScopes) || len(a.RequestDigest) != 64 || len(signature) != 64 || !now.Before(a.ExpiresAt) || a.ExpiresAt.Sub(a.IssuedAt) > v.window || now.Before(a.IssuedAt.Add(-30*time.Second)) || now.After(a.ExpiresAt) {
+		!sameScopes(a.Scopes, requiredScopes) || len(a.RequestDigest) != 64 || len(signature) != 64 || !now.Before(a.ExpiresAt) || a.ExpiresAt.Sub(a.IssuedAt) > v.window || now.Before(a.IssuedAt.Add(-30*time.Second)) || now.After(a.ExpiresAt) {
 		return GatewayAssertion{}, ErrGatewayUnauthorized
 	}
 	a.Account = account

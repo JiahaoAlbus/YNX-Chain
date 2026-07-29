@@ -460,6 +460,9 @@ func normalizeSnapshot(snapshot *Snapshot) {
 	if snapshot.GatewaySeen == nil {
 		snapshot.GatewaySeen = map[string]time.Time{}
 	}
+	if snapshot.DeletionReceipts == nil {
+		snapshot.DeletionReceipts = map[string]DataDeletionReceipt{}
+	}
 	if snapshot.Audit == nil {
 		snapshot.Audit = []AuditEvent{}
 	}
@@ -502,6 +505,11 @@ func validateBackupSnapshot(snapshot Snapshot) error {
 	for id, value := range snapshot.AIRuns {
 		if id == "" || value.ID != id {
 			return errors.New("card backup AI-run index is inconsistent")
+		}
+	}
+	for pseudonym, value := range snapshot.DeletionReceipts {
+		if pseudonym == "" || value.ID == "" || value.AccountPseudonym != pseudonym || value.IdempotencyDigest == "" || value.DeletedAt.IsZero() {
+			return errors.New("card backup deletion receipt index is inconsistent")
 		}
 	}
 	for index, entry := range snapshot.Audit {

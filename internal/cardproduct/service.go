@@ -38,6 +38,7 @@ type Config struct {
 	ProviderEventKeys map[string][]byte
 	Provider          IssuerProvider
 	AI                AIProvider
+	Retention         RetentionPolicy
 	Now               func() time.Time
 }
 
@@ -47,6 +48,7 @@ type Service struct {
 	ai                AIProvider
 	gateway           *GatewayVerifier
 	providerEventKeys map[string][]byte
+	retention         RetentionPolicy
 	now               func() time.Time
 	mu                sync.Mutex
 }
@@ -73,7 +75,11 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{store: store, provider: cfg.Provider, ai: cfg.AI, gateway: verifier, providerEventKeys: providerEventKeys, now: cfg.Now}, nil
+	retention, err := normalizeRetentionPolicy(cfg.Retention)
+	if err != nil {
+		return nil, err
+	}
+	return &Service{store: store, provider: cfg.Provider, ai: cfg.AI, gateway: verifier, providerEventKeys: providerEventKeys, retention: retention, now: cfg.Now}, nil
 }
 
 func (s *Service) ProviderName() string { return s.provider.Name() }
@@ -122,6 +128,7 @@ func (s *Service) Apply(ctx context.Context, account string, input ApplyInput) (
 	}
 	application := Application{ID: id, Account: account, EligibilityReference: reference, Status: status, Provider: s.provider.Name(), ProviderReference: providerReference, LegalConsentVersion: input.LegalConsentVersion, CreatedAt: now, UpdatedAt: now}
 	err = s.store.Update(func(state *Snapshot) error {
+		delete(state.DeletionReceipts, accountPseudonym(account))
 		state.Eligibility[account] = eligibility
 		state.Applications[id] = application
 		state.Idempotency[scope+":"+key] = IdempotencyRecord{Scope: scope, Key: key, RequestHash: requestHash, ObjectID: id, CreatedAt: now}
