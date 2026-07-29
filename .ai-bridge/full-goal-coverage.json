@@ -492,20 +492,25 @@
       "category": "performance",
       "requirement": "Measure p50/p95/p99, availability, error rate, alert delay, throughput, concurrency, provider latency, RTO/RPO, and capacity without extrapolating from a demo.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
-        "truthful bounded current-probe SLO language"
+        "apps/monitor/SLO_CAPACITY_PLAN.md",
+        "HTTP capacity gate: 1000 requests, concurrency 25, 0 failures, 918.9 requests/second, p50 14.189 ms, p95 125.261 ms, p99 237.726 ms",
+        "truthful bounded current-probe SLO language",
+        "backup and restore lifecycle coverage"
       ],
-      "sourceCommit": "95817f417bb9d08a8450c09fca884bb89d240eba",
+      "sourceCommit": "76c2413d0ea501a94aa35c7783b9463f5925ed5f",
       "tests": [
+        "apps/monitor/server/capacity.test.ts",
+        "backup and restore lifecycle tests",
         "truthful SLO copy test"
       ],
-      "artifact": "apps/monitor/src/App.tsx",
+      "artifact": "apps/monitor/SLO_CAPACITY_PLAN.md",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Add a reproducible load harness and persisted histogram evidence before claiming historical SLOs.",
-      "lastUpdated": "2026-07-28"
+      "nextAction": "Repeat the same gate in staging and production-like environments before promoting the local baseline to a historical SLO claim.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "MON-UNIT-ECONOMICS-001",
