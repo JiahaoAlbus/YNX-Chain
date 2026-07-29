@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "ynx.monitor.security-gate-summary.v1",
+  "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+  "result": "passed",
+  "sourceFilesScanned": 12,
+  "credentialFilesScanned": 690,
+  "credentialFindings": 0,
+  "sastFindings": 0,
+  "productionPackages": 163,
+  "registryHosts": [
+    "registry.npmjs.org",
+    "registry.npmmirror.com"
+  ],
+  "cleanBuildsCompared": 2,
+  "reproducibleBuild": true,
+  "artifactFindings": 0,
+  "outputs": [
+    {
+      "path": "release/monitor/security/sbom.cdx.json",
+      "sha256": "ce8206d10990f56ee1e50516b769d4ae524666a6187ca31f5cd97d78c1d73974"
+    },
+    {
+      "path": "release/monitor/security/THIRD_PARTY_NOTICES.md",
+      "sha256": "e9b0a012bb74f47345fa25473efd2bc63b96a507ead909c51ff39fb8fc08282b"
+    },
+    {
+      "path": "release/monitor/security/dependency-review.json",
+      "sha256": "64ec9b37161a7473b649b9005099e5f22ab100f917e524df130706e4669f26b4"
+    },
+    {
+      "path": "release/monitor/security/dast-plan.json",
+      "sha256": "17a1fb09b747fbf4261a9f8084fcaf25aba19488460341a4a279beec98dfddaa"
+    },
+    {
+      "path": "release/monitor/security/build-manifest.json",
+      "sha256": "79ee17747719972990937a1c3679ec692555bf6a676c659416db8282853166bf"
+    },
+    {
+      "path": "release/monitor/security/provenance.json",
+      "sha256": "f131a2e0803d164652c572792f34c5a33340c0c7cfe79cdbc4fe40827ef23a8a"
+    }
+  ],
+  "limitations": [
+    "Local evidence is unsigned.",
+    "No hosted DAST target was available.",
+    "Registry mirror use is reported and requires central supply-chain acceptance."
+  ]
+}

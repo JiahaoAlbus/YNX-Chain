@@ -2,7 +2,7 @@
 
 Status: Open  
 Owner: `13-monitor`  
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 No dependency is accepted merely because an endpoint returns HTTP 200. Acceptance requires a versioned contract, owner identity, source commit, authentication boundary, freshness semantics, failure semantics, negative vectors, and shared-Testnet evidence.
 
@@ -20,7 +20,7 @@ No dependency is accepted merely because an endpoint returns HTTP 200. Acceptanc
 | `26-data-fabric` | Canonical events and billing telemetry | Not integrated | Frozen event IDs, ordering, idempotency, retention, and replay semantics |
 | `28-website` | `/monitor` entry and redacted public status | Strict signed public-status projection and local redaction/integrity/replay vectors pass; no Website consumption or hosted endpoint | Accept `ynx.monitor.public-status.v1`, approved publisher identity, durable restart-safe anti-rollback sequence, canonical metadata, hosted endpoint, and public probe |
 | `29-integration` | Contract freeze and shared Testnet | Pending | Unique version freeze and cross-product vector execution |
-| `30-security-sre-release` | Release, artifact, backup, restore, rollback, security evidence | Typed local evidence consumer and independent-verification vectors pass; no real recovery artifact accepted | Frozen signed/hashed release manifest, immutable artifact identity, retention policy, isolated restore/rollback drill, and central execution/recovery evidence with truthful status |
+| `30-security-sre-release` | Release, artifact, backup, restore, rollback, security evidence | Typed local evidence consumer, independent-verification vectors, threat model, CycloneDX SBOM, license review, built-in credential/SAST gate, reproducible build, artifact scan, and unsigned local provenance pass; no real recovery or hosted artifact accepted | Frozen signed/hashed release manifest, immutable artifact identity, central acceptance of disclosed npm mirror use, repair of shared secret-scan false-pass behavior without `rg`, hosted DAST, retention policy, isolated restore/rollback drill, and central execution/recovery evidence with truthful status |
 
 ## Rejection rules
 

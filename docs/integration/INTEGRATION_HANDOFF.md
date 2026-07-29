@@ -2,8 +2,8 @@
 
 Status: Candidate, not frozen  
 Owner: `13-monitor`  
-Source commit: `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`
-Last updated: 2026-07-28
+Source commit: `5914e02134cd17ad20c6d8c9846864861cdfd4a3`
+Last updated: 2026-07-29
 
 ## Protected local delivery
 
@@ -55,13 +55,13 @@ The file adapter uses `YNX_MONITOR_PUBLIC_STATUS_PATH`, accepts only a regular n
 
 ## Verification bound to the source commit
 
-- `cd apps/monitor && npm test` — 31 passed, 0 failed, including 13 public-status integrity/redaction/replay cases.
+- `cd apps/monitor && npm test` — 35 passed, 0 failed: 31 runtime/UI cases plus 4 supply-chain fail-closed cases.
 - `cd apps/monitor && npm run build` — TypeScript and production Vite build passed.
 - `cd apps/monitor && npm run test:e2e` — managed desktop/mobile suite passed 8/8.
-- `cd apps/monitor && npm audit --omit=dev --audit-level=high` — 0 vulnerabilities.
-- Changed production placeholder and changed-file secret-shaped assignment scans passed.
+- `cd apps/monitor && npm run security:check` — audit 0, credential findings 0 across 690 tracked text files, SAST findings 0 across 12 production files, 163 locked production packages reviewed, two clean builds identical, artifact findings 0.
+- Generated evidence: `release/monitor/security/` contains the CycloneDX SBOM, third-party notices, dependency review, DAST input plan, build manifest, local unsigned provenance, and gate summary.
 - `cd apps/monitor && npm run smoke` — failed because all eight configured central service endpoints were unavailable; no Testnet or dependency-health claim is made.
-- Git protection — `codex/final-monitor` pushed; local SHA equals upstream SHA at `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`.
+- Git protection — protected implementation source `5914e02134cd17ad20c6d8c9846864861cdfd4a3`; final branch/upstream equality is verified after the evidence checkpoint push.
 
 The repository-wide `go test ./...` preflight was also run and failed in cross-product consensus, faucet, trust, and missing EVM artifact tests outside `13-monitor` ownership. These failures are recorded in `product-release.json`; Monitor does not claim the full monorepo preflight passed and did not modify those owners' code.
 
@@ -84,6 +84,8 @@ Consumers must not infer health from HTTP 200 alone. Every telemetry adapter mus
 
 ## Current blockers and next action
 
-The current phase remains `PROTECT`: Monitor-local tests, build, E2E, dependency audit, push, and SHA equality pass, but the repository-wide phase-transition preflight is not green and `29-integration` has not frozen the contract. The redacted status route is locally tested only; no approved publisher feed, hosted private operator, hosted public endpoint, Website consumption, public probe, public deployment, production signing, artifact, install, or cold-start claim is made.
+The current phase remains `PROTECT`: Monitor-local tests, build, E2E, dependency audit, threat model, SBOM, license review, credential/SAST scans, reproducible build, and local provenance pass, but the repository-wide phase-transition preflight is not green and `29-integration` has not frozen the contract. The redacted status route is locally tested only; no approved publisher feed, hosted private operator, hosted public endpoint, Website consumption, public probe, hosted DAST, public deployment, production signing, immutable artifact, install, or cold-start claim is made.
 
-The next autonomous slice is Monitor-specific threat modelling and executable supply-chain evidence: SBOM, third-party notices/license review, dependency and secret scans, SAST/DAST inputs, artifact provenance, and reproducibility checks. The transitional `operator` role remains migration-only and must not be assigned to new principals once scoped-role migration is accepted.
+`30-security-sre-release` must also review two disclosed supply-chain facts: the lock file contains both `registry.npmjs.org` and `registry.npmmirror.com`, and the shared repository `scripts/validate/secret-scan.sh` can print a false pass when `rg` is absent. Monitor does not modify that central script and instead uses a built-in scanner with direct evidence.
+
+The next autonomous slice is typed backup, restore-drill, and rollback-proposal operator UI with capability gating, explicit approvals, independent-verifier states, and managed desktop/mobile tests. The transitional `operator` role remains migration-only and must not be assigned to new principals once scoped-role migration is accepted.

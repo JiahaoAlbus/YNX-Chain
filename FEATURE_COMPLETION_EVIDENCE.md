@@ -2,8 +2,8 @@
 
 Goal state: `ACTIVE`  
 Phase: `PROTECT`  
-Implementation source: `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`
-Last updated: 2026-07-28
+Implementation source: `5914e02134cd17ad20c6d8c9846864861cdfd4a3`
+Last updated: 2026-07-29
 
 This document records feature-level evidence only. It does not declare the product complete, centrally integrated, deployed, signed, or public.
 
@@ -46,6 +46,15 @@ This document records feature-level evidence only. It does not declare the produ
 - Rollback remains `approved-not-executed`, `verified-not-executed`, or `rejected-not-executed`; Monitor does not execute infrastructure changes.
 - Evidence: `apps/monitor/server/recovery-lifecycle.test.ts`.
 
+### Threat model and local supply-chain evidence
+
+- `docs/security/MONITOR_THREAT_MODEL.md` defines assets, trust boundaries, threat scenarios, security invariants, validation evidence, and the exact local-only release boundary.
+- `apps/monitor/scripts/supply-chain-gate.mjs` fails closed on missing lock integrity, non-HTTPS resolution, missing or unapproved licenses, prohibited production constructs, non-reproducible builds, and prohibited public artifact strings.
+- The built-in credential scanner checked 690 tracked text files with 0 high-confidence findings; it does not depend on the shared repository `rg` script that can produce a false pass when `rg` is unavailable.
+- SAST checked 12 production source files with 0 findings. The production dependency graph contains 163 locked packages using approved licenses and records both registry hosts without hiding mirror use.
+- Two clean production builds produced identical file manifests; the generated CycloneDX SBOM, notices, dependency review, DAST plan, build manifest, local provenance, and summary are under `release/monitor/security/`.
+- Local provenance is deliberately marked unsigned, non-hermetic, and not evidence of a GitHub-hosted artifact, deployment, installation, or production signing.
+
 ### UI, language, accessibility, and truthful status
 
 - Private operator UI gates affordances by capability and includes desktop/mobile managed browser coverage.
@@ -55,13 +64,13 @@ This document records feature-level evidence only. It does not declare the produ
 
 ## Current validation set
 
-- `cd apps/monitor && npm test`: 31 passed, 0 failed, including 13 public-status cases.
+- `cd apps/monitor && npm test`: 35 passed, 0 failed, including 31 runtime/UI cases and 4 supply-chain fail-closed cases.
 - `cd apps/monitor && npm run build`: passed.
 - `cd apps/monitor && npm run test:e2e`: 8 passed, 0 failed.
-- `cd apps/monitor && npm audit --omit=dev --audit-level=high`: 0 vulnerabilities.
-- Changed production placeholder and changed-file secret-shaped assignment scans: passed.
+- `cd apps/monitor && npm run security:check`: passed with 0 audit vulnerabilities, 0 credential findings, 0 SAST findings, 163 reviewed production packages, two identical clean builds, and 0 artifact findings.
+- `.github/workflows/monitor-ci.yml` runs the same gate on branch and pull-request changes and uploads source-bound evidence; the remote run is verified separately after push.
 - `cd apps/monitor && npm run smoke`: failed because all eight configured central service endpoints were unavailable; no Testnet or dependency-health claim is made.
-- Source checkpoint pushed; local and upstream SHA equal at `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`.
+- Protected implementation source: `5914e02134cd17ad20c6d8c9846864861cdfd4a3`.
 
 ## Incomplete or externally dependent
 
@@ -75,9 +84,10 @@ The following requirements are not completed by the evidence above:
 - real backup, isolated restore, region failure, provider failure, or rollback execution evidence;
 - shared Testnet integration and public probes;
 - SLO load histograms, capacity evidence, and unit economics;
-- Monitor threat model, SBOM, provenance, license review, SAST/DAST, artifact scan, reproducibility, signing, installation, and cold start;
+- hosted DAST execution, signed/hosted provenance, immutable artifact publication, installation, and cold start;
 - hosted private operator, public `/monitor`, downloads, status page, support/privacy/security URLs, and SEO consumption;
-- GitHub Actions, Release, Monitor artifact, production signing, or store release.
+- successful GitHub Actions evidence, Release, production signing, or store release;
+- central acceptance of the disclosed npm registry mirror and remediation of the shared secret-scan false-pass behavior when ripgrep is absent.
 
 ## Non-green full preflight
 

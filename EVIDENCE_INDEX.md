@@ -2,9 +2,9 @@
 
 Status: Active, phase `PROTECT`  
 Product owner: `13-monitor`  
-Implementation source: `f3ab30068bc6ae3358cc2e6102ec3735abeae70f`
+Implementation source: `5914e02134cd17ad20c6d8c9846864861cdfd4a3`
 Branch: `codex/final-monitor`  
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 This index separates source-bound local evidence from central, Testnet, artifact, hosted, and public evidence that does not yet exist.
 
@@ -13,8 +13,8 @@ This index separates source-bound local evidence from central, Testnet, artifact
 | Evidence | Direct location | Result |
 |---|---|---|
 | Exact worktree and branch takeover | `.ai-bridge/execution-log.jsonl` — `takeover-inventory` | Passed |
-| Implementation checkpoint | Git commit `f3ab30068bc6ae3358cc2e6102ec3735abeae70f` | Committed and pushed |
-| Local/upstream equality | `product-release.json` → `verifiedLocal.remoteProtection` | Equal at source commit |
+| Implementation checkpoint | Git commit `5914e02134cd17ad20c6d8c9846864861cdfd4a3` | Committed; push and remote equality verified at final checkpoint |
+| Local/upstream equality | `product-release.json` → `verifiedLocal.remoteProtection` | Equal at protected implementation source |
 | Full requirement coverage | `.ai-bridge/full-goal-coverage.json` | Active; incomplete items retained |
 | Decisions and boundaries | `.ai-bridge/decisions.md` | Current |
 | Dependency questions | `.ai-bridge/open-questions.md` | Open; no secrets requested |
@@ -32,15 +32,23 @@ This index separates source-bound local evidence from central, Testnet, artifact
 | Typed backup and restore evidence | `apps/monitor/server/store.ts`, `apps/monitor/server/app.ts` | `apps/monitor/server/recovery-lifecycle.test.ts` |
 | Non-executing rollback proposal | `apps/monitor/server/store.ts`, `apps/monitor/server/app.ts` | `apps/monitor/server/recovery-lifecycle.test.ts` |
 | Capability-gated responsive UI | `apps/monitor/src/App.tsx` | `apps/monitor/tests/*.spec.ts` |
+| Threat model and trust boundaries | `docs/security/MONITOR_THREAT_MODEL.md` | Source-bound local baseline |
+| Locked dependency and license review | `apps/monitor/scripts/supply-chain-gate.mjs` | `release/monitor/security/dependency-review.json`, `THIRD_PARTY_NOTICES.md` |
+| Credential and SAST gate | `apps/monitor/scripts/supply-chain-gate.mjs` | 690 tracked text files / 12 production source files; 0 findings |
+| CycloneDX SBOM | `release/monitor/security/sbom.cdx.json` | 163 locked production packages |
+| Reproducible build and artifact scan | `release/monitor/security/build-manifest.json` | Two clean builds identical; 0 prohibited artifact strings |
+| Local unsigned provenance | `release/monitor/security/provenance.json` | Explicitly non-hermetic, unsigned, and not a production claim |
+| DAST input contract | `release/monitor/security/dast-plan.json` | Negative cases defined; no hosted target claimed |
 
 ## Verification results
 
 | Gate | Command | Result |
 |---|---|---|
-| Monitor tests | `cd apps/monitor && npm test` | 31 passed, 0 failed; 13 public-status cases |
+| Monitor tests | `cd apps/monitor && npm test` | 35 passed, 0 failed: 31 runtime/UI plus 4 supply-chain fail-closed cases |
 | Production build | `cd apps/monitor && npm run build` | Passed |
 | Desktop/mobile browser E2E | `cd apps/monitor && npm run test:e2e` | 8 passed, 0 failed |
-| Production dependency audit | `cd apps/monitor && npm audit --omit=dev --audit-level=high` | 0 vulnerabilities |
+| Local supply-chain gate | `cd apps/monitor && npm run security:check` | Passed: audit 0, credential/SAST 0, 163 packages reviewed, two identical clean builds, artifact scan 0 |
+| Product-specific GitHub Actions | `.github/workflows/monitor-ci.yml` | Added; remote run state must be checked after push |
 | Real-service smoke | `cd apps/monitor && npm run smoke` | Failed because all eight central dependency endpoints were unavailable; no Testnet/healthy claim |
 | Repository preflight | `go test ./...` | Failed outside `13-monitor`; details in `product-release.json` |
 
@@ -63,8 +71,8 @@ No direct evidence currently supports any of the following claims:
 - accepted central Wallet/Auth or other owner contracts;
 - shared Testnet incident, Quant kill-switch, provider/region failure, restore, or rollback drill;
 - hosted private operator workspace or redacted public-status endpoint;
-- GitHub Actions run, GitHub Release, Monitor artifact, SBOM, provenance, immutable download, signing, installation, or cold start;
-- staging or public runtime deployment;
+- a successful GitHub Actions run, GitHub Release, hosted Monitor artifact, signed/hosted provenance, immutable download, installation, or cold start;
+- hosted DAST evidence, staging, or public runtime deployment;
 - production signing or store release.
 
 These states remain false or blocked in `product-release.json` and `.ai-bridge/full-goal-coverage.json`.

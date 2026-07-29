@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "ynx.monitor.build-manifest.v1",
+  "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+  "buildCommand": "npm run build",
+  "cleanBuildsCompared": 2,
+  "reproducible": true,
+  "files": [
+    {
+      "path": "assets/index-61zDyOf6.js",
+      "bytes": 223770,
+      "sha256": "55bcadddf49018fde609f083a3441780001fdf214a47f67b71a8387c41b5cff3"
+    },
+    {
+      "path": "assets/index-CPgntyPn.css",
+      "bytes": 15489,
+      "sha256": "4d0b3987ddee649b240f3e1abc9923f50de092d0aca984b4bc59d1dd85473f62"
+    },
+    {
+      "path": "icon.svg",
+      "bytes": 273,
+      "sha256": "8ed1d0e4fa1dc02412c01f241a12c0f88e4c2e33e7164d23dce94c6332f1111f"
+    },
+    {
+      "path": "index.html",
+      "bytes": 641,
+      "sha256": "9e71efc3e04011a625034bff09fb9e4d02f852cd280c579a105cb994ad39ba3a"
+    },
+    {
+      "path": "manifest.webmanifest",
+      "bytes": 298,
+      "sha256": "4ca2fcd329ee9b666ab20b45deb2e4d5e673ed844898b839a4e575b890462d61"
+    },
+    {
+      "path": "sw.js",
+      "bytes": 832,
+      "sha256": "ec7a0f60362e365a75253d7e96ea544745a1caaf5f51e8367ab4ff2b1d331f8e"
+    }
+  ]
+}

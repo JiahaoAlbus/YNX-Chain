@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "ynx.monitor.dast-plan.v1",
+  "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+  "authority": "local test input only; this file is not evidence of a hosted scan",
+  "baseUrlVariable": "YNX_MONITOR_DAST_BASE_URL",
+  "publicRoutes": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "expected": [
+        200
+      ],
+      "boundary": "process availability only"
+    },
+    {
+      "method": "GET",
+      "path": "/version",
+      "expected": [
+        200
+      ],
+      "boundary": "source and release identity may be null when not injected"
+    },
+    {
+      "method": "GET",
+      "path": "/status",
+      "expected": [
+        200,
+        503
+      ],
+      "boundary": "must fail closed without an approved signed publisher feed"
+    }
+  ],
+  "negativeCases": [
+    {
+      "id": "ops-no-token",
+      "method": "GET",
+      "path": "/ops/me",
+      "expected": 401
+    },
+    {
+      "id": "mutation-no-origin",
+      "method": "POST",
+      "path": "/ops/incidents",
+      "expected": 403
+    },
+    {
+      "id": "mutation-wrong-origin",
+      "method": "POST",
+      "path": "/ops/incidents",
+      "expected": 403
+    },
+    {
+      "id": "mutation-no-csrf",
+      "method": "POST",
+      "path": "/ops/incidents",
+      "expected": 403
+    },
+    {
+      "id": "public-status-tamper",
+      "method": "GET",
+      "path": "/status",
+      "expected": 503
+    },
+    {
+      "id": "public-status-stale",
+      "method": "GET",
+      "path": "/status",
+      "expected": 503
+    },
+    {
+      "id": "public-status-replay",
+      "method": "GET",
+      "path": "/status",
+      "expected": 503
+    },
+    {
+      "id": "unknown-route",
+      "method": "GET",
+      "path": "/not-a-route",
+      "expected": 404
+    }
+  ],
+  "executableEvidence": [
+    "apps/monitor/server/auth.test.ts",
+    "apps/monitor/server/rbac.test.ts",
+    "apps/monitor/server/public-status.test.ts",
+    "apps/monitor/server/incident-lifecycle.test.ts",
+    "apps/monitor/server/recovery-lifecycle.test.ts"
+  ]
+}

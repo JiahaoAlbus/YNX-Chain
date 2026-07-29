@@ -8,7 +8,7 @@
   },
   "goalState": "active",
   "phase": "PROTECT",
-  "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
+  "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
   "releaseCandidate": null,
   "status": {
     "implementedLocal": true,
@@ -78,37 +78,79 @@
     "tests": {
       "command": "cd apps/monitor && npm test",
       "result": "passed",
-      "tests": 31,
+      "tests": 35,
       "failed": 0,
-      "date": "2026-07-28"
+      "breakdown": {
+        "monitorRuntimeAndUi": 31,
+        "supplyChainGate": 4
+      },
+      "date": "2026-07-29"
     },
     "build": {
       "command": "cd apps/monitor && npm run build",
       "result": "passed",
       "toolchain": "TypeScript project build plus Vite production build",
-      "date": "2026-07-28"
+      "date": "2026-07-29"
     },
     "securityGate": {
+      "command": "cd apps/monitor && npm run security:check",
+      "result": "passedLocal",
+      "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
       "dependencyAudit": {
         "command": "cd apps/monitor && npm audit --omit=dev --audit-level=high",
         "result": "passed",
         "vulnerabilities": 0,
-        "date": "2026-07-28"
+        "date": "2026-07-29"
       },
-      "placeholderScan": {
-        "result": "passed",
-        "scope": "changed production files",
-        "terms": [
-          "TODO",
-          "FIXME",
-          "placeholder",
-          "Coming soon",
-          "example.com",
-          "hard-coded success",
-          "fake health"
+      "credentialScan": {
+        "implementation": "built-in Node scanner; independent of unavailable ripgrep",
+        "filesScanned": 690,
+        "findings": 0
+      },
+      "sast": {
+        "sourceFilesScanned": 12,
+        "findings": 0,
+        "prohibitedConstructs": [
+          "dynamic eval",
+          "dynamic Function construction",
+          "unsafe HTML injection",
+          "disabled TLS verification",
+          "shell execution"
+        ]
+      },
+      "dependencyReview": {
+        "productionPackages": 163,
+        "licensesApproved": true,
+        "integrityHashesRequired": true,
+        "httpsResolutionRequired": true,
+        "registryHosts": [
+          "registry.npmjs.org",
+          "registry.npmmirror.com"
         ],
-        "date": "2026-07-28"
-      }
+        "centralAcceptanceRequired": "registry mirror usage remains disclosed and unaccepted"
+      },
+      "reproducibleBuild": {
+        "cleanBuildsCompared": 2,
+        "identical": true,
+        "artifactFindings": 0
+      },
+      "evidence": {
+        "threatModel": "docs/security/MONITOR_THREAT_MODEL.md",
+        "sbom": "release/monitor/security/sbom.cdx.json",
+        "thirdPartyNotices": "release/monitor/security/THIRD_PARTY_NOTICES.md",
+        "dependencyReview": "release/monitor/security/dependency-review.json",
+        "dastPlan": "release/monitor/security/dast-plan.json",
+        "buildManifest": "release/monitor/security/build-manifest.json",
+        "provenance": "release/monitor/security/provenance.json",
+        "summary": "release/monitor/security/security-gate-summary.json"
+      },
+      "limitations": [
+        "local evidence is unsigned",
+        "no hosted DAST target was available",
+        "builder is not proven hermetic",
+        "no signed release artifact or installation is claimed"
+      ],
+      "date": "2026-07-29"
     },
     "browserE2E": {
       "managedHarnessBaseline": {
@@ -140,10 +182,10 @@
     },
     "remoteProtection": {
       "branch": "codex/final-monitor",
-      "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
+      "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
       "upstream": "origin/codex/final-monitor",
       "localRemoteEqual": true,
-      "pushedAt": "2026-07-28"
+      "pushedAt": "2026-07-29"
     },
     "repositoryPreflight": {
       "command": "go test ./...",
@@ -196,7 +238,16 @@
       "date": "2026-07-28"
     }
   },
-  "artifacts": [],
+  "artifacts": [
+    {
+      "type": "local-security-evidence",
+      "path": "release/monitor/security",
+      "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+      "hosted": false,
+      "signed": false,
+      "installed": false
+    }
+  ],
   "publicEvidence": [],
   "testnetEvidence": [],
   "contracts": [
@@ -210,13 +261,15 @@
     "The repository-wide go test ./... preflight fails in cross-product consensus, faucet, trust, and EVM artifact tests outside 13-monitor ownership; the phase remains PROTECT until owner fixes are accepted and the full preflight passes.",
     "Central owner contracts and shared Testnet endpoints are not yet accepted.",
     "The redacted public-status runtime is locally tested but no approved publisher feed, hosted endpoint, Website consumption, public probe, artifact, install, or cold-start evidence exists.",
-    "Typed recovery operator UI, incident correlation/escalation, threat model, SBOM/provenance, and broad ecosystem telemetry remain incomplete."
+    "Typed recovery operator UI, incident correlation/escalation, broad ecosystem telemetry, hosted DAST, signed provenance, installation, and cold-start evidence remain incomplete.",
+    "The locked dependency graph discloses registry.npmmirror.com in addition to registry.npmjs.org; central Security/SRE acceptance is still required before a hosted artifact claim.",
+    "The shared repository secret-scan script can print a false pass when ripgrep is unavailable; Monitor uses its own built-in scanner and central owner remediation remains required."
   ],
-  "nextAction": "Create the Monitor threat model and executable supply-chain gates (SBOM, license/dependency review, secret/SAST scans, artifact provenance) while central endpoints and contract acceptance remain unavailable.",
-  "lastUpdated": "2026-07-28",
+  "nextAction": "Implement typed backup, restore-drill, and rollback-proposal operator UI flows with capability gating, explicit approval, independent-verifier states, and managed desktop/mobile tests.",
+  "lastUpdated": "2026-07-29",
   "evidence": {
     "index": "EVIDENCE_INDEX.md",
     "featureCompletion": "FEATURE_COMPLETION_EVIDENCE.md",
-    "implementationSource": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f"
+    "implementationSource": "5914e02134cd17ad20c6d8c9846864861cdfd4a3"
   }
 }

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "ynx.monitor.provenance.v1",
+  "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+  "sourceDate": "2026-07-29T10:35:13+08:00",
+  "product": "@ynx/monitor",
+  "builder": {
+    "id": "local://ynx-monitor-supply-chain-gate-v1",
+    "hermetic": false,
+    "networkIsolationVerified": false
+  },
+  "build": {
+    "command": "npm run build",
+    "cleanBuildsCompared": 2,
+    "reproducible": true,
+    "artifactScanPassed": true
+  },
+  "materials": [
+    {
+      "path": "apps/monitor/package.json",
+      "sha256": "ea2a76e50df377a264711ceea2558fef4a2a89ac1a033f943b767ba322bfbf66"
+    },
+    {
+      "path": "apps/monitor/package-lock.json",
+      "sha256": "23a8ecc8db98fcdcbe9572e44ebae3d4fee40a1e662273905e64ca3f625f64b6"
+    },
+    {
+      "path": "release/monitor/security/sbom.cdx.json",
+      "sha256": "ce8206d10990f56ee1e50516b769d4ae524666a6187ca31f5cd97d78c1d73974"
+    },
+    {
+      "path": "release/monitor/security/THIRD_PARTY_NOTICES.md",
+      "sha256": "e9b0a012bb74f47345fa25473efd2bc63b96a507ead909c51ff39fb8fc08282b"
+    },
+    {
+      "path": "release/monitor/security/dependency-review.json",
+      "sha256": "64ec9b37161a7473b649b9005099e5f22ab100f917e524df130706e4669f26b4"
+    },
+    {
+      "path": "release/monitor/security/dast-plan.json",
+      "sha256": "17a1fb09b747fbf4261a9f8084fcaf25aba19488460341a4a279beec98dfddaa"
+    },
+    {
+      "path": "release/monitor/security/build-manifest.json",
+      "sha256": "79ee17747719972990937a1c3679ec692555bf6a676c659416db8282853166bf"
+    }
+  ],
+  "signing": {
+    "signed": false,
+    "signingClass": "unsigned-local-evidence"
+  },
+  "claimsNotMade": [
+    "GitHub-hosted provenance",
+    "signed release artifact",
+    "production installation",
+    "public deployment"
+  ]
+}

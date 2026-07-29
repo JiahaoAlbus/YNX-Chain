@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "13",
+  "productName": "YNX Monitor",
+  "phase": "PROTECT",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/13-monitor",
+  "branch": "codex/final-monitor",
+  "localSha": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+  "remoteSha": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": true,
+  "ahead": 1,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    {
+      "command": "cd apps/monitor && npm test",
+      "result": "35 passed, 0 failed"
+    },
+    {
+      "command": "cd apps/monitor && npm run test:e2e",
+      "result": "8 passed, 0 failed on latest browser baseline"
+    },
+    {
+      "command": "cd apps/monitor && npm run security:check",
+      "result": "passed: audit 0, credential 0, SAST 0, reproducible build true, artifact findings 0"
+    }
+  ],
+  "latestCiRuns": [],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [
+    {
+      "type": "local-security-evidence",
+      "path": "release/monitor/security",
+      "hosted": false,
+      "signed": false,
+      "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3"
+    }
+  ],
+  "publicRoutes": [
+    {
+      "route": "/status",
+      "state": "testedLocal",
+      "hosted": false
+    },
+    {
+      "route": "https://ynxweb4.com/monitor",
+      "state": "noDeploymentEvidence",
+      "hosted": false
+    }
+  ],
+  "completed": [
+    "scoped RBAC and mutation protection",
+    "ordered incident lifecycle",
+    "typed backup restore rollback evidence API",
+    "fail-closed separate public status projection",
+    "Monitor threat model",
+    "CycloneDX SBOM and third-party notices",
+    "dependency license integrity and registry review",
+    "built-in credential and SAST scans",
+    "two-build reproducibility and artifact scan",
+    "unsigned local provenance",
+    "product-specific CI workflow definition"
+  ],
+  "remaining": [
+    "typed recovery operator UI and managed browser tests",
+    "central contract freeze and shared Testnet",
+    "hosted DAST and signed provenance",
+    "immutable hosted artifact installation and cold start",
+    "approved public-status publisher and Website consumption",
+    "successful GitHub Actions evidence and release"
+  ],
+  "blockers": [
+    "repository-wide go test preflight fails outside Monitor ownership",
+    "central integration contracts and endpoints are not frozen",
+    "shared secret-scan script can false-pass when ripgrep is absent",
+    "npm registry mirror requires central Security/SRE acceptance",
+    "no hosted public-status, Website, artifact, signing, or installation evidence"
+  ],
+  "nextAction": "Implement typed backup, restore-drill, and rollback-proposal operator UI with capability gates, explicit approvals, independent-verifier states, and managed desktop/mobile tests.",
+  "updatedAt": "2026-07-29T02:48:31Z",
+  "shaSemantics": "localSha and remoteSha identify the protected runtime implementation source; later evidence-only checkpoint commits may have a different Git HEAD."
+}
