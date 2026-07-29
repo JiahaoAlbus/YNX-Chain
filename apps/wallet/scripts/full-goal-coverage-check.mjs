@@ -21,58 +21,82 @@ const allowedStatuses = new Set([
   "verifiedComplete",
 ]);
 
-assert.equal(matrix.productNumber, "02");
-assert.equal(matrix.productSlug, "wallet-auth");
-assert.equal(matrix.branch, "codex/final-wallet-auth");
-assert.ok(Array.isArray(matrix.items) && matrix.items.length > 0);
+let coverageSummary;
+if (matrix.productNumber === "02") {
+  assert.equal(matrix.productSlug, "wallet-auth");
+  assert.equal(matrix.branch, "codex/final-wallet-auth");
+  assert.ok(Array.isArray(matrix.items) && matrix.items.length > 0);
 
-const ids = new Set();
-const counts = {};
-for (const item of matrix.items) {
-  assert.ok(item.id && !ids.has(item.id), `duplicate or missing coverage id: ${item.id}`);
-  ids.add(item.id);
-  assert.ok(item.category, `${item.id}: missing category`);
-  assert.ok(item.requirement, `${item.id}: missing requirement`);
-  assert.equal(typeof item.applicability, "boolean", `${item.id}: applicability must be boolean`);
-  assert.ok(allowedStatuses.has(item.status), `${item.id}: unsupported status ${item.status}`);
-  assert.ok(Array.isArray(item.evidence), `${item.id}: evidence must be an array`);
-  assert.ok(Array.isArray(item.tests), `${item.id}: tests must be an array`);
-  assert.ok(Array.isArray(item.blockedBy), `${item.id}: blockedBy must be an array`);
-  assert.ok(item.owner, `${item.id}: missing owner`);
-  assert.ok(item.nextAction, `${item.id}: missing nextAction`);
-  assert.match(item.lastUpdated, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, `${item.id}: invalid lastUpdated`);
-  assert.match(item.sourceCommit, /^[0-9a-f]{40}$/, `${item.id}: invalid sourceCommit`);
+  const ids = new Set();
+  const counts = {};
+  for (const item of matrix.items) {
+    assert.ok(item.id && !ids.has(item.id), `duplicate or missing coverage id: ${item.id}`);
+    ids.add(item.id);
+    assert.ok(item.category, `${item.id}: missing category`);
+    assert.ok(item.requirement, `${item.id}: missing requirement`);
+    assert.equal(typeof item.applicability, "boolean", `${item.id}: applicability must be boolean`);
+    assert.ok(allowedStatuses.has(item.status), `${item.id}: unsupported status ${item.status}`);
+    assert.ok(Array.isArray(item.evidence), `${item.id}: evidence must be an array`);
+    assert.ok(Array.isArray(item.tests), `${item.id}: tests must be an array`);
+    assert.ok(Array.isArray(item.blockedBy), `${item.id}: blockedBy must be an array`);
+    assert.ok(item.owner, `${item.id}: missing owner`);
+    assert.ok(item.nextAction, `${item.id}: missing nextAction`);
+    assert.match(item.lastUpdated, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, `${item.id}: invalid lastUpdated`);
+    assert.match(item.sourceCommit, /^[0-9a-f]{40}$/, `${item.id}: invalid sourceCommit`);
 
-  if (item.status === "externalBlocked") {
-    assert.ok(item.blockedBy.length > 0, `${item.id}: externalBlocked requires a concrete blocker`);
+    if (item.status === "externalBlocked") {
+      assert.ok(item.blockedBy.length > 0, `${item.id}: externalBlocked requires a concrete blocker`);
+    }
+    if (item.status === "notApplicable") {
+      assert.equal(item.applicability, false, `${item.id}: notApplicable requires applicability=false`);
+      assert.ok(item.nextAction.length >= 24, `${item.id}: notApplicable requires a product rationale`);
+    } else {
+      assert.equal(item.applicability, true, `${item.id}: applicable status requires applicability=true`);
+    }
+
+    for (const evidence of item.evidence) {
+      if (/^https?:\/\//.test(evidence)) continue;
+      await access(path.join(repoRoot, evidence));
+    }
+    counts[item.status] = (counts[item.status] ?? 0) + 1;
   }
-  if (item.status === "notApplicable") {
-    assert.equal(item.applicability, false, `${item.id}: notApplicable requires applicability=false`);
-    assert.ok(item.nextAction.length >= 24, `${item.id}: notApplicable requires a product rationale`);
-  } else {
-    assert.equal(item.applicability, true, `${item.id}: applicable status requires applicability=true`);
+
+  for (const status of allowedStatuses) {
+    assert.equal(
+      matrix.summary?.[status] ?? 0,
+      counts[status] ?? 0,
+      `summary count mismatch for ${status}`,
+    );
   }
 
-  for (const evidence of item.evidence) {
-    if (/^https?:\/\//.test(evidence)) continue;
-    await access(path.join(repoRoot, evidence));
-  }
-  counts[item.status] = (counts[item.status] ?? 0) + 1;
-}
-
-for (const status of allowedStatuses) {
   assert.equal(
-    matrix.summary?.[status] ?? 0,
-    counts[status] ?? 0,
-    `summary count mismatch for ${status}`,
+    Object.values(matrix.summary).reduce((sum, value) => sum + value, 0),
+    matrix.items.length,
+    "coverage summary must count every item exactly once",
   );
+  coverageSummary = `${matrix.items.length} owner requirements`;
+} else {
+  assert.equal(matrix.owner, "29-integration", "non-Wallet root coverage must belong to the central controller");
+  const centralMatrix = JSON.parse(
+    await readFile(path.join(repoRoot, "release", "integration", "PRODUCT_RELEASE_MATRIX.json"), "utf8"),
+  );
+  const wallet = centralMatrix.products?.find((product) => product.productNumber === "02");
+  assert.ok(wallet, "central Product Release Matrix is missing Product 02");
+  assert.equal(wallet.branch, "codex/final-wallet-auth");
+  assert.equal(wallet.dirty, false, "central Wallet owner observation must be clean");
+  assert.equal(wallet.localSha, wallet.remoteSha, "central Wallet owner refs must be synchronized");
+  assert.equal(wallet.ci?.exactHeadSuccess, true, "central Wallet owner exact-head CI must pass");
+  assert.equal(wallet.centralAcceptance?.status, "integratedCentral");
+  assert.equal(wallet.centralAcceptance?.acceptedSourceCommit, wallet.localSha);
+  assert.equal(wallet.states?.integratedCentral, true);
+  assert.equal(wallet.tests?.coverage?.autonomousOpen, 0);
+  assert.ok(wallet.tests?.coverage?.total > 0, "central Wallet coverage must not be empty");
+  for (const binding of Object.values(wallet.tests?.sourceBindings ?? {})) {
+    assert.equal(binding?.valid, true, "central Wallet source binding must be valid");
+    assert.equal(binding?.reachable, true, "central Wallet source binding must be reachable");
+  }
+  coverageSummary = `${wallet.tests.coverage.total} centrally observed owner requirements`;
 }
-
-assert.equal(
-  Object.values(matrix.summary).reduce((sum, value) => sum + value, 0),
-  matrix.items.length,
-  "coverage summary must count every item exactly once",
-);
 
 const authPackage = JSON.parse(
   await readFile(path.join(repoRoot, "packages", "wallet-auth", "package.json"), "utf8"),
@@ -95,5 +119,5 @@ const gatewayCliMode = (await stat(gatewayCliPath)).mode & 0o777;
 assert.equal(gatewayCliMode & 0o100, 0o100, "Gateway CLI owner execute bit is required for npm bin packaging");
 
 console.log(
-  `wallet full-goal coverage verified: ${matrix.items.length} unique requirements with valid states, blockers and evidence paths`,
+  `wallet full-goal coverage verified: ${coverageSummary} with valid source, CI and acceptance evidence`,
 );

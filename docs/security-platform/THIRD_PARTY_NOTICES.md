@@ -6,6 +6,7 @@ Generated from the committed npm lockfile and Go module graph. `not-recorded` is
 
 | Package | Version | License metadata | Lock path |
 | --- | --- | --- | --- |
+| @account-abstraction/contracts | 0.8.0 | MIT | node_modules/@account-abstraction/contracts |
 | @adraffy/ens-normalize | 1.11.1 | MIT | node_modules/@adraffy/ens-normalize |
 | @esbuild/aix-ppc64 | 0.28.1 | MIT | node_modules/@esbuild/aix-ppc64 |
 | @esbuild/android-arm | 0.28.1 | MIT | node_modules/@esbuild/android-arm |
@@ -60,6 +61,8 @@ Generated from the committed npm lockfile and Go module graph. `not-recorded` is
 | @nomicfoundation/solidity-analyzer-linux-x64-musl | 0.1.2 | MIT | node_modules/@nomicfoundation/solidity-analyzer-linux-x64-musl |
 | @nomicfoundation/solidity-analyzer-win32-x64-msvc | 0.1.2 | MIT | node_modules/@nomicfoundation/solidity-analyzer-win32-x64-msvc |
 | @nomicfoundation/solidity-analyzer | 0.1.2 | MIT | node_modules/@nomicfoundation/solidity-analyzer |
+| @openzeppelin/contracts | 3.4.2-solc-0.7 | MIT | node_modules/@uniswap/v3-periphery/node_modules/@openzeppelin/contracts |
+| @openzeppelin/contracts | 5.6.1 | MIT | node_modules/@openzeppelin/contracts |
 | @scure/base | 1.1.9 | MIT | node_modules/@scure/base |
 | @scure/base | 1.2.6 | MIT | node_modules/micro-packed/node_modules/@scure/base |
 | @scure/bip32 | 1.4.0 | MIT | node_modules/@scure/bip32 |
@@ -68,10 +71,15 @@ Generated from the committed npm lockfile and Go module graph. `not-recorded` is
 | @streamparser/json-node | 0.0.22 | MIT | node_modules/@streamparser/json-node |
 | @streamparser/json | 0.0.22 | MIT | node_modules/@streamparser/json |
 | @types/node | 22.7.5 | MIT | node_modules/@types/node |
+| @uniswap/lib | 4.0.1-alpha | GPL-3.0-or-later | node_modules/@uniswap/lib |
+| @uniswap/v2-core | 1.0.1 | GPL-3.0-or-later | node_modules/@uniswap/v2-core |
+| @uniswap/v3-core | 1.0.1 | BUSL-1.1 | node_modules/@uniswap/v3-core |
+| @uniswap/v3-periphery | 1.4.4 | GPL-2.0-or-later | node_modules/@uniswap/v3-periphery |
 | adm-zip | 0.6.0 | MIT | node_modules/adm-zip |
 | aes-js | 4.0.0-beta.5 | MIT | node_modules/aes-js |
 | ansi-colors | 4.1.3 | MIT | node_modules/ansi-colors |
 | ansi-regex | 5.0.1 | MIT | node_modules/ansi-regex |
+| base64-sol | 1.0.1 | MIT | node_modules/base64-sol |
 | chokidar | 4.0.3 | MIT | node_modules/chokidar |
 | enquirer | 2.4.1 | MIT | node_modules/enquirer |
 | env-paths | 2.2.1 | MIT | node_modules/env-paths |
