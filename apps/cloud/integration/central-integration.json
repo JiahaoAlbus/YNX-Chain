@@ -50,13 +50,13 @@
       "productId": "cloud",
       "productClientId": "ynx-cloud-web-v1",
       "bundleId": "web.ynx.cloud",
-      "callback": "https://cloud.staging.ynx.network/auth/callback"
+      "callback": "https://ynxweb4.com/cloud/auth/callback"
     },
     {
       "productId": "docs",
       "productClientId": "ynx-docs-web-v1",
       "bundleId": "web.ynx.docs",
-      "callback": "https://docs.staging.ynx.network/auth/callback"
+      "callback": "https://ynxweb4.com/docs-app/auth/callback"
     }
   ],
   "centralSchemaBlocker": "central Wallet registry schema v3 accepts one client, bundle and callback tuple per product; central owners must add reviewed multi-surface registrations before either Web client can be enabled",

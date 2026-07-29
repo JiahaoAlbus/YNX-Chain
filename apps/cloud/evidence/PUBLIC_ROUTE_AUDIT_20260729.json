@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "product": "cloud",
+  "checkedAt": "2026-07-29T02:44:45Z",
+  "requestedUrl": "https://ynxweb4.com/cloud",
+  "effectiveUrl": "https://www.ynxweb4.com/cloud",
+  "httpStatus": 200,
+  "contentType": "text/html; charset=utf-8",
+  "deployedHtml": {
+    "sha256": "45fcfd1ac9aa6ddda9e7c44c559f5ca4f01c92374dc5bf800fe0d1de2dc26a0a",
+    "title": "YNX Chain — Web4 Layer-1 Ecosystem",
+    "canonical": "https://ynxweb4.com/",
+    "bundlePath": "/assets/index-DhzO8PWd.js"
+  },
+  "deployedBundle": {
+    "sha256": "c4a1c163d108e31b55e4db71cf526d95ae82aba4aba35c475633133065b0c72b",
+    "route": "/cloud",
+    "productStatus": "local",
+    "registeredSourceCommit": "7b3c5f427c17",
+    "registeredEntry": "/docs#cloud",
+    "publicRuntimeClaim": false,
+    "hostedInstallerClaim": false
+  },
+  "conclusion": "The official website exposes a Cloud product-status route, but the deployed metadata is stale and explicitly describes a local candidate. HTTP 200 is not evidence of a publicly deployed YNX Cloud runtime, hosted installer, staging service, or production release.",
+  "requiredHandoff": "Website owner 28 must consume the current product metadata and source-bound handoff after central acceptance; deployment must preserve the local-candidate boundary until a remote runtime and hosted artifact are directly verified."
+}

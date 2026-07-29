@@ -2,7 +2,7 @@ import{applyLocale,erasureT,selectedLocale}from'./i18n.js';
 const $ = (q) => document.querySelector(q);
 const $$ = (q) => [...document.querySelectorAll(q)];
 const state = { token: '', erasureToken:'', authMode:'normal', objects: [], selected: new Set(), current: null, view: 'files', parentId: '' };
-const binding={version:'1',chainId:'ynx_6423-1',requestingProduct:'cloud',productClientId:'ynx-cloud-web-v1',bundleId:'web.ynx.cloud',productDeviceAlgorithm:'p256-sha256',callback:'https://cloud.staging.ynx.network/auth/callback'};
+const binding={version:'1',chainId:'ynx_6423-1',requestingProduct:'cloud',productClientId:'ynx-cloud-web-v1',bundleId:'web.ynx.cloud',productDeviceAlgorithm:'p256-sha256',callback:'https://ynxweb4.com/cloud/auth/callback'};
 const scopes=['ai.use','audit.read','files.read','files.write','permissions.manage'];
 
 function status(message, error=false){ $('#status').textContent=message; $('#status').classList.toggle('danger',error); }
