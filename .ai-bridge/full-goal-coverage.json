@@ -4,9 +4,9 @@
   "productName": "YNX Data Fabric & Billing Ledger",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
-  "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
-  "release": "ynx-data-fabric-b76bf9be8827",
-  "lastUpdated": "2026-07-29T02:47:43Z",
+  "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
+  "release": "ynx-data-fabric-645c1080f2ff",
+  "lastUpdated": "2026-07-29T20:05:41Z",
   "items": [
     {
       "id": "DF-RECOVER-001",
@@ -15,30 +15,30 @@
       "applicability": "applicable",
       "status": "verifiedComplete",
       "evidence": ["workspace root and branch matched", "remote SHA verified with git ls-remote", "concurrent processes checked by working directory", "legacy untracked recovery summaries preserved for archival"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["git rev-list HEAD...origin/codex/final-data-fabric = 0/0 before engineering slice", "GitHub run 30239043293 succeeded at prior protected HEAD"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Repeat the bounded recovery preflight before every phase transition.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-PROTECT-001",
       "category": "git-delivery",
       "requirement": "Protect verified engineering changes on codex/final-data-fabric and verify Local SHA equals the remote branch SHA.",
       "applicability": "applicable",
-      "status": "verifiedComplete",
-      "evidence": ["commit b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056 pushed without force", "git ls-remote returned the identical SHA"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "status": "inProgress",
+      "evidence": ["frozen engineering source commit 645c1080f2ff054ec16a62800a778f62c861cc6d exists locally", "the previous protected branch head remains recoverable while the source-bound evidence checkpoint is pending"],
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["git push origin HEAD", "git ls-remote origin refs/heads/codex/final-data-fabric"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
-      "nextAction": "Protect each subsequent verified slice with the same commit, push and SHA-equality sequence.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "nextAction": "Push the source-bound evidence checkpoint without force, then record exact local, tracking and remote SHA equality.",
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-EVENT-001",
@@ -47,14 +47,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabric/envelope.go", "schemas/data-fabric/event-envelope-v1.schema.json", "schemas/data-fabric/event-envelope-v2.schema.json"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["TestCommittedEventEnvelopeSchemasMatchRuntimeFields", "internal/datafabric/envelope_v2_test.go", "go test -race ./internal/datafabric -count=1"],
       "artifact": "schemas/data-fabric/event-envelope-v2.schema.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Obtain producer-owner acceptance vectors for v2 and retire v1 only after the declared migration window.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-SCHEMA-001",
@@ -63,14 +63,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabric/schema_registry.go", "schemas/data-fabric/schema-registry-v2.json", "integration/product-event-contracts.json"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["TestCommittedSchemaRegistryArtifactMatchesRuntimeSource", "internal/datafabric/schema_registry_test.go", "internal/datafabricapi/schema_api_test.go"],
       "artifact": "schemas/data-fabric/schema-registry-v2.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Publish the registry only through an immutable hosted release after central acceptance.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-OUTBOX-001",
@@ -79,14 +79,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabric/store.go", "internal/datafabricpostgres/store.go", "internal/datafabricpostgres/dispatcher.go"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabric/datafabric_test.go", "internal/datafabricpostgres/store_test.go", "internal/datafabricpostgres/live_integration_test.go"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Add kill-at-commit-boundary and sustained serialization stress evidence on shared infrastructure.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-TRANSPORT-001",
@@ -95,14 +95,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabric/dispatcher.go", "internal/datafabricnats/broker.go", "internal/datafabric/errors.go"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabric/dispatcher_test.go", "internal/datafabricnats/broker_test.go", "integration/PRODUCER_TEST_VECTORS.md"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Run JetStream cluster partition and leader-loss drills on shared Testnet infrastructure.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-REPLAY-001",
@@ -111,14 +111,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabric/redelivery.go", "internal/datafabricpostgres/redelivery.go", "cmd/ynx-data-fabricctl/main.go"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabric/redelivery_test.go", "internal/datafabricapi/redelivery_api_test.go", "internal/datafabricpostgres/repository_contract_test.go"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Validate long replay and operator recovery on production-shaped storage and broker volumes.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-SAGA-CORE-001",
@@ -127,14 +127,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabric/saga.go", "internal/datafabricpostgres/saga.go", "cmd/ynx-data-fabric-worker/main.go"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabric/saga_test.go", "internal/datafabricapi/server_test.go", "internal/datafabricpostgres/repository_contract_test.go"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Exercise consumer crash and compensation races against shared PostgreSQL and JetStream.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-SAGA-PRODUCTS-001",
@@ -143,14 +143,14 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": ["thirteen canonical Saga definitions exist", "Pay bridge and Pay Ledger adapter are locally tested", "other product contracts remain integratedCentral=false"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabricapi/product_flow_test.go", "internal/datafabricpay/bridge_test.go", "internal/bftgateway/pay_test.go"],
       "artifact": "integration/product-event-contracts.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric with product owners",
       "nextAction": "Implement and accept the next highest-risk producer adapter without modifying another product worktree.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-LEDGER-001",
@@ -159,14 +159,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabric/ledger.go", "internal/datafabricpostgres/store.go", "internal/datafabricpostgres/migrations/0004_immutable_ledger_corrections.up.sql"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabric/ledger_test.go", "internal/datafabricpostgres/audit_test.go", "internal/datafabricapi/server_test.go"],
       "artifact": "schemas/data-fabric/journal-entry-v1.schema.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Run locking stress across multi-asset hot accounts and verify product fee taxonomies.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-BILLING-001",
@@ -175,14 +175,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabric/billing.go", "internal/datafabricpostgres/billing.go", "internal/datafabricpostgres/migrations/0006_usage_billing_runtime.up.sql"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabric/billing_test.go", "internal/datafabricapi/server_test.go", "internal/datafabricpostgres/repository_contract_test.go"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Accept authoritative meter and fee schedules from each product owner and add high-water-mark vectors for Quant.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-PAY-001",
@@ -191,14 +191,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["cmd/ynx-pay-data-fabric-bridge/main.go", "internal/datafabricpay/bridge.go", "internal/datafabricpayledger/processor.go"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/bftgateway/pay_test.go", "internal/datafabricpay/bridge_test.go", "internal/datafabricpayledger/processor_test.go"],
       "artifact": "infra/data-fabric/systemd/ynx-pay-data-fabric-bridge.service",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and YNX Pay",
       "nextAction": "Run the bridge against accepted shared Testnet Pay and chain endpoints with durable receipts.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-RECONCILE-001",
@@ -207,14 +207,14 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": ["internal/datafabric/reconciliation.go", "internal/datafabricpostgres/reconciliation.go", "Pay chain/pay observations are locally tested"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabric/reconciliation_test.go", "internal/datafabricpayledger/processor_test.go"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric with authority owners",
       "nextAction": "Add accepted Exchange, DEX and Quant observation adapters and operator resolution receipts.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-PRIVACY-001",
@@ -223,14 +223,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabric/privacy.go", "internal/datafabricpostgres/privacy.go", "internal/datafabricpostgres/analytics.go"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabric/privacy_test.go", "internal/datafabricpostgres/live_integration_test.go", "internal/datafabricapi/server_test.go"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Add encrypted PII references, scheduled retention partitions and downstream deletion receipts.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-AUTH-001",
@@ -239,14 +239,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabricapi/auth.go", "schemas/data-fabric/canonical-introspection-request-v1.schema.json", "schemas/data-fabric/canonical-introspection-response-v1.schema.json"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabricapi/server_test.go"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Wallet/Auth with YNX Data Fabric adapter",
       "nextAction": "Execute accepted central Wallet/App Gateway signed vectors and record owner acceptance.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-API-SDK-001",
@@ -255,14 +255,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["sdk/datafabric", "internal/datafabricapi", "cmd/ynx-data-fabricctl", "cmd/ynx-data-fabricd"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["go test ./internal/datafabricapi ./sdk/datafabric ./cmd/ynx-data-fabricctl -count=1", "internal/datafabricapi/product_flow_test.go"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Generate and acceptance-test additional product-language SDKs without creating conflicting event formats.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-MIGRATION-001",
@@ -271,14 +271,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabricpostgres/migrations/0001 through 0006", "event v1/v2 compatibility window", "MIGRATION_COMPATIBILITY.md"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabricpostgres/migrate_test.go", "internal/datafabric/envelope_v2_test.go", "PostgreSQL 17.10 CI integration"],
       "artifact": "internal/datafabricpostgres/migrations",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Run upgrade and rollback against a production-size snapshot and old v1 producers.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-BACKUP-001",
@@ -287,14 +287,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabricbackup", "internal/datafabricpgbackup", "scripts/data-fabric/local-smoke.sh"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabricbackup/backup_test.go", "internal/datafabricpgbackup/backup_test.go", "TestPostgresLiveLogicalBackupRestoreAndIntegrity"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Add encrypted immutable remote backup, PITR and timed production-size restore evidence.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-OBSERVABILITY-001",
@@ -303,14 +303,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabricapi/server.go", "infra/data-fabric/prometheus-rules.yml", "infra/data-fabric/grafana-dashboard.json", "OBSERVABILITY.md"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabricapi/health_test.go", "internal/datafabricapi/server_test.go", "scripts/data-fabric/local-smoke.sh"],
       "artifact": "infra/data-fabric/grafana-dashboard.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Security/SRE",
       "nextAction": "Deploy trace storage, dashboards and alerts and capture firing and recovery evidence.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-CONSOLE-001",
@@ -319,14 +319,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabricconsole", "evidence/ui/operator-console-unavailable-state-20260722.json", "UI_DESIGN_AUDIT.md"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabricconsole/console_test.go", "internal/datafabricapi/server_test.go"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Capture authoritative success and recovery states against the accepted central session and shared Testnet.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-I18N-A11Y-001",
@@ -335,14 +335,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["internal/datafabricconsole/assets/locales.js", "internal/datafabricconsole/assets/styles.css", "UI_DESIGN_AUDIT.md"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabricconsole/console_test.go", "evidence/ui/operator-console-unavailable-state-20260722.json"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Complete native-language and assistive-technology review with success and recovery data states.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-CAPACITY-001",
@@ -351,14 +351,14 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": ["SLO_CAPACITY_PLAN.md", "evidence/capacity/postgresql-17.10-dirty-20260722.json", "scripts/data-fabric/capacity"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["bounded PostgreSQL 17.10 capacity run", "Linux release cold-start verification"],
       "artifact": "evidence/capacity/postgresql-17.10-dirty-20260722.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Security/SRE",
       "nextAction": "Run sustained hot-partition JetStream and PostgreSQL load, failure and storage-curve tests on clean source.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-ECONOMICS-001",
@@ -367,14 +367,14 @@
       "applicability": "applicable",
       "status": "implementedLocal",
       "evidence": ["UNIT_ECONOMICS.md", "GROWTH_KPI.md", "release/kpi-definitions.json"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["machine JSON validation for release/kpi-definitions.json"],
       "artifact": "release/kpi-definitions.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Founder Finance",
       "nextAction": "Populate measurements only from complete shared-Testnet cohorts and posted provider invoices.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-SECURITY-001",
@@ -383,14 +383,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["THREAT_MODEL.md", "SECURITY_BOUNDARIES.md", "THIRD_PARTY_NOTICES.md", "release/go-runtime-sbom.spdx.json", ".github/workflows/data-fabric.yml"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["npm audit --audit-level=high", "govulncheck ./...", "make secret-scan", "go test -race Data Fabric packages", "quality-gates.sh"],
       "artifact": "release/go-runtime-sbom.spdx.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Security/SRE",
       "nextAction": "Add container and DAST scans plus independent two-builder reproducibility evidence.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-ARTIFACT-001",
@@ -399,14 +399,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["scripts/data-fabric/build-testnet-release.sh", "scripts/data-fabric/install-testnet-release.sh", "scripts/data-fabric/generate-cold-start-evidence.sh", "latest successful Linux CI runs execute these gates"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["testnet-release-check.sh", "public-testnet-release-check.sh", "public-release-promotion-check.sh", "testnet-deployment-check.sh", "testnet-remote-deploy-check.sh"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Persist the source-bound CI evidence and then promote only through a real approved signer and immutable uploader.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-CENTRAL-001",
@@ -415,14 +415,14 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": ["integration/product-event-contracts.json records integratedCentral=false", "Pay local adapter evidence exists", "no central acceptance receipts are present"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"],
       "artifact": "release/integration/ynx-data-fabric-contract.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Integration with product owners",
       "nextAction": "Submit the frozen v2 contract and execute owner acceptance in dependency order.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-TESTNET-001",
@@ -431,14 +431,14 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": ["local and CI integration fixtures pass", "Pay BFT event and Ledger path is locally integrated", "shared cross-product Testnet receipts are absent"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["integration/PRODUCER_TEST_VECTORS.md", "internal/datafabricapi/product_flow_test.go"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Integration and YNX Data Fabric",
       "nextAction": "Execute the accepted Pay flow first, then Exchange, DEX and Quant reconciliation flows.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-PUBLIC-001",
@@ -447,14 +447,14 @@
       "applicability": "applicable",
       "status": "externalBlocked",
       "evidence": ["production promotion path fails closed without approval, signer, uploader, HTTPS base URL and Linux cold-start evidence", "loopback fixture evidence is not public evidence"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["scripts/data-fabric/public-release-promotion-check.sh", "scripts/data-fabric/verify-public-release.mjs"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["approved secure signer path", "immutable HTTPS hosting", "public runtime deployment authority", "DNS and status endpoints"],
       "owner": "YNX Security/SRE and Website",
       "nextAction": "Keep all public states false until signed hosting and runtime receipts are supplied and verified.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-WEBSITE-001",
@@ -463,14 +463,14 @@
       "applicability": "applicable",
       "status": "implementedLocal",
       "evidence": ["public-product-metadata.json", "product-release.json", "docs/integration/INTEGRATION_HANDOFF.md"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["quality-gates.sh public leak scan", "release-truth-check.mjs public boundary assertions"],
       "artifact": "public-product-metadata.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric handoff; YNX Website publication",
       "nextAction": "Hand off truthful candidate metadata; Website must not claim runtime deployment or downloads before receipts exist.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-PLATFORM-001",
@@ -479,14 +479,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["four Linux binaries are packaged", "systemd units exist", "Go SDK and operator console exist"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["build-testnet-release.sh", "install-testnet-release.sh", "generate-cold-start-evidence.sh"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Add a production container only after Security/SRE accepts the image and scan contract.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-PLATFORM-NA-001",
@@ -495,14 +495,14 @@
       "applicability": "notApplicable",
       "status": "notApplicable",
       "evidence": ["Data Fabric is a headless event, Saga and financial ledger infrastructure service; user interaction is provided by the responsive web operator console and product-owned clients, so native store binaries would duplicate clients without adding an authority boundary."],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": [],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Retain this product-level rationale unless the architecture owner changes the deployment model.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-SUPPORT-001",
@@ -511,14 +511,14 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": ["OPERATIONS.md", "OBSERVABILITY.md", "data export and erasure APIs exist"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["internal/datafabricapi/server_test.go", "backup and restore tests"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Support/SRE",
       "nextAction": "Bind live support, privacy, security and status URLs and execute a service-stop exit drill.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-KPI-001",
@@ -527,14 +527,14 @@
       "applicability": "applicable",
       "status": "implementedLocal",
       "evidence": ["GROWTH_KPI.md", "release/kpi-definitions.json contains empty measurement fields and guardrails"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["jq empty release/kpi-definitions.json"],
       "artifact": "release/kpi-definitions.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Founder Analytics",
       "nextAction": "Instrument accepted product events and materialize only privacy-safe complete cohorts.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-RELEASE-TRUTH-001",
@@ -543,14 +543,14 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": ["scripts/data-fabric/release-truth-check.mjs", "scripts/data-fabric/release-truth-check-check.mjs", "five negative mutation vectors"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["node scripts/data-fabric/release-truth-check-check.mjs"],
       "artifact": "product-release.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Keep the gate in CI and update evidence only after direct verification changes state.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     },
     {
       "id": "DF-FINAL-001",
@@ -559,14 +559,14 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": ["local and current CI gates cover substantial subsets", "central and public gates remain false"],
-      "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
+      "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
       "tests": ["go test ./... with standard umask", "go test -race Data Fabric packages", "quality-gates.sh", "PostgreSQL live integration"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric with Integration and Security/SRE",
       "nextAction": "Continue the highest-priority autonomous integration and recovery gaps; do not mark complete while any applicable item remains open.",
-      "lastUpdated": "2026-07-29T02:47:43Z"
+      "lastUpdated": "2026-07-29T20:05:41Z"
     }
   ]
 }

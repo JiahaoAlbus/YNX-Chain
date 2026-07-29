@@ -6,9 +6,9 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-b76bf9be8827",
-  "sourceCommit": "b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056",
-  "generatedAt": "2026-07-29T02:47:43Z",
+  "release": "ynx-data-fabric-645c1080f2ff",
+  "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
+  "generatedAt": "2026-07-29T20:05:41Z",
   "phase": "INTEGRATE",
   "protocol": {
     "eventEnvelope": {

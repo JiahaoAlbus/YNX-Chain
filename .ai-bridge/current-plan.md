@@ -2,8 +2,8 @@
 
 Status: `ACTIVE`
 Phase: `INTEGRATE`
-Engineering Source Commit: `b76bf9be88275a1310ba88f5f9d8a8a6a4ba4056`
-Release Candidate: `ynx-data-fabric-b76bf9be8827`
+Engineering Source Commit: `645c1080f2ff054ec16a62800a778f62c861cc6d`
+Release Candidate: `ynx-data-fabric-645c1080f2ff`
 
 ## Completed and protected
 
@@ -11,7 +11,7 @@ Release Candidate: `ynx-data-fabric-b76bf9be8827`
 - Evidence manifests no longer reference nonexistent tests or assets; the machine path validator is part of Quality Gates.
 - Reachable vulnerability `GO-2026-6061` was removed by upgrading `google.golang.org/grpc` from `v1.79.3` to `v1.82.1`.
 - Full repository tests, Data Fabric Race tests, Vet and `govulncheck` pass locally; reachable vulnerabilities are zero.
-- Engineering Source Commit was pushed without force and Local/Remote Source SHA matched.
+- The previous protected source remains recoverable; the aligned engineering Source Commit is frozen locally and awaiting its evidence checkpoint push.
 - Central integration, shared Testnet, staging, public deployment, hosted download and production signing remain false without direct receipts.
 
 ## Current slice

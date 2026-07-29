@@ -92,12 +92,22 @@ function trackedEngineeringFiles(repoRoot) {
     .filter(Boolean);
 
   const exactFiles = new Set([
-    ".github/workflows/data-fabric.yml",
     "go.mod",
     "go.sum",
+    "package.json",
+    "package-lock.json",
     "configs/data-fabric.env.example",
     "configs/data-fabric-event-keys.example.json",
     "integration/product-event-contracts.json",
+    "internal/bftgateway/pay.go",
+    "internal/bftgateway/pay_test.go",
+    "internal/consensus/action_transaction.go",
+    "internal/consensus/action_transaction_test.go",
+    "internal/consensus/application.go",
+    "internal/consensus/pay_action.go",
+    "internal/consensus/pay_action_test.go",
+    "internal/consensus/pay_application.go",
+    "internal/consensus/state.go",
   ]);
   const prefixes = [
     "cmd/ynx-data-fabric",
@@ -123,14 +133,29 @@ function trackedEngineeringFiles(repoRoot) {
 }
 
 export function findExpectedSourceCommit(repoRoot) {
+  const release = readJSON(repoRoot, "product-release.json");
+  const commit = release.sourceCommit;
+  assert(/^[0-9a-f]{40}$/.test(commit || ""), "product release sourceCommit is invalid");
+
   const files = trackedEngineeringFiles(repoRoot);
   assert(files.length > 0, "no tracked engineering source files were found");
-  const commit = execFileSync("git", ["log", "-1", "--format=%H", "--", ...files], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    maxBuffer: 16 * 1024 * 1024,
-  }).trim();
-  assert(/^[0-9a-f]{40}$/.test(commit), "latest engineering source commit is invalid");
+  try {
+    execFileSync("git", ["cat-file", "-e", `${commit}^{commit}`], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["merge-base", "--is-ancestor", commit, "HEAD"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    execFileSync("git", ["diff", "--quiet", commit, "--", ...files], {
+      cwd: repoRoot,
+      stdio: "ignore",
+      maxBuffer: 16 * 1024 * 1024,
+    });
+  } catch {
+    fail("engineering source differs from the declared frozen sourceCommit");
+  }
   return commit;
 }
 
