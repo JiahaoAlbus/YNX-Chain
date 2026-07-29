@@ -794,6 +794,16 @@ function main() {
         coverage,
         recordMatches,
         sourceBindings: bindings,
+        release: productRelease ? {
+          product: productRelease.product ?? null,
+          version: productRelease.version ?? null,
+          channel: productRelease.channel ?? null,
+          environment: productRelease.environment ?? null,
+          sourceCommit: productRelease.sourceCommit ?? null,
+          releasedAt: productRelease.releasedAt ?? null,
+          releaseStatus: productRelease.releaseStatus ?? null,
+          publicEvidence: Array.isArray(productRelease.publicEvidence) ? productRelease.publicEvidence : []
+        } : null,
         claimedReleaseStates: extractReleaseStates(releaseStateRecord ?? productRelease),
         artifacts: Array.isArray(artifactRegistry?.artifacts) ? artifactRegistry.artifacts : [],
         exactCommitBound: Object.values(bindings).filter((binding) => binding.sourceCommit).every((binding) => binding.exact)

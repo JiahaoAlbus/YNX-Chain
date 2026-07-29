@@ -1,0 +1,180 @@
+{
+  "schemaVersion": "1.0.0",
+  "owner": "29-integration",
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "auditedAt": "2026-07-29T17:41:45Z",
+  "baseBranch": {
+    "name": "main",
+    "protected": false,
+    "protectionQuery": "GitHub REST returned 404 Branch not protected"
+  },
+  "policy": {
+    "conflictingPullRequestsMayMerge": false,
+    "failedOrPendingChecksMayMerge": false,
+    "independentReviewRequired": true,
+    "draftPullRequestsMayMerge": false,
+    "productionClaimsMayBeInferredFromSourceMerge": false
+  },
+  "pullRequests": [
+    {
+      "number": 7,
+      "productId": "01",
+      "head": "e3e6ea36635a106ac219ccb488745f238ea934d1",
+      "draft": true,
+      "mergeable": false,
+      "mergeState": "dirty",
+      "checks": {
+        "total": 0,
+        "successful": 0,
+        "failed": 0,
+        "pending": 0
+      },
+      "safeToMerge": false,
+      "blockers": [
+        "merge conflicts",
+        "draft",
+        "no exact-head check runs",
+        "independent review absent",
+        "main branch protection absent"
+      ]
+    },
+    {
+      "number": 11,
+      "productId": "10",
+      "head": "4b17b29b652b61100f6a7e7715b1d3c3316c3914",
+      "draft": false,
+      "mergeable": false,
+      "mergeState": "dirty",
+      "checks": {
+        "total": 5,
+        "successful": 3,
+        "failed": 2,
+        "pending": 0
+      },
+      "safeToMerge": false,
+      "blockers": [
+        "merge conflicts",
+        "failed checks",
+        "independent review absent",
+        "main branch protection absent"
+      ]
+    },
+    {
+      "number": 13,
+      "productId": "34",
+      "head": "f45bf8b2c10bcdd9d553b790801de079fa593d6a",
+      "draft": true,
+      "mergeable": false,
+      "mergeState": "dirty",
+      "checks": {
+        "available": false,
+        "reason": "GitHub check-runs query ended in a TLS handshake timeout; unavailable is not treated as zero or success"
+      },
+      "safeToMerge": false,
+      "blockers": [
+        "merge conflicts",
+        "draft",
+        "exact-head check status unavailable",
+        "independent review absent",
+        "main branch protection absent"
+      ]
+    },
+    {
+      "number": 14,
+      "productId": "26",
+      "head": "6dd844410bf1c163217ea5d8eafb59bbc3ab7005",
+      "draft": false,
+      "mergeable": false,
+      "mergeState": "dirty",
+      "checks": {
+        "total": 4,
+        "successful": 4,
+        "failed": 0,
+        "pending": 0
+      },
+      "safeToMerge": false,
+      "blockers": [
+        "merge conflicts",
+        "independent review absent",
+        "main branch protection absent"
+      ]
+    },
+    {
+      "number": 15,
+      "productId": "12",
+      "head": "0734e15b86cbeb47df0ec3d00c1e3457807e2f91",
+      "draft": false,
+      "mergeable": false,
+      "mergeState": "dirty",
+      "checks": {
+        "total": 1,
+        "successful": 1,
+        "failed": 0,
+        "pending": 0
+      },
+      "safeToMerge": false,
+      "blockers": [
+        "merge conflicts",
+        "independent review absent",
+        "main branch protection absent"
+      ]
+    },
+    {
+      "number": 16,
+      "productId": "30",
+      "head": "e670749b83a1b40d09ed717eb3515d539c005c49",
+      "draft": true,
+      "mergeable": true,
+      "mergeState": "clean",
+      "checks": {
+        "total": 21,
+        "successful": 21,
+        "failed": 0,
+        "pending": 0
+      },
+      "centralAcceptance": {
+        "accepted": true,
+        "integrationCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
+        "receipt": "release/integration/evidence/product-30-central-acceptance-a472d588.json"
+      },
+      "sourceRelease": {
+        "published": true,
+        "prerelease": true,
+        "production": false,
+        "tag": "security-platform-v0.2.0-source-candidate"
+      },
+      "readyForIndependentReview": true,
+      "safeToMerge": false,
+      "blockers": [
+        "draft",
+        "independent review absent",
+        "main branch protection absent"
+      ]
+    },
+    {
+      "number": 17,
+      "productId": "29",
+      "remoteHead": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
+      "localHead": "a472d588b4f037c57db6d7941b1b37572f91d114",
+      "draft": true,
+      "mergeableAtRemoteHead": true,
+      "mergeStateAtRemoteHead": "clean",
+      "checksAtRemoteHead": {
+        "total": 15,
+        "successful": 15,
+        "failed": 0,
+        "pending": 0
+      },
+      "safeToMerge": false,
+      "blockers": [
+        "current central checkpoint is not pushed",
+        "current exact-head CI is not available",
+        "draft",
+        "independent review absent",
+        "main branch protection absent"
+      ]
+    }
+  ],
+  "safeMergeOrder": [],
+  "nextAutonomousAction": "Protect, push and obtain exact-head CI for Product 29, then recover Phase 0 Product 01 conflicts and evidence in its owner worktree."
+}

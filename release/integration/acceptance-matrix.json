@@ -2,14 +2,14 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-29T13:53:04.377Z",
-  "controllerSourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+  "generatedAt": "2026-07-29T17:51:54.829Z",
+  "controllerSourceCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "3ee6477d82ecffea954387ce88135793bddb1271",
+    "localHead": "a472d588b4f037c57db6d7941b1b37572f91d114",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "7777942bb17a1e67483f5909287e79592ca0f1cf",
+    "remoteHead": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
     "ahead": 2,
     "behind": 0,
     "clean": false
@@ -127,6 +127,32 @@
             "reachable": true,
             "distance": 2
           }
+        },
+        "release": {
+          "product": {
+            "id": "chain-core",
+            "name": "YNX Chain Core",
+            "owner": "01-chain-core",
+            "repository": "https://github.com/JiahaoAlbus/YNX-Chain",
+            "canonicalRoute": "/chain"
+          },
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": {
+            "implementedLocal": true,
+            "testedLocal": true,
+            "installedLocal": false,
+            "integratedCentral": false,
+            "deployedStaging": false,
+            "deployedPublic": false,
+            "downloadHosted": false,
+            "productionSigned": false,
+            "storeReleased": false
+          },
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
@@ -259,6 +285,16 @@
             "distance": 2
           }
         },
+        "release": {
+          "product": "YNX Wallet / Auth",
+          "version": "1.0.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -387,6 +423,16 @@
             "reachable": true,
             "distance": 81
           }
+        },
+        "release": {
+          "product": "YNX Social",
+          "version": "1.0.0-integration",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "6ff91db0b7ce7509d1967e3936c7a0a85d45ea12",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
@@ -519,6 +565,16 @@
             "distance": 2
           }
         },
+        "release": {
+          "product": null,
+          "version": "1.4.0",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "21a2f0412598ef94dd33ff132456c63d5cee6798",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -650,6 +706,16 @@
             "reachable": true,
             "distance": 4
           }
+        },
+        "release": {
+          "product": null,
+          "version": "1.0.0",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": null,
@@ -788,6 +854,16 @@
             "distance": 1
           }
         },
+        "release": {
+          "product": null,
+          "version": "1.0.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -921,6 +997,16 @@
             "reachable": true,
             "distance": 5
           }
+        },
+        "release": {
+          "product": null,
+          "version": "0.1.0-testnet",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": null,
@@ -1060,6 +1146,16 @@
             "distance": 6
           }
         },
+        "release": {
+          "product": null,
+          "version": "0.2.0-testnet-candidate",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -1194,6 +1290,16 @@
             "reachable": true,
             "distance": 1
           }
+        },
+        "release": {
+          "product": null,
+          "version": "0.2.0-testnet-preview",
+          "channel": null,
+          "environment": "YNX Testnet",
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": null,
@@ -1332,6 +1438,16 @@
             "distance": 2
           }
         },
+        "release": {
+          "product": null,
+          "version": "0.3.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -1468,6 +1584,16 @@
             "distance": null
           }
         },
+        "release": {
+          "product": null,
+          "version": "0.2.0",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -1603,6 +1729,21 @@
             "distance": 3
           }
         },
+        "release": {
+          "product": {
+            "number": 12,
+            "name": "YNX Explorer",
+            "slug": "explorer",
+            "owner": "12-explorer"
+          },
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "57b0038312a58e48c97c73f8efaf4473764b9890",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -1736,6 +1877,21 @@
             "distance": 10
           }
         },
+        "release": {
+          "product": {
+            "number": 13,
+            "name": "YNX Monitor",
+            "slug": "monitor",
+            "owner": "13-monitor"
+          },
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -1865,6 +2021,16 @@
             "reachable": true,
             "distance": 3
           }
+        },
+        "release": {
+          "product": "YNX AI",
+          "version": "1.0.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": null,
@@ -2000,6 +2166,16 @@
             "distance": 3
           }
         },
+        "release": {
+          "product": null,
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
+          "releasedAt": null,
+          "releaseStatus": "testnet-preview",
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -2134,6 +2310,16 @@
             "distance": 90
           }
         },
+        "release": {
+          "product": null,
+          "version": "0.3.0-candidate",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "d683c7d28ce129daad358c84680e5980cf8ad069",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": false,
           "testedLocal": false,
@@ -2267,6 +2453,16 @@
             "reachable": true,
             "distance": 38
           }
+        },
+        "release": {
+          "product": "YNXT Economics",
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
@@ -2405,6 +2601,16 @@
             "distance": null
           }
         },
+        "release": {
+          "product": "YNX Chain Documentation and Public Disclosure Package",
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "046bc4f23f78d3c80881f6d2ed7dac88f35bf8a4",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -2540,6 +2746,16 @@
             "distance": 18
           }
         },
+        "release": {
+          "product": null,
+          "version": "0.1.0-testnet",
+          "channel": "testnet-candidate",
+          "environment": null,
+          "sourceCommit": "6ba6c39a6661724e07205a265201ac7fa36c91bb",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -2672,6 +2888,16 @@
             "reachable": true,
             "distance": 6
           }
+        },
+        "release": {
+          "product": null,
+          "version": "1.0.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "e05db0b5663c151c1805c99ff3f55f433127aa92",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
@@ -2810,6 +3036,16 @@
             "distance": 35
           }
         },
+        "release": {
+          "product": "YNX Bridge & Interoperability",
+          "version": "1.0.0-testnet-read-only-candidate",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -2943,6 +3179,16 @@
             "reachable": true,
             "distance": 3
           }
+        },
+        "release": {
+          "product": null,
+          "version": "0.2.3-checkpoint",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "d614a11a0eaf3661be9df70a4776e809e82687f5",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
@@ -3078,6 +3324,24 @@
             "reachable": true,
             "distance": 1
           }
+        },
+        "release": {
+          "product": {
+            "number": 23,
+            "name": "YNX Search",
+            "slug": "search",
+            "version": "0.5.0-observability-preview",
+            "releaseClass": "Testnet Preview",
+            "goalStatus": "active",
+            "phase": "FREEZE"
+          },
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": null,
@@ -3217,6 +3481,16 @@
             "distance": 1
           }
         },
+        "release": {
+          "product": "YNX Finance",
+          "version": "1.2.0",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "5cd7e5761c830b5cf766da30a39e0727f4cf54c9",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -3346,6 +3620,16 @@
             "reachable": true,
             "distance": 9
           }
+        },
+        "release": {
+          "product": null,
+          "version": "0.3.0-testnet-preview-source",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": null,
@@ -3478,6 +3762,16 @@
             "reachable": true,
             "distance": 4
           }
+        },
+        "release": {
+          "product": null,
+          "version": null,
+          "channel": "testnet-preview",
+          "environment": null,
+          "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
@@ -3615,6 +3909,16 @@
             "distance": 2
           }
         },
+        "release": {
+          "product": null,
+          "version": "0.1.0-testnet-preview.1",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -3748,6 +4052,16 @@
             "distance": 1
           }
         },
+        "release": {
+          "product": "YNX Website / SEO / Product Micro-sites",
+          "version": "1.0.0-public-candidate",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "eaf279c9aad22059d5a832bc6455b926509d4b22",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -3800,8 +4114,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "3ee6477d82ecffea954387ce88135793bddb1271",
-        "remoteSha": "7777942bb17a1e67483f5909287e79592ca0f1cf",
+        "localSha": "a472d588b4f037c57db6d7941b1b37572f91d114",
+        "remoteSha": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
         "ahead": 2,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3813,9 +4127,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "3ee6477d82ecffea954387ce88135793bddb1271",
+        "observedHead": "a472d588b4f037c57db6d7941b1b37572f91d114",
         "clean": false,
-        "changedEntries": 21,
+        "changedEntries": 4,
         "statusError": null
       },
       "evidence": {
@@ -3832,14 +4146,14 @@
         },
         "coverage": {
           "total": 71,
-          "open": 57,
+          "open": 54,
           "invalid": 0,
           "counts": {
             "notStarted": 21,
-            "inProgress": 36,
+            "inProgress": 33,
             "implementedLocal": 7,
-            "testedLocal": 3,
-            "integratedCentral": 0,
+            "testedLocal": 4,
+            "integratedCentral": 2,
             "testnetVerified": 0,
             "publicVerified": 0,
             "externalBlocked": 0,
@@ -3860,33 +4174,43 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
+            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
             "distance": 4
           },
           "productRelease": {
-            "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
+            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 45
+            "distance": 4
           },
           "publicMetadata": {
-            "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
+            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 45
+            "distance": 4
           },
           "integrationContract": {
-            "sourceCommit": "562888318863435382d839958130246973dc1206",
+            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 104
+            "distance": 4
           }
+        },
+        "release": {
+          "product": "YNX Integration / Founder Control",
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
@@ -3914,7 +4238,7 @@
       "blockers": [
         "local and remote final branch SHAs differ",
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 57 autonomous or unresolved items"
+        "full-goal coverage has 54 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: local and remote final branch SHAs differ."
     },
@@ -3932,8 +4256,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "4277317bb4999ac4edfbc321590b54d95e1839f9",
-        "remoteSha": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+        "localSha": "e670749b83a1b40d09ed717eb3515d539c005c49",
+        "remoteSha": "e670749b83a1b40d09ed717eb3515d539c005c49",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3945,7 +4269,7 @@
       "worktree": {
         "registered": true,
         "pathToken": "30-security-platform",
-        "observedHead": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+        "observedHead": "e670749b83a1b40d09ed717eb3515d539c005c49",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
@@ -3969,9 +4293,9 @@
           "counts": {
             "notStarted": 0,
             "inProgress": 0,
-            "implementedLocal": 4,
+            "implementedLocal": 3,
             "testedLocal": 19,
-            "integratedCentral": 0,
+            "integratedCentral": 1,
             "testnetVerified": 0,
             "publicVerified": 0,
             "externalBlocked": 2,
@@ -3996,38 +4320,51 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 7
+            "distance": 8
           },
           "productRelease": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 7
+            "distance": 8
           },
           "publicMetadata": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 7
+            "distance": 8
           },
           "integrationContract": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 7
+            "distance": 8
           }
+        },
+        "release": {
+          "product": "YNX Security Platform",
+          "version": "0.2.0-candidate",
+          "channel": "source-candidate",
+          "environment": "github-prerelease",
+          "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+          "releasedAt": "2026-07-29T14:48:41Z",
+          "releaseStatus": "published-source-prerelease-test-signed",
+          "publicEvidence": [
+            "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json",
+            "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/security-platform-v0.2.0-source-candidate"
+          ]
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
           "installedLocal": true,
-          "integratedCentral": false,
+          "integratedCentral": true,
           "deployedStaging": false,
           "deployedPublic": false,
-          "downloadHosted": false,
+          "downloadHosted": true,
           "productionSigned": false,
           "storeReleased": false
         },
@@ -4264,8 +4601,10 @@
             "publicReleaseEligible": false,
             "revokedAt": null,
             "supersededBy": null,
-            "hostedStatus": "not-hosted",
-            "downloadUrl": null,
+            "hostedStatus": "github-source-prerelease",
+            "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/security-platform-v0.2.0-source-candidate/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar",
+            "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/security-platform-v0.2.0-source-candidate",
+            "releaseTag": "security-platform-v0.2.0-source-candidate",
             "productionSigned": false
           }
         ],
@@ -4274,11 +4613,11 @@
       "centralAcceptance": {
         "status": "integratedCentral",
         "reason": "The synchronized owner source, clean worktree, required evidence, exact-head CI, central merge ancestry and central test receipt all passed.",
-        "acceptedSourceCommit": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+        "acceptedSourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
         "acceptedBy": "29-integration",
-        "acceptedAt": "2026-07-29T13:20:22Z",
-        "decisionEvidence": "release/integration/evidence/product-30-central-acceptance-3ee6477d.json",
-        "integrationCommit": "3ee6477d82ecffea954387ce88135793bddb1271"
+        "acceptedAt": "2026-07-29T17:41:45Z",
+        "decisionEvidence": "release/integration/evidence/product-30-central-acceptance-a472d588.json",
+        "integrationCommit": "a472d588b4f037c57db6d7941b1b37572f91d114"
       },
       "blockers": [],
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release."
@@ -4386,6 +4725,16 @@
             "reachable": true,
             "distance": 1
           }
+        },
+        "release": {
+          "product": "YNX Governance & Protocol Control",
+          "version": "0.4.1-integration",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "cd328bd5817f32efba259e0ad8948f202ebaf654",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
@@ -4522,6 +4871,16 @@
             "reachable": true,
             "distance": 8
           }
+        },
+        "release": {
+          "product": null,
+          "version": "0.3.0-testnet",
+          "channel": "testnet-preview",
+          "environment": null,
+          "sourceCommit": "22653153c62529f782f44b0a35177b531ae7e8af",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
@@ -4660,6 +5019,16 @@
             "distance": 3
           }
         },
+        "release": {
+          "product": null,
+          "version": "0.2.0-testnet-preview-candidate",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -4797,6 +5166,16 @@
             "distance": 1
           }
         },
+        "release": {
+          "product": null,
+          "version": "0.2.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "8a7e9b930f89be5587e6547aa23241db70d436f4",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedReleaseStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -4930,6 +5309,27 @@
             "reachable": true,
             "distance": 2
           }
+        },
+        "release": {
+          "product": "YNX Docs",
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "3c404c4f4d2c9967e660882349a19c94aebd08f1",
+          "releasedAt": null,
+          "releaseStatus": {
+            "implementedLocal": true,
+            "testedLocal": true,
+            "installedLocal": false,
+            "integratedCentral": false,
+            "deployedStaging": false,
+            "deployedPublic": false,
+            "downloadHosted": false,
+            "productionSigned": false,
+            "storeReleased": false,
+            "websitePublished": false
+          },
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": true,
@@ -5065,6 +5465,16 @@
             "reachable": true,
             "distance": 2
           }
+        },
+        "release": {
+          "product": null,
+          "version": "0.2.0-current-source",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
         },
         "claimedReleaseStates": {
           "implementedLocal": null,

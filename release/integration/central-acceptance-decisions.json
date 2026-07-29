@@ -7,10 +7,10 @@
       "repository": "JiahaoAlbus/YNX-Chain",
       "branch": "codex/final-security-platform",
       "status": "integratedCentral",
-      "acceptedSourceCommit": "4277317bb4999ac4edfbc321590b54d95e1839f9",
-      "integrationCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
-      "acceptedAt": "2026-07-29T13:20:22Z",
-      "receipt": "release/integration/evidence/product-30-central-acceptance-3ee6477d.json"
+      "acceptedSourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
+      "integrationCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
+      "acceptedAt": "2026-07-29T17:41:45Z",
+      "receipt": "release/integration/evidence/product-30-central-acceptance-a472d588.json"
     }
   ]
 }

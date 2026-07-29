@@ -2,8 +2,8 @@
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
   "authority": "release/integration/product-registry.json",
-  "generatedAt": "2026-07-29T13:53:04.377Z",
-  "controllerSourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+  "generatedAt": "2026-07-29T17:51:54.829Z",
+  "controllerSourceCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
   "readinessClasses": [
     "READY_FOR_PUBLIC_TESTNET",
     "READY_FOR_SOURCE_RELEASE",
@@ -43,6 +43,7 @@
       "pullRequestsAvailable": true,
       "runsAvailable": true,
       "artifactsAvailable": true,
+      "releasesAvailable": true,
       "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
       "errors": []
     },
@@ -50,9 +51,11 @@
       "pullRequestsAvailable": true,
       "runsAvailable": true,
       "artifactsAvailable": false,
+      "releasesAvailable": false,
       "mainSha": "24bde9c9889db98bfb4c961449d0b2e2c268ad39",
       "errors": [
-        "artifact inventory not collected for external repository"
+        "artifact inventory not collected for external repository",
+        "Post \"https://api.github.com/graphql\": net/http: TLS handshake timeout"
       ]
     }
   },
@@ -163,6 +166,32 @@
       },
       "release": {
         "evidencePath": "release/product-release.json",
+        "record": {
+          "product": {
+            "id": "chain-core",
+            "name": "YNX Chain Core",
+            "owner": "01-chain-core",
+            "repository": "https://github.com/JiahaoAlbus/YNX-Chain",
+            "canonicalRoute": "/chain"
+          },
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": {
+            "implementedLocal": true,
+            "testedLocal": true,
+            "installedLocal": false,
+            "integratedCentral": false,
+            "deployedStaging": false,
+            "deployedPublic": false,
+            "downloadHosted": false,
+            "productionSigned": false,
+            "storeReleased": false
+          },
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -173,7 +202,17 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "chain-core-v0.1.0-shadow.1",
+            "name": "YNX Chain Core StreamBFT Shadow Candidate 0.1.0",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-28T10:25:46Z"
+          }
+        ]
       },
       "artifacts": [],
       "sbom": {
@@ -200,7 +239,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -221,7 +260,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: full-goal coverage has 4 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "02",
@@ -317,6 +356,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "release/product-release.json",
+        "record": {
+          "product": "YNX Wallet / Auth",
+          "version": "1.0.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -327,7 +376,24 @@
           "downloadHosted": true,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "wallet-auth-v1.0.0-testnet-preview.2",
+            "name": "YNX Wallet/Auth v1.0.0 Testnet Preview 2",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-28T10:41:25Z"
+          },
+          {
+            "tagName": "wallet-auth-evidence-da82c8b",
+            "name": "YNX Wallet engineering evidence da82c8b",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-18T18:28:21Z"
+          }
+        ]
       },
       "artifacts": [],
       "sbom": {
@@ -354,8 +420,8 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
-        "artifactHosted": true,
+        "releasePublished": true,
+        "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
         "mainnetReleased": false,
@@ -374,7 +440,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "03",
@@ -470,6 +536,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "release/social/product-release.json",
+        "record": {
+          "product": "YNX Social",
+          "version": "1.0.0-integration",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "6ff91db0b7ce7509d1967e3936c7a0a85d45ea12",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -480,7 +556,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -527,7 +605,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "04",
@@ -654,6 +732,16 @@
       },
       "release": {
         "evidencePath": "apps/pay/product-release.json",
+        "record": {
+          "product": null,
+          "version": "1.4.0",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "21a2f0412598ef94dd33ff132456c63d5cee6798",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -664,7 +752,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -713,7 +803,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "05",
@@ -816,6 +906,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/merchant-console/product-release.json",
+        "record": {
+          "product": null,
+          "version": "1.0.0",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -826,7 +926,9 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -880,7 +982,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "06",
@@ -976,6 +1078,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/card/product-release.json",
+        "record": {
+          "product": null,
+          "version": "1.0.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -986,7 +1098,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -1036,7 +1150,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "07",
@@ -1139,6 +1253,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/exchange/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.1.0-testnet",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -1149,7 +1273,17 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "exchange-integration-v1.0.0-testnet-candidate",
+            "name": "YNX Exchange Integration 1.0.0 Testnet Candidate",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-28T10:33:45Z"
+          }
+        ]
       },
       "artifacts": [
         {
@@ -1185,7 +1319,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -1209,7 +1343,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "08",
@@ -1305,6 +1439,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/quant-lab/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.2.0-testnet-candidate",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -1315,7 +1459,9 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -1367,7 +1513,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "09",
@@ -1463,6 +1609,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/shop/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.2.0-testnet-preview",
+          "channel": null,
+          "environment": "YNX Testnet",
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -1473,7 +1629,9 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -1526,7 +1684,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "10",
@@ -1622,6 +1780,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/seller-console/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.3.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -1632,7 +1800,9 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -1685,7 +1855,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "11",
@@ -1788,6 +1958,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/developer/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.2.0",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -1798,7 +1978,17 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "developer-v0.2.0-testnet-preview.1",
+            "name": "YNX Developer 0.2.0 Testnet Preview 1",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-29T03:22:13Z"
+          }
+        ]
       },
       "artifacts": [
         {
@@ -1834,7 +2024,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -1859,7 +2049,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "12",
@@ -1955,6 +2145,21 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "product-release.json",
+        "record": {
+          "product": {
+            "number": 12,
+            "name": "YNX Explorer",
+            "slug": "explorer",
+            "owner": "12-explorer"
+          },
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "57b0038312a58e48c97c73f8efaf4473764b9890",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -1965,7 +2170,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -2015,7 +2222,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "13",
@@ -2118,6 +2325,21 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "product-release.json",
+        "record": {
+          "product": {
+            "number": 13,
+            "name": "YNX Monitor",
+            "slug": "monitor",
+            "owner": "13-monitor"
+          },
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -2128,7 +2350,9 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [
         {
@@ -2184,7 +2408,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: testedLocal is not directly proven by release metadata and coverage.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "14",
@@ -2280,6 +2504,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/ai/product-release.json",
+        "record": {
+          "product": "YNX AI",
+          "version": "1.0.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -2290,7 +2524,9 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -2340,7 +2576,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "15",
@@ -2443,6 +2679,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "product-release.json",
+        "record": {
+          "product": null,
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
+          "releasedAt": null,
+          "releaseStatus": "testnet-preview",
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -2453,7 +2699,24 @@
           "downloadHosted": true,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "trust-center-v0.1.0-testnet-preview.2",
+            "name": "YNX Trust Center 0.1.0 Testnet Preview 2",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-29T03:18:03Z"
+          },
+          {
+            "tagName": "trust-center-v0.1.0-testnet-preview.1",
+            "name": "YNX Trust Center 0.1.0 Testnet Preview 1",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-29T02:31:24Z"
+          }
+        ]
       },
       "artifacts": [
         {
@@ -2489,8 +2752,8 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
-        "artifactHosted": true,
+        "releasePublished": true,
+        "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
         "mainnetReleased": false,
@@ -2511,7 +2774,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "16",
@@ -2656,6 +2919,16 @@
       },
       "release": {
         "evidencePath": "apps/resource-market/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.3.0-candidate",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "d683c7d28ce129daad358c84680e5980cf8ad069",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": false,
           "testedLocal": false,
@@ -2666,7 +2939,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -2715,7 +2990,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "17",
@@ -2818,6 +3093,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "product-release.json",
+        "record": {
+          "product": "YNXT Economics",
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -2828,7 +3113,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -2876,7 +3163,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "18",
@@ -2991,6 +3278,16 @@
       },
       "release": {
         "evidencePath": "release/product-release.json",
+        "record": {
+          "product": "YNX Chain Documentation and Public Disclosure Package",
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "046bc4f23f78d3c80881f6d2ed7dac88f35bf8a4",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -3001,7 +3298,9 @@
           "downloadHosted": true,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -3029,7 +3328,7 @@
         "deployedStaging": true,
         "deployedPublic": true,
         "releasePublished": false,
-        "artifactHosted": true,
+        "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
         "mainnetReleased": false,
@@ -3053,7 +3352,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "19",
@@ -3156,6 +3455,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "release/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.1.0-testnet",
+          "channel": "testnet-candidate",
+          "environment": null,
+          "sourceCommit": "6ba6c39a6661724e07205a265201ac7fa36c91bb",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -3166,7 +3475,9 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -3216,7 +3527,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "20",
@@ -3312,6 +3623,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/cloud/product-release.json",
+        "record": {
+          "product": null,
+          "version": "1.0.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "e05db0b5663c151c1805c99ff3f55f433127aa92",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -3322,7 +3643,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -3374,7 +3697,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "21",
@@ -3477,6 +3800,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "release/bridge/product-release.json",
+        "record": {
+          "product": "YNX Bridge & Interoperability",
+          "version": "1.0.0-testnet-read-only-candidate",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -3487,7 +3820,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [
         {
@@ -3543,7 +3878,7 @@
         "full-goal coverage has 8 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: full-goal coverage has 8 autonomous or unresolved items.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "22",
@@ -3639,6 +3974,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/browser/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.2.3-checkpoint",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "d614a11a0eaf3661be9df70a4776e809e82687f5",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": false,
@@ -3649,7 +3994,17 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "ynx-browser-search-v0.2.0-preview.1",
+            "name": "YNX Browser & Search 0.2.0 Testnet Preview 1",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-18T20:16:44Z"
+          }
+        ]
       },
       "artifacts": [],
       "sbom": {
@@ -3676,7 +4031,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -3700,7 +4055,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "23",
@@ -3796,6 +4151,24 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "product-release.json",
+        "record": {
+          "product": {
+            "number": 23,
+            "name": "YNX Search",
+            "slug": "search",
+            "version": "0.5.0-observability-preview",
+            "releaseClass": "Testnet Preview",
+            "goalStatus": "active",
+            "phase": "FREEZE"
+          },
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -3806,7 +4179,17 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "ynx-browser-search-v0.2.0-preview.1",
+            "name": "YNX Browser & Search 0.2.0 Testnet Preview 1",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-18T20:16:44Z"
+          }
+        ]
       },
       "artifacts": [],
       "sbom": {
@@ -3833,7 +4216,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -3858,7 +4241,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "24",
@@ -3961,6 +4344,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/finance/product-release.json",
+        "record": {
+          "product": "YNX Finance",
+          "version": "1.2.0",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "5cd7e5761c830b5cf766da30a39e0727f4cf54c9",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -3971,7 +4364,17 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "finance-v1.2.0-testnet-preview.1",
+            "name": "YNX Finance 1.2.0 Testnet Preview (test signed)",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-18T20:16:05Z"
+          }
+        ]
       },
       "artifacts": [
         {
@@ -4015,7 +4418,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -4033,7 +4436,7 @@
       },
       "blockers": [],
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "25",
@@ -4148,6 +4551,16 @@
       },
       "release": {
         "evidencePath": "apps/mail/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.3.0-testnet-preview-source",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -4158,7 +4571,17 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f",
+            "name": "YNX Mail + Calendar 0.2.0 Testnet Preview (e227c4f)",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-18T17:16:57Z"
+          }
+        ]
       },
       "artifacts": [],
       "sbom": {
@@ -4185,7 +4608,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -4208,7 +4631,7 @@
         "testedLocal is not directly proven by release metadata and coverage"
       ],
       "nextAction": "Resolve: fullGoalCoverage lacks an exact sourceCommit.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "26",
@@ -4311,6 +4734,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "product-release.json",
+        "record": {
+          "product": null,
+          "version": null,
+          "channel": "testnet-preview",
+          "environment": null,
+          "sourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -4321,7 +4754,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -4371,7 +4806,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "27",
@@ -4467,6 +4902,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.1.0-testnet-preview.1",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": null,
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -4477,7 +4922,9 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -4529,7 +4976,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "28",
@@ -4637,6 +5084,16 @@
       },
       "release": {
         "evidencePath": "release/website/product-release.json",
+        "record": {
+          "product": "YNX Website / SEO / Product Micro-sites",
+          "version": "1.0.0-public-candidate",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "eaf279c9aad22059d5a832bc6455b926509d4b22",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -4647,7 +5104,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": false,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -4694,7 +5153,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: exact-head successful CI is not proven.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "29",
@@ -4708,8 +5167,8 @@
       "expectedRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "actualRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "branch": "codex/final-integration",
-      "localSha": "3ee6477d82ecffea954387ce88135793bddb1271",
-      "remoteSha": "7777942bb17a1e67483f5909287e79592ca0f1cf",
+      "localSha": "a472d588b4f037c57db6d7941b1b37572f91d114",
+      "remoteSha": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
       "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
       "dirty": true,
       "ahead": 2,
@@ -4717,14 +5176,14 @@
       "tests": {
         "coverage": {
           "total": 71,
-          "open": 57,
+          "open": 54,
           "invalid": 0,
           "counts": {
             "notStarted": 21,
-            "inProgress": 36,
+            "inProgress": 33,
             "implementedLocal": 7,
-            "testedLocal": 3,
-            "integratedCentral": 0,
+            "testedLocal": 4,
+            "integratedCentral": 2,
             "testnetVerified": 0,
             "publicVerified": 0,
             "externalBlocked": 0,
@@ -4739,32 +5198,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "4e1ede48676743ac402079d65a9e5f56d3347b1e",
+            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
             "distance": 4
           },
           "productRelease": {
-            "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
+            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 45
+            "distance": 4
           },
           "publicMetadata": {
-            "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
+            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 45
+            "distance": 4
           },
           "integrationContract": {
-            "sourceCommit": "562888318863435382d839958130246973dc1206",
+            "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 104
+            "distance": 4
           }
         },
         "requiredEvidencePaths": {
@@ -4781,7 +5240,7 @@
       },
       "ci": {
         "available": true,
-        "exactHeadSha": "3ee6477d82ecffea954387ce88135793bddb1271",
+        "exactHeadSha": "a472d588b4f037c57db6d7941b1b37572f91d114",
         "exactHeadComplete": false,
         "exactHeadSuccess": false,
         "runs": [],
@@ -4791,7 +5250,7 @@
         "baseRefName": "main",
         "baseRefOid": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
         "headRefName": "codex/final-integration",
-        "headRefOid": "7777942bb17a1e67483f5909287e79592ca0f1cf",
+        "headRefOid": "edefd412abc14c89cfdd7c5171e5db90aed9cb58",
         "isDraft": true,
         "mergeable": "MERGEABLE",
         "number": 17,
@@ -4802,6 +5261,16 @@
       },
       "release": {
         "evidencePath": "release/integration/product-release.json",
+        "record": {
+          "product": "YNX Integration / Founder Control",
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -4812,7 +5281,24 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "governance-v0.3.0-integration.1",
+            "name": "YNX Governance 0.3.0 Integration Candidate 1",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-28T10:49:53Z"
+          },
+          {
+            "tagName": "exchange-integration-v1.0.0-testnet-candidate",
+            "name": "YNX Exchange Integration 1.0.0 Testnet Candidate",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-28T10:33:45Z"
+          }
+        ]
       },
       "artifacts": [],
       "sbom": {
@@ -4839,7 +5325,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -4858,13 +5344,13 @@
       "blockers": [
         "local and remote final branch SHAs differ",
         "registered final worktree has uncommitted changes",
-        "full-goal coverage has 57 autonomous or unresolved items",
+        "full-goal coverage has 54 autonomous or unresolved items",
         "Local SHA does not equal Remote SHA",
         "Worktree is not clean",
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: local and remote final branch SHAs differ.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "30",
@@ -4878,8 +5364,8 @@
       "expectedRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "actualRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "branch": "codex/final-security-platform",
-      "localSha": "4277317bb4999ac4edfbc321590b54d95e1839f9",
-      "remoteSha": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+      "localSha": "e670749b83a1b40d09ed717eb3515d539c005c49",
+      "remoteSha": "e670749b83a1b40d09ed717eb3515d539c005c49",
       "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
       "dirty": false,
       "ahead": 0,
@@ -4892,9 +5378,9 @@
           "counts": {
             "notStarted": 0,
             "inProgress": 0,
-            "implementedLocal": 4,
+            "implementedLocal": 3,
             "testedLocal": 19,
-            "integratedCentral": 0,
+            "integratedCentral": 1,
             "testnetVerified": 0,
             "publicVerified": 0,
             "externalBlocked": 2,
@@ -4913,28 +5399,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 7
+            "distance": 8
           },
           "productRelease": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 7
+            "distance": 8
           },
           "publicMetadata": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 7
+            "distance": 8
           },
           "integrationContract": {
             "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 7
+            "distance": 8
           }
         },
         "requiredEvidencePaths": {
@@ -4951,63 +5437,63 @@
       },
       "ci": {
         "available": true,
-        "exactHeadSha": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+        "exactHeadSha": "e670749b83a1b40d09ed717eb3515d539c005c49",
         "exactHeadComplete": true,
         "exactHeadSuccess": true,
         "runs": [
           {
-            "id": 30452588226,
-            "workflow": "ci",
+            "id": 30473445783,
+            "workflow": "Security Platform Gates",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588226"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30473445783"
           },
           {
-            "id": 30452588095,
+            "id": 30473440410,
             "workflow": "Security",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588095"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30473440410"
           },
           {
-            "id": 30452588091,
-            "workflow": "governance",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588091"
-          },
-          {
-            "id": 30452588075,
-            "workflow": "Trust Resource Native Preview",
-            "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588075"
-          },
-          {
-            "id": 30452588052,
+            "id": 30473431982,
             "workflow": "docs-compliance",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588052"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30473431982"
           },
           {
-            "id": 30452588017,
-            "workflow": "Security Platform Gates",
+            "id": 30473431684,
+            "workflow": "governance",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588017"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30473431684"
           },
           {
-            "id": 30452588010,
+            "id": 30473431642,
             "workflow": "exchange",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452588010"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30473431642"
           },
           {
-            "id": 30452584329,
+            "id": 30473431558,
             "workflow": "Security",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452584329"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30473431558"
           },
           {
-            "id": 30452584170,
+            "id": 30473431544,
+            "workflow": "Trust Resource Native Preview",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30473431544"
+          },
+          {
+            "id": 30473431522,
             "workflow": "Security Platform Gates",
             "conclusion": "success",
-            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30452584170"
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30473431522"
+          },
+          {
+            "id": 30473431485,
+            "workflow": "ci",
+            "conclusion": "success",
+            "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30473431485"
           }
         ],
         "error": null
@@ -5016,7 +5502,7 @@
         "baseRefName": "main",
         "baseRefOid": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
         "headRefName": "codex/final-security-platform",
-        "headRefOid": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+        "headRefOid": "e670749b83a1b40d09ed717eb3515d539c005c49",
         "isDraft": true,
         "mergeable": "MERGEABLE",
         "number": 16,
@@ -5027,17 +5513,40 @@
       },
       "release": {
         "evidencePath": "release/security-platform/product-release.json",
+        "record": {
+          "product": "YNX Security Platform",
+          "version": "0.2.0-candidate",
+          "channel": "source-candidate",
+          "environment": "github-prerelease",
+          "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+          "releasedAt": "2026-07-29T14:48:41Z",
+          "releaseStatus": "published-source-prerelease-test-signed",
+          "publicEvidence": [
+            "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json",
+            "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/security-platform-v0.2.0-source-candidate"
+          ]
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
           "installedLocal": true,
-          "integratedCentral": false,
+          "integratedCentral": true,
           "deployedStaging": false,
           "deployedPublic": false,
-          "downloadHosted": false,
+          "downloadHosted": true,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "security-platform-v0.2.0-source-candidate",
+            "name": "YNX Security Platform v0.2.0 Source Candidate",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-29T14:48:41Z"
+          }
+        ]
       },
       "artifacts": [
         {
@@ -5049,7 +5558,9 @@
           "expired": false,
           "sourceCommit": "e2c29248e8a10321cc42507c22e57a34d9746218",
           "signingClass": "test-signed",
-          "hostedStatus": null
+          "hostedStatus": null,
+          "downloadUrl": null,
+          "releaseTag": null
         },
         {
           "source": "repository-registry",
@@ -5060,7 +5571,9 @@
           "expired": false,
           "sourceCommit": "850b2e31e3ba7507c73c271bf4737922d3f609eb",
           "signingClass": "test-signed",
-          "hostedStatus": null
+          "hostedStatus": null,
+          "downloadUrl": null,
+          "releaseTag": null
         },
         {
           "source": "repository-registry",
@@ -5071,7 +5584,9 @@
           "expired": false,
           "sourceCommit": "53b037eb6fff51e3cb149231fad5bb5f2599527f",
           "signingClass": "test-signed",
-          "hostedStatus": "not-hosted"
+          "hostedStatus": "not-hosted",
+          "downloadUrl": null,
+          "releaseTag": null
         },
         {
           "source": "repository-registry",
@@ -5082,7 +5597,9 @@
           "expired": false,
           "sourceCommit": "fa5f3edfdac0fe21ed17028845e4faa09ae89143",
           "signingClass": "test-signed",
-          "hostedStatus": "not-hosted"
+          "hostedStatus": "not-hosted",
+          "downloadUrl": null,
+          "releaseTag": null
         },
         {
           "source": "repository-registry",
@@ -5093,7 +5610,9 @@
           "expired": false,
           "sourceCommit": "1853dd46ce1535dc01911308b53f2d14860337c2",
           "signingClass": "test-signed",
-          "hostedStatus": "not-hosted"
+          "hostedStatus": "not-hosted",
+          "downloadUrl": null,
+          "releaseTag": null
         },
         {
           "source": "repository-registry",
@@ -5104,7 +5623,9 @@
           "expired": false,
           "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
           "signingClass": "test-signed",
-          "hostedStatus": "not-hosted"
+          "hostedStatus": "not-hosted",
+          "downloadUrl": null,
+          "releaseTag": null
         },
         {
           "source": "repository-registry",
@@ -5115,7 +5636,9 @@
           "expired": false,
           "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
           "signingClass": "test-signed",
-          "hostedStatus": "not-hosted"
+          "hostedStatus": "github-source-prerelease",
+          "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/security-platform-v0.2.0-source-candidate/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar",
+          "releaseTag": "security-platform-v0.2.0-source-candidate"
         }
       ],
       "sbom": {
@@ -5158,8 +5681,8 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
-        "artifactHosted": false,
+        "releasePublished": true,
+        "artifactHosted": true,
         "productionSigned": false,
         "storeReleased": false,
         "mainnetReleased": false,
@@ -5168,15 +5691,15 @@
       "centralAcceptance": {
         "status": "integratedCentral",
         "reason": "The synchronized owner source, clean worktree, required evidence, exact-head CI, central merge ancestry and central test receipt all passed.",
-        "acceptedSourceCommit": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+        "acceptedSourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
         "acceptedBy": "29-integration",
-        "acceptedAt": "2026-07-29T13:20:22Z",
-        "decisionEvidence": "release/integration/evidence/product-30-central-acceptance-3ee6477d.json",
-        "integrationCommit": "3ee6477d82ecffea954387ce88135793bddb1271"
+        "acceptedAt": "2026-07-29T17:41:45Z",
+        "decisionEvidence": "release/integration/evidence/product-30-central-acceptance-a472d588.json",
+        "integrationCommit": "a472d588b4f037c57db6d7941b1b37572f91d114"
       },
       "blockers": [],
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "31",
@@ -5309,6 +5832,16 @@
       },
       "release": {
         "evidencePath": "release/governance/product-release.json",
+        "record": {
+          "product": "YNX Governance & Protocol Control",
+          "version": "0.4.1-integration",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "cd328bd5817f32efba259e0ad8948f202ebaf654",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -5319,7 +5852,17 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "governance-v0.3.0-integration.1",
+            "name": "YNX Governance 0.3.0 Integration Candidate 1",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-28T10:49:53Z"
+          }
+        ]
       },
       "artifacts": [],
       "sbom": {
@@ -5346,7 +5889,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -5367,7 +5910,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "32",
@@ -5470,6 +6013,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/music/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.3.0-testnet",
+          "channel": "testnet-preview",
+          "environment": null,
+          "sourceCommit": "22653153c62529f782f44b0a35177b531ae7e8af",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -5480,7 +6033,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [
         {
@@ -5547,7 +6102,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "33",
@@ -5643,6 +6198,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/video/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.2.0-testnet-preview-candidate",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -5653,7 +6218,9 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -5703,7 +6270,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: public metadata is missing from the branch tree.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "34",
@@ -5836,6 +6403,16 @@
       },
       "release": {
         "evidencePath": "apps/creator-studio/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.2.0-testnet-preview",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "8a7e9b930f89be5587e6547aa23241db70d436f4",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -5846,7 +6423,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -5895,7 +6474,7 @@
         "Worktree is not clean"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "35",
@@ -5991,6 +6570,27 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "product-release.json",
+        "record": {
+          "product": "YNX Docs",
+          "version": null,
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "3c404c4f4d2c9967e660882349a19c94aebd08f1",
+          "releasedAt": null,
+          "releaseStatus": {
+            "implementedLocal": true,
+            "testedLocal": true,
+            "installedLocal": false,
+            "integratedCentral": false,
+            "deployedStaging": false,
+            "deployedPublic": false,
+            "downloadHosted": false,
+            "productionSigned": false,
+            "storeReleased": false,
+            "websitePublished": false
+          },
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": true,
           "testedLocal": true,
@@ -6001,7 +6601,9 @@
           "downloadHosted": false,
           "productionSigned": false,
           "storeReleased": false
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": []
       },
       "artifacts": [],
       "sbom": {
@@ -6052,7 +6654,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     },
     {
       "productNumber": "36",
@@ -6148,6 +6750,16 @@
       "pullRequest": null,
       "release": {
         "evidencePath": "apps/calendar/product-release.json",
+        "record": {
+          "product": null,
+          "version": "0.2.0-current-source",
+          "channel": null,
+          "environment": null,
+          "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
+          "releasedAt": null,
+          "releaseStatus": null,
+          "publicEvidence": []
+        },
         "claimedStates": {
           "implementedLocal": null,
           "testedLocal": null,
@@ -6158,7 +6770,17 @@
           "downloadHosted": null,
           "productionSigned": null,
           "storeReleased": null
-        }
+        },
+        "directQueryAvailable": true,
+        "githubReleases": [
+          {
+            "tagName": "ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f",
+            "name": "YNX Mail + Calendar 0.2.0 Testnet Preview (e227c4f)",
+            "isDraft": false,
+            "isPrerelease": true,
+            "publishedAt": "2026-07-18T17:16:57Z"
+          }
+        ]
       },
       "artifacts": [],
       "sbom": {
@@ -6185,7 +6807,7 @@
         "sharedTestnetVerified": false,
         "deployedStaging": false,
         "deployedPublic": false,
-        "releasePublished": false,
+        "releasePublished": true,
         "artifactHosted": false,
         "productionSigned": false,
         "storeReleased": false,
@@ -6210,7 +6832,7 @@
         "exact-head successful CI is not proven"
       ],
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "updatedAt": "2026-07-29T13:53:04.377Z"
+      "updatedAt": "2026-07-29T17:51:54.829Z"
     }
   ]
 }

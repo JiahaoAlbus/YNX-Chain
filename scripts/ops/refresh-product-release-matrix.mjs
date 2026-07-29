@@ -86,13 +86,18 @@ function boolean(value) {
   return value === true;
 }
 
-function directStates(row) {
+function directStates(row, releaseContext = {}) {
   const claimed = row?.evidence?.claimedReleaseStates ?? {};
   const coverage = row?.evidence?.coverage ?? {};
   const refs = row?.refs ?? {};
   const worktree = row?.worktree ?? {};
   const accepted = row?.centralAcceptance?.acceptedSourceCommit !== null;
   const testedCoverage = (coverage?.counts?.testedLocal ?? 0) > 0 || (coverage?.counts?.verifiedComplete ?? 0) > 0;
+  const releasePublished = Array.isArray(releaseContext.githubReleases)
+    && releaseContext.githubReleases.some((release) => release.isDraft !== true && Boolean(release.publishedAt));
+  const artifactHosted = releasePublished
+    && Array.isArray(releaseContext.hostedArtifacts)
+    && releaseContext.hostedArtifacts.some((artifact) => /^https:\/\/github\.com\/[^/]+\/[^/]+\/releases\/download\//.test(artifact.downloadUrl ?? ""));
   return {
     recovered: refs.repositoryMatches === true && refs.localExists === true && refs.remoteExists === true && worktree.registered === true,
     implementedLocal: boolean(claimed.implementedLocal),
@@ -105,8 +110,8 @@ function directStates(row) {
     sharedTestnetVerified: ["testnetVerified", "publicVerified", "verifiedComplete"].includes(row?.centralAcceptance?.status) && accepted,
     deployedStaging: boolean(claimed.deployedStaging),
     deployedPublic: boolean(claimed.deployedPublic),
-    releasePublished: false,
-    artifactHosted: boolean(claimed.downloadHosted),
+    releasePublished,
+    artifactHosted,
     productionSigned: boolean(claimed.productionSigned),
     storeReleased: boolean(claimed.storeReleased),
     mainnetReleased: false,
@@ -170,6 +175,12 @@ function validate(matrix) {
     if (product.states.productionSigned && product.states.artifactHosted !== true) {
       throw new Error(`product ${product.productNumber} claims production signing without a hosted artifact`);
     }
+    if (product.states.releasePublished && (!Array.isArray(product.release?.githubReleases) || product.release.githubReleases.length === 0)) {
+      throw new Error(`product ${product.productNumber} claims a published release without direct GitHub release evidence`);
+    }
+    if (product.states.artifactHosted && !product.artifacts.some((artifact) => artifact.hostedStatus && artifact.downloadUrl)) {
+      throw new Error(`product ${product.productNumber} claims a hosted artifact without a directly registered download`);
+    }
   }
 }
 
@@ -187,6 +198,15 @@ function selfTest() {
   const states = directStates(row);
   const ready = classify(row, states, { exactHeadSuccess: true });
   if (ready.classification !== "READY_FOR_SOURCE_RELEASE") throw new Error("source-ready self-test failed");
+  const publishedStates = directStates(row, {
+    githubReleases: [{ isDraft: false, publishedAt: "2026-07-29T00:00:00Z" }],
+    hostedArtifacts: [{
+      downloadUrl: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/test/example.tar"
+    }]
+  });
+  if (!publishedStates.releasePublished || !publishedStates.artifactHosted) {
+    throw new Error("direct release evidence self-test failed");
+  }
   const dirty = structuredClone(row);
   dirty.worktree.clean = false;
   if (classify(dirty, directStates(dirty), { exactHeadSuccess: true }).classification !== "HOLD_FOR_RECOVERY") {
@@ -228,12 +248,19 @@ function main() {
     const artifacts = repository === githubEvidence.repository
       ? { available: githubEvidence.availability?.artifacts === true, data: githubEvidence.artifacts ?? [], error: githubEvidence.queryErrors?.artifacts ?? null }
       : { available: false, data: [], error: "artifact inventory not collected for external repository" };
+    const releases = repository === githubEvidence.repository
+      ? { available: githubEvidence.availability?.releases === true, data: githubEvidence.releases ?? [], error: githubEvidence.queryErrors?.releases ?? null }
+      : ghJson([
+          "release", "list", "--repo", repository, "--limit", "100",
+          "--json", "tagName,name,isDraft,isPrerelease,publishedAt"
+        ]);
     repositoryEvidence.set(repository, {
       pullRequests,
       mainSha: main.available ? main.data?.sha ?? null : null,
       mainError: main.error,
       runs,
-      artifacts
+      artifacts,
+      releases
     });
   }
 
@@ -260,11 +287,28 @@ function main() {
       return identityTokens.some((token) => normalized.includes(token));
     });
     const localArtifacts = Array.isArray(row.evidence?.artifacts) ? row.evidence.artifacts : [];
+    const declaredReleaseTags = new Set([
+      ...localArtifacts.map((artifact) => artifact.releaseTag).filter(Boolean),
+      ...(row.evidence?.release?.publicEvidence ?? [])
+        .map((value) => String(value).match(/\/releases\/tag\/([^/?#]+)/)?.[1])
+        .filter(Boolean)
+    ]);
+    const githubReleases = (repoEvidence?.releases?.data ?? []).filter((release) => {
+      if (declaredReleaseTags.has(release.tagName)) return true;
+      const normalized = `${release.tagName ?? ""} ${release.name ?? ""}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      return declaredReleaseTags.size === 0 && identityTokens.some((token) => normalized.includes(token));
+    });
+    const hostedArtifacts = localArtifacts.filter((artifact) =>
+      artifact.hostedStatus
+      && artifact.hostedStatus !== "not-hosted"
+      && typeof artifact.downloadUrl === "string"
+      && declaredReleaseTags.has(artifact.releaseTag)
+    );
     const artifactNames = [
       ...githubArtifacts.map((artifact) => artifact.name),
       ...localArtifacts.flatMap((artifact) => [artifact.path, artifact.sbom, artifact.provenance]).filter(Boolean)
     ];
-    const states = directStates(row);
+    const states = directStates(row, { githubReleases, hostedArtifacts });
     const ci = {
       available: repoEvidence?.runs?.available === true,
       exactHeadSha: row.refs.localSha,
@@ -307,7 +351,16 @@ function main() {
       pullRequest,
       release: {
         evidencePath: row.evidence.paths.productRelease,
-        claimedStates: row.evidence.claimedReleaseStates
+        record: row.evidence.release ?? null,
+        claimedStates: row.evidence.claimedReleaseStates,
+        directQueryAvailable: repoEvidence?.releases?.available === true,
+        githubReleases: githubReleases.map((release) => ({
+          tagName: release.tagName,
+          name: release.name,
+          isDraft: release.isDraft,
+          isPrerelease: release.isPrerelease,
+          publishedAt: release.publishedAt
+        }))
       },
       artifacts: [
         ...githubArtifacts.map((artifact) => ({
@@ -327,7 +380,9 @@ function main() {
           expired: artifact.revocationStatus === "revoked",
           sourceCommit: artifact.sourceCommit ?? null,
           signingClass: artifact.signingClass ?? null,
-          hostedStatus: artifact.hostedStatus ?? null
+          hostedStatus: artifact.hostedStatus ?? null,
+          downloadUrl: artifact.downloadUrl ?? null,
+          releaseTag: artifact.releaseTag ?? null
         }))
       ],
       sbom: {
@@ -374,8 +429,9 @@ function main() {
         pullRequestsAvailable: evidence.pullRequests.available,
         runsAvailable: evidence.runs.available,
         artifactsAvailable: evidence.artifacts.available,
+        releasesAvailable: evidence.releases.available,
         mainSha: evidence.mainSha,
-        errors: [evidence.pullRequests.error, evidence.runs.error, evidence.artifacts.error, evidence.mainError].filter(Boolean)
+        errors: [evidence.pullRequests.error, evidence.runs.error, evidence.artifacts.error, evidence.releases.error, evidence.mainError].filter(Boolean)
       }
     ])),
     products

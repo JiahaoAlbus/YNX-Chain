@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "passed",
+  "productId": "30",
+  "product": "YNX Security / SRE",
+  "acceptedBy": "29-integration",
+  "acceptedAt": "2026-07-29T17:41:45Z",
+  "acceptedSourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
+  "frozenReleaseSource": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+  "integrationCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
+  "ancestry": {
+    "acceptedSourceIsParentOfIntegrationCommit": true,
+    "integrationCommitContainsAcceptedSource": true
+  },
+  "ownerCandidate": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "branch": "codex/final-security-platform",
+    "localRemoteShaEqual": true,
+    "worktreeClean": true,
+    "coverageTotal": 29,
+    "coverageOpen": 0,
+    "requiredEvidenceBundleComplete": true,
+    "sourceBindingsReachable": true
+  },
+  "exactHeadCi": {
+    "verified": true,
+    "sourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
+    "successfulWorkflowRunIds": [
+      30473445783,
+      30473440410,
+      30473431982,
+      30473431522,
+      30473431642,
+      30473431544,
+      30473431558,
+      30473431485,
+      30473431684
+    ],
+    "failed": 0,
+    "pending": 0
+  },
+  "tests": [
+    {
+      "command": "npm run security:test",
+      "status": "passed",
+      "result": "179/179 tests passed in the central merged tree"
+    },
+    {
+      "command": "npm run security:verify",
+      "status": "passed",
+      "result": "policy, release truth, artifacts, secret metadata and tracked-file gates passed"
+    },
+    {
+      "command": "npm run security:integration",
+      "status": "passed",
+      "result": "staging 21-document and production 23-document Kubernetes renders passed; no deployment state claimed"
+    },
+    {
+      "command": "npm run security:notices",
+      "status": "passed",
+      "result": "third-party notices match the locked dependency graphs"
+    },
+    {
+      "command": "npm run security:build-scripts",
+      "status": "passed",
+      "result": "package lifecycle script allowlist passed"
+    },
+    {
+      "command": "npm audit --omit=dev --audit-level=high",
+      "status": "passed",
+      "result": "zero production dependency vulnerabilities"
+    },
+    {
+      "command": "make integration-protect-preflight",
+      "status": "passed",
+      "result": "acceptance, matrix, contract tooling, npm policy, all Go tests, placeholder, secret and static checks passed"
+    }
+  ],
+  "artifactVerification": {
+    "artifactId": "security-platform-source-900c314",
+    "sha256": "063872f860f74e91f107c036afd321b812e4ec49510290fe042e4a9a0ee59258",
+    "sbomPresent": true,
+    "provenancePresent": true,
+    "testSignedOnly": true,
+    "hosted": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "release": {
+      "id": 361832909,
+      "tag": "security-platform-v0.2.0-source-candidate",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/security-platform-v0.2.0-source-candidate",
+      "publishedAt": "2026-07-29T14:48:41Z",
+      "prerelease": true,
+      "draft": false,
+      "targetCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+      "assetCount": 5,
+      "archiveAssetId": 494160037,
+      "downloadedSha256Verified": true
+    }
+  },
+  "truth": {
+    "integratedCentral": true,
+    "sharedTestnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "releasePublished": true,
+    "artifactHosted": true,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "nextGate": "The source-only prerelease is centrally accepted. Shared Testnet, staging, public deployment, production signing, stores and mainnet remain separate gates."
+}
