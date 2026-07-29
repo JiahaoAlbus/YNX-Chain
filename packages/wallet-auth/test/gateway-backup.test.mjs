@@ -261,6 +261,65 @@ test("backup reader rejects broad permissions, hard links and symlink paths", ()
   }
 });
 
+test("legacy Gateway state normalizes before backup while unsupported future state fails closed", async () => {
+  const root = mkdtempSync(join(tmpdir(), "ynx-wallet-gateway-backup-version-"));
+  chmodSync(root, 0o700);
+  try {
+    const sourceDirectory = privateDirectory(root, "source");
+    const backupDirectory = privateDirectory(root, "backup");
+    const restoreDirectory = privateDirectory(root, "restore");
+    const statePath = join(sourceDirectory, "state.json");
+    const backupPath = join(backupDirectory, "gateway.backup.json");
+    const restoredPath = join(restoreDirectory, "state.json");
+    const source = await nonEmptyGatewayState(statePath);
+
+    const currentEnvelope = JSON.parse(readFileSync(statePath, "utf8"));
+    writeFileSync(statePath, canonicalJSON({ ...currentEnvelope, updatedAt: NOW.toISOString() }), { mode: 0o600 });
+
+    const migratedHost = new CanonicalWalletGatewayNodeHost(source.registry, { statePath, now: () => NOW });
+    assert.deepEqual(migratedHost.snapshot(), source.snapshot);
+    assert.deepEqual(Object.keys(JSON.parse(readFileSync(statePath, "utf8"))).sort(), ["schemaVersion", "snapshot", "stateDigest"]);
+
+    const created = createGatewayStateBackup({ backupPath, key: KEY, statePath, now: () => BACKUP_TIME });
+    const restored = restoreGatewayStateBackup({
+      backupPath,
+      key: KEY,
+      statePath: restoredPath,
+      maxAgeMs: 120_000,
+      minimumCreatedAt: BACKUP_TIME.toISOString(),
+      now: () => VERIFY_TIME,
+    });
+    assert.equal(restored.restoredStateDigest, created.sourceStateDigest);
+
+    const recoveredHost = new CanonicalWalletGatewayNodeHost(source.registry, { statePath: restoredPath, now: () => NOW });
+    assert.deepEqual(recoveredHost.snapshot(), migratedHost.snapshot());
+    await serve(recoveredHost, async (base) => {
+      const replay = await fetch(`${base}/v1/wallet/sessions`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-ynx-product-session-proof": source.consumedProof },
+        body: "{}",
+      });
+      assert.equal(replay.status, 409);
+      assert.equal((await replay.json()).error.code, "REPLAY");
+    });
+
+    const unsupportedStatePath = join(sourceDirectory, "unsupported-state.json");
+    const normalized = JSON.parse(readFileSync(statePath, "utf8"));
+    writeFileSync(unsupportedStatePath, canonicalJSON({ ...normalized, schemaVersion: normalized.schemaVersion + 1 }), { mode: 0o600 });
+    assert.throws(
+      () => createGatewayStateBackup({
+        backupPath: join(backupDirectory, "unsupported.backup.json"),
+        key: KEY,
+        statePath: unsupportedStatePath,
+        now: () => BACKUP_TIME,
+      }),
+      errorCode("STATE_TAMPERED"),
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("backup performance drill emits canonical integer metrics and bounded failures", () => {
   const script = fileURLToPath(new URL("../scripts/run-gateway-backup-drill.mjs", import.meta.url));
   const completed = spawnSync(process.execPath, [script], {
