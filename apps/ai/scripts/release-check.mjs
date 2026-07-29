@@ -99,8 +99,9 @@ try{
   if(error?.code!=="ENOENT")throw error;
 }
 
-const [server,gatewayServer,gatewayRuntime,productRegistryRuntime,gatewayRegistryPolicy,contentGuard,web,mobile,workflow,envExample,uiAudit,evidence,sbom,dependencyReview,gatewayPatch,walletPatch]=await Promise.all([
+const [server,observabilityRuntime,gatewayServer,gatewayRuntime,productRegistryRuntime,gatewayRegistryPolicy,contentGuard,web,mobile,workflow,envExample,uiAudit,observabilityDoc,sloCapacity,unitEconomics,evidence,sbom,dependencyReview,gatewayPatch,walletPatch]=await Promise.all([
   readFile(new URL("../../internal/aiproduct/server.go",root),"utf8"),
+  readFile(new URL("../../internal/aiproduct/observability.go",root),"utf8"),
   readFile(new URL("../../internal/aigateway/server.go",root),"utf8"),
   readFile(new URL("../../internal/aigateway/gateway.go",root),"utf8"),
   readFile(new URL("../../internal/aiproduct/product_registry.go",root),"utf8"),
@@ -111,6 +112,9 @@ const [server,gatewayServer,gatewayRuntime,productRegistryRuntime,gatewayRegistr
   readFile(new URL("../../.github/workflows/ynx-ai-mobile.yml",root),"utf8"),
   readFile(new URL(".env.example",root),"utf8"),
   readFile(new URL("UI_DESIGN_AUDIT.md",root),"utf8"),
+  readFile(new URL("OBSERVABILITY.md",root),"utf8"),
+  readFile(new URL("SLO_CAPACITY_PLAN.md",root),"utf8"),
+  readFile(new URL("UNIT_ECONOMICS.md",root),"utf8"),
   readFile(new URL("evidence-index.json",root),"utf8"),
   json("sbom.cdx.json"),
   readFile(new URL("DEPENDENCY_REVIEW.md",root),"utf8"),
@@ -156,6 +160,17 @@ for(const product of productRegistry.products){
   for(const context of product.allowedContexts)assert.ok(gatewayRegistryPolicy.includes(`"${context.type}":`),`Gateway registry snapshot missing context ${product.id}/${context.type}`);
 }
 assert.match(server,/AllowLocalFixtureAuth/);
+assert.match(server,/HandleFunc\("GET \/readyz", s\.handleReady\)/);
+assert.match(server,/HandleFunc\("GET \/metrics", s\.handleMetrics\)/);
+assert.match(observabilityRuntime,/X-Request-ID/);
+assert.match(observabilityRuntime,/r\.Pattern/);
+assert.match(observabilityRuntime,/ynx_ai_http_requests_total/);
+assert.match(observabilityRuntime,/gatewayReachable/);
+assert.doesNotMatch(observabilityRuntime,/RawQuery/);
+assert.match(observabilityDoc,/does not claim central Monitor acceptance/);
+assert.match(sloCapacity,/These thresholds are regression guards, not production SLOs/);
+assert.match(unitEconomics,/actualUsageReported=false/);
+assert.match(unitEconomics,/owner 26 Data Fabric and Billing Ledger/i);
 assert.match(envExample,/YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH=0/);
 for(const command of ["xcodebuild","simctl install","simctl launch","simctl openurl","shasum -a 256"])assert.ok(workflow.includes(command),`iOS CI missing ${command}`);
 assert.match(uiAudit,/Remaining limitations/);

@@ -77,7 +77,8 @@ Simulator install, cold launch, restart, exact callback deep link, zip and SHA-2
 ## Release status
 
 Read `product-release.json`, `artifact-manifest.json`, `evidence-index.json`,
-`UI_DESIGN_AUDIT.md`, and `RELEASE_NOTES.md`. The current release truth is:
+`UI_DESIGN_AUDIT.md`, `OBSERVABILITY.md`, `SLO_CAPACITY_PLAN.md`,
+`UNIT_ECONOMICS.md`, and `RELEASE_NOTES.md`. The current release truth is:
 
 - no staging/public deployment or hosted download;
 - no production signing or store release;

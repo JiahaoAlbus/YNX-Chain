@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -45,7 +46,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	server, err := aiproduct.NewServer(aiproduct.Config{GatewayURL: env("YNX_AI_CLIENT_GATEWAY_URL", "http://127.0.0.1:6429"), GatewayKey: os.Getenv("YNX_AI_GATEWAY_API_KEY"), ExactWalletCallback: env("YNX_AI_CLIENT_WALLET_CALLBACK", "ynxai://wallet-auth/callback"), TrustURL: env("YNX_AI_CLIENT_TRUST_URL", "https://trust.ynxweb4.com/appeals"), ProviderName: env("YNX_AI_CLIENT_PROVIDER_NAME", "configured OpenAI-compatible provider"), InputUSDPerMillion: envFloat("YNX_AI_CLIENT_INPUT_USD_PER_MILLION"), OutputUSDPerMillion: envFloat("YNX_AI_CLIENT_OUTPUT_USD_PER_MILLION"), ResourceUnitsPerKTokens: envInt64("YNX_AI_CLIENT_RESOURCE_UNITS_PER_KTOKENS", 1), GenerationTimeout: envDuration("YNX_AI_CLIENT_GENERATION_TIMEOUT", 45*time.Second), Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}, AllowLocalFixtureAuth: env("YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH", "0") == "1"}, store, web)
+	server, err := aiproduct.NewServer(aiproduct.Config{GatewayURL: env("YNX_AI_CLIENT_GATEWAY_URL", "http://127.0.0.1:6429"), GatewayKey: os.Getenv("YNX_AI_GATEWAY_API_KEY"), ExactWalletCallback: env("YNX_AI_CLIENT_WALLET_CALLBACK", "ynxai://wallet-auth/callback"), TrustURL: env("YNX_AI_CLIENT_TRUST_URL", "https://trust.ynxweb4.com/appeals"), ProviderName: env("YNX_AI_CLIENT_PROVIDER_NAME", "configured OpenAI-compatible provider"), InputUSDPerMillion: envFloat("YNX_AI_CLIENT_INPUT_USD_PER_MILLION"), OutputUSDPerMillion: envFloat("YNX_AI_CLIENT_OUTPUT_USD_PER_MILLION"), ResourceUnitsPerKTokens: envInt64("YNX_AI_CLIENT_RESOURCE_UNITS_PER_KTOKENS", 1), GenerationTimeout: envDuration("YNX_AI_CLIENT_GENERATION_TIMEOUT", 45*time.Second), Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}, AllowLocalFixtureAuth: env("YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH", "0") == "1", Logger: slog.New(slog.NewJSONHandler(os.Stdout, nil))}, store, web)
 	if err != nil {
 		log.Fatal(err)
 	}

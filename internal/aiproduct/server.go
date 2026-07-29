@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -32,6 +33,7 @@ type Config struct {
 	GenerationTimeout       time.Duration
 	Build                   buildinfo.Info
 	AllowLocalFixtureAuth   bool
+	Logger                  *slog.Logger
 }
 
 type Server struct {
@@ -41,6 +43,8 @@ type Server struct {
 	mux         *http.ServeMux
 	static      fs.FS
 	registry    ProductAIRegistry
+	logger      *slog.Logger
+	metrics     *requestMetrics
 	mu          sync.Mutex
 	generations map[string]activeGeneration
 	visitors    map[string][]time.Time
@@ -78,15 +82,17 @@ func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{cfg: cfg, store: store, client: &http.Client{Timeout: cfg.GenerationTimeout + 5*time.Second}, mux: http.NewServeMux(), static: static, registry: registry, generations: map[string]activeGeneration{}, visitors: map[string][]time.Time{}}
+	s := &Server{cfg: cfg, store: store, client: &http.Client{Timeout: cfg.GenerationTimeout + 5*time.Second}, mux: http.NewServeMux(), static: static, registry: registry, logger: normalizedLogger(cfg.Logger), metrics: &requestMetrics{}, generations: map[string]activeGeneration{}, visitors: map[string][]time.Time{}}
 	s.routes()
 	return s, nil
 }
 
-func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
+func (s *Server) Handler() http.Handler { return securityHeaders(s.observe(s.mux)) }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
+	s.mux.HandleFunc("GET /readyz", s.handleReady)
+	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/meta", s.handleMeta)
 	s.mux.HandleFunc("GET /api/product-ai-registry", s.handleProductAIRegistry)
 	if s.cfg.AllowLocalFixtureAuth {
