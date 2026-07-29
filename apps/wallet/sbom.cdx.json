@@ -7520,8 +7520,8 @@
     {
       "type": "library",
       "name": "brace-expansion",
-      "version": "5.0.7",
-      "bom-ref": "@ynx-chain/wallet-app@1.0.0|brace-expansion@5.0.7",
+      "version": "5.0.8",
+      "bom-ref": "@ynx-chain/wallet-app@1.0.0|brace-expansion@5.0.8",
       "description": "Brace expansion as known from sh/bash",
       "licenses": [
         {
@@ -7531,10 +7531,10 @@
           }
         }
       ],
-      "purl": "pkg:npm/brace-expansion@5.0.7",
+      "purl": "pkg:npm/brace-expansion@5.0.8",
       "externalReferences": [
         {
-          "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.7.tgz",
+          "url": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.8.tgz",
           "type": "distribution",
           "comment": "as detected from npm-ls property \"resolved\""
         },
@@ -23826,7 +23826,7 @@
       ]
     },
     {
-      "ref": "@ynx-chain/wallet-app@1.0.0|brace-expansion@5.0.7",
+      "ref": "@ynx-chain/wallet-app@1.0.0|brace-expansion@5.0.8",
       "dependsOn": [
         "@ynx-chain/wallet-app@1.0.0|balanced-match@4.0.4"
       ]
@@ -25003,7 +25003,7 @@
     {
       "ref": "@ynx-chain/wallet-app@1.0.0|minimatch@10.2.5",
       "dependsOn": [
-        "@ynx-chain/wallet-app@1.0.0|brace-expansion@5.0.7"
+        "@ynx-chain/wallet-app@1.0.0|brace-expansion@5.0.8"
       ]
     },
     {
