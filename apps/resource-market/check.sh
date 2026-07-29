@@ -5,6 +5,18 @@ TMP="$(mktemp -d)"
 cleanup(){ kill "${PID:-}" 2>/dev/null || true; wait "${PID:-}" 2>/dev/null || true; rm -rf "$TMP"; }
 trap cleanup EXIT
 cd "$ROOT"
+future_utc_iso(){
+  if date -u -d '+1 day' '+%Y-%m-%dT%H:%M:%SZ' >/dev/null 2>&1; then
+    date -u -d '+1 day' '+%Y-%m-%dT%H:%M:%SZ'
+    return
+  fi
+  if date -u -v+1d '+%Y-%m-%dT%H:%M:%SZ' >/dev/null 2>&1; then
+    date -u -v+1d '+%Y-%m-%dT%H:%M:%SZ'
+    return
+  fi
+  echo "unable to compute a portable UTC expiry" >&2
+  return 1
+}
 go build -o "$TMP/resource-market" ./apps/resource-market
 YNX_RESOURCE_MARKET_DEV_HEADER_AUTH=1 YNX_RESOURCE_MARKET_ADDR=127.0.0.1:16441 YNX_RESOURCE_MARKET_STORE="$TMP/state.json" YNX_RESOURCE_MARKET_ENGINE_STORE="$TMP/market.json" "$TMP/resource-market" >"$TMP/server.log" 2>&1 & PID=$!
 for _ in {1..300}; do curl -fsS http://127.0.0.1:16441/health >/dev/null 2>&1 && break; sleep .1; done
@@ -12,7 +24,7 @@ curl -fsS http://127.0.0.1:16441/health | jq -e '.status == "ready" and .checks.
 curl -fsS http://127.0.0.1:16441/version | jq -e '.marketSchemaVersion == 7 and .releaseClass == "unreleased-local-candidate"' >/dev/null
 curl -fsS http://127.0.0.1:16441/status | jq -e '.status == "operational" and .source == "current-process SLO guardrails"' >/dev/null
 curl -fsS http://127.0.0.1:16441/resource-market | grep -q '<title>YNX Resource Market — Verifiable Infrastructure Capacity</title>'
-EXPIRY="$(date -u -v+1d '+%Y-%m-%dT%H:%M:%SZ')"
+EXPIRY="$(future_utc_iso)"
 curl -fsS -H 'X-YNX-Actor: smoke-owner' -H 'X-YNX-Role: user' -H 'Content-Type: application/json' -d "{\"type\":\"create_pool\",\"idempotencyKey\":\"smoke-pool\",\"resourceType\":\"Bandwidth\",\"limit\":100,\"source\":\"smoke-staking-proof\",\"expiry\":\"$EXPIRY\",\"fee\":1,\"policy\":{\"maxPerGrant\":25,\"revocable\":true}}" http://127.0.0.1:16441/api/actions | grep -q '"status":"pending_capacity_evidence"'
 curl -fsS -H 'X-YNX-Actor: smoke-owner' -H 'X-YNX-Role: user' http://127.0.0.1:16441/api/state | grep -q '"assetMovement":false'
 AS_OF="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
