@@ -21,6 +21,7 @@ type Server struct {
 	lastError    string
 	errorCount   int64
 	lastSyncedAt time.Time
+	startedAt    time.Time
 	build        buildinfo.Info
 }
 
@@ -29,7 +30,7 @@ func NewServer(indexer *Indexer) *Server {
 }
 
 func NewServerWithBuild(indexer *Indexer, build buildinfo.Info) *Server {
-	s := &Server{indexer: indexer, mux: http.NewServeMux(), build: buildinfo.Normalize(build)}
+	s := &Server{indexer: indexer, mux: http.NewServeMux(), startedAt: time.Now().UTC(), build: buildinfo.Normalize(build)}
 	s.routes()
 	return s
 }
@@ -72,6 +73,7 @@ func (s *Server) StartPolling(ctx context.Context, interval time.Duration) {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /version", s.handleVersion)
 	s.mux.HandleFunc("GET /ynx/overview", s.handleOverview)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("POST /sync", s.handleSync)
@@ -79,6 +81,15 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /blocks/{height}", s.handleBlock)
 	s.mux.HandleFunc("GET /txs", s.handleTransactions)
 	s.mux.HandleFunc("GET /txs/{hash}", s.handleTransaction)
+}
+
+func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service":       "ynx-indexerd",
+		"schemaVersion": 2,
+		"build":         s.build,
+		"startedAt":     s.startedAt,
+	})
 }
 
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
@@ -119,9 +130,21 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	s.mu.RLock()
 	lastError, lastSyncedAt, errorCount := s.lastError, s.lastSyncedAt, s.errorCount
 	s.mu.RUnlock()
-	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":                   lastError == "",
+	ready := lastError == "" && !lastSyncedAt.IsZero()
+	dependencyStatus := "healthy"
+	if lastError != "" {
+		dependencyStatus = "unavailable"
+	} else if lastSyncedAt.IsZero() {
+		dependencyStatus = "not-yet-synced"
+	}
+	status := http.StatusOK
+	if !ready {
+		status = http.StatusServiceUnavailable
+	}
+	writeJSON(w, status, map[string]any{
+		"ok":                   ready,
 		"service":              "ynx-indexerd",
+		"startedAt":            s.startedAt,
 		"network":              db.Network,
 		"chainId":              db.ChainID,
 		"nativeSymbol":         db.NativeSymbol,
@@ -134,8 +157,13 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"lastSyncedAt":         lastSyncedAt,
 		"lastError":            lastError,
 		"syncErrorCount":       errorCount,
-		"build":                s.build,
-		"truthfulStatus":       "local-indexer",
+		"dependencies": map[string]any{
+			"chainRpc": map[string]any{
+				"status": dependencyStatus,
+			},
+		},
+		"build":          s.build,
+		"truthfulStatus": "local-indexer",
 	})
 }
 
