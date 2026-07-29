@@ -1,6 +1,6 @@
 {
   "schemaVersion": "ynx.monitor.security-gate-summary.v1",
-  "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+  "sourceCommit": "28223d60176b618dd1a7ddb1c5f3ec6ba94b5bbf",
   "result": "passed",
   "sourceFilesScanned": 12,
   "credentialFilesScanned": 690,
@@ -17,27 +17,27 @@
   "outputs": [
     {
       "path": "release/monitor/security/sbom.cdx.json",
-      "sha256": "ce8206d10990f56ee1e50516b769d4ae524666a6187ca31f5cd97d78c1d73974"
+      "sha256": "049df369a89f6edb7a12d310e8b96ff6abb0f7ae6a937a110803f09765cabd75"
     },
     {
       "path": "release/monitor/security/THIRD_PARTY_NOTICES.md",
-      "sha256": "e9b0a012bb74f47345fa25473efd2bc63b96a507ead909c51ff39fb8fc08282b"
+      "sha256": "586a7c9730ad16bf97499c2514867e8c40d009bce04e72328791b886a0840565"
     },
     {
       "path": "release/monitor/security/dependency-review.json",
-      "sha256": "64ec9b37161a7473b649b9005099e5f22ab100f917e524df130706e4669f26b4"
+      "sha256": "820bbabdbc394b0b2d3edffdf15ae4bb6b660b144723358e993d230f85e22a8f"
     },
     {
       "path": "release/monitor/security/dast-plan.json",
-      "sha256": "17a1fb09b747fbf4261a9f8084fcaf25aba19488460341a4a279beec98dfddaa"
+      "sha256": "78e724ae8783f53e228b1bc9a0326aafc53df4d035fbe982b6bbcfde6560c930"
     },
     {
       "path": "release/monitor/security/build-manifest.json",
-      "sha256": "79ee17747719972990937a1c3679ec692555bf6a676c659416db8282853166bf"
+      "sha256": "a66853ffc9fc2f2061f3a0607fa3ca62d506bb41a84545dfc0614a3cd8addae8"
     },
     {
       "path": "release/monitor/security/provenance.json",
-      "sha256": "f131a2e0803d164652c572792f34c5a33340c0c7cfe79cdbc4fe40827ef23a8a"
+      "sha256": "9908737e5320855d801f5606764961515757a09eb7eb9f1a3ed2c0a5ac3a0424"
     }
   ],
   "limitations": [

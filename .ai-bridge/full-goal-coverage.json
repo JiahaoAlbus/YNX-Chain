@@ -68,7 +68,7 @@
       "category": "contract",
       "requirement": "Freeze the unique Monitor auth, role, permission, event, error, health, and migration contract.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "externalBlocked",
       "evidence": [
         "release/integration/monitor-contract.json candidate bound to implementation source",
         "Origin/CSRF mutation contract and errors added"
@@ -336,7 +336,7 @@
       "category": "observability",
       "requirement": "Monitor validators, peers, blocks/finality, rounds/views, leaders, QC/precommit, DAG backlog, execution conflicts, state sync, snapshots, double-sign, transaction lanes, and public chain services.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "externalBlocked",
       "evidence": [
         "node, identity, validator, peer, peer-sync, explorer, and indexer probes"
       ],
@@ -358,7 +358,7 @@
       "category": "observability",
       "requirement": "Monitor order/cancel/match, sequence integrity, funding, oracle, OI, liquidation, insurance, ADL, liquidity routes, spread, depth, slippage, maker quality, MEV rebate, and DEX reserves.",
       "applicability": "required",
-      "status": "notStarted",
+      "status": "externalBlocked",
       "evidence": [],
       "sourceCommit": null,
       "tests": [],
@@ -376,7 +376,7 @@
       "category": "observability",
       "requirement": "Monitor Quant engine/workers/data freshness, strategies, adapters, orders/fills, costs, PnL, drawdown, mandates, risk limits, kill switch, vault redemption, fees, and reconciliation.",
       "applicability": "required",
-      "status": "notStarted",
+      "status": "externalBlocked",
       "evidence": [],
       "sourceCommit": null,
       "tests": [],
@@ -394,7 +394,7 @@
       "category": "observability",
       "requirement": "Monitor solvency, withdrawal capacity, stablecoin reserve/depeg, treasury runway, safety module, staking, bridge exposure, provider bonds, service usage, revenue, and burn.",
       "applicability": "required",
-      "status": "notStarted",
+      "status": "externalBlocked",
       "evidence": [],
       "sourceCommit": null,
       "tests": [],
@@ -412,7 +412,7 @@
       "category": "observability",
       "requirement": "Monitor Wallet/Auth, Pay, Merchant, Card, Shop, Cloud, AI, Mail, Search, Website, downloads, and provider health.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "externalBlocked",
       "evidence": [
         "AI, Explorer, Indexer, and Node health probes"
       ],
@@ -448,7 +448,7 @@
       "category": "ai",
       "requirement": "Restrict AI to summaries, hypotheses, and runbook drafts; AI must not execute operations.",
       "applicability": "required",
-      "status": "implementedLocal",
+      "status": "testedLocal",
       "evidence": [
         "advisory-only prompt and audit context",
         "explicit prohibited action list"
@@ -469,7 +469,7 @@
       "category": "security",
       "requirement": "Provide bounded allowlisted log access with secret redaction, request audit, and no internal stack leakage.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
         "allowlisted sources",
         "64 KiB tail bound",
@@ -512,23 +512,23 @@
       "category": "economics",
       "requirement": "Document measured per-active-user, storage, telemetry, notification, provider, and hosting costs with sustainable assumptions.",
       "applicability": "required",
-      "status": "notStarted",
-      "evidence": [],
-      "sourceCommit": null,
-      "tests": [],
-      "artifact": null,
+      "status": "externalBlocked",
+      "evidence": ["apps/monitor/UNIT_ECONOMICS.md defines the measured cost formula, unavailable current values, forbidden revenue inference and scale/kill gates"],
+      "sourceCommit": "28223d60176b618dd1a7ddb1c5f3ec6ba94b5bbf",
+      "tests": ["truth-boundary review: no fabricated operator, storage, notification, provider, hosting or margin value"],
+      "artifact": "apps/monitor/UNIT_ECONOMICS.md",
       "publicProof": null,
-      "blockedBy": [],
+      "blockedBy": ["deployed usage bills, notification/provider terms, approved retention volume and measured active-operator telemetry"],
       "owner": "13-monitor",
-      "nextAction": "Create UNIT_ECONOMICS.md from measured resource profiles, not estimates presented as facts.",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "Populate numeric values only after source-bound deployed bills and privacy-reviewed active-operator telemetry exist.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "MON-WEB-PWA-001",
       "category": "platform",
       "requirement": "Deliver a responsive Web/PWA Monitor with truthful loading, empty, failure, offline, permission, expired, and recovery states.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
         "PWA manifest and service worker",
         "responsive capability-gated incident lifecycle UI",
@@ -557,7 +557,7 @@
       "category": "platform",
       "requirement": "Provide a mobile-appropriate read-only and alert-focused experience.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
         "responsive PWA and mobile screenshot baseline"
       ],
@@ -621,7 +621,7 @@
       "category": "security",
       "requirement": "Complete threat model, boundaries, secret scan, SAST/DAST, dependency/license review, SBOM, artifact scan, provenance, and reproducible build evidence.",
       "applicability": "required",
-      "status": "inProgress",
+      "status": "testedLocal",
       "evidence": [
         "fail-closed auth",
         "integrity-protected state",
@@ -630,18 +630,21 @@
         "Exact Origin allowlist",
         "HMAC session-bound CSRF tokens",
         "Missing/untrusted/invalid mutation vectors",
-        "npm production dependency audit reports 0 vulnerabilities"
+        "npm production dependency audit reports 0 vulnerabilities",
+        "release/monitor/security contains SBOM, notices, dependency review, DAST plan, build manifest, provenance and gate summary"
       ],
-      "sourceCommit": "f3ab30068bc6ae3358cc2e6102ec3735abeae70f",
+      "sourceCommit": "28223d60176b618dd1a7ddb1c5f3ec6ba94b5bbf",
       "tests": [
-        "auth, replay, tamper, and RBAC tests"
+        "auth, replay, tamper, and RBAC tests",
+        "npm --prefix apps/monitor run security:check",
+        "npm --prefix apps/monitor run build twice with byte-identical evidence"
       ],
-      "artifact": "apps/monitor",
+      "artifact": "release/monitor/security",
       "publicProof": null,
       "blockedBy": [],
       "owner": "13-monitor",
-      "nextAction": "Create the Monitor threat model, SBOM/provenance generation, license review, SAST/DAST, and artifact scan evidence.",
-      "lastUpdated": "2026-07-28"
+      "nextAction": "Run independent scanners and production signing/attestation before public promotion.",
+      "lastUpdated": "2026-07-29"
     },
     {
       "id": "MON-INTEGRATION-001",
@@ -698,7 +701,7 @@
       "category": "testnet",
       "requirement": "Demonstrate Wallet RBAC, real alerts/incidents, Quant kill switch, provider and region failure, backup/restore, rollback proposal, and audit against shared YNX Testnet.",
       "applicability": "required",
-      "status": "notStarted",
+      "status": "externalBlocked",
       "evidence": [],
       "sourceCommit": null,
       "tests": [],
@@ -716,7 +719,7 @@
       "category": "public",
       "requirement": "Host public status, Monitor web artifact, immutable hashes, support/privacy/security/status paths, public evidence, and /monitor website handoff.",
       "applicability": "required",
-      "status": "notStarted",
+      "status": "externalBlocked",
       "evidence": [],
       "sourceCommit": null,
       "tests": [],
@@ -734,7 +737,7 @@
       "category": "expand",
       "requirement": "Expand topology, dashboards, automated response, and operator experience only after prior gates pass.",
       "applicability": "required",
-      "status": "notStarted",
+      "status": "externalBlocked",
       "evidence": [],
       "sourceCommit": null,
       "tests": [],

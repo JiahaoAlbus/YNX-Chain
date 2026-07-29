@@ -1,6 +1,6 @@
 {
   "schemaVersion": "ynx.monitor.dast-plan.v1",
-  "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+  "sourceCommit": "28223d60176b618dd1a7ddb1c5f3ec6ba94b5bbf",
   "authority": "local test input only; this file is not evidence of a hosted scan",
   "baseUrlVariable": "YNX_MONITOR_DAST_BASE_URL",
   "publicRoutes": [
