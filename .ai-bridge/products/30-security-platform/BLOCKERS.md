@@ -1,15 +1,13 @@
 # Product 30 Blockers
 
-Updated: 2026-07-29T06:08:33Z
+Updated: 2026-07-29T12:18:00Z
 
-## Autonomous work still open
+## Autonomous central integration work still open
 
-- PR checks must be rerun after immutable Action pins and dependency-graph enablement.
-- Product 29 has not yet accepted the integration contract.
+- Product 29 must accept the exact final Product 30 checkpoint and refresh the authoritative 36-product release matrix.
 - Product 28 has not yet consumed the current public metadata.
-- Administrator enforcement remains disabled during active recovery; final repository lock is pending.
-- Live cross-product old-client compatibility, staging migration, export/delete, retention and retirement drills remain unexecuted.
-- GitHub default-branch closure of 24 remediated dependency alerts remains pending central merge to `main`.
+- Shared-Testnet cross-product old-client compatibility, migration, export/delete, retention and retirement drills remain unexecuted.
+- GitHub default-branch closure of 24 locally remediated dependency alerts remains pending central merge to `main`.
 
 ## External evidence still unavailable
 
@@ -19,5 +17,6 @@ Updated: 2026-07-29T06:08:33Z
 - Provider-bound alert delivery and deployed SLO dashboard.
 - DNS/TLS plus approved support, privacy, security, and status URLs.
 - External penetration test.
+- Approved production commit-signing identity and compatibility plan.
 
 No secret values, private keys, tokens, PEM material, or production credentials are requested or stored here.

@@ -1,6 +1,6 @@
 # Product 30 Last Success
 
-Updated: 2026-07-29T06:08:33Z
+Updated: 2026-07-29T12:18:00Z
 
 1. Preserved the legacy branch and pushed its final checkpoint.
 2. Built and verified a complete recovery bundle:
@@ -20,3 +20,6 @@ Updated: 2026-07-29T06:08:33Z
 13. Remediated 24 newly exposed runtime dependency alerts locally and raised the Go toolchain floor to the patched 1.25.12; official `govulncheck` reports zero reachable vulnerabilities.
 14. Mobile locked install/audit, 53/53 tests, typecheck, Android bundle and iOS bundle pass with patched transitive dependencies.
 15. Classified and moved 69 untracked legacy failure-capture files into the recovery area with byte-count and tree-digest equality; the Product 30 worktree is clean.
+16. Verified every visible check on PR `#16` succeeded at exact pushed head `9c9931aa5e610a1456ce2950006ff0b0c39c50d9`.
+17. Enabled administrator enforcement on the authoritative branch and read back the complete effective lock: six strict checks, independent review controls, administrator enforcement, linear history, conversation resolution, and force-push/deletion denial.
+18. Verified Product 29 integrated the Product 30 candidate and central PR `#17` passed all exact-head checks at `7777942bb17a1e67483f5909287e79592ca0f1cf`.
