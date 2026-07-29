@@ -252,7 +252,8 @@ test("real Chrome verifies Oracle keyboard, RTL, reduced-motion, theme, large-te
         firstFocusableClass: focusables[0]?.className ?? '',
         controlLabels: [...document.querySelectorAll('select,input')].map((control) => ({labels: control.labels?.length ?? 0, labelText: [...(control.labels ?? [])].map((label) => label.textContent.trim()).join(' ')})),
         horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        viewportWidth: document.documentElement.clientWidth,
+        layoutViewportWidth: window.innerWidth,
+        contentViewportWidth: document.documentElement.clientWidth,
         endpointLive: endpoint?.getAttribute('aria-live'),
         endpointRole: endpoint?.getAttribute('role'),
         reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -266,7 +267,11 @@ test("real Chrome verifies Oracle keyboard, RTL, reduced-motion, theme, large-te
     assert.match(baseline.firstFocusableClass, /skip/);
     assert(baseline.controlLabels.every((entry) => entry.labels === 1 && entry.labelText.length > 0), "every native form control needs one accessible label");
     assert(baseline.horizontalOverflow <= 0, `390px viewport overflowed by ${baseline.horizontalOverflow}px`);
-    assert.equal(baseline.viewportWidth, 390);
+    assert.equal(baseline.layoutViewportWidth, 390);
+    assert(
+      baseline.contentViewportWidth > 0 && baseline.contentViewportWidth <= baseline.layoutViewportWidth,
+      `invalid content viewport width ${baseline.contentViewportWidth}px for ${baseline.layoutViewportWidth}px layout viewport`,
+    );
     assert.equal(baseline.endpointRole, "status");
     assert.equal(baseline.endpointLive, "polite");
     assert.equal(baseline.reducedMotion, true);

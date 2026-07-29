@@ -1,0 +1,87 @@
+name: oracle
+
+on:
+  push:
+    branches:
+      - codex/final-oracle-market-data
+    paths:
+      - ".github/workflows/oracle.yml"
+      - "apps/oracle/**"
+      - "cmd/ynx-oracle-cli/**"
+      - "cmd/ynx-oracle-provider/**"
+      - "cmd/ynx-oracled/**"
+      - "config/oracle/**"
+      - "docs/oracle/**"
+      - "integration/oracle/**"
+      - "internal/oracle/**"
+      - "release/integration/oracle-market-data-contract.json"
+      - "scripts/package/oracle-release.mjs"
+      - "scripts/verify/oracle-*.mjs"
+      - "scripts/verify/oracle-*.sh"
+      - "sdk/oracle/**"
+      - "Dockerfile.oracle"
+      - "Makefile"
+      - "go.mod"
+      - "go.sum"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/oracle.yml"
+      - "apps/oracle/**"
+      - "cmd/ynx-oracle-cli/**"
+      - "cmd/ynx-oracle-provider/**"
+      - "cmd/ynx-oracled/**"
+      - "config/oracle/**"
+      - "docs/oracle/**"
+      - "integration/oracle/**"
+      - "internal/oracle/**"
+      - "release/integration/oracle-market-data-contract.json"
+      - "scripts/package/oracle-release.mjs"
+      - "scripts/verify/oracle-*.mjs"
+      - "scripts/verify/oracle-*.sh"
+      - "sdk/oracle/**"
+      - "Dockerfile.oracle"
+      - "Makefile"
+      - "go.mod"
+      - "go.sum"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oracle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  oracle-go:
+    name: Oracle Go race suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: make oracle-test
+
+  oracle-web-sdk:
+    name: Oracle Web, accessibility, and TypeScript SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+          cache-dependency-path: apps/oracle/package-lock.json
+      - run: npm ci --prefix apps/oracle
+      - run: npm install --prefix sdk/oracle/typescript --ignore-scripts --no-audit --no-fund
+      - run: make oracle-web-test
+      - run: npm --prefix apps/oracle run test:browser:a11y
+        env:
+          CHROME_BIN: /usr/bin/google-chrome
+      - run: npm --prefix sdk/oracle/typescript test
