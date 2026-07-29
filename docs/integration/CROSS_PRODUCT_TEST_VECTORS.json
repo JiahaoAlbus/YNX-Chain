@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "product": "25-mail",
-  "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
+  "sourceCommit": "f6868eccc2e47a2cde137b7b4238fa6bcce3a657",
   "vectors": [
     {
       "id": "MAIL-WALLET-001",
@@ -144,11 +144,35 @@
     },
     {
       "id": "MAIL-DATA-001",
-      "ownerDependencies": ["26-data-fabric"],
-      "scenario": "canonical provider delivery event export",
+      "ownerDependencies": ["26-data-fabric", "29-integration", "30-security-sre"],
+      "scenario": "transactional canonical delivery event pull and acknowledgement",
+      "input": {
+        "send": "one native recipient and one unconfigured Internet recipient",
+        "batchLimit": 100,
+        "restartBeforeNextSend": true
+      },
       "expected": {
-        "contains": ["product", "message_id", "provider", "provider_message_id", "state", "occurred_at", "source_commit"],
-        "excludes": ["message_body", "attachment_content", "provider_credential", "raw_webhook"]
+        "eventTypes": ["mail.send.approved", "mail.native.delivered", "mail.internet.failed"],
+        "sequence": "monotonic and persistent across restart and acknowledgement compaction",
+        "acknowledgement": "cannot move backwards or exceed emitted sequence",
+        "contains": ["id", "schema_version", "type", "product", "owner", "source_commit", "sequence", "authority", "source", "coverage", "privacy_class", "occurred_at", "as_of", "recorded_at", "user_read_claimed"],
+        "deliveryFieldsWhenApplicable": ["message_id", "recipient_hash", "provider", "provider_message_id", "state", "reason_code", "attempt", "mail_server_delivered"],
+        "excludes": ["message_body", "message_subject", "mailbox_address", "attachment_name", "attachment_content", "account", "provider_credential", "raw_webhook"],
+        "overflow": "Mail mutation fails closed before evidence can be dropped",
+        "publicRoute": false
+      }
+    },
+    {
+      "id": "MAIL-DATA-002",
+      "ownerDependencies": ["26-data-fabric", "29-integration"],
+      "scenario": "provider acceptance, verified delivery and ignored engagement truth",
+      "expected": {
+        "providerAcceptance": {"state": "provider_accepted", "mail_server_delivered": false, "user_read_claimed": false},
+        "verifiedDelivery": {"state": "delivered", "mail_server_delivered": true, "user_read_claimed": false},
+        "openedOrClicked": {"type": "mail.internet.provider_event_ignored", "applied": false, "user_read_claimed": false},
+        "duplicateWebhook": "no additional event",
+        "providerEventId": "SHA-256 hash only",
+        "rawWebhookStoredInCanonicalEvent": false
       }
     }
   ]

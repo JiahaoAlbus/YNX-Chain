@@ -65,11 +65,31 @@
     "mailWeb": "npm test --prefix apps/mail: 9/9 pass",
     "mailBuild": "npm run build --prefix apps/mail: pass",
     "mailSmoke": "npm run smoke --prefix apps/mail: pass",
+    "mailCi": "GitHub Actions YNX Mail CI run 30417833956 at 771fa475: success",
     "desktopInstall": "current-source unsigned local package extracted, cold-started and restarted: pass",
     "androidBuildInstall": "current-source debug/test APK built with JDK 17, installed on API 36 emulator, cold-started, restarted and callback route resolved: pass",
     "iosStaticVerification": "Swift parse and project/plist lint: pass; Simulator build blocked because complete Xcode is not installed",
-    "fullRepositoryPreflight": "Mail passes; blocked outside Mail ownership by Consensus key-permission failures, missing Developer contract artifact, Faucet key-permission failure and Trust signer-permission failure",
+    "fullRepositoryPreflight": "Mail passes; shared preflight is blocked only by missing Developer-owned SampleEVMWriteCounter.json artifacts in BFT/Consensus IDE tests",
     "securityScanGate": "shared placeholder and secret scripts are invalid on this host because missing rg produced false-green exit code 0; not counted as pass"
+  },
+  "dataFabric": {
+    "implementationCommit": "f6868eccc2e47a2cde137b7b4238fa6bcce3a657",
+    "ciDefinitionCommit": "771fa4751e01d264e6e995a16fc5d458ba1021e5",
+    "transactionalOutboxImplementedLocal": true,
+    "persistentSequenceAndAcknowledgement": true,
+    "boundedPendingEvents": 10000,
+    "boundedBatchEvents": 1000,
+    "privacyMinimizationTested": true,
+    "restartReplayTested": true,
+    "providerTruthTested": true,
+    "publicTransportRoute": false,
+    "authenticatedCentralTransportAccepted": false,
+    "integratedCentral": false,
+    "evidence": [
+      "internal/mail/data_fabric_test.go",
+      "release/integration/mail-contract.json",
+      "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
+    ]
   },
   "backupRestore": {
     "format": "ynx-mail-backup-v1",
@@ -118,8 +138,9 @@
     "No production signing, persistent staging Web/API, public product URL or store release.",
     "Message bodies and attachments are authenticated against state tamper but are not end-to-end encrypted.",
     "The self-contained backup includes the state HMAC key and sender identity key and therefore requires an approved encrypted operator backup boundary; it is not a hostile-storage authenticity proof.",
-    "Legacy state forward loading is verified, but an explicit rollback export and old-binary drill remain incomplete.",
+    "Legacy state forward loading is verified, but prior strict-decoder binaries reject the new Data Fabric fields; a versioned rollback export and exact old-binary drill remain incomplete.",
+    "The Mail-owned Data Fabric outbox is locally implemented and tested, but authenticated central transport, schema acceptance, billing mapping and central replay handling are not integrated.",
     "Malware scanning, operator unsuppression with central RBAC, active provider health polling and Monitor alerts remain incomplete."
   ],
-  "generatedAt": "2026-07-27T15:34:04Z"
+  "generatedAt": "2026-07-29T02:50:29Z"
 }

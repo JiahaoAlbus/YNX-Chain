@@ -1,6 +1,7 @@
 # YNX Mail migration and recovery compatibility
 
-Source commit: `0e087bc1fe7f71732d28dab1a6c7414e28d424ce`  
+Backup implementation source commit: `0e087bc1fe7f71732d28dab1a6c7414e28d424ce`  
+Current Data Fabric state extension commit: `f6868eccc2e47a2cde137b7b4238fa6bcce3a657`  
 Backup format: `ynx-mail-backup-v1`  
 State envelope version: `1`
 
@@ -14,7 +15,7 @@ The self-contained package contains sensitive key material. It must remain insid
 
 ## Preserved state
 
-The drill preserves users, sessions, wallet-request replay records, drafts, messages, mailbox state, blocks, Trust reports, AI jobs, provider events, recipient-hash suppressions, dead letters, provider health, rate-limit state, audit entries and the Mail sender identity.
+The drill preserves users, sessions, wallet-request replay records, drafts, messages, mailbox state, blocks, Trust reports, AI jobs, provider events, recipient-hash suppressions, dead letters, provider health, rate-limit state, audit entries and the Mail sender identity. Current state additionally preserves canonical Data Fabric events, the last acknowledgement and the next monotonic event sequence.
 
 The provider recovery drill specifically proves that a complaint remains suppressed after restore, the dead letter remains visible to the sender, the verified webhook timestamp remains present and a new send to the suppressed recipient remains fail-closed.
 
@@ -27,9 +28,10 @@ The provider recovery drill specifically proves that a complaint remains suppres
 | Current backup with undeclared file | Current runtime | Rejected | `TestRestoreRejectsTamperingUnsafeLayoutAndInvalidSender/unexpected_file` |
 | Current backup with unsafe permissions | Current runtime | Rejected | `TestRestoreRejectsTamperingUnsafeLayoutAndInvalidSender/unsafe_permissions` |
 | Current backup with inconsistent Ed25519 private key | Current runtime | Rejected | `TestRestoreRejectsTamperingUnsafeLayoutAndInvalidSender/inconsistent_sender_key` |
-| Legacy version-1 state without provider recovery maps | Current runtime | Pass; missing maps normalize empty | `TestRestoreAcceptsLegacyStateWithoutProviderRecoveryFields` |
+| Legacy version-1 state without provider recovery maps or Data Fabric outbox fields | Current runtime | Pass; missing maps/events/ack/sequence normalize empty and sequence starts at 1 | `TestRestoreAcceptsLegacyStateWithoutProviderRecoveryFields` plus `TestCanonicalMailOutboxIsTransactionalPrivatePersistentAndAcknowledged` |
+| Current outbox state after acknowledgement and restart | Current runtime | Pass; acknowledgement persists and sequence remains monotonic | `TestCanonicalMailOutboxIsTransactionalPrivatePersistentAndAcknowledged` |
 | Two concurrent installs to one destination | Current runtime | Exactly one succeeds | `TestStagedInstallUsesNoReplaceDestinationReservation` |
-| Current state or backup | Prior accepted Mail binary | Not verified | Explicit rollback export and old-binary drill remain required |
+| Current state with Data Fabric fields | Prior accepted strict-decoder Mail binary | Expected rejection from source inspection; runtime drill not executed | Versioned rollback export and exact old-binary drill remain required |
 
 ## Validation record
 
@@ -39,7 +41,7 @@ The provider recovery drill specifically proves that a complaint remains suppres
 - `npm run build --prefix apps/mail`: pass
 - `npm run smoke --prefix apps/mail`: pass
 
-The shared repository preflight is not green: non-Mail Consensus, Developer artifact, Faucet and Trust checks fail. Shared placeholder and secret scan scripts are also not accepted as passing on the current host because a missing `rg` dependency produced a false-green exit code.
+The 2026-07-29 shared repository preflight is not green: Mail passes, while Developer-owned BFT/Consensus IDE tests cannot find the canonical generated `SampleEVMWriteCounter.json` artifact. Shared placeholder and secret scan scripts are also not accepted as passing on the current host because a missing `rg` dependency previously produced a false-green exit code.
 
 ## Remaining recovery work
 

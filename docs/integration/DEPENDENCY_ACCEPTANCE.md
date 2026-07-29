@@ -1,17 +1,18 @@
 # YNX Mail Dependency Acceptance
 
-Version: 1.0.0  
-Source commit: `02352ff97e4c5de1ba115b18c41bc740ba7e7191`  
+Version: 1.1.0  
+Implementation source commit: `f6868eccc2e47a2cde137b7b4238fa6bcce3a657`  
 Product owner: `25-mail`  
-Status: Active; central acceptance pending
+Status: Mail-owned adapter implemented and tested; central acceptance pending
 
 ## Accepted local boundaries
 
 YNX Mail owns its Mail state, native `@handle` mailbox behavior, draft/send/retry
 workflow, sender attestation, delivery truth model, provider adapter, provider
 webhook verification, persistent suppression, bounded sender-scoped dead-letter
-recovery, local provider health evidence, export/delete and Mail-specific audit
-records.
+recovery, local provider health evidence, export/delete, Mail-specific audit
+records and a transactional, bounded, private-minimized Data Fabric outbox with
+persistent sequence and acknowledgement state.
 
 The Internet Bridge is fail closed. A provider API response can establish only
 `provider_accepted`. A verified provider event can establish receiving-mail-server
@@ -26,7 +27,7 @@ cannot establish YNX user-read state.
 | 14 AI | Product-session POST streaming route, provider/model/cost status and cancellation | Local selected-context preview/approve/review/cancel workflow exists | Pending central route |
 | 15 Trust | Report/appeal case handoff and public/private evidence boundary | Local report, appeal and access controls exist | Adapter accepted locally; central handoff pending |
 | 20 Cloud | Object references, malware scan, retention and delete propagation for large attachments | Inline bounded attachment integrity exists | Not integrated |
-| 26 Data Fabric | Canonical delivery/audit/billing event envelope | Proposed vectors in `CROSS_PRODUCT_TEST_VECTORS.json` | Pending owner schema |
+| 26 Data Fabric | Canonical delivery/audit/billing event envelope and authenticated ingestion transport | Transactional pull/ack outbox, privacy tests and vectors at implementation commit `f6868ecc`; no public transport route | Mail-owned adapter accepted locally; central schema/transport acceptance pending |
 | 13 Monitor | Provider health, webhook failure, bounce/complaint, suppression and queue alerts | Mail exposes local evidence, suppression count and open dead-letter count | Not integrated |
 | 28 Website | `/mail` canonical route, public metadata, support/privacy/security/status links | Historical metadata exists; current source has no public route | Not integrated |
 | 29 Integration | Freeze this contract, resolve event names and merge order | `release/integration/mail-contract.json` | Pending acceptance |
@@ -45,8 +46,9 @@ No owner should infer any of the following from the current source:
 
 ## Preflight conflict record
 
-`go test ./...` on 2026-07-27 passed the Mail package but failed outside Mail
-ownership in consensus key-permission tests, Faucet/Trust key-permission tests and
-Developer contract-artifact tests. Mail does not modify those owners' worktrees;
-29 Integration and the corresponding owners must resolve them before a shared
-release preflight can pass.
+`go test ./...` on 2026-07-29 passed the Mail package and all tested shared
+packages except Developer-owned BFT/Consensus IDE tests, which could not find
+`artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json`.
+Mail does not create or modify that owner artifact; 11 Developer and 29
+Integration must restore the canonical generated artifact before a shared
+repository preflight can pass.

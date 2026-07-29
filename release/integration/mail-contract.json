@@ -1,10 +1,10 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "productNumber": 25,
   "productSlug": "mail",
   "productName": "YNX Mail",
   "owner": "25-mail",
-  "sourceCommit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
+  "sourceCommit": "f6868eccc2e47a2cde137b7b4238fa6bcce3a657",
   "branch": "codex/final-mail",
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -73,6 +73,46 @@
     "mail.internet.failed",
     "mail.internet.provider_event_ignored"
   ],
+  "dataFabricOutbox": {
+    "schemaVersion": "1.0.0",
+    "implementation": "transactional Mail-state outbox with monotonic sequence and persistent acknowledgement",
+    "delivery": "bounded pull/ack adapter; no unauthenticated public HTTP route",
+    "maximumPendingEvents": 10000,
+    "maximumBatchEvents": 1000,
+    "sourceBinding": "build commit embedded by apps/mail main",
+    "privacyClass": "operational_metadata",
+    "requiredFields": [
+      "id",
+      "schema_version",
+      "type",
+      "product",
+      "owner",
+      "source_commit",
+      "sequence",
+      "authority",
+      "source",
+      "coverage",
+      "privacy_class",
+      "occurred_at",
+      "as_of",
+      "recorded_at",
+      "user_read_claimed"
+    ],
+    "forbiddenFields": [
+      "message_body",
+      "message_subject",
+      "mailbox_address",
+      "attachment_name",
+      "attachment_content",
+      "account",
+      "provider_credential",
+      "raw_webhook"
+    ],
+    "recipientIdentity": "SHA-256 hash only",
+    "providerEventIdentity": "SHA-256 hash only",
+    "overflowPolicy": "fail closed before Mail state mutation; never drop delivery evidence",
+    "centralAcceptance": "pending 26-data-fabric and 29-integration transport/schema acceptance"
+  },
   "errorCodes": [
     "internet_provider_not_configured",
     "provider_submission_cancelled",
@@ -105,15 +145,15 @@
   },
   "migration": {
     "stateSchema": 1,
-    "compatibility": "provider_events and delivery metadata are additive; older records normalize with empty provider fields",
-    "rollback": "older binaries ignore additive JSON fields only after an explicit compatibility test; rollback evidence remains required before public deployment"
+    "compatibility": "provider recovery and Data Fabric outbox fields are additive for the current runtime; older records normalize empty maps, events, acknowledgement and sequence",
+    "rollback": "prior strict-decoder binaries reject current outbox fields; a versioned rollback export and exact old-binary drill are required before public deployment"
   },
   "dependencies": [
     {"owner": "02-wallet-auth", "need": "registry entry and live verifier", "status": "blocked-central"},
     {"owner": "14-ai", "need": "product-session POST streaming route", "status": "blocked-central"},
     {"owner": "15-trust-center", "need": "abuse and appeal handoff", "status": "local-adapter-present"},
     {"owner": "20-cloud", "need": "large attachment object references and malware scan", "status": "not-integrated"},
-    {"owner": "26-data-fabric", "need": "canonical delivery and billing events", "status": "contract-proposed"},
+    {"owner": "26-data-fabric", "need": "authenticated ingestion transport and central schema acceptance for canonical delivery and billing events", "status": "mail-owned-transactional-outbox-present"},
     {"owner": "28-website", "need": "public /mail route and metadata", "status": "not-integrated"},
     {"owner": "29-integration", "need": "freeze contract and merge order", "status": "pending-acceptance"},
     {"owner": "30-security-sre", "need": "deployment secrets, public webhook, scans, backup and release", "status": "pending-acceptance"}
