@@ -10,6 +10,7 @@ jq empty release/governance/product-release.json release/governance/public-produ
 npm --prefix apps/governance run lint
 npm --prefix apps/governance test
 npm --prefix apps/governance run build
+npm --prefix apps/governance run test:browser
 if command -v timeout >/dev/null 2>&1; then
   set +e
   timeout 30s npm --prefix apps/governance audit --audit-level=moderate --fetch-timeout=15000 --fetch-retries=0
