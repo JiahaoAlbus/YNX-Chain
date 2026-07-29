@@ -1,0 +1,75 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "YNX Mail",
+      "version": "0.3.0-testnet"
+    },
+    "properties": [
+      {
+        "name": "ynx:sourceCommit",
+        "value": "efafbe810a821f13ad0ec17c2ff8a0f75e3fca9f"
+      },
+      {
+        "name": "ynx:scope",
+        "value": "internal/mail Go dependency graph and apps/mail npm lock"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "github.com/JiahaoAlbus/YNX-Chain",
+      "version": "(devel)",
+      "purl": "pkg:golang/github.com/JiahaoAlbus/YNX-Chain@(devel)"
+    },
+    {
+      "type": "library",
+      "name": "golang.org/x/crypto",
+      "version": "v0.33.0",
+      "purl": "pkg:golang/golang.org/x/crypto@v0.33.0"
+    },
+    {
+      "type": "library",
+      "name": "fsevents",
+      "version": "2.3.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/fsevents@2.3.2"
+    },
+    {
+      "type": "library",
+      "name": "playwright-core",
+      "version": "1.61.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/playwright-core@1.61.1"
+    },
+    {
+      "type": "library",
+      "name": "playwright",
+      "version": "1.61.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/playwright@1.61.1"
+    }
+  ]
+}

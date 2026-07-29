@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "classification": "local-unsigned-build-input-provenance",
+  "product": "YNX Mail",
+  "sourceCommit": "efafbe810a821f13ad0ec17c2ff8a0f75e3fca9f",
+  "generatedAt": "2026-07-29T03:54:44.016Z",
+  "inputs": {
+    "apps/mail/package-lock.json": {
+      "sha256": "05d324126bd410a6d153a623d7d745f0fa78471302027be68f40cf814668eaae",
+      "bytes": 1728
+    }
+  },
+  "outputs": {
+    "release/mail/bom.cdx.json": {
+      "sha256": "3367ecd4b09af9bd77fbf4a434164e63edd968ddc8ae8f46095fd2b9730ffc9f",
+      "bytes": 1577,
+      "components": 5
+    }
+  },
+  "limitations": [
+    "Local unsigned evidence; not an independent builder or production signature.",
+    "License identifiers are included only when declared by the npm lock; authoritative license texts remain in dependency distributions."
+  ]
+}
