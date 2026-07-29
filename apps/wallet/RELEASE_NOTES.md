@@ -12,7 +12,7 @@
 - Product Session-bound secp256k1 Signed Intent with typed Evidence/Trust, biometric or external-signer human approval, AI explain-only boundary, canonical export, expiry and immediate revoke checks.
 - Recovery, Reference, Parity, Web4 Identity, API Registry, Migration, SLO/Capacity, Unit Economics, notices, KPI and machine-readable public/operator metadata.
 - Canonical Gateway local observability: truthful health/readiness/version, Prometheus metrics with bounded labels, generated request/trace/error IDs, exact remote build identity and redacted structured events with sink-failure isolation.
-- Encrypted canonical Gateway backup/restore with exact state recovery, persisted replay rejection, rollback/age policy, no-overwrite semantics and fail-closed file-permission/link checks.
+- Encrypted canonical Gateway backup/restore with exact state recovery, persisted replay rejection, rollback/age policy, no-overwrite semantics, fail-closed file-permission/link checks, validated legacy-state normalization and rejection of unsupported future state schemas.
 - Release-grade CycloneDX 1.6 runtime SBOM: pinned generator, clean npm 11 tree, 431 components, 504 dependency nodes, complete license metadata and byte-for-byte reproducibility gate.
 - Current main website-handoff and documentation authority baseline, including the canonical Wallet page contract and verified public support/privacy/security/status routes.
 - Hosted test-signed Android and unsigned iOS Simulator engineering artifacts with SHA-256 and byte counts; executed iOS CI install/cold-launch/deep-link rejection evidence.

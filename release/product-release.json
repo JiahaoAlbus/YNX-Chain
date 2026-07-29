@@ -5,7 +5,7 @@
   "slug": "wallet-auth",
   "owner": "02-wallet-auth",
   "branch": "codex/final-wallet-auth",
-  "sourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
+  "sourceCommit": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
   "version": "1.0.0-testnet-preview",
   "releaseStates": {
     "implementedLocal": true,
@@ -37,6 +37,22 @@
       "sha256": "1396a275c90b1333c8cda80acf4428553e995cdcc87f8eaa3baf11fbfc7b3a43"
     }
   ],
+  "capabilities": {
+    "gatewayBackupRecovery": {
+      "implementedLocal": true,
+      "testedLocal": true,
+      "backupSchemaVersion": 1,
+      "stateSchemaVersion": 1,
+      "algorithm": "aes-256-gcm",
+      "packageTests": "100/100 passed",
+      "focusedRecoveryTests": "6/6 passed",
+      "legacyStateNormalizedBeforeBackup": true,
+      "unsupportedFutureStateRejected": true,
+      "centralRestoreDrillCompleted": false,
+      "productionRtoRpoVerified": false,
+      "evidence": "apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json"
+    }
+  },
   "knownExternalGaps": [
     "central Gateway merge and deployment",
     "installed cross-product acceptance",

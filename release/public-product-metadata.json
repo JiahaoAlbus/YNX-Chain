@@ -4,7 +4,7 @@
   "product": "YNX Wallet / Auth",
   "slug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
+  "sourceCommit": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
   "name": "YNX Wallet",
   "aliases": ["YNX Auth", "YNX Web4 Identity"],
   "canonicalRoute": "/wallet",

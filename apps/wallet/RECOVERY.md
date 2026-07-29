@@ -1,6 +1,6 @@
 # Wallet and Gateway recovery
 
-Source-bound Gateway backup runtime: `c4e476dc52e40ae4c895503a9ed0b756b1884f77`.
+Gateway backup runtime was introduced at `c4e476dc52e40ae4c895503a9ed0b756b1884f77`; current source-bound recovery and version-compatibility verification is `a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f`.
 
 ## Mobile Wallet boundary
 
@@ -65,6 +65,6 @@ After restore, start the exact source-bound Gateway against the new path, compar
 
 ## Evidence and remaining boundary
 
-`proof/gateway-backup-restore-local-2026-07-27.json` records 99/99 Wallet/Auth tests, 5/5 backup tests, exact non-empty state recovery, consumed-proof replay rejection after restore, wrong-key/tamper/permission/rollback failures and a 20-sample local performance drill. The performance fixture is intentionally an empty local Gateway state; it is regression evidence, not production capacity.
+`proof/gateway-backup-restore-local-2026-07-29.json` records 100/100 Wallet/Auth tests, 6/6 focused backup tests, exact non-empty state recovery, consumed-proof replay rejection after restore, wrong-key/tamper/permission/rollback failures and a 20-sample local performance drill. It also proves that the validated legacy timestamped state envelope is atomically normalized before backup, survives restore without losing replay state, and that an unsupported future state schema is rejected rather than silently downgraded. The performance fixture is intentionally an empty local Gateway state; it is regression evidence, not production capacity.
 
 No central App Gateway deployment, remote immutable backup store, cross-region replication, production KMS/HSM, production restore drill or production RTO/RPO is claimed. Those states remain false until direct operator and central-owner evidence exists.

@@ -3,7 +3,7 @@
 ## Authority and source
 
 - Owner: `02-wallet-auth`
-- Source commit: `61df5559c647d880cc1d435bece9d89ff66a07e1`
+- Source commit: `a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f`
 - Current gate: `INTEGRATE`
 - Machine-readable contract: `release/integration/wallet-auth-contract.json`
 - Shared StrategyMandate vector: `packages/wallet-auth/testdata/strategy-mandate-v2.json`
@@ -26,6 +26,7 @@ Current versions:
 | Gateway HTTP kernel | 1 |
 | Gateway Node state | 1 |
 | Gateway observability | 1 |
+| Gateway encrypted backup | 1 |
 | StrategyMandate | 2 |
 | StrategyAction | 1 |
 | StrategyMandate store | 1 |
@@ -61,9 +62,10 @@ Quant, AI, App Gateway and other products receive no private key, seed, arbitrar
 
 ## Verification already completed
 
-- Wallet/Auth package: 94/94 tests passed.
+- Wallet/Auth package: 100/100 tests passed.
 - Gateway HTTP kernel: twelve exact routes, canonical-body enforcement, separate proof transport, immutable registry, exact state digest, restart, replay, request-level rollback, self-scoped approval/device revoke and Wallet-only all-device logout tested.
 - Gateway Node host: 8/8 tests plus a real loopback CLI smoke cover health/readiness/version/metrics, generated request/trace/error IDs, exact remote build identity, bounded metric labels, redacted events, Node-only package export and event-sink failure isolation.
+- Gateway encrypted backup: 6/6 focused tests cover exact non-empty restore, consumed-proof replay rejection, wrong-key/tamper/permission/rollback failure, no-overwrite semantics, validated legacy timestamp normalization, unsupported future schema rejection and redacted CLI output. The 20-sample source-bound local drill is recorded at `apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json`.
 - Product Session proof: replay, method/path/body substitution and device mismatch rejected.
 - StrategyMandate: activation, action authorization, restart persistence, failed-operation proof atomicity, replay rejection, revoke, kill and emergency exit tested.
 - Registry v1-to-v2 and Gateway snapshot v1-to-v2 migration tested.
