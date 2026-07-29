@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "ynx-seller-console",
-  "sourceCommit": "937cf10f387bd1d31d86652ab06d74bc6185f35c",
+  "sourceCommit": "a90d1ee59eec38c15ce42b39420f2625ed758dd0",
   "vectors": [
     {
       "id": "SC-AUTH-ACCEPT-001",
@@ -153,6 +153,30 @@
       "owner": "10-seller-console",
       "providers": ["tax", "carrier", "address", "storage", "email"],
       "expected": ["capability reports unavailable", "no fabricated provider verification", "manual shipment remains seller_entered_unverified", "retry and audit state preserved"]
+    },
+    {
+      "id": "SC-MIGRATION-ROLLBACK-001",
+      "category": "migration-rollback",
+      "owner": "10-seller-console",
+      "preconditions": ["Snapshot v6 state is HMAC protected", "target is v3, v4 or v5", "destination path does not exist"],
+      "action": "Export an explicit rollback snapshot without mutating the active state.",
+      "expected": ["future snapshot versions fail closed", "active state is never overwritten", "HMAC envelope is preserved", "v6-only invitations are rejected for every older target", "revocations and events are refused when the target cannot represent them", "v5 rejects v6-only event fields"]
+    },
+    {
+      "id": "SC-DATA-EXPORT-001",
+      "category": "data-portability",
+      "owner": "10-seller-console",
+      "preconditions": ["canonical Seller Wallet session", "actor is the exact store owner"],
+      "action": "Request POST /api/seller/stores/{id}/exports with an operator purpose.",
+      "expected": ["export is limited to the requested store", "catalog, inventory, orders, financial evidence, authority lifecycle, Outbox and store-scoped audit are included", "unrelated stores and transient runtime state are excluded", "export access is audited", "returned data does not alias authoritative state"]
+    },
+    {
+      "id": "SC-RETENTION-001",
+      "category": "data-retention",
+      "owner": "10-seller-console",
+      "preconditions": ["state uses an integrity key", "cutoff is at least 30 days old", "operator previews before confirmation"],
+      "action": "Preview and explicitly confirm transient retention pruning.",
+      "expected": ["only terminal AI drafts and expired rate-limit samples older than cutoff are removed", "failed or active AI jobs remain", "orders, settlement/refund evidence, roles, invitations, revocations, Outbox, audit, idempotency, buyer profiles and carts remain", "prune action is audited", "restart preserves the result"]
     },
     {
       "id": "SC-RECOVERY-001",

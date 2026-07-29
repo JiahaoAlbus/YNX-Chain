@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "productNumber": 10,
+  "productId": "ynx-seller-console",
+  "sourceCommit": "a90d1ee59eec38c15ce42b39420f2625ed758dd0",
+  "requests": [
+    {
+      "id": "SC-INPUT-WALLET-001",
+      "owner": "02-wallet-auth",
+      "status": "pending",
+      "purpose": "Activate the canonical Seller product session and store-scoped authorization-revocation contract.",
+      "minimumInput": ["accepted registry entry for ynx-seller-v1", "deployed introspection base URL", "accepted POST /v1/product-authorizations/revocations receipt schema", "shared Testnet verification window"],
+      "handlingBoundary": "Runtime access material is managed by the deployment owner and is not requested in this repository."
+    },
+    {
+      "id": "SC-INPUT-PAY-001",
+      "owner": "04-pay",
+      "status": "pending",
+      "purpose": "Verify authoritative Seller settlement and refund evidence.",
+      "minimumInput": ["accepted merchant identifier", "accepted payout address", "Testnet Pay base URL", "settlement/refund evidence version", "shared Testnet funds and verification window"],
+      "handlingBoundary": "Runtime access material is managed by the deployment owner and is not requested in this repository."
+    },
+    {
+      "id": "SC-INPUT-TRUST-001",
+      "owner": "15-trust-center",
+      "status": "pending",
+      "purpose": "Verify dispute and appeal evidence without granting Seller Console decision authority.",
+      "minimumInput": ["accepted Trust API base URL", "public case URL policy", "evidence schema version", "shared Testnet verification window"],
+      "handlingBoundary": "Runtime access material is managed by the deployment owner and is not requested in this repository."
+    },
+    {
+      "id": "SC-INPUT-DATA-001",
+      "owner": "26-data-fabric",
+      "status": "pending",
+      "purpose": "Accept Seller role, invitation and revocation Outbox records and Billing Ledger facts.",
+      "minimumInput": ["accepted event names and versions", "idempotency policy", "ingestion endpoint or adapter contract", "acknowledgement and replay semantics", "reconciliation query"]
+    },
+    {
+      "id": "SC-INPUT-WEBSITE-001",
+      "owner": "28-website",
+      "status": "pending",
+      "purpose": "Publish current-source Seller Console metadata and route on the official YNX domain.",
+      "minimumInput": ["consume release/integration/seller-console-website-handoff.json", "deploy /seller-console on ynxweb4.com", "record Vercel deployment SHA", "record route content hash", "verify canonical, Open Graph, JSON-LD, Sitemap and robots"]
+    },
+    {
+      "id": "SC-INPUT-INTEGRATION-001",
+      "owner": "29-integration",
+      "status": "pending",
+      "purpose": "Freeze the shared Testnet Seller contract and execute cross-product vectors.",
+      "minimumInput": ["accepted contract version", "dependency endpoint manifest", "Testnet execution window", "evidence repository location"]
+    },
+    {
+      "id": "SC-INPUT-SECURITY-001",
+      "owner": "30-security",
+      "status": "pending",
+      "purpose": "Review migration/restore gates and publish immutable release evidence.",
+      "minimumInput": ["artifact build workflow", "SBOM and provenance policy", "attestation workflow", "staging-copy migration/restore review", "artifact hosting location"],
+      "handlingBoundary": "Signing material and release access remain under Owner 30 control."
+    }
+  ],
+  "generatedAt": "2026-07-29T02:41:03Z"
+}

@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "productNumber": 10,
+  "productId": "ynx-seller-console",
+  "name": "YNX Seller Console",
+  "slug": "seller-console",
+  "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+  "sourceBranch": "codex/final-seller-console",
+  "sourceCommit": "a90d1ee59eec38c15ce42b39420f2625ed758dd0",
+  "officialDomain": "ynxweb4.com",
+  "requestedCanonicalUrl": "https://ynxweb4.com/seller-console",
+  "canonicalDeploymentStatus": "pending-owner-28-deployment",
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "releasePublished": false,
+  "title": "YNX Seller Console | Merchant Operations on YNX Chain",
+  "description": "Operate YNX Chain stores with least-privilege team roles, catalog and inventory controls, fulfillment workflows, settlement evidence, audited exports and fail-closed recovery controls.",
+  "keywords": [
+    "YNX Seller Console",
+    "YNX Chain merchant tools",
+    "seller operations",
+    "catalog and inventory",
+    "merchant settlement evidence",
+    "least privilege commerce"
+  ],
+  "audiences": ["merchants", "seller operators", "commerce developers", "security reviewers"],
+  "features": [
+    "Canonical Wallet-bound Seller sessions",
+    "Owner, Admin, Catalog, Inventory, Fulfillment, Finance, Support and Viewer roles",
+    "Wallet-account-bound team invitations and store-scoped revocation",
+    "Catalog, inventory, order and fulfillment operations",
+    "Authoritative Pay and Trust evidence boundaries",
+    "Snapshot v6 migration, bounded rollback and verified restore",
+    "Audited store-scoped portability export",
+    "Preview-first transient retention"
+  ],
+  "truthBoundaries": [
+    "Local tests do not prove central Wallet, Pay, Trust or Data Fabric acceptance.",
+    "Historical staging for commit 38e2f68 is not current-source deployment evidence.",
+    "The requested canonical URL is not public proof until Owner 28 deploys and verifies the current source metadata.",
+    "Manual shipment state remains seller_entered_unverified without a trusted carrier adapter."
+  ],
+  "requestedRoutes": {
+    "product": "/seller-console",
+    "docs": "/docs/seller-console",
+    "security": "/security/seller-console",
+    "support": "/support/seller-console",
+    "status": "/status",
+    "privacy": "/privacy"
+  },
+  "structuredData": {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "YNX Seller Console",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "url": "https://ynxweb4.com/seller-console",
+    "softwareVersion": "0.3.0-testnet-preview",
+    "isAccessibleForFree": true,
+    "publisher": {
+      "@type": "Organization",
+      "name": "YNX Chain",
+      "url": "https://ynxweb4.com"
+    }
+  },
+  "faq": [
+    {
+      "question": "Is YNX Seller Console publicly deployed?",
+      "answer": "Not for the current source commit. The repository contains locally tested implementation and a pending Website handoff; public deployment remains false until directly verified."
+    },
+    {
+      "question": "Can Seller Console mark an order paid by itself?",
+      "answer": "No. Paid and refunded states require exact committed evidence from the authoritative YNX Pay boundary."
+    },
+    {
+      "question": "How are Seller team permissions protected?",
+      "answer": "First membership requires acceptance by the exact invited Wallet account, permissions fail closed, and local revocation occurs before central session invalidation is attempted."
+    },
+    {
+      "question": "Can rollback silently delete Seller authority records?",
+      "answer": "No. Rollback is an explicit export to Snapshot v3, v4 or v5 and fails when the target cannot represent invitations, revocations or Seller events."
+    }
+  ],
+  "generatedAt": "2026-07-29T02:41:03Z"
+}

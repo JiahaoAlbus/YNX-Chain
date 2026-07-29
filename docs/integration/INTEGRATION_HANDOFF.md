@@ -2,7 +2,7 @@
 
 - Product: `10 | YNX Seller Console`
 - Branch: `codex/final-seller-console`
-- Source commit: `937cf10f387bd1d31d86652ab06d74bc6185f35c`
+- Source commit: `a90d1ee59eec38c15ce42b39420f2625ed758dd0`
 - Stage: `FREEZE`
 - Goal status: `Active`
 
@@ -14,7 +14,17 @@ First-time Seller membership requires an owner-created invitation bound to the e
 
 Only an owner may revoke a non-owner role. Local Seller authority is removed before the central Wallet call. A revoked account cannot be regranted until a fully bound store-scoped Wallet authorization-revocation receipt is confirmed. Missing, rejected, malformed, future-dated, cross-account, cross-product, cross-bundle, or cross-store receipts fail closed.
 
-Snapshot v2 state migrates to Snapshot v6. Snapshot v6 initializes revocations, invitations and append-only Seller integration events without retaining a dual `manager` protocol.
+Snapshot v2 state migrates to Snapshot v6. Snapshot v6 initializes revocations, invitations and append-only Seller integration events without retaining a dual `manager` protocol. Runtime startup rejects future snapshot versions instead of normalizing them downward.
+
+## Migration, rollback and data lifecycle
+
+The operator-only rollback path exports a new Snapshot v3, v4 or v5 file and never overwrites the active state or an existing destination. When an integrity key is configured, the export remains HMAC protected. The export refuses every representation that would silently discard Seller invitations, unsupported revocations, unsupported Seller events or v6-only event fields.
+
+`POST /api/seller/stores/{id}/exports` is limited to the exact store owner. The export contains the store profile, catalog and inventory, orders and attached settlement/refund evidence, Seller roles, invitations, revocations, local Outbox and store-scoped Audit. It excludes unrelated stores, transient AI jobs, rate-limit windows, browser/provider credentials and unrelated buyer state. Export access is itself audited.
+
+Transient retention is preview-only unless the operator supplies explicit confirmation. It requires an integrity key, accepts only a cutoff at least 30 days old, and removes only terminal AI drafts and expired rate-limit samples. Orders, financial evidence, roles, invitations, revocations, Outbox, Audit, idempotency records, buyer profiles and carts are protected from this operation.
+
+The detailed compatibility and operator procedure is `docs/operations/MIGRATION_COMPATIBILITY.md`.
 
 ## Persisted local Outbox
 
@@ -30,23 +40,23 @@ The same persistence transaction as the role, invitation, revocation and Audit s
 
 Persistence failure rolls back the business state, Audit and Outbox together. These records are local integration candidates only. Owner 26 Data Fabric retains canonical event ownership and has not accepted or ingested them.
 
-The machine-readable contract is `release/integration/seller-console-contract.json`.
+The machine-readable contract is `release/integration/seller-console-contract.json`. Cross-product and recovery vectors are in `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`.
 
 ## Verified local evidence
 
-Bound to source commit `937cf10f387bd1d31d86652ab06d74bc6185f35c`:
+Bound to source commit `a90d1ee59eec38c15ce42b39420f2625ed758dd0`:
 
-- `go test ./internal/commerce`: passed.
+- `go test ./internal/commerce/...`: passed.
 - `go test -race ./internal/commerce`: passed; macOS linker emitted a non-failing malformed `LC_DYSYMTAB` warning.
-- `go vet ./internal/commerce`: passed.
-- `npm test` in `apps/seller-console`: passed.
+- `go vet ./internal/commerce/...`: passed.
+- `npm test` in `apps/seller-console`: passed, 3 tests.
 - `npm run build` in `apps/seller-console`: passed and produced the local unhosted `dist/` build.
-- Invitation tests cover owner-only creation, target visibility, wrong-account privacy, one-time acceptance, cancellation, expiry, duplicate active invitations, legacy/owner/self rejection, direct-grant bypass prevention, prior-revocation blocking, persistence rollback and restart.
-- Role-revocation tests cover owner-only access, self/owner protection, idempotent repeat, conflicting repeat, unavailable provider, mismatched receipt, store-scoped effect, regrant blocking, event binding and restart persistence.
+- Rollback tests cover future-version refusal, version boundaries, representability, lossy refusal, destination safety, tamper and verified restore.
+- Data-lifecycle tests cover owner-only/store-scoped export, unrelated-store isolation, deep-copy safety, canonical-session HTTP enforcement, minimum-retention bounds, preview/apply behavior, protected evidence and restart persistence.
 
-A full `go test ./...` preflight was attempted. Seller Commerce passed, but the repository-wide command remained red in non-Seller ownership areas: missing SampleEVMWriteCounter artifacts in BFT/Consensus and permissive-key permission assertions in Consensus TX, Faucet, and Trust. This thread did not modify those products.
+A repository-wide `go test ./...` attempt from the preceding Seller checkpoint remained red only in non-Seller ownership areas: missing SampleEVMWriteCounter artifacts in BFT/Consensus and permissive-key permission assertions in Consensus TX, Faucet, and Trust. This worktree did not modify those products.
 
-The existing local smoke script probes only `/health` and `/api/capabilities`; it does not prove that source commit `937cf10` is the running service. Current-source `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, and `downloadHosted` remain false.
+The existing local smoke script probes only `/health` and `/api/capabilities`; it does not prove that source commit `a90d1ee5` is the running service. Current-source `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, and `downloadHosted` remain false.
 
 ## Dependency handoff
 
@@ -63,7 +73,7 @@ The existing local smoke script probes only `/health` and `/api/capabilities`; i
 
 ## Truth boundaries
 
-- Local invitation acceptance is authoritative only for Seller Console's local store-role state and only because the account is supplied by the canonical product session.
+- A local Seller export is local authority evidence, not proof that Data Fabric accepted a canonical export or event.
 - A local Outbox event is not evidence that Wallet/Auth revoked sessions or Data Fabric ingested a canonical event.
 - UI state or webhook receipt alone never marks an order paid.
 - Seller refund approval alone never marks an order refunded.
@@ -73,4 +83,4 @@ The existing local smoke script probes only `/health` and `/api/capabilities`; i
 
 ## Exact next local slice
 
-Implement Snapshot v6 downgrade safety: reject future snapshot versions, provide an explicit bounded rollback export that never silently drops unrepresentable invitation/revocation/Audit/Outbox state, and add migration/restore/operator evidence.
+Implement the bounded provider registry: Shipping, Tax, Address, Storage, Email, Webhook, Pay and Trust mode/health state; owner-only test, disable and credential-rotation metadata; rate-limit and outage behavior; no plaintext secret persistence; API, tests, documentation and integration vectors.

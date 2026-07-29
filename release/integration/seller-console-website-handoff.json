@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "ynx-seller-console-website-v1",
+  "producer": "10-seller-console",
+  "consumer": "28-website",
+  "integrationOwner": "29-integration",
+  "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+  "sourceBranch": "codex/final-seller-console",
+  "sourceCommit": "a90d1ee59eec38c15ce42b39420f2625ed758dd0",
+  "officialWebsiteRepository": "https://github.com/JiahaoAlbus/YNX-Chain-website",
+  "officialDomain": "ynxweb4.com",
+  "requestedRoute": "/seller-console",
+  "requestedCanonicalUrl": "https://ynxweb4.com/seller-console",
+  "metadataPath": "apps/seller-console/public-product-metadata.json",
+  "releasePath": "apps/seller-console/product-release.json",
+  "evidenceIndexPath": "apps/seller-console/EVIDENCE_INDEX.md",
+  "integrationContractPath": "release/integration/seller-console-contract.json",
+  "migrationRunbookPath": "docs/operations/MIGRATION_COMPATIBILITY.md",
+  "assetSource": {
+    "webAppPath": "apps/seller-console",
+    "buildCommand": "npm run build",
+    "localBuildOutput": "apps/seller-console/dist",
+    "immutableHostedArtifact": null
+  },
+  "requiredWebsiteChecks": [
+    "Render product, documentation, security, support, status and privacy links on ynxweb4.com only.",
+    "Use the requested canonical URL only after the route serves current-source metadata.",
+    "Include current source commit and testnet-preview boundary in visible release evidence.",
+    "Do not use huangjeo.com as a YNX Product, Docs, Release, Status, Support or Canonical domain.",
+    "Do not treat historical web4.ynxweb4.com staging for commit 38e2f68 as current-source proof.",
+    "Generate Open Graph, JSON-LD, Sitemap and robots entries from public-product-metadata.json.",
+    "Verify responsive, keyboard, screen-reader and RTL behavior against the published build.",
+    "Record the exact Vercel deployment SHA and public route content hash."
+  ],
+  "truthStatus": {
+    "handoffCreated": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "canonicalVerified": false,
+    "downloadHosted": false,
+    "publicEvidenceVerified": false
+  },
+  "acceptanceRequiredFrom": ["28-website", "29-integration", "30-security"],
+  "generatedAt": "2026-07-29T02:41:03Z"
+}

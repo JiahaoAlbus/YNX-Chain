@@ -39,3 +39,15 @@ Role updates, team invitation transitions, role revocation, and authorization-in
 An invitation is bound to a store, target native Wallet account, assignable role and expiry. The invitation ID is not an authentication credential. Only the exact authenticated target account may accept once; wrong-account access returns not found. The direct role-update API only changes an existing member and cannot create first-time authority.
 
 Reason: prevent owners, leaked identifiers, browser state or replayed requests from silently granting authority without target-account consent.
+
+## D-009 — Rollback is export, never in-place downgrade
+
+Snapshot v6 rollback creates a new v3, v4 or v5 file, preserves the active state, retains the integrity envelope when configured, and refuses every target that cannot represent the current Seller authority or Outbox state.
+
+Reason: an operator rollback must not silently erase invitations, revocations, Audit or Seller integration evidence merely because an older binary cannot decode it.
+
+## D-010 — Retention is narrow, preview-first and evidence-preserving
+
+Store Owner portability exports are scoped to one store and audited. Automated retention may remove only terminal AI drafts and expired rate-limit samples after a minimum 30-day boundary, requires an integrity key and explicit confirmation, and cannot remove financial or authority evidence.
+
+Reason: service exit and storage hygiene are required, but they must not become a hidden path for deleting orders, settlement/refund evidence, permissions, Outbox, Audit or idempotency records.

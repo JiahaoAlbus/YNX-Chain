@@ -8,7 +8,7 @@
     "slug": "seller-console",
     "owner": "10-seller-console",
     "sourceBranch": "codex/final-seller-console",
-    "sourceCommit": "937cf10f387bd1d31d86652ab06d74bc6185f35c"
+    "sourceCommit": "a90d1ee59eec38c15ce42b39420f2625ed758dd0"
   },
   "releaseStatus": {
     "implementedLocal": true,
@@ -130,7 +130,38 @@
       "legacyRole": "manager",
       "canonicalReplacement": "admin",
       "newRequestsAcceptLegacyRole": false,
-      "rollbackBoundary": "Binaries that do not understand Snapshot v6 invitations, revocations and Seller integration events must not write a v6 state file."
+      "futureVersionsFailClosed": true,
+      "rollbackExport": {
+        "operatorCommand": "ynx-shopd --state <path> --export-rollback <new-path> --rollback-version <3|4|5>",
+        "supportedTargets": [3, 4, 5],
+        "exclusiveDestination": true,
+        "activeStateOverwriteAllowed": false,
+        "integrityEnvelopePreservedWhenConfigured": true,
+        "lossyStateRefused": ["seller invitations for all targets", "seller integration events before v5", "seller role revocations before v4", "v6-only event fields for v5"]
+      },
+      "rollbackBoundary": "Binaries that do not understand Snapshot v6 invitations, revocations and Seller integration events must not write a v6 state file. Normal startup never normalizes a future snapshot version downward."
+    }
+  },
+  "dataLifecycle": {
+    "owner": "10-seller-console",
+    "sellerExport": {
+      "method": "POST",
+      "path": "/api/seller/stores/{id}/exports",
+      "authority": "owner",
+      "schemaVersion": 1,
+      "storeScoped": true,
+      "auditAction": "seller_data_exported",
+      "includedClasses": ["store_profile", "catalog", "inventory", "orders", "settlement_and_refund_evidence", "seller_roles", "seller_invitations", "seller_revocations", "seller_outbox", "store_scoped_audit"],
+      "excludedClasses": ["unrelated_stores", "buyer_profiles", "carts", "ai_jobs", "idempotency_records", "rate_limit_windows", "provider_credentials"]
+    },
+    "transientRetention": {
+      "previewByDefault": true,
+      "explicitConfirmationRequired": true,
+      "integrityKeyRequired": true,
+      "minimumRetentionDays": 30,
+      "prunableClasses": ["terminal_ai_jobs", "expired_rate_limit_samples"],
+      "protectedClasses": ["stores", "products", "orders", "settlement_and_refund_evidence", "seller_roles", "seller_invitations", "seller_revocations", "seller_outbox", "audits", "idempotency_records", "buyer_profiles", "carts"],
+      "operatorCommand": "ynx-shopd --state <path> --prune-transient-before <RFC3339> [--confirm-prune-transient]"
     }
   },
   "apis": [
@@ -138,6 +169,7 @@
     {"method": "POST", "path": "/api/seller/stores", "authority": "authenticated seller account"},
     {"method": "PUT", "path": "/api/seller/stores/{id}", "authority": "owner"},
     {"method": "POST", "path": "/api/seller/stores/{id}/activate", "authority": "owner"},
+    {"method": "POST", "path": "/api/seller/stores/{id}/exports", "authority": "owner", "effect": "audited store-scoped portability export"},
     {"method": "GET", "path": "/api/seller/stores/{id}/roles", "authority": "team.read", "returns": ["roles", "revocations", "invitations", "events", "actorRole"]},
     {"method": "PUT", "path": "/api/seller/stores/{id}/roles", "authority": "owner", "constraint": "existing member only"},
     {"method": "POST", "path": "/api/seller/stores/{id}/roles/{account}/revoke", "authority": "owner", "localEffect": "immediate", "centralEffect": "confirmed, unavailable or rejected"},
@@ -267,9 +299,9 @@
     "Current-source staging deployment and artifact hosting authority"
   ],
   "testCommands": [
-    "go test ./internal/commerce",
+    "go test ./internal/commerce/...",
     "go test -race ./internal/commerce",
-    "go vet ./internal/commerce",
+    "go vet ./internal/commerce/...",
     "npm test (apps/seller-console)",
     "npm run build (apps/seller-console)",
     "npm run smoke (apps/seller-console)"

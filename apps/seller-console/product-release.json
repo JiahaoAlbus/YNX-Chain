@@ -3,7 +3,7 @@
   "productId": "ynx-seller-console",
   "name": "YNX Seller Console",
   "branch": "codex/final-seller-console",
-  "commit": "937cf10f387bd1d31d86652ab06d74bc6185f35c",
+  "commit": "a90d1ee59eec38c15ce42b39420f2625ed758dd0",
   "version": "0.3.0-testnet-preview",
   "goalStatus": "active",
   "stage": "FREEZE",
@@ -26,9 +26,11 @@
     "web": "current evergreen browser"
   },
   "localEvidence": {
-    "goTests": "go test ./internal/commerce",
+    "goTests": "go test ./internal/commerce/...",
     "goRace": "go test -race ./internal/commerce; passed with a non-failing macOS linker LC_DYSYMTAB warning",
-    "goVet": "go vet ./internal/commerce",
+    "goVet": "go vet ./internal/commerce/...",
+    "dataLifecycleTests": "TestSellerDataExportIsOwnerOnlyStoreScopedAndDeepCopied, TestHTTPSellerDataExportRequiresCanonicalOwnerSession, TestTransientRetentionPreviewAndPruneProtectAuthorityAndFinancialEvidence",
+    "rollbackTests": "future-version, representability, lossy-refusal, tamper and restore tests in internal/commerce/snapshot_rollback_test.go",
     "webTests": "npm test in apps/seller-console",
     "webBuild": "npm run build in apps/seller-console",
     "localSmoke": "npm run smoke in apps/seller-console; /health and /api/capabilities passed against the existing local service on 127.0.0.1:8095",
@@ -42,6 +44,14 @@
     "legacyManagerAcceptedForNewAssignments": false,
     "snapshotV2ManagerMigratesTo": "admin",
     "currentSnapshotVersion": 6,
+    "futureSnapshotVersionsFailClosed": true,
+    "boundedRollbackExportVersions": [3, 4, 5],
+    "rollbackExportRejectsLossyState": true,
+    "ownerScopedSellerDataExportImplemented": true,
+    "transientRetentionPreviewImplemented": true,
+    "transientRetentionMinimumDays": 30,
+    "transientRetentionRequiresIntegrityKey": true,
+    "protectedRetentionClasses": ["orders", "settlement_and_refund_evidence", "seller_roles", "seller_invitations", "seller_revocations", "seller_outbox", "audits", "idempotency_records", "buyer_profiles", "carts"],
     "walletBoundTeamInvitationsImplemented": true,
     "firstMembershipRequiresInvitationAcceptance": true,
     "directRoleUpdateExistingMemberOnly": true,
@@ -57,6 +67,15 @@
     "trustBoundaryImplemented": true,
     "dataFabricAccepted": false,
     "sharedTestnetVerified": false
+  },
+  "websiteHandoff": {
+    "metadata": "apps/seller-console/public-product-metadata.json",
+    "handoff": "release/integration/seller-console-website-handoff.json",
+    "officialDomain": "ynxweb4.com",
+    "requestedRoute": "/seller-console",
+    "handoffCreated": true,
+    "acceptedByOwner28": false,
+    "canonicalVerified": false
   },
   "historicalDeployment": {
     "sourceCommit": "38e2f68deb91d5f26e5aeec2318e260cd0742115",
@@ -85,7 +104,8 @@
     "The shared Shop Pay merchant and payout configuration is not provisioned; refund approval cannot become refunded without authoritative committed Pay evidence.",
     "Tax and carrier providers are intentionally unavailable; seller shipment entries remain manual and unverified.",
     "Current source has not been deployed or hosted as an immutable release artifact.",
-    "Full SLO, capacity, accessibility, security, supply-chain and restore evidence remains incomplete."
+    "Store-scoped export, bounded rollback and transient-retention controls are locally tested; an authenticated staging-copy migration/restore drill remains required before production-class use.",
+    "Full SLO, capacity, accessibility, security and supply-chain evidence remains incomplete."
   ],
-  "generatedAt": "2026-07-27T15:26:37Z"
+  "generatedAt": "2026-07-29T02:41:03Z"
 }
