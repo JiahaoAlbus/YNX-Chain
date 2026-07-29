@@ -6,7 +6,7 @@
   "owner": "03-social",
   "version": "1.0.0-integration",
   "branch": "codex/final-social",
-  "sourceCommit": "4a6f40f187185a51060d3533170bbf8b75b03cb1",
+  "sourceCommit": "6ff91db0b7ce7509d1967e3936c7a0a85d45ea12",
   "phase": "INTEGRATE",
   "releaseStates": {
     "implementedLocal": true,
@@ -24,12 +24,14 @@
     "contact, privacy, group, messaging, report and appeal APIs",
     "local E2EE and group-key lifecycle tests",
     "12-language native product bundle",
-    "Social-owned export and deletion"
+    "Social, Chat and Square account export, explicit deletion and restart-safe service exit",
+    "local Social capacity, Race, secret, module and called-code vulnerability gates"
   ],
   "knownGaps": [
     "shared Testnet owner acceptance",
-    "Chat and Square coordinated erasure",
+    "deployed coordinated erasure and jurisdiction-specific retention approval",
     "device installation and iOS signing evidence",
-    "hosted artifacts and public product route"
+    "hosted artifacts and public product route",
+    "staging workload/restore/alert evidence and independent supply-chain review"
   ]
 }
