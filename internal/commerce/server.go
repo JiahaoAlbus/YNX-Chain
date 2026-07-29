@@ -23,20 +23,22 @@ type ServerConfig struct {
 	BuyerAssets, SellerAssets http.FileSystem
 }
 type Server struct {
-	store *Store
-	cfg   ServerConfig
-	mux   *http.ServeMux
+	store   *Store
+	cfg     ServerConfig
+	mux     *http.ServeMux
+	metrics *serverMetrics
 }
 
 func NewServer(store *Store, cfg ServerConfig) *Server {
-	s := &Server{store: store, cfg: cfg, mux: http.NewServeMux()}
+	s := &Server{store: store, cfg: cfg, mux: http.NewServeMux(), metrics: newServerMetrics()}
 	s.routes()
 	return s
 }
-func (s *Server) Handler() http.Handler { return s.security(s.mux) }
+func (s *Server) Handler() http.Handler { return s.observe(s.security(s.mux)) }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /version", s.version)
+	s.mux.HandleFunc("GET /metrics", s.prometheusMetrics)
 	s.mux.HandleFunc("GET /api/capabilities", s.capabilities)
 	s.mux.HandleFunc("GET /api/auth/config", s.authConfig)
 	s.mux.HandleFunc("POST /api/auth/gateway/challenges", s.gatewayChallenge)
