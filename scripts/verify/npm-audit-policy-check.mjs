@@ -37,12 +37,25 @@ function runAudit(omitDevelopment) {
   const commandArgs = ["audit"];
   if (omitDevelopment) commandArgs.push("--omit=dev");
   commandArgs.push("--audit-level=high", "--json", "--fetch-timeout=15000", "--fetch-retries=0");
-  const result = run("npm", commandArgs, { allowedExitCodes: [0, 1], timeout: 45_000 });
-  try {
-    return JSON.parse(String(result.stdout ?? ""));
-  } catch (error) {
-    throw new Error(`${omitDevelopment ? "production" : "full"} npm audit returned invalid JSON: ${error.message}`);
+  const auditClass = omitDevelopment ? "production" : "full";
+  const maxAttempts = 3;
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const result = run("npm", commandArgs, { allowedExitCodes: [0, 1], timeout: 45_000 });
+      return JSON.parse(String(result.stdout ?? ""));
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      const transient = /ETIMEDOUT|EAI_AGAIN|ECONNRESET|ECONNREFUSED|TLS handshake timeout|socket hang up/i.test(message);
+      if (!transient || attempt === maxAttempts) {
+        if (error instanceof SyntaxError) throw new Error(`${auditClass} npm audit returned invalid JSON: ${error.message}`);
+        throw error;
+      }
+      console.error(`${auditClass} npm audit transient failure on attempt ${attempt}/${maxAttempts}; retrying`);
+    }
   }
+  throw lastError ?? new Error(`${auditClass} npm audit failed without an error`);
 }
 
 function git(args, options = {}) {
@@ -180,12 +193,38 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function deterministicAuditFixture(policy, productionOnly) {
+  const expected = productionOnly
+    ? []
+    : (Array.isArray(policy?.expectedAuditVulnerabilities) ? policy.expectedAuditVulnerabilities : []);
+  const vulnerabilities = Object.fromEntries(expected.map((entry) => [entry.name, {
+    severity: entry.severity,
+    isDirect: entry.direct,
+    fixAvailable: false,
+    via: [...entry.via]
+  }]));
+  return {
+    vulnerabilities,
+    metadata: {
+      vulnerabilities: {
+        info: 0,
+        low: 0,
+        moderate: 0,
+        high: expected.length,
+        critical: 0,
+        total: expected.length
+      }
+    }
+  };
+}
+
 function main() {
   const policy = readJson(policyPath);
   const packageJson = readJson(packagePath);
   const lock = readJson(lockPath);
-  const fullAudit = runAudit(false);
-  const productionAudit = runAudit(true);
+  const selfTest = args.has("--self-test");
+  const fullAudit = selfTest ? deterministicAuditFixture(policy, false) : runAudit(false);
+  const productionAudit = selfTest ? deterministicAuditFixture(policy, true) : runAudit(true);
   const failures = validateBundle({ policy, packageJson, lock, fullAudit, productionAudit });
   if (failures.length > 0) return failures;
 

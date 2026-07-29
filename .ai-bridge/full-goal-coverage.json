@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
   "product": "YNX Integration / Founder Control",
-  "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+  "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
   "allowedStatuses": [
     "notStarted",
     "inProgress",
@@ -25,14 +25,14 @@
       "evidence": [
         "workspace and branch matched; takeover status was clean"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Repeat the takeover audit at every new session.",
-      "lastUpdated": "2026-07-28T15:53:31.997Z"
+      "lastUpdated": "2026-07-29T02:53:49.980Z"
     },
     {
       "id": "INT-PROTECT-001",
@@ -43,14 +43,14 @@
       "evidence": [
         "origin/codex/final-integration created and synchronized before this implementation slice"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Recheck Local and Remote SHA after every protected slice.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-CONCURRENCY-001",
@@ -61,25 +61,26 @@
       "evidence": [
         "no active same-worktree handoff state or matching writer was observed at takeover"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Repeat the process and handoff-state check before each long write/test/push slice.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-REGISTRY-001",
       "category": "central-registry",
       "requirement": "Maintain the unique 01–36 product, owner, branch, phase and dependency registry.",
       "applicability": "applicable",
-      "status": "implementedLocal",
+      "status": "testedLocal",
       "evidence": [
-        "release/integration/product-registry.json"
+        "release/integration/product-registry.json",
+        "release/integration/acceptance-matrix.json"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "refresh-integration-acceptance --self-test",
         "integration-acceptance-check --self-test"
@@ -88,8 +89,8 @@
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
-      "nextAction": "Bind the protected commit and rerun the exact-ref matrix after Push.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Keep the registry synchronized with exact owner branches and rerun the matrix before every acceptance decision.",
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-FREEZE-001",
@@ -101,7 +102,7 @@
         "release/integration/integration-contract.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "integration-acceptance-check",
         "integration-acceptance-check --self-test"
@@ -111,7 +112,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Bind the protected commit, then validate every Phase 0 authority bundle and record explicit conflict resolution.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-AUTH-001",
@@ -120,7 +121,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "CP-001",
         "CP-002",
@@ -136,7 +137,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review 02 and rerun the central auth negative vectors.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-SOURCE-001",
@@ -145,7 +146,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -156,7 +157,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze source semantics across Oracle and Data Fabric.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-ASSET-001",
@@ -165,7 +166,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "CP-004",
         "CP-005",
@@ -182,7 +183,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review Wallet mandates, Exchange no-withdraw sessions and DEX vault ownership.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-AI-001",
@@ -191,7 +192,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "CP-009"
       ],
@@ -205,7 +206,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review the AI approval contract and execute CP-009.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-PROVIDER-001",
@@ -214,7 +215,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -226,7 +227,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Aggregate provider registers and verify fail-closed adapters.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-L10N-001",
@@ -235,7 +236,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -245,7 +246,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Define and run one central locale and accessibility conformance harness.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-PLATFORM-001",
@@ -254,7 +255,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -264,7 +265,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Import owner platform manifests and rerun installation evidence.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-SLO-001",
@@ -273,7 +274,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -288,7 +289,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Collect comparable SLO and capacity artifacts.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-ECON-001",
@@ -297,7 +298,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -310,7 +311,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Reconcile owner economics records against Billing Ledger facts.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-MIGRATION-001",
@@ -319,7 +320,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -333,7 +334,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze schema versions and execute forward/rollback vectors.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-RESTORE-001",
@@ -342,7 +343,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -354,7 +355,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Consume the Security/SRE restore policy and execute the shared drill.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-OBS-001",
@@ -363,7 +364,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -375,7 +376,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze common evidence fields and run Monitor integration.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-SEC-001",
@@ -386,7 +387,7 @@
       "evidence": [
         "release/integration/acceptance-matrix.json"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "integration-acceptance-check",
         "secret-scan",
@@ -399,7 +400,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review the synchronized Security/SRE candidate contract and close its remaining autonomous coverage before central acceptance.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-NPM-AUDIT-001",
@@ -410,7 +411,7 @@
       "evidence": [
         "release/integration/security/npm-audit-policy.json"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "integration-npm-audit-policy-check",
         "integration-npm-audit-policy-check-test"
@@ -422,16 +423,18 @@
       ],
       "owner": "29-integration",
       "nextAction": "Bind the protected commit and obtain Security/SRE acceptance before any production release.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-PREFLIGHT-001",
       "category": "release-gates",
       "requirement": "Run Integration acceptance, pinned contract build, full Go tests, npm audit policy, negative self-tests, placeholder scan, secret scan and static checks in the required order.",
       "applicability": "applicable",
-      "status": "implementedLocal",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "status": "testedLocal",
+      "evidence": [
+        "release/integration/evidence/protect-preflight-20191a3e.json"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "integration-acceptance-check",
         "contract-tooling-check",
@@ -442,14 +445,12 @@
         "secret-scan",
         "static-check"
       ],
-      "artifact": null,
+      "artifact": "release/integration/evidence/protect-preflight-20191a3e.json",
       "publicProof": [],
-      "blockedBy": [
-        "exact-commit rerun pending"
-      ],
+      "blockedBy": [],
       "owner": "29-integration",
-      "nextAction": "Rerun every component at the protected implementation commit and bind a direct evidence record.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Require the same green gate on every subsequent protected source commit and in the pull-request workflow.",
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-FEE-001",
@@ -458,7 +459,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "CP-004",
         "CP-005",
@@ -476,7 +477,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Reconcile Quant, Exchange, DEX and Economics fee authorities.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-PUBLIC-001",
@@ -485,7 +486,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "CP-011"
       ],
@@ -497,7 +498,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Generate Integration public metadata and require Website consumption proof.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-EVIDENCE-001",
@@ -508,14 +509,14 @@
       "evidence": [
         "scripts/ops/refresh-integration-acceptance.mjs"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": "release/integration/acceptance-matrix.json",
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Generate and validate the first exact-ref matrix and GitHub evidence snapshot.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-KPI-001",
@@ -524,7 +525,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -537,7 +538,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Map KPI owners and exclude internal test traffic.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-INPUTS-001",
@@ -546,7 +547,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -555,7 +556,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Aggregate 01–36 input records after autonomous work is complete.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-PHASE-001",
@@ -566,14 +567,14 @@
       "evidence": [
         "release/integration/integration-contract.json"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Complete PROTECT verification before promoting the controller gate to FREEZE.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-CROSS-DEFINITION-001",
@@ -584,7 +585,7 @@
       "evidence": [
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "integration-acceptance-check",
         "integration-acceptance-check --self-test"
@@ -594,7 +595,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Bind the protected commit, rerun exact-commit validation and keep vectors synchronized with accepted contracts.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-CROSS-001",
@@ -605,7 +606,7 @@
       "evidence": [
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "CP-001 through CP-012"
       ],
@@ -617,7 +618,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Execute CP-001 through CP-012 after Phase 0 acceptance.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-QUANT-001",
@@ -626,7 +627,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "CP-004",
         "CP-005"
@@ -651,7 +652,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review 08 as the sole engine owner and reject duplicate engines.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-CAPITAL-001",
@@ -660,7 +661,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "CP-012"
       ],
@@ -682,7 +683,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze evidence contracts and execute fail-closed shortfall and exit drills.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-GITHUB-001",
@@ -691,14 +692,14 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": "release/integration/github-evidence.json",
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Generate source-bound GitHub evidence and require CI on the Integration branch.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-PUBLICNET-001",
@@ -707,7 +708,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -718,7 +719,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Start only after FREEZE and INTEGRATE gates pass.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-SEO-001",
@@ -727,7 +728,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -739,7 +740,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Consume Website evidence and record observed indexing separately.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-MAINNET-001",
@@ -750,14 +751,14 @@
       "evidence": [
         "release/integration/integration-contract.json"
       ],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Retain false production states until independent Mainnet evidence exists.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-FINAL-001",
@@ -766,7 +767,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -775,7 +776,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Execute only after every autonomous item is closed or truly externally blocked.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "lastUpdated": "2026-07-29T02:53:49.984Z"
     },
     {
       "id": "INT-PRODUCT-01",
@@ -783,17 +784,28 @@
       "requirement": "Accept 01 YNX Chain Core / StreamBFT only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "release/product-release.json",
+        "release/public-product-metadata.json",
+        "release/integration/chain-core-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 01"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "full-goal coverage has 7 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: full-goal coverage has 7 autonomous or unresolved items.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-02",
@@ -801,17 +813,28 @@
       "requirement": "Accept 02 YNX Wallet / Auth only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "release/product-release.json",
+        "release/public-product-metadata.json",
+        "release/integration/wallet-auth-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 02"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-03",
@@ -819,26 +842,46 @@
       "requirement": "Accept 03 YNX Social only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "release/social/product-release.json",
+        "release/social/public-product-metadata.json",
+        "release/integration/social-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 03"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-04",
       "category": "product-acceptance",
       "requirement": "Accept 04 YNX Pay only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "status": "implementedLocal",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/pay/product-release.json",
+        "docs/pay/public-product-metadata.json",
+        "release/integration/pay-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 04"
       ],
@@ -846,8 +889,8 @@
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-05",
@@ -855,17 +898,31 @@
       "requirement": "Accept 05 Merchant Console only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/merchant-console/product-release.json",
+        "apps/merchant-console/public-product-metadata.json",
+        "release/integration/merchant-console-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 05"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "publicMetadata belongs to a different product or authority owner",
+        "full-goal coverage has 9 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "productRelease lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: publicMetadata belongs to a different product or authority owner.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-06",
@@ -873,17 +930,29 @@
       "requirement": "Accept 06 YNX Card only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/card/product-release.json",
+        "apps/card/public-product-metadata.json",
+        "release/integration/ynx-card-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 06"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 9 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-07",
@@ -891,17 +960,29 @@
       "requirement": "Accept 07 YNX Exchange only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/exchange/product-release.json",
+        "apps/exchange/public-product-metadata.json",
+        "release/integration/exchange-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 07"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "full-goal coverage has 23 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: full-goal coverage has 23 autonomous or unresolved items.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-08",
@@ -909,17 +990,29 @@
       "requirement": "Accept 08 YNX Quant Lab only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/quant-lab/product-release.json",
+        "apps/quant-lab/public-product-metadata.json",
+        "release/integration/ynx-quant-lab-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 08"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "full-goal coverage has 8 autonomous or unresolved items",
+        "publicMetadata lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: full-goal coverage has 8 autonomous or unresolved items.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-09",
@@ -927,17 +1020,30 @@
       "requirement": "Accept 09 YNX Shop only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/shop/product-release.json",
+        "apps/shop/public-product-metadata.json",
+        "release/integration/ynx-shop-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 09"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 6 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-10",
@@ -945,17 +1051,30 @@
       "requirement": "Accept 10 Seller Console only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/seller-console/product-release.json",
+        "release/integration/seller-console-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 10"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "public metadata is missing from the branch tree",
+        "full-goal coverage has 11 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "productRelease lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: public metadata is missing from the branch tree.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-11",
@@ -963,17 +1082,30 @@
       "requirement": "Accept 11 YNX Developer / AI Build only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/developer/product-release.json",
+        "release/integration/developer-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 11"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "public metadata is missing from the branch tree",
+        "full-goal coverage has 14 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit",
+        "integrationContract lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: public metadata is missing from the branch tree.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-12",
@@ -981,17 +1113,29 @@
       "requirement": "Accept 12 YNX Explorer only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "product-release.json",
+        "release/explorer/public-product-metadata.json",
+        "release/integration/explorer-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 12"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 15 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-13",
@@ -999,26 +1143,47 @@
       "requirement": "Accept 13 YNX Monitor only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "product-release.json",
+        "release/monitor/public-product-metadata.json",
+        "release/integration/monitor-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 13"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 16 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-14",
       "category": "product-acceptance",
       "requirement": "Accept 14 YNX AI only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "status": "implementedLocal",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/ai/product-release.json",
+        "public-product-metadata.json",
+        "release/integration/ynx-ai-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 14"
       ],
@@ -1026,17 +1191,26 @@
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-15",
       "category": "product-acceptance",
       "requirement": "Accept 15 YNX Trust Center only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "status": "implementedLocal",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "product-release.json",
+        "public-product-metadata.json",
+        "release/integration/trust-center-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 15"
       ],
@@ -1044,8 +1218,8 @@
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-16",
@@ -1053,17 +1227,28 @@
       "requirement": "Accept 16 YNX Resource Market only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/resource-market/product-release.json",
+        "apps/resource-market/public-product-metadata.json",
+        "release/integration/resource-market-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 16"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-17",
@@ -1071,17 +1256,28 @@
       "requirement": "Accept 17 YNXT Economics / Treasury / Stablecoin only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "product-release.json",
+        "public-product-metadata.json",
+        "release/integration/ynxt-economics-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 17"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-18",
@@ -1089,17 +1285,30 @@
       "requirement": "Accept 18 Whitepaper / Compliance / Brand only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "release/product-release.json",
+        "release/public-product-metadata.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 18"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "integration contract is missing from the branch tree",
+        "productRelease belongs to a different product or authority owner",
+        "publicMetadata belongs to a different product or authority owner",
+        "full-goal coverage has 7 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: integration contract is missing from the branch tree.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-19",
@@ -1107,17 +1316,28 @@
       "requirement": "Accept 19 YNX Oracle & Market Data only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "release/product-release.json",
+        "release/public-product-metadata.json",
+        "release/integration/oracle-market-data-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 19"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-20",
@@ -1125,17 +1345,30 @@
       "requirement": "Accept 20 YNX Cloud only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/cloud/product-release.json",
+        "apps/cloud/public-product-metadata.json",
+        "release/integration/cloud-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 20"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "full-goal coverage has 8 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "publicMetadata lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: full-goal coverage has 8 autonomous or unresolved items.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-21",
@@ -1143,17 +1376,29 @@
       "requirement": "Accept 21 YNX Bridge & Interoperability only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "release/bridge/product-release.json",
+        "release/bridge/public-product-metadata.json",
+        "release/integration/ynx-bridge-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 21"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 8 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-22",
@@ -1161,17 +1406,29 @@
       "requirement": "Accept 22 YNX Browser only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/browser/product-release.json",
+        "release/browser/public-product-metadata.json",
+        "release/integration/browser-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 22"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 7 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-23",
@@ -1179,17 +1436,30 @@
       "requirement": "Accept 23 YNX Search only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "product-release.json",
+        "public-product-metadata.json",
+        "release/integration/search-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 23"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 12 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-24",
@@ -1197,17 +1467,29 @@
       "requirement": "Accept 24 YNX Finance only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/finance/product-release.json",
+        "release/finance/public-product-metadata.json",
+        "release/integration/finance-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 24"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 9 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-25",
@@ -1215,17 +1497,32 @@
       "requirement": "Accept 25 YNX Mail only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/mail/product-release.json",
+        "apps/mail/public-product-metadata.json",
+        "release/integration/mail-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 25"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "full-goal coverage has 6 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit",
+        "productRelease lacks an exact sourceCommit",
+        "publicMetadata lacks an exact sourceCommit",
+        "integrationContract sourceCommit is not reachable from the final branch"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: full-goal coverage has 6 autonomous or unresolved items.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-26",
@@ -1233,17 +1530,29 @@
       "requirement": "Accept 26 YNX Data Fabric & Billing Ledger only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "product-release.json",
+        "public-product-metadata.json",
+        "release/integration/ynx-data-fabric-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 26"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 7 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-27",
@@ -1251,26 +1560,47 @@
       "requirement": "Accept 27 YNX DEX only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "product-release.json",
+        "public-product-metadata.json",
+        "release/integration/ynx-dex-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 27"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "full-goal coverage has 13 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: full-goal coverage has 13 autonomous or unresolved items.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-28",
       "category": "product-acceptance",
       "requirement": "Accept 28 YNX Website / SEO / Product Micro-sites only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "status": "implementedLocal",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "release/website/product-release.json",
+        "release/website/public-product-metadata.json",
+        "release/integration/website-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 28"
       ],
@@ -1278,8 +1608,8 @@
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-29",
@@ -1287,46 +1617,76 @@
       "requirement": "Accept 29 YNX Integration / Founder Control only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "release/integration/product-release.json",
+        "release/integration/public-product-metadata.json",
+        "release/integration/integration-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 29"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 62 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-30",
       "category": "product-acceptance",
       "requirement": "Accept 30 YNX Security / SRE only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
-      "status": "notStarted",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "status": "inProgress",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "release/product-release.json",
+        "public-product-metadata.json",
+        "release/integration/security-platform-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 30"
       ],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [
-        "codex/final-security-sre and 30-security-sre were not observed"
+        "full-goal coverage has 11 autonomous or unresolved items"
       ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: full-goal coverage has 11 autonomous or unresolved items.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-31",
       "category": "product-acceptance",
       "requirement": "Accept 31 YNX Governance only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "status": "implementedLocal",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "release/governance/product-release.json",
+        "release/governance/public-product-metadata.json",
+        "release/integration/governance-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 31"
       ],
@@ -1334,8 +1694,8 @@
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-32",
@@ -1343,17 +1703,30 @@
       "requirement": "Accept 32 YNX Music only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/music/product-release.json",
+        "apps/music/public-product-metadata.json",
+        "release/integration/music-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 32"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 20 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-33",
@@ -1361,17 +1734,30 @@
       "requirement": "Accept 33 YNX Video only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/video/product-release.json",
+        "release/integration/video-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 33"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "public metadata is missing from the branch tree",
+        "full-goal coverage has 14 autonomous or unresolved items",
+        "productRelease lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-34",
@@ -1379,17 +1765,29 @@
       "requirement": "Accept 34 YNX Creator Studio only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/creator-studio/product-release.json",
+        "apps/creator-studio/public-product-metadata.json",
+        "release/integration/creator-studio-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 34"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "full-goal coverage has 19 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-35",
@@ -1397,17 +1795,30 @@
       "requirement": "Accept 35 YNX Docs only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "product-release.json",
+        "public-product-metadata.json",
+        "release/integration/docs-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 35"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "registered final worktree has uncommitted changes",
+        "integrationContract belongs to a different product or authority owner",
+        "full-goal coverage has 15 autonomous or unresolved items"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: registered final worktree has uncommitted changes.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     },
     {
       "id": "INT-PRODUCT-36",
@@ -1415,17 +1826,29 @@
       "requirement": "Accept 36 YNX Calendar only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": [],
-      "sourceCommit": "716dcec9c783172d0bbfde38c968e5f34533092c",
+      "evidence": [
+        "release/integration/acceptance-matrix.json",
+        ".ai-bridge/full-goal-coverage.json",
+        "apps/calendar/product-release.json",
+        "public-product-metadata.json",
+        "release/integration/calendar-contract.json",
+        "docs/integration/INTEGRATION_HANDOFF.md",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+      ],
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
       "tests": [
         "central acceptance row 36"
       ],
       "artifact": null,
       "publicProof": [],
-      "blockedBy": [],
+      "blockedBy": [
+        "full-goal coverage has 24 autonomous or unresolved items",
+        "fullGoalCoverage lacks an exact sourceCommit"
+      ],
       "owner": "29-integration",
-      "nextAction": "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
-      "lastUpdated": "2026-07-28T15:53:31.998Z"
+      "nextAction": "Resolve: full-goal coverage has 24 autonomous or unresolved items.",
+      "lastUpdated": "2026-07-29T02:53:49.985Z"
     }
   ]
 }

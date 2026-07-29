@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "29",
+  "productName": "YNX Integration / Founder Control",
+  "phase": "PROTECT",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+  "branch": "codex/final-integration",
+  "localSha": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
+  "remoteSha": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": true,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "node scripts/ops/refresh-integration-acceptance.mjs --self-test",
+    "node scripts/verify/integration-acceptance-check.mjs --self-test",
+    "node scripts/verify/integration-acceptance-check.mjs",
+    "make integration-protect-preflight"
+  ],
+  "latestCiRuns": [],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [
+    {
+      "kind": "repository-wide-github-snapshot",
+      "activeCount": 98,
+      "evidence": "release/integration/github-evidence.json",
+      "sourceCommit": "40dcf3eeb152a1fb4887d0c7f6a79f095dd6f185"
+    },
+    {
+      "kind": "local-preflight-receipt",
+      "evidence": "release/integration/evidence/protect-preflight-20191a3e.json",
+      "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed"
+    }
+  ],
+  "publicRoutes": [
+    {
+      "url": "https://ynxweb4.com/integration",
+      "status": "unverified"
+    }
+  ],
+  "completed": [
+    "MCP, Worktree, Branch and Remote identity recovered from live state",
+    "generated 36-product acceptance matrix protected and pushed",
+    "exact protected source passed Integration preflight",
+    "coverage generator now derives product rows from the acceptance matrix",
+    "Integration release and public metadata aligned to direct evidence and ynxweb4.com"
+  ],
+  "remaining": [
+    "protect current recovery and evidence slice",
+    "open pull request and obtain exact-head CI",
+    "review and explicitly accept Phase 0 owner bundles",
+    "execute cross-product vectors and shared Testnet",
+    "publish source-bound release, artifacts, SBOM and provenance",
+    "verify Website consumption and public Integration route"
+  ],
+  "blockers": [
+    "no Integration PR or CI run exists yet",
+    "zero centrally accepted products",
+    "Security/SRE and other owner bundles retain autonomous coverage gaps",
+    "shared Testnet and public deployment are unverified"
+  ],
+  "nextAction": "Run the full protection gate on the current Integration-owned slice, review the diff, Commit and Push, then open a PR to main and inspect CI for the exact head SHA.",
+  "updatedAt": "2026-07-29T02:44:44Z"
+}

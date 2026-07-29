@@ -4,7 +4,9 @@
   "owner": "29-integration",
   "product": "YNX Integration / Founder Control",
   "slug": "integration",
-  "sourceCommit": "562888318863435382d839958130246973dc1206",
+  "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
+  "siteUrl": "https://ynxweb4.com",
+  "canonicalUrl": "https://ynxweb4.com/integration",
   "canonicalRoute": "/integration",
   "title": "YNX Integration and Founder Control",
   "metaDescription": "Central acceptance, protocol freeze, dependency order and public-proof control for the YNX Testnet product ecosystem.",
@@ -47,10 +49,10 @@
     }
   ],
   "links": {
-    "support": null,
-    "privacy": null,
-    "security": null,
-    "status": null
+    "support": "https://ynxweb4.com/support",
+    "privacy": "https://ynxweb4.com/privacy",
+    "security": "https://ynxweb4.com/security",
+    "status": "https://ynxweb4.com/status"
   },
   "structuredDataSuggestion": {
     "type": "SoftwareApplication",

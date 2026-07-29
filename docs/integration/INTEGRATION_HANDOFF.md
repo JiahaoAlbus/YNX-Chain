@@ -2,7 +2,7 @@
 
 Owner: `29-integration`  
 Branch: `codex/final-integration`  
-Source baseline: `562888318863435382d839958130246973dc1206`  
+Protected source baseline: `20191a3e7f561882b7393686fc0ea39d7a08a5ed`  
 Lifecycle state: `ACTIVE`  
 Current gate: `PROTECT`
 
@@ -21,6 +21,12 @@ This branch is the only central owner for protocol freeze, dependency acceptance
 - The original central-repository scan missed products in separate repositories. The registry and scanner now resolve Website from `JiahaoAlbus/YNX-Chain-website` and Security/SRE from `JiahaoAlbus/YNX`, including their exact synchronized branches and clean worktrees without recording absolute paths in the matrix.
 - The first full Go run exposed umask-sensitive unsafe-permission fixtures and missing generated contract artifacts. The fixtures now explicitly create the unsafe mode, while Runtime permission checks remain unchanged; contract-dependent tests are preceded by the pinned Hardhat build.
 - Main now locks Hardhat 3.11.1, `@nomicfoundation/hardhat-ethers` 4.0.15 and `adm-zip` 0.6.0. Full and production-only npm audits are clean, so the former time-bounded High-advisory exception is closed. Security/SRE acceptance remains an independent production-release gate.
+- The 2026-07-29 recovery verified the configured MCP, exact Worktree, Branch, Chain repository Remote, Local/Remote SHA equality, tags, reflog, stash, LFS and registered 01–36 Worktrees from live Git state.
+- Commit `20191a3e7f561882b7393686fc0ea39d7a08a5ed` protects the current central acceptance and GitHub evidence snapshot. The exact clean commit then passed `make integration-protect-preflight`.
+- GitHub Actions currently has no run for the Integration branch because repository CI is configured for `main` pushes and pull requests targeting `main`; CI remains unclaimed until a real pull request run exists.
+- The coverage generator now consumes the generated acceptance matrix for every product, including the separate Security/SRE repository, instead of retaining the historical false claim that product 30 was unobserved.
+- Coverage refresh now fails closed unless the matrix contains each product ID `01`–`36` exactly once; its negative self-test is part of `integration-protect-preflight`.
+- npm policy mutation tests now run against deterministic offline audit fixtures. Real full and production-only Registry audits remain separate and use only bounded retry for recognized transient network failures.
 
 ## New central artifacts
 

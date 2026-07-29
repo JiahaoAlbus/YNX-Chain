@@ -4,13 +4,13 @@
   "owner": "29-integration",
   "product": "YNX Integration / Founder Control",
   "slug": "integration",
-  "release": "0.1.0-controller-candidate",
+  "release": "0.1.1-controller-candidate",
   "releaseClass": "controller-candidate",
   "network": "YNX Testnet",
-  "sourceCommit": "562888318863435382d839958130246973dc1206",
+  "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
   "states": {
     "implementedLocal": true,
-    "testedLocal": false,
+    "testedLocal": true,
     "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
@@ -26,7 +26,9 @@
       "scripts/ops/refresh-integration-acceptance.mjs",
       "scripts/ops/refresh-integration-coverage.mjs"
     ],
-    "testedLocal": [],
+    "testedLocal": [
+      "release/integration/evidence/protect-preflight-20191a3e.json"
+    ],
     "installedLocal": [],
     "integratedCentral": [],
     "deployedStaging": [],

@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
 const outputPath = path.join(root, ".ai-bridge/full-goal-coverage.json");
+const acceptanceMatrixPath = path.join(root, "release/integration/acceptance-matrix.json");
 const allowedStatuses = [
   "notStarted",
   "inProgress",
@@ -19,6 +20,8 @@ const allowedStatuses = [
   "notApplicable",
   "verifiedComplete"
 ];
+const args = new Set(process.argv.slice(2));
+const expectedProductIds = Array.from({ length: 36 }, (_, index) => String(index + 1).padStart(2, "0"));
 
 function git(args) {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
@@ -45,12 +48,49 @@ function requirement(id, category, text, status, nextAction, options = {}) {
   };
 }
 
+function acceptanceProductMap(products) {
+  if (!Array.isArray(products)) {
+    throw new Error("central acceptance matrix products must be an array");
+  }
+  const productMap = new Map(products.map((product) => [product.id, product]));
+  const observedProductIds = [...productMap.keys()].sort();
+  if (products.length !== 36 || JSON.stringify(observedProductIds) !== JSON.stringify(expectedProductIds)) {
+    throw new Error("central acceptance matrix must contain each product id 01-36 exactly once");
+  }
+  return productMap;
+}
+
+function runSelfTest() {
+  const valid = expectedProductIds.map((id) => ({ id }));
+  acceptanceProductMap(valid);
+  for (const invalid of [valid.slice(1), [...valid.slice(0, -1), { id: "35" }], null]) {
+    let rejected = false;
+    try {
+      acceptanceProductMap(invalid);
+    } catch {
+      rejected = true;
+    }
+    if (!rejected) throw new Error("coverage refresh self-test accepted an invalid product matrix");
+  }
+  console.log("integration coverage refresh self-test passed");
+}
+
+if (args.has("--self-test")) {
+  runSelfTest();
+  process.exit(0);
+}
+
 const head = git(["rev-parse", "HEAD"]);
+if (!fs.existsSync(acceptanceMatrixPath)) {
+  throw new Error(`missing required central acceptance matrix: ${path.relative(root, acceptanceMatrixPath)}`);
+}
+const acceptanceMatrix = JSON.parse(fs.readFileSync(acceptanceMatrixPath, "utf8"));
+const productAcceptanceById = acceptanceProductMap(acceptanceMatrix.products);
 const globals = [
   ["INT-RECOVER-001", "recovery", "Confirm the exact Integration workspace, final branch, modes, Git state, history and direct repository evidence.", "verifiedComplete", "Repeat the takeover audit at every new session.", { evidence: ["workspace and branch matched; takeover status was clean"] }],
   ["INT-PROTECT-001", "git-protection", "Create and configure the final remote branch, preserve authoritative history, push all protected results and verify Local SHA equals Remote SHA.", "verifiedComplete", "Recheck Local and Remote SHA after every protected slice.", { evidence: ["origin/codex/final-integration created and synchronized before this implementation slice"] }],
   ["INT-CONCURRENCY-001", "concurrency", "Reject concurrent writers, test runners that commit, or push agents on the same Integration worktree.", "verifiedComplete", "Repeat the process and handoff-state check before each long write/test/push slice.", { evidence: ["no active same-worktree handoff state or matching writer was observed at takeover"] }],
-  ["INT-REGISTRY-001", "central-registry", "Maintain the unique 01–36 product, owner, branch, phase and dependency registry.", "implementedLocal", "Bind the protected commit and rerun the exact-ref matrix after Push.", { evidence: ["release/integration/product-registry.json"], tests: ["refresh-integration-acceptance --self-test", "integration-acceptance-check --self-test"], artifact: "release/integration/product-registry.json" }],
+  ["INT-REGISTRY-001", "central-registry", "Maintain the unique 01–36 product, owner, branch, phase and dependency registry.", "testedLocal", "Keep the registry synchronized with exact owner branches and rerun the matrix before every acceptance decision.", { evidence: ["release/integration/product-registry.json", "release/integration/acceptance-matrix.json"], tests: ["refresh-integration-acceptance --self-test", "integration-acceptance-check --self-test"], artifact: "release/integration/product-registry.json" }],
   ["INT-FREEZE-001", "protocol-freeze", "Freeze one authoritative owner and version for network, Wallet/Auth, Oracle, Bridge, Data Fabric, Quant, Economics, Governance, Security/SRE, Website and Integration.", "implementedLocal", "Bind the protected commit, then validate every Phase 0 authority bundle and record explicit conflict resolution.", { evidence: ["release/integration/integration-contract.json", "docs/integration/DEPENDENCY_ACCEPTANCE.md"], tests: ["integration-acceptance-check", "integration-acceptance-check --self-test"] }],
   ["INT-AUTH-001", "wallet-auth-gateway", "Accept only canonical Wallet/Auth, Product Registry and App Gateway contracts with replay, tamper, wrong-product, wrong-device, scope, expiry and revoke failure closure.", "notStarted", "Review 02 and rerun the central auth negative vectors.", { tests: ["CP-001", "CP-002", "CP-004", "CP-005", "CP-009"], blockedBy: ["02", "30"] }],
   ["INT-SOURCE-001", "authority-source-layering", "Require source, asOf, version, confidence or coverage and truthful failure for YNX, provider, estimate, AI and user-supplied data.", "notStarted", "Freeze source semantics across Oracle and Data Fabric.", { blockedBy: ["19", "26", "30"] }],
@@ -66,7 +106,7 @@ const globals = [
   ["INT-OBS-001", "observability-support", "Verify structured logs, metrics, traces, request/error/audit IDs, health, ready, version, alerts, incidents, status, support, disputes and recovery.", "notStarted", "Freeze common evidence fields and run Monitor integration.", { blockedBy: ["13", "15", "26", "30"] }],
   ["INT-SEC-001", "security-supply-chain", "Verify threat model, boundaries, secret/dependency/license/SAST/DAST/artifact/container scans, SBOM, provenance, reproducibility and build-script allowlist.", "inProgress", "Review the synchronized Security/SRE candidate contract and close its remaining autonomous coverage before central acceptance.", { evidence: ["release/integration/acceptance-matrix.json"], tests: ["integration-acceptance-check", "secret-scan", "static-check"], blockedBy: ["Security/SRE owner coverage still contains autonomous/open items"] }],
   ["INT-NPM-AUDIT-001", "security-supply-chain", "Enforce the remediated Hardhat dependency graph with pinned fixed versions and zero vulnerabilities in both full and production-only npm audits.", "testedLocal", "Bind the protected commit and obtain Security/SRE acceptance before any production release.", { evidence: ["release/integration/security/npm-audit-policy.json"], tests: ["integration-npm-audit-policy-check", "integration-npm-audit-policy-check-test"], artifact: "release/integration/security/npm-audit-policy.json", blockedBy: ["Security/SRE production review remains required independently of the resolved advisory"] }],
-  ["INT-PREFLIGHT-001", "release-gates", "Run Integration acceptance, pinned contract build, full Go tests, npm audit policy, negative self-tests, placeholder scan, secret scan and static checks in the required order.", "implementedLocal", "Rerun every component at the protected implementation commit and bind a direct evidence record.", { tests: ["integration-acceptance-check", "contract-tooling-check", "integration-npm-audit-policy-check", "integration-npm-audit-policy-check-test", "go test ./...", "no-placeholder-check", "secret-scan", "static-check"], blockedBy: ["exact-commit rerun pending"] }],
+  ["INT-PREFLIGHT-001", "release-gates", "Run Integration acceptance, pinned contract build, full Go tests, npm audit policy, negative self-tests, placeholder scan, secret scan and static checks in the required order.", "testedLocal", "Require the same green gate on every subsequent protected source commit and in the pull-request workflow.", { evidence: ["release/integration/evidence/protect-preflight-20191a3e.json"], tests: ["integration-acceptance-check", "contract-tooling-check", "integration-npm-audit-policy-check", "integration-npm-audit-policy-check-test", "go test ./...", "no-placeholder-check", "secret-scan", "static-check"], artifact: "release/integration/evidence/protect-preflight-20191a3e.json" }],
   ["INT-FEE-001", "fees-risk-transparency", "Verify explicit fees, user-owned profit/loss, high-water-mark calculation, no fee on unrealized PnL and no hidden spread, volume, mint, burn or revenue claim.", "notStarted", "Reconcile Quant, Exchange, DEX and Economics fee authorities.", { tests: ["CP-004", "CP-005", "CP-012"], blockedBy: ["07", "08", "17", "24", "27", "30"] }],
   ["INT-PUBLIC-001", "website-public-handoff", "Verify canonical routes, metadata, FAQ, structured data, screenshots, artifact manifests, support/privacy/security/status URLs and Website versus runtime state separation.", "inProgress", "Generate Integration public metadata and require Website consumption proof.", { tests: ["CP-011"], blockedBy: ["28", "30"] }],
   ["INT-EVIDENCE-001", "evidence-release-records", "Bind acceptance, tests, receipts, CI, artifacts, installation and public probes to exact reachable source commits without stale or internal facts.", "inProgress", "Generate and validate the first exact-ref matrix and GitHub evidence snapshot.", { evidence: ["scripts/ops/refresh-integration-acceptance.mjs"], artifact: "release/integration/acceptance-matrix.json" }],
@@ -97,17 +137,29 @@ const productNames = [
 const items = globals.map(([id, category, text, status, nextAction, options]) => requirement(id, category, text, status, nextAction, { ...options, sourceCommit: head }));
 for (let index = 0; index < productNames.length; index += 1) {
   const id = String(index + 1).padStart(2, "0");
-  const isSecuritySre = id === "30";
+  const observed = productAcceptanceById.get(id);
+  const acceptedSourceCommit = observed?.centralAcceptance?.acceptedSourceCommit ?? null;
+  const observedStatus = observed?.centralAcceptance?.status;
+  const status = acceptedSourceCommit
+    ? "integratedCentral"
+    : (allowedStatuses.includes(observedStatus) ? observedStatus : "notStarted");
+  const evidencePaths = observed?.evidence?.paths && typeof observed.evidence.paths === "object"
+    ? Object.values(observed.evidence.paths).filter((value) => typeof value === "string")
+    : [];
+  const blockers = Array.isArray(observed?.blockers) && observed.blockers.length > 0
+    ? observed.blockers
+    : (observed ? [] : ["central acceptance row unavailable"]);
   items.push(requirement(
     `INT-PRODUCT-${id}`,
     "product-acceptance",
     `Accept ${id} ${productNames[index]} only after its exact final branch, owner bundle, central tests, dependency contracts, artifact class and public state pass all applicable gates.`,
-    isSecuritySre ? "notStarted" : "inProgress",
-    "Scan the exact final branch and execute the highest-priority unresolved owner and dependency gates.",
+    status,
+    observed?.nextAction ?? "Generate the exact central acceptance row before promotion.",
     {
       sourceCommit: head,
+      evidence: ["release/integration/acceptance-matrix.json", ...evidencePaths],
       tests: [`central acceptance row ${id}`],
-      blockedBy: isSecuritySre ? ["codex/final-security-sre and 30-security-sre were not observed"] : []
+      blockedBy: blockers
     }
   ));
 }
