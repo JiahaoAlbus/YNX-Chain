@@ -30,7 +30,7 @@ Use a funded deployer account from the YNX Testnet faucet, then run:
 
 ```bash
 export YNX_EVM_RPC_URL="https://real-evm-rpc-host"
-export DEPLOYER_PRIVATE_KEY="secure-real-deployer-private-key"
+export DEPLOYER_PRIVATE_KEY="<injected-by-approved-secret-manager>"
 npm run hardhat:deploy:ynx-testnet
 ```
 

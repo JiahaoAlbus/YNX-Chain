@@ -1,0 +1,80 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: Namespace
+      name: ynx-services
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: ynx-services-staging
+      - op: replace
+        path: /metadata/labels/name
+        value: ynx-services-staging
+      - op: add
+        path: /metadata/labels/environment
+        value: staging
+  - target:
+      namespace: ynx-services
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: ynx-services-staging
+  - target:
+      kind: Ingress
+      name: ynx-public-services
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: ynx-public-services
+  - target:
+      kind: ConfigMap
+      name: nginx-ingress-waf-config
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: nginx-ingress-waf-config
+  - target:
+      kind: DestinationRule
+      name: default-mtls
+    patch: |-
+      - op: replace
+        path: /spec/host
+        value: "*.ynx-services-staging.svc.cluster.local"
+  - target:
+      kind: NetworkPolicy
+      name: allow-internal-service-mesh
+    patch: |-
+      - op: replace
+        path: /spec/ingress/0/from/0/namespaceSelector/matchLabels/name
+        value: ynx-services-staging
+      - op: replace
+        path: /spec/egress/0/to/0/namespaceSelector/matchLabels/name
+        value: ynx-services-staging
+  - target:
+      kind: NetworkPolicy
+      name: quant-worker-egress-lockdown
+    patch: |-
+      - op: replace
+        path: /spec/egress/1/to/0/namespaceSelector/matchLabels/name
+        value: ynx-services-staging
+
+labels:
+  - pairs:
+      environment: staging
+      security.ynx/tier: staging
+    includeSelectors: false
+
+images:
+  - name: ynx/quant-worker
+    newTag: 0.1.0-staging-candidate
+  - name: ynx/backup-operator
+    newTag: 0.1.0-staging-candidate

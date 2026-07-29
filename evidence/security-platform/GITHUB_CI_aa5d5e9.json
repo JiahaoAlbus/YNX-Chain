@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "scenario": "exact-source-protected-branch-ci",
+  "repository": "JiahaoAlbus/YNX",
+  "branch": "codex/final-security-platform",
+  "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "verifiedAt": "2026-07-29T04:08:00Z",
+  "result": "passed-remote",
+  "runs": [
+    {
+      "workflow": "Security",
+      "runId": 30350046195,
+      "url": "https://github.com/JiahaoAlbus/YNX/actions/runs/30350046195",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        "source-analysis (javascript-typescript)",
+        "source-analysis (go)",
+        "dependency-review",
+        "go-static-analysis",
+        "dependency-and-build-script-audit"
+      ]
+    },
+    {
+      "workflow": "CI",
+      "runId": 30350045006,
+      "url": "https://github.com/JiahaoAlbus/YNX/actions/runs/30350045006",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        "test",
+        "chain"
+      ]
+    },
+    {
+      "workflow": "Security Platform Gates",
+      "runId": 30350041356,
+      "url": "https://github.com/JiahaoAlbus/YNX/actions/runs/30350041356",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        "Policy, tests, supply chain, and manifests",
+        "Deployment remains operator-controlled"
+      ]
+    }
+  ],
+  "limitations": [
+    "CI proves the named source commit only",
+    "CI performs validation and does not mutate a cluster",
+    "no production signing, staging deployment, public deployment, or hosted-download claim is inferred"
+  ]
+}

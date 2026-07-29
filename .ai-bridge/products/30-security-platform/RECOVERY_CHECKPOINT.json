@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "product": "30-security-platform",
+  "status": "ACTIVE",
+  "updatedAt": "2026-07-29T06:08:33Z",
+  "workspace": "/Users/huangjiahao/Desktop/YNX Final Worktrees/30-security-platform",
+  "authoritativeRepository": "JiahaoAlbus/YNX-Chain",
+  "authoritativeRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
+  "branch": "codex/final-security-platform",
+  "lastPushedCheckpoint": "413e11186d09cd2a0b243498b97ad429029382ed",
+  "frozenReleaseSource": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+  "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/16",
+  "legacy": {
+    "repository": "JiahaoAlbus/YNX",
+    "remote": "https://github.com/JiahaoAlbus/YNX.git",
+    "branch": "legacy/final-security-platform-ynx",
+    "finalCommit": "4b450b413d8ee9cec5d3a298f5c0b66ff551404d",
+    "bundle": "/Users/huangjiahao/Desktop/YNX Recovery Bundles/security-platform-old-repo-4b450b4.bundle",
+    "bundleSha256": "1c826b839e18d6e0ccdb9a587851c2d19d7a7f628b2b784f666aa606c929530c",
+    "bundleBytes": 73989826
+  },
+  "evidence": {
+    "artifact": "evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json",
+    "cleanInstall": "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json",
+    "remoteCi": "evidence/security-platform/GITHUB_CI_7be79d5.json",
+    "dependencyGraph": "evidence/security-platform/GITHUB_DEPENDENCY_GRAPH_2026-07-29.json"
+    ,
+    "branchProtection": "evidence/security-platform/GITHUB_BRANCH_PROTECTION_AUTHORITATIVE_2026-07-29.json",
+    "recordMigration": "evidence/security-platform/LOCAL_RECORD_MIGRATION_2026-07-29.json",
+    "dependencyRemediation": "evidence/security-platform/LOCAL_DEPENDENCY_REMEDIATION_2026-07-29.json"
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "preservedLegacyOutput": {
+    "originalPath": "output/",
+    "recoveryPath": "/Users/huangjiahao/Desktop/YNX Recovery Bundles/security-platform-legacy-output-20260729",
+    "fileCount": 69,
+    "bytes": 249856,
+    "treeSha256": "d1a681f81b0f0e758805f854eba90541c818bb30506aa6d938083bbe33c3425f",
+    "classification": "untracked legacy public-security failure captures and documentation reports; preserved, not release proof"
+  },
+  "nextAction": "Push this recovery-memory checkpoint, obtain final green PR checks, and hand the exact contract plus dependency remediation to Product 29 for central merge."
+}

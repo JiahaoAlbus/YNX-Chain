@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 2,
+  "product": "YNX Security Platform",
+  "version": "0.1.0-candidate",
+  "release": "development-candidate",
+  "environment": "local",
+  "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "sourceRepository": "https://github.com/JiahaoAlbus/YNX",
+  "branch": "codex/final-security-platform",
+  "buildRun": "local-reproducibility-drill:aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "buildEnvironment": {
+    "node": "v24.5.0",
+    "git": "git version 2.51.1",
+    "platform": "darwin",
+    "architecture": "arm64"
+  },
+  "dependencyLockHash": "3821fb759a27c8540a4ea30e2e09e6d3ee8c7677d1139dbe0c0a46ac7e5490a3",
+  "buildScriptHash": "d0ac3d37d442da7ff0f24d7d73263871b32d8ba37102bcfbd8513a701ad9aaa9",
+  "artifact": {
+    "name": "ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar",
+    "sha256": "3ef152e991abdd7db17f6f81c93c05a60d2df21e8397945d55381e494f7dfb28",
+    "bytes": 1556480,
+    "mediaType": "application/x-tar",
+    "platform": "source",
+    "architecture": "any",
+    "minimumOs": "Any operating system with POSIX tar support"
+  },
+  "sbom": {
+    "path": "ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar.cdx.json",
+    "sha256": "0871abcdc02ab9d034841a26ba4842ba84311432f24a480af8dc19a0bf7f92a8",
+    "format": "CycloneDX 1.6"
+  },
+  "provenance": {
+    "path": "ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar.intoto.json",
+    "sha256": "04919c8c129b8433e222dac843422b713aa9d7c4380463cdd59b8a51d94963ce",
+    "predicateType": "https://slsa.dev/provenance/v1"
+  },
+  "reproducibility": {
+    "status": "verified-local",
+    "independentArtifactSha256": "3ef152e991abdd7db17f6f81c93c05a60d2df21e8397945d55381e494f7dfb28",
+    "match": true
+  },
+  "signing": {
+    "class": "test-signed",
+    "signingIdentity": "local-ephemeral-test-signer",
+    "publicKeyFingerprint": "sha256:0cd3485bb0fa5bd77fc35fd45df7479c82709b4e404e62aa84b08f1d0fc3a75e",
+    "signaturePath": "ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar.manifest.sig.json",
+    "certificate": null,
+    "transparencyRecord": null
+  },
+  "installEvidence": "not-run-source-archive",
+  "coldStartEvidence": "not-applicable-source-archive",
+  "revocationStatus": "active",
+  "expiresAt": "2026-08-28T04:10:33.819Z",
+  "publicReleaseEligible": false
+}

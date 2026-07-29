@@ -1,0 +1,77 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "ynx-security-platform-850b2e31e3ba7507c73c271bf4737922d3f609eb.tar",
+      "digest": {
+        "sha256": "37ec8070947ec977af99588366c7f372c9ffa6ae62ffcf0b8ecf7e220350f15b"
+      }
+    }
+  ],
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://ynxweb4.com/security-platform/reproducible-git-archive/v1",
+      "externalParameters": {
+        "sourceCommit": "850b2e31e3ba7507c73c271bf4737922d3f609eb",
+        "paths": [
+          ".github/CODEOWNERS",
+          ".github/dependabot.yml",
+          ".github/workflows/ci.yml",
+          ".github/workflows/security.yml",
+          "EVIDENCE_INDEX.md",
+          "FEATURE_COMPLETION_EVIDENCE.md",
+          "MIGRATION_COMPATIBILITY.md",
+          "OBSERVABILITY.md",
+          "OPERATIONS.md",
+          "SLO_CAPACITY_PLAN.md",
+          "THREAT_MODEL.md",
+          "UNIT_ECONOMICS.md",
+          "package-lock.json",
+          "package.json",
+          "release",
+          "security-platform",
+          "scripts/security-artifact.mjs",
+          "scripts/security-artifact.test.mjs",
+          "scripts/security-backup.mjs",
+          "scripts/security-backup.test.mjs",
+          "scripts/security-build-script-audit.mjs",
+          "scripts/security-platform.mjs",
+          "scripts/security-platform.test.mjs"
+        ]
+      },
+      "internalParameters": {},
+      "resolvedDependencies": [
+        {
+          "uri": "git+https://github.com/JiahaoAlbus/YNX.git",
+          "digest": {
+            "gitCommit": "850b2e31e3ba7507c73c271bf4737922d3f609eb"
+          }
+        }
+      ]
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://github.com/JiahaoAlbus/YNX/.github/workflows/ci.yml"
+      },
+      "metadata": {
+        "invocationId": "local:850b2e31e3ba7507c73c271bf4737922d3f609eb",
+        "startedOn": null,
+        "finishedOn": null
+      },
+      "byproducts": [
+        {
+          "name": "ynx-security-platform-850b2e31e3ba7507c73c271bf4737922d3f609eb.tar.cdx.json",
+          "digest": {
+            "sha256": "c890868b4163e380ed130ef7dddc693477303cc820f44bd02c33e8a3479b1069"
+          }
+        }
+      ]
+    },
+    "ynxRelease": {
+      "bytes": 440320,
+      "signingClass": "unsigned-local",
+      "publicReleaseEligible": false
+    }
+  }
+}

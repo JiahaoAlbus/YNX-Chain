@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "artifact": "ynx-security-platform-e2c29248e8a10321cc42507c22e57a34d9746218.tar",
+  "sourceCommit": "e2c29248e8a10321cc42507c22e57a34d9746218",
+  "sha256": "95156e936631602389b5b3e6de898d65b7e05a91c402bad1af2452fb19839a93",
+  "bytes": 61440,
+  "sbom": {
+    "path": "ynx-security-platform-e2c29248e8a10321cc42507c22e57a34d9746218.tar.cdx.json",
+    "sha256": "85c94ee703c98efa2178060754f230bab6cdde2eb4dd8f8cf6f2af944d34a4b1"
+  },
+  "provenance": {
+    "path": "ynx-security-platform-e2c29248e8a10321cc42507c22e57a34d9746218.tar.intoto.json",
+    "sha256": "9903281beb762080988f805dcc2b111ea42a1d2cc2f1e8756f73d0e12c1a1248"
+  },
+  "signingClass": "unsigned-local",
+  "publicReleaseEligible": false
+}

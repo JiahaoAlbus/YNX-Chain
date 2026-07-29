@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "branch": "codex/final-security-platform",
+  "verifiedAt": "2026-07-29T06:16:00Z",
+  "source": "GitHub branch protection REST API write response and read-back fields",
+  "protection": {
+    "requiredStatusChecks": {
+      "strict": true,
+      "contexts": [
+        "Policy, tests, supply chain, and manifests",
+        "Deployment remains operator-controlled",
+        "source-analysis (javascript-typescript)",
+        "source-analysis (go)",
+        "dependency-and-build-script-audit",
+        "go-static-analysis"
+      ]
+    },
+    "pullRequestReviews": {
+      "dismissStaleReviews": true,
+      "requireCodeOwnerReviews": true,
+      "requireLastPushApproval": true,
+      "requiredApprovingReviewCount": 1
+    },
+    "requiredLinearHistory": true,
+    "requiredConversationResolution": true,
+    "allowForcePushes": false,
+    "allowDeletions": false,
+    "blockCreations": false,
+    "lockBranch": false,
+    "allowForkSyncing": false,
+    "enforceAdmins": false,
+    "requiredSignatures": false
+  },
+  "limitations": [
+    "administrator enforcement remains disabled during active recovery",
+    "required signed commits remain disabled until an approved signing identity and compatibility plan exist"
+  ]
+}

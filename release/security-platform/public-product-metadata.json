@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "name": "YNX Security Platform",
+  "aliases": [
+    "YNX Security and Reliability Platform",
+    "YNX Release Integrity Platform"
+  ],
+  "canonicalRoute": "/security-platform",
+  "title": "YNX Security Platform | Release Integrity and Reliability",
+  "metaDescription": "Security, release integrity, observability, incident response, and recovery controls for YNX testnet products.",
+  "h1": "YNX Security Platform",
+  "status": "development-candidate",
+  "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "features": [
+    "evidence-backed release policy",
+    "artifact integrity and tamper rejection",
+    "CycloneDX SBOM and provenance generation",
+    "secret and service-identity governance",
+    "backup, restore, incident, and rollback controls",
+    "protected-branch security gates"
+  ],
+  "risks": [
+    "not publicly deployed",
+    "current source artifact is test-signed, not production-signed",
+    "immutable hosted download is unavailable",
+    "live cross-region restore evidence is pending"
+  ],
+  "artifactCandidate": {
+    "id": "security-platform-source-900c314",
+    "kind": "source-archive",
+    "sha256": "063872f860f74e91f107c036afd321b812e4ec49510290fe042e4a9a0ee59258",
+    "bytes": 2590720,
+    "signingClass": "test-signed",
+    "publicReleaseEligible": false,
+    "downloadUrl": null
+  },
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "faq": [
+    {
+      "question": "Is the YNX Security Platform publicly deployed?",
+      "answer": "No. The current candidate is implemented, tested, and clean-installed locally from the authoritative repository, but central integration, staging, and public deployment are not yet verified."
+    },
+    {
+      "question": "Is the current artifact production-signed?",
+      "answer": "No. The current source archive uses an ephemeral local test signature and is not eligible for public release."
+    },
+    {
+      "question": "What release evidence is available?",
+      "answer": "The current candidate includes a reproducible source archive, SHA-256 digest, CycloneDX SBOM, provenance statement, test-signature verification, tamper-rejection tests, and successful protected-branch CI for the exact source commit."
+    }
+  ],
+  "structuredDataType": "SoftwareApplication",
+  "websitePublished": false,
+  "deployedPublic": false,
+  "websiteOwner": "YNX Website",
+  "integrationOwner": "YNX Integration"
+}

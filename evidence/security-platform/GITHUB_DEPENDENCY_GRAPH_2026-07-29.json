@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "verifiedAt": "2026-07-29T06:08:33Z",
+  "vulnerabilityAlerts": "enabled",
+  "dependencyGraph": {
+    "status": "enabled",
+    "spdxVersion": "SPDX-2.3",
+    "packageCountAtVerification": 827
+  },
+  "reason": "The pull-request dependency-review gate requires the repository dependency graph; it had failed closed while the graph was disabled.",
+  "credentialMaterialRecorded": false
+}
