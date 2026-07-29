@@ -20,9 +20,10 @@ Completed in this slice:
 7. Bound scoped Release, Contract, Handoff and coverage records to the exact merge source without changing public or production booleans.
 8. Repaired the missing integration-contract Makefile gate, upgraded its source binding to a full SHA and v12/v18, restored every missing Product 01 gate recipe and pinned the Product 01 workflow actions to immutable SHAs.
 9. Reclassified the four former `inProgress` entries only after direct local tests; public Testnet proof remains `externalBlocked` and no public/production boolean changed.
+10. Published and downloaded the source-only prerelease, recording its immutable URL, exact target commit, digest and bytes without claiming production signing or deployment.
 
 Next actions:
 
-1. Commit and push the gate-repair and zero-autonomous-gap checkpoint.
+1. Commit and push the hosted-source evidence checkpoint.
 2. Verify local SHA, tracking SHA and GitHub remote SHA equality, then verify PR checks and install strict branch protection.
 3. Re-run the exact clean release suite and submit the final Product 01 source candidate to central integration.

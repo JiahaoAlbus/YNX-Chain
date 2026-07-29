@@ -79,6 +79,7 @@ jobs:
             docs/integration/CHAIN_CORE_DEPENDENCY_ACCEPTANCE.md
             docs/integration/WEBSITE_HANDOFF.md
             release/integration/chain-core-contract.json
+            release/chain-core/artifact-registry.json
             release/chain-core/product-release.json
             release/chain-core/public-product-metadata.json
           if-no-files-found: error

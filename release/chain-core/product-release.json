@@ -1,6 +1,6 @@
 {
   "schema": "ynx-product-release/v1",
-  "generatedAt": "2026-07-28T18:50:00Z",
+  "generatedAt": "2026-07-29T19:06:46Z",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -30,9 +30,17 @@
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "sourceRelease": {
+    "tag": "chain-core-v0.2.0-source-candidate",
+    "targetCommit": "7c724e5f330afd4e7863b101cb230d84e3f9cd69",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/chain-core-v0.2.0-source-candidate",
+    "artifactRegistry": "release/chain-core/artifact-registry.json",
+    "class": "unsigned-source-prerelease",
+    "productionSigned": false
   },
   "deployedBaseline": {
     "release": "ynx-chain-02f4ccd8770c",
@@ -102,6 +110,7 @@
     "scripts/verify/bft-evm-fee-history-check.sh",
     "release/chain-core/public-product-metadata.json",
     "docs/integration/WEBSITE_HANDOFF.md",
-    "scripts/verify/chain-core-release-check.mjs"
+    "scripts/verify/chain-core-release-check.mjs",
+    "release/chain-core/artifact-registry.json"
   ]
 }

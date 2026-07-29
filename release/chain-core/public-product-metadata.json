@@ -1,6 +1,6 @@
 {
   "schema": "ynx-public-product-metadata/v1",
-  "generatedAt": "2026-07-28T18:50:00Z",
+  "generatedAt": "2026-07-29T19:06:46Z",
   "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
   "product": {
     "id": "chain-core",
@@ -27,9 +27,21 @@
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "independentPublicProof": false
   },
+  "artifacts": [
+    {
+      "kind": "source-archive",
+      "label": "YNX Chain Core v0.2.0 Source Candidate",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/chain-core-v0.2.0-source-candidate/ynx-chain-core-source-7c724e5f330a.tar.gz",
+      "sha256": "6828d6c0b008964394716de87646e90ea64b59faaae85be16e030b24c63995b6",
+      "bytes": 6474374,
+      "signingClass": "unsigned-source",
+      "productionSigned": false
+    }
+  ],
   "capabilities": [
     "committed-state-v12-and-abci-v18",
     "signed-native-transfer-and-replay-rejection",
@@ -79,7 +91,8 @@
     "docs/integration/CHAIN_CORE_INTEGRATION_HANDOFF.md",
     "release/chain-core/product-release.json",
     "release/integration/chain-core-contract.json",
-    "scripts/verify/streambft-candidate-check.sh"
+    "scripts/verify/streambft-candidate-check.sh",
+    "release/chain-core/artifact-registry.json"
   ],
   "externalBlockers": [
     "Central Product Session integration and cross-product vectors require the 29-integration owner.",

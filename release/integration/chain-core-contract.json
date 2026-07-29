@@ -379,7 +379,7 @@
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   }

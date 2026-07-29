@@ -9,5 +9,6 @@
 - The missing `integration-contract-check` Makefile recipe was restored; its stale global paths, v11/v17 assertions and short-SHA contract were corrected to Product 01-scoped v12/v18 records with a full 40-character source commit. All declared Product 01 `.PHONY` gates now have recipes.
 - Full-goal coverage has zero autonomous/unresolved statuses: eight locally tested, two local Testnet-verified, one externally blocked public Testnet proof and one verified protection item.
 - Documentation release packaging passes only from clean tracked source and passed after the merge commit.
-- Current-source public deployment, production signing, hosted download, central acceptance and independent public proof remain false.
-- The gate-repair/status commit and remote/CI verification are the current protection action.
+- Source-only prerelease `chain-core-v0.2.0-source-candidate` is hosted at GitHub and its downloaded archive reverified at SHA-256 `6828d6c0b008964394716de87646e90ea64b59faaae85be16e030b24c63995b6` / 6,474,374 bytes.
+- Current-source public deployment, production signing, central acceptance and independent public proof remain false.
+- The hosted-source evidence commit and remote/CI verification are the current protection action.

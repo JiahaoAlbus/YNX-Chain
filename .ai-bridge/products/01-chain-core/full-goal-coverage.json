@@ -24,7 +24,7 @@
       "integratedCentral": false,
       "deployedStaging": false,
       "deployedPublic": false,
-      "downloadHosted": false,
+      "downloadHosted": true,
       "productionSigned": false,
       "storeReleased": false
     }
@@ -112,15 +112,17 @@
         "make secret-scan",
         "make static-check"
       ],
-      "artifact": [],
+      "artifact": [
+        "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/chain-core-v0.2.0-source-candidate/ynx-chain-core-source-7c724e5f330a.tar.gz"
+      ],
       "publicProof": [],
       "blockedBy": [
         "central Wallet/Auth acceptance",
         "current-source public deployment",
-        "hosted signed artifact and independent public evidence"
+        "production-signed runtime artifact and independent public evidence"
       ],
       "owner": "01-chain-core",
-      "nextAction": "Preserve the passed local compliance baseline and obtain central Wallet/Auth, hosted artifact, current-source public deployment and independent proof without changing public booleans prematurely.",
+      "nextAction": "Preserve the passed local compliance and hosted-source baseline, then obtain central Wallet/Auth, production runtime signing, current-source public deployment and independent proof without changing public booleans prematurely.",
       "lastUpdated": "2026-07-28T19:08:00Z"
     },
     {
@@ -518,15 +520,17 @@
       ],
       "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
       "tests": [],
-      "artifact": [],
+      "artifact": [
+        "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/chain-core-v0.2.0-source-candidate/ynx-chain-core-source-7c724e5f330a.tar.gz"
+      ],
       "publicProof": [],
       "blockedBy": [
         "current-source public deployment and proof",
         "central owner acceptance",
-        "hosted artifact and production signing evidence"
+        "production-signed runtime artifact evidence"
       ],
       "owner": "01-chain-core",
-      "nextAction": "Submit the exact protected source candidate to central integration; public Testnet, hosted artifact, production signing and independent proof remain externally gated.",
+      "nextAction": "Submit the exact protected and hosted source candidate to central integration; public Testnet, production runtime signing and independent proof remain externally gated.",
       "lastUpdated": "2026-07-28T19:08:00Z"
     },
     {
