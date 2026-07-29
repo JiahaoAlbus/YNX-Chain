@@ -2,13 +2,13 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 1.1.3-candidate |
+| Version | 1.1.4-candidate |
 | Effective date | 2026-07-29 |
-| Source commit | `e36832d5be0c498d8a2f27869f8d70fc112e9442` |
+| Source commit | `7b386fc4ea7be4d25bf9217f6242d6da17a6f6f9` |
 | Product release | 0.2.0-candidate |
 | Last reviewed | 2026-07-29 |
-| Superseded version | 1.1.2-candidate |
-| Review status | Website integration handoff; the e36832d package is locally and CI verified but not yet Website-accepted or publicly hosted |
+| Superseded version | 1.1.3-candidate |
+| Review status | Website integration handoff and public audit; the e36832d package remains locally and CI verified but not Website-accepted or publicly hosted |
 
 ## Canonical identity
 
@@ -97,14 +97,24 @@ returns exact source, deployment and artifact proof for this candidate.
 
 ## Integration acceptance evidence
 
-Current Website acceptance and direct public observations are recorded in
-`release/evidence/website-public-acceptance-2026-07-26.json`. Future changes must
-return the Website source identity, deployment identity, route-to-source manifest,
-rendered metadata/JSON-LD, discovery results, accessibility and link checks, public URL
-responses and artifact hashes. No release boolean may change without direct proof.
+Current Website acceptance is recorded in
+`release/evidence/website-public-acceptance-2026-07-26.json`. A fresh operator-controlled
+public audit is recorded in `release/evidence/website-public-audit-2026-07-29.json`.
+The audit confirmed the authority route and immutable hosted archive, but found that
+`/what-is-ynx-chain` emits two conflicting canonical links: the site root and the route
+canonical. YNX 28 must emit exactly one route canonical and return source/deployment/HTML
+evidence; this finding does not change any release-state boolean.
+
+Future changes must return the Website source identity, deployment identity,
+route-to-source manifest, rendered metadata/JSON-LD, discovery results, accessibility and
+link checks, public URL responses and artifact hashes. No release boolean may change
+without direct proof.
 
 ## Change log
 
+- 1.1.4-candidate (2026-07-29): Recorded fresh public route and immutable archive
+  evidence, plus the conflicting duplicate-canonical finding and exact YNX 28 acceptance
+  criteria, without changing release-state booleans.
 - 1.1.3-candidate (2026-07-29): Rebound the next Website-content candidate to the
   fourteen-document `e36832d` package, exact local archive hash and successful CI
   artifact without promoting Website acceptance, hosted-download or signing states.

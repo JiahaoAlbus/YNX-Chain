@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "18",
+  "productName": "YNX Whitepaper / Compliance / Brand",
+  "phase": "PUBLIC",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/18-docs-compliance",
+  "branch": "codex/final-docs-compliance",
+  "localSha": "7b386fc4ea7be4d25bf9217f6242d6da17a6f6f9",
+  "remoteSha": "7b386fc4ea7be4d25bf9217f6242d6da17a6f6f9",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "mainAhead": 10,
+  "mainBehind": 47,
+  "checkpointSemantics": "The SHAs describe the clean source checkpoint immediately before the successor recovery-record commit containing this file.",
+  "latestSuccessfulTests": [
+    "make document-metadata-check",
+    "make docs-release-package-check",
+    "make docs-compliance-check",
+    "make public-disclosure-check",
+    "make full-goal-coverage-check",
+    "make no-placeholder-check",
+    "make secret-scan",
+    "make static-check",
+    "make objective-state-check",
+    "node scripts/verify/docs-release-package-check.mjs tmp/packages/docs-release"
+  ],
+  "latestCiRuns": [
+    {
+      "workflow": "docs-compliance",
+      "runId": 30417883673,
+      "headSha": "7b386fc4ea7be4d25bf9217f6242d6da17a6f6f9",
+      "result": "success"
+    },
+    {
+      "workflow": "docs-compliance",
+      "runId": 30416936231,
+      "headSha": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
+      "result": "success"
+    }
+  ],
+  "pullRequests": [
+    {
+      "number": 6,
+      "state": "merged",
+      "sourceSha": "3dee634ea695f4a69d3f5dcbecec205c46257e12",
+      "note": "Historical latest merged PR; no PR exists for the current candidate."
+    }
+  ],
+  "release": {
+    "name": "0.2.0-candidate",
+    "class": "documentation-candidate",
+    "productSpecificGitHubRelease": false,
+    "acceptedPublicSource": "601d13bd677729ff59819ea70076a7de461328f2",
+    "newerCandidateSource": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
+    "newerCandidateWebsiteAccepted": false,
+    "newerCandidateDownloadHosted": false,
+    "productionSigned": false
+  },
+  "artifacts": [
+    {
+      "kind": "local-deterministic-package",
+      "name": "ynx-website-content-7b386fc4ea7b.zip",
+      "bytes": 277728,
+      "sha256": "cec892bd19d823d8459d47e8b7350f3b29a90af8645ef60b1cfaf9a6d544d70a"
+    },
+    {
+      "kind": "github-actions-container",
+      "id": 8710800710,
+      "digest": "sha256:bfae2f1499cd21d5bbe281c83bf1b38f266de723fc5d63ed1bbe9a9c38374780",
+      "expired": false,
+      "expiresAt": "2026-08-28T02:50:03Z"
+    },
+    {
+      "kind": "public-hosted-package",
+      "name": "ynx-website-content-601d13bd6777.zip",
+      "bytes": 136954,
+      "sha256": "37cefdeeda4d8c600ccd3e8c6bd8147156a803b6a1129e9486d81cb118583d75",
+      "immutable": true,
+      "productionSigned": false
+    }
+  ],
+  "publicRoutes": [
+    {
+      "url": "https://ynxweb4.com/what-is-ynx-chain",
+      "status": 200,
+      "finding": "Conflicting root and route canonical links"
+    },
+    {
+      "url": "https://ynxweb4.com/docs-authority/artifact-manifest.json",
+      "status": 200
+    }
+  ],
+  "completed": [
+    "Recovered correct YNX 18 workspace and repository",
+    "Protected existing commits and verified clean upstream state",
+    "Normalized and inventoried staking disclosure",
+    "Expanded metadata authority to fourteen documents",
+    "Required staking disclosure in deterministic Website package",
+    "Bound exact CI, artifact, integration and Website Handoff evidence",
+    "Recorded current public archive verification and duplicate-canonical defect"
+  ],
+  "remaining": [
+    "Normalize trading core and the remaining high-authority cohort",
+    "Obtain YNX 28 canonical correction and newer-candidate Website acceptance",
+    "Resolve branch/main compatibility through YNX 29",
+    "Obtain named professional reviews and any approved production signing"
+  ],
+  "blockers": [
+    "YNX18-B01 Website canonical conflict",
+    "YNX18-B02 Integration compatibility",
+    "YNX18-B03 Professional review and signing"
+  ],
+  "nextAction": "Normalize Trading Core / UltraLiquidity / FairFlow, Wallet/Auth mandate, Bridge/Oracle/Data Fabric, Quant, Trust and Product Architecture metadata as one bounded tested slice.",
+  "updatedAt": "2026-07-29T10:57:38+08:00"
+}

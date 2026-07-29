@@ -116,18 +116,19 @@
       "path": "docs/public/WEBSITE_INTEGRATION_HANDOFF.md",
       "authorityClass": "website-integration-handoff",
       "metadata": {
-        "Version": "1.1.3-candidate",
+        "Version": "1.1.4-candidate",
         "Effective date": "2026-07-29",
-        "Source commit": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
+        "Source commit": "7b386fc4ea7be4d25bf9217f6242d6da17a6f6f9",
         "Product release": "0.2.0-candidate",
         "Last reviewed": "2026-07-29",
-        "Superseded version": "1.1.2-candidate",
-        "Review status": "Website integration handoff; the e36832d package is locally and CI verified but not yet Website-accepted or publicly hosted"
+        "Superseded version": "1.1.3-candidate",
+        "Review status": "Website integration handoff and public audit; the e36832d package remains locally and CI verified but not Website-accepted or publicly hosted"
       },
-      "changeLogVersion": "1.1.3-candidate",
+      "changeLogVersion": "1.1.4-candidate",
       "publicEvidence": [
         "release/evidence/document-metadata-2026-07-29.json",
-        "release/evidence/website-public-acceptance-2026-07-26.json"
+        "release/evidence/website-public-acceptance-2026-07-26.json",
+        "release/evidence/website-public-audit-2026-07-29.json"
       ]
     },
     {

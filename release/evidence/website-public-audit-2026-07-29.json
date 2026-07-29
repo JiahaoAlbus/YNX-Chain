@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "evidenceId": "YNX18-WEBSITE-PUBLIC-AUDIT-2026-07-29",
+  "productNumber": 18,
+  "observedAt": "2026-07-29T10:57:38+08:00",
+  "vantage": "operator-controlled MCP workspace",
+  "officialDomain": "https://ynxweb4.com",
+  "authorityRoute": {
+    "url": "https://ynxweb4.com/what-is-ynx-chain",
+    "redirect": "https://www.ynxweb4.com/what-is-ynx-chain",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "renderedBundleSource": "601d13bd6777",
+    "declaredPageCanonical": "https://ynxweb4.com/what-is-ynx-chain",
+    "finding": "The rendered HTML contains two canonical link elements: one for https://ynxweb4.com/ and one for https://ynxweb4.com/what-is-ynx-chain. This is a conflicting SEO signal and requires a Website-owner correction."
+  },
+  "publicArtifactManifest": {
+    "url": "https://ynxweb4.com/docs-authority/artifact-manifest.json",
+    "status": 200,
+    "contentType": "application/json; charset=utf-8",
+    "sourceCommit": "601d13bd677729ff59819ea70076a7de461328f2",
+    "archive": "ynx-website-content-601d13bd6777.zip",
+    "bytes": 136954,
+    "sha256": "37cefdeeda4d8c600ccd3e8c6bd8147156a803b6a1129e9486d81cb118583d75",
+    "productionSigned": false,
+    "downloadHosted": true,
+    "immutable": true
+  },
+  "archiveVerification": {
+    "downloaded": true,
+    "bytes": 136954,
+    "sha256": "37cefdeeda4d8c600ccd3e8c6bd8147156a803b6a1129e9486d81cb118583d75",
+    "matchesManifest": true
+  },
+  "candidateBoundary": {
+    "newerCandidateSource": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
+    "newerCandidateWebsiteAccepted": false,
+    "newerCandidateDownloadHosted": false,
+    "newerCandidateProductionSigned": false
+  },
+  "requiredWebsiteOwnerAction": {
+    "owner": "YNX 28 Website / SEO / Product Micro-sites",
+    "action": "Emit exactly one canonical link on /what-is-ynx-chain, pointing to https://ynxweb4.com/what-is-ynx-chain; preserve the official domain and return route-level HTML evidence after deployment.",
+    "acceptance": [
+      "HTTP 200 for the canonical route",
+      "exactly one canonical link element",
+      "canonical href equals https://ynxweb4.com/what-is-ynx-chain",
+      "no huangjeo.com product canonical",
+      "route source and deployment identity recorded"
+    ]
+  },
+  "limitations": [
+    "This operator-controlled observation is direct public evidence for the named route and archive only; it is not independent proof.",
+    "A successful public route does not promote the newer e36832d candidate to Website-accepted, hosted or signed."
+  ]
+}

@@ -20,6 +20,7 @@
     "releaseState": "release/product-release.json",
     "documentMetadata": "release/document-metadata-inventory.json",
     "documentMetadataEvidence": "release/evidence/document-metadata-2026-07-29.json",
+    "websitePublicAudit": "release/evidence/website-public-audit-2026-07-29.json",
     "websiteHandoff": "docs/public/WEBSITE_INTEGRATION_HANDOFF.md",
     "coverage": ".ai-bridge/full-goal-coverage.json"
   },
