@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "futureOwnerExtension": {
+    "mustSurviveForwardAndRollback": true
+  }
+}

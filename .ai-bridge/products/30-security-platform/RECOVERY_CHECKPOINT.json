@@ -25,7 +25,8 @@
     "remoteCi": "evidence/security-platform/GITHUB_CI_7be79d5.json",
     "dependencyGraph": "evidence/security-platform/GITHUB_DEPENDENCY_GRAPH_2026-07-29.json"
     ,
-    "branchProtection": "evidence/security-platform/GITHUB_BRANCH_PROTECTION_AUTHORITATIVE_2026-07-29.json"
+    "branchProtection": "evidence/security-platform/GITHUB_BRANCH_PROTECTION_AUTHORITATIVE_2026-07-29.json",
+    "recordMigration": "evidence/security-platform/LOCAL_RECORD_MIGRATION_2026-07-29.json"
   },
   "truth": {
     "implementedLocal": true,

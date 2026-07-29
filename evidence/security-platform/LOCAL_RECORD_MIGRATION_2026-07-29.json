@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "scenario": "machine-readable-record-forward-rollback-and-compatibility-drill",
+  "verifiedAt": "2026-07-29T06:22:00Z",
+  "releaseSourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+  "plan": "security-platform/migrations/platform-status-v1-v2.plan.json",
+  "fixture": "security-platform/migrations/fixtures/platform-status-v1.json",
+  "result": "passed-local",
+  "tests": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "coverage": [
+      "deterministic additive forward migration",
+      "unknown additive field preservation in both directions",
+      "unknown schema and unrelated rollback marker rejection",
+      "fail-closed minimum-client policy for security semantic changes",
+      "irreversible-event rollback prohibition",
+      "non-mutating dry run",
+      "exclusive byte-exact pre-mutation backup and atomic replacement"
+    ]
+  },
+  "dryRun": {
+    "direction": "forward",
+    "fromSchemaVersion": 1,
+    "toSchemaVersion": 2,
+    "oldClientBehavior": "compatible-additive",
+    "minimumReaderSchemaVersion": 1,
+    "securitySemanticsChanged": false,
+    "deprecationDate": "2027-07-29",
+    "before": {
+      "bytes": 442,
+      "sha256": "0c846bb9c3b74814a96c34d42f19247e9e9b06f6089325fc8e4079ea89fd5124",
+      "objectCount": 3
+    },
+    "after": {
+      "bytes": 809,
+      "sha256": "20d55a727c8f73bedc5107f4d6aa1e0ad260f069f6356652ea7eb93af91013b6",
+      "objectCount": 5
+    },
+    "mutated": false
+  },
+  "limitations": [
+    "fixture-backed local migration only",
+    "no authoritative production record was mutated",
+    "no cross-product old-client matrix was executed",
+    "no live export, delete, retention, retirement, or provider migration occurred"
+  ]
+}

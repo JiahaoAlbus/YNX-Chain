@@ -13,7 +13,9 @@ Updated: 2026-07-29T06:08:33Z
 - Legacy repository: `JiahaoAlbus/YNX` (read-only for this product)
 - Legacy branch: `legacy/final-security-platform-ynx`
 
-The authoritative source artifact, SBOM, provenance, ephemeral test signature, tamper-rejection evidence, clean clone installation, CLI cold start, Kubernetes render, production dependency audit, and 172/172 security tests pass. GitHub push CI also passes in the authoritative repository.
+The frozen release source artifact, SBOM, provenance, ephemeral test signature, tamper-rejection evidence, clean clone installation, CLI cold start, Kubernetes render, production dependency audit, and its 172/172 security tests pass. The current branch adds 7/7 record-migration tests, bringing the suite to 179/179. GitHub push CI also passes in the authoritative repository.
+
+The machine-readable record migration boundary is now executable and fixture-tested: forward/rollback, additive-field preservation, unknown-version rejection, pre-mutation backup, checksums/counts, minimum-client gating, irreversible-event rollback denial, and dry-run behavior pass 7/7 locally.
 
 All external GitHub Actions in the authoritative repository are pinned to immutable 40-character commits. The authoritative Product 30 branch now has six strict required checks, CODEOWNERS review, stale-review dismissal, last-push approval, linear history, conversation resolution, and force-push/deletion denial. Public, staging, hosted-download, production-signing, and store states remain false.
 

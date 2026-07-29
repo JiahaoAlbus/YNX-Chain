@@ -17,7 +17,7 @@ Updated: 2026-07-29T06:08:33Z
 - Exact workspace and branch match.
 - Origin is `https://github.com/JiahaoAlbus/YNX-Chain.git`; legacy-origin is `https://github.com/JiahaoAlbus/YNX.git`.
 - Cross-platform lifecycle-script audit defect fixed without weakening supported-platform checks.
-- Security regression suite passed 172/172 from a fresh authoritative clone at exact source `900c314...`.
+- Security regression suite passed 172/172 from a fresh authoritative clone at exact release source `900c314...`; the current branch adds 7/7 migration tests for 179/179.
 - Full repository tests passed: Contracts 18, SDK 14, Bridge Service 11, AI Gateway 28, Web4 Hub 18.
 - Kubernetes staging and production candidates rendered and passed local policy.
 - Third-party notices matched dependency graphs.

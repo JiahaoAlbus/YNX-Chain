@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "security-platform-status-v1-v2",
+  "recordType": "security-platform-release-status",
+  "fromSchemaVersion": 1,
+  "toSchemaVersion": 2,
+  "owner": "30-security-sre-release",
+  "deprecationDate": "2027-07-29",
+  "oldClientBehavior": "compatible-additive",
+  "minimumReaderSchemaVersion": 1,
+  "securitySemanticsChanged": false,
+  "backupRequiredBeforeMutation": true,
+  "rollbackPolicy": "allowed only while migrationCompatibility.irreversibleEvents is empty",
+  "unknownAdditiveFields": "preserve"
+}

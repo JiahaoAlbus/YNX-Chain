@@ -14,3 +14,6 @@ Updated: 2026-07-29T06:08:33Z
 7. Enabled vulnerability alerts and verified the dependency graph exports SPDX 2.3 with 827 packages.
 8. From a fresh authoritative clone at exact source `900c314...`, passed locked install, lifecycle audit, dependency rebuild, policy verification, notices, staging/production manifest rendering, production dependency audit with zero vulnerabilities, and 172/172 tests.
 9. Configured strict protection on `codex/final-security-platform` and received the complete effective policy from the GitHub API.
+10. Passed every visible check on authoritative PR `#16`, including dependency review, governance, full CI, CodeQL and both native iOS builds.
+11. Added and passed 7/7 executable machine-readable record migration and rollback tests plus a deterministic dry run.
+12. Ran the central contract-tooling precondition, then passed all Go command/internal tests and `go vet ./...`.
