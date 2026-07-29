@@ -1,30 +1,49 @@
 {
-  "schemaVersion":"1.0.0",
-  "productId":"03",
-  "product":"YNX Social",
-  "owner":"03-social",
-  "sourceCommit":"4a6f40f187185a51060d3533170bbf8b75b03cb1",
-  "vectors":[
+  "schemaVersion": "1.0.0",
+  "productId": "03",
+  "product": "YNX Social",
+  "owner": "03-social",
+  "sourceCommit": "6ff91db0b7ce7509d1967e3936c7a0a85d45ea12",
+  "vectors": [
     {
-      "id":"SOC-CP-001",
-      "flow":"Wallet -> Social -> Chat -> Data Fabric",
-      "status":"testedLocal",
-      "positive":["exact Social Product Session accepted","device-bound ciphertext sent once","delivery and read lifecycle retained"],
-      "negative":["wrong product, bundle, device, reordered scope, expiry, revoke, replay and tamper rejected"]
+      "id": "SOC-CP-001",
+      "flow": "Wallet -> Social -> Chat -> Data Fabric",
+      "status": "testedLocal",
+      "centralAcceptance": "pending",
+      "positive": [
+        "exact Social Product Session accepted",
+        "device-bound ciphertext sent once",
+        "delivery and read lifecycle retained"
+      ],
+      "negative": [
+        "wrong product, bundle, device, reordered scope, expiry, revoke, replay and tamper rejected"
+      ]
     },
     {
-      "id":"SOC-CP-002",
-      "flow":"Social Report -> Trust Appeal",
-      "status":"inProgress",
-      "positive":["report evidence exported with audit identity","appeal references the exact report"],
-      "negative":["Social cannot resolve its own external Trust case or hide corrections"]
+      "id": "SOC-CP-002",
+      "flow": "Social Report -> Trust Appeal",
+      "status": "inProgress",
+      "centralAcceptance": "pending",
+      "positive": [
+        "report evidence exported with audit identity",
+        "appeal references the exact report"
+      ],
+      "negative": [
+        "Social cannot resolve its own external Trust case or hide corrections"
+      ]
     },
     {
-      "id":"SOC-CP-003",
-      "flow":"Social Tip -> Pay -> Billing Ledger",
-      "status":"inProgress",
-      "positive":["user previews gross, provider cost, gas, protocol fee and creator net","Pay owns signed execution and receipt"],
-      "negative":["Social cannot sign, settle, invent a receipt or promote a failed payment"]
+      "id": "SOC-CP-003",
+      "flow": "Social Tip -> Pay -> Billing Ledger",
+      "status": "inProgress",
+      "centralAcceptance": "pending",
+      "positive": [
+        "user previews gross, provider cost, gas, protocol fee and creator net",
+        "Pay owns signed execution and receipt"
+      ],
+      "negative": [
+        "Social cannot sign, settle, invent a receipt or promote a failed payment"
+      ]
     }
   ]
 }
