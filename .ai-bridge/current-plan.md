@@ -11,17 +11,17 @@ Release Candidate: `ynx-data-fabric-84872ff9042e`
 - Evidence manifests no longer reference nonexistent tests or assets; the machine path validator is part of Quality Gates.
 - Reachable vulnerability `GO-2026-6061` was removed by upgrading `google.golang.org/grpc` from `v1.79.3` to `v1.82.1`.
 - Full repository tests, Data Fabric Race tests, Vet and `govulncheck` pass locally; reachable vulnerabilities are zero.
-- The previous protected source remains recoverable; the aligned engineering Source Commit is frozen locally and awaiting its evidence checkpoint push.
+- The aligned engineering Source Commit is frozen, present in the remote branch, and verified by successful GitHub Actions run `30488889722` at descendant checkpoint `a737b19c92ae53f89792694cfe0d6de16567ae49`.
 - Central integration, shared Testnet, staging, public deployment, hosted download and production signing remain false without direct receipts.
 
 ## Current slice
 
-1. Validate the source-bound release records with truthful `remoteCI: pending` state.
-2. Commit and push the evidence-boundary update without changing the engineering Source Commit.
-3. Verify the resulting GitHub Actions run for a descendant commit containing the exact engineering Source Commit.
-4. Replace pending CI state only with the actual successful Run ID, head SHA, timestamps and conclusion.
-5. Resume the highest-priority autonomous central-integration and shared-Testnet work.
+1. Publish the source-only prerelease from the protected evidence checkpoint and verify every downloaded asset digest.
+2. Record the immutable source-candidate receipt without changing public download or production-signing states.
+3. Apply strict branch protection to the exact product and repository checks.
+4. Submit the frozen contract to Product 29 for central acceptance.
+5. Resume shared-Testnet work only from accepted authorities and approved infrastructure.
 
 ## Exact next action
 
-Run Release Truth and full Quality Gates, protect the pending-evidence commit, then bind the actual successful CI receipt. Keep phase `INTEGRATE` and all central, staging and public states false until direct evidence exists.
+Publish and back-read the source-only candidate, then hand the exact frozen contract and test vectors to central integration. Keep shared-Testnet, staging and public states false until direct evidence exists.

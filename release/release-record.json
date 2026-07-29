@@ -5,7 +5,7 @@
   "release": "ynx-data-fabric-84872ff9042e",
   "channel": "testnet-preview",
   "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
-  "generatedAt": "2026-07-29T20:25:09Z",
+  "generatedAt": "2026-07-29T20:40:02Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -80,16 +80,16 @@
       "releaseTruth": "passed"
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 30488889722,
       "workflow": "data-fabric",
       "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "a737b19c92ae53f89792694cfe0d6de16567ae49",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-07-29T20:33:05Z",
+      "duration": "3m28s",
       "artifactsPublished": false,
-      "url": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30488889722"
     },
     "coverage": ".ai-bridge/full-goal-coverage.json",
     "integrationContract": "release/integration/ynx-data-fabric-contract.json",

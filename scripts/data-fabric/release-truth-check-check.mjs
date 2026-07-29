@@ -48,7 +48,7 @@ function expectFailure(label, mutation) {
   copyFixture();
   mutation();
   try {
-    verifyReleaseTruth({ root: fixture, expectedSourceCommit });
+    verifyReleaseTruth({ root: fixture, expectedSourceCommit, repositoryRoot: root });
   } catch {
     return;
   }
@@ -58,7 +58,7 @@ function expectFailure(label, mutation) {
 try {
   verifyReleaseTruth({ root, expectedSourceCommit });
   copyFixture();
-  verifyReleaseTruth({ root: fixture, expectedSourceCommit });
+  verifyReleaseTruth({ root: fixture, expectedSourceCommit, repositoryRoot: root });
 
   expectFailure("stale source commit", () => {
     const release = readJSON("product-release.json");
@@ -84,10 +84,9 @@ try {
     writeJSON(".ai-bridge/full-goal-coverage.json", coverage);
   });
 
-  expectFailure("fabricated remote CI success", () => {
+  expectFailure("invalid remote CI ancestry", () => {
     const release = readJSON("release/release-record.json");
-    release.evidence.remoteCI.status = "completed";
-    release.evidence.remoteCI.conclusion = "success";
+    release.evidence.remoteCI.headCommit = "0000000000000000000000000000000000000000";
     writeJSON("release/release-record.json", release);
   });
 

@@ -6,7 +6,7 @@
   "overallStatus": "ACTIVE",
   "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
   "release": "ynx-data-fabric-84872ff9042e",
-  "lastUpdated": "2026-07-29T20:25:09Z",
+  "lastUpdated": "2026-07-29T20:40:02Z",
   "items": [
     {
       "id": "DF-RECOVER-001",
@@ -29,16 +29,16 @@
       "category": "git-delivery",
       "requirement": "Protect verified engineering changes on codex/final-data-fabric and verify Local SHA equals the remote branch SHA.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": ["frozen engineering source commit 84872ff9042ed9f4364645750bbfa2dc3475e80b exists locally", "the previous protected branch head remains recoverable while the source-bound evidence checkpoint is pending"],
+      "status": "verifiedComplete",
+      "evidence": ["frozen engineering source commit 84872ff9042ed9f4364645750bbfa2dc3475e80b is an ancestor of protected remote checkpoint a737b19c92ae53f89792694cfe0d6de16567ae49", "local, tracking and remote branch SHA were identical after each non-force push", "GitHub Actions run 30488889722 passed both data-fabric-verify and data-fabric-postgres-live"],
       "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
       "tests": ["git push origin HEAD", "git ls-remote origin refs/heads/codex/final-data-fabric"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
-      "nextAction": "Push the source-bound evidence checkpoint without force, then record exact local, tracking and remote SHA equality.",
-      "lastUpdated": "2026-07-29T20:25:09Z"
+      "nextAction": "Protect each subsequent evidence-only checkpoint with the same non-force push, exact SHA comparison and remote CI verification.",
+      "lastUpdated": "2026-07-29T20:36:33Z"
     },
     {
       "id": "DF-EVENT-001",

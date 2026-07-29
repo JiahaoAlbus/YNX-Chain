@@ -193,7 +193,7 @@ function verifyPublicBoundary(publicMetadata, productRelease) {
   assert(Array.isArray(productRelease.artifacts) && productRelease.artifacts.length === 0, "hosted artifacts are claimed without immutable receipts");
 }
 
-export function verifyReleaseTruth({ root, expectedSourceCommit }) {
+export function verifyReleaseTruth({ root, expectedSourceCommit, repositoryRoot = root }) {
   const resolvedRoot = path.resolve(root);
   for (const relativePath of requiredIntegrationFiles) {
     assert(existsSync(path.join(resolvedRoot, relativePath)), `${relativePath} is missing`);
@@ -270,7 +270,10 @@ export function verifyReleaseTruth({ root, expectedSourceCommit }) {
   assert(remoteCICompleted || remoteCIPending, "remote CI evidence is neither truthful pending state nor successful evidence");
   if (remoteCICompleted) {
     try {
-      execFileSync("git", ["merge-base", "--is-ancestor", expectedSourceCommit, remoteCI.headCommit], { cwd: resolvedRoot });
+      execFileSync("git", ["merge-base", "--is-ancestor", expectedSourceCommit, remoteCI.headCommit], {
+        cwd: path.resolve(repositoryRoot),
+        stdio: "ignore",
+      });
     } catch {
       fail("remote CI headCommit is not a descendant of the engineering source commit");
     }
