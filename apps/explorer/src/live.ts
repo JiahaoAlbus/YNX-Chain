@@ -7,6 +7,7 @@ export interface LiveHandlers {
   onSnapshot(snapshot: DashboardSnapshot): void;
   onStatus(status: Availability, detail?: string): void;
 }
+
 export interface LiveOptions {
   eventSource?: typeof EventSource;
   fetcher?: typeof fetch;
@@ -32,20 +33,26 @@ export function connectLiveData(handlers: LiveHandlers, options: LiveOptions = {
   const reconnectBase = options.reconnectBaseMs ?? 1_000;
   const pollMs = options.pollMs ?? 10_000;
   let source: EventSource | undefined;
-  let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   let pollTimer: ReturnType<typeof setTimeout> | undefined;
   let stopped = false;
   let reconnects = 0;
   let pollFailures = 0;
+  let pollingActive = false;
+
+  const stopPolling = () => {
+    pollingActive = false;
+    if (pollTimer) timers.clearTimeout(pollTimer);
+    pollTimer = undefined;
+  };
 
   const clear = () => {
-    if (reconnectTimer) timers.clearTimeout(reconnectTimer);
-    if (pollTimer) timers.clearTimeout(pollTimer);
+    stopPolling();
     source?.close();
   };
 
-  const accept = (snapshot: DashboardSnapshot) => {
+  const accept = (snapshot: DashboardSnapshot, fromStream = false) => {
     const receivedAt = now();
+    if (fromStream) stopPolling();
     handlers.onSnapshot(snapshot);
     handlers.onStatus(classifyFreshness(snapshot, receivedAt, now()), snapshot.warnings?.join(' · '));
     reconnects = 0;
@@ -53,19 +60,40 @@ export function connectLiveData(handlers: LiveHandlers, options: LiveOptions = {
   };
 
   const poll = async () => {
-    if (stopped) return;
+    if (stopped || !pollingActive) return;
     handlers.onStatus('polling', 'Live stream interrupted; bounded snapshot polling is active.');
     try {
       const [summary, blocks, transactions, validators] = await Promise.all([
-        fetcher('/api/summary'), fetcher('/api/blocks/latest'), fetcher('/api/txs'), fetcher('/api/validators')
+        fetcher('/api/summary'),
+        fetcher('/api/blocks/latest'),
+        fetcher('/api/txs'),
+        fetcher('/api/validators')
       ]);
-      if (![summary, blocks, transactions, validators].every(r => r.ok)) throw new Error('one or more snapshot sources rejected the request');
-      accept({ summary: await summary.json(), blocks: await blocks.json(), transactions: await transactions.json(), validators: await validators.json() });
+      if (![summary, blocks, transactions, validators].every(response => response.ok)) {
+        throw new Error('one or more snapshot sources rejected the request');
+      }
+      accept({
+        summary: await summary.json(),
+        blocks: await blocks.json(),
+        transactions: await transactions.json(),
+        validators: await validators.json()
+      });
     } catch (error) {
       pollFailures += 1;
-      handlers.onStatus(pollFailures >= MAX_POLL_FAILURES ? 'unavailable' : 'stale', error instanceof Error ? error.message : 'snapshot failed');
+      handlers.onStatus(
+        pollFailures >= MAX_POLL_FAILURES ? 'unavailable' : 'stale',
+        error instanceof Error ? error.message : 'snapshot failed'
+      );
     }
-    if (!stopped && pollFailures < MAX_POLL_FAILURES) pollTimer = timers.setTimeout(poll, pollMs);
+    if (!stopped && pollingActive && pollFailures < MAX_POLL_FAILURES) {
+      pollTimer = timers.setTimeout(() => void poll(), pollMs);
+    }
+  };
+
+  const startPolling = (delay = reconnectBase) => {
+    if (stopped || pollingActive) return;
+    pollingActive = true;
+    pollTimer = timers.setTimeout(() => void poll(), delay);
   };
 
   const connect = () => {
@@ -73,18 +101,41 @@ export function connectLiveData(handlers: LiveHandlers, options: LiveOptions = {
     handlers.onStatus('connecting');
     source = new ES('/api/stream');
     source.addEventListener('dashboard', event => {
-      try { accept(JSON.parse((event as MessageEvent).data)); }
-      catch { handlers.onStatus('stale', 'The upstream emitted an invalid dashboard event.'); }
+      try {
+        accept(JSON.parse((event as MessageEvent).data), true);
+      } catch {
+        handlers.onStatus('stale', 'The upstream emitted an invalid dashboard event.');
+      }
     });
-    source.addEventListener('upstream-error', event => handlers.onStatus('stale', (event as MessageEvent).data || 'Upstream error'));
-    source.onopen = () => { reconnects = 0; };
+    source.addEventListener('stream-reset', event => {
+      let reason = 'event history is unavailable';
+      try {
+        const payload = JSON.parse((event as MessageEvent).data) as { reason?: string };
+        if (payload.reason) reason = payload.reason.replace(/_/g, ' ');
+      } catch {
+        reason = 'the recovery control event was invalid';
+      }
+      handlers.onStatus('polling', `Live event gap detected (${reason}); awaiting a full snapshot.`);
+      startPolling(0);
+    });
+    source.addEventListener('upstream-error', event => {
+      handlers.onStatus('stale', (event as MessageEvent).data || 'Upstream error');
+      startPolling();
+    });
+    source.onopen = () => {
+      reconnects = 0;
+      stopPolling();
+    };
     source.onerror = () => {
-      source?.close();
       reconnects += 1;
-      void poll();
-      reconnectTimer = timers.setTimeout(connect, Math.min(reconnectBase * 2 ** (reconnects - 1), 8_000));
+      handlers.onStatus('connecting', `Live stream reconnect attempt ${reconnects}; native Last-Event-ID recovery remains active.`);
+      startPolling(Math.min(reconnectBase * 2 ** (reconnects - 1), 8_000));
     };
   };
+
   connect();
-  return () => { stopped = true; clear(); };
+  return () => {
+    stopped = true;
+    clear();
+  };
 }

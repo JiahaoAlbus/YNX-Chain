@@ -73,4 +73,36 @@ metrics="$(curl -fsS "$explorer_url/metrics")"
 grep -Fq "ynx_explorer_rpc_height" <<<"$metrics"
 grep -Fq 'native_symbol="YNXT"' <<<"$metrics"
 
-echo "explorer-check passed: url=$explorer_url tx=$tx_hash"
+stream_headers="$work/explorer-stream.headers"
+stream_body="$work/explorer-stream.body"
+set +e
+curl -sS --max-time 6 -D "$stream_headers" -o "$stream_body" "$explorer_url/api/stream"
+stream_status=$?
+set -e
+[[ "$stream_status" -eq 0 || "$stream_status" -eq 28 ]] || { echo "explorer stream request failed: status=$stream_status"; exit 1; }
+first_stream_id="$(awk '/^id: / {gsub("\\r", "", $2); print $2; exit}' "$stream_body")"
+second_stream_id="$(awk '/^id: / {gsub("\\r", "", $2); count += 1; if (count == 2) { print $2; exit }}' "$stream_body")"
+[[ -n "$first_stream_id" && -n "$second_stream_id" ]] || { echo "explorer stream did not retain multiple replayable events"; exit 1; }
+
+replay_headers="$work/explorer-stream-replay.headers"
+replay_body="$work/explorer-stream-replay.body"
+set +e
+curl -sS --max-time 2 -H "Last-Event-ID: $first_stream_id" -D "$replay_headers" -o "$replay_body" "$explorer_url/api/stream"
+replay_status=$?
+set -e
+[[ "$replay_status" -eq 0 || "$replay_status" -eq 28 ]] || { echo "explorer replay request failed: status=$replay_status"; exit 1; }
+tr -d '\r' <"$replay_headers" | grep -Fix 'X-YNX-Stream-Recovery: replay' >/dev/null || { echo "explorer replay mode header missing"; exit 1; }
+tr -d '\r' <"$replay_body" | grep -Fx "id: $second_stream_id" >/dev/null || { echo "explorer did not replay the retained successor event"; exit 1; }
+
+gap_headers="$work/explorer-stream-gap.headers"
+gap_body="$work/explorer-stream-gap.body"
+set +e
+curl -sS --max-time 2 -H 'Last-Event-ID: 999999999' -D "$gap_headers" -o "$gap_body" "$explorer_url/api/stream"
+gap_status=$?
+set -e
+[[ "$gap_status" -eq 0 || "$gap_status" -eq 28 ]] || { echo "explorer gap request failed: status=$gap_status"; exit 1; }
+tr -d '\r' <"$gap_headers" | grep -Fix 'X-YNX-Stream-Recovery: snapshot' >/dev/null || { echo "explorer snapshot recovery mode header missing"; exit 1; }
+grep -Fq 'event: stream-reset' "$gap_body" || { echo "explorer stream reset control event missing"; exit 1; }
+grep -Fq '"reason":"future_last_event_id"' "$gap_body" || { echo "explorer stream reset reason mismatch"; exit 1; }
+
+echo "explorer-check passed: url=$explorer_url tx=$tx_hash sse_replay=$first_stream_id->$second_stream_id"

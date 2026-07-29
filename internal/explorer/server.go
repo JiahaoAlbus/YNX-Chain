@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,6 +15,11 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
+const (
+	streamHistoryLimit   = 64
+	streamRecoverySchema = "explorer.stream-recovery.v1"
+)
+
 type Server struct {
 	service *Service
 	mux     *http.ServeMux
@@ -22,12 +28,31 @@ type Server struct {
 	streamMu      sync.Mutex
 	streamClients map[chan streamEvent]struct{}
 	streamRunning bool
+	streamHistory []streamEvent
+	streamNextID  uint64
 }
 
 type streamEvent struct {
 	id      string
 	event   string
 	payload []byte
+}
+
+type streamRecovery struct {
+	mode     string
+	reason   string
+	replay   []streamEvent
+	oldestID string
+	latestID string
+}
+
+type streamRecoveryPayload struct {
+	SchemaVersion string `json:"schemaVersion"`
+	Recovery      string `json:"recovery"`
+	Reason        string `json:"reason"`
+	OldestEventID string `json:"oldestEventId,omitempty"`
+	LatestEventID string `json:"latestEventId,omitempty"`
+	HistoryLimit  int    `json:"historyLimit"`
 }
 
 func NewServer(service *Service) *Server {
@@ -130,26 +155,45 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "streaming is unavailable"})
 		return
 	}
+	client, recovery := s.subscribeStream(strings.TrimSpace(r.Header.Get("Last-Event-ID")))
+	defer s.unsubscribeStream(client)
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
+	w.Header().Set("X-YNX-Stream-Recovery", recovery.mode)
 	_, _ = fmt.Fprint(w, "retry: 2000\n\n")
+	if recovery.mode == "snapshot" {
+		payload, _ := json.Marshal(streamRecoveryPayload{
+			SchemaVersion: streamRecoverySchema,
+			Recovery:      "snapshot",
+			Reason:        recovery.reason,
+			OldestEventID: recovery.oldestID,
+			LatestEventID: recovery.latestID,
+			HistoryLimit:  streamHistoryLimit,
+		})
+		_ = writeStreamEvent(w, streamEvent{event: "stream-reset", payload: payload})
+	}
+	for _, event := range recovery.replay {
+		if err := writeStreamEvent(w, event); err != nil {
+			return
+		}
+	}
 	flusher.Flush()
 
-	client := s.subscribeStream()
-	defer s.unsubscribeStream(client)
 	heartbeat := time.NewTicker(15 * time.Second)
 	defer heartbeat.Stop()
 	for {
 		select {
 		case <-r.Context().Done():
 			return
-		case event := <-client:
-			if event.id != "" {
-				_, _ = fmt.Fprintf(w, "id: %s\n", event.id)
+		case event, ok := <-client:
+			if !ok {
+				return
 			}
-			_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event.event, event.payload)
+			if err := writeStreamEvent(w, event); err != nil {
+				return
+			}
 			flusher.Flush()
 		case <-heartbeat.C:
 			if _, err := fmt.Fprint(w, ": keep-alive\n\n"); err != nil {
@@ -160,16 +204,27 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) subscribeStream() chan streamEvent {
-	client := make(chan streamEvent, 1)
+func writeStreamEvent(w io.Writer, event streamEvent) error {
+	if event.id != "" {
+		if _, err := fmt.Fprintf(w, "id: %s\n", event.id); err != nil {
+			return err
+		}
+	}
+	_, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event.event, event.payload)
+	return err
+}
+
+func (s *Server) subscribeStream(lastEventID string) (chan streamEvent, streamRecovery) {
+	client := make(chan streamEvent, streamHistoryLimit)
 	s.streamMu.Lock()
+	recovery := planStreamRecovery(s.streamHistory, lastEventID)
 	s.streamClients[client] = struct{}{}
 	if !s.streamRunning {
 		s.streamRunning = true
 		go s.runStream()
 	}
 	s.streamMu.Unlock()
-	return client
+	return client, recovery
 }
 
 func (s *Server) unsubscribeStream(client chan streamEvent) {
@@ -188,7 +243,6 @@ func (s *Server) runStream() {
 			event.event = "upstream-error"
 			event.payload, _ = json.Marshal(map[string]string{"error": err.Error()})
 		} else {
-			event.id = fmt.Sprintf("%d-%d-%d", snapshot.Summary.RPCHeight, snapshot.Summary.IndexedHeight, snapshot.Summary.IndexedTxCount)
 			event.payload, err = json.Marshal(snapshot)
 			if err != nil {
 				event.event = "upstream-error"
@@ -210,13 +264,62 @@ func (s *Server) broadcastStream(event streamEvent) bool {
 		s.streamRunning = false
 		return false
 	}
+	s.streamNextID++
+	event.id = strconv.FormatUint(s.streamNextID, 10)
+	s.streamHistory = append(s.streamHistory, event)
+	if len(s.streamHistory) > streamHistoryLimit {
+		s.streamHistory = append([]streamEvent(nil), s.streamHistory[len(s.streamHistory)-streamHistoryLimit:]...)
+	}
 	for client := range s.streamClients {
 		select {
 		case client <- event:
 		default:
+			delete(s.streamClients, client)
+			close(client)
 		}
 	}
 	return true
+}
+
+func planStreamRecovery(history []streamEvent, lastEventID string) streamRecovery {
+	recovery := streamRecovery{mode: "live"}
+	if len(history) > 0 {
+		recovery.oldestID = history[0].id
+		recovery.latestID = history[len(history)-1].id
+	}
+	if lastEventID == "" {
+		return recovery
+	}
+	requested, err := strconv.ParseUint(lastEventID, 10, 64)
+	if err != nil || requested == 0 {
+		recovery.mode = "snapshot"
+		recovery.reason = "invalid_last_event_id"
+		return recovery
+	}
+	if len(history) == 0 {
+		recovery.mode = "snapshot"
+		recovery.reason = "history_unavailable"
+		return recovery
+	}
+	for index, event := range history {
+		if event.id == lastEventID {
+			recovery.mode = "replay"
+			recovery.replay = append([]streamEvent(nil), history[index+1:]...)
+			return recovery
+		}
+	}
+	oldest, oldestErr := strconv.ParseUint(recovery.oldestID, 10, 64)
+	latest, latestErr := strconv.ParseUint(recovery.latestID, 10, 64)
+	recovery.mode = "snapshot"
+	switch {
+	case oldestErr == nil && requested < oldest:
+		recovery.reason = "history_expired"
+	case latestErr == nil && requested > latest:
+		recovery.reason = "future_last_event_id"
+	default:
+		recovery.reason = "last_event_id_unavailable"
+	}
+	return recovery
 }
 
 func (s *Server) handleWeb(w http.ResponseWriter, r *http.Request) {
