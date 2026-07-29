@@ -10,13 +10,17 @@ import (
 	"time"
 )
 
-type Server struct{ service *Service }
-
-func NewServer(service *Service) *Server { return &Server{service: service} }
+type Server struct {
+	service       *Service
+	observability *serverObservability
+}
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Health()) })
+	mux.HandleFunc("GET /health", s.health)
+	mux.HandleFunc("GET /ready", s.ready)
+	mux.HandleFunc("GET /version", s.version)
+	mux.HandleFunc("GET /metrics", s.metrics)
 	mux.HandleFunc("POST /api/v1/session", s.session)
 	mux.HandleFunc("DELETE /api/v1/session", s.auth(s.revokeSession))
 	mux.HandleFunc("GET /api/v1/objects", s.auth(s.list))
@@ -54,7 +58,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/ai/jobs/{job}", s.auth(s.aiGet))
 	mux.HandleFunc("POST /api/v1/ai/jobs/{job}/cancel", s.auth(s.aiCancel))
 	mux.HandleFunc("POST /api/v1/ai/jobs/{job}/review", s.auth(s.aiReview))
-	return securityHeaders(mux)
+	return securityHeaders(s.observe(mux))
 }
 
 type authed func(http.ResponseWriter, *http.Request, Session)

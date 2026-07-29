@@ -10,7 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/cloud"
+)
+
+var (
+	buildCommit  = "unknown"
+	buildRelease = "local"
+	buildTime    = "unknown"
 )
 
 type devWalletVerifier struct{}
@@ -55,10 +62,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	api := cloud.NewServer(service).Handler()
+	api := cloud.NewServerWithBuild(service, currentBuildInfo()).Handler()
 	mux := http.NewServeMux()
 	mux.Handle("/api/", api)
-	mux.Handle("/health", api)
+	for _, path := range []string{"/health", "/ready", "/version", "/metrics"} {
+		mux.Handle(path, api)
+	}
 	mux.Handle("/cloud/", http.StripPrefix("/cloud/", http.FileServer(http.Dir(*cloudUI))))
 	mux.Handle("/docs/", http.StripPrefix("/docs/", http.FileServer(http.Dir(*docsUI))))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -69,4 +78,12 @@ func main() {
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+func currentBuildInfo() buildinfo.Info {
+	return buildinfo.Normalize(buildinfo.Info{
+		Commit:    strings.TrimSpace(buildCommit),
+		Release:   strings.TrimSpace(buildRelease),
+		BuildTime: strings.TrimSpace(buildTime),
+	})
 }
