@@ -8,7 +8,9 @@
   "metaDescription": "Explore YNX DEX pools, routes and user-owned strategy vault controls. The current release is an unaudited Testnet preview candidate and is not a public deployment.",
   "h1": "Non-custodial liquidity, bounded by user approval",
   "summary": "YNX DEX is an independent non-custodial exchange product with constant-product and StableSwap pool candidates, verifiable FairFlow intents, LP protection controls and user-owned Strategy Vault execution boundaries.",
-  "sourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "sourceCommit": "7d61369e02ab4d50a9fc36c927dc487e47ce9814",
+  "artifactSourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "evidenceCheckpointCommit": "f933440d5cb791044476eb69c58c522d5c91d8a1",
   "version": "0.1.0-testnet-preview.1",
   "status": {
     "implementedLocal": false,
@@ -28,6 +30,7 @@
     "strategyVault": "tested-local",
     "stableVaultRouting": "tested-local",
     "executionAdapter": "tested-local",
+    "indexerRecovery": "tested-local-point-in-time; operational-rpo-unproven",
     "fairFlow": "tested-local",
     "lpProtection": "tested-local",
     "concentratedLiquidity": "not-started",
@@ -42,12 +45,14 @@
     "FairFlow intent and solver competition candidate",
     "Dynamic LP protection and depeg circuit-breaker candidate",
     "Source-labelled Indexer API and JavaScript SDK",
+    "Authenticated immutable point-in-time Indexer recovery bundle and isolated restore drill",
     "Independent Web/PWA preview surface"
   ],
   "riskDisclosures": [
     "Unaudited software; no independent smart-contract audit is complete.",
     "No verified YNX Testnet deployment, reviewed liquidity or public transaction proof exists.",
     "No public runtime, hosted download or production-signed artifact exists.",
+    "The local point-in-time recovery drill does not establish operational RPO for a provisioned Testnet indexer.",
     "StableSwap requires reviewed assets and Oracle/depeg policy before deployment.",
     "FairFlow and LP protection remain local candidates with additional public-network and adversarial requirements.",
     "Cryptographic approvals and transaction submission remain unavailable until canonical Wallet and Gateway integration is accepted.",
@@ -155,5 +160,5 @@
       "status URL"
     ]
   },
-  "generatedAt": "2026-07-27T14:58:32.000Z"
+  "generatedAt": "2026-07-29T02:27:50.000Z"
 }

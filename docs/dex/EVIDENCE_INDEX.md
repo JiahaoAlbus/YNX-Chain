@@ -1,8 +1,8 @@
 # YNX DEX evidence index
 
-The final-objective requirement matrix and 2026-07-22 revalidation record are in `FEATURE_COMPLETION_EVIDENCE.md`. The current machine-readable full objective matrix is `.ai-bridge/full-goal-coverage.json`. Both distinguish locally tested components from the incomplete expanded DEX objective.
+The final-objective requirement matrix and 2026-07-29 revalidation record are in `FEATURE_COMPLETION_EVIDENCE.md`. The current machine-readable full objective matrix is `.ai-bridge/full-goal-coverage.json`. Both distinguish locally tested components from the incomplete expanded DEX objective.
 
-Current runtime/source commit: `4d9f9c807efb2529836a1324b17c697e91a23421`.
+Packaged contract/SDK source base: `4d9f9c807efb2529836a1324b17c697e91a23421`. Current Indexer/recovery runtime source: `7d61369e02ab4d50a9fc36c927dc487e47ce9814`. Protected evidence checkpoint observed during recovery: `f933440d5cb791044476eb69c58c522d5c91d8a1`.
 
 ## Source and tests
 
@@ -16,6 +16,7 @@ Current runtime/source commit: `4d9f9c807efb2529836a1324b17c697e91a23421`.
 - SDK deterministic/property tests: `sdk/dex/test/sdk.test.mjs`
 - Direct StableSwap Vault SDK approval/submission/reconciliation tests: `sdk/dex/test/stable-vault.test.mjs`
 - Indexer recovery/security tests, including typed Stable pools, FairFlow and LP Protection persistence/API/migration: `internal/dex/store_test.go`
+- Immutable authenticated state/cursor backup, verification, isolated restore and local recovery drill: `internal/dex/recovery.go`, `internal/dex/recovery_test.go`, `cmd/ynx-dex-recovery/main.go`
 - Confirmed EVM polling/reorg, typed Stable discovery/fee attribution, direct StableSwap Vault selectors, all-stage FairFlow ABI and all-shape LP Protection tests: `internal/dex/evm_ingester_test.go`, `internal/dex/stable_vault_methods_test.go`
 - State/cursor migration and old-client boundary: `MIGRATION_COMPATIBILITY.md`
 - Web/Wallet/RTL tests: `apps/dex/src/*.test.ts*`
@@ -52,8 +53,8 @@ The first five images are local real-runtime captures against an empty persisten
 - Integration freeze contract and vectors: `release/integration/ynx-dex-contract.json`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - Website/SEO handoff: `public-product-metadata.json`
 
-The RPC observation explicitly records `dexDeploymentObserved=false`. The artifact manifest explicitly records unsigned, unhosted and undeployed status. The current artifacts bind to source commit `4d9f9c807efb2529836a1324b17c697e91a23421`.
+The RPC observation explicitly records `dexDeploymentObserved=false`. The artifact manifest explicitly records unsigned, unhosted and undeployed status. The packaged artifacts bind to source commit `4d9f9c807efb2529836a1324b17c697e91a23421`; the later recovery runtime is not represented as a hosted artifact.
 
 ## Missing evidence
 
-Testnet contract/bytecode verification, populated owner-reviewed token list, pool/liquidity creation, Wallet swap, Wallet add/remove LP, Quant template receipts, profit/loss and fee attribution, Explorer/Finance/Monitor/Trust proofs, real-node Indexer/frontend consistency, migration rollback, full backup/restore drill, concentrated liquidity, weighted pool, liquidity bootstrapping, complete 12-language/a11y evidence, measured capacity/unit economics, staging/public URL, remote smoke, immutable hosted artifact, production signature and independent audit are absent.
+Testnet contract/bytecode verification, populated owner-reviewed token list, pool/liquidity creation, Wallet swap, Wallet add/remove LP, Quant template receipts, profit/loss and fee attribution, Explorer/Finance/Monitor/Trust proofs, real-node Indexer/frontend consistency, down-schema rollback, provisioned-Testnet operational RPO, concentrated liquidity, weighted pool, liquidity bootstrapping, complete 12-language/a11y evidence, measured capacity/unit economics, staging/public URL, remote smoke, immutable hosted artifact, production signature and independent audit are absent.

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "27",
+  "productName": "YNX DEX",
+  "phase": "FREEZE",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex",
+  "branch": "codex/final-dex",
+  "localSha": "f933440d5cb791044476eb69c58c522d5c91d8a1",
+  "remoteSha": "f933440d5cb791044476eb69c58c522d5c91d8a1",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "go test -race ./internal/dex ./cmd/ynx-dex-indexerd ./cmd/ynx-dex-recovery",
+    "npm test --prefix sdk/dex (21 pass)",
+    "npm run check --prefix sdk/dex",
+    "npm test --prefix apps/dex (17 pass)",
+    "npm run build --prefix apps/dex",
+    "make secret-scan",
+    "make static-check",
+    "npm run dex:release:test",
+    "npm run dex:manifests:check",
+    "npm run dex:artifacts:verify"
+  ],
+  "latestCiRuns": [],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [
+    {
+      "path": "release/dex/artifact-manifest.json",
+      "sha256": "80beb665aca3f49c55951e96acf63d2e1f1b10308e0c93f4208ae4f1c1934b5e",
+      "bytes": 6162,
+      "hosted": false,
+      "signed": false
+    },
+    {
+      "path": "release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
+      "sha256": "dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669",
+      "bytes": 331755,
+      "hosted": false,
+      "signed": false
+    },
+    {
+      "path": "release/dex/ynx-chain-dex-sdk-0.1.0-testnet-preview.1.tgz",
+      "sha256": "fae8db1d106e7c82ddad2c030c207551155fe3075b4ccedabead23efd17603a5",
+      "bytes": 21765,
+      "hosted": false,
+      "signed": false
+    }
+  ],
+  "publicRoutes": [],
+  "completed": [
+    "repository recovery and remote protection",
+    "constant-product local candidate",
+    "StableSwap local candidate",
+    "Strategy Vault direct CPMM and StableSwap execution",
+    "FairFlow local candidate",
+    "LP Protection local candidate",
+    "typed Indexer state/cursor migration",
+    "authenticated immutable point-in-time recovery drill",
+    "integration contract and local artifact integrity"
+  ],
+  "remaining": [
+    "concentrated-liquidity invariant-tested runtime",
+    "weighted pool and liquidity bootstrapping candidates",
+    "down-schema rollback migration",
+    "provisioned Testnet operational RPO drill",
+    "central dependency acceptance",
+    "verified Testnet deployment and public receipts",
+    "independent audit and supply-chain closure",
+    "immutable hosting, production signing, GitHub Release and Website publication"
+  ],
+  "blockers": [
+    "repository-wide internal/api Hardhat selector metadata tests fail outside YNX 27 ownership",
+    "canonical Wallet/Gateway registry acceptance",
+    "reviewed Oracle and stable-asset policy",
+    "canonical Testnet addresses and protected signer/funding",
+    "independent audit",
+    "immutable artifact host and Website deployment window"
+  ],
+  "nextAction": "Freeze a clean-room concentrated-liquidity v1 specification and implement the first invariant-tested pool slice with exact tick, range, fee-growth, callback and malicious-token boundaries.",
+  "updatedAt": "2026-07-29T02:27:50Z"
+}

@@ -1,7 +1,9 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-dex",
-  "sourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "sourceCommit": "7d61369e02ab4d50a9fc36c927dc487e47ce9814",
+  "artifactSourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "evidenceCheckpointCommit": "f933440d5cb791044476eb69c58c522d5c91d8a1",
   "phase": "FREEZE",
   "overallStatus": "inProgress",
   "allowedStatuses": [

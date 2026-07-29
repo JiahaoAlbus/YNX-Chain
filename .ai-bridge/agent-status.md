@@ -1,34 +1,44 @@
 # YNX DEX agent status
 
-- Product: YNX DEX
+- Product: YNX 27 — YNX DEX
 - Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex`
 - Branch: `codex/final-dex`
 - Phase: `FREEZE`
 - Long-term status: `ACTIVE`
-- Protected runtime source: `4d9f9c807efb2529836a1324b17c697e91a23421`
-- Runtime/config push: confirmed on `origin/codex/final-dex`; source commit `4d9f9c807efb2529836a1324b17c697e91a23421` was at ahead/behind `0/0` immediately after push.
-- GitHub Actions: no runs returned for `codex/final-dex`.
-- GitHub Release/Artifact: no DEX remote evidence verified; Release and full branch-filter queries encountered repeated TLS handshake timeouts.
-- Current work: evidence-only release synchronization and cross-product freeze files.
+- Packaged contract/SDK source base: `4d9f9c807efb2529836a1324b17c697e91a23421`
+- Runtime/recovery source: `7d61369e02ab4d50a9fc36c927dc487e47ce9814`
+- Protected evidence checkpoint: `f933440d5cb791044476eb69c58c522d5c91d8a1`
+- Recovery audit: Local SHA and Remote SHA matched at the protected checkpoint; ahead/behind `0/0`; worktree clean; no stash.
+- GitHub Actions: no runs for `codex/final-dex`.
+- Pull requests: none for `codex/final-dex`.
+- GitHub Release/Artifact: no DEX Release or branch artifact verified.
 
-## Completed in this recovery slice
+## Completed and locally verified
 
-- Added direct StableSwap exact-input, exact-output, add-liquidity and remove-liquidity actions to the user-owned Strategy Vault.
-- Bound Stable pools by exact `poolKind`, reviewed token pair, factory code and owner permission.
-- Preserved no-standing-approval, nonce, deadline, Oracle, depeg, impact, capital, frequency, pause, revoke, kill and emergency-exit boundaries.
-- Added fail-closed taxed-token ingress proof.
-- Added SDK `./stable-vault` request, canonical Wallet approval, submission and indexed reconciliation surface.
-- Added Indexer selector recognition and Race-tested registration.
-- Rebuilt unsigned local PWA, SDK and contract source/build evidence against the exact source commit.
+- Direct StableSwap exact-input, exact-output, add-liquidity and remove-liquidity Strategy Vault actions.
+- Exact Stable pool kind, token pair, factory, permission, nonce, deadline, Oracle, depeg, impact, capital, frequency, pause, revoke, kill and emergency-exit boundaries.
+- SDK stable-vault canonical approval, submission and indexed reconciliation.
+- Confirmed Indexer typed Stable/Vault/FairFlow/LP Protection ingestion, cursor v6 binding and reorg recovery.
+- Authenticated immutable point-in-time state/cursor recovery bundle and isolated restore drill with observed local timing.
+- Unsigned local PWA, SDK and contract source/build artifact verification.
 
-## Verified gates
+## Latest verified gates
 
-- Solidity build and CPMM, Vault, FairFlow, LP Protection and StableSwap test runners.
-- SDK syntax and 21 tests.
-- Go Race tests for DEX Indexer and daemon.
-- PWA 17 tests and production build.
-- Release source binding, manifest and artifact hash/byte verification.
+- `go test -race ./internal/dex ./cmd/ynx-dex-indexerd ./cmd/ynx-dex-recovery`
+- `npm test --prefix sdk/dex` — 21 pass
+- `npm run check --prefix sdk/dex`
+- `npm test --prefix apps/dex` — 17 pass
+- `npm run build --prefix apps/dex`
+- `make secret-scan`
+- `make static-check`
+- `npm run dex:release:test`
+- `npm run dex:manifests:check`
+- `npm run dex:artifacts:verify`
+
+## Shared repository gate
+
+`go test ./...` fails in unchanged shared `internal/api` Hardhat selector metadata tests. The exact cross-owner handoff is `docs/integration/CROSS_OWNER_ISSUES.md`; focused DEX gates pass.
 
 ## Not complete
 
-No verified Testnet DEX deployment, canonical Wallet registry acceptance, central integration, independent audit, immutable hosting, production signature, public runtime, public Website proof, concentrated liquidity, weighted pool, LBP, full 12-language/a11y gate, capacity plan, unit economics or full restore drill exists.
+No verified Testnet DEX deployment, canonical Wallet registry acceptance, central integration, independent audit, immutable hosting, production signature, public runtime, public Website proof, concentrated liquidity, weighted pool, liquidity bootstrapping, down-schema rollback, provisioned-Testnet operational RPO, full 12-language/a11y gate, capacity plan or unit economics exists.

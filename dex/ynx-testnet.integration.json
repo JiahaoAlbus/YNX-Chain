@@ -88,7 +88,7 @@
     "cursorIntegrity": "HMAC-SHA-256",
     "reorgRecovery": "rewind confirmed CPMM/StableSwap pool, Vault, FairFlow and LP Protection events plus typed pool discovery, then rescan",
     "stateSchemaVersion": 5,
-    "cursorSchemaVersion": 5,
+    "cursorSchemaVersion": 6,
     "vaultAddressEnv": "DEX_STRATEGY_VAULT_ADDRESS",
     "fairFlowAddressEnv": "DEX_FAIRFLOW_ADDRESS",
     "fairFlowIndexerStatus": "implemented and tested locally; requires a verified deployed address before live ingestion",

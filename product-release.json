@@ -3,6 +3,9 @@
   "name": "YNX DEX",
   "branch": "codex/final-dex",
   "commit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "commitRole": "packaged-contract-and-sdk-source-base",
+  "runtimeCommit": "7d61369e02ab4d50a9fc36c927dc487e47ce9814",
+  "evidenceCheckpointCommit": "f933440d5cb791044476eb69c58c522d5c91d8a1",
   "version": "0.1.0-testnet-preview.1",
   "surfaces": ["web", "pwa", "indexer-api", "solidity-contracts", "javascript-sdk"],
   "implementedLocal": false,
@@ -70,12 +73,22 @@
       "evidence": "npm test --prefix sdk/dex; npm run check --prefix sdk/dex"
     },
     "vaultIndexer": {
-      "sourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+      "sourceCommit": "7d61369e02ab4d50a9fc36c927dc487e47ce9814",
       "implementedLocal": true,
       "testedLocal": true,
       "deployedPublic": false,
-      "scope": "confirmed typed CPMM/StableSwap/Vault/FairFlow/LP-Protection ingestion including direct StableSwap Vault actions, all-source-bound cursor v5, authenticated v1/v2/v3/v4 state migration with exact backups, shared reorg recovery, source-labelled API",
+      "scope": "confirmed typed CPMM/StableSwap/Vault/FairFlow/LP-Protection ingestion including direct StableSwap Vault actions, state schema v5, all-source-bound cursor v6, authenticated legacy migration with exact backups, shared reorg recovery and source-labelled API",
       "evidence": "go test -race ./internal/dex ./cmd/ynx-dex-indexerd"
+    },
+    "indexerRecovery": {
+      "sourceCommit": "7d61369e02ab4d50a9fc36c927dc487e47ce9814",
+      "implementedLocal": true,
+      "testedLocal": true,
+      "restoreVerified": true,
+      "operationalRpoVerified": false,
+      "deployedPublic": false,
+      "scope": "immutable HMAC-authenticated state and cursor point-in-time bundle, exact source/deployment bindings, isolated empty-destination restore, tamper and wrong-binding rejection, measured local backup/restore/verification timing",
+      "evidence": "go test -race ./internal/dex ./cmd/ynx-dex-indexerd ./cmd/ynx-dex-recovery"
     },
     "fairFlow": {
       "sourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
@@ -127,5 +140,5 @@
     "Staging, public deployment, hosted download, production signing, and store release are absent.",
     "The Web/PWA prepares deterministic swap and LP reviews, but all transaction authorization remains unavailable until canonical Wallet registry integration and verified Testnet contract addresses exist."
   ],
-  "generatedAt": "2026-07-27T14:58:32.000Z"
+  "generatedAt": "2026-07-29T02:27:50.000Z"
 }

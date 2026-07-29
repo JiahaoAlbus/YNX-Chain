@@ -3,7 +3,9 @@
 ## Identity
 
 - Product owner: YNX 27
-- Source commit: `4d9f9c807efb2529836a1324b17c697e91a23421`
+- Packaged contract/SDK source base: `4d9f9c807efb2529836a1324b17c697e91a23421`
+- Indexer/recovery runtime source: `7d61369e02ab4d50a9fc36c927dc487e47ce9814`
+- Protected evidence checkpoint: `f933440d5cb791044476eb69c58c522d5c91d8a1`
 - Branch: `codex/final-dex`
 - Release: `0.1.0-testnet-preview.1`
 - Phase: FREEZE
@@ -21,6 +23,7 @@ The machine-readable authority is `release/integration/ynx-dex-contract.json`. C
 - FairFlow intent/solver candidate.
 - LP protection and depeg circuit-breaker candidate.
 - Source-labelled Indexer API with state schema v5 and Factory-bound cursor schema v6.
+- Immutable HMAC-authenticated state/cursor point-in-time recovery bundle and isolated local restore drill; provisioned-Testnet operational RPO remains unproven.
 - JavaScript SDK main entry and `@ynx-chain/dex-sdk/stable-vault` subpath.
 - Independent Web/PWA preview and unsigned local artifacts.
 
