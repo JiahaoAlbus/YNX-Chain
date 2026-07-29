@@ -3,6 +3,8 @@ package chain
 import (
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -75,8 +77,35 @@ func TestReplicationSnapshotRejectsTamperedBlock(t *testing.T) {
 	}
 	destination := NewDevnet(DefaultNetworkConfig("testnet"))
 	_, err = destination.ApplyReplicationSnapshotJSON(payload, true)
-	if err == nil || !strings.Contains(err.Error(), "identity is invalid") {
+	if err == nil || !strings.Contains(err.Error(), "state integrity mismatch") {
 		t.Fatalf("expected hash mismatch, got %v", err)
+	}
+}
+
+func TestReplicationSnapshotRejectsTamperedAccountState(t *testing.T) {
+	source := NewDevnet(DefaultNetworkConfig("testnet"))
+	if _, err := source.Faucet("ynx_replication_integrity", 100); err != nil {
+		t.Fatal(err)
+	}
+	payload, err := source.ReplicationSnapshotJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var snapshot devnetSnapshot
+	if err := json.Unmarshal(payload, &snapshot); err != nil {
+		t.Fatal(err)
+	}
+	snapshot.Accounts["ynx_replication_integrity"].Balance = 999
+	payload, err = json.Marshal(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	destination := NewDevnet(DefaultNetworkConfig("testnet"))
+	if _, err := destination.ApplyReplicationSnapshotJSON(payload, true); err == nil || !strings.Contains(err.Error(), "state integrity mismatch") {
+		t.Fatalf("tampered replication account state was accepted: %v", err)
+	}
+	if _, ok := destination.Account("ynx_replication_integrity"); ok {
+		t.Fatal("tampered replication state mutated the destination")
 	}
 }
 
@@ -94,6 +123,39 @@ func TestReplicationSnapshotRejectsRollbackAfterBootstrap(t *testing.T) {
 	_, err = destination.ApplyReplicationSnapshotJSON(oldPayload, false)
 	if err == nil || !strings.Contains(err.Error(), "behind local height") {
 		t.Fatalf("expected rollback rejection, got %v", err)
+	}
+}
+
+func TestReplicationSnapshotPersistenceFailureRestoresInMemoryState(t *testing.T) {
+	cfg := DefaultNetworkConfig("testnet")
+	source := NewDevnet(cfg)
+	if _, err := source.Faucet("ynx_replication_atomic", 100); err != nil {
+		t.Fatal(err)
+	}
+	source.ProduceBlock()
+	payload, err := source.ReplicationSnapshotJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	destination, err := NewPersistentDevnet(cfg, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := destination.LatestBlock()
+	blockedParent := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(blockedParent, []byte("blocked"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	destination.dataDir = blockedParent
+	if _, err := destination.ApplyReplicationSnapshotJSON(payload, true); err == nil || !strings.Contains(err.Error(), "persist replication snapshot") {
+		t.Fatalf("replication persistence failure was not reported: %v", err)
+	}
+	if after := destination.LatestBlock(); after.Height != before.Height || after.Hash != before.Hash {
+		t.Fatalf("failed replication changed in-memory block state: before=%+v after=%+v", before, after)
+	}
+	if _, ok := destination.Account("ynx_replication_atomic"); ok {
+		t.Fatal("failed replication changed in-memory account state")
 	}
 }
 

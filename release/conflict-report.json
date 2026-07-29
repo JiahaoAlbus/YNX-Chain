@@ -1,0 +1,61 @@
+{
+  "$schema": "./schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Candidate",
+  "conflicts": [
+    {
+      "conflictId": "CNF-001",
+      "subject": "YNX Testnet deployment status wording",
+      "conflictingClaims": [
+        {
+          "source": "chain-metadata/ynx-testnet.json",
+          "claim": "status is active",
+          "owner": "YNX 01 Chain Core"
+        },
+        {
+          "source": "configs/networks.json",
+          "claim": "configured for deployment after required real values are supplied",
+          "owner": "YNX 01 Chain Core"
+        }
+      ],
+      "sourceComparison": "Both files agree on YNX Testnet, Chain ID 6423, and YNXT, but disagree on deployment wording.",
+      "recommendedCanonicalFact": "Keep network identity as verified. Treat public deployment and current availability as Blocked until YNX 01 and YNX 29 publish one accepted release record with direct public evidence.",
+      "migrationPlan": [
+        "YNX 01 selects the canonical network-status vocabulary.",
+        "YNX 29 freezes the accepted contract version.",
+        "The superseded record is marked with a replacement identifier and deprecation date.",
+        "Website and guides regenerate from the accepted facts bundle."
+      ],
+      "owner": "YNX 01 Chain Core and YNX 29 Integration",
+      "blockingStatus": "Blocks deployedPublic wording; does not block canonical Chain ID, asset, or brand identity."
+    },
+    {
+      "conflictId": "CNF-002",
+      "subject": "Public consensus wording",
+      "conflictingClaims": [
+        {
+          "source": "docs/whitepaper/STREAMBFT_SPECIFICATION.md",
+          "claim": "StreamBFT candidate specification exists",
+          "owner": "YNX 18 Whitepaper / Compliance / Brand"
+        },
+        {
+          "source": "docs/acceptance/PROJECT_STATE.md",
+          "claim": "Public CometBFT voting and BFT service routing are not active",
+          "owner": "YNX 01 Chain Core"
+        }
+      ],
+      "sourceComparison": "A candidate specification is not deployment evidence.",
+      "recommendedCanonicalFact": "StreamBFT is a candidate specification; public activation is not established.",
+      "migrationPlan": [
+        "Retain Candidate status in the whitepaper.",
+        "Reject public-active, production-ready, and mainnet-ready wording.",
+        "Require release, deployment, explorer, benchmark, fault-drill, and security evidence before status promotion."
+      ],
+      "owner": "YNX 01 Chain Core",
+      "blockingStatus": "Blocks public StreamBFT activation claims."
+    }
+  ]
+}

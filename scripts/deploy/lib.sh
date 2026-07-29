@@ -51,6 +51,18 @@ ynx_remote() {
   printf '%s@%s' "${SERVER_USER:?}" "${SERVER_HOST:?}"
 }
 
+ynx_require_clean_worktree() {
+  command -v git >/dev/null 2>&1 || { echo "git is required to verify deployment source integrity" >&2; return 1; }
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "deployment source must be a Git worktree" >&2; return 1; }
+  local dirty
+  dirty="$(git status --porcelain=v1 --untracked-files=normal)"
+  if [[ -n "$dirty" ]]; then
+    echo "deployment source must be a clean Git worktree" >&2
+    printf '%s\n' "$dirty" >&2
+    return 1
+  fi
+}
+
 ynx_connection_retry() {
   local label="$1"
   shift

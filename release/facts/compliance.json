@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Needs Legal Review",
+  "notLegalAdvice": true,
+  "jurisdictionAssumptions": "No operating legal entity, governing law, launch jurisdiction, or regulated product jurisdiction is approved in this package.",
+  "productScope": "Informational website, YNX Testnet documentation, developer tooling, and specifically identified candidate products only.",
+  "requiredCounsel": true,
+  "requiredAuditor": true,
+  "requiredProviderReview": true,
+  "blockingConditions": [
+    "Founder-approved legal entity details",
+    "Jurisdiction decision",
+    "Qualified legal counsel review",
+    "Auditor review where required",
+    "Trademark review",
+    "Approved support, privacy, security, and status URLs"
+  ],
+  "documentRoots": ["docs/legal", "docs/compliance", "docs/security", "docs/economics"]
+}

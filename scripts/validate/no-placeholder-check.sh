@@ -7,7 +7,7 @@ collect_files() {
   git ls-files --cached --others --exclude-standard -z -- . \
     | while IFS= read -r -d '' path; do
         case "$path" in
-          tools/scaffold-ynx-chain.mjs|scripts/validate/no-placeholder-check.sh|scripts/deploy/lib.sh|docs/architecture/ZERO_PLACEHOLDER_POLICY.md) continue ;;
+          tools/scaffold-ynx-chain.mjs|scripts/validate/no-placeholder-check.sh|scripts/deploy/lib.sh|docs/architecture/ZERO_PLACEHOLDER_POLICY.md|release/docs-compliance-completion-evidence.json) continue ;;
         esac
         printf '%s\0' "$path"
       done

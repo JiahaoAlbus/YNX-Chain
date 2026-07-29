@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 
 const verifyDir = process.env.YNX_VERIFY_TESTNET_OUT || "tmp/verify-testnet";
 const blockerJsonPath = process.env.YNX_REMOTE_BLOCKER_JSON || path.join(verifyDir, "remote-blockers.json");
+const upgradeSourceEvidencePath = process.env.YNX_UPGRADE_SOURCE_RELEASE_EVIDENCE_PATH || path.join(verifyDir, "upgrade-source-release-evidence.json");
 const maxAgeMinutes = Number(process.env.YNX_DEPLOY_GATE_MAX_AGE_MINUTES || 120);
 const expectedCosmosChainId = process.env.YNX_COSMOS_CHAIN_ID || "ynx_6423-1";
 const expectedEvmChainId = Number(process.env.YNX_EVM_CHAIN_ID || 6423);
@@ -14,7 +15,7 @@ const bootstrapDeploy = process.env.YNX_BOOTSTRAP_DEPLOY === "1";
 const upgradeDeploy = process.env.YNX_UPGRADE_DEPLOY === "1";
 
 const allowedUpgradeFailures = new Set([
-  "release.manifest.commit", "release.manifest.release",
+  "release.manifest.evidence.present", "release.manifest.commit", "release.manifest.release", "release.manifest.chaindChecksum",
   "rpc.status.buildCommit", "rpc.status.buildRelease",
   "rpc.nodeIdentity.buildCommit", "rpc.nodeIdentity.buildRelease",
   "ai.health.buildCommit", "ai.health.buildRelease",
@@ -55,6 +56,60 @@ function currentGitCommit() {
   } catch {
     return "unknown";
   }
+}
+
+function validateUpgradeSourceEvidence(headCommit) {
+  const problems = [];
+  let evidence = null;
+  try {
+    evidence = JSON.parse(fs.readFileSync(upgradeSourceEvidencePath, "utf8"));
+  } catch (err) {
+    return [`upgrade source release evidence: missing or unreadable (${upgradeSourceEvidencePath}): ${err.message}`];
+  }
+  if (evidence?.schema !== "ynx-upgrade-source-release-evidence/v1") {
+    problems.push(`upgrade source release evidence: invalid schema (${upgradeSourceEvidencePath})`);
+  }
+  if (evidence?.status !== "passed") {
+    problems.push(`upgrade source release evidence: status must be passed, got ${evidence?.status || "missing"} (${upgradeSourceEvidencePath})`);
+  }
+  const generatedAt = Date.parse(evidence?.generatedAt || "");
+  if (!Number.isFinite(generatedAt)) {
+    problems.push(`upgrade source release evidence: missing valid generatedAt (${upgradeSourceEvidencePath})`);
+  } else {
+    const ageMinutes = (Date.now() - generatedAt) / 60000;
+    if (ageMinutes > maxAgeMinutes) {
+      problems.push(`upgrade source release evidence: stale ${ageMinutes.toFixed(1)} minutes old, max ${maxAgeMinutes} (${upgradeSourceEvidencePath})`);
+    }
+  }
+  const targetCommit = String(evidence?.target?.commit || "");
+  const sourceCommit = String(evidence?.source?.commit || "");
+  if (!/^[0-9a-f]{12}$/.test(targetCommit) || headCommit === "unknown" || targetCommit !== headCommit.slice(0, 12)) {
+    problems.push(`upgrade source release evidence: target commit ${targetCommit || "missing"} does not match current HEAD ${headCommit.slice(0, 12)} (${upgradeSourceEvidencePath})`);
+  }
+  if (evidence?.target?.release !== `ynx-chain-${targetCommit}`) {
+    problems.push(`upgrade source release evidence: target release does not match target commit (${upgradeSourceEvidencePath})`);
+  }
+  if (!/^[0-9a-f]{12}$/.test(sourceCommit) || evidence?.source?.release !== `ynx-chain-${sourceCommit}`) {
+    problems.push(`upgrade source release evidence: source release identity is invalid (${upgradeSourceEvidencePath})`);
+  }
+  if (sourceCommit && sourceCommit === targetCommit) {
+    problems.push(`upgrade source release evidence: source and target commits must differ (${upgradeSourceEvidencePath})`);
+  }
+  const nodes = Array.isArray(evidence?.nodes) ? evidence.nodes : [];
+  const requiredRoles = ["primary", "singapore", "silicon-valley", "seoul"];
+  if (nodes.length !== requiredRoles.length) {
+    problems.push(`upgrade source release evidence: exactly four node records are required (${upgradeSourceEvidencePath})`);
+  }
+  for (const role of requiredRoles) {
+    const node = nodes.find((item) => item?.role === role);
+    if (!node || node.ok !== true) {
+      problems.push(`upgrade source release evidence: ${role} did not prove the current manifest and installed ynx-chaind checksum (${upgradeSourceEvidencePath})`);
+    }
+    if (node?.observed?.sourceCommit !== sourceCommit || node?.observed?.sourceRelease !== evidence?.source?.release) {
+      problems.push(`upgrade source release evidence: ${role} source identity is inconsistent (${upgradeSourceEvidencePath})`);
+    }
+  }
+  return problems;
 }
 
 if (process.env.DEPLOY_DRY_RUN === "1") {
@@ -99,6 +154,9 @@ for (const [key, source] of Object.entries(sourceEvidence)) {
 }
 const sourceProblems = [];
 const headCommit = currentGitCommit();
+if (upgradeDeploy) {
+  sourceProblems.push(...validateUpgradeSourceEvidence(headCommit));
+}
 for (const [key, label] of requiredSources.entries()) {
   const source = sourceEvidence[key];
   if (!source || !source.exists) {
