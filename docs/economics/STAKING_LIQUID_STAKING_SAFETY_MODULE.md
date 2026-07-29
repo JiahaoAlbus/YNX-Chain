@@ -4,7 +4,7 @@
 | --- | --- |
 | Version | 0.1.1-candidate |
 | Effective date | 2026-07-28 |
-| Source commit | `2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012` |
+| Source commit | `16ff46c3046b3f8e62943ba079e99708353301c7` |
 | Accepted central source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
 | Economic candidate reviewed | `ff01dcee4c93acfb138dcde91f7605e408b706d5` |
 | Product release | 0.2.0-candidate |
@@ -131,6 +131,10 @@ unless an appropriately authorized legal arrangement says so after review.
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-28): Normalized the seven-field authority tuple,
+  preserved accepted-central and reviewed-economic source identities, and made
+  the non-activation boundary explicit for staking, liquid staking, rewards,
+  slashing and the Safety Module.
 - 0.1.0-candidate (2026-07-22): Published current staking-state truth, missing
   lifecycle, reward/APY rules, candidate security parameters, liquid-staking and
   Safety Module requirements, authority boundaries, and activation evidence.

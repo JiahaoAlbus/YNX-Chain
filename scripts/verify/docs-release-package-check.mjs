@@ -18,6 +18,7 @@ const requiredBundleInputs = [
   "docs/economics/YNXT_TOKENOMICS.md",
   "docs/economics/TREASURY_REVENUE_BURN.md",
   "docs/economics/PROOF_OF_SOLVENCY.md",
+  "docs/economics/STAKING_LIQUID_STAKING_SAFETY_MODULE.md",
   "docs/stablecoin/STABLECOIN_RESERVE_REDEMPTION.md",
   "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
   "docs/legal/TERMS_OF_USE_DRAFT.md",

@@ -18,6 +18,7 @@ const allowedAuthorityClasses = new Set([
   "solvency-framework",
   "privacy-draft",
   "acceptable-use-draft",
+  "staking-safety-framework",
 ]);
 
 function normalize(value) {
