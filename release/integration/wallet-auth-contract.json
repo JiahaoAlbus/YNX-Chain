@@ -1,8 +1,11 @@
 {
   "schemaVersion": 1,
+  "productId": "02",
+  "product": "YNX Wallet / Auth",
+  "slug": "wallet-auth",
   "productSlug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
+  "sourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
   "phase": "INTEGRATE",
   "network": {
     "nativeChainId": "ynx_6423-1",

@@ -3,7 +3,7 @@
 ## Authority and source
 
 - Owner: `02-wallet-auth`
-- Source commit: `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6`
+- Source commit: `61df5559c647d880cc1d435bece9d89ff66a07e1`
 - Current gate: `INTEGRATE`
 - Machine-readable contract: `release/integration/wallet-auth-contract.json`
 - Shared StrategyMandate vector: `packages/wallet-auth/testdata/strategy-mandate-v2.json`
