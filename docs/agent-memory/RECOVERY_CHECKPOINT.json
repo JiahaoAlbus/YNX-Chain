@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "33",
+  "productName": "YNX Video",
+  "phase": "INTEGRATE",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/33-video",
+  "branch": "codex/final-video",
+  "localSha": "1572846c4ef676b6b6844e9678e3139df913f36c",
+  "remoteSha": "1572846c4ef676b6b6844e9678e3139df913f36c",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": false,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "go test ./internal/video/...",
+    "go test -race ./internal/video/...",
+    "go vet ./internal/video/...",
+    "npm --prefix apps/video run check",
+    "npm --prefix apps/video run smoke",
+    "JSON validation for integration and release records"
+  ],
+  "latestCiRuns": [],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [
+    {
+      "class": "historical-android-debug",
+      "currentForSource": false,
+      "sha256": "c8df63b4b19c0071548487034fe01c1804c78b65ffea18990affd27c7e2b61fe"
+    },
+    {
+      "class": "historical-ios-simulator",
+      "currentForSource": false,
+      "sha256": "265a045cfa0b80af0a240388e95b49f4adfb75b1ff0ffd23de6c7aed09fc2baf"
+    }
+  ],
+  "publicRoutes": [],
+  "completed": [
+    "workspace and repository identity recovered",
+    "upload checksum and rights fail-closed controls",
+    "media probe before transcode",
+    "per-asset bytes sha256 and lineage",
+    "state schema v2 and rollback migration",
+    "legacy media integrity backfill",
+    "missing legacy derivative fail-closed behavior",
+    "integration contract v2 and cross-product vectors",
+    "truthful separation of current source and historical native artifacts"
+  ],
+  "remaining": [
+    "valid ClamAV current-source loopback E2E",
+    "current-source Android and iOS artifacts and install evidence",
+    "current-source backup restore drill and measured RTO RPO",
+    "final-branch GitHub Actions run",
+    "central owner acceptance and shared-testnet execution",
+    "public metadata and website handoff",
+    "staging and public deployment",
+    "hosted downloads production signing physical devices and store release"
+  ],
+  "blockers": [
+    "VID-INFRA-CLAMAV",
+    "VID-INT-001",
+    "VID-REL-001"
+  ],
+  "nextAction": "Run the bounded read-only ClamAV version and readiness audit, then execute the owned-media loopback E2E only if scanner readiness passes.",
+  "updatedAt": "2026-07-29T02:56:17Z",
+  "checkpointNote": "localSha and remoteSha are the last verified clean synchronized heads before this memory checkpoint commit; recover from the current remote branch head and verify again before editing."
+}
