@@ -1,6 +1,6 @@
 # YNX 17 Current State
 
-Updated: 2026-07-29T03:03:29Z
+Updated: 2026-07-30T10:42:08Z
 
 ## Identity
 
@@ -9,17 +9,19 @@ Updated: 2026-07-29T03:03:29Z
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/17-tokenomics`
 - Branch: `codex/final-tokenomics`
 - Repository: `JiahaoAlbus/YNX-Chain`
-- State source SHA: `d23515300851eac1e6acce82b73af938d3750aeb`
-- Remote SHA at checkpoint: `d23515300851eac1e6acce82b73af938d3750aeb`
-- `origin/main` SHA: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
-- Upstream ahead / behind: `0 / 0`
-- Dirty state at source checkpoint: clean
+- Frozen source candidate SHA: `a377bef61a7082b5b1ae0ebd35d4b97846649b68`
+- Accepted dependency ancestor: `470da14faa51914beed2ee6c75a43df013e63b20`
+- Remote SHA before final evidence push: `261c267417ef166762214453efdcdc28c1230e51`
+- Dirty state at source checkpoint: clean; this memory update belongs to the evidence-only follow-up commit
 - Phase: `INTEGRATE`
 
-The state source SHA is the engineering commit audited by this checkpoint. The commit containing this memory file is expected to be a later documentation-only checkpoint.
+The frozen source candidate is the engineering commit audited by this checkpoint. The commit containing this memory file is an evidence-only follow-up and must not replace that source identity.
 
 ## Latest successful local verification
 
+- Protected Integration dependency merge with Application v18 and committed state v12.
+- Deterministic five-binary unsigned Testnet CLI double build, transient installation, cold start and removal at the frozen source commit.
+- CycloneDX 1.5 SBOM with 419 components bound to the frozen source commit.
 - Clean generated-artifact reproduction: `npx hardhat clean` followed by `make test`
 - `make test`
 - `make contract-tooling-check`
@@ -31,9 +33,8 @@ The state source SHA is the engineering commit audited by this checkpoint. The c
 
 ## GitHub Actions
 
-- Successful run: `30417960548`, source `d23515300851eac1e6acce82b73af938d3750aeb`, conclusion `success`, duration `4m11s`.
-- Run `30417317436` proved that `make test`, Economics local candidate, contract tooling, monitoring, indexer, explorer, and faucet gates pass in a clean GitHub runner. It failed only at the GNU tar / `grep -q` portability defect in `make deploy-dry-run`, fixed by `d2351530`.
-- The successful run covers the complete configured workflow through `make mainnet-readiness`; it does not prove central merge, production deployment, hosted downloads, signing, or mainnet release.
+- Exact-head CI for the final evidence commit is pending push.
+- Earlier successful run `30417960548` remains historical evidence only and does not substitute for exact-head CI.
 
 ## Pull request and release truth
 
@@ -68,8 +69,8 @@ The state source SHA is the engineering commit audited by this checkpoint. The c
 
 ## Remaining
 
-- Reconcile the branch with `origin/main`; the refreshed branch is 65 commits ahead and 61 commits behind, and a read-only merge simulation found 16 conflict paths.
-- Resolve conflicts without discarding Economics or newer shared-repository outcomes, rerun the complete workflow, then create and validate the product pull request.
+- Push and protect the final evidence commit, then require exact-head CI success.
+- Create or update the Product 17 pull request for central acceptance.
 - Attach direct signed shared-Testnet owner evidence from products 01, 12, 13, 26, and 29.
 - Obtain central integration acceptance and shared Testnet execution evidence.
 - Produce hosted, production-signed release artifacts with matching SBOM, provenance, checksums, and source commit.
@@ -86,6 +87,7 @@ The state source SHA is the engineering commit audited by this checkpoint. The c
 - `release/economics/product-release.json`
 - `release/economics/public-product-metadata.json`
 - `release/economics-testnet-cli-artifact.json`
-- `release/operator-inputs.request.json`
+- `release/economics/operator-inputs.request.json`
 - `docs/economics/evidence/full-goal-coverage.json`
+- `docs/economics/evidence/local-artifact-provenance-a377bef6.json`
 - GitHub Actions runs `30417123653`, `30417317436`, and `30417960548`

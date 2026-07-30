@@ -2,10 +2,12 @@
   "schemaVersion": 1,
   "releaseId": "ynxt-economics-local-testnet-evidence-2026-07-27",
   "product": "YNXT Economics",
-  "asOf": "2026-07-27T15:35:18Z",
-  "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
+  "asOf": "2026-07-30T10:42:08Z",
+  "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+  "sourceCommitScope": "frozen Product 17 source candidate after non-destructive main and protected Integration reconciliation",
+  "acceptedDependencyAncestor": "470da14faa51914beed2ee6c75a43df013e63b20",
   "runtimeSourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
-  "artifactBuilderSourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
+  "artifactBuilderSourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
   "sharedTestnetAcceptanceSourceCommit": "4a5f4b774d2fc4afc532b246d6f39f4b44577466",
   "sharedTestnetValidatorSourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
   "publicMetadataSourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
@@ -116,15 +118,15 @@
     {
       "kind": "cyclonedx_sbom",
       "path": "release/sbom.cdx.json",
-      "sha256": "93463bd9b615b8d535c2df59c22d0c438fa662f9b3480f0c3dcf5e0f438b99b7",
+      "sha256": "a33dbcebc9c638aa4a4a5e0e0def5c527d391d9a46ad4985ecc493a47916d9ea",
       "bytes": 154696,
       "signingClass": "unsigned_repository_evidence",
       "downloadURL": null,
-      "sourceCommit": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21"
+      "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68"
     }
   ],
   "artifactCandidate": {
-    "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
+    "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
     "target": "darwin/arm64",
     "binaries": [
       "ynx-economics-runtime",
@@ -140,18 +142,19 @@
     "coldStartVerified": true,
     "persistedEvidence": true,
     "evidence": "release/economics-testnet-cli-artifact.json",
-    "packageHash": "sha256:065ca08e0c1064122d95bbca58b4bae3191c62507bab5b3c77ab7b4aa8e4aa60",
+    "packageHash": "sha256:5b4f3ba84dea6201ddf885ba1f5e80adf8be4fc35f649dcc0c34f1bef6976c31",
     "signingClass": "unsigned_local_testnet_cli",
     "removalVerified": true,
     "productionSigned": false,
     "downloadHosted": false
   },
+  "localArtifactProvenance": "docs/economics/evidence/local-artifact-provenance-a377bef6.json",
   "installationEvidence": {
     "path": "release/economics-testnet-cli-artifact.json",
-    "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
+    "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
     "artifactId": "ynxt-economics-testnet-cli-darwin-arm64",
     "target": "darwin/arm64",
-    "packageHash": "sha256:065ca08e0c1064122d95bbca58b4bae3191c62507bab5b3c77ab7b4aa8e4aa60",
+    "packageHash": "sha256:5b4f3ba84dea6201ddf885ba1f5e80adf8be4fc35f649dcc0c34f1bef6976c31",
     "signingClass": "unsigned_local_testnet_cli",
     "installedLocal": true,
     "transient": true,
@@ -171,7 +174,6 @@
     "Data Fabric, Explorer and Monitor consumption of canonical economics and staking-risk events",
     "contract audits and governed candidate activation",
     "unresolved High vulnerability in development-only Hardhat adm-zip chain",
-    "external DAST, hosted CI provenance and artifact signing",
-    "full go test is blocked by three existing umask-sensitive key-permission tests outside Economics ownership"
+    "external DAST, exact-head hosted CI provenance and artifact signing"
   ]
 }

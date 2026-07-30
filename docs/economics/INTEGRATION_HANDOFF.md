@@ -4,7 +4,9 @@
 
 - Contract: `release/integration/ynxt-economics-contract.json`
 - Cross-product vectors: `docs/economics/CROSS_PRODUCT_TEST_VECTORS.json`
-- Frozen Integration Bundle source: `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9`
+- Frozen source candidate: `a377bef61a7082b5b1ae0ebd35d4b97846649b68`
+- Frozen deterministic Integration Bundle source: `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9`
+- Accepted dependency ancestor: `470da14faa51914beed2ee6c75a43df013e63b20`
 - Local Testnet evidence runtime source: `f14d002a39cedca18b094e856adc7da888d376da`
 - Shared Testnet acceptance validator source: `e1271acfb6b0959b1cfd11ce7b9144d66e1edec8`
 - Shared Testnet acceptance Store/CLI source: `4a5f4b774d2fc4afc532b246d6f39f4b44577466`

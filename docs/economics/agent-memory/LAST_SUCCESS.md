@@ -1,36 +1,28 @@
 # YNX 17 Last Success
 
-Updated: 2026-07-29T02:56:46Z
+Updated: 2026-07-30T10:42:08Z
 
 ## Protected engineering checkpoint
 
 - Branch: `codex/final-tokenomics`
-- Engineering SHA: `d23515300851eac1e6acce82b73af938d3750aeb`
-- Remote branch SHA: `d23515300851eac1e6acce82b73af938d3750aeb`
-- GitHub Actions run: `30417960548`
-- CI conclusion: `success`
-- CI duration: `4m11s`
+- Frozen engineering SHA: `a377bef61a7082b5b1ae0ebd35d4b97846649b68`
+- Accepted dependency ancestor: `470da14faa51914beed2ee6c75a43df013e63b20`
+- Remote branch SHA before final push: `261c267417ef166762214453efdcdc28c1230e51`
+- Exact-head GitHub Actions: pending final evidence push
 
-## Repairs included
+## Final local verification
 
-1. `d0a06d3709a7ec59ade1bd284dca8708c6551004` — generates pinned Hardhat artifacts and selector metadata before Go tests, eliminating dependence on ignored local cache.
-2. `54b940e85846eb7d1e124936e072c684d26f1844` — checks out complete Git history so provenance gates can resolve persisted historical source commits.
-3. `d23515300851eac1e6acce82b73af938d3750aeb` — makes release tar membership checks portable on GNU tar runners without weakening archive validation.
-
-## Direct verification
-
-The following passed locally at the protected checkpoint:
-
-- clean generated-artifact reproduction with `npx hardhat clean` followed by `make test`
 - `make test`
 - `make contract-tooling-check`
-- `make static-check`
-- `make no-placeholder-check`
-- `make secret-scan`
 - `make economics-local-candidate-check`
+- `make economics-testnet-cli-artifact-check`
+- `make economics-supply-chain-check`
+- `make economics-release-boundary-check`
+- `make economics-integration-contract-check`
 - `make deploy-dry-run`
+- `node scripts/verify/github-actions-pins-check.mjs`
 
-The successful GitHub workflow additionally completed every configured step through `make mainnet-readiness`.
+The five-binary unsigned local Testnet CLI reproduces at package hash `sha256:5b4f3ba84dea6201ddf885ba1f5e80adf8be4fc35f649dcc0c34f1bef6976c31`; its install was transient and removed after cold-start verification.
 
 ## Boundary
 

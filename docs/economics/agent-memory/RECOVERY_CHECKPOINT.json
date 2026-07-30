@@ -5,13 +5,14 @@
   "phase": "INTEGRATE",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/17-tokenomics",
   "branch": "codex/final-tokenomics",
-  "localSha": "d23515300851eac1e6acce82b73af938d3750aeb",
-  "remoteSha": "d23515300851eac1e6acce82b73af938d3750aeb",
-  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
-  "dirty": false,
-  "ahead": 0,
+  "localSha": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+  "remoteSha": "261c267417ef166762214453efdcdc28c1230e51",
+  "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
+  "acceptedDependencyAncestor": "470da14faa51914beed2ee6c75a43df013e63b20",
+  "dirty": true,
+  "ahead": 418,
   "behind": 0,
-  "checkpointScope": "engineering state before the documentation-only Agent Memory checkpoint commit",
+  "checkpointScope": "frozen engineering source before the evidence-only follow-up commit",
   "latestSuccessfulTests": [
     "npx hardhat clean followed by make test",
     "make test",
@@ -44,8 +45,9 @@
   "release": null,
   "artifacts": [
     {
-      "id": "ynx-economics-testnet-cli-darwin-arm64-4af13fe12c40",
-      "packageHash": "sha256:065ca08e0c1064122d95bbca58b4bae3191c62507bab5b3c77ab7b4aa8e4aa60",
+      "id": "ynxt-economics-testnet-cli-darwin-arm64",
+      "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+      "packageHash": "sha256:5b4f3ba84dea6201ddf885ba1f5e80adf8be4fc35f649dcc0c34f1bef6976c31",
       "hosted": false,
       "productionSigned": false,
       "installedLocal": true
@@ -70,8 +72,8 @@
     "persisted truthful unsigned local five-binary artifact evidence"
   ],
   "remaining": [
-    "merge origin/main non-destructively and resolve the 16 simulated conflict paths; the branch is 65 commits ahead and 61 commits behind main",
-    "rerun the complete workflow on the reconciled source SHA and create the YNX 17 pull request only after it is green",
+    "push and protect the evidence head, then require exact-head GitHub Actions success",
+    "publish the source-only prerelease and create or update the YNX 17 pull request",
     "obtain direct shared-Testnet owner attestations from 01, 12, 13, 26, and 29",
     "obtain central integration acceptance and real shared-Testnet execution evidence",
     "produce authenticated production signatures, hosted downloads, and matching release provenance",
@@ -81,6 +83,6 @@
     "E17-B001",
     "E17-B002"
   ],
-  "nextAction": "Commit the Agent Memory checkpoint, merge origin/main non-destructively, resolve all 16 simulated conflict paths, rerun the complete workflow, and create the YNX 17 pull request only after the reconciled source SHA is green.",
-  "updatedAt": "2026-07-29T03:03:29Z"
+  "nextAction": "Commit the evidence checkpoint, push and protect the owner branch, verify exact-head CI, publish the source-only prerelease, and submit Product 17 to central acceptance.",
+  "updatedAt": "2026-07-30T10:42:08Z"
 }

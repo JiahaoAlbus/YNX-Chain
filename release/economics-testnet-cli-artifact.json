@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "evidenceClass": "local-unsigned-testnet-cli-artifact",
-  "generatedAt": "2026-07-27T23:47:21+08:00",
-  "sourceCommit": "3b18f847f766503c84cf468322e676334c572a02",
+  "generatedAt": "2026-07-30T18:39:47+08:00",
+  "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
   "storeSourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
   "artifact": {
     "id": "ynxt-economics-testnet-cli-darwin-arm64",
@@ -12,42 +12,42 @@
       "goarch": "arm64"
     },
     "toolchain": "go version go1.25.12 darwin/arm64",
-    "packageHash": "sha256:065ca08e0c1064122d95bbca58b4bae3191c62507bab5b3c77ab7b4aa8e4aa60",
+    "packageHash": "sha256:5b4f3ba84dea6201ddf885ba1f5e80adf8be4fc35f649dcc0c34f1bef6976c31",
     "files": [
       {
         "path": "README.txt",
         "bytes": 613,
-        "sha256": "53084b00a6b37c805ab6cd6b8f4f1a22ac7a29b297b15bc503a7c4b611119619",
+        "sha256": "beb29a2056300bf7f32d3daf759e97f723b278eac9dc83811c87fc611a013628",
         "mode": "0644"
       },
       {
         "path": "bin/ynx-economics-integration-store",
         "bytes": 4390530,
-        "sha256": "037904530ab02f1c9bbef44e10da873207597912dad1f248507a02d8eff32cd3",
+        "sha256": "2b58b19baf45b9049203c5c498d2105a373fc4751b868dcd54989e6733abe394",
         "mode": "0755"
       },
       {
         "path": "bin/ynx-economics-local-testnet-evidence",
         "bytes": 4219362,
-        "sha256": "53ecef3fe3492a0487165ea98ae983efed32d7cac60a1700e8f1c089dece5dce",
+        "sha256": "4d0a3322536af00888ae5fcba0ee3988da14cc89e54ae57f3b4d352612b119b8",
         "mode": "0755"
       },
       {
         "path": "bin/ynx-economics-runtime",
         "bytes": 3936882,
-        "sha256": "cf71f53bb0863e03e94fe73d57b8e425ee36356fa7b76709e6c6025c0a80cbf4",
+        "sha256": "db6a99e923253adeddc4204c71c57766e035e2050b886a965abb909010ad3b17",
         "mode": "0755"
       },
       {
         "path": "bin/ynx-economics-shared-testnet-acceptance",
         "bytes": 4027474,
-        "sha256": "9526f6e05b5eb63beda0488cac97932ca4ba2dcb53a0fa2dc7199f7b4b780009",
+        "sha256": "6395f46ee2311793e2cefb3253124b7cde7238903270d5ad50efbda02df13a44",
         "mode": "0755"
       },
       {
         "path": "bin/ynx-staking-risk-runtime",
         "bytes": 3988338,
-        "sha256": "081956858379442af56ee32741ccedd950f5a82a906483b6eb234a9f72962ba2",
+        "sha256": "07cb59979e5aab903968c1281a084c7b5f334efaf5ff888b7307111ec62ae808",
         "mode": "0755"
       }
     ],

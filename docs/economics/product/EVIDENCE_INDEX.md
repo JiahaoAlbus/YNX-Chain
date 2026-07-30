@@ -54,6 +54,7 @@ All paths are repository-relative and refer to the current source commit only af
 | Unit-cost formulas and currently unavailable billing/user inputs | `UNIT_ECONOMICS.md` | Review zero/unknown/undefined boundaries |
 | Threats, trust assets and execution boundaries | `THREAT_MODEL.md`, `SECURITY_BOUNDARIES.md` | Review authority and remaining-gate tables |
 | Complete resolved dependency inventory | `release/sbom.cdx.json`, `THIRD_PARTY_NOTICES.md` | `make economics-supply-chain-check` |
+| Frozen source candidate, accepted dependency ancestry, unsigned CLI and SBOM provenance | `docs/economics/evidence/local-artifact-provenance-a377bef6.json` | Verify commit/tree ancestry, rerun the listed local gates, and keep all external release states false |
 | Dependency, secret and static scan truth | `release/security-scan-evidence.json`, `SUPPLY_CHAIN_SECURITY.md` | Re-run named commands; unresolved npm High remains explicit |
 | Reproducible unsigned local binary and cold start | `release/reproducible-build-evidence.json` | Repeat allowlisted build twice and compare SHA-256 |
 | Scoped release changes and known gaps | `RELEASE_NOTES.md`, `product-release.json` | `make economics-public-package-check` |

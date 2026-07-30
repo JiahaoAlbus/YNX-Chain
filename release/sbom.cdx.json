@@ -6,11 +6,11 @@
     "component": {
       "type": "application",
       "name": "YNXT Economics local integration candidate",
-      "version": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21",
+      "version": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
       "properties": [
         {
           "name": "ynx:sourceCommit",
-          "value": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21"
+          "value": "a377bef61a7082b5b1ae0ebd35d4b97846649b68"
         },
         {
           "name": "ynx:releaseClass",
