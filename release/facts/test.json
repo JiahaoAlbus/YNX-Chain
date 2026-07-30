@@ -1,0 +1,14 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Superseded",
+  "purpose": "Retained recovery trace for the initial unstructured fact smoke fixture; not an authoritative fact record.",
+  "observed": {
+    "name": "YNX Chain",
+    "evmChainId": 6423
+  },
+  "replacement": "release/facts/authoritative-facts.json"
+}

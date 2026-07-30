@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Candidate",
+  "networkName": "YNX Testnet",
+  "evmChainId": 6423,
+  "evmChainIdHex": "0x1917",
+  "cosmosChainId": "ynx_6423-1",
+  "nativeAsset": "YNXT",
+  "nativeAssetDecimals": 18,
+  "metadataSource": "chain-metadata/ynx-testnet.json",
+  "configurationSource": "configs/networks.json",
+  "statusReason": "Canonical identity is frozen, but repository network records disagree on deployment wording and require owner reconciliation.",
+  "testnetRisk": "Testnet assets have no represented monetary value or guaranteed liquidity.",
+  "mainnetBoundary": "Testnet implementation or deployment does not establish Mainnet launch.",
+  "consensusPublicStatus": "Blocked",
+  "consensusPublicStatusReason": "Public StreamBFT or Byzantine validator voting is not established by current direct evidence."
+}

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "ynx-public-product-metadata/v1",
+  "name": "YNX Governance",
+  "aliases": ["YNX Protocol Governance", "YNX Protocol Control"],
+  "canonicalRoute": "/governance",
+  "title": "YNX Governance — Protocol proposals and public verification",
+  "metaDescription": "Review YNX protocol proposals, machine-readable changes, simulations, votes, timelocks, execution verification, conflicts, and emergency actions.",
+  "h1": "YNX Governance",
+  "logo": "/assets/brand/ynx-logo.png",
+  "screenshots": [],
+  "features": [
+    "Readable proposals and machine diffs",
+    "Technical and economic simulation evidence",
+    "Vote, quorum, threshold, and delegation records",
+    "Digest-bound authoritative parameter and role registries",
+    "Timelock, execution verification, and rollback history",
+    "Council conflicts, terms, removals, and emergency-action archive"
+  ],
+  "risks": [
+    "Governance decisions may change protocol economics, providers, limits, or software behavior.",
+    "Voting participation does not guarantee a preferred outcome.",
+    "The current integration candidate has no accepted shared-Testnet or public execution evidence."
+  ],
+  "status": {
+    "channel": "integration-candidate",
+    "publiclyAvailable": false,
+    "externalExecutionEnabled": false
+  },
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "faq": [
+    {
+      "question": "When does an approved proposal execute?",
+      "answer": "Only after quorum and threshold checks, the configured timelock, exact execution-manifest validation, and an authorized execution step."
+    },
+    {
+      "question": "Can the Emergency Council move user assets?",
+      "answer": "No. Emergency authority is limited to temporary pauses for approved targets and expires automatically."
+    },
+    {
+      "question": "Is this governance service publicly deployed?",
+      "answer": "No. The current release record describes a locally verified integration candidate; shared-Testnet acceptance and public deployment are still pending."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "type": "WebApplication",
+    "applicationCategory": "GovernanceApplication",
+    "operatingSystem": "Web"
+  }
+}

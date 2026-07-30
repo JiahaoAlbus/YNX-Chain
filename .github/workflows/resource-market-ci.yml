@@ -1,0 +1,62 @@
+name: Resource Market Candidate Gates
+
+on:
+  pull_request:
+    paths:
+      - 'apps/resource-market/**'
+      - 'internal/resourcemarket/**'
+      - 'internal/resourceproduct/**'
+      - 'internal/productstore/**'
+      - 'internal/canonicalwallet/**'
+      - 'scripts/validate/**'
+      - 'scripts/verify/resource-market*'
+      - '.github/workflows/resource-market-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install patched Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.25.12'
+          check-latest: false
+          cache: true
+      - name: Record toolchains
+        run: go version && node --version && npm --version
+      - name: Runtime filler and secret gates
+        run: |
+          bash scripts/validate/no-placeholder-check.sh
+          bash scripts/validate/secret-scan.sh
+      - name: Go correctness and race gates
+        run: |
+          go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market
+          go test -count=1 ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market
+          go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct
+      - name: Go vulnerability gate
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market
+      - name: Locked browser dependencies and audit
+        working-directory: apps/resource-market
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=high
+          npx playwright install --with-deps chromium
+          npm run test:ui
+      - name: Local API and DAST smoke
+        run: bash apps/resource-market/check.sh
+      - name: Build and inspect candidate artifact
+        run: |
+          mkdir -p release/local-ci
+          go build -trimpath -buildvcs=true -o release/local-ci/ynx-resource-market ./apps/resource-market
+          go version -m release/local-ci/ynx-resource-market > release/local-ci/go-build-metadata.txt
+          sha256sum release/local-ci/ynx-resource-market > release/local-ci/SHA256SUMS
+          go list -m -json all > release/local-ci/go-dependencies.json
+          (cd apps/resource-market && npm sbom --sbom-format spdx) > release/local-ci/npm-sbom.spdx.json
+          bash scripts/validate/secret-scan.sh
