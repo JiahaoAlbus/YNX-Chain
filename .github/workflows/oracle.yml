@@ -16,6 +16,7 @@ on:
       - "internal/oracle/**"
       - "release/integration/oracle-market-data-contract.json"
       - "scripts/package/oracle-release.mjs"
+      - "scripts/verify/github-actions-pins-check.mjs"
       - "scripts/verify/oracle-*.mjs"
       - "scripts/verify/oracle-*.sh"
       - "sdk/oracle/**"
@@ -38,6 +39,7 @@ on:
       - "internal/oracle/**"
       - "release/integration/oracle-market-data-contract.json"
       - "scripts/package/oracle-release.mjs"
+      - "scripts/verify/github-actions-pins-check.mjs"
       - "scripts/verify/oracle-*.mjs"
       - "scripts/verify/oracle-*.sh"
       - "sdk/oracle/**"
@@ -82,6 +84,7 @@ jobs:
             sdk/oracle/typescript/package-lock.json
       - run: npm ci --prefix apps/oracle
       - run: npm ci --prefix sdk/oracle/typescript --ignore-scripts --no-audit --no-fund
+      - run: node scripts/verify/github-actions-pins-check.mjs
       - run: make oracle-web-test
       - run: npm --prefix apps/oracle run test:browser:a11y
         timeout-minutes: 3
