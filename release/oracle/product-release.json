@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "namespace": "oracle",
+  "productId": "ynx-oracle-market-data",
+  "channel": "testnet-candidate",
+  "version": "0.1.0-testnet",
+  "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
+  "schema": "ynx.oracle.v1",
+  "aggregationPolicyVersion": "weighted-median-mad-v1",
+  "derivativesPolicyVersion": "index-funding-mark-v1",
+  "runtimeCapabilities": [
+    "signed provider observation validation",
+    "provider registry market, endpoint, and API-version enforcement",
+    "spot aggregation",
+    "index price derivation",
+    "funding reference derivation",
+    "mark price derivation",
+    "DEX multi-block TWAP derivation",
+    "stablecoin reserve attestation and reserve-ratio derivation",
+    "official provider adapter workers",
+    "correction lineage",
+    "historical replay",
+    "strict Go and TypeScript consumer SDKs",
+    "fail-closed consumer CLI",
+    "fail-closed public health and version",
+    "limited-source public Testnet mode"
+  ],
+  "artifacts": [
+    "release/evidence/oracle-public-testnet-f71d5ca.json",
+    "release/evidence/oracle-artifact-manifest-7ba44cfbe664.json",
+    "release/evidence/oracle-artifact-provenance-7ba44cfbe664.json",
+    "release/evidence/oracle-artifact-sbom-7ba44cfbe664.cdx.json",
+    "release/evidence/oracle-artifact-verification-7ba44cfbe664.json"
+  ],
+  "sourceRelease": {
+    "status": "published-prerelease",
+    "sourceOnly": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "id": 362192263,
+    "tag": "oracle-market-data-v0.1.0-testnet-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/oracle-market-data-v0.1.0-testnet-source-candidate",
+    "publishedAt": "2026-07-30T04:39:00Z",
+    "targetCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
+    "assetCount": 5,
+    "archive": {
+      "name": "ynx-oracle-market-data-source-7ba44cfbe664.tar.gz",
+      "bytes": 6446422,
+      "sha256": "15778df6d066868d491ffced4efe021399a811b0e232bde5d23b6600dea699df"
+    },
+    "downloadedAllAssetDigestsVerified": true
+  },
+  "publicApi": {
+    "url": "https://oracle-testnet.43.153.202.237.sslip.io",
+    "access": "public",
+    "deploymentStatus": "succeeded",
+    "sourceCommit": "f71d5ca5c2ede28477fbadff36701a9f040e311f",
+    "sourceMode": "limited",
+    "healthHttpStatus": 503,
+    "healthStatus": "degraded",
+    "activeProviderCount": 0,
+    "requiredProviderCount": 3,
+    "authoritativePrices": false,
+    "evidence": "release/evidence/oracle-public-testnet-f71d5ca.json"
+  },
+  "oracleWeb": {
+    "url": "https://ynx-oracle-control.jeohuang.chatgpt.site/oracle",
+    "access": "owner_only",
+    "deploymentStatus": "succeeded",
+    "sourceCommit": "ad7836788e61d396402f286e687d99f723fea0bd",
+    "unauthenticatedHttpStatus": 401,
+    "countsAsDeployedPublic": false
+  },
+  "providerCountActive": 0,
+  "requiredProviderCount": 3,
+  "sourceLimitation": "No approved provider covers YNXT/YUSD_TEST; authoritative publication remains unavailable.",
+  "centralIntegrationAccepted": false,
+  "released": false
+}

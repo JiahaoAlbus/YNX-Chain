@@ -211,7 +211,7 @@ function verifyJSONDescriptor(directory, descriptor, name) {
 function verifySourceBindings({manifest, sourceRoot}) {
   const currentCommit = execFileSync("git", ["rev-parse", "HEAD"], {cwd: sourceRoot, encoding: "utf8"}).trim();
   assert.equal(currentCommit, manifest.source.gitCommit, "Oracle source root commit mismatch");
-  const releaseRecord = JSON.parse(fs.readFileSync(path.join(sourceRoot, "release/product-release.json"), "utf8"));
+  const releaseRecord = JSON.parse(fs.readFileSync(path.join(sourceRoot, "release/oracle/product-release.json"), "utf8"));
   assert.equal(releaseRecord.version, manifest.version, "Oracle release record version mismatch");
   for (const source of manifest.source.files) {
     assert.match(source.path, /^[A-Za-z0-9._/-]+$/, `unsafe Oracle source path ${source.path}`);

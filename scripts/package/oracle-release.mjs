@@ -50,7 +50,7 @@ export function buildOracleRelease({rootDir, outputDir, allowDirty = false}) {
     throw new Error("Oracle artifacts require a clean worktree; commit or protect changes first");
   }
   const commitTime = canonicalTimestamp(git(root, ["show", "-s", "--format=%cI", sourceCommit]));
-  const releaseRecord = readJSON(path.join(root, "release/product-release.json"));
+  const releaseRecord = readJSON(path.join(root, "release/oracle/product-release.json"));
   const version = validateVersion(releaseRecord.version);
   const tsc = resolveTypeScriptCompiler(root);
   const toolchain = {

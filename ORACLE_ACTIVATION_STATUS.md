@@ -101,7 +101,7 @@ ok  	github.com/JiahaoAlbus/YNX-Chain/sdk/oracle/go	2.536s
 - [ ] Make Oracle Web publicly accessible
 - [ ] Host immutable server, CLI, and SDK artifacts with hashes and provenance
 
-**Current Release Record**: `release/product-release.json`
+**Current Release Record**: `release/oracle/product-release.json`
 ```json
 {
   "productId": "ynx-oracle-market-data",

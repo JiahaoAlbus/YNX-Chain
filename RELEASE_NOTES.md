@@ -45,4 +45,4 @@ activation requires:
 Every provider candidate remains inactive. Consumers must fail closed until the
 three-source and quality policies are directly satisfied. Breaking and rollback
 details are in `MIGRATION_COMPATIBILITY.md`; required external inputs are listed
-without secrets in `release/operator-inputs.request.json`.
+without secrets in `release/oracle/operator-inputs.request.json`.

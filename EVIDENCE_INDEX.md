@@ -19,8 +19,8 @@
 - Economics: `UNIT_ECONOMICS.md`
 - Web/PWA: `apps/oracle/`, `apps/oracle/tests/browser-accessibility.test.mjs`,
   `UI_DESIGN_AUDIT.md`
-- Release truth: `release/product-state.json`, `release/product-release.json`,
-  `release/operator-inputs.request.json`
+- Release truth: `release/oracle/product-state.json`, `release/oracle/product-release.json`,
+  `release/oracle/operator-inputs.request.json`
 - Deterministic artifact evidence: `release/evidence/oracle-artifact-manifest-6ba6c39a6661.json`,
   `release/evidence/oracle-artifact-provenance-6ba6c39a6661.json`,
   `release/evidence/oracle-artifact-sbom-6ba6c39a6661.cdx.json`, and
@@ -41,5 +41,5 @@ are not represented as complete. The source-bound real-Chrome audit at
 labels, keyboard focus order/visibility, Arabic RTL, reduced motion, light/dark
 theme, 200% large text, and no horizontal overflow at 390px.
 
-The owner-only Web deployment is recorded in `release/product-release.json`.
+The owner-only Web deployment is recorded in `release/oracle/product-release.json`.
 Its unauthenticated HTTP 401 proves access control, not public availability.

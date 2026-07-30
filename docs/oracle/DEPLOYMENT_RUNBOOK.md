@@ -468,7 +468,7 @@ groups:
 ```bash
 cd "/Users/huangjiahao/Desktop/YNX Final Worktrees/19-oracle-market-data"
 
-# Update release/product-release.json
+# Update release/oracle/product-release.json
 jq '.publicApi = {
   "url": "https://oracle-api.ynx-testnet.com",
   "access": "public",
@@ -476,12 +476,12 @@ jq '.publicApi = {
   "sourceCommit": "'"$(git rev-parse HEAD)"'",
   "authenticatedHttpStatus": 200
 } | .providerCountActive = 1 | .channel = "testnet-bootstrap"' \
-  release/product-release.json > /tmp/release-updated.json
+  release/oracle/product-release.json > /tmp/release-updated.json
 
-mv /tmp/release-updated.json release/product-release.json
+mv /tmp/release-updated.json release/oracle/product-release.json
 
 # Commit and push
-git add release/product-release.json
+git add release/oracle/product-release.json
 git commit -m "feat(oracle): record testnet bootstrap deployment"
 git push origin codex/final-oracle-market-data
 ```
@@ -533,8 +533,8 @@ sudo tar -czf /tmp/oracle-rollback-$(date +%Y%m%d-%H%M%S).tar.gz \
   /etc/ynx-oracle
 
 # Update release record
-jq '.publicApi.deploymentStatus = "failed"' release/product-release.json > /tmp/release-rollback.json
-mv /tmp/release-rollback.json release/product-release.json
+jq '.publicApi.deploymentStatus = "failed"' release/oracle/product-release.json > /tmp/release-rollback.json
+mv /tmp/release-rollback.json release/oracle/product-release.json
 ```
 
 ---

@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "namespace": "oracle",
   "productId": "ynx-oracle-market-data",
   "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
   "implementedLocal": true,

@@ -1,54 +1,56 @@
-# Oracle & Market Data Integration Handoff
+# YNX Resource Market integration handoff
 
-## Authority
+## Identity
 
-YNX Oracle & Market Data is the sole owner of canonical price and market-data facts. Consumer products must not maintain a conflicting definition of asset, market, timestamp, price type, staleness, quality, correction state, or lineage.
+- Product owner: `16-resource-market`
+- Contract: `release/integration/resource-market-contract.json`
+- Contract version: `resource-market-integration-v1`
+- Implementation source: `a940d2efa824bd9f43522ed792c9a563b55e1e11`
+- Current phase: `FREEZE → INTEGRATE`
+- Current product status: local candidate; not centrally integrated, staged, public, production-signed or store-released.
 
-**Frozen Oracle source commit:** `7ba44cfbe66455884ac6c2ea8525e9738b7f1396`
-**Schema:** `ynx.oracle.v1`  
-**Aggregation policy:** `weighted-median-mad-v1`  
-**Derivatives policy:** `index-funding-mark-v1`  
-**Normalizer:** `observation-normalizer-v1`  
-**Store:** version 3
+## Authority split
 
-## Frozen runtime boundary
+Resource Market owns provider registration, verified capacity, offers, matching, auctions, reservation, service lifecycle, signed usage metering and local dispute evidence. It does not own Wallet identity, asset finality, billing-ledger authority, public Explorer proof, central monitoring, public Website entry or protocol freeze.
 
-Provider adapters may submit signed `spot_price`, `premium_reference`, `basis_reference`, FX, stablecoin, structured market-data, DEX pool/TWAP, rate-candidate, and provider-status observations only when the provider registry explicitly covers the market, endpoint, and API version.
+A quote, accepted intent, reservation, service start, meter, service completion, HTTP success or provider statement is never asset settlement. Reservations are bound to the exact Offer referenced by the accepted Quote; capacity from a sibling Offer cannot satisfy or release that reservation. Settlement is accepted only when an authorized settlement identity supplies a non-empty asset, transaction hash, evidence and source; amounts exactly reconcile to signed meters; the order is `settlement_pending`; and the normalized transaction hash has not already been consumed by another receipt.
 
-Providers may not submit `index_price`, `mark_price`, or `funding_reference`. Oracle derives those outputs from safe components, records the exact policy and component lineage, and fails closed on insufficient sources, stale data, divergence, clamp activation, pause, or unavailable inputs.
+## Canonical integration inputs
 
-Exchange-specific public reads are:
+- Wallet registry: `apps/resource-market/integration/canonical-wallet-registry.json`
+- Wallet vectors: `apps/resource-market/integration/canonical-wallet-v1-test-vector.json`
+- Existing central manifest: `apps/resource-market/integration/central-integration-manifest.json`
+- Frozen product contract: `release/integration/resource-market-contract.json`
+- Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 
-- `GET /v1/index?market={market}`
-- `GET /v1/funding?market={market}`
-- `GET /v1/mark?market={market}`
+## Required central behavior
 
-The generic versioned price interface remains `GET /v1/prices?market={market}&type={type}`. Public operational interfaces include `/health`, `/version`, `/v1/providers`, `/v1/markets`, `/v1/status`, `/v1/history`, `/v1/corrections`, `/v1/replay`, and `/v1/market-data`.
+1. Product 02 registers the exact client, bundle, callback, ordered scopes and P-256 product-device algorithm.
+2. Product 29 freezes the exact method/path/body product-session proof semantics and one-to-one proxy route mapping.
+3. Product 01 provides authoritative transaction finality and settlement evidence; product 16 does not infer finality.
+4. Product 26 accepts only signed-meter and confirmed-settlement events, preserving idempotency and lineage.
+5. Product 12 exposes public receipt evidence only after authoritative settlement.
+6. Product 13 alerts on stale providers, metering failures, settlement reconciliation failure and receipt replay rejection.
+7. Product 15 links provider failure and dispute/appeal evidence without gaining asset authority.
+8. Product 28 publishes only release states that have direct evidence.
 
-## Consumer gate
+## Stable errors
 
-Every consumer must validate schema, requested market and type, source, policy version, `asOf`, confidence, coverage, stale state, quality status, circuit breaker, explicit failure, observation hashes, and lineage hash. Index, funding, and mark consumers must additionally validate the derivative method, derivative policy, component types, component lineage hashes, and `clamped=false`.
+The product returns a stable `code` with `errorId`, `requestId` and `traceId`. Settlement integrations must preserve at least:
 
-Consumers must reject degraded, divergent, partial, limited-source, circuit-breaker, last-good-stale, emergency-pause, paused, and unavailable values. A last-good value is not fresh data and must never be used for liquidation, bridge release, mint/burn authority, or reserve assurance.
+- `RESOURCE_SELF_DEALING_REJECTED`
+- `RESOURCE_AMOUNT_OUT_OF_RANGE`
+- `RESOURCE_CAPACITY_UNAVAILABLE`
+- `RESOURCE_METER_WINDOW_INVALID`
+- `RESOURCE_METER_LIMIT`
+- `RESOURCE_SETTLEMENT_STATE_INVALID`
+- `RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED`
+- `RESOURCE_SETTLEMENT_RECONCILIATION`
+- `RESOURCE_SETTLEMENT_REPLAY`
 
-## Auth and admission
+No consumer may translate these failures into success, paid, settled or refunded.
 
-Public market-data reads may be anonymous and rate-limited. Internal observation ingestion requires canonical network/service admission and a registered Ed25519 reporter signature. Reporter identity is not Wallet identity, and a reporter signature does not replace Product Session or Gateway policy where those are required. Browser origins are not granted CORS access to internal ingestion.
+## Acceptance gate
 
-Consensus code must not perform HTTP reads. Chain Core must consume a pre-validated, versioned Oracle record through a deterministic system-module or precompile integration.
-
-## Migration conflict
-
-The previous observation contract allowed providers to publish index, mark, and funding values. That protocol conflicts with Oracle ownership and is now rejected by runtime and schema. Provider adapters must migrate to spot, premium, and basis inputs; Exchange consumers must migrate to the derived interfaces. The repository does not preserve two authoritative protocols. `29 Integration` must freeze the single accepted version and merge order.
-
-## Evidence and acceptance
-
-Local Oracle race tests, vet, Web tests, real-Chrome accessibility, TypeScript SDK tests, deterministic release integrity, dependency audit and immutable Actions-pin checks pass against the source commit. The full-repository test command was also run; failures were outside Oracle ownership and were limited to missing EVM contract artifacts and a Resource Market vector inherited from current `main` without its required contract identifier.
-
-Central integration, staging, public deployment, Explorer proof, Monitor alerts, provider activation, and consumer acceptance remain false until direct evidence is returned. The authoritative machine-readable files are:
-
-- `release/integration/oracle-market-data-contract.json`
-- `integration/oracle/v1/consumer-handoff.json`
-- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
-- `docs/integration/DEPENDENCY_ACCEPTANCE.md`
-- `docs/integration/ORACLE_PROTOCOL_CONFLICT_REPORT.md`
+Central integration remains false until every applicable dependency row in `DEPENDENCY_ACCEPTANCE.md` has direct evidence and the vectors in `CROSS_PRODUCT_TEST_VECTORS.json` pass against deployed Testnet services. Local tests are not public or central proof.

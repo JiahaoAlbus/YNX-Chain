@@ -65,7 +65,7 @@
     "observationSchema": "integration/oracle/v1/observation.schema.json",
     "marketDataSchema": "integration/oracle/v1/market-data-feed.schema.json",
     "testVectors": "integration/oracle/v1/consumer-test-vectors.json",
-    "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+    "crossProductTestVectors": "docs/integration/ORACLE_CROSS_PRODUCT_TEST_VECTORS.json",
     "goSdk": "sdk/oracle/go/client.go"
   },
   "api": {
