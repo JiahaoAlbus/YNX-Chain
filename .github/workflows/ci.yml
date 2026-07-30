@@ -2,9 +2,9 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/final-pay]
   pull_request:
-    branches: [main]
+    branches: [main, codex/final-pay]
 
 jobs:
   test:
