@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "passed",
+  "productId": "17",
+  "product": "YNXT Economics / Treasury / Stablecoin",
+  "acceptedBy": "29-integration",
+  "acceptedAt": "2026-07-30T11:26:43Z",
+  "acceptedSourceCommit": "7c540b7f3f5872adbd8f65e4c8975eeac41c3a3f",
+  "frozenReleaseSource": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+  "integrationCommit": "05652b201acf830495a8fb2fba5416e5f4ea9d8c",
+  "ancestry": {
+    "acceptedSourceIsParentOfIntegrationCommit": true,
+    "integrationCommitContainsAcceptedSource": true,
+    "frozenReleaseSourceIsAncestorOfAcceptedSource": true
+  },
+  "ownerCandidate": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "branch": "codex/final-tokenomics",
+    "localRemoteShaEqual": true,
+    "worktreeClean": true,
+    "branchProtected": true,
+    "pullRequest": 21,
+    "pullRequestDraft": true,
+    "coverageTotal": 24,
+    "coverageAutonomousOpen": 0,
+    "coverageExternalBlocked": 4,
+    "requiredEvidenceBundleComplete": true,
+    "sourceBindingsReachable": true
+  },
+  "exactHeadCi": {
+    "verified": true,
+    "sourceCommit": "7c540b7f3f5872adbd8f65e4c8975eeac41c3a3f",
+    "successfulWorkflowRunIds": [
+      30537986028,
+      30537990067,
+      30537990076,
+      30537990095
+    ],
+    "successfulCheckRuns": 10,
+    "failed": 0,
+    "pending": 0
+  },
+  "tests": [
+    {
+      "command": "make contract-tooling-check",
+      "status": "passed",
+      "result": "Hardhat, Foundry, selector metadata, Token List, DEX configuration, contracts and documentation remained coherent in the merged central tree."
+    },
+    {
+      "command": "make test",
+      "status": "passed",
+      "result": "All merged command and internal Go package tests passed, including Chain, Wallet, Oracle, Data Fabric, Governance, economics, YUSD, reserve, Explorer and Monitor consumers."
+    },
+    {
+      "command": "make economics-local-candidate-check",
+      "status": "passed",
+      "result": "Economics runtime, staking risk, integration adapter/store, local Testnet evidence, fee market, macro stress, security pools, public package, SBOM and release-boundary checks passed."
+    },
+    {
+      "command": "scripts/data-fabric/quality-gates.sh --integrated",
+      "status": "passed",
+      "result": "The Data Fabric integrated policy, package, cold-start, promotion, recovery, retention and graceful-stop gates passed against the central merge."
+    },
+    {
+      "command": "node scripts/verify/github-actions-pins-check.mjs",
+      "status": "passed",
+      "result": "All external GitHub Actions references remain immutable full commit pins."
+    }
+  ],
+  "artifactVerification": {
+    "sourceOnly": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "release": {
+      "id": 362364647,
+      "tag": "ynxt-economics-v0.1.0-testnet-source-candidate",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynxt-economics-v0.1.0-testnet-source-candidate",
+      "publishedAt": "2026-07-30T10:57:33Z",
+      "prerelease": true,
+      "draft": false,
+      "targetCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+      "assetCount": 4,
+      "archive": {
+        "name": "ynxt-economics-source-a377bef6.tar.gz",
+        "bytes": 12628787,
+        "sha256": "a1d262c887895728b60e0fd02c3a6c1587d0f90b36eefbf718f350a30a05279e"
+      },
+      "sbomSha256": "a33dbcebc9c638aa4a4a5e0e0def5c527d391d9a46ad4985ecc493a47916d9ea",
+      "provenanceSha256": "35d9af23518da1882ef75e77245acc50f0e35b6a60ad471f75a4b2692cc5ab28",
+      "noticesSha256": "c23f4b05f50944aeaeb729411cd069310d08bc7db1ea86151d68b8bf77d32b4e",
+      "downloadedAllAssetDigestsVerified": true
+    }
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": true,
+    "sharedTestnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "sourceReleasePublished": true,
+    "runnableArtifactHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "nextGate": "The protected source-only Product 17 candidate is centrally accepted. Shared Testnet Chain, Explorer, Monitor, Data Fabric and Integration attestations, production custody, public economics deployment, runnable artifact hosting, production signing, stores and Mainnet remain separate gates."
+}

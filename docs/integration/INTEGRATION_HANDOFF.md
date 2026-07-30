@@ -2,7 +2,7 @@
 
 Owner: `29-integration`  
 Branch: `codex/final-integration`  
-Protected source baseline: `3ee6477d82ecffea954387ce88135793bddb1271`
+Protected source baseline: `05652b201acf830495a8fb2fba5416e5f4ea9d8c`
 Lifecycle state: `ACTIVE`  
 Current gate: `INTEGRATE`
 
@@ -28,6 +28,8 @@ This branch is the only central owner for protocol freeze, dependency acceptance
 - Coverage refresh now fails closed unless the matrix contains each product ID `01`–`36` exactly once; its negative self-test is part of `integration-protect-preflight`.
 - npm policy mutation tests now run against deterministic offline audit fixtures. Real full and production-only Registry audits remain separate and use only bounded retry for recognized transient network failures.
 - Product 30 final owner source `4277317bb4999ac4edfbc321590b54d95e1839f9` is contained by merge `3ee6477d82ecffea954387ce88135793bddb1271` and is centrally accepted through a fail-closed decision bound to clean synchronized refs, exact-head CI and 179/179 central-tree security tests.
+- Product 17 final protected owner head `7c540b7f3f5872adbd8f65e4c8975eeac41c3a3f` is contained by merge `05652b201acf830495a8fb2fba5416e5f4ea9d8c`. Its frozen engineering source is `a377bef61a7082b5b1ae0ebd35d4b97846649b68`; the central merge passed the full Go suite, economics candidate gates, Data Fabric integrated gates, immutable Action-pin check and source-package digest verification.
+- Seven products are now centrally source-accepted: 01 Chain Core, 02 Wallet/Auth, 17 Economics, 19 Oracle, 26 Data Fabric, 30 Security/SRE and 31 Governance. Shared Testnet, public runtime, production signing, stores and Mainnet remain false.
 
 ## New central artifacts
 
@@ -39,6 +41,7 @@ This branch is the only central owner for protocol freeze, dependency acceptance
 - `release/integration/github-evidence.json`: generated Actions, Release and Artifact inventory when GitHub is reachable.
 - `release/integration/central-acceptance-decisions.json`: explicit accepted owner SHAs and Integration merge bindings.
 - `release/integration/evidence/product-30-central-acceptance-3ee6477d.json`: Product 30 exact CI, test, artifact and truth-state receipt.
+- `release/integration/evidence/product-17-central-acceptance-05652b20.json`: Product 17 exact CI, merge ancestry, central tests, source-only release and truth-state receipt.
 - `release/integration/PRODUCT_RELEASE_MATRIX.json`: authoritative 36-product state and readiness classification.
 - `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`: mandatory happy and fail-closed vectors.
 - `docs/integration/DEPENDENCY_ACCEPTANCE.md`: unique authority and dependency gate.
@@ -60,10 +63,10 @@ Product-owner state is never promoted automatically. Integration records an acce
 
 ## Immediate execution order
 
-1. Protect Product 30 central acceptance with Commit, Push and exact-head PR `#17` CI.
-2. Audit the active release-train PRs and freeze the unique Phase 0 contract versions and merge order.
-3. Review the remaining Phase 0 authority bundles one product Worktree at a time.
-4. Execute the shared-Testnet cross-product, failure, recovery and attack vectors only after their dependencies are accepted.
+1. Protect the seven current central source acceptances with Commit, Push and exact-head PR `#17` CI.
+2. Review Product 21 Bridge, the remaining Phase 0 authority, in its own Worktree without modifying accepted owner branches.
+3. Continue the other 28 products one clean owner Worktree at a time in dependency order.
+4. Execute the shared-Testnet cross-product, failure, recovery and attack vectors only after their required dependencies are accepted.
 5. Keep every staging, public, hosted, signed, store and Mainnet state fail-closed until direct evidence exists.
 
 ## Prohibited promotions

@@ -61,6 +61,16 @@
       "integrationCommit": "b656692622cde1fba47c8068399f0d83385de4cf",
       "acceptedAt": "2026-07-30T09:09:12Z",
       "receipt": "release/integration/evidence/product-31-central-acceptance-b6566926.json"
+    },
+    {
+      "productId": "17",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-tokenomics",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "7c540b7f3f5872adbd8f65e4c8975eeac41c3a3f",
+      "integrationCommit": "05652b201acf830495a8fb2fba5416e5f4ea9d8c",
+      "acceptedAt": "2026-07-30T11:26:43Z",
+      "receipt": "release/integration/evidence/product-17-central-acceptance-05652b20.json"
     }
   ]
 }

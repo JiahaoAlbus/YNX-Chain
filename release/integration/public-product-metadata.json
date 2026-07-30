@@ -4,7 +4,7 @@
   "owner": "29-integration",
   "product": "YNX Integration / Founder Control",
   "slug": "integration",
-  "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+  "sourceCommit": "05652b201acf830495a8fb2fba5416e5f4ea9d8c",
   "siteUrl": "https://ynxweb4.com",
   "canonicalUrl": "https://ynxweb4.com/integration",
   "canonicalRoute": "/integration",
@@ -30,7 +30,7 @@
     "Capital-safety and user-exit acceptance controls"
   ],
   "risks": [
-    "Chain Core, Wallet/Auth, Data Fabric and Security/SRE source candidates are centrally accepted; remaining owner authorities and shared-Testnet proof are still incomplete.",
+    "Seven protected source candidates are centrally accepted: Chain Core, Wallet/Auth, Economics, Oracle, Data Fabric, Security/SRE and Governance. The other 29 products and shared-Testnet proof remain incomplete.",
     "A Website page is not evidence that a product runtime is publicly deployed.",
     "Testnet acceptance does not authorize Mainnet, production signing or store release."
   ],

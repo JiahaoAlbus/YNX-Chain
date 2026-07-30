@@ -4,10 +4,10 @@
   "owner": "29-integration",
   "product": "YNX Integration / Founder Control",
   "slug": "integration",
-  "release": "0.1.2-controller-candidate",
+  "release": "0.1.3-controller-candidate",
   "releaseClass": "controller-candidate",
   "network": "YNX Testnet",
-  "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
+  "sourceCommit": "05652b201acf830495a8fb2fba5416e5f4ea9d8c",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -33,8 +33,11 @@
       "release/integration/evidence/protect-preflight-1982e280.json",
       "release/integration/evidence/product-01-central-acceptance-329092c1.json",
       "release/integration/evidence/product-02-central-acceptance-94acfece.json",
+      "release/integration/evidence/product-17-central-acceptance-05652b20.json",
+      "release/integration/evidence/product-19-central-acceptance-d364f995.json",
       "release/integration/evidence/product-26-central-acceptance-01131b46.json",
       "release/integration/evidence/product-30-central-acceptance-a472d588.json",
+      "release/integration/evidence/product-31-central-acceptance-b6566926.json",
       "release/integration/RELEASE_TRAIN_AUDIT.json"
     ],
     "installedLocal": [],
@@ -51,9 +54,9 @@
   "runtimeDeployedPublic": false,
   "mainnetAccepted": false,
   "knownBlockers": [
-    "Products 01 Chain Core, 02 Wallet/Auth, 26 Data Fabric and 30 Security/SRE have protected source candidates accepted by Integration; shared-Testnet runtime, monitoring, recovery and true production authorities remain separately unverified.",
+    "Products 01 Chain Core, 02 Wallet/Auth, 17 Economics, 19 Oracle, 26 Data Fabric, 30 Security/SRE and 31 Governance have protected source candidates accepted by Integration; shared-Testnet runtime, monitoring, recovery and true production authorities remain separately unverified.",
     "The former Hardhat development-tooling advisory is remediated in the locked dependency graph; default-branch alert closure remains pending the central merge to main.",
-    "The remaining owner contracts and central cross-product negative vectors have not yet been accepted.",
+    "The remaining 29 owner contracts and the complete shared-Testnet cross-product negative vectors have not yet been accepted.",
     "No shared Public Testnet or independent public proof has been accepted by Integration."
   ]
 }
