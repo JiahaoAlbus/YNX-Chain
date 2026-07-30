@@ -55,6 +55,7 @@ All paths are repository-relative and refer to the current source commit only af
 | Threats, trust assets and execution boundaries | `THREAT_MODEL.md`, `SECURITY_BOUNDARIES.md` | Review authority and remaining-gate tables |
 | Complete resolved dependency inventory | `release/sbom.cdx.json`, `THIRD_PARTY_NOTICES.md` | `make economics-supply-chain-check` |
 | Frozen source candidate, accepted dependency ancestry, unsigned CLI and SBOM provenance | `docs/economics/evidence/local-artifact-provenance-a377bef6.json` | Verify commit/tree ancestry, rerun the listed local gates, and keep all external release states false |
+| Exact-head CI and source-only GitHub prerelease | `docs/economics/evidence/source-candidate-verification-a377bef6.json` | Verify run `30536318555`, release `362364647`, target commit, four asset byte counts and downloaded SHA-256 digests |
 | Dependency, secret and static scan truth | `release/security-scan-evidence.json`, `SUPPLY_CHAIN_SECURITY.md` | Re-run named commands; unresolved npm High remains explicit |
 | Reproducible unsigned local binary and cold start | `release/reproducible-build-evidence.json` | Repeat allowlisted build twice and compare SHA-256 |
 | Scoped release changes and known gaps | `RELEASE_NOTES.md`, `product-release.json` | `make economics-public-package-check` |

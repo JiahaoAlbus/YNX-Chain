@@ -33,13 +33,14 @@ The frozen source candidate is the engineering commit audited by this checkpoint
 
 ## GitHub Actions
 
-- Exact-head CI for the final evidence commit is pending push.
-- Earlier successful run `30417960548` remains historical evidence only and does not substitute for exact-head CI.
+- Exact-head CI run `30536318555` passed on evidence head `ea99bd851d56c898a46ff96429293faac18da7ad` in 4m13s.
+- The run completed immutable Action pin enforcement, dependency/environment/placeholder/secret gates, contract tooling, all Go tests, the complete Economics local candidate, monitoring/indexer/explorer/faucet checks, deployment dry-run, smoke, packaging and Mainnet-readiness boundary checks.
 
 ## Pull request and release truth
 
 - Pull request from `codex/final-tokenomics`: none found during recovery.
-- Economics GitHub Release / pre-release: none found during recovery.
+- Source-only GitHub prerelease `ynxt-economics-v0.1.0-testnet-source-candidate` published as release `362364647`, targeting frozen source `a377bef61a7082b5b1ae0ebd35d4b97846649b68`.
+- All four downloaded release assets matched their recorded SHA-256 digests. No runnable artifact is hosted by that prerelease.
 - Five-binary unsigned local artifact candidate: persisted and locally verified.
 - Artifact package SHA-256: `065ca08e0c1064122d95bbca58b4bae3191c62507bab5b3c77ab7b4aa8e4aa60`.
 - Artifact hosting: not proven.
@@ -90,4 +91,5 @@ The frozen source candidate is the engineering commit audited by this checkpoint
 - `release/economics/operator-inputs.request.json`
 - `docs/economics/evidence/full-goal-coverage.json`
 - `docs/economics/evidence/local-artifact-provenance-a377bef6.json`
+- `docs/economics/evidence/source-candidate-verification-a377bef6.json`
 - GitHub Actions runs `30417123653`, `30417317436`, and `30417960548`

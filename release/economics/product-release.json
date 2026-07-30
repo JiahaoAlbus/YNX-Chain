@@ -149,6 +149,37 @@
     "downloadHosted": false
   },
   "localArtifactProvenance": "docs/economics/evidence/local-artifact-provenance-a377bef6.json",
+  "ci": {
+    "workflow": "ci",
+    "runId": 30536318555,
+    "jobId": 90850394043,
+    "evidenceHead": "ea99bd851d56c898a46ff96429293faac18da7ad",
+    "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+    "status": "completed",
+    "conclusion": "success",
+    "successfulCheckRuns": 1,
+    "failedCheckRuns": 0,
+    "pendingCheckRuns": 0
+  },
+  "sourceRelease": {
+    "status": "published-prerelease",
+    "sourceOnly": true,
+    "runnableArtifactIncluded": false,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "id": 362364647,
+    "tag": "ynxt-economics-v0.1.0-testnet-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynxt-economics-v0.1.0-testnet-source-candidate",
+    "publishedAt": "2026-07-30T10:57:33Z",
+    "targetCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+    "assetCount": 4,
+    "archive": {
+      "name": "ynxt-economics-source-a377bef6.tar.gz",
+      "bytes": 12628787,
+      "sha256": "a1d262c887895728b60e0fd02c3a6c1587d0f90b36eefbf718f350a30a05279e"
+    },
+    "downloadedAllAssetDigestsVerified": true
+  },
   "installationEvidence": {
     "path": "release/economics-testnet-cli-artifact.json",
     "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
@@ -174,6 +205,6 @@
     "Data Fabric, Explorer and Monitor consumption of canonical economics and staking-risk events",
     "contract audits and governed candidate activation",
     "unresolved High vulnerability in development-only Hardhat adm-zip chain",
-    "external DAST, exact-head hosted CI provenance and artifact signing"
+    "external DAST and production artifact signing"
   ]
 }
