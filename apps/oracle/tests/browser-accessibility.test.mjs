@@ -187,7 +187,8 @@ async function startChrome() {
         await exited;
       }
     }
-    await rm(userDataDir, {recursive: true, force: true});
+    child.stderr.destroy();
+    await rm(userDataDir, {recursive: true, force: true, maxRetries: 10, retryDelay: 100});
   };
   const activePortFile = path.join(userDataDir, "DevToolsActivePort");
   let active;
