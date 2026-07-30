@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx.bridge.integration.v1",
+  "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+  "stateMachineVersion": "ynx.bridge.lifecycle.v1",
+  "vectors": [
+    {
+      "id": "bridge-quote-not-sent",
+      "consumers": ["wallet","pay","exchange"],
+      "input": {"phase":"quote","destinationAssetAvailable":false},
+      "expected": {"assetSent":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false}
+    },
+    {
+      "id": "bridge-source-accepted-not-final",
+      "consumers": ["wallet","explorer","monitor"],
+      "input": {"phase":"source_accepted","destinationAssetAvailable":false},
+      "expected": {"sourceFinalized":false,"proofVerified":false,"assetAvailable":false}
+    },
+    {
+      "id": "bridge-proof-available-not-verified",
+      "consumers": ["wallet","explorer","monitor"],
+      "input": {"phase":"proof_attestation_available","proofVerificationStatus":"available-unverified","destinationAssetAvailable":false},
+      "expected": {"allowDestinationSubmission":false,"assetAvailable":false}
+    },
+    {
+      "id": "bridge-proof-verified-allows-destination-submission",
+      "consumers": ["wallet","explorer","monitor"],
+      "input": {"phase":"proof_verified","proofVerificationStatus":"verified-threshold-relayer-attestation","destinationAssetAvailable":false},
+      "expected": {"allowDestinationSubmission":true,"assetAvailable":false}
+    },
+    {
+      "id": "bridge-destination-submitted-not-confirmed",
+      "consumers": ["pay","exchange","dex","explorer"],
+      "input": {"phase":"destination_mint_release_submitted","destinationAssetAvailable":false},
+      "expected": {"destinationConfirmed":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false}
+    },
+    {
+      "id": "bridge-destination-confirmed-not-available",
+      "consumers": ["pay","exchange","dex","explorer","monitor"],
+      "input": {"phase":"destination_mint_release_confirmed","destinationAssetAvailable":false},
+      "expected": {"destinationConfirmed":true,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"exposureResolved":false}
+    },
+    {
+      "id": "bridge-destination-available-explicit",
+      "consumers": ["pay","exchange","dex","explorer","monitor"],
+      "input": {"phase":"destination_available","destinationAssetAvailable":true},
+      "expected": {"assetAvailable":true,"mayPay":true,"mayCreditExchange":true,"exposureResolved":true}
+    },
+    {
+      "id": "bridge-destination-available-without-flag-fails-closed",
+      "consumers": ["pay","exchange","dex"],
+      "input": {"phase":"destination_available","destinationAssetAvailable":false},
+      "expected": {"assetAvailable":false,"mayPay":false,"mayCreditExchange":false}
+    },
+    {
+      "id": "bridge-provider-webhook-not-finality",
+      "consumers": ["wallet","pay","exchange","explorer","monitor"],
+      "input": {"providerWebhook":"completed","phase":"source_accepted","destinationAssetAvailable":false},
+      "expected": {"sourceFinalized":false,"destinationConfirmed":false,"assetAvailable":false}
+    },
+    {
+      "id": "bridge-paused-fails-closed",
+      "consumers": ["wallet","pay","exchange","dex"],
+      "input": {"paused":true,"phase":"paused","destinationAssetAvailable":false},
+      "expected": {"allowMutation":false,"allowQuoteExecution":false,"assetAvailable":false}
+    },
+    {
+      "id": "bridge-proof-digest-tamper",
+      "consumers": ["monitor","trust","explorer"],
+      "input": {"proofDigestMatches":false,"proofType":"threshold-relayer-attestation"},
+      "expected": {"verification":"rejected","allowDestinationSubmission":false,"auditRequired":true}
+    },
+    {
+      "id": "bridge-idempotency-changed-replay",
+      "consumers": ["wallet","monitor","trust"],
+      "input": {"sameIdempotencyKey":true,"sameDigest":false},
+      "expected": {"result":"conflict","duplicateDestinationAction":false}
+    },
+    {
+      "id": "bridge-unavailable-provider",
+      "consumers": ["wallet","pay","exchange","dex"],
+      "input": {"providerStatus":"unavailable","routeExecutable":false},
+      "expected": {"showSuccess":false,"allowTransfer":false,"failure":"unavailable"}
+    }
+  ]
+}

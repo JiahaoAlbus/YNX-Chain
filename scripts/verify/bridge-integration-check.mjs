@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 const read = (path) => JSON.parse(readFileSync(path, "utf8"));
 const manifest = read("docs/bridge/consumer-integration-manifest.json");
 const vectors = read("docs/bridge/consumer-lifecycle-vectors.json");
-const crossProduct = read("docs/integration/CROSS_PRODUCT_TEST_VECTORS.json");
+const crossProduct = read("docs/bridge/CROSS_PRODUCT_TEST_VECTORS.json");
 const integration = read("release/integration/ynx-bridge-contract.json");
 const provider = read("docs/bridge/provider-status.json");
 const metadata = read("docs/bridge/public-product-metadata.json");
