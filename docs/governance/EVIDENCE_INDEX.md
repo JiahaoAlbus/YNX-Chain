@@ -15,9 +15,9 @@
 - Historical local artifact evidence: `docs/governance/evidence/local-artifact-provenance-c085e078577f.json`
 - Release packager: `scripts/package/governance-release.mjs`
 - Third-party license notice: `docs/governance/THIRD_PARTY_NOTICES.md`
-- Exact successful Governance Actions runs: `30416918267` on `4e6c67488e81f5ec82995de81dd25a33861d7dc3` and `30417486460` on `cd328bd5817f32efba259e0ad8948f202ebaf654`
+- Exact successful Governance Actions runs: six workflows and seven checks on evidence head `fa034972c39451ba74e4a46006384a9e0a82ff59`, including Governance push and PR runs `30522548957` and `30522550810`
 - Frozen source candidate: `5640209e9c7df9789916bd99f61124db566842b4`
 - Frozen-candidate local gates: Governance control plane, real-Chrome UI, zero-vulnerability npm audit, race tests, full repository tests, contract tooling, immutable Actions pins, and the four-validator nine-process Canary, execution, receipt, and restart lifecycle
 - Public-route rejection evidence: `release/evidence/governance-public-route-probe-2026-07-29.json`
 
-Historical exact product CI evidence is present; exact CI for the frozen candidate remains pending until the evidence commit is pushed. Shared central-Testnet acceptance receipts, Governance-specific public deployment, production signatures, current-candidate hosted downloads, and remote backup drills are not yet present and must not be inferred. The current HTTP 200 at `/governance` serves the generic root shell and is explicitly rejected as product deployment evidence.
+Exact product CI and a source-only prerelease are present for the frozen candidate. Shared central-Testnet acceptance receipts, Governance-specific public deployment, production signatures, runnable artifact hosting, and remote backup drills are not yet present and must not be inferred. The current HTTP 200 at `/governance` serves the generic root shell and is explicitly rejected as product deployment evidence.

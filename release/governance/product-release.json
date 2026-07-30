@@ -3,7 +3,7 @@
   "product": "YNX Governance & Protocol Control",
   "slug": "governance",
   "version": "0.4.2-testnet-source-candidate",
-  "generatedAt": "2026-07-30T07:01:49Z",
+  "generatedAt": "2026-07-30T07:44:07Z",
   "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4",
   "sourceCommitScope": "frozen Governance source candidate after product-scoped main reconciliation and immutable workflow hardening",
   "branch": "codex/final-governance",
@@ -109,11 +109,48 @@
   },
   "ci": {
     "workflow": "governance",
-    "runId": null,
+    "runId": 30522550810,
+    "runIds": [
+      30522548957,
+      30522550809,
+      30522550810,
+      30522550829,
+      30522550837,
+      30522550880
+    ],
+    "evidenceHead": "fa034972c39451ba74e4a46006384a9e0a82ff59",
     "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4",
-    "status": "pending_exact_head_evidence",
-    "conclusion": null,
-    "verifiedSteps": []
+    "status": "completed",
+    "conclusion": "success",
+    "successfulCheckRuns": 7,
+    "failedCheckRuns": 0,
+    "pendingCheckRuns": 0,
+    "verifiedSteps": [
+      "governance control-plane verification",
+      "Playwright Chromium browser gate",
+      "four-validator governance Testnet lifecycle",
+      "immutable GitHub Actions pin enforcement",
+      "general repository test gate",
+      "public disclosure authority gate"
+    ]
+  },
+  "sourceRelease": {
+    "status": "published-prerelease",
+    "sourceOnly": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "id": 362260575,
+    "tag": "governance-v0.4.2-testnet-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/governance-v0.4.2-testnet-source-candidate",
+    "publishedAt": "2026-07-30T07:44:07Z",
+    "targetCommit": "5640209e9c7df9789916bd99f61124db566842b4",
+    "assetCount": 4,
+    "archive": {
+      "name": "ynx-governance-source-5640209e.tar.gz",
+      "bytes": 6166250,
+      "sha256": "21561652a42c62a01e02cc2b26806033f8648d88a3a96599ec046d879b36df52"
+    },
+    "downloadedAllAssetDigestsVerified": true
   },
   "publicRoute": {
     "url": "https://ynxweb4.com/governance",

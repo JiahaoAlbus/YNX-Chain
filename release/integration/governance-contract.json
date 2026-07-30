@@ -107,10 +107,13 @@
   },
   "verification": {
     "workflow": "governance",
-    "runId": null,
+    "runId": 30522550810,
+    "evidenceHead": "fa034972c39451ba74e4a46006384a9e0a82ff59",
     "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4",
-    "conclusion": "pending_exact_head_evidence",
-    "fourValidatorLifecycle": "passed_locally"
+    "conclusion": "success",
+    "fourValidatorLifecycle": "passed_locally_and_in_exact_head_ci",
+    "successfulWorkflowRuns": 6,
+    "successfulCheckRuns": 7
   },
   "testVectors": [
     "release/integration/governance-bft-test-vectors.json",
