@@ -15,7 +15,7 @@
 | Public read APIs, health, version, metrics, and audit | Yes | Yes | No public endpoint |
 | Governance UI against the real public API contract | Yes | Yes | No public endpoint |
 | UI dependency lock, build, type-check, locale tests, real-Chrome test, and vulnerability audit | Yes | Yes | No public endpoint |
-| Deterministic Go binaries, secret scan, and forbidden-text scan | Yes | Yes | CI pending for current evidence commit |
+| Deterministic Go binaries, SBOM, source archive, secret scan, and forbidden-text scan | Yes | Yes | Exact-head CI pending for current evidence commit |
 | Solidity governance contracts | Yes | No | No deployment |
 | Explorer, Monitor, Trust, Data Fabric, and Security/SRE acceptance | No | No | No |
 | Shared Testnet acceptance | No | No | No |
@@ -25,6 +25,7 @@
 
 ## Immutable implementation evidence
 
+- Frozen Governance source candidate and immutable workflow hardening: `5640209e9c7df9789916bd99f61124db566842b4`
 - Authoritative registry gates: `b1b460d8e798f50381c819c80294c679a7fc6d1f`
 - Accessible 12-locale UI, browser gate, and patched gRPC runtime: `0ed74c9e737ca6d5bbdf226f6ca487dc398b4755`
 - Multiprocess Testnet lifecycle: `27921c8298e22616f983c87fd0d8c51a49495cfd`
@@ -36,6 +37,10 @@
 ## Local verification evidence
 
 - `bash scripts/verify/governance-check.sh`
+- `bash scripts/verify/governance-testnet-drill.sh`
+- `go test -race -count=1 ./internal/governance ./chain/governance`
+- `node scripts/verify/github-actions-pins-check.mjs`
+- `make contract-tooling-check && make test`
 - `go test ./...`
 - `GOTOOLCHAIN=go1.25.12 go run golang.org/x/vuln/cmd/govulncheck@latest ./internal/governance ./chain/governance ./cmd/ynx-governanced ./cmd/ynx-governance-state`
 - `npm --prefix apps/governance test`
@@ -43,7 +48,7 @@
 - `npm --prefix apps/governance run test:browser`
 - `npm --prefix apps/governance audit --audit-level=moderate`
 
-The local checks passed on 2026-07-29, including zero reachable Go vulnerabilities after the gRPC 1.82.1 upgrade. They do not substitute for GitHub Actions, shared-Testnet transaction evidence, public hosting, or external audit evidence.
+The frozen-candidate local checks passed on 2026-07-30, including zero npm vulnerabilities, deterministic binaries, full repository tests, and a successful four-validator lifecycle with Canary, canonical execution, receipt verification, restart, and state restore. They do not substitute for GitHub Actions, shared-Testnet transaction evidence, public hosting, or external audit evidence.
 
 ## External blockers
 

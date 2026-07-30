@@ -1,7 +1,7 @@
 # Governance Integration Handoff
 
 Owner: `31-governance`
-Source commit: `cd328bd5817f32efba259e0ad8948f202ebaf654`
+Source commit: `5640209e9c7df9789916bd99f61124db566842b4`
 Branch: `codex/final-governance`
 Lifecycle: `ACTIVE`
 Current phase: `INTEGRATE`

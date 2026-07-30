@@ -2,10 +2,10 @@
   "schemaVersion": "ynx-product-release/v1",
   "product": "YNX Governance & Protocol Control",
   "slug": "governance",
-  "version": "0.4.1-integration",
-  "generatedAt": "2026-07-29T02:53:28Z",
-  "sourceCommit": "cd328bd5817f32efba259e0ad8948f202ebaf654",
-  "sourceCommitScope": "tested governance candidate baseline after origin/main reconciliation",
+  "version": "0.4.2-testnet-source-candidate",
+  "generatedAt": "2026-07-30T07:01:49Z",
+  "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4",
+  "sourceCommitScope": "frozen Governance source candidate after product-scoped main reconciliation and immutable workflow hardening",
   "branch": "codex/final-governance",
   "phase": "INTEGRATE",
   "status": "Active",
@@ -109,15 +109,11 @@
   },
   "ci": {
     "workflow": "governance",
-    "runId": 30417486460,
-    "sourceCommit": "cd328bd5817f32efba259e0ad8948f202ebaf654",
-    "status": "completed",
-    "conclusion": "success",
-    "verifiedSteps": [
-      "governance control-plane verification",
-      "Playwright Chromium browser gate",
-      "four-validator governance Testnet lifecycle"
-    ]
+    "runId": null,
+    "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4",
+    "status": "pending_exact_head_evidence",
+    "conclusion": null,
+    "verifiedSteps": []
   },
   "publicRoute": {
     "url": "https://ynxweb4.com/governance",
@@ -188,16 +184,16 @@
       "governance UI production build, type-check, 12-locale render tests, Arabic RTL, keyboard activation, 390px real-Chrome overflow check, and zero-vulnerability npm audit",
       "reachable Go vulnerability scan reports zero vulnerabilities after upgrading gRPC to 1.82.1"
     ],
-    "sourceCommit": "cd328bd5817f32efba259e0ad8948f202ebaf654"
+    "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4"
   },
   "dependencies": {
-    "chainCore": "canonical_execution_adapter_configured_and_locally_verified",
-    "walletAuth": "exact_product_device_scope_expiry_revocation_and_replay_contract_locally_verified",
+    "chainCore": "centrally_accepted_source_and_canonical_execution_adapter_locally_verified",
+    "walletAuth": "centrally_accepted_source_and_exact_product_device_scope_expiry_revocation_and_replay_contract_locally_verified",
     "explorer": "not_integrated",
     "monitor": "not_integrated",
     "trust": "local_appeal_adapter_only",
-    "dataFabric": "not_integrated",
-    "securitySRE": "not_integrated",
+    "dataFabric": "centrally_accepted_source_shared_testnet_receipts_pending",
+    "securitySRE": "centrally_accepted_source_production_custody_pending",
     "integration": "not_accepted",
     "website": "not_integrated"
   },
