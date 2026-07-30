@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "remote-testnet-coordinator-installation",
+  "observedAt": "2026-07-27T05:39:36Z",
+  "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+  "release": "ynx-bridge-857371f9b194",
+  "targetRole": "primary-testnet",
+  "deploymentState": {
+    "integratedCentral": true,
+    "deployedStaging": true,
+    "deployedPublic": false,
+    "externalSubmissionEnabled": false,
+    "userAssetMovementEnabled": false
+  },
+  "package": {
+    "sha256": "42d001cc146a79a92a70912ab09d456f605e5fbe04ac32b274a6db239726a9be",
+    "checksumsVerifiedRemote": true
+  },
+  "artifacts": {
+    "ynxBridgedSha256": "ff002b8ececbc2d2156eb155229ddaafe9c401bd2f2501897e7491985eda5189",
+    "ynxAppGatewaydSha256": "781dbfe55c686f6d94fac640f886b9850c8381b4d6262b65a6774cf0a1f470e8"
+  },
+  "installation": {
+    "bridgeServiceActive": true,
+    "bridgeServiceEnabled": true,
+    "appGatewayServiceActive": true,
+    "bridgeEnvironmentMode": "0600",
+    "bridgeStateDirectoryMode": "0700",
+    "bridgeStateMode": "0600",
+    "stateIntegritySealed": true
+  },
+  "runtime": {
+    "service": "ynx-bridged",
+    "schemaVersion": 7,
+    "stateMachineVersion": "ynx.bridge.lifecycle.v1",
+    "buildCommit": "857371f9b194",
+    "buildRelease": "ynx-bridge-857371f9b194",
+    "coordinatorState": "available-local-coordinator",
+    "externalBridgeState": "provider-api-connected-route-execution-unavailable",
+    "providerConnection": "connected-live-provider-api-route-execution-disabled",
+    "availableProviderCount": 1,
+    "contractStatus": "unavailable-no-verified-contract-deployment",
+    "routeCount": 2,
+    "allRoutesExecutable": false,
+    "allProviderRoutesAvailable": false,
+    "allAssetsExternalExecutionEnabled": false
+  },
+  "providerProbe": {
+    "provider": "Circle CCTP V2",
+    "environment": "Sandbox",
+    "sourceRoute": "ethereum-sepolia-domain-0",
+    "destinationRoute": "base-sepolia-domain-6",
+    "health": "connected-live-fee-api",
+    "lastSuccess": "2026-07-27T05:38:48.415822780Z",
+    "connectivityProbeIntervalSeconds": 60,
+    "connectivityStaleAfterSeconds": 120,
+    "periodicRefresh": {
+      "verified": true,
+      "firstSuccess": "2026-07-27T03:10:40.810022255Z",
+      "secondSuccess": "2026-07-27T03:11:41.068658818Z",
+      "advanceSeconds": 60.258636
+    },
+    "outageRecoveryDrill": {
+      "verified": true,
+      "outageMethod": "temporary-service-account-egress-denial",
+      "blockedAt": "2026-07-27T03:25:38Z",
+      "outageObservedAt": "2026-07-27T03:25:48Z",
+      "unblockedAt": "2026-07-27T03:26:08Z",
+      "recoveredAt": "2026-07-27T03:26:43Z",
+      "outageConnection": "configured-provider-api-unavailable",
+      "outageAvailableProviderCount": 0,
+      "outageFailureStatus": "provider-connectivity-probe-unavailable",
+      "automaticRecovery": true,
+      "serviceRestarted": false,
+      "routeStayedUnavailable": true,
+      "externalSubmissionStayedDisabled": true,
+      "outageRuleRemoved": true
+    },
+    "incidentPersistence": {
+      "verified": true,
+      "source": "integrity-sealed-bridge-audit",
+      "incidentHistoryComplete": false,
+      "incidentCount": 8,
+      "outageCount": 4,
+      "recoveryCount": 4,
+      "publicOutageObserved": true,
+      "observerRole": "independent-testnet-node",
+      "outageEvent": {
+        "id": "provider_incident_771369729d33a13651ab17ae",
+        "occurredAt": "2026-07-27T03:50:01.441930155Z",
+        "evidence": "bridge-audit:sha256:d6b2694c08b1665ecbe747b5d8d3074c95bc3816e00e76a979f56095aef61598"
+      },
+      "recoveryEvent": {
+        "id": "provider_incident_fb279b956f545a577595cb37",
+        "occurredAt": "2026-07-27T03:50:56.707289603Z",
+        "evidence": "bridge-audit:sha256:1dded936cec5b0640927b8ca4381ef5c49284bae23b1093487baf475e8ec9ea1"
+      },
+      "restartVerified": true,
+      "stateSha256BeforeRestart": "5b3a712575f99d2fc44d57d26ae5546b3ea123478358737f2800e4cad0a8d214",
+      "stateSha256AfterRestart": "5b3a712575f99d2fc44d57d26ae5546b3ea123478358737f2800e4cad0a8d214",
+      "stateMode": "0600",
+      "incidentIdsUnchangedAfterRestart": true,
+      "routeStayedUnavailable": true,
+      "externalSubmissionStayedDisabled": true
+    },
+    "agreementApproved": false,
+    "operationalReviewApproved": false,
+    "routeAvailable": false,
+    "ynxRouteAvailable": false
+  },
+  "appGateway": {
+    "remoteDeployed": true,
+    "bridgeUpstreamHealthy": true,
+    "walletUpstreamHealthy": true,
+    "walletBoundary": "p256-product-session-proof",
+    "walletDependencyMode": "soft-wants-no-requires",
+    "walletFailureIsolationConfigured": true,
+    "stableObservedSeconds": 360,
+    "browserCredentialAccess": false,
+    "walletSecretAccess": false
+  },
+  "missingEvidence": [
+    "verified YNX provider route",
+    "verified source and destination contracts",
+    "funded Testnet deposit",
+    "funded Testnet withdrawal",
+    "independent security review"
+  ]
+}

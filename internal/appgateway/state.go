@@ -106,10 +106,13 @@ func validateAudit(state persistentState) error {
 }
 
 func validStoredBinding(raw string) bool {
-	if strings.TrimSpace(raw) == nativeMobileBinding {
-		return true
+	raw = strings.TrimSpace(raw)
+	for _, binding := range nativeClientBindings {
+		if raw == binding {
+			return true
+		}
 	}
-	parsed, err := url.Parse(strings.TrimSpace(raw))
+	parsed, err := url.Parse(raw)
 	return err == nil && parsed.Scheme == "https" && parsed.Host != "" && parsed.Path == "" && parsed.RawQuery == "" && parsed.Fragment == "" && parsed.User == nil
 }
 

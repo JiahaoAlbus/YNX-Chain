@@ -1,0 +1,152 @@
+name: bridge
+
+on:
+  push:
+    branches: [codex/final-bridge]
+    paths:
+      - ".github/workflows/bridge.yml"
+      - ".ai-bridge/**"
+      - "cmd/ynx-bridged/**"
+      - "internal/bridgegateway/**"
+      - "internal/appgateway/**"
+      - "internal/mutationfreeze/**"
+      - "sdk/bridge/**"
+      - "docs/bridge/**"
+      - "docs/integration/**"
+      - "release/integration/ynx-bridge-contract.json"
+      - "infra/monitoring/**bridge**"
+      - "scripts/package/bridge-**"
+      - "scripts/verify/bridge-**"
+      - "scripts/validate/**"
+      - "Makefile"
+      - "go.mod"
+      - "go.sum"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/bridge.yml"
+      - ".ai-bridge/**"
+      - "cmd/ynx-bridged/**"
+      - "internal/bridgegateway/**"
+      - "internal/appgateway/**"
+      - "internal/mutationfreeze/**"
+      - "sdk/bridge/**"
+      - "docs/bridge/**"
+      - "docs/integration/**"
+      - "release/integration/ynx-bridge-contract.json"
+      - "infra/monitoring/**bridge**"
+      - "scripts/package/bridge-**"
+      - "scripts/verify/bridge-**"
+      - "scripts/validate/**"
+      - "Makefile"
+      - "go.mod"
+      - "go.sum"
+  workflow_dispatch:
+    inputs:
+      run_provider_probe:
+        description: "Run the external provider connectivity gate"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bridge-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verification:
+    name: Bridge verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out source and evidence history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Reject placeholders and secrets
+        run: |
+          make no-placeholder-check
+          make secret-scan
+
+      - name: Generate pinned contract test artifacts
+        run: |
+          npm ci
+          make contract-tooling-check
+          make bridge-dependency-audit-check
+
+      - name: Run Bridge race and repository tests
+        run: |
+          go test -count=1 -race ./internal/bridgegateway ./cmd/ynx-bridged
+          go test -count=1 ./...
+
+      - name: Verify SDK and integration contracts
+        run: |
+          make bridge-sdk-check
+          make bridge-integration-check
+          make bridge-route-adapter-check
+          make bridge-data-lifecycle-check
+          make bridge-observability-check
+
+      - name: Verify migration, capacity, restore, and evidence
+        run: |
+          make bridge-migration-check
+          make bridge-capacity-check
+          make bridge-restore-check
+          make bridge-evidence-check
+
+      - name: Verify reproducible supply chain
+        run: make bridge-supply-chain-check
+
+      - name: Build, install, and cold-start unsigned release candidate
+        run: make bridge-release-candidate-check
+
+      - name: Upload Bridge verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ynx-bridge-verification-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            .ai-bridge/full-goal-coverage.json
+            docs/bridge/*evidence.json
+            docs/bridge/product-release.json
+            docs/bridge/public-product-metadata.json
+            docs/bridge/provider-status.json
+            docs/bridge/DEPENDENCY_REVIEW.md
+            docs/bridge/THIRD_PARTY_NOTICES.md
+            package-lock.json
+            docs/bridge/consumer-integration-manifest.json
+            docs/bridge/consumer-lifecycle-vectors.json
+            docs/integration/INTEGRATION_HANDOFF.md
+            docs/bridge/CROSS_PRODUCT_TEST_VECTORS.json
+            docs/integration/DEPENDENCY_ACCEPTANCE.md
+            release/integration/ynx-bridge-contract.json
+            tmp/bridge-release-candidate/**
+
+  provider-observation:
+    name: External provider observation
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_provider_probe == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+      - name: Probe official provider without inferring YNX route support
+        run: make bridge-provider-check

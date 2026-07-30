@@ -68,7 +68,7 @@ case "$YNX_BRIDGE_DEPLOY_ENABLED" in
   *) echo "YNX_BRIDGE_DEPLOY_ENABLED must be true or false"; exit 1 ;;
 esac
 if [[ "$YNX_BRIDGE_DEPLOY_ENABLED" == "true" ]]; then
-  bridge_required=(YNX_BRIDGE_API_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR)
+  bridge_required=(YNX_BRIDGE_API_KEY YNX_BRIDGE_GATEWAY_API_KEY YNX_BRIDGE_QUOTE_SEAL_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON YNX_BRIDGE_PROVIDER_ROUTES_JSON YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR YNX_BRIDGE_RATE_LIMIT_WINDOW YNX_BRIDGE_RATE_LIMIT_MAX YNX_BRIDGE_RETENTION_PERIOD)
   ynx_require_env "${bridge_required[@]}"
   ynx_reject_unsafe_env_values "${bridge_required[@]}"
 fi
@@ -203,8 +203,8 @@ ynx_write_kv_env "$work/config/ynx-resourced.env" \
   YNX_RESOURCE_API_KEY YNX_RESOURCE_GATEWAY_UPSTREAM_KEY YNX_RESOURCE_GATEWAY_HTTP_ADDR YNX_RESOURCE_GATEWAY_CHAIN_URL \
   YNX_RESOURCE_GATEWAY_AUDIT_LOG YNX_RESOURCE_GATEWAY_RATE_LIMIT_WINDOW YNX_RESOURCE_GATEWAY_RATE_LIMIT_MAX
 ynx_write_kv_env "$work/config/ynx-bridged.env" \
-  YNX_BRIDGE_DEPLOY_ENABLED YNX_BRIDGE_API_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON \
-  YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR
+  YNX_BRIDGE_DEPLOY_ENABLED YNX_BRIDGE_API_KEY YNX_BRIDGE_GATEWAY_API_KEY YNX_BRIDGE_QUOTE_SEAL_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON YNX_BRIDGE_PROVIDER_ROUTES_JSON \
+  YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR YNX_BRIDGE_RATE_LIMIT_WINDOW YNX_BRIDGE_RATE_LIMIT_MAX YNX_BRIDGE_RETENTION_PERIOD
 cat >> "$work/config/ynx-bridged.env" <<EOF
 YNX_BRIDGE_STATE_PATH=/var/lib/ynx-chain/bridge/state.json
 YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
@@ -279,6 +279,7 @@ cat >> "$work/config/ynx-app-gatewayd.env" <<EOF
 YNX_APP_GATEWAY_CHAT_URL=http://127.0.0.1:6435
 YNX_APP_GATEWAY_SQUARE_URL=http://127.0.0.1:6436
 YNX_APP_GATEWAY_PAY_URL=http://127.0.0.1:6430
+YNX_APP_GATEWAY_BRIDGE_URL=http://127.0.0.1:6433
 YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
 YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
 YNX_APP_GATEWAY_RATE_LIMIT_WINDOW=1m
@@ -291,6 +292,7 @@ EOF
 printf 'YNX_APP_GATEWAY_CHAT_API_KEY=%q\n' "${YNX_CHAT_API_KEY:-disabled-chat-key}" >> "$work/config/ynx-app-gatewayd.env"
 printf 'YNX_APP_GATEWAY_SQUARE_API_KEY=%q\n' "${YNX_SQUARE_API_KEY:-disabled-square-key}" >> "$work/config/ynx-app-gatewayd.env"
 printf 'YNX_APP_GATEWAY_PAY_API_KEY=%q\n' "${YNX_PAY_API_KEY:-disabled-pay-key}" >> "$work/config/ynx-app-gatewayd.env"
+printf 'YNX_APP_GATEWAY_BRIDGE_API_KEY=%q\n' "${YNX_BRIDGE_GATEWAY_API_KEY:-disabled-bridge-gateway-key}" >> "$work/config/ynx-app-gatewayd.env"
 cat >> "$work/config/ynx-chaind.env" <<EOF
 YNX_NETWORK=testnet
 YNX_HTTP_ADDR=${YNX_NODE_HTTP_ADDR}
@@ -668,8 +670,8 @@ EOF
 cat > "$work/systemd/ynx-app-gatewayd.service" <<'EOF'
 [Unit]
 Description=YNX Chain first-party browser application gateway
-After=network-online.target ynx-chatd.service ynx-squared.service ynx-payd.service
-Wants=network-online.target
+After=network-online.target ynx-chatd.service ynx-squared.service ynx-payd.service ynx-wallet-gatewayd.service
+Wants=network-online.target ynx-wallet-gatewayd.service
 
 [Service]
 User=ynx

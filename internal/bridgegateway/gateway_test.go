@@ -11,6 +11,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -18,7 +20,10 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
-const testAPIKey = "bridge-api-key-for-tests"
+const (
+	testAPIKey        = "bridge-api-key-for-tests"
+	testGatewayAPIKey = "bridge-gateway-key-for-tests"
+)
 
 type testBridge struct {
 	service *Service
@@ -26,6 +31,7 @@ type testBridge struct {
 	private map[string]ed25519.PrivateKey
 	state   string
 	now     time.Time
+	clock   *time.Time
 }
 
 func newTestBridge(t *testing.T) *testBridge {
@@ -42,10 +48,13 @@ func newTestBridge(t *testing.T) *testBridge {
 	now := time.Date(2026, 7, 14, 1, 2, 3, 0, time.UTC)
 	state := filepath.Join(t.TempDir(), "bridge", "state.json")
 	cfg := Config{
-		StatePath: state, APIKey: testAPIKey, Relayers: public, Threshold: 2,
+		StatePath: state, APIKey: testAPIKey, GatewayAPIKey: testGatewayAPIKey, QuoteSealKey: "bridge-quote-seal-key-for-tests-0001", Relayers: public, Threshold: 2,
 		Policies: []RoutePolicy{{
-			SourceChain: "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc",
-			MinConfirmations: 12, MaxAmount: "1000", AssetBoundary: "canonical-to-represented", ExternalSubmission: false,
+			Provider:       "local-test-provider",
+			Classification: "external-bridge-adapter",
+			SourceChain:    "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc",
+			SourceAssetClass: "testnet-stablecoin", DestinationAssetClass: "wrapped-test-asset",
+			MinConfirmations: 12, MaxAmount: "1000", MaxOutstanding: "1000", DailyLimit: "2000", UserOutstandingLimit: "1000", LargeTransferThreshold: "500", LargeTransferDelaySeconds: 3600, AssetBoundary: "canonical-to-represented", ExternalSubmission: false,
 		}},
 		Now: func() time.Time { return now },
 	}
@@ -53,7 +62,7 @@ func newTestBridge(t *testing.T) *testBridge {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &testBridge{service: service, cfg: cfg, private: private, state: state, now: now}
+	return &testBridge{service: service, cfg: cfg, private: private, state: state, now: now, clock: &now}
 }
 
 func validCreate(key string) CreateTransferRequest {
@@ -68,6 +77,131 @@ func (b *testBridge) signedAttestation(t *testing.T, transfer Transfer, relayer,
 	t.Helper()
 	payload := AttestationPayload(transfer, relayer, block, confirmations)
 	return AttestationRequest{Relayer: relayer, SourceBlockHash: block, Confirmations: confirmations, Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(b.private[relayer], payload))}
+}
+
+func TestBridgeQuoteRuntimeIsDigestBoundAndFailClosed(t *testing.T) {
+	b := newTestBridge(t)
+	request := QuoteRequest{
+		SourceChain: " ETHEREUM-SEPOLIA ", SourceAsset: "sepolia-usdc",
+		DestinationChain: "YNX_6423-1", DestinationAsset: "ynx-usdc", Amount: "0100",
+		Sender: "0x" + strings.Repeat("B", 40), Recipient: "ynx1recipient000000000000000000000000000001",
+	}
+	quote, err := b.service.Quote(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedExpiry := b.now.Add(5 * time.Minute).Format(timeFormat)
+	if quote.SchemaVersion != 1 || quote.Source != "ynx-bridge-quote-runtime" || quote.AsOf != b.now.Format(timeFormat) || quote.ExpiresAt != expectedExpiry {
+		t.Fatalf("quote envelope is invalid: %+v", quote)
+	}
+	if !accountDigestPattern.MatchString(quote.Digest) || !strings.HasPrefix(quote.ID, "quote_") || !strings.HasPrefix(quote.Nonce, "quote_nonce_") {
+		t.Fatalf("quote identity is not digest bound: %+v", quote)
+	}
+	if quote.RouteID == "" || quote.Provider != "local-test-provider" || quote.Classification != "external-bridge-adapter" || quote.Amount != "100" {
+		t.Fatalf("quote route or normalized amount is invalid: %+v", quote)
+	}
+	if quote.Sender != "0x"+strings.Repeat("b", 40) || quote.Recipient != request.Recipient {
+		t.Fatalf("quote account binding is invalid: %+v", quote)
+	}
+	if quote.Availability != "unavailable" || quote.FailureStatus != "provider-or-contract-route-unavailable" || quote.Executable {
+		t.Fatalf("quote overclaims execution availability: %+v", quote)
+	}
+	if quote.Fees.Status != "unavailable-no-executable-route" || quote.Fees.Currency != nil || quote.Fees.ProviderFee != nil || quote.Fees.HiddenSpread || quote.Slippage.MaximumBPS != nil || quote.Timing.EstimatedMaxSeconds != nil || quote.Refund.Available {
+		t.Fatalf("quote invents commercial terms: %+v", quote)
+	}
+	if quote.UserSigning != "canonical-wallet-required" || quote.CredentialBoundary != "browser-and-consumers-have-no-bridge-or-provider-secret" || len(quote.Risk) == 0 {
+		t.Fatalf("quote omits wallet or risk boundary: %+v", quote)
+	}
+	replay, err := b.service.Quote(request)
+	if err != nil || replay.Digest != quote.Digest || replay.ID != quote.ID || replay.Nonce != quote.Nonce {
+		t.Fatalf("same quote input at the same instant is not deterministic: %+v %v", replay, err)
+	}
+	changed := request
+	changed.Amount = "101"
+	different, err := b.service.Quote(changed)
+	if err != nil || different.Digest == quote.Digest || different.ID == quote.ID || different.Nonce == quote.Nonce {
+		t.Fatalf("changed quote input did not change bound identity: %+v %v", different, err)
+	}
+	overLimit := request
+	overLimit.Amount = "1001"
+	if _, err := b.service.Quote(overLimit); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("over-limit quote expected invalid, got %v", err)
+	}
+	unsupported := request
+	unsupported.DestinationAsset = "unsupported"
+	if _, err := b.service.Quote(unsupported); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("unsupported quote expected invalid, got %v", err)
+	}
+	if _, _, err := b.service.SetPause(PauseRequest{IdempotencyKey: "quote-pause-001", Paused: true, Reason: "quote-safety-drill"}); err != nil {
+		t.Fatal(err)
+	}
+	paused, err := b.service.Quote(request)
+	if err != nil || paused.FailureStatus != "bridge-paused" || paused.Executable {
+		t.Fatalf("paused quote did not fail closed: %+v %v", paused, err)
+	}
+}
+
+func TestBridgeWalletReviewBindsCanonicalSessionAndRejectsQuoteTamper(t *testing.T) {
+	b := newTestBridge(t)
+	quote, err := b.service.Quote(QuoteRequest{
+		SourceChain: "ethereum-sepolia", SourceAsset: "sepolia-usdc",
+		DestinationChain: "ynx_6423-1", DestinationAsset: "ynx-usdc", Amount: "100",
+		Sender: "0x" + strings.Repeat("b", 40), Recipient: "ynx1recipient000000000000000000000000000001",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := GatewaySessionContext{
+		Product: "ynx-wallet", SessionID: "session-review-001",
+		Account: "ynx1walletreview00000000000000000000000000001", DeviceID: "device-review-001",
+		Scope: "bridge:review:create", ExpiresAt: b.now.Add(30 * time.Minute),
+	}
+	review, err := b.service.ReviewQuote(session, WalletReviewRequest{Quote: quote})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if review.SchemaVersion != 1 || review.Source != "ynx-bridge-wallet-review-runtime" || review.Product != session.Product || review.Account != session.Account || review.DeviceID != session.DeviceID || review.SessionID != session.SessionID {
+		t.Fatalf("Wallet review session tuple is invalid: %+v", review)
+	}
+	if !accountDigestPattern.MatchString(review.ReviewDigest) || !strings.HasPrefix(review.ID, "review_") || review.QuoteDigest != quote.Digest || review.RouteID != quote.RouteID {
+		t.Fatalf("Wallet review digest or route binding is invalid: %+v", review)
+	}
+	if review.Status != "blocked" || review.ApprovalAllowed || review.WalletSignatureRequired || review.SourceSubmissionAllowed || review.FailureStatus != "provider-or-contract-route-unavailable" {
+		t.Fatalf("Wallet review overclaims unavailable route approval: %+v", review)
+	}
+	if review.CredentialBoundary != "wallet-signs-source-intent-bridge-and-gateway-never-hold-user-private-key" || review.Fees.ProviderFee != nil || review.Refund.Available {
+		t.Fatalf("Wallet review omits signing boundary or invents provider terms: %+v", review)
+	}
+	changed := quote
+	changed.Amount = "101"
+	if _, err := b.service.ReviewQuote(session, WalletReviewRequest{Quote: changed}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("changed quote amount expected rejection, got %v", err)
+	}
+	changed = quote
+	fee := "1"
+	changed.Fees.ProviderFee = &fee
+	if _, err := b.service.ReviewQuote(session, WalletReviewRequest{Quote: changed}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("changed quote fee expected rejection, got %v", err)
+	}
+	otherConfig := b.cfg
+	otherConfig.StatePath = filepath.Join(t.TempDir(), "other-runtime", "state.json")
+	otherConfig.QuoteSealKey = "different-bridge-quote-seal-key-000001"
+	otherService, err := New(otherConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := otherService.ReviewQuote(session, WalletReviewRequest{Quote: quote}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("quote from a different seal-key domain expected rejection, got %v", err)
+	}
+	wrongScope := session
+	wrongScope.Scope = "bridge:quote:read"
+	if _, err := b.service.ReviewQuote(wrongScope, WalletReviewRequest{Quote: quote}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("wrong review scope expected rejection, got %v", err)
+	}
+	*b.clock = b.now.Add(6 * time.Minute)
+	if _, err := b.service.ReviewQuote(session, WalletReviewRequest{Quote: quote}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("expired quote expected conflict, got %v", err)
+	}
 }
 
 func TestBridgeLifecyclePersistenceAndIdempotency(t *testing.T) {
@@ -204,9 +338,39 @@ func TestBridgeHTTPBoundariesAndTruthfulHealth(t *testing.T) {
 	defer server.Close()
 	var health Health
 	doJSON(t, http.MethodGet, server.URL+"/health", "", nil, http.StatusOK, &health)
-	if !health.OK || health.LiveBridge || health.ExternalSubmissionEnabled || health.TruthfulStatus != "local-coordinator-only-no-external-submission" {
+	if !health.OK || !health.Degraded || health.SchemaVersion != SchemaVersion || health.StateMachineVersion != StateMachineVersion || health.StartedAt == "" || health.ProviderStatus != "unavailable-no-verified-provider-connection" || health.ContractStatus != "unavailable-no-verified-contract-deployment" || health.LiveBridge || health.ExternalSubmissionEnabled || health.TruthfulStatus != "degraded-local-coordinator-only-no-provider-or-contract" {
 		t.Fatalf("health overclaims bridge status: %+v", health)
 	}
+	doJSON(t, http.MethodPost, server.URL+"/bridge/quotes", "", QuoteRequest{}, http.StatusUnauthorized, nil)
+	var quote Quote
+	doJSON(t, http.MethodPost, server.URL+"/bridge/quotes", testAPIKey, QuoteRequest{
+		SourceChain: "ethereum-sepolia", SourceAsset: "sepolia-usdc",
+		DestinationChain: "ynx_6423-1", DestinationAsset: "ynx-usdc", Amount: "100",
+		Sender: "0x" + strings.Repeat("b", 40), Recipient: "ynx1recipient000000000000000000000000000001",
+	}, http.StatusOK, &quote)
+	if quote.Source != "ynx-bridge-quote-runtime" || quote.Digest == "" || quote.Executable || quote.Availability != "unavailable" {
+		t.Fatalf("quote endpoint overclaims availability: %+v", quote)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/bridge/wallet-reviews", testAPIKey, WalletReviewRequest{Quote: quote}, http.StatusUnauthorized, nil)
+	sessionHeaders := map[string]string{
+		"X-YNX-App-Gateway": "1", "X-YNX-App-Product": "ynx-wallet",
+		"X-YNX-Bridge-Gateway-Key": testGatewayAPIKey,
+		"X-YNX-App-Session-ID":     "session-http-review-001", "X-YNX-App-Session-Account": "ynx1walletreview00000000000000000000000000001",
+		"X-YNX-App-Session-Device": "device-http-review-001", "X-YNX-Device-ID": "device-http-review-001",
+		"X-YNX-App-Session-Expires-At": b.now.Add(30 * time.Minute).Format(timeFormat), "X-YNX-App-Scope": "bridge:review:create",
+	}
+	var review WalletReview
+	doJSONWithHeaders(t, http.MethodPost, server.URL+"/bridge/wallet-reviews", testAPIKey, sessionHeaders, WalletReviewRequest{Quote: quote}, http.StatusOK, &review)
+	if review.Source != "ynx-bridge-wallet-review-runtime" || review.Account != sessionHeaders["X-YNX-App-Session-Account"] || review.DeviceID != sessionHeaders["X-YNX-Device-ID"] || review.ApprovalAllowed || review.SourceSubmissionAllowed {
+		t.Fatalf("Wallet review endpoint boundary is invalid: %+v", review)
+	}
+	wrongScopeHeaders := map[string]string{}
+	for key, value := range sessionHeaders {
+		wrongScopeHeaders[key] = value
+	}
+	wrongScopeHeaders["X-YNX-App-Scope"] = "bridge:quote:read"
+	doJSONWithHeaders(t, http.MethodPost, server.URL+"/bridge/wallet-reviews", testAPIKey, wrongScopeHeaders, WalletReviewRequest{Quote: quote}, http.StatusUnauthorized, nil)
+	doJSONWithHeaders(t, http.MethodGet, server.URL+"/bridge/transfers", "", map[string]string{"X-YNX-Bridge-Gateway-Key": testGatewayAPIKey}, nil, http.StatusUnauthorized, nil)
 	doJSON(t, http.MethodGet, server.URL+"/bridge/transfers", "", nil, http.StatusUnauthorized, nil)
 	doJSON(t, http.MethodPost, server.URL+"/bridge/transfers", testAPIKey, map[string]any{
 		"idempotencyKey": "freeze-native-001", "sourceChain": "ethereum-sepolia", "sourceTxHash": "0x" + strings.Repeat("e", 64), "sourceEventIndex": 1,
@@ -238,13 +402,414 @@ func TestBridgeHTTPBoundariesAndTruthfulHealth(t *testing.T) {
 	}
 }
 
+func TestBridgeRequestErrorIDsAndRateLimit(t *testing.T) {
+	b := newTestBridge(t)
+	b.cfg.RateLimitMax = 2
+	b.cfg.RateLimitWindow = time.Minute
+	service, err := New(b.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(service).Handler())
+	defer server.Close()
+	for index := 0; index < 3; index++ {
+		response, err := http.Get(server.URL + "/health")
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(response.Body)
+		response.Body.Close()
+		if response.Header.Get("X-Request-ID") == "" {
+			t.Fatal("request id missing")
+		}
+		if index < 2 && response.StatusCode != http.StatusOK {
+			t.Fatalf("early rate rejection: %d %s", response.StatusCode, body)
+		}
+		if index == 2 {
+			if response.StatusCode != http.StatusTooManyRequests || response.Header.Get("X-Error-ID") == "" || !strings.Contains(string(body), `"requestId"`) || !strings.Contains(string(body), `"errorId"`) {
+				t.Fatalf("bad rate-limit response: status=%d headers=%v body=%s", response.StatusCode, response.Header, body)
+			}
+		}
+	}
+	health := service.Health(buildinfo.Info{})
+	if health.RateLimitDenied != 1 || health.RateLimit == "" {
+		t.Fatalf("rate limit health mismatch: %+v", health)
+	}
+}
+
+func TestBridgeTraceContextPropagation(t *testing.T) {
+	b := newTestBridge(t)
+	server := httptest.NewServer(NewServer(b.service).Handler())
+	defer server.Close()
+	const traceID = "4bf92f3577b34da6a3ce929d0e0e4736"
+	request, err := http.NewRequest(http.MethodGet, server.URL+"/health", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("traceparent", "00-"+traceID+"-00f067aa0ba902b7-01")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.Header.Get("X-Trace-ID") != traceID || !strings.HasPrefix(response.Header.Get("traceparent"), "00-"+traceID+"-") {
+		t.Fatalf("trace context not propagated: trace=%q traceparent=%q", response.Header.Get("X-Trace-ID"), response.Header.Get("traceparent"))
+	}
+	invalid, err := http.NewRequest(http.MethodGet, server.URL+"/health", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	invalid.Header.Set("traceparent", "00-not-a-trace-00f067aa0ba902b7-01")
+	response, err = http.DefaultClient.Do(invalid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	generated := response.Header.Get("X-Trace-ID")
+	if len(generated) != 32 || generated == traceID {
+		t.Fatalf("invalid trace context was not replaced: %q", generated)
+	}
+}
+
+func TestBridgeDataExportRetentionAndIdentityRedaction(t *testing.T) {
+	b := newTestBridge(t)
+	b.cfg.RetentionPeriod = 24 * time.Hour
+	service, err := New(b.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.service = service
+	created, err := b.service.CreateTransfer(validCreate("privacy-create-001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	exported, err := b.service.ExportAccount(created.Transfer.Sender)
+	if err != nil || len(exported.Transfers) != 1 || exported.Source != "ynx-bridge-coordinator" || exported.Coverage != "coordinator-records-only-not-independent-chain-history" {
+		t.Fatalf("unexpected account export: %+v %v", exported, err)
+	}
+	held, replayed, err := b.service.RequestDataDeletion(DataDeletionRequest{IdempotencyKey: "privacy-delete-request-001", Account: created.Transfer.Sender, Reason: "account-closure"})
+	if err != nil || replayed || held.Status != "safety_hold" || held.OutstandingTransfers != 1 || held.EligibleAt != "" {
+		t.Fatalf("active transfer deletion was not safety-held: %+v %v", held, err)
+	}
+	if _, _, err := b.service.ExecuteDataDeletion(held.ID, DataDeletionExecuteRequest{IdempotencyKey: "privacy-delete-execute-001"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("active transfer deletion execution should fail closed: %v", err)
+	}
+	block := "0x" + strings.Repeat("c", 64)
+	for _, relayer := range []string{"relayer-a", "relayer-b"} {
+		if _, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, relayer, block, 12)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	proof, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "privacy-finalize-001"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.service.VerifyProof(created.Transfer.ID, ProofVerificationRequest{IdempotencyKey: "privacy-proof-verify-001", ProofType: proof.Transfer.ProofType, ProofDigest: proof.Transfer.ProofDigest}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "privacy-release-001", Outcome: phaseDestinationActionSubmitted, EvidenceRef: "receipt:privacy-release", ReasonCode: "operator-observed"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "privacy-confirm-001", Outcome: phaseDestinationActionConfirmed, EvidenceRef: "receipt:privacy-confirmed", ReasonCode: "finalized-receipt"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "privacy-available-001", Outcome: phaseDestinationAvailable, EvidenceRef: "receipt:privacy-available", ReasonCode: "destination-available"}); err != nil {
+		t.Fatal(err)
+	}
+	pending, _, err := b.service.RequestDataDeletion(DataDeletionRequest{IdempotencyKey: "privacy-delete-request-002", Account: created.Transfer.Sender, Reason: "account-closure"})
+	if err != nil || pending.Status != "pending_retention" || pending.OutstandingTransfers != 0 || pending.EligibleAt == "" {
+		t.Fatalf("terminal transfer deletion request is invalid: %+v %v", pending, err)
+	}
+	if _, _, err := b.service.ExecuteDataDeletion(pending.ID, DataDeletionExecuteRequest{IdempotencyKey: "privacy-delete-execute-002"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("retention period should block early execution: %v", err)
+	}
+	*b.clock = b.clock.Add(25 * time.Hour)
+	completed, replayed, err := b.service.ExecuteDataDeletion(pending.ID, DataDeletionExecuteRequest{IdempotencyKey: "privacy-delete-execute-003"})
+	if err != nil || replayed || completed.Status != "completed" || completed.Account != "" || completed.CompletedAt == "" {
+		t.Fatalf("eligible identity redaction failed: %+v %v", completed, err)
+	}
+	redacted, err := b.service.Get(created.Transfer.ID)
+	if err != nil || !redacted.SenderRedacted || !strings.HasPrefix(redacted.Sender, "redacted:sha256:") || redacted.RecipientRedacted || redacted.SourceTxHash != created.Transfer.SourceTxHash || redacted.Amount != created.Transfer.Amount || redacted.Phase != phaseDestinationAvailable {
+		t.Fatalf("redaction changed financial evidence or missed identity: %+v %v", redacted, err)
+	}
+	exported, err = b.service.ExportAccount(created.Transfer.Sender)
+	if err != nil || len(exported.Transfers) != 0 || len(exported.DeletionRequests) != 2 {
+		t.Fatalf("post-redaction export should retain request evidence only: %+v %v", exported, err)
+	}
+	restarted, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("redacted state did not restart: %v", err)
+	}
+	persisted, _ := restarted.Get(created.Transfer.ID)
+	if !persisted.SenderRedacted || persisted.Sender != redacted.Sender {
+		t.Fatalf("restart lost redaction state: %+v", persisted)
+	}
+}
+
+func TestBridgeV2StateMigratesToCurrentSchema(t *testing.T) {
+	b := newTestBridge(t)
+	state := cloneState(b.service.state)
+	state.SchemaVersion = 2
+	state.DataRequests = nil
+	state.Integrity = ""
+	digest, err := stateDigest(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state.Integrity = digest
+	raw, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(b.state, append(raw, '\n'), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("valid v2 state migration failed: %v", err)
+	}
+	if migrated.state.SchemaVersion != SchemaVersion || migrated.state.DataRequests == nil || migrated.state.Integrity == "" {
+		t.Fatalf("v2 state not migrated to current schema: %+v", migrated.state)
+	}
+	state.Integrity = "sha256:" + strings.Repeat("0", 64)
+	raw, _ = json.Marshal(state)
+	if err := os.WriteFile(b.state, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "integrity mismatch") {
+		t.Fatalf("tampered v2 state expected integrity rejection, got %v", err)
+	}
+}
+
+func TestBridgeV3StateMigratesLifecycleWithHonestCoverage(t *testing.T) {
+	b := newTestBridge(t)
+	created, err := b.service.CreateTransfer(validCreate("v3-lifecycle-migrate-001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := cloneState(b.service.state)
+	transfer := state.Transfers[created.Transfer.ID]
+	injectedLifecycle := append([]LifecycleEvent(nil), transfer.Lifecycle...)
+	transfer.Lifecycle = nil
+	state.Transfers[transfer.ID] = transfer
+	state.SchemaVersion = 3
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("valid v3 lifecycle migration failed: %v", err)
+	}
+	got := migrated.state.Transfers[transfer.ID]
+	if migrated.state.SchemaVersion != SchemaVersion || len(got.Lifecycle) != 1 || got.Lifecycle[0].Phase != "source_submitted" || got.Lifecycle[0].Source != "schema-migration" || got.Lifecycle[0].Coverage != "migration-current-phase-only" {
+		t.Fatalf("v3 lifecycle migration overclaimed history: %+v", got.Lifecycle)
+	}
+	state.SchemaVersion = 3
+	transfer.Lifecycle = injectedLifecycle
+	state.Transfers[transfer.ID] = transfer
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "unsupported lifecycle data") {
+		t.Fatalf("legacy schema lifecycle injection accepted: %v", err)
+	}
+}
+
+func TestBridgeResealedInvalidLifecycleIsRejected(t *testing.T) {
+	b := newTestBridge(t)
+	created, err := b.service.CreateTransfer(validCreate("invalid-lifecycle-state-001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := cloneState(b.service.state)
+	transfer := state.Transfers[created.Transfer.ID]
+	transfer.Lifecycle[0].Sequence = 2
+	state.Transfers[transfer.ID] = transfer
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "lifecycle is invalid") {
+		t.Fatalf("resealed invalid lifecycle accepted: %v", err)
+	}
+}
+
+func TestBridgeResealedAttestationAndIndexForgeryIsRejected(t *testing.T) {
+	t.Run("signature", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("forged-attestation-signature-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		block := "0x" + strings.Repeat("c", 64)
+		if _, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-a", block, 12)); err != nil {
+			t.Fatal(err)
+		}
+		state := cloneState(b.service.state)
+		transfer := state.Transfers[created.Transfer.ID]
+		attestation := transfer.Attestations["relayer-a"]
+		attestation.Signature = base64.StdEncoding.EncodeToString(make([]byte, ed25519.SignatureSize))
+		transfer.Attestations["relayer-a"] = attestation
+		state.Transfers[transfer.ID] = transfer
+		if err := saveState(b.state, &state); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "attestation signature is invalid") {
+			t.Fatalf("resealed forged attestation accepted: %v", err)
+		}
+	})
+
+	t.Run("quorum-status", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("forged-quorum-status-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		state := cloneState(b.service.state)
+		transfer := state.Transfers[created.Transfer.ID]
+		transfer.Status = "ready_for_local_finalization"
+		state.Transfers[transfer.ID] = transfer
+		if err := saveState(b.state, &state); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "ready status is inconsistent") {
+			t.Fatalf("resealed forged quorum status accepted: %v", err)
+		}
+	})
+
+	t.Run("source-event-index", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("missing-source-index-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		state := cloneState(b.service.state)
+		for key, id := range state.SourceEvents {
+			if id == created.Transfer.ID {
+				delete(state.SourceEvents, key)
+			}
+		}
+		if err := saveState(b.state, &state); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "missing its source-event index") {
+			t.Fatalf("resealed missing source-event index accepted: %v", err)
+		}
+	})
+
+	t.Run("changed-relayer-key", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("changed-relayer-key-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		block := "0x" + strings.Repeat("c", 64)
+		if _, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-a", block, 12)); err != nil {
+			t.Fatal(err)
+		}
+		replacement, _, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg := b.cfg
+		cfg.Relayers = map[string]ed25519.PublicKey{}
+		for name, key := range b.cfg.Relayers {
+			cfg.Relayers[name] = append(ed25519.PublicKey(nil), key...)
+		}
+		cfg.Relayers["relayer-a"] = replacement
+		if _, err := New(cfg); err == nil || !strings.Contains(err.Error(), "attestation signature is invalid") {
+			t.Fatalf("changed relayer key silently accepted historical signature: %v", err)
+		}
+	})
+
+	t.Run("missing-attestation-audit", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("missing-attestation-audit-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		block := "0x" + strings.Repeat("c", 64)
+		if _, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-a", block, 12)); err != nil {
+			t.Fatal(err)
+		}
+		state := cloneState(b.service.state)
+		state.Audit = state.Audit[:len(state.Audit)-1]
+		if err := saveState(b.state, &state); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "attestation audit evidence is missing") {
+			t.Fatalf("attestation without audit evidence accepted: %v", err)
+		}
+	})
+
+	t.Run("missing-finalization-audit", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("missing-finalization-audit-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		block := "0x" + strings.Repeat("c", 64)
+		for _, relayer := range []string{"relayer-a", "relayer-b"} {
+			if _, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, relayer, block, 12)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		*b.clock = b.now.Add(time.Hour)
+		if _, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "missing-finalization-proof-001"}); err != nil {
+			t.Fatal(err)
+		}
+		state := cloneState(b.service.state)
+		state.Audit = state.Audit[:len(state.Audit)-1]
+		if err := saveState(b.state, &state); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "finalization evidence is inconsistent") {
+			t.Fatalf("finalization without audit evidence accepted: %v", err)
+		}
+	})
+}
+
+func TestBridgeV4MigrationPreservesResolvedExposureThroughDispute(t *testing.T) {
+	b := newTestBridge(t)
+	created, err := b.service.CreateTransfer(validCreate("v4-settled-dispute-001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := cloneState(b.service.state)
+	transfer := state.Transfers[created.Transfer.ID]
+	appendLifecycle(&transfer, "destination_confirmed", transfer.UpdatedAt, "receipt:migrated-destination-001", "finalized-receipt", "operator-submitted-evidence")
+	appendLifecycle(&transfer, "dispute", transfer.UpdatedAt, "case:migrated-dispute-001", "recipient-appeal", "operator-submitted-evidence")
+	transfer.Phase = "dispute"
+	transfer.ExposureStatus = ""
+	state.Transfers[transfer.ID] = transfer
+	state.SchemaVersion = 4
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("v4 settled dispute migration failed: %v", err)
+	}
+	got := migrated.state.Transfers[transfer.ID]
+	if got.ExposureStatus != "destination-confirmed-legacy" || got.Phase != phaseDisputed || got.DestinationAssetAvailable {
+		t.Fatalf("v4 migration reopened settled dispute: %+v", got)
+	}
+	if exposure := migrated.Transparency().Routes[0]; exposure.CoordinatorOutstanding != "0" || exposure.TransferCount != 0 {
+		t.Fatalf("migrated settled dispute counted as exposure: %+v", exposure)
+	}
+}
+
 func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
+	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", GatewayAPIKey: testGatewayAPIKey, QuoteSealKey: "bridge-quote-seal-key-for-tests-0001", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", Classification: "external-bridge-adapter", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", SourceAssetClass: "other-testnet-asset-candidate", DestinationAssetClass: "wrapped-test-asset", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("weak API key and single relayer topology unexpectedly passed")
 	}
 	base.APIKey = testAPIKey
+	base.GatewayAPIKey = testAPIKey
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("shared operator and Gateway credential unexpectedly passed")
+	}
+	base.GatewayAPIKey = testGatewayAPIKey
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("single relayer topology unexpectedly passed")
 	}
@@ -255,9 +820,486 @@ func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("external submission policy unexpectedly passed")
 	}
+	base.Policies[0].ExternalSubmission = false
+	base.RetentionPeriod = 23 * time.Hour
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("sub-day retention policy unexpectedly passed")
+	}
+	base.RetentionPeriod = 24 * time.Hour
+	if err := ValidateConfig(base); err != nil {
+		t.Fatalf("minimum bounded retention policy rejected: %v", err)
+	}
+	base.QuoteSealKey = testAPIKey
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("shared operator and quote seal credential unexpectedly passed")
+	}
+	base.QuoteSealKey = "bridge-quote-seal-key-for-tests-0001"
+	base.QuoteTTL = 29 * time.Second
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("sub-30-second quote ttl unexpectedly passed")
+	}
+	base.QuoteTTL = 15 * time.Minute
+	if err := ValidateConfig(base); err != nil {
+		t.Fatalf("maximum bounded quote ttl rejected: %v", err)
+	}
+	base.Policies[0].SourceAssetClass = "unsupported-asset-class"
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("unsupported asset classification unexpectedly passed")
+	}
+	base.Policies[0].SourceAssetClass = "other-testnet-asset-candidate"
+	conflictingClass := base.Policies[0]
+	conflictingClass.DestinationChain, conflictingClass.DestinationAsset = "c-chain", "asset-c"
+	conflictingClass.SourceAssetClass = "wrapped-test-asset"
+	base.Policies = append(base.Policies, conflictingClass)
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("conflicting asset classification unexpectedly passed")
+	}
+	base.Policies = base.Policies[:1]
+	conflictingRole := base.Policies[0]
+	conflictingRole.SourceChain, conflictingRole.SourceAsset = "c-chain", "asset-c"
+	conflictingRole.DestinationChain, conflictingRole.DestinationAsset = "a-chain", "asset-a"
+	conflictingRole.SourceAssetClass, conflictingRole.DestinationAssetClass = "wrapped-test-asset", "other-testnet-asset-candidate"
+	base.Policies = append(base.Policies, conflictingRole)
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("conflicting asset canonicality unexpectedly passed")
+	}
+}
+
+func TestBridgeAssetCatalogCombinesBidirectionalMovementDeterministically(t *testing.T) {
+	b := newTestBridge(t)
+	cfg := b.cfg
+	cfg.StatePath = filepath.Join(t.TempDir(), "state.json")
+	reverse := cfg.Policies[0]
+	reverse.SourceChain, reverse.DestinationChain = reverse.DestinationChain, reverse.SourceChain
+	reverse.SourceAsset, reverse.DestinationAsset = reverse.DestinationAsset, reverse.SourceAsset
+	reverse.SourceAssetClass, reverse.DestinationAssetClass = reverse.DestinationAssetClass, reverse.SourceAssetClass
+	reverse.AssetBoundary = "represented-to-canonical"
+	cfg.Policies = append(cfg.Policies, reverse)
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := service.AssetCatalog()
+	second := service.AssetCatalog()
+	if !reflect.DeepEqual(first, second) || len(first.Assets) != 2 {
+		t.Fatalf("asset catalog is nondeterministic: first=%+v second=%+v", first, second)
+	}
+	for _, asset := range first.Assets {
+		if len(asset.RouteIDs) != 2 || len(asset.MovementModes) != 2 || !sort.StringsAreSorted(asset.RouteIDs) || !sort.StringsAreSorted(asset.MovementModes) {
+			t.Fatalf("bidirectional asset evidence is incomplete: %+v", asset)
+		}
+	}
+}
+
+func TestBridgePauseExposureAndRecoveryLifecycle(t *testing.T) {
+	b := newTestBridge(t)
+	safety, replayed, err := b.service.SetPause(PauseRequest{IdempotencyKey: "pause-bridge-001", Paused: true, Reason: "incident-response"})
+	if err != nil || replayed || !safety.Paused {
+		t.Fatalf("pause failed: %+v replay=%v err=%v", safety, replayed, err)
+	}
+	pausedStatus := b.service.ProductStatus(buildinfo.Info{})
+	if pausedStatus.CoordinatorState != "paused-local-coordinator" || !pausedStatus.Paused || pausedStatus.ExternalBridgeState != "unavailable" || pausedStatus.UserAssetMovementEnabled {
+		t.Fatalf("paused product status overclaim: %+v", pausedStatus)
+	}
+	if _, err := b.service.CreateTransfer(validCreate("paused-create-001")); !errors.Is(err, ErrConflict) {
+		t.Fatalf("paused bridge accepted transfer: %v", err)
+	}
+	if _, _, err := b.service.SetPause(PauseRequest{IdempotencyKey: "pause-bridge-001", Paused: false, Reason: "incident-cleared"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("changed pause replay expected conflict: %v", err)
+	}
+	if _, _, err := b.service.SetPause(PauseRequest{IdempotencyKey: "resume-bridge-001", Paused: false, Reason: "incident-cleared"}); err != nil {
+		t.Fatal(err)
+	}
+
+	request := validCreate("recovery-flow-001")
+	request.Amount = "1000"
+	created, err := b.service.CreateTransfer(request)
+	if err != nil || created.Transfer.Phase != "source_submitted" {
+		t.Fatalf("create phase: %+v %v", created, err)
+	}
+	blocked := validCreate("exposure-block-001")
+	blocked.SourceTxHash = "0x" + strings.Repeat("d", 64)
+	blocked.SourceEventIndex = 8
+	if _, err := b.service.CreateTransfer(blocked); !errors.Is(err, ErrConflict) {
+		t.Fatalf("outstanding exposure limit not enforced: %v", err)
+	}
+
+	block := "0x" + strings.Repeat("c", 64)
+	first, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-a", block, 12))
+	if err != nil || first.Transfer.Phase != "source_accepted" {
+		t.Fatalf("source accepted phase: %+v %v", first, err)
+	}
+	second, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-b", block, 12))
+	if err != nil || second.Transfer.Phase != "source_finalized" {
+		t.Fatalf("source finalized phase: %+v %v", second, err)
+	}
+	*b.clock = b.now.Add(time.Hour)
+	proof, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "proof-finalize-001"})
+	if err != nil || proof.Transfer.Phase != phaseProofAttestationAvailable || proof.Transfer.ProofVerificationStatus != "available-unverified" {
+		t.Fatalf("proof phase: %+v %v", proof, err)
+	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-early-release-001", Outcome: phaseDestinationActionSubmitted, EvidenceRef: "tx:destination-early", ReasonCode: "operator-observed"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("destination action before proof verification was accepted: %v", err)
+	}
+	verified, err := b.service.VerifyProof(created.Transfer.ID, ProofVerificationRequest{IdempotencyKey: "proof-verify-001", ProofType: proof.Transfer.ProofType, ProofDigest: proof.Transfer.ProofDigest})
+	if err != nil || verified.Transfer.Phase != phaseProofVerified {
+		t.Fatalf("proof verification: %+v %v", verified, err)
+	}
+	failed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-failed-001", Outcome: "failed", EvidenceRef: "audit:provider-timeout-001", ReasonCode: "provider-timeout"})
+	if err != nil || failed.Transfer.Phase != phaseFailed || failed.Transfer.PreviousPhase != phaseProofVerified {
+		t.Fatalf("failed phase: %+v %v", failed, err)
+	}
+	retried, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-retry-001", Outcome: "retry", EvidenceRef: "audit:operator-review-001", ReasonCode: "approved-retry"})
+	if err != nil || retried.Transfer.Phase != phaseProofVerified {
+		t.Fatalf("retry phase: %+v %v", retried, err)
+	}
+	release, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-release-001", Outcome: phaseDestinationActionSubmitted, EvidenceRef: "tx:destination-001", ReasonCode: "operator-observed"})
+	if err != nil || release.Transfer.Phase != phaseDestinationActionSubmitted {
+		t.Fatalf("release phase: %+v %v", release, err)
+	}
+	confirmed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-confirmed-001", Outcome: phaseDestinationActionConfirmed, EvidenceRef: "receipt:destination-001", ReasonCode: "finalized-receipt"})
+	if err != nil || confirmed.Transfer.Phase != phaseDestinationActionConfirmed {
+		t.Fatalf("confirmed phase: %+v %v", confirmed, err)
+	}
+	if confirmed.Transfer.DestinationAssetAvailable || b.service.Transparency().Routes[0].CoordinatorOutstanding != "1000" {
+		t.Fatalf("destination confirmation incorrectly marked funds available: %+v", confirmed.Transfer)
+	}
+	available, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-available-001", Outcome: phaseDestinationAvailable, EvidenceRef: "balance:destination-001", ReasonCode: "destination-balance-observed"})
+	if err != nil || !available.Transfer.DestinationAssetAvailable || available.Transfer.ExposureStatus != "destination-available" {
+		t.Fatalf("destination availability phase: %+v %v", available, err)
+	}
+	disputed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-dispute-001", Outcome: "dispute", EvidenceRef: "case:destination-dispute-001", ReasonCode: "recipient-appeal"})
+	if err != nil || disputed.Transfer.Phase != phaseDisputed || disputed.Transfer.ExposureStatus != "destination-available" {
+		t.Fatalf("settled dispute phase or exposure: %+v %v", disputed, err)
+	}
+	transparency := b.service.Transparency()
+	if transparency.Routes[0].CoordinatorOutstanding != "0" || transparency.Routes[0].TransferCount != 0 {
+		t.Fatalf("settled dispute reopened exposure: %+v", transparency.Routes[0])
+	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-fail-dispute-001", Outcome: "failed", EvidenceRef: "case:destination-dispute-001", ReasonCode: "invalid-regression"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("dispute regressed to failed: %v", err)
+	}
+	wantLifecycle := []string{phaseSourceSubmitted, phaseSourceAccepted, phaseSourceAccepted, phaseSourceFinalized, phaseProofAttestationAvailable, phaseProofVerified, phaseFailed, phaseRetryable, phaseProofVerified, phaseDestinationActionSubmitted, phaseDestinationActionConfirmed, phaseDestinationAvailable, phaseDisputed}
+	if len(disputed.Transfer.Lifecycle) != len(wantLifecycle) {
+		t.Fatalf("lifecycle length: got=%+v want=%+v", disputed.Transfer.Lifecycle, wantLifecycle)
+	}
+	for i, phase := range wantLifecycle {
+		event := disputed.Transfer.Lifecycle[i]
+		if event.Sequence != uint64(i+1) || event.Phase != phase || event.Coverage != "coordinator-recorded-event-not-independent-chain-proof" {
+			t.Fatalf("lifecycle event %d: %+v", i, event)
+		}
+	}
+
+	if _, err := New(b.cfg); err != nil {
+		t.Fatalf("restart rejected lifecycle state: %v", err)
+	}
+	if got := b.service.Health(buildinfo.Info{}); got.Safety.Paused {
+		t.Fatalf("health retained cleared pause: %+v", got)
+	}
+}
+
+func TestBridgeRefundRecoveryResolvesExposureAndRejectsConflictingSettlement(t *testing.T) {
+	b := newTestBridge(t)
+	created, err := b.service.CreateTransfer(validCreate("refund-recovery-flow-001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	failed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "refund-failed-001", Outcome: "failed", EvidenceRef: "audit:source-rejected-001", ReasonCode: "source-rejected"})
+	if err != nil || failed.Transfer.ExposureStatus != "open" {
+		t.Fatalf("refund failure setup: %+v %v", failed, err)
+	}
+	refunded, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "refund-recovered-001", Outcome: "refund_recovery", EvidenceRef: "receipt:source-refund-001", ReasonCode: "refund-confirmed"})
+	if err != nil || refunded.Transfer.Phase != phaseRefunded || refunded.Transfer.ExposureStatus != "refunded" {
+		t.Fatalf("refund recovery: %+v %v", refunded, err)
+	}
+	if exposure := b.service.Transparency().Routes[0]; exposure.CoordinatorOutstanding != "0" || exposure.TransferCount != 0 {
+		t.Fatalf("refunded transfer remained exposed: %+v", exposure)
+	}
+	state := cloneState(b.service.state)
+	transfer := state.Transfers[created.Transfer.ID]
+	appendLifecycle(&transfer, phaseDestinationAvailable, transfer.UpdatedAt, "receipt:conflicting-terminal-001", "invalid-terminal", "operator-submitted-evidence")
+	state.Transfers[transfer.ID] = transfer
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "conflicting exposure resolution") {
+		t.Fatalf("conflicting terminal settlement accepted: %v", err)
+	}
+}
+
+func TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification(t *testing.T) {
+	b := newTestBridge(t)
+	legacy := legacyStateV1{SchemaVersion: 1, Transfers: map[string]legacyTransferV1{}, SourceEvents: map[string]string{}, CreateIdempotency: map[string]idempotencyRecord{}, FinalizeIdempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{}}
+	unsigned, err := json.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy.Integrity = "sha256:" + hashBytes(unsigned)
+	raw, err := json.MarshalIndent(legacy, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(b.state, append(raw, '\n'), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("valid v1 state migration failed: %v", err)
+	}
+	if migrated.state.SchemaVersion != SchemaVersion || migrated.state.MutationIdempotency == nil || migrated.state.Integrity == "" {
+		t.Fatalf("v1 state not resealed as current schema: %+v", migrated.state)
+	}
+	persisted, err := os.ReadFile(b.state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(persisted), `"schemaVersion": 7`) {
+		t.Fatalf("migrated state not persisted as v7: %s", persisted)
+	}
+
+	legacy.Integrity = "sha256:" + strings.Repeat("0", 64)
+	raw, _ = json.Marshal(legacy)
+	if err := os.WriteFile(b.state, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "integrity mismatch") {
+		t.Fatalf("tampered v1 state was accepted: %v", err)
+	}
+}
+
+func TestBridgeReconciliationAndPublicTransparencyAreSourceQualified(t *testing.T) {
+	b := newTestBridge(t)
+	request := ReconciliationRequest{IdempotencyKey: "reconcile-route-001", SourceChain: "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc", Locked: "700", Burned: "100", Minted: "900", Released: "300", EvidenceRef: "report:operator-cycle-001", ObservedAt: b.now.Add(-time.Minute).Format(time.RFC3339Nano)}
+	record, replayed, err := b.service.Reconcile(request)
+	// The supplied observations intentionally expose a mismatch; they must not be labeled balanced.
+	if err != nil || replayed || record.Balanced || record.OutstandingSupply != "800" || record.ReserveBacking != "400" || record.Difference != "400" {
+		t.Fatalf("unexpected reconciliation: %+v replay=%v err=%v", record, replayed, err)
+	}
+	if record.Source != "operator-submitted-evidence" || record.Verification != "reference-recorded-not-independently-verified" {
+		t.Fatalf("reconciliation source overclaim: %+v", record)
+	}
+	if _, replayed, err = b.service.Reconcile(request); err != nil || !replayed {
+		t.Fatalf("reconciliation replay failed: replay=%v err=%v", replayed, err)
+	}
+	changed := request
+	changed.Locked = "701"
+	if _, _, err := b.service.Reconcile(changed); !errors.Is(err, ErrConflict) {
+		t.Fatalf("changed reconciliation replay accepted: %v", err)
+	}
+	invalid := request
+	invalid.IdempotencyKey = "reconcile-route-002"
+	invalid.Burned = "901"
+	if _, _, err := b.service.Reconcile(invalid); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("negative supply reconciliation accepted: %v", err)
+	}
+
+	transparency := b.service.Transparency()
+	if transparency.LiveBridge || transparency.ExternalSubmissionEnabled || transparency.Source != "ynx-bridge-coordinator" || len(transparency.Routes) != 1 || transparency.Routes[0].LastReconciliation == nil {
+		t.Fatalf("bad transparency: %+v", transparency)
+	}
+	server := httptest.NewServer(NewServer(b.service).Handler())
+	defer server.Close()
+	var public Transparency
+	doJSON(t, http.MethodGet, server.URL+"/bridge/transparency", "", nil, http.StatusOK, &public)
+	if public.Routes[0].LastReconciliation.Verification != "reference-recorded-not-independently-verified" {
+		t.Fatalf("public reconciliation overclaim: %+v", public)
+	}
+	var catalog RouteCatalog
+	doJSON(t, http.MethodGet, server.URL+"/bridge/routes", "", nil, http.StatusOK, &catalog)
+	if catalog.Source != "ynx-bridge-route-registry" || len(catalog.Routes) != 1 || catalog.Routes[0].Availability != "unavailable" || catalog.Routes[0].Executable || catalog.Routes[0].Source.Contract != nil || catalog.Routes[0].Fees.ProviderFee != nil || catalog.Routes[0].Refund.Available {
+		t.Fatalf("public route catalog overclaim: %+v", catalog)
+	}
+	var assets AssetCatalog
+	doJSON(t, http.MethodGet, server.URL+"/bridge/assets", "", nil, http.StatusOK, &assets)
+	if assets.Source != "ynx-bridge-asset-registry" || len(assets.Assets) != 2 || assets.Assets[0].Availability != "unavailable" || assets.Assets[0].Contract != nil || assets.Assets[0].ContractVerified || assets.Assets[0].ExternalExecutionEnabled || !assets.Assets[0].AllowlistedForCoordinatorIntent {
+		t.Fatalf("public asset catalog overclaim: %+v", assets)
+	}
+	var status ProductStatus
+	doJSON(t, http.MethodGet, server.URL+"/bridge/status", "", nil, http.StatusOK, &status)
+	if status.Source != "ynx-bridge-status" || status.CoordinatorState != "available-local-coordinator" || status.ExternalBridgeState != "unavailable" || status.ProviderConnection != "not-connected" || status.ExternalSubmissionEnabled || status.UserAssetMovementEnabled || status.OfficialStablecoinRouteAvailable || status.DeployedPublic || status.Reconciliation.State != "operator-observed-imbalance" || status.Reconciliation.IndependentVerification || status.Capabilities.RefundExecution || !status.Capabilities.DisputeRecording || status.Support.Configured || status.Support.PublicStatusURL != nil {
+		t.Fatalf("public product status overclaim: %+v", status)
+	}
+	tampered := cloneState(b.service.state)
+	for key, reconciliation := range tampered.Reconciliations {
+		reconciliation.Difference = "0"
+		reconciliation.Balanced = true
+		tampered.Reconciliations[key] = reconciliation
+	}
+	if err := saveState(b.state, &tampered); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "accounting is inconsistent") && !strings.Contains(err.Error(), "truth boundary is invalid") {
+		t.Fatalf("resealed inconsistent reconciliation accepted: %v", err)
+	}
+}
+
+func TestBridgeReconciliationReplayReturnsOriginalPersistedResult(t *testing.T) {
+	b := newTestBridge(t)
+	firstRequest := ReconciliationRequest{IdempotencyKey: "reconcile-exact-replay-001", SourceChain: "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc", Locked: "700", Burned: "100", Minted: "900", Released: "300", EvidenceRef: "report:operator-cycle-replay-001", ObservedAt: b.now.Add(-time.Minute).Format(time.RFC3339Nano)}
+	first, replayed, err := b.service.Reconcile(firstRequest)
+	if err != nil || replayed || first.Balanced {
+		t.Fatalf("first reconciliation failed: %+v replay=%v err=%v", first, replayed, err)
+	}
+	*b.clock = b.now.Add(time.Minute)
+	secondRequest := firstRequest
+	secondRequest.IdempotencyKey = "reconcile-exact-replay-002"
+	secondRequest.Minted = "500"
+	secondRequest.EvidenceRef = "report:operator-cycle-replay-002"
+	secondRequest.ObservedAt = b.now.Format(time.RFC3339Nano)
+	second, replayed, err := b.service.Reconcile(secondRequest)
+	if err != nil || replayed || !second.Balanced {
+		t.Fatalf("second reconciliation failed: %+v replay=%v err=%v", second, replayed, err)
+	}
+	replayedFirst, replayed, err := b.service.Reconcile(firstRequest)
+	if err != nil || !replayed || !reflect.DeepEqual(replayedFirst, first) {
+		t.Fatalf("older reconciliation replay changed: got=%+v want=%+v replay=%v err=%v", replayedFirst, first, replayed, err)
+	}
+	if status := b.service.ProductStatus(buildinfo.Info{}); status.Reconciliation.State != "operator-observed-balanced" {
+		t.Fatalf("latest balanced reconciliation was not authoritative: %+v", status.Reconciliation)
+	}
+	restarted, err := New(b.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayedFirst, replayed, err = restarted.Reconcile(firstRequest)
+	if err != nil || !replayed || !reflect.DeepEqual(replayedFirst, first) {
+		t.Fatalf("persisted reconciliation replay changed: got=%+v want=%+v replay=%v err=%v", replayedFirst, first, replayed, err)
+	}
+
+	invalidTime := cloneState(restarted.state)
+	for key, record := range invalidTime.Reconciliations {
+		record.RecordedAt = "invalid"
+		invalidTime.Reconciliations[key] = record
+	}
+	if err := saveState(b.state, &invalidTime); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "recorded time is invalid") {
+		t.Fatalf("invalid reconciliation recorded time accepted: %v", err)
+	}
+
+	swapped := cloneState(restarted.state)
+	swappedResult := swapped.ReconciliationResults[firstRequest.IdempotencyKey]
+	swappedResult.Locked = "800"
+	swappedResult.ReserveBacking = "500"
+	swappedResult.Difference = "300"
+	swapped.ReconciliationResults[firstRequest.IdempotencyKey] = swappedResult
+	if err := saveState(b.state, &swapped); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "replay digest is inconsistent") {
+		t.Fatalf("semantically valid substituted replay result accepted: %v", err)
+	}
+
+	tampered := cloneState(restarted.state)
+	result := tampered.ReconciliationResults[firstRequest.IdempotencyKey]
+	result.Balanced = true
+	tampered.ReconciliationResults[firstRequest.IdempotencyKey] = result
+	if err := saveState(b.state, &tampered); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "truth boundary is invalid") {
+		t.Fatalf("tampered reconciliation replay result accepted: %v", err)
+	}
+}
+
+func TestBridgeV5ReconciliationReplayMigratesFailClosed(t *testing.T) {
+	b := newTestBridge(t)
+	request := ReconciliationRequest{IdempotencyKey: "reconcile-v5-replay-001", SourceChain: "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc", Locked: "400", Burned: "0", Minted: "400", Released: "0", EvidenceRef: "report:v5-cycle-001", ObservedAt: b.now.Add(-time.Minute).Format(time.RFC3339Nano)}
+	if _, _, err := b.service.Reconcile(request); err != nil {
+		t.Fatal(err)
+	}
+	state := cloneState(b.service.state)
+	state.SchemaVersion = 5
+	state.ReconciliationResults = nil
+	state.ReconciliationReplayUnavailable = nil
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("v5 reconciliation state migration failed: %v", err)
+	}
+	if migrated.state.SchemaVersion != SchemaVersion || !migrated.state.ReconciliationReplayUnavailable[request.IdempotencyKey] {
+		t.Fatalf("v5 replay boundary was not preserved: %+v", migrated.state)
+	}
+	if _, replayed, err := migrated.Reconcile(request); !errors.Is(err, ErrConflict) || replayed || !strings.Contains(err.Error(), "pre-v6") {
+		t.Fatalf("v5 replay did not fail closed: replay=%v err=%v", replayed, err)
+	}
+}
+
+func TestBridgeDailyUserAndLargeTransferControls(t *testing.T) {
+	t.Run("large transfer delay", func(t *testing.T) {
+		b := newTestBridge(t)
+		request := validCreate("large-delay-create-001")
+		request.Amount = "600"
+		created, err := b.service.CreateTransfer(request)
+		if err != nil || !created.Transfer.LargeTransferDelayApplied || created.Transfer.NotBefore == "" {
+			t.Fatalf("large delay not applied: %+v %v", created, err)
+		}
+		block := "0x" + strings.Repeat("c", 64)
+		if _, err = b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-a", block, 12)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-b", block, 12)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "large-delay-finalize-001"}); !errors.Is(err, ErrConflict) || !strings.Contains(err.Error(), "delay has not elapsed") {
+			t.Fatalf("early large finalize accepted: %v", err)
+		}
+		*b.clock = b.now.Add(time.Hour)
+		if result, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "large-delay-finalize-001"}); err != nil || result.Transfer.Phase != phaseProofAttestationAvailable {
+			t.Fatalf("elapsed large finalize failed: %+v %v", result, err)
+		}
+	})
+	t.Run("user and daily limits", func(t *testing.T) {
+		b := newTestBridge(t)
+		b.cfg.Policies[0].MaxOutstanding = "5000"
+		b.cfg.Policies[0].DailyLimit = "1500"
+		b.cfg.Policies[0].UserOutstandingLimit = "700"
+		service, err := New(b.cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b.service = service
+		first := validCreate("limit-user-first-001")
+		first.Amount = "600"
+		if _, err = b.service.CreateTransfer(first); err != nil {
+			t.Fatal(err)
+		}
+		sameUser := validCreate("limit-user-second-001")
+		sameUser.SourceTxHash = "0x" + strings.Repeat("d", 64)
+		sameUser.SourceEventIndex = 8
+		sameUser.Amount = "200"
+		sameUser.Sender = "0x" + strings.Repeat("B", 40)
+		if _, err = b.service.CreateTransfer(sameUser); !errors.Is(err, ErrConflict) || !strings.Contains(err.Error(), "user outstanding limit") {
+			t.Fatalf("user limit not enforced: %v", err)
+		}
+		second := validCreate("limit-daily-second-001")
+		second.SourceTxHash = "0x" + strings.Repeat("e", 64)
+		second.SourceEventIndex = 9
+		second.Sender = "0x" + strings.Repeat("c", 40)
+		second.Amount = "700"
+		if _, err = b.service.CreateTransfer(second); err != nil {
+			t.Fatal(err)
+		}
+		daily := validCreate("limit-daily-third-001")
+		daily.SourceTxHash = "0x" + strings.Repeat("f", 64)
+		daily.SourceEventIndex = 10
+		daily.Sender = "0x" + strings.Repeat("d", 40)
+		daily.Amount = "300"
+		if _, err = b.service.CreateTransfer(daily); !errors.Is(err, ErrConflict) || !strings.Contains(err.Error(), "daily limit") {
+			t.Fatalf("daily limit not enforced: %v", err)
+		}
+	})
 }
 
 func doJSON(t *testing.T, method, url, key string, body any, expected int, target any) {
+	t.Helper()
+	doJSONWithHeaders(t, method, url, key, nil, body, expected, target)
+}
+
+func doJSONWithHeaders(t *testing.T, method, url, key string, headers map[string]string, body any, expected int, target any) {
 	t.Helper()
 	var reader io.Reader
 	if body != nil {
@@ -276,6 +1318,9 @@ func doJSON(t *testing.T, method, url, key string, body any, expected int, targe
 	}
 	if key != "" {
 		req.Header.Set("X-YNX-Bridge-Key", key)
+	}
+	for name, value := range headers {
+		req.Header.Set(name, value)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

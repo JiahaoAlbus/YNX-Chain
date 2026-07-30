@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "public-testnet-read-only-surface",
+  "observedAt": "2026-07-27T05:39:36Z",
+  "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+  "release": "ynx-bridge-857371f9b194",
+  "observerRole": "independent-testnet-node",
+  "baseUrl": "https://rest.ynxweb4.com/app/bridge",
+  "tlsVerified": true,
+  "endpoints": [
+    {"path":"/health","httpStatus":200,"source":"ynx-bridge-runtime"},
+    {"path":"/version","httpStatus":200,"source":"ynx-bridge-runtime"},
+    {"path":"/status","httpStatus":200,"source":"ynx-bridge-status"},
+    {"path":"/routes","httpStatus":200,"source":"ynx-bridge-route-registry"},
+    {"path":"/providers","httpStatus":200,"source":"ynx-bridge-provider-registry"},
+    {"path":"/assets","httpStatus":200,"source":"ynx-bridge-asset-registry"},
+    {"path":"/transparency","httpStatus":200,"source":"ynx-bridge-coordinator"},
+    {"path":"/state-machine","httpStatus":200,"source":"ynx-bridge-runtime"}
+  ],
+  "cors": {
+    "approvedOriginAllowed": true,
+    "unapprovedOriginHttpStatus": 403
+  },
+  "mutationBoundary": {
+    "quoteWithoutSessionHttpStatus": 401,
+    "walletReviewWithoutProductBindingHttpStatus": 404,
+    "transferRouteHttpStatus": 404,
+    "directBridgePortPubliclyReachable": false
+  },
+  "providerObservation": {
+    "provider": "Circle CCTP V2",
+    "connection": "connected-live-provider-api-route-execution-disabled",
+    "availableProviderCount": 1,
+    "lastSuccess": "2026-07-27T05:38:48.415822780Z",
+    "connectivityProbeIntervalSeconds": 60,
+    "connectivityStaleAfterSeconds": 120,
+    "periodicRefreshVerified": true,
+    "outageRecoveryDrill": {
+      "verified": true,
+      "observerRole": "independent-testnet-node",
+      "outageObservedAt": "2026-07-27T03:25:47Z",
+      "recoveredAt": "2026-07-27T03:26:42Z",
+      "outageConnection": "configured-provider-api-unavailable",
+      "outageAvailableProviderCount": 0,
+      "outageFailureStatus": "provider-connectivity-probe-unavailable",
+      "automaticRecovery": true,
+      "serviceRestarted": false,
+      "routeStayedUnavailable": true,
+      "externalSubmissionStayedDisabled": true
+    },
+    "incidentPersistence": {
+      "verified": true,
+      "observerRole": "independent-testnet-node",
+      "incidentHistoryComplete": false,
+      "incidentCount": 8,
+      "outageCount": 4,
+      "recoveryCount": 4,
+      "outageEventId": "provider_incident_771369729d33a13651ab17ae",
+      "recoveryEventId": "provider_incident_fb279b956f545a577595cb37",
+      "restartVerified": true,
+      "incidentIdsUnchangedAfterRestart": true
+    },
+    "supportedExternalRoute": "ethereum-sepolia-domain-0-to-base-sepolia-domain-6",
+    "agreementApproved": false,
+    "operationalReviewApproved": false,
+    "routeAvailable": false,
+    "ynxRouteAvailable": false
+  },
+  "runtimeTruth": {
+    "buildCommit": "857371f9b194",
+    "externalSubmissionEnabled": false,
+    "userAssetMovementEnabled": false,
+    "liveBridge": false,
+    "productDeployedPublic": false,
+    "allRoutesExecutable": false,
+    "allProviderRoutesAvailable": false,
+    "allAssetsExternalExecutionEnabled": false
+  }
+}

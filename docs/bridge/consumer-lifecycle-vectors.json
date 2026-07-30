@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "stateMachineVersion": "ynx.bridge.lifecycle.v1",
+  "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+  "availabilityRule": "assetAvailable requires phase=destination_available and destinationAssetAvailable=true",
+  "vectors": [
+    {"id":"quote-only","phase":"quote","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"user-review","phase":"user_review","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"source-submitted","phase":"source_submitted","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"source-accepted","phase":"source_accepted","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"source-finalized","phase":"source_finalized","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"proof-available","phase":"proof_attestation_available","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"proof-verified","phase":"proof_verified","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"destination-submitted","phase":"destination_mint_release_submitted","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"destination-confirmed","phase":"destination_mint_release_confirmed","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"destination-available","phase":"destination_available","destinationAssetAvailable":true,"assetAvailable":true,"mayPay":true,"mayCreditExchange":true,"showRecovery":false},
+    {"id":"failed","phase":"failed","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":true},
+    {"id":"retryable","phase":"retryable","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":true},
+    {"id":"refund-pending","phase":"refund_pending","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":true},
+    {"id":"refunded","phase":"refunded","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"recovery-required","phase":"recovery_required","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":true},
+    {"id":"disputed","phase":"disputed","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":true},
+    {"id":"corrected","phase":"corrected","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"expired","phase":"expired","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"paused","phase":"paused","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false}
+  ]
+}

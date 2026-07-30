@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "a1c640e00cc06924244834e2f2a77d18849aa834",
+  "generatedAt": "2026-07-27T14:43:29.458Z",
+  "classification": "bounded-local-migration-and-rollback-rehearsal",
+  "command": "go test -json -count=1 -race -run ^(TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification|TestBridgeV2StateMigratesToCurrentSchema|TestBridgeV3StateMigratesLifecycleWithHonestCoverage|TestBridgeV4MigrationPreservesResolvedExposureThroughDispute|TestBridgeV5ReconciliationReplayMigratesFailClosed|TestBridgeV6LifecycleMigratesWithoutInventingDestinationAvailability|TestBridgeV6RollbackBackupForwardRecoversDeterministically|TestBridgeResealedInvalidLifecycleIsRejected|TestBridgeResealedAttestationAndIndexForgeryIsRejected)$ ./internal/bridgegateway",
+  "raceDetector": true,
+  "result": "passed",
+  "durationMs": 4750.6682089999995,
+  "testCount": 15,
+  "tests": [
+    "TestBridgeResealedAttestationAndIndexForgeryIsRejected",
+    "TestBridgeResealedAttestationAndIndexForgeryIsRejected/changed-relayer-key",
+    "TestBridgeResealedAttestationAndIndexForgeryIsRejected/missing-attestation-audit",
+    "TestBridgeResealedAttestationAndIndexForgeryIsRejected/missing-finalization-audit",
+    "TestBridgeResealedAttestationAndIndexForgeryIsRejected/quorum-status",
+    "TestBridgeResealedAttestationAndIndexForgeryIsRejected/signature",
+    "TestBridgeResealedAttestationAndIndexForgeryIsRejected/source-event-index",
+    "TestBridgeResealedInvalidLifecycleIsRejected",
+    "TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification",
+    "TestBridgeV2StateMigratesToCurrentSchema",
+    "TestBridgeV3StateMigratesLifecycleWithHonestCoverage",
+    "TestBridgeV4MigrationPreservesResolvedExposureThroughDispute",
+    "TestBridgeV5ReconciliationReplayMigratesFailClosed",
+    "TestBridgeV6LifecycleMigratesWithoutInventingDestinationAvailability",
+    "TestBridgeV6RollbackBackupForwardRecoversDeterministically"
+  ],
+  "rawOutputSha256": "259b7b43c8522b2df87ba22849c0a3c5603494b8033673784e2e876f82890258",
+  "rollbackPolicy": {
+    "mutationFreezeRequired": true,
+    "exactPreMigrationBackupRequired": true,
+    "backwardsStateConversionAllowed": false,
+    "postUpgradeMutationRollbackAllowed": false,
+    "deterministicForwardRecoveryVerified": true,
+    "acceptedMutationLoss": 0
+  },
+  "coverage": {
+    "legacySchemas": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "currentSchema": 7,
+    "integrityVerifiedBeforeMigration": true,
+    "auditChainVerifiedBeforeMigration": true,
+    "destinationConfirmationDoesNotImplyAvailability": true,
+    "tamperRejected": true,
+    "remoteMigration": false
+  }
+}

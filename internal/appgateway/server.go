@@ -78,7 +78,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	}
 	upstreams := map[string]upstreamHealth{}
 	ok := true
-	for _, service := range []string{"chat", "square", "pay", "wallet"} {
+	for _, service := range []string{"chat", "square", "pay", "bridge", "wallet"} {
 		base, _, _, _ := s.gateway.upstream(service)
 		request, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, base.String()+"/health", nil)
 		response, err := s.client.Do(request)
@@ -231,6 +231,10 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "app route not found")
 		return
 	}
+	if protected && service == "bridge" && upstreamPath == "/bridge/wallet-reviews" && !s.gateway.WalletReviewBindingAllowed(binding) {
+		writeError(w, http.StatusNotFound, "Wallet review route not available to this product")
+		return
+	}
 	var body []byte
 	var err error
 	if r.Body != nil {
@@ -270,7 +274,7 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	}
 	base, key, keyHeader, _ := s.gateway.upstream(service)
 	upstreamURL := *base
-	upstreamURL.Path = upstreamPath
+	upstreamURL.Path = appUpstreamPath(service, upstreamPath)
 	upstreamURL.RawPath = ""
 	upstreamURL.RawQuery = r.URL.RawQuery
 	request, err := http.NewRequestWithContext(r.Context(), r.Method, upstreamURL.String(), bytes.NewReader(body))
@@ -285,6 +289,14 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	}
 	request.Header.Set(keyHeader, key)
 	request.Header.Set("X-YNX-App-Gateway", "1")
+	if protected && service == "bridge" {
+		request.Header.Set("X-YNX-App-Session-ID", authenticatedSession.ID)
+		request.Header.Set("X-YNX-App-Session-Account", authenticatedSession.Account)
+		request.Header.Set("X-YNX-App-Session-Device", authenticatedSession.DeviceID)
+		request.Header.Set("X-YNX-App-Session-Expires-At", authenticatedSession.ExpiresAt.UTC().Format(time.RFC3339Nano))
+		request.Header.Set("X-YNX-App-Product", productForBinding(binding))
+		request.Header.Set("X-YNX-App-Scope", bridgeScope(r.Method, upstreamPath))
+	}
 	response, err := s.client.Do(request)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "upstream service unavailable")
@@ -302,6 +314,13 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(response.StatusCode)
 	_, _ = w.Write(responseBody)
+}
+
+func appUpstreamPath(service, path string) string {
+	if service == "bridge" && (path == "/bridge/health" || path == "/bridge/version") {
+		return strings.TrimPrefix(path, "/bridge")
+	}
+	return path
 }
 
 func (s *Server) session(w http.ResponseWriter, r *http.Request, binding string) {
@@ -402,7 +421,7 @@ func resolveAppPath(escapedPath string) (string, string, bool) {
 		return "", "", false
 	}
 	pieces := strings.SplitN(strings.TrimPrefix(escapedPath, "/app/"), "/", 2)
-	if len(pieces) != 2 || (pieces[0] != "chat" && pieces[0] != "square" && pieces[0] != "pay") {
+	if len(pieces) != 2 || (pieces[0] != "chat" && pieces[0] != "square" && pieces[0] != "pay" && pieces[0] != "bridge") {
 		return "", "", false
 	}
 	return pieces[0], "/" + pieces[0] + "/" + pieces[1], true

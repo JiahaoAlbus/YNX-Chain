@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/bridgegateway"
@@ -29,9 +30,34 @@ var (
 )
 
 func main() {
+	thresholdDefault, err := envIntOrDefault("YNX_BRIDGE_RELAYER_THRESHOLD", 2)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rateMaxDefault, err := envIntOrDefault("YNX_BRIDGE_RATE_LIMIT_MAX", 5000)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rateWindowDefault, err := envDurationOrDefault("YNX_BRIDGE_RATE_LIMIT_WINDOW", time.Minute)
+	if err != nil {
+		log.Fatal(err)
+	}
+	retentionDefault, err := envDurationOrDefault("YNX_BRIDGE_RETENTION_PERIOD", 7*365*24*time.Hour)
+	if err != nil {
+		log.Fatal(err)
+	}
+	quoteTTLDefault, err := envDurationOrDefault("YNX_BRIDGE_QUOTE_TTL", 5*time.Minute)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	httpAddr := flag.String("http", envOrDefault("YNX_BRIDGE_HTTP_ADDR", "127.0.0.1:6433"), "Bridge coordinator HTTP listen address")
 	statePath := flag.String("state", envOrDefault("YNX_BRIDGE_STATE_PATH", "tmp/bridge/state.json"), "Bridge persistent state path")
-	threshold := flag.Int("threshold", envIntOrDefault("YNX_BRIDGE_RELAYER_THRESHOLD", 2), "required relayer attestations")
+	threshold := flag.Int("threshold", thresholdDefault, "required relayer attestations")
+	rateWindow := flag.Duration("rate-window", rateWindowDefault, "rate limit window")
+	rateMax := flag.Int("rate-max", rateMaxDefault, "maximum requests per API key/IP in window")
+	retention := flag.Duration("retention", retentionDefault, "identity retention after last transfer update")
+	quoteTTL := flag.Duration("quote-ttl", quoteTTLDefault, "bridge quote validity period")
 	checkConfig := flag.Bool("check-config", false, "validate configuration without starting the service")
 	flag.Parse()
 
@@ -43,7 +69,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg := bridgegateway.Config{StatePath: *statePath, APIKey: os.Getenv("YNX_BRIDGE_API_KEY"), Relayers: relayers, Threshold: *threshold, Policies: policies}
+	providerRoutes, err := parseProviderRoutes(envOrDefault("YNX_BRIDGE_PROVIDER_ROUTES_JSON", "[]"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg := bridgegateway.Config{
+		StatePath: *statePath, APIKey: os.Getenv("YNX_BRIDGE_API_KEY"), GatewayAPIKey: os.Getenv("YNX_BRIDGE_GATEWAY_API_KEY"), QuoteSealKey: os.Getenv("YNX_BRIDGE_QUOTE_SEAL_KEY"),
+		Relayers: relayers, Threshold: *threshold, Policies: policies, ProviderRoutes: providerRoutes,
+		RateLimitWindow: *rateWindow, RateLimitMax: *rateMax, RetentionPeriod: *retention, QuoteTTL: *quoteTTL,
+	}
 	if *checkConfig {
 		if err := bridgegateway.ValidateConfig(cfg); err != nil {
 			log.Fatal(err)
@@ -56,8 +90,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	service.StartProviderProbes(ctx)
 	server := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(bridgegateway.NewServerWithBuild(service, currentBuildInfo()).Handler()), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
@@ -95,6 +130,14 @@ func parsePolicies(raw string) ([]bridgegateway.RoutePolicy, error) {
 	return policies, nil
 }
 
+func parseProviderRoutes(raw string) ([]bridgegateway.ProviderRouteConfig, error) {
+	var routes []bridgegateway.ProviderRouteConfig
+	if err := decodeStrict(raw, &routes); err != nil {
+		return nil, fmt.Errorf("YNX_BRIDGE_PROVIDER_ROUTES_JSON: %w", err)
+	}
+	return routes, nil
+}
+
 func decodeStrict(raw string, target any) error {
 	if strings.TrimSpace(raw) == "" {
 		return errors.New("value is required")
@@ -121,14 +164,26 @@ func envOrDefault(key, fallback string) string {
 	return fallback
 }
 
-func envIntOrDefault(key string, fallback int) int {
+func envIntOrDefault(key string, fallback int) (int, error) {
 	value := strings.TrimSpace(os.Getenv(key))
 	if value == "" {
-		return fallback
+		return fallback, nil
 	}
 	parsed, err := strconv.Atoi(value)
 	if err != nil {
-		return fallback
+		return 0, fmt.Errorf("%s must be a valid integer: %w", key, err)
 	}
-	return parsed
+	return parsed, nil
+}
+
+func envDurationOrDefault(key string, fallback time.Duration) (time.Duration, error) {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be a valid duration: %w", key, err)
+	}
+	return parsed, nil
 }
