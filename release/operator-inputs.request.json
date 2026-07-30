@@ -1,48 +1,100 @@
 {
-  "schemaVersion": 1,
-  "product": "YNXT Economics",
-  "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
-  "requestPolicy": "Provide references or approvals through an approved secure channel; never place secrets, private keys, seeds, PEM contents, validator keys or full provider credentials in chat or git.",
+  "schemaVersion": "1.0.0",
+  "requestStatus": "required-before-production-signed-and-reviewed-release",
+  "generatedAt": "2026-07-27",
+  "sourceCommit": "601d13bd677729ff59819ea70076a7de461328f2",
+  "satisfiedByEvidence": [
+    {
+      "capability": "central integration, staging deployment, public deployment and immutable hosted download",
+      "evidence": "release/evidence/website-public-acceptance-2026-07-26.json"
+    },
+    {
+      "capability": "canonical public routes, sitemap, robots and IndexNow submission",
+      "evidence": "https://ynxweb4.com/docs"
+    }
+  ],
+  "notApplicableStates": {
+    "installedLocal": "This documentation package is consumed by the Website build and has no standalone installer.",
+    "storeReleased": "No product store distributes this documentation package."
+  },
+  "instructions": {
+    "responseChannel": "approved control plane or named owner handoff",
+    "neverProvideInChatOrRepository": [
+      "private key",
+      "seed phrase",
+      "validator key",
+      "PEM or keystore",
+      "CVV or full card data",
+      "complete API secret",
+      "raw identity document"
+    ],
+    "secretMethod": "Provide only a secret-manager reference/path and access owner after the receiving service account and rotation policy are approved."
+  },
   "inputs": [
     {
-      "id": "central-integration-approval",
-      "requiredFor": ["integratedCentral"],
-      "provide": "review owner and approved target commit/PR for Chain Core, Wallet/Auth, Gateway, Explorer/Monitor and Website handoffs"
+      "id": "production-signing-approval",
+      "ownerClass": "security-custody-owner",
+      "requiredFor": [
+        "productionSigned"
+      ],
+      "provide": [
+        "approved secure signer reference/path",
+        "public signing certificate or public-key chain",
+        "artifact signing policy and signing-class decision",
+        "two-person approval record",
+        "rotation, revocation and offline recovery evidence"
+      ],
+      "prohibited": "Do not provide secret key material."
     },
     {
-      "id": "public-domain-and-dns",
-      "requiredFor": ["deployedStaging", "deployedPublic"],
-      "provide": "approved staging/public canonical origins and DNS change owner"
+      "id": "search-and-independent-public-proof",
+      "ownerClass": "website-domain-and-search-owner",
+      "requiredFor": [
+        "independentPublicProof",
+        "Search Console verification",
+        "Bing Webmaster Tools verification"
+      ],
+      "provide": [
+        "DNS/domain-control evidence reference",
+        "Search Console property and sitemap submission receipt",
+        "Bing property and sitemap submission receipt",
+        "independent monitor or search-engine fetch evidence with URL and observation time"
+      ],
+      "prohibited": "Do not provide complete provider credentials; provide an approved credential reference only if automation is authorized."
     },
     {
-      "id": "support-privacy-security-status",
-      "requiredFor": ["deployedPublic"],
-      "provide": "approved HTTPS URLs, jurisdiction and accountable owners for support, privacy, security and status"
+      "id": "named-review-approvals",
+      "ownerClass": "qualified-legal-economic-security-and-audit-reviewers",
+      "requiredFor": [
+        "legalReview",
+        "securityReview",
+        "economicReview",
+        "independentAudit"
+      ],
+      "provide": [
+        "named reviewer and organization",
+        "scope, jurisdiction and reviewed artifact digests",
+        "approval, findings or explicit rejection",
+        "effective date and review expiry",
+        "required remediation and prohibited public claims"
+      ]
     },
     {
-      "id": "secure-signing-and-governance",
-      "requiredFor": ["candidate activation", "productionSigned"],
-      "provide": "secure signer path reference, multisig/governance approvers, timelock policy and recovery ceremony evidence; no key material"
-    },
-    {
-      "id": "stable-settlement-provider-review",
-      "requiredFor": ["real stable settlement"],
-      "provide": "approved official Testnet USDC/CCTP or reviewed equivalent, provider account reference, custody/reserve/attestation/legal approvals and outage contact; credentials only through secret manager"
-    },
-    {
-      "id": "independent-audits",
-      "requiredFor": ["fee market", "liquid staking", "security pools", "managed Vault fees", "public YUSD"],
-      "provide": "auditor engagement/report references, resolved findings and approved activation scope"
-    },
-    {
-      "id": "public-funding-and-liquidity",
-      "requiredFor": ["Treasury/security/liquidity activation"],
-      "provide": "governed budget, funding provenance, counterparty limits, conflicts and approved public addresses"
-    },
-    {
-      "id": "hardhat-vulnerability-disposition",
-      "requiredFor": ["contract-tooling production release"],
-      "provide": "approved upgrade/removal plan or time-bounded security acceptance for the no-fix adm-zip advisory"
+      "id": "brand-media-rights-approval",
+      "ownerClass": "brand-and-legal-owner",
+      "requiredFor": [
+        "approved public logo variants",
+        "screenshots",
+        "press distribution"
+      ],
+      "provide": [
+        "asset source and rights record",
+        "approved hashes, bytes and dimensions",
+        "light, dark and icon variant approvals",
+        "screenshot route, state, privacy and release approval",
+        "named brand reviewer"
+      ]
     }
-  ]
+  ],
+  "releaseRule": "Missing input keeps only the affected review, proof, signing or media capability false or unavailable. It must never be replaced by fabricated configuration, provider health, approval, signature or rights evidence."
 }

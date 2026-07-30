@@ -1,7 +1,18 @@
-# Third-Party Notices
+# Third-Party Notices and License Review Status
 
-This repository uses third-party Go modules and npm development tooling. The complete version inventory is `release/sbom.cdx.json`; `go.sum` and `package-lock.json` are the integrity authorities. License texts distributed by each dependency remain authoritative, and this inventory is not a legal approval for public distribution.
+This source tree uses third-party Go and npm packages. `go.sum` and the root and subproject `package-lock.json` files are dependency-integrity inputs; they are not license notices and do not establish redistribution compliance.
 
-Direct Go dependencies include CometBFT (`github.com/cometbft/cometbft`, Apache-2.0), Decred secp256k1 (`github.com/decred/dcrd/dcrec/secp256k1/v4`, ISC), and Go cryptography extensions (`golang.org/x/crypto`, BSD-3-Clause). Direct npm development dependencies are Hardhat, Hardhat Ethers, ethers, TypeScript and undici; exact versions and transitive licenses are read from package lock metadata into the SBOM where declared.
+As of 2026-07-22, a complete counsel-reviewed attribution bundle has not been generated. No top-level project license file was found in the audited checkout. Therefore no public source-distribution or binary-redistribution rights conclusion is made here.
 
-Before distributing a binary or source bundle, release engineering must collect the corresponding dependency license files, resolve components whose lock metadata omits a license, review notices for bundled native/optional packages, and obtain legal approval. No download-hosted or production distribution is claimed by this local candidate.
+Before distribution:
+
+1. identify direct and transitive packages for every shipped binary, web bundle, SDK, mobile artifact, container, and build tool;
+2. resolve each package's exact version, source, license expression, copyright notice, and required attribution/source-offer terms;
+3. flag copyleft, source-available, unknown, deprecated, unmaintained, and dual-license cases for legal review;
+4. generate an artifact-specific SBOM and notices file from the final lockfiles/build graph;
+5. compare the inventory with the bytes in the signed artifact and store digests/provenance; and
+6. obtain approval for the YNX project license and contribution policy.
+
+Tooling note: `npm sbom --sbom-format cyclonedx --omit=dev` failed on 2026-07-22 because npm could not generate a package URL for the root package's range-typed version. This is an unresolved generation defect, not an empty or passing SBOM. `go list -m all` succeeded, but module enumeration alone does not resolve license obligations.
+
+The Tokenomics source candidate additionally records its machine-readable dependency inventory in `release/sbom.cdx.json`. That inventory and the generated candidate notices are engineering evidence only; they do not replace the repository-wide counsel review or establish public redistribution approval.

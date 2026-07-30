@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const readJSON = (relativePath) => JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8"));
 const contractPath = "release/integration/ynxt-economics-contract.json";
-const vectorsPath = "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json";
+const vectorsPath = "docs/economics/CROSS_PRODUCT_TEST_VECTORS.json";
 const sharedTestnetSchemaPath = "release/integration/ynxt-economics-shared-testnet-evidence.schema.json";
 const contract = readJSON(contractPath);
 const vectors = readJSON(vectorsPath);
@@ -215,8 +215,8 @@ for (const code of contract.errorCodes) {
 for (const requiredPath of [
   contractPath,
   vectorsPath,
-  "docs/integration/INTEGRATION_HANDOFF.md",
-  "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+  "docs/economics/INTEGRATION_HANDOFF.md",
+  "docs/economics/DEPENDENCY_ACCEPTANCE.md",
   "economics/examples/runtime-replay.json",
   "economics/examples/staking-risk-runtime-replay.json",
   "internal/economics/integration_adapter.go",

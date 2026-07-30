@@ -1,22 +1,25 @@
-# YNX 17 Economics Agent Status
+# Agent status
 
-Updated: 2026-07-29T02:56:46Z
+- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market`
+- Branch: `codex/final-resource-market`
+- Stage: `INTEGRATE`
+- Goal status: `ACTIVE`
+- Tested source: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Tested source remote status: pushed and verified equal on `origin/codex/final-resource-market`
+- Evidence synchronization timestamp: `2026-07-29T02:54:25Z`
+- Pull request: `#12` open and mergeable
 
-- Status: active; protected engineering checkpoint synchronized to origin
-- Current phase: INTEGRATE
-- Product: YNXT Economics / Treasury / Stablecoin
-- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/17-tokenomics`
-- Branch: `codex/final-tokenomics`
-- Engineering SHA: `d23515300851eac1e6acce82b73af938d3750aeb`
-- Remote SHA: `d23515300851eac1e6acce82b73af938d3750aeb`
-- Successful GitHub Actions run: `30417960548` (`4m11s`)
-- Frozen Integration Bundle: `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9`
-- Shared Testnet acceptance validator, Store, and CLI: locally passing
-- Five-binary artifact candidate: reproducible, transiently installed, cold-started, removed, and persisted as unsigned local evidence
-- Artifact package SHA-256: `065ca08e0c1064122d95bbca58b4bae3191c62507bab5b3c77ab7b4aa8e4aa60`
-- Pull request: not created at this checkpoint
-- Economics GitHub Release: not published
-- Direct 01/12/13/26/29 owner evidence: not attached
-- Central integration, shared Testnet, public deployment, production signing, hosted download, store release, and mainnet release: not proven
-- Official product domain: `https://ynxweb4.com`
-- Recovery source: `docs/agent-memory/`
+## Verified gates for the tested source
+
+- `go test -count=1 ./...`
+- `go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct`
+- `go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market`
+- `bash apps/resource-market/check.sh`
+- Resource Market Candidate Gates `30417957999`: success
+- General CI `30417957996`: success
+- Docs compliance `30417958003`: success
+- Resource Market iOS Simulator build in `30417957987`: success
+
+## Current truth
+
+The product remains a tested local candidate. It is not yet merged to main, centrally integrated, authoritative-settlement verified, staged, public, download-hosted, production-signed, store-released, or professionally approved. Public settlement, two independent public providers and real Cloud/AI/Developer/Quant consumption remain unproven.

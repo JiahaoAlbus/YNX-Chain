@@ -1,37 +1,18 @@
-# YNX 17 Last Success
+# Last Success
 
-Updated: 2026-07-29T02:56:46Z
+At `2026-07-29T02:53:32Z`, GitHub Actions completed Resource Market Candidate Gates run `30417957999` successfully for source SHA `d683c7d28ce129daad358c84680e5980cf8ad069` on PR `#12`.
 
-## Protected engineering checkpoint
+The run directly verified:
 
-- Branch: `codex/final-tokenomics`
-- Engineering SHA: `d23515300851eac1e6acce82b73af938d3750aeb`
-- Remote branch SHA: `d23515300851eac1e6acce82b73af938d3750aeb`
-- GitHub Actions run: `30417960548`
-- CI conclusion: `success`
-- CI duration: `4m11s`
+- placeholder and secret gates;
+- Go correctness, Race and Vet gates;
+- `govulncheck` for the Resource Market dependency surface;
+- locked npm install and high-severity audit;
+- Playwright browser tests;
+- local API and DAST smoke on Ubuntu;
+- candidate binary build with VCS metadata;
+- SHA-256 output;
+- Go dependency inventory;
+- SPDX npm SBOM generation.
 
-## Repairs included
-
-1. `d0a06d3709a7ec59ade1bd284dca8708c6551004` — generates pinned Hardhat artifacts and selector metadata before Go tests, eliminating dependence on ignored local cache.
-2. `54b940e85846eb7d1e124936e072c684d26f1844` — checks out complete Git history so provenance gates can resolve persisted historical source commits.
-3. `d23515300851eac1e6acce82b73af938d3750aeb` — makes release tar membership checks portable on GNU tar runners without weakening archive validation.
-
-## Direct verification
-
-The following passed locally at the protected checkpoint:
-
-- clean generated-artifact reproduction with `npx hardhat clean` followed by `make test`
-- `make test`
-- `make contract-tooling-check`
-- `make static-check`
-- `make no-placeholder-check`
-- `make secret-scan`
-- `make economics-local-candidate-check`
-- `make deploy-dry-run`
-
-The successful GitHub workflow additionally completed every configured step through `make mainnet-readiness`.
-
-## Boundary
-
-This success proves the branch's configured local and CI candidate gates. It does not prove PR merge, central integration, direct shared-Testnet owner acceptance, hosted downloads, production signing, public deployment, store release, or mainnet release.
+General CI, docs compliance, and the Resource Market iOS Simulator build also succeeded for the same PR head. No public deployment, authoritative settlement, production signature, hosted download, or release publication was established by these runs.

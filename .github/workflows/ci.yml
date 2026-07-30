@@ -22,6 +22,7 @@ jobs:
           node-version: "24"
           cache: npm
       - run: npm ci
+      - run: make dependency-audit
       - run: make env-check
       - run: make no-placeholder-check
       - run: make secret-scan
@@ -29,6 +30,7 @@ jobs:
       - run: make test
       - run: make economics-local-candidate-check
       - run: make contract-tooling-check
+      - run: make test
       - run: make monitoring-check
       - run: make indexer-check
       - run: make explorer-check

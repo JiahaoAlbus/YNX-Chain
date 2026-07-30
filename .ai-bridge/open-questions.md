@@ -1,11 +1,19 @@
-# YNX 17 Economics Open Questions
+# Open questions and external inputs
 
-These are integration or external-input questions, not requests for immediate user action.
+No ordinary engineering decision is waiting for user confirmation.
 
-- Which accepted 01 Chain Core transaction/finality schema, consumer source commit and owner verification key will replace the local simulated block and receipt?
-- Which 26 Data Fabric consumer source commit, owner verification key and ingest receipt prove central acceptance of the six-class burn and revenue ledger?
-- Which 12 Explorer and 13 Monitor consumer source commits, verification keys, HTTPS endpoints and response-hash formats will be frozen by 29 Integration?
-- Which 29 Integration source commit, verification key and acceptance receipt will pin the complete five-owner policy?
-- Which official stable settlement provider, custody path, reserve attestation and legal scope will be approved?
-- Which secure multisig or Governance participants and public Treasury addresses will be authorized?
-- Which immutable artifact host and signing authority will be used for public Testnet downloads?
+## Central owner acceptance
+
+- `02-wallet-auth`: accept the Resource Market product client, exact Product Session proof semantics and callback tuple.
+- `01-chain-core` and `26-data-fabric`: provide authoritative settlement finality and billing-ledger acceptance for signed usage.
+- `12-explorer`, `13-monitor` and `15-trust-center`: accept receipt proof, alert/incident and dispute/appeal vectors.
+- `29-integration`: freeze the shared contract and execute all cross-product vectors against deployed Testnet services.
+
+## Public and operator inputs
+
+- Two independently operated public Provider endpoints with real CPU/Developer/Quant/AI workloads.
+- Testnet funding and authorized settlement identity.
+- Website/DNS deployment authority, support/privacy/security/status URLs and production signing assets.
+- Jurisdiction-specific retention, dispute, refund and insurance review.
+
+These inputs block central, Testnet and public verification. No remaining ordinary local engineering decision requires user confirmation; the next action is PR merge followed by central acceptance and deployed Testnet execution.

@@ -21,65 +21,69 @@ const (
 	SignedActionFeeYNXT = int64(1)
 	MaxSignedActionSize = 16 * 1024
 
-	ActionAIPermissionCreate  = "ai_permission_create"
-	ActionAIProposalCreate    = "ai_action_propose"
-	ActionAIProposalApprove   = "ai_action_approve"
-	ActionAIProposalReject    = "ai_action_reject"
-	ActionPayIntentCreate     = "pay_intent_create"
-	ActionPayInvoiceCreate    = "pay_invoice_create"
-	ActionPayRefundCreate     = "pay_refund_create"
-	ActionPayWebhookRecord    = "pay_webhook_record"
-	ActionGovernanceCreate    = "governance_request_create"
-	ActionGovernanceReview    = "governance_request_review"
-	ActionGovernanceReject    = "governance_request_reject"
-	ActionTrustAppealCreate   = "trust_appeal_create"
-	ActionTrustAppealResolve  = "trust_appeal_resolve"
-	ActionTrustLabelCreate    = "trust_label_create"
-	ActionTrustEvidenceCreate = "trust_evidence_create"
-	ActionTrustTrackingCreate = "trust_tracking_review_create"
-	ActionResourceDelegate    = "resource_delegation_create"
-	ActionResourceRent        = "resource_rental_create"
-	ActionResourcePoolCreate  = "resource_pool_create"
-	ActionResourcePoolFund    = "resource_pool_fund"
-	ActionResourcePoolPolicy  = "resource_pool_policy_update"
-	ActionResourcePoolStatus  = "resource_pool_status_update"
-	ActionResourceSponsor     = "resource_sponsorship_consume"
-	ActionIDEContractDeploy   = "ide_contract_deploy"
-	ActionIDEContractCall     = "ide_contract_call"
-	ActionStakeDelegate       = "stake_delegate"
-	ActionStakeUnbond         = "stake_unbond"
-	ActionStakeWithdraw       = "stake_withdraw"
+	ActionAIPermissionCreate        = "ai_permission_create"
+	ActionAIProposalCreate          = "ai_action_propose"
+	ActionAIProposalApprove         = "ai_action_approve"
+	ActionAIProposalReject          = "ai_action_reject"
+	ActionPayIntentCreate           = "pay_intent_create"
+	ActionPayInvoiceCreate          = "pay_invoice_create"
+	ActionPayRefundCreate           = "pay_refund_create"
+	ActionPayWebhookRecord          = "pay_webhook_record"
+	ActionGovernanceCreate          = "governance_request_create"
+	ActionGovernanceReview          = "governance_request_review"
+	ActionGovernanceReject          = "governance_request_reject"
+	ActionTrustAppealCreate         = "trust_appeal_create"
+	ActionTrustAppealResolve        = "trust_appeal_resolve"
+	ActionTrustLabelCreate          = "trust_label_create"
+	ActionTrustEvidenceCreate       = "trust_evidence_create"
+	ActionTrustTrackingCreate       = "trust_tracking_review_create"
+	ActionResourceDelegate          = "resource_delegation_create"
+	ActionResourceRent              = "resource_rental_create"
+	ActionResourcePoolCreate        = "resource_pool_create"
+	ActionResourcePoolFund          = "resource_pool_fund"
+	ActionResourcePoolPolicy        = "resource_pool_policy_update"
+	ActionResourcePoolStatus        = "resource_pool_status_update"
+	ActionResourceSponsor           = "resource_sponsorship_consume"
+	ActionIDEContractDeploy         = "ide_contract_deploy"
+	ActionIDEContractCall           = "ide_contract_call"
+	ActionGovernanceExecutionBegin  = "governance_execution_begin"
+	ActionGovernanceExecutionVerify = "governance_execution_verify"
+	ActionStakeDelegate             = "stake_delegate"
+	ActionStakeUnbond               = "stake_unbond"
+	ActionStakeWithdraw             = "stake_withdraw"
 )
 
 var supportedApplicationActions = map[string]struct{}{
-	ActionAIPermissionCreate:  {},
-	ActionAIProposalCreate:    {},
-	ActionAIProposalApprove:   {},
-	ActionAIProposalReject:    {},
-	ActionPayIntentCreate:     {},
-	ActionPayInvoiceCreate:    {},
-	ActionPayRefundCreate:     {},
-	ActionPayWebhookRecord:    {},
-	ActionGovernanceCreate:    {},
-	ActionGovernanceReview:    {},
-	ActionGovernanceReject:    {},
-	ActionTrustAppealCreate:   {},
-	ActionTrustAppealResolve:  {},
-	ActionTrustLabelCreate:    {},
-	ActionTrustEvidenceCreate: {},
-	ActionTrustTrackingCreate: {},
-	ActionResourceDelegate:    {},
-	ActionResourceRent:        {},
-	ActionResourcePoolCreate:  {},
-	ActionResourcePoolFund:    {},
-	ActionResourcePoolPolicy:  {},
-	ActionResourcePoolStatus:  {},
-	ActionResourceSponsor:     {},
-	ActionIDEContractDeploy:   {},
-	ActionIDEContractCall:     {},
-	ActionStakeDelegate:       {},
-	ActionStakeUnbond:         {},
-	ActionStakeWithdraw:       {},
+	ActionAIPermissionCreate:        {},
+	ActionAIProposalCreate:          {},
+	ActionAIProposalApprove:         {},
+	ActionAIProposalReject:          {},
+	ActionPayIntentCreate:           {},
+	ActionPayInvoiceCreate:          {},
+	ActionPayRefundCreate:           {},
+	ActionPayWebhookRecord:          {},
+	ActionGovernanceCreate:          {},
+	ActionGovernanceReview:          {},
+	ActionGovernanceReject:          {},
+	ActionTrustAppealCreate:         {},
+	ActionTrustAppealResolve:        {},
+	ActionTrustLabelCreate:          {},
+	ActionTrustEvidenceCreate:       {},
+	ActionTrustTrackingCreate:       {},
+	ActionResourceDelegate:          {},
+	ActionResourceRent:              {},
+	ActionResourcePoolCreate:        {},
+	ActionResourcePoolFund:          {},
+	ActionResourcePoolPolicy:        {},
+	ActionResourcePoolStatus:        {},
+	ActionResourceSponsor:           {},
+	ActionIDEContractDeploy:         {},
+	ActionIDEContractCall:           {},
+	ActionGovernanceExecutionBegin:  {},
+	ActionGovernanceExecutionVerify: {},
+	ActionStakeDelegate:             {},
+	ActionStakeUnbond:               {},
+	ActionStakeWithdraw:             {},
 }
 
 // SignedApplicationAction is the canonical transaction envelope for non-transfer
@@ -214,7 +218,7 @@ func NewSignedApplicationAction(privateKey *secp256k1.PrivateKey, chainID int64,
 	if isResourceSponsorAction(action) {
 		tx.Fee = 0
 	}
-	if isResourceAction(action) || isIDEAction(action) || isStakingAction(action) {
+	if isResourceAction(action) || isIDEAction(action) || isProtocolGovernanceAction(action) || isStakingAction(action) {
 		// Resource actions charge YNXT and bandwidth through the shared envelope,
 		// but do not consume AI, Pay, or Trust credits.
 	} else if isPayAction(action) {
@@ -272,9 +276,9 @@ func (tx SignedApplicationAction) ValidateBasic() error {
 	if tx.Fee != expectedFee {
 		return fmt.Errorf("application action fee must equal %d YNXT", expectedFee)
 	}
-	if isResourceAction(tx.Action) || isIDEAction(tx.Action) || isStakingAction(tx.Action) {
+	if isResourceAction(tx.Action) || isIDEAction(tx.Action) || isProtocolGovernanceAction(tx.Action) || isStakingAction(tx.Action) {
 		if tx.AIUnits != 0 || tx.PayUnits != 0 || tx.TrustUnits != 0 {
-			return errors.New("Resource and IDE application actions must not charge AI, Pay, or Trust units")
+			return errors.New("Resource, IDE, and protocol governance actions must not charge AI, Pay, or Trust units")
 		}
 	} else if isPayAction(tx.Action) {
 		if tx.PayUnits != 1 || tx.AIUnits != 0 || tx.TrustUnits != 0 {
@@ -461,6 +465,9 @@ func canonicalActionPayload(action string, value any) ([]byte, error) {
 		}
 		if isIDEAction(action) {
 			return canonicalIDEActionPayload(action, raw)
+		}
+		if isProtocolGovernanceAction(action) {
+			return canonicalProtocolGovernancePayload(action, raw)
 		}
 		if isStakingAction(action) {
 			return canonicalStakingActionPayload(action, raw)

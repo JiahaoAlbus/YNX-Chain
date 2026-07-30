@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const readJSON = (name) => JSON.parse(fs.readFileSync(path.join(root, name), "utf8"));
-const metadata = readJSON("public-product-metadata.json");
-const release = readJSON("product-release.json");
+const metadata = readJSON("release/economics/public-product-metadata.json");
+const release = readJSON("release/economics/product-release.json");
 
 assert.equal(metadata.schemaVersion, 1);
 assert.equal(release.schemaVersion, 1);

@@ -1,30 +1,41 @@
-# YNX 17 Blockers
+# Blockers
 
-Updated: 2026-07-29T02:56:46Z
+## RM-BLOCK-001 — Central integration acceptance
 
-## E17-B001 — Direct shared-Testnet owner attestations absent
+- Owner: Products `02`, `01`, `26`, `12`, `13`, `15`, coordinated by Product `29`
+- Reason: Resource Market cannot authoritatively own Wallet/Auth, Chain settlement, Billing Ledger, Explorer, Monitor, or Trust services.
+- Evidence: `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/DEPENDENCY_ACCEPTANCE.md`, `release/integration/resource-market-contract.json`
+- Prepared: frozen contract, schemas, adapters, negative vectors, fail-closed local implementation and passing CI
+- Minimum external input: central acceptance/merge target and deployed Testnet endpoints tied to an approved source SHA
+- Recovery condition: central routes are deployed and the supplied vectors can be executed
+- First action after recovery: run the central contract and replay/overflow/failure vectors against deployed services
 
-- Owner: 01 Chain Core, 12 Explorer, 13 Monitor, 26 Data Fabric, and 29 Integration
-- Reason: YNX 17 cannot self-assert another owner's observed source commit, accepted evidence digest, validator identity, or shared-Testnet outcome.
-- Original evidence: `release/operator-inputs.request.json` and `product-release.json` retain all shared-Testnet acceptance booleans as false.
-- Preparation completed: versioned schema, validator, hardened 0600 atomic store, audit reconciliation, idempotent replay, source-rebinding rejection, restore drill, CLI, and test vectors are implemented and passing.
-- Why it cannot be solved autonomously: the missing facts must originate from the named owners' real environments and signatures.
-- Minimum external input: one valid signed owner-evidence document for each required owner, bound to its actual consumer source commit and observed Economics evidence digest.
-- Resume condition: all five evidence documents validate without replay, rebinding, time, signature, or schema errors.
-- First action after input: run the existing acceptance CLI, persist verified summaries, rerun `make economics-shared-testnet-acceptance-check`, and update release truth only from the resulting evidence.
+## RM-BLOCK-002 — Independent Testnet providers and funded settlement
 
-## E17-B002 — Production signing, hosting, and public deployment authority absent
+- Owner: Resource provider operators and Testnet asset/custody owner
+- Reason: local fixtures cannot prove independent provider operation or authoritative asset settlement.
+- Evidence: `apps/resource-market/operator-inputs.request.json`
+- Prepared: provider lifecycle, matching, capacity, metering, failure, retry, refund, bond and appeal paths are locally tested
+- Minimum external input: two approved independent provider endpoints/identities, approved secret-manager references, and a funded bounded Testnet account/signer path
+- Recovery condition: providers and settlement path pass health, identity and source-SHA checks
+- First action after recovery: execute the complete success and failure/recovery sequence and persist receipts
 
-- Owner: 30 Security/Release, 29 Integration, 28 Website, and the authorized production operator
-- Reason: the current five-binary package is an unsigned, unhosted local candidate; no authenticated production signer, hosted download, Vercel deployment, or public runtime proof is attached.
-- Original evidence: `product-release.json`, `public-product-metadata.json`, and `release/economics-testnet-cli-artifact.json` explicitly preserve production and public states as false.
-- Preparation completed: reproducible double build, SHA-256, transient install/cold-start/removal evidence, local SBOM/provenance material, release boundary, public metadata, and Website handoff inputs are available.
-- Why it cannot be solved autonomously: production signing keys, release publication authority, central integration acceptance, and deployment credentials are outside YNX 17 ownership.
-- Minimum external input: approved central source commit, authenticated production signature/provenance, hosted artifact URL, and verified deployment evidence for `https://ynxweb4.com/ynxt` and `https://ynxweb4.com/economics`.
-- Resume condition: signatures, checksums, source commits, hosted bytes, and public routes reconcile to one approved release.
-- First action after input: verify every signature and digest, rerun release/supply-chain gates, then update release and public metadata without promoting any unsupported state.
+## RM-BLOCK-003 — Public deployment and website closure
 
-## Not classified as external blockers
+- Owner: Product `28` Website and deployment/DNS owner
+- Reason: Product `16` must not directly modify the Website worktree or claim a generated handoff is deployed.
+- Evidence: `apps/resource-market/public-product-metadata.json`, `apps/resource-market/product-release.json`
+- Prepared: canonical route `/resource-market`, public metadata, risk text and FAQ contract
+- Minimum external input: accepted Website handoff, deployed HTTPS service origin, DNS/public route ownership and remote health/version endpoints
+- Recovery condition: `https://ynxweb4.com/resource-market` serves the approved content and remote indexability checks pass
+- First action after recovery: run content, canonical, robots, sitemap, Open Graph, JSON-LD and remote smoke verification
 
-- GitHub API TLS handshake timeouts observed during recovery were intermittent execution-infrastructure errors and succeeded on retry.
-- Historical CI failures were autonomous engineering defects and have been repaired; run `30417960548` is successful.
+## RM-BLOCK-004 — Production signing and professional review
+
+- Owner: Product `30`, custody/signing owner, legal/security reviewers
+- Reason: production keys, irreversible signing authority, store accounts and professional approvals are external controlled inputs.
+- Evidence: `apps/resource-market/operator-inputs.request.json`
+- Prepared: unsigned candidate build, hashes, SBOM path, notices, threat model and review packet
+- Minimum external input: approved secure signer references, public certificate chain, named legal/security reviewers and artifact-host approval
+- Recovery condition: signed artifacts and review records bind the exact candidate source and digest
+- First action after recovery: verify signatures, provenance, review scope and immutable hosted bytes before changing release states

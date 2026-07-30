@@ -1,31 +1,25 @@
-# YNX 17 Decision Log
+# Decision Log
 
-Updated: 2026-07-29T02:56:46Z
+## 2026-07-29 — Synchronize with current main before further release work
 
-## 2026-07-29 — Preserve the matched workspace and branch
+Merged `origin/main` at `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc` into `codex/final-resource-market`. Product-owned `.ai-bridge` recovery state was retained; the shared root operator-input registry remained owned by main; Resource Market-specific operator inputs were moved to `apps/resource-market/operator-inputs.request.json`.
 
-The MCP workspace, Fable5 product identity, Worktree, branch, and Git remote all matched YNX 17. No alternate workspace, reset, clean, branch replacement, or destructive recovery action was used.
+Rationale: the branch was 78 commits behind main and a release candidate without current shared runtime/governance/monitoring changes would not be integration-ready.
 
-## 2026-07-29 — Treat Git and CI as authoritative over stale status prose
+## 2026-07-29 — Preserve stricter placeholder detection with portable fallback
 
-Historical plan/status files described work and blockers that no longer matched current commits or GitHub Actions. Recovery conclusions were rebuilt from the real branch, remote SHA, commit history, files, tests, and Actions runs. Stale claims are not used as completion evidence.
+The merged `scripts/validate/no-placeholder-check.sh` keeps the Resource Market branch's broader fake-claim patterns and `.github`/`apps` coverage, while retaining main's `grep` fallback. Generated dependency/build directories are excluded from both scanners.
 
-## 2026-07-29 — Generate ignored compiler evidence instead of committing caches
+Rationale: scan source and controlled documentation, not third-party package examples; fail on scanner errors instead of silently succeeding.
 
-Go tests consume pinned Hardhat bytecode and selector metadata. These outputs are intentionally ignored, so `make test` and `make integration-test` now generate both prerequisites. Generated build directories remain uncommitted.
+## 2026-07-29 — Treat local and public states separately
 
-## 2026-07-29 — Fetch complete history for provenance validation
+`implementedLocal`/component evidence may be recorded only for directly tested local behavior. Central integration, public deployment, authoritative settlement, hosted download, production signing and store release remain false.
 
-Economics release gates deliberately verify persisted historical source commits using Git object identity. CI therefore uses `fetch-depth: 0`; weakening or deleting source-commit checks was rejected.
+Rationale: PR, CI, local smoke, handoff creation, and HTTP fixtures are not equivalent to deployed authority or public availability.
 
-## 2026-07-29 — Preserve archive validation while fixing GNU tar portability
+## 2026-07-29 — Bind release evidence to tested source, not the later metadata commit
 
-GNU tar reports a broken pipe when `grep -q` exits after a match under `pipefail`. The dry-run now first performs a complete archive listing, validates the release manifest from that listing, and scopes `pipefail` off only for repeated membership probes. The archive is still read and validated before those probes.
+`apps/resource-market/product-release.json` and public metadata bind source SHA `d683c7d28ce129daad358c84680e5980cf8ad069`, the exact candidate tested by successful GitHub Actions run `30417957999`. The subsequent checkpoint/evidence commit is administrative and must not replace the tested source identity.
 
-## 2026-07-29 — Keep release-state booleans evidence-bound
-
-A green CI run is candidate evidence, not central integration, production signing, public deployment, hosted download, store release, or mainnet release. Those booleans remain false until direct matching evidence exists.
-
-## 2026-07-29 — Enforce the official domain boundary
-
-`ynxweb4.com` is the sole YNX product domain. `huangjeo.com` remains a Founder personal domain, while `mcp17.huangjeo.com` remains a valid MCP service address. No product canonical, release, docs, status, support, or Website handoff may use the Founder domain.
+Rationale: avoids circular self-referential metadata and preserves a verifiable source-to-CI relationship.

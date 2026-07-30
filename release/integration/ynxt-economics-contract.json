@@ -505,7 +505,7 @@
     "YNX_ECONOMICS_SHARED_TESTNET_ACCEPTANCE_STORE_IO",
     "YNX_ECONOMICS_SHARED_TESTNET_ACCEPTANCE_STORE_TAMPERED"
   ],
-  "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "crossProductVectors": "docs/economics/CROSS_PRODUCT_TEST_VECTORS.json",
   "migration": {
     "currentConsensusFeePolicy": "fixed-fee-v1",
     "candidateRuntimeSchema": 1,

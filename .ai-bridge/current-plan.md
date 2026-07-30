@@ -1,17 +1,20 @@
-# YNX 17 Current Plan
+# Current plan
 
-Updated: 2026-07-29T03:03:29Z
+- Product: YNX Resource Market (`16-resource-market`)
+- Stage: `INTEGRATE`
+- Long-term goal: `ACTIVE`
+- Protected tested source: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Branch: `codex/final-resource-market`
+- Pull request: `#12`
 
-## Immediate execution slice
+## Protected checkpoint
 
-1. Commit and push the truthful Agent Memory checkpoint.
-2. Merge `origin/main` into `codex/final-tokenomics` non-destructively. The refreshed branch is 65 commits ahead and 61 commits behind; a read-only merge simulation identified 16 conflict paths.
-3. Resolve shared-file conflicts by reading both versions and retaining newer central security/release controls plus all valid Economics behavior.
-4. Run the complete local candidate, clean-build, deployment, security, release, and recovery gates.
-5. Push the reconciled branch, require a successful source-SHA CI run, then create and validate the pull request.
+The tested source is pushed and remote-equal. GitHub Resource Market Candidate Gates run `30417957999` passed correctness, Race, Vet, govulncheck, npm audit, browser tests, Ubuntu API/DAST smoke, candidate binary build, SHA-256 generation, Go dependency inventory, SPDX npm SBOM generation and secret scanning. General CI, docs compliance and the Resource Market iOS Simulator build also passed. Product release and public metadata bind this tested source.
 
-## Subsequent evidence slice
+## Exact next autonomous action
 
-- Validate one signed shared-Testnet owner evidence document from each of 01, 12, 13, 26, and 29.
-- Persist verified summaries through the hardened Economics acceptance store.
-- Promote no release or deployment state without matching direct evidence.
+Complete PR `#12` checks and merge only after GitHub reports all required checks successful. After merge, submit the frozen Resource Market integration contract and vectors to Product `29`, then execute the full success and provider-failure/retry/refund sequence with two independent Testnet providers and authoritative settlement.
+
+## External dependencies that remain
+
+Central Wallet/Gateway acceptance, authoritative Chain/Data Fabric settlement, Explorer/Monitor/Trust integration, two independent public providers, Testnet funding, public deployment/DNS, production signing, artifact hosting and legal/security review remain unproven. These boundaries must remain false in release metadata until direct evidence exists.

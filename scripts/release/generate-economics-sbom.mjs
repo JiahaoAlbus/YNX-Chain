@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 const commit = process.argv[2];
+const writeOutput = process.argv[3] === "--write";
 if (!/^[0-9a-f]{40}$/.test(commit || "")) {
   throw new Error("exact 40-character source commit is required");
 }
@@ -58,4 +59,9 @@ const sbom = {
   },
   components,
 };
-process.stdout.write(`${JSON.stringify(sbom, null, 2)}\n`);
+const output = `${JSON.stringify(sbom, null, 2)}\n`;
+if (writeOutput) {
+  writeFileSync("release/sbom.cdx.json", output);
+} else {
+  process.stdout.write(output);
+}

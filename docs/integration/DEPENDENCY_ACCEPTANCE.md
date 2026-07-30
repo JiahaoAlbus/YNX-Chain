@@ -1,54 +1,28 @@
-# YNXT Economics Dependency Acceptance
+# YNX Resource Market dependency acceptance
 
-This file records acceptance gates, not assumed approvals. Every dependency remains unaccepted until the owning product supplies direct evidence against `ynx.economics.integration.v1`.
+No dependency is accepted from file existence, HTTP 200, local mocks or documentation alone. Each row requires direct Testnet or deployment evidence bound to an immutable source commit.
 
-| Dependency owner | Contract input | Acceptance test | Current state | Failure behavior |
+| Owner | Required contract | Current status | Acceptance evidence required | Failure behavior |
 | --- | --- | --- | --- | --- |
-| 01 Chain Core | Economic runtime state, fee/supply events, staking risk transitions, migration and rollback | Replay both deterministic vectors; reproduce event/state hashes; reject malformed or unsupported versions | pending | Keep current fixed-fee and inactive candidate controls |
-| 02 Wallet/Auth | Product/session tuple, scopes, signed review and revoke behavior | Wrong product/device/scope, expiry, replay, tamper and revoke tests fail closed | pending | No user mutation or signing route |
-| 07 Exchange | Fee, funding, insurance and solvency mapping | Reconcile burn separately from revenue and prevent duplicated ledger recognition | pending | No Exchange-derived economics activation |
-| 08 Quant | Realized-net PnL, cost deductions, high-water mark and approval | Reject loss, unrealized profit and non-breached high-water-mark charges | pending | Performance fee unavailable |
-| 19 Oracle | Price, reserve ratio, depeg reference, source/asOf/version/failure | Stale, unavailable and contradictory provider tests | pending | Stable settlement and depeg-dependent actions pause or queue |
-| 21 Bridge | Cross-chain exposure and asset lifecycle | Failure, reorg, delayed finality and inconsistent supply tests | pending | Cross-chain mint/redemption disabled |
-| 26 Data Fabric | Canonical event and Billing Ledger schemas | Byte-stable event ingestion; fee and supply reconciliation; duplicate rejection | pending | Events remain local evidence only |
-| 12 Explorer | Public projection of accepted events | Show source/asOf/version, burn/revenue split, candidate status and evidence links | pending | Public projection remains local-only |
-| 13 Monitor | Economic anomaly and integrity alerts | Trigger supply mismatch, fee mismatch, invalid signatures, timelock and tamper alerts | pending | No central monitoring claim |
-| 31 Governance | Proposal, threshold, timelock and protocol-control interface | Schedule/activate within bounds; early activation and over-limit changes rejected | pending | Candidate parameters cannot activate |
-| 29 Integration | Contract freeze and merge order | All mandatory owners consume the same contract/version and vectors | pending | `integratedCentral=false` |
-| 28 Website | Public `/ynxt` and `/economics` publication | Canonical URLs, risk language, release truth, accessibility and public evidence | pending | `deployedPublic=false` |
+| 01 Chain Core | Authoritative transaction finality, unique transaction identity and settlement receipt evidence | External blocked | Deployed Testnet endpoint; final transaction hash; asset, amount and finality proof; negative replay and mismatch vectors | Keep order `settlement_pending`; never create receipt or release capacity |
+| 02 Wallet/Auth | Exact Resource Market registry, challenge, completion, introspection, expiry and revocation | External blocked | Registry merge commit; deployed Gateway; wrong-product, wrong-device, scope-widening, expiry, revoke and replay results | Reject product session and perform no mutation |
+| 12 Explorer | Public transaction, receipt and source-commit proof | External blocked | Public HTTPS transaction/receipt URL linked to authoritative settlement | Do not claim public settlement evidence |
+| 13 Monitor | Provider health, stale capacity, meter failure, settlement mismatch/replay and incident alerts | External blocked | Deployed alert rules, triggered negative vectors, incident and recovery evidence | Product remains locally observable only |
+| 15 Trust Center | Provider failure, dispute, notice, appeal and correction linkage | Locally implemented, central acceptance pending | Cross-product case IDs and final decision evidence without asset authority | Keep dispute local and do not infer refund |
+| 26 Data Fabric | Canonical usage, billing, fee and settlement events with idempotent lineage | External blocked | Event schema freeze, replay-safe ingestion, meter/receipt reconciliation and ledger query evidence | Do not emit or claim authoritative billing ledger state |
+| 28 Website | `/resource-market` public entry, support/privacy/security/status routes, metadata and downloads | External blocked | Deployed canonical route, remote smoke, indexability and immutable artifact URLs | Keep all public and hosted release booleans false |
+| 29 Integration | Freeze contract version, owner, events, errors, vectors and shared Testnet order | External blocked | Signed acceptance record for `resource-market-integration-v1`; all cross-product vectors pass | Do not maintain a second compatibility protocol |
+| 30 Security/SRE/Release | Secrets, artifact provenance, backup/restore, deployment and release acceptance | External blocked | Source-bound SBOM, scans, immutable hashes, restore drill, deployment record and external review status | Keep production signing and release booleans false |
 
-## Acceptance record schema
+## Resource Market autonomous acceptance
 
-Each owner must return a machine-readable record containing:
+The product-owned portion is accepted locally only when all of the following pass against the same source commit:
 
-- `contractId`
-- `contractSourceCommit`
-- `owner`
-- `consumerSourceCommit`
-- `acceptedSchemaVersions`
-- `acceptedEventTypes`
-- `testVectorIds`
-- `testCommands`
-- `evidencePathsOrURLs`
-- `acceptedAt`
-- `limitations`
-- all nine release-state claims supported by direct evidence
+- Resource engine and HTTP product tests, including race detection.
+- Stable error-code contract tests.
+- Settlement transaction replay rejection and signed-meter reconciliation.
+- Product HTTP smoke, health/version truth boundaries and scoped state/export.
+- Contract and cross-product vector schema validation.
+- Backup/restore and migration compatibility checks.
 
-`consumerSourceCommit` is independent for each owner. 29 Integration must pin the exact Economics source commit plus the accepted 01/12/13/26/29 consumer commits before validation. Every required owner then signs the same canonical payload hash in canonical owner order using an accepted Ed25519 key. Missing, duplicate, reordered, stale, future-dated, commit-rebound or over-promoted evidence is rejected fail closed by `internal/economics/shared_testnet_acceptance.go`.
-
-After successful validation, 17 Economics persists only the verified summary, source bindings and hashes in the versioned 0600 acceptance Store. Exact replay is idempotent; policy/source rebinding, stale or backdated validation, insecure file modes, symlink inputs, Store tampering and restore overwrite are rejected. Original owner signatures remain in the operator-supplied evidence document and are not copied into the Store.
-
-An acceptance record that omits a failed vector, changes economic meaning, or claims deployment from local evidence is rejected. Passing local validator, Store and CLI fixtures are not acceptance records and do not change any central, staging, shared-Testnet, public or production state.
-
-## Current blocking inputs
-
-The following inputs are legitimately external and are not requested as secrets in chat:
-
-- accepted Chain Core and Governance interfaces;
-- secure signer path and Treasury multisig;
-- stablecoin provider or custodian and reserve attestation;
-- Oracle provider and Bridge contracts;
-- public deployment authority, domain/DNS and Testnet funding;
-- legal and compliance review.
-
-All independent local engineering, adapters, validation, simulations and evidence work must continue while these inputs are pending.
+Local acceptance is not central integration, public Testnet proof or production release.

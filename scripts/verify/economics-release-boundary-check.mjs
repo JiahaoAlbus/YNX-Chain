@@ -3,10 +3,10 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const integration = JSON.parse(readFileSync("release/economics-integration-manifest.json", "utf8"));
-const request = JSON.parse(readFileSync("release/operator-inputs.request.json", "utf8"));
+const request = JSON.parse(readFileSync("release/economics/operator-inputs.request.json", "utf8"));
 const security = JSON.parse(readFileSync("release/security-scan-evidence.json", "utf8"));
-const release = JSON.parse(readFileSync("product-release.json", "utf8"));
-const metadata = JSON.parse(readFileSync("public-product-metadata.json", "utf8"));
+const release = JSON.parse(readFileSync("release/economics/product-release.json", "utf8"));
+const metadata = JSON.parse(readFileSync("release/economics/public-product-metadata.json", "utf8"));
 const contract = JSON.parse(readFileSync("release/integration/ynxt-economics-contract.json", "utf8"));
 assert.equal(integration.schemaVersion, 1);
 assert.equal(request.schemaVersion, 1);

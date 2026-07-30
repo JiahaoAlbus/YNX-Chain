@@ -1,16 +1,29 @@
-# YNX 17 Economics Decisions
+# Decisions
 
-1. Keep the frozen Integration Bundle and Store bound to `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9`; their deterministic hashes must not be rewritten to match newer evidence or documentation commits.
-2. Bind the local Testnet evidence runtime separately to `f14d002a39cedca18b094e856adc7da888d376da`.
-3. Treat local transaction, block and receipt objects as deterministic simulation only. They cannot set `integratedCentral`, `sharedTestnetEvidence`, `deployedPublic` or `production` true.
-4. Reject semantically rewrapped bundles as evidence sources even when they contain identical economic facts.
-5. Keep unsigned local artifact installation separate from hosting and production signing. Persisted install evidence may promote only `installedLocal`.
-6. Pin the Economics source commit and one independent consumer source commit for each required shared-Testnet owner. Do not require unrelated owner worktrees to share one Git SHA.
-7. Require all five owners to sign the same canonical payload in canonical owner order. Missing, duplicate, reordered, stale, future-dated, rebound or tampered evidence fails closed.
-8. A passing shared-Testnet acceptance fixture proves validator behavior only; it is not central owner acceptance or shared-Testnet deployment evidence.
-9. Do not modify the three non-Economics key-permission tests; record their umask-sensitive baseline failure for their owning threads.
-10. Do not request secrets in chat. Stable settlement, Treasury signing and production activation remain external-input boundaries.
-11. Use the process system clock for shared-Testnet proof freshness. Do not expose an operator-controlled acceptance-time flag that could backdate expired evidence.
-12. Persist only the verified acceptance summary, owner source bindings and hashes in the 0600 Store; keep original owner attestations in the operator evidence document.
-13. Treat exact evidence/policy replay as idempotent, but reject policy rebinding, reused Economics source commits, transaction hashes or Store state hashes.
-14. Add the acceptance CLI as the fifth unsigned Testnet binary; do not replace the persisted four-binary Artifact Evidence until a five-binary builder commit exists and direct evidence is regenerated from that exact commit.
+## 2026-07-27 — Capacity reservation authority
+
+A reservation is authoritative only for the exact Offer referenced by the accepted Quote. Provider-level totals are retained as a derived aggregate, but they cannot be used to borrow capacity across sibling Offers.
+
+## 2026-07-27 — Self-dealing
+
+A Provider wallet cannot purchase its own fixed-price capacity or submit an auction bid when it is also the procurement buyer. These paths fail closed and expose `RESOURCE_SELF_DEALING_REJECTED` through the API contract.
+
+## 2026-07-27 — Schema 6 migration
+
+Pre-v6 snapshots derive Offer and Provider reservation ledgers solely from active orders with valid Quote→Offer lineage and persist the upgrade at startup. Once a snapshot is schema 6, ledger mismatch is treated as semantic tampering and startup fails closed; it is never silently repaired.
+
+## 2026-07-27 — Release truth
+
+Passing local tests, Race, Vet and cold-start smoke does not set central, staging, public, hosted, signed or store-release booleans. The product remains `ACTIVE` in `INTEGRATE`.
+
+## 2026-07-27 — Amount arithmetic
+
+All monetary values remain non-negative signed 64-bit integers at the Resource Market boundary. Quote, auction, metering, settlement and dispute calculations use checked arithmetic; overflow returns `RESOURCE_AMOUNT_OUT_OF_RANGE` before any authoritative state mutation. Central consumers must preserve this failure and must not clamp, wrap or reinterpret it as a successful charge, settlement or refund.
+
+## 2026-07-29 — Tested-source evidence binding
+
+Release metadata binds `d683c7d28ce129daad358c84680e5980cf8ad069`, the exact source verified by Resource Market Candidate Gates run `30417957999`. Later checkpoint-only commits do not replace that tested source identity.
+
+## 2026-07-29 — Operator input ownership
+
+The repository-wide `release/operator-inputs.request.json` remains a central/shared file from main. Resource Market-specific deployment, provider, signer, localization and hosting inputs live at `apps/resource-market/operator-inputs.request.json` to avoid overwriting another Owner's central evidence.
