@@ -2,15 +2,18 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/final-tokenomics]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.25"
@@ -27,6 +30,7 @@ jobs:
       - run: make secret-scan
       - run: make contract-tooling-check
       - run: make test
+      - run: make economics-local-candidate-check
       - run: make monitoring-check
       - run: make indexer-check
       - run: make explorer-check

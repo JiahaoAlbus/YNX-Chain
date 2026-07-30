@@ -8,10 +8,12 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/economics"
 )
 
 type Server struct {
@@ -23,6 +25,18 @@ type Server struct {
 	streamMu      sync.Mutex
 	streamClients map[chan streamEvent]struct{}
 	streamRunning bool
+
+	economicsRequests       atomic.Uint64
+	economicsErrors         atomic.Uint64
+	economicsLatencyNanos   atomic.Uint64
+	economicsLatencyBuckets [6]atomic.Uint64
+	economicsLastSuccess    atomic.Int64
+
+	stableReserveMu           sync.RWMutex
+	stableReserveIntegration  *economics.StableReserveIntegration
+	stableReserveRelease      economics.IntegrationReleaseStates
+	stableReserveReleaseClass string
+	yusdSandboxProjection     *YUSDSandboxProjection
 }
 
 type streamEvent struct {
@@ -36,12 +50,23 @@ func NewServer(service *Service) *Server {
 }
 
 func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
+	return NewServerWithBuildAndStableReserve(service, build, nil)
+}
+
+func NewServerWithBuildAndStableReserve(service *Service, build buildinfo.Info, reserve *economics.StableReserveIntegration) *Server {
+	return NewServerWithBuildAndStableReserveRelease(service, build, reserve, economics.LocalCandidateIntegrationReleaseStates(), "local_candidate")
+}
+
+func NewServerWithBuildAndStableReserveRelease(service *Service, build buildinfo.Info, reserve *economics.StableReserveIntegration, release economics.IntegrationReleaseStates, releaseClass string) *Server {
 	s := &Server{
-		service:       service,
-		mux:           http.NewServeMux(),
-		build:         buildinfo.Normalize(build),
-		startedAt:     time.Now().UTC(),
-		streamClients: make(map[chan streamEvent]struct{}),
+		service:                   service,
+		mux:                       http.NewServeMux(),
+		build:                     buildinfo.Normalize(build),
+		startedAt:                 time.Now().UTC(),
+		streamClients:             make(map[chan streamEvent]struct{}),
+		stableReserveIntegration:  reserve,
+		stableReserveRelease:      release,
+		stableReserveReleaseClass: releaseClass,
 	}
 	s.routes()
 	return s
@@ -53,11 +78,18 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.handleWeb)
+	s.mux.HandleFunc("GET /ynxt", s.handleYNXTWeb)
+	s.mux.HandleFunc("GET /economics", s.handleEconomicsWeb)
 	s.mux.HandleFunc("GET /assets/ynx-logo.png", s.handleLogo)
+	s.mux.HandleFunc("GET /assets/economics-og.png", s.handleEconomicsOG)
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /version", s.handleVersion)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/summary", s.handleSummary)
+	s.mux.HandleFunc("GET /api/economics/disclosure", s.handleEconomicsDisclosure)
+	s.mux.HandleFunc("GET /api/economics/health", s.handleEconomicsHealth)
+	s.mux.HandleFunc("GET /api/stable/reserve", s.handleStableReserve)
+	s.mux.HandleFunc("GET /api/stable/yusd-sandbox", s.handleYUSDSandbox)
 	s.mux.HandleFunc("GET /api/stream", s.handleStream)
 	s.mux.HandleFunc("GET /api/blocks/latest", s.handleLatestBlocks)
 	s.mux.HandleFunc("GET /api/blocks/{height}", s.handleBlock)
@@ -381,6 +413,8 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "# HELP ynx_explorer_transactions_total Transactions visible through the indexer.\n")
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_explorer_transactions_total gauge\n")
 	_, _ = fmt.Fprintf(w, "ynx_explorer_transactions_total{%s} %d\n", labels, summary.IndexedTxCount)
+	_, _ = fmt.Fprint(w, s.economicsMetricsPrometheus())
+	_, _ = fmt.Fprint(w, s.stableReserveMetricsPrometheus(time.Now().UTC()))
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

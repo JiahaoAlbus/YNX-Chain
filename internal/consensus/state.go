@@ -351,6 +351,12 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateIDECommittedState(s); err != nil {
 		return err
 	}
+	if err := validateFeeEvents(s.FeeEvents); err != nil {
+		return err
+	}
+	if err := validateStakingState(s, migration); err != nil {
+		return err
+	}
 	if err := validateGovernanceExecutionCommittedState(s); err != nil {
 		return err
 	}

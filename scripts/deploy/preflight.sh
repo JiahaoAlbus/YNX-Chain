@@ -22,6 +22,11 @@ make verify-testnet-check
 make monitoring-check
 make authoritative-monitoring-check
 make replication-alert-check
+make stable-reserve-alert-check
+make economics-monitor-check
+make economics-monitor-lifecycle-check
+make yusd-testnet-deploy-check
+make read-availability-check
 go test ./cmd/... ./internal/...
 make governance-check
 make governance-testnet-drill

@@ -16,7 +16,7 @@ The candidate has no hard supply cap, but it does have an annual issuance ceilin
 
 Base-fee burn destroys supply and is never revenue. Explicit service burn is separately identified. Only the non-burn remainder may be allocated among validators, providers, protocol service revenue, and Treasury; the four shares must sum to exactly 100%.
 
-The current chain runtime still charges a fixed 1 YNXT transfer fee and credits the proposer. Candidate v1 therefore remains simulation-only until a versioned consensus migration adds per-lane base fees, priority fees, sponsored-fee attribution, fee events, and Explorer-verifiable burn and allocation ledgers.
+The current chain runtime still charges a fixed 1 YNXT transfer fee and credits the proposer. The separately versioned model in `FEE_MARKET_CANDIDATE.md` covers per-lane base fees, priority fees, sponsored-fee attribution, explicit service metering, burn and allocation conservation, but remains simulation-only until a governed consensus migration and Explorer-verifiable activation.
 
 ## Public candidate defaults
 

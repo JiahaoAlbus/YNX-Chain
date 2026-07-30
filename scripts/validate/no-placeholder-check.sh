@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-scan_targets=(Makefile README.md .github apps configs internal cmd contracts chain-metadata scripts docs)
+scan_targets=(Makefile README.md .github apps configs internal cmd contracts chain-metadata scripts docs release economics evidence product-release.json public-product-metadata.json)
 bad='example\.com|your_key_here|changeme|fake TPS|fake TVL|fake user|fake provider|fake transaction|fake price|fake revenue|fake APY|fake liquidity|hard-coded success|coming soon|NYXT'
 
 found=1
@@ -20,6 +20,7 @@ if command -v rg >/dev/null 2>&1; then
     -g '!scripts/deploy/lib.sh' \
     -g '!docs/architecture/ZERO_PLACEHOLDER_POLICY.md' \
     -g '!docs/coordination/PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
+    -g '!release/docs-compliance-completion-evidence.json' \
     -e "$bad" "${scan_targets[@]}"; then
     found=0
   else
@@ -38,6 +39,7 @@ else
     --exclude='lib.sh' \
     --exclude='ZERO_PLACEHOLDER_POLICY.md' \
     --exclude='PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
+    --exclude='docs-compliance-completion-evidence.json' \
     --exclude='*.test.*' \
     --exclude='*_test.go' \
     --exclude-dir='.git' \

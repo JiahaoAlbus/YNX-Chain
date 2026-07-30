@@ -2,7 +2,7 @@
 set -euo pipefail
 
 pattern='-----BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY-----|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-'
-scan_targets=(.ai-bridge .github Makefile README.md package.json configs internal cmd contracts chain-metadata scripts docs release apps)
+scan_targets=(.ai-bridge .github Makefile README.md package.json configs internal cmd contracts chain-metadata scripts docs release apps economics evidence product-release.json public-product-metadata.json)
 found=1
 
 if command -v rg >/dev/null 2>&1; then

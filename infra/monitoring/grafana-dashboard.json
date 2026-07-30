@@ -95,6 +95,25 @@
         { "expr": "increase(ynx_chain_replication_failures_total{job=\"ynx-chaind\"}[5m])", "legendFormat": "{{instance}} failures" },
         { "expr": "ynx_chain_replication_consecutive_failures{job=\"ynx-chaind\"}", "legendFormat": "{{instance}} consecutive" }
       ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Economics Disclosure Request and Error Rate",
+      "gridPos": { "x": 0, "y": 29, "w": 12, "h": 7 },
+      "targets": [
+        { "expr": "rate(ynx_explorer_economics_disclosure_requests_total{job=\"ynx-explorerd\"}[5m])", "legendFormat": "requests/s" },
+        { "expr": "rate(ynx_explorer_economics_disclosure_errors_total{job=\"ynx-explorerd\"}[5m])", "legendFormat": "errors/s" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Economics Disclosure Latency",
+      "gridPos": { "x": 12, "y": 29, "w": 12, "h": 7 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum by (le) (rate(ynx_explorer_economics_disclosure_latency_seconds_bucket{job=\"ynx-explorerd\"}[5m])))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(ynx_explorer_economics_disclosure_latency_seconds_bucket{job=\"ynx-explorerd\"}[5m])))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, sum by (le) (rate(ynx_explorer_economics_disclosure_latency_seconds_bucket{job=\"ynx-explorerd\"}[5m])))", "legendFormat": "p99" }
+      ]
     }
   ]
 }

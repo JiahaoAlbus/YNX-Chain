@@ -232,9 +232,22 @@ func (s *Server) handleReplicationSnapshot(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusUnauthorized, "replication snapshot requires node authentication")
 		return
 	}
-	payload, err := s.devnet.ReplicationSnapshotJSON()
+	var payload []byte
+	var err error
+	if afterValue := strings.TrimSpace(r.URL.Query().Get("afterHeight")); afterValue != "" {
+		afterHeight, parseErr := strconv.ParseUint(afterValue, 10, 64)
+		afterHash := strings.TrimSpace(r.URL.Query().Get("afterHash"))
+		afterHashBytes, hashErr := hex.DecodeString(afterHash)
+		if parseErr != nil || hashErr != nil || len(afterHashBytes) != sha256.Size {
+			writeError(w, http.StatusBadRequest, "replication batch requires valid afterHeight and afterHash")
+			return
+		}
+		payload, err = s.devnet.ReplicationBatchJSON(afterHeight, afterHash)
+	} else {
+		payload, err = s.devnet.ReplicationSnapshotJSON()
+	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "replication snapshot unavailable")
+		writeError(w, http.StatusConflict, "replication snapshot unavailable: "+err.Error())
 		return
 	}
 	mac := hmac.New(sha256.New, []byte(s.replicationKey))

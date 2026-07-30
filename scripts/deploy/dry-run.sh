@@ -104,6 +104,7 @@ YNX_BRIDGE_RELAYER_THRESHOLD=2
 YNX_BRIDGE_HTTP_ADDR=127.0.0.1:6433
 YNX_STABLECOIN_DEPLOY_ENABLED=true
 YNX_STABLECOIN_API_KEY=dry-run-stablecoin-api-key
+YNX_STABLE_RESERVE_DEPLOY_ENABLED=false
 YNX_STABLECOIN_HTTP_ADDR=127.0.0.1:6434
 YNX_CHAT_DEPLOY_ENABLED=true
 YNX_CHAT_API_KEY=dry-run-chat-api-key-123456789
@@ -166,6 +167,20 @@ grep -Fq "YNX_BRIDGE_STATE_PATH=/var/lib/ynx-chain/bridge/state.json" "$release_
 grep -Fq "YNX_STABLECOIN_DEPLOY_ENABLED=true" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing deploy gate"; exit 1; }
 grep -Fq "YNX_STABLECOIN_API_KEY=" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing API key"; exit 1; }
 grep -Fq "YNX_STABLECOIN_STATE_PATH=/var/lib/ynx-chain/stablecoin/state.json" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing persistent state path"; exit 1; }
+grep -Fxq "YNX_YUSD_SANDBOX_ADDR=127.0.0.1:6490" "$release_dir/config/ynx-yusd-sandboxd.env" || { echo "YUSD release template missing loopback listener"; exit 1; }
+grep -Fxq "YNX_YUSD_SANDBOX_STATE_PATH=/var/lib/ynx-chain/yusd-sandbox/state.json" "$release_dir/config/ynx-yusd-sandboxd.env" || { echo "YUSD release template missing persistent state path"; exit 1; }
+grep -Fxq "YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json" "$release_dir/config/ynx-yusd-sandboxd.env" || { echo "YUSD release template missing mutation freeze"; exit 1; }
+if grep -Eq '^YNX_YUSD_SANDBOX_API_KEY=' "$release_dir/config/ynx-yusd-sandboxd.env"; then
+  echo "YUSD release template must not contain a runtime secret"
+  exit 1
+fi
+grep -Fq "YNX_STABLE_RESERVE_DEPLOY_ENABLED=false" "$release_dir/config/ynx-explorerd.env" || { echo "Explorer env must preserve the disabled stable reserve gate"; exit 1; }
+grep -Fq "YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=public_testnet" "$release_dir/config/ynx-explorerd.env" || { echo "Explorer env missing public Testnet release truth"; exit 1; }
+grep -Fq "YNX_YUSD_SANDBOX_URL=http://127.0.0.1:6490" "$release_dir/config/ynx-explorerd.env" || { echo "Explorer env missing YUSD Sandbox upstream"; exit 1; }
+grep -Fq "EnvironmentFile=/etc/ynx/ynx-explorerd.env" "$release_dir/systemd/ynx-explorerd.service" || { echo "Explorer service missing isolated reserve environment"; exit 1; }
+grep -Fq "YNX_ECONOMICS_MONITOR_HTTP_ADDR=127.0.0.1:6438" "$release_dir/config/ynx-economics-monitord.env" || { echo "Economics Monitor env missing loopback listener"; exit 1; }
+grep -Fq "YNX_PUBLIC_STABLE_RESERVE_URL=https://explorer.ynx.test/api/stable/reserve" "$release_dir/config/ynx-economics-monitord.env" || { echo "Economics Monitor env missing public reserve URL"; exit 1; }
+grep -Fq "YNX_PUBLIC_YUSD_SANDBOX_URL=https://explorer.ynx.test/api/stable/yusd-sandbox" "$release_dir/config/ynx-economics-monitord.env" || { echo "Economics Monitor env missing public YUSD URL"; exit 1; }
 grep -Fq "YNX_CHAT_DEPLOY_ENABLED=true" "$release_dir/config/ynx-chatd.env" || { echo "Chat env missing deploy gate"; exit 1; }
 grep -Fq "YNX_CHAT_API_KEY=" "$release_dir/config/ynx-chatd.env" || { echo "Chat env missing API key"; exit 1; }
 grep -Fq "YNX_CHAT_STATE_PATH=/var/lib/ynx-chain/chat/state.json" "$release_dir/config/ynx-chatd.env" || { echo "Chat env missing persistent state path"; exit 1; }
@@ -223,7 +238,7 @@ grep -Fq "YNX_RELEASE_COMMIT=${commit}" "$release_dir/config/release.env" || { e
 grep -Fq "YNX_RELEASE_NAME=${release}" "$release_dir/config/release.env" || { echo "release env missing name"; exit 1; }
 grep -a -Fq "$commit" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release commit"; exit 1; }
 grep -a -Fq "$release" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release name"; exit 1; }
-for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd ynx-squared ynx-app-gatewayd; do
+for binary in ynx-indexerd ynx-explorerd ynx-economics-monitord ynx-yusd-sandboxd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd ynx-squared ynx-app-gatewayd; do
   grep -a -Fq "$commit" "$release_dir/bin/$binary" || { echo "$binary binary missing release commit"; exit 1; }
   grep -a -Fq "$release" "$release_dir/bin/$binary" || { echo "$binary binary missing release name"; exit 1; }
 done
@@ -236,6 +251,13 @@ grep -Fxq "./config/release-manifest.json" "$archive_listing" || { echo "release
 grep -Fxq "./caddy/ynx-chain.caddy" "$archive_listing" || { echo "release tarball missing Caddy ingress snippet"; exit 1; }
 grep -Fxq "./scripts/install-caddy-ingress.sh" "$archive_listing" || { echo "release tarball missing Caddy ingress install script"; exit 1; }
 grep -Fxq "./scripts/check-local-services.sh" "$archive_listing" || { echo "release tarball missing local service check script"; exit 1; }
+grep -Fxq "./bin/ynx-economics-monitord" "$archive_listing" || { echo "release tarball missing Economics Monitor binary"; exit 1; }
+grep -Fxq "./config/ynx-economics-monitord.env" "$archive_listing" || { echo "release tarball missing Economics Monitor env"; exit 1; }
+grep -Fxq "./systemd/ynx-economics-monitord.service" "$archive_listing" || { echo "release tarball missing Economics Monitor systemd unit"; exit 1; }
+grep -Fxq "./bin/ynx-yusd-sandboxd" "$archive_listing" || { echo "release tarball missing YUSD Sandbox binary"; exit 1; }
+grep -Fxq "./config/ynx-yusd-sandboxd.env" "$archive_listing" || { echo "release tarball missing YUSD Sandbox safe env template"; exit 1; }
+grep -Fxq "./systemd/ynx-yusd-sandboxd.service" "$archive_listing" || { echo "release tarball missing YUSD Sandbox systemd unit"; exit 1; }
+grep -Fxq "./scripts/install-yusd-env.sh" "$archive_listing" || { echo "release tarball missing YUSD secret-preserving env installer"; exit 1; }
 grep -Fxq "./bin/ynx-ai-gatewayd" "$archive_listing" || { echo "release tarball missing AI Gateway binary"; exit 1; }
 grep -Fxq "./config/ynx-ai-gatewayd.env" "$archive_listing" || { echo "release tarball missing AI Gateway env"; exit 1; }
 grep -Fxq "./bin/ynx-payd" "$archive_listing" || { echo "release tarball missing Pay Gateway binary"; exit 1; }
@@ -408,6 +430,13 @@ grep -Fq "EnvironmentFile=/etc/ynx/ynx-trustd.env" "$release_dir/systemd/ynx-tru
 grep -Fq "ExecStart=/usr/local/bin/ynx-trustd" "$release_dir/systemd/ynx-trustd.service" || { echo "Trust Gateway service missing executable"; exit 1; }
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-resourced.env" "$release_dir/systemd/ynx-resourced.service" || { echo "Resource Gateway service missing secret env file"; exit 1; }
 grep -Fq "ExecStart=/usr/local/bin/ynx-resourced" "$release_dir/systemd/ynx-resourced.service" || { echo "Resource Gateway service missing executable"; exit 1; }
+grep -Fq "EnvironmentFile=/etc/ynx/ynx-economics-monitord.env" "$release_dir/systemd/ynx-economics-monitord.service" || { echo "Economics Monitor service missing env file"; exit 1; }
+grep -Fq "ExecStart=/usr/local/bin/ynx-economics-monitord" "$release_dir/systemd/ynx-economics-monitord.service" || { echo "Economics Monitor service missing executable"; exit 1; }
+grep -Fq "ProtectSystem=strict" "$release_dir/systemd/ynx-economics-monitord.service" || { echo "Economics Monitor service missing strict filesystem protection"; exit 1; }
+grep -Fq "EnvironmentFile=/etc/ynx/ynx-yusd-sandboxd.env" "$release_dir/systemd/ynx-yusd-sandboxd.service" || { echo "YUSD Sandbox service missing secret env file"; exit 1; }
+grep -Fq "ExecStart=/usr/local/bin/ynx-yusd-sandboxd" "$release_dir/systemd/ynx-yusd-sandboxd.service" || { echo "YUSD Sandbox service missing executable"; exit 1; }
+grep -Fq "ProtectSystem=strict" "$release_dir/systemd/ynx-yusd-sandboxd.service" || { echo "YUSD Sandbox service missing strict filesystem protection"; exit 1; }
+grep -Fq "ReadWritePaths=/var/lib/ynx-chain/yusd-sandbox" "$release_dir/systemd/ynx-yusd-sandboxd.service" || { echo "YUSD Sandbox service missing bounded state path"; exit 1; }
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-bridged.env" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing secret env file"; exit 1; }
 grep -Fq "ExecStart=/usr/local/bin/ynx-bridged" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing executable"; exit 1; }
 grep -Fq "ReadWritePaths=/var/lib/ynx-chain/bridge" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing bounded state path"; exit 1; }
@@ -432,6 +461,10 @@ grep -Fq "YNX_EXPECT_BRIDGE_SERVICE=1" "$dry_run_out" || { echo "dry-run output 
 grep -Fq "ynx-bridged\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Bridge config check"; exit 1; }
 grep -Fq "YNX_EXPECT_STABLECOIN_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Stablecoin health expectation"; exit 1; }
 grep -Fq "ynx-stablecoind\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Stablecoin config check"; exit 1; }
+grep -Fq "ynx-economics-monitord\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Economics Monitor config check"; exit 1; }
+grep -Fq "scripts/install-yusd-env.sh" "$dry_run_out" || { echo "dry-run output missing YUSD secret-preserving env install"; exit 1; }
+grep -Fq "ynx-yusd-sandboxd\\ --check-config" "$dry_run_out" || { echo "dry-run output missing YUSD Sandbox config check"; exit 1; }
+grep -Fq "systemctl\\ restart\\ ynx-yusd-sandboxd" "$dry_run_out" || { echo "dry-run output missing YUSD Sandbox restart"; exit 1; }
 grep -Fq "YNX_EXPECT_CHAT_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Chat health expectation"; exit 1; }
 grep -Fq "ynx-chatd\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Chat config check"; exit 1; }
 grep -Fq "YNX_EXPECT_SQUARE_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Square health expectation"; exit 1; }

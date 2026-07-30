@@ -20,6 +20,8 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
+const syncCheckpointBlocks = 4096
+
 type Config struct {
 	RPCURL          string
 	StorePath       string
@@ -714,6 +716,11 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 	for height := start; height <= end; height++ {
 		block, err := i.client.Block(ctx, height)
 		if err != nil {
+			if result.NewBlocksThisRun > 0 {
+				if checkpointErr := i.store.Save(db); checkpointErr != nil {
+					return SyncResult{}, fmt.Errorf("fetch block %d: %v; persist verified index progress: %w", height, err, checkpointErr)
+				}
+			}
 			return SyncResult{}, err
 		}
 		if block.Height != height || block.Hash == "" {
@@ -737,6 +744,16 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 		blocks = append(blocks, block)
 		result.NewBlocksThisRun++
 		expectedParent = block.Hash
+		if result.NewBlocksThisRun%syncCheckpointBlocks == 0 {
+			if err := i.store.Save(db); err != nil {
+				return SyncResult{}, err
+			}
+		}
+	}
+	if result.NewBlocksThisRun%syncCheckpointBlocks != 0 {
+		if err := i.store.Save(db); err != nil {
+			return SyncResult{}, err
+		}
 	}
 	db, err = i.store.UpsertBlocks(i.cfg.RPCURL, status, blocks)
 	if err != nil {

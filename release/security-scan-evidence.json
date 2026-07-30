@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "source": "local-security-tool-output",
+  "asOf": "2026-07-22T16:05:00Z",
+  "sourceCommit": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21",
+  "coverage": "repository-working-tree-and-resolved-dependency-graphs-not-git-history-or-public-runtime",
+  "secretScan": {
+    "command": "make secret-scan",
+    "result": "pass",
+    "boundary": "pattern scan only"
+  },
+  "staticAnalysis": {
+    "command": "make static-check",
+    "result": "pass",
+    "boundary": "go vet and shell/javascript syntax"
+  },
+  "goVulnerabilityScan": {
+    "command": "go run golang.org/x/vuln/cmd/govulncheck@latest -json ./...",
+    "scannerVersion": "v1.6.0",
+    "toolchain": "go1.25.12",
+    "calledFindings": 0,
+    "result": "pass_after_dependency_upgrade"
+  },
+  "npmAudit": {
+    "command": "npm audit --json",
+    "result": "unresolved",
+    "critical": 0,
+    "high": 3,
+    "moderate": 0,
+    "low": 0,
+    "findings": ["@nomicfoundation/hardhat-ethers", "hardhat", "adm-zip"],
+    "advisory": "GHSA-xcpc-8h2w-3j85",
+    "fixAvailable": false,
+    "boundary": "development-only contract tooling; no untrusted ZIP ingestion; production tooling release remains blocked"
+  },
+  "dast": {
+    "performed": false,
+    "reason": "no staging or public ingress exists"
+  },
+  "containerScan": {
+    "performed": false,
+    "reason": "no economics container artifact is produced"
+  },
+  "failure": true
+}

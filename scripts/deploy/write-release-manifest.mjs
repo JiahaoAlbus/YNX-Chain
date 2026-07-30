@@ -47,6 +47,8 @@ const binaries = [
   "bin/ynx-chaind",
   "bin/ynx-indexerd",
   "bin/ynx-explorerd",
+  "bin/ynx-economics-monitord",
+  "bin/ynx-yusd-sandboxd",
   "bin/ynx-faucetd",
   "bin/ynx-ai-gatewayd",
   "bin/ynx-payd",

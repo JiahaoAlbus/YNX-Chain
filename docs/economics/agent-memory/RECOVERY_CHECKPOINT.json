@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "17",
+  "productName": "YNXT Economics / Treasury / Stablecoin",
+  "phase": "INTEGRATE",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/17-tokenomics",
+  "branch": "codex/final-tokenomics",
+  "localSha": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+  "remoteSha": "261c267417ef166762214453efdcdc28c1230e51",
+  "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
+  "acceptedDependencyAncestor": "470da14faa51914beed2ee6c75a43df013e63b20",
+  "dirty": true,
+  "ahead": 418,
+  "behind": 0,
+  "checkpointScope": "frozen engineering source before the evidence-only follow-up commit",
+  "latestSuccessfulTests": [
+    "npx hardhat clean followed by make test",
+    "make test",
+    "make contract-tooling-check",
+    "make static-check",
+    "make no-placeholder-check",
+    "make secret-scan",
+    "make economics-local-candidate-check",
+    "make deploy-dry-run"
+  ],
+  "latestCiRuns": [
+    {
+      "runId": "30417960548",
+      "sourceCommit": "d23515300851eac1e6acce82b73af938d3750aeb",
+      "status": "completed",
+      "conclusion": "success",
+      "duration": "4m11s"
+    },
+    {
+      "runId": "30417317436",
+      "sourceCommit": "54b940e85846eb7d1e124936e072c684d26f1844",
+      "status": "completed",
+      "conclusion": "failure",
+      "passedThrough": "make faucet-check",
+      "failedStep": "make deploy-dry-run",
+      "remediatedBy": "d23515300851eac1e6acce82b73af938d3750aeb"
+    }
+  ],
+  "pullRequests": [],
+  "release": null,
+  "artifacts": [
+    {
+      "id": "ynxt-economics-testnet-cli-darwin-arm64",
+      "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+      "packageHash": "sha256:5b4f3ba84dea6201ddf885ba1f5e80adf8be4fc35f649dcc0c34f1bef6976c31",
+      "hosted": false,
+      "productionSigned": false,
+      "installedLocal": true
+    }
+  ],
+  "publicRoutes": [
+    {
+      "url": "https://ynxweb4.com/ynxt",
+      "deployed": false
+    },
+    {
+      "url": "https://ynxweb4.com/economics",
+      "deployed": false
+    }
+  ],
+  "completed": [
+    "recovered matched worktree, branch, remote, and protected existing results",
+    "reproduced and fixed clean-checkout Hardhat artifact dependency",
+    "fixed historical commit availability for provenance gates",
+    "fixed GNU tar deploy dry-run portability without weakening archive validation",
+    "passed complete configured GitHub Actions workflow on engineering SHA d23515300851eac1e6acce82b73af938d3750aeb",
+    "persisted truthful unsigned local five-binary artifact evidence"
+  ],
+  "remaining": [
+    "push and protect the evidence head, then require exact-head GitHub Actions success",
+    "publish the source-only prerelease and create or update the YNX 17 pull request",
+    "obtain direct shared-Testnet owner attestations from 01, 12, 13, 26, and 29",
+    "obtain central integration acceptance and real shared-Testnet execution evidence",
+    "produce authenticated production signatures, hosted downloads, and matching release provenance",
+    "complete Website handoff through 29 and 28 and verify actual ynxweb4.com deployment"
+  ],
+  "blockers": [
+    "E17-B001",
+    "E17-B002"
+  ],
+  "nextAction": "Commit the evidence checkpoint, push and protect the owner branch, verify exact-head CI, publish the source-only prerelease, and submit Product 17 to central acceptance.",
+  "updatedAt": "2026-07-30T10:42:08Z"
+}

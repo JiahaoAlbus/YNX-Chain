@@ -3,7 +3,7 @@
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check governance-check governance-testnet-drill
 .PHONY: integration-coverage-refresh integration-coverage-refresh-check integration-acceptance-refresh integration-acceptance-check integration-release-acceptance-check integration-product-release-matrix-refresh integration-product-release-matrix-check integration-npm-audit-policy-check integration-npm-audit-policy-check-test integration-protect-preflight
 .PHONY: bft-evm-legacy-transfer-check bft-evm-access-list-transfer-check bft-evm-dynamic-fee-transfer-check bft-evm-fee-suggestion-check bft-evm-fee-history-check asset-primitives-check
-.PHONY: yusd-sandbox-check liquid-staking-candidate-check safety-module-candidate-check account-abstraction-check solvency-check integration-contract-check consensus-state-sync-check consensus-eip1559-commit-check consensus-fee-history-check streambft-candidate-check chain-core-release-check
+.PHONY: yusd-sandbox-check yusd-restore-drill yusd-testnet-deploy-check read-availability-check economics-explorer-deploy-check economics-monitor-check economics-monitor-lifecycle-check economics-runtime-check staking-risk-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check economics-shared-testnet-acceptance-check economics-testnet-cli-artifact-check economics-testnet-cli-artifact-evidence liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check economics-local-candidate-check safety-module-candidate-check account-abstraction-check solvency-check integration-contract-check consensus-state-sync-check consensus-eip1559-commit-check consensus-fee-history-check streambft-candidate-check chain-core-release-check
 .PHONY: oracle-test oracle-web-test oracle-container oracle-dast oracle-testnet-package oracle-testnet-smoke oracle-release-package oracle-release-evidence oracle-release-integrity-check
 
 oracle-test:
@@ -503,12 +503,95 @@ bridge-api-check:
 stablecoin-issuer-check:
 	bash ./scripts/verify/stablecoin-issuer-check.sh
 
+stable-reserve-attestation-check:
+	go test -race ./internal/stablereserve ./internal/economics ./internal/explorer ./cmd/ynx-stable-reserve-verify ./cmd/ynx-explorerd
+
+economics-explorer-deploy-check:
+	bash -n ./scripts/deploy/deploy-economics-explorer.sh ./scripts/deploy/remote/install-economics-explorer.sh
+	node ./scripts/verify/economics-explorer-deploy-check.mjs
+	DEPLOY_DRY_RUN=1 bash ./scripts/deploy/deploy-economics-explorer.sh
+
+economics-monitor-check:
+	bash ./scripts/verify/economics-monitor-check.sh
+
+economics-monitor-lifecycle-check:
+	bash ./scripts/verify/economics-monitor-lifecycle-check.sh
+
 yusd-sandbox-check:
 	go test -race ./internal/yusdsandbox ./cmd/ynx-yusd-sandboxd
+
+yusd-restore-drill:
+	go test ./internal/yusdsandbox -run BackupRestoreDrill -count=1
+
+yusd-testnet-deploy-check:
+	bash ./scripts/verify/yusd-testnet-deploy-check.sh
+
+read-availability-check:
+	bash ./scripts/verify/read-availability-check.sh
+
+economics-runtime-check:
+	go test -race ./internal/economics ./cmd/ynx-economics-runtime
+	go run ./cmd/ynx-economics-runtime -input economics/examples/runtime-replay.json >/dev/null
+
+staking-risk-runtime-check:
+	go test -race ./internal/economics ./cmd/ynx-staking-risk-runtime
+	go run ./cmd/ynx-staking-risk-runtime -input economics/examples/staking-risk-runtime-replay.json >/dev/null
+
+economics-integration-adapter-check:
+	go test -race ./internal/economics ./cmd/ynx-economics-integration
+	go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -summary >/dev/null
+
+economics-integration-store-check:
+	go test -race ./internal/economics ./cmd/ynx-economics-integration-store
+	node ./scripts/verify/economics-integration-store-check.mjs
+
+economics-local-testnet-evidence-check:
+	go test -race ./internal/economics ./cmd/ynx-economics-local-testnet-evidence
+	node ./scripts/verify/economics-local-testnet-evidence-check.mjs
+
+economics-shared-testnet-acceptance-check:
+	go test -race ./internal/economics -run SharedTestnet -count=1
+	go test -race ./cmd/ynx-economics-shared-testnet-acceptance -count=1
+
+economics-testnet-cli-artifact-check:
+	node ./scripts/verify/economics-testnet-cli-artifact-check.mjs
+
+economics-testnet-cli-artifact-evidence:
+	node ./scripts/verify/economics-testnet-cli-artifact-check.mjs --out-dir dist/ynxt-economics-testnet-cli-darwin-arm64 --evidence release/economics-testnet-cli-artifact.json
 
 liquid-staking-candidate-check:
 	go test -race ./internal/economics ./cmd/ynx-liquid-staking-sim
 	go run ./cmd/ynx-liquid-staking-sim -input economics/examples/liquid-staking-stress.json >/dev/null
+
+security-pools-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-security-pools-sim
+	go run ./cmd/ynx-security-pools-sim -input economics/examples/security-pools-stress.json >/dev/null
+
+fee-market-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-fee-market-sim
+	go run ./cmd/ynx-fee-market-sim -input economics/examples/fee-market-stress.json >/dev/null
+
+macro-stress-check:
+	go test -race ./internal/economics ./cmd/ynx-macro-stress-sim
+	go run ./cmd/ynx-macro-stress-sim -input economics/examples/macro-stress.json >/dev/null
+
+economics-public-ui-check:
+	go test -race ./internal/explorer -run 'Economics' -count=1
+
+economics-public-package-check:
+	node ./scripts/verify/economics-public-package-check.mjs
+
+economics-supply-chain-check:
+	node ./scripts/verify/economics-supply-chain-check.mjs
+
+economics-release-boundary-check:
+	node ./scripts/verify/economics-release-boundary-check.mjs
+
+economics-integration-contract-check:
+	node ./scripts/verify/economics-integration-contract-check.mjs
+
+economics-local-candidate-check: yusd-sandbox-check yusd-restore-drill economics-runtime-check staking-risk-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check
+	@echo "economics local candidate checks passed; deployment and unresolved security states remain governed by release evidence"
 
 safety-module-candidate-check:
 	go test -race ./internal/economics ./cmd/ynx-safety-module-sim -run 'SafetyModule'

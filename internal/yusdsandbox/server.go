@@ -6,15 +6,21 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 type Server struct {
 	service *Service
 	mux     *http.ServeMux
+	build   buildinfo.Info
 }
 
 func NewServer(service *Service) *Server {
-	s := &Server{service: service, mux: http.NewServeMux()}
+	return NewServerWithBuild(service, buildinfo.Info{})
+}
+func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
+	s := &Server{service: service, mux: http.NewServeMux(), build: buildinfo.Normalize(build)}
 	s.routes()
 	return s
 }
@@ -34,7 +40,7 @@ func (s *Server) routes() {
 }
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
 	snapshot := s.service.Snapshot()
-	writeJSON(w, 200, map[string]any{"ok": snapshot.Solvent && snapshot.Reconciled, "service": "ynx-yusd-sandboxd", "source": snapshot.Source, "asOf": snapshot.AsOf, "version": snapshot.Version, "testnetOnly": true, "realityValue": false, "externalReserveAttested": false, "externalExecutionEnabled": false, "productionReady": false, "providerStatus": snapshot.ProviderStatus, "paused": snapshot.Paused, "failure": false})
+	writeJSON(w, 200, map[string]any{"ok": snapshot.Solvent && snapshot.Reconciled, "service": "ynx-yusd-sandboxd", "source": snapshot.Source, "asOf": snapshot.AsOf, "version": snapshot.Version, "testnetOnly": true, "realityValue": false, "externalReserveAttested": false, "externalExecutionEnabled": false, "productionReady": false, "providerStatus": snapshot.ProviderStatus, "paused": snapshot.Paused, "build": s.build, "failure": false})
 }
 func (s *Server) snapshot(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, 200, s.service.Snapshot())

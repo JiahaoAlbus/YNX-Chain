@@ -89,6 +89,86 @@ groups:
         annotations:
           summary: YNX explorer is serving stale indexed data
           description: Explorer sees an RPC-to-indexer lag above three blocks for more than three minutes.
+      - alert: YNXEconomicsDisclosureErrors
+        expr: increase(ynx_explorer_economics_disclosure_errors_total{job="ynx-explorerd"}[5m]) / clamp_min(increase(ynx_explorer_economics_disclosure_requests_total{job="ynx-explorerd"}[5m]), 1) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNXT economics disclosure error ratio is elevated
+          description: More than one percent of disclosure requests failed for five minutes. Correlate Request, Trace and Error IDs before rollback.
+      - alert: YNXEconomicsDisclosureLatency
+        expr: histogram_quantile(0.99, sum by (le) (rate(ynx_explorer_economics_disclosure_latency_seconds_bucket{job="ynx-explorerd"}[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNXT economics disclosure p99 exceeds one second
+          description: Process latency has remained above the candidate p99 threshold for ten minutes; verify ingress and instance saturation separately.
+      - alert: YNXEconomicsDisclosureStale
+        expr: time() - ynx_explorer_economics_disclosure_last_success_timestamp_seconds{job="ynx-explorerd"} > 300
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNXT economics disclosure has no recent success
+          description: No successful disclosure response has been observed for more than five minutes.
+      - alert: YNXStableReserveProviderUnavailable
+        expr: ynx_explorer_stable_reserve_attestation_available{job="ynx-explorerd"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: YUSD reserve provider attestation is unavailable
+          description: Explorer has no fresh provider-signed reserve attestation. Stable settlement remains fail-closed until a verified attestation is available.
+      - alert: YNXStableReserveShortfall
+        expr: ynx_explorer_stable_reserve_attestation_available{job="ynx-explorerd"} == 1 and ynx_explorer_stable_reserve_solvent{job="ynx-explorerd"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YUSD verified reserve coverage is below required backing
+          description: The fresh provider-signed reserve attestation reports less reserve than supply plus pending redemptions. Keep issuance and redemption risk controls fail-closed.
+      - alert: YNXStableReserveAttestationExpiring
+        expr: ynx_explorer_stable_reserve_attestation_available{job="ynx-explorerd"} == 1 and (ynx_explorer_stable_reserve_attestation_expiry_timestamp_seconds{job="ynx-explorerd"} - time()) <= 3600 and (ynx_explorer_stable_reserve_attestation_expiry_timestamp_seconds{job="ynx-explorerd"} - time()) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: YUSD reserve attestation expires within one hour
+          description: Obtain and verify the next provider-signed reserve attestation before the current evidence expires.
+      - alert: YNXStableReservePublicEndpointDown
+        expr: up{job="ynx-economics-monitord"} == 0 or ynx_public_stable_reserve_probe_success{job="ynx-economics-monitord"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Public YUSD reserve endpoint is unreachable or invalid
+          description: The active HTTPS probe cannot verify the public Testnet reserve route and its release truth. Provider availability is monitored separately.
+      - alert: YNXYUSDSandboxPublicEndpointDown
+        expr: up{job="ynx-economics-monitord"} == 0 or ynx_public_yusd_sandbox_probe_success{job="ynx-economics-monitord"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Public YUSD Sandbox endpoint is unreachable or invalid
+          description: The active HTTPS probe cannot verify the public no-real-value YUSD Sandbox route, release truth, and bounded read contract.
+      - alert: YNXYUSDSandboxInsolvent
+        expr: ynx_public_yusd_sandbox_probe_success{job="ynx-economics-monitord"} == 1 and ynx_public_yusd_sandbox_solvent{job="ynx-economics-monitord"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YUSD Sandbox reserve is below required backing
+          description: The public Testnet sandbox reports reserve below supply plus pending redemptions. Pause sandbox issuance and preserve redemption evidence.
+      - alert: YNXYUSDSandboxUnreconciled
+        expr: ynx_public_yusd_sandbox_probe_success{job="ynx-economics-monitord"} == 1 and ynx_public_yusd_sandbox_reconciled{job="ynx-economics-monitord"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YUSD Sandbox supply is not reconciled
+          description: The public Testnet sandbox ledger reports account supply inconsistent with total supply. Freeze mutations and preserve the integrity-checked state.
       - alert: YNXFaucetDown
         expr: up{job="ynx-faucetd"} == 0
         for: 2m

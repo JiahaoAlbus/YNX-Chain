@@ -194,6 +194,12 @@ Stablecoin Issuer Control API:
 - The release package carries the binary, dedicated env, systemd unit, backup/state paths, config check, and optional health check. Real deployment remains default-disabled behind `YNX_STABLECOIN_DEPLOY_ENABLED=false`, and no ingress is configured.
 - `make stablecoin-issuer-check` proves issuer/asset approval and revocation, native/protocol asset rejection, supply bounds, exact replay/conflict, concurrency, restart persistence, tamper rejection, strict auth/JSON, transparency, truthful metrics, and file modes. It does not prove issuer support, mint/burn execution, remote deployment, public availability, or a third-party partnership.
 
+## Economics disclosure
+
+- `GET /api/economics/disclosure` is the public source-defined economics boundary used by `/ynxt` and `/economics`. It reports schema version, source, `asOf`, version, coverage, confidence, failure state, source build commit, current fixed-fee truth, candidate status, nine independent release booleans, risk guarantees and seeded reference-scenario summaries.
+- Reference scenarios are recalculated from the versioned economics model on request. They are assumption-driven simulations, not live chain state, forecasts or public deployment evidence.
+- `GET /api/summary` remains the separate RPC/indexer-backed network source. The UI shows an explicit unavailable state if this live source fails.
+
 YNX Chat API:
 
 - `ynx-chatd` is a standalone encrypted-envelope service on loopback port `6435`. `GET /health` and `GET /metrics` expose process state. Every `/chat/*` route requires `X-YNX-Chat-Key`; device-authenticated routes additionally require `X-YNX-Device-ID`, `X-YNX-Timestamp`, and `X-YNX-Device-Signature` over the method, exact request URI, timestamp, and body hash.

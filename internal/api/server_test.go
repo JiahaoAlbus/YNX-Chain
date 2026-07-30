@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -87,6 +88,29 @@ func TestReplicationSnapshotAuthenticationAndReadOnlyFollower(t *testing.T) {
 	_, _ = mac.Write(raw.Bytes())
 	if resp.StatusCode != http.StatusOK || resp.Header.Get("X-YNX-Replication-SHA256") != hex.EncodeToString(mac.Sum(nil)) {
 		t.Fatalf("snapshot response failed authentication: status=%d headers=%v", resp.StatusCode, resp.Header)
+	}
+
+	genesis, _ := devnet.BlockByHeight(0)
+	batchReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/internal/replication/snapshot?afterHeight=%d&afterHash=%s", server.URL, genesis.Height, genesis.Hash), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	batchReq.Header.Set("X-YNX-Replication-Key", "replication-test-key")
+	batchResp, err := http.DefaultClient.Do(batchReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer batchResp.Body.Close()
+	batchPayload, err := io.ReadAll(batchResp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	follower := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := follower.ApplyReplicationBatchJSON(batchPayload); err != nil {
+		t.Fatalf("authenticated bounded replication batch did not apply: %v", err)
+	}
+	if batchResp.StatusCode != http.StatusOK || follower.LatestBlock().Hash != devnet.LatestBlock().Hash {
+		t.Fatalf("bounded replication endpoint did not converge follower: status=%d", batchResp.StatusCode)
 	}
 
 	var blocked map[string]any

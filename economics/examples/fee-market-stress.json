@@ -1,0 +1,40 @@
+{
+  "asOf": "2026-07-22T00:00:00Z",
+  "governanceApproved": false,
+  "candidateActivationEpoch": 0,
+  "blocks": [
+    {
+      "height": 1,
+      "lanes": [
+        {
+          "lane": "ai",
+          "transactions": [
+            { "id": "tx-ai-sponsored", "user": "user-d", "sponsor": "sponsor-a", "units": 100, "maxFeePerUnit": 20, "priorityFeePerUnit": 5 }
+          ]
+        },
+        { "lane": "contract", "transactions": [{ "id": "tx-contract-low-cap", "user": "user-c", "units": 100, "maxFeePerUnit": 9, "priorityFeePerUnit": 1 }] },
+        { "lane": "pay", "transactions": [] },
+        { "lane": "resource", "transactions": [] },
+        {
+          "lane": "transfer",
+          "transactions": [
+            { "id": "tx-transfer-1", "user": "user-a", "units": 1500, "maxFeePerUnit": 20, "priorityFeePerUnit": 2 },
+            { "id": "tx-transfer-over-cap", "user": "user-b", "units": 600, "maxFeePerUnit": 20, "priorityFeePerUnit": 2 }
+          ]
+        },
+        { "lane": "trust", "transactions": [] }
+      ]
+    },
+    {
+      "height": 2,
+      "lanes": [
+        { "lane": "ai", "transactions": [] },
+        { "lane": "contract", "transactions": [] },
+        { "lane": "pay", "transactions": [] },
+        { "lane": "resource", "transactions": [] },
+        { "lane": "transfer", "transactions": [] },
+        { "lane": "trust", "transactions": [] }
+      ]
+    }
+  ]
+}
