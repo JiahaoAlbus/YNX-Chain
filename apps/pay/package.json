@@ -5,6 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
+    "postinstall": "node scripts/patch-expo-modules-jsi.mjs",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "bundle-check": "expo export --platform android --platform ios --platform web --output-dir dist",

@@ -10,11 +10,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.25"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
           cache: npm
@@ -39,29 +39,32 @@ jobs:
   pay-card-ios-native:
     runs-on: macos-15
     env:
-      # ExpoModulesJSI currently declares Swift tools 6.2. The macOS 15
-      # runner defaults to Xcode 16.4 / Swift 6.1, while Xcode 26.2 is
-      # installed on the same image and provides the required toolchain.
-      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      DEVELOPER_DIR: ${{ matrix.developer_dir }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          # ExpoModulesJSI 57 declares Swift tools 6.2, so both native
+          # candidates use the Xcode 26.2 toolchain on the macOS 15 runner.
           - app: pay
             scheme: YNXPay
+            developer_dir: /Applications/Xcode_26.2.app/Contents/Developer
           - app: card
             scheme: YNXCard
+            developer_dir: /Applications/Xcode_26.2.app/Contents/Developer
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
       - run: npm ci
+      - name: Apply the version-locked ExpoModulesJSI Swift 6.2 patch
+        run: node ../pay/scripts/patch-expo-modules-jsi.mjs
       - run: npx pod-install ios
       - name: Build iOS Simulator app without signing
         run: >-
