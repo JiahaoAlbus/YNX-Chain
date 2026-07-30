@@ -4,10 +4,10 @@
   "productId": "21",
   "product": "YNX Bridge & Interoperability",
   "acceptedBy": "29-integration",
-  "acceptedAt": "2026-07-30T14:10:16Z",
-  "acceptedSourceCommit": "d881dfcf11b5410e478e2b1cd5dec4f93ca95dfb",
+  "acceptedAt": "2026-07-30T18:17:34Z",
+  "acceptedSourceCommit": "01e0961b998bbf2ab35552971069870f5b76bacb",
   "frozenReleaseSource": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
-  "integrationCommit": "2a34627539ba8d7b0dad8e8cdfb8a3e3461e2275",
+  "integrationCommit": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
   "ancestry": {
     "acceptedSourceIsParentOfIntegrationCommit": true,
     "integrationCommitContainsAcceptedSource": true,
@@ -21,7 +21,9 @@
     "branchProtected": true,
     "pullRequest": 24,
     "pullRequestDraft": true,
+    "pullRequestMerged": true,
     "evidenceRepairPullRequest": 25,
+    "immutableActionsPullRequest": 27,
     "coverageTotal": 46,
     "coverageAutonomousOpen": 0,
     "coverageExternalBlocked": 13,
@@ -30,10 +32,10 @@
   },
   "exactHeadCi": {
     "verified": true,
-    "sourceCommit": "d881dfcf11b5410e478e2b1cd5dec4f93ca95dfb",
+    "sourceCommit": "01e0961b998bbf2ab35552971069870f5b76bacb",
     "successfulWorkflowRunIds": [
-      30546995378,
-      30548057000
+      30568833211,
+      30569394672
     ],
     "successfulCheckRuns": 2,
     "failed": 0,

@@ -2,15 +2,15 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-30T16:13:53.866Z",
-  "controllerSourceCommit": "9c6ee5656be85a7698f9c02ad862d69c362cdff7",
+  "generatedAt": "2026-07-30T18:23:12.882Z",
+  "controllerSourceCommit": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "9c6ee5656be85a7698f9c02ad862d69c362cdff7",
+    "localHead": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "48e8eab801d71dc67002b59dbc65d0dd149f4672",
-    "ahead": 70,
+    "remoteHead": "fb3a54712348241240518e72f08355a4d68efca8",
+    "ahead": 3,
     "behind": 0,
     "clean": false
   },
@@ -3013,8 +3013,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "d881dfcf11b5410e478e2b1cd5dec4f93ca95dfb",
-        "remoteSha": "d881dfcf11b5410e478e2b1cd5dec4f93ca95dfb",
+        "localSha": "01e0961b998bbf2ab35552971069870f5b76bacb",
+        "remoteSha": "01e0961b998bbf2ab35552971069870f5b76bacb",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -3026,7 +3026,7 @@
       "worktree": {
         "registered": true,
         "pathToken": "21-bridge",
-        "observedHead": "d881dfcf11b5410e478e2b1cd5dec4f93ca95dfb",
+        "observedHead": "01e0961b998bbf2ab35552971069870f5b76bacb",
         "clean": true,
         "changedEntries": 0,
         "statusError": null
@@ -3079,28 +3079,28 @@
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "productRelease": {
             "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "publicMetadata": {
             "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 2
+            "distance": 3
           },
           "integrationContract": {
             "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 37
+            "distance": 38
           }
         },
         "release": {
@@ -3130,11 +3130,11 @@
       "centralAcceptance": {
         "status": "integratedCentral",
         "reason": "The synchronized owner source, clean worktree, required evidence, exact-head CI, central merge ancestry and central test receipt all passed.",
-        "acceptedSourceCommit": "d881dfcf11b5410e478e2b1cd5dec4f93ca95dfb",
+        "acceptedSourceCommit": "01e0961b998bbf2ab35552971069870f5b76bacb",
         "acceptedBy": "29-integration",
-        "acceptedAt": "2026-07-30T14:10:16Z",
-        "decisionEvidence": "release/integration/evidence/product-21-central-acceptance-2a346275.json",
-        "integrationCommit": "2a34627539ba8d7b0dad8e8cdfb8a3e3461e2275"
+        "acceptedAt": "2026-07-30T18:17:34Z",
+        "decisionEvidence": "release/integration/evidence/product-21-central-acceptance-244d1c3e.json",
+        "integrationCommit": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85"
       },
       "blockers": [],
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release."
@@ -4190,9 +4190,9 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "9c6ee5656be85a7698f9c02ad862d69c362cdff7",
-        "remoteSha": "48e8eab801d71dc67002b59dbc65d0dd149f4672",
-        "ahead": 70,
+        "localSha": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
+        "remoteSha": "fb3a54712348241240518e72f08355a4d68efca8",
+        "ahead": 3,
         "behind": 0,
         "upstreamConfigured": true,
         "upstreamRef": "origin/codex/final-integration",
@@ -4203,9 +4203,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "9c6ee5656be85a7698f9c02ad862d69c362cdff7",
+        "observedHead": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
         "clean": false,
-        "changedEntries": 1,
+        "changedEntries": 6,
         "statusError": null
       },
       "evidence": {
@@ -4229,9 +4229,9 @@
           "counts": {
             "notStarted": 21,
             "inProgress": 27,
-            "implementedLocal": 7,
+            "implementedLocal": 6,
             "testedLocal": 4,
-            "integratedCentral": 8,
+            "integratedCentral": 9,
             "testnetVerified": 0,
             "publicVerified": 0,
             "externalBlocked": 0,
@@ -4252,32 +4252,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "2a34627539ba8d7b0dad8e8cdfb8a3e3461e2275",
+            "sourceCommit": "9c6ee5656be85a7698f9c02ad862d69c362cdff7",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 4
           },
           "productRelease": {
             "sourceCommit": "05652b201acf830495a8fb2fba5416e5f4ea9d8c",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 72
+            "distance": 76
           },
           "publicMetadata": {
             "sourceCommit": "05652b201acf830495a8fb2fba5416e5f4ea9d8c",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 72
+            "distance": 76
           },
           "integrationContract": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 438
+            "distance": 442
           }
         },
         "release": {
