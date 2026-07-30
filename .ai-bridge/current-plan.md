@@ -1,20 +1,35 @@
-# Current plan
+# YNX Oracle full-goal continuation
 
-- Product: YNX Resource Market (`16-resource-market`)
-- Stage: `INTEGRATE`
-- Long-term goal: `ACTIVE`
-- Protected tested source: `d683c7d28ce129daad358c84680e5980cf8ad069`
-- Branch: `codex/final-resource-market`
-- Pull request: `#12`
+Updated: 2026-07-27T15:02:00Z
+Workspace: /Users/huangjiahao/Desktop/YNX Final Worktrees/19-oracle-market-data
+Branch: codex/final-oracle-market-data
+Phase: INTEGRATE
+Status: ACTIVE
 
-## Protected checkpoint
+## Protected state
 
-The tested source is pushed and remote-equal. GitHub Resource Market Candidate Gates run `30417957999` passed correctness, Race, Vet, govulncheck, npm audit, browser tests, Ubuntu API/DAST smoke, candidate binary build, SHA-256 generation, Go dependency inventory, SPDX npm SBOM generation and secret scanning. General CI, docs compliance and the Resource Market iOS Simulator build also passed. Product release and public metadata bind this tested source.
+- Deterministic artifact implementation: `0e64d06eef881c69b7be9e31c78b3e81369e68c8`.
+- Evidence-export implementation: `6ba6c39a6661724e07205a265201ac7fa36c91bb`.
+- Artifact evidence/release records: `83cbc0d40d2a58347a7965f55a19cba610249cfc`.
+- Local SHA and upstream SHA matched at `83cbc0d40d2a58347a7965f55a19cba610249cfc`.
+- The verified recovery bundle remains in `tmp/recovery` as audit backup after transient MCP HTTP 502 failures; Push is no longer blocked.
 
-## Exact next autonomous action
+## Current slice
 
-Complete PR `#12` checks and merge only after GitHub reports all required checks successful. After merge, submit the frozen Resource Market integration contract and vectors to Product `29`, then execute the full success and provider-failure/retry/refund sequence with two independent Testnet providers and authoritative settlement.
+Run direct browser accessibility evidence for ORACLE-WEB-002:
 
-## External dependencies that remain
+1. Inspect the locked Web toolchain and current accessibility tests.
+2. Verify keyboard navigation and focus visibility.
+3. Verify Arabic RTL, dynamic/large text, reduced motion, light/dark themes and 390px overflow.
+4. Fix real defects, run production build/SSR and targeted accessibility tests.
+5. Record exact evidence without claiming public Oracle Web availability.
+6. Commit, push and verify Local SHA = Remote SHA.
 
-Central Wallet/Gateway acceptance, authoritative Chain/Data Fabric settlement, Explorer/Monitor/Trust integration, two independent public providers, Testnet funding, public deployment/DNS, production signing, artifact hosting and legal/security review remain unproven. These boundaries must remain false in release metadata until direct evidence exists.
+## Remaining artifact work
+
+- Linux arm64 native install/cold-start/version/graceful-shutdown evidence.
+- Immutable hosting and production signing through Security/SRE.
+
+## External boundaries
+
+Provider activation, reporter signer custody, central consumer acceptance, public Oracle Web access, immutable hosting, production signing, Linux arm64 execution-host evidence, Security/SRE acceptance and Integration acceptance remain blocked until direct owner evidence exists.

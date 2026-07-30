@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx-oracle-market-data-v1",
+  "productId": "ynx-oracle-market-data",
+  "owner": "19 Oracle & Market Data",
+  "sourceCommit": "8f4310988a6641c5b023497c74e901ff508771fe",
+  "versions": {
+    "schema": "ynx.oracle.v1",
+    "aggregationPolicy": "weighted-median-mad-v1",
+    "derivativesPolicy": "index-funding-mark-v1",
+    "normalizer": "observation-normalizer-v1",
+    "store": 3
+  },
+  "authority": {
+    "factsOwned": [
+      "asset and market mapping",
+      "provider registry",
+      "provider observation validity",
+      "spot price aggregation",
+      "index price",
+      "mark price",
+      "funding reference",
+      "FX reference",
+      "stablecoin market price",
+      "reserve ratio evidence state",
+      "depeg status",
+      "DEX TWAP",
+      "quality",
+      "staleness",
+      "correction lineage",
+      "historical replay"
+    ],
+    "factsNotOwned": [
+      "chain finality",
+      "wallet identity",
+      "product authorization",
+      "order execution",
+      "liquidation execution",
+      "bridge release proof",
+      "reserve audit opinion",
+      "mint or burn authority"
+    ]
+  },
+  "api": [
+    {"method": "GET", "path": "/health", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/version", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/prices", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/index", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/mark", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/funding", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/providers", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/markets", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/status", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/history", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/corrections", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/replay", "auth": "public-read", "failClosed": true},
+    {"method": "GET", "path": "/v1/market-data", "auth": "public-read", "failClosed": true},
+    {"method": "POST", "path": "/internal/v1/observations", "auth": "canonical-service-admission-plus-reporter-signature", "failClosed": true}
+  ],
+  "authBoundary": {
+    "walletTuple": "not-applicable-to-public-market-data-read",
+    "productSession": "required only when the canonical Gateway policy assigns a protected consumer route",
+    "signedIntent": "not a substitute for reporter observation signatures",
+    "reporterSignature": "Ed25519 over canonical observation payload",
+    "nonceDomain": "deployment-specific and persisted with the store",
+    "replayRule": "reporter sequence must strictly increase",
+    "browserRule": "internal observation ingestion receives no public CORS permission"
+  },
+  "canonicalRecords": [
+    "signed provider observation",
+    "normalized observation event",
+    "aggregate event",
+    "derived price event",
+    "correction event",
+    "emergency control event"
+  ],
+  "qualityStates": [
+    "good",
+    "degraded",
+    "divergent",
+    "partial",
+    "corrected",
+    "limited_sources",
+    "circuit_breaker",
+    "last_good_stale",
+    "emergency_pause",
+    "paused",
+    "unavailable"
+  ],
+  "errorSemantics": [
+    {"condition": "invalid schema, market, type, source, source version, payload, timestamp, or coverage", "consumerAction": "reject"},
+    {"condition": "unknown or inactive provider", "consumerAction": "reject"},
+    {"condition": "replay or duplicate conflict", "consumerAction": "reject and audit"},
+    {"condition": "fewer than required independent sources", "consumerAction": "source limitation; do not treat as authoritative"},
+    {"condition": "stale, divergent, clamped, paused, unavailable, or circuit breaker", "consumerAction": "fail closed"},
+    {"condition": "last good value returned", "consumerAction": "read explicit stale age and reason; never relabel fresh"}
+  ],
+  "consumerValidation": [
+    "schema",
+    "market",
+    "type",
+    "source",
+    "version",
+    "asOf",
+    "confidencePpm",
+    "coveragePpm",
+    "stale",
+    "quality.status",
+    "quality.circuitBreaker",
+    "quality.failure",
+    "lineageHash",
+    "derived policy and component lineage"
+  ],
+  "migration": {
+    "breaking": true,
+    "legacyConflict": "Provider observations formerly allowed index_price, mark_price, and funding_reference.",
+    "canonicalResolution": "Providers emit spot_price, premium_reference, and basis_reference. Oracle derives index_price, funding_reference, and mark_price.",
+    "integrationFreezeRequired": true,
+    "freezeOwner": "29 Integration"
+  },
+  "dependencies": [
+    {"owner": "01 Chain Core", "input": "deterministic precompile or system-module contract", "status": "central-source-accepted-oracle-consumer-pending", "acceptedSourceCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e", "centralReceipt": "release/integration/evidence/product-01-central-acceptance-329092c1.json"},
+    {"owner": "02 Wallet/Auth", "input": "canonical protected-route session policy when applicable", "status": "central-source-accepted-route-policy-pending", "acceptedSourceCommit": "f28b0aa29a0d93a2b7f20a00b835c4a1aa6175b3", "centralReceipt": "release/integration/evidence/product-02-central-acceptance-94acfece.json"},
+    {"owner": "07 Exchange", "input": "index, mark, funding, and liquidation consumer acceptance", "status": "pending-acceptance"},
+    {"owner": "09 DEX", "input": "confirmed pool-state and TWAP consumer contract", "status": "pending-acceptance"},
+    {"owner": "12 Explorer", "input": "public lineage and correction evidence", "status": "pending-acceptance"},
+    {"owner": "13 Monitor", "input": "stale, divergence, outage, and manipulation alert acceptance", "status": "pending-acceptance"},
+    {"owner": "17 Economics", "input": "stablecoin and reserve-evidence semantics", "status": "pending-acceptance"},
+    {"owner": "21 Bridge", "input": "valuation and route-risk consumer acceptance", "status": "pending-acceptance"},
+    {"owner": "26 Data Fabric", "input": "canonical event and retention acceptance", "status": "central-source-accepted-oracle-event-acceptance-pending", "acceptedSourceCommit": "2a09d7455a5fef9eee56ca736be4b600d40a1831", "centralReceipt": "release/integration/evidence/product-26-central-acceptance-01131b46.json"},
+    {"owner": "30 Security/SRE", "input": "signer custody, release, backup, and incident acceptance", "status": "central-source-accepted-oracle-operations-acceptance-pending", "acceptedSourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49", "centralReceipt": "release/integration/evidence/product-30-central-acceptance-a472d588.json"},
+    {"owner": "31 Governance", "input": "provider and parameter timelock acceptance", "status": "pending-acceptance"},
+    {"owner": "29 Integration", "input": "single protocol freeze and shared Testnet", "status": "pending-acceptance"}
+  ],
+  "testEvidence": {
+    "targetedRaceCommand": "go test -race ./internal/oracle ./internal/oracle/providers ./sdk/oracle/go",
+    "targetedRaceResult": "passed",
+    "vetCommand": "go vet ./internal/oracle/... ./sdk/oracle/go ./cmd/ynx-oracled ./cmd/ynx-oracle-provider ./cmd/ynx-oracle-cli",
+    "vetResult": "passed",
+    "fullRepositoryCommand": "make contract-tooling-check && make test",
+    "fullRepositoryResult": "passed",
+    "fullRepositoryFailures": [],
+    "publicTestnetSmokeResult": "passed-limited-source-fail-closed",
+    "publicTestnetUrl": "https://oracle-testnet.43.153.202.237.sslip.io",
+    "publicTestnetSourceCommit": "f71d5ca5c2ede28477fbadff36701a9f040e311f",
+    "publicTestnetEvidence": "release/evidence/oracle-public-testnet-f71d5ca.json"
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": true,
+    "deployedPublic": true,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

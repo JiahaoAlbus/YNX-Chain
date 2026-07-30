@@ -1,0 +1,181 @@
+{
+  "artifacts": [
+    {
+      "bytes": 5821770,
+      "coldStartTested": false,
+      "file": "ynx-oracle-0.1.0-testnet-darwin-arm64.tar.gz",
+      "hosted": false,
+      "id": "platform-darwin-arm64",
+      "kind": "server-cli-bundle",
+      "minimumRuntime": "macOS arm64",
+      "productionSigned": false,
+      "sha256": "80978b01c16349aec7a4653a175cdf043a293c789d9cfa411bab8dd63608ed75",
+      "target": "darwin-arm64"
+    },
+    {
+      "bytes": 5606405,
+      "coldStartTested": false,
+      "file": "ynx-oracle-0.1.0-testnet-linux-arm64.tar.gz",
+      "hosted": false,
+      "id": "platform-linux-arm64",
+      "kind": "server-cli-bundle",
+      "minimumRuntime": "Linux arm64",
+      "productionSigned": false,
+      "sha256": "e664854b338acef20f79dfae7fbddcf6031f5a1a5f3da942865e2a341a195219",
+      "target": "linux-arm64"
+    },
+    {
+      "bytes": 8681,
+      "coldStartTested": false,
+      "file": "ynx-oracle-client-0.1.0-testnet.tgz",
+      "hosted": false,
+      "id": "typescript-sdk",
+      "kind": "npm-package-candidate",
+      "minimumRuntime": "Node.js 20",
+      "productionSigned": false,
+      "sha256": "9a8a128e5463149b3669f3e422100a6be6f62e3fa4de5f4edd6107984eb5fa46",
+      "target": "any-node20"
+    },
+    {
+      "bytes": 5663,
+      "coldStartTested": false,
+      "file": "ynx-oracle-client-go-0.1.0-testnet.tar.gz",
+      "hosted": false,
+      "id": "go-sdk",
+      "kind": "go-module-source-candidate",
+      "minimumRuntime": "Go 1.25.12",
+      "productionSigned": false,
+      "sha256": "2e4dd92ff3e5284c6eec79115e56dacc0fa027f4209fe169f932ad35343895c5",
+      "target": "any-go1.25.12"
+    }
+  ],
+  "build": {
+    "command": "node scripts/package/oracle-release.mjs --output <directory>",
+    "deterministicArchive": true,
+    "networkRequired": false,
+    "outputDirectoryRestricted": true,
+    "targets": [
+      {
+        "goarch": "arm64",
+        "goos": "darwin"
+      },
+      {
+        "goarch": "arm64",
+        "goos": "linux"
+      }
+    ],
+    "toolchain": {
+      "go": "go1.25.12",
+      "node": "v22.13.1",
+      "typescript": "Version 5.9.3"
+    }
+  },
+  "schema": "ynx-oracle-provenance/v1",
+  "signing": {
+    "algorithm": "Ed25519",
+    "detachedManifestSignatureRequiredForPublication": true,
+    "ownerKeyGeneratedByTool": false,
+    "signingClass": "unsigned-local-candidate"
+  },
+  "source": {
+    "clean": true,
+    "commitTime": "2026-07-27T14:36:52Z",
+    "files": [
+      {
+        "bytes": 4437,
+        "path": "go.mod",
+        "sha256": "225c8ea2d2b67a9d99b8cab6476fd7ea9c296b3358ca42777ee2af6dbff59749"
+      },
+      {
+        "bytes": 36600,
+        "path": "go.sum",
+        "sha256": "8084743bd7e108d78d54edee6396f89a0f561da044d5eafe4b561e48e5370793"
+      },
+      {
+        "bytes": 9056,
+        "path": "cmd/ynx-oracled/main.go",
+        "sha256": "89fc38a1fe22cba6e253c5453d431e9e9af35cd233baf27f29679a04bea201c5"
+      },
+      {
+        "bytes": 3199,
+        "path": "cmd/ynx-oracle-cli/main.go",
+        "sha256": "749d5c1ddf6a27cbaf1646635f502df67a8147d166a6271b8ac461a64fcdfe86"
+      },
+      {
+        "bytes": 18435,
+        "path": "sdk/oracle/go/client.go",
+        "sha256": "0fe1f208a5b87a03e69440f12a00f714ac8f689e56d9eb11fbfb4a8cf4e7014f"
+      },
+      {
+        "bytes": 528,
+        "path": "sdk/oracle/typescript/package.json",
+        "sha256": "c6e0fe949cf5bfeaad9387998b2e301f2613d9cb9dd657003ef663686ad9fa49"
+      },
+      {
+        "bytes": 1632,
+        "path": "sdk/oracle/typescript/README.md",
+        "sha256": "79338da650b7a96f33332eaf955e671774210cfa603ef904d61e899304faaf84"
+      },
+      {
+        "bytes": 26204,
+        "path": "sdk/oracle/typescript/src/index.ts",
+        "sha256": "496760b2daeb5ad2e08fa44e451960cd7f3257c9c61f832f12f3371a72bab818"
+      },
+      {
+        "bytes": 514,
+        "path": "sdk/oracle/typescript/tsconfig.json",
+        "sha256": "3ad86b09dc95e2f3d03ec23f1874041152102477798b1f7a09230ca87aa98d7f"
+      },
+      {
+        "bytes": 3318,
+        "path": "integration/oracle/v1/consumer-test-vectors.json",
+        "sha256": "f688909d4f598656c908f4b2c2c37abce98107275927c1f5d8d56319777bfc81"
+      },
+      {
+        "bytes": 10873,
+        "path": "integration/oracle/v1/price.schema.json",
+        "sha256": "ffd23067f6a6c5c8796a95d4f10ee24cbb277b40e59139c94980578b84d00937"
+      },
+      {
+        "bytes": 6200,
+        "path": "config/oracle/provider-candidates.json",
+        "sha256": "a7111df6b39cbe99ce521b4a543ac32ffabf2e49de8cb1e5d43c1de05877d6bb"
+      },
+      {
+        "bytes": 4875,
+        "path": "OPERATIONS.md",
+        "sha256": "990c762e16eedbfd99cd6f9bee70cac7d3bca3f7334f50c2aa58f937d05e5cf7"
+      },
+      {
+        "bytes": 1095,
+        "path": "THIRD_PARTY_NOTICES.md",
+        "sha256": "437cf699deef0596b4c868cc18a66482791688bed60ba0f246bfe6029e542fad"
+      },
+      {
+        "bytes": 15040,
+        "path": "scripts/lib/sdk-release.mjs",
+        "sha256": "8af4605ad0e1174317b3bf13ab4ec027aa3728f3adc3388067728f6f4946edd5"
+      },
+      {
+        "bytes": 20139,
+        "path": "scripts/package/oracle-release.mjs",
+        "sha256": "944835f5d07a147e467a3823a5948aaa42219a48ef60e70d4aefb17ffeb9c58e"
+      },
+      {
+        "bytes": 15756,
+        "path": "scripts/verify/oracle-release-verify.mjs",
+        "sha256": "7c9d29e9d376122dd475f3be3854b7a93d5a1046113785fc1f20188823e2c4b8"
+      },
+      {
+        "bytes": 11869,
+        "path": "scripts/verify/oracle-release-integrity-check.mjs",
+        "sha256": "27cf016eb8858cbd3afc35e64120d94c7d1b9d87c7b719a113d18b78ef6e5221"
+      }
+    ],
+    "gitCommit": "6ba6c39a6661724e07205a265201ac7fa36c91bb",
+    "repository": "github.com/JiahaoAlbus/YNX-Chain"
+  },
+  "status": "local-candidate; not hosted; not production-signed; not released",
+  "subject": "YNX Oracle & Market Data",
+  "version": "0.1.0-testnet"
+}

@@ -1,29 +1,14 @@
 # Decisions
 
-## 2026-07-27 — Capacity reservation authority
+## 2026-07-27
 
-A reservation is authoritative only for the exact Offer referenced by the accepted Quote. Provider-level totals are retained as a derived aggregate, but they cannot be used to borrow capacity across sibling Offers.
-
-## 2026-07-27 — Self-dealing
-
-A Provider wallet cannot purchase its own fixed-price capacity or submit an auction bid when it is also the procurement buyer. These paths fail closed and expose `RESOURCE_SELF_DEALING_REJECTED` through the API contract.
-
-## 2026-07-27 — Schema 6 migration
-
-Pre-v6 snapshots derive Offer and Provider reservation ledgers solely from active orders with valid Quote→Offer lineage and persist the upgrade at startup. Once a snapshot is schema 6, ledger mismatch is treated as semantic tampering and startup fails closed; it is never silently repaired.
-
-## 2026-07-27 — Release truth
-
-Passing local tests, Race, Vet and cold-start smoke does not set central, staging, public, hosted, signed or store-release booleans. The product remains `ACTIVE` in `INTEGRATE`.
-
-## 2026-07-27 — Amount arithmetic
-
-All monetary values remain non-negative signed 64-bit integers at the Resource Market boundary. Quote, auction, metering, settlement and dispute calculations use checked arithmetic; overflow returns `RESOURCE_AMOUNT_OUT_OF_RANGE` before any authoritative state mutation. Central consumers must preserve this failure and must not clamp, wrap or reinterpret it as a successful charge, settlement or refund.
-
-## 2026-07-29 — Tested-source evidence binding
-
-Release metadata binds `d683c7d28ce129daad358c84680e5980cf8ad069`, the exact source verified by Resource Market Candidate Gates run `30417957999`. Later checkpoint-only commits do not replace that tested source identity.
-
-## 2026-07-29 — Operator input ownership
-
-The repository-wide `release/operator-inputs.request.json` remains a central/shared file from main. Resource Market-specific deployment, provider, signer, localization and hosting inputs live at `apps/resource-market/operator-inputs.request.json` to avoid overwriting another Owner's central evidence.
+1. The authoritative product is `19｜YNX Oracle & Market Data`, selected only by exact Worktree and Branch match.
+2. The public endpoint is classified as a real limited-source Testnet control plane, not an authoritative price release: `activeProviderCount=0`, `requiredProviderCount=3`, `authoritativePrices=false`, `released=false`.
+3. Consumer validation must be portable and contract-first. The Go and TypeScript SDKs use the same canonical acceptance vectors.
+4. The consumer CLI must fail closed and must not print a value that fails market/type/version/freshness/confidence/coverage validation.
+5. Dedicated Android, iOS, macOS and Windows Oracle apps are not applicable to this infrastructure product; Web/PWA, server/container, SDK and CLI are the appropriate delivery forms.
+6. Deterministic artifact packaging and provenance are now `testedLocal` at source commit `6ba6c39a6661724e07205a265201ac7fa36c91bb`; the next autonomous priority is direct Web accessibility evidence, followed by Linux arm64 native cold-start evidence when an execution host is available.
+7. Build manifests remain build-time truth and therefore keep `coldStartTested=false`; post-build install/cold-start results are recorded separately in `release/evidence/oracle-artifact-verification-6ba6c39a6661.json`.
+8. Artifact evidence export is restricted to `release/evidence`, commit-addressed, and excludes large binary archives from Git. Publication still requires immutable hosting and production signing.
+9. Missing `rg` must never produce a green security or placeholder gate; tracked-source scans use explicit `git grep` exit-status handling.
+10. No state may be promoted from local/tested to integrated, hosted, signed or released without direct evidence.

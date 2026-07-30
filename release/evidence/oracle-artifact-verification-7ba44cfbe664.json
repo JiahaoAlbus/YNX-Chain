@@ -1,0 +1,111 @@
+{
+  "schema": "ynx.oracle.artifact-verification.v1",
+  "productId": "ynx-oracle-market-data",
+  "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
+  "version": "0.1.0-testnet",
+  "verifiedAt": "2026-07-30T04:35:00Z",
+  "status": "tested-local-candidate",
+  "publication": {
+    "downloadHosted": false,
+    "productionSigned": false,
+    "registryPublished": false,
+    "released": false,
+    "storeReleased": false
+  },
+  "evidenceFiles": [
+    {
+      "path": "release/evidence/oracle-artifact-manifest-7ba44cfbe664.json",
+      "bytes": 11653,
+      "sha256": "d866387f68f269c3d6a29e88920d583253674f2f5f2ff8a6ea2294674699f394"
+    },
+    {
+      "path": "release/evidence/oracle-artifact-provenance-7ba44cfbe664.json",
+      "bytes": 5858,
+      "sha256": "3967df5343310c73af5399ea7baa9ebf162edf6016616487c564606e6b7e7ba6"
+    },
+    {
+      "path": "release/evidence/oracle-artifact-sbom-7ba44cfbe664.cdx.json",
+      "bytes": 83933,
+      "sha256": "c9ac483fe483a55893dbadd05f87ed126de149ac22dfafc84b0dcaa1f3185c15"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "platform-darwin-arm64",
+      "file": "ynx-oracle-0.1.0-testnet-darwin-arm64.tar.gz",
+      "bytes": 5607991,
+      "sha256": "dd43573c6155de62e7f1b942c7acc28c317c244537510fa92fbe13db9570427a",
+      "archiveVerified": true,
+      "installedLocal": true,
+      "configCheckPassed": true,
+      "coldStartPassed": true,
+      "versionCommitMatched": true,
+      "gracefulShutdownPassed": true
+    },
+    {
+      "id": "platform-linux-arm64",
+      "file": "ynx-oracle-0.1.0-testnet-linux-arm64.tar.gz",
+      "bytes": 5392590,
+      "sha256": "7ea1778d4db558ddeb6685838e1477b71514c80df4abecf9bb5a754d2a2065cd",
+      "archiveVerified": true,
+      "installedLocal": false,
+      "coldStartPassed": false,
+      "blockedBy": "No Linux arm64 execution host was used in this verification slice."
+    },
+    {
+      "id": "typescript-sdk",
+      "file": "ynx-oracle-client-0.1.0-testnet.tgz",
+      "bytes": 8576,
+      "sha256": "aca233d44251f993a46821b4b2fb80ea6d3958e53cb65330bd10bac6ce361f6e",
+      "archiveVerified": true,
+      "offlineInstallPassed": true,
+      "cleanConsumerPassed": true,
+      "remotePlainHttpRejected": true
+    },
+    {
+      "id": "go-sdk",
+      "file": "ynx-oracle-client-go-0.1.0-testnet.tar.gz",
+      "bytes": 5570,
+      "sha256": "1a029a4f834d544d700f0ca8bb66340eaa16bc7def7345358b12337a093823f7",
+      "archiveVerified": true,
+      "isolatedConsumerTestsPassed": true,
+      "remotePlainHttpRejected": true
+    }
+  ],
+  "verification": {
+    "deterministicDoubleBuild": true,
+    "sourceBindingsVerified": true,
+    "archiveTargetsVerified": true,
+    "sbomVerified": true,
+    "provenanceVerified": true,
+    "ephemeralEd25519SignaturePathVerified": true,
+    "tamperedSignatureRejected": true,
+    "tamperedArtifactRejected": true,
+    "evidencePathBoundaryVerified": true,
+    "secretScanPassed": true,
+    "placeholderScanPassed": true,
+    "githubActionsPinned": true,
+    "dependencyAuditHigh": 0,
+    "oracleRaceSuitePassed": true,
+    "browserAccessibilityPassed": true,
+    "typescriptSdkTestsPassed": 18
+  },
+  "commands": [
+    "make oracle-release-integrity-check",
+    "make oracle-test",
+    "go vet ./internal/oracle/... ./sdk/oracle/go ./cmd/ynx-oracled ./cmd/ynx-oracle-provider ./cmd/ynx-oracle-cli",
+    "make oracle-web-test",
+    "npm --prefix apps/oracle run test:browser:a11y",
+    "npm --prefix sdk/oracle/typescript test",
+    "npm audit --prefix apps/oracle --audit-level=high",
+    "node scripts/verify/github-actions-pins-check.mjs",
+    "make secret-scan",
+    "make no-placeholder-check",
+    "make oracle-release-evidence"
+  ],
+  "limitations": [
+    "Artifacts are local, unsigned and not yet hosted.",
+    "Linux arm64 archive structure and binary target were verified, but native Linux install and cold start remain unverified.",
+    "Authoritative market-data publication remains disabled because zero of three required independent providers are active."
+  ]
+}

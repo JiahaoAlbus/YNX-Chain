@@ -1,19 +1,21 @@
-# Open questions and external inputs
+# Open Questions
 
-No ordinary engineering decision is waiting for user confirmation.
+## External decisions or inputs
 
-## Central owner acceptance
+- Which three independent providers have approved benchmark, valuation, redistribution and retention rights for the intended Testnet markets?
+- What secure custody path will hold reporter Ed25519 keys and the Oracle state-integrity HMAC key?
+- Which exact Integration protocol version will 29 Integration freeze for all consumers?
+- When will Chain, Exchange, DEX, Quant, Finance, Pay, Explorer, Monitor, Bridge, Gateway and Wallet/Auth return acceptance evidence?
+- Which hosting and signing authorities will publish the public Oracle Web and immutable server/CLI/SDK artifacts?
+- Which Linux arm64 execution environment will provide native install, cold-start, `/version` commit and graceful-shutdown evidence?
 
-- `02-wallet-auth`: accept the Resource Market product client, exact Product Session proof semantics and callback tuple.
-- `01-chain-core` and `26-data-fabric`: provide authoritative settlement finality and billing-ledger acceptance for signed usage.
-- `12-explorer`, `13-monitor` and `15-trust-center`: accept receipt proof, alert/incident and dispute/appeal vectors.
-- `29-integration`: freeze the shared contract and execute all cross-product vectors against deployed Testnet services.
+## Autonomous questions to resolve next
 
-## Public and operator inputs
+- Which accessibility tooling is already installed under `apps/oracle` for direct keyboard, RTL, large-text, reduced-motion, theme and 390px verification?
+- Can the host `python3` SIGKILL condition be isolated without changing system configuration, or should the shared SDK suite remain recorded as an environment blocker while Oracle-specific consumers stay green?
 
-- Two independently operated public Provider endpoints with real CPU/Developer/Quant/AI workloads.
-- Testnet funding and authorized settlement identity.
-- Website/DNS deployment authority, support/privacy/security/status URLs and production signing assets.
-- Jurisdiction-specific retention, dispute, refund and insurance review.
+## Resolved in this slice
 
-These inputs block central, Testnet and public verification. No remaining ordinary local engineering decision requires user confirmation; the next action is PR merge followed by central acceptance and deployed Testnet execution.
+- Package layout: deterministic macOS arm64 and Linux arm64 server/CLI archives, TypeScript npm candidate and Go module source candidate; no credentials or active provider material are included.
+- Provenance/SBOM reuse: the bounded deterministic tar/JSON primitives in `scripts/lib/sdk-release.mjs` are reused, with Oracle-specific verification and evidence export rather than a duplicate archive format.
+- Evidence boundary: generated Manifest, Provenance and CycloneDX SBOM are commit-addressed under `release/evidence`; large binary archives remain outside Git.

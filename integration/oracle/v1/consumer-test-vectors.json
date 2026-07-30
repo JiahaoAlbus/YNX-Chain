@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "fixtureOnly": true,
+  "description": "Deterministic consumer validation fixtures. They are never runtime prices.",
+  "consumerPolicy": {
+    "requestedMarket": "YNXT/YUSD_TEST",
+    "requestedType": "spot_price",
+    "now": "2026-07-22T12:00:05Z",
+    "maximumAgeSeconds": 30,
+    "minimumConfidencePpm": 900000,
+    "minimumCoveragePpm": 1000000
+  },
+  "base": {
+    "schema": "ynx.oracle.v1",
+    "market": "YNXT/YUSD_TEST",
+    "type": "spot_price",
+    "value": 1000000,
+    "scale": 1000000,
+    "source": "YNX Oracle aggregated provider observations",
+    "version": "weighted-median-mad-v1",
+    "asOf": "2026-07-22T12:00:00Z",
+    "producedAt": "2026-07-22T12:00:01Z",
+    "quality": {
+      "status": "good",
+      "stale": false,
+      "sourceCount": 3,
+      "requiredSourceCount": 3,
+      "rejectedSources": [],
+      "divergencePpm": 1000,
+      "confidencePpm": 999000,
+      "coveragePpm": 1000000,
+      "circuitBreaker": false
+    },
+    "observationIds": ["fixture-source-a", "fixture-source-b", "fixture-source-c"],
+    "observationHashes": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"],
+    "lineageHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "cases": [
+    { "id": "accept-good", "changes": [], "accept": true },
+    { "id": "reject-schema", "changes": [{ "path": "/schema", "value": "ynx.oracle.v2" }], "accept": false, "reason": "schema mismatch" },
+    { "id": "reject-market", "changes": [{ "path": "/market", "value": "BTC/USD" }], "accept": false, "reason": "requested market mismatch" },
+    { "id": "reject-type", "changes": [{ "path": "/type", "value": "index_price" }], "accept": false, "reason": "requested type mismatch" },
+    { "id": "reject-stale", "changes": [{ "path": "/quality/stale", "value": true }, { "path": "/quality/status", "value": "last_good_stale" }], "accept": false, "reason": "stale" },
+    { "id": "reject-old-as-of", "changes": [{ "path": "/asOf", "value": "2026-07-22T11:00:00Z" }], "accept": false, "reason": "older than maximum age" },
+    { "id": "reject-future-as-of", "changes": [{ "path": "/asOf", "value": "2026-07-22T12:01:00Z" }], "accept": false, "reason": "future dated" },
+    { "id": "reject-thin", "changes": [{ "path": "/quality/sourceCount", "value": 2 }, { "path": "/quality/coveragePpm", "value": 666666 }], "accept": false, "reason": "insufficient sources" },
+    { "id": "reject-confidence", "changes": [{ "path": "/quality/confidencePpm", "value": 899999 }], "accept": false, "reason": "confidence below policy" },
+    { "id": "reject-divergence-breaker", "changes": [{ "path": "/quality/status", "value": "circuit_breaker" }, { "path": "/quality/circuitBreaker", "value": true }, { "path": "/quality/divergencePpm", "value": 50001 }], "accept": false, "reason": "circuit breaker" },
+    { "id": "reject-failure", "changes": [{ "path": "/quality/failure", "value": "price is not safe for authoritative consumption" }], "accept": false, "reason": "explicit failure" },
+    { "id": "reject-lineage", "changes": [{ "path": "/lineageHash", "value": "not-a-hash" }], "accept": false, "reason": "malformed lineage" }
+  ]
+}

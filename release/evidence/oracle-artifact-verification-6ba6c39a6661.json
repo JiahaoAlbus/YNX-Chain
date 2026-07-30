@@ -1,0 +1,115 @@
+{
+  "schema": "ynx.oracle.artifact-verification.v1",
+  "productId": "ynx-oracle-market-data",
+  "sourceCommit": "6ba6c39a6661724e07205a265201ac7fa36c91bb",
+  "version": "0.1.0-testnet",
+  "verifiedAt": "2026-07-27T14:53:37Z",
+  "status": "tested-local-candidate",
+  "publication": {
+    "downloadHosted": false,
+    "productionSigned": false,
+    "registryPublished": false,
+    "released": false,
+    "storeReleased": false
+  },
+  "evidenceFiles": [
+    {
+      "path": "release/evidence/oracle-artifact-manifest-6ba6c39a6661.json",
+      "bytes": 11653,
+      "sha256": "5b5066b18b9f8cdb0b078e5f127558662eec426d0388037532f81961da35a730"
+    },
+    {
+      "path": "release/evidence/oracle-artifact-provenance-6ba6c39a6661.json",
+      "bytes": 5859,
+      "sha256": "13a3029ec923031967ff7873e7b98fa67d81e9b6c012d754bed9c63ef38123b5"
+    },
+    {
+      "path": "release/evidence/oracle-artifact-sbom-6ba6c39a6661.cdx.json",
+      "bytes": 83933,
+      "sha256": "3b8457d964c9fc493de93e7df605c6dc9820c01608fd805f4578a631d5775e2d"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "platform-darwin-arm64",
+      "file": "ynx-oracle-0.1.0-testnet-darwin-arm64.tar.gz",
+      "bytes": 5821770,
+      "sha256": "80978b01c16349aec7a4653a175cdf043a293c789d9cfa411bab8dd63608ed75",
+      "minimumRuntime": "macOS arm64",
+      "signingClass": "unsigned-local-candidate",
+      "built": true,
+      "archiveVerified": true,
+      "installedLocal": true,
+      "configCheckPassed": true,
+      "coldStartPassed": true,
+      "versionCommitMatched": true,
+      "gracefulShutdownPassed": true
+    },
+    {
+      "id": "platform-linux-arm64",
+      "file": "ynx-oracle-0.1.0-testnet-linux-arm64.tar.gz",
+      "bytes": 5606405,
+      "sha256": "e664854b338acef20f79dfae7fbddcf6031f5a1a5f3da942865e2a341a195219",
+      "minimumRuntime": "Linux arm64",
+      "signingClass": "unsigned-local-candidate",
+      "built": true,
+      "archiveVerified": true,
+      "installedLocal": false,
+      "coldStartPassed": false,
+      "blockedBy": "No Linux arm64 execution host was used in this verification slice."
+    },
+    {
+      "id": "typescript-sdk",
+      "file": "ynx-oracle-client-0.1.0-testnet.tgz",
+      "bytes": 8681,
+      "sha256": "9a8a128e5463149b3669f3e422100a6be6f62e3fa4de5f4edd6107984eb5fa46",
+      "minimumRuntime": "Node.js 20",
+      "signingClass": "unsigned-local-candidate",
+      "archiveVerified": true,
+      "offlineInstallPassed": true,
+      "cleanConsumerPassed": true,
+      "remotePlainHttpRejected": true
+    },
+    {
+      "id": "go-sdk",
+      "file": "ynx-oracle-client-go-0.1.0-testnet.tar.gz",
+      "bytes": 5663,
+      "sha256": "2e4dd92ff3e5284c6eec79115e56dacc0fa027f4209fe169f932ad35343895c5",
+      "minimumRuntime": "Go 1.25.12",
+      "signingClass": "unsigned-local-candidate",
+      "archiveVerified": true,
+      "isolatedConsumerTestsPassed": true,
+      "remotePlainHttpRejected": true
+    }
+  ],
+  "verification": {
+    "deterministicDoubleBuild": true,
+    "manifestCanonicalJson": true,
+    "sourceBindingsVerified": true,
+    "archiveTargetsVerified": true,
+    "sbomVerified": true,
+    "provenanceVerified": true,
+    "ephemeralEd25519SignaturePathVerified": true,
+    "tamperedSignatureRejected": true,
+    "tamperedArtifactRejected": true,
+    "evidencePathBoundaryVerified": true,
+    "secretScanPassed": true,
+    "placeholderScanPassed": true,
+    "oracleRaceSuitePassed": true,
+    "cliRaceSuitePassed": true
+  },
+  "commands": [
+    "make oracle-release-integrity-check",
+    "make oracle-test",
+    "go test ./cmd/ynx-oracle-cli ./sdk/oracle/go -race -count=1",
+    "make secret-scan",
+    "make no-placeholder-check",
+    "make oracle-release-evidence",
+    "node scripts/verify/oracle-release-verify.mjs --manifest tmp/oracle-release/oracle-release-manifest.json --artifacts tmp/oracle-release --source-root . --expected-commit 6ba6c39a6661724e07205a265201ac7fa36c91bb"
+  ],
+  "limitations": [
+    "Artifacts are not hosted or production-signed.",
+    "Linux arm64 archive structure and binary target were verified, but native install and cold start remain unverified.",
+    "The shared repository SDK integrity suite could not execute because every host python3 process was immediately terminated with SIGKILL; Oracle TypeScript and Go artifact consumers passed independently."
+  ]
+}
