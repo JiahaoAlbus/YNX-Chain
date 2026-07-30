@@ -20,6 +20,7 @@ jobs:
           cache: npm
       - run: node scripts/verify/github-actions-pins-check.mjs
       - run: npm ci
+      - run: node scripts/verify/github-actions-pins-check.mjs
       - run: make dependency-audit
       - run: make env-check
       - run: make no-placeholder-check

@@ -1,0 +1,79 @@
+rule_files:
+  - oracle-alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: degraded and insufficient-source alerts fire and recover
+    interval: 1m
+    input_series:
+      - series: 'up{job="ynx-oracled",instance="127.0.0.1:9470"}'
+        values: '1x5'
+      - series: 'ynx_oracle_health_degraded{job="ynx-oracled",instance="127.0.0.1:9470"}'
+        values: '1x2 0x2'
+      - series: 'ynx_oracle_active_provider_count{job="ynx-oracled",instance="127.0.0.1:9470"}'
+        values: '0x2 3x2'
+      - series: 'ynx_oracle_required_provider_count{job="ynx-oracled",instance="127.0.0.1:9470"}'
+        values: '3x5'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: YNXOracleDegraded
+        exp_alerts:
+          - exp_labels:
+              instance: 127.0.0.1:9470
+              job: ynx-oracled
+              severity: warning
+            exp_annotations:
+              summary: YNX Oracle is degraded
+              description: Oracle health is degraded and authoritative consumers must remain fail closed.
+      - eval_time: 1m
+        alertname: YNXOracleInsufficientSources
+        exp_alerts:
+          - exp_labels:
+              instance: 127.0.0.1:9470
+              job: ynx-oracled
+              severity: critical
+            exp_annotations:
+              summary: YNX Oracle has insufficient independent sources
+              description: Active provider coverage is below the versioned minimum-source policy; prices are not authoritative.
+      - eval_time: 3m
+        alertname: YNXOracleDegraded
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: YNXOracleInsufficientSources
+        exp_alerts: []
+
+  - name: metrics outage and emergency pause remain critical
+    interval: 1m
+    input_series:
+      - series: 'up{job="ynx-oracled",instance="127.0.0.1:9470"}'
+        values: '0 0 1 1'
+      - series: 'ynx_oracle_emergency_paused{job="ynx-oracled",instance="127.0.0.1:9470"}'
+        values: '0 1 0 0'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: YNXOracleMetricsDown
+        exp_alerts:
+          - exp_labels:
+              instance: 127.0.0.1:9470
+              job: ynx-oracled
+              severity: critical
+            exp_annotations:
+              summary: YNX Oracle metrics endpoint is unreachable
+              description: Prometheus cannot scrape the loopback-only Oracle metrics endpoint.
+      - eval_time: 1m
+        alertname: YNXOracleEmergencyPaused
+        exp_alerts:
+          - exp_labels:
+              instance: 127.0.0.1:9470
+              job: ynx-oracled
+              severity: critical
+            exp_annotations:
+              summary: YNX Oracle emergency pause is active
+              description: An audited emergency control event has disabled authoritative publication.
+      - eval_time: 2m
+        alertname: YNXOracleMetricsDown
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: YNXOracleEmergencyPaused
+        exp_alerts: []

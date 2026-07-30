@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "product": null,
+  "owner": null,
+  "oracleSourceCommit": null,
+  "consumerSourceCommit": null,
+  "integrationDate": null,
+  "contractVersion": "ynx.oracle.v1",
+  "sdkVersion": null,
+  "status": "pending",
+  "integrationFiles": [],
+  "publicEndpoints": [],
+  "testVectorResults": [],
+  "drillResults": [],
+  "deploymentEvidence": [],
+  "mustRejectVerified": {
+    "stale": false,
+    "degraded": false,
+    "divergent": false,
+    "partial": false,
+    "unavailable": false,
+    "paused": false,
+    "circuitBreaker": false,
+    "insufficientSources": false,
+    "lowConfidence": false,
+    "schemaMismatch": false,
+    "lineageMismatch": false
+  },
+  "authorityBoundaryVerified": false,
+  "failClosedVerified": false,
+  "review": {
+    "reviewer": null,
+    "reviewedAt": null,
+    "result": "pending",
+    "notes": []
+  },
+  "limitations": [],
+  "instructions": [
+    "Replace null values with exact evidence-backed facts.",
+    "Do not set status to accepted until every claimed test, drill, endpoint, and commit can be independently verified.",
+    "Do not include credentials, private keys, tokens, seed material, or private infrastructure addresses."
+  ]
+}

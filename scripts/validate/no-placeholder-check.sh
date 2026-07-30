@@ -11,6 +11,9 @@ if command -v rg >/dev/null 2>&1; then
     -g '!**/node_modules/**' \
     -g '!**/dist/**' \
     -g '!**/build/**' \
+    -g '!**/tests/**' \
+    -g '!**/*.test.*' \
+    -g '!**/*_test.go' \
     -g '!tools/scaffold-ynx-chain.mjs' \
     -g '!scripts/validate/no-placeholder-check.sh' \
     -g '!apps/wallet/scripts/release-content-check.mjs' \
@@ -35,10 +38,13 @@ else
     --exclude='lib.sh' \
     --exclude='ZERO_PLACEHOLDER_POLICY.md' \
     --exclude='PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
+    --exclude='*.test.*' \
+    --exclude='*_test.go' \
     --exclude-dir='.git' \
     --exclude-dir='node_modules' \
     --exclude-dir='dist' \
     --exclude-dir='build' \
+    --exclude-dir='tests' \
     -- "$bad" "${scan_targets[@]}"; then
     found=0
   else

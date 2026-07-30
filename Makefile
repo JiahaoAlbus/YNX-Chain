@@ -4,6 +4,35 @@
 .PHONY: integration-coverage-refresh integration-coverage-refresh-check integration-acceptance-refresh integration-acceptance-check integration-release-acceptance-check integration-product-release-matrix-refresh integration-product-release-matrix-check integration-npm-audit-policy-check integration-npm-audit-policy-check-test integration-protect-preflight
 .PHONY: bft-evm-legacy-transfer-check bft-evm-access-list-transfer-check bft-evm-dynamic-fee-transfer-check bft-evm-fee-suggestion-check bft-evm-fee-history-check asset-primitives-check
 .PHONY: yusd-sandbox-check liquid-staking-candidate-check safety-module-candidate-check account-abstraction-check solvency-check integration-contract-check consensus-state-sync-check consensus-eip1559-commit-check consensus-fee-history-check streambft-candidate-check chain-core-release-check
+.PHONY: oracle-test oracle-web-test oracle-container oracle-dast oracle-testnet-package oracle-testnet-smoke oracle-release-package oracle-release-evidence oracle-release-integrity-check
+
+oracle-test:
+	go test ./internal/oracle/... ./sdk/oracle/go ./cmd/ynx-oracled ./cmd/ynx-oracle-provider -race -count=1
+
+oracle-web-test:
+	npm --prefix apps/oracle run lint
+	npm --prefix apps/oracle test
+
+oracle-container:
+	docker build --build-arg SOURCE_COMMIT=$$(git rev-parse HEAD) --file Dockerfile.oracle --tag ynx-oracle:testnet .
+
+oracle-dast: oracle-container
+	bash ./scripts/verify/oracle-dast.sh
+
+oracle-testnet-package:
+	PACKAGE_ONLY=1 bash ./scripts/deploy/deploy-oracle-testnet.sh
+
+oracle-testnet-smoke:
+	bash ./scripts/verify/oracle-testnet-smoke.sh
+
+oracle-release-package:
+	node ./scripts/package/oracle-release.mjs --output tmp/oracle-release
+
+oracle-release-evidence:
+	node ./scripts/package/oracle-release.mjs --output tmp/oracle-release --evidence-dir release/evidence
+
+oracle-release-integrity-check:
+	node ./scripts/verify/oracle-release-integrity-check.mjs
 
 setup:
 	go mod tidy

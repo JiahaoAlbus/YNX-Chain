@@ -1,0 +1,59 @@
+groups:
+  - name: ynx-oracle-testnet
+    rules:
+      - alert: YNXOracleMetricsDown
+        expr: up{job="ynx-oracled"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX Oracle metrics endpoint is unreachable
+          description: Prometheus cannot scrape the loopback-only Oracle metrics endpoint.
+      - alert: YNXOracleDegraded
+        expr: ynx_oracle_health_degraded{job="ynx-oracled"} == 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Oracle is degraded
+          description: Oracle health is degraded and authoritative consumers must remain fail closed.
+      - alert: YNXOracleInsufficientSources
+        expr: ynx_oracle_active_provider_count{job="ynx-oracled"} < ynx_oracle_required_provider_count{job="ynx-oracled"}
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX Oracle has insufficient independent sources
+          description: Active provider coverage is below the versioned minimum-source policy; prices are not authoritative.
+      - alert: YNXOracleEmergencyPaused
+        expr: ynx_oracle_emergency_paused{job="ynx-oracled"} == 1
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX Oracle emergency pause is active
+          description: An audited emergency control event has disabled authoritative publication.
+      - alert: YNXOracleStorageUnavailable
+        expr: ynx_oracle_storage_ready{job="ynx-oracled"} != 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX Oracle storage is unavailable
+          description: Oracle cannot prove that its versioned state store is ready.
+      - alert: YNXOracleUnsafePriceResponses
+        expr: increase(ynx_oracle_price_unsafe_total{job="ynx-oracled"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Oracle rejected an unsafe price
+          description: At least one price request failed staleness, coverage, divergence, pause, or circuit-breaker policy.
+      - alert: YNXOracleIngestRejections
+        expr: increase(ynx_oracle_ingest_rejected_total{job="ynx-oracled"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Oracle rejected provider observations
+          description: Inspect redacted request and error IDs for signature, replay, schema, source, timestamp, or policy failures.

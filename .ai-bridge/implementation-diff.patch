@@ -1,0 +1,26 @@
+# Protected implementation checkpoints
+#
+# The source implementation is already committed and pushed. Review these exact
+# commits instead of treating this file as an uncommitted source patch:
+#
+# 6e811f74c3d68aa70d3216fea9682e932f9a3e73
+#   feat(oracle): add strict TypeScript consumer SDK
+#   - sdk/oracle/typescript/src/index.ts
+#   - sdk/oracle/typescript/test/client.test.mjs
+#   - sdk/oracle/typescript/package.json
+#   - sdk/oracle/typescript/tsconfig.json
+#   - sdk/oracle/typescript/README.md
+#
+# 1d17e520186a500f5c9ab04ee88769637d88fc59
+#   feat(oracle): add fail-closed consumer CLI
+#   - cmd/ynx-oracle-cli/main.go
+#   - cmd/ynx-oracle-cli/main_test.go
+#
+# Verification:
+# - TypeScript compile: passed
+# - TypeScript tests: 18 passed, 0 failed
+# - Go CLI and SDK race tests: passed
+#
+# Current uncommitted checkpoint changes are evidence/status synchronization and
+# .ai-bridge/full-goal-coverage.json. They must be reviewed with show_changes
+# before commit.
