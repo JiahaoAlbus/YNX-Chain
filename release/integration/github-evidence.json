@@ -2,8 +2,8 @@
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
   "repository": "JiahaoAlbus/YNX-Chain",
-  "generatedAt": "2026-07-30T15:19:47.274Z",
-  "controllerSourceCommit": "2a34627539ba8d7b0dad8e8cdfb8a3e3461e2275",
+  "generatedAt": "2026-07-30T16:13:53.866Z",
+  "controllerSourceCommit": "9c6ee5656be85a7698f9c02ad862d69c362cdff7",
   "limits": {
     "runs": 200,
     "exactHeadRunsPerBranch": 100,
@@ -16,7 +16,7 @@
     "artifacts": true
   },
   "queryAttempts": {
-    "runs": 1,
+    "runs": 2,
     "exactHeadRuns": {
       "17": {
         "branch": "codex/final-tokenomics",
@@ -64,7 +64,7 @@
         "queried": true,
         "availableInRecentWindow": false,
         "ok": true,
-        "attempts": 3,
+        "attempts": 2,
         "error": null,
         "matchingRuns": 9
       },
@@ -84,7 +84,7 @@
         "queried": true,
         "availableInRecentWindow": false,
         "ok": true,
-        "attempts": 1,
+        "attempts": 3,
         "error": null,
         "matchingRuns": 6
       },
@@ -99,7 +99,7 @@
         "matchingRuns": 8
       }
     },
-    "releases": 1,
+    "releases": 2,
     "artifacts": 1
   },
   "queryErrors": {
