@@ -125,6 +125,9 @@ func TestBFTResourceGatewayRequiresSecureMatchingSigner(t *testing.T) {
 	if err := os.WriteFile(path, []byte(hex.EncodeToString(key.Serialize())), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Chmod(path, 0o644); err != nil {
+		t.Fatal(err)
+	}
 	base.SignerKey, base.SignerKeyPath, base.SignerAddress = "", path, signer
 	if _, err := New(base); err == nil {
 		t.Fatal("BFT mode accepted group/world-readable signer file")

@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 2,
+  "productId": "ynx-data-fabric",
+  "productName": "YNX Data Fabric & Billing Ledger",
+  "release": "ynx-data-fabric-84872ff9042e",
+  "channel": "testnet-preview",
+  "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+  "generatedAt": "2026-07-29T20:40:02Z",
+  "phase": "INTEGRATE",
+  "overallStatus": "ACTIVE",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "components": {
+    "eventEnvelope": {
+      "currentVersion": "2.0",
+      "acceptedVersions": ["1.0", "2.0"],
+      "schema": "schemas/data-fabric/event-envelope-v2.schema.json",
+      "runtime": "internal/datafabric/envelope.go",
+      "unknownFields": "reject",
+      "invalidVersion": "reject-and-dead-letter",
+      "duplicate": "acknowledge-without-reapplying-effect",
+      "outOfOrder": "reject-for-ordered-aggregate-and-retry-after-gap",
+      "tamper": "reject-quarantine-alert"
+    },
+    "schemaRegistry": {
+      "version": "2.0",
+      "artifact": "schemas/data-fabric/schema-registry-v2.json",
+      "compatibilityAPI": true
+    },
+    "storage": {
+      "fileStoreSchema": 1,
+      "postgresMigration": 6,
+      "rollbackMigrations": true,
+      "appendOnlyLedgerCorrections": true,
+      "leasedSagaRecovery": true,
+      "atomicUsageBilling": true
+    },
+    "transport": {
+      "transactionalOutbox": true,
+      "consumerInbox": true,
+      "idempotentEffects": true,
+      "retryBackoff": true,
+      "deadLetter": true,
+      "replayBackfill": true,
+      "jetStreamAdapter": true,
+      "exactlyOnceClaim": "idempotent-state-transition-with-inbox-not-network-delivery"
+    },
+    "productIntegration": {
+      "payBFTBridge": "testedLocal",
+      "payLedgerReconciliation": "testedLocal",
+      "otherProducerOwners": "not-yet-integrated-central"
+    },
+    "releaseEngineering": {
+      "linuxPackage": "testedLocal",
+      "systemdInstall": "testedLocal",
+      "coldStart": "testedLocal",
+      "fixturePromotion": "testedLocal",
+      "publicPromotion": "not-evidenced",
+      "productionSigningAlgorithm": "ed25519-over-sha256",
+      "contractTestFallback": "rsa-pkcs1-sha256-over-sha256-loopback-only",
+      "signingClass": "ephemeral-test-fixture-only",
+      "hostedDownload": false
+    }
+  },
+  "evidence": {
+    "local": {
+      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+      "fullGoTest": "passed-with-standard-umask",
+      "dataFabricRace": "passed",
+      "schemaContract": "passed",
+      "releaseTruth": "passed"
+    },
+    "remoteCI": {
+      "runId": 30488889722,
+      "workflow": "data-fabric",
+      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+      "headCommit": "a737b19c92ae53f89792694cfe0d6de16567ae49",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-07-29T20:33:05Z",
+      "duration": "3m28s",
+      "artifactsPublished": false,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30488889722"
+    },
+    "sourceCandidate": {
+      "tag": "data-fabric-v0.2.0-source-candidate",
+      "releaseId": 362040034,
+      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+      "targetCommit": "8cbc3dba0cbd139a0ba6bf7ba716b406856b32f5",
+      "publishedAt": "2026-07-29T20:45:26Z",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/data-fabric-v0.2.0-source-candidate",
+      "assetCount": 7,
+      "archive": {
+        "name": "ynx-data-fabric-source-8cbc3dba0cbd.tar.gz",
+        "bytes": 6906686,
+        "sha256": "83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848"
+      },
+      "verification": "downloaded-all-assets-and-matched-sha256",
+      "publicStateChanged": false
+    },
+    "coverage": ".ai-bridge/full-goal-coverage.json",
+    "integrationContract": "release/integration/ynx-data-fabric-contract.json",
+    "handoff": "docs/integration/INTEGRATION_HANDOFF.md",
+    "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+    "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+  },
+  "blockingEvidence": [
+    "central Wallet/Auth and App Gateway owner acceptance",
+    "shared Testnet product producer and consumer receipts",
+    "production-shaped JetStream and PostgreSQL capacity, partition and recovery drills",
+    "approved secure signer path and immutable public HTTPS hosting",
+    "public runtime, health, support, privacy, security and status URLs",
+    "production artifact, SBOM, provenance, hash, bytes and cold-install receipts"
+  ],
+  "nextAction": "Execute central producer acceptance and shared-Testnet Pay flow before any PUBLIC phase transition."
+}

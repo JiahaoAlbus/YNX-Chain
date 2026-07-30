@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "Ed25519",
+  "signingClass": "test-signed",
+  "manifestSha256": "e202bf82224012f5820c0709c5b83b01e94263d2a98846fb18049f4677ea0503",
+  "publicKeyFingerprint": "sha256:983e1156f1789cbbd9afeaffa8f102340be05c4473e07f40f41a57f7d24fe5b2",
+  "signature": "xm2dCe+TStSxJxjxhokLRchrq/EX/Y++IJg0WLWyU+9PXNGWFdtCpUbLtYqEhgA+yI9QDDOjPO25c9EKtuVrCA=="
+}

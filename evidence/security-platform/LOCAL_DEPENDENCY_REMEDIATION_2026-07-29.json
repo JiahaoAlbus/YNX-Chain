@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "scenario": "repository-runtime-dependency-and-toolchain-vulnerability-remediation",
+  "verifiedAt": "2026-07-29T07:04:00Z",
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "trigger": {
+    "source": "GitHub Dependabot alerts exposed after enabling vulnerability alerts and the dependency graph",
+    "openAlertsBefore": 24,
+    "severityBefore": {
+      "critical": 8,
+      "high": 5,
+      "medium": 11
+    }
+  },
+  "remediation": {
+    "go": {
+      "toolchain": {
+        "before": "1.25.7",
+        "after": "1.25.12"
+      },
+      "modules": [
+        { "name": "golang.org/x/crypto", "before": "0.33.0", "after": "0.52.0" },
+        { "name": "golang.org/x/net", "before": "0.35.0", "after": "0.55.0" },
+        { "name": "google.golang.org/grpc", "before": "1.70.0", "after": "1.82.1" },
+        { "name": "github.com/golang/glog", "before": "1.2.3", "after": "1.2.5" }
+      ],
+      "transitiveLockUpdates": [
+        "github.com/google/go-cmp",
+        "golang.org/x/sync",
+        "golang.org/x/sys",
+        "golang.org/x/text",
+        "google.golang.org/genproto/googleapis/rpc",
+        "google.golang.org/protobuf"
+      ]
+    },
+    "mobile": [
+      { "name": "brace-expansion", "before": "5.0.7", "after": "5.0.8" },
+      { "name": "uuid", "before": "7.0.3", "after": "11.1.1" }
+    ],
+    "ci": "all Go workflows read the exact patch version from go.mod"
+  },
+  "verification": {
+    "govulncheck": {
+      "command": "go run golang.org/x/vuln/cmd/govulncheck@latest ./...",
+      "reachableVulnerabilities": 0,
+      "result": "passed"
+    },
+    "go": {
+      "contractTooling": "passed",
+      "commandAndInternalTests": "passed",
+      "vet": "passed"
+    },
+    "mobile": {
+      "installedPackages": 554,
+      "auditedPackages": 555,
+      "auditVulnerabilities": 0,
+      "typecheck": "passed",
+      "tests": { "total": 53, "passed": 53, "failed": 0 },
+      "androidBundle": "passed",
+      "iosBundle": "passed"
+    },
+    "securityPlatform": {
+      "tests": { "total": 179, "passed": 179, "failed": 0 },
+      "productionNpmAuditVulnerabilities": 0,
+      "notices": "regenerated-and-verified",
+      "lifecycleScriptAudit": "passed"
+    }
+  },
+  "limitations": [
+    "GitHub closes repository alerts only after the remediated lockfiles are pushed and reprocessed",
+    "govulncheck reports zero reachable vulnerabilities; unreachable advisory presence is not represented as reachable code",
+    "no production deployment or production signing claim is inferred"
+  ]
+}

@@ -4,6 +4,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 # shellcheck source=../deploy/lib.sh
 source scripts/deploy/lib.sh
+# shellcheck source=replication-proof.sh
+source scripts/verify/replication-proof.sh
 ynx_load_env
 
 PRIMARY_NODE_HOST="${PRIMARY_NODE_HOST:-43.153.202.237}"
@@ -36,6 +38,11 @@ report="$out/ssh-services.txt"
 : > "$report"
 
 failures=0
+YNX_EXPECT_BRIDGE_SERVICE="${YNX_EXPECT_BRIDGE_SERVICE:-0}"
+case "$YNX_EXPECT_BRIDGE_SERVICE" in
+  0 | 1) ;;
+  *) echo "YNX_EXPECT_BRIDGE_SERVICE must be 0 or 1"; exit 1 ;;
+esac
 
 check_node() {
   local name="$1" user="$2" host="$3" key="$4" services="$5" expected_validator="$6" observer_file="${7:-}"
@@ -222,10 +229,46 @@ REMOTE
   fi
 }
 
-check_node "primary" "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd" "$PRIMARY_VALIDATOR_ADDRESS"
+primary_services="ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd"
+if [[ "$YNX_EXPECT_BRIDGE_SERVICE" == "1" ]]; then
+  primary_services="$primary_services ynx-bridged"
+fi
+check_node "primary" "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$primary_services" "$PRIMARY_VALIDATOR_ADDRESS"
 check_node "singapore" "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY" "ynx-chaind" "$SG_VALIDATOR_ADDRESS" "$SG_OBSERVER_FILE"
 check_node "silicon-valley" "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY" "ynx-chaind" "$SILICON_VALLEY_VALIDATOR_ADDRESS"
 check_node "seoul" "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY" "ynx-chaind" "$SEOUL_VALIDATOR_ADDRESS"
+
+check_bridge_testnet_surface() {
+  local node_out="$out/bridge-testnet.txt"
+  local release_dir="/opt/ynx-chain/releases/$EXPECTED_RELEASE_NAME"
+  local remote_script
+  remote_script="set -eu
+test \"\$(systemctl is-active ynx-bridged)\" = active
+test \"\$(systemctl is-enabled ynx-bridged)\" = enabled
+test \"\$(sudo -n stat -c '%a' /etc/ynx/ynx-bridged.env)\" = 600
+test \"\$(sudo -n stat -c '%a' /var/lib/ynx-chain/bridge)\" = 700
+test \"\$(sudo -n stat -c '%a' /var/lib/ynx-chain/bridge/state.json)\" = 600
+manifest='$release_dir/config/release-manifest.json'
+binary_sha=\"\$(sha256sum /usr/local/bin/ynx-bridged | awk '{print \$1}')\"
+grep -Fq '\"path\":\"bin/ynx-bridged\"' \"\$manifest\"
+grep -Fq \"\\\"sha256\\\":\\\"\$binary_sha\\\"\" \"\$manifest\"
+YNX_EXPECT_BRIDGE_SERVICE=1 YNX_LOCAL_SERVICE_CHECK_ATTEMPTS=3 YNX_LOCAL_SERVICE_CHECK_SLEEP_SECONDS=1 bash '$release_dir/scripts/check-local-services.sh' primary '$EXPECTED_RELEASE_COMMIT' '$EXPECTED_RELEASE_NAME' 6423 full
+printf 'bridge.service=active-enabled\\nbridge.envMode=600\\nbridge.stateDirMode=700\\nbridge.stateMode=600\\nbridge.binarySha256=%s\\n' \"\$binary_sha\""
+  if ssh -i "$PRIMARY_NODE_SSH_KEY" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$PRIMARY_NODE_USER@$PRIMARY_NODE_HOST" "$remote_script" >"$node_out" 2>&1; then
+    cat "$node_out" | tee -a "$report"
+    echo "OK bridge-testnet-surface" | tee -a "$report"
+  else
+    cat "$node_out" | tee -a "$report"
+    echo "FAIL bridge-testnet-surface" | tee -a "$report"
+    return 1
+  fi
+}
+
+if [[ "$YNX_EXPECT_BRIDGE_SERVICE" == "1" ]]; then
+  if ! check_bridge_testnet_surface; then
+    failures=$((failures + 1))
+  fi
+fi
 
 check_replication_convergence() {
   check_replica() {
@@ -239,11 +282,11 @@ check_replication_convergence() {
         replica_hash="$(printf '%s' "$replica_block" | node -e 'let x={}; try{x=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{} process.stdout.write(String(x.hash ?? ""));')"
         primary_block="$(ssh -i "$PRIMARY_NODE_SSH_KEY" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$PRIMARY_NODE_USER@$PRIMARY_NODE_HOST" "curl -fsS http://127.0.0.1:6420/blocks/$observed_height" 2>/dev/null || true)"
         primary_hash="$(printf '%s' "$primary_block" | node -e 'let x={}; try{x=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{} process.stdout.write(String(x.hash ?? ""));')"
-        [[ "$replica_hash" == "$observed_hash" && "$primary_hash" == "$observed_hash" ]] && break
+        ynx_replication_proof_matches "$observed_height" "$observed_hash" "$replica_hash" "$primary_hash" && break
       fi
       sleep 1
     done
-    [[ "$replica_hash" == "$observed_hash" && "$primary_hash" == "$observed_hash" ]] || { echo "replicationConvergence.$role=failed lifecycle-or-canonical-hash"; return 1; }
+    ynx_replication_proof_matches "$observed_height" "$observed_hash" "$replica_hash" "$primary_hash" || { echo "replicationConvergence.$role=failed lifecycle-or-canonical-hash"; return 1; }
     write_code="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{\"address\":\"ynx_replica_write_probe\",\"amount\":1}' http://127.0.0.1:6420/faucet")" || return 1
     [[ "$write_code" == "409" ]] || { echo "replicationReadOnly.$role=failed HTTP=$write_code"; return 1; }
     echo "replicationConvergence.$role=ok height=$observed_height hash=$observed_hash"

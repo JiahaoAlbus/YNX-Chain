@@ -1,0 +1,100 @@
+{
+  "schema": "ynx.oracle.artifact-verification.v1",
+  "productId": "ynx-oracle-market-data",
+  "sourceCommit": "8f4310988a6641c5b023497c74e901ff508771fe",
+  "version": "0.1.0-testnet",
+  "verifiedAt": "2026-07-30T05:04:00Z",
+  "status": "tested-local-candidate",
+  "publication": {
+    "downloadHosted": false,
+    "productionSigned": false,
+    "registryPublished": false,
+    "released": false,
+    "storeReleased": false
+  },
+  "evidenceFiles": [
+    {
+      "path": "release/evidence/oracle-artifact-manifest-8f4310988a66.json",
+      "bytes": 11653,
+      "sha256": "c46298923aac3378c2cd8f8297d63261e617a2e2f9b715cb48538e258e2ed576"
+    },
+    {
+      "path": "release/evidence/oracle-artifact-provenance-8f4310988a66.json",
+      "bytes": 5858,
+      "sha256": "e794423244617072790cfa28e2b21c1167eab80123549b499fabe787bc9451d5"
+    },
+    {
+      "path": "release/evidence/oracle-artifact-sbom-8f4310988a66.cdx.json",
+      "bytes": 83933,
+      "sha256": "a03cf36ee4bc4dbcffe6de6a0013b6c922905ff60f1c4a86a302df7aec38f55c"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "platform-darwin-arm64",
+      "file": "ynx-oracle-0.1.0-testnet-darwin-arm64.tar.gz",
+      "bytes": 5607994,
+      "sha256": "b928b9c8272126fe1c0b2dca4e672bca111afe3bd429ae92042c6bc7f2f5a7ab",
+      "archiveVerified": true,
+      "installedLocal": true,
+      "coldStartPassed": true,
+      "versionCommitMatched": true,
+      "gracefulShutdownPassed": true
+    },
+    {
+      "id": "platform-linux-arm64",
+      "file": "ynx-oracle-0.1.0-testnet-linux-arm64.tar.gz",
+      "bytes": 5392592,
+      "sha256": "c894bc28577b72cdcb9ce4ae36b7227771697d585c4b8e227977c57dfc23b358",
+      "archiveVerified": true,
+      "installedLocal": false,
+      "coldStartPassed": false,
+      "blockedBy": "No Linux arm64 execution host was used in this verification slice."
+    },
+    {
+      "id": "typescript-sdk",
+      "file": "ynx-oracle-client-0.1.0-testnet.tgz",
+      "bytes": 8576,
+      "sha256": "aca233d44251f993a46821b4b2fb80ea6d3958e53cb65330bd10bac6ce361f6e",
+      "archiveVerified": true,
+      "offlineInstallPassed": true,
+      "cleanConsumerPassed": true,
+      "remotePlainHttpRejected": true
+    },
+    {
+      "id": "go-sdk",
+      "file": "ynx-oracle-client-go-0.1.0-testnet.tar.gz",
+      "bytes": 5570,
+      "sha256": "1a029a4f834d544d700f0ca8bb66340eaa16bc7def7345358b12337a093823f7",
+      "archiveVerified": true,
+      "isolatedConsumerTestsPassed": true,
+      "remotePlainHttpRejected": true
+    }
+  ],
+  "verification": {
+    "deterministicDoubleBuild": true,
+    "sourceBindingsVerified": true,
+    "archiveTargetsVerified": true,
+    "sbomVerified": true,
+    "provenanceVerified": true,
+    "ephemeralEd25519SignaturePathVerified": true,
+    "tamperedSignatureRejected": true,
+    "tamperedArtifactRejected": true,
+    "evidencePathBoundaryVerified": true,
+    "secretScanPassed": true,
+    "placeholderScanPassed": true,
+    "githubActionsPinned": true,
+    "dependencyAuditHigh": 0,
+    "oracleRaceSuitePassed": true,
+    "browserAccessibilityPassed": true,
+    "typescriptSdkTestsPassed": 18,
+    "docsCompliancePassed": true,
+    "resourceMarketContractCollisionResolved": true,
+    "fullRepositoryTestsPassed": true
+  },
+  "limitations": [
+    "Runnable artifacts are local, unsigned and not publicly hosted.",
+    "Linux arm64 archive structure and binary target were verified, but native Linux install and cold start remain unverified.",
+    "Authoritative market-data publication remains disabled because zero of three required independent providers are active."
+  ]
+}

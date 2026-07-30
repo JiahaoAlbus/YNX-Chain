@@ -16,6 +16,7 @@ const (
 	testChatKey   = "chat-key-1234567890"
 	testSquareKey = "square-key-1234567890"
 	testPayKey    = "pay-key-123456789012"
+	testBridgeKey = "bridge-key-123456789"
 	testOrigin    = "https://www.ynxweb4.com"
 )
 
@@ -25,6 +26,12 @@ type observedRequest struct {
 	ServiceKey string
 	Injected   string
 	DeviceID   string
+	SessionID  string
+	Account    string
+	Product    string
+	Scope      string
+	ExpiresAt  string
+	Proof      string
 	Cookie     string
 	Auth       string
 	Body       string
@@ -44,9 +51,20 @@ func (u *upstreamRecorder) handler(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "service": "ynx-" + u.service + "d", "remoteDeployed": false, "truthfulStatus": "local-test"})
 		return
 	}
+	if u.service == "bridge" && r.URL.Path == "/version" {
+		_ = json.NewEncoder(w).Encode(map[string]any{"service": "ynx-bridged", "source": "ynx-bridge-runtime", "schemaVersion": 7, "stateMachineVersion": "ynx.bridge.lifecycle.v1", "externalSubmissionEnabled": false, "liveBridge": false})
+		return
+	}
 	body, _ := io.ReadAll(r.Body)
 	u.mu.Lock()
-	u.requests = append(u.requests, observedRequest{Method: r.Method, URI: r.URL.RequestURI(), ServiceKey: r.Header.Get(u.keyName), Injected: r.Header.Get("X-YNX-App-Gateway"), DeviceID: r.Header.Get("X-YNX-Device-ID"), Cookie: r.Header.Get("Cookie"), Auth: r.Header.Get("Authorization"), Body: string(body)})
+	u.requests = append(u.requests, observedRequest{
+		Method: r.Method, URI: r.URL.RequestURI(), ServiceKey: r.Header.Get(u.keyName), Injected: r.Header.Get("X-YNX-App-Gateway"),
+		DeviceID: r.Header.Get("X-YNX-Device-ID"), SessionID: r.Header.Get("X-YNX-App-Session-ID"),
+		Account: r.Header.Get("X-YNX-App-Session-Account"), Product: r.Header.Get("X-YNX-App-Product"),
+		Scope: r.Header.Get("X-YNX-App-Scope"), ExpiresAt: r.Header.Get("X-YNX-App-Session-Expires-At"),
+		Proof:  r.Header.Get("X-YNX-Product-Session-Proof"),
+		Cookie: r.Header.Get("Cookie"), Auth: r.Header.Get("Authorization"), Body: string(body),
+	})
 	u.mu.Unlock()
 	if u.large {
 		_, _ = io.WriteString(w, strings.Repeat("x", 2048))
@@ -56,6 +74,64 @@ func (u *upstreamRecorder) handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Upstream-Secret", "must-not-pass")
 	w.WriteHeader(http.StatusCreated)
 	_, _ = io.WriteString(w, `{"ok":true}`)
+}
+
+func TestGatewayMountsCanonicalWalletHostWithoutLegacySessionOrCredentialForwarding(t *testing.T) {
+	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
+	_, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
+	observed := make(chan observedRequest, 1)
+	walletServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		observed <- observedRequest{Method: r.Method, URI: r.URL.RequestURI(), Proof: r.Header.Get("X-YNX-Product-Session-Proof"), Cookie: r.Header.Get("Cookie"), Auth: r.Header.Get("Authorization"), Body: string(body)}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Upstream-Secret", "must-not-pass")
+		w.WriteHeader(http.StatusConflict)
+		_, _ = io.WriteString(w, `{"error":{"code":"REPLAY"},"ok":false}`)
+	}))
+	defer walletServer.Close()
+	cfg := testConfig(t, chatServer.URL, squareServer.URL, 20)
+	cfg.WalletURL = walletServer.URL
+	gateway, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(gateway).Handler())
+	defer server.Close()
+
+	preflight, _ := http.NewRequest(http.MethodOptions, server.URL+"/v1/wallet/sessions", nil)
+	preflight.Header.Set("Origin", testOrigin)
+	preflight.Header.Set("Access-Control-Request-Method", "POST")
+	preflight.Header.Set("Access-Control-Request-Headers", "Content-Type, X-YNX-Product-Session-Proof")
+	preflightResponse, err := http.DefaultClient.Do(preflight)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preflightResponse.Body.Close()
+	if preflightResponse.StatusCode != http.StatusNoContent || !strings.Contains(preflightResponse.Header.Get("Access-Control-Allow-Headers"), "X-YNX-Product-Session-Proof") {
+		t.Fatalf("Wallet preflight failed: %d %v", preflightResponse.StatusCode, preflightResponse.Header)
+	}
+
+	request, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/wallet/sessions", strings.NewReader(`{}`))
+	request.Header.Set("Origin", testOrigin)
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-YNX-Product-Session-Proof", "canonical-proof-base64url")
+	request.Header.Set("X-YNX-App-Session", "legacy-session-must-not-pass")
+	request.Header.Set("Cookie", "wallet=must-not-pass")
+	request.Header.Set("Authorization", "Bearer must-not-pass")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(response.Body)
+	response.Body.Close()
+	if response.StatusCode != http.StatusConflict || string(body) != `{"error":{"code":"REPLAY"},"ok":false}` || response.Header.Get("Cache-Control") != "no-store" || response.Header.Get("X-Upstream-Secret") != "" || response.Header.Get("Access-Control-Allow-Origin") != testOrigin {
+		t.Fatalf("canonical Wallet response mismatch: status=%d headers=%v body=%s", response.StatusCode, response.Header, body)
+	}
+	got := <-observed
+	if got.Method != http.MethodPost || got.URI != "/v1/wallet/sessions" || got.Proof != "canonical-proof-base64url" || got.Body != `{}` || got.Cookie != "" || got.Auth != "" {
+		t.Fatalf("unsafe canonical Wallet proxy request: %+v", got)
+	}
 }
 
 func TestGatewayProxiesAllowedRoutesWithoutLeakingCredentials(t *testing.T) {
@@ -164,8 +240,57 @@ func TestNativeProductBindingsAndRouteIsolation(t *testing.T) {
 	if !productRouteAllowed(nativeSocialBinding, "chat") || !productRouteAllowed(nativeSocialBinding, "square") || productRouteAllowed(nativeSocialBinding, "pay") {
 		t.Fatal("Social route isolation is invalid")
 	}
-	if productRouteAllowed(nativeWalletBinding, "chat") || productRouteAllowed(nativeWalletBinding, "square") || productRouteAllowed(nativeWalletBinding, "pay") {
-		t.Fatal("Wallet unexpectedly received protected product routes")
+	if productRouteAllowed(nativeWalletBinding, "chat") || productRouteAllowed(nativeWalletBinding, "square") || productRouteAllowed(nativeWalletBinding, "pay") || !productRouteAllowed(nativeWalletBinding, "bridge") {
+		t.Fatal("Wallet Bridge-only route isolation is invalid")
+	}
+	if productForBinding(nativeWalletBinding) != "ynx-wallet" || bridgeScope(http.MethodPost, "/bridge/quotes") != "bridge:quote:read" || bridgeScope(http.MethodPost, "/bridge/wallet-reviews") != "bridge:review:create" {
+		t.Fatal("Wallet product or Bridge scope binding is invalid")
+	}
+}
+
+func TestPublicBridgeHealthVersionMappingAndMutationBoundary(t *testing.T) {
+	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
+	_, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
+	bridge, bridgeServer := startUpstream(t, "bridge", "X-YNX-Bridge-Gateway-Key", testBridgeKey)
+	cfg := testConfig(t, chatServer.URL, squareServer.URL, 20)
+	cfg.BridgeURL = bridgeServer.URL
+	gateway, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(gateway).Handler())
+	defer server.Close()
+
+	for _, test := range []struct {
+		path, upstreamPath, field string
+	}{
+		{"/app/bridge/health", "/health", `"ok":true`},
+		{"/app/bridge/version", "/version", `"stateMachineVersion":"ynx.bridge.lifecycle.v1"`},
+	} {
+		response, err := http.Get(server.URL + test.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body := readAll(response.Body)
+		response.Body.Close()
+		if response.StatusCode != http.StatusOK || !strings.Contains(body, test.field) || response.Header.Get("Cache-Control") != "no-store" {
+			t.Fatalf("%s status=%d body=%s headers=%v", test.path, response.StatusCode, body, response.Header)
+		}
+		if !publicRouteAllowed("bridge", http.MethodGet, strings.TrimPrefix(test.path, "/app")) || appUpstreamPath("bridge", strings.TrimPrefix(test.path, "/app")) != test.upstreamPath {
+			t.Fatalf("public Bridge mapping rejected: %+v", test)
+		}
+	}
+	if requests := bridge.snapshot(); len(requests) != 0 {
+		t.Fatalf("health/version probe was recorded as a protected mutation: %+v", requests)
+	}
+	request, _ := http.NewRequest(http.MethodPost, server.URL+"/app/bridge/quotes", strings.NewReader(`{}`))
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("public Bridge quote mutation status=%d", response.StatusCode)
 	}
 }
 
@@ -264,7 +389,7 @@ func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 		t.Fatal(err)
 	}
 	response.Body.Close()
-	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "exact-https-origin" || health.NativeBoundary != nativeMobileClient || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 3 || !health.Upstreams["pay"].OK || health.TruthfulStatus != "local-first-party-app-gateway-not-remote-deployed" {
+	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "exact-https-origin" || health.NativeBoundary != nativeMobileClient || health.WalletBoundary != "p256-product-session-proof" || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 5 || !health.Upstreams["pay"].OK || !health.Upstreams["bridge"].OK || !health.Upstreams["wallet"].OK || health.TruthfulStatus != "local-first-party-app-gateway-not-remote-deployed" {
 		t.Fatalf("health: %+v", health)
 	}
 
@@ -296,12 +421,15 @@ func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 func TestValidateConfigFailClosed(t *testing.T) {
 	valid := testConfig(t, "http://127.0.0.1:6435", "http://localhost:6436", 20)
 	for name, mutate := range map[string]func(*Config){
-		"remote chat upstream": func(c *Config) { c.ChatURL = "https://chat.example" },
-		"short key":            func(c *Config) { c.SquareAPIKey = "short" },
-		"wildcard origin":      func(c *Config) { c.AllowedOrigins = []string{"*"} },
-		"http origin":          func(c *Config) { c.AllowedOrigins = []string{"http://www.ynxweb4.com"} },
-		"path origin":          func(c *Config) { c.AllowedOrigins = []string{"https://www.ynxweb4.com/path"} },
-		"body limit":           func(c *Config) { c.MaxBodyBytes = 10 },
+		"remote chat upstream":   func(c *Config) { c.ChatURL = "https://chat.example" },
+		"remote bridge upstream": func(c *Config) { c.BridgeURL = "https://bridge.example" },
+		"remote wallet upstream": func(c *Config) { c.WalletURL = "https://wallet.example" },
+		"short key":              func(c *Config) { c.SquareAPIKey = "short" },
+		"short bridge key":       func(c *Config) { c.BridgeAPIKey = "short" },
+		"wildcard origin":        func(c *Config) { c.AllowedOrigins = []string{"*"} },
+		"http origin":            func(c *Config) { c.AllowedOrigins = []string{"http://www.ynxweb4.com"} },
+		"path origin":            func(c *Config) { c.AllowedOrigins = []string{"https://www.ynxweb4.com/path"} },
+		"body limit":             func(c *Config) { c.MaxBodyBytes = 10 },
 	} {
 		t.Run(name, func(t *testing.T) {
 			cfg := valid
@@ -317,7 +445,9 @@ func TestValidateConfigFailClosed(t *testing.T) {
 func testConfig(t *testing.T, chatURL, squareURL string, rate int) Config {
 	t.Helper()
 	_, payServer := startUpstream(t, "pay", "X-YNX-Pay-Key", testPayKey)
-	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, PayURL: payServer.URL, PayAPIKey: testPayKey, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
+	_, bridgeServer := startUpstream(t, "bridge", "X-YNX-Bridge-Gateway-Key", testBridgeKey)
+	_, walletServer := startUpstream(t, "wallet", "", "")
+	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, PayURL: payServer.URL, PayAPIKey: testPayKey, BridgeURL: bridgeServer.URL, BridgeAPIKey: testBridgeKey, WalletURL: walletServer.URL, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
 }
 
 func newTestGateway(t *testing.T, chatURL, squareURL string, rate int) *Gateway {

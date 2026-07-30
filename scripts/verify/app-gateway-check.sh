@@ -21,6 +21,7 @@ go build -trimpath -o "$tmp/ynx-app-gatewayd" ./cmd/ynx-app-gatewayd
 chat_key="chat-app-gateway-check-key"
 square_key="square-app-gateway-check-key"
 pay_key="pay-app-gateway-check-key"
+bridge_key="bridge-app-gateway-check-key"
 common_gateway_env=(
   YNX_APP_GATEWAY_CHAT_URL=http://127.0.0.1:17435
   YNX_APP_GATEWAY_CHAT_API_KEY="$chat_key"
@@ -28,6 +29,9 @@ common_gateway_env=(
   YNX_APP_GATEWAY_SQUARE_API_KEY="$square_key"
   YNX_APP_GATEWAY_PAY_URL=http://127.0.0.1:17429
   YNX_APP_GATEWAY_PAY_API_KEY="$pay_key"
+  YNX_APP_GATEWAY_BRIDGE_URL=http://127.0.0.1:17433
+  YNX_APP_GATEWAY_BRIDGE_API_KEY="$bridge_key"
+  YNX_APP_GATEWAY_WALLET_URL=http://127.0.0.1:17438
   YNX_APP_GATEWAY_ALLOWED_ORIGINS=https://www.ynxweb4.com,https://ynxweb4.com
   YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
   YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
@@ -46,6 +50,12 @@ env YNX_SQUARE_API_KEY="$square_key" YNX_SQUARE_STATE_PATH="$tmp/square/state.js
 pids+=("$!")
 node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({ok:true,service:"ynx-payd",remoteDeployed:false,truthfulStatus:"local-test"}))}).listen(17429,"127.0.0.1")' >"$tmp/pay.log" 2>&1 &
 pids+=("$!")
+node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({ok:true,service:"ynx-bridged",remoteDeployed:false,truthfulStatus:"local-coordinator-only-no-external-submission"}))}).listen(17433,"127.0.0.1")' >"$tmp/bridge.log" 2>&1 &
+pids+=("$!")
+mkdir -p "$tmp/wallet-gateway"
+chmod 0700 "$tmp/wallet-gateway"
+env YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1 YNX_WALLET_GATEWAY_HTTP_PORT=17438 YNX_WALLET_GATEWAY_STATE_PATH="$tmp/wallet-gateway/state.json" node packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs >"$tmp/wallet.log" 2>&1 &
+pids+=("$!")
 env "${common_gateway_env[@]}" YNX_APP_GATEWAY_HTTP_ADDR=127.0.0.1:17437 "$tmp/ynx-app-gatewayd" >"$tmp/gateway.log" 2>&1 &
 pids+=("$!")
 
@@ -57,7 +67,7 @@ done
 node - "$tmp/health.json" <<'NODE'
 const fs = require("fs");
 const health = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-if (!health.ok || health.service !== "ynx-app-gatewayd" || health.remoteDeployed !== false || health.browserBoundary !== "exact-https-origin" || health.nativeBoundary !== "ynx-mobile-v1" || health.ownershipProof !== "ynx1-secp256k1-plus-ed25519-device" || !health.sessionStorage?.includes("token-hashes-only") || health.truthfulStatus !== "local-first-party-app-gateway-not-remote-deployed" || !health.upstreams?.chat?.ok || !health.upstreams?.square?.ok || !health.upstreams?.pay?.ok) {
+if (!health.ok || health.service !== "ynx-app-gatewayd" || health.remoteDeployed !== false || health.browserBoundary !== "exact-https-origin" || health.nativeBoundary !== "ynx-mobile-v1" || health.walletBoundary !== "p256-product-session-proof" || health.ownershipProof !== "ynx1-secp256k1-plus-ed25519-device" || !health.sessionStorage?.includes("token-hashes-only") || health.truthfulStatus !== "local-first-party-app-gateway-not-remote-deployed" || !health.upstreams?.chat?.ok || !health.upstreams?.square?.ok || !health.upstreams?.pay?.ok || !health.upstreams?.bridge?.ok || !health.upstreams?.wallet?.ok) {
   throw new Error(`bad app gateway health: ${JSON.stringify(health)}`);
 }
 NODE
@@ -75,6 +85,17 @@ status="$(curl -sS -H 'Origin: https://evil.example' -o "$tmp/bad-origin.json" -
 [[ "$status" == "403" ]] || { echo "bad origin accepted: $status"; exit 1; }
 status="$(curl -sS -X OPTIONS -H 'Origin: https://www.ynxweb4.com' -H 'Access-Control-Request-Method: GET' -H 'Access-Control-Request-Headers: Content-Type' -o /dev/null -w '%{http_code}' http://127.0.0.1:17437/app/square/feed)"
 [[ "$status" == "204" ]] || { echo "browser preflight failed: $status"; exit 1; }
+status="$(curl -sS -X OPTIONS -H 'Origin: https://www.ynxweb4.com' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: Content-Type,X-YNX-Product-Session-Proof' -o /dev/null -w '%{http_code}' http://127.0.0.1:17437/v1/wallet/sessions)"
+[[ "$status" == "204" ]] || { echo "Wallet browser preflight failed: $status"; exit 1; }
+status="$(curl -sS -X POST -H 'Origin: https://www.ynxweb4.com' -H 'Content-Type: application/json' -d '{}' -o "$tmp/wallet-response.json" -w '%{http_code}' http://127.0.0.1:17437/v1/wallet/sessions)"
+[[ "$status" == "400" ]] || { echo "Wallet gateway returned unexpected missing-proof status: $status"; cat "$tmp/wallet-response.json"; exit 1; }
+node - "$tmp/wallet-response.json" <<'NODE'
+const fs = require("fs");
+const response = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+if (response.ok !== false || response.error?.code !== "PROOF_REQUIRED" || !/^[0-9a-f]{64}$/.test(response.stateDigest)) {
+  throw new Error(`bad Wallet gateway response: ${JSON.stringify(response)}`);
+}
+NODE
 status="$(curl -sS -X POST -H 'Origin: https://www.ynxweb4.com' -H 'Content-Type: application/json' -d '{}' -o "$tmp/mutation.json" -w '%{http_code}' http://127.0.0.1:17437/app/square/posts)"
 [[ "$status" == "401" ]] || { echo "Square mutation route accepted without account ownership session: $status"; exit 1; }
 status="$(curl -sS -H 'Origin: https://www.ynxweb4.com' -H 'X-YNX-Square-Key: attacker-value' -o "$tmp/unknown.json" -w '%{http_code}' http://127.0.0.1:17437/app/square/metrics)"
@@ -82,8 +103,10 @@ status="$(curl -sS -H 'Origin: https://www.ynxweb4.com' -H 'X-YNX-Square-Key: at
 ! grep -R -F "$chat_key" "$tmp" --exclude='ynx-*' >/dev/null
 ! grep -R -F "$square_key" "$tmp" --exclude='ynx-*' >/dev/null
 ! grep -R -F "$pay_key" "$tmp" --exclude='ynx-*' >/dev/null
+! grep -R -F "$bridge_key" "$tmp" --exclude='ynx-*' >/dev/null
 
 go run ./scripts/verify/app-gateway-session-smoke.go -url http://127.0.0.1:17437 -origin https://www.ynxweb4.com -signed-post
 [[ "$(stat -f '%Lp' "$tmp/app-gateway/state.json" 2>/dev/null || stat -c '%a' "$tmp/app-gateway/state.json")" == "600" ]] || { echo "App Gateway state mode is not 0600"; exit 1; }
+[[ "$(stat -f '%Lp' "$tmp/wallet-gateway/state.json" 2>/dev/null || stat -c '%a' "$tmp/wallet-gateway/state.json")" == "600" ]] || { echo "Wallet Gateway state mode is not 0600"; exit 1; }
 
-echo "app-gateway-check passed: ynx1 ownership proof, browser/native binding separation, persistent hashed sessions, replay/revocation controls, protected Chat/Square profile/notification/Pay routes, public Square profile/feed and Pay reads, exact origins, CORS, bounds, and direct-service denial"
+echo "app-gateway-check passed: canonical Wallet sidecar boundary, ynx1 ownership proof, browser/native binding separation, persistent hashed sessions, replay/revocation controls, protected Bridge Wallet review and Chat/Square/Pay routes, public bounded reads, exact origins, CORS, bounds, and direct-service denial"

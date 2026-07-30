@@ -187,7 +187,7 @@
     {"product": "30-security-sre-release", "required": "release, artifact, backup and security acceptance", "status": "externalBlocked"}
   ],
   "testVectors": {
-    "file": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+    "file": "docs/integration/RESOURCE_MARKET_CROSS_PRODUCT_TEST_VECTORS.json",
     "requiredIds": [
       "RM-AUTH-WRONG-PRODUCT-001",
       "RM-AUTH-REPLAY-001",

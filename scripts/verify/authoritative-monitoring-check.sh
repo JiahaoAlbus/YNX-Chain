@@ -10,7 +10,7 @@ for file in "$config" "$unit" infra/monitoring/ynx-alerts.yml; do
   [[ -s "$file" ]] || { echo "missing authoritative monitoring file: $file"; exit 1; }
 done
 
-for target in 127.0.0.1:6420 10.77.42.2:6420 10.77.42.3:6420 10.77.42.4:6420; do
+for target in 127.0.0.1:6420 10.77.42.2:6420 10.77.42.3:6420 10.77.42.4:6420 127.0.0.1:6427 127.0.0.1:6438; do
   [[ "$(grep -Fc -- "- $target" "$config")" == "1" ]] || { echo "authoritative target must occur exactly once: $target"; exit 1; }
 done
 
@@ -27,6 +27,12 @@ grep -Fq -- '--web.listen-address=10.77.42.1:19090' "$unit"
 grep -Fq 'User=ynx-prometheus' "$unit"
 grep -Fq 'NoNewPrivileges=true' "$unit"
 grep -Fq 'ProtectSystem=strict' "$unit"
+grep -Fq 'job_name: ynx-explorerd' "$config"
+grep -Fq 'job_name: ynx-economics-monitord' "$config"
+grep -Fq 'YNXStableReserveProviderUnavailable' infra/monitoring/ynx-alerts.yml
+grep -Fq 'YNXStableReserveShortfall' infra/monitoring/ynx-alerts.yml
+grep -Fq 'YNXStableReserveAttestationExpiring' infra/monitoring/ynx-alerts.yml
+grep -Fq 'YNXStableReservePublicEndpointDown' infra/monitoring/ynx-alerts.yml
 
 if command -v promtool >/dev/null 2>&1; then
   rendered="$(mktemp)"
@@ -42,4 +48,4 @@ elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     prom/prometheus:v3.11.2 check config /work/prometheus-authoritative.yml
 fi
 
-echo "authoritative-monitoring-check passed: four distinct loopback/WireGuard targets and restricted listener are configured"
+echo "authoritative-monitoring-check passed: four Chain, Explorer and Economics Monitor targets with a restricted listener are configured"

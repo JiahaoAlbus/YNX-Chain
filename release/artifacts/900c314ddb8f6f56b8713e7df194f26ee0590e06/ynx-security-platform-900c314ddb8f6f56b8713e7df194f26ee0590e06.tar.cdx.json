@@ -1,0 +1,1113 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:900c314d-db8f-4f56-a871-3e7df194f26e",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "ynx-security-platform",
+      "version": "900c314ddb8f6f56b8713e7df194f26ee0590e06"
+    },
+    "properties": [
+      {
+        "name": "ynx:sourceCommit",
+        "value": "900c314ddb8f6f56b8713e7df194f26ee0590e06"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "@adraffy/ens-normalize",
+      "version": "1.11.1",
+      "purl": "pkg:npm/%40adraffy%2Fens-normalize@1.11.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@adraffy/ens-normalize"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/aix-ppc64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Faix-ppc64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/aix-ppc64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/android-arm",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-arm@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/android-arm"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/android-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-arm64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/android-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/android-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-x64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/android-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fdarwin-arm64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/darwin-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/darwin-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fdarwin-x64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/darwin-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/freebsd-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Ffreebsd-arm64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/freebsd-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/freebsd-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Ffreebsd-x64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/freebsd-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-arm",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-arm@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-arm"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-arm64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-ia32",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-ia32@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-ia32"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-loong64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-loong64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-loong64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-mips64el",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-mips64el@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-mips64el"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-ppc64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-ppc64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-ppc64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-riscv64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-riscv64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-riscv64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-s390x",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-s390x@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-s390x"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-x64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/linux-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/netbsd-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fnetbsd-arm64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/netbsd-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/netbsd-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fnetbsd-x64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/netbsd-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/openbsd-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fopenbsd-arm64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/openbsd-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/openbsd-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fopenbsd-x64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/openbsd-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/openharmony-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fopenharmony-arm64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/openharmony-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/sunos-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fsunos-x64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/sunos-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/win32-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-arm64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/win32-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/win32-ia32",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-ia32@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/win32-ia32"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/win32-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-x64@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@esbuild/win32-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/curves",
+      "version": "1.2.0",
+      "purl": "pkg:npm/%40noble%2Fcurves@1.2.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethers/node_modules/@noble/curves"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/curves",
+      "version": "1.4.2",
+      "purl": "pkg:npm/%40noble%2Fcurves@1.4.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@noble/curves"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/curves",
+      "version": "1.8.2",
+      "purl": "pkg:npm/%40noble%2Fcurves@1.8.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/micro-eth-signer/node_modules/@noble/curves"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "1.3.2",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.3.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethers/node_modules/@noble/hashes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "1.4.0",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@noble/hashes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "1.7.2",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.7.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/micro-eth-signer/node_modules/@noble/hashes"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-darwin-arm64",
+      "version": "0.14.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-darwin-arm64@0.14.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-darwin-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-darwin-x64",
+      "version": "0.14.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-darwin-x64@0.14.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-darwin-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-linux-arm64-gnu",
+      "version": "0.14.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-arm64-gnu@0.14.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-linux-arm64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-linux-arm64-musl",
+      "version": "0.14.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-arm64-musl@0.14.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-linux-arm64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-linux-x64-gnu",
+      "version": "0.14.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-x64-gnu@0.14.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-linux-x64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-linux-x64-musl",
+      "version": "0.14.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-x64-musl@0.14.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-linux-x64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr-win32-x64-msvc",
+      "version": "0.14.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-win32-x64-msvc@0.14.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr-win32-x64-msvc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/edr",
+      "version": "0.14.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr@0.14.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/edr"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-errors",
+      "version": "3.0.17",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-errors@3.0.17",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-errors"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-ethers",
+      "version": "4.0.15",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-ethers@4.0.15",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-ethers"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-utils",
+      "version": "4.1.6",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-utils@4.1.6",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-vendored",
+      "version": "3.0.4",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-vendored@3.0.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-vendored"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/hardhat-zod-utils",
+      "version": "3.0.5",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-zod-utils@3.0.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/hardhat-zod-utils"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-darwin-arm64",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-darwin-arm64@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-darwin-arm64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-darwin-x64",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-darwin-x64@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-darwin-x64"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-linux-arm64-gnu",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-arm64-gnu@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-linux-arm64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-linux-arm64-musl",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-arm64-musl@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-linux-arm64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-linux-x64-gnu",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-x64-gnu@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-linux-x64-gnu"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-linux-x64-musl",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-x64-musl@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-linux-x64-musl"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer-win32-x64-msvc",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-win32-x64-msvc@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer-win32-x64-msvc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@nomicfoundation/solidity-analyzer",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer@0.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@nomicfoundation/solidity-analyzer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@scure/base",
+      "version": "1.1.9",
+      "purl": "pkg:npm/%40scure%2Fbase@1.1.9",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@scure/base"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@scure/base",
+      "version": "1.2.6",
+      "purl": "pkg:npm/%40scure%2Fbase@1.2.6",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/micro-packed/node_modules/@scure/base"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@scure/bip32",
+      "version": "1.4.0",
+      "purl": "pkg:npm/%40scure%2Fbip32@1.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@scure/bip32"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@scure/bip39",
+      "version": "1.3.0",
+      "purl": "pkg:npm/%40scure%2Fbip39@1.3.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@scure/bip39"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@sentry/core",
+      "version": "9.47.1",
+      "purl": "pkg:npm/%40sentry%2Fcore@9.47.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@sentry/core"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@streamparser/json-node",
+      "version": "0.0.22",
+      "purl": "pkg:npm/%40streamparser%2Fjson-node@0.0.22",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@streamparser/json-node"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@streamparser/json",
+      "version": "0.0.22",
+      "purl": "pkg:npm/%40streamparser%2Fjson@0.0.22",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@streamparser/json"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@types/node",
+      "version": "22.7.5",
+      "purl": "pkg:npm/%40types%2Fnode@22.7.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/@types/node"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "adm-zip",
+      "version": "0.6.0",
+      "purl": "pkg:npm/adm-zip@0.6.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/adm-zip"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "aes-js",
+      "version": "4.0.0-beta.5",
+      "purl": "pkg:npm/aes-js@4.0.0-beta.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/aes-js"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ansi-colors",
+      "version": "4.1.3",
+      "purl": "pkg:npm/ansi-colors@4.1.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ansi-colors"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ansi-regex",
+      "version": "5.0.1",
+      "purl": "pkg:npm/ansi-regex@5.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ansi-regex"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "chokidar",
+      "version": "4.0.3",
+      "purl": "pkg:npm/chokidar@4.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/chokidar"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "enquirer",
+      "version": "2.4.1",
+      "purl": "pkg:npm/enquirer@2.4.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/enquirer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "env-paths",
+      "version": "2.2.1",
+      "purl": "pkg:npm/env-paths@2.2.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/env-paths"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "esbuild",
+      "version": "0.28.1",
+      "purl": "pkg:npm/esbuild@0.28.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/esbuild"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ethereum-cryptography",
+      "version": "2.2.1",
+      "purl": "pkg:npm/ethereum-cryptography@2.2.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethereum-cryptography"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ethers",
+      "version": "6.17.0",
+      "purl": "pkg:npm/ethers@6.17.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ethers"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fast-equals",
+      "version": "5.4.0",
+      "purl": "pkg:npm/fast-equals@5.4.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/fast-equals"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "fsevents",
+      "version": "2.3.3",
+      "purl": "pkg:npm/fsevents@2.3.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/fsevents"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hardhat",
+      "version": "3.11.1",
+      "purl": "pkg:npm/hardhat@3.11.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/hardhat"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "json-stream-stringify",
+      "version": "3.1.7",
+      "purl": "pkg:npm/json-stream-stringify@3.1.7",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/json-stream-stringify"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "micro-eth-signer",
+      "version": "0.14.0",
+      "purl": "pkg:npm/micro-eth-signer@0.14.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/micro-eth-signer"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "micro-packed",
+      "version": "0.7.3",
+      "purl": "pkg:npm/micro-packed@0.7.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/micro-packed"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "p-map",
+      "version": "7.0.5",
+      "purl": "pkg:npm/p-map@7.0.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/p-map"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "readdirp",
+      "version": "4.1.2",
+      "purl": "pkg:npm/readdirp@4.1.2",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/readdirp"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "resolve.exports",
+      "version": "2.0.3",
+      "purl": "pkg:npm/resolve.exports@2.0.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/resolve.exports"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "rfdc",
+      "version": "1.4.1",
+      "purl": "pkg:npm/rfdc@1.4.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/rfdc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "semver",
+      "version": "7.8.5",
+      "purl": "pkg:npm/semver@7.8.5",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/semver"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "strip-ansi",
+      "version": "6.0.1",
+      "purl": "pkg:npm/strip-ansi@6.0.1",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/strip-ansi"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tslib",
+      "version": "2.7.0",
+      "purl": "pkg:npm/tslib@2.7.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/tslib"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "tsx",
+      "version": "4.22.4",
+      "purl": "pkg:npm/tsx@4.22.4",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/tsx"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "typescript",
+      "version": "5.9.3",
+      "purl": "pkg:npm/typescript@5.9.3",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/typescript"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "undici-types",
+      "version": "6.19.8",
+      "purl": "pkg:npm/undici-types@6.19.8",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/undici-types"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "undici",
+      "version": "6.27.0",
+      "purl": "pkg:npm/undici@6.27.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/undici"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ws",
+      "version": "8.21.0",
+      "purl": "pkg:npm/ws@8.21.0",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/ws"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "zod",
+      "version": "3.25.76",
+      "purl": "pkg:npm/zod@3.25.76",
+      "properties": [
+        {
+          "name": "ynx:lockPath",
+          "value": "node_modules/zod"
+        }
+      ]
+    }
+  ]
+}

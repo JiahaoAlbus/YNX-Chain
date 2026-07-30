@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "ynx-21-bridge-to-28-website-2026-07-29",
+  "fromOwner": "21-bridge",
+  "toOwner": "28-website",
+  "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+  "product": "YNX Bridge & Interoperability",
+  "slug": "bridge",
+  "officialDomain": "ynxweb4.com",
+  "canonicalUrl": "https://ynxweb4.com/bridge",
+  "observedPublicRoute": {
+    "url": "https://www.ynxweb4.com/bridge",
+    "observedAt": "2026-07-29T02:35:33Z",
+    "httpStatus": 200,
+    "contentType": "text/html; charset=utf-8",
+    "productSpecificMetadataVerified": false,
+    "observedCanonical": "https://ynxweb4.com/",
+    "observedTitle": "YNX Chain — Web4 Layer-1 Ecosystem",
+    "gap": "The route resolves to the generic SPA shell instead of product-specific metadata."
+  },
+  "requiredMetadata": {
+    "canonical": "https://ynxweb4.com/bridge",
+    "title": "YNX Bridge — Verify cross-network transfer state",
+    "description": "Inspect Provider, route, proof, destination confirmation, availability, incident and recovery evidence without confusing progress with completed asset delivery.",
+    "h1": "Cross-network evidence before asset availability",
+    "openGraphUrl": "https://ynxweb4.com/bridge",
+    "jsonLdType": "WebApplication",
+    "applicationCategory": "FinanceApplication",
+    "robots": "index,follow"
+  },
+  "publicLinks": {
+    "runtimeReadOnlyBase": "https://rest.ynxweb4.com/app/bridge",
+    "runtimeStatus": "https://rest.ynxweb4.com/app/bridge/status",
+    "support": "https://ynxweb4.com/support",
+    "privacy": "https://ynxweb4.com/privacy",
+    "security": "https://ynxweb4.com/security",
+    "status": "https://ynxweb4.com/status"
+  },
+  "truthBoundary": {
+    "publicReadOnlyStatusAvailable": true,
+    "publicMutationEnabled": false,
+    "externalSubmissionEnabled": false,
+    "userAssetMovementEnabled": false,
+    "ynxAssetRouteAvailable": false,
+    "fundedDepositVerified": false,
+    "fundedWithdrawalVerified": false,
+    "canonicalBridgeClaim": false,
+    "productionSigned": false,
+    "mainnetReleased": false
+  },
+  "requiredClaims": [
+    "Public read-only Testnet evidence is available.",
+    "No approved executable YNX Bridge route is verified.",
+    "Destination confirmation alone does not prove asset availability.",
+    "Threshold-relayer attestations are not light-client or trustless consensus proofs."
+  ],
+  "forbiddenClaims": [
+    "YNX Bridge transfers are live",
+    "funded deposit or withdrawal verified",
+    "canonical or trustless Bridge",
+    "production or Mainnet released",
+    "independently audited"
+  ],
+  "acceptanceChecks": [
+    "route returns HTTP 200 without authentication",
+    "canonical equals https://ynxweb4.com/bridge",
+    "title and description are product-specific",
+    "Open Graph URL equals the canonical URL",
+    "JSON-LD uses the required WebApplication boundary",
+    "runtime links are read-only and no mutation route is exposed",
+    "page contains no executable-route or funded-transfer overclaim",
+    "mobile layout has no horizontal overflow"
+  ],
+  "handoffCreated": true,
+  "websiteAccepted": false,
+  "websiteDeployedWithRequiredMetadata": false
+}

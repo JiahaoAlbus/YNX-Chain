@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "name": "YNX Bridge",
+  "aliases": [
+    "YNX Interoperability"
+  ],
+  "canonicalRoute": "/bridge",
+  "canonicalUrl": "https://ynxweb4.com/bridge",
+  "title": "YNX Bridge | Cross-network Evidence and Recovery",
+  "metaDescription": "Inspect YNX Bridge route availability, lifecycle evidence, Provider health, exposure, reconciliation and recovery without confusing read-only status with asset delivery.",
+  "h1": "YNX Bridge",
+  "brand": {
+    "primary": "#002FA7",
+    "background": "#FFFFFF",
+    "logoPath": "/assets/ynx-logo.png",
+    "iconPath": "/assets/ynx-logo.png"
+  },
+  "features": [
+    "explicit source, proof, destination confirmation and asset-availability lifecycle",
+    "replay-resistant threshold-relayer attestations",
+    "pause, limit and route-exposure controls",
+    "source-qualified reconciliation and recovery evidence",
+    "fail-closed Provider, route and token catalogs",
+    "public read-only Testnet status and evidence"
+  ],
+  "risks": [
+    "no approved executable YNX Bridge route is available",
+    "no funded YNX Testnet deposit or withdrawal has been verified",
+    "threshold-relayer attestations are not light-client or trustless consensus proofs",
+    "operator reconciliation is not independent chain proof"
+  ],
+  "status": "public-read-only-testnet-coordinator",
+  "screenshots": [],
+  "downloads": [
+    {
+      "name": "YNX Bridge coordinator — Linux AMD64",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-bridge-v0.3.1-testnet-candidate/ynx-bridged-40b99be92a9f-linux-amd64",
+      "bytes": 7274644,
+      "sha256": "0836bc034dfd5b8d3e6e58947ab7e42751d84bc6a2cee26df654aead55ce34b4",
+      "signingClass": "unsigned-testnet-candidate"
+    },
+    {
+      "name": "YNX Bridge coordinator — macOS ARM64",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-bridge-v0.3.1-testnet-candidate/ynx-bridged-40b99be92a9f-darwin-arm64",
+      "bytes": 6917570,
+      "sha256": "2e0756979ae693292dd2e1eb281253f866baad53e204b165817f083195e0b164",
+      "signingClass": "unsigned-testnet-candidate"
+    },
+    {
+      "name": "YNX Bridge read-only JavaScript SDK 0.3.1",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-bridge-v0.3.1-testnet-candidate/ynx-bridge-sdk-0.3.1.tgz",
+      "bytes": 7659,
+      "sha256": "dbbdd2a27a2131b43800d732791ec832a6daf0ae2fb584cddd7efff51581f47c",
+      "signingClass": "unsigned-testnet-candidate"
+    }
+  ],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "runtimeStatusUrl": "https://rest.ynxweb4.com/app/bridge/status",
+  "publicReadOnlyBaseUrl": "https://rest.ynxweb4.com/app/bridge",
+  "officialSiteLinksObserved": {
+    "support": "https://ynxweb4.com/support",
+    "privacy": "https://ynxweb4.com/privacy",
+    "security": "https://ynxweb4.com/security",
+    "status": "https://ynxweb4.com/status",
+    "bridgeSpecificAcceptance": false
+  },
+  "websiteVerification": {
+    "routeHttpStatusObserved": 200,
+    "observedAt": "2026-07-29T02:35:33Z",
+    "productSpecificMetadataVerified": false,
+    "gap": "The fetched SPA shell uses the root canonical URL and generic site title and description. Owner 28-website must render route-specific canonical, Open Graph, JSON-LD, title and description."
+  },
+  "latestVerifiedSourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+  "structuredDataSuggestion": {
+    "type": "WebApplication",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web",
+    "url": "https://ynxweb4.com/bridge"
+  },
+  "faq": [
+    {
+      "question": "Is YNX Bridge live?",
+      "answer": "A public read-only Testnet evidence surface is live, but no executable YNX Bridge route or user asset movement is enabled."
+    },
+    {
+      "question": "When is a transferred asset available?",
+      "answer": "Only at destination_available with destinationAssetAvailable=true after verified destination evidence; destination confirmation alone is insufficient."
+    },
+    {
+      "question": "Is Circle CCTP available for YNX?",
+      "answer": "The deployed service observes the official CCTP V2 Sandbox API on supported non-YNX domains. No approved or executable YNX CCTP route is verified."
+    },
+    {
+      "question": "Are relayer attestations trustless proofs?",
+      "answer": "No. The implemented threshold-relayer verifier is not a light client and does not support a canonical or trustless Bridge claim."
+    }
+  ]
+}

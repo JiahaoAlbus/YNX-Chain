@@ -1,0 +1,47 @@
+{
+  "schema": "ynx.oracle.public-testnet-evidence.v1",
+  "sourceCommit": "f71d5ca5c2ede28477fbadff36701a9f040e311f",
+  "publicUrl": "https://oracle-testnet.43.153.202.237.sslip.io",
+  "market": "BTC/USD",
+  "sourceMode": "limited",
+  "generatedAt": "2026-07-27T03:45:12Z",
+  "checks": {
+    "httpsCertificateVerified": true,
+    "versionHttpStatus": 200,
+    "versionCommitMatched": true,
+    "atomicRollbackVerified": true,
+    "rollbackSourceCommit": "80d85e4d43067d8e48c67cc8874efcd46a629c3d",
+    "currentReleaseSymlinkVerified": true,
+    "healthHttpStatus": 503,
+    "healthStatus": "degraded",
+    "providerRegistryHttpStatus": 200,
+    "registeredProviderCount": 3,
+    "activeProviderCount": 0,
+    "requiredProviderCount": 3,
+    "priceHttpStatus": 503,
+    "priceQualityStatus": "unavailable",
+    "priceCircuitBreaker": true,
+    "internalIngestionPublicHttpStatus": 404
+  },
+  "runtime": {
+    "version": "0.1.0-testnet",
+    "schema": "ynx.oracle.v1",
+    "aggregationPolicyVersion": "weighted-median-mad-v1",
+    "derivativesPolicyVersion": "index-funding-mark-v1",
+    "dexTwapPolicyVersion": "dex-twap-v1",
+    "stablecoinReservePolicyVersion": "stablecoin-reserve-v1",
+    "normalizerVersion": "observation-normalizer-v1",
+    "storeVersion": 3,
+    "storageStatus": "ready",
+    "providerStatus": "degraded",
+    "attestorRegistry": "not_configured"
+  },
+  "tls": {
+    "subject": "CN = oracle-testnet.43.153.202.237.sslip.io",
+    "issuer": "C = US, O = Let's Encrypt, CN = YE2",
+    "sha256Fingerprint": "56:69:EF:5A:08:E2:5A:C7:26:B1:D9:06:91:5F:BD:33:93:EB:0A:59:B0:0C:3E:DA:A4:76:B0:8D:75:D9:F8:80",
+    "notBefore": "2026-07-27T02:31:39Z",
+    "notAfter": "2026-10-25T02:31:38Z"
+  },
+  "sourceLimitation": "No candidate lists YNXT/YUSD_TEST. YNX-native market values require independent YNX venue, DEX TWAP, and/or approved reporter sources and must remain limited or unavailable until minimum-source policy is met."
+}

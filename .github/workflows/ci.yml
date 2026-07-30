@@ -2,29 +2,35 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/final-tokenomics]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.25"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
           cache: npm
+      - run: node scripts/verify/github-actions-pins-check.mjs
       - run: npm ci
+      - run: node scripts/verify/github-actions-pins-check.mjs
       - run: make dependency-audit
       - run: make env-check
       - run: make no-placeholder-check
       - run: make secret-scan
       - run: make contract-tooling-check
       - run: make test
+      - run: make economics-local-candidate-check
       - run: make monitoring-check
       - run: make indexer-check
       - run: make explorer-check

@@ -1,0 +1,63 @@
+{
+  "genesisAsOf": "2026-07-01T00:00:00Z",
+  "genesisSupplyYnxt": 1000000000,
+  "epochs": [
+    {
+      "epoch": 1,
+      "asOf": "2026-07-02T00:00:00Z",
+      "durationSeconds": 86400,
+      "stakedSupplyYnxt": 420000000,
+      "validatorCount": 20,
+      "largestOperatorBps": 3500,
+      "targetAnnualSecurityBudgetYnxt": 30000000,
+      "fees": {
+        "grossFeeYnxt": 500000,
+        "baseFeeBurnYnxt": 200000,
+        "serviceBurnYnxt": 50000,
+        "validatorYnxt": 175000,
+        "providerYnxt": 25000,
+        "protocolYnxt": 25000,
+        "treasuryYnxt": 25000
+      },
+      "emergencyMode": false
+    },
+    {
+      "epoch": 2,
+      "asOf": "2026-07-03T00:00:00Z",
+      "durationSeconds": 86400,
+      "stakedSupplyYnxt": 600000000,
+      "validatorCount": 40,
+      "largestOperatorBps": 1800,
+      "targetAnnualSecurityBudgetYnxt": 20000000,
+      "fees": {
+        "grossFeeYnxt": 1000000,
+        "baseFeeBurnYnxt": 400000,
+        "serviceBurnYnxt": 100000,
+        "validatorYnxt": 350000,
+        "providerYnxt": 50000,
+        "protocolYnxt": 50000,
+        "treasuryYnxt": 50000
+      },
+      "emergencyMode": false
+    },
+    {
+      "epoch": 3,
+      "asOf": "2026-07-04T00:00:00Z",
+      "durationSeconds": 86400,
+      "stakedSupplyYnxt": 700000000,
+      "validatorCount": 64,
+      "largestOperatorBps": 1000,
+      "targetAnnualSecurityBudgetYnxt": 10000000,
+      "fees": {
+        "grossFeeYnxt": 2000000,
+        "baseFeeBurnYnxt": 800000,
+        "serviceBurnYnxt": 200000,
+        "validatorYnxt": 700000,
+        "providerYnxt": 100000,
+        "protocolYnxt": 100000,
+        "treasuryYnxt": 100000
+      },
+      "emergencyMode": false
+    }
+  ]
+}

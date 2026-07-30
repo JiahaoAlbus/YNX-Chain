@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -87,6 +88,29 @@ func TestReplicationSnapshotAuthenticationAndReadOnlyFollower(t *testing.T) {
 	_, _ = mac.Write(raw.Bytes())
 	if resp.StatusCode != http.StatusOK || resp.Header.Get("X-YNX-Replication-SHA256") != hex.EncodeToString(mac.Sum(nil)) {
 		t.Fatalf("snapshot response failed authentication: status=%d headers=%v", resp.StatusCode, resp.Header)
+	}
+
+	genesis, _ := devnet.BlockByHeight(0)
+	batchReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/internal/replication/snapshot?afterHeight=%d&afterHash=%s", server.URL, genesis.Height, genesis.Hash), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	batchReq.Header.Set("X-YNX-Replication-Key", "replication-test-key")
+	batchResp, err := http.DefaultClient.Do(batchReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer batchResp.Body.Close()
+	batchPayload, err := io.ReadAll(batchResp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	follower := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := follower.ApplyReplicationBatchJSON(batchPayload); err != nil {
+		t.Fatalf("authenticated bounded replication batch did not apply: %v", err)
+	}
+	if batchResp.StatusCode != http.StatusOK || follower.LatestBlock().Hash != devnet.LatestBlock().Hash {
+		t.Fatalf("bounded replication endpoint did not converge follower: status=%d", batchResp.StatusCode)
 	}
 
 	var blocked map[string]any
@@ -771,6 +795,23 @@ func TestPayInvoiceSettlementAPI(t *testing.T) {
 	doJSON(t, http.MethodGet, server.URL+"/pay/invoices/"+invoice.ID+"/settlement", nil, http.StatusOK, &lookedUp)
 	if lookedUp != settlement {
 		t.Fatalf("settlement lookup changed record: %+v != %+v", lookedUp, settlement)
+	}
+	var refund chain.RefundRecord
+	doJSON(t, http.MethodPost, server.URL+"/pay/refunds", map[string]any{"intentId": intent.ID, "amount": 5, "reason": "settlement API refund", "idempotencyKey": "refund-api"}, http.StatusCreated, &refund)
+	refundTx, err := devnet.Transfer(merchant, payer, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	var completed chain.RefundRecord
+	doJSON(t, http.MethodPost, server.URL+"/pay/refunds/"+refund.ID+"/complete", map[string]any{"transactionHash": refundTx.Hash, "idempotencyKey": "refund-completion-api"}, http.StatusCreated, &completed)
+	if completed.Status != "completed" || completed.InvoiceID != invoice.ID || completed.SettlementID != settlement.ID || completed.TransactionHash != refundTx.Hash || completed.AuditHash == "" {
+		t.Fatalf("unexpected refund completion: %+v", completed)
+	}
+	var lookedUpRefund chain.RefundRecord
+	doJSON(t, http.MethodGet, server.URL+"/pay/refunds/"+refund.ID, nil, http.StatusOK, &lookedUpRefund)
+	if lookedUpRefund.AuditHash != completed.AuditHash || lookedUpRefund.TransactionHash != completed.TransactionHash {
+		t.Fatalf("refund completion lookup changed authority: %+v != %+v", lookedUpRefund, completed)
 	}
 }
 

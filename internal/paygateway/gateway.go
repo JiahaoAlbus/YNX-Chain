@@ -259,7 +259,7 @@ func (s *Service) snapshotHealth(build buildinfo.Info) Health {
 
 func (s *Service) Authorized(value string) bool {
 	value = strings.TrimSpace(strings.TrimPrefix(value, "Bearer "))
-	return value != "" && equalHash(value, s.cfg.APIKey)
+	return value != "" && equalSecret(value, s.cfg.APIKey)
 }
 
 func (s *Service) Allow(remoteAddr, accessKey string, now time.Time) bool {
@@ -318,9 +318,6 @@ func (s *Service) PrepareBody(path string, body []byte) ([]byte, error) {
 
 func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body []byte, requestID string) (*http.Response, error) {
 	if s.cfg.UpstreamMode == UpstreamBFT && method == http.MethodPost {
-		if strings.HasPrefix(path, "/pay/invoices/") && strings.HasSuffix(path, "/settle") {
-			return nil, errors.New("invoice settlement is not implemented for candidate BFT Pay mode")
-		}
 		return s.proxyBFTMutation(ctx, path, body, requestID)
 	}
 	target := s.cfg.ChainURL + path
@@ -409,6 +406,33 @@ func (s *Service) bftPayPayload(path string, body []byte) (string, any, string, 
 			return errors.New("Pay mutation must contain one JSON value")
 		}
 		return nil
+	}
+	if strings.HasPrefix(path, "/pay/invoices/") && strings.HasSuffix(path, "/settle") {
+		invoiceID := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(path, "/pay/invoices/"), "/settle"))
+		var in struct {
+			Payer           string `json:"payer"`
+			TransactionHash string `json:"transactionHash"`
+			IdempotencyKey  string `json:"idempotencyKey"`
+		}
+		if err := decode(&in); err != nil {
+			return "", nil, "", "", err
+		}
+		p := consensus.PaySettlementPayload{Merchant: s.cfg.MerchantID, InvoiceID: invoiceID, Payer: strings.ToLower(strings.TrimSpace(in.Payer)), TransactionHash: strings.ToLower(strings.TrimSpace(in.TransactionHash)), IdempotencyKey: strings.TrimSpace(in.IdempotencyKey)}
+		p.RequestHash = consensus.PaySettlementRequestHash(p.Merchant, p.InvoiceID, p.Payer, p.TransactionHash, p.IdempotencyKey)
+		return consensus.ActionPayInvoiceSettle, p, p.IdempotencyKey, p.RequestHash, nil
+	}
+	if strings.HasPrefix(path, "/pay/refunds/") && strings.HasSuffix(path, "/complete") {
+		refundID := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(path, "/pay/refunds/"), "/complete"))
+		var in struct {
+			TransactionHash string `json:"transactionHash"`
+			IdempotencyKey  string `json:"idempotencyKey"`
+		}
+		if err := decode(&in); err != nil {
+			return "", nil, "", "", err
+		}
+		p := consensus.PayRefundCompletionPayload{Merchant: s.cfg.MerchantID, RefundID: refundID, TransactionHash: strings.ToLower(strings.TrimSpace(in.TransactionHash)), IdempotencyKey: strings.TrimSpace(in.IdempotencyKey)}
+		p.RequestHash = consensus.PayRefundCompletionRequestHash(p.Merchant, p.RefundID, p.TransactionHash, p.IdempotencyKey)
+		return consensus.ActionPayRefundComplete, p, p.IdempotencyKey, p.RequestHash, nil
 	}
 	switch path {
 	case "/pay/intents":
@@ -509,6 +533,8 @@ func (s *Service) bftIdempotencyReplay(ctx context.Context, action, key, request
 		objectPath = "/pay/intents/" + record.ObjectID
 	case "invoice":
 		objectPath = "/pay/invoices/" + record.ObjectID
+	case "settlement":
+		objectPath = "/pay/settlements/" + record.ObjectID
 	case "refund":
 		objectPath = "/pay/refunds/" + record.ObjectID
 	case "webhook":
@@ -568,10 +594,22 @@ func verifyBFTPayResponse(action string, tx consensus.SignedApplicationAction, r
 		if json.Unmarshal(response, &v) != nil || v.ID != consensus.ApplicationActionRecordID("pay-invoice", hash) || v.Signer != tx.Signer || v.Merchant != merchant || v.TxHash != hash {
 			return errors.New("BFT Pay invoice response mismatch")
 		}
+	case consensus.ActionPayInvoiceSettle:
+		var v consensus.BFTPaySettlement
+		if json.Unmarshal(response, &v) != nil || v.ID != consensus.ApplicationActionRecordID("pay-settlement", hash) || v.Signer != tx.Signer || v.Merchant != merchant || v.TxHash != hash || v.Status != "paid" {
+			return errors.New("BFT Pay settlement response mismatch")
+		}
 	case consensus.ActionPayRefundCreate:
 		var v consensus.BFTPayRefund
 		if json.Unmarshal(response, &v) != nil || v.ID != consensus.ApplicationActionRecordID("pay-refund", hash) || v.Signer != tx.Signer || v.Merchant != merchant || v.TxHash != hash {
 			return errors.New("BFT Pay refund response mismatch")
+		}
+	case consensus.ActionPayRefundComplete:
+		var p consensus.PayRefundCompletionPayload
+		_ = json.Unmarshal(tx.Payload, &p)
+		var v consensus.BFTPayRefund
+		if json.Unmarshal(response, &v) != nil || v.ID != p.RefundID || v.Signer != tx.Signer || v.Merchant != merchant || v.CompletionTxHash != hash || v.TransactionHash != p.TransactionHash || v.Status != "completed" {
+			return errors.New("BFT Pay refund completion response mismatch")
 		}
 	case consensus.ActionPayWebhookRecord:
 		var p consensus.PayWebhookPayload
@@ -659,9 +697,11 @@ func hashText(value string) string {
 	sum := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(sum[:])
 }
-func equalHash(a, b string) bool {
-	aHash, bHash := sha256.Sum256([]byte(a)), sha256.Sum256([]byte(b))
-	return subtle.ConstantTimeCompare(aHash[:], bHash[:]) == 1
+func equalSecret(a, b string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 func clientIP(remoteAddr string) string {
 	if host, _, err := net.SplitHostPort(remoteAddr); err == nil {

@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "03bdf94ccfa879b4df390ffa189f8b0e2c553168",
+  "generatedAt": "2026-07-22T14:32:47.335Z",
+  "classification": "bounded-local-measurement-not-production-capacity",
+  "environment": {
+    "os": "darwin/arm64",
+    "cpuModel": "Apple M2",
+    "logicalCpuCount": 8,
+    "memoryBytes": 8589934592,
+    "nodeVersion": "v24.5.0"
+  },
+  "coldStartMs": 333.767917,
+  "state": {
+    "initialBytes": 295,
+    "finalBytes": 173211,
+    "growthBytes": 172916,
+    "transferCount": 100
+  },
+  "samples": [
+    {
+      "name": "public-transparency-read",
+      "total": 500,
+      "concurrency": 20,
+      "successes": 500,
+      "failures": 0,
+      "errorRate": 0,
+      "durationMs": 81.62737499999997,
+      "throughputPerSecond": 6125.396045138045,
+      "latencyMs": {
+        "p50": 2.608374999999967,
+        "p95": 7.623291999999992,
+        "p99": 9.286333000000013,
+        "max": 9.994666999999993
+      }
+    },
+    {
+      "name": "persistent-transfer-create",
+      "total": 100,
+      "concurrency": 4,
+      "successes": 100,
+      "failures": 0,
+      "errorRate": 0,
+      "durationMs": 915.313417,
+      "throughputPerSecond": 109.25219508718291,
+      "latencyMs": {
+        "p50": 38.020541000000094,
+        "p95": 42.02104099999997,
+        "p99": 51.03200000000004,
+        "max": 51.62545799999998
+      }
+    },
+    {
+      "name": "loaded-public-transparency-read",
+      "total": 500,
+      "concurrency": 20,
+      "successes": 500,
+      "failures": 0,
+      "errorRate": 0,
+      "durationMs": 58.86220900000012,
+      "throughputPerSecond": 8494.41447228049,
+      "latencyMs": {
+        "p50": 1.626790999999912,
+        "p95": 4.480457999999999,
+        "p99": 11.764625000000024,
+        "max": 11.832499999999982
+      }
+    }
+  ],
+  "providerLatencyMeasured": false,
+  "destinationLatencyMeasured": false,
+  "remoteMeasured": false
+}

@@ -1,16 +1,18 @@
-# Third-Party Notices and License Review Status
+# Third-Party Notices
 
-This source tree uses third-party Go and npm packages. `go.sum` and the root and subproject `package-lock.json` files are dependency-integrity inputs; they are not license notices and do not establish redistribution compliance.
+YNX Data Fabric binaries use Go 1.25.12, the standard library, repository-owned packages, PostgreSQL driver `github.com/lib/pq` 1.12.0 (MIT), NATS client `github.com/nats-io/nats.go` 1.52.0 and its `nkeys` 0.4.15 / `nuid` 1.0.1 dependencies (Apache-2.0), `github.com/klauspost/compress` 1.18.5 (Apache-2.0), and `golang.org/x/crypto` 0.50.0 (BSD-3-Clause). The exact runtime inventory is `release/go-runtime-sbom.spdx.json`. Go is distributed under its BSD-style license.
 
-As of 2026-07-22, a complete counsel-reviewed attribution bundle has not been generated. No top-level project license file was found in the audited checkout. Therefore no public source-distribution or binary-redistribution rights conclusion is made here.
+Contract artifact generation uses Node development dependencies. The exact package/version/license inventory is in `release/npm-sbom.spdx.json`. Most packages declare MIT; `semver` declares ISC, `tslib` declares 0BSD, and `typescript` declares Apache-2.0. Package copyright and full license texts remain governed by their upstream distributions and must accompany any distributed build-tool bundle.
 
-Before distribution:
+Key direct build tools:
 
-1. identify direct and transitive packages for every shipped binary, web bundle, SDK, mobile artifact, container, and build tool;
-2. resolve each package's exact version, source, license expression, copyright notice, and required attribution/source-offer terms;
-3. flag copyleft, source-available, unknown, deprecated, unmaintained, and dual-license cases for legal review;
-4. generate an artifact-specific SBOM and notices file from the final lockfiles/build graph;
-5. compare the inventory with the bytes in the signed artifact and store digests/provenance; and
-6. obtain approval for the YNX project license and contribution policy.
+- Hardhat 3.9.0 — MIT.
+- `@nomicfoundation/hardhat-ethers` 4.0.13 — MIT.
+- ethers 6.17.0 — MIT.
+- TypeScript 5.9.3 — Apache-2.0.
+- undici 6.27.0 — MIT.
+- adm-zip 0.6.0 — MIT.
 
-Tooling note: `npm sbom --sbom-format cyclonedx --omit=dev` failed on 2026-07-22 because npm could not generate a package URL for the root package's range-typed version. This is an unresolved generation defect, not an empty or passing SBOM. `go list -m all` succeeded, but module enumeration alone does not resolve license obligations.
+PostgreSQL is used as an operator-provided database under the PostgreSQL License. NATS Server is used as an operator-provided broker under Apache-2.0. Neither server binary is bundled by the current source package.
+
+This notice is not a substitute for legal review. Before a public release, verify both generated SBOMs against final lockfiles and artifacts, bundle all required license texts, and review source/code/data licenses, jurisdiction, terms, retention and data rights for every external provider.

@@ -16,7 +16,7 @@ contract YnxParameterStore {
         Bytes32,
         String
     }
-    
+
     // Parameter metadata
     struct Parameter {
         string path;
@@ -28,34 +28,34 @@ contract YnxParameterStore {
         bytes32 lastProposalId;
         bool exists;
     }
-    
+
     // Governance contract address
     address public governance;
-    
+
     // Parameter storage
     mapping(string => Parameter) public parameters;
     string[] public parameterPaths;
-    
+
     // Events
     event ParameterUpdated(string indexed path, bytes oldValue, bytes newValue, bytes32 proposalId);
     event ParameterBoundsUpdated(string indexed path, int256 newMinimum, int256 newMaximum);
     event ParameterRegistered(string indexed path, ParameterType paramType);
-    
+
     // Errors
     error UnauthorizedCaller(address caller);
     error ParameterNotFound(string path);
     error ParameterOutOfBounds(string path, int256 value, int256 min, int256 max);
     error InvalidParameterType(string path, ParameterType expected, ParameterType provided);
-    
+
     modifier onlyGovernance() {
         if (msg.sender != governance) revert UnauthorizedCaller(msg.sender);
         _;
     }
-    
+
     constructor(address _governance) {
         governance = _governance;
     }
-    
+
     /**
      * @notice Register a new parameter with type and bounds
      */
@@ -67,7 +67,7 @@ contract YnxParameterStore {
         int256 maximum
     ) external onlyGovernance {
         require(!parameters[path].exists, "Parameter already exists");
-        
+
         parameters[path] = Parameter({
             path: path,
             paramType: paramType,
@@ -78,12 +78,12 @@ contract YnxParameterStore {
             lastProposalId: bytes32(0),
             exists: true
         });
-        
+
         parameterPaths.push(path);
-        
+
         emit ParameterRegistered(path, paramType);
     }
-    
+
     /**
      * @notice Update a parameter value (governance only)
      */
@@ -94,7 +94,7 @@ contract YnxParameterStore {
     ) external onlyGovernance {
         Parameter storage param = parameters[path];
         if (!param.exists) revert ParameterNotFound(path);
-        
+
         // Validate bounds for numeric types
         if (param.paramType == ParameterType.Uint256 || param.paramType == ParameterType.Int256) {
             int256 numericValue = abi.decode(newValue, (int256));
@@ -102,15 +102,15 @@ contract YnxParameterStore {
                 revert ParameterOutOfBounds(path, numericValue, param.minimum, param.maximum);
             }
         }
-        
+
         bytes memory oldValue = param.value;
         param.value = newValue;
         param.lastUpdated = block.timestamp;
         param.lastProposalId = proposalId;
-        
+
         emit ParameterUpdated(path, oldValue, newValue, proposalId);
     }
-    
+
     /**
      * @notice Update parameter bounds (governance only)
      */
@@ -121,13 +121,13 @@ contract YnxParameterStore {
     ) external onlyGovernance {
         Parameter storage param = parameters[path];
         if (!param.exists) revert ParameterNotFound(path);
-        
+
         param.minimum = newMinimum;
         param.maximum = newMaximum;
-        
+
         emit ParameterBoundsUpdated(path, newMinimum, newMaximum);
     }
-    
+
     /**
      * @notice Get parameter value as uint256
      */
@@ -139,7 +139,7 @@ contract YnxParameterStore {
         }
         return abi.decode(param.value, (uint256));
     }
-    
+
     /**
      * @notice Get parameter value as int256
      */
@@ -151,7 +151,7 @@ contract YnxParameterStore {
         }
         return abi.decode(param.value, (int256));
     }
-    
+
     /**
      * @notice Get parameter value as address
      */
@@ -163,7 +163,7 @@ contract YnxParameterStore {
         }
         return abi.decode(param.value, (address));
     }
-    
+
     /**
      * @notice Get parameter value as bool
      */
@@ -175,7 +175,7 @@ contract YnxParameterStore {
         }
         return abi.decode(param.value, (bool));
     }
-    
+
     /**
      * @notice Get parameter value as bytes32
      */
@@ -187,7 +187,7 @@ contract YnxParameterStore {
         }
         return abi.decode(param.value, (bytes32));
     }
-    
+
     /**
      * @notice Get parameter value as string
      */
@@ -199,7 +199,7 @@ contract YnxParameterStore {
         }
         return abi.decode(param.value, (string));
     }
-    
+
     /**
      * @notice Get parameter metadata
      */
@@ -207,14 +207,14 @@ contract YnxParameterStore {
         if (!parameters[path].exists) revert ParameterNotFound(path);
         return parameters[path];
     }
-    
+
     /**
      * @notice Get all parameter paths
      */
     function getAllParameterPaths() external view returns (string[] memory) {
         return parameterPaths;
     }
-    
+
     /**
      * @notice Get total parameter count
      */

@@ -19,6 +19,26 @@ func TestLegacyKeccak256Vector(t *testing.T) {
 	}
 }
 
+func TestBoundedHeightLag(t *testing.T) {
+	tests := []struct {
+		name           string
+		source, target uint64
+		want           int64
+	}{
+		{name: "positive", source: 8, target: 7, want: 1},
+		{name: "negative", source: 7, target: 8, want: -1},
+		{name: "positive saturation", source: math.MaxUint64, target: 0, want: math.MaxInt64},
+		{name: "negative saturation", source: 0, target: math.MaxUint64, want: math.MinInt64},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := boundedHeightLag(test.source, test.target); got != test.want {
+				t.Fatalf("boundedHeightLag(%d, %d) = %d, want %d", test.source, test.target, got, test.want)
+			}
+		})
+	}
+}
+
 func TestValidatorSetConfigAndBlockRotation(t *testing.T) {
 	validators, err := ParseValidatorSet("ynx_val_primary|primary|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore|43.134.23.58|bonded validator|peer-sg;ynx_val_sv|silicon-valley|43.162.100.54|bonded validator|peer-sv")
 	if err != nil {
@@ -131,6 +151,42 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 	syncSummary := status["validatorPeerSync"].(map[string]any)
 	if syncSummary["synced"].(int) != 1 || syncSummary["total"].(int) != 1 {
 		t.Fatalf("expected peer sync counts, got %v", status)
+	}
+}
+
+func TestAutomaticPeerSyncUsesBoundedOperationalCheckpoints(t *testing.T) {
+	validators, err := ParseValidatorSet("ynx_val_primary|primary|127.0.0.1|primary validator|peer-primary;ynx_val_sg|singapore|127.0.0.2|bonded validator|peer-sg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet, err := NewPersistentDevnetWithValidators(DefaultNetworkConfig("testnet"), t.TempDir(), validators)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blockedParent := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(blockedParent, []byte("blocked"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	devnet.mu.Lock()
+	devnet.dataDir = blockedParent
+	devnet.mu.Unlock()
+	input := ValidatorPeerSyncInput{
+		Source: validators[0].Address, Target: validators[1].Address,
+		SourceHeight: 10, TargetHeight: 10, Evidence: "peer-rpc-poll:http://peer.invalid/status",
+	}
+	if _, err := devnet.RecordValidatorPeerSync(input); err != nil {
+		t.Fatalf("fresh automatic peer observation rewrote the full snapshot: %v", err)
+	}
+	input.Evidence = "explicit-peer-sync-test"
+	if _, err := devnet.RecordValidatorPeerSync(input); err == nil {
+		t.Fatal("explicit peer observation did not retain immediate durability")
+	}
+	input.Evidence = "peer-rpc-poll:http://peer.invalid/status"
+	devnet.mu.Lock()
+	devnet.peerCheckpointAt = time.Now().UTC().Add(-operationalCheckpointInterval)
+	devnet.mu.Unlock()
+	if _, err := devnet.RecordValidatorPeerSync(input); err == nil {
+		t.Fatal("expired automatic peer checkpoint did not attempt durability")
 	}
 }
 
@@ -396,6 +452,43 @@ func TestPersistentDevnetRestoresBlocksAndAccounts(t *testing.T) {
 	}
 	if len(trace.Lots) != 1 {
 		t.Fatalf("expected restored trace lot")
+	}
+}
+
+func TestBlockReadViewDoesNotWaitForStatePersistenceLock(t *testing.T) {
+	devnet := NewDevnet(DefaultNetworkConfig("testnet"))
+	block := devnet.ProduceBlock()
+
+	devnet.mu.Lock()
+	defer devnet.mu.Unlock()
+
+	result := make(chan Block, 1)
+	go func() {
+		got, ok := devnet.BlockByHeight(block.Height)
+		if !ok {
+			result <- Block{}
+			return
+		}
+		result <- got
+	}()
+
+	select {
+	case got := <-result:
+		if got.Hash != block.Hash {
+			t.Fatalf("block read view returned hash %q, want %q", got.Hash, block.Hash)
+		}
+	case <-time.After(250 * time.Millisecond):
+		t.Fatal("block read waited for the state persistence lock")
+	}
+
+	if got := devnet.LatestBlock(); got.Hash != block.Hash {
+		t.Fatalf("latest block read view returned hash %q, want %q", got.Hash, block.Hash)
+	}
+	if got := devnet.Status()["height"]; got != block.Height {
+		t.Fatalf("cached status returned height %v, want %d", got, block.Height)
+	}
+	if got := devnet.NodeIdentity().Build.Commit; got == "" {
+		t.Fatal("cached node identity omitted build commit")
 	}
 }
 

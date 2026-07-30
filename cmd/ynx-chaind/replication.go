@@ -10,6 +10,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,23 +34,22 @@ func startReplicationPolling(ctx context.Context, devnet *chain.Devnet, sourceUR
 		}
 		client = &http.Client{Timeout: timeout}
 	}
-	allowAuthoritativeRebase := true
 	poll := func() {
 		devnet.BeginReplicationAttempt()
-		payload, err := fetchReplicationSnapshot(ctx, client, sourceURL, key)
+		local := devnet.LatestBlock()
+		payload, err := fetchReplicationSnapshot(ctx, client, sourceURL, key, local.Height, local.Hash)
 		if err != nil {
 			devnet.RecordReplicationFailure("fetch", err)
 			log.Printf("authoritative replication fetch failed source=%s: %v", sourceURL, err)
 			return
 		}
-		result, err := devnet.ApplyReplicationSnapshotJSON(payload, allowAuthoritativeRebase)
+		result, err := devnet.ApplyReplicationBatchJSON(payload)
 		if err != nil {
 			devnet.RecordReplicationFailure("apply", err)
 			log.Printf("authoritative replication apply failed source=%s: %v", sourceURL, err)
 			return
 		}
 		devnet.RecordReplicationSuccess(result)
-		allowAuthoritativeRebase = false
 		if result.Applied {
 			log.Printf("authoritative replication applied source=%s height=%d hash=%s", sourceURL, result.Height, result.BlockHash)
 		}
@@ -69,9 +70,16 @@ func startReplicationPolling(ctx context.Context, devnet *chain.Devnet, sourceUR
 	}()
 }
 
-func fetchReplicationSnapshot(ctx context.Context, client *http.Client, sourceURL, key string) ([]byte, error) {
-	endpoint := strings.TrimRight(sourceURL, "/") + "/internal/replication/snapshot"
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+func fetchReplicationSnapshot(ctx context.Context, client *http.Client, sourceURL, key string, afterHeight uint64, afterHash string) ([]byte, error) {
+	endpoint, err := url.Parse(strings.TrimRight(sourceURL, "/") + "/internal/replication/snapshot")
+	if err != nil {
+		return nil, err
+	}
+	query := endpoint.Query()
+	query.Set("afterHeight", strconv.FormatUint(afterHeight, 10))
+	query.Set("afterHash", afterHash)
+	endpoint.RawQuery = query.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 	if err != nil {
 		return nil, err
 	}

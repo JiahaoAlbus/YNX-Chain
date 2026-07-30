@@ -25,6 +25,9 @@ case "$url" in
   http://127.0.0.1:6427/health)
     printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
+  http://127.0.0.1:6427/api/stable/yusd-sandbox)
+    printf '%s\n' '{"sourceCommit":"abc123def456","adapterReleaseClass":"public_testnet","release":{"deployedPublic":true},"sandbox":{"product":"YUSD Sandbox","realityValue":false,"externalReserveAttested":false,"solvent":true,"reconciled":true},"sandboxBuild":{"commit":"abc123def456","release":"ynx-chain-abc123def456"}}'
+    ;;
   http://127.0.0.1:6428/health)
     printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT","upstreamOk":true,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
@@ -41,7 +44,30 @@ case "$url" in
     printf '%s\n' '{"ok":true,"service":"ynx-resourced","chainId":"6423","nativeSymbol":"YNXT","upstreamOk":true,"bodyLimitBytes":1048576,"responseLimitBytes":2097152,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   http://127.0.0.1:6433/health)
-    printf '%s\n' '{"ok":true,"service":"ynx-bridged","nativeSymbol":"YNXT","persistence":"restart-safe-json","externalSubmissionEnabled":false,"liveBridge":false,"truthfulStatus":"local-coordinator-only-no-external-submission","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    printf '%s\n' '{"ok":true,"degraded":true,"service":"ynx-bridged","schemaVersion":7,"stateMachineVersion":"ynx.bridge.lifecycle.v1","nativeSymbol":"YNXT","persistence":"atomic-json-file","stateIntegrity":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","providerStatus":"unavailable-no-verified-provider-connection","contractStatus":"unavailable-no-verified-contract-deployment","externalSubmissionEnabled":false,"liveBridge":false,"truthfulStatus":"degraded-local-coordinator-only-no-provider-or-contract","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
+  http://127.0.0.1:6433/version)
+    printf '%s\n' '{"service":"ynx-bridged","source":"ynx-bridge-runtime","schemaVersion":7,"stateMachineVersion":"ynx.bridge.lifecycle.v1","degraded":true,"providerStatus":"unavailable-no-verified-provider-connection","availableProviderCount":0,"contractStatus":"unavailable-no-verified-contract-deployment","liveBridge":false,"externalSubmissionEnabled":false,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
+  http://127.0.0.1:6433/bridge/status)
+    if [[ "${YNX_CHECK_LOCAL_SERVICES_SELF_TEST_PROVIDER_CONNECTED:-0}" == "1" ]]; then
+      printf '%s\n' '{"schemaVersion":1,"source":"ynx-bridge-status","coordinatorState":"available-local-coordinator","externalBridgeState":"provider-api-connected-route-execution-unavailable","failureStatus":"source-intent-builder-testnet-execution-and-public-deployment-unavailable","routeCount":2,"providerCount":2,"availableProviderCount":1,"assetCount":4,"providerConnection":"connected-live-provider-api-route-execution-disabled","externalSubmissionEnabled":false,"userAssetMovementEnabled":false,"officialStablecoinRouteAvailable":false,"deployedPublic":false,"capabilities":{"readOnlyEvidence":true,"quoteGeneration":true,"quoteExecution":false,"walletReviewGeneration":true,"sourceSubmission":false,"destinationMintRelease":false,"refundExecution":false,"disputeRecording":true,"emergencyExitExecution":false},"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    else
+      printf '%s\n' '{"schemaVersion":1,"source":"ynx-bridge-status","coordinatorState":"available-local-coordinator","externalBridgeState":"unavailable","failureStatus":"no-verified-provider-contract-or-public-deployment","routeCount":1,"providerCount":1,"availableProviderCount":0,"assetCount":2,"providerConnection":"not-connected","externalSubmissionEnabled":false,"userAssetMovementEnabled":false,"officialStablecoinRouteAvailable":false,"deployedPublic":false,"capabilities":{"readOnlyEvidence":true,"quoteGeneration":true,"quoteExecution":false,"walletReviewGeneration":true,"sourceSubmission":false,"destinationMintRelease":false,"refundExecution":false,"disputeRecording":true,"emergencyExitExecution":false},"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    fi
+    ;;
+  http://127.0.0.1:6433/bridge/routes)
+    if [[ "${YNX_CHECK_LOCAL_SERVICES_SELF_TEST_UNSAFE_ROUTE:-0}" == "1" ]]; then
+      printf '%s\n' '{"schemaVersion":1,"source":"ynx-bridge-route-registry","routes":[{"id":"route-1","availability":"available","failureStatus":"","executable":true,"externalSubmissionEnabled":true}]}'
+    else
+      printf '%s\n' '{"schemaVersion":1,"source":"ynx-bridge-route-registry","routes":[{"id":"route-1","availability":"unavailable","failureStatus":"provider-route-not-configured","executable":false,"externalSubmissionEnabled":false}]}'
+    fi
+    ;;
+  http://127.0.0.1:6433/bridge/providers)
+    printf '%s\n' '{"schemaVersion":1,"source":"ynx-bridge-provider-registry","providers":[{"id":"provider-1","routeAvailable":false,"executable":false,"failureStatus":"provider-route-not-configured"}]}'
+    ;;
+  http://127.0.0.1:6433/bridge/assets)
+    printf '%s\n' '{"schemaVersion":1,"source":"ynx-bridge-asset-registry","assets":[{"id":"asset-1","availability":"unavailable","externalExecutionEnabled":false},{"id":"asset-2","availability":"unavailable","externalExecutionEnabled":false}]}'
     ;;
   http://127.0.0.1:6434/health)
     printf '%s\n' '{"ok":true,"service":"ynx-stablecoind","nativeSymbol":"YNXT","persistence":"atomic-json-file","issuerSupportEstablished":false,"externalExecutionEnabled":false,"nativeYnxtIssuerActionsAllowed":false,"truthfulStatus":"local-control-plane-only-no-issuer-support-no-execution","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
@@ -53,7 +79,19 @@ case "$url" in
     printf '%s\n' '{"ok":true,"service":"ynx-squared","persistence":"atomic-json-mode-0600","nativeIdentity":"ynx1","remoteDeployed":true,"truthfulStatus":"remote-bounded-square-core-no-public-ingress-claim","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   http://127.0.0.1:6437/health)
-    printf '%s\n' '{"ok":true,"service":"ynx-app-gatewayd","browserBoundary":"exact-https-origin","nativeBoundary":"ynx-mobile-v1","ownershipProof":"ynx1-secp256k1-plus-ed25519-device","sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only","remoteDeployed":true,"truthfulStatus":"remote-first-party-app-gateway","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    printf '%s\n' '{"ok":true,"service":"ynx-app-gatewayd","browserBoundary":"exact-https-origin","nativeBoundary":"ynx-mobile-v1","walletBoundary":"p256-product-session-proof","ownershipProof":"ynx1-secp256k1-plus-ed25519-device","sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only","remoteDeployed":true,"truthfulStatus":"remote-first-party-app-gateway","upstreams":{"wallet":{"ok":true}},"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
+  http://127.0.0.1:6439/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-wallet-gatewayd","registryVersion":2,"adapterStateVersion":2,"persistence":"atomic-local-state","truthfulStatus":"canonical-wallet-auth-local-runtime","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
+  http://127.0.0.1:6438/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-economics-monitord","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"},"probe":{"routeAvailable":true,"providerAvailable":false,"httpStatus":503,"sourceCommit":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","failureCodes":["YNX_STABLE_RESERVE_UNAVAILABLE"]},"yusdSandbox":{"routeAvailable":true,"solvent":true,"reconciled":true,"httpStatus":200,"sourceCommit":"abc123def456","failureCodes":[]}}'
+    ;;
+  http://127.0.0.1:6490/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-yusd-sandboxd","testnetOnly":true,"realityValue":false,"externalReserveAttested":false,"externalExecutionEnabled":false,"productionReady":false,"providerStatus":"available","paused":false,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
+  http://127.0.0.1:6490/yusd/snapshot)
+    printf '%s\n' '{"schemaVersion":1,"product":"YUSD Sandbox","network":"YNX Testnet","symbol":"YUSD","reserveUnits":4600000,"supplyUnits":600000,"pendingRedemptionUnits":0,"solvent":true,"reconciled":true,"realityValue":false,"externalReserveAttested":false,"failure":false}'
     ;;
   *)
     echo "unexpected URL: $url" >&2
@@ -62,7 +100,14 @@ case "$url" in
 esac
 EOF
   chmod +x "$tmp/bin/curl"
-  YNX_EXPECT_BRIDGE_SERVICE=1 YNX_EXPECT_STABLECOIN_SERVICE=1 YNX_EXPECT_CHAT_SERVICE=1 YNX_EXPECT_SQUARE_SERVICE=1 YNX_EXPECT_APP_GATEWAY_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
+  YNX_EXPECT_BRIDGE_SERVICE=1 YNX_EXPECT_STABLECOIN_SERVICE=1 YNX_EXPECT_CHAT_SERVICE=1 YNX_EXPECT_SQUARE_SERVICE=1 YNX_EXPECT_APP_GATEWAY_SERVICE=1 YNX_EXPECT_WALLET_GATEWAY_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
+  PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 bridge
+  YNX_CHECK_LOCAL_SERVICES_SELF_TEST_PROVIDER_CONNECTED=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 bridge
+  if YNX_CHECK_LOCAL_SERVICES_SELF_TEST_UNSAFE_ROUTE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 bridge >"$tmp/unsafe-route.log" 2>&1; then
+    echo "check-local-services self-test accepted an executable Bridge route" >&2
+    exit 1
+  fi
+  grep -Fq 'unexpectedly contains "executable":true' "$tmp/unsafe-route.log"
   PATH="$tmp/bin:$PATH" "$0" singapore abc123def456 ynx-chain-abc123def456 6423 validator
   echo "check-local-services self-test passed"
   exit 0
@@ -98,6 +143,29 @@ require_contains() {
   fi
 }
 
+require_absent() {
+  local name="$1" body="$2" needle="$3"
+  if [[ "$body" == *"$needle"* ]]; then
+    echo "local service check failed: $name unexpectedly contains $needle" >&2
+    echo "$body" >&2
+    return 1
+  fi
+}
+
+require_one_of() {
+  local name="$1" body="$2"
+  shift 2
+  local needle
+  for needle in "$@"; do
+    if [[ "$body" == *"$needle"* ]]; then
+      return 0
+    fi
+  done
+  echo "local service check failed: $name missing every accepted value: $*" >&2
+  echo "$body" >&2
+  return 1
+}
+
 check_chain_surface() {
   local status identity
   fetch_with_retry "chain health" "http://127.0.0.1:6420/health" >/dev/null
@@ -112,8 +180,76 @@ check_chain_surface() {
   require_contains "node identity release" "$identity" "$expected_release"
 }
 
+check_bridge_surface() {
+  local bridge_gateway bridge_version bridge_status bridge_routes bridge_providers bridge_assets
+  bridge_gateway="$(fetch_with_retry "Bridge coordinator health" "http://127.0.0.1:6433/health")"
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"ok":true'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"degraded":true'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"service":"ynx-bridged"'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"schemaVersion":7'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"stateMachineVersion":"ynx.bridge.lifecycle.v1"'
+  require_contains "Bridge coordinator health" "$bridge_gateway" "YNXT"
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"persistence":"atomic-json-file"'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"stateIntegrity":"'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"contractStatus":"unavailable-no-verified-contract-deployment"'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"externalSubmissionEnabled":false'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"liveBridge":false'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"truthfulStatus":"degraded-'
+  require_contains "Bridge coordinator health build commit" "$bridge_gateway" "$expected_commit"
+  require_contains "Bridge coordinator health release" "$bridge_gateway" "$expected_release"
+
+  bridge_version="$(fetch_with_retry "Bridge coordinator version" "http://127.0.0.1:6433/version")"
+  require_contains "Bridge coordinator version" "$bridge_version" '"service":"ynx-bridged"'
+  require_contains "Bridge coordinator version" "$bridge_version" '"source":"ynx-bridge-runtime"'
+  require_contains "Bridge coordinator version" "$bridge_version" '"schemaVersion":7'
+  require_contains "Bridge coordinator version" "$bridge_version" '"stateMachineVersion":"ynx.bridge.lifecycle.v1"'
+  require_contains "Bridge coordinator version" "$bridge_version" '"externalSubmissionEnabled":false'
+  require_contains "Bridge coordinator version" "$bridge_version" '"liveBridge":false'
+  require_contains "Bridge coordinator version build commit" "$bridge_version" "$expected_commit"
+  require_contains "Bridge coordinator version release" "$bridge_version" "$expected_release"
+
+  bridge_status="$(fetch_with_retry "Bridge product status" "http://127.0.0.1:6433/bridge/status")"
+  require_contains "Bridge product status" "$bridge_status" '"source":"ynx-bridge-status"'
+  require_contains "Bridge product status" "$bridge_status" '"coordinatorState":"available-local-coordinator"'
+  require_one_of "Bridge product status external state" "$bridge_status" \
+    '"externalBridgeState":"unavailable"' \
+    '"externalBridgeState":"provider-api-connected-route-execution-unavailable"'
+  require_one_of "Bridge product status Provider connection" "$bridge_status" \
+    '"providerConnection":"not-connected"' \
+    '"providerConnection":"connected-live-provider-api-route-execution-disabled"'
+  require_one_of "Bridge product status available Provider count" "$bridge_status" \
+    '"availableProviderCount":0' \
+    '"availableProviderCount":1'
+  require_contains "Bridge product status" "$bridge_status" '"externalSubmissionEnabled":false'
+  require_contains "Bridge product status" "$bridge_status" '"userAssetMovementEnabled":false'
+  require_contains "Bridge product status" "$bridge_status" '"officialStablecoinRouteAvailable":false'
+  require_contains "Bridge product status" "$bridge_status" '"deployedPublic":false'
+  require_contains "Bridge product status" "$bridge_status" '"quoteExecution":false'
+  require_contains "Bridge product status" "$bridge_status" '"sourceSubmission":false'
+  require_contains "Bridge product status" "$bridge_status" '"destinationMintRelease":false'
+  require_contains "Bridge product status build commit" "$bridge_status" "$expected_commit"
+  require_contains "Bridge product status release" "$bridge_status" "$expected_release"
+
+  bridge_routes="$(fetch_with_retry "Bridge routes" "http://127.0.0.1:6433/bridge/routes")"
+  require_contains "Bridge routes" "$bridge_routes" '"source":"ynx-bridge-route-registry"'
+  require_contains "Bridge routes" "$bridge_routes" '"routes":['
+  require_absent "Bridge routes" "$bridge_routes" '"executable":true'
+  require_absent "Bridge routes" "$bridge_routes" '"externalSubmissionEnabled":true'
+
+  bridge_providers="$(fetch_with_retry "Bridge providers" "http://127.0.0.1:6433/bridge/providers")"
+  require_contains "Bridge providers" "$bridge_providers" '"source":"ynx-bridge-provider-registry"'
+  require_contains "Bridge providers" "$bridge_providers" '"providers":['
+  require_absent "Bridge providers" "$bridge_providers" '"routeAvailable":true'
+  require_absent "Bridge providers" "$bridge_providers" '"executable":true'
+
+  bridge_assets="$(fetch_with_retry "Bridge assets" "http://127.0.0.1:6433/bridge/assets")"
+  require_contains "Bridge assets" "$bridge_assets" '"source":"ynx-bridge-asset-registry"'
+  require_contains "Bridge assets" "$bridge_assets" '"assets":['
+  require_absent "Bridge assets" "$bridge_assets" '"externalExecutionEnabled":true'
+}
+
 check_full_stack_surface() {
-  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway square_gateway app_gateway
+  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway square_gateway app_gateway wallet_gateway
   indexer="$(fetch_with_retry "indexer health" "http://127.0.0.1:6426/health")"
   require_contains "indexer health" "$indexer" "$expected_chain_id"
   require_contains "indexer health" "$indexer" "YNXT"
@@ -125,6 +261,42 @@ check_full_stack_surface() {
   require_contains "explorer health" "$explorer" "YNXT"
   require_contains "explorer health build commit" "$explorer" "$expected_commit"
   require_contains "explorer health release" "$explorer" "$expected_release"
+
+  yusd_health="$(fetch_with_retry "YUSD Sandbox health" "http://127.0.0.1:6490/health")"
+  require_contains "YUSD Sandbox health" "$yusd_health" '"testnetOnly":true'
+  require_contains "YUSD Sandbox reality truth" "$yusd_health" '"realityValue":false'
+  require_contains "YUSD Sandbox reserve truth" "$yusd_health" '"externalReserveAttested":false'
+  require_contains "YUSD Sandbox execution truth" "$yusd_health" '"externalExecutionEnabled":false'
+  require_contains "YUSD Sandbox production truth" "$yusd_health" '"productionReady":false'
+  require_contains "YUSD Sandbox health build commit" "$yusd_health" "$expected_commit"
+  require_contains "YUSD Sandbox health release" "$yusd_health" "$expected_release"
+
+  yusd_snapshot="$(fetch_with_retry "YUSD Sandbox snapshot" "http://127.0.0.1:6490/yusd/snapshot")"
+  require_contains "YUSD Sandbox snapshot product" "$yusd_snapshot" '"product":"YUSD Sandbox"'
+  require_contains "YUSD Sandbox snapshot network" "$yusd_snapshot" '"network":"YNX Testnet"'
+  require_contains "YUSD Sandbox snapshot solvency" "$yusd_snapshot" '"solvent":true'
+  require_contains "YUSD Sandbox snapshot reconciliation" "$yusd_snapshot" '"reconciled":true'
+  require_contains "YUSD Sandbox snapshot reality truth" "$yusd_snapshot" '"realityValue":false'
+  require_contains "YUSD Sandbox snapshot reserve truth" "$yusd_snapshot" '"externalReserveAttested":false'
+
+  yusd_projection="$(fetch_with_retry "Explorer YUSD Sandbox projection" "http://127.0.0.1:6427/api/stable/yusd-sandbox")"
+  require_contains "Explorer YUSD source commit" "$yusd_projection" "$expected_commit"
+  require_contains "Explorer YUSD release class" "$yusd_projection" '"adapterReleaseClass":"public_testnet"'
+  require_contains "Explorer YUSD public deployment truth" "$yusd_projection" '"deployedPublic":true'
+  require_contains "Explorer YUSD product" "$yusd_projection" '"product":"YUSD Sandbox"'
+  require_contains "Explorer YUSD reality truth" "$yusd_projection" '"realityValue":false'
+  require_contains "Explorer YUSD solvency" "$yusd_projection" '"solvent":true'
+  require_contains "Explorer YUSD reconciliation" "$yusd_projection" '"reconciled":true'
+
+  economics_monitor="$(fetch_with_retry "Economics Monitor health" "http://127.0.0.1:6438/health")"
+  require_contains "Economics Monitor health" "$economics_monitor" '"routeAvailable":true'
+  require_contains "Economics Monitor provider truth" "$economics_monitor" '"providerAvailable":'
+  require_contains "Economics Monitor HTTP truth" "$economics_monitor" '"httpStatus":'
+  require_contains "Economics Monitor YUSD route" "$economics_monitor" '"yusdSandbox":{"routeAvailable":true'
+  require_contains "Economics Monitor YUSD solvency" "$economics_monitor" '"solvent":true'
+  require_contains "Economics Monitor YUSD reconciliation" "$economics_monitor" '"reconciled":true'
+  require_contains "Economics Monitor health build commit" "$economics_monitor" "$expected_commit"
+  require_contains "Economics Monitor health release" "$economics_monitor" "$expected_release"
 
   faucet="$(fetch_with_retry "faucet health" "http://127.0.0.1:6428/health")"
   require_contains "faucet health" "$faucet" "$expected_chain_id"
@@ -164,13 +336,7 @@ check_full_stack_surface() {
   require_contains "Resource Gateway health release" "$resource_gateway" "$expected_release"
 
   if [[ "${YNX_EXPECT_BRIDGE_SERVICE:-0}" == "1" ]]; then
-    bridge_gateway="$(fetch_with_retry "Bridge coordinator health" "http://127.0.0.1:6433/health")"
-    require_contains "Bridge coordinator health" "$bridge_gateway" "YNXT"
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"externalSubmissionEnabled":false'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"liveBridge":false'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"truthfulStatus":"local-coordinator-only-no-external-submission"'
-    require_contains "Bridge coordinator health build commit" "$bridge_gateway" "$expected_commit"
-    require_contains "Bridge coordinator health release" "$bridge_gateway" "$expected_release"
+    check_bridge_surface
   fi
 
   if [[ "${YNX_EXPECT_STABLECOIN_SERVICE:-0}" == "1" ]]; then
@@ -207,6 +373,8 @@ check_full_stack_surface() {
     app_gateway="$(fetch_with_retry "App Gateway health" "http://127.0.0.1:6437/health")"
     require_contains "App Gateway health" "$app_gateway" '"browserBoundary":"exact-https-origin"'
     require_contains "App Gateway health" "$app_gateway" '"nativeBoundary":"ynx-mobile-v1"'
+    require_contains "App Gateway Wallet boundary" "$app_gateway" '"walletBoundary":"p256-product-session-proof"'
+    require_contains "App Gateway Wallet upstream" "$app_gateway" '"wallet":{"ok":true'
     require_contains "App Gateway ownership proof" "$app_gateway" '"ownershipProof":"ynx1-secp256k1-plus-ed25519-device"'
     require_contains "App Gateway session storage" "$app_gateway" '"sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only"'
     require_contains "App Gateway health" "$app_gateway" '"remoteDeployed":true'
@@ -214,11 +382,25 @@ check_full_stack_surface() {
     require_contains "App Gateway health build commit" "$app_gateway" "$expected_commit"
     require_contains "App Gateway health release" "$app_gateway" "$expected_release"
   fi
+
+  if [[ "${YNX_EXPECT_WALLET_GATEWAY_SERVICE:-0}" == "1" ]]; then
+    wallet_gateway="$(fetch_with_retry "canonical Wallet Gateway health" "http://127.0.0.1:6439/health")"
+    require_contains "canonical Wallet Gateway health" "$wallet_gateway" '"service":"ynx-wallet-gatewayd"'
+    require_contains "canonical Wallet Gateway registry" "$wallet_gateway" '"registryVersion":2'
+    require_contains "canonical Wallet Gateway adapter" "$wallet_gateway" '"adapterStateVersion":2'
+    require_contains "canonical Wallet Gateway persistence" "$wallet_gateway" '"persistence":"atomic-local-state"'
+    require_contains "canonical Wallet Gateway truth" "$wallet_gateway" '"truthfulStatus":"canonical-wallet-auth-local-runtime"'
+    require_contains "canonical Wallet Gateway build commit" "$wallet_gateway" "$expected_commit"
+    require_contains "canonical Wallet Gateway release" "$wallet_gateway" "$expected_release"
+  fi
 }
 
 case "$mode" in
   validator)
     check_chain_surface
+    ;;
+  bridge)
+    check_bridge_surface
     ;;
   full)
     check_chain_surface

@@ -67,6 +67,12 @@ func TestCommittedEVMFilterValidationHelpers(t *testing.T) {
 	if err := validateCommittedLogRange(1, 1001); err == nil {
 		t.Fatal("overbroad 1001-block range did not fail closed")
 	}
+	if index, err := checkedEVMTransactionIndex(17); err != nil || index != 17 {
+		t.Fatalf("valid transaction index rejected: %d %v", index, err)
+	}
+	if _, err := checkedEVMTransactionIndex(uint64(^uint32(0)) + 1); err == nil {
+		t.Fatal("transaction index above uint32 range did not fail closed")
+	}
 }
 
 func TestCommittedApplicationActionUsesNullRecipient(t *testing.T) {

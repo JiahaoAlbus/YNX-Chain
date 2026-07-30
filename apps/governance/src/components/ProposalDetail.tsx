@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useI18n } from '../i18n';
 
 interface ProposalDetail {
   id: string;
@@ -14,6 +15,7 @@ interface ProposalDetail {
     owner: string;
     summary: string;
     economicImpact: string;
+    technicalImpact: string;
     securityRisk: string;
     migration: string;
     rollback: string;
@@ -26,6 +28,27 @@ interface ProposalDetail {
       maximum?: number;
     }>;
     upgradeHash?: string;
+    conflictDisclosure: string;
+  };
+  conflicts: Record<string, {
+    actor: string;
+    description: string;
+    recused: boolean;
+    disclosedAt: string;
+  }>;
+  transitions: Array<{
+    actor: string;
+    to: string;
+    at: string;
+    auditHash: string;
+  }>;
+  executionHash?: string;
+  executionReceipt?: {
+    txHash: string;
+    blockHeight: number;
+    manifestHash: string;
+    outcome: string;
+    auditHash: string;
   };
 }
 
@@ -54,6 +77,7 @@ interface ProposalDetailProps {
 }
 
 export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBack }) => {
+  const { locale, t } = useI18n();
   const [proposal, setProposal] = useState<ProposalDetail | null>(null);
   const [votes, setVotes] = useState<Vote[]>([]);
   const [stats, setStats] = useState<VotingStats | null>(null);
@@ -72,7 +96,7 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
         fetch('/votes'),
       ]);
 
-      if (!proposalRes.ok) throw new Error('Failed to fetch proposal');
+      if (!proposalRes.ok) throw new Error(t('failedProposal'));
 
       const proposalData = await proposalRes.json();
       const votesData = votesRes.ok ? await votesRes.json() : { votes: [] };
@@ -91,43 +115,43 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
         abstainPower: currentVotes.filter((vote) => vote.choice === 'abstain').reduce((sum, vote) => sum + vote.power, 0),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : t('unknownError'));
     } finally {
       setLoading(false);
     }
   };
 
   const getRemainingTime = (timestamp?: string): string => {
-    if (!timestamp) return 'N/A';
+    if (!timestamp) return t('notAvailable');
     const now = new Date().getTime();
     const target = new Date(timestamp).getTime();
     const diff = target - now;
 
-    if (diff < 0) return 'Expired';
+    if (diff < 0) return t('expired');
 
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
+
     if (days > 0) return `${days}d ${hours}h`;
     return `${hours}h`;
   };
 
   if (loading) {
-    return <div style={styles.loading}>Loading proposal...</div>;
+    return <div style={styles.loading} role="status" aria-live="polite">{t('loadingProposal')}</div>;
   }
 
   if (error || !proposal) {
     return (
       <div style={styles.container}>
-        <button onClick={onBack} style={styles.backButton}>← Back</button>
-        <div style={styles.error}>Error: {error || 'Proposal not found'}</div>
+        <button type="button" onClick={onBack} style={styles.backButton}>← {t('back')}</button>
+        <div style={styles.error} role="alert">{t('error')}: {error || t('proposalNotFound')}</div>
       </div>
     );
   }
 
   return (
     <div style={styles.container}>
-      <button onClick={onBack} style={styles.backButton}>← Back to Proposals</button>
+      <button type="button" onClick={onBack} style={styles.backButton}>← {t('backToProposals')}</button>
 
       {/* Header */}
       <div style={styles.header}>
@@ -138,45 +162,45 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
           </span>
         </div>
         <div style={styles.meta}>
-          <span style={styles.metaItem}>Scope: <strong>{proposal.input.scope}</strong></span>
-          <span style={styles.metaItem}>ID: <strong>{proposal.id.substring(0, 16)}...</strong></span>
+          <span style={styles.metaItem}>{t('scope')}: <strong>{proposal.input.scope}</strong></span>
+          <span style={styles.metaItem}>{t('id')}: <strong>{proposal.id.substring(0, 16)}...</strong></span>
         </div>
       </div>
 
       {/* Voting Stats */}
       {stats && (
         <div style={styles.statsCard}>
-          <h2 style={styles.sectionTitle}>Voting Results</h2>
+          <h2 style={styles.sectionTitle}>{t('votingResults')}</h2>
           <div style={styles.statsGrid}>
             <div style={styles.statBox}>
-              <div style={styles.statLabel}>Yes</div>
+              <div style={styles.statLabel}>{t('yes')}</div>
               <div style={styles.statValue}>{stats.yesCount}</div>
-              <div style={styles.statPower}>{stats.yesPower} power</div>
+              <div style={styles.statPower}>{stats.yesPower} {t('power')}</div>
             </div>
             <div style={styles.statBox}>
-              <div style={styles.statLabel}>No</div>
+              <div style={styles.statLabel}>{t('no')}</div>
               <div style={styles.statValue}>{stats.noCount}</div>
-              <div style={styles.statPower}>{stats.noPower} power</div>
+              <div style={styles.statPower}>{stats.noPower} {t('power')}</div>
             </div>
             <div style={styles.statBox}>
-              <div style={styles.statLabel}>Abstain</div>
+              <div style={styles.statLabel}>{t('abstain')}</div>
               <div style={styles.statValue}>{stats.abstainCount}</div>
-              <div style={styles.statPower}>{stats.abstainPower} power</div>
+              <div style={styles.statPower}>{stats.abstainPower} {t('power')}</div>
             </div>
           </div>
-          <div style={styles.statsRow}>Eligible power: {proposal.eligiblePower}</div>
+          <div style={styles.statsRow}>{t('eligiblePower')}: {proposal.eligiblePower}</div>
         </div>
       )}
 
       {votes.length > 0 && (
         <div style={styles.detailsCard}>
-          <h2 style={styles.sectionTitle}>Recorded Votes</h2>
+          <h2 style={styles.sectionTitle}>{t('recordedVotes')}</h2>
           {votes.map((vote) => (
             <div key={`${vote.voter}-${vote.castAt}`} style={styles.voteRecord}>
               <span>{vote.voter}</span>
               <strong>{vote.choice}</strong>
-              <span>{vote.power} power</span>
-              <time dateTime={vote.castAt}>{new Date(vote.castAt).toLocaleString()}</time>
+              <span>{vote.power} {t('power')}</span>
+              <time dateTime={vote.castAt}>{new Date(vote.castAt).toLocaleString(locale)}</time>
             </div>
           ))}
         </div>
@@ -184,13 +208,13 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
 
       {proposal.status === 'voting_active' && (
         <div style={styles.votingCard}>
-          <h2 style={styles.sectionTitle}>Voting Active</h2>
+          <h2 style={styles.sectionTitle}>{t('votingActive')}</h2>
           <p style={styles.timelockText}>
-            Votes must be submitted as signed envelopes through an authenticated YNX governance client.
+            {t('signedVoteNotice')}
           </p>
           {proposal.votingEndsAt && (
             <div style={styles.deadline}>
-              Voting closes in: {getRemainingTime(proposal.votingEndsAt)}
+              {t('votingClosesIn')}: {getRemainingTime(proposal.votingEndsAt)}
             </div>
           )}
         </div>
@@ -199,42 +223,63 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
       {/* Timelock */}
       {proposal.status === 'timelock_active' && proposal.executeAfter && (
         <div style={styles.timelockCard}>
-          <h2 style={styles.sectionTitle}>⏱ Timelock Active</h2>
+          <h2 style={styles.sectionTitle}>⏱ {t('timelockActive')}</h2>
           <p style={styles.timelockText}>
-            This proposal is in timelock period. Execution allowed in: {getRemainingTime(proposal.executeAfter)}
+            {t('timelockNotice')}: {getRemainingTime(proposal.executeAfter)}
           </p>
         </div>
       )}
 
       {/* Details */}
       <div style={styles.detailsCard}>
-        <h2 style={styles.sectionTitle}>Proposal Details</h2>
-        
+        <h2 style={styles.sectionTitle}>{t('proposalDetails')}</h2>
+
         <div style={styles.detailSection}>
-          <h3 style={styles.detailLabel}>Economic Impact</h3>
+          <h3 style={styles.detailLabel}>{t('technicalImpact')}</h3>
+          <p style={styles.detailText}>{proposal.input.technicalImpact}</p>
+        </div>
+
+        <div style={styles.detailSection}>
+          <h3 style={styles.detailLabel}>{t('economicImpact')}</h3>
           <p style={styles.detailText}>{proposal.input.economicImpact}</p>
         </div>
 
         <div style={styles.detailSection}>
-          <h3 style={styles.detailLabel}>Security Risk</h3>
+          <h3 style={styles.detailLabel}>{t('securityRisk')}</h3>
           <p style={styles.detailText}>{proposal.input.securityRisk}</p>
         </div>
 
         <div style={styles.detailSection}>
-          <h3 style={styles.detailLabel}>Migration</h3>
+          <h3 style={styles.detailLabel}>{t('migration')}</h3>
           <p style={styles.detailText}>{proposal.input.migration}</p>
         </div>
 
         <div style={styles.detailSection}>
-          <h3 style={styles.detailLabel}>Rollback Plan</h3>
+          <h3 style={styles.detailLabel}>{t('rollbackPlan')}</h3>
           <p style={styles.detailText}>{proposal.input.rollback}</p>
         </div>
       </div>
 
+      <section style={styles.detailsCard} aria-labelledby="conflict-title">
+        <h2 id="conflict-title" style={styles.sectionTitle}>{t('conflictDisclosure')}</h2>
+        <p style={styles.detailText}>{proposal.input.conflictDisclosure}</p>
+        <h3 style={styles.detailLabel}>{t('conflicts')}</h3>
+        {Object.values(proposal.conflicts || {}).length === 0 ? (
+          <p style={styles.detailText}>{t('noRecords')}</p>
+        ) : Object.values(proposal.conflicts).map((conflict) => (
+          <div key={`${conflict.actor}-${conflict.disclosedAt}`} style={styles.auditRow}>
+            <strong>{conflict.actor}</strong>
+            <span>{conflict.description}</span>
+            <span>{conflict.recused ? t('recused') : t('notRecused')}</span>
+            <time dateTime={conflict.disclosedAt}>{new Date(conflict.disclosedAt).toLocaleString(locale)}</time>
+          </div>
+        ))}
+      </section>
+
       {/* Parameter Changes */}
       {proposal.input.changes.length > 0 && (
         <div style={styles.changesCard}>
-          <h2 style={styles.sectionTitle}>Parameter Changes</h2>
+          <h2 style={styles.sectionTitle}>{t('parameterChanges')}</h2>
           {proposal.input.changes.map((change, index) => (
             <div key={index} style={styles.changeRow}>
               <div style={styles.changePath}>{change.path}</div>
@@ -245,7 +290,7 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
               </div>
               {(change.minimum !== undefined || change.maximum !== undefined) && (
                 <div style={styles.changeBounds}>
-                  Bounds: [{change.minimum ?? 'none'}, {change.maximum ?? 'none'}]
+                  {t('bounds')}: [{change.minimum ?? t('none')}, {change.maximum ?? t('none')}]
                 </div>
               )}
             </div>
@@ -253,10 +298,36 @@ export const ProposalDetail: React.FC<ProposalDetailProps> = ({ proposalId, onBa
         </div>
       )}
 
+      {(proposal.executionHash || proposal.executionReceipt) && (
+        <section style={styles.detailsCard} aria-labelledby="execution-title">
+          <h2 id="execution-title" style={styles.sectionTitle}>{t('execution')}</h2>
+          <dl style={styles.definitionList}>
+            <dt>{t('manifest')}</dt><dd>{proposal.executionReceipt?.manifestHash || proposal.executionHash}</dd>
+            {proposal.executionReceipt && <>
+              <dt>{t('transaction')}</dt><dd>{proposal.executionReceipt.txHash}</dd>
+              <dt>{t('block')}</dt><dd>{proposal.executionReceipt.blockHeight}</dd>
+              <dt>{t('outcome')}</dt><dd>{proposal.executionReceipt.outcome}</dd>
+            </>}
+          </dl>
+        </section>
+      )}
+
+      <section style={styles.detailsCard} aria-labelledby="audit-title">
+        <h2 id="audit-title" style={styles.sectionTitle}>{t('auditTrail')}</h2>
+        {(proposal.transitions || []).length === 0 ? <p>{t('noRecords')}</p> : proposal.transitions.map((transition) => (
+          <div key={transition.auditHash} style={styles.auditRow}>
+            <span><strong>{t('actor')}:</strong> {transition.actor}</span>
+            <span><strong>{t('action')}:</strong> {transition.to}</span>
+            <time dateTime={transition.at}><strong>{t('at')}:</strong> {new Date(transition.at).toLocaleString(locale)}</time>
+            <code style={styles.auditHash}>{transition.auditHash}</code>
+          </div>
+        ))}
+      </section>
+
       {/* Evidence */}
       {proposal.input.evidence.length > 0 && (
         <div style={styles.evidenceCard}>
-          <h2 style={styles.sectionTitle}>Evidence & Documentation</h2>
+          <h2 style={styles.sectionTitle}>{t('evidence')}</h2>
           {proposal.input.evidence.map((link, index) => (
             <a key={index} href={link} target="_blank" rel="noopener noreferrer" style={styles.evidenceLink}>
               {link}
@@ -308,6 +379,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: '12px',
+    gap: '12px',
+    flexWrap: 'wrap',
   },
   title: {
     fontSize: '28px',
@@ -330,6 +403,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '24px',
     fontSize: '14px',
     color: '#757575',
+    flexWrap: 'wrap',
   },
   metaItem: {},
   statsCard: {
@@ -346,7 +420,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
     gap: '16px',
     marginBottom: '16px',
   },
@@ -381,7 +455,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   voteRecord: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) auto auto auto',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
     gap: '16px',
     alignItems: 'center',
     padding: '12px 0',
@@ -493,6 +567,23 @@ const styles: { [key: string]: React.CSSProperties } = {
     textDecoration: 'none',
     marginBottom: '8px',
     wordBreak: 'break-all',
+  },
+  auditRow: {
+    display: 'grid',
+    gap: '8px',
+    padding: '12px 0',
+    borderBottom: '1px solid #E0E0E0',
+    overflowWrap: 'anywhere',
+  },
+  auditHash: {
+    fontSize: '12px',
+    overflowWrap: 'anywhere',
+  },
+  definitionList: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(100px, auto) minmax(0, 1fr)',
+    gap: '8px 16px',
+    overflowWrap: 'anywhere',
   },
   loading: {
     textAlign: 'center',

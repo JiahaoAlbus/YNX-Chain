@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "d70aa2c88100421efb320e3e21b4619a1e40fb98",
+  "measuredAt": "2026-07-22T15:43:29.403Z",
+  "environment": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "node": "v24.5.0"
+  },
+  "coverage": "local single-process small-sample benchmark; not public capacity evidence",
+  "payloadBytes": 1048576,
+  "measurements": {
+    "policyGate": {
+      "samples": 30,
+      "units": "milliseconds per full gate",
+      "p50": 79.818,
+      "p95": 84.277,
+      "p99": 130.334,
+      "mean": 81.656,
+      "throughputPerSecond": 12.246,
+      "errors": 0
+    },
+    "signatureVerify": {
+      "samples": 200,
+      "units": "milliseconds per Ed25519 verification",
+      "p50": 0.159,
+      "p95": 0.204,
+      "p99": 0.262,
+      "mean": 0.17,
+      "throughputPerSecond": 5888.139,
+      "errors": 0
+    },
+    "encryptedBackupCreate": {
+      "samples": 10,
+      "units": "milliseconds per 1 MiB backup",
+      "p50": 8.95,
+      "p95": 10.952,
+      "p99": 10.952,
+      "mean": 9.217,
+      "throughputPerSecond": 108.497,
+      "errors": 0
+    },
+    "encryptedBackupRestore": {
+      "samples": 10,
+      "units": "milliseconds per 1 MiB restore",
+      "p50": 5.606,
+      "p95": 6.522,
+      "p99": 6.522,
+      "mean": 5.835,
+      "throughputPerSecond": 171.385,
+      "errors": 0
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Localization Terminology Pack
 
-Version: 0.1.0-candidate  
+Version: 0.1.0-candidate
 Status: terminology seed; legal/financial/safety and runtime translation requires professional review
 
 Brand names and identifiers—YNX Chain, YNX Web4, YNXWeb4, YNXT, 6423 and `ynx_6423-1`—must not be translated. The table provides neutral product definitions, not approved legal copy.

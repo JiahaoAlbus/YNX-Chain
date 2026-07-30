@@ -1,8 +1,8 @@
 # Supply-Chain Review and Build Allowlist
 
-Version: 0.1.0-candidate  
-Evidence date: 2026-07-22  
-Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`  
+Version: 0.1.0-candidate
+Evidence date: 2026-07-22
+Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`
 Decision: not approved for public artifact release
 
 ## Inventory and lockfiles

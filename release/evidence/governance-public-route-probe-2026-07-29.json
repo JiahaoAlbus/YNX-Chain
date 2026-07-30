@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "ynx-public-route-probe/v1",
+  "productNumber": "31",
+  "product": "YNX Governance & Protocol Control",
+  "requestedUrl": "https://ynxweb4.com/governance",
+  "observedAt": "2026-07-29T02:47:16Z",
+  "request": {
+    "method": "GET",
+    "redirectPolicy": "follow",
+    "timeoutSeconds": 20
+  },
+  "response": {
+    "initialStatus": 308,
+    "redirectLocation": "https://www.ynxweb4.com/governance",
+    "finalStatus": 200,
+    "finalUrl": "https://www.ynxweb4.com/governance",
+    "server": "Vercel",
+    "contentType": "text/html; charset=utf-8",
+    "etag": "b2dc7c34d148c8074396ff40833d1de6",
+    "lastModified": "2026-07-28T13:11:54Z"
+  },
+  "document": {
+    "title": "YNX Chain — Web4 Layer-1 Ecosystem",
+    "canonical": "https://ynxweb4.com/",
+    "metaDescription": "Learn what YNX Chain, YNX Web4, YNXT, and YNX Testnet are, with evidence-linked technical, security, economic, and risk disclosures.",
+    "governanceSpecific": false
+  },
+  "acceptance": {
+    "httpReachable": true,
+    "productPageAccepted": false,
+    "deployedPublic": false,
+    "reason": "The path returns the generic root application shell and root canonical URL rather than Governance-specific title, canonical, H1, metadata, status, evidence, API, support, security, or release content. HTTP 200 alone is not product deployment evidence."
+  },
+  "requiredWebsiteFix": {
+    "owner": "28-website",
+    "canonicalUrl": "https://ynxweb4.com/governance",
+    "requiredTitle": "YNX Governance — Protocol proposals and public verification",
+    "requiredH1": "YNX Governance",
+    "metadataSource": "release/governance/public-product-metadata.json",
+    "releaseSource": "release/governance/product-release.json",
+    "mustExposeCurrentSourceCommit": true,
+    "mustNotUseHuangjeoComAsProductDomain": true
+  }
+}

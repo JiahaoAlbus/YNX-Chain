@@ -1,0 +1,57 @@
+groups:
+  - name: ynx-data-fabric-integrity
+    rules:
+      - alert: YNXDataFabricHealthUnavailable
+        expr: up{job="ynx-data-fabric"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          owner: data-fabric
+        annotations:
+          summary: Data Fabric integrity health is unavailable
+          action: Remove writes, preserve evidence, and follow the Data Fabric incident runbook.
+      - alert: YNXDataFabricDeadLetterPresent
+        expr: ynx_data_fabric_dead_letters > 0
+        for: 1m
+        labels:
+          severity: critical
+          owner: data-fabric
+        annotations:
+          summary: Data Fabric has an unresolved dead letter
+          action: Identify the owning product and use the audited requeue recovery path.
+      - alert: YNXDataFabricOutboxStalled
+        expr: ynx_data_fabric_outbox_pending > 0 and ynx_data_fabric_outbox_oldest_available_timestamp_seconds > 0 and time() - ynx_data_fabric_outbox_oldest_available_timestamp_seconds > 60
+        for: 5m
+        labels:
+          severity: critical
+          owner: data-fabric
+        annotations:
+          summary: The oldest eligible Outbox event is more than 60 seconds old
+          action: Do not report cross-product completion; inspect worker and broker health.
+      - alert: YNXDataFabricSagaRecoveryRequired
+        expr: ynx_data_fabric_sagas_recovery > 0
+        for: 5m
+        labels:
+          severity: warning
+          owner: data-fabric
+        annotations:
+          summary: A Saga requires compensation or manual recovery
+          action: Notify the product owner and expose the recorded user-visible recovery state.
+      - alert: YNXDataFabricReconciliationMismatch
+        expr: ynx_data_fabric_reconciliation_mismatches > 0
+        for: 1m
+        labels:
+          severity: critical
+          owner: data-fabric
+        annotations:
+          summary: Reconciliation contains mismatched or unavailable authority
+          action: Open an audited case and block settlement finality where policy requires.
+      - alert: YNXDataFabricElevatedErrorRatio
+        expr: increase(ynx_data_fabric_errors_total[5m]) / clamp_min(increase(ynx_data_fabric_requests_total[5m]), 1) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          owner: data-fabric
+        annotations:
+          summary: Data Fabric error ratio exceeded five percent
+          action: Segment denials, validation failures, repository errors, and provider outages before remediation.

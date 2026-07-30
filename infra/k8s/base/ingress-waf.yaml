@@ -1,0 +1,89 @@
+# WAF and rate limiting at ingress boundary.
+# DDoS mitigation, rate limits, and cost ceilings.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-ingress-waf-config
+  namespace: ingress-nginx
+data:
+  enable-modsecurity: "true"
+  enable-owasp-modsecurity-crs: "true"
+  proxy-body-size: "10m"
+  proxy-connect-timeout: "10"
+  proxy-read-timeout: "30"
+  proxy-send-timeout: "30"
+  limit-req-zone: "$binary_remote_addr zone=general:10m rate=10r/s"
+  limit-req-status-code: "429"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ynx-public-services
+  namespace: ynx-services
+  annotations:
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/modsecurity-snippet: |
+      SecRuleEngine On
+      SecRequestBodyLimit 10485760
+      SecRule REQUEST_URI "@contains .." "id:1000,phase:1,deny,status:400"
+      SecRule ARGS "@contains <script" "id:1001,phase:2,deny,status:400"
+    cert-manager.io/cluster-issuer: "letsencrypt-production"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - rpc.ynxweb4.com
+    - evm.ynxweb4.com
+    - rest.ynxweb4.com
+    - faucet.ynxweb4.com
+    - indexer.ynxweb4.com
+    - explorer.ynxweb4.com
+    - ai.ynxweb4.com
+    - web4.ynxweb4.com
+    secretName: ynx-tls-cert
+  rules:
+  - host: faucet.ynxweb4.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: faucet
+            port:
+              number: 8080
+  - host: indexer.ynxweb4.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: indexer
+            port:
+              number: 8081
+  - host: ai.ynxweb4.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-gateway
+            port:
+              number: 8090
+  - host: web4.ynxweb4.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web4-hub
+            port:
+              number: 8091

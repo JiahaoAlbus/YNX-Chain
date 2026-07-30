@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "passed",
+  "productId": "21",
+  "product": "YNX Bridge & Interoperability",
+  "acceptedBy": "29-integration",
+  "acceptedAt": "2026-07-30T18:17:34Z",
+  "acceptedSourceCommit": "01e0961b998bbf2ab35552971069870f5b76bacb",
+  "frozenReleaseSource": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+  "integrationCommit": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
+  "ancestry": {
+    "acceptedSourceIsParentOfIntegrationCommit": true,
+    "integrationCommitContainsAcceptedSource": true,
+    "frozenReleaseSourceIsAncestorOfAcceptedSource": true
+  },
+  "ownerCandidate": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "branch": "codex/final-bridge",
+    "localRemoteShaEqual": true,
+    "worktreeClean": true,
+    "branchProtected": true,
+    "pullRequest": 24,
+    "pullRequestDraft": true,
+    "pullRequestMerged": true,
+    "evidenceRepairPullRequest": 25,
+    "immutableActionsPullRequest": 27,
+    "coverageTotal": 46,
+    "coverageAutonomousOpen": 0,
+    "coverageExternalBlocked": 13,
+    "requiredEvidenceBundleComplete": true,
+    "sourceBindingsReachable": true
+  },
+  "exactHeadCi": {
+    "verified": true,
+    "sourceCommit": "01e0961b998bbf2ab35552971069870f5b76bacb",
+    "successfulWorkflowRunIds": [
+      30568833211,
+      30569394672
+    ],
+    "successfulCheckRuns": 2,
+    "failed": 0,
+    "pending": 0
+  },
+  "tests": [
+    {
+      "command": "make app-gateway-check",
+      "status": "passed",
+      "result": "The accepted canonical Wallet sidecar remains intact while Bridge quote and Wallet-review routes use the scoped App Gateway upstream."
+    },
+    {
+      "command": "make bridge-api-check && make bridge-integration-check && make bridge-sdk-check && make bridge-route-adapter-check && make bridge-data-lifecycle-check && make bridge-observability-check",
+      "status": "passed",
+      "result": "Runtime, schema-v7 lifecycle, destination availability invariant, SDK, Provider fail-closed boundary, product-specific vectors, data lifecycle and observability passed."
+    },
+    {
+      "command": "make bridge-migration-check && make bridge-capacity-check && make bridge-restore-check && make bridge-evidence-check",
+      "status": "passed",
+      "result": "Migration, bounded capacity, corruption rejection, RPO 0 restore and evidence ancestry checks passed in the merged central tree."
+    },
+    {
+      "command": "make bridge-supply-chain-check && make bridge-release-candidate-check",
+      "status": "passed",
+      "result": "Reproducible binaries, SPDX SBOM, provenance, checksums, SDK installation/import and binary configuration/cold-start verification passed."
+    },
+    {
+      "command": "make verify-testnet-check",
+      "status": "passed",
+      "result": "The integrated service verifier recognizes the Bridge surface and rejects executable-route overclaims."
+    },
+    {
+      "command": "make integration-protect-preflight",
+      "status": "passed",
+      "result": "Central coverage, acceptance, Product Release Matrix, contract tooling, npm policy, full Go tests, vet, shell/Node syntax, placeholder and secret gates passed."
+    }
+  ],
+  "artifactVerification": {
+    "sourceOnly": false,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "release": {
+      "id": "RE_kwDOTJguhM4Vmcyk",
+      "tag": "ynx-bridge-v0.3.1-testnet-candidate",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynx-bridge-v0.3.1-testnet-candidate",
+      "publishedAt": "2026-07-30T11:58:35Z",
+      "prerelease": true,
+      "draft": false,
+      "targetCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+      "assetCount": 10,
+      "signingClass": "unsigned-testnet-candidate",
+      "linuxAmd64": {
+        "name": "ynx-bridged-40b99be92a9f-linux-amd64",
+        "bytes": 7274644,
+        "sha256": "0836bc034dfd5b8d3e6e58947ab7e42751d84bc6a2cee26df654aead55ce34b4"
+      },
+      "darwinArm64": {
+        "name": "ynx-bridged-40b99be92a9f-darwin-arm64",
+        "bytes": 6917570,
+        "sha256": "2e0756979ae693292dd2e1eb281253f866baad53e204b165817f083195e0b164"
+      },
+      "sdk": {
+        "name": "ynx-bridge-sdk-0.3.1.tgz",
+        "bytes": 7659,
+        "sha256": "dbbdd2a27a2131b43800d732791ec832a6daf0ae2fb584cddd7efff51581f47c"
+      },
+      "downloadedAllAssetDigestsVerified": true,
+      "sdkInstalledAndImported": true,
+      "binaryColdStartVerified": true
+    }
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": true,
+    "sharedTestnetVerified": false,
+    "deployedStaging": true,
+    "deployedPublicReadOnly": true,
+    "publicMutationEnabled": false,
+    "externalSubmissionEnabled": false,
+    "userAssetMovementEnabled": false,
+    "officialStablecoinRouteAvailable": false,
+    "fundedDepositVerified": false,
+    "fundedWithdrawalVerified": false,
+    "downloadHosted": true,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "nextGate": "The protected Product 21 source and unsigned candidate are centrally accepted. An executable shared Testnet route, verified contracts, funded deposit and withdrawal, secure signer ceremony, independent security approval, cross-owner consumer receipts, production signing and Mainnet remain separate gates."
+}

@@ -1,0 +1,186 @@
+# Backup deployment candidates. Schedules stay suspended until storage,
+# workload identity, retention, and restore evidence are accepted by an operator.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-operator
+  namespace: ynx-services
+automountServiceAccountToken: false
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: chain-state-backup
+  namespace: ynx-services
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: backup
+            security.ynx/workload: backup-chain
+        spec:
+          serviceAccountName: backup-operator
+          automountServiceAccountToken: false
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            fsGroup: 65532
+          containers:
+          - name: backup
+            image: ynx/backup-operator:0.1.0-candidate
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+            env:
+            - name: BACKUP_TYPE
+              value: "chain-state"
+            - name: BACKUP_ENCRYPTION_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backup-encryption-key
+                  key: key
+            - name: BACKUP_DESTINATION
+              value: "s3://ynx-backups-immutable/chain-state"
+            - name: BACKUP_CROSS_REGION_REPLICA
+              value: "s3://ynx-backups-replica-eu/chain-state"
+            - name: SOURCE_COMMIT
+              value: "auto"
+            volumeMounts:
+            - name: chain-data
+              mountPath: /data
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            resources:
+              requests:
+                cpu: "500m"
+                memory: "1Gi"
+              limits:
+                cpu: "2"
+                memory: "4Gi"
+          volumes:
+          - name: chain-data
+            persistentVolumeClaim:
+              claimName: chain-data
+          - name: tmp
+            emptyDir:
+              sizeLimit: 10Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: ynx-services
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  suspend: true
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: backup
+            security.ynx/workload: backup-database
+        spec:
+          serviceAccountName: backup-operator
+          automountServiceAccountToken: false
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+          containers:
+          - name: backup
+            image: ynx/backup-operator:0.1.0-candidate
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+            env:
+            - name: BACKUP_TYPE
+              value: "postgresql"
+            - name: BACKUP_ENCRYPTION_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backup-encryption-key
+                  key: key
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-credentials
+                  key: url
+            - name: BACKUP_DESTINATION
+              value: "s3://ynx-backups-immutable/database"
+            resources:
+              requests:
+                cpu: "250m"
+                memory: "512Mi"
+              limits:
+                cpu: "1"
+                memory: "2Gi"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: object-storage-backup
+  namespace: ynx-services
+spec:
+  schedule: "0 4 * * *"  # Daily at 4 AM
+  suspend: true
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: backup
+            security.ynx/workload: backup-objects
+        spec:
+          serviceAccountName: backup-operator
+          automountServiceAccountToken: false
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+          containers:
+          - name: backup
+            image: ynx/backup-operator:0.1.0-candidate
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+            env:
+            - name: BACKUP_TYPE
+              value: "object-storage"
+            - name: BACKUP_ENCRYPTION_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backup-encryption-key
+                  key: key
+            - name: SOURCE_BUCKET
+              value: "ynx-artifacts"
+            - name: BACKUP_DESTINATION
+              value: "s3://ynx-backups-immutable/objects"
+            resources:
+              requests:
+                cpu: "250m"
+                memory: "256Mi"
+              limits:
+                cpu: "1"
+                memory: "1Gi"

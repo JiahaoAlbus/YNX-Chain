@@ -46,6 +46,7 @@ if [[ -n "$PROMETHEUS_ARCHIVE_PATH" ]]; then
 fi
 ynx_transport_scp monitoring-config "$PRIMARY_NODE_SSH_KEY" infra/monitoring/prometheus-authoritative.yml "$remote" "$remote_work/prometheus.yml"
 ynx_transport_scp monitoring-rules "$PRIMARY_NODE_SSH_KEY" infra/monitoring/ynx-alerts.yml "$remote" "$remote_work/ynx-alerts.yml"
+ynx_transport_scp monitoring-reserve-rule-tests "$PRIMARY_NODE_SSH_KEY" infra/monitoring/stable-reserve-alerts.test.yml "$remote" "$remote_work/stable-reserve-alerts.test.yml"
 ynx_transport_scp monitoring-unit "$PRIMARY_NODE_SSH_KEY" infra/monitoring/systemd/ynx-prometheus.service "$remote" "$remote_work/ynx-prometheus.service"
 
 ynx_transport_ssh monitoring-install "$PRIMARY_NODE_SSH_KEY" "$remote" \
@@ -72,6 +73,7 @@ fi
 sed "s#/etc/ynx/prometheus/ynx-alerts.yml#$work/ynx-alerts.yml#" "$work/prometheus.yml" >"$work/prometheus-check.yml"
 "$work/promtool" check config "$work/prometheus-check.yml"
 "$work/promtool" check rules "$work/ynx-alerts.yml"
+(cd "$work" && "$work/promtool" test rules stable-reserve-alerts.test.yml)
 ip -4 address show dev ynxwg0 | grep -Fq '10.77.42.1/32' || { echo "primary WireGuard monitoring address is absent"; exit 1; }
 for target in 10.77.42.2 10.77.42.3 10.77.42.4; do
   curl -fsS --max-time 8 --retry 3 --retry-all-errors --retry-delay 2 \
@@ -87,19 +89,37 @@ sudo -n install -o root -g ynx-prometheus -m 0640 "$work/prometheus.yml" /etc/yn
 sudo -n install -o root -g ynx-prometheus -m 0640 "$work/ynx-alerts.yml" /etc/ynx/prometheus/ynx-alerts.yml
 sudo -n install -o root -g root -m 0644 "$work/ynx-prometheus.service" /etc/systemd/system/ynx-prometheus.service
 sudo -n systemctl daemon-reload
-sudo -n systemctl enable --now ynx-prometheus.service
+sudo -n systemctl enable ynx-prometheus.service
+sudo -n systemctl restart ynx-prometheus.service
 REMOTE
 
 for attempt in $(seq 1 12); do
-  if evidence="$(ynx_transport_ssh monitoring-ready "$PRIMARY_NODE_SSH_KEY" "$remote" \
-    "curl -fsS --max-time 5 'http://10.77.42.1:19090/api/v1/query?query=up%7Bjob%3D%22ynx-chaind%22%7D'")" && \
-    node -e 'const d=JSON.parse(process.argv[1]); const r=d?.data?.result||[]; if(r.length!==4||r.some(x=>x.value?.[1]!=="1"))process.exit(1)' "$evidence"; then
-    printf '%s\n' "$evidence"
-    echo "authoritative monitoring deployed: four exact Prometheus targets are up through loopback/WireGuard"
+  if target_evidence="$(ynx_transport_ssh monitoring-ready "$PRIMARY_NODE_SSH_KEY" "$remote" \
+    "curl -fsS --max-time 5 'http://10.77.42.1:19090/api/v1/targets'")" && \
+    node -e '
+      const d=JSON.parse(process.argv[1]);
+      const targets=d?.data?.activeTargets||[];
+      const chain=targets.filter(x=>x.labels?.job==="ynx-chaind").map(x=>x.labels.instance).sort();
+      const explorer=targets.filter(x=>x.labels?.job==="ynx-explorerd");
+      const monitor=targets.filter(x=>x.labels?.job==="ynx-economics-monitord");
+      const expected=["10.77.42.2:6420","10.77.42.3:6420","10.77.42.4:6420","127.0.0.1:6420"].sort();
+      if(JSON.stringify(chain)!==JSON.stringify(expected)||explorer.length!==1||
+         explorer[0].labels?.instance!=="127.0.0.1:6427"||explorer[0].health!=="up"||
+         monitor.length!==1||monitor[0].labels?.instance!=="127.0.0.1:6438"||monitor[0].health!=="up")process.exit(1);
+    ' "$target_evidence"; then
+    node -e '
+      const d=JSON.parse(process.argv[1]);
+      const targets=d.data.activeTargets;
+      const chain=targets.filter(x=>x.labels.job==="ynx-chaind");
+      const explorer=targets.find(x=>x.labels.job==="ynx-explorerd");
+      const monitor=targets.find(x=>x.labels.job==="ynx-economics-monitord");
+      console.log(JSON.stringify({chainTargets:chain.length,chainUp:chain.filter(x=>x.health==="up").length,explorerTarget:explorer.labels.instance,explorerHealth:explorer.health,monitorTarget:monitor.labels.instance,monitorHealth:monitor.health}));
+    ' "$target_evidence"
+    echo "authoritative monitoring deployed: four exact Chain targets are monitored and Explorer/Economics Monitor targets are up"
     exit 0
   fi
   sleep 5
 done
 
-echo "authoritative monitoring failed to prove four healthy targets" >&2
+echo "authoritative monitoring failed to load four exact Chain targets and healthy Explorer/Economics Monitor targets" >&2
 exit 1

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "scenario": "github-final-branch-protection",
+  "repository": "JiahaoAlbus/YNX",
+  "branch": "codex/final-security-platform",
+  "sourceCommit": "fa5f3edfdac0fe21ed17028845e4faa09ae89143",
+  "verifiedAt": "2026-07-27T15:18:12Z",
+  "reverifiedAt": "2026-07-28T10:08:56Z",
+  "reverifiedForSourceCommit": "1853dd46ce1535dc01911308b53f2d14860337c2",
+  "result": "protected-with-admin-bypass",
+  "requiredStatusChecks": {
+    "strict": true,
+    "contexts": [
+      "Policy, tests, supply chain, and manifests",
+      "Deployment remains operator-controlled",
+      "dependency-and-build-script-audit",
+      "go-static-analysis",
+      "source-analysis (javascript-typescript)",
+      "source-analysis (go)"
+    ]
+  },
+  "requiredPullRequestReviews": {
+    "dismissStaleReviews": true,
+    "requireCodeOwnerReviews": true,
+    "requireLastPushApproval": true,
+    "requiredApprovingReviewCount": 1
+  },
+  "requiredLinearHistory": true,
+  "allowForcePushes": false,
+  "allowDeletions": false,
+  "requiredConversationResolution": true,
+  "enforceAdmins": false,
+  "requiredSignatures": false,
+  "evidenceSource": "GitHub branch protection REST API read-after-write",
+  "limitations": [
+    "Repository administrators can currently bypass protection so the active recovery thread can continue committing directly.",
+    "Administrator enforcement must be enabled during the final repository lock after all autonomous engineering work is complete.",
+    "Commit-signature enforcement is not enabled because an approved commit-signing identity and migration plan are not yet established."
+  ],
+  "nextAction": "At final lock, enable administrator enforcement and evaluate required signed commits only after an approved signing identity and compatibility plan exist."
+}

@@ -1,16 +1,23 @@
 package bridgegateway
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
+
+var traceparentPattern = regexp.MustCompile(`^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$`)
 
 type Server struct {
 	service *Service
@@ -26,21 +33,135 @@ func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
 	return s
 }
 
-func (s *Server) Handler() http.Handler { return s.mux }
+func (s *Server) Handler() http.Handler { return s.observeAndLimit(s.mux) }
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *statusWriter) WriteHeader(status int) {
+	if w.status == 0 {
+		w.status = status
+	}
+	w.ResponseWriter.WriteHeader(status)
+}
+func (w *statusWriter) Write(body []byte) (int, error) {
+	if w.status == 0 {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(body)
+}
+
+func (s *Server) observeAndLimit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID := newRequestID()
+		traceID, responseTraceparent := traceContext(r.Header.Get("traceparent"))
+		w.Header().Set("X-Request-ID", requestID)
+		w.Header().Set("X-Trace-ID", traceID)
+		w.Header().Set("traceparent", responseTraceparent)
+		started := time.Now()
+		accessKey := r.Header.Get("X-YNX-Bridge-Key")
+		if accessKey == "" {
+			accessKey = r.Header.Get("X-YNX-Bridge-Gateway-Key")
+		}
+		if accessKey == "" {
+			accessKey = r.Header.Get("Authorization")
+		}
+		writer := &statusWriter{ResponseWriter: w}
+		if !s.service.Allow(r.RemoteAddr, accessKey, started.UTC()) {
+			writeJSON(writer, http.StatusTooManyRequests, map[string]string{"error": "Bridge API rate limit exceeded"})
+		} else {
+			next.ServeHTTP(writer, r)
+		}
+		status := writer.status
+		if status == 0 {
+			status = http.StatusOK
+		}
+		pattern := r.Pattern
+		if pattern == "" {
+			pattern = "unmatched"
+		}
+		slog.Info("bridge_http_request", "request_id", requestID, "trace_id", traceID, "method", r.Method, "route", pattern, "status", status, "duration_ms", time.Since(started).Milliseconds())
+	})
+}
+
+func newRequestID() string {
+	raw := make([]byte, 12)
+	if _, err := rand.Read(raw); err == nil {
+		return "breq_" + hex.EncodeToString(raw)
+	}
+	return "breq_" + hashText(time.Now().UTC().Format(time.RFC3339Nano))[:24]
+}
+
+func traceContext(incoming string) (string, string) {
+	traceID := ""
+	flags := "01"
+	if match := traceparentPattern.FindStringSubmatch(strings.ToLower(strings.TrimSpace(incoming))); len(match) == 4 && match[1] != strings.Repeat("0", 32) && match[2] != strings.Repeat("0", 16) {
+		traceID = match[1]
+		flags = match[3]
+	}
+	if traceID == "" {
+		traceID = randomHex(16)
+	}
+	spanID := randomHex(8)
+	return traceID, "00-" + traceID + "-" + spanID + "-" + flags
+}
+
+func randomHex(size int) string {
+	raw := make([]byte, size)
+	if _, err := rand.Read(raw); err == nil {
+		return hex.EncodeToString(raw)
+	}
+	return hashText(time.Now().UTC().Format(time.RFC3339Nano) + "|" + strconv.Itoa(size))[:size*2]
+}
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /version", s.handleVersion)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
+	s.mux.HandleFunc("GET /bridge/state-machine", s.handleStateMachine)
+	s.mux.HandleFunc("GET /bridge/transparency", s.handleTransparency)
+	s.mux.HandleFunc("GET /bridge/routes", s.handleRoutes)
+	s.mux.HandleFunc("GET /bridge/providers", s.handleProviders)
+	s.mux.HandleFunc("GET /bridge/assets", s.handleAssets)
+	s.mux.HandleFunc("GET /bridge/status", s.handleStatus)
+	s.mux.HandleFunc("POST /bridge/quotes", s.requireQuoteAuth(s.handleQuote))
+	s.mux.HandleFunc("POST /bridge/wallet-reviews", s.requireGatewayAuth(s.handleWalletReview))
 	s.mux.HandleFunc("POST /bridge/transfers", s.requireAuth(s.handleCreate))
 	s.mux.HandleFunc("GET /bridge/transfers", s.requireAuth(s.handleList))
 	s.mux.HandleFunc("GET /bridge/transfers/{id}", s.requireAuth(s.handleGet))
 	s.mux.HandleFunc("POST /bridge/transfers/{id}/attestations", s.requireAuth(s.handleAttest))
 	s.mux.HandleFunc("POST /bridge/transfers/{id}/finalize", s.requireAuth(s.handleFinalize))
+	s.mux.HandleFunc("POST /bridge/transfers/{id}/proof-verification", s.requireAuth(s.handleProofVerification))
+	s.mux.HandleFunc("POST /bridge/transfers/{id}/outcomes", s.requireAuth(s.handleOutcome))
+	s.mux.HandleFunc("POST /bridge/safety", s.requireAuth(s.handleSafety))
+	s.mux.HandleFunc("POST /bridge/reconciliations", s.requireAuth(s.handleReconciliation))
 	s.mux.HandleFunc("GET /bridge/audit", s.requireAuth(s.handleAudit))
+	s.mux.HandleFunc("GET /bridge/data-exports/{account}", s.requireAuth(s.handleDataExport))
+	s.mux.HandleFunc("POST /bridge/data-deletion-requests", s.requireAuth(s.handleDataDeletionRequest))
+	s.mux.HandleFunc("POST /bridge/data-deletion-requests/{id}/execute", s.requireAuth(s.handleDataDeletionExecute))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, s.service.Health(s.build))
+}
+
+func (s *Server) handleVersion(w http.ResponseWriter, _ *http.Request) {
+	health := s.service.Health(s.build)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service": "ynx-bridged", "source": "ynx-bridge-runtime", "schemaVersion": health.SchemaVersion,
+		"stateMachineVersion": health.StateMachineVersion, "startedAt": health.StartedAt, "asOf": s.service.cfg.Now().UTC().Format(timeFormat),
+		"build": health.Build, "degraded": health.Degraded, "paused": health.Safety.Paused,
+		"providerStatus": health.ProviderStatus, "providerCount": health.ProviderCount, "availableProviderCount": health.AvailableProviderCount,
+		"contractStatus": health.ContractStatus, "reconciliationStatus": health.ReconciliationStatus,
+		"lastSuccessfulTransfer": health.LastSuccessfulTransfer, "lastReconciliation": health.LastReconciliation,
+		"liveBridge": health.LiveBridge, "externalSubmissionEnabled": health.ExternalSubmissionEnabled,
+	})
+}
+
+func (s *Server) handleStateMachine(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.StateMachine())
 }
 
 func (s *Server) handleMetrics(w http.ResponseWriter, _ *http.Request) {
@@ -51,7 +172,123 @@ func (s *Server) handleMetrics(w http.ResponseWriter, _ *http.Request) {
 	_, _ = fmt.Fprintf(w, "ynx_bridge_ready_total{%s} %d\n", labels, health.ReadyCount)
 	_, _ = fmt.Fprintf(w, "ynx_bridge_finalized_local_total{%s} %d\n", labels, health.FinalizedLocalCount)
 	_, _ = fmt.Fprintf(w, "ynx_bridge_audit_events_total{%s} %d\n", labels, health.AuditEventCount)
+	_, _ = fmt.Fprintf(w, "ynx_bridge_providers_configured{%s} %d\n", labels, health.ProviderCount)
+	_, _ = fmt.Fprintf(w, "ynx_bridge_providers_available{%s} %d\n", labels, health.AvailableProviderCount)
+	for _, provider := range s.service.providerMonitorStates() {
+		providerLabels := fmt.Sprintf(`%s,provider="%s",route_id="%s"`, labels, provider.Provider, provider.RouteID)
+		outageActive := 0
+		if provider.OutageActive {
+			outageActive = 1
+		}
+		_, _ = fmt.Fprintf(w, "ynx_bridge_provider_outage_active{%s} %d\n", providerLabels, outageActive)
+		_, _ = fmt.Fprintf(w, `ynx_bridge_provider_incidents_total{%s,status="outage"} %d`+"\n", providerLabels, provider.OutageCount)
+		_, _ = fmt.Fprintf(w, `ynx_bridge_provider_incidents_total{%s,status="recovered"} %d`+"\n", providerLabels, provider.RecoveryCount)
+	}
 	_, _ = fmt.Fprintf(w, "ynx_bridge_external_submission_enabled{%s} 0\n", labels)
+	paused := 0
+	if health.Safety.Paused {
+		paused = 1
+	}
+	_, _ = fmt.Fprintf(w, "ynx_bridge_paused{%s} %d\n", labels, paused)
+	var exposure uint64
+	for _, route := range s.service.Transparency().Routes {
+		value, _ := strconv.ParseUint(route.CoordinatorOutstanding, 10, 64)
+		exposure += value
+		routeLabels := fmt.Sprintf(`%s,provider="%s",source_chain="%s",destination_chain="%s",source_asset="%s",destination_asset="%s"`, labels, route.Route.Provider, route.Route.SourceChain, route.Route.DestinationChain, route.Route.SourceAsset, route.Route.DestinationAsset)
+		limit, _ := strconv.ParseUint(route.Route.MaxOutstanding, 10, 64)
+		_, _ = fmt.Fprintf(w, "ynx_bridge_route_outstanding{%s} %d\n", routeLabels, value)
+		_, _ = fmt.Fprintf(w, "ynx_bridge_route_outstanding_limit{%s} %d\n", routeLabels, limit)
+		if route.LastReconciliation != nil {
+			balanced := 0
+			if route.LastReconciliation.Balanced {
+				balanced = 1
+			}
+			recordedAt, _ := time.Parse(time.RFC3339Nano, route.LastReconciliation.RecordedAt)
+			_, _ = fmt.Fprintf(w, "ynx_bridge_reconciliation_balanced{%s} %d\n", routeLabels, balanced)
+			_, _ = fmt.Fprintf(w, "ynx_bridge_reconciliation_timestamp_seconds{%s} %d\n", routeLabels, recordedAt.Unix())
+		}
+	}
+	_, _ = fmt.Fprintf(w, "ynx_bridge_coordinator_outstanding{%s} %d\n", labels, exposure)
+	_, _ = fmt.Fprintf(w, "ynx_bridge_rate_limit_denied_total{%s} %d\n", labels, health.RateLimitDenied)
+}
+
+func (s *Server) handleTransparency(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.Transparency())
+}
+
+func (s *Server) handleRoutes(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.RouteCatalog())
+}
+
+func (s *Server) handleProviders(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.ProviderRegistry())
+}
+
+func (s *Server) handleAssets(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.AssetCatalog())
+}
+
+func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.ProductStatus(s.build))
+}
+
+func (s *Server) handleQuote(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-YNX-App-Gateway") == "1" {
+		if _, ok := s.gatewaySession(r, "bridge:quote:read"); !ok {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid canonical Wallet session and quote scope required"})
+			return
+		}
+	}
+	var request QuoteRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	quote, err := s.service.Quote(request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, quote)
+}
+
+func (s *Server) handleWalletReview(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.gatewaySession(r, "bridge:review:create")
+	if !ok || (session.Product != "ynx-wallet" && session.Product != "ynx-web") {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid canonical Wallet session and review scope required"})
+		return
+	}
+	var request WalletReviewRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	review, err := s.service.ReviewQuote(session, request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, review)
+}
+
+func (s *Server) gatewaySession(r *http.Request, expectedScope string) (GatewaySessionContext, bool) {
+	if r.Header.Get("X-YNX-App-Gateway") != "1" {
+		return GatewaySessionContext{}, false
+	}
+	session := GatewaySessionContext{
+		Product: strings.TrimSpace(r.Header.Get("X-YNX-App-Product")), SessionID: strings.TrimSpace(r.Header.Get("X-YNX-App-Session-ID")),
+		Account: strings.TrimSpace(r.Header.Get("X-YNX-App-Session-Account")), DeviceID: strings.TrimSpace(r.Header.Get("X-YNX-App-Session-Device")),
+		Scope: strings.TrimSpace(r.Header.Get("X-YNX-App-Scope")),
+	}
+	expiresAt, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(r.Header.Get("X-YNX-App-Session-Expires-At")))
+	if err != nil {
+		return GatewaySessionContext{}, false
+	}
+	session.ExpiresAt = expiresAt.UTC()
+	now := s.service.cfg.Now().UTC()
+	if !identifierPattern.MatchString(session.Product) || !identifierPattern.MatchString(session.SessionID) || !identifierPattern.MatchString(session.Account) || !strings.HasPrefix(session.Account, "ynx1") || session.Account != strings.ToLower(session.Account) ||
+		!identifierPattern.MatchString(session.DeviceID) || session.Scope != expectedScope || r.Header.Get("X-YNX-Device-ID") != session.DeviceID || !now.Before(session.ExpiresAt) {
+		return GatewaySessionContext{}, false
+	}
+	return session, true
 }
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -120,6 +357,58 @@ func (s *Server) handleFinalize(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+func (s *Server) handleProofVerification(w http.ResponseWriter, r *http.Request) {
+	var request ProofVerificationRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	result, err := s.service.VerifyProof(r.PathValue("id"), request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleOutcome(w http.ResponseWriter, r *http.Request) {
+	var request OutcomeRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	result, err := s.service.RecordOutcome(r.PathValue("id"), request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleSafety(w http.ResponseWriter, r *http.Request) {
+	var request PauseRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	safety, replayed, err := s.service.SetPause(request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"safety": safety, "replayed": replayed})
+}
+
+func (s *Server) handleReconciliation(w http.ResponseWriter, r *http.Request) {
+	var request ReconciliationRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	reconciliation, replayed, err := s.service.Reconcile(request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"reconciliation": reconciliation, "replayed": replayed})
+}
+
 func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
 	limit, err := boundedInt(r.URL.Query().Get("limit"), 50)
 	if err != nil {
@@ -138,6 +427,45 @@ func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"events": items, "count": len(items)})
 }
 
+func (s *Server) handleDataExport(w http.ResponseWriter, r *http.Request) {
+	exported, err := s.service.ExportAccount(r.PathValue("account"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, exported)
+}
+
+func (s *Server) handleDataDeletionRequest(w http.ResponseWriter, r *http.Request) {
+	var request DataDeletionRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	record, replayed, err := s.service.RequestDataDeletion(request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	status := http.StatusCreated
+	if replayed {
+		status = http.StatusOK
+	}
+	writeJSON(w, status, map[string]any{"request": record, "replayed": replayed})
+}
+
+func (s *Server) handleDataDeletionExecute(w http.ResponseWriter, r *http.Request) {
+	var request DataDeletionExecuteRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	record, replayed, err := s.service.ExecuteDataDeletion(r.PathValue("id"), request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"request": record, "replayed": replayed})
+}
+
 func (s *Server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		value := r.Header.Get("X-YNX-Bridge-Key")
@@ -146,6 +474,31 @@ func (s *Server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 		}
 		if !s.service.Authorized(value) {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid Bridge API key required"})
+			return
+		}
+		next(w, r)
+	}
+}
+
+func (s *Server) requireQuoteAuth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-YNX-App-Gateway") == "1" {
+			if !s.service.AuthorizedGateway(r.Header.Get("X-YNX-Bridge-Gateway-Key")) {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid Bridge Gateway credential required"})
+				return
+			}
+		} else if !s.service.Authorized(r.Header.Get("X-YNX-Bridge-Key")) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid Bridge operator credential required"})
+			return
+		}
+		next(w, r)
+	}
+}
+
+func (s *Server) requireGatewayAuth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-YNX-App-Gateway") != "1" || !s.service.AuthorizedGateway(r.Header.Get("X-YNX-Bridge-Gateway-Key")) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid canonical App Gateway credential required"})
 			return
 		}
 		next(w, r)
@@ -198,6 +551,20 @@ func boundedInt(raw string, fallback int) (int, error) {
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
+	if status >= 400 {
+		requestID := w.Header().Get("X-Request-ID")
+		errorID := "berr_" + hashText(requestID + "|" + strconv.Itoa(status))[:16]
+		w.Header().Set("X-Error-ID", errorID)
+		if original, ok := value.(map[string]string); ok {
+			enriched := map[string]string{}
+			for key, item := range original {
+				enriched[key] = item
+			}
+			enriched["requestId"] = requestID
+			enriched["errorId"] = errorID
+			value = enriched
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)

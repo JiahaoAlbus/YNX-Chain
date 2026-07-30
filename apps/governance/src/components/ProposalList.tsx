@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useI18n } from '../i18n';
 
 interface Proposal {
   id: string;
@@ -19,6 +20,7 @@ interface ProposalListProps {
 }
 
 export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) => {
+  const { locale, t } = useI18n();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,12 +35,12 @@ export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) 
       setLoading(true);
       const response = await fetch('/governance/proposals');
       if (!response.ok) {
-        throw new Error('Failed to fetch proposals');
+        throw new Error(t('failedProposals'));
       }
       const data = await response.json();
       setProposals(data.proposals || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : t('unknownError'));
     } finally {
       setLoading(false);
     }
@@ -107,7 +109,7 @@ export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) 
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={styles.loading}>Loading proposals...</div>
+        <div style={styles.loading} role="status" aria-live="polite">{t('loadingProposals')}</div>
       </div>
     );
   }
@@ -115,9 +117,9 @@ export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) 
   if (error) {
     return (
       <div style={styles.container}>
-        <div style={styles.error}>Error: {error}</div>
-        <button onClick={fetchProposals} style={styles.retryButton}>
-          Retry
+        <div style={styles.error} role="alert">{t('error')}: {error}</div>
+        <button type="button" onClick={fetchProposals} style={styles.retryButton}>
+          {t('retry')}
         </button>
       </div>
     );
@@ -126,43 +128,51 @@ export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h1 style={styles.title}>Governance Proposals</h1>
-        <div style={styles.filterBar}>
+        <h1 style={styles.title}>{t('governanceProposals')}</h1>
+        <div style={styles.filterBar} role="group" aria-label={t('governanceProposals')}>
           <button
+            type="button"
+            aria-pressed={filter === 'all'}
             onClick={() => setFilter('all')}
             style={{
               ...styles.filterButton,
               ...(filter === 'all' ? styles.filterButtonActive : {}),
             }}
           >
-            All
+            {t('all')}
           </button>
           <button
+            type="button"
+            aria-pressed={filter === 'active'}
             onClick={() => setFilter('active')}
             style={{
               ...styles.filterButton,
               ...(filter === 'active' ? styles.filterButtonActive : {}),
             }}
           >
-            Active
+            {t('active')}
           </button>
           <button
+            type="button"
+            aria-pressed={filter === 'voting_active'}
             onClick={() => setFilter('voting_active')}
             style={{
               ...styles.filterButton,
               ...(filter === 'voting_active' ? styles.filterButtonActive : {}),
             }}
           >
-            Voting
+            {t('voting')}
           </button>
           <button
+            type="button"
+            aria-pressed={filter === 'completed'}
             onClick={() => setFilter('completed')}
             style={{
               ...styles.filterButton,
               ...(filter === 'completed' ? styles.filterButtonActive : {}),
             }}
           >
-            Completed
+            {t('completed')}
           </button>
         </div>
       </div>
@@ -170,14 +180,16 @@ export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) 
       <div style={styles.proposalGrid}>
         {filteredProposals.length === 0 ? (
           <div style={styles.emptyState}>
-            <p>No proposals found</p>
+            <p>{t('noProposals')}</p>
           </div>
         ) : (
           filteredProposals.map((proposal) => (
-            <div
+            <button
+              type="button"
               key={proposal.id}
               style={styles.proposalCard}
               onClick={() => onSelectProposal(proposal.id)}
+              aria-label={`${t('openProposal')}: ${proposal.input.summary}`}
             >
               <div style={styles.proposalHeader}>
                 <span
@@ -193,27 +205,27 @@ export const ProposalList: React.FC<ProposalListProps> = ({ onSelectProposal }) 
               <h3 style={styles.proposalTitle}>{proposal.input.summary}</h3>
               <div style={styles.proposalMeta}>
                 <div style={styles.metaRow}>
-                  <span style={styles.metaLabel}>Proposer:</span>
+                  <span style={styles.metaLabel}>{t('proposer')}:</span>
                   <span style={styles.metaValue}>
                     {proposal.input.proposer.substring(0, 10)}...
                   </span>
                 </div>
                 <div style={styles.metaRow}>
-                  <span style={styles.metaLabel}>Created:</span>
+                  <span style={styles.metaLabel}>{t('created')}:</span>
                   <span style={styles.metaValue}>
-                    {new Date(proposal.createdAt).toLocaleDateString()}
+                    {new Date(proposal.createdAt).toLocaleDateString(locale)}
                   </span>
                 </div>
                 {proposal.votingEndsAt && (
                   <div style={styles.metaRow}>
-                    <span style={styles.metaLabel}>Voting Ends:</span>
+                    <span style={styles.metaLabel}>{t('votingEnds')}:</span>
                     <span style={styles.metaValue}>
-                      {new Date(proposal.votingEndsAt).toLocaleDateString()}
+                      {new Date(proposal.votingEndsAt).toLocaleDateString(locale)}
                     </span>
                   </div>
                 )}
               </div>
-            </div>
+            </button>
           ))
         )}
       </div>
@@ -240,6 +252,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   filterBar: {
     display: 'flex',
     gap: '8px',
+    flexWrap: 'wrap',
   },
   filterButton: {
     padding: '8px 16px',
@@ -259,7 +272,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   proposalGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
     gap: '16px',
   },
   proposalCard: {
@@ -269,6 +282,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#FFFFFF',
     cursor: 'pointer',
     transition: 'all 0.2s',
+    width: '100%',
+    textAlign: 'start',
+    color: 'inherit',
+    font: 'inherit',
   },
   proposalHeader: {
     display: 'flex',

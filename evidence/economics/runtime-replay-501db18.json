@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "ynx-economics-local-runtime-replay-501db18",
+  "sourceCommit": "501db18aed76bb34cc8b2917480bd9ab0f3ff3a5",
+  "capturedAt": "2026-07-25T05:00:00Z",
+  "classification": "local-deterministic-runtime-evidence",
+  "sharedTestnet": false,
+  "publicDeployment": false,
+  "production": false,
+  "commands": [
+    "make staking-risk-runtime-check",
+    "make economics-integration-contract-check",
+    "make economics-local-candidate-check",
+    "go test ./..."
+  ],
+  "economicsRuntime": {
+    "input": "economics/examples/runtime-replay.json",
+    "schemaVersion": 1,
+    "stateVersion": 4,
+    "lastEpoch": 3,
+    "genesisSupplyYnxt": 1000000000,
+    "cumulativeIssuanceYnxt": 82166,
+    "cumulativeBurnYnxt": 1750000,
+    "totalSupplyYnxt": 998332166,
+    "eventCount": 3,
+    "stateHash": "sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09"
+  },
+  "stakingRiskRuntime": {
+    "input": "economics/examples/staking-risk-runtime-replay.json",
+    "schemaVersion": 1,
+    "stateVersion": 3,
+    "eventCount": 2,
+    "slashEvent": {
+      "id": "stakeevt_d7b6c5f36a3aa1695c4012fb",
+      "openingExposureYnxt": 10000000,
+      "slashBps": 1000,
+      "totalSlashYnxt": 1000000,
+      "closingExposureYnxt": 9000000,
+      "verifiedSignatures": 2,
+      "threshold": 2,
+      "auditHash": "sha256:b14c228b28852a05dd127de8a5a9350f3b7125d57b95bd56cf50639da8bf440d"
+    },
+    "recoveryEvent": {
+      "id": "stakeevt_756e2091731f609ba3053529",
+      "finalValidatorStatus": "active",
+      "verifiedSignatures": 2,
+      "threshold": 2,
+      "auditHash": "sha256:77011a61cec4813e07e2cd74c11707e2c34f344407df498f957b8f64eff1a577"
+    },
+    "stateHash": "sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764"
+  },
+  "boundaries": {
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "testnetTransactionHashes": [],
+    "blockReceipts": [],
+    "publicUrls": []
+  }
+}

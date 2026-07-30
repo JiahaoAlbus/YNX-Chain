@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "namespace": "oracle",
+  "fixtureOnly": true,
+  "productId": "ynx-oracle-market-data",
+  "sourceCommit": "8f4310988a6641c5b023497c74e901ff508771fe",
+  "oracleSchema": "ynx.oracle.v1",
+  "aggregationPolicyVersion": "weighted-median-mad-v1",
+  "derivativesPolicyVersion": "index-funding-mark-v1",
+  "description": "Deterministic cross-product acceptance vectors. Values are isolated test fixtures and must never be published as live market data.",
+  "vectors": [
+    {
+      "id": "exchange-index-three-sources",
+      "consumer": "07 Exchange",
+      "inputs": {
+        "type": "spot_price",
+        "market": "YNXT/YUSD_TEST",
+        "values": [99990000, 100000000, 100010000],
+        "scale": 1000000,
+        "independentSources": 3
+      },
+      "expected": {
+        "type": "index_price",
+        "value": 100000000,
+        "scale": 1000000,
+        "qualityStatus": "good",
+        "derivationMethod": "liquidity_weighted_median_spot_index",
+        "accept": true
+      },
+      "localTest": "TestServiceDerivesIndexFundingAndMarkWithExplicitLineage"
+    },
+    {
+      "id": "exchange-funding-signed-reference",
+      "consumer": "07 Exchange",
+      "inputs": {
+        "premiumPpm": [900, 1000, 1100],
+        "basisPpm": [-250, -200, -150],
+        "independentSourcesPerComponent": 3
+      },
+      "expected": {
+        "type": "funding_reference",
+        "value": 800,
+        "scale": 1000000,
+        "fundingWindowSeconds": 28800,
+        "clamped": false,
+        "accept": true
+      },
+      "localTest": "TestServiceDerivesIndexFundingAndMarkWithExplicitLineage"
+    },
+    {
+      "id": "exchange-mark-not-last-trade",
+      "consumer": "07 Exchange",
+      "inputs": {
+        "indexValue": 100000000,
+        "indexScale": 1000000,
+        "fundingReferencePpm": 800
+      },
+      "expected": {
+        "type": "mark_price",
+        "value": 100080000,
+        "scale": 1000000,
+        "derivationMethod": "index_times_one_plus_funding_reference",
+        "accept": true
+      },
+      "localTest": "TestServiceDerivesIndexFundingAndMarkWithExplicitLineage"
+    },
+    {
+      "id": "exchange-funding-spike-breaker",
+      "consumer": "07 Exchange",
+      "inputs": {
+        "premiumPpm": 6000,
+        "basisPpm": 1000,
+        "rawReferencePpm": 7000,
+        "governanceClampPpm": 5000
+      },
+      "expected": {
+        "qualityStatus": "divergent",
+        "circuitBreaker": true,
+        "clamped": true,
+        "accept": false
+      },
+      "localTest": "TestFundingSpikeAndStaleMarkFailClosed"
+    },
+    {
+      "id": "exchange-stale-liquidation-reference",
+      "consumer": "07 Exchange",
+      "inputs": {
+        "observationAgeSeconds": 60,
+        "maximumComponentAgeSeconds": 30
+      },
+      "expected": {
+        "qualityStatus": "last_good_stale",
+        "stale": true,
+        "circuitBreaker": true,
+        "accept": false
+      },
+      "localTest": "TestFundingSpikeAndStaleMarkFailClosed"
+    },
+    {
+      "id": "provider-derived-value-rejection",
+      "consumer": "Provider Adapter",
+      "inputs": {
+        "attemptedTypes": ["index_price", "mark_price", "funding_reference"]
+      },
+      "expected": {
+        "acceptedTypes": [],
+        "accept": false
+      },
+      "localTest": "TestProviderCannotPublishDerivedPricesOrWrongMarket"
+    },
+    {
+      "id": "provider-market-coverage-rejection",
+      "consumer": "Provider Adapter",
+      "inputs": {
+        "registeredMarkets": ["YNXT/YUSD_TEST"],
+        "observationMarket": "ETH/EUR"
+      },
+      "expected": {
+        "accept": false,
+        "reason": "market outside provider registry coverage"
+      },
+      "localTest": "TestProviderCannotPublishDerivedPricesOrWrongMarket"
+    },
+    {
+      "id": "provider-source-version-rejection",
+      "consumer": "Provider Adapter",
+      "inputs": {
+        "registeredEndpoint": "fixture endpoint A",
+        "observationEndpoint": "fixture endpoint B",
+        "registeredApiVersion": "v1",
+        "observationApiVersion": "v2"
+      },
+      "expected": {
+        "accept": false,
+        "reason": "source or source version mismatch"
+      },
+      "localTest": "TestProviderCannotPublishDerivedPricesOrWrongMarket"
+    },
+    {
+      "id": "chain-core-http-during-consensus",
+      "consumer": "01 Chain Core",
+      "inputs": {
+        "operation": "HTTP lookup during deterministic state transition"
+      },
+      "expected": {
+        "accept": false,
+        "requiredIntegration": "pre-validated versioned Oracle record"
+      },
+      "status": "awaiting-consumer-acceptance"
+    },
+    {
+      "id": "dex-single-block-pool-spot",
+      "consumer": "09 DEX",
+      "inputs": {
+        "observationCount": 1,
+        "confirmationCount": 0,
+        "flashLoanPossible": true
+      },
+      "expected": {
+        "accept": false,
+        "requiredIntegration": "confirmed multi-block TWAP"
+      },
+      "status": "runtime-slice-pending"
+    },
+    {
+      "id": "stablecoin-reserve-unverified",
+      "consumer": "17 Economics",
+      "inputs": {
+        "attestationProviderAvailable": false,
+        "custodianEvidenceAvailable": false
+      },
+      "expected": {
+        "status": "unverified",
+        "acceptAsAuditedReserveFact": false
+      },
+      "status": "external-provider-blocked"
+    },
+    {
+      "id": "bridge-stale-valuation",
+      "consumer": "21 Bridge",
+      "inputs": {
+        "qualityStatus": "last_good_stale",
+        "stale": true
+      },
+      "expected": {
+        "routeValuationAccepted": false,
+        "bridgeReleaseAuthorized": false
+      },
+      "status": "awaiting-consumer-acceptance"
+    }
+  ]
+}

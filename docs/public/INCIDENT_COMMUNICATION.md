@@ -1,6 +1,6 @@
 # Incident Communication Plan
 
-Version: 1.0.0-candidate  
+Version: 1.0.0-candidate
 Status: template; public status service and contacts not evidenced
 
 ## Initial notice

@@ -1,0 +1,125 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "passed",
+  "productId": "26",
+  "product": "YNX Data Fabric & Billing Ledger",
+  "acceptedBy": "29-integration",
+  "acceptedAt": "2026-07-29T21:03:26Z",
+  "acceptedSourceCommit": "2a09d7455a5fef9eee56ca736be4b600d40a1831",
+  "frozenReleaseSource": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+  "integrationCommit": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
+  "ancestry": {
+    "acceptedSourceIsParentOfIntegrationCommit": true,
+    "integrationCommitContainsAcceptedSource": true
+  },
+  "ownerCandidate": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "branch": "codex/final-data-fabric",
+    "localRemoteShaEqual": true,
+    "worktreeClean": true,
+    "branchProtected": true,
+    "pullRequestMergeable": true,
+    "pullRequestMergeState": "CLEAN",
+    "coverageTotal": 35,
+    "coverageAutonomousOpen": 0,
+    "coverageDownstreamOpen": 3,
+    "requiredEvidenceBundleComplete": true,
+    "sourceBindingsReachable": true
+  },
+  "exactHeadCi": {
+    "verified": true,
+    "sourceCommit": "2a09d7455a5fef9eee56ca736be4b600d40a1831",
+    "successfulWorkflowRunIds": [
+      30489804464,
+      30489804447,
+      30489804385,
+      30489804323,
+      30489804311,
+      30489804300,
+      30489804298,
+      30489800850
+    ],
+    "failed": 0,
+    "pending": 0
+  },
+  "tests": [
+    {
+      "command": "go test ./...",
+      "status": "passed",
+      "result": "all Go packages, including the merged Data Fabric, Pay bridge and Chain Core paths, passed"
+    },
+    {
+      "command": "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpgbackup ./internal/datafabricpostgres ./sdk/datafabric",
+      "status": "passed",
+      "result": "all Data Fabric state, transport, API, backup, PostgreSQL, Pay ledger and SDK race suites passed"
+    },
+    {
+      "command": "go vet ./cmd/ynx-data-fabricd ./cmd/ynx-data-fabric-worker ./cmd/ynx-data-fabricctl ./cmd/ynx-pay-data-fabric-bridge ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpgbackup ./internal/datafabricpostgres ./sdk/datafabric",
+      "status": "passed",
+      "result": "the merged Data Fabric command and library surface passed Go vet"
+    },
+    {
+      "command": "make integration-contract-check",
+      "status": "passed",
+      "result": "71 central Chain Core v12 and ABCI v18 contract and negative vectors passed"
+    },
+    {
+      "command": "Data Fabric policy and fail-closed release boundary checks",
+      "status": "passed",
+      "result": "runtime, public and secret policy scans plus Testnet, remote deployment and public promotion negative gates passed"
+    },
+    {
+      "command": "bash scripts/data-fabric/service-stop-exit-check.sh",
+      "status": "passed",
+      "result": "graceful SIGTERM, post-stop integrity, backup/restore, subject export and pseudonymous erasure checks passed"
+    },
+    {
+      "command": "npm audit --omit=dev --audit-level=high",
+      "status": "passed",
+      "result": "zero production dependency vulnerabilities"
+    },
+    {
+      "command": "make integration-acceptance-check integration-product-release-matrix-check",
+      "status": "passed",
+      "result": "36-product source-bound central evidence and release matrix gates passed before acceptance"
+    },
+    {
+      "command": "GitHub Actions exact-head PostgreSQL 17.10 integration",
+      "status": "passed",
+      "result": "both push and pull-request PostgreSQL live jobs passed at the accepted owner head"
+    }
+  ],
+  "artifactVerification": {
+    "sourceOnly": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "release": {
+      "id": 362040034,
+      "tag": "data-fabric-v0.2.0-source-candidate",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/data-fabric-v0.2.0-source-candidate",
+      "publishedAt": "2026-07-29T20:45:26Z",
+      "prerelease": true,
+      "draft": false,
+      "targetCommit": "8cbc3dba0cbd139a0ba6bf7ba716b406856b32f5",
+      "assetCount": 7,
+      "archive": {
+        "name": "ynx-data-fabric-source-8cbc3dba0cbd.tar.gz",
+        "bytes": 6906686,
+        "sha256": "83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848"
+      },
+      "downloadedAllAssetDigestsVerified": true,
+      "publicStateChanged": false
+    }
+  },
+  "truth": {
+    "integratedCentral": true,
+    "sharedTestnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "nextGate": "The protected source-only candidate is centrally accepted. Shared Testnet producer/consumer receipts, production-shaped recovery and capacity evidence, staging, public deployment, production signing, public downloads, stores and Mainnet remain separate gates."
+}

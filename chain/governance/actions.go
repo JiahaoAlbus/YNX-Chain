@@ -88,7 +88,7 @@ func ValidateEnvelope(env *ActionEnvelope, expectedChainID uint64, now time.Time
 	if env.Product != "governance" {
 		return fmt.Errorf("%w: got %s", ErrWrongProduct, env.Product)
 	}
-	
+
 	// Validate expiry
 	expiresAt, err := time.Parse(time.RFC3339, env.ExpiresAt)
 	if err != nil {
@@ -97,19 +97,19 @@ func ValidateEnvelope(env *ActionEnvelope, expectedChainID uint64, now time.Time
 	if now.After(expiresAt) {
 		return ErrExpiredAction
 	}
-	
+
 	// Validate payload hash
 	h := sha256.Sum256(env.Payload)
 	computedHash := hex.EncodeToString(h[:])
 	if computedHash != env.PayloadHash {
 		return ErrInvalidPayloadHash
 	}
-	
+
 	// Validate signature (simplified - real implementation uses secp256k1)
 	if env.Signature == "" {
 		return ErrInvalidSignature
 	}
-	
+
 	return nil
 }
 

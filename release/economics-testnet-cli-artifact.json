@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "local-unsigned-testnet-cli-artifact",
+  "generatedAt": "2026-07-30T18:39:47+08:00",
+  "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+  "storeSourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+  "artifact": {
+    "id": "ynxt-economics-testnet-cli-darwin-arm64",
+    "path": "dist/ynxt-economics-testnet-cli-darwin-arm64",
+    "target": {
+      "goos": "darwin",
+      "goarch": "arm64"
+    },
+    "toolchain": "go version go1.25.12 darwin/arm64",
+    "packageHash": "sha256:5b4f3ba84dea6201ddf885ba1f5e80adf8be4fc35f649dcc0c34f1bef6976c31",
+    "files": [
+      {
+        "path": "README.txt",
+        "bytes": 613,
+        "sha256": "beb29a2056300bf7f32d3daf759e97f723b278eac9dc83811c87fc611a013628",
+        "mode": "0644"
+      },
+      {
+        "path": "bin/ynx-economics-integration-store",
+        "bytes": 4390530,
+        "sha256": "2b58b19baf45b9049203c5c498d2105a373fc4751b868dcd54989e6733abe394",
+        "mode": "0755"
+      },
+      {
+        "path": "bin/ynx-economics-local-testnet-evidence",
+        "bytes": 4219362,
+        "sha256": "4d0a3322536af00888ae5fcba0ee3988da14cc89e54ae57f3b4d352612b119b8",
+        "mode": "0755"
+      },
+      {
+        "path": "bin/ynx-economics-runtime",
+        "bytes": 3936882,
+        "sha256": "db6a99e923253adeddc4204c71c57766e035e2050b886a965abb909010ad3b17",
+        "mode": "0755"
+      },
+      {
+        "path": "bin/ynx-economics-shared-testnet-acceptance",
+        "bytes": 4027474,
+        "sha256": "6395f46ee2311793e2cefb3253124b7cde7238903270d5ad50efbda02df13a44",
+        "mode": "0755"
+      },
+      {
+        "path": "bin/ynx-staking-risk-runtime",
+        "bytes": 3988338,
+        "sha256": "07cb59979e5aab903968c1281a084c7b5f334efaf5ff888b7307111ec62ae808",
+        "mode": "0755"
+      }
+    ],
+    "signingClass": "unsigned_local_testnet_cli",
+    "immutableDownloadURL": null
+  },
+  "reproducibility": {
+    "buildAEqualsBuildB": true,
+    "cgoEnabled": false,
+    "trimpath": true,
+    "buildVCS": false,
+    "buildID": "empty"
+  },
+  "installation": {
+    "executed": true,
+    "transient": true,
+    "prefixClass": "temporary-user-controlled-prefix",
+    "installedBinaries": [
+      "ynx-economics-integration-store",
+      "ynx-economics-local-testnet-evidence",
+      "ynx-economics-runtime",
+      "ynx-economics-shared-testnet-acceptance",
+      "ynx-staking-risk-runtime"
+    ],
+    "executableMode": "0755",
+    "removalVerified": true
+  },
+  "coldStart": {
+    "economicsStateHash": "sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09",
+    "stakingStateHash": "sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764",
+    "storeStateHash": "sha256:c4673098638660439cc69a5bbef21239e034c92a18d4b77c46ca9398022b41ed",
+    "transactionId": "econ-local-tx-abbeda604c4fae1d357982ad6bb1011e3d134fa437eb0c52e91464d41704aa70",
+    "blockHash": "sha256:cb1eebecdd4708636da415bd9a79d67ef6eec519d1b5cb8358d7363ab750ed4a",
+    "evidenceHash": "sha256:ed2ac4a7dc035a3dddaa021e09763526d74cd72cc3a3ea77faee45ce8fa91348",
+    "sharedAcceptanceVersion": {
+      "cliSchemaVersion": 1,
+      "storeSchemaVersion": 1,
+      "evidenceSchemaVersion": 1,
+      "contractId": "ynx.economics.integration.v1",
+      "releaseClass": "shared-testnet-acceptance-validator",
+      "publicDeployment": false,
+      "production": false
+    }
+  },
+  "releaseTruth": {
+    "installedLocal": true,
+    "sharedTestnet": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

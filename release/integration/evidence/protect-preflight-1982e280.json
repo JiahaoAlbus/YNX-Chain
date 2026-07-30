@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0.0",
+  "owner": "29-integration",
+  "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
+  "verifiedAt": "2026-07-29T18:07:49Z",
+  "worktreeCleanAtStart": true,
+  "command": "make integration-protect-preflight && npm run security:test && npm run security:verify && npm run security:integration && npm run security:notices && npm run security:build-scripts && npm audit --omit=dev --audit-level=high",
+  "result": "passed",
+  "gates": [
+    "integration coverage self-test",
+    "integration acceptance check",
+    "Product Release Matrix direct-release self-test",
+    "Product Release Matrix stored-file check",
+    "contract tooling",
+    "npm audit policy",
+    "npm audit policy negative self-test",
+    "go test ./...",
+    "no-placeholder check",
+    "secret scan",
+    "go vet",
+    "shell syntax",
+    "Node syntax",
+    "central acceptance stale-decision negative self-test",
+    "Product 30 security tests 179/179",
+    "Product 30 release truth and artifact verification",
+    "Product 30 staging and production manifest renders",
+    "third-party notices",
+    "package lifecycle script allowlist",
+    "production dependency audit with zero vulnerabilities"
+  ],
+  "acceptedProducts": [
+    {
+      "productId": "30",
+      "acceptedSourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
+      "frozenReleaseSource": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+      "decisionEvidence": "release/integration/evidence/product-30-central-acceptance-a472d588.json",
+      "sourcePrereleasePublished": true,
+      "sourceArtifactHosted": true
+    }
+  ],
+  "claimsExcluded": [
+    "merge to main",
+    "shared Testnet verification",
+    "public runtime",
+    "Website publication",
+    "Product 29 artifact hosting",
+    "production signing",
+    "store release",
+    "Mainnet"
+  ]
+}

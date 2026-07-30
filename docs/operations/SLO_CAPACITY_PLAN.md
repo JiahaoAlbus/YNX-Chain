@@ -1,7 +1,7 @@
 # YNX Chain SLO and Capacity Plan
 
-Status: pre-production planning document  
-Evidence date: 2026-07-22  
+Status: pre-production planning document
+Evidence date: 2026-07-22
 Release gates: all public-product booleans remain `false`
 
 ## Decision boundary

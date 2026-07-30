@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+patches:
+  - target:
+      kind: Namespace
+      name: ynx-services
+    patch: |-
+      - op: add
+        path: /metadata/labels/environment
+        value: production
+  - target:
+      kind: Deployment
+      name: quant-worker
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: ai-gateway-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+
+labels:
+  - pairs:
+      environment: production
+      security.ynx/tier: production-candidate
+    includeSelectors: false
+
+images:
+  - name: ynx/quant-worker
+    newTag: 0.1.0-production-candidate
+  - name: ynx/backup-operator
+    newTag: 0.1.0-production-candidate

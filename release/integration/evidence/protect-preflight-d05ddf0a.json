@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0.0",
+  "owner": "29-integration",
+  "product": "YNX Integration / Founder Control",
+  "sourceCommit": "d05ddf0a9d0d5a7b05b6c792eec547bfde06b215",
+  "branch": "codex/final-integration",
+  "recordedAt": "2026-07-29T03:02:49Z",
+  "command": "make integration-protect-preflight",
+  "result": "passed",
+  "exactCommitRun": true,
+  "worktreeCleanAtStart": true,
+  "checks": [
+    "integration-coverage-refresh-check",
+    "integration-acceptance-check",
+    "contract-tooling-check",
+    "integration-npm-audit-policy-check",
+    "integration-npm-audit-policy-check-test",
+    "go test ./...",
+    "no-placeholder-check",
+    "secret-scan",
+    "static-check"
+  ],
+  "gateBehavior": {
+    "coverageMatrixCardinality": "fail-closed for missing, duplicate or incomplete 01-36 rows",
+    "npmPolicySelfTest": "deterministic offline fixtures",
+    "npmRegistryAudit": "real full and production-only audits with at most three retries for recognized transient network errors",
+    "persistentNetworkFailure": "fails the gate",
+    "vulnerabilityOrPolicyFailure": "fails without retry suppression"
+  },
+  "claims": {
+    "testedLocal": true,
+    "integratedCentral": false,
+    "testnetVerified": false,
+    "deployedPublic": false,
+    "releasePublished": false,
+    "mainnetAccepted": false
+  }
+}

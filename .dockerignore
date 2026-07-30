@@ -1,0 +1,11 @@
+.git
+**/.git
+**/node_modules
+**/dist
+**/.next
+**/.wrangler
+tmp
+var
+*.pem
+*.key
+.env*

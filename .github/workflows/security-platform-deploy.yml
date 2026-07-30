@@ -1,0 +1,97 @@
+name: Security Platform Gates
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - codex/final-security-platform
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-platform-gates-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Policy, tests, supply chain, and manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Configure Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24.4.1"
+          cache: npm
+
+      - name: Reproducible install
+        run: npm ci --ignore-scripts
+
+      - name: Audit install scripts before execution
+        run: npm run security:build-scripts
+
+      - name: Run required package build hooks
+        run: npm rebuild
+
+      - name: Verify machine-readable policy and repository truth
+        run: npm run security:verify
+
+      - name: Run security regression tests
+        run: npm run security:test
+
+      - name: Render and enforce Kubernetes candidates
+        run: npm run security:integration
+
+      - name: Verify third-party notices
+        run: npm run security:notices
+
+      - name: Dependency vulnerability gate
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Syntax-check operator tools
+        run: |
+          node --check scripts/security-disaster-recovery.mjs
+          node --check scripts/security-break-glass.mjs
+          node --check scripts/security-deploy.mjs
+          node --check scripts/security-integration.mjs
+          node --check scripts/security-secret-manager.mjs
+          node --check scripts/security-stage-release.mjs
+          node --check scripts/security-staging-rollback.mjs
+          node --check scripts/security-staging-canary.mjs
+          node --check scripts/security-production-release.mjs
+          node --check scripts/security-production-deploy.mjs
+          node --check scripts/security-production-blue-green.mjs
+          node --check scripts/security-production-rollback.mjs
+          node --check scripts/security-production-lease.mjs
+          node --check scripts/security-production-rbac.mjs
+          node --check scripts/security-production-approval.mjs
+          node --check scripts/security-production-alert.mjs
+          node --check scripts/security-production-operation.mjs
+          node --check scripts/security-production-operation-binding.mjs
+          node --check scripts/security-service-identity.mjs
+          node --check scripts/security-rotation.mjs
+          node --check scripts/security-seo-monitor.mjs
+
+  deployment-boundary:
+    name: Deployment remains operator-controlled
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Reject deployment credentials and mutation commands
+        run: node scripts/security-ci-policy.mjs

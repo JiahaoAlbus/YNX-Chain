@@ -1,0 +1,27 @@
+{"at":"2026-07-27T14:32:45Z","event":"recovery_opened","workspace":"/Users/huangjiahao/Desktop/YNX Final Worktrees/30-security-platform","branch":"codex/final-security-platform","head":"8577f8a6086946297faddf1ffc7e04ca8359af05","upstream":"8577f8a6086946297faddf1ffc7e04ca8359af05","ahead":0,"behind":0,"dirty":false}
+{"at":"2026-07-27T14:32:45Z","event":"concurrency_checked","result":"no-active-writer-detected","evidence":"only CodexPro server process matched 30-security-platform"}
+{"at":"2026-07-27T14:32:45Z","event":"remote_checked","origin":"https://github.com/JiahaoAlbus/YNX.git","repository":"JiahaoAlbus/YNX","visibility":"PUBLIC","defaultBranch":"main"}
+{"at":"2026-07-27T14:32:45Z","event":"ci_observed","head":"8577f8a6086946297faddf1ffc7e04ca8359af05","runs":[{"id":30240025946,"workflow":"Security Platform Gates","conclusion":"failure"},{"id":30240025913,"workflow":"Security","conclusion":"failure"}],"logFetch":"tls-handshake-timeout-after-bounded-retries"}
+{"at":"2026-07-27T14:32:45Z","event":"verification","command":"npm run security:verify","result":"pass"}
+{"at":"2026-07-27T14:32:45Z","event":"verification","command":"npm run security:test","result":"pass","tests":164,"failures":0}
+{"at":"2026-07-27T14:32:45Z","event":"verification","command":"npm run security:integration","result":"pass","stagingDocuments":21,"productionDocuments":23,"deployedStaging":false,"deployedPublic":false}
+{"at":"2026-07-27T14:32:45Z","event":"verification","command":"npm run security:notices","result":"pass"}
+{"at":"2026-07-27T14:32:45Z","event":"verification","command":"npm audit --omit=dev --audit-level=high","result":"pass","vulnerabilities":0}
+{"at":"2026-07-27T14:32:45Z","event":"verification","command":"node scripts/security-ci-policy.mjs","result":"pass"}
+{"at":"2026-07-27T14:32:45Z","event":"verification","command":"npm run lint","result":"pass"}
+{"at":"2026-07-27T14:32:45Z","event":"clean_install_reproduction","commands":["npm ci --ignore-scripts --no-audit --no-fund --loglevel=error","npm run security:build-scripts","npm rebuild"],"result":"pass"}
+{"at":"2026-07-27T14:32:45Z","event":"gap_identified","gap":"release-record-source-drift","currentHead":"8577f8a6086946297faddf1ffc7e04ca8359af05","recordedArtifactSource":"53b037eb6fff51e3cb149231fad5bb5f2599527f"}
+{"at":"2026-07-27T14:32:45Z","event":"coverage_initialized","path":".ai-bridge/full-goal-coverage.json","overallStatus":"ACTIVE","phase":"PROTECT"}
+{"at":"2026-07-27T14:56:15Z","event":"ci_root_cause","jobs":[90011493930,90011554308],"failedStep":"npm run security:build-scripts","cause":"Ubuntu correctly omits optional Darwin-only fsevents, while the audit unconditionally read its installed package metadata"}
+{"at":"2026-07-27T14:56:15Z","event":"implementation","path":"scripts/security-build-script-audit.mjs","change":"validate platform-excluded optional packages from lock metadata while failing closed for supported-platform absence and script drift"}
+{"at":"2026-07-27T14:56:15Z","event":"verification","command":"node --test scripts/security-build-script-audit.test.mjs","result":"pass","tests":4,"failures":0}
+{"at":"2026-07-27T14:56:15Z","event":"verification","command":"npm run security:test","result":"pass","tests":168,"failures":0}
+{"at":"2026-07-27T14:56:15Z","event":"verification","command":"npm run security:verify","result":"pass"}
+{"at":"2026-07-27T14:56:15Z","event":"verification","command":"npm run lint","result":"pass"}
+{"at":"2026-07-27T14:58:39Z","event":"verification","command":"npm test","result":"pass","contracts":18,"sdk":14,"bridgeService":11,"aiGateway":28,"web4Hub":18}
+{"at":"2026-07-27T14:58:39Z","event":"verification","command":"npm run security:integration","result":"pass","stagingDocuments":21,"productionDocuments":23}
+{"at":"2026-07-27T14:58:39Z","event":"verification","command":"npm run security:notices","result":"pass"}
+{"at":"2026-07-27T14:58:39Z","event":"verification","command":"npm audit --omit=dev --audit-level=high","result":"pass","vulnerabilities":0}
+{"at":"2026-07-27T15:05:35Z","event":"push","commit":"fa5f3edfdac0fe21ed17028845e4faa09ae89143","branch":"codex/final-security-platform","result":"success","localRemoteEqual":true}
+{"at":"2026-07-27T15:14:37Z","event":"remote_ci","commit":"fa5f3edfdac0fe21ed17028845e4faa09ae89143","runs":[{"id":30278299821,"workflow":"Security Platform Gates","conclusion":"success"},{"id":30278299441,"workflow":"Security","conclusion":"success"}],"requiredJobs":{"policyTestsSupplyChainManifests":"success","operatorControlled":"success","dependencyBuildScriptAudit":"success","goStaticAnalysis":"success","codeqlJavascriptTypescript":"success","codeqlGo":"success"}}
+{"at":"2026-07-27T15:18:12Z","event":"branch_protection","repository":"JiahaoAlbus/YNX","branch":"codex/final-security-platform","result":"protected-with-admin-bypass","strictStatusChecks":true,"requiredContexts":6,"requiredApprovals":1,"codeOwnerReview":true,"lastPushApproval":true,"linearHistory":true,"allowForcePushes":false,"allowDeletions":false,"conversationResolution":true,"enforceAdmins":false,"evidence":"evidence/security-platform/GITHUB_BRANCH_PROTECTION_2026-07-27.json"}

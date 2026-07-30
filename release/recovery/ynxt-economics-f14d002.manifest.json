@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "product": "YNXT Economics",
+  "branch": "codex/final-tokenomics",
+  "createdAt": "2026-07-27T06:33:12Z",
+  "remoteBase": "2b067ce8794054dd286b7f2fd99659a95890e0c3",
+  "protectedCommit": "f14d002a39cedca18b094e856adc7da888d376da",
+  "commitSubject": "feat(economics): bind local testnet evidence",
+  "pushAttempts": 3,
+  "pushResult": "external-502",
+  "bundle": {
+    "path": "release/recovery/ynxt-economics-f14d002.bundle",
+    "sha256": "88fa6ff30259db166b697d5d2d1773cd3642c957d0c9f5260f642cd019c65246",
+    "verified": true,
+    "containedRef": "f14d002a39cedca18b094e856adc7da888d376da HEAD",
+    "requiredObject": "f914af8ff385c1a77f03aa0b3d3ceecbf5474a1a"
+  },
+  "diffStat": {
+    "filesChanged": 5,
+    "insertions": 835,
+    "deletions": 2
+  },
+  "tests": {
+    "economicsLocalTestnetEvidenceCheck": "passed",
+    "economicsPackage": "passed",
+    "staticCheck": "passed",
+    "noPlaceholderCheck": "passed",
+    "secretScan": "passed",
+    "fullGoTest": "blocked-by-three-existing-umask-sensitive-permission-tests"
+  },
+  "releaseTruth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "sharedTestnet": false,
+    "deployedPublic": false,
+    "production": false
+  }
+}

@@ -28,18 +28,21 @@ YNX_PEER_RPC_URLS="${YNX_PEER_RPC_URLS:-ynx_validator_singapore|http://${SG_NODE
 YNX_PEER_SYNC_INTERVAL="${YNX_PEER_SYNC_INTERVAL:-5s}"
 YNX_BRIDGE_DEPLOY_ENABLED="${YNX_BRIDGE_DEPLOY_ENABLED:-false}"
 YNX_STABLECOIN_DEPLOY_ENABLED="${YNX_STABLECOIN_DEPLOY_ENABLED:-false}"
+YNX_STABLE_RESERVE_DEPLOY_ENABLED="${YNX_STABLE_RESERVE_DEPLOY_ENABLED:-false}"
 YNX_CHAT_DEPLOY_ENABLED="${YNX_CHAT_DEPLOY_ENABLED:-false}"
 YNX_SQUARE_DEPLOY_ENABLED="${YNX_SQUARE_DEPLOY_ENABLED:-false}"
 YNX_APP_GATEWAY_DEPLOY_ENABLED="${YNX_APP_GATEWAY_DEPLOY_ENABLED:-false}"
 YNX_APP_GATEWAY_HTTP_ADDR="${YNX_APP_GATEWAY_HTTP_ADDR:-127.0.0.1:6437}"
 YNX_APP_GATEWAY_ALLOWED_ORIGINS="${YNX_APP_GATEWAY_ALLOWED_ORIGINS:-https://${WEBSITE_DOMAIN:-www.ynxweb4.com},https://ynxweb4.com}"
+YNX_WALLET_GATEWAY_DEPLOY_ENABLED="${YNX_WALLET_GATEWAY_DEPLOY_ENABLED:-false}"
+YNX_WALLET_GATEWAY_HTTP_ADDR="${YNX_WALLET_GATEWAY_HTTP_ADDR:-127.0.0.1:6439}"
+YNX_WALLET_GATEWAY_ALLOWED_ORIGINS="${YNX_WALLET_GATEWAY_ALLOWED_ORIGINS:-${YNX_APP_GATEWAY_ALLOWED_ORIGINS}}"
 
 required=(
   TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN REST_DOMAIN INDEXER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
   FAUCET_DOMAIN API_DOMAIN AI_GATEWAY_DOMAIN TRUST_API_DOMAIN RESOURCE_API_DOMAIN PAY_API_DOMAIN IDE_DOMAIN
-  SERVER_HOST SERVER_USER SSH_KEY_PATH DEPLOY_TARGET CHAIN_ID CHAIN_NAME
-  NATIVE_COIN_NAME NATIVE_SYMBOL GENESIS_VALIDATOR_NAME VALIDATOR_KEY_PATH
-  FAUCET_PRIVATE_KEY DEPLOYER_PRIVATE_KEY TREASURY_ADDRESS FOUNDATION_ADDRESS
+  DEPLOY_TARGET CHAIN_ID CHAIN_NAME NATIVE_COIN_NAME NATIVE_SYMBOL GENESIS_VALIDATOR_NAME
+  FAUCET_PRIVATE_KEY TREASURY_ADDRESS FOUNDATION_ADDRESS
   TEAM_VESTING_ADDRESS POSTGRES_URL REDIS_URL WEBHOOK_SECRET JWT_SECRET
   SESSION_SECRET RATE_LIMIT_SECRET PAY_MERCHANT_SECRET TRUST_REPORT_SIGNING_KEY
   OBJECT_STORAGE_ENDPOINT OBJECT_STORAGE_BUCKET OBJECT_STORAGE_ACCESS_KEY OBJECT_STORAGE_SECRET_KEY
@@ -52,7 +55,7 @@ required=(
   YNX_RESOURCE_API_KEY YNX_RESOURCE_GATEWAY_UPSTREAM_KEY YNX_RESOURCE_GATEWAY_HTTP_ADDR YNX_RESOURCE_GATEWAY_CHAIN_URL
   YNX_RESOURCE_GATEWAY_AUDIT_LOG YNX_RESOURCE_GATEWAY_RATE_LIMIT_WINDOW YNX_RESOURCE_GATEWAY_RATE_LIMIT_MAX
   EMAIL_PROVIDER EMAIL_API_KEY MONITORING_ADMIN_PASSWORD
-  BACKUP_STORAGE_PATH SSL_EMAIL NGINX_SERVER_NAME GITHUB_REPO_TOKEN
+  BACKUP_STORAGE_PATH NGINX_SERVER_NAME GITHUB_REPO_TOKEN
   PRIMARY_NODE_HOST PRIMARY_NODE_USER PRIMARY_NODE_SSH_KEY SG_NODE_HOST SG_NODE_USER SG_NODE_SSH_KEY
   SILICON_VALLEY_NODE_HOST SILICON_VALLEY_NODE_USER SILICON_VALLEY_NODE_SSH_KEY
   SEOUL_NODE_HOST SEOUL_NODE_USER SEOUL_NODE_SSH_KEY YNX_VALIDATOR_SET YNX_BOOTSTRAP_PEERS YNX_EXPECTED_VALIDATOR_COUNT
@@ -65,7 +68,7 @@ case "$YNX_BRIDGE_DEPLOY_ENABLED" in
   *) echo "YNX_BRIDGE_DEPLOY_ENABLED must be true or false"; exit 1 ;;
 esac
 if [[ "$YNX_BRIDGE_DEPLOY_ENABLED" == "true" ]]; then
-  bridge_required=(YNX_BRIDGE_API_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR)
+  bridge_required=(YNX_BRIDGE_API_KEY YNX_BRIDGE_GATEWAY_API_KEY YNX_BRIDGE_QUOTE_SEAL_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON YNX_BRIDGE_PROVIDER_ROUTES_JSON YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR YNX_BRIDGE_RATE_LIMIT_WINDOW YNX_BRIDGE_RATE_LIMIT_MAX YNX_BRIDGE_RETENTION_PERIOD)
   ynx_require_env "${bridge_required[@]}"
   ynx_reject_unsafe_env_values "${bridge_required[@]}"
 fi
@@ -77,6 +80,16 @@ if [[ "$YNX_STABLECOIN_DEPLOY_ENABLED" == "true" ]]; then
   stablecoin_required=(YNX_STABLECOIN_API_KEY YNX_STABLECOIN_HTTP_ADDR)
   ynx_require_env "${stablecoin_required[@]}"
   ynx_reject_unsafe_env_values "${stablecoin_required[@]}"
+fi
+case "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" in
+  true | false) ;;
+  *) echo "YNX_STABLE_RESERVE_DEPLOY_ENABLED must be true or false"; exit 1 ;;
+esac
+if [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" ]]; then
+  stable_reserve_required=(YNX_STABLE_RESERVE_ATTESTATION_PATH YNX_STABLE_RESERVE_PUBLIC_KEY YNX_STABLE_RESERVE_KEY_ID YNX_STABLE_RESERVE_ASSET YNX_STABLE_RESERVE_NETWORK)
+  ynx_require_env "${stable_reserve_required[@]}"
+  ynx_reject_unsafe_env_values "${stable_reserve_required[@]}"
+  [[ -f "$YNX_STABLE_RESERVE_ATTESTATION_PATH" && ! -L "$YNX_STABLE_RESERVE_ATTESTATION_PATH" ]] || { echo "stable reserve attestation must be a regular non-symlink file"; exit 1; }
 fi
 case "$YNX_CHAT_DEPLOY_ENABLED" in
   true | false) ;;
@@ -106,6 +119,15 @@ if [[ "$YNX_APP_GATEWAY_DEPLOY_ENABLED" == "true" ]]; then
   ynx_require_env "${app_gateway_required[@]}"
   ynx_reject_unsafe_env_values "${app_gateway_required[@]}"
 fi
+case "$YNX_WALLET_GATEWAY_DEPLOY_ENABLED" in
+  true | false) ;;
+  *) echo "YNX_WALLET_GATEWAY_DEPLOY_ENABLED must be true or false"; exit 1 ;;
+esac
+if [[ "$YNX_WALLET_GATEWAY_DEPLOY_ENABLED" == "true" ]]; then
+  wallet_gateway_required=(YNX_WALLET_GATEWAY_HTTP_ADDR YNX_WALLET_GATEWAY_ALLOWED_ORIGINS)
+  ynx_require_env "${wallet_gateway_required[@]}"
+  ynx_reject_unsafe_env_values "${wallet_gateway_required[@]}"
+fi
 [[ "$NATIVE_SYMBOL" == "YNXT" ]] || { echo "NATIVE_SYMBOL must be YNXT"; exit 1; }
 [[ "$NATIVE_COIN_NAME" == "YNXT" ]] || { echo "NATIVE_COIN_NAME must be YNXT"; exit 1; }
 [[ "$CHAIN_ID" =~ ^[0-9]+$ ]] || { echo "CHAIN_ID must be numeric"; exit 1; }
@@ -116,6 +138,7 @@ if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
 fi
 
 commit="$(git rev-parse --short=12 HEAD)"
+source_commit="$(git rev-parse HEAD)"
 release="ynx-chain-${commit}"
 build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 chaind_ldflags="-s -w -X main.buildCommit=${commit} -X main.buildRelease=${release} -X main.buildTime=${build_time}"
@@ -128,6 +151,8 @@ echo "building YNX Chain binary for linux/amd64"
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$chaind_ldflags" -o "$work/bin/ynx-chaind" ./cmd/ynx-chaind
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-indexerd" ./cmd/ynx-indexerd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-explorerd" ./cmd/ynx-explorerd
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-economics-monitord" ./cmd/ynx-economics-monitord
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-yusd-sandboxd" ./cmd/ynx-yusd-sandboxd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-faucetd" ./cmd/ynx-faucetd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-ai-gatewayd" ./cmd/ynx-ai-gatewayd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-payd" ./cmd/ynx-payd
@@ -138,6 +163,13 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldfl
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-chatd" ./cmd/ynx-chatd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-squared" ./cmd/ynx-squared
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-app-gatewayd" ./cmd/ynx-app-gatewayd
+echo "assembling canonical Wallet Gateway Node.js runtime"
+npm ci --ignore-scripts --omit=dev --prefix packages/wallet-auth
+mkdir -p "$work/wallet-gateway/cmd/ynx-wallet-gatewayd" "$work/wallet-gateway/internal/walletgateway" "$work/wallet-gateway/packages/wallet-auth"
+cp cmd/ynx-wallet-gatewayd/main.mjs "$work/wallet-gateway/cmd/ynx-wallet-gatewayd/main.mjs"
+cp internal/walletgateway/server.mjs "$work/wallet-gateway/internal/walletgateway/server.mjs"
+cp packages/wallet-auth/package.json packages/wallet-auth/package-lock.json packages/wallet-auth/central-registry.json "$work/wallet-gateway/packages/wallet-auth/"
+cp -R packages/wallet-auth/src packages/wallet-auth/node_modules "$work/wallet-gateway/packages/wallet-auth/"
 cat > "$work/config/release.env" <<EOF
 YNX_RELEASE_COMMIT=${commit}
 YNX_RELEASE_NAME=${release}
@@ -171,8 +203,8 @@ ynx_write_kv_env "$work/config/ynx-resourced.env" \
   YNX_RESOURCE_API_KEY YNX_RESOURCE_GATEWAY_UPSTREAM_KEY YNX_RESOURCE_GATEWAY_HTTP_ADDR YNX_RESOURCE_GATEWAY_CHAIN_URL \
   YNX_RESOURCE_GATEWAY_AUDIT_LOG YNX_RESOURCE_GATEWAY_RATE_LIMIT_WINDOW YNX_RESOURCE_GATEWAY_RATE_LIMIT_MAX
 ynx_write_kv_env "$work/config/ynx-bridged.env" \
-  YNX_BRIDGE_DEPLOY_ENABLED YNX_BRIDGE_API_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON \
-  YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR
+  YNX_BRIDGE_DEPLOY_ENABLED YNX_BRIDGE_API_KEY YNX_BRIDGE_GATEWAY_API_KEY YNX_BRIDGE_QUOTE_SEAL_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON YNX_BRIDGE_PROVIDER_ROUTES_JSON \
+  YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR YNX_BRIDGE_RATE_LIMIT_WINDOW YNX_BRIDGE_RATE_LIMIT_MAX YNX_BRIDGE_RETENTION_PERIOD
 cat >> "$work/config/ynx-bridged.env" <<EOF
 YNX_BRIDGE_STATE_PATH=/var/lib/ynx-chain/bridge/state.json
 YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
@@ -183,6 +215,35 @@ cat >> "$work/config/ynx-stablecoind.env" <<EOF
 YNX_STABLECOIN_STATE_PATH=/var/lib/ynx-chain/stablecoin/state.json
 YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
 EOF
+cat > "$work/config/ynx-yusd-sandboxd.env" <<'EOF'
+YNX_YUSD_SANDBOX_ADDR=127.0.0.1:6490
+YNX_YUSD_SANDBOX_STATE_PATH=/var/lib/ynx-chain/yusd-sandbox/state.json
+YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
+EOF
+chmod 0600 "$work/config/ynx-yusd-sandboxd.env"
+cat > "$work/config/ynx-explorerd.env" <<EOF
+YNX_STABLE_RESERVE_DEPLOY_ENABLED=${YNX_STABLE_RESERVE_DEPLOY_ENABLED}
+YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=public_testnet
+YNX_YUSD_SANDBOX_URL=http://127.0.0.1:6490
+EOF
+if [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" ]]; then
+  install -m 0600 "$YNX_STABLE_RESERVE_ATTESTATION_PATH" "$work/config/stable-reserve-attestation.json"
+  printf 'YNX_STABLE_RESERVE_ATTESTATION_PATH=%q\n' "/etc/ynx/stable-reserve-attestation.json" >> "$work/config/ynx-explorerd.env"
+  printf 'YNX_STABLE_RESERVE_PUBLIC_KEY=%q\n' "$YNX_STABLE_RESERVE_PUBLIC_KEY" >> "$work/config/ynx-explorerd.env"
+  printf 'YNX_STABLE_RESERVE_KEY_ID=%q\n' "$YNX_STABLE_RESERVE_KEY_ID" >> "$work/config/ynx-explorerd.env"
+  printf 'YNX_STABLE_RESERVE_ASSET=%q\n' "$YNX_STABLE_RESERVE_ASSET" >> "$work/config/ynx-explorerd.env"
+  printf 'YNX_STABLE_RESERVE_NETWORK=%q\n' "$YNX_STABLE_RESERVE_NETWORK" >> "$work/config/ynx-explorerd.env"
+  printf 'YNX_STABLE_RESERVE_SOURCE_COMMIT=%q\n' "$source_commit" >> "$work/config/ynx-explorerd.env"
+fi
+chmod 0600 "$work/config/ynx-explorerd.env"
+cat > "$work/config/ynx-economics-monitord.env" <<EOF
+YNX_ECONOMICS_MONITOR_HTTP_ADDR=127.0.0.1:6438
+YNX_PUBLIC_STABLE_RESERVE_URL=https://${EXPLORER_DOMAIN}/api/stable/reserve
+YNX_PUBLIC_YUSD_SANDBOX_URL=https://${EXPLORER_DOMAIN}/api/stable/yusd-sandbox
+YNX_ECONOMICS_MONITOR_INTERVAL=15s
+YNX_ECONOMICS_MONITOR_TIMEOUT=10s
+EOF
+chmod 0600 "$work/config/ynx-economics-monitord.env"
 ynx_write_kv_env "$work/config/ynx-chatd.env" \
   YNX_CHAT_DEPLOY_ENABLED YNX_CHAT_API_KEY YNX_CHAT_HTTP_ADDR
 cat >> "$work/config/ynx-chatd.env" <<EOF
@@ -203,10 +264,22 @@ YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
 EOF
 ynx_write_kv_env "$work/config/ynx-app-gatewayd.env" \
   YNX_APP_GATEWAY_DEPLOY_ENABLED YNX_APP_GATEWAY_HTTP_ADDR YNX_APP_GATEWAY_ALLOWED_ORIGINS
+cat > "$work/config/ynx-wallet-gatewayd.env" <<EOF
+YNX_WALLET_GATEWAY_DEPLOY_ENABLED=${YNX_WALLET_GATEWAY_DEPLOY_ENABLED}
+YNX_WALLET_GATEWAY_HTTP_ADDR=${YNX_WALLET_GATEWAY_HTTP_ADDR}
+YNX_WALLET_GATEWAY_ALLOWED_ORIGINS=${YNX_WALLET_GATEWAY_ALLOWED_ORIGINS}
+YNX_WALLET_GATEWAY_STATE_PATH=/var/lib/ynx-chain/wallet-gateway/state.json
+YNX_WALLET_GATEWAY_REGISTRY_PATH=/opt/ynx-chain/releases/${release}/wallet-gateway/packages/wallet-auth/central-registry.json
+YNX_WALLET_GATEWAY_RUNTIME=/opt/ynx-chain/releases/${release}/wallet-gateway/cmd/ynx-wallet-gatewayd/main.mjs
+YNX_BUILD_COMMIT=${commit}
+YNX_BUILD_RELEASE=${release}
+YNX_BUILD_TIME=${build_time}
+EOF
 cat >> "$work/config/ynx-app-gatewayd.env" <<EOF
 YNX_APP_GATEWAY_CHAT_URL=http://127.0.0.1:6435
 YNX_APP_GATEWAY_SQUARE_URL=http://127.0.0.1:6436
 YNX_APP_GATEWAY_PAY_URL=http://127.0.0.1:6430
+YNX_APP_GATEWAY_BRIDGE_URL=http://127.0.0.1:6433
 YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
 YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
 YNX_APP_GATEWAY_RATE_LIMIT_WINDOW=1m
@@ -219,6 +292,7 @@ EOF
 printf 'YNX_APP_GATEWAY_CHAT_API_KEY=%q\n' "${YNX_CHAT_API_KEY:-disabled-chat-key}" >> "$work/config/ynx-app-gatewayd.env"
 printf 'YNX_APP_GATEWAY_SQUARE_API_KEY=%q\n' "${YNX_SQUARE_API_KEY:-disabled-square-key}" >> "$work/config/ynx-app-gatewayd.env"
 printf 'YNX_APP_GATEWAY_PAY_API_KEY=%q\n' "${YNX_PAY_API_KEY:-disabled-pay-key}" >> "$work/config/ynx-app-gatewayd.env"
+printf 'YNX_APP_GATEWAY_BRIDGE_API_KEY=%q\n' "${YNX_BRIDGE_GATEWAY_API_KEY:-disabled-bridge-gateway-key}" >> "$work/config/ynx-app-gatewayd.env"
 cat >> "$work/config/ynx-chaind.env" <<EOF
 YNX_NETWORK=testnet
 YNX_HTTP_ADDR=${YNX_NODE_HTTP_ADDR}
@@ -236,6 +310,7 @@ YNX_INDEXER_RPC_URL=http://127.0.0.1:6420
 YNX_INDEXER_HTTP_ADDR=127.0.0.1:6426
 YNX_INDEXER_DB_PATH=/var/lib/ynx-chain/indexer/indexer-db.json
 YNX_INDEXER_POLL_INTERVAL=2s
+YNX_INDEXER_MAX_BLOCKS_PER_RUN=250
 YNX_EXPLORER_RPC_URL=http://127.0.0.1:6420
 YNX_EXPLORER_INDEXER_URL=http://127.0.0.1:6426
 YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6427
@@ -345,13 +420,14 @@ EOF
 cat > "$work/systemd/ynx-explorerd.service" <<'EOF'
 [Unit]
 Description=YNX Chain testnet explorer
-After=network-online.target ynx-chaind.service ynx-indexerd.service
-Wants=network-online.target ynx-chaind.service ynx-indexerd.service
+After=network-online.target ynx-chaind.service ynx-indexerd.service ynx-yusd-sandboxd.service
+Wants=network-online.target ynx-chaind.service ynx-indexerd.service ynx-yusd-sandboxd.service
 
 [Service]
 User=ynx
 Group=ynx
 EnvironmentFile=/etc/ynx/ynx-chaind.env
+EnvironmentFile=/etc/ynx/ynx-explorerd.env
 ExecStart=/usr/local/bin/ynx-explorerd
 Restart=always
 RestartSec=3
@@ -365,6 +441,10 @@ ReadWritePaths=/var/lib/ynx-chain /var/log/ynx-chain
 [Install]
 WantedBy=multi-user.target
 EOF
+cp infra/monitoring/systemd/ynx-economics-monitord.service "$work/systemd/ynx-economics-monitord.service"
+cp infra/monitoring/systemd/ynx-yusd-sandboxd.service "$work/systemd/ynx-yusd-sandboxd.service"
+cp scripts/deploy/remote/install-yusd-env.sh "$work/scripts/install-yusd-env.sh"
+chmod 0755 "$work/scripts/install-yusd-env.sh"
 
 cat > "$work/systemd/ynx-faucetd.service" <<'EOF'
 [Unit]
@@ -590,8 +670,8 @@ EOF
 cat > "$work/systemd/ynx-app-gatewayd.service" <<'EOF'
 [Unit]
 Description=YNX Chain first-party browser application gateway
-After=network-online.target ynx-chatd.service ynx-squared.service ynx-payd.service
-Wants=network-online.target
+After=network-online.target ynx-chatd.service ynx-squared.service ynx-payd.service ynx-wallet-gatewayd.service
+Wants=network-online.target ynx-wallet-gatewayd.service
 
 [Service]
 User=ynx
@@ -612,6 +692,38 @@ ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
 ReadWritePaths=/var/lib/ynx-chain/app-gateway
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > "$work/systemd/ynx-wallet-gatewayd.service" <<'EOF'
+[Unit]
+Description=YNX canonical Wallet Auth gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-wallet-gatewayd.env
+ExecStart=/usr/bin/node ${YNX_WALLET_GATEWAY_RUNTIME}
+Restart=always
+RestartSec=3
+UMask=0077
+LimitNOFILE=65536
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/ynx-chain/wallet-gateway
 
 [Install]
 WantedBy=multi-user.target
@@ -744,6 +856,20 @@ server {
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto \$scheme;
   }
+  location /v1/wallet/ {
+    proxy_pass http://127.0.0.1:6439;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+  }
+  location = /wallet-gateway/health {
+    proxy_pass http://127.0.0.1:6439/health;
+  }
+  location = /wallet-gateway/version {
+    proxy_pass http://127.0.0.1:6439/version;
+  }
   location / {
     proxy_pass http://127.0.0.1:6420;
     proxy_http_version 1.1;
@@ -807,6 +933,17 @@ ${NGINX_SERVER_NAME}, ${TESTNET_DOMAIN}, ${RPC_DOMAIN}, ${EVM_RPC_DOMAIN} {
 }
 
 ${REST_DOMAIN}, ${API_DOMAIN}, ${IDE_DOMAIN} {
+  handle /v1/wallet/* {
+    reverse_proxy 127.0.0.1:6439
+  }
+  handle /wallet-gateway/health {
+    rewrite * /health
+    reverse_proxy 127.0.0.1:6439
+  }
+  handle /wallet-gateway/version {
+    rewrite * /version
+    reverse_proxy 127.0.0.1:6439
+  }
   handle /app/* {
     reverse_proxy 127.0.0.1:6437
   }
@@ -941,7 +1078,7 @@ ynx_node_scp() {
 ynx_capture_predeploy_state() {
   local role="$1" user="$2" host="$3" key="$4"
   local marker="/var/log/ynx-chain/deploy/predeploy-${release}-${role}.txt"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx /var/log/ynx-chain/deploy 2>/dev/null || sudo install -d /var/log/ynx-chain/deploy; { date -u; hostname; uname -a; echo '--- services'; systemctl list-units --type=service --all 'ynx-*' 2>/dev/null || true; systemctl is-active ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd ynx-squared ynx-app-gatewayd 2>/dev/null || true; echo '--- local status'; curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true; curl -fsS http://127.0.0.1:6426/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6427/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6428/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6429/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6430/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6431/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6432/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6433/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6434/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6435/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6436/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6437/health 2>/dev/null || true; echo '--- ingress'; sudo test -f /etc/nginx/conf.d/ynx-chain.conf && sudo sed -n '1,360p' /etc/nginx/conf.d/ynx-chain.conf || true; sudo test -f /etc/caddy/Caddyfile && sudo sed -n '1,360p' /etc/caddy/Caddyfile || true; echo '--- data dirs'; sudo find /var/lib/ynx-chain -maxdepth 3 -type f 2>/dev/null | sort | head -200 || true; } | sudo tee '$marker' >/dev/null && sudo ls -lh '$marker'"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx /var/log/ynx-chain/deploy 2>/dev/null || sudo install -d /var/log/ynx-chain/deploy; { date -u; hostname; uname -a; echo '--- services'; systemctl list-units --type=service --all 'ynx-*' 2>/dev/null || true; systemctl is-active ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd ynx-squared ynx-app-gatewayd ynx-wallet-gatewayd 2>/dev/null || true; echo '--- local status'; curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true; curl -fsS http://127.0.0.1:6426/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6427/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6428/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6429/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6430/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6431/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6432/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6433/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6434/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6435/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6436/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6437/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6439/health 2>/dev/null || true; echo '--- ingress'; sudo test -f /etc/nginx/conf.d/ynx-chain.conf && sudo sed -n '1,360p' /etc/nginx/conf.d/ynx-chain.conf || true; sudo test -f /etc/caddy/Caddyfile && sudo sed -n '1,360p' /etc/caddy/Caddyfile || true; echo '--- data dirs'; sudo find /var/lib/ynx-chain -maxdepth 3 -type f 2>/dev/null | sort | head -200 || true; } | sudo tee '$marker' >/dev/null && sudo ls -lh '$marker'"
 }
 
 ynx_backup_node() {
@@ -954,7 +1091,7 @@ ynx_backup_node() {
     echo "using validated off-node backup evidence for $role: $offnode_evidence"
     return 0
   fi
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && if sudo test -s '$backup_path' && sudo tar -tzf '$backup_path' >/dev/null; then sudo ls -lh '$backup_path'; else sudo rm -f '$backup_path' '$partial_path'; sudo tar --ignore-failed-read -czf '$partial_path' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/ynx-bridged.service /etc/systemd/system/ynx-stablecoind.service /etc/systemd/system/ynx-chatd.service /etc/systemd/system/ynx-squared.service /etc/systemd/system/ynx-app-gatewayd.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy /var/lib/ynx-chain 2>/dev/null || true; sudo tar -tzf '$partial_path' >/dev/null && sudo mv '$partial_path' '$backup_path' && sudo ls -lh '$backup_path'; fi"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && if sudo test -s '$backup_path' && sudo tar -tzf '$backup_path' >/dev/null; then sudo ls -lh '$backup_path'; else sudo rm -f '$backup_path' '$partial_path'; sudo tar --ignore-failed-read -czf '$partial_path' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/ynx-bridged.service /etc/systemd/system/ynx-stablecoind.service /etc/systemd/system/ynx-chatd.service /etc/systemd/system/ynx-squared.service /etc/systemd/system/ynx-app-gatewayd.service /etc/systemd/system/ynx-wallet-gatewayd.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy /var/lib/ynx-chain 2>/dev/null || true; sudo tar -tzf '$partial_path' >/dev/null && sudo mv '$partial_path' '$backup_path' && sudo ls -lh '$backup_path'; fi"
 }
 
 ynx_precheck_node_access() {
@@ -966,7 +1103,7 @@ ynx_precheck_node_access() {
 ynx_prepare_release_on_node() {
   local role="$1" user="$2" host="$3" key="$4"
   ynx_node_ssh "$role" "$user" "$host" "$key" "id -u ynx >/dev/null 2>&1 || sudo useradd --system --home /var/lib/ynx-chain --shell /usr/sbin/nologin ynx"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin && sudo install -d -o ynx -g ynx /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/chat /var/lib/ynx-chain/square /var/log/ynx-chain && sudo chmod 0700 /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/chat /var/lib/ynx-chain/square"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin && sudo install -d -o ynx -g ynx /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/chat /var/lib/ynx-chain/square /var/lib/ynx-chain/wallet-gateway /var/log/ynx-chain && sudo chmod 0700 /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/chat /var/lib/ynx-chain/square /var/lib/ynx-chain/wallet-gateway"
   ynx_capture_predeploy_state "$role" "$user" "$host" "$key"
   ynx_backup_node "$role" "$user" "$host" "$key"
   ynx_node_scp "$role" "$user" "$host" "$key" "$tarball" "$remote_release"
@@ -984,12 +1121,19 @@ ynx_install_primary_node() {
   local role="$1" user="$2" host="$3" key="$4"
   local expected_services=""
   ynx_prepare_release_on_node "$role" "$user" "$host" "$key"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-indexerd' /usr/local/bin/ynx-indexerd && sudo install -m 0755 '$remote_dir/bin/ynx-explorerd' /usr/local/bin/ynx-explorerd && sudo install -m 0755 '$remote_dir/bin/ynx-faucetd' /usr/local/bin/ynx-faucetd && sudo install -m 0755 '$remote_dir/bin/ynx-ai-gatewayd' /usr/local/bin/ynx-ai-gatewayd && sudo install -m 0755 '$remote_dir/bin/ynx-payd' /usr/local/bin/ynx-payd && sudo install -m 0755 '$remote_dir/bin/ynx-trustd' /usr/local/bin/ynx-trustd && sudo install -m 0755 '$remote_dir/bin/ynx-resourced' /usr/local/bin/ynx-resourced"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0644 '$remote_dir/systemd/ynx-indexerd.service' /etc/systemd/system/ynx-indexerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-explorerd.service' /etc/systemd/system/ynx-explorerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-faucetd.service' /etc/systemd/system/ynx-faucetd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-ai-gatewayd.service' /etc/systemd/system/ynx-ai-gatewayd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-payd.service' /etc/systemd/system/ynx-payd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-trustd.service' /etc/systemd/system/ynx-trustd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-resourced.service' /etc/systemd/system/ynx-resourced.service"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0600 '$remote_dir/config/ynx-faucetd.env' /etc/ynx/ynx-faucetd.env && sudo install -m 0600 '$remote_dir/config/ynx-ai-gatewayd.env' /etc/ynx/ynx-ai-gatewayd.env && sudo install -m 0600 '$remote_dir/config/ynx-payd.env' /etc/ynx/ynx-payd.env && sudo install -m 0600 '$remote_dir/config/ynx-trustd.env' /etc/ynx/ynx-trustd.env && sudo install -m 0600 '$remote_dir/config/ynx-resourced.env' /etc/ynx/ynx-resourced.env"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-indexerd' /usr/local/bin/ynx-indexerd && sudo install -m 0755 '$remote_dir/bin/ynx-yusd-sandboxd' /usr/local/bin/ynx-yusd-sandboxd && sudo install -m 0755 '$remote_dir/bin/ynx-explorerd' /usr/local/bin/ynx-explorerd && sudo install -m 0755 '$remote_dir/bin/ynx-economics-monitord' /usr/local/bin/ynx-economics-monitord && sudo install -m 0755 '$remote_dir/bin/ynx-faucetd' /usr/local/bin/ynx-faucetd && sudo install -m 0755 '$remote_dir/bin/ynx-ai-gatewayd' /usr/local/bin/ynx-ai-gatewayd && sudo install -m 0755 '$remote_dir/bin/ynx-payd' /usr/local/bin/ynx-payd && sudo install -m 0755 '$remote_dir/bin/ynx-trustd' /usr/local/bin/ynx-trustd && sudo install -m 0755 '$remote_dir/bin/ynx-resourced' /usr/local/bin/ynx-resourced"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0644 '$remote_dir/systemd/ynx-indexerd.service' /etc/systemd/system/ynx-indexerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-yusd-sandboxd.service' /etc/systemd/system/ynx-yusd-sandboxd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-explorerd.service' /etc/systemd/system/ynx-explorerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-economics-monitord.service' /etc/systemd/system/ynx-economics-monitord.service && sudo install -m 0644 '$remote_dir/systemd/ynx-faucetd.service' /etc/systemd/system/ynx-faucetd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-ai-gatewayd.service' /etc/systemd/system/ynx-ai-gatewayd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-payd.service' /etc/systemd/system/ynx-payd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-trustd.service' /etc/systemd/system/ynx-trustd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-resourced.service' /etc/systemd/system/ynx-resourced.service"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0600 '$remote_dir/config/ynx-explorerd.env' /etc/ynx/ynx-explorerd.env && sudo install -m 0640 -o root -g ynx '$remote_dir/config/ynx-economics-monitord.env' /etc/ynx/ynx-economics-monitord.env && sudo install -m 0600 '$remote_dir/config/ynx-faucetd.env' /etc/ynx/ynx-faucetd.env && sudo install -m 0600 '$remote_dir/config/ynx-ai-gatewayd.env' /etc/ynx/ynx-ai-gatewayd.env && sudo install -m 0600 '$remote_dir/config/ynx-payd.env' /etc/ynx/ynx-payd.env && sudo install -m 0600 '$remote_dir/config/ynx-trustd.env' /etc/ynx/ynx-trustd.env && sudo install -m 0600 '$remote_dir/config/ynx-resourced.env' /etc/ynx/ynx-resourced.env"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/scripts/install-yusd-env.sh' '$remote_dir/config/ynx-yusd-sandboxd.env'"
+  if [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" ]]; then
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0640 -o root -g ynx '$remote_dir/config/stable-reserve-attestation.json' /etc/ynx/stable-reserve-attestation.json"
+  fi
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-chaind.env; source /etc/ynx/ynx-explorerd.env; set +a; /usr/local/bin/ynx-explorerd --check-config >/dev/null'"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-economics-monitord.env; set +a; /usr/local/bin/ynx-economics-monitord --check-config >/dev/null'"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-yusd-sandboxd.env; set +a; /usr/local/bin/ynx-yusd-sandboxd --check-config >/dev/null'"
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v nginx >/dev/null 2>&1; then sudo install -m 0644 '$remote_dir/nginx/ynx-chain.conf' /etc/nginx/conf.d/ynx-chain.conf && sudo nginx -t && sudo systemctl reload nginx; fi"
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v caddy >/dev/null 2>&1; then sudo bash '$remote_dir/scripts/install-caddy-ingress.sh' '$remote_dir/caddy/ynx-chain.caddy' /etc/caddy/Caddyfile /etc/caddy/ynx-chain.caddy '$release' /etc/caddy/conf.d/ynx-v2-gateway.caddy; fi"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-faucetd && sudo systemctl restart ynx-ai-gatewayd && sudo systemctl restart ynx-payd && sudo systemctl restart ynx-trustd && sudo systemctl restart ynx-resourced && sudo systemctl --no-pager --full status ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd ynx-yusd-sandboxd ynx-explorerd ynx-economics-monitord ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-yusd-sandboxd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-economics-monitord && sudo systemctl restart ynx-faucetd && sudo systemctl restart ynx-ai-gatewayd && sudo systemctl restart ynx-payd && sudo systemctl restart ynx-trustd && sudo systemctl restart ynx-resourced && sudo systemctl --no-pager --full status ynx-chaind ynx-indexerd ynx-yusd-sandboxd ynx-explorerd ynx-economics-monitord ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced"
   if [[ "$YNX_BRIDGE_DEPLOY_ENABLED" == "true" ]]; then
     ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-bridged' /usr/local/bin/ynx-bridged && sudo install -m 0644 '$remote_dir/systemd/ynx-bridged.service' /etc/systemd/system/ynx-bridged.service && sudo install -m 0600 '$remote_dir/config/ynx-bridged.env' /etc/ynx/ynx-bridged.env"
     ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-bridged.env; set +a; /usr/local/bin/ynx-bridged --check-config >/dev/null'"
@@ -1029,6 +1173,14 @@ ynx_install_primary_node() {
     expected_services="${expected_services}YNX_EXPECT_APP_GATEWAY_SERVICE=1 "
   else
     echo "App Gateway deployment remains disabled; release package contains ynx-app-gatewayd but no remote service is installed"
+  fi
+  if [[ "$YNX_WALLET_GATEWAY_DEPLOY_ENABLED" == "true" ]]; then
+    ynx_node_ssh "$role" "$user" "$host" "$key" "test -x /usr/bin/node && test \"\$(/usr/bin/node -p 'Number(process.versions.node.split(\\\".\\\")[0]) >= 22')\" = true"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo chown -R root:root '$remote_dir/wallet-gateway' && sudo find '$remote_dir/wallet-gateway' -type d -exec chmod 0755 {} + && sudo find '$remote_dir/wallet-gateway' -type f -exec chmod 0644 {} + && sudo install -m 0644 '$remote_dir/systemd/ynx-wallet-gatewayd.service' /etc/systemd/system/ynx-wallet-gatewayd.service && sudo install -m 0600 '$remote_dir/config/ynx-wallet-gatewayd.env' /etc/ynx/ynx-wallet-gatewayd.env"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-wallet-gatewayd && sudo systemctl restart ynx-wallet-gatewayd && sudo systemctl --no-pager --full status ynx-wallet-gatewayd"
+    expected_services="${expected_services}YNX_EXPECT_WALLET_GATEWAY_SERVICE=1 "
+  else
+    echo "canonical Wallet Gateway deployment remains disabled; release package contains its runtime but no remote service is installed"
   fi
   ynx_node_ssh "$role" "$user" "$host" "$key" "${expected_services}bash '$remote_dir/scripts/check-local-services.sh' '$role' '$commit' '$release' '$CHAIN_ID' full"
   ynx_verify_authoritative_state_v2 "$role" "$user" "$host" "$key"

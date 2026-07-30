@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Security Platform",
+  "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+  "asOf": "2026-07-29T14:48:41Z",
+  "source": "authoritative YNX-Chain repository, Product 29 central decision, GitHub source prerelease, and direct local evidence",
+  "version": "0.2.0-candidate",
+  "confidence": "direct-evidence-only",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": true,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "evidence": {
+    "implementedLocal": [
+      "commit:9db61f2f3b3d1c9fb54c236912851fcfc85c26dd",
+      "commit:e2c29248e8a10321cc42507c22e57a34d9746218",
+      "commit:6ef00f8e7d9d36adee813530698e4188cf384f85",
+      "commit:58fe6796593a7cedaee01d88e1b534f0e70c4d6a",
+      "commit:0cb9b5891cdcf74ce3e4c727470dcb0b60a8933c",
+      "commit:53b037eb6fff51e3cb149231fad5bb5f2599527f",
+      "commit:fa5f3edfdac0fe21ed17028845e4faa09ae89143",
+      "commit:1853dd46ce1535dc01911308b53f2d14860337c2",
+      "commit:aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+      "commit:900c314ddb8f6f56b8713e7df194f26ee0590e06"
+    ],
+    "testedLocal": [
+      "evidence/security-platform/LOCAL_VERIFICATION_2026-07-22.md",
+      "evidence/security-platform/ARTIFACT_AND_RESTORE_DRILL_2026-07-22.md",
+      "evidence/security-platform/LOCAL_CAPACITY_2026-07-22.json",
+      "evidence/security-platform/LOCAL_RESTORE_DRILL_58fe679.json",
+      "evidence/security-platform/LOCAL_MTLS_DRILL_0cb9b58.json",
+      "evidence/security-platform/LOCAL_ARTIFACT_DRILL_53b037e.json",
+      "evidence/security-platform/LOCAL_ARTIFACT_DRILL_fa5f3ed.json",
+      "evidence/security-platform/LOCAL_ARTIFACT_DRILL_1853dd4.json",
+      "evidence/security-platform/GITHUB_BRANCH_PROTECTION_2026-07-27.json",
+      "evidence/security-platform/LOCAL_ARTIFACT_DRILL_aa5d5e9.json",
+      "evidence/security-platform/LOCAL_ARTIFACT_DRILL_900c314.json",
+      "evidence/security-platform/GITHUB_CI_7be79d5.json"
+    ],
+    "installedLocal": [
+      "evidence/security-platform/LOCAL_CLEAN_INSTALL_900c314.json"
+    ],
+    "integratedCentral": [
+      "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json"
+    ],
+    "downloadHosted": [
+      "evidence/security-platform/CENTRAL_ACCEPTANCE_AND_SOURCE_RELEASE_2026-07-29.json",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/security-platform-v0.2.0-source-candidate"
+    ]
+  },
+  "blockedStates": {
+    "deployedStaging": "no staging deployment run or URL evidence",
+    "deployedPublic": "no public deployment or health evidence",
+    "productionSigned": "current artifact is test-signed with an ephemeral local signer; no approved production signer or signature evidence",
+    "storeReleased": "no store release evidence"
+  },
+  "externalBlockerRecord": "release/security-platform/operator-inputs.request.json"
+}

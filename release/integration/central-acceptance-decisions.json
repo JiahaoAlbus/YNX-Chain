@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0.0",
+  "owner": "29-integration",
+  "decisions": [
+    {
+      "productId": "01",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-chain-core",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e",
+      "integrationCommit": "329092c19794ee376248750c2b138090e8418e08",
+      "acceptedAt": "2026-07-29T19:22:19Z",
+      "receipt": "release/integration/evidence/product-01-central-acceptance-329092c1.json"
+    },
+    {
+      "productId": "30",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-security-platform",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
+      "integrationCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
+      "acceptedAt": "2026-07-29T17:41:45Z",
+      "receipt": "release/integration/evidence/product-30-central-acceptance-a472d588.json"
+    },
+    {
+      "productId": "26",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-data-fabric",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "2a09d7455a5fef9eee56ca736be4b600d40a1831",
+      "integrationCommit": "01131b469dc8b1ae0a52e68583ccf4fba38a825e",
+      "acceptedAt": "2026-07-29T21:03:26Z",
+      "receipt": "release/integration/evidence/product-26-central-acceptance-01131b46.json"
+    },
+    {
+      "productId": "02",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-wallet-auth",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "f28b0aa29a0d93a2b7f20a00b835c4a1aa6175b3",
+      "integrationCommit": "94acfeced03f5fcb829b06b7fce0dce8dacb4f11",
+      "acceptedAt": "2026-07-29T22:28:25Z",
+      "receipt": "release/integration/evidence/product-02-central-acceptance-94acfece.json"
+    },
+    {
+      "productId": "19",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-oracle-market-data",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+      "integrationCommit": "d364f9950c1f43fe84b046ec88b1978b9a4749e4",
+      "acceptedAt": "2026-07-30T05:28:00Z",
+      "receipt": "release/integration/evidence/product-19-central-acceptance-d364f995.json"
+    },
+    {
+      "productId": "31",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-governance",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "7c3c952eade20041bc616616fbfc0cba020717e4",
+      "integrationCommit": "b656692622cde1fba47c8068399f0d83385de4cf",
+      "acceptedAt": "2026-07-30T09:09:12Z",
+      "receipt": "release/integration/evidence/product-31-central-acceptance-b6566926.json"
+    },
+    {
+      "productId": "17",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-tokenomics",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "7c540b7f3f5872adbd8f65e4c8975eeac41c3a3f",
+      "integrationCommit": "05652b201acf830495a8fb2fba5416e5f4ea9d8c",
+      "acceptedAt": "2026-07-30T11:26:43Z",
+      "receipt": "release/integration/evidence/product-17-central-acceptance-05652b20.json"
+    },
+    {
+      "productId": "21",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-bridge",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "01e0961b998bbf2ab35552971069870f5b76bacb",
+      "integrationCommit": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
+      "acceptedAt": "2026-07-30T18:17:34Z",
+      "receipt": "release/integration/evidence/product-21-central-acceptance-244d1c3e.json"
+    }
+  ]
+}

@@ -1,0 +1,387 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx.economics.integration.v1",
+  "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+  "classification": "local-deterministic-integration-vectors",
+  "sharedTestnetEvidence": false,
+  "vectors": [
+    {
+      "id": "economics-runtime-replay-v1",
+      "input": "economics/examples/runtime-replay.json",
+      "command": "go run ./cmd/ynx-economics-runtime -input economics/examples/runtime-replay.json",
+      "eventTypes": ["ynx.economics.epoch_settled.v1"],
+      "expected": {
+        "schemaVersion": 1,
+        "stateVersion": 4,
+        "lastEpoch": 3,
+        "genesisSupplyYnxt": 1000000000,
+        "cumulativeIssuanceYnxt": 82166,
+        "cumulativeBurnYnxt": 1750000,
+        "totalSupplyYnxt": 998332166,
+        "stateHash": "sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09",
+        "eventIds": [
+          "econ_9e6e741afea9046169464676",
+          "econ_f82a988f6053656cff617b95",
+          "econ_d72921058ac44a645c699871"
+        ],
+        "eventAuditHashes": [
+          "sha256:4bd703a549e09b3cfdd4fbf0f0f8ab5cf040ca8b4994a344f74ecdd5eb6a58d0",
+          "sha256:45cfd3c75eed0f751119545a093c9de52f767c121a1196aa8c100ee5b9875747",
+          "sha256:b4684639309cf20844487bb23ab72e3ef659170c761407c4e9171de332685d5d"
+        ]
+      },
+      "consumerAssertions": {
+        "01 Chain Core": [
+          "openingSupply + issuance - burn = closingSupply for every event",
+          "epochs are strictly sequential",
+          "unsupported policy or state versions fail closed"
+        ],
+        "26 Data Fabric": [
+          "burn fields are not classified as revenue",
+          "validator provider protocol and treasury are separately attributable",
+          "event id and audit hash remain byte-for-byte stable"
+        ],
+        "12 Explorer": [
+          "display source policyHash asOf and event version",
+          "display issuance and burn separately"
+        ],
+        "13 Monitor": [
+          "alert on supply reconciliation failure",
+          "alert on non-sequential epochs or changed audit hash"
+        ]
+      }
+    },
+    {
+      "id": "staking-risk-slash-recovery-v1",
+      "input": "economics/examples/staking-risk-runtime-replay.json",
+      "command": "go run ./cmd/ynx-staking-risk-runtime -input economics/examples/staking-risk-runtime-replay.json",
+      "eventTypes": [
+        "ynx.staking.validator_slashed.v1",
+        "ynx.staking.validator_unjailed.v1"
+      ],
+      "expected": {
+        "schemaVersion": 1,
+        "stateVersion": 3,
+        "finalValidatorStatus": "active",
+        "openingExposureYnxt": 10000000,
+        "totalSlashYnxt": 1000000,
+        "closingExposureYnxt": 9000000,
+        "verifiedSignatures": 2,
+        "threshold": 2,
+        "slashEventId": "stakeevt_d7b6c5f36a3aa1695c4012fb",
+        "slashAuditHash": "sha256:b14c228b28852a05dd127de8a5a9350f3b7125d57b95bd56cf50639da8bf440d",
+        "recoveryEventId": "stakeevt_756e2091731f609ba3053529",
+        "recoveryAuditHash": "sha256:77011a61cec4813e07e2cd74c11707e2c34f344407df498f957b8f64eff1a577",
+        "stateHash": "sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764"
+      },
+      "consumerAssertions": {
+        "01 Chain Core": [
+          "slash operator delegated and queued-unbonding exposure proportionally",
+          "do not execute before governance timelock",
+          "do not unjail before the jail deadline"
+        ],
+        "02 Wallet/Auth": [
+          "show slash source lock and exit risk without APY guarantee",
+          "require explicit review before future staking mutations"
+        ],
+        "26 Data Fabric": [
+          "preserve proposal evidence action and audit hashes",
+          "reject duplicate proposal ids"
+        ],
+        "12 Explorer": [
+          "show opening exposure slash allocation closing exposure and jail deadline",
+          "show candidate and local-only status"
+        ],
+        "13 Monitor": [
+          "alert on threshold failure signature mismatch and state tampering",
+          "alert on slash amount above published infraction maximum"
+        ],
+        "31 Governance": [
+          "bind signatures to the canonical action hash",
+          "preserve proposal id and timelock evidence"
+        ]
+      }
+    },
+    {
+      "id": "fee-burn-revenue-separation-v1",
+      "sourceVector": "economics/examples/runtime-replay.json#epochs[0]",
+      "eventType": "ynx.economics.epoch_settled.v1",
+      "input": {
+        "grossFeeYnxt": 500000,
+        "baseFeeBurnYnxt": 200000,
+        "serviceBurnYnxt": 50000,
+        "validatorYnxt": 175000,
+        "providerYnxt": 25000,
+        "protocolYnxt": 25000,
+        "treasuryYnxt": 25000
+      },
+      "expected": {
+        "burnYnxt": 250000,
+        "revenueYnxt": 250000,
+        "grossReconciled": true,
+        "burnClassifiedAsRevenue": false
+      },
+      "consumerAssertions": {
+        "26 Data Fabric": [
+          "gross fee equals burns plus four revenue splits",
+          "base and service burns use burn ledger classes"
+        ],
+        "12 Explorer": [
+          "never label burn as protocol or treasury revenue"
+        ],
+        "13 Monitor": [
+          "raise reconciliation alert when any component is missing or double counted"
+        ]
+      }
+    },
+    {
+      "id": "economics-integration-bundle-v1",
+      "economicInput": "economics/examples/runtime-replay.json",
+      "stakingInput": "economics/examples/staking-risk-runtime-replay.json",
+      "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+      "command": "go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -summary",
+      "expected": {
+        "contractId": "ynx.economics.integration.v1",
+        "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+        "economicStateHash": "sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09",
+        "stakingStateHash": "sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764",
+        "envelopeCount": 5,
+        "billingCount": 18,
+        "explorerCount": 5,
+        "monitorCount": 15,
+        "releaseStates": {
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
+        },
+        "bundleHash": "sha256:0044010db3d8ea653fe5d7f15374919be14b5f28385f6a33d471c06a74882449"
+      },
+      "consumerAssertions": {
+        "26 Data Fabric": [
+          "ingest only canonical envelopes whose payload and source event audit hashes validate",
+          "preserve six explicit burn and revenue classes for each economics epoch",
+          "reject rehashed ledger tampering and duplicate economic facts"
+        ],
+        "12 Explorer": [
+          "project one candidate-only record per canonical envelope",
+          "preserve source commit event version policy and risk labels",
+          "keep all central staging public and production states false"
+        ],
+        "13 Monitor": [
+          "consume supply fee issuance slash authorization and recovery checks",
+          "reject checks that cannot be mapped to a canonical source event"
+        ],
+        "29 Integration": [
+          "reproduce the exact bundle hash from the accepted source commit",
+          "do not infer central integration from local deterministic evidence"
+        ]
+      }
+    },
+    {
+      "id": "economics-integration-store-v1",
+      "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+      "command": "make economics-integration-store-check",
+      "expected": {
+        "schemaVersion": 1,
+        "contractId": "ynx.economics.integration.v1",
+        "revision": 2,
+        "acceptedBundles": 1,
+        "bundleHash": "sha256:0044010db3d8ea653fe5d7f15374919be14b5f28385f6a33d471c06a74882449",
+        "storeStateHash": "sha256:c4673098638660439cc69a5bbef21239e034c92a18d4b77c46ca9398022b41ed",
+        "recordCounts": {
+          "envelopes": 5,
+          "billingLedger": 18,
+          "explorer": 5,
+          "monitor": 15
+        },
+        "firstApply": true,
+        "secondApplyIdempotent": true,
+        "fileMode": "0600",
+        "centralAcceptance": false,
+        "sharedTestnet": false,
+        "publicDeployment": false,
+        "production": false
+      },
+      "consumerAssertions": {
+        "26 Data Fabric": [
+          "same source commit and bundle are idempotent",
+          "same source commit cannot bind a different bundle",
+          "rewrapped identical facts do not double count billing or events",
+          "unaccepted source commits and tampered state hashes fail closed"
+        ],
+        "12 Explorer": [
+          "projection storage remains candidate-only and maps one-to-one to canonical events"
+        ],
+        "13 Monitor": [
+          "monitor checks remain source-bound and survive restart without duplication"
+        ],
+        "29 Integration": [
+          "state is atomically persisted with mode 0600",
+          "restart and fresh-path restore reproduce the same state hash",
+          "local durable ingestion does not set integratedCentral true"
+        ]
+      }
+    },
+    {
+      "id": "economics-local-testnet-evidence-v1",
+      "sourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
+      "storeSourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+      "command": "make economics-local-testnet-evidence-check",
+      "expected": {
+        "schemaVersion": 1,
+        "evidenceClass": "local-testnet-simulation",
+        "transactionId": "econ-local-tx-abbeda604c4fae1d357982ad6bb1011e3d134fa437eb0c52e91464d41704aa70",
+        "blockHeight": 6423,
+        "blockHash": "sha256:cb1eebecdd4708636da415bd9a79d67ef6eec519d1b5cb8358d7363ab750ed4a",
+        "receiptStatus": "simulated-committed",
+        "finality": "local-deterministic-simulation",
+        "evidenceHash": "sha256:ed2ac4a7dc035a3dddaa021e09763526d74cd72cc3a3ea77faee45ce8fa91348",
+        "explorerProofs": 5,
+        "monitorProofs": 15,
+        "fileMode": "0600",
+        "integratedCentral": false,
+        "sharedTestnet": false,
+        "publicDeployment": false,
+        "production": false
+      },
+      "consumerAssertions": {
+        "01 Chain Core": [
+          "replace the simulated block and receipt only with accepted shared-Testnet finality evidence",
+          "reject evidence whose accepted bundle or Store state hash does not match"
+        ],
+        "12 Explorer": [
+          "verify all five source-bound projection audit hashes",
+          "keep candidate and local simulation labels until direct public evidence exists"
+        ],
+        "13 Monitor": [
+          "verify all fifteen source-bound checks and alert on any proof mismatch"
+        ],
+        "26 Data Fabric": [
+          "accept only Store-bound canonical records and preserve burn versus revenue classification"
+        ],
+        "29 Integration": [
+          "do not promote local simulation to shared Testnet, public deployment or production",
+          "replace this fixture with direct cross-owner evidence at the TESTNET gate"
+        ]
+      }
+    },
+    {
+      "id": "economics-shared-testnet-acceptance-validator-v1",
+      "sourceCommit": "4a5f4b774d2fc4afc532b246d6f39f4b44577466",
+      "validatorSourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
+      "classification": "local-validator-store-and-cli-test-fixture-not-owner-acceptance",
+      "schema": "release/integration/ynxt-economics-shared-testnet-evidence.schema.json",
+      "storeSource": "internal/economics/shared_testnet_acceptance_store.go",
+      "cli": "cmd/ynx-economics-shared-testnet-acceptance",
+      "command": "make economics-shared-testnet-acceptance-check",
+      "expected": {
+        "schemaVersion": 1,
+        "storeSchemaVersion": 1,
+        "cliSchemaVersion": 1,
+        "contractId": "ynx.economics.integration.v1",
+        "environment": "ynx-shared-testnet",
+        "cosmosChainId": "ynx_6423-1",
+        "evmChainId": 6423,
+        "requiredOwners": [
+          "01 Chain Core",
+          "12 Explorer",
+          "13 Monitor",
+          "26 Data Fabric",
+          "29 Integration"
+        ],
+        "ownerSourceCommitModel": "independent-consumer-commit-per-owner",
+        "signatureAlgorithm": "ed25519",
+        "canonicalAttestationOrderRequired": true,
+        "persistence": {
+          "mode": "0600",
+          "verifiedSummaryOnly": true,
+          "originalOwnerSignaturesPersisted": false,
+          "replayIdempotent": true,
+          "sourceRebindingRejected": true,
+          "systemClockRequired": true,
+          "restoreDrill": true
+        },
+        "acceptedEvidenceAttached": false,
+        "integratedCentral": false,
+        "deployedStaging": false,
+        "sharedTestnetEvidence": false,
+        "publicDeployment": false,
+        "production": false
+      },
+      "negativeCases": [
+        "missing-owner",
+        "duplicate-owner",
+        "reordered-attestation",
+        "invalid-signature",
+        "wrong-owner-source-commit",
+        "stale-evidence",
+        "future-dated-proof",
+        "record-count-conflict",
+        "localhost-endpoint",
+        "missing-installedLocal",
+        "release-state-overclaim",
+        "payload-tamper",
+        "evidence-tamper",
+        "policy-rebinding",
+        "source-replay",
+        "store-tamper",
+        "insecure-store-mode",
+        "writable-input",
+        "symlink-input",
+        "clock-backdate",
+        "restore-overwrite"
+      ],
+      "consumerAssertions": {
+        "01 Chain Core": [
+          "attach a committed transaction, block, app hash, quorum proof and independent consumer source commit",
+          "attest only the canonical payload hash using an accepted owner key"
+        ],
+        "12 Explorer": [
+          "attach an HTTPS projection endpoint, response hash, projection count and independent consumer source commit"
+        ],
+        "13 Monitor": [
+          "attach an HTTPS monitor endpoint, response hash, check count, clear alert state and independent consumer source commit"
+        ],
+        "26 Data Fabric": [
+          "attach the canonical ingest receipt, exact record counts and independent consumer source commit"
+        ],
+        "29 Integration": [
+          "pin the exact Economics and five owner source commits before verification",
+          "reject missing, reordered, stale, tampered or over-promoted evidence fail closed",
+          "persist only a verified summary in the 0600 hash-chained Store and reject replay, rebinding, insecure mode and restore overwrite",
+          "do not treat this local validator, Store or CLI fixture as shared-Testnet acceptance"
+        ]
+      }
+    },
+    {
+      "id": "release-truth-boundary-v1",
+      "source": "release/integration/ynxt-economics-contract.json#releaseStates",
+      "expected": {
+        "implementedLocal": true,
+        "testedLocal": true,
+        "installedLocal": false,
+        "integratedCentral": false,
+        "deployedStaging": false,
+        "deployedPublic": false,
+        "downloadHosted": false,
+        "productionSigned": false,
+        "storeReleased": false
+      },
+      "consumerAssertions": {
+        "28 Website": [
+          "do not publish a deployment or production claim from local evidence",
+          "keep YUSD test units explicitly without real-world value"
+        ],
+        "29 Integration": [
+          "change a release state only when direct evidence is attached to the accepted source commit"
+        ]
+      }
+    }
+  ]
+}

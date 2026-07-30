@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -56,6 +57,8 @@ var requestValidityRules = []RequestValidityRule{
 
 type Devnet struct {
 	mu                   sync.RWMutex
+	blockReadView        atomic.Pointer[blockReadView]
+	statusReadView       atomic.Pointer[statusReadView]
 	cfg                  NetworkConfig
 	blocks               []Block
 	pending              []Transaction
@@ -65,6 +68,8 @@ type Devnet struct {
 	validatorPeerSyncs   map[string]ValidatorPeerSync
 	nodeIdentity         NodeIdentityConfig
 	replicationRuntime   ReplicationRuntimeStatus
+	replicaCheckpoint    replicationCheckpointState
+	peerCheckpointAt     time.Time
 	lots                 map[string]TrustTraceLot
 	payIntents           map[string]PayIntent
 	invoices             map[string]Invoice
@@ -92,6 +97,21 @@ type Devnet struct {
 	contracts            map[string]ContractArtifact
 	dataDir              string
 	lastPersistenceError string
+}
+
+type replicationCheckpointState struct {
+	Height uint64
+	At     time.Time
+	Ready  bool
+}
+
+type blockReadView struct {
+	blocks []Block
+}
+
+type statusReadView struct {
+	status   map[string]any
+	identity NodeIdentity
 }
 
 func DefaultValidators() []Validator {
@@ -448,6 +468,8 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 	d.blocks = append(d.blocks, Block{
 		Height: 0, Hash: hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID)), Time: time.Now().UTC(), Validator: normalized[0].Address,
 	})
+	d.publishBlockReadViewLocked()
+	d.publishStatusReadViewLocked()
 	return d
 }
 
@@ -509,24 +531,36 @@ func (d *Devnet) StartWithPause(ctx context.Context, interval time.Duration, pau
 	}
 }
 
-func (d *Devnet) Config() NetworkConfig { d.mu.RLock(); defer d.mu.RUnlock(); return d.cfg }
+func (d *Devnet) Config() NetworkConfig { return d.cfg }
 
 func (d *Devnet) LatestHeight() uint64 {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.blocks[len(d.blocks)-1].Height
+	return d.LatestBlock().Height
 }
 
 func (d *Devnet) Status() map[string]any {
+	if d.mu.TryRLock() {
+		view := d.newStatusReadViewLocked(time.Now().UTC())
+		d.statusReadView.Store(view)
+		d.mu.RUnlock()
+		return cloneStatusMap(view.status)
+	}
+	if view := d.statusReadView.Load(); view != nil {
+		return cloneStatusMap(view.status)
+	}
 	d.mu.RLock()
-	defer d.mu.RUnlock()
+	view := d.newStatusReadViewLocked(time.Now().UTC())
+	d.statusReadView.Store(view)
+	d.mu.RUnlock()
+	return cloneStatusMap(view.status)
+}
+
+func (d *Devnet) newStatusReadViewLocked(now time.Time) *statusReadView {
 	latest := d.blocks[len(d.blocks)-1]
-	now := time.Now().UTC()
 	readyCount := d.readyValidatorCountLocked()
 	expectedPeers, observedPeers := d.validatorPeerDiscoveryCountsLocked()
 	syncedPeers, laggingPeers := d.validatorPeerSyncCountsLocked()
 	identity := d.nodeIdentityLocked(now)
-	return map[string]any{
+	status := map[string]any{
 		"network": d.cfg.Name, "slug": d.cfg.Slug, "chainId": d.cfg.ChainID,
 		"nativeCoinName": d.cfg.NativeCoinName, "nativeCurrencySymbol": d.cfg.NativeCurrencySymbol,
 		"decimals": d.cfg.Decimals, "publicNetwork": d.cfg.IsPublicNet,
@@ -543,6 +577,19 @@ func (d *Devnet) Status() map[string]any {
 		"truthfulStatus": TruthfulStatus(d.cfg), "mainnetReady": false,
 		"chainIdConflictCheck": d.cfg.ChainIDConflictCheck,
 	}
+	return &statusReadView{status: status, identity: identity}
+}
+
+func cloneStatusMap(source map[string]any) map[string]any {
+	cloned := make(map[string]any, len(source))
+	for key, value := range source {
+		cloned[key] = value
+	}
+	return cloned
+}
+
+func (d *Devnet) publishStatusReadViewLocked() {
+	d.statusReadView.Store(d.newStatusReadViewLocked(time.Now().UTC()))
 }
 
 func (d *Devnet) SetNodeIdentityConfig(input NodeIdentityConfig) {
@@ -561,6 +608,7 @@ func (d *Devnet) SetNodeIdentityConfig(input NodeIdentityConfig) {
 	defer d.mu.Unlock()
 	d.nodeIdentity = input
 	d.configureReplicationRuntimeLocked(input.ReplicationSource)
+	d.publishStatusReadViewLocked()
 }
 
 func normalizeBuildInfo(input BuildInfo) BuildInfo {
@@ -580,9 +628,20 @@ func normalizeBuildInfo(input BuildInfo) BuildInfo {
 }
 
 func (d *Devnet) NodeIdentity() NodeIdentity {
+	if d.mu.TryRLock() {
+		view := d.newStatusReadViewLocked(time.Now().UTC())
+		d.statusReadView.Store(view)
+		d.mu.RUnlock()
+		return view.identity
+	}
+	if view := d.statusReadView.Load(); view != nil {
+		return view.identity
+	}
 	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.nodeIdentityLocked(time.Now().UTC())
+	view := d.newStatusReadViewLocked(time.Now().UTC())
+	d.statusReadView.Store(view)
+	d.mu.RUnlock()
+	return view.identity
 }
 
 func (d *Devnet) ExplorerSummary() ExplorerSummary {
@@ -597,18 +656,23 @@ func (d *Devnet) ExplorerSummary() ExplorerSummary {
 }
 
 func (d *Devnet) LatestBlock() Block {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.blocks[len(d.blocks)-1]
+	view := d.blockReadView.Load()
+	if view == nil || len(view.blocks) == 0 {
+		return Block{}
+	}
+	return view.blocks[len(view.blocks)-1]
 }
 
 func (d *Devnet) BlockByHeight(height uint64) (Block, bool) {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	if height >= uint64(len(d.blocks)) {
+	view := d.blockReadView.Load()
+	if view == nil || height >= uint64(len(view.blocks)) {
 		return Block{}, false
 	}
-	return d.blocks[height], true
+	return view.blocks[height], true
+}
+
+func (d *Devnet) publishBlockReadViewLocked() {
+	d.blockReadView.Store(&blockReadView{blocks: d.blocks})
 }
 
 func (d *Devnet) BlockByHash(hash string) (Block, bool) {
@@ -668,7 +732,7 @@ func (d *Devnet) RecentTransactions(limit int) []Transaction {
 	if limit <= 0 || limit > 100 {
 		limit = 25
 	}
-	txs := make([]Transaction, 0, limit)
+	txs := make([]Transaction, 0, 100)
 	for i := len(d.pending) - 1; i >= 0 && len(txs) < limit; i-- {
 		txs = append(txs, d.pending[i])
 	}
@@ -830,7 +894,7 @@ func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (Validato
 	}
 	now := time.Now().UTC()
 	key := validatorPeerSyncKey(input.Source, input.Target)
-	lag := int64(input.SourceHeight) - int64(input.TargetHeight)
+	lag := boundedHeightLag(input.SourceHeight, input.TargetHeight)
 	status := input.Status
 	if status == "" {
 		if lag <= 1 && lag >= -1 {
@@ -862,9 +926,29 @@ func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (Validato
 		LatestHeight: input.TargetHeight,
 		Evidence:     input.Evidence,
 	}, now)
+	if strings.HasPrefix(input.Evidence, "peer-rpc-poll:") &&
+		!d.peerCheckpointAt.IsZero() &&
+		now.Sub(d.peerCheckpointAt) < operationalCheckpointInterval {
+		return sync, nil
+	}
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return sync, err
+}
+
+func boundedHeightLag(source, target uint64) int64 {
+	if source >= target {
+		delta := source - target
+		if delta > math.MaxInt64 {
+			return math.MaxInt64
+		}
+		return int64(delta)
+	}
+	delta := target - source
+	if delta > math.MaxInt64 {
+		return math.MinInt64
+	}
+	return -int64(delta)
 }
 
 func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {
@@ -1135,7 +1219,10 @@ func (d *Devnet) CreateInvoiceWithIdempotency(intentID string, dueInHours int64,
 	}
 	invoice.PaymentLink = "/pay/checkout/" + invoice.ID
 	d.invoices[invoice.ID] = invoice
-	d.recordPayEventLocked("invoice.issued", invoice.IntentID, invoice.ID, invoice.Merchant, invoice.Amount, invoice.Currency, invoice.IdempotencyKey, now)
+	event := d.recordPayEventLocked("invoice.issued", invoice.IntentID, invoice.ID, invoice.Merchant, invoice.Amount, invoice.Currency, invoice.IdempotencyKey, now)
+	event.InvoiceID = invoice.ID
+	event.AuditHash = payEventAuditHash(event)
+	d.payEvents[event.ID] = event
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return invoice, err
@@ -1293,6 +1380,139 @@ func (d *Devnet) CreateRefundWithIdempotency(intentID string, amount int64, reas
 	d.refunds[refund.ID] = refund
 	d.recordPayEventLocked("refund.recorded", refund.IntentID, refund.ID, intent.Merchant, refund.Amount, refund.Currency, refund.IdempotencyKey, now)
 	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return refund, err
+}
+
+func (d *Devnet) Refund(id string) (RefundRecord, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	refund, ok := d.refunds[strings.TrimSpace(id)]
+	return refund, ok
+}
+
+func (d *Devnet) CompleteRefund(refundID, transactionHash, idempotencyKey string) (RefundRecord, error) {
+	refundID = strings.TrimSpace(refundID)
+	transactionHash = strings.TrimSpace(transactionHash)
+	idempotencyKey = strings.TrimSpace(idempotencyKey)
+	if refundID == "" {
+		return RefundRecord{}, errors.New("refundId is required")
+	}
+	if !transactionHashPattern.MatchString(transactionHash) || transactionHash != strings.ToLower(transactionHash) {
+		return RefundRecord{}, errors.New("transactionHash must be canonical lowercase 32-byte hex")
+	}
+	if idempotencyKey == "" || len(idempotencyKey) > 128 {
+		return RefundRecord{}, errors.New("idempotencyKey must contain 1 to 128 characters")
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	refund, ok := d.refunds[refundID]
+	if !ok {
+		return RefundRecord{}, errors.New("refund not found")
+	}
+	if refund.Status == "completed" {
+		if refund.TransactionHash == transactionHash && refund.CompletionIdempotencyKey == idempotencyKey {
+			return refund, nil
+		}
+		if refund.CompletionIdempotencyKey == idempotencyKey {
+			return RefundRecord{}, errors.New("idempotencyKey was already used with a different refund transaction")
+		}
+		return RefundRecord{}, errors.New("refund is already completed")
+	}
+	if refund.Status != "recorded" {
+		return RefundRecord{}, errors.New("refund is not eligible for completion")
+	}
+	intent, ok := d.payIntents[refund.IntentID]
+	if !ok {
+		return RefundRecord{}, errors.New("refund payment intent is unavailable")
+	}
+	var settlement PaySettlement
+	for _, candidate := range d.paySettlements {
+		if candidate.IntentID != refund.IntentID || candidate.Status != "paid" {
+			continue
+		}
+		if settlement.ID != "" {
+			return RefundRecord{}, errors.New("refund payment intent has multiple paid settlements")
+		}
+		settlement = candidate
+	}
+	if settlement.ID == "" {
+		return RefundRecord{}, errors.New("refund requires a paid invoice settlement")
+	}
+	invoice, ok := d.invoices[settlement.InvoiceID]
+	if !ok || invoice.IntentID != refund.IntentID || invoice.Status != "paid" || settlement.Amount != intent.Amount || settlement.Currency != refund.Currency {
+		return RefundRecord{}, errors.New("refund paid settlement authority is inconsistent")
+	}
+	for _, candidate := range d.paySettlements {
+		if candidate.TransactionHash == transactionHash {
+			return RefundRecord{}, errors.New("transactionHash is already bound to an invoice settlement")
+		}
+	}
+	for _, candidate := range d.refunds {
+		if candidate.ID != refund.ID && candidate.TransactionHash == transactionHash {
+			return RefundRecord{}, errors.New("transactionHash is already bound to another refund")
+		}
+	}
+	var completedBefore int64
+	for _, candidate := range d.refunds {
+		if candidate.IntentID != refund.IntentID || candidate.Status != "completed" {
+			continue
+		}
+		if candidate.Amount <= 0 || candidate.Amount > settlement.Amount-completedBefore {
+			return RefundRecord{}, errors.New("completed refunds exceed paid settlement authority")
+		}
+		completedBefore += candidate.Amount
+	}
+	if refund.Amount > settlement.Amount-completedBefore {
+		return RefundRecord{}, errors.New("refund exceeds remaining paid settlement amount")
+	}
+	tx, found := d.transactionLocked(transactionHash)
+	if !found || tx.BlockNum == 0 || tx.BlockHash == "" {
+		return RefundRecord{}, errors.New("refund transaction is not committed")
+	}
+	_, payoutCanonical, err := normalizePayAddress(settlement.PayoutAddress)
+	if err != nil {
+		return RefundRecord{}, errors.New("refund merchant payout address is invalid")
+	}
+	_, payerCanonical, err := normalizePayAddress(settlement.Payer)
+	if err != nil {
+		return RefundRecord{}, errors.New("refund payer address is invalid")
+	}
+	if tx.Type != "transfer" || tx.From != payoutCanonical || tx.To != payerCanonical || tx.Amount != refund.Amount || tx.Fee != 1 {
+		return RefundRecord{}, errors.New("refund transaction does not match merchant, payer, amount, and native fee")
+	}
+	if tx.Timestamp.Before(refund.CreatedAt) || tx.Timestamp.Before(settlement.CreatedAt) {
+		return RefundRecord{}, errors.New("refund transaction predates refund authority")
+	}
+
+	now := time.Now().UTC()
+	refund.InvoiceID = settlement.InvoiceID
+	refund.SettlementID = settlement.ID
+	refund.Merchant = settlement.Merchant
+	refund.PayoutAddress = settlement.PayoutAddress
+	refund.Payer = settlement.Payer
+	refund.Status = "completed"
+	refund.TransactionHash = transactionHash
+	refund.BlockNumber = tx.BlockNum
+	refund.CompletedAt = &now
+	refund.CompletionIdempotencyKey = idempotencyKey
+	refund.AuditHash = payRefundAuditHash(refund)
+	d.refunds[refund.ID] = refund
+
+	completed := completedBefore + refund.Amount
+	status := "partially_refunded"
+	if completed == settlement.Amount {
+		status = "refunded"
+	}
+	intent.RefundedAmount = completed
+	intent.RefundStatus = status
+	d.payIntents[intent.ID] = intent
+	invoice.RefundedAmount = completed
+	invoice.RefundStatus = status
+	d.invoices[invoice.ID] = invoice
+	d.recordPayRefundCompletionEventLocked(refund)
+	err = d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return refund, err
 }
@@ -2578,7 +2798,9 @@ func (d *Devnet) ProduceBlock() Block {
 		logIndex += uint64(len(block.Transactions[i].Logs))
 	}
 	d.blocks = append(d.blocks, block)
+	d.publishBlockReadViewLocked()
 	d.markValidatorProducedBlockLocked(validator, block.Height, block.Time)
+	d.publishStatusReadViewLocked()
 	d.recordPersistenceErrorLocked(d.persistSnapshotLocked())
 	return block
 }
@@ -3054,6 +3276,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte("2\n")); err != nil {
 		return fmt.Errorf("persist devnet snapshot integrity marker: %w", err)
 	}
+	d.peerCheckpointAt = time.Now().UTC()
 	return nil
 }
 
@@ -3137,6 +3360,22 @@ func (d *Devnet) ensureStateDefaults() {
 	}
 	if d.payEvents == nil {
 		d.payEvents = map[string]PayEvent{}
+	}
+	for id, event := range d.payEvents {
+		switch {
+		case event.Type == "invoice.issued" && event.InvoiceID == "" && event.ObjectID != "":
+			if invoice, ok := d.invoices[event.ObjectID]; ok && invoice.IntentID == event.IntentID {
+				event.InvoiceID = invoice.ID
+				event.AuditHash = payEventAuditHash(event)
+				d.payEvents[id] = event
+			}
+		case event.Type == "invoice.paid" && event.InvoiceID == "" && event.ObjectID != "":
+			if settlement, ok := d.paySettlements[event.ObjectID]; ok && settlement.IntentID == event.IntentID {
+				event.InvoiceID = settlement.InvoiceID
+				event.AuditHash = payEventAuditHash(event)
+				d.payEvents[id] = event
+			}
+		}
 	}
 	if d.riskLabels == nil {
 		d.riskLabels = map[string][]RiskLabel{}
@@ -3422,19 +3661,45 @@ func (d *Devnet) recordPayEventLocked(eventType, intentID, objectID, merchant st
 		IdempotencyKey: idempotencyKey,
 		CreatedAt:      createdAt,
 	}
-	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	event.AuditHash = payEventAuditHash(event)
 	d.payEvents[event.ID] = event
 	return event
 }
 
 func (d *Devnet) recordPaySettlementEventLocked(settlement PaySettlement) PayEvent {
 	event := d.recordPayEventLocked("invoice.paid", settlement.IntentID, settlement.ID, settlement.Merchant, settlement.Amount, settlement.Currency, settlement.IdempotencyKey, settlement.CreatedAt)
+	event.InvoiceID = settlement.InvoiceID
 	event.PayoutAddress = settlement.PayoutAddress
 	event.Payer = settlement.Payer
 	event.TransactionHash = settlement.TransactionHash
-	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	event.AuditHash = payEventAuditHash(event)
 	d.payEvents[event.ID] = event
 	return event
+}
+
+func (d *Devnet) recordPayRefundCompletionEventLocked(refund RefundRecord) PayEvent {
+	event := d.recordPayEventLocked("refund.completed", refund.IntentID, refund.ID, refund.Merchant, refund.Amount, refund.Currency, refund.CompletionIdempotencyKey, *refund.CompletedAt)
+	event.InvoiceID = refund.InvoiceID
+	event.SettlementID = refund.SettlementID
+	event.PayoutAddress = refund.PayoutAddress
+	event.Payer = refund.Payer
+	event.TransactionHash = refund.TransactionHash
+	event.AuditHash = payEventAuditHash(event)
+	d.payEvents[event.ID] = event
+	return event
+}
+
+func payEventAuditHash(event PayEvent) string {
+	if event.Type == "invoice.paid" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	if event.Type == "refund.completed" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.SettlementID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	if event.InvoiceID != "" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	return hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
 }
 
 func normalizePayAddress(value string) (native, canonical string, err error) {
@@ -3451,6 +3716,14 @@ func normalizePayAddress(value string) (native, canonical string, err error) {
 
 func paySettlementAuditHash(value PaySettlement) string {
 	return hashParts("pay-settlement-audit", value.ID, value.IntentID, value.InvoiceID, value.Merchant, value.PayoutAddress, value.Payer, fmt.Sprint(value.Amount), value.Currency, value.TransactionHash, fmt.Sprint(value.BlockNumber), value.Status, value.IdempotencyKey, value.CreatedAt.Format(time.RFC3339Nano))
+}
+
+func payRefundAuditHash(value RefundRecord) string {
+	completedAt := ""
+	if value.CompletedAt != nil {
+		completedAt = value.CompletedAt.UTC().Format(time.RFC3339Nano)
+	}
+	return hashParts("pay-refund-audit", value.ID, value.IntentID, value.InvoiceID, value.SettlementID, value.Merchant, value.PayoutAddress, value.Payer, fmt.Sprint(value.Amount), value.Currency, value.Reason, value.Status, value.TransactionHash, fmt.Sprint(value.BlockNumber), value.IdempotencyKey, value.CompletionIdempotencyKey, value.CreatedAt.Format(time.RFC3339Nano), completedAt)
 }
 
 func (d *Devnet) evmLogsForTransactionLocked(tx Transaction, txIndex, firstLogIndex uint64) []EVMLog {

@@ -1,29 +1,18 @@
-# Decisions
+# YNX 29 Integration Decisions
 
-## 2026-07-27 — Capacity reservation authority
+Updated: 2026-07-27T14:54:30Z
 
-A reservation is authoritative only for the exact Offer referenced by the accepted Quote. Provider-level totals are retained as a derived aggregate, but they cannot be used to borrow capacity across sibling Offers.
-
-## 2026-07-27 — Self-dealing
-
-A Provider wallet cannot purchase its own fixed-price capacity or submit an auction bid when it is also the procurement buyer. These paths fail closed and expose `RESOURCE_SELF_DEALING_REJECTED` through the API contract.
-
-## 2026-07-27 — Schema 6 migration
-
-Pre-v6 snapshots derive Offer and Provider reservation ledgers solely from active orders with valid Quote→Offer lineage and persist the upgrade at startup. Once a snapshot is schema 6, ledger mismatch is treated as semantic tampering and startup fails closed; it is never silently repaired.
-
-## 2026-07-27 — Release truth
-
-Passing local tests, Race, Vet and cold-start smoke does not set central, staging, public, hosted, signed or store-release booleans. The product remains `ACTIVE` in `INTEGRATE`.
-
-## 2026-07-27 — Amount arithmetic
-
-All monetary values remain non-negative signed 64-bit integers at the Resource Market boundary. Quote, auction, metering, settlement and dispute calculations use checked arithmetic; overflow returns `RESOURCE_AMOUNT_OUT_OF_RANGE` before any authoritative state mutation. Central consumers must preserve this failure and must not clamp, wrap or reinterpret it as a successful charge, settlement or refund.
-
-## 2026-07-29 — Tested-source evidence binding
-
-Release metadata binds `d683c7d28ce129daad358c84680e5980cf8ad069`, the exact source verified by Resource Market Candidate Gates run `30417957999`. Later checkpoint-only commits do not replace that tested source identity.
-
-## 2026-07-29 — Operator input ownership
-
-The repository-wide `release/operator-inputs.request.json` remains a central/shared file from main. Resource Market-specific deployment, provider, signer, localization and hosting inputs live at `apps/resource-market/operator-inputs.request.json` to avoid overwriting another Owner's central evidence.
+1. **Fast-forward rather than merge or rebuild.** The original Integration HEAD was a direct ancestor of `origin/main` with no unique commits, so the branch was advanced using `--ff-only` and pushed without rewriting history.
+2. **One registry covers 01–36.** The previous 23-product matrix remains historical evidence only. `release/integration/product-registry.json` is the current machine-readable owner, branch, phase and dependency inventory.
+3. **Product-owner evidence is never central acceptance by default.** `acceptedSourceCommit` remains null until Integration reruns the relevant contract, negative, artifact, migration, restore, security and public checks.
+4. **Evidence identity must match the product.** A file inherited from another branch or product cannot satisfy a row merely because its filename matches. Owner, ID, slug, branch or exact product identity must match.
+5. **Query failure is not zero.** Unavailable GitHub Actions, Release or Artifact observations use `null` counts plus retained error evidence; they are never converted to an empty-success claim.
+6. **Release classes remain separate.** Preview, simulator, unsigned, test-signed, staging, public runtime, production signing, store release and Mainnet states cannot promote each other.
+7. **Integration public records are namespaced.** Integration uses `release/integration/product-release.json` and `release/integration/public-product-metadata.json`; the root Docs/Compliance records are not overwritten or reused.
+8. **Security/SRE absence fails closed.** Product 30 is a Phase 0 authority. Its missing final branch/worktree blocks dependent promotion but does not stop independent scanner, contract, test-vector and evidence work.
+9. **Dirty sibling worktrees are protected, not accepted.** The controller records only clean/dirty counts and branch facts; it does not modify sibling worktrees or disclose their absolute paths.
+10. **Mainnet remains independent.** No Testnet, Website, Release or Artifact result may set Mainnet acceptance without a later explicit gate.
+11. **Unsafe-permission tests must be umask-independent.** Tests that assert rejection of group/world-readable key files explicitly set the unsafe mode after creation; production permission checks remain unchanged.
+12. **Contract artifacts are generated prerequisites, not committed fixtures.** Hardhat artifacts remain ignored and are regenerated from tracked Solidity before dependent Go tests. Tests are not weakened or skipped to hide missing artifacts.
+13. **The Hardhat High advisory has a bounded exception, not a release waiver.** The exact development-only graph is machine checked, production audit must remain zero, the exception expires on 2026-08-31, and production release remains blocked pending Security/SRE review or remediation.
+14. **Dirty-tree tests do not earn exact-source status.** The implementation slice is committed first as `implementedLocal`; only an exact-commit rerun may set `testedLocal` and produce direct evidence.

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "owner": "29-integration",
+  "product": "YNX Integration / Founder Control",
+  "sourceCommit": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
+  "branch": "codex/final-integration",
+  "recordedAt": "2026-07-29T02:38:40Z",
+  "command": "make integration-protect-preflight",
+  "result": "passed",
+  "exactCommitRun": true,
+  "worktreeCleanAtStart": true,
+  "checks": [
+    "integration-acceptance-check",
+    "contract-tooling-check",
+    "integration-npm-audit-policy-check",
+    "integration-npm-audit-policy-check-test",
+    "go test ./...",
+    "no-placeholder-check",
+    "secret-scan",
+    "static-check"
+  ],
+  "observations": [
+    "Hardhat reported no contracts requiring compilation and regenerated selector metadata coherently.",
+    "All Go packages completed successfully or reported no test files.",
+    "The placeholder and secret scanners used their documented grep fallbacks because ripgrep was unavailable.",
+    "A prior npm self-test attempt encountered ETIMEDOUT; an isolated retry passed, and the complete exact-commit preflight then passed without modification."
+  ],
+  "claims": {
+    "testedLocal": true,
+    "integratedCentral": false,
+    "testnetVerified": false,
+    "deployedPublic": false,
+    "mainnetAccepted": false
+  }
+}

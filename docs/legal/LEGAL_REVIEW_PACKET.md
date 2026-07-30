@@ -1,7 +1,7 @@
 # YNX Chain Legal Review Packet
 
-Version: 1.0.0-candidate  
-Prepared: 2026-07-22  
+Version: 1.0.0-candidate
+Prepared: 2026-07-22
 Status: issue list for qualified counsel; not legal advice or approval
 
 ## Materials
