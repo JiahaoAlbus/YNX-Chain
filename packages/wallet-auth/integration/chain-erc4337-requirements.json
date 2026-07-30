@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "integrationId": "ynx-chain-erc4337-runtime-v1",
+  "owner": "chain-core",
+  "consumer": "wallet-auth",
+  "chainId": 6423,
+  "entryPointVersion": "0.8.0",
+  "requiredRuntime": [
+    "arbitrary deployed EVM bytecode execution with persistent storage",
+    "CREATE and CREATE2 contract creation with standard receipt contractAddress",
+    "nested CALL, STATICCALL and revert-data propagation",
+    "EntryPoint handleOps validation, execution, logs, deposits and stakes",
+    "validation-compatible storage and opcode policy documented against ERC-7562",
+    "EIP-712, secp256k1 and P-256 Solidity fallback execution",
+    "deterministic gas accounting sufficient for Paymaster maxCost and postOp"
+  ],
+  "requiredJsonRpc": [
+    "eth_chainId",
+    "eth_blockNumber",
+    "eth_getCode",
+    "eth_getStorageAt",
+    "eth_getBalance",
+    "eth_getTransactionCount",
+    "eth_estimateGas",
+    "eth_call with standard revert data",
+    "eth_sendRawTransaction",
+    "eth_getTransactionByHash",
+    "eth_getTransactionReceipt with logs and contractAddress",
+    "eth_getLogs"
+  ],
+  "bundlerAcceptance": [
+    "eth_supportedEntryPoints includes the deployed v0.8 EntryPoint",
+    "eth_estimateUserOperationGas accepts the packed v0.8 UserOperation",
+    "eth_sendUserOperation returns a canonical 32-byte hash",
+    "eth_getUserOperationByHash preserves the submitted operation",
+    "eth_getUserOperationReceipt binds EntryPoint, sender, nonce, gas, success, logs and transaction receipt"
+  ],
+  "crossRepositoryVectors": [
+    "packages/wallet-auth/integration/smart-account-testnet.manifest.json",
+    "apps/wallet/proof/sponsorship-bundler-hardhat-local.json"
+  ],
+  "currentContradiction": {"method":"eth_getCode","publicResultCode":-32601,"observedAt":"2026-07-22T16:00:36Z"},
+  "states": {"implementedWalletLocal":true,"acceptedChainCore":false,"deployedStaging":false,"deployedPublic":false}
+}

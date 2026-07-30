@@ -1,7 +1,7 @@
 # Trust, Appeals, and Market Integrity
 
-Version: 0.1.0-candidate  
-Last reviewed: 2026-07-22  
+Version: 0.1.0-candidate
+Last reviewed: 2026-07-22
 Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`
 
 YNX Trust records are advisory evidence and governance workflow. A Trust label has no authority to freeze, seize, transfer, or burn native YNXT. Legal or provider controls over separately issued/custodied assets must be attributed to that issuer/provider and its approved process.

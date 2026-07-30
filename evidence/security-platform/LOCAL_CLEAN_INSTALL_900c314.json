@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "scenario": "authoritative-repository-clean-clone-locked-install-build-and-cli-cold-start",
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "sourceCommit": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+  "verifiedAt": "2026-07-29T06:05:00Z",
+  "result": "passed-local",
+  "environment": {
+    "kind": "local-ephemeral-clean-clone-detached-exact-source",
+    "node": "v24.5.0",
+    "npm": "11.5.1",
+    "platform": "darwin-arm64"
+  },
+  "sourceVerification": {
+    "clone": "fresh HTTPS clone of the authoritative repository",
+    "checkout": "detached exact source commit",
+    "headMatched": true,
+    "trackedTreeCleanBeforeInstall": true,
+    "trackedTreeCleanAfterVerification": true
+  },
+  "install": {
+    "command": "npm ci --ignore-scripts",
+    "addedPackages": 91,
+    "auditedPackages": 92,
+    "result": "passed"
+  },
+  "supplyChain": {
+    "lifecycleScriptAllowlist": "passed",
+    "dependencyRebuild": "passed",
+    "notices": "passed",
+    "productionDependencyAudit": {
+      "command": "npm audit --omit=dev --audit-level=high",
+      "vulnerabilities": 0,
+      "result": "passed"
+    }
+  },
+  "coldStart": {
+    "commands": [
+      "npm run security:verify",
+      "npm run security:integration",
+      "npm run security:test"
+    ],
+    "policyVerification": "passed",
+    "kubernetesRender": {
+      "stagingDocuments": 21,
+      "productionDocuments": 23,
+      "result": "passed"
+    },
+    "tests": {
+      "total": 172,
+      "passed": 172,
+      "failed": 0
+    },
+    "result": "passed"
+  },
+  "durationSeconds": 6,
+  "cleanup": {
+    "workspaceWasEphemeral": true,
+    "credentialsWritten": false,
+    "productionMutationPerformed": false
+  },
+  "limitations": [
+    "local CLI and manifest-render installation only",
+    "no live Kubernetes cluster installation",
+    "no provider credential or production secret was used",
+    "no staging or public deployment was performed"
+  ]
+}

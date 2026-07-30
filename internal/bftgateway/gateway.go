@@ -27,7 +27,15 @@ var implementedCapabilities = []string{
 	"account-query",
 	"validator-set",
 	"evm-chain-id",
+	"evm-network-version",
 	"evm-block-number",
+	"evm-minimum-gas-price-suggestions",
+	"evm-committed-zero-base-fee-history",
+	"evm-block-by-number-and-hash",
+	"evm-block-transaction-count-and-index-lookup",
+	"evm-account-balance-and-nonce",
+	"evm-signed-raw-transaction-broadcast",
+	"evm-bounded-contract-code-storage-call-and-gas",
 	"native-signed-transaction-http-broadcast",
 	"transaction-lookup-and-history",
 	"faucet-state-transition",
@@ -37,6 +45,11 @@ var implementedCapabilities = []string{
 	"resource-market-state-transitions",
 	"evm-transaction-receipts-and-logs",
 	"ide-contract-state-transitions",
+	"quant-mandate-and-vault-state-transitions",
+	"staking-delegation-and-exit-state-transitions",
+	"treasury-observation-snapshot",
+	"smart-account-and-sponsored-user-operation-state-transitions",
+	"native-liability-solvency-snapshot-and-merkle-proof",
 }
 
 var missingCutoverCapabilities = []string{}
@@ -45,6 +58,7 @@ var (
 	transactionHashPattern = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
 	blockHashPattern       = regexp.MustCompile(`^[0-9A-Fa-f]{64}$`)
 	aiRecordIDPattern      = regexp.MustCompile(`^[0-9a-f]{24}$`)
+	quantRecordIDPattern   = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
 	buildCommitPattern     = regexp.MustCompile(`^[0-9a-f]{12}$`)
 )
 
@@ -91,27 +105,28 @@ type Health struct {
 }
 
 type Status struct {
-	Network              string    `json:"network"`
-	Slug                 string    `json:"slug"`
-	ChainID              int64     `json:"chainId"`
-	NativeCoinName       string    `json:"nativeCoinName"`
-	NativeCurrencySymbol string    `json:"nativeCurrencySymbol"`
-	Decimals             int       `json:"decimals"`
-	PublicNetwork        bool      `json:"publicNetwork"`
-	Height               uint64    `json:"height"`
-	LatestBlockHash      string    `json:"latestBlockHash"`
-	LatestBlockTime      time.Time `json:"latestBlockTime"`
-	EarliestBlockHeight  uint64    `json:"earliestBlockHeight"`
-	EarliestBlockHash    string    `json:"earliestBlockHash"`
-	EarliestBlockTime    time.Time `json:"earliestBlockTime"`
-	ValidatorCount       int       `json:"validatorCount"`
-	PendingTxCount       int       `json:"pendingTxCount"`
-	TruthfulStatus       string    `json:"truthfulStatus"`
-	ConsensusEngine      string    `json:"consensusEngine"`
-	CometChainID         string    `json:"cometChainId"`
-	PublicCutoverReady   bool      `json:"publicCutoverReady"`
-	MigrationHeight      uint64    `json:"migrationHeight,omitempty"`
-	MigrationBlockHash   string    `json:"migrationBlockHash,omitempty"`
+	Network              string         `json:"network"`
+	Slug                 string         `json:"slug"`
+	ChainID              int64          `json:"chainId"`
+	NativeCoinName       string         `json:"nativeCoinName"`
+	NativeCurrencySymbol string         `json:"nativeCurrencySymbol"`
+	Decimals             int            `json:"decimals"`
+	PublicNetwork        bool           `json:"publicNetwork"`
+	Height               uint64         `json:"height"`
+	LatestBlockHash      string         `json:"latestBlockHash"`
+	LatestBlockTime      time.Time      `json:"latestBlockTime"`
+	EarliestBlockHeight  uint64         `json:"earliestBlockHeight"`
+	EarliestBlockHash    string         `json:"earliestBlockHash"`
+	EarliestBlockTime    time.Time      `json:"earliestBlockTime"`
+	ValidatorCount       int            `json:"validatorCount"`
+	PendingTxCount       int            `json:"pendingTxCount"`
+	TruthfulStatus       string         `json:"truthfulStatus"`
+	ConsensusEngine      string         `json:"consensusEngine"`
+	CometChainID         string         `json:"cometChainId"`
+	PublicCutoverReady   bool           `json:"publicCutoverReady"`
+	MigrationHeight      uint64         `json:"migrationHeight,omitempty"`
+	MigrationBlockHash   string         `json:"migrationBlockHash,omitempty"`
+	Build                buildinfo.Info `json:"build"`
 }
 
 type cometStatus struct {
@@ -156,6 +171,8 @@ type cometBlock struct {
 				Height      string    `json:"height"`
 				Time        time.Time `json:"time"`
 				Proposer    string    `json:"proposer_address"`
+				AppHash     string    `json:"app_hash"`
+				DataHash    string    `json:"data_hash"`
 				LastBlockID struct {
 					Hash string `json:"hash"`
 				} `json:"last_block_id"`
@@ -165,6 +182,7 @@ type cometBlock struct {
 			} `json:"data"`
 		} `json:"block"`
 	} `json:"result"`
+	Error *cometRPCError `json:"error,omitempty"`
 }
 
 type cometABCIQuery struct {
@@ -229,6 +247,18 @@ type cometBlockResults struct {
 	Error *cometRPCError `json:"error,omitempty"`
 }
 
+type cometConsensusParams struct {
+	Result struct {
+		BlockHeight     string `json:"block_height"`
+		ConsensusParams struct {
+			Block struct {
+				MaxGas string `json:"max_gas"`
+			} `json:"block"`
+		} `json:"consensus_params"`
+	} `json:"result"`
+	Error *cometRPCError `json:"error,omitempty"`
+}
+
 type BroadcastResponse struct {
 	Transaction    chain.Transaction `json:"transaction"`
 	Committed      bool              `json:"committed"`
@@ -285,6 +315,27 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /accounts/{address}", g.handleAccount)
 	g.mux.HandleFunc("GET /economics/fees", g.handleEconomicsFees)
 	g.mux.HandleFunc("GET /economics/fees/{id}", g.handleEconomicsFee)
+	g.mux.HandleFunc("POST /quant/mandates", g.handleQuantMutation)
+	g.mux.HandleFunc("GET /quant/mandates", g.handleQuantMandates)
+	g.mux.HandleFunc("GET /quant/mandates/{id}", g.handleQuantMandate)
+	g.mux.HandleFunc("POST /quant/mandates/{id}/revoke", g.handleQuantMutation)
+	g.mux.HandleFunc("POST /quant/mandates/{id}/kill", g.handleQuantMutation)
+	g.mux.HandleFunc("POST /quant/vaults", g.handleQuantMutation)
+	g.mux.HandleFunc("GET /quant/vaults", g.handleQuantVaults)
+	g.mux.HandleFunc("GET /quant/vaults/{id}", g.handleQuantVault)
+	g.mux.HandleFunc("POST /quant/vaults/{id}/deposit", g.handleQuantMutation)
+	g.mux.HandleFunc("POST /quant/vaults/{id}/withdraw", g.handleQuantMutation)
+	g.mux.HandleFunc("POST /quant/vaults/{id}/emergency-exit", g.handleQuantMutation)
+	g.mux.HandleFunc("GET /quant/audit", g.handleQuantAudit)
+	g.mux.HandleFunc("POST /aa/accounts", g.handleAccountAbstractionMutation)
+	g.mux.HandleFunc("GET /aa/accounts", g.handleSmartAccounts)
+	g.mux.HandleFunc("GET /aa/accounts/{address}", g.handleSmartAccount)
+	g.mux.HandleFunc("POST /aa/paymasters", g.handleAccountAbstractionMutation)
+	g.mux.HandleFunc("GET /aa/paymasters", g.handlePaymasters)
+	g.mux.HandleFunc("GET /aa/paymasters/{id}", g.handlePaymaster)
+	g.mux.HandleFunc("POST /aa/user-operations", g.handleAccountAbstractionMutation)
+	g.mux.HandleFunc("GET /aa/user-operations", g.handleUserOperations)
+	g.mux.HandleFunc("GET /aa/user-operations/{id}", g.handleUserOperation)
 	g.mux.HandleFunc("POST /staking/delegations", g.handleStakingMutation)
 	g.mux.HandleFunc("GET /staking/delegations", g.handleStakeDelegations)
 	g.mux.HandleFunc("GET /staking/delegations/{id}", g.handleStakeDelegation)
@@ -294,6 +345,8 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("POST /staking/withdrawals", g.handleStakingMutation)
 	g.mux.HandleFunc("GET /staking/summary", g.handleStakingSummary)
 	g.mux.HandleFunc("GET /treasury/snapshot", g.handleTreasurySnapshot)
+	g.mux.HandleFunc("GET /solvency/snapshot", g.handleSolvencySnapshot)
+	g.mux.HandleFunc("GET /solvency/liabilities/{address}", g.handleSolvencyLiabilityProof)
 	g.mux.HandleFunc("POST /ai/permissions", g.handleAIMutation)
 	g.mux.HandleFunc("GET /ai/permissions", g.handleAIPermissions)
 	g.mux.HandleFunc("GET /ai/permissions/{id}", g.handleAIPermission)
@@ -307,8 +360,12 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /pay/intents/{id}", g.handlePayIntent)
 	g.mux.HandleFunc("POST /pay/invoices", g.handlePayMutation)
 	g.mux.HandleFunc("GET /pay/invoices/{id}", g.handlePayInvoice)
+	g.mux.HandleFunc("POST /pay/invoices/{id}/settle", g.handlePayMutation)
+	g.mux.HandleFunc("GET /pay/invoices/{id}/settlement", g.handlePayInvoiceSettlement)
+	g.mux.HandleFunc("GET /pay/settlements/{id}", g.handlePaySettlement)
 	g.mux.HandleFunc("POST /pay/refunds", g.handlePayMutation)
 	g.mux.HandleFunc("GET /pay/refunds/{id}", g.handlePayRefund)
+	g.mux.HandleFunc("POST /pay/refunds/{id}/complete", g.handlePayMutation)
 	g.mux.HandleFunc("POST /pay/webhook-signatures", g.handlePayMutation)
 	g.mux.HandleFunc("GET /pay/webhook-signatures/{eventId}", g.handlePayWebhook)
 	g.mux.HandleFunc("GET /pay/events", g.handlePayEvents)
@@ -441,6 +498,7 @@ func (g *Gateway) status(ctx context.Context) (Status, error) {
 		PublicCutoverReady:   g.publicCutoverReady(),
 		MigrationHeight:      g.migrationHeight,
 		MigrationBlockHash:   g.migrationBlockHash,
+		Build:                g.build,
 	}, nil
 }
 
@@ -520,26 +578,82 @@ func (g *Gateway) handleBlock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, block)
 }
 
+type committedBlockEvidence struct {
+	Block           chain.Block
+	AppHash         string
+	DataHash        string
+	RawTransactions [][]byte
+}
+
 func (g *Gateway) block(ctx context.Context, height uint64) (chain.Block, error) {
-	var upstream cometBlock
-	if err := g.client.get(ctx, "/block", url.Values{"height": {strconv.FormatUint(height, 10)}}, &upstream); err != nil {
+	evidence, err := g.blockAtHeight(ctx, height)
+	if err != nil {
 		return chain.Block{}, err
 	}
+	return evidence.Block, nil
+}
+
+func (g *Gateway) blockAtHeight(ctx context.Context, height uint64) (committedBlockEvidence, error) {
+	var upstream cometBlock
+	if err := g.client.get(ctx, "/block", url.Values{"height": {strconv.FormatUint(height, 10)}}, &upstream); err != nil {
+		return committedBlockEvidence{}, err
+	}
+	if upstream.Error != nil {
+		return committedBlockEvidence{}, errors.New(cometError(upstream.Error))
+	}
+	return g.mapCometBlock(ctx, upstream, height, "")
+}
+
+func (g *Gateway) blockByHash(ctx context.Context, hash string) (committedBlockEvidence, bool, error) {
+	var upstream cometBlock
+	if err := g.client.get(ctx, "/block_by_hash", url.Values{"hash": {hash}}, &upstream); err != nil {
+		return committedBlockEvidence{}, false, err
+	}
+	if upstream.Error != nil {
+		message := cometError(upstream.Error)
+		if strings.Contains(strings.ToLower(message), "not found") {
+			return committedBlockEvidence{}, false, nil
+		}
+		return committedBlockEvidence{}, false, errors.New(message)
+	}
+	height, err := strconv.ParseUint(upstream.Result.Block.Header.Height, 10, 64)
+	if err != nil || height == 0 {
+		return committedBlockEvidence{}, false, errors.New("CometBFT block-by-hash returned an invalid height")
+	}
+	evidence, err := g.mapCometBlock(ctx, upstream, height, hash)
+	if err != nil {
+		return committedBlockEvidence{}, false, err
+	}
+	return evidence, true, nil
+}
+
+func (g *Gateway) mapCometBlock(ctx context.Context, upstream cometBlock, expectedHeight uint64, expectedHash string) (committedBlockEvidence, error) {
 	parsedHeight, err := strconv.ParseUint(upstream.Result.Block.Header.Height, 10, 64)
-	if err != nil || parsedHeight != height {
-		return chain.Block{}, errors.New("CometBFT block height mismatch")
+	if err != nil || parsedHeight != expectedHeight {
+		return committedBlockEvidence{}, errors.New("CometBFT block height mismatch")
+	}
+	blockHash := strings.ToLower(upstream.Result.BlockID.Hash)
+	if !blockHashPattern.MatchString(blockHash) {
+		return committedBlockEvidence{}, errors.New("CometBFT block hash is invalid")
+	}
+	if expectedHash != "" && blockHash != strings.TrimPrefix(expectedHash, "0x") {
+		return committedBlockEvidence{}, errors.New("CometBFT block-by-hash evidence mismatch")
+	}
+	proposer := strings.ToLower(upstream.Result.Block.Header.Proposer)
+	if len(proposer) != 40 || !blockHashPattern.MatchString(strings.Repeat("0", 24)+proposer) {
+		return committedBlockEvidence{}, errors.New("CometBFT proposer address is invalid")
 	}
 	transactions := make([]chain.Transaction, 0, len(upstream.Result.Block.Data.Txs))
 	for _, payload := range upstream.Result.Block.Data.Txs {
 		tx, err := mappedTransaction(payload, parsedHeight, upstream.Result.BlockID.Hash, upstream.Result.Block.Header.Time)
 		if err != nil {
-			return chain.Block{}, errors.New("block contains an unsupported transaction envelope")
+			return committedBlockEvidence{}, errors.New("block contains an unsupported transaction envelope")
 		}
 		if tx.Type == consensus.ActionResourceSponsor {
 			id := "rss_" + consensus.ApplicationActionRecordID("resource-sponsorship", tx.Hash)
 			var record consensus.BFTResourceSponsorship
 			if err := g.queryABCIJSON(ctx, "/resource/sponsorships/"+id, &record); err != nil || record.TxHash != tx.Hash || record.Beneficiary != tx.From {
-				return chain.Block{}, errors.New("committed Resource sponsorship evidence mismatch")
+				return committedBlockEvidence{}, errors.New("committed Resource sponsorship evidence mismatch")
 			}
 			tx.Sponsor, tx.SponsorPoolID, tx.ResourceSource = record.Sponsor, record.PoolID, record.ResourceSource
 			tx.ResourceType, tx.ResourceConsumed, tx.ActionReference = record.ResourceType, record.Amount, record.ActionReference
@@ -547,19 +661,35 @@ func (g *Gateway) block(ctx context.Context, height uint64) (chain.Block, error)
 		transactions = append(transactions, tx)
 	}
 	parentHash := strings.ToLower(upstream.Result.Block.Header.LastBlockID.Hash)
-	if g.migrationHeight > 0 && height == g.migrationHeight+1 {
+	if parentHash != "" && !blockHashPattern.MatchString(parentHash) {
+		return committedBlockEvidence{}, errors.New("CometBFT parent block hash is invalid")
+	}
+	if g.migrationHeight > 0 && expectedHeight == g.migrationHeight+1 {
 		if parentHash != "" && parentHash != g.migrationBlockHash {
-			return chain.Block{}, errors.New("candidate first block parent differs from the approved migration anchor")
+			return committedBlockEvidence{}, errors.New("candidate first block parent differs from the approved migration anchor")
 		}
 		parentHash = g.migrationBlockHash
 	}
-	return chain.Block{
-		Height:       parsedHeight,
-		Hash:         strings.ToLower(upstream.Result.BlockID.Hash),
-		ParentHash:   parentHash,
-		Time:         upstream.Result.Block.Header.Time,
-		Validator:    strings.ToLower(upstream.Result.Block.Header.Proposer),
-		Transactions: transactions,
+	appHash := strings.ToLower(upstream.Result.Block.Header.AppHash)
+	if appHash != "" && !blockHashPattern.MatchString(appHash) {
+		return committedBlockEvidence{}, errors.New("CometBFT AppHash is invalid")
+	}
+	dataHash := strings.ToLower(upstream.Result.Block.Header.DataHash)
+	if dataHash != "" && !blockHashPattern.MatchString(dataHash) {
+		return committedBlockEvidence{}, errors.New("CometBFT data hash is invalid")
+	}
+	return committedBlockEvidence{
+		Block: chain.Block{
+			Height:       parsedHeight,
+			Hash:         blockHash,
+			ParentHash:   parentHash,
+			Time:         upstream.Result.Block.Header.Time,
+			Validator:    proposer,
+			Transactions: transactions,
+		},
+		AppHash:         appHash,
+		DataHash:        dataHash,
+		RawTransactions: upstream.Result.Block.Data.Txs,
 	}, nil
 }
 
@@ -567,6 +697,23 @@ func mappedTransaction(payload []byte, height uint64, blockHash string, blockTim
 	kind, err := consensus.TransactionEnvelopeType(payload)
 	if err != nil {
 		return chain.Transaction{}, err
+	}
+	if kind == consensus.EthereumLegacyTransferType || kind == consensus.EthereumAccessListTransferType || kind == consensus.EthereumDynamicFeeTransferType {
+		tx, err := consensus.DecodeEthereumValueTransfer(payload)
+		if err != nil || tx.Verify(6423) != nil || tx.EnvelopeType != kind {
+			return chain.Transaction{}, errors.New("invalid bounded Ethereum value transfer")
+		}
+		memo := "EIP-155 legacy Ethereum value transfer"
+		if kind == consensus.EthereumAccessListTransferType {
+			memo = "EIP-2930 empty-access-list Ethereum value transfer"
+		} else if kind == consensus.EthereumDynamicFeeTransferType {
+			memo = "EIP-1559 zero-base-fee Ethereum value transfer"
+		}
+		return chain.Transaction{
+			Hash: tx.Hash, Type: kind, From: tx.From, To: tx.To,
+			Amount: tx.Value, Fee: tx.Fee, Nonce: tx.Nonce, BlockHash: strings.ToLower(blockHash),
+			BlockNum: height, Timestamp: blockTime, Memo: memo,
+		}, nil
 	}
 	if kind == consensus.SignedActionType {
 		tx, err := consensus.DecodeSignedApplicationAction(payload)
@@ -615,6 +762,44 @@ func mappedTransaction(payload []byte, height uint64, blockHash string, blockTim
 	}, nil
 }
 
+func mappedTransactionHash(payload []byte) (string, error) {
+	kind, err := consensus.TransactionEnvelopeType(payload)
+	if err != nil {
+		return "", err
+	}
+	switch kind {
+	case consensus.EthereumLegacyTransferType, consensus.EthereumAccessListTransferType, consensus.EthereumDynamicFeeTransferType:
+		tx, err := consensus.DecodeEthereumValueTransfer(payload)
+		if err != nil {
+			return "", err
+		}
+		if err := tx.Verify(6423); err != nil || tx.EnvelopeType != kind {
+			return "", errors.New("invalid bounded Ethereum value transfer")
+		}
+		return tx.Hash, nil
+	case consensus.SignedActionType:
+		tx, err := consensus.DecodeSignedApplicationAction(payload)
+		if err != nil {
+			return "", err
+		}
+		if err := tx.Verify(6423); err != nil {
+			return "", err
+		}
+		return consensus.ApplicationActionHash(payload), nil
+	case consensus.SignedTransactionType:
+		tx, err := consensus.DecodeSignedTransaction(payload)
+		if err != nil {
+			return "", err
+		}
+		if err := tx.Verify(6423); err != nil {
+			return "", err
+		}
+		return consensus.SignedTransactionHash(payload), nil
+	default:
+		return "", errors.New("unsupported committed transaction envelope")
+	}
+}
+
 func (g *Gateway) transactionAtHeight(ctx context.Context, hash string, height uint64) (chain.Transaction, error) {
 	block, err := g.block(ctx, height)
 	if err != nil {
@@ -628,6 +813,110 @@ func (g *Gateway) transactionAtHeight(ctx context.Context, hash string, height u
 	return chain.Transaction{}, errors.New("CometBFT transaction is not present in its reported block")
 }
 
+type signedTransactionBroadcastError struct {
+	Status  int
+	Message string
+}
+
+func (e *signedTransactionBroadcastError) Error() string { return e.Message }
+
+func broadcastTransactionIdentity(payload []byte) (string, int, error) {
+	kind, err := consensus.TransactionEnvelopeType(payload)
+	if err != nil {
+		return "", http.StatusBadRequest, err
+	}
+	if kind == consensus.EthereumLegacyTransferType || kind == consensus.EthereumAccessListTransferType || kind == consensus.EthereumDynamicFeeTransferType {
+		tx, err := consensus.DecodeEthereumValueTransfer(payload)
+		if err != nil {
+			return "", http.StatusBadRequest, err
+		}
+		if err := tx.Verify(6423); err != nil || tx.EnvelopeType != kind {
+			return "", http.StatusUnprocessableEntity, errors.New("invalid bounded Ethereum value transfer")
+		}
+		return tx.Hash, http.StatusOK, nil
+	}
+	if kind != consensus.SignedTransactionType {
+		return "", http.StatusBadRequest, errors.New("broadcast endpoint accepts native transfers or bounded Ethereum value transfers")
+	}
+	tx, err := consensus.DecodeSignedTransaction(payload)
+	if err != nil {
+		return "", http.StatusBadRequest, err
+	}
+	if err := tx.Verify(6423); err != nil {
+		return "", http.StatusUnprocessableEntity, err
+	}
+	return consensus.SignedTransactionHash(payload), http.StatusOK, nil
+}
+
+func (g *Gateway) broadcastSignedTransaction(ctx context.Context, payload []byte) (BroadcastResponse, error) {
+	if len(payload) == 0 {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadRequest, Message: "signed transaction payload is required"}
+	}
+	if len(payload) > consensus.MaxSignedTransactionSize {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusRequestEntityTooLarge, Message: "signed transaction exceeds maximum size"}
+	}
+	externalHash, validationStatus, err := broadcastTransactionIdentity(payload)
+	if err != nil {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: validationStatus, Message: err.Error()}
+	}
+	envelopeType, err := consensus.TransactionEnvelopeType(payload)
+	if err != nil {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadRequest, Message: err.Error()}
+	}
+	cometHash := consensus.SignedTransactionHash(payload)
+	var upstream cometBroadcast
+	if err := g.client.get(ctx, "/broadcast_tx_commit", url.Values{"tx": {"0x" + fmt.Sprintf("%x", payload)}}, &upstream); err != nil {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: err.Error()}
+	}
+	if upstream.Error != nil {
+		message := cometError(upstream.Error)
+		if strings.Contains(strings.ToLower(message), "tx already exists in cache") {
+			return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusUnprocessableEntity, Message: "CometBFT rejected duplicate signed transaction (" + envelopeType + "): " + message}
+		}
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: message}
+	}
+	if upstream.Result.CheckTx.Code != 0 || upstream.Result.TxResult.Code != 0 {
+		message := strings.TrimSpace(upstream.Result.CheckTx.Log + " " + upstream.Result.TxResult.Log)
+		if message == "" {
+			message = "unspecified transaction rejection"
+		}
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusUnprocessableEntity, Message: "CometBFT rejected signed transaction: " + message}
+	}
+	if !strings.EqualFold(strings.TrimPrefix(cometHash, "0x"), upstream.Result.Hash) {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "CometBFT transaction hash mismatch"}
+	}
+	height, err := strconv.ParseUint(upstream.Result.Height, 10, 64)
+	if err != nil || height == 0 {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "CometBFT returned an invalid transaction height"}
+	}
+	mapped, err := g.transactionAtHeight(ctx, externalHash, height)
+	if err != nil {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: err.Error()}
+	}
+	if envelopeType == consensus.EthereumLegacyTransferType || envelopeType == consensus.EthereumAccessListTransferType || envelopeType == consensus.EthereumDynamicFeeTransferType {
+		committed, receiptMapped, found, err := g.committedEthereumTransaction(ctx, externalHash)
+		if err != nil {
+			return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "committed Ethereum evidence validation failed: " + err.Error()}
+		}
+		if !found {
+			return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "committed Ethereum receipt evidence is missing"}
+		}
+		committedHeight, parseErr := strconv.ParseUint(committed.Height, 10, 64)
+		broadcastGas, broadcastGasErr := parseCometGas(upstream.Result.TxResult.GasUsed)
+		committedGas, committedGasErr := parseCometGas(committed.TxResult.GasUsed)
+		if parseErr != nil || committedHeight != height || broadcastGasErr != nil || committedGasErr != nil || broadcastGas != committedGas ||
+			!strings.EqualFold(strings.TrimPrefix(cometHash, "0x"), committed.Hash) || !bytes.Equal(committed.Tx, payload) {
+			return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "committed Ethereum CometBFT evidence does not match broadcast result"}
+		}
+		if receiptMapped.Hash != mapped.Hash || receiptMapped.Type != mapped.Type || receiptMapped.From != mapped.From || receiptMapped.To != mapped.To ||
+			receiptMapped.Amount != mapped.Amount || receiptMapped.Fee != mapped.Fee || receiptMapped.Nonce != mapped.Nonce ||
+			receiptMapped.BlockHash != mapped.BlockHash || receiptMapped.BlockNum != mapped.BlockNum {
+			return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "committed Ethereum receipt evidence does not match broadcast transaction"}
+		}
+	}
+	return BroadcastResponse{Transaction: mapped, Committed: true, Height: height, CometHash: strings.ToLower(upstream.Result.Hash), TruthfulStatus: "cometbft-broadcast-commit"}, nil
+}
+
 func (g *Gateway) handleBroadcastTransaction(w http.ResponseWriter, r *http.Request) {
 	if mediaType := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])); mediaType != "application/json" {
 		writeJSON(w, http.StatusUnsupportedMediaType, map[string]string{"error": "Content-Type application/json is required"})
@@ -639,45 +928,21 @@ func (g *Gateway) handleBroadcastTransaction(w http.ResponseWriter, r *http.Requ
 		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "signed transaction exceeds maximum size"})
 		return
 	}
-	tx, err := consensus.DecodeSignedTransaction(payload)
+	if !json.Valid(payload) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "native transaction endpoint requires one canonical JSON envelope"})
+		return
+	}
+	result, err := g.broadcastSignedTransaction(r.Context(), payload)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		failure, ok := err.(*signedTransactionBroadcastError)
+		if !ok {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, failure.Status, map[string]string{"error": failure.Message})
 		return
 	}
-	if err := tx.Verify(6423); err != nil {
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
-		return
-	}
-	hash := consensus.SignedTransactionHash(payload)
-	var upstream cometBroadcast
-	if err := g.client.get(r.Context(), "/broadcast_tx_commit", url.Values{"tx": {"0x" + fmt.Sprintf("%x", payload)}}, &upstream); err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
-		return
-	}
-	if upstream.Error != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": cometError(upstream.Error)})
-		return
-	}
-	if upstream.Result.CheckTx.Code != 0 || upstream.Result.TxResult.Code != 0 {
-		message := strings.TrimSpace(upstream.Result.CheckTx.Log + " " + upstream.Result.TxResult.Log)
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "CometBFT rejected signed transaction: " + message})
-		return
-	}
-	if !strings.EqualFold(strings.TrimPrefix(hash, "0x"), upstream.Result.Hash) {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "CometBFT transaction hash mismatch"})
-		return
-	}
-	height, err := strconv.ParseUint(upstream.Result.Height, 10, 64)
-	if err != nil || height == 0 {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "CometBFT returned an invalid transaction height"})
-		return
-	}
-	mapped, err := g.transactionAtHeight(r.Context(), hash, height)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
-		return
-	}
-	writeJSON(w, http.StatusOK, BroadcastResponse{Transaction: mapped, Committed: true, Height: height, CometHash: strings.ToLower(upstream.Result.Hash), TruthfulStatus: "cometbft-broadcast-commit"})
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (g *Gateway) handleTransaction(w http.ResponseWriter, r *http.Request) {
@@ -686,22 +951,17 @@ func (g *Gateway) handleTransaction(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical lowercase transaction hash is required"})
 		return
 	}
-	var upstream cometTxLookup
-	if err := g.client.get(r.Context(), "/tx", url.Values{"hash": {hash}, "prove": {"true"}}, &upstream); err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
-		return
-	}
-	if upstream.Error != nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": cometError(upstream.Error)})
-		return
-	}
-	mapped, err := g.mapCometTransaction(r.Context(), upstream.Result)
+	_, mapped, found, err := g.committedTransaction(r.Context(), hash)
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return
 	}
+	if !found {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "transaction not found"})
+		return
+	}
 	if mapped.Hash != hash {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "CometBFT transaction lookup hash mismatch"})
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed transaction lookup hash mismatch"})
 		return
 	}
 	writeJSON(w, http.StatusOK, mapped)
@@ -763,11 +1023,15 @@ func (g *Gateway) mapCometTransaction(ctx context.Context, upstream cometTx) (ch
 	if err != nil || height == 0 {
 		return chain.Transaction{}, errors.New("CometBFT transaction has an invalid height")
 	}
-	hash := consensus.SignedTransactionHash(upstream.Tx)
-	if !strings.EqualFold(strings.TrimPrefix(hash, "0x"), upstream.Hash) {
+	cometHash := consensus.SignedTransactionHash(upstream.Tx)
+	if !strings.EqualFold(strings.TrimPrefix(cometHash, "0x"), upstream.Hash) {
 		return chain.Transaction{}, errors.New("CometBFT transaction payload hash mismatch")
 	}
-	return g.transactionAtHeight(ctx, hash, height)
+	externalHash, err := mappedTransactionHash(upstream.Tx)
+	if err != nil {
+		return chain.Transaction{}, err
+	}
+	return g.transactionAtHeight(ctx, externalHash, height)
 }
 
 func boundedPositiveInt(raw string, fallback, maximum int) (int, bool) {
@@ -1094,6 +1358,8 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 	switch request.Method {
 	case "eth_chainId":
 		result = "0x1917"
+	case "net_version":
+		result = "6423"
 	case "eth_blockNumber":
 		status, err := g.status(r.Context())
 		if err != nil {
@@ -1101,6 +1367,75 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result = fmt.Sprintf("0x%x", status.Height)
+	case "eth_gasPrice", "eth_maxPriorityFeePerGas":
+		var err error
+		result, err = evmFeeSuggestionResult(request.Method, request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
+			return
+		}
+	case "eth_feeHistory":
+		var code int
+		var err error
+		result, code, err = g.evmFeeHistory(r.Context(), request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
+	case "eth_sendRawTransaction":
+		var code int
+		var err error
+		result, code, err = g.evmSendRawTransaction(r.Context(), request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
+	case "eth_getCode":
+		var code int
+		var err error
+		result, code, err = g.evmCommittedContractCode(r.Context(), request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
+	case "eth_getStorageAt":
+		var code int
+		var err error
+		result, code, err = g.evmCommittedContractStorage(r.Context(), request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
+	case "eth_call", "eth_estimateGas":
+		var code int
+		var err error
+		result, code, err = g.evmCommittedContractCall(r.Context(), request.Method, request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
+	case "eth_getBlockByNumber", "eth_getBlockByHash":
+		var err error
+		result, err = g.evmCommittedBlockResult(r.Context(), request.Method, request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
+			return
+		}
+	case "eth_getBlockTransactionCountByNumber", "eth_getBlockTransactionCountByHash", "eth_getTransactionByBlockNumberAndIndex", "eth_getTransactionByBlockHashAndIndex":
+		var code int
+		var err error
+		result, code, err = g.evmCommittedBlockTransactionResult(r.Context(), request.Method, request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
+	case "eth_getBalance", "eth_getTransactionCount":
+		var err error
+		result, err = g.evmCommittedAccountResult(r.Context(), request.Method, request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
+			return
+		}
 	case "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_getLogs":
 		var err error
 		result, err = g.evmCommittedResult(r.Context(), request.Method, request.Params)

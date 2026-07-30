@@ -1,21 +1,41 @@
-# YNXT Economics Threat Model
+# YNX Security Platform Threat Model
 
-## Scope and trust assets
+## Scope and authority
 
-This model covers current fixed-fee disclosure, staking state/actions, Treasury snapshots, candidate simulators, the YUSD test-unit sandbox, Explorer economics routes, generated public metadata and release evidence. Candidate models are not consensus authority. Protected assets are consensus supply and fee conservation, delegation/unbonding liabilities, YUSD reserve/supply/audit integrity, source and release truth, operator credentials, build provenance and user exit rights.
+The platform supplies controls, policy, release evidence, and operational tooling. It never owns user assets, signs user transactions, widens mandates, or decides business actions. Chain state, canonical Wallet/Auth, and the App Gateway remain authoritative in their respective domains.
 
-## Trust boundaries and threats
+## Trust boundaries
 
-| Boundary | Principal threats | Implemented control | Remaining gate |
+1. A user device is untrusted until a product-bound device challenge and short-lived session are verified.
+2. Internet ingress terminates TLS at the managed edge; every service-to-service hop requires a workload identity and mTLS in production.
+3. Build workers are separate from deploy workers. Builds cannot read production credentials. Deploy workers consume immutable, verified artifacts only.
+4. Secret Manager or an approved HSM/MPC system owns key material. Git, CI logs, browsers, screenshots, AI contexts, release archives, and application logs may hold references but never values.
+5. Backup storage is a separate failure and authorization domain. Signer recovery is deliberately separate from data recovery.
+
+## Principal threats and controls
+
+| Threat | Prevent | Detect | Recover |
 | --- | --- | --- | --- |
-| Signed wallet action to Gateway/consensus | Replay, wrong chain/product, nonce reuse, scope widening, forged signer | Existing signed action domains, nonce and canonical address checks; rejected mutations are atomic | Central Wallet/App Gateway integration and public replay drill remain false |
-| Consensus state and fee/staking ledgers | Hidden mint/burn, recipient mismatch, supply loss, tampered migration | Versioned AppHash domains, conservation validation, fee audit hash, migration tamper rejection | Governance activation, staging migration and external audit |
-| Candidate policy to public disclosure | Model presented as active chain state, guaranteed return/peg, stale evidence | Current and candidate sections separated; source/as-of/version/coverage/failure and false release/risk booleans | Independent review and public deployment evidence |
-| YUSD operator API to persistent state | Credential theft, unauthorized mint, replay, reserve fabrication, state tamper, blocked exit | Dedicated secret, constant-time auth, idempotency digest, limits, pause/outage queue, full integrity/audit/reconciliation validation | Real custodian/attestation/legal review are absent; no real value |
-| Treasury and security models | Arbitrary transfer, recursive restaking, cross-pool contagion, secret support | No transfer executor; explicit buckets, isolated pools, max slash/cooldown/waterfall simulation | Multisig, timelock, adjudication, funding and audited contracts |
-| Browser/API | False health, injection, internal error leakage, traffic exhaustion | Static escaped metadata, JSON encoding, visible unavailable states, Request ID, process health and metrics | Edge headers/rate limits, DAST, external monitor and hosted alerting |
-| Build and dependency graph | Lockfile drift, compromised dependency/script, leaked secret, unverifiable artifact | Locked Go/npm graphs, deterministic SBOM, script allowlist, secret/no-filler/static gates | Hosted CI provenance, artifact signing and independent dependency review |
+| Stolen service credential | short lifetime, audience binding, mTLS, least privilege | access audit, impossible-use alert | revoke identity, rotate, isolate workload |
+| Session replay or scope widening | nonce domain, product/device/bundle binding, exact scopes, expiry | rejected-auth metrics with request ID | revoke session family and investigate |
+| CI dependency or build compromise | lockfiles, review, script allowlist, dependency and license review, isolated build | SAST, SBOM diff, provenance verification | halt promotion, revoke artifact, rebuild clean |
+| Artifact replacement | immutable digest, provenance, signature verification at deploy | registry reconciliation | rollback to verified digest and revoke release |
+| Secret disclosure | manager references only, redaction, tracked-file scan | secret scan and audit alert | revoke, rotate, forensic preservation |
+| Database or object loss | encrypted atomic backup, integrity manifest, offline copy | restore drill and checksum monitor | cross-region restore within declared RTO/RPO |
+| Region or edge failure | bounded multi-region candidate design, quotas, rate limits | synthetic probes, saturation and availability alerts | controlled failover and status communication |
+| DDoS and abuse | WAF, rate limits, resource quotas, cost ceilings | edge, queue, error, and spend alerts | shed load, tighten policy, preserve read paths |
+| Break-glass abuse | time-bound access and multi-party approval | immutable audit event and immediate alert | revoke grant, rotate affected credentials, review |
+| Worker escape | sandbox, network policy, no user keys, explicit egress | denied syscall/egress telemetry | kill switch, isolate node, rotate identity |
+| SEO compromise | deploy-time crawler gate and content integrity | canonical/noindex/spam monitors | rollback and request recrawl after correction |
 
-## Abuse cases and response
+## Security invariants
 
-An attacker may spam disclosure requests, replay a YUSD mutation, alter a state file, submit a premature withdrawal, disguise burn as revenue, manipulate stress assumptions, or replace a generated artifact. Rate-limit abuse at ingress once deployed; replay/tamper paths fail closed locally; premature staking exit is rejected atomically; economic output labels assumptions and separates burn/revenue; generated evidence is bound to commit and digest. Any invariant failure requires mutation freeze, evidence preservation, rollback to a matching binary/state pair, and public correction. No administrator is authorized to mint production YNXT/YUSD, move Treasury assets, activate candidates or bypass governance through this package.
+- Authentication and authorization fail closed on missing, stale, malformed, wrong-product, wrong-device, wrong-bundle, widened-scope, revoked, or replayed evidence.
+- A restore never restores signer authority automatically.
+- A green build cannot promote itself.
+- An artifact without digest, SBOM, provenance, signature class, installation evidence, revocation procedure, and expiry is not publicly releasable.
+- Testnet credentials and test signatures never imply production readiness.
+
+## Residual risks
+
+External penetration testing, a staffed 24/7 response function, production HSM selection, production multi-region deployment, and legally approved notification channels are not evidenced in this repository. Their corresponding release states remain false.

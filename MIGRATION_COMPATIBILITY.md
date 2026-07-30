@@ -1,33 +1,37 @@
 # Migration and Compatibility
 
-## Committed state v7 to v9
+Platform policy, truth records, secret metadata, artifact records, backup manifests, and release records are versioned. Readers must reject unknown major schema versions and preserve unknown additive fields when forwarding records.
 
-Application version 11 uses committed-state schema v9. It preserves the v8 fee-event ledger and adds staking delegations and unbonding liabilities. Loading a mode-restricted v7 state verifies the v7 hash domain before moving directly to v9. Loading v8 verifies the v8 hash domain and preserves all fee events before adding empty staking collections.
+Each migration requires forward and rollback transformations, a backup made before mutation, dry-run output, row/object counts, checksums where stable, old-client behavior, deprecation date, and an owner. Rollback is prohibited after an irreversible business event unless the migration plan explicitly reconciles that event.
 
-1. Recalculate and verify the v7 AppHash using the v7 domain and exact legacy fields.
-2. Reject a mismatched or tampered legacy AppHash.
-3. Initialize only fields that did not exist in the source schema; never infer historical fee or staking records.
-4. Recalculate the v9 AppHash when the state differs from the migration anchor.
-5. Validate account supply conservation and all existing application records under current rules.
+Old clients may read a release only when required security semantics are unchanged. Authentication, mandate, signature, nonce, revocation, or authority changes require a fail-closed minimum-client gate. Data export and deletion workflows must state retention exceptions for security, legal, and audit records.
 
-Migration intentionally does not infer historical fees, delegations, or unbondings from balance changes. Coverage before activation is unknown; inventing records would create false chain evidence.
+Service retirement requires advance communication, export availability, revocation of service identities, artifact and endpoint disposition, backup retention decision, and a user exit path. Restart persistence is not restore evidence.
 
-## Client compatibility
+## Executable record migration
 
-- Signed transfer version remains 1 and its canonical fields, signature domain, fixed fee, nonce behavior, and chain replay protection are unchanged.
-- Signed application action version remains 1.
-- Existing ABCI query paths and Gateway routes remain available.
-- New fee queries are additive.
-- Old binaries cannot interpret schema v9 and must not write migrated state. Rollback requires restoring the matching pre-upgrade binary/state pair; a v9 state file must never be handed to a v7 or v8 binary.
+`scripts/security-record-migration.mjs` implements the machine-readable record boundary above. It:
 
-## Required activation and rollback drill
+- rejects unknown schema versions and skips no major version;
+- preserves unknown additive fields in both directions;
+- records before/after bytes, SHA-256 digests, and recursive object counts;
+- distinguishes dry-run from mutation;
+- creates an exclusive, byte-exact backup before atomic file replacement;
+- binds rollback to the exact plan and prohibits rollback after any declared irreversible event;
+- requires a fail-closed minimum-client gate whenever security semantics change.
 
-Before staging activation, operators must back up the source state, verify its SHA-256 and mode, start application version 11 against a copy, query accounts, fees, delegations, and unbondings, execute one approved delegation/unbond/withdrawal lifecycle, verify liquid + staked + queued-unbonding supply reconciliation, stop, restart, and verify the same AppHash and records. Rollback restores the untouched matching binary/state pair while public mutation ingress remains frozen.
+The current additive fixture and plan are:
 
-Current evidence covers local migration and restart tests only. No staging or public migration has been performed.
+- `security-platform/migrations/platform-status-v1-v2.plan.json`
+- `security-platform/migrations/fixtures/platform-status-v1.json`
 
-## YUSD sandbox state v1
+Dry-run example:
 
-The YUSD sandbox uses an independent schema-version-1 JSON state file and never reads or writes consensus or stablecoin-issuer state. Startup validates the whole-file integrity hash, audit chain, reserve liabilities, account supply, redemptions, daily limits, and idempotency records before serving. No earlier YUSD sandbox schema exists, so no migration is claimed. A future schema change must use an explicit offline converter and retain the original file and binary for rollback; old binaries must not write newer schema files.
+```bash
+npm run security:migration -- dry-run \
+  --direction forward \
+  --plan security-platform/migrations/platform-status-v1-v2.plan.json \
+  --input security-platform/migrations/fixtures/platform-status-v1.json
+```
 
-Restart persistence, tamper rejection and a local copy/hash/restore drill are tested by `make yusd-restore-drill`. The drill restores into a fresh mode-0600 path and compares the complete snapshot, queued redemptions and audit chain. It is not an off-host, encrypted, timed, staging or public recovery test; those claims remain false.
+Never run `apply` against an authoritative record without an explicit output and backup path, reviewed dry-run evidence, and the named owner’s approval.

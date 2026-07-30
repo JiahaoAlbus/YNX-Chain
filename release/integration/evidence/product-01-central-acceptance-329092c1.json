@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "passed",
+  "productId": "01",
+  "product": "YNX Chain Core / StreamBFT",
+  "acceptedBy": "29-integration",
+  "acceptedAt": "2026-07-29T19:22:19Z",
+  "acceptedSourceCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e",
+  "frozenReleaseSource": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+  "integrationCommit": "329092c19794ee376248750c2b138090e8418e08",
+  "ancestry": {
+    "acceptedSourceIsParentOfIntegrationCommit": true,
+    "integrationCommitContainsAcceptedSource": true
+  },
+  "ownerCandidate": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "branch": "codex/final-chain-core",
+    "localRemoteShaEqual": true,
+    "worktreeClean": true,
+    "branchProtected": true,
+    "pullRequestMergeable": true,
+    "pullRequestMergeState": "CLEAN",
+    "coverageTotal": 12,
+    "coverageOpen": 0,
+    "requiredEvidenceBundleComplete": true,
+    "sourceBindingsReachable": true
+  },
+  "exactHeadCi": {
+    "verified": true,
+    "sourceCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e",
+    "successfulWorkflowRunIds": [
+      30483234339,
+      30483234115,
+      30483234054,
+      30483234022,
+      30483234010,
+      30483231107
+    ],
+    "failed": 0,
+    "pending": 0
+  },
+  "tests": [
+    {
+      "command": "go test ./...",
+      "status": "passed",
+      "result": "all Go packages passed in the central merged tree"
+    },
+    {
+      "command": "make integration-contract-check",
+      "status": "passed",
+      "result": "71 source-bound v12 / ABCI v18 contract and negative vectors passed"
+    },
+    {
+      "command": "make chain-core-release-check",
+      "status": "passed",
+      "result": "scoped release, public metadata, hosted artifact registry and truthful source-only states passed"
+    },
+    {
+      "command": "make bft-evm-receipt-check",
+      "status": "passed",
+      "result": "network identity, bounded transfers, committed receipts, lookups, logs and fail-closed evidence passed"
+    },
+    {
+      "command": "make account-abstraction-check solvency-check",
+      "status": "passed",
+      "result": "ordinary and race Smart Account, UserOperation, Paymaster, Bundler, staking and solvency tests passed"
+    },
+    {
+      "command": "make consensus-state-sync-check streambft-candidate-check",
+      "status": "passed",
+      "result": "v12 State Sync, exact v11 migration, persistence failures and StreamBFT ordinary/race shadow gates passed"
+    },
+    {
+      "command": "npm audit --omit=dev --audit-level=high",
+      "status": "passed",
+      "result": "zero production dependency vulnerabilities"
+    },
+    {
+      "command": "make integration-acceptance-check integration-product-release-matrix-check",
+      "status": "passed",
+      "result": "36-product central evidence and release matrices passed before acceptance"
+    }
+  ],
+  "artifactVerification": {
+    "artifactId": "chain-core-source-7c724e5",
+    "sha256": "6828d6c0b008964394716de87646e90ea64b59faaae85be16e030b24c63995b6",
+    "bytes": 6474374,
+    "unsignedSourceOnly": true,
+    "hosted": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "release": {
+      "id": 361991221,
+      "tag": "chain-core-v0.2.0-source-candidate",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/chain-core-v0.2.0-source-candidate",
+      "publishedAt": "2026-07-29T19:06:46Z",
+      "prerelease": true,
+      "draft": false,
+      "targetCommit": "7c724e5f330afd4e7863b101cb230d84e3f9cd69",
+      "assetCount": 6,
+      "archiveAssetId": 494421816,
+      "downloadedSha256Verified": true
+    }
+  },
+  "truth": {
+    "integratedCentral": true,
+    "sharedTestnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "releasePublished": true,
+    "artifactHosted": true,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "nextGate": "The protected source-only prerelease is centrally accepted. Shared Testnet, staging, public deployment, production signing, stores and Mainnet remain separate gates."
+}

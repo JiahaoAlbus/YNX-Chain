@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "component": "YNX Data Fabric PostgreSQL transactional repository",
+  "generatedAt": "2026-07-22T16:42:01Z",
+  "sourceCommit": null,
+  "dirtyWorktree": true,
+  "environment": {
+    "database": "PostgreSQL 17.10",
+    "databaseName": "ynx_data_fabric_test",
+    "isolation": "ephemeral local cluster",
+    "compiler": "Apple clang 17.0.0",
+    "sourceArchive": "postgresql-17.10.tar.bz2",
+    "sourceArchiveSHA256": "078a03516dcdbdb705fecaf415ea3d13a956c589e46f09fed68a06fb00598c90",
+    "officialCompanionChecksumMatched": true
+  },
+  "test": {
+    "package": "./internal/datafabricpostgres",
+    "name": "TestPostgresLiveTransactionsConstraintsAndRecovery",
+    "result": "passed",
+    "command": "YNX_TEST_POSTGRES_DSN=<private-test-dsn> YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE=1 go test ./internal/datafabricpostgres -run '^TestPostgresLiveTransactionsConstraintsAndRecovery$' -count=1 -v",
+    "assertions": [
+      "checksum-locked initial migration applies and verifies",
+      "canonical event and Outbox commit atomically",
+      "exact replay is rejected as duplicate and sequence gaps are rejected",
+      "per-partition aggregate sequence rows agree with immutable event history during integrity audit",
+      "64 concurrent distinct aggregate partitions commit without cross-partition serialization aborts",
+      "two dispatchers cannot lease the same Outbox record",
+      "balanced Journal and Postings commit while deferred balance constraints reject an unbalanced Journal",
+      "canonical events are append-only",
+      "Saga step events must match product and correlation authority",
+      "reconciliation status and coverage agree with immutable findings",
+      "payload-free pseudonymous analytics fact and Inbox marker commit together",
+      "erasure deletes prior analytics facts and later event delivery remains suppressed",
+      "erasure retention facts, repository integrity audit, and repository statistics are consistent"
+    ]
+  },
+  "limitations": [
+    "not a clean-commit or CI result",
+    "not a staging or production deployment",
+    "no process-kill-at-commit-boundary, replica failover, network partition, long-running concurrency, backup, restore, rollback, or capacity test",
+    "does not prove central Gateway, product, broker, warehouse, or public Testnet integration"
+  ]
+}

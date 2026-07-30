@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 2,
+  "product": "YNX Security Platform",
+  "version": "0.1.0-candidate",
+  "release": "development-candidate",
+  "environment": "local",
+  "sourceCommit": "1853dd46ce1535dc01911308b53f2d14860337c2",
+  "sourceRepository": "https://github.com/JiahaoAlbus/YNX",
+  "branch": "codex/final-security-platform",
+  "buildRun": "local-reproducibility-drill:1853dd46ce1535dc01911308b53f2d14860337c2",
+  "buildEnvironment": {
+    "node": "v22.13.1",
+    "git": "git version 2.39.5 (Apple Git-154)",
+    "platform": "darwin",
+    "architecture": "arm64"
+  },
+  "dependencyLockHash": "3821fb759a27c8540a4ea30e2e09e6d3ee8c7677d1139dbe0c0a46ac7e5490a3",
+  "buildScriptHash": "d0ac3d37d442da7ff0f24d7d73263871b32d8ba37102bcfbd8513a701ad9aaa9",
+  "artifact": {
+    "name": "ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar",
+    "sha256": "e32f5701d9e636e6555828bbfb36e23c0e93ad96c4706cde0f0a4d667c8ad689",
+    "bytes": 1546240,
+    "mediaType": "application/x-tar",
+    "platform": "source",
+    "architecture": "any",
+    "minimumOs": "Any operating system with POSIX tar support"
+  },
+  "sbom": {
+    "path": "ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar.cdx.json",
+    "sha256": "683665a8275e7bd68bd64d2d90819f98a834d9195b78946aef3873a8227b1581",
+    "format": "CycloneDX 1.6"
+  },
+  "provenance": {
+    "path": "ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar.intoto.json",
+    "sha256": "4c0fd08725d7a653c6b062b6051acfeef4ac39701ad910da4373f1fe007bbbfe",
+    "predicateType": "https://slsa.dev/provenance/v1"
+  },
+  "reproducibility": {
+    "status": "verified-local",
+    "independentArtifactSha256": "e32f5701d9e636e6555828bbfb36e23c0e93ad96c4706cde0f0a4d667c8ad689",
+    "match": true
+  },
+  "signing": {
+    "class": "test-signed",
+    "signingIdentity": "local-ephemeral-test-signer",
+    "publicKeyFingerprint": "sha256:eebfb046d15ced9661fa983f1fee24ee2882b57a28e37f00cafab4e46bd2b801",
+    "signaturePath": "ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar.manifest.sig.json",
+    "certificate": null,
+    "transparencyRecord": null
+  },
+  "installEvidence": "not-run-source-archive",
+  "coldStartEvidence": "not-applicable-source-archive",
+  "revocationStatus": "active",
+  "expiresAt": "2026-08-26T15:48:52.229Z",
+  "publicReleaseEligible": false
+}

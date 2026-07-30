@@ -1,6 +1,6 @@
 # Migration, Compatibility, Backup, and Sunset Policy
 
-Status: pre-production policy  
+Status: pre-production policy
 Applies to: node state, APIs, gateways, indexers, public documentation, and user-exportable product data
 
 ## Compatibility contract

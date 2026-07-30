@@ -281,6 +281,10 @@ grep -Fxq "./systemd/ynx-squared.service" "$archive_listing" || { echo "release 
 grep -Fxq "./bin/ynx-app-gatewayd" "$archive_listing" || { echo "release tarball missing App Gateway binary"; exit 1; }
 grep -Fxq "./config/ynx-app-gatewayd.env" "$archive_listing" || { echo "release tarball missing App Gateway env"; exit 1; }
 grep -Fxq "./systemd/ynx-app-gatewayd.service" "$archive_listing" || { echo "release tarball missing App Gateway systemd unit"; exit 1; }
+grep -Fxq "./wallet-gateway/cmd/ynx-wallet-gatewayd/main.mjs" "$archive_listing" || { echo "release tarball missing canonical Wallet Gateway runtime"; exit 1; }
+grep -Fxq "./wallet-gateway/packages/wallet-auth/central-registry.json" "$archive_listing" || { echo "release tarball missing canonical Wallet Registry"; exit 1; }
+grep -Fxq "./config/ynx-wallet-gatewayd.env" "$archive_listing" || { echo "release tarball missing canonical Wallet Gateway env"; exit 1; }
+grep -Fxq "./systemd/ynx-wallet-gatewayd.service" "$archive_listing" || { echo "release tarball missing canonical Wallet Gateway systemd unit"; exit 1; }
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
 grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
 grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Trust Gateway domain block"; exit 1; }

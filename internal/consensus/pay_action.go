@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	payIDPattern   = regexp.MustCompile(`^[0-9a-f]{24}$`)
-	payHashPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
-	payNamePattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.:-]{2,127}$`)
+	payIDPattern                    = regexp.MustCompile(`^[0-9a-f]{24}$`)
+	payHashPattern                  = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	payNativeTransactionHashPattern = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
+	payNamePattern                  = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.:-]{2,127}$`)
 )
 
 type PayIntentPayload struct {
@@ -42,6 +43,23 @@ type PayRefundPayload struct {
 	Reason         string `json:"reason,omitempty"`
 	IdempotencyKey string `json:"idempotencyKey"`
 	RequestHash    string `json:"requestHash"`
+}
+
+type PaySettlementPayload struct {
+	Merchant        string `json:"merchant"`
+	InvoiceID       string `json:"invoiceId"`
+	Payer           string `json:"payer"`
+	TransactionHash string `json:"transactionHash"`
+	IdempotencyKey  string `json:"idempotencyKey"`
+	RequestHash     string `json:"requestHash"`
+}
+
+type PayRefundCompletionPayload struct {
+	Merchant        string `json:"merchant"`
+	RefundID        string `json:"refundId"`
+	TransactionHash string `json:"transactionHash"`
+	IdempotencyKey  string `json:"idempotencyKey"`
+	RequestHash     string `json:"requestHash"`
 }
 
 type PayWebhookPayload struct {
@@ -74,38 +92,73 @@ type BFTPayIntent struct {
 }
 
 type BFTPayInvoice struct {
-	ID             string    `json:"id"`
-	Signer         string    `json:"signer"`
-	IntentID       string    `json:"intentId"`
-	Merchant       string    `json:"merchant"`
-	Amount         int64     `json:"amount"`
-	Currency       string    `json:"currency"`
-	Status         string    `json:"status"`
-	DueAt          time.Time `json:"dueAt"`
-	CreatedAt      time.Time `json:"createdAt"`
-	PaymentLink    string    `json:"paymentLink"`
-	IdempotencyKey string    `json:"idempotencyKey"`
-	RequestHash    string    `json:"requestHash"`
-	BlockHeight    int64     `json:"blockHeight"`
-	TxHash         string    `json:"txHash"`
-	AuditHash      string    `json:"auditHash"`
+	ID              string     `json:"id"`
+	Signer          string     `json:"signer"`
+	IntentID        string     `json:"intentId"`
+	Merchant        string     `json:"merchant"`
+	Amount          int64      `json:"amount"`
+	Currency        string     `json:"currency"`
+	Status          string     `json:"status"`
+	PayoutAddress   string     `json:"payoutAddress,omitempty"`
+	Payer           string     `json:"payer,omitempty"`
+	SettlementID    string     `json:"settlementId,omitempty"`
+	TransactionHash string     `json:"transactionHash,omitempty"`
+	SettledAt       *time.Time `json:"settledAt,omitempty"`
+	DueAt           time.Time  `json:"dueAt"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	PaymentLink     string     `json:"paymentLink"`
+	IdempotencyKey  string     `json:"idempotencyKey"`
+	RequestHash     string     `json:"requestHash"`
+	BlockHeight     int64      `json:"blockHeight"`
+	TxHash          string     `json:"txHash"`
+	AuditHash       string     `json:"auditHash"`
+}
+
+type BFTPaySettlement struct {
+	ID              string    `json:"id"`
+	Signer          string    `json:"signer"`
+	IntentID        string    `json:"intentId"`
+	InvoiceID       string    `json:"invoiceId"`
+	Merchant        string    `json:"merchant"`
+	PayoutAddress   string    `json:"payoutAddress"`
+	Payer           string    `json:"payer"`
+	Amount          int64     `json:"amount"`
+	Currency        string    `json:"currency"`
+	TransactionHash string    `json:"transactionHash"`
+	Status          string    `json:"status"`
+	CreatedAt       time.Time `json:"createdAt"`
+	IdempotencyKey  string    `json:"idempotencyKey"`
+	RequestHash     string    `json:"requestHash"`
+	BlockHeight     int64     `json:"blockHeight"`
+	TxHash          string    `json:"txHash"`
+	AuditHash       string    `json:"auditHash"`
 }
 
 type BFTPayRefund struct {
-	ID             string    `json:"id"`
-	Signer         string    `json:"signer"`
-	Merchant       string    `json:"merchant"`
-	IntentID       string    `json:"intentId"`
-	Amount         int64     `json:"amount"`
-	Currency       string    `json:"currency"`
-	Reason         string    `json:"reason,omitempty"`
-	Status         string    `json:"status"`
-	CreatedAt      time.Time `json:"createdAt"`
-	IdempotencyKey string    `json:"idempotencyKey"`
-	RequestHash    string    `json:"requestHash"`
-	BlockHeight    int64     `json:"blockHeight"`
-	TxHash         string    `json:"txHash"`
-	AuditHash      string    `json:"auditHash"`
+	ID                       string     `json:"id"`
+	Signer                   string     `json:"signer"`
+	Merchant                 string     `json:"merchant"`
+	IntentID                 string     `json:"intentId"`
+	InvoiceID                string     `json:"invoiceId,omitempty"`
+	SettlementID             string     `json:"settlementId,omitempty"`
+	Amount                   int64      `json:"amount"`
+	Currency                 string     `json:"currency"`
+	Reason                   string     `json:"reason,omitempty"`
+	Status                   string     `json:"status"`
+	PayoutAddress            string     `json:"payoutAddress,omitempty"`
+	Payer                    string     `json:"payer,omitempty"`
+	TransactionHash          string     `json:"transactionHash,omitempty"`
+	CompletedAt              *time.Time `json:"completedAt,omitempty"`
+	CompletionIdempotencyKey string     `json:"completionIdempotencyKey,omitempty"`
+	CompletionRequestHash    string     `json:"completionRequestHash,omitempty"`
+	CompletionBlockHeight    int64      `json:"completionBlockHeight,omitempty"`
+	CompletionTxHash         string     `json:"completionTxHash,omitempty"`
+	CreatedAt                time.Time  `json:"createdAt"`
+	IdempotencyKey           string     `json:"idempotencyKey"`
+	RequestHash              string     `json:"requestHash"`
+	BlockHeight              int64      `json:"blockHeight"`
+	TxHash                   string     `json:"txHash"`
+	AuditHash                string     `json:"auditHash"`
 }
 
 type BFTPayWebhook struct {
@@ -127,19 +180,24 @@ type BFTPayWebhook struct {
 }
 
 type BFTPayEvent struct {
-	ID             string    `json:"id"`
-	Type           string    `json:"type"`
-	IntentID       string    `json:"intentId"`
-	ObjectID       string    `json:"objectId"`
-	Signer         string    `json:"signer"`
-	Merchant       string    `json:"merchant"`
-	Amount         int64     `json:"amount,omitempty"`
-	Currency       string    `json:"currency"`
-	IdempotencyKey string    `json:"idempotencyKey"`
-	BlockHeight    int64     `json:"blockHeight"`
-	TxHash         string    `json:"txHash"`
-	AuditHash      string    `json:"auditHash"`
-	CreatedAt      time.Time `json:"createdAt"`
+	ID              string    `json:"id"`
+	Type            string    `json:"type"`
+	IntentID        string    `json:"intentId"`
+	InvoiceID       string    `json:"invoiceId,omitempty"`
+	SettlementID    string    `json:"settlementId,omitempty"`
+	ObjectID        string    `json:"objectId"`
+	Signer          string    `json:"signer"`
+	Merchant        string    `json:"merchant"`
+	PayoutAddress   string    `json:"payoutAddress,omitempty"`
+	Payer           string    `json:"payer,omitempty"`
+	TransactionHash string    `json:"transactionHash,omitempty"`
+	Amount          int64     `json:"amount,omitempty"`
+	Currency        string    `json:"currency"`
+	IdempotencyKey  string    `json:"idempotencyKey"`
+	BlockHeight     int64     `json:"blockHeight"`
+	TxHash          string    `json:"txHash"`
+	AuditHash       string    `json:"auditHash"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 
 type BFTPayIdempotency struct {
@@ -154,9 +212,46 @@ type BFTPayIdempotency struct {
 	TxHash         string `json:"txHash"`
 }
 
+func ValidateBFTPayEvent(event BFTPayEvent) error {
+	if !payIDPattern.MatchString(event.ID) || event.ID != ApplicationActionRecordID("pay-event", event.TxHash) {
+		return errors.New("BFT Pay event ID does not match its committed transaction")
+	}
+	switch event.Type {
+	case "payment_intent.created", "invoice.issued", "invoice.paid", "refund.recorded", "refund.completed", "webhook.signed":
+	default:
+		return fmt.Errorf("unsupported BFT Pay event type %q", event.Type)
+	}
+	if !payIDPattern.MatchString(event.IntentID) || !payIDPattern.MatchString(event.ObjectID) {
+		return errors.New("BFT Pay event object identity is invalid")
+	}
+	if !IsNativeAddress(event.Signer) || !payNamePattern.MatchString(event.Merchant) {
+		return errors.New("BFT Pay event signer or merchant is invalid")
+	}
+	if event.Currency != "YNXT" || len(event.IdempotencyKey) < 3 || len(event.IdempotencyKey) > 128 || strings.TrimSpace(event.IdempotencyKey) != event.IdempotencyKey {
+		return errors.New("BFT Pay event currency or idempotency authority is invalid")
+	}
+	if event.BlockHeight <= 0 || !payNativeTransactionHashPattern.MatchString(event.TxHash) || event.CreatedAt.IsZero() || event.CreatedAt.Location() != time.UTC {
+		return errors.New("BFT Pay event commit authority is invalid")
+	}
+	if !payHashPattern.MatchString(event.AuditHash) || event.AuditHash != BFTPayEventAuditHash(event) {
+		return errors.New("BFT Pay event audit proof is invalid")
+	}
+	if (event.Type == "invoice.issued" || event.Type == "invoice.paid" || event.Type == "refund.recorded" || event.Type == "refund.completed") && event.Amount <= 0 {
+		return errors.New("BFT Pay financial event amount is invalid")
+	}
+	if event.Type == "invoice.paid" || event.Type == "refund.completed" {
+		if !payIDPattern.MatchString(event.InvoiceID) || !payIDPattern.MatchString(event.SettlementID) ||
+			!IsNativeAddress(event.PayoutAddress) || !IsNativeAddress(event.Payer) ||
+			!payNativeTransactionHashPattern.MatchString(event.TransactionHash) {
+			return errors.New("BFT Pay completion event lacks committed transfer authority")
+		}
+	}
+	return nil
+}
+
 func isPayAction(action string) bool {
 	switch action {
-	case ActionPayIntentCreate, ActionPayInvoiceCreate, ActionPayRefundCreate, ActionPayWebhookRecord:
+	case ActionPayIntentCreate, ActionPayInvoiceCreate, ActionPayInvoiceSettle, ActionPayRefundCreate, ActionPayRefundComplete, ActionPayWebhookRecord:
 		return true
 	default:
 		return false
@@ -197,6 +292,17 @@ func PayInvoiceRequestHash(merchant, intentID string, due int64, key string) str
 	hash, _ := PayRequestHash(ActionPayInvoiceCreate, doc)
 	return hash
 }
+func PaySettlementRequestHash(merchant, invoiceID, payer, transactionHash, key string) string {
+	doc := struct {
+		Merchant        string `json:"merchant"`
+		InvoiceID       string `json:"invoiceId"`
+		Payer           string `json:"payer"`
+		TransactionHash string `json:"transactionHash"`
+		IdempotencyKey  string `json:"idempotencyKey"`
+	}{merchant, invoiceID, payer, transactionHash, key}
+	hash, _ := PayRequestHash(ActionPayInvoiceSettle, doc)
+	return hash
+}
 func PayRefundRequestHash(merchant, intentID string, amount int64, reason, key string) string {
 	doc := struct {
 		Merchant       string `json:"merchant"`
@@ -206,6 +312,16 @@ func PayRefundRequestHash(merchant, intentID string, amount int64, reason, key s
 		IdempotencyKey string `json:"idempotencyKey"`
 	}{merchant, intentID, amount, reason, key}
 	hash, _ := PayRequestHash(ActionPayRefundCreate, doc)
+	return hash
+}
+func PayRefundCompletionRequestHash(merchant, refundID, transactionHash, key string) string {
+	doc := struct {
+		Merchant        string `json:"merchant"`
+		RefundID        string `json:"refundId"`
+		TransactionHash string `json:"transactionHash"`
+		IdempotencyKey  string `json:"idempotencyKey"`
+	}{merchant, refundID, transactionHash, key}
+	hash, _ := PayRequestHash(ActionPayRefundComplete, doc)
 	return hash
 }
 func PayWebhookRequestHash(merchant, intentID, eventType, key string) string {
@@ -276,6 +392,23 @@ func canonicalPayActionPayload(action string, raw []byte) ([]byte, error) {
 			return nil, errors.New("Pay request hash mismatch")
 		}
 		return json.Marshal(p)
+	case ActionPayInvoiceSettle:
+		var p PaySettlementPayload
+		if err := decodeCanonicalPayload(raw, &p); err != nil {
+			return nil, err
+		}
+		p.Merchant, p.InvoiceID = strings.TrimSpace(p.Merchant), strings.TrimSpace(p.InvoiceID)
+		p.Payer, p.TransactionHash, p.IdempotencyKey = strings.ToLower(strings.TrimSpace(p.Payer)), strings.ToLower(strings.TrimSpace(p.TransactionHash)), strings.TrimSpace(p.IdempotencyKey)
+		if err := validatePayIdentity(p.Merchant, p.IdempotencyKey); err != nil {
+			return nil, err
+		}
+		if !payIDPattern.MatchString(p.InvoiceID) || !IsNativeAddress(p.Payer) || !payNativeTransactionHashPattern.MatchString(p.TransactionHash) {
+			return nil, errors.New("invalid Pay settlement authority")
+		}
+		if p.RequestHash != PaySettlementRequestHash(p.Merchant, p.InvoiceID, p.Payer, p.TransactionHash, p.IdempotencyKey) {
+			return nil, errors.New("Pay request hash mismatch")
+		}
+		return json.Marshal(p)
 	case ActionPayRefundCreate:
 		var p PayRefundPayload
 		if err := decodeCanonicalPayload(raw, &p); err != nil {
@@ -289,6 +422,23 @@ func canonicalPayActionPayload(action string, raw []byte) ([]byte, error) {
 			return nil, errors.New("invalid Pay refund payload")
 		}
 		if p.RequestHash != PayRefundRequestHash(p.Merchant, p.IntentID, p.Amount, p.Reason, p.IdempotencyKey) {
+			return nil, errors.New("Pay request hash mismatch")
+		}
+		return json.Marshal(p)
+	case ActionPayRefundComplete:
+		var p PayRefundCompletionPayload
+		if err := decodeCanonicalPayload(raw, &p); err != nil {
+			return nil, err
+		}
+		p.Merchant, p.RefundID = strings.TrimSpace(p.Merchant), strings.TrimSpace(p.RefundID)
+		p.TransactionHash, p.IdempotencyKey = strings.ToLower(strings.TrimSpace(p.TransactionHash)), strings.TrimSpace(p.IdempotencyKey)
+		if err := validatePayIdentity(p.Merchant, p.IdempotencyKey); err != nil {
+			return nil, err
+		}
+		if !payIDPattern.MatchString(p.RefundID) || !payNativeTransactionHashPattern.MatchString(p.TransactionHash) {
+			return nil, errors.New("invalid Pay refund completion authority")
+		}
+		if p.RequestHash != PayRefundCompletionRequestHash(p.Merchant, p.RefundID, p.TransactionHash, p.IdempotencyKey) {
 			return nil, errors.New("Pay request hash mismatch")
 		}
 		return json.Marshal(p)

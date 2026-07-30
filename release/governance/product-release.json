@@ -2,9 +2,10 @@
   "schemaVersion": "ynx-product-release/v1",
   "product": "YNX Governance & Protocol Control",
   "slug": "governance",
-  "version": "0.3.0-integration",
-  "generatedAt": "2026-07-28T10:18:11Z",
-  "sourceCommit": "ea949aacac147505360528583bd7fade12f7cac8",
+  "version": "0.4.2-testnet-source-candidate",
+  "generatedAt": "2026-07-30T07:44:07Z",
+  "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4",
+  "sourceCommitScope": "frozen Governance source candidate after product-scoped main reconciliation and immutable workflow hardening",
   "branch": "codex/final-governance",
   "phase": "INTEGRATE",
   "status": "Active",
@@ -22,7 +23,7 @@
     {
       "id": "verifiable-governance-ui",
       "status": "complete",
-      "details": "The read-only React UI consumes the real nested proposal and public signed-vote API contracts, removes fake wallet and unsigned-vote controls, builds reproducibly from a lockfile, has a render smoke test, and audits with zero known npm vulnerabilities."
+      "details": "The read-only React UI consumes real proposal, diff, vote, timelock, conflict, execution, and audit records; supports 12 locale boundaries and Arabic RTL; uses semantic keyboard controls; passes a 390px real-Chrome check; builds from a lockfile; and audits with zero known npm vulnerabilities."
     },
     {
       "id": "canonical-proposal-state-machine",
@@ -106,11 +107,66 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "ci": {
+    "workflow": "governance",
+    "runId": 30522550810,
+    "runIds": [
+      30522548957,
+      30522550809,
+      30522550810,
+      30522550829,
+      30522550837,
+      30522550880
+    ],
+    "evidenceHead": "fa034972c39451ba74e4a46006384a9e0a82ff59",
+    "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4",
+    "status": "completed",
+    "conclusion": "success",
+    "successfulCheckRuns": 7,
+    "failedCheckRuns": 0,
+    "pendingCheckRuns": 0,
+    "verifiedSteps": [
+      "governance control-plane verification",
+      "Playwright Chromium browser gate",
+      "four-validator governance Testnet lifecycle",
+      "immutable GitHub Actions pin enforcement",
+      "general repository test gate",
+      "public disclosure authority gate"
+    ]
+  },
+  "sourceRelease": {
+    "status": "published-prerelease",
+    "sourceOnly": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "id": 362260575,
+    "tag": "governance-v0.4.2-testnet-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/governance-v0.4.2-testnet-source-candidate",
+    "publishedAt": "2026-07-30T07:44:07Z",
+    "targetCommit": "5640209e9c7df9789916bd99f61124db566842b4",
+    "assetCount": 4,
+    "archive": {
+      "name": "ynx-governance-source-5640209e.tar.gz",
+      "bytes": 6166250,
+      "sha256": "21561652a42c62a01e02cc2b26806033f8648d88a3a96599ec046d879b36df52"
+    },
+    "downloadedAllAssetDigestsVerified": true
+  },
+  "publicRoute": {
+    "url": "https://ynxweb4.com/governance",
+    "httpReachable": true,
+    "productPageAccepted": false,
+    "deployedPublic": false,
+    "evidence": "release/evidence/governance-public-route-probe-2026-07-29.json",
+    "reason": "The path serves the generic root application shell and root canonical URL rather than Governance-specific content."
+  },
   "evidence": {
     "targetedTests": [
       "bash scripts/verify/governance-check.sh",
-      "go test ./internal/governance ./chain/governance",
-      "npm --prefix apps/governance test"
+      "go test -race -count=1 ./internal/governance ./chain/governance",
+      "GOTOOLCHAIN=go1.25.12 go run golang.org/x/vuln/cmd/govulncheck@latest ./internal/governance ./chain/governance ./cmd/ynx-governanced ./cmd/ynx-governance-state",
+      "npm --prefix apps/governance test",
+      "npm --prefix apps/governance run test:browser"
     ],
     "fullRepositoryTests": [
       "go test ./..."
@@ -162,18 +218,19 @@
       "authoritative registry drift rejection before voting, finalization, execution, and restore",
       "canonical Chain Core execution submission and receipt reconciliation",
       "four-validator multiprocess governance Testnet lifecycle",
-      "governance UI production build, type-check, render smoke test, and zero-vulnerability npm audit"
+      "governance UI production build, type-check, 12-locale render tests, Arabic RTL, keyboard activation, 390px real-Chrome overflow check, and zero-vulnerability npm audit",
+      "reachable Go vulnerability scan reports zero vulnerabilities after upgrading gRPC to 1.82.1"
     ],
-    "sourceCommit": "ea949aacac147505360528583bd7fade12f7cac8"
+    "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4"
   },
   "dependencies": {
-    "chainCore": "canonical_execution_adapter_configured_and_locally_verified",
-    "walletAuth": "gateway_assertion_adapter_configured",
+    "chainCore": "centrally_accepted_source_and_canonical_execution_adapter_locally_verified",
+    "walletAuth": "centrally_accepted_source_and_exact_product_device_scope_expiry_revocation_and_replay_contract_locally_verified",
     "explorer": "not_integrated",
     "monitor": "not_integrated",
     "trust": "local_appeal_adapter_only",
-    "dataFabric": "not_integrated",
-    "securitySRE": "not_integrated",
+    "dataFabric": "centrally_accepted_source_shared_testnet_receipts_pending",
+    "securitySRE": "centrally_accepted_source_production_custody_pending",
     "integration": "not_accepted",
     "website": "not_integrated"
   },
@@ -184,7 +241,7 @@
     "Persistent Upgrade integrity, exact manifest execution, restart recovery, and execution or rollback receipt correlation are implemented and tested locally.",
     "Signed Canary cohort and independent signed health-result integrity, abort thresholds, restart recovery, and exact-manifest execution gating are implemented and tested locally.",
     "Authoritative parameter-registry validation is enforced at startup, proposal creation, voting, finalization, execution preparation, and restore.",
-    "The governance UI builds from a committed lockfile, reads the real public API contract, exposes no fake mutation controls, and passes its local CI gate with zero known npm vulnerabilities.",
+    "The governance UI builds from a committed lockfile, reads the real public API contract, renders proposal, diff, vote, timelock, conflict, execution, and audit states across 12 locale boundaries, passes Arabic RTL, keyboard, and 390px real-Chrome checks, exposes no fake mutation controls, and has zero known npm vulnerabilities.",
     "Canonical Chain Core submission and receipt reconciliation are implemented and exercised in a local multiprocess four-validator lifecycle.",
     "A passed vote is not reported as execution.",
     "A submitted execution is not reported as verified.",

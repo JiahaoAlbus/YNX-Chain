@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "scenario": "clean-git-archive-locked-install-build-and-cli-cold-start",
+  "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+  "verifiedAt": "2026-07-29T04:13:00Z",
+  "environment": {
+    "kind": "local-ephemeral-clean-git-archive",
+    "node": "v24.5.0",
+    "npm": "11.5.1",
+    "platform": "darwin-arm64"
+  },
+  "install": {
+    "command": "npm ci --ignore-scripts",
+    "lockedPackages": 348,
+    "result": "passed"
+  },
+  "supplyChain": {
+    "lifecycleScriptAllowlist": "passed",
+    "productionDependencyAudit": {
+      "command": "npm audit --omit=dev --audit-level=high",
+      "vulnerabilities": 0,
+      "result": "passed"
+    },
+    "allDependencyAudit": {
+      "info": 0,
+      "low": 2,
+      "moderate": 1,
+      "high": 14,
+      "critical": 1,
+      "scope": "development and test tooling; not omitted or represented as zero"
+    }
+  },
+  "build": {
+    "command": "npm run postinstall",
+    "workspace": "@ynx/sdk",
+    "result": "passed"
+  },
+  "coldStart": {
+    "commands": [
+      "npm run security:verify",
+      "node scripts/security-platform.mjs verify"
+    ],
+    "result": "passed",
+    "output": "PASS security platform policy, truth, artifacts, secret metadata, and tracked-file gates"
+  },
+  "cleanup": {
+    "workspaceWasEphemeral": true,
+    "credentialsWritten": false,
+    "productionMutationPerformed": false
+  },
+  "limitations": [
+    "local CLI installation only",
+    "no container or Kubernetes installation",
+    "no provider credential or production secret was used",
+    "no staging or public deployment was performed",
+    "development and test dependency findings remain recorded above"
+  ]
+}

@@ -1,21 +1,47 @@
-# Economics and YUSD Operations
+# Security Platform Operations
 
-## Economics disclosure
+## Promotion
 
-Build with an exact commit identity, start Explorer, verify `/api/economics/health`, then fetch `/api/economics/disclosure` with a Request ID and confirm the same ID, source commit, fixed-fee current policy and false deployment/risk flags. On health failure, remove the instance from ingress and retain the build/metrics evidence; do not serve a static success response. Rollback means deploying the previous immutable build while preserving its matching evidence and public disclosure.
+Build in an unprivileged isolated worker, generate SBOM and provenance, scan dependencies/container/artifact, reproduce the build, and register its digest. A separate authorized deploy identity verifies policy and signature before canary or blue-green promotion. Rollback targets an already verified immutable digest.
 
-The disclosure stores no user profile or request state, so there is no dashboard user-data export/delete dataset and no request retention requirement. Reverse-proxy access logs and monitoring retention belong to the deploying operator and must be documented before public deployment.
+## Secret rotation
 
-## YUSD sandbox backup and restore
+Inventory metadata identifies owner, manager reference, expiry, runbook, and last drill evidence. Create a new version in the manager, narrow access, deploy consumers, verify dual-read only when supported, revoke the old version, and attach audit evidence. Never print values. Emergency rotation also invalidates sessions or artifacts derived from the credential.
 
-YUSD is an isolated test-unit sandbox with no real value, reserve attestation or external redemption rail. Stop mutation ingress, copy the mode-0600 state file, calculate SHA-256, retain the source binary/config version, and restore only to a mode-0600 path. Start against the restored copy; startup must validate integrity, audit chain, reserve/supply/pending-redemption reconciliation, daily limits and idempotency records before ingress resumes.
+## Break-glass
 
-`make yusd-restore-drill` performs a local stop-equivalent snapshot copy, digest comparison and restore into a fresh path, then compares snapshot, queued redemptions, audit events and file mode. It proves local correctness only. Off-host encryption, backup scheduler, retention period, deletion authority, elapsed RTO/RPO and staging restore remain unimplemented.
+Require an incident ID, two independent approvers, exact scope, reason, expiry under one hour, and an isolated operator identity. Alert immediately. Record commands and results without secrets. Revoke at expiry or earlier, rotate touched credentials, and review within one business day.
 
-On service termination, pause minting, keep the redemption exit queue visible, export the versioned state plus digest and audit, and publish the honest provider/custody boundary. Never delete a state file until its retention and disposal authority are approved. No public user exit is claimed because no public YUSD deployment exists.
+## Backup and restore drill
 
-## Incident, support, refund and dispute boundary
+Quiesce or use an atomic snapshot mechanism; export database, object, chain/config, and release metadata; encrypt before leaving the workload boundary; create hashes and object counts; copy to immutable/offline and cross-region storage. Restore into an isolated environment, verify hashes and application invariants, run smoke tests, record achieved RPO/RTO, and destroy drill credentials. Signer recovery is a separate multi-party ceremony.
 
-For disclosure incidents, capture Request/Trace/Error IDs, exact build, health and metric window; post only through the centrally approved status channel. Support must distinguish an explanatory error from a chain, provider or user-asset incident and must not ask for seeds, private keys or complete credentials. No support/status URL is approved in this package, so no live channel is claimed.
+The local drill tool accepts a key file without printing its value:
 
-The economics dashboard charges no fee and therefore has no refund ledger. Gas, venue/provider, managed-Vault or YUSD disputes belong to the authoritative receipt/fee/custody owner. Preserve the consent snapshot, signed mandate, fee attribution, burn/revenue split, provider receipt, transaction hash and audit ID; freeze only the affected mutation path; never manufacture a refund or reverse an immutable chain event in the UI. Escalation, response-time policy, refund authority and jurisdiction require central legal/support approval before public release.
+```sh
+node scripts/security-backup.mjs create --source SNAPSHOT_DIR --output BACKUP.enc --manifest BACKUP.manifest.json --key-file RUNTIME_KEY_FILE --source-commit SOURCE_SHA
+node scripts/security-backup.mjs restore --backup BACKUP.enc --manifest BACKUP.manifest.json --destination EMPTY_RESTORE_DIR --key-file RUNTIME_KEY_FILE
+```
+
+The key file must contain 32 raw bytes or 64 hexadecimal characters, be created outside the repository with owner-only permissions, and be destroyed after a local drill. Production backup keys require Secret Manager or HSM-backed custody and separate recovery approval.
+
+## Artifact build and verification
+
+`npm run security:artifact` creates a commit-bound deterministic tar archive, CycloneDX SBOM, SLSA candidate provenance, and unsigned manifest under `dist/security-platform/`. The result cannot be promoted publicly.
+
+The local drill independently rebuilds the archive, compares both SHA-256 digests, creates an ephemeral in-memory Ed25519 test signer, persists only a public JWK and detached signature, verifies the artifact set, and proves rejection of manifest tampering, artifact tampering, unknown signer identity, and test-signed public promotion:
+
+```sh
+node scripts/security-artifact.mjs local-drill \
+  --source-commit SOURCE_SHA \
+  --output release/artifacts/SOURCE_SHA \
+  --evidence evidence/security-platform/LOCAL_ARTIFACT_DRILL_SOURCE_SHA.json
+```
+
+Production signing is not implemented by the local tool. It requires an approved external secure signer, signing identity, certificate chain, timestamp, transparency record, revocation path, product/environment/release binding, and independent verification evidence.
+
+## Incident sequence
+
+Declare severity and incident commander; preserve evidence; contain with the least destructive action; communicate confirmed facts and uncertainty; eradicate; recover through verified artifacts and backups; monitor; notify affected users when required; publish a redacted postmortem with actions, owners, and dates.
+
+Required exercises are credential compromise, compromised service, artifact tamper, DDoS, region failure, database loss, object loss, CI supply-chain failure, backup restore, rollback, accidental production noindex, quant-worker escape attempt, and public security evidence generation.

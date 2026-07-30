@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -212,11 +213,15 @@ func postSignedAction(t *testing.T, endpoint string, raw []byte, expected int, o
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if resp.StatusCode != expected {
-		t.Fatalf("POST %s expected %d got %d", endpoint, expected, resp.StatusCode)
+		t.Fatalf("POST %s expected %d got %d: %s", endpoint, expected, resp.StatusCode, string(body))
 	}
 	if out != nil {
-		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+		if err := json.Unmarshal(body, out); err != nil {
 			t.Fatal(err)
 		}
 	}

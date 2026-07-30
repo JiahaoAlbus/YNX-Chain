@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "31",
+  "product": "YNX Governance & Protocol Control",
+  "owner": "31-governance",
+  "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+  "vectors": [
+    {
+      "id": "GOV-CP-001",
+      "flow": "Wallet -> Governance -> Timelock -> Canary -> Chain -> Explorer",
+      "status": "testedLocal",
+      "happyPath": [
+        "Wallet/Auth proves the exact governance Product Session and device",
+        "an eligible signed proposal and vote reach the approved state",
+        "the exact action survives timelock and signed canary checks",
+        "Chain Core commits the execution intent",
+        "Governance verifies the exact receipt and Explorer indexes it"
+      ],
+      "negativeCases": [
+        "wrong product, device, scope, expiry or revoked session is rejected before mutation",
+        "out-of-bounds parameter or changed ActionHash is rejected",
+        "early, expired, duplicate or failed-canary execution is rejected",
+        "receipt, manifest, block, state-root or audit mismatch is rejected"
+      ],
+      "requiredEvidence": [
+        "Wallet introspection record",
+        "proposal, vote, timelock and canary audit records",
+        "Chain transaction and execution receipt",
+        "Explorer lookup and Monitor alert state"
+      ]
+    },
+    {
+      "id": "GOV-CP-002",
+      "flow": "Emergency -> Expiry -> Follow-up Vote -> Trust Transparency",
+      "status": "testedLocal",
+      "happyPath": [
+        "a scoped council threshold creates a temporary emergency action",
+        "the pause applies only to the approved target and maximum duration",
+        "expiry closes emergency authority",
+        "the mandatory follow-up proposal and Trust transparency record remain public"
+      ],
+      "negativeCases": [
+        "asset transfer, arbitrary mint or mandate restoration is rejected",
+        "single-member or wrong-scope approval is rejected",
+        "duration widening and hidden closure are rejected"
+      ],
+      "requiredEvidence": [
+        "council threshold and scope record",
+        "emergency creation and expiry audit",
+        "follow-up vote",
+        "Trust correction or appeal link"
+      ]
+    },
+    {
+      "id": "GOV-CP-003",
+      "flow": "Upgrade -> Canary Failure -> Rollback",
+      "status": "testedLocal",
+      "happyPath": [
+        "the proposal binds source, release, manifest, migration and rollback",
+        "the signed canary reports a threshold failure",
+        "execution remains blocked",
+        "rollback evidence is verified and archived"
+      ],
+      "negativeCases": [
+        "duplicate manifest or active-scope conflict is rejected",
+        "unsigned or wrong-manifest canary result is rejected",
+        "rollback receipt mismatch is rejected"
+      ],
+      "requiredEvidence": [
+        "upgrade manifest digest",
+        "signed canary samples",
+        "failed execution or rollback receipt",
+        "post-rollback health and state-root evidence"
+      ]
+    }
+  ]
+}

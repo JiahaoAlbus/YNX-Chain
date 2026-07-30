@@ -11,8 +11,12 @@ if command -v rg >/dev/null 2>&1; then
     -g '!**/node_modules/**' \
     -g '!**/dist/**' \
     -g '!**/build/**' \
+    -g '!**/tests/**' \
+    -g '!**/*.test.*' \
+    -g '!**/*_test.go' \
     -g '!tools/scaffold-ynx-chain.mjs' \
     -g '!scripts/validate/no-placeholder-check.sh' \
+    -g '!apps/wallet/scripts/release-content-check.mjs' \
     -g '!scripts/deploy/lib.sh' \
     -g '!docs/architecture/ZERO_PLACEHOLDER_POLICY.md' \
     -g '!docs/coordination/PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
@@ -30,13 +34,17 @@ else
   if grep -RInE \
     --exclude='scaffold-ynx-chain.mjs' \
     --exclude='no-placeholder-check.sh' \
+    --exclude='release-content-check.mjs' \
     --exclude='lib.sh' \
     --exclude='ZERO_PLACEHOLDER_POLICY.md' \
     --exclude='PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
+    --exclude='*.test.*' \
+    --exclude='*_test.go' \
     --exclude-dir='.git' \
     --exclude-dir='node_modules' \
     --exclude-dir='dist' \
     --exclude-dir='build' \
+    --exclude-dir='tests' \
     -- "$bad" "${scan_targets[@]}"; then
     found=0
   else

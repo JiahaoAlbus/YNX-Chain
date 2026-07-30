@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-07-28T10:41:32Z",
+  "observer": "release-operator",
+  "sourceCommit": "6c9d67765f5c05967ca3984e2a5ac6902d8779ec",
+  "canonicalProductRoute": {
+    "requestedUrl": "https://ynxweb4.com/wallet",
+    "effectiveUrl": "https://www.ynxweb4.com/wallet",
+    "httpStatus": 200,
+    "contentType": "text/html; charset=utf-8",
+    "responseBytes": 5378,
+    "responseSha256": "4217d9d795621906215edfaa28e496ace2e95098e56a029f351edb56a27594e1",
+    "title": "YNX Wallet — Testnet Accounts, Signing and Product Permissions",
+    "h1": "YNX Wallet",
+    "canonical": "https://ynxweb4.com/wallet",
+    "structuredDataType": "TechArticle",
+    "directlyVerified": true
+  },
+  "requestedPromptDomain": {
+    "requestedUrl": "https://huangjeo.com",
+    "effectiveUrl": "https://www.huangjeo.com/",
+    "httpStatus": 200,
+    "contentType": "text/html; charset=utf-8",
+    "responseBytes": 2560,
+    "responseSha256": "e86a5433c5903d662a40cd9fc6f9fee2f55ba661a1e5698f889edc4b8da53fe9",
+    "title": "HuangJeo | Future Builder",
+    "ynxProductAuthority": false
+  },
+  "truthBoundary": "The repository-authoritative YNX product domain is ynxweb4.com. The requested huangjeo.com domain currently serves a separate personal site and is not reported as a YNX Wallet deployment."
+}

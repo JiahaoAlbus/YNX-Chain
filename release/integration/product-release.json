@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "29",
+  "owner": "29-integration",
+  "product": "YNX Integration / Founder Control",
+  "slug": "integration",
+  "release": "0.1.2-controller-candidate",
+  "releaseClass": "controller-candidate",
+  "network": "YNX Testnet",
+  "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "stateEvidence": {
+    "implementedLocal": [
+      "release/integration/product-registry.json",
+      "release/integration/integration-contract.json",
+      "scripts/ops/refresh-integration-acceptance.mjs",
+      "scripts/ops/refresh-integration-coverage.mjs"
+    ],
+    "testedLocal": [
+      "release/integration/evidence/protect-preflight-d05ddf0a.json",
+      "release/integration/evidence/protect-preflight-20191a3e.json",
+      "release/integration/evidence/protect-preflight-42a85fb5.json",
+      "release/integration/evidence/protect-preflight-1982e280.json",
+      "release/integration/evidence/product-01-central-acceptance-329092c1.json",
+      "release/integration/evidence/product-02-central-acceptance-94acfece.json",
+      "release/integration/evidence/product-26-central-acceptance-01131b46.json",
+      "release/integration/evidence/product-30-central-acceptance-a472d588.json",
+      "release/integration/RELEASE_TRAIN_AUDIT.json"
+    ],
+    "installedLocal": [],
+    "integratedCentral": [],
+    "deployedStaging": [],
+    "deployedPublic": [],
+    "downloadHosted": [],
+    "productionSigned": [],
+    "storeReleased": []
+  },
+  "currentPhase": "INTEGRATE",
+  "lifecycleState": "ACTIVE",
+  "websitePublished": false,
+  "runtimeDeployedPublic": false,
+  "mainnetAccepted": false,
+  "knownBlockers": [
+    "Products 01 Chain Core, 02 Wallet/Auth, 26 Data Fabric and 30 Security/SRE have protected source candidates accepted by Integration; shared-Testnet runtime, monitoring, recovery and true production authorities remain separately unverified.",
+    "The former Hardhat development-tooling advisory is remediated in the locked dependency graph; default-branch alert closure remains pending the central merge to main.",
+    "The remaining owner contracts and central cross-product negative vectors have not yet been accepted.",
+    "No shared Public Testnet or independent public proof has been accepted by Integration."
+  ]
+}

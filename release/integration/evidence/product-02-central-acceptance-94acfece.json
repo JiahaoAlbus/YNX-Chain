@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "passed",
+  "productId": "02",
+  "product": "YNX Wallet / Auth",
+  "acceptedBy": "29-integration",
+  "acceptedAt": "2026-07-29T22:28:25Z",
+  "acceptedSourceCommit": "f28b0aa29a0d93a2b7f20a00b835c4a1aa6175b3",
+  "frozenReleaseSource": "c7a6bded387223429f0708f80b50f086d8ff944d",
+  "integrationCommit": "94acfeced03f5fcb829b06b7fce0dce8dacb4f11",
+  "ancestry": {
+    "acceptedSourceIsParentOfIntegrationCommit": true,
+    "integrationCommitContainsAcceptedSource": true,
+    "frozenReleaseSourceIsParentOfAcceptedSource": true
+  },
+  "ownerCandidate": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "branch": "codex/final-wallet-auth",
+    "localRemoteShaEqual": true,
+    "worktreeClean": true,
+    "branchProtected": true,
+    "pullRequestMergeable": true,
+    "pullRequestMergeState": "CLEAN",
+    "walletAuthTests": "100/100",
+    "walletAppTests": "39/39",
+    "requiredEvidenceBundleComplete": true,
+    "sourceBindingsReachable": true
+  },
+  "exactHeadCi": {
+    "verified": true,
+    "sourceCommit": "f28b0aa29a0d93a2b7f20a00b835c4a1aa6175b3",
+    "successfulWorkflowRunIds": [
+      30495110688,
+      30495110713,
+      30495110681,
+      30495110707,
+      30495110659,
+      30495110692,
+      30495110675,
+      30495107589
+    ],
+    "failed": 0,
+    "pending": 0
+  },
+  "tests": [
+    {
+      "command": "go test ./...",
+      "status": "passed",
+      "result": "all Go packages, including merged App Gateway, Chain Core, Data Fabric, Resource and Trust paths, passed"
+    },
+    {
+      "command": "npm test",
+      "cwd": "packages/wallet-auth",
+      "status": "passed",
+      "result": "100/100 Wallet/Auth protocol, Gateway, backup, replay, revocation, smart-account policy and negative-vector tests passed"
+    },
+    {
+      "command": "npm test",
+      "cwd": "apps/wallet",
+      "status": "passed",
+      "result": "39/39 Wallet application security, authorization, registry, localization, storage and native-transfer tests passed"
+    },
+    {
+      "command": "npm run hardhat:test:wallet",
+      "status": "passed",
+      "result": "owner, WebAuthn, bounded-session, recovery, sponsorship, counterfactual and rejection flows passed on the isolated Hardhat chain"
+    },
+    {
+      "command": "node scripts/verify/github-actions-pins-check.mjs",
+      "status": "passed",
+      "result": "41 external GitHub Actions references use immutable full commit pins"
+    },
+    {
+      "command": "npm audit --omit=dev --omit=optional --audit-level=high",
+      "cwd": "apps/wallet",
+      "status": "passed",
+      "result": "zero high or critical production dependency vulnerabilities"
+    },
+    {
+      "command": "make deploy-dry-run",
+      "status": "passed",
+      "result": "the merged release bundle, four-node deployment command path, disabled-by-default Wallet Gateway boundary, manifests, service checks and configuration checks passed without changing remote state"
+    }
+  ],
+  "artifactVerification": {
+    "sourceOnly": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "release": {
+      "id": 362065169,
+      "tag": "wallet-auth-v1.0.0-source-candidate",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-auth-v1.0.0-source-candidate",
+      "publishedAt": "2026-07-29T21:39:35Z",
+      "prerelease": true,
+      "draft": false,
+      "targetCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+      "assetCount": 6,
+      "archive": {
+        "name": "ynx-wallet-auth-source-c7a6bded3872.tar.gz",
+        "bytes": 2300303,
+        "sha256": "e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db"
+      },
+      "downloadedAllAssetDigestsVerified": true,
+      "publicStateChanged": false
+    }
+  },
+  "truth": {
+    "integratedCentral": true,
+    "sharedTestnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "nextGate": "The protected source-only Wallet/Auth candidate is centrally accepted. Shared Testnet Wallet-to-product receipts, production-shaped remote recovery, external security audit, production signing, public downloads, stores and Mainnet remain separate gates."
+}

@@ -1,0 +1,26 @@
+[Unit]
+Description=YNX Data Fabric Testnet API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ynx-data-fabric
+Group=ynx-data-fabric
+EnvironmentFile=/etc/ynx-data-fabric/data-fabric.env
+ExecStart=/usr/local/bin/ynx-data-fabricd
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/ynx-data-fabric /var/log/ynx-data-fabric
+
+[Install]
+WantedBy=multi-user.target

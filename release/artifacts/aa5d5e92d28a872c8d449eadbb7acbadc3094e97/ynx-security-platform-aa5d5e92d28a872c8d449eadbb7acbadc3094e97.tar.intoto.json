@@ -1,0 +1,91 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar",
+      "digest": {
+        "sha256": "3ef152e991abdd7db17f6f81c93c05a60d2df21e8397945d55381e494f7dfb28"
+      }
+    }
+  ],
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://ynxweb4.com/security-platform/reproducible-git-archive/v2",
+      "externalParameters": {
+        "sourceCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+        "paths": [
+          ".github/CODEOWNERS",
+          ".github/dependabot.yml",
+          ".github/workflows/ci.yml",
+          ".github/workflows/security.yml",
+          ".github/workflows/security-platform-deploy.yml",
+          "docs/integration",
+          "evidence/security-platform",
+          "infra/k8s",
+          "EVIDENCE_INDEX.md",
+          "FEATURE_COMPLETION_EVIDENCE.md",
+          "FOUNDER_KPI_FRAMEWORK.md",
+          "MIGRATION_COMPATIBILITY.md",
+          "OBSERVABILITY.md",
+          "OPERATIONS.md",
+          "PROVIDER_INVENTORY.md",
+          "README.md",
+          "RELEASE_NOTES.md",
+          "SECURITY.md",
+          "SLO_CAPACITY_PLAN.md",
+          "START_HERE_FOR_SUPPORT.md",
+          "THIRD_PARTY_NOTICES.md",
+          "THREAT_MODEL.md",
+          "UI_DESIGN_AUDIT.md",
+          "UNIT_ECONOMICS.md",
+          "package-lock.json",
+          "package.json",
+          "public-product-metadata.json",
+          "release/artifact-registry.json",
+          "release/completion-audit.json",
+          "release/integration",
+          "release/platform-status.json",
+          "release/product-release.json",
+          "scripts",
+          "security-platform"
+        ],
+        "dependencyLockHash": "3821fb759a27c8540a4ea30e2e09e6d3ee8c7677d1139dbe0c0a46ac7e5490a3",
+        "buildScriptHash": "d0ac3d37d442da7ff0f24d7d73263871b32d8ba37102bcfbd8513a701ad9aaa9"
+      },
+      "internalParameters": {},
+      "resolvedDependencies": [
+        {
+          "uri": "git+https://github.com/JiahaoAlbus/YNX.git",
+          "digest": {
+            "gitCommit": "aa5d5e92d28a872c8d449eadbb7acbadc3094e97"
+          }
+        }
+      ]
+    },
+    "runDetails": {
+      "builder": {
+        "id": "https://github.com/JiahaoAlbus/YNX/.github/workflows/security-platform-deploy.yml"
+      },
+      "metadata": {
+        "invocationId": "local-reproducibility-drill:aa5d5e92d28a872c8d449eadbb7acbadc3094e97",
+        "startedOn": "2026-07-29T04:10:33.819Z",
+        "finishedOn": "2026-07-29T04:10:33.819Z"
+      },
+      "byproducts": [
+        {
+          "name": "ynx-security-platform-aa5d5e92d28a872c8d449eadbb7acbadc3094e97.tar.cdx.json",
+          "digest": {
+            "sha256": "0871abcdc02ab9d034841a26ba4842ba84311432f24a480af8dc19a0bf7f92a8"
+          }
+        }
+      ]
+    },
+    "ynxRelease": {
+      "bytes": 1556480,
+      "signingClass": "unsigned-local",
+      "publicReleaseEligible": false,
+      "reproducibilityStatus": "verified-local"
+    }
+  }
+}

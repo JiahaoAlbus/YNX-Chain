@@ -1,0 +1,33 @@
+{
+  "measuredAt": "2026-07-29T20:18:42.563925Z",
+  "sourceCommit": "645c1080f2ff054ec16a62800a778f62c861cc6d",
+  "sourceRelease": "ynx-data-fabric-645c1080f2ff",
+  "dirtyWorkingTree": false,
+  "goos": "darwin",
+  "goarch": "arm64",
+  "goVersion": "go1.25.12",
+  "cpuCount": 8,
+  "events": 500,
+  "concurrency": 8,
+  "appendLatency": {
+    "p50Milliseconds": 117.887,
+    "p95Milliseconds": 149.999,
+    "p99Milliseconds": 177.217,
+    "maxMilliseconds": 194.093
+  },
+  "appendThroughputPerSecond": 67.22600345440604,
+  "dispatchDurationMilliseconds": 11575.723,
+  "replayDurationMilliseconds": 10018.63,
+  "coldOpenDurationMilliseconds": 7.073,
+  "integrityAuditDurationMilliseconds": 5.747,
+  "stateBytes": 1082505,
+  "eventLogBytes": 774757,
+  "errors": 0,
+  "limitations": [
+    "single local process",
+    "atomic JSON state-file rewrite",
+    "append/fsync local event log",
+    "no network broker or database",
+    "sample is not a public-scale claim"
+  ]
+}

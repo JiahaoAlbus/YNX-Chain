@@ -10,7 +10,11 @@ import (
 	"time"
 )
 
-const MaxReplicationSnapshotBytes = 64 << 20
+// MaxReplicationSnapshotBytes bounds the authenticated, decompressed state
+// snapshot. Public testnet history is append-only and has crossed 128 MiB;
+// 256 MiB preserves a finite allocation ceiling while allowing followers to
+// rebase from the current authoritative state.
+const MaxReplicationSnapshotBytes = 256 << 20
 const MaxReplicationBatchBlocks = 4096
 const operationalCheckpointInterval = 5 * time.Minute
 

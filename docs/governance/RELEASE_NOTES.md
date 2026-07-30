@@ -1,5 +1,27 @@
 # Release notes
 
+## v0.4.2-testnet-source-candidate
+
+- Reconciled the Governance branch with the current product-scoped main baseline without replacing Governance authority records.
+- Scoped acceptance, handoff, dependency, coverage, product-release, public-metadata, SBOM, provenance, and source-archive evidence to Product 31.
+- Pinned every external GitHub Actions reference to an immutable 40-character commit and added a fail-closed repository checker.
+- Re-ran the Governance control plane, race tests, 12-locale UI, real Chrome accessibility, zero-vulnerability npm audit, contract tooling, full repository tests, deterministic packaging, and four-validator nine-process lifecycle.
+- Frozen source: `5640209e9c7df9789916bd99f61124db566842b4`.
+- Source archive SHA-256: `21561652a42c62a01e02cc2b26806033f8648d88a3a96599ec046d879b36df52`.
+
+Exact-head CI, central source acceptance, shared-Testnet consumer receipts, Governance-specific public deployment, production signing, public downloads, stores, and Mainnet remain separate gates.
+
+## v0.4.0-integration (Candidate)
+
+- Added 12 locale boundaries with locale-aware dates and Arabic RTL.
+- Made proposal cards native keyboard controls and added semantic loading, error, filter, navigation, and section state.
+- Added truthful conflict, recusal, execution receipt, and audit-transition views to proposal detail.
+- Added a repeatable system-Chrome test covering keyboard activation, 390px overflow, Arabic RTL, and the conflict, execution, and audit views.
+- Verified the exact Product Session product, device, scope, expiry, revocation, body binding, and replay boundaries locally.
+- Source evidence: `0ed74c9e737ca6d5bbdf226f6ca487dc398b4755`.
+
+Shared-Testnet acceptance, Explorer/Monitor/Trust/Security evidence, production signer custody, public deployment, public destinations, and immutable hosting remain external blockers.
+
 ## v0.3.0-integration (Candidate)
 
 This Governance integration candidate binds protocol changes to an authoritative registry, submits signed execution intents through the canonical Chain Core/Comet adapter, verifies execution receipts, and exposes an honest read-only UI.

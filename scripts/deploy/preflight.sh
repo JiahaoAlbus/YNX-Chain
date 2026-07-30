@@ -7,6 +7,7 @@ make secret-scan
 make dependency-audit
 make static-check
 make objective-state-check
+make integration-contract-check
 make deploy-readiness-gate-check
 make deploy-connection-retry-check
 make deploy-source-integrity-check
@@ -58,11 +59,13 @@ make resource-market-check
 make resource-sponsor-check
 make consensus-migration-check
 make consensus-abci-check
+make consensus-state-sync-check
 make consensus-signed-transfer-check
 make consensus-quorum-check
 make consensus-production-package-check
 make bft-gateway-check
 make bft-evm-receipt-check
+make bft-evm-legacy-transfer-check
 make bft-ide-contract-check
 make bft-ai-action-check
 make bft-pay-action-check

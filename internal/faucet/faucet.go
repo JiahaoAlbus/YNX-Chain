@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -17,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
@@ -60,6 +62,12 @@ func (c Config) normalized() (Config, error) {
 	if c.UpstreamMode != UpstreamAuthoritative && c.UpstreamMode != UpstreamBFT {
 		return Config{}, fmt.Errorf("faucet upstream mode must be %q or %q", UpstreamAuthoritative, UpstreamBFT)
 	}
+	if c.ChainID == 0 {
+		c.ChainID = 6423
+	}
+	if c.ChainID != 6423 {
+		return Config{}, fmt.Errorf("faucet chain ID must equal 6423")
+	}
 	if strings.TrimSpace(c.FaucetKey) == "" && strings.TrimSpace(c.FaucetKeyPath) == "" {
 		return Config{}, fmt.Errorf("FAUCET_PRIVATE_KEY or YNX_FAUCET_PRIVATE_KEY_FILE is required for ynx-faucetd")
 	}
@@ -69,12 +77,6 @@ func (c Config) normalized() (Config, error) {
 		}
 		if !consensus.IsNativeAddress(strings.TrimSpace(c.FaucetAddress)) {
 			return Config{}, fmt.Errorf("BFT faucet requires canonical YNX_FAUCET_ADDRESS")
-		}
-		if c.ChainID == 0 {
-			c.ChainID = 6423
-		}
-		if c.ChainID != 6423 {
-			return Config{}, fmt.Errorf("BFT faucet chain ID must equal 6423")
 		}
 	}
 	if c.DefaultAmount <= 0 {
@@ -178,23 +180,33 @@ type Request struct {
 }
 
 type Response struct {
-	Transaction    chain.Transaction `json:"transaction"`
-	Address        string            `json:"address"`
-	Amount         int64             `json:"amount"`
-	NativeSymbol   string            `json:"nativeSymbol"`
-	RequestID      string            `json:"requestId"`
-	TruthfulStatus string            `json:"truthfulStatus"`
+	Transaction      chain.Transaction `json:"transaction"`
+	Address          string            `json:"address"`
+	CanonicalAddress string            `json:"canonicalAddress"`
+	EVMAddress       string            `json:"evmAddress,omitempty"`
+	Amount           int64             `json:"amount"`
+	NativeSymbol     string            `json:"nativeSymbol"`
+	RequestID        string            `json:"requestId"`
+	TruthfulStatus   string            `json:"truthfulStatus"`
 }
 
 type LogEntry struct {
-	RequestID string    `json:"requestId"`
-	At        time.Time `json:"at"`
-	IP        string    `json:"ip"`
-	Address   string    `json:"address"`
-	Amount    int64     `json:"amount"`
-	Status    string    `json:"status"`
-	TxHash    string    `json:"txHash,omitempty"`
-	Error     string    `json:"error,omitempty"`
+	RequestID      string    `json:"requestId"`
+	At             time.Time `json:"at"`
+	IP             string    `json:"ip"`
+	Address        string    `json:"address"`
+	CanonicalAlias string    `json:"canonicalAlias,omitempty"`
+	Amount         int64     `json:"amount"`
+	Status         string    `json:"status"`
+	TxHash         string    `json:"txHash,omitempty"`
+	Error          string    `json:"error,omitempty"`
+}
+
+type resolvedRecipient struct {
+	Requested string
+	Chain     string
+	Native    string
+	EVM       string
 }
 
 func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (Response, int, error) {
@@ -204,17 +216,19 @@ func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (
 	if amount == 0 {
 		amount = s.cfg.DefaultAmount
 	}
-	entry := LogEntry{RequestID: requestID, At: time.Now().UTC(), IP: ip, Address: req.Address, Amount: amount}
+	entry := LogEntry{RequestID: requestID, At: time.Now().UTC(), IP: ip, Address: strings.TrimSpace(req.Address), Amount: amount}
 	s.mu.Lock()
 	s.requests++
 	s.mu.Unlock()
-	if !s.validRecipient(req.Address) {
+	recipient, err := s.resolveRecipient(req.Address)
+	if err != nil {
 		entry.Status = "rejected"
 		entry.Error = "invalid address"
 		_ = s.appendLog(entry)
 		s.recordDenied(entry.Error)
 		return Response{}, http.StatusBadRequest, fmt.Errorf("invalid address")
 	}
+	entry.CanonicalAlias = recipient.Native
 	if amount <= 0 || amount > s.cfg.MaxAmount {
 		entry.Status = "rejected"
 		entry.Error = "amount exceeds faucet limits"
@@ -222,14 +236,14 @@ func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (
 		s.recordDenied(entry.Error)
 		return Response{}, http.StatusBadRequest, fmt.Errorf("amount exceeds faucet limits")
 	}
-	if !s.allow(ip, req.Address, entry.At) {
+	if !s.allow(ip, recipient.Chain, entry.At) {
 		entry.Status = "rate_limited"
 		entry.Error = "faucet rate limit exceeded"
 		_ = s.appendLog(entry)
 		s.recordDenied(entry.Error)
 		return Response{}, http.StatusTooManyRequests, fmt.Errorf("faucet rate limit exceeded")
 	}
-	tx, err := s.callRPC(ctx, strings.TrimSpace(req.Address), amount)
+	tx, err := s.callRPC(ctx, recipient.Chain, amount)
 	if err != nil {
 		entry.Status = "error"
 		entry.Error = err.Error()
@@ -247,15 +261,29 @@ func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (
 	s.lastHash = tx.Hash
 	s.lastError = ""
 	s.mu.Unlock()
-	return Response{Transaction: tx, Address: strings.TrimSpace(req.Address), Amount: amount, NativeSymbol: "YNXT", RequestID: requestID, TruthfulStatus: s.truthfulStatus()}, http.StatusCreated, nil
+	return Response{Transaction: tx, Address: recipient.Requested, CanonicalAddress: recipient.Native, EVMAddress: recipient.EVM, Amount: amount, NativeSymbol: "YNXT", RequestID: requestID, TruthfulStatus: s.truthfulStatus()}, http.StatusCreated, nil
 }
 
-func (s *Service) validRecipient(address string) bool {
+func (s *Service) resolveRecipient(address string) (resolvedRecipient, error) {
 	address = strings.TrimSpace(address)
-	if s.cfg.UpstreamMode == UpstreamBFT {
-		return consensus.IsNativeAddress(address) && address != s.signerAddr
+	if s.cfg.UpstreamMode != UpstreamBFT {
+		if !ValidAddress(address) {
+			return resolvedRecipient{}, errors.New("invalid address")
+		}
+		return resolvedRecipient{Requested: address, Chain: address, Native: address}, nil
 	}
-	return ValidAddress(address)
+	evm, err := accountaddress.Normalize(address)
+	if err != nil {
+		return resolvedRecipient{}, err
+	}
+	native, err := accountaddress.Encode(evm)
+	if err != nil {
+		return resolvedRecipient{}, err
+	}
+	if evm == s.signerAddr {
+		return resolvedRecipient{}, errors.New("faucet cannot fund itself")
+	}
+	return resolvedRecipient{Requested: address, Chain: evm, Native: native, EVM: evm}, nil
 }
 
 func (s *Service) truthfulStatus() string {
@@ -537,12 +565,20 @@ func (s *Service) CheckHealth(ctx context.Context) Health {
 		health.LastError = err.Error()
 		return health
 	}
-	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT"
 	health.ChainID = status.ChainID
 	health.Height = status.Height
+	heightOK := s.cfg.UpstreamMode != UpstreamBFT || status.Height > 0
+	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT" && status.ChainID == s.cfg.ChainID && heightOK
 	if !health.UpstreamOK {
 		health.OK = false
-		health.LastError = "RPC native symbol is not YNXT"
+		switch {
+		case status.NativeCurrencySymbol != "YNXT":
+			health.LastError = "RPC native symbol is not YNXT"
+		case status.ChainID != s.cfg.ChainID:
+			health.LastError = fmt.Sprintf("RPC chain ID %d does not match configured chain ID %d", status.ChainID, s.cfg.ChainID)
+		default:
+			health.LastError = "BFT RPC has not produced a committed block"
+		}
 	}
 	return health
 }

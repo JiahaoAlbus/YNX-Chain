@@ -1,8 +1,8 @@
 # Quant Architecture, Asset Boundary, Fees, and Risks
 
-Version: 0.1.0-candidate  
-Last reviewed: 2026-07-22  
-Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`  
+Version: 0.1.0-candidate
+Last reviewed: 2026-07-22
+Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`
 Release class: research/simulation disclosure; no accepted production Quant integration
 
 YNX Quant is not evidenced here as a deployed asset manager, broker, exchange, or autonomous trading service. Research, backtests, signals, and simulations are advisory outputs. They do not authorize orders or move assets.

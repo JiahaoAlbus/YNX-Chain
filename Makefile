@@ -1,7 +1,38 @@
-.PHONY: setup devnet dev env-check no-placeholder-check secret-scan dependency-audit static-check docs-compliance-check public-disclosure-check docs-release-package docs-release-package-check objective-state-check readme-positioning-check deploy-readiness-gate deploy-readiness-gate-check deploy-connection-retry-check deploy-source-integrity-check public-proof-evidence-check public-proof-package-check release-manifest-check release-manifest-evidence-check preflight test integration-test smoke-test remote-smoke-test remote-smoke-test-via-sg remote-smoke-transport-check public-ingress-diagnostic public-ingress-path-check deploy-testnet deploy-economics-explorer deploy-economics-monitor deploy-yusd-sandbox deploy-read-availability deploy-authoritative-monitoring deploy-dry-run deploy-consensus-candidate consensus-candidate-deploy-gate verify-consensus-candidate consensus-candidate-key-ceremony consensus-overlay-key-ceremony production-service-signer-ceremony-plan production-service-signer-ceremony-check production-custody-review-packet production-custody-review-check owner-handover-packet owner-handover-check deploy-consensus-overlay verify-consensus-overlay consensus-candidate-fault-drill consensus-candidate-signed-tx-drill consensus-candidate-rollback bft-gateway-check bft-ai-action-check bft-pay-action-check bft-trust-action-check bft-resource-action-check consensus-public-cutover-check consensus-public-cutover-gate public-bft-cutover-plan public-bft-cutover-transaction-check public-bft-freeze-rehearsal-plan public-bft-freeze-rehearsal-approval-template public-bft-freeze-rehearsal-approval-template-check public-bft-freeze-rehearsal-transaction-check public-bft-production-rehearsal public-bft-production-rehearsal-check public-bft-production-recovery-check public-bft-production-driver-check mutation-freeze-check replication-compression-check caddy-ingress-check verify-testnet verify-testnet-check host-key-audit host-key-repair-plan host-key-approval-check host-key-approval-status host-key-approval-template host-key-approval-request host-key-approval-packet host-key-approved-repair-dry-run host-key-approved-repair host-key-approval-check-test legacy-inventory remote-blocker-report status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check address-codec-check chainlist-package chainlist-candidate-check chainlist-live-check chainlist-collision-refresh exchange-vector-check exchange-package-integrity-check exchange-live-check exchange-integration-check developer-quickstart-check sdk-check sdk-release-package sdk-release-integrity-check sdk-remote-check contract-tooling-check monitoring-check authoritative-monitoring-check replication-alert-check stable-reserve-alert-check indexer-check explorer-check faucet-check ai-gateway-check pay-api-check trust-api-check resource-api-check resource-market-check resource-sponsor-check bridge-api-check stablecoin-issuer-check stable-reserve-attestation-check economics-explorer-deploy-check economics-monitor-check economics-monitor-lifecycle-check validator-peer-readiness-check consensus-migration-check consensus-abci-check consensus-signed-transfer-check consensus-quorum-check consensus-production-package-check ops-check public-proof native-ynxt-no-hidden-freeze-check anti-illegal-request-check anti-unreasonable-tracking-check request-validity-check trust-appeal-check transparency-report-check emergency-action-policy-check privacy-safety-check
-.PHONY: bft-evm-receipt-check bft-ide-contract-check native-wallet-check chat-api-check square-api-check app-gateway-check app-account-ownership-check browser-signer-check mobile-check mobile-product-split-check mobile-android-native-check mobile-android-release-check mobile-android-release-installed-check mobile-biometric-installed-check ide-test-artifacts
+.PHONY: setup devnet dev env-check no-placeholder-check secret-scan dependency-audit static-check docs-compliance-check public-disclosure-check docs-release-package docs-release-package-check objective-state-check readme-positioning-check deploy-readiness-gate deploy-readiness-gate-check deploy-connection-retry-check deploy-source-integrity-check public-proof-evidence-check public-proof-package-check release-manifest-check release-manifest-evidence-check preflight test integration-test smoke-test remote-smoke-test remote-smoke-test-via-sg remote-smoke-transport-check public-ingress-diagnostic public-ingress-path-check deploy-testnet deploy-authoritative-monitoring deploy-dry-run deploy-consensus-candidate consensus-candidate-deploy-gate verify-consensus-candidate consensus-candidate-key-ceremony consensus-overlay-key-ceremony production-service-signer-ceremony-plan production-service-signer-ceremony-check production-custody-review-packet production-custody-review-check owner-handover-packet owner-handover-check deploy-consensus-overlay verify-consensus-overlay consensus-candidate-fault-drill consensus-candidate-signed-tx-drill consensus-candidate-rollback bft-gateway-check bft-ai-action-check bft-pay-action-check bft-trust-action-check bft-resource-action-check consensus-public-cutover-check consensus-public-cutover-gate public-bft-cutover-plan public-bft-cutover-transaction-check public-bft-freeze-rehearsal-plan public-bft-freeze-rehearsal-approval-template public-bft-freeze-rehearsal-approval-template-check public-bft-freeze-rehearsal-transaction-check public-bft-production-rehearsal public-bft-production-rehearsal-check public-bft-production-recovery-check public-bft-production-driver-check mutation-freeze-check replication-compression-check caddy-ingress-check verify-testnet verify-testnet-check host-key-audit host-key-repair-plan host-key-approval-check host-key-approval-status host-key-approval-template host-key-approval-request host-key-approval-packet host-key-approved-repair-dry-run host-key-approved-repair host-key-approval-check-test legacy-inventory remote-blocker-report status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check address-codec-check chainlist-package chainlist-candidate-check chainlist-live-check chainlist-collision-refresh exchange-vector-check exchange-package-integrity-check exchange-live-check exchange-integration-check developer-quickstart-check sdk-check sdk-release-package sdk-release-integrity-check sdk-remote-check contract-tooling-check monitoring-check authoritative-monitoring-check replication-alert-check indexer-check explorer-check faucet-check ai-gateway-check pay-api-check trust-api-check resource-api-check resource-market-check resource-sponsor-check bridge-api-check stablecoin-issuer-check validator-peer-readiness-check consensus-migration-check consensus-abci-check consensus-signed-transfer-check consensus-quorum-check consensus-production-package-check ops-check public-proof native-ynxt-no-hidden-freeze-check anti-illegal-request-check anti-unreasonable-tracking-check request-validity-check trust-appeal-check transparency-report-check emergency-action-policy-check privacy-safety-check
+.PHONY: bft-evm-receipt-check bft-ide-contract-check native-wallet-check chat-api-check square-api-check app-gateway-check app-account-ownership-check browser-signer-check mobile-check mobile-product-split-check mobile-android-native-check mobile-android-release-check mobile-android-release-installed-check mobile-biometric-installed-check
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check governance-check governance-testnet-drill
-.PHONY: yusd-sandbox-check yusd-restore-drill yusd-testnet-deploy-check read-availability-check economics-runtime-check staking-risk-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check economics-shared-testnet-acceptance-check economics-testnet-cli-artifact-check economics-testnet-cli-artifact-evidence liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check economics-local-candidate-check
+.PHONY: integration-coverage-refresh integration-coverage-refresh-check integration-acceptance-refresh integration-acceptance-check integration-release-acceptance-check integration-product-release-matrix-refresh integration-product-release-matrix-check integration-npm-audit-policy-check integration-npm-audit-policy-check-test integration-protect-preflight
+.PHONY: bft-evm-legacy-transfer-check bft-evm-access-list-transfer-check bft-evm-dynamic-fee-transfer-check bft-evm-fee-suggestion-check bft-evm-fee-history-check asset-primitives-check
+.PHONY: yusd-sandbox-check yusd-restore-drill yusd-testnet-deploy-check read-availability-check economics-explorer-deploy-check economics-monitor-check economics-monitor-lifecycle-check economics-runtime-check staking-risk-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check economics-shared-testnet-acceptance-check economics-testnet-cli-artifact-check economics-testnet-cli-artifact-evidence liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check economics-local-candidate-check safety-module-candidate-check account-abstraction-check solvency-check integration-contract-check consensus-state-sync-check consensus-eip1559-commit-check consensus-fee-history-check streambft-candidate-check chain-core-release-check
+.PHONY: oracle-test oracle-web-test oracle-container oracle-dast oracle-testnet-package oracle-testnet-smoke oracle-release-package oracle-release-evidence oracle-release-integrity-check
+
+oracle-test:
+	go test ./internal/oracle/... ./sdk/oracle/go ./cmd/ynx-oracled ./cmd/ynx-oracle-provider -race -count=1
+
+oracle-web-test:
+	npm --prefix apps/oracle run lint
+	npm --prefix apps/oracle test
+
+oracle-container:
+	docker build --build-arg SOURCE_COMMIT=$$(git rev-parse HEAD) --file Dockerfile.oracle --tag ynx-oracle:testnet .
+
+oracle-dast: oracle-container
+	bash ./scripts/verify/oracle-dast.sh
+
+oracle-testnet-package:
+	PACKAGE_ONLY=1 bash ./scripts/deploy/deploy-oracle-testnet.sh
+
+oracle-testnet-smoke:
+	bash ./scripts/verify/oracle-testnet-smoke.sh
+
+oracle-release-package:
+	node ./scripts/package/oracle-release.mjs --output tmp/oracle-release
+
+oracle-release-evidence:
+	node ./scripts/package/oracle-release.mjs --output tmp/oracle-release --evidence-dir release/evidence
+
+oracle-release-integrity-check:
+	node ./scripts/verify/oracle-release-integrity-check.mjs
 
 setup:
 	go mod tidy
@@ -33,6 +64,40 @@ docs-compliance-check:
 
 public-disclosure-check:
 	node ./scripts/verify/public-disclosure-gate.mjs
+
+integration-coverage-refresh:
+	node ./scripts/ops/refresh-integration-coverage.mjs
+
+integration-coverage-refresh-check:
+	node ./scripts/ops/refresh-integration-coverage.mjs --self-test
+
+integration-acceptance-refresh:
+	node ./scripts/ops/refresh-integration-acceptance.mjs --github
+
+integration-acceptance-check:
+	node ./scripts/verify/integration-acceptance-check.mjs
+
+integration-release-acceptance-check:
+	node ./scripts/verify/integration-acceptance-check.mjs --release
+
+integration-product-release-matrix-refresh:
+	node ./scripts/ops/refresh-product-release-matrix.mjs
+
+integration-product-release-matrix-check:
+	node ./scripts/ops/refresh-product-release-matrix.mjs --self-test
+	node ./scripts/ops/refresh-product-release-matrix.mjs --check
+
+integration-npm-audit-policy-check:
+	node ./scripts/verify/npm-audit-policy-check.mjs
+
+integration-npm-audit-policy-check-test:
+	node ./scripts/verify/npm-audit-policy-check.mjs --self-test
+
+integration-protect-preflight: integration-coverage-refresh-check integration-acceptance-check integration-product-release-matrix-check contract-tooling-check integration-npm-audit-policy-check integration-npm-audit-policy-check-test
+	go test ./...
+	$(MAKE) no-placeholder-check
+	$(MAKE) secret-scan
+	$(MAKE) static-check
 
 docs-release-package:
 	node ./scripts/package/docs-release.mjs
@@ -80,14 +145,10 @@ upgrade-source-release-evidence-check:
 preflight:
 	bash ./scripts/deploy/preflight.sh
 
-ide-test-artifacts:
-	npm run hardhat:build
-	npm run contracts:selectors
-
-test: ide-test-artifacts
+test:
 	go test ./cmd/... ./internal/...
 
-integration-test: ide-test-artifacts
+integration-test:
 	go test ./cmd/... ./internal/...
 
 smoke-test:
@@ -110,18 +171,6 @@ public-ingress-path-check:
 
 deploy-testnet:
 	bash ./scripts/deploy/deploy-testnet.sh
-
-deploy-economics-explorer:
-	bash ./scripts/deploy/deploy-economics-explorer.sh
-
-deploy-economics-monitor:
-	bash ./scripts/deploy/deploy-economics-monitor.sh
-
-deploy-yusd-sandbox:
-	bash ./scripts/deploy/deploy-yusd-sandbox.sh
-
-deploy-read-availability:
-	bash ./scripts/deploy/deploy-read-availability.sh
 
 deploy-authoritative-monitoring:
 	bash ./scripts/deploy/deploy-authoritative-monitoring.sh
@@ -164,6 +213,21 @@ bft-gateway-check:
 
 bft-evm-receipt-check:
 	bash ./scripts/verify/bft-evm-receipt-check.sh
+
+bft-evm-legacy-transfer-check:
+	bash ./scripts/verify/bft-evm-legacy-transfer-check.sh
+
+bft-evm-access-list-transfer-check:
+	bash ./scripts/verify/bft-evm-access-list-transfer-check.sh
+
+bft-evm-dynamic-fee-transfer-check:
+	bash ./scripts/verify/bft-evm-dynamic-fee-transfer-check.sh
+
+bft-evm-fee-suggestion-check:
+	bash ./scripts/verify/bft-evm-fee-suggestion-check.sh
+
+bft-evm-fee-history-check:
+	bash ./scripts/verify/bft-evm-fee-history-check.sh
 
 bft-ide-contract-check:
 	bash ./scripts/verify/bft-ide-contract-check.sh
@@ -397,9 +461,6 @@ authoritative-monitoring-check:
 replication-alert-check:
 	bash ./scripts/verify/replication-alert-check.sh
 
-stable-reserve-alert-check:
-	bash ./scripts/verify/stable-reserve-alert-check.sh
-
 indexer-check:
 	bash ./scripts/verify/indexer-check.sh
 
@@ -532,6 +593,10 @@ economics-integration-contract-check:
 economics-local-candidate-check: yusd-sandbox-check yusd-restore-drill economics-runtime-check staking-risk-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check
 	@echo "economics local candidate checks passed; deployment and unresolved security states remain governed by release evidence"
 
+safety-module-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-safety-module-sim -run 'SafetyModule'
+	go run ./cmd/ynx-safety-module-sim -input economics/examples/safety-module-shortfall.json >/dev/null
+
 resource-market-check:
 	bash ./scripts/verify/resource-market-check.sh
 
@@ -552,6 +617,35 @@ consensus-signed-transfer-check:
 
 consensus-quorum-check:
 	bash ./scripts/verify/consensus-quorum-check.sh
+
+consensus-state-sync-check:
+	bash ./scripts/verify/consensus-state-sync-check.sh
+
+consensus-eip1559-commit-check:
+	bash ./scripts/verify/consensus-eip1559-commit-check.sh
+
+consensus-fee-history-check:
+	bash ./scripts/verify/consensus-fee-history-check.sh
+
+streambft-candidate-check:
+	bash ./scripts/verify/streambft-candidate-check.sh
+
+chain-core-release-check:
+	node ./scripts/verify/chain-core-release-check.mjs
+
+asset-primitives-check:
+	bash ./scripts/verify/asset-primitives-check.sh
+
+account-abstraction-check:
+	go test -count=1 ./internal/assetauth ./internal/consensus ./internal/bftgateway ./internal/bundler ./cmd/ynx-bundlerd -run 'SmartAccount|UserOperation|Paymaster|Sponsored|Bundler'
+	go test -race -count=1 ./internal/assetauth ./internal/consensus ./internal/bftgateway ./internal/bundler -run 'SmartAccount|UserOperation|Paymaster|Sponsored|Bundler'
+
+solvency-check:
+	go test -count=1 ./internal/consensus ./internal/bftgateway -run 'Solvency|Staking'
+	go test -race -count=1 ./internal/consensus ./internal/bftgateway -run 'Solvency|Staking'
+
+integration-contract-check:
+	node ./scripts/verify/integration-contract-check.mjs
 
 governance-check:
 	bash ./scripts/verify/governance-check.sh

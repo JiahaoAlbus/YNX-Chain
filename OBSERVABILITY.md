@@ -1,14 +1,9 @@
-# Economics Observability
+# Observability
 
-`/api/economics/disclosure` accepts a valid `X-Request-ID` or generates one, accepts W3C `traceparent` correlation or generates a Trace ID, and returns both in headers and JSON. Failures add an opaque Error ID. A structured JSON log records these IDs, status and handler latency without request bodies or credentials. This is local trace correlation, not an exported distributed trace. The response also publishes source commit, source, as-of, version, coverage, confidence and failure state. `/api/economics/health` is an independent process-local reference-model health boundary and includes build identity. It does not claim RPC, indexer, public ingress or third-party health.
+All services emit structured logs, RED metrics, traces, and health/readiness/version responses. Correlation fields are `requestId`, `traceId`, `errorId`, and, for privileged operations, `auditId`. Logs must never contain credentials, authorization headers, user seed material, private keys, raw payment data, internal stack traces in public responses, or unrestricted personal data.
 
-Prometheus output on `/metrics` includes:
+Alerts cover availability, latency, error budget, queue age, saturation, certificate expiry, credential expiry, failed authorization, replay, artifact verification, backup age, restore failure, replication lag, WAF/DDoS events, cost anomalies, crawler availability, sitemap fetch, redirect loops, noindex drift, canonical drift, spam injection, and internal-data leakage.
 
-- `ynx_explorer_economics_disclosure_requests_total`
-- `ynx_explorer_economics_disclosure_errors_total`
-- `ynx_explorer_economics_disclosure_latency_seconds` histogram at 1, 5, 10, 50, 100 and 500 ms plus infinity
-- `ynx_explorer_economics_disclosure_last_success_timestamp_seconds`
+Health means process liveness only. Readiness verifies required dependencies without claiming third-party authority. Version responses include source commit and build provenance. Provider failures report provider, observed time, last good time, and failure class; they never return synthetic health.
 
-The repository Grafana dashboard and Prometheus rules cover request/error rate, p50/p95/p99 and last-success freshness. They are locally configured but no hosted dashboard, alert receiver, external monitor, status page or support integration is deployed. No OpenTelemetry exporter or cross-service span graph is claimed.
-
-Operators must never log API keys, wallet signatures, state file contents or internal stack traces to users. Incidents should preserve Request ID, build commit, health response, metrics window, deployment identity and redacted logs. The public UI already renders unavailable states rather than internal errors.
+Dashboard and alert configuration currently present under `infra/monitoring/` is recovered input, not proof that every service is integrated or that alerts reach an operator. Those claims require public probe and alert-delivery evidence.

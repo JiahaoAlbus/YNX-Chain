@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 2,
+  "product": "YNX Security Platform",
+  "version": "0.1.0-candidate",
+  "release": "development-candidate",
+  "environment": "local",
+  "sourceCommit": "53b037eb6fff51e3cb149231fad5bb5f2599527f",
+  "sourceRepository": "https://github.com/JiahaoAlbus/YNX",
+  "branch": "codex/final-security-platform",
+  "buildRun": "local-reproducibility-drill:53b037eb6fff51e3cb149231fad5bb5f2599527f",
+  "buildEnvironment": {
+    "node": "v22.13.1",
+    "git": "git version 2.39.5 (Apple Git-154)",
+    "platform": "darwin",
+    "architecture": "arm64"
+  },
+  "dependencyLockHash": "3821fb759a27c8540a4ea30e2e09e6d3ee8c7677d1139dbe0c0a46ac7e5490a3",
+  "buildScriptHash": "d0ac3d37d442da7ff0f24d7d73263871b32d8ba37102bcfbd8513a701ad9aaa9",
+  "artifact": {
+    "name": "ynx-security-platform-53b037eb6fff51e3cb149231fad5bb5f2599527f.tar",
+    "sha256": "a110ba963da7065aa12d6f76aa3f1f7a5a1c1d5fafe171ec4508655894fcdc79",
+    "bytes": 942080,
+    "mediaType": "application/x-tar",
+    "platform": "source",
+    "architecture": "any",
+    "minimumOs": "Any operating system with POSIX tar support"
+  },
+  "sbom": {
+    "path": "ynx-security-platform-53b037eb6fff51e3cb149231fad5bb5f2599527f.tar.cdx.json",
+    "sha256": "4950c7b618e3dfc7c3ce55895a8f51dc42c146dbebdbc6e5f8bc7273bf8751f7",
+    "format": "CycloneDX 1.6"
+  },
+  "provenance": {
+    "path": "ynx-security-platform-53b037eb6fff51e3cb149231fad5bb5f2599527f.tar.intoto.json",
+    "sha256": "43e389e03c7af84dbd8b30f1279f433c3716b301332f7bfe963619547e9786d5",
+    "predicateType": "https://slsa.dev/provenance/v1"
+  },
+  "reproducibility": {
+    "status": "verified-local",
+    "independentArtifactSha256": "a110ba963da7065aa12d6f76aa3f1f7a5a1c1d5fafe171ec4508655894fcdc79",
+    "match": true
+  },
+  "signing": {
+    "class": "test-signed",
+    "signingIdentity": "local-ephemeral-test-signer",
+    "publicKeyFingerprint": "sha256:d184fd92d6009fcb793471b6865096cb41ea5d79610b43045b627b0a8f768396",
+    "signaturePath": "ynx-security-platform-53b037eb6fff51e3cb149231fad5bb5f2599527f.tar.manifest.sig.json",
+    "certificate": null,
+    "transparencyRecord": null
+  },
+  "installEvidence": "not-run-source-archive",
+  "coldStartEvidence": "not-applicable-source-archive",
+  "revocationStatus": "active",
+  "expiresAt": "2026-08-24T07:28:07.187Z",
+  "publicReleaseEligible": false
+}

@@ -1,6 +1,6 @@
 # YNX Chain Unit Economics
 
-Status: decision framework; production inputs incomplete  
+Status: decision framework; production inputs incomplete
 Last reviewed: 2026-07-22
 
 ## Conclusion

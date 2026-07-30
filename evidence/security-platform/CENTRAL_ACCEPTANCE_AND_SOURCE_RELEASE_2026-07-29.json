@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "YNX Security Platform",
+  "recordedAt": "2026-07-29T14:48:41Z",
+  "centralAcceptance": {
+    "authority": "29-integration",
+    "acceptedOwnerCommit": "4277317bb4999ac4edfbc321590b54d95e1839f9",
+    "integrationCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
+    "decisionCommit": "42a85fb50614f893a4526c50f45b12da58ecfcdc",
+    "decisionReceipt": "release/integration/evidence/product-30-central-acceptance-3ee6477d.json",
+    "integrationPullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/17",
+    "integrationExactGreenHead": "edefd412abc14c89cfdd7c5171e5db90aed9cb58"
+  },
+  "sourceCandidateRelease": {
+    "releaseId": 361832909,
+    "tag": "security-platform-v0.2.0-source-candidate",
+    "targetCommitish": "900c314ddb8f6f56b8713e7df194f26ee0590e06",
+    "name": "YNX Security Platform v0.2.0 Source Candidate",
+    "draft": false,
+    "prerelease": true,
+    "publishedAt": "2026-07-29T14:48:41Z",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/security-platform-v0.2.0-source-candidate",
+    "releaseClass": "source-only-test-signed-candidate",
+    "productionRelease": false,
+    "downloadVerification": {
+      "method": "HTTPS download piped to shasum -a 256",
+      "verifiedAt": "2026-07-29T14:54:00Z",
+      "sha256": "063872f860f74e91f107c036afd321b812e4ec49510290fe042e4a9a0ee59258",
+      "matchesRegistry": true
+    },
+    "assets": [
+      {
+        "id": 494160037,
+        "name": "ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar",
+        "bytes": 2590720,
+        "digest": "sha256:063872f860f74e91f107c036afd321b812e4ec49510290fe042e4a9a0ee59258",
+        "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/security-platform-v0.2.0-source-candidate/ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar"
+      },
+      {
+        "id": 494160039,
+        "name": "ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar.cdx.json",
+        "bytes": 27527,
+        "digest": "sha256:84a54dea5f2708addb5f394fc5d7222053ccee6e92398626fbf7be9e9d08ee85"
+      },
+      {
+        "id": 494160040,
+        "name": "ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar.intoto.json",
+        "bytes": 3193,
+        "digest": "sha256:bb2d4758a6238c2108762289332b3731c248e6d534dbca0e146412c47a520124"
+      },
+      {
+        "id": 494160041,
+        "name": "ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar.manifest.json",
+        "bytes": 2333,
+        "digest": "sha256:fa858c8e4c7f996f260b37c315a2492a4fd18740175f7bba9ed625395bcce281"
+      },
+      {
+        "id": 494160042,
+        "name": "ynx-security-platform-900c314ddb8f6f56b8713e7df194f26ee0590e06.tar.manifest.sig.json",
+        "bytes": 760,
+        "digest": "sha256:bef580c422405b5d494adc5509f2f027409569fda17e79999baf8a384035ab9c"
+      }
+    ]
+  },
+  "truth": {
+    "integratedCentral": true,
+    "candidateReleasePublished": true,
+    "candidateArtifactHosted": true,
+    "sharedTestnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "limitations": [
+    "GitHub prerelease hosting is mutable and is not the required immutable production artifact host",
+    "the detached signature is an ephemeral local test signature, not a production signature",
+    "candidate publication does not prove shared Testnet, staging, public runtime, store or Mainnet deployment"
+  ]
+}

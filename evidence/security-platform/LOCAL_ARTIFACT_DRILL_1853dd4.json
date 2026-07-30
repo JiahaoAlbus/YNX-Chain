@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "scenario": "local-reproducible-build-test-signature-and-tamper-rejection",
+  "sourceCommit": "1853dd46ce1535dc01911308b53f2d14860337c2",
+  "environment": "local",
+  "startedAt": "2026-07-27T15:48:52.229Z",
+  "completedAt": "2026-07-27T15:48:52.499Z",
+  "result": "passed-local",
+  "artifact": {
+    "path": "release/artifacts/1853dd46ce1535dc01911308b53f2d14860337c2/ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar",
+    "sha256": "e32f5701d9e636e6555828bbfb36e23c0e93ad96c4706cde0f0a4d667c8ad689",
+    "bytes": 1546240,
+    "mediaType": "application/x-tar"
+  },
+  "sbom": {
+    "path": "ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar.cdx.json",
+    "sha256": "683665a8275e7bd68bd64d2d90819f98a834d9195b78946aef3873a8227b1581",
+    "format": "CycloneDX 1.6"
+  },
+  "provenance": {
+    "path": "ynx-security-platform-1853dd46ce1535dc01911308b53f2d14860337c2.tar.intoto.json",
+    "sha256": "4c0fd08725d7a653c6b062b6051acfeef4ac39701ad910da4373f1fe007bbbfe",
+    "predicateType": "https://slsa.dev/provenance/v1"
+  },
+  "reproducibility": {
+    "status": "verified-local",
+    "independentArtifactSha256": "e32f5701d9e636e6555828bbfb36e23c0e93ad96c4706cde0f0a4d667c8ad689",
+    "match": true
+  },
+  "signing": {
+    "class": "test-signed",
+    "identity": "local-ephemeral-test-signer",
+    "publicKeyFingerprint": "sha256:eebfb046d15ced9661fa983f1fee24ee2882b57a28e37f00cafab4e46bd2b801",
+    "privateMaterialPersisted": false,
+    "publicReleaseEligible": false
+  },
+  "verification": {
+    "verified": true,
+    "artifactSha256": "e32f5701d9e636e6555828bbfb36e23c0e93ad96c4706cde0f0a4d667c8ad689",
+    "signature": {
+      "verified": true,
+      "signingClass": "test-signed",
+      "signingIdentity": "local-ephemeral-test-signer",
+      "publicKeyFingerprint": "sha256:eebfb046d15ced9661fa983f1fee24ee2882b57a28e37f00cafab4e46bd2b801",
+      "expiresAt": "2026-08-26T15:48:52.229Z"
+    }
+  },
+  "rejectionEvidence": {
+    "tamperedManifestRejected": "signed manifest digest mismatch",
+    "wrongIdentityRejected": "unknown artifact signing identity",
+    "tamperedArtifactRejected": "artifact digest mismatch",
+    "unsignedPublicRejected": "unsigned or test-signed public artifact is forbidden"
+  },
+  "limitations": [
+    "local source archive only",
+    "ephemeral test signature only",
+    "no production certificate chain",
+    "no transparency service record",
+    "no hosted immutable download URL",
+    "no installation or cold-start claim"
+  ]
+}

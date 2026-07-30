@@ -7,7 +7,13 @@ import (
 	"time"
 )
 
-const FeePolicyVersion = 1
+const (
+	FeePolicyVersion               = 1
+	FixedFeeSource                 = "ynx-consensus-fixed-fee-v1"
+	EthereumLegacyGasFeeSource     = "ethereum-legacy-gas-v1"
+	EthereumAccessListGasFeeSource = "ethereum-access-list-gas-v1"
+	EthereumDynamicFeeGasFeeSource = "ethereum-dynamic-fee-zero-base-v1"
+)
 
 // BFTFeeEvent makes the current fixed-fee behavior explicit. BurnYNXT is zero
 // until a governance-approved policy migration activates a burn mechanism.
@@ -32,6 +38,20 @@ type BFTFeeEvent struct {
 }
 
 func newCurrentFeeEvent(txHash, txType, payer, recipient string, fee, height int64, blockTime time.Time) BFTFeeEvent {
+	return newFeeEvent(txHash, txType, payer, recipient, fee, FixedFeeSource, height, blockTime)
+}
+
+func newEthereumGasFeeEvent(txHash, txType, payer, recipient string, fee, height int64, blockTime time.Time) BFTFeeEvent {
+	source := EthereumLegacyGasFeeSource
+	if txType == EthereumAccessListTransferType {
+		source = EthereumAccessListGasFeeSource
+	} else if txType == EthereumDynamicFeeTransferType {
+		source = EthereumDynamicFeeGasFeeSource
+	}
+	return newFeeEvent(txHash, txType, payer, recipient, fee, source, height, blockTime)
+}
+
+func newFeeEvent(txHash, txType, payer, recipient string, fee int64, source string, height int64, blockTime time.Time) BFTFeeEvent {
 	if height < 1 {
 		height = 1
 	}
@@ -39,7 +59,7 @@ func newCurrentFeeEvent(txHash, txType, payer, recipient string, fee, height int
 		blockTime = time.Unix(height, 0).UTC()
 	}
 	sum := sha256.Sum256([]byte("YNX_FEE_EVENT_V1\x00" + txHash))
-	event := BFTFeeEvent{ID: "fee_" + hex.EncodeToString(sum[:12]), PolicyVersion: FeePolicyVersion, TxHash: txHash, TransactionType: txType, Payer: payer, Recipient: recipient, GrossFeeYNXT: fee, ValidatorYNXT: fee, Source: "ynx-consensus-fixed-fee-v1", BlockHeight: height, RecordedAt: blockTime.UTC()}
+	event := BFTFeeEvent{ID: "fee_" + hex.EncodeToString(sum[:12]), PolicyVersion: FeePolicyVersion, TxHash: txHash, TransactionType: txType, Payer: payer, Recipient: recipient, GrossFeeYNXT: fee, ValidatorYNXT: fee, Source: source, BlockHeight: height, RecordedAt: blockTime.UTC()}
 	event.AuditHash = feeEventAuditHash(event)
 	return event
 }

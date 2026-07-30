@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "scenario": "encrypted-local-filesystem-backup-restore",
+  "environment": "local",
+  "sourceCommit": "58fe6796593a7cedaee01d88e1b534f0e70c4d6a",
+  "startedAt": "2026-07-25T06:41:59.079Z",
+  "completedAt": "2026-07-25T06:41:59.101Z",
+  "result": "passed-local",
+  "detectionTimeMs": 0,
+  "containmentTimeMs": 0,
+  "recoveryTimeMs": 6,
+  "rtoEvidenceMs": 6,
+  "rpoEvidenceSeconds": 0,
+  "sourceFiles": 8,
+  "restoredFiles": 8,
+  "encryptedBackup": {
+    "bytes": 33418,
+    "sha256": "bdd70a5756c56f1388429256e56a165a2163c6f6bd46043bb9b192d7e5fafceb",
+    "algorithm": "AES-256-GCM"
+  },
+  "dataIntegrity": true,
+  "stateConsistency": true,
+  "signerRecoveryIncluded": false,
+  "failures": [],
+  "limitations": [
+    "local filesystem drill only",
+    "no object-store immutability evidence",
+    "no cross-region recovery evidence",
+    "no production RTO or RPO claim",
+    "no validator, treasury, bridge, oracle, mobile, TLS, deploy, or artifact-signing key recovery"
+  ]
+}

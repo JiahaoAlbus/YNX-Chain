@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-07-25T07:28:07Z",
+  "exercises": [
+    {
+      "id": "secret-rotation",
+      "status": "not-run",
+      "nextAction": "populate manager-backed metadata and rotate a non-production short-lived credential"
+    },
+    {
+      "id": "compromised-service",
+      "status": "partial",
+      "evidence": [
+        "evidence/security-platform/LOCAL_MTLS_DRILL_0cb9b58.json rejects revoked service identity"
+      ],
+      "nextAction": "run an isolated deployed service revoke, certificate rotation, dependent-service reload, and recovery exercise"
+    },
+    {
+      "id": "artifact-tamper",
+      "status": "passed-local",
+      "evidence": [
+        "evidence/security-platform/LOCAL_ARTIFACT_DRILL_53b037e.json",
+        "tampered manifest rejected with signed manifest digest mismatch",
+        "tampered artifact rejected with artifact digest mismatch",
+        "unknown signing identity rejected",
+        "test-signed public promotion rejected"
+      ]
+    },
+    {
+      "id": "ddos",
+      "status": "not-run",
+      "nextAction": "deploy a bounded staging target and exercise rate, quota, and cost ceilings"
+    },
+    {
+      "id": "region-failure",
+      "status": "not-run",
+      "nextAction": "provision an approved secondary region and execute controlled failover"
+    },
+    {
+      "id": "database-loss",
+      "status": "partial",
+      "evidence": [
+        "evidence/security-platform/LOCAL_RESTORE_DRILL_58fe679.json"
+      ],
+      "nextAction": "restore a consistent service database snapshot and run application invariants"
+    },
+    {
+      "id": "object-loss",
+      "status": "partial",
+      "evidence": [
+        "local backup format verifies each restored object hash"
+      ],
+      "nextAction": "restore a production-shaped object inventory from immutable storage"
+    },
+    {
+      "id": "ci-supply-chain-failure",
+      "status": "passed-remote",
+      "evidence": [
+        "GitHub Security run 29930788053 rejected vulnerable ws dependency chain"
+      ]
+    },
+    {
+      "id": "backup-restore",
+      "status": "passed-local",
+      "evidence": [
+        "evidence/security-platform/LOCAL_RESTORE_DRILL_58fe679.json"
+      ]
+    },
+    {
+      "id": "rollback",
+      "status": "partial",
+      "evidence": [
+        "historical unverifiable artifacts are explicitly revoked",
+        "security-platform-source-53b037e is the active local test-signed candidate"
+      ],
+      "nextAction": "execute blue-green service rollback using immutable deployed digests, configuration, schema, and health gates"
+    },
+    {
+      "id": "search-noindex-incident",
+      "status": "not-run",
+      "nextAction": "run production-shaped crawler regression and noindex rollback exercise"
+    },
+    {
+      "id": "quant-worker-escape-attempt",
+      "status": "not-run",
+      "nextAction": "run sandbox egress and privilege-denial exercise against a staging worker"
+    },
+    {
+      "id": "public-security-evidence",
+      "status": "failed",
+      "evidence": [
+        "evidence/security-platform/PUBLIC_GATE_2026-07-22.md"
+      ],
+      "nextAction": "restore public endpoints and rerun the read-only gate"
+    }
+  ]
+}

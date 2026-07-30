@@ -1,29 +1,40 @@
-# Economics Disclosure SLO and Capacity Plan
+# SLO and Capacity Plan
 
-## Evidence boundary
+## Measurement contract
 
-The only measured capacity evidence is `evidence/performance/economics-local-benchmark.json`, bound to source commit `63afbdd82b001b1063332100796366f4423da3bc`. It measured the read-only `/api/economics/disclosure` handler in one Go process over loopback on an 8-logical-CPU Apple arm64 host. It is not a public, staging, network, multi-instance, sustained-load, or concurrent-user result.
+Every measurement record must include source commit, environment, UTC interval, sample count, method, p50/p95/p99, throughput, error rate, concurrent load, provider latency, and raw evidence path. Small local samples prove only local behavior.
 
-| Measure | Direct result | Coverage boundary |
-| --- | ---: | --- |
-| Requests / workers | 2,000 / 16 | 50 warmups; short local run |
-| First request | 1.022 ms | Process already started; not deployment cold boot |
-| p50 / p95 / p99 | 0.401 / 0.979 / 1.113 ms | Client-observed loopback latency |
-| Maximum | 1.356 ms | Same run only |
-| Throughput | 32,092.77 requests/s | Local burst, not an ingress commitment |
-| Errors | 0 (0 bps) | Same 2,000-request sample |
-| Response / allocation | 1,873 bytes / 25,900 allocated bytes per request | Runtime allocation delta, not RSS |
-| Queue | Not measured | Handler has no application queue |
-| Storage growth | 0 bytes/request | Handler does not persist request state |
-| Provider latency | Not applicable to reference response | No third-party call is made |
-| Rate limit | Not configured | Public ingress is not deployed |
+## Initial testnet objectives
 
-## Candidate service levels
+| Signal | Objective | Window | Alert |
+| --- | --- | --- | --- |
+| public read API availability | 99.5% | rolling 30 days | 2% budget burn in 1 hour |
+| public write API successful handling | 99.0%, excluding valid client rejection | rolling 30 days | 5% budget burn in 1 hour |
+| read API latency | p95 under 750 ms, p99 under 2 s | 15 minutes | two consecutive windows |
+| write acceptance latency | p95 under 2 s | 15 minutes | two consecutive windows |
+| queue age | under 60 s | 5 minutes | any 10-minute breach |
+| restore point | RPO at most 24 h until continuous replication is evidenced | per backup | missed successful backup |
+| service restoration | RTO at most 4 h after declared disaster | per drill | drill exceeds objective |
 
-These are pre-deployment targets, not achieved SLO claims: 99.9% monthly availability; p95 below 250 ms and p99 below 750 ms at the public edge; error rate below 0.1% excluding valid 4xx; health and source freshness checked every minute. The disclosure must fail visibly when its reference model cannot be produced. Candidate alerts are a 5-minute error ratio above 1%, p99 above 1 second for 10 minutes, health failure for 2 checks, or reference `asOf` outside the approved release window.
+## Capacity envelope
 
-Before `deployedStaging` can become true, run 30-minute and 6-hour tests through the real ingress at 1x and 2x forecast traffic, record CPU/RSS/GC/network saturation, validate ingress limits, and test instance loss. Before `deployedPublic`, use actual traffic to set autoscaling and concurrency limits; do not extrapolate the loopback burst into user capacity.
+The platform has no defensible public scale claim yet. The next evidence run must sweep concurrency 1, 10, 50, and 100; record cold and warm starts; observe CPU, memory, disk, queue depth, database connections, network, provider limits, and cost; and stop when p99, errors, saturation, or spend crosses a guardrail. Autoscaling must have minimum, maximum, cooldown, and cost ceilings.
 
-## Recovery objectives
+Storage forecasts must separately model chain state, operational databases, object artifacts, logs, traces, audit records, and backups at 7-, 30-, 90-, and 365-day horizons. Retention changes require privacy, forensics, legal, and cost review.
 
-The disclosure endpoint is stateless; its candidate RTO is 15 minutes by redeploying the immutable build and its candidate RPO is zero request data because it stores none. These values are not yet drill-proven. YUSD sandbox state is separate: local hash-preserving restore correctness is tested by `make yusd-restore-drill`, but elapsed RTO, off-host backup, retention and staging RPO are unmeasured and therefore have no achieved objective.
+## Local baseline — 2026-07-22
+
+Source commit `d70aa2c88100421efb320e3e21b4619a1e40fb98` was measured on macOS arm64 with Node.js 24.5.0. Raw evidence is `evidence/security-platform/LOCAL_CAPACITY_2026-07-22.json`.
+
+| Operation | Samples | p50 | p95 | p99 | Errors |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| full repository policy gate | 30 | 79.818 ms | 84.277 ms | 130.334 ms | 0 |
+| Ed25519 manifest verification | 200 | 0.159 ms | 0.204 ms | 0.262 ms | 0 |
+| AES-256-GCM backup creation, 1 MiB | 10 | 8.950 ms | 10.952 ms | 10.952 ms | 0 |
+| AES-256-GCM restore, 1 MiB | 10 | 5.606 ms | 6.522 ms | 6.522 ms | 0 |
+
+This single-process local sample is useful for regression only. It does not establish concurrent-user, public-service, provider, database, object-store, multi-region, or production RTO/RPO capacity.
+
+## Release gate
+
+`deployedPublic` cannot become true from a local load test. Public synthetic evidence, alert delivery evidence, a restore drill, and an identified on-call owner are required.

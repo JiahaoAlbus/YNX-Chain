@@ -116,8 +116,8 @@
     {
       "kind": "cyclonedx_sbom",
       "path": "release/sbom.cdx.json",
-      "sha256": "6edb84ab6bfa5fc2937647f36c5ee2c57f10a0c7ee35f2dc935fe14177e05f87",
-      "bytes": 150037,
+      "sha256": "93463bd9b615b8d535c2df59c22d0c438fa662f9b3480f0c3dcf5e0f438b99b7",
+      "bytes": 154696,
       "signingClass": "unsigned_repository_evidence",
       "downloadURL": null,
       "sourceCommit": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21"

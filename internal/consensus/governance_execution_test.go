@@ -92,6 +92,70 @@ func TestGovernanceExecutionCommitsDeterministicallyPersistsAndAudits(t *testing
 	}
 }
 
+func TestCommittedStateMigratesVersion11WithoutInventingGovernanceExecution(t *testing.T) {
+	key := deterministicPrivateKey(158)
+	sender := mustNativeAddress(t, key)
+	recipient := mustNativeAddress(t, deterministicPrivateKey(159))
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := devnet.Faucet(sender, 100); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	migration, err := devnet.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	app, err := NewApplication(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := NewSignedTransfer(key, 6423, recipient, 2, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := EncodeSignedTransaction(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	height := int64(migration.Height) + 1
+	if _, err := app.FinalizeBlock(context.Background(), &abcitypes.RequestFinalizeBlock{
+		Height: height,
+		Time:   time.Unix(height, 0).UTC(),
+		Txs:    [][]byte{raw},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.Commit(context.Background(), &abcitypes.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	legacy := app.committed
+	legacy.Version = 11
+	legacy.GovernanceExecutions = nil
+	legacy.GovernanceExecutionAudit = nil
+	legacy.AppHash, err = legacy.calculateHashFor("YNX_ABCI_STATE_V11", 11)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyHash := legacy.AppHash
+	payload, err := json.MarshalIndent(legacy, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "state-v11.json")
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := loadCommittedState(path, migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if migrated.Version != CommittedStateVersion || len(migrated.FeeEvents) != 1 ||
+		len(migrated.GovernanceExecutions)+len(migrated.GovernanceExecutionAudit) != 0 ||
+		migrated.AppHash == legacyHash {
+		t.Fatalf("v11 migration lost history or invented governance records: %+v", migrated)
+	}
+}
+
 func TestGovernanceExecutionFailsClosedOnWindowBindingSignerReplayAndTamper(t *testing.T) {
 	key, attackerKey := deterministicPrivateKey(152), deterministicPrivateKey(153)
 	signer, attacker := mustNativeAddress(t, key), mustNativeAddress(t, attackerKey)

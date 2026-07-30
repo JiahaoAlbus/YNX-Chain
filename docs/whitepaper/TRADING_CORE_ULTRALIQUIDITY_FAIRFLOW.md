@@ -1,9 +1,9 @@
 # Trading Core, UltraLiquidity, and FairFlow
 
-Version: 0.1.0-candidate  
-Effective date: not effective  
-Last reviewed: 2026-07-22  
-Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`  
+Version: 0.1.0-candidate
+Effective date: not effective
+Last reviewed: 2026-07-22
+Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`
 Product release: research and interface specification; no deployed trading venue
 
 ## Direct answer

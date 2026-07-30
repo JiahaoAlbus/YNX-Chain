@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "policyId": "YNX-INT-NPM-2026-001",
+  "owner": "29-integration",
+  "requiredReviewOwner": "30-security-sre",
+  "sourceCommit": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "decision": "noExceptionRequired",
+  "createdAt": "2026-07-27T15:12:00Z",
+  "remediatedAt": "2026-07-28T15:40:00Z",
+  "releaseEffect": "none",
+  "advisory": {
+    "id": "GHSA-xcpc-8h2w-3j85",
+    "source": 1123686,
+    "package": "adm-zip",
+    "affectedRange": "<0.6.0",
+    "installedVersion": "0.6.0",
+    "severity": "high",
+    "cvss": 7.5,
+    "title": "Crafted ZIP file triggers excessive memory allocation",
+    "fixAvailable": true
+  },
+  "expectedAuditVulnerabilities": [],
+  "lockedVersions": {
+    "adm-zip": "0.6.0",
+    "hardhat": "3.11.1",
+    "@nomicfoundation/hardhat-ethers": "4.0.15"
+  },
+  "scope": {
+    "productionDependenciesAllowed": false,
+    "runtimeImportAllowed": false,
+    "untrustedArchiveInputAllowed": false,
+    "networkServiceExposure": false,
+    "permittedCommands": [
+      "npm run hardhat:build",
+      "npm run hardhat:deploy:ynx-testnet"
+    ],
+    "permittedEnvironment": "isolated developer or CI build workspace with locked dependencies"
+  },
+  "mandatoryControls": [
+    "npm ci must use package-lock.json",
+    "production-only npm audit must report zero vulnerabilities at every severity",
+    "full npm audit must report zero vulnerabilities at every severity",
+    "Hardhat must not process user-uploaded or otherwise untrusted ZIP archives",
+    "generated artifacts must remain ignored build outputs and must be regenerated from tracked Solidity sources",
+    "contract-tooling-check and full Go tests must pass after dependency installation",
+    "dependency drift must fail the exact locked-version gate",
+    "Security/SRE acceptance remains required for production release independently of this resolved advisory"
+  ],
+  "remediationEvidence": [
+    "package-lock.json pins adm-zip 0.6.0",
+    "package-lock.json pins hardhat 3.11.1",
+    "package-lock.json pins @nomicfoundation/hardhat-ethers 4.0.15",
+    "full and production-only npm audit both report zero vulnerabilities"
+  ]
+}

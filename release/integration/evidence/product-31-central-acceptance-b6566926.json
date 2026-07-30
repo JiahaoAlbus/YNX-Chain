@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "passed",
+  "productId": "31",
+  "product": "YNX Governance & Protocol Control",
+  "acceptedBy": "29-integration",
+  "acceptedAt": "2026-07-30T09:09:12Z",
+  "acceptedSourceCommit": "7c3c952eade20041bc616616fbfc0cba020717e4",
+  "frozenReleaseSource": "5640209e9c7df9789916bd99f61124db566842b4",
+  "integrationCommit": "b656692622cde1fba47c8068399f0d83385de4cf",
+  "ancestry": {
+    "acceptedSourceIsParentOfIntegrationCommit": true,
+    "integrationCommitContainsAcceptedSource": true,
+    "frozenReleaseSourceIsParentOfAcceptedSource": true
+  },
+  "ownerCandidate": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "branch": "codex/final-governance",
+    "localRemoteShaEqual": true,
+    "worktreeClean": true,
+    "branchProtected": true,
+    "pullRequest": 14,
+    "pullRequestMergeable": true,
+    "coverageTotal": 14,
+    "coverageAutonomousOpen": 0,
+    "coverageExternalBlocked": 3,
+    "requiredEvidenceBundleComplete": true,
+    "sourceBindingsReachable": true
+  },
+  "exactHeadCi": {
+    "verified": true,
+    "sourceCommit": "7c3c952eade20041bc616616fbfc0cba020717e4",
+    "successfulWorkflowRunIds": [
+      30526411543,
+      30526411562,
+      30526411555,
+      30526411541,
+      30526411535,
+      30526408026
+    ],
+    "successfulCheckRuns": 7,
+    "failed": 0,
+    "pending": 0
+  },
+  "tests": [
+    {
+      "command": "bash scripts/verify/governance-check.sh",
+      "status": "passed",
+      "result": "Governance runtime, configuration, deterministic build, documentation and UI verification completed in the merged central tree."
+    },
+    {
+      "command": "bash scripts/verify/governance-testnet-drill.sh",
+      "status": "passed",
+      "result": "Four validators and nine processes completed the proposal, vote, timelock, signed Canary, canonical execution, receipt, restart and restored-state lifecycle."
+    },
+    {
+      "command": "go test -race -count=1 ./internal/governance ./chain/governance",
+      "status": "passed",
+      "result": "Governance and canonical chain-adapter race suites passed."
+    },
+    {
+      "command": "npm ci && npm run lint && npm test && npm run build && npm run test:browser (apps/governance)",
+      "status": "passed",
+      "result": "Locked dependency installation reported zero vulnerabilities; type checking, unit tests, production build and real Chromium keyboard, Arabic RTL and 390px checks passed."
+    },
+    {
+      "command": "make contract-tooling-check && make test",
+      "status": "passed",
+      "result": "Pinned contract selector metadata and all merged command and internal Go package tests passed."
+    },
+    {
+      "command": "make docs-compliance-check no-placeholder-check secret-scan",
+      "status": "passed",
+      "result": "Documentation authority, forbidden deployment filler and secret scanning remained valid."
+    },
+    {
+      "command": "node scripts/verify/github-actions-pins-check.mjs",
+      "status": "passed",
+      "result": "All 45 external GitHub Actions references in the merged central tree use immutable full commit pins."
+    }
+  ],
+  "artifactVerification": {
+    "sourceOnly": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "release": {
+      "id": 362260575,
+      "tag": "governance-v0.4.2-testnet-source-candidate",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/governance-v0.4.2-testnet-source-candidate",
+      "publishedAt": "2026-07-30T07:44:07Z",
+      "prerelease": true,
+      "draft": false,
+      "targetCommit": "5640209e9c7df9789916bd99f61124db566842b4",
+      "assetCount": 4,
+      "archive": {
+        "name": "ynx-governance-source-5640209e.tar.gz",
+        "bytes": 6166250,
+        "sha256": "21561652a42c62a01e02cc2b26806033f8648d88a3a96599ec046d879b36df52"
+      },
+      "sbomSha256": "57a1634b02b880535fc2ec3dc0c8dc147ba0344201b4e8d27033f79c9d68c81c",
+      "provenanceSha256": "540d7d169bf43494406fe12980e6669db52d46ee54e9669c0cf40134e50d4b62",
+      "noticesSha256": "1aa630d55f785519d8b51873bd1d5c369c104d5489d4a73a274a89d17a36d446",
+      "downloadedAllAssetDigestsVerified": true
+    }
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": true,
+    "sharedTestnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "sourceReleasePublished": true,
+    "runnableArtifactHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "nextGate": "The protected source-only Governance candidate is centrally accepted. Shared Testnet Explorer, Monitor, Trust and Security/SRE receipts, production custody, public Governance-specific deployment, runnable artifact hosting, production signing, stores and Mainnet remain separate gates."
+}

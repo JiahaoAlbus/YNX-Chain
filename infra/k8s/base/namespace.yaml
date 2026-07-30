@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ynx-security-platform
+  labels:
+    name: ynx-security-platform
+    security.ynx/scope: platform
+    security.ynx/data-classification: internal
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ynx-services
+  labels:
+    name: ynx-services
+    security.ynx/scope: services
+    security.ynx/data-classification: public

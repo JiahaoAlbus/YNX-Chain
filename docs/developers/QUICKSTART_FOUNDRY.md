@@ -21,7 +21,7 @@ forge build
 
 ```bash
 export YNX_EVM_RPC_URL="https://real-evm-rpc-host"
-export DEPLOYER_PRIVATE_KEY="secure-real-deployer-private-key"
+export DEPLOYER_PRIVATE_KEY="<injected-by-approved-secret-manager>"
 forge create contracts/tokens/SampleYNXTCompatibleERC20.sol:SampleYNXTCompatibleERC20 \
   --rpc-url "$YNX_EVM_RPC_URL" \
   --private-key "$DEPLOYER_PRIVATE_KEY" \

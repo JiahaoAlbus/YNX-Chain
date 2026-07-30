@@ -1,13 +1,10 @@
 # Next Action
 
-After PR `#12` is merged, submit `release/integration/resource-market-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, and `docs/integration/DEPENDENCY_ACCEPTANCE.md` to Product `29` for central acceptance against Wallet/Auth, Chain settlement, Data Fabric billing, Explorer, Monitor, and Trust.
+Updated: `2026-07-29T19:29:29Z`
 
-The first executable verification after central acceptance is:
+1. Commit the generated evidence refreshed against exact acceptance source `6de79e31a7dd44fcb7df9edbf65a3090da6967c3`.
+2. Run the clean exact-source Integration protection preflight.
+3. Push Product 29 without force, restore and verify exact branch protection, confirm local/tracking/REST SHA equality, and obtain exact-final-head green PR #17 CI.
+4. Move the single writable product worktree to Product 26 Data Fabric, the remaining dependency needed before Product 02 can be centrally accepted.
 
-1. deploy two independently operated Testnet providers;
-2. execute Quote → Intent → Reservation → Service → segmented Metering → authoritative Settlement;
-3. execute provider Failure → one bounded Retry → Refund/Bond/Appeal;
-4. restart services and verify state recovery;
-5. record authoritative transaction hashes, receipts, provider identities, health/version endpoints, and source SHA without embedding credentials.
-
-Do not publish or mark `integratedCentral`, `testnetVerified`, `deployedPublic`, `releasePublished`, or `downloadHosted` before those direct checks succeed.
+Do not convert source acceptance into shared Testnet, public deployment, Website, signing, store or Mainnet claims without direct evidence.

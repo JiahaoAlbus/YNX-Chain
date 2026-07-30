@@ -19,6 +19,26 @@ func TestLegacyKeccak256Vector(t *testing.T) {
 	}
 }
 
+func TestBoundedHeightLag(t *testing.T) {
+	tests := []struct {
+		name           string
+		source, target uint64
+		want           int64
+	}{
+		{name: "positive", source: 8, target: 7, want: 1},
+		{name: "negative", source: 7, target: 8, want: -1},
+		{name: "positive saturation", source: math.MaxUint64, target: 0, want: math.MaxInt64},
+		{name: "negative saturation", source: 0, target: math.MaxUint64, want: math.MinInt64},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := boundedHeightLag(test.source, test.target); got != test.want {
+				t.Fatalf("boundedHeightLag(%d, %d) = %d, want %d", test.source, test.target, got, test.want)
+			}
+		})
+	}
+}
+
 func TestValidatorSetConfigAndBlockRotation(t *testing.T) {
 	validators, err := ParseValidatorSet("ynx_val_primary|primary|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore|43.134.23.58|bonded validator|peer-sg;ynx_val_sv|silicon-valley|43.162.100.54|bonded validator|peer-sv")
 	if err != nil {

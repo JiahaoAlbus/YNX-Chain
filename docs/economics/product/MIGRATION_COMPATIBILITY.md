@@ -1,0 +1,33 @@
+# Migration and Compatibility
+
+## Committed state v7 to v9
+
+Application version 11 uses committed-state schema v9. It preserves the v8 fee-event ledger and adds staking delegations and unbonding liabilities. Loading a mode-restricted v7 state verifies the v7 hash domain before moving directly to v9. Loading v8 verifies the v8 hash domain and preserves all fee events before adding empty staking collections.
+
+1. Recalculate and verify the v7 AppHash using the v7 domain and exact legacy fields.
+2. Reject a mismatched or tampered legacy AppHash.
+3. Initialize only fields that did not exist in the source schema; never infer historical fee or staking records.
+4. Recalculate the v9 AppHash when the state differs from the migration anchor.
+5. Validate account supply conservation and all existing application records under current rules.
+
+Migration intentionally does not infer historical fees, delegations, or unbondings from balance changes. Coverage before activation is unknown; inventing records would create false chain evidence.
+
+## Client compatibility
+
+- Signed transfer version remains 1 and its canonical fields, signature domain, fixed fee, nonce behavior, and chain replay protection are unchanged.
+- Signed application action version remains 1.
+- Existing ABCI query paths and Gateway routes remain available.
+- New fee queries are additive.
+- Old binaries cannot interpret schema v9 and must not write migrated state. Rollback requires restoring the matching pre-upgrade binary/state pair; a v9 state file must never be handed to a v7 or v8 binary.
+
+## Required activation and rollback drill
+
+Before staging activation, operators must back up the source state, verify its SHA-256 and mode, start application version 11 against a copy, query accounts, fees, delegations, and unbondings, execute one approved delegation/unbond/withdrawal lifecycle, verify liquid + staked + queued-unbonding supply reconciliation, stop, restart, and verify the same AppHash and records. Rollback restores the untouched matching binary/state pair while public mutation ingress remains frozen.
+
+Current evidence covers local migration and restart tests only. No staging or public migration has been performed.
+
+## YUSD sandbox state v1
+
+The YUSD sandbox uses an independent schema-version-1 JSON state file and never reads or writes consensus or stablecoin-issuer state. Startup validates the whole-file integrity hash, audit chain, reserve liabilities, account supply, redemptions, daily limits, and idempotency records before serving. No earlier YUSD sandbox schema exists, so no migration is claimed. A future schema change must use an explicit offline converter and retain the original file and binary for rollback; old binaries must not write newer schema files.
+
+Restart persistence, tamper rejection and a local copy/hash/restore drill are tested by `make yusd-restore-drill`. The drill restores into a fresh mode-0600 path and compares the complete snapshot, queued redemptions and audit chain. It is not an off-host, encrypted, timed, staging or public recovery test; those claims remain false.

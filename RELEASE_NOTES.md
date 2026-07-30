@@ -1,11 +1,15 @@
-# YNXT Economics Local Candidate Release Notes
+# Release Notes
 
-## 2026-07-22 local integration candidate
+## Unreleased security-platform foundation
 
-This branch adds transparent current fixed-fee accounting, versioned staking delegation/unbond/withdrawal, Treasury snapshots, YUSD test-unit reconciliation, liquid-staking and security-pool candidates, per-lane fee-market simulation, and seeded Low/Medium/High macro stress. `/ynxt` and `/economics` expose current-versus-candidate boundaries in 12 locales with RTL, accessibility states and source-labelled failures.
+- Added a versioned unified security policy.
+- Added evidence-backed release truth states that reject unsupported success claims.
+- Added artifact and secret-inventory contracts.
+- Added tracked-file credential gates and focused regression tests.
+- Integrated the platform gate into CI and introduced protected-path ownership metadata.
+- Added threat, SLO/capacity, economics, migration, observability, operations, and evidence contracts.
+- Added reproducible artifact, CycloneDX SBOM, provenance, detached Ed25519 verification, encrypted restore drills, CodeQL, dependency review, lifecycle-script review, npm audit, and Go vet gates.
+- Updated ethers and ws constraints after the first remote dependency audit found GHSA-58qx-3vcg-4xpx and GHSA-96hv-2xvq-fx4p.
+- Added machine-readable 22-requirement completion audit, final exercise matrix, founder KPI definitions, provider governance, and a measured local capacity baseline.
 
-Operations now include Request IDs, process health, Prometheus request/error/latency metrics, exact-commit local capacity evidence and a YUSD copy/hash/restore drill. Security delivery includes explicit trust boundaries, CycloneDX SBOM, third-party notice inventory, script allowlist, dependency review, local reproducible-build evidence and scan records.
-
-This is not a Mainnet or public Testnet deployment. Current consensus still uses fixed fee v1; dynamic issuance, fee-market burn/splits, reward issuance, slashing, liquid staking, Safety Module, service pools and Treasury execution are not activated. YUSD has no real value, custodian, attestation or external redemption rail.
-
-Release flags remain false for installation, central integration, staging/public deployment, hosted download, production signing and store release. Full npm audit has an unresolved High development-tooling chain through Hardhat/`adm-zip` with no available fix. DAST, container scan, public monitor, hosted status/support/privacy/security URLs, audited contracts, secure signers, custody, governance activation and public evidence are absent.
+This is a local implementation milestone. Installation, central integration, staging/public deployment, hosted downloads, production signing, and store release are not claimed.

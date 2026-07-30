@@ -1,0 +1,29 @@
+# syntax=docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
+ARG GO_IMAGE=golang:1.25-alpine3.22@sha256:65b4400aee0927412e9ed791a11893273a49d55df24841f7599660fb80dae464
+ARG RUNTIME_IMAGE=alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
+ARG SOURCE_COMMIT=unknown
+
+FROM ${GO_IMAGE} AS build
+ARG SOURCE_COMMIT
+ENV GOTOOLCHAIN=auto
+WORKDIR /src
+COPY go.mod go.sum ./
+COPY cmd/ynx-oracled ./cmd/ynx-oracled
+COPY cmd/ynx-oracle-provider ./cmd/ynx-oracle-provider
+COPY internal/oracle ./internal/oracle
+RUN --mount=type=cache,target=/root/.cache/go-build test "${SOURCE_COMMIT}" != "unknown" \
+    && printf '%s' "${SOURCE_COMMIT}" | grep -Eq '^[0-9a-f]{40}$' \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -buildid= -X github.com/JiahaoAlbus/YNX-Chain/internal/oracle.BuildCommit=${SOURCE_COMMIT}" -o /out/ynx-oracled ./cmd/ynx-oracled \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -buildid=" -o /out/ynx-oracle-provider ./cmd/ynx-oracle-provider
+
+FROM ${RUNTIME_IMAGE}
+RUN addgroup -S -g 65532 oracle && adduser -S -D -H -u 65532 -G oracle oracle
+COPY --from=build --chown=65532:65532 /out/ynx-oracled /usr/local/bin/ynx-oracled
+COPY --from=build --chown=65532:65532 /out/ynx-oracle-provider /usr/local/bin/ynx-oracle-provider
+RUN mkdir -p /var/lib/ynx-oracle /etc/ynx-oracle && chown -R 65532:65532 /var/lib/ynx-oracle /etc/ynx-oracle
+USER 65532:65532
+EXPOSE 6470
+VOLUME ["/var/lib/ynx-oracle"]
+HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 CMD wget -q -T 2 -O /dev/null http://127.0.0.1:6470/health || exit 1
+ENTRYPOINT ["/usr/local/bin/ynx-oracled"]
+CMD ["--listen", "0.0.0.0:6470", "--metrics-listen", "127.0.0.1:9470", "--state", "/var/lib/ynx-oracle/state.json", "--providers", "/etc/ynx-oracle/providers.json"]

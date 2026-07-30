@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "owner": "29-integration",
+  "sourceCommit": "6e9a6fef8ec31a898da1252410bb651e18e251c3",
+  "verifiedAt": "2026-07-29T12:04:46Z",
+  "worktreeCleanAtStart": true,
+  "command": "make integration-protect-preflight",
+  "result": "passed",
+  "gates": [
+    "integration coverage self-test",
+    "integration acceptance check",
+    "Product Release Matrix self-test",
+    "Product Release Matrix stored-file check",
+    "contract tooling",
+    "npm audit policy",
+    "npm audit policy negative self-test",
+    "go test ./...",
+    "no-placeholder check",
+    "secret scan",
+    "go vet",
+    "shell syntax",
+    "Node syntax"
+  ],
+  "claimsExcluded": [
+    "main merge",
+    "shared Testnet verification",
+    "public runtime",
+    "Website publication",
+    "production signing",
+    "Mainnet"
+  ]
+}

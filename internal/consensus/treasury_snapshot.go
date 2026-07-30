@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"math"
+	"math/bits"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
@@ -60,7 +61,9 @@ func buildTreasurySnapshot(migration chain.ConsensusMigrationState, state Commit
 	within := true
 	if total > 0 {
 		for _, bucket := range buckets {
-			if bucket.BalanceYNXT*10_000/total > bucket.MaximumAllocationBPS {
+			high, low := bits.Mul64(uint64(bucket.BalanceYNXT), 10_000)
+			allocationBPS, _ := bits.Div64(high, low, uint64(total))
+			if allocationBPS > uint64(bucket.MaximumAllocationBPS) {
 				within = false
 			}
 		}

@@ -25,6 +25,10 @@
     "tsx": "4.23.1",
     "typescript": "~6.0.3"
   },
+  "overrides": {
+    "brace-expansion": "5.0.8",
+    "uuid": "11.1.1"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",

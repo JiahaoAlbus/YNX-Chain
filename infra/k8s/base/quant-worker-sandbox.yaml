@@ -1,0 +1,104 @@
+# Sandboxed quant/AI worker with strict egress control and privilege denial.
+# Enforces the platform invariant that workers never hold user keys and cannot
+# escape their network policy or gain elevated privileges.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: quant-worker
+  namespace: ynx-services
+automountServiceAccountToken: false
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: quant-worker-egress-lockdown
+  namespace: ynx-services
+spec:
+  podSelector:
+    matchLabels:
+      security.ynx/workload: quant-worker
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress: []
+  egress:
+  # DNS only, plus explicit approved settlement endpoint reached via mesh.
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: ynx-services
+      podSelector:
+        matchLabels:
+          security.ynx/component: ai-gateway
+    ports:
+    - protocol: TCP
+      port: 8090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quant-worker
+  namespace: ynx-services
+  labels:
+    app: quant-worker
+    security.ynx/workload: quant-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quant-worker
+      security.ynx/workload: quant-worker
+  template:
+    metadata:
+      labels:
+        app: quant-worker
+        security.ynx/workload: quant-worker
+    spec:
+      serviceAccountName: quant-worker
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: worker
+        image: ynx/quant-worker:local
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          privileged: false
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+        env:
+        - name: WORKER_ROLE
+          value: "advisory-only"
+        - name: WORKER_KEY_ACCESS
+          value: "denied"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 128Mi
