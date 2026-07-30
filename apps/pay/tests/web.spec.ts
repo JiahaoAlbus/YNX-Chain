@@ -24,7 +24,8 @@ test("Pay Web/PWA applies Arabic RTL without horizontal overflow", async ({ page
 
   const arabicChoices = page.getByRole("radio", { name: "العربية" });
   await expect(arabicChoices).toHaveCount(2);
-  await arabicChoices.first().click();
+  await arabicChoices.first().focus();
+  await page.keyboard.press("Enter");
   await expect(page.getByText("لغة التطبيق")).toBeVisible();
   expect(await page.locator("div").evaluateAll((nodes) =>
     nodes.some((node) => getComputedStyle(node).direction === "rtl"),
