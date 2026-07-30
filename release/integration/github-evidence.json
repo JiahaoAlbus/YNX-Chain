@@ -2,8 +2,8 @@
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
   "repository": "JiahaoAlbus/YNX-Chain",
-  "generatedAt": "2026-07-30T11:27:35.543Z",
-  "controllerSourceCommit": "05652b201acf830495a8fb2fba5416e5f4ea9d8c",
+  "generatedAt": "2026-07-30T11:31:37.800Z",
+  "controllerSourceCommit": "fedfb431221d10c7b0ca21dbee5b3990ed1f823d",
   "limits": {
     "runs": 200,
     "exactHeadRunsPerBranch": 100,
