@@ -2,15 +2,15 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-30T18:23:12.882Z",
-  "controllerSourceCommit": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
+  "generatedAt": "2026-07-30T18:30:42.183Z",
+  "controllerSourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
+    "localHead": "e36b937b5f814d3187c2162b4401094a729f57bf",
     "upstreamRef": "origin/codex/final-integration",
     "remoteHead": "fb3a54712348241240518e72f08355a4d68efca8",
-    "ahead": 3,
+    "ahead": 4,
     "behind": 0,
     "clean": false
   },
@@ -4190,9 +4190,9 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
+        "localSha": "e36b937b5f814d3187c2162b4401094a729f57bf",
         "remoteSha": "fb3a54712348241240518e72f08355a4d68efca8",
-        "ahead": 3,
+        "ahead": 4,
         "behind": 0,
         "upstreamConfigured": true,
         "upstreamRef": "origin/codex/final-integration",
@@ -4203,9 +4203,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
+        "observedHead": "e36b937b5f814d3187c2162b4401094a729f57bf",
         "clean": false,
-        "changedEntries": 6,
+        "changedEntries": 1,
         "statusError": null
       },
       "evidence": {
@@ -4252,32 +4252,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "9c6ee5656be85a7698f9c02ad862d69c362cdff7",
+            "sourceCommit": "244d1c3e4879b9617120af2ebdd74f2a84a8fd85",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 4
+            "distance": 1
           },
           "productRelease": {
             "sourceCommit": "05652b201acf830495a8fb2fba5416e5f4ea9d8c",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 76
+            "distance": 77
           },
           "publicMetadata": {
             "sourceCommit": "05652b201acf830495a8fb2fba5416e5f4ea9d8c",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 76
+            "distance": 77
           },
           "integrationContract": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 442
+            "distance": 443
           }
         },
         "release": {
