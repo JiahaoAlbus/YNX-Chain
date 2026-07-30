@@ -3,13 +3,15 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-mode="owner"
-branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
-if [[ "${1:-}" == "--integrated" || "$branch" == "codex/final-integration" ]]; then
-  mode="integrated"
-elif [[ $# -gt 0 ]]; then
+if [[ $# -gt 1 || ( -n "${1:-}" && "${1:-}" != "--integrated" ) ]]; then
   echo "usage: $0 [--integrated]" >&2
   exit 2
+fi
+
+mode="owner"
+branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME:-}}"
+if [[ "${1:-}" == "--integrated" || ( -n "$branch" && "$branch" != "codex/final-data-fabric" ) ]]; then
+  mode="integrated"
 fi
 
 node scripts/data-fabric/policy-scan.mjs runtime
