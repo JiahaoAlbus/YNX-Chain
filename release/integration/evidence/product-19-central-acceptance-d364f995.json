@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "passed",
+  "productId": "19",
+  "product": "YNX Oracle & Market Data",
+  "acceptedBy": "29-integration",
+  "acceptedAt": "2026-07-30T05:28:00Z",
+  "acceptedSourceCommit": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+  "frozenReleaseSource": "8f4310988a6641c5b023497c74e901ff508771fe",
+  "integrationCommit": "d364f9950c1f43fe84b046ec88b1978b9a4749e4",
+  "ancestry": {
+    "acceptedSourceIsParentOfIntegrationCommit": true,
+    "integrationCommitContainsAcceptedSource": true,
+    "frozenReleaseSourceIsParentOfAcceptedSource": true
+  },
+  "ownerCandidate": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "branch": "codex/final-oracle-market-data",
+    "localRemoteShaEqual": true,
+    "worktreeClean": true,
+    "branchProtected": true,
+    "pullRequest": 20,
+    "pullRequestMergeable": true,
+    "coverageTotal": 43,
+    "coverageAutonomousOpen": 0,
+    "coverageExternalBlocked": 12,
+    "requiredEvidenceBundleComplete": true,
+    "sourceBindingsReachable": true
+  },
+  "exactHeadCi": {
+    "verified": true,
+    "sourceCommit": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+    "successfulWorkflowRunIds": [
+      30516239151,
+      30516240887,
+      30516240891,
+      30516240898,
+      30516240900,
+      30516240902,
+      30516240916,
+      30516240939
+    ],
+    "successfulCheckRuns": 11,
+    "failed": 0,
+    "pending": 0
+  },
+  "tests": [
+    {
+      "command": "make contract-tooling-check && make test",
+      "status": "passed",
+      "result": "all merged command and internal Go packages passed after pinned contract selector metadata generation"
+    },
+    {
+      "command": "make oracle-test",
+      "status": "passed",
+      "result": "Oracle runtime, provider adapters, Go SDK and daemon race suites passed"
+    },
+    {
+      "command": "make oracle-web-test && npm --prefix apps/oracle run test:browser:a11y",
+      "status": "passed",
+      "result": "Oracle Web lint, production build, rendered routes and real Chrome keyboard, RTL, reduced-motion, theme, large-text and 390px checks passed"
+    },
+    {
+      "command": "npm --prefix sdk/oracle/typescript test",
+      "status": "passed",
+      "result": "18/18 strict consumer vector, derivation, transport and response-bound tests passed"
+    },
+    {
+      "command": "npm audit --prefix apps/oracle --audit-level=high",
+      "status": "passed",
+      "result": "zero dependency vulnerabilities"
+    },
+    {
+      "command": "make docs-compliance-check",
+      "status": "passed",
+      "result": "global documentation authority remained valid after Oracle release and integration records were scoped"
+    },
+    {
+      "command": "node scripts/verify/github-actions-pins-check.mjs",
+      "status": "passed",
+      "result": "45 external GitHub Actions references use immutable full commit pins in the merged central tree"
+    },
+    {
+      "command": "make integration-acceptance-check integration-product-release-matrix-check",
+      "status": "passed",
+      "result": "central acceptance and product release matrices passed before the Product 19 decision update"
+    }
+  ],
+  "artifactVerification": {
+    "sourceOnly": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "release": {
+      "id": 362200576,
+      "tag": "oracle-market-data-v0.1.1-testnet-source-candidate",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/oracle-market-data-v0.1.1-testnet-source-candidate",
+      "publishedAt": "2026-07-30T05:09:58Z",
+      "prerelease": true,
+      "draft": false,
+      "targetCommit": "8f4310988a6641c5b023497c74e901ff508771fe",
+      "assetCount": 5,
+      "archive": {
+        "name": "ynx-oracle-market-data-source-8f4310988a66.tar.gz",
+        "bytes": 6466422,
+        "sha256": "1f9d3369871ed4229e121d5b940d9b0b9932177edd1cece2476184796e8d5770"
+      },
+      "downloadedAllAssetDigestsVerified": true
+    }
+  },
+  "truth": {
+    "integratedCentral": true,
+    "sharedTestnetVerified": false,
+    "deployedStaging": true,
+    "deployedPublic": true,
+    "publicRuntimeMode": "limited-source-fail-closed",
+    "authoritativePrices": false,
+    "activeProviderCount": 0,
+    "requiredProviderCount": 3,
+    "sourceReleasePublished": true,
+    "runnableArtifactHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "nextGate": "The protected source-only Oracle candidate is centrally accepted. Three approved independent providers, secure reporter custody, consumer receipts, shared Testnet evidence, public Oracle Web, runnable artifact hosting, production signing, stores and Mainnet remain separate gates."
+}

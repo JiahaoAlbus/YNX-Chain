@@ -387,7 +387,8 @@ function validateGithubEvidence(evidence, collector) {
     if (evidence?.availability?.[source] === false) collector.expect(typeof evidence?.queryErrors?.[source] === "string" && evidence.queryErrors[source].length > 0, `GitHub evidence ${source} is unavailable without an error`);
   }
   collector.expect(evidence?.summary?.runs === (evidence?.availability?.runs ? runs.length : null), "GitHub evidence run count is inconsistent");
-  collector.expect(evidence?.summary?.runsTruncated === (evidence?.availability?.runs ? runs.length === evidence?.limits?.runs : null), "GitHub evidence run truncation state is inconsistent");
+  const recentRunCount = evidence?.summary?.recentRuns ?? runs.length;
+  collector.expect(evidence?.summary?.runsTruncated === (evidence?.availability?.runs ? recentRunCount === evidence?.limits?.runs : null), "GitHub evidence run truncation state is inconsistent");
   collector.expect(evidence?.summary?.successfulRuns === (evidence?.availability?.runs ? runs.filter((run) => run.conclusion === "success").length : null), "GitHub evidence successful-run count is inconsistent");
   collector.expect(evidence?.summary?.releases === (evidence?.availability?.releases ? releases.length : null), "GitHub evidence release count is inconsistent");
   collector.expect(evidence?.summary?.prereleases === (evidence?.availability?.releases ? releases.filter((release) => release.isPrerelease).length : null), "GitHub evidence prerelease count is inconsistent");

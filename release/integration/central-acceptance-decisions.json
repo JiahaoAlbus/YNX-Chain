@@ -41,6 +41,16 @@
       "integrationCommit": "94acfeced03f5fcb829b06b7fce0dce8dacb4f11",
       "acceptedAt": "2026-07-29T22:28:25Z",
       "receipt": "release/integration/evidence/product-02-central-acceptance-94acfece.json"
+    },
+    {
+      "productId": "19",
+      "repository": "JiahaoAlbus/YNX-Chain",
+      "branch": "codex/final-oracle-market-data",
+      "status": "integratedCentral",
+      "acceptedSourceCommit": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+      "integrationCommit": "d364f9950c1f43fe84b046ec88b1978b9a4749e4",
+      "acceptedAt": "2026-07-30T05:28:00Z",
+      "receipt": "release/integration/evidence/product-19-central-acceptance-d364f995.json"
     }
   ]
 }

@@ -2,17 +2,17 @@
   "$schema": "./schemas/acceptance-matrix.schema.json",
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
-  "generatedAt": "2026-07-29T22:32:59.680Z",
-  "controllerSourceCommit": "a8f877cb507957d9bc5819fb1f9f648eca942770",
+  "generatedAt": "2026-07-30T06:07:56.401Z",
+  "controllerSourceCommit": "d364f9950c1f43fe84b046ec88b1978b9a4749e4",
   "repository": {
     "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
     "currentBranch": "codex/final-integration",
-    "localHead": "a8f877cb507957d9bc5819fb1f9f648eca942770",
+    "localHead": "d364f9950c1f43fe84b046ec88b1978b9a4749e4",
     "upstreamRef": "origin/codex/final-integration",
-    "remoteHead": "ec4080d8068eb7d1ba82b7df6abf198eed94d398",
-    "ahead": 79,
+    "remoteHead": "8d26e2aa8998753d085dd79e8ad834945ddd3de2",
+    "ahead": 51,
     "behind": 0,
-    "clean": true
+    "clean": false
   },
   "summary": {
     "totalProducts": 36,
@@ -24,9 +24,9 @@
     "syncedBranches": 35,
     "upstreamConfigured": 36,
     "implementedLocalCandidates": 4,
-    "inProgress": 28,
+    "inProgress": 27,
     "notStarted": 0,
-    "centrallyAccepted": 4
+    "centrallyAccepted": 5
   },
   "products": [
     {
@@ -757,15 +757,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
@@ -1052,15 +1052,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
@@ -1202,15 +1202,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": true,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
@@ -1349,15 +1349,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
@@ -1498,15 +1498,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
@@ -1646,15 +1646,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": true,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
@@ -2090,15 +2090,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
@@ -2723,8 +2723,8 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "f04c3a61b7783781febb04ea6786498eb02dfb85",
-        "remoteSha": "f04c3a61b7783781febb04ea6786498eb02dfb85",
+        "localSha": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+        "remoteSha": "a059d573ed128a704ec447561711a13cb1e3d9dd",
         "ahead": 0,
         "behind": 0,
         "upstreamConfigured": true,
@@ -2736,21 +2736,21 @@
       "worktree": {
         "registered": true,
         "pathToken": "19-oracle-market-data",
-        "observedHead": "f04c3a61b7783781febb04ea6786498eb02dfb85",
-        "clean": false,
-        "changedEntries": 1,
+        "observedHead": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+        "clean": true,
+        "changedEntries": 0,
         "statusError": null
       },
       "evidence": {
         "paths": {
           "fullGoalCoverage": ".ai-bridge/full-goal-coverage.json",
-          "productRelease": "release/product-release.json",
-          "publicMetadata": "release/public-product-metadata.json",
+          "productRelease": "release/oracle/product-release.json",
+          "publicMetadata": "release/oracle/public-product-metadata.json",
           "integrationContract": "release/integration/oracle-market-data-contract.json",
-          "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
-          "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-          "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
-          "releaseState": null,
+          "integrationHandoff": "docs/integration/ORACLE_INTEGRATION_HANDOFF.md",
+          "crossProductTestVectors": "docs/integration/ORACLE_CROSS_PRODUCT_TEST_VECTORS.json",
+          "dependencyAcceptance": "docs/integration/ORACLE_DEPENDENCY_ACCEPTANCE.md",
+          "releaseState": "release/oracle/product-state.json",
           "artifactRegistry": null
         },
         "coverage": {
@@ -2785,32 +2785,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "a3c3275c15f31a4f5de96c6f4ebce0b04245db79",
+            "sourceCommit": "8f4310988a6641c5b023497c74e901ff508771fe",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 5
+            "distance": 1
           },
           "productRelease": {
-            "sourceCommit": "6ba6c39a6661724e07205a265201ac7fa36c91bb",
+            "sourceCommit": "8f4310988a6641c5b023497c74e901ff508771fe",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 8
+            "distance": 1
           },
           "publicMetadata": {
-            "sourceCommit": "a3c3275c15f31a4f5de96c6f4ebce0b04245db79",
+            "sourceCommit": "8f4310988a6641c5b023497c74e901ff508771fe",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 5
+            "distance": 1
           },
           "integrationContract": {
-            "sourceCommit": "f71d5ca5c2ede28477fbadff36701a9f040e311f",
+            "sourceCommit": "8f4310988a6641c5b023497c74e901ff508771fe",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 18
+            "distance": 1
           }
         },
         "release": {
@@ -2818,38 +2818,36 @@
           "version": "0.1.0-testnet",
           "channel": "testnet-candidate",
           "environment": null,
-          "sourceCommit": "6ba6c39a6661724e07205a265201ac7fa36c91bb",
+          "sourceCommit": "8f4310988a6641c5b023497c74e901ff508771fe",
           "releasedAt": null,
           "releaseStatus": null,
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": true,
+          "integratedCentral": false,
+          "deployedStaging": true,
+          "deployedPublic": true,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
       },
       "centralAcceptance": {
-        "status": "inProgress",
-        "reason": "A candidate final branch exists, but synchronization, worktree protection or the required evidence bundle is incomplete.",
-        "acceptedSourceCommit": null,
+        "status": "integratedCentral",
+        "reason": "The synchronized owner source, clean worktree, required evidence, exact-head CI, central merge ancestry and central test receipt all passed.",
+        "acceptedSourceCommit": "a059d573ed128a704ec447561711a13cb1e3d9dd",
         "acceptedBy": "29-integration",
-        "acceptedAt": null,
-        "decisionEvidence": null,
-        "integrationCommit": null
+        "acceptedAt": "2026-07-30T05:28:00Z",
+        "decisionEvidence": "release/integration/evidence/product-19-central-acceptance-d364f995.json",
+        "integrationCommit": "d364f9950c1f43fe84b046ec88b1978b9a4749e4"
       },
-      "blockers": [
-        "registered final worktree has uncommitted changes"
-      ],
-      "nextAction": "Resolve: registered final worktree has uncommitted changes."
+      "blockers": [],
+      "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release."
     },
     {
       "id": "20",
@@ -3711,15 +3709,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
+          "implementedLocal": true,
+          "testedLocal": true,
           "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
@@ -4000,15 +3998,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": false,
+          "testedLocal": false,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
@@ -4196,9 +4194,9 @@
       "refs": {
         "localExists": true,
         "remoteExists": true,
-        "localSha": "a8f877cb507957d9bc5819fb1f9f648eca942770",
-        "remoteSha": "ec4080d8068eb7d1ba82b7df6abf198eed94d398",
-        "ahead": 79,
+        "localSha": "d364f9950c1f43fe84b046ec88b1978b9a4749e4",
+        "remoteSha": "8d26e2aa8998753d085dd79e8ad834945ddd3de2",
+        "ahead": 51,
         "behind": 0,
         "upstreamConfigured": true,
         "upstreamRef": "origin/codex/final-integration",
@@ -4209,9 +4207,9 @@
       "worktree": {
         "registered": true,
         "pathToken": "29-integration",
-        "observedHead": "a8f877cb507957d9bc5819fb1f9f648eca942770",
-        "clean": true,
-        "changedEntries": 0,
+        "observedHead": "d364f9950c1f43fe84b046ec88b1978b9a4749e4",
+        "clean": false,
+        "changedEntries": 8,
         "statusError": null
       },
       "evidence": {
@@ -4258,32 +4256,32 @@
         },
         "sourceBindings": {
           "fullGoalCoverage": {
-            "sourceCommit": "94acfeced03f5fcb829b06b7fce0dce8dacb4f11",
+            "sourceCommit": "a8f877cb507957d9bc5819fb1f9f648eca942770",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 1
+            "distance": 53
           },
           "productRelease": {
             "sourceCommit": "1982e28052aa9816915af594da056750fa47dbfe",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 219
+            "distance": 272
           },
           "publicMetadata": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 224
+            "distance": 277
           },
           "integrationContract": {
             "sourceCommit": "3ee6477d82ecffea954387ce88135793bddb1271",
             "valid": true,
             "exact": false,
             "reachable": true,
-            "distance": 224
+            "distance": 277
           }
         },
         "release": {
@@ -4321,6 +4319,7 @@
       },
       "blockers": [
         "local and remote final branch SHAs differ",
+        "registered final worktree has uncommitted changes",
         "full-goal coverage has 51 autonomous or unresolved items"
       ],
       "nextAction": "Resolve: local and remote final branch SHAs differ."
@@ -5121,15 +5120,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false
@@ -5574,15 +5573,15 @@
           "publicEvidence": []
         },
         "claimedReleaseStates": {
-          "implementedLocal": null,
-          "testedLocal": null,
-          "installedLocal": null,
-          "integratedCentral": null,
-          "deployedStaging": null,
-          "deployedPublic": null,
-          "downloadHosted": null,
-          "productionSigned": null,
-          "storeReleased": null
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
         },
         "artifacts": [],
         "exactCommitBound": false

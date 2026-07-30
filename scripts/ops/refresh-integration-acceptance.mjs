@@ -338,7 +338,10 @@ function sourceBinding(record, tipCommit, cwd = root) {
 
 function extractReleaseStates(record) {
   const result = {};
-  const states = record?.states ?? record?.releaseStates ?? record?.releaseStatus ?? {};
+  const nestedCandidates = [record?.states, record?.releaseStates, record?.releaseStatus];
+  const states = nestedCandidates.find((candidate) => candidate && typeof candidate === "object" && !Array.isArray(candidate))
+    ?? record
+    ?? {};
   for (const key of releaseStateKeys) {
     result[key] = typeof states?.[key] === "boolean" ? states[key] : null;
   }
@@ -569,6 +572,10 @@ function runSelfTest() {
   const head = refSha("HEAD");
   const binding = sourceBinding({ sourceCommit: head }, head);
   if (!binding.valid || !binding.exact || binding.distance !== 0) fail("source binding self-test failed");
+  const directStates = extractReleaseStates({ testedLocal: true, releaseStatus: "source-candidate" });
+  if (directStates.testedLocal !== true) fail("direct release-state extraction self-test failed");
+  const nestedStates = extractReleaseStates({ releaseStatus: { testedLocal: true } });
+  if (nestedStates.testedLocal !== true) fail("nested release-state extraction self-test failed");
   console.log("integration acceptance refresh self-test passed");
 }
 
@@ -611,7 +618,7 @@ function artifactClassHints(name) {
   };
 }
 
-function collectGithubEvidence(controllerSourceCommit, generatedAt) {
+function collectGithubEvidence(controllerSourceCommit, generatedAt, decisions) {
   const runResult = parseGithubJson(githubQuery([
     "run", "list", "--repo", githubRepository, "--limit", "200", "--json",
     "databaseId,name,workflowName,headBranch,headSha,status,conclusion,event,createdAt,updatedAt,url"
@@ -624,7 +631,45 @@ function collectGithubEvidence(controllerSourceCommit, generatedAt) {
     "api", `repos/${githubRepository}/actions/artifacts`, "--paginate", "--slurp"
   ]), "Artifacts");
 
-  const runs = Array.isArray(runResult.data) ? runResult.data : [];
+  const recentRuns = Array.isArray(runResult.data) ? runResult.data : [];
+  const exactHeadQueries = {};
+  const supplementalRuns = [];
+  for (const decision of decisions.decisions) {
+    if (recentRuns.some((run) => run.headSha === decision.acceptedSourceCommit)) {
+      exactHeadQueries[decision.productId] = {
+        branch: decision.branch,
+        sourceCommit: decision.acceptedSourceCommit,
+        queried: false,
+        availableInRecentWindow: true,
+        ok: true,
+        attempts: 0,
+        error: null,
+        matchingRuns: recentRuns.filter((run) => run.headSha === decision.acceptedSourceCommit).length
+      };
+      continue;
+    }
+    const exactResult = parseGithubJson(githubQuery([
+      "run", "list", "--repo", githubRepository, "--branch", decision.branch, "--limit", "100", "--json",
+      "databaseId,name,workflowName,headBranch,headSha,status,conclusion,event,createdAt,updatedAt,url"
+    ]), `Actions runs for ${decision.branch}`);
+    const matchingRuns = Array.isArray(exactResult.data)
+      ? exactResult.data.filter((run) => run.headSha === decision.acceptedSourceCommit)
+      : [];
+    supplementalRuns.push(...matchingRuns);
+    exactHeadQueries[decision.productId] = {
+      branch: decision.branch,
+      sourceCommit: decision.acceptedSourceCommit,
+      queried: true,
+      availableInRecentWindow: false,
+      ok: exactResult.ok,
+      attempts: exactResult.attempts,
+      error: exactResult.error,
+      matchingRuns: matchingRuns.length
+    };
+  }
+  const runsById = new Map();
+  for (const run of [...recentRuns, ...supplementalRuns]) runsById.set(run.databaseId, run);
+  const runs = [...runsById.values()];
   const releases = Array.isArray(releaseResult.data) ? releaseResult.data : [];
   const artifactPages = Array.isArray(artifactResult.data) ? artifactResult.data : [];
   const artifacts = artifactPages.flatMap((page) => page?.artifacts ?? []).map((artifact) => ({
@@ -649,6 +694,7 @@ function collectGithubEvidence(controllerSourceCommit, generatedAt) {
     controllerSourceCommit,
     limits: {
       runs: 200,
+      exactHeadRunsPerBranch: 100,
       releases: 100,
       artifactPagination: true
     },
@@ -659,6 +705,7 @@ function collectGithubEvidence(controllerSourceCommit, generatedAt) {
     },
     queryAttempts: {
       runs: runResult.attempts,
+      exactHeadRuns: exactHeadQueries,
       releases: releaseResult.attempts,
       artifacts: artifactResult.attempts
     },
@@ -669,7 +716,9 @@ function collectGithubEvidence(controllerSourceCommit, generatedAt) {
     },
     summary: {
       runs: runResult.ok ? runs.length : null,
-      runsTruncated: runResult.ok ? runs.length === 200 : null,
+      recentRuns: runResult.ok ? recentRuns.length : null,
+      supplementalExactHeadRuns: runResult.ok ? supplementalRuns.length : null,
+      runsTruncated: runResult.ok ? recentRuns.length === 200 : null,
       successfulRuns: runResult.ok ? runs.filter((run) => run.conclusion === "success").length : null,
       releases: releaseResult.ok ? releases.length : null,
       prereleases: releaseResult.ok ? releases.filter((release) => release.isPrerelease).length : null,
@@ -696,7 +745,7 @@ function main() {
   const controllerSourceCommit = refSha("HEAD");
   if (!controllerSourceCommit) fail("unable to resolve HEAD");
   const githubEvidence = args.has("--github")
-    ? collectGithubEvidence(controllerSourceCommit, generatedAt)
+    ? collectGithubEvidence(controllerSourceCommit, generatedAt, decisions)
     : readJson(githubEvidencePath);
   const currentBranch = git(["branch", "--show-current"]).trim();
   const upstreamRefRaw = git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], { allowFailure: true });
