@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-trust-center",
+  "productClientId": "ynx-trust-center-v1",
+  "packageId": "com.ynxweb4.trust",
+  "callback": "ynxtrust://wallet-auth/callback",
+  "walletProtocol": "wallet-auth-v1",
+  "completionRoute": "POST /app/session/wallet-v1/complete",
+  "revocationRoute": "POST /app/session/wallet-v1/revoke",
+  "productCompletionRoute": "POST /api/auth/session/complete",
+  "authorityRoutes": ["/app/trust/*", "/app/governance/*"],
+  "registryFile": "canonical-wallet-registry.json",
+  "testVectorFile": "canonical-wallet-v1-test-vector.json",
+  "centralPackage": "@ynx-chain/wallet-auth",
+  "centralVerifier": "verifyCentralWalletSession",
+  "sessionGuard": "assertCentralWalletSessionActive",
+  "unknownFields": "reject",
+  "transactionBoundary": ["registry read", "nonce consume", "request digest replay consume", "session write", "revocation read"],
+  "integratedCentral": false,
+  "reason": "Registry, Gateway routes and authoritative Trust/Governance routes are not merged or deployed in the central worktree. Product adapter fails closed."
+}

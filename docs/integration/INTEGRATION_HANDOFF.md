@@ -1,55 +1,56 @@
-# Governance Integration Handoff
+# YNX Resource Market integration handoff
 
-Owner: `31-governance`  
-Source commit: `cd328bd5817f32efba259e0ad8948f202ebaf654`  
-Branch: `codex/final-governance`  
-Lifecycle: `ACTIVE`  
-Current phase: `INTEGRATE`
+## Identity
 
-## Accepted local facts
+- Product owner: `16-resource-market`
+- Contract: `release/integration/resource-market-contract.json`
+- Contract version: `resource-market-integration-v1`
+- Implementation source: `a940d2efa824bd9f43522ed792c9a563b55e1e11`
+- Current phase: `FREEZE → INTEGRATE`
+- Current product status: local candidate; not centrally integrated, staged, public, production-signed or store-released.
 
-- Governance owns proposal, vote, delegation, timelock, upgrade, canary,
-  emergency, appeal and governance-audit semantics.
-- The authoritative parameter and role registries fail closed on drift.
-- Signed execution intents use the Chain Core / Comet adapter and receipt
-  verification binds transaction, block, state root, manifest, source, outcome
-  and audit identity.
-- The multiprocess four-validator lifecycle is local Testnet evidence. It is not
-  a public-chain transaction or public deployment.
-- The standalone read-only UI consumes real public APIs and contains no fake
-  Wallet or unsigned-vote success path.
+## Authority split
 
-## Central acceptance boundary
+Resource Market owns provider registration, verified capacity, offers, matching, auctions, reservation, service lifecycle, signed usage metering and local dispute evidence. It does not own Wallet identity, asset finality, billing-ledger authority, public Explorer proof, central monitoring, public Website entry or protocol freeze.
 
-Integration may accept this source only after the exact Wallet/Product Session,
-Data Fabric events, Explorer receipt lookup, Monitor alerts, Trust appeal,
-Security/SRE custody and public Website status contracts pass together.
-Governance must not implement compatibility auth, a second ledger, a second
-release authority or direct signer custody.
+A quote, accepted intent, reservation, service start, meter, service completion, HTTP success or provider statement is never asset settlement. Reservations are bound to the exact Offer referenced by the accepted Quote; capacity from a sibling Offer cannot satisfy or release that reservation. Settlement is accepted only when an authorized settlement identity supplies a non-empty asset, transaction hash, evidence and source; amounts exactly reconcile to signed meters; the order is `settlement_pending`; and the normalized transaction hash has not already been consumed by another receipt.
 
-## Required central actions
+## Canonical integration inputs
 
-1. Register the exact Governance product binding in Wallet/Auth and App Gateway.
-2. Register the canonical Governance events with Data Fabric.
-3. Index proposal, vote, timelock, execution, rollback and emergency evidence.
-4. Alert on stuck timelocks, failed canaries, receipt mismatch and emergency
-   expiry.
-5. Link correction and appeal evidence through Trust without granting Trust
-   governance execution authority.
-6. Execute the cross-product vectors in this directory and retain exact receipts.
+- Wallet registry: `apps/resource-market/integration/canonical-wallet-registry.json`
+- Wallet vectors: `apps/resource-market/integration/canonical-wallet-v1-test-vector.json`
+- Existing central manifest: `apps/resource-market/integration/central-integration-manifest.json`
+- Frozen product contract: `release/integration/resource-market-contract.json`
+- Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 
-## Website acceptance evidence
+## Required central behavior
 
-A bounded public probe on 2026-07-29 found that `https://ynxweb4.com/governance`
-redirects to `https://www.ynxweb4.com/governance` and returns HTTP 200, but the
-HTML is the generic root application shell with title `YNX Chain — Web4 Layer-1
-Ecosystem` and canonical `https://ynxweb4.com/`. This is not a Governance
-product page and does not satisfy public deployment or Website acceptance.
+1. Product 02 registers the exact client, bundle, callback, ordered scopes and P-256 product-device algorithm.
+2. Product 29 freezes the exact method/path/body product-session proof semantics and one-to-one proxy route mapping.
+3. Product 01 provides authoritative transaction finality and settlement evidence; product 16 does not infer finality.
+4. Product 26 accepts only signed-meter and confirmed-settlement events, preserving idempotency and lineage.
+5. Product 12 exposes public receipt evidence only after authoritative settlement.
+6. Product 13 alerts on stale providers, metering failures, settlement reconciliation failure and receipt replay rejection.
+7. Product 15 links provider failure and dispute/appeal evidence without gaining asset authority.
+8. Product 28 publishes only release states that have direct evidence.
 
-Product 28 must consume `release/governance/public-product-metadata.json` and
-`release/governance/product-release.json`, render a Governance-specific title,
-canonical URL, H1, status, evidence, API, support and security destinations, and
-expose the accepted source commit. The raw machine-readable observation is
-`release/evidence/governance-public-route-probe-2026-07-29.json`.
+## Stable errors
 
-Public, production, Mainnet, audit and independent-acceptance states remain false.
+The product returns a stable `code` with `errorId`, `requestId` and `traceId`. Settlement integrations must preserve at least:
+
+- `RESOURCE_SELF_DEALING_REJECTED`
+- `RESOURCE_AMOUNT_OUT_OF_RANGE`
+- `RESOURCE_CAPACITY_UNAVAILABLE`
+- `RESOURCE_METER_WINDOW_INVALID`
+- `RESOURCE_METER_LIMIT`
+- `RESOURCE_SETTLEMENT_STATE_INVALID`
+- `RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED`
+- `RESOURCE_SETTLEMENT_RECONCILIATION`
+- `RESOURCE_SETTLEMENT_REPLAY`
+
+No consumer may translate these failures into success, paid, settled or refunded.
+
+## Acceptance gate
+
+Central integration remains false until every applicable dependency row in `DEPENDENCY_ACCEPTANCE.md` has direct evidence and the vectors in `CROSS_PRODUCT_TEST_VECTORS.json` pass against deployed Testnet services. Local tests are not public or central proof.

@@ -1,34 +1,25 @@
-# DECISION LOG
+# Decision Log
 
-Updated: 2026-07-29T02:42:52Z
+## 2026-07-29 — Synchronize with current main before further release work
 
-## 2026-07-29 — Product identity recovery
+Merged `origin/main` at `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc` into `codex/final-resource-market`. Product-owned `.ai-bridge` recovery state was retained; the shared root operator-input registry remained owned by main; Resource Market-specific operator inputs were moved to `apps/resource-market/operator-inputs.request.json`.
 
-- Accepted Fable5 Product 31 because MCP `YNX_31`, worktree `31-governance`, branch `codex/final-governance`, and remote `JiahaoAlbus/YNX-Chain` matched exactly.
-- Rejected `.ai-bridge/current-plan.md` as recovery authority because it names Product 18 and a different worktree.
+Rationale: the branch was 78 commits behind main and a release candidate without current shared runtime/governance/monitoring changes would not be integration-ready.
 
-## 2026-07-29 — CI portability repair
+## 2026-07-29 — Preserve stricter placeholder detection with portable fallback
 
-- Root cause: Playwright always launched `/Applications/Google Chrome.app/...`, causing Linux Actions to fail.
-- Decision: use `YNX_GOVERNANCE_BROWSER_EXECUTABLE` when explicitly configured, use installed Google Chrome on macOS when present, and otherwise use Playwright-managed Chromium.
-- Decision: install Playwright Chromium explicitly in the Governance Actions workflow.
-- Result: local browser gate passed and Actions run `30416918267` succeeded on `4e6c67488e81f5ec82995de81dd25a33861d7dc3`.
+The merged `scripts/validate/no-placeholder-check.sh` keeps the Resource Market branch's broader fake-claim patterns and `.github`/`apps` coverage, while retaining main's `grep` fallback. Generated dependency/build directories are excluded from both scanners.
 
-## 2026-07-29 — Central main reconciliation
+Rationale: scan source and controlled documentation, not third-party package examples; fail on scanner errors instead of silently succeeding.
 
-- `origin/main` contained PR #9 plus central governance-preflight integration that the product branch lacked.
-- Decision: merge `origin/main` into the product branch rather than rebase/reset, preserving all concurrent history.
-- One conflict existed in `scripts/verify/governance-check.sh`.
-- Resolution: retain governance browser verification and timeout/offline npm-audit fallback while accepting the central Makefile and preflight wiring.
-- Result: post-merge local governance verification passed.
+## 2026-07-29 — Treat local and public states separately
 
-## 2026-07-29 — Release truth boundary
+`implementedLocal`/component evidence may be recorded only for directly tested local behavior. Central integration, public deployment, authoritative settlement, hosted download, production signing and store release remain false.
 
-- Existing prerelease `governance-v0.3.0-integration.1` remains a valid historical integration candidate tied to `340e6a8a3eecd973145677bde0879a918e3924ed`.
-- It must not be promoted as the current branch release because later UI, gRPC, evidence, CI-portability, and preflight commits are not included.
-- No new release will be published until the exact accepted candidate SHA has successful CI, central integration acceptance, refreshed artifacts, SBOM, provenance, and release records.
+Rationale: PR, CI, local smoke, handoff creation, and HTTP fixtures are not equivalent to deployed authority or public availability.
 
-## 2026-07-29 — Concurrent local Testnet process
+## 2026-07-29 — Bind release evidence to tested source, not the later metadata commit
 
-- A local governance Testnet drill occupied port `31656` and originated from another active MCP execution in the same worktree.
-- Decision: preserve it and do not terminate it, because ownership of the active process could not be safely attributed to this execution.
+`apps/resource-market/product-release.json` and public metadata bind source SHA `d683c7d28ce129daad358c84680e5980cf8ad069`, the exact candidate tested by successful GitHub Actions run `30417957999`. The subsequent checkpoint/evidence commit is administrative and must not replace the tested source identity.
+
+Rationale: avoids circular self-referential metadata and preserves a verifiable source-to-CI relationship.

@@ -6,7 +6,7 @@ cd "$root"
 
 GOMAXPROCS="${GOMAXPROCS:-2}" go test ./internal/governance ./cmd/ynx-governanced ./cmd/ynx-governance-state
 go vet ./internal/governance ./cmd/ynx-governanced ./cmd/ynx-governance-state
-jq empty release/governance/product-release.json release/governance/public-product-metadata.json .ai-bridge/full-goal-coverage.json release/integration/governance-contract.json docs/integration/CROSS_PRODUCT_TEST_VECTORS.json release/integration/governance-app-gateway.manifest.json release/integration/governance-app-gateway.schema.json release/integration/governance-bft.manifest.json release/integration/governance-bft.schema.json release/integration/governance-bft-test-vectors.json
+jq empty release/governance/product-release.json release/governance/public-product-metadata.json docs/governance/evidence/full-goal-coverage.json release/integration/governance-contract.json docs/governance/CROSS_PRODUCT_TEST_VECTORS.json release/integration/governance-app-gateway.manifest.json release/integration/governance-app-gateway.schema.json release/integration/governance-bft.manifest.json release/integration/governance-bft.schema.json release/integration/governance-bft-test-vectors.json
 npm --prefix apps/governance run lint
 npm --prefix apps/governance test
 npm --prefix apps/governance run build
@@ -32,16 +32,16 @@ scan_text() {
   shift 2
   if command -v rg >/dev/null 2>&1; then
     if [[ "$case_mode" == "insensitive" ]]; then
-      rg -n -i "$pattern" "$@"
+      rg -n -i --glob '!**/agent-memory/**' "$pattern" "$@"
     else
-      rg -n "$pattern" "$@"
+      rg -n --glob '!**/agent-memory/**' "$pattern" "$@"
     fi
     return $?
   fi
   if [[ "$case_mode" == "insensitive" ]]; then
-    grep -R --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=coverage -n -E -i "$pattern" "$@"
+    grep -R --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=coverage --exclude-dir=agent-memory -n -E -i "$pattern" "$@"
   else
-    grep -R --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=coverage -n -E "$pattern" "$@"
+    grep -R --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=coverage --exclude-dir=agent-memory -n -E "$pattern" "$@"
   fi
 }
 

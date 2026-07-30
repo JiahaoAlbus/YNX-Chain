@@ -1,25 +1,18 @@
-# LAST SUCCESS
+# Last Success
 
-Updated: 2026-07-29T02:42:52Z
+At `2026-07-29T02:53:32Z`, GitHub Actions completed Resource Market Candidate Gates run `30417957999` successfully for source SHA `d683c7d28ce129daad358c84680e5980cf8ad069` on PR `#12`.
 
-## Most recent verified engineering success
+The run directly verified:
 
-- Recovery basis: `cd328bd5817f32efba259e0ad8948f202ebaf654`
-- Branch: `codex/final-governance`
-- `origin/main` was merged without discarding either side.
-- The sole merge conflict in `scripts/verify/governance-check.sh` was resolved by preserving both the governance browser gate and the robust npm-audit fallback while accepting central preflight integration.
-- `bash ./scripts/verify/governance-check.sh` passed after the merge.
+- placeholder and secret gates;
+- Go correctness, Race and Vet gates;
+- `govulncheck` for the Resource Market dependency surface;
+- locked npm install and high-severity audit;
+- Playwright browser tests;
+- local API and DAST smoke on Ubuntu;
+- candidate binary build with VCS metadata;
+- SHA-256 output;
+- Go dependency inventory;
+- SPDX npm SBOM generation.
 
-## Most recent exact-SHA CI success
-
-- SHA: `cd328bd5817f32efba259e0ad8948f202ebaf654`
-- Workflow: `governance`
-- Run: `30417486460`
-- Result: `success`
-- Included successful Playwright Chromium installation, governance control-plane verification, and four-validator governance Testnet lifecycle after reconciliation with `origin/main`.
-- The immediately preceding portability-fix SHA `4e6c67488e81f5ec82995de81dd25a33861d7dc3` also passed in run `30416918267`.
-
-## Protected remote recovery point
-
-- Local and remote branch matched at `cd328bd5817f32efba259e0ad8948f202ebaf654` before Agent Memory files were written.
-- No existing dirty changes were deleted or reset.
+General CI, docs compliance, and the Resource Market iOS Simulator build also succeeded for the same PR head. No public deployment, authoritative settlement, production signature, hosted download, or release publication was established by these runs.

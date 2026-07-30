@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-resource-market",
+  "allowedPackageScripts": {
+    "test:ui": "playwright test"
+  },
+  "allowedBuildEntrypoints": [
+    "go build -trimpath -buildvcs=true ./apps/resource-market",
+    "go test ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market",
+    "go test -race ./internal/resourcemarket ./internal/resourceproduct",
+    "bash apps/resource-market/check.sh",
+    "bash scripts/verify/resource-market-capacity.sh"
+  ],
+  "installPolicy": "npm ci --ignore-scripts",
+  "postinstallScriptsAllowed": false,
+  "minimumPatchedGoToolchain": "1.25.12"
+}

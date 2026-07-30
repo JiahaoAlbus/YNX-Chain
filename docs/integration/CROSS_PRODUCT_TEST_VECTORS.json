@@ -1,77 +1,141 @@
 {
-  "schemaVersion": "1.0.0",
-  "productId": "31",
-  "product": "YNX Governance & Protocol Control",
-  "owner": "31-governance",
-  "sourceCommit": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
+  "schemaVersion": 1,
+  "contractVersion": "resource-market-integration-v1",
+  "product": "ynx-resource-market",
+  "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
   "vectors": [
     {
-      "id": "GOV-CP-001",
-      "flow": "Wallet -> Governance -> Timelock -> Canary -> Chain -> Explorer",
-      "status": "testedLocal",
-      "happyPath": [
-        "Wallet/Auth proves the exact governance Product Session and device",
-        "an eligible signed proposal and vote reach the approved state",
-        "the exact action survives timelock and signed canary checks",
-        "Chain Core commits the execution intent",
-        "Governance verifies the exact receipt and Explorer indexes it"
-      ],
-      "negativeCases": [
-        "wrong product, device, scope, expiry or revoked session is rejected before mutation",
-        "out-of-bounds parameter or changed ActionHash is rejected",
-        "early, expired, duplicate or failed-canary execution is rejected",
-        "receipt, manifest, block, state-root or audit mismatch is rejected"
-      ],
-      "requiredEvidence": [
-        "Wallet introspection record",
-        "proposal, vote, timelock and canary audit records",
-        "Chain transaction and execution receipt",
-        "Explorer lookup and Monitor alert state"
-      ]
+      "id": "RM-AUTH-WRONG-PRODUCT-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "16-resource-market"],
+      "precondition": "A valid product-session proof was issued for a different requestingProduct or productClientId.",
+      "action": "Submit the proof to POST /api/market/actions.",
+      "expectedHttpStatus": 401,
+      "expectedCode": "RESOURCE_REQUEST_REJECTED",
+      "expectedState": "no mutation; proof not accepted for Resource Market",
+      "publicClaimAllowed": false
     },
     {
-      "id": "GOV-CP-002",
-      "flow": "Emergency -> Expiry -> Follow-up Vote -> Trust Transparency",
-      "status": "testedLocal",
-      "happyPath": [
-        "a scoped council threshold creates a temporary emergency action",
-        "the pause applies only to the approved target and maximum duration",
-        "expiry closes emergency authority",
-        "the mandatory follow-up proposal and Trust transparency record remain public"
-      ],
-      "negativeCases": [
-        "asset transfer, arbitrary mint or mandate restoration is rejected",
-        "single-member or wrong-scope approval is rejected",
-        "duration widening and hidden closure are rejected"
-      ],
-      "requiredEvidence": [
-        "council threshold and scope record",
-        "emergency creation and expiry audit",
-        "follow-up vote",
-        "Trust correction or appeal link"
-      ]
+      "id": "RM-AUTH-REPLAY-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "16-resource-market"],
+      "precondition": "A valid exact-method/path/body product-session proof has already been consumed once.",
+      "action": "Replay the same proof against the same request.",
+      "expectedHttpStatus": 401,
+      "expectedCode": "RESOURCE_REQUEST_REJECTED",
+      "expectedState": "no second mutation; replay set remains persisted",
+      "publicClaimAllowed": false
     },
     {
-      "id": "GOV-CP-003",
-      "flow": "Upgrade -> Canary Failure -> Rollback",
-      "status": "testedLocal",
-      "happyPath": [
-        "the proposal binds source, release, manifest, migration and rollback",
-        "the signed canary reports a threshold failure",
-        "execution remains blocked",
-        "rollback evidence is verified and archived"
-      ],
-      "negativeCases": [
-        "duplicate manifest or active-scope conflict is rejected",
-        "unsigned or wrong-manifest canary result is rejected",
-        "rollback receipt mismatch is rejected"
-      ],
-      "requiredEvidence": [
-        "upgrade manifest digest",
-        "signed canary samples",
-        "failed execution or rollback receipt",
-        "post-rollback health and state-root evidence"
-      ]
+      "id": "RM-SETTLEMENT-PREMATURE-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "16-resource-market"],
+      "precondition": "Order is accepted, capacity_reserved, service_started, metered_usage or service_completed but not settlement_pending.",
+      "action": "Settlement authority submits confirm_settlement.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_STATE_INVALID",
+      "expectedState": "order state unchanged; no receipt created; capacity not released",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-SETTLEMENT-RECONCILE-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "16-resource-market", "26-data-fabric"],
+      "precondition": "Order is settlement_pending with signed metering totals.",
+      "action": "Settlement authority submits a receipt whose grossCost, providerNet or protocolFee differs from signed metering.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_RECONCILIATION",
+      "expectedState": "order remains settlement_pending; no receipt created; reserved capacity retained",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-SETTLEMENT-REPLAY-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "12-explorer", "16-resource-market", "26-data-fabric"],
+      "precondition": "A normalized transaction hash has already been consumed by an existing Resource Market receipt.",
+      "action": "Settlement authority submits the same transaction hash with different case or surrounding whitespace for another order.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_REPLAY",
+      "expectedEngineErrorContains": "already consumed",
+      "expectedState": "second order remains settlement_pending; no second receipt created; no double capacity release",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-METER-TAMPER-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "Provider worker key is active and a canonical meter payload was signed.",
+      "action": "Change quantity, interval, order, provider, source or signature before record_usage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_PROOF_REJECTED",
+      "expectedState": "no meter, billing event or order transition",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-METER-OVERLAP-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "At least one signed usage interval is already accepted for the order.",
+      "action": "Submit another interval that overlaps any accepted interval or begins before evidenced service start.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_METER_WINDOW_INVALID",
+      "expectedState": "no additional meter or billing event; accepted usage remains unchanged",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-METER-LIMIT-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "The order already contains one or more accepted signed usage segments.",
+      "action": "Submit a segment that makes cumulative usage exceed ordered units or breaks cumulative fee lineage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_METER_LIMIT",
+      "expectedState": "no additional meter; cumulative quantity and fee totals remain bounded",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-MATCH-SELF-DEAL-001",
+      "category": "matching",
+      "owners": ["16-resource-market", "29-integration"],
+      "precondition": "The authenticated buyer wallet is the wallet that owns the selected provider offer.",
+      "action": "Create a fixed-price quote or submit an auction bid for the provider's own capacity.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SELF_DEALING_REJECTED",
+      "expectedState": "no quote, bid, order, reservation, usage or settlement mutation",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-CAPACITY-OFFER-SCOPE-001",
+      "category": "capacity",
+      "owners": ["16-resource-market", "29-integration"],
+      "precondition": "One provider publishes two offers for the same resource and the first offer is fully reserved while the second retains capacity.",
+      "action": "Request or reserve additional units against the exhausted first offer.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_CAPACITY_UNAVAILABLE",
+      "expectedState": "the exhausted offer remains unavailable; sibling offer capacity is not borrowed; existing reservations remain unchanged",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-BILLING-OVERFLOW-001",
+      "category": "billing-integrity",
+      "owners": ["16-resource-market", "26-data-fabric", "29-integration"],
+      "precondition": "A requested quote, auction allocation, signed meter aggregation, settlement aggregation or dispute refund calculation would exceed the non-negative signed 64-bit amount range.",
+      "action": "Execute the affected market action with an authenticated product session and otherwise valid lineage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_AMOUNT_OUT_OF_RANGE",
+      "expectedState": "no quote, bid clearing, meter, receipt, refund, reservation release or dispute decision mutation",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-FAILURE-NO-FAKE-REFUND-001",
+      "category": "failure-dispute",
+      "owners": ["15-trust-center", "16-resource-market", "26-data-fabric"],
+      "precondition": "Provider reports failure for an active reserved order.",
+      "action": "Observe order, receipt and dispute state before an independently evidenced final decision and authoritative refund transaction.",
+      "expectedHttpStatus": 200,
+      "expectedCode": null,
+      "expectedState": "order becomes provider_failed; reservation releases; no receipt or refund is fabricated; dispute may be opened",
+      "publicClaimAllowed": true
     }
   ]
 }

@@ -1,20 +1,28 @@
-# Governance Dependency Acceptance
+# YNX Resource Market dependency acceptance
 
-Source commit: `cd328bd5817f32efba259e0ad8948f202ebaf654`
+No dependency is accepted from file existence, HTTP 200, local mocks or documentation alone. Each row requires direct Testnet or deployment evidence bound to an immutable source commit.
 
-| Dependency | Owner | Required evidence | Current state |
-| --- | --- | --- | --- |
-| Network identity and execution receipt | 01 Chain Core | signed intent inclusion, exact receipt, rollback and four-validator identity | local adapter tested; shared Testnet pending |
-| Wallet identity and Product Session | 02 Wallet/Auth | exact product/device/scope/expiry/revoke vectors | manifest defined; central acceptance pending |
-| Economics and parameter ownership | 17 Tokenomics | bounded fee, issuance, treasury and reserve parameters | registry bounds local; owner acceptance pending |
-| Explorer | 12 Explorer | proposal and execution receipt indexing | pending |
-| Monitor | 13 Monitor | timelock, canary, receipt and emergency alerts | pending |
-| Trust | 15 Trust Center | correction, appeal and transparency linkage | local appeal adapter only |
-| Canonical events | 26 Data Fabric | versioned event registration, ordering and replay behavior | pending |
-| Integration | 29 Integration | conflict resolution and accepted source commit | pending |
-| Security and signer custody | 30 Security/SRE | custody, artifact, restore and incident evidence | local candidate present; production acceptance pending |
-| Public website | 28 Website | Governance-specific canonical route, title, H1, status, evidence, API, support and security destinations | HTTP 200 currently serves the generic root shell; product-page acceptance failed |
+| Owner | Required contract | Current status | Acceptance evidence required | Failure behavior |
+| --- | --- | --- | --- | --- |
+| 01 Chain Core | Authoritative transaction finality, unique transaction identity and settlement receipt evidence | External blocked | Deployed Testnet endpoint; final transaction hash; asset, amount and finality proof; negative replay and mismatch vectors | Keep order `settlement_pending`; never create receipt or release capacity |
+| 02 Wallet/Auth | Exact Resource Market registry, challenge, completion, introspection, expiry and revocation | External blocked | Registry merge commit; deployed Gateway; wrong-product, wrong-device, scope-widening, expiry, revoke and replay results | Reject product session and perform no mutation |
+| 12 Explorer | Public transaction, receipt and source-commit proof | External blocked | Public HTTPS transaction/receipt URL linked to authoritative settlement | Do not claim public settlement evidence |
+| 13 Monitor | Provider health, stale capacity, meter failure, settlement mismatch/replay and incident alerts | External blocked | Deployed alert rules, triggered negative vectors, incident and recovery evidence | Product remains locally observable only |
+| 15 Trust Center | Provider failure, dispute, notice, appeal and correction linkage | Locally implemented, central acceptance pending | Cross-product case IDs and final decision evidence without asset authority | Keep dispute local and do not infer refund |
+| 26 Data Fabric | Canonical usage, billing, fee and settlement events with idempotent lineage | External blocked | Event schema freeze, replay-safe ingestion, meter/receipt reconciliation and ledger query evidence | Do not emit or claim authoritative billing ledger state |
+| 28 Website | `/resource-market` public entry, support/privacy/security/status routes, metadata and downloads | External blocked | Deployed canonical route, remote smoke, indexability and immutable artifact URLs | Keep all public and hosted release booleans false |
+| 29 Integration | Freeze contract version, owner, events, errors, vectors and shared Testnet order | External blocked | Signed acceptance record for `resource-market-integration-v1`; all cross-product vectors pass | Do not maintain a second compatibility protocol |
+| 30 Security/SRE/Release | Secrets, artifact provenance, backup/restore, deployment and release acceptance | External blocked | Source-bound SBOM, scans, immutable hashes, restore drill, deployment record and external review status | Keep production signing and release booleans false |
 
-Governance remains fail-closed when any required identity, execution, event,
-monitoring or custody dependency is unavailable. No dependent product state is
-promoted by this document.
+## Resource Market autonomous acceptance
+
+The product-owned portion is accepted locally only when all of the following pass against the same source commit:
+
+- Resource engine and HTTP product tests, including race detection.
+- Stable error-code contract tests.
+- Settlement transaction replay rejection and signed-meter reconciliation.
+- Product HTTP smoke, health/version truth boundaries and scoped state/export.
+- Contract and cross-product vector schema validation.
+- Backup/restore and migration compatibility checks.
+
+Local acceptance is not central integration, public Testnet proof or production release.

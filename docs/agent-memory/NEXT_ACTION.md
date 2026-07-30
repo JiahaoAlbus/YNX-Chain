@@ -1,10 +1,13 @@
-# NEXT ACTION
+# Next Action
 
-Updated: 2026-07-29T02:50:00Z
+After PR `#12` is merged, submit `release/integration/resource-market-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, and `docs/integration/DEPENDENCY_ACCEPTANCE.md` to Product `29` for central acceptance against Wallet/Auth, Chain settlement, Data Fabric billing, Explorer, Monitor, and Trust.
 
-1. Commit and push the Agent Memory, public-route rejection evidence, integration handoff refresh, and machine-readable release-record refresh.
-2. Confirm the resulting exact-SHA Governance Actions run succeeds.
-3. Open a pull request from `codex/final-governance` to `main` containing the post-PR governance implementation, CI portability fix, central-main reconciliation, recovery checkpoint, and Website acceptance evidence.
-4. Merge only after required checks pass; then record the merge SHA and request Product 29 acceptance against `release/integration/governance-contract.json` and `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`.
-5. Product 28 must replace the generic root-shell fallback at `https://ynxweb4.com/governance` with a Governance-specific page sourced from `release/governance/public-product-metadata.json` and `release/governance/product-release.json`.
-6. Do not publish a new governance prerelease until the accepted candidate SHA has exact CI, central integration acceptance, refreshed SBOM/provenance, and machine-readable release records.
+The first executable verification after central acceptance is:
+
+1. deploy two independently operated Testnet providers;
+2. execute Quote → Intent → Reservation → Service → segmented Metering → authoritative Settlement;
+3. execute provider Failure → one bounded Retry → Refund/Bond/Appeal;
+4. restart services and verify state recovery;
+5. record authoritative transaction hashes, receipts, provider identities, health/version endpoints, and source SHA without embedding credentials.
+
+Do not publish or mark `integratedCentral`, `testnetVerified`, `deployedPublic`, `releasePublished`, or `downloadHosted` before those direct checks succeed.

@@ -1,93 +1,99 @@
 {
   "schemaVersion": "1.0",
-  "productNumber": "31",
-  "productName": "YNX Governance & Protocol Control",
+  "productNumber": "16",
+  "productName": "YNX Resource Market",
   "phase": "INTEGRATE",
-  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/31-governance",
-  "branch": "codex/final-governance",
-  "localSha": "cd328bd5817f32efba259e0ad8948f202ebaf654",
-  "remoteSha": "cd328bd5817f32efba259e0ad8948f202ebaf654",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market",
+  "branch": "codex/final-resource-market",
+  "localSha": "d683c7d28ce129daad358c84680e5980cf8ad069",
+  "remoteSha": "d683c7d28ce129daad358c84680e5980cf8ad069",
   "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
   "dirty": false,
-  "ahead": 6,
+  "ahead": 0,
   "behind": 0,
   "latestSuccessfulTests": [
-    {
-      "command": "bash ./scripts/verify/governance-check.sh",
-      "sha": "cd328bd5817f32efba259e0ad8948f202ebaf654",
-      "result": "success",
-      "scope": "governance Go tests/vet, JSON, UI typecheck/unit/build/browser, npm audit, placeholder and secret scans, deterministic builds"
-    }
+    "go test -count=1 ./...",
+    "go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct",
+    "go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market",
+    "bash apps/resource-market/check.sh",
+    "bash scripts/validate/no-placeholder-check.sh",
+    "npm audit --audit-level=high (apps/resource-market)",
+    "npm run test:ui (apps/resource-market)",
+    "npm sbom --sbom-format spdx (apps/resource-market)"
   ],
   "latestCiRuns": [
     {
-      "id": 30417486460,
-      "sha": "cd328bd5817f32efba259e0ad8948f202ebaf654",
-      "workflow": "governance",
-      "status": "completed",
-      "conclusion": "success"
+      "id": 30417957999,
+      "workflow": "Resource Market Candidate Gates",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
     },
     {
-      "id": 30416918267,
-      "sha": "4e6c67488e81f5ec82995de81dd25a33861d7dc3",
+      "id": 30417957996,
+      "workflow": "ci",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417958003,
+      "workflow": "docs-compliance",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417957987,
+      "workflow": "Trust Resource Native Preview",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417957971,
       "workflow": "governance",
-      "status": "completed",
-      "conclusion": "success"
+      "status": "in_progress_at_checkpoint",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
     }
   ],
   "pullRequests": [
     {
-      "number": 9,
-      "title": "Governance: complete authoritative integration candidate",
-      "state": "MERGED",
-      "headSha": "89edb99d1ec0ee00d92dd0a0d965c6c88daba31d",
-      "mergedAt": "2026-07-28T10:48:42Z"
+      "number": 12,
+      "state": "OPEN",
+      "mergeable": true,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/12",
+      "headSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
     }
   ],
-  "release": {
-    "tag": "governance-v0.3.0-integration.1",
-    "name": "YNX Governance 0.3.0 Integration Candidate 1",
-    "sourceCommit": "340e6a8a3eecd973145677bde0879a918e3924ed",
-    "prerelease": true,
-    "publishedAt": "2026-07-28T10:49:53Z",
-    "currentBranchRelease": false
-  },
-  "artifacts": [
-    "ynx-governanced",
-    "ynx-governance-state",
-    "governance-sbom.cdx.json",
-    "provenance.json",
-    "product-release.json",
-    "public-product-metadata.json",
-    "THIRD_PARTY_NOTICES.md"
-  ],
-  "publicRoutes": [
-    {
-      "url": "https://ynxweb4.com/governance",
-      "httpStatus": 200,
-      "verified": false,
-      "productPageAccepted": false,
-      "sourceCommit": null,
-      "evidence": "release/evidence/governance-public-route-probe-2026-07-29.json",
-      "reason": "Generic root application shell and root canonical URL were served at the Governance path."
-    }
-  ],
+  "release": null,
+  "artifacts": [],
+  "publicRoutes": [],
   "completed": [
-    "portable Governance Actions browser gate",
-    "local governance verification after origin/main merge",
-    "exact merged-SHA Governance Actions success",
-    "central governance preflight reconciliation",
-    "historical integration-candidate release with SBOM and provenance",
-    "machine-readable public-route rejection evidence"
+    "main-synchronized candidate",
+    "offer-scoped capacity reservation integrity",
+    "provider self-dealing rejection",
+    "checked amount arithmetic",
+    "bounded retry lineage",
+    "twelve-locale browser and accessibility boundary",
+    "portable local API and DAST smoke",
+    "candidate SHA-256 and dependency inventory generation",
+    "SPDX npm SBOM generation",
+    "Android debug install and cold start evidence",
+    "iOS Simulator build evidence"
   ],
   "remaining": [
-    "new pull request and merge for post-PR governance commits and recovery evidence",
-    "central dependency and shared Testnet acceptance",
-    "current-candidate release artifacts, SBOM, provenance and hashes",
-    "Governance-specific public ynxweb4.com route and support/status/security destinations",
-    "production signer custody and deployment approval"
+    "merge PR 12",
+    "central integration acceptance",
+    "two independent Testnet providers",
+    "authoritative public settlement and refund evidence",
+    "restart recovery on deployed services",
+    "public deployment and ynxweb4.com resource-market route",
+    "immutable hosted artifact and production signing",
+    "legal and external security review"
   ],
-  "blockers": [],
-  "nextAction": "Commit and push this checkpoint, verify the resulting exact-SHA CI, then open and merge the governance pull request only after all required checks pass.",
-  "updatedAt": "2026-07-29T02:53:28Z"
+  "blockers": [
+    "RM-BLOCK-001 central integration acceptance",
+    "RM-BLOCK-002 independent Testnet providers and funded settlement",
+    "RM-BLOCK-003 public deployment and website closure",
+    "RM-BLOCK-004 production signing and professional review"
+  ],
+  "nextAction": "After PR 12 is merged, submit the frozen integration contract and vectors to Product 29, then execute the complete success and failure/recovery sequence with two independent Testnet providers and authoritative settlement.",
+  "updatedAt": "2026-07-29T02:54:25Z"
 }

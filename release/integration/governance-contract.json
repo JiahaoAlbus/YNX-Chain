@@ -114,7 +114,7 @@
   },
   "testVectors": [
     "release/integration/governance-bft-test-vectors.json",
-    "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
+    "docs/governance/CROSS_PRODUCT_TEST_VECTORS.json"
   ],
   "dependencies": [
     "01-chain-core",
