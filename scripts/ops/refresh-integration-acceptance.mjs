@@ -579,7 +579,7 @@ function runSelfTest() {
   console.log("integration acceptance refresh self-test passed");
 }
 
-function githubQuery(commandArgs, attempts = 2) {
+function githubQuery(commandArgs, attempts = 4) {
   let error = "GitHub query did not run";
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const result = spawnSync("gh", commandArgs, {
@@ -587,7 +587,7 @@ function githubQuery(commandArgs, attempts = 2) {
       encoding: "utf8",
       maxBuffer: 32 * 1024 * 1024,
       env: process.env,
-      timeout: 15_000,
+      timeout: 30_000,
       killSignal: "SIGTERM"
     });
     if (!result.error && result.status === 0) {

@@ -382,7 +382,7 @@ function validateGithubEvidence(evidence, collector) {
   const artifacts = Array.isArray(evidence?.artifacts) ? evidence.artifacts : [];
   for (const source of ["runs", "releases", "artifacts"]) {
     collector.expect(typeof evidence?.availability?.[source] === "boolean", `GitHub evidence availability.${source} must be boolean`);
-    collector.expect(Number.isSafeInteger(evidence?.queryAttempts?.[source]) && evidence.queryAttempts[source] >= 1 && evidence.queryAttempts[source] <= 2, `GitHub evidence queryAttempts.${source} is invalid`);
+    collector.expect(Number.isSafeInteger(evidence?.queryAttempts?.[source]) && evidence.queryAttempts[source] >= 1 && evidence.queryAttempts[source] <= 4, `GitHub evidence queryAttempts.${source} is invalid`);
     if (evidence?.availability?.[source] === true) collector.expect(evidence?.queryErrors?.[source] === null, `GitHub evidence ${source} is available but retains an error`);
     if (evidence?.availability?.[source] === false) collector.expect(typeof evidence?.queryErrors?.[source] === "string" && evidence.queryErrors[source].length > 0, `GitHub evidence ${source} is unavailable without an error`);
   }
