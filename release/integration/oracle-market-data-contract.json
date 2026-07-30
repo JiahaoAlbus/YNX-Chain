@@ -3,7 +3,7 @@
   "contractId": "ynx-oracle-market-data-v1",
   "productId": "ynx-oracle-market-data",
   "owner": "19 Oracle & Market Data",
-  "sourceCommit": "f71d5ca5c2ede28477fbadff36701a9f040e311f",
+  "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
   "versions": {
     "schema": "ynx.oracle.v1",
     "aggregationPolicy": "weighted-median-mad-v1",
@@ -119,29 +119,29 @@
     "freezeOwner": "29 Integration"
   },
   "dependencies": [
-    {"owner": "01 Chain Core", "input": "deterministic precompile or system-module contract", "status": "pending-acceptance"},
-    {"owner": "02 Wallet/Auth", "input": "canonical protected-route session policy when applicable", "status": "pending-acceptance"},
+    {"owner": "01 Chain Core", "input": "deterministic precompile or system-module contract", "status": "central-source-accepted-oracle-consumer-pending", "acceptedSourceCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e", "centralReceipt": "release/integration/evidence/product-01-central-acceptance-329092c1.json"},
+    {"owner": "02 Wallet/Auth", "input": "canonical protected-route session policy when applicable", "status": "central-source-accepted-route-policy-pending", "acceptedSourceCommit": "f28b0aa29a0d93a2b7f20a00b835c4a1aa6175b3", "centralReceipt": "release/integration/evidence/product-02-central-acceptance-94acfece.json"},
     {"owner": "07 Exchange", "input": "index, mark, funding, and liquidation consumer acceptance", "status": "pending-acceptance"},
     {"owner": "09 DEX", "input": "confirmed pool-state and TWAP consumer contract", "status": "pending-acceptance"},
     {"owner": "12 Explorer", "input": "public lineage and correction evidence", "status": "pending-acceptance"},
     {"owner": "13 Monitor", "input": "stale, divergence, outage, and manipulation alert acceptance", "status": "pending-acceptance"},
     {"owner": "17 Economics", "input": "stablecoin and reserve-evidence semantics", "status": "pending-acceptance"},
     {"owner": "21 Bridge", "input": "valuation and route-risk consumer acceptance", "status": "pending-acceptance"},
-    {"owner": "26 Data Fabric", "input": "canonical event and retention acceptance", "status": "pending-acceptance"},
-    {"owner": "30 Security/SRE", "input": "signer custody, release, backup, and incident acceptance", "status": "pending-acceptance"},
+    {"owner": "26 Data Fabric", "input": "canonical event and retention acceptance", "status": "central-source-accepted-oracle-event-acceptance-pending", "acceptedSourceCommit": "2a09d7455a5fef9eee56ca736be4b600d40a1831", "centralReceipt": "release/integration/evidence/product-26-central-acceptance-01131b46.json"},
+    {"owner": "30 Security/SRE", "input": "signer custody, release, backup, and incident acceptance", "status": "central-source-accepted-oracle-operations-acceptance-pending", "acceptedSourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49", "centralReceipt": "release/integration/evidence/product-30-central-acceptance-a472d588.json"},
     {"owner": "31 Governance", "input": "provider and parameter timelock acceptance", "status": "pending-acceptance"},
     {"owner": "29 Integration", "input": "single protocol freeze and shared Testnet", "status": "pending-acceptance"}
   ],
   "testEvidence": {
     "targetedRaceCommand": "go test -race ./internal/oracle ./internal/oracle/providers ./sdk/oracle/go",
     "targetedRaceResult": "passed",
-    "vetCommand": "go vet ./internal/oracle ./internal/oracle/providers ./sdk/oracle/go ./cmd/ynx-oracled",
+    "vetCommand": "go vet ./internal/oracle/... ./sdk/oracle/go ./cmd/ynx-oracled ./cmd/ynx-oracle-provider ./cmd/ynx-oracle-cli",
     "vetResult": "passed",
     "fullRepositoryCommand": "go test ./...",
     "fullRepositoryResult": "failed-outside-oracle-ownership",
     "fullRepositoryFailures": [
-      "permissive key permission fixtures in consensus, faucet, and trust packages",
-      "missing SampleEVMWriteCounter contract artifact in BFT and consensus tests"
+      "missing SampleEVMWriteCounter contract artifact in BFT and consensus tests",
+      "resource-market integration vector from current main lacks the contract identifier required by its test"
     ],
     "publicTestnetSmokeResult": "passed-limited-source-fail-closed",
     "publicTestnetUrl": "https://oracle-testnet.43.153.202.237.sslip.io",

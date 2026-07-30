@@ -32,12 +32,12 @@ public API URL and remote smoke evidence are recorded in
 `release/evidence/oracle-public-testnet-f71d5ca.json`. Current-commit local
 artifact manifest, provenance, CycloneDX SBOM, hashes, macOS install/cold-start
 and isolated SDK consumer evidence are recorded at source commit
-`6ba6c39a6661724e07205a265201ac7fa36c91bb`. Artifact hosting, production
+`7ba44cfbe66455884ac6c2ea8525e9738b7f1396`. Artifact hosting, production
 signatures, Linux arm64 native cold start, manual VoiceOver/TalkBack and
 public-origin accessibility evidence, central acceptance receipts, live
 restore/failover measurements, and Explorer/Monitor proof remain absent and
 are not represented as complete. The source-bound real-Chrome audit at
-`a3c3275c15f31a4f5de96c6f4ebce0b04245db79` verifies semantic landmarks and
+`7ba44cfbe66455884ac6c2ea8525e9738b7f1396` verifies semantic landmarks and
 labels, keyboard focus order/visibility, Arabic RTL, reduced motion, light/dark
 theme, 200% large text, and no horizontal overflow at 390px.
 

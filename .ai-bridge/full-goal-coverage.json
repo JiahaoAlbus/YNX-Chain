@@ -9,9 +9,9 @@
   "owner": "19 Oracle",
   "phase": "INTEGRATE",
   "goalStatus": "active",
-  "sourceCommit": "a3c3275c15f31a4f5de96c6f4ebce0b04245db79",
+  "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
   "sourceGoal": "YNX Chain Founder-Grade Coordinated Final Goal Prompts / product 19",
-  "lastUpdated": "2026-07-27T10:00:00Z",
+  "lastUpdated": "2026-07-30T04:35:00Z",
   "requirements": [
     {
       "id": "ORACLE-RECOVER-001",
@@ -296,7 +296,7 @@
       "tests": ["Oracle-side rejection vectors exist; Chain acceptance evidence absent."],
       "artifact": "docs/oracle/integration-evidence/_TEMPLATE.json",
       "publicProof": null,
-      "blockedBy": ["01 Chain Core owner implementation and acceptance receipt"],
+      "blockedBy": ["01 Chain Core source is centrally accepted, but the Oracle deterministic consumer implementation and receipt remain pending"],
       "owner": "01 Chain Core",
       "nextAction": "Return exact source commit, deterministic transition tests and rejection-vector results to docs/oracle/integration-evidence/chain-core.json.",
       "lastUpdated": "2026-07-27T10:00:00Z"
@@ -442,8 +442,8 @@
       "publicProof": null,
       "blockedBy": [],
       "owner": "19 Oracle and 30 Security/SRE",
-      "nextAction": "Generate current-commit provenance, repeat build-tree audit and obtain Security/SRE release acceptance.",
-      "lastUpdated": "2026-07-27T10:00:00Z"
+      "nextAction": "Current-commit provenance, zero-high dependency audit, immutable Actions pins and local security gates pass; obtain Oracle-specific Security/SRE signer, backup and incident acceptance.",
+      "lastUpdated": "2026-07-30T04:35:00Z"
     },
     {
       "id": "ORACLE-GOVERNANCE-001",
@@ -484,7 +484,7 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["apps/oracle/app/oracle-console.tsx", "apps/oracle/app/globals.css", "apps/oracle/tests/browser-accessibility.test.mjs", "UI_DESIGN_AUDIT.md"],
-      "sourceCommit": "a3c3275c15f31a4f5de96c6f4ebce0b04245db79",
+      "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
       "tests": ["npm run test:browser:a11y: real Chrome verified semantic landmarks and labels, keyboard focus order/visibility, Arabic RTL, reduced motion, light/dark theme, 200% large text, and no overflow at 390px."],
       "artifact": null,
       "publicProof": null,
@@ -579,15 +579,15 @@
       "requirement": "Build immutable server, CLI and SDK artifacts with SHA-256, bytes, signing class, SBOM, provenance, minimum runtime and cold-start evidence.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["Dockerfile.oracle", "release/oracle-image-linux-arm64.cdx.json", "release/oracle-server-module.cdx.json", "release/oracle-web-production.cdx.json", "release/evidence/oracle-artifact-manifest-6ba6c39a6661.json", "release/evidence/oracle-artifact-provenance-6ba6c39a6661.json", "release/evidence/oracle-artifact-sbom-6ba6c39a6661.cdx.json", "release/evidence/oracle-artifact-verification-6ba6c39a6661.json"],
-      "sourceCommit": "6ba6c39a6661724e07205a265201ac7fa36c91bb",
+      "evidence": ["Dockerfile.oracle", "release/oracle-image-linux-arm64.cdx.json", "release/oracle-server-module.cdx.json", "release/oracle-web-production.cdx.json", "release/evidence/oracle-artifact-manifest-7ba44cfbe664.json", "release/evidence/oracle-artifact-provenance-7ba44cfbe664.json", "release/evidence/oracle-artifact-sbom-7ba44cfbe664.cdx.json", "release/evidence/oracle-artifact-verification-7ba44cfbe664.json"],
+      "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
       "tests": ["Deterministic double build, canonical manifest, bounded archive and target validation, CycloneDX SBOM/provenance verification, detached-signature path, tamper rejection, macOS arm64 install/cold-start/version-commit/graceful-shutdown, TypeScript offline consumer, Go isolated consumer, race suites, secret scan and placeholder scan passed."],
-      "artifact": "release/evidence/oracle-artifact-manifest-6ba6c39a6661.json",
+      "artifact": "release/evidence/oracle-artifact-manifest-7ba44cfbe664.json",
       "publicProof": null,
       "blockedBy": ["Linux arm64 native install and cold-start evidence", "Artifact hosting and production signing are tracked separately in ORACLE-ARTIFACT-002"],
       "owner": "19 Oracle and 30 Security/SRE",
       "nextAction": "Run the Linux arm64 bundle on a Linux arm64 host, record native install/cold-start/version evidence, then hand immutable descriptors to 30 Security/SRE for hosting and signing review.",
-      "lastUpdated": "2026-07-27T14:53:37Z"
+      "lastUpdated": "2026-07-30T04:35:00Z"
     },
     {
       "id": "ORACLE-ARTIFACT-002",
@@ -627,15 +627,15 @@
       "requirement": "Maintain feature evidence, evidence index, release notes, operations, observability, migration, UI audit and machine-readable release records tied to exact commits.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["FEATURE_COMPLETION_EVIDENCE.md", "EVIDENCE_INDEX.md", "RELEASE_NOTES.md", "OPERATIONS.md", "OBSERVABILITY.md", "MIGRATION_COMPATIBILITY.md", "UI_DESIGN_AUDIT.md", "release/product-release.json", "release/product-state.json", "release/evidence/oracle-artifact-verification-6ba6c39a6661.json"],
-      "sourceCommit": "6ba6c39a6661724e07205a265201ac7fa36c91bb",
-      "tests": ["Release records now bind deterministic server, CLI, TypeScript SDK and Go SDK candidate evidence to exact source commit 6ba6c39a6661724e07205a265201ac7fa36c91bb while preserving unhosted, unsigned and unreleased state."],
+      "evidence": ["FEATURE_COMPLETION_EVIDENCE.md", "EVIDENCE_INDEX.md", "RELEASE_NOTES.md", "OPERATIONS.md", "OBSERVABILITY.md", "MIGRATION_COMPATIBILITY.md", "UI_DESIGN_AUDIT.md", "release/product-release.json", "release/product-state.json", "release/evidence/oracle-artifact-verification-7ba44cfbe664.json"],
+      "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
+      "tests": ["Release records bind deterministic server, CLI, TypeScript SDK and Go SDK evidence to exact frozen source 7ba44cfbe66455884ac6c2ea8525e9738b7f1396 while preserving local, unsigned and unreleased state."],
       "artifact": ".ai-bridge/full-goal-coverage.json",
       "publicProof": null,
       "blockedBy": ["Public hosting/signing and Linux arm64 native cold-start evidence remain outside this local evidence slice."],
       "owner": "19 Oracle",
       "nextAction": "Keep the evidence index synchronized after Linux validation, Security/SRE acceptance, hosting and signing; do not promote the current candidate to released.",
-      "lastUpdated": "2026-07-27T14:53:37Z"
+      "lastUpdated": "2026-07-30T04:35:00Z"
     },
     {
       "id": "ORACLE-TESTNET-001",

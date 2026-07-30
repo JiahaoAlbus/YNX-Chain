@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "a3c3275c15f31a4f5de96c6f4ebce0b04245db79",
+  "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
   "productId": "ynx-oracle-market-data",
   "name": "YNX Oracle",
   "aliases": ["YNX Market Data"],

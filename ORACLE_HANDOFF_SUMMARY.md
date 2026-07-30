@@ -1,7 +1,7 @@
 # YNX Oracle & Market Data — Active Handoff
 
 **Branch:** `codex/final-oracle-market-data`  
-**Lifecycle:** Active — RECOVER / PROTECT  
+**Lifecycle:** Protected source candidate — central acceptance pending
 **Authority:** YNX Oracle & Market Data owns canonical price and market-data facts for downstream products.
 
 ## Verified local baseline
@@ -13,23 +13,23 @@
 
 ## Current truth
 
+Frozen source commit: `7ba44cfbe66455884ac6c2ea8525e9738b7f1396`.
+
 The long-term goal is not complete. The following release states remain false until direct evidence exists:
 
 - `integratedCentral`
-- `deployedStaging`
-- `deployedPublic`
 - `downloadHosted`
 - `productionSigned`
 - `storeReleased`
 
-No approved production provider is active for `YNXT/YUSD_TEST`, no public Oracle API has been verified, and no consumer-owner acceptance evidence has been returned. Runtime publication therefore remains fail-closed or explicitly source-limited.
+No approved provider is active for `YNXT/YUSD_TEST`, and no consumer-owner Oracle acceptance evidence has been returned. The verified public Testnet API therefore remains degraded at 0/3 sources and publishes no authoritative prices. The owner-only Oracle Web does not count as public.
 
 ## Immediate continuation
 
-1. Preserve and push the verified public-runtime endpoint slice.
-2. Freeze the canonical market-data contract, error taxonomy, quality states, and provider registry schema.
-3. Continue into market-type-specific aggregation, Index/Mark/Funding derivation, DEX TWAP and reorg semantics, persistent correction/replay verification, and consumer fail-closed adapters.
-4. Produce direct Testnet evidence only from real responses, artifacts, commits, and consumer validation.
+1. Protect and publish the exact source-only candidate with immutable hashes, SBOM and provenance.
+2. Obtain exact-head CI and branch-protection evidence.
+3. Merge the candidate into 29 Integration and record a central acceptance receipt.
+4. Keep provider activation, consumer receipts, shared Testnet and public authoritative publication as separate fail-closed gates.
 
 ## External inputs that may eventually block activation
 

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "fixtureOnly": true,
   "productId": "ynx-oracle-market-data",
-  "sourceCommit": "66c110adf43a713af67f88b2381c5ae2e66e4e6d",
+  "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
   "oracleSchema": "ynx.oracle.v1",
   "aggregationPolicyVersion": "weighted-median-mad-v1",
   "derivativesPolicyVersion": "index-funding-mark-v1",
