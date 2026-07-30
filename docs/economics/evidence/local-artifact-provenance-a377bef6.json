@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "ynx-economics-local-artifact-provenance/v1",
+  "status": "passed",
+  "productId": "17",
+  "product": "YNXT Economics / Treasury / Stable Settlement",
+  "owner": "17-tokenomics",
+  "branch": "codex/final-tokenomics",
+  "frozenSourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+  "sourceTree": "4cb3898a7ce0ebafd13e5aeddf5a9ec00aaf6b20",
+  "acceptedDependencyAncestor": "470da14faa51914beed2ee6c75a43df013e63b20",
+  "acceptedDependencyAncestorReachable": true,
+  "applicationVersion": 18,
+  "committedStateVersion": 12,
+  "generatedAt": "2026-07-30T10:42:08Z",
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "sharedTestnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "unsignedTestnetCli": {
+    "evidence": "release/economics-testnet-cli-artifact.json",
+    "target": "darwin/arm64",
+    "binaryCount": 5,
+    "packageHash": "sha256:5b4f3ba84dea6201ddf885ba1f5e80adf8be4fc35f649dcc0c34f1bef6976c31",
+    "doubleBuildVerified": true,
+    "transientInstallVerified": true,
+    "coldStartVerified": true,
+    "removalVerified": true,
+    "signingClass": "unsigned_local_testnet_cli"
+  },
+  "sbom": {
+    "path": "release/sbom.cdx.json",
+    "format": "CycloneDX 1.5",
+    "components": 419,
+    "bytes": 154696,
+    "sha256": "a33dbcebc9c638aa4a4a5e0e0def5c527d391d9a46ad4985ecc493a47916d9ea"
+  },
+  "verification": [
+    "make economics-local-candidate-check",
+    "make economics-testnet-cli-artifact-check",
+    "make economics-supply-chain-check",
+    "make economics-release-boundary-check",
+    "make economics-integration-contract-check",
+    "node scripts/verify/github-actions-pins-check.mjs",
+    "make contract-tooling-check",
+    "make test",
+    "make deploy-dry-run"
+  ],
+  "deterministicIntegrationBundle": {
+    "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+    "reasonPreserved": "The Integration Bundle source identity participates in deterministic bundle and Store hashes and is not rebound to a later source-candidate commit."
+  },
+  "knownExternalGates": [
+    "Product 29 central acceptance of the frozen Product 17 source candidate",
+    "signed owner evidence for the shared Testnet acceptance record",
+    "product-specific ynxweb4.com route deployment and direct browser evidence",
+    "hosted runnable artifacts and production signing"
+  ]
+}
