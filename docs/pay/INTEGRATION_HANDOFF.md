@@ -4,8 +4,8 @@
 
 - Product owner: `04-pay`
 - Branch: `codex/final-pay`
-- Source commit: `21a2f0412598ef94dd33ff132456c63d5cee6798`
-- Integration PR: `#11` (open; exact CI result must be bound before acceptance)
+- Source commit: `6cbac9f4654b5715d32f1e561819e593c868a6f1`
+- Owner validation PR: `#29` (draft; exact-source CI and unsigned Simulator evidence)
 - Canonical machine contract: `release/integration/pay-contract.json`
 - Central freeze owner: `29-integration`
 
@@ -60,7 +60,7 @@ Snapshots that predate recurring drafts, Split Payments or Quant billing omit th
 
 ## Verification
 
-Passing locally on 2026-07-27:
+Passing locally, with exact-source CI evidence updated on 2026-07-30:
 
 - `go test ./internal/payproduct/... -count=1`
 - `go test -race ./internal/payproduct/... -count=1`
@@ -80,8 +80,13 @@ Passing locally on 2026-07-27:
 - single-read source verification, offline restore, verified rollback and corrupt-destination quarantine
 - corrupt source, wrong key, future snapshot version and ambiguous short-Hex key rejection
 - `go vet ./internal/payproduct/...`, `make pay-api-check` and full Pay smoke
+- exact-source GitHub Actions run `30575350364`, including the complete Linux test job
+- Xcode 26.2 unsigned Simulator builds for YNX Pay and YNX Card
+- YNX Pay bundle-ID verification, Simulator install, cold launch, app-container lookup and `ynxpay://` URL-scheme resolution
 
-Repository-wide `go test ./... -count=1` is not green because unchanged Consensus/Faucet/Trust key-permission tests fail in the current host environment and unchanged IDE tests require a missing generated contract artifact. The Pay package passes in that run. These are not being silently fixed in the Pay worktree as Pay-owned requirements.
+The current GitHub Actions test job is green. An earlier local repository-wide run had host-permission and missing-generated-artifact failures outside Pay; it is retained as historical evidence and is superseded for the frozen candidate by the successful exact-source run.
+
+The mobile evidence is deliberately bounded: the iOS package is unsigned, Simulator-only, authenticated/expiring GitHub Actions evidence. The URL-scheme screenshot proves iOS resolves the scheme to YNX Pay and presents its confirmation dialog; it does not prove the user selected Open or that a post-confirmation invoice view rendered. Android installation, production device signing, public immutable hosting and stores remain unverified.
 
 ## Integration acceptance required
 

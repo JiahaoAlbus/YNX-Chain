@@ -6,7 +6,7 @@ No execution-infrastructure blocker is active.
 
 - Owner: `29-integration`, with dependencies on `02-wallet-auth` and the App Gateway owner
 - Reason: the Pay contract and vectors are local, but central registry/routes and acceptance are not yet proven on a shared Testnet.
-- Evidence: `release/integration/pay-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, PR `#11`.
+- Evidence: `release/integration/pay-contract.json`, `docs/pay/INTEGRATION_HANDOFF.md`, owner validation PR `#29`.
 - Prepared: local implementation, fail-closed adapters, test vectors, migration/recovery evidence and PR integration candidate.
 - Minimal external input: accepted central contract/version and deployment target; no secret is requested in chat.
 - Recovery condition: accepted dependency record plus deployed central routes.

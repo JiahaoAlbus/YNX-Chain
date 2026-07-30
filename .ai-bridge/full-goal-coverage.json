@@ -5,11 +5,11 @@
     "name": "YNX Pay",
     "slug": "pay",
     "branch": "codex/final-pay",
-    "sourceCommit": "0600d5ab87a9062ccc5b757affe30e234f1b7730",
-    "phase": "FREEZE",
+    "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+    "phase": "INTEGRATE",
     "goalStatus": "active"
   },
-  "lastUpdated": "2026-07-29T03:55:00+08:00",
+  "lastUpdated": "2026-07-31T03:45:00+08:00",
   "items": [
     {
       "id": "pay-001",
@@ -369,15 +369,15 @@
       "requirement": "Android/iOS install, cold start, deep link, offline, RTL, dark and large text",
       "applicability": "required",
       "status": "implementedLocal",
-      "evidence": ["Android and iOS Hermes exports for the source-bound Split consumer flow", "strict deep-link/QR parsing", "secure claim recovery and Wallet-auth continuation"],
-      "sourceCommit": "a405604714645df1084ed9e06cc7d7b6f9a4d4b0",
-      "tests": ["npm run check in apps/pay", "bash internal/payproduct/smoke.sh"],
+      "evidence": ["Android and iOS Hermes exports for the source-bound Split consumer flow", "strict deep-link/QR parsing", "secure claim recovery and Wallet-auth continuation", "exact-source Xcode 26.2 unsigned Simulator build plus bundle-ID, install, cold-launch, app-container and ynxpay URL-scheme resolution checks in GitHub Actions run 30575350364"],
+      "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+      "tests": ["npm run check in apps/pay", "bash internal/payproduct/smoke.sh", "GitHub Actions run 30575350364 pay-card-ios-native (pay)"],
       "artifact": "apps/pay/product-release.json",
       "publicProof": null,
-      "blockedBy": ["current install/cold-launch proof missing", "iOS signing/runtime unavailable"],
+      "blockedBy": ["exact-source Android install/cold-launch proof", "production-signed iOS device artifact and install proof", "manual dark-theme, 200% text and screen-reader acceptance"],
       "owner": "04-pay",
-      "nextAction": "build and install exact source-bound packages and capture truthful evidence",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "install the exact Android candidate, complete manual accessibility/device checks, and obtain approved production signing without reclassifying the unsigned Simulator artifact",
+      "lastUpdated": "2026-07-30"
     },
     {
       "id": "pay-024",
@@ -401,8 +401,8 @@
       "requirement": "Accepted Wallet/Gateway, Chain, Explorer, Monitor, Trust, Oracle, Bridge and Data Fabric integration",
       "applicability": "required",
       "status": "externalBlocked",
-      "evidence": ["release/integration/pay-contract.json", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json", "docs/integration/DEPENDENCY_ACCEPTANCE.md"],
-      "sourceCommit": "6477a42b0b96761a74b676c4f18f2e987b628a3d",
+      "evidence": ["release/integration/pay-contract.json", "docs/pay/CROSS_PRODUCT_TEST_VECTORS.json", "docs/pay/DEPENDENCY_ACCEPTANCE.md"],
+      "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
       "tests": [],
       "artifact": null,
       "publicProof": null,
@@ -450,23 +450,23 @@
       "applicability": "required",
       "status": "testedLocal",
       "evidence": ["apps/pay/product-release.json", "release/integration/pay-contract.json", "Local SHA equals origin/codex/final-pay for source commit 2303ceeed6ff8e7a8606b87a2e7155702e4e27b1"],
-      "sourceCommit": "2303ceeed6ff8e7a8606b87a2e7155702e4e27b1",
-      "tests": ["jq empty release records", "git rev-parse HEAD equals git rev-parse @{upstream}"],
+      "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+      "tests": ["jq empty release records", "GitHub Actions exact-source identity gate and run 30575350364"],
       "artifact": "apps/pay/product-release.json",
       "publicProof": null,
-      "blockedBy": ["GitHub Actions, Release and artifact API evidence unavailable after repeated TLS handshake timeouts"],
+      "blockedBy": ["central integration-owner acceptance and protected final-branch push are not yet complete"],
       "owner": "04-pay",
-      "nextAction": "retry remote CI/release evidence and bind any immutable artifacts without changing local truth states",
-      "lastUpdated": "2026-07-27"
+      "nextAction": "freeze the exact owner source, obtain central acceptance, and preserve false public/signing/store states until direct evidence exists",
+      "lastUpdated": "2026-07-30"
     }
   ],
   "summary": {
     "verifiedComplete": 1,
-    "testedLocal": 16,
+    "testedLocal": 19,
     "implementedLocal": 3,
-    "inProgress": 2,
-    "notStarted": 2,
-    "externalBlocked": 4,
+    "inProgress": 0,
+    "notStarted": 0,
+    "externalBlocked": 5,
     "notApplicable": 0,
     "productComplete": false
   }

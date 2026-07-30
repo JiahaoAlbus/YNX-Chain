@@ -89,9 +89,9 @@ Fixture tests migrate missing recurring/Split/Quant maps, discard removed produc
 Canonical integration files are now:
 
 - `release/integration/pay-contract.json`
-- `docs/integration/INTEGRATION_HANDOFF.md`
-- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
-- `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- `docs/pay/INTEGRATION_HANDOFF.md`
+- `docs/pay/CROSS_PRODUCT_TEST_VECTORS.json`
+- `docs/pay/DEPENDENCY_ACCEPTANCE.md`
 - `docs/integration/pay-quant-billing.json`
 - `docs/integration/pay-store-recovery.json`
 - `.ai-bridge/full-goal-coverage.json`

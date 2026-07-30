@@ -1,100 +1,79 @@
 {
   "schemaVersion": "1.0.0",
-  "requestStatus": "required-before-production-signed-and-reviewed-release",
-  "generatedAt": "2026-07-27",
-  "sourceCommit": "601d13bd677729ff59819ea70076a7de461328f2",
-  "satisfiedByEvidence": [
-    {
-      "capability": "central integration, staging deployment, public deployment and immutable hosted download",
-      "evidence": "release/evidence/website-public-acceptance-2026-07-26.json"
-    },
-    {
-      "capability": "canonical public routes, sitemap, robots and IndexNow submission",
-      "evidence": "https://ynxweb4.com/docs"
-    }
-  ],
-  "notApplicableStates": {
-    "installedLocal": "This documentation package is consumed by the Website build and has no standalone installer.",
-    "storeReleased": "No product store distributes this documentation package."
-  },
+  "productId": "pay",
+  "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+  "requestStatus": "required-only-for-the-affected-external-release-states",
+  "generatedAt": "2026-07-30T19:45:00Z",
   "instructions": {
     "responseChannel": "approved control plane or named owner handoff",
     "neverProvideInChatOrRepository": [
       "private key",
       "seed phrase",
-      "validator key",
-      "PEM or keystore",
-      "CVV or full card data",
-      "complete API secret",
-      "raw identity document"
+      "validator or paymaster signing key",
+      "PEM, keystore, provisioning profile private material, or store credential",
+      "complete provider secret",
+      "raw identity document or payment-card data"
     ],
-    "secretMethod": "Provide only a secret-manager reference/path and access owner after the receiving service account and rotation policy are approved."
+    "secretMethod": "Provide only an approved secret-manager reference, receiving service account, access owner, and rotation/revocation policy."
   },
   "inputs": [
     {
-      "id": "production-signing-approval",
-      "ownerClass": "security-custody-owner",
-      "requiredFor": [
-        "productionSigned"
-      ],
+      "id": "pay-central-and-testnet-deployment",
+      "ownerClass": "29-integration-and-testnet-operator",
+      "requiredFor": ["integratedCentral", "deployedStaging", "freshAuthoritativeTestnetFlow"],
       "provide": [
-        "approved secure signer reference/path",
-        "public signing certificate or public-key chain",
-        "artifact signing policy and signing-class decision",
-        "two-person approval record",
-        "rotation, revocation and offline recovery evidence"
-      ],
-      "prohibited": "Do not provide secret key material."
-    },
-    {
-      "id": "search-and-independent-public-proof",
-      "ownerClass": "website-domain-and-search-owner",
-      "requiredFor": [
-        "independentPublicProof",
-        "Search Console verification",
-        "Bing Webmaster Tools verification"
-      ],
-      "provide": [
-        "DNS/domain-control evidence reference",
-        "Search Console property and sitemap submission receipt",
-        "Bing property and sitemap submission receipt",
-        "independent monitor or search-engine fetch evidence with URL and observation time"
-      ],
-      "prohibited": "Do not provide complete provider credentials; provide an approved credential reference only if automation is authorized."
-    },
-    {
-      "id": "named-review-approvals",
-      "ownerClass": "qualified-legal-economic-security-and-audit-reviewers",
-      "requiredFor": [
-        "legalReview",
-        "securityReview",
-        "economicReview",
-        "independentAudit"
-      ],
-      "provide": [
-        "named reviewer and organization",
-        "scope, jurisdiction and reviewed artifact digests",
-        "approval, findings or explicit rejection",
-        "effective date and review expiry",
-        "required remediation and prohibited public claims"
+        "accepted exact Pay source commit and central integration receipt",
+        "Gateway route and Wallet product-registry deployment references",
+        "source-bound service deployment and health/version evidence",
+        "approved Faucet, chain RPC, Explorer, Monitor, Trust, Oracle, Bridge, and Data Fabric endpoints"
       ]
     },
     {
-      "id": "brand-media-rights-approval",
-      "ownerClass": "brand-and-legal-owner",
-      "requiredFor": [
-        "approved public logo variants",
-        "screenshots",
-        "press distribution"
-      ],
+      "id": "pay-provider-and-verifier-acceptance",
+      "ownerClass": "paymaster-stable-bridge-quant-and-ledger-owners",
+      "requiredFor": ["sponsorship", "stableSettlement", "bridgeSettlement", "quantServiceBilling"],
       "provide": [
-        "asset source and rights record",
-        "approved hashes, bytes and dimensions",
-        "light, dark and icon variant approvals",
-        "screenshot route, state, privacy and release approval",
-        "named brand reviewer"
+        "approved public contract addresses or provider identifiers",
+        "public verifier keys and key IDs",
+        "schema/source versions, freshness windows, limits, and fail-closed policy",
+        "rotation, revocation, outage, and destination-confirmation evidence"
+      ],
+      "prohibited": "Do not provide private signing or provider credentials."
+    },
+    {
+      "id": "pay-public-web-and-support",
+      "ownerClass": "28-website-and-domain-owner",
+      "requiredFor": ["deployedPublic", "paySpecificWebsiteRoute"],
+      "provide": [
+        "source-bound /pay deployment receipt and canonical metadata",
+        "Pay service URL and exact health/version observation",
+        "support, privacy, security, status, and accessibility review URLs",
+        "DNS/TLS and rollback ownership evidence"
+      ]
+    },
+    {
+      "id": "pay-production-artifacts-and-stores",
+      "ownerClass": "30-security-sre-and-mobile-release-owner",
+      "requiredFor": ["downloadHosted", "productionSigned", "storeReleased"],
+      "provide": [
+        "approved Android and iOS signing-class decision",
+        "secure signer and store-account references",
+        "artifact hashes, bytes, SBOM, provenance, scan, retention, and rollback receipts",
+        "device install/cold-start/deep-link evidence and store review receipts"
+      ],
+      "prohibited": "Do not provide signing keys, store passwords, or recovery codes."
+    },
+    {
+      "id": "pay-independent-acceptance",
+      "ownerClass": "named-security-legal-economic-accessibility-and-recovery-reviewers",
+      "requiredFor": ["productionReview", "manualAccessibilityAcceptance", "productionRecoveryAcceptance"],
+      "provide": [
+        "reviewer identity and organization",
+        "scope, jurisdiction, reviewed artifact digests, findings, and decision",
+        "production-volume RTO/RPO drill and immutable remote-retention evidence",
+        "manual screen-reader, 200-percent text, dark-theme, RTL, and device matrix results"
       ]
     }
   ],
-  "releaseRule": "Missing input keeps only the affected review, proof, signing or media capability false or unavailable. It must never be replaced by fabricated configuration, provider health, approval, signature or rights evidence."
+  "releaseRule": "A missing input keeps only the affected state false or unavailable. It must never be replaced with fabricated configuration, approval, signature, provider health, install evidence, or public proof."
 }
