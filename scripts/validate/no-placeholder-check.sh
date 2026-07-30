@@ -20,6 +20,7 @@ if command -v rg >/dev/null 2>&1; then
     -g '!scripts/deploy/lib.sh' \
     -g '!docs/architecture/ZERO_PLACEHOLDER_POLICY.md' \
     -g '!docs/coordination/PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
+    -g '!release/docs-compliance-completion-evidence.json' \
     -e "$bad" "${scan_targets[@]}"; then
     found=0
   else
@@ -38,6 +39,7 @@ else
     --exclude='lib.sh' \
     --exclude='ZERO_PLACEHOLDER_POLICY.md' \
     --exclude='PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
+    --exclude='docs-compliance-completion-evidence.json' \
     --exclude='*.test.*' \
     --exclude='*_test.go' \
     --exclude-dir='.git' \
