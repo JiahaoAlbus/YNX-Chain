@@ -18,8 +18,8 @@ Updated: 2026-07-30T12:02:10Z
 - Provider Registry runtime and fail-closed vectors: `internal/bridgegateway/service.go`, `internal/bridgegateway/provider_registry_test.go`, `sdk/bridge/index.test.mjs`
 - Circle CCTP V2 Provider Runtime, remote supported-domain probe, fail-closed outage drill, automatic recovery, and independent public observation: `internal/bridgegateway/provider_runtime.go`, `internal/bridgegateway/provider_runtime_test.go`, `scripts/verify/bridge-provider-check.sh`, `docs/bridge/testnet-deployment-evidence.json`, `docs/bridge/public-read-evidence.json`
 - Frozen Integration Contract: `release/integration/ynx-bridge-contract.json`
-- Central handoff: `docs/integration/INTEGRATION_HANDOFF.md`
-- Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- Central handoff: `docs/bridge/INTEGRATION_HANDOFF.md`
+- Dependency acceptance: `docs/bridge/DEPENDENCY_ACCEPTANCE.md`
 - Cross-product vectors: `docs/bridge/CROSS_PRODUCT_TEST_VECTORS.json`
 - Deployment dry run: `scripts/deploy/dry-run.sh`
 - Readiness boundary: `docs/bridge/BRIDGE_INTEGRATION_READINESS.md`
