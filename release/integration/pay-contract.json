@@ -6,7 +6,7 @@
     "name": "YNX Pay",
     "owner": "04-pay",
     "branch": "codex/final-pay",
-    "sourceCommit": "21a2f0412598ef94dd33ff132456c63d5cee6798"
+    "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1"
   },
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -157,7 +157,7 @@
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": false,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,

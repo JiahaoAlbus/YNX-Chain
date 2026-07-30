@@ -17,7 +17,8 @@
 - Local capacity at `0d3c238`: 1,000 loopback `/health` and `/version` requests, concurrency 25, 0 failures, 32,067.0 req/s, p50 0.633 ms, p95 1.495 ms and p99 2.888 ms. This is explicitly not staging or settlement capacity.
 - Web/PWA and browser gate at `0600d5ab87a9062ccc5b757affe30e234f1b7730`: Android/iOS/Web exports plus Chromium keyboard, accessible-name, 390×844 and Arabic RTL/no-overflow tests pass.
 - Supply-chain candidate at `0600d5ab87a9062ccc5b757affe30e234f1b7730`: 0 called Go vulnerabilities after upgrading gRPC to 1.82.1, 0 high/critical npm findings, deterministic Linux/amd64 server and store builds, SHA-256 provenance, and Go/client CycloneDX SBOMs in `apps/pay/evidence/supply-chain/`.
-- Canonical Pay contract and cross-product vectors: `release/integration/pay-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/integration/DEPENDENCY_ACCEPTANCE.md`, `docs/integration/pay-quant-billing.json`.
+- Canonical Pay contract and cross-product vectors: `release/integration/pay-contract.json`, `docs/pay/INTEGRATION_HANDOFF.md`, `docs/pay/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/pay/DEPENDENCY_ACCEPTANCE.md`, `docs/integration/pay-quant-billing.json`.
+- Exact-source CI, unsigned iOS Simulator install, artifact-retention and URL-scheme evidence: `release/evidence/pay-exact-source-ci-2026-07-30.json`.
 - Full-goal machine coverage: `.ai-bridge/full-goal-coverage.json`.
 
 ## Historical-only evidence
