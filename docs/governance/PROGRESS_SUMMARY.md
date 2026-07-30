@@ -3,7 +3,7 @@
 Status: **Active**
 Phase: **INTEGRATE**
 Branch: `codex/final-governance`
-Implementation checkpoint: `ea949aacac147505360528583bd7fade12f7cac8`
+Implementation checkpoint: `0ed74c9e737ca6d5bbdf226f6ca487dc398b4755`
 
 ## Implemented and verified
 
@@ -15,17 +15,19 @@ Implementation checkpoint: `ea949aacac147505360528583bd7fade12f7cac8`
 - Signed execution intents pass through the canonical Chain Core/Comet adapter. Verification reconciles transaction hash, block height, block hash, state root, manifest, source, outcome, and audit identity.
 - A multiprocess four-validator lifecycle exercises proposal creation through canonical execution and verification without inferring public deployment.
 - Public APIs expose proposals, votes, delegations, roles, parameters, timelocks, executions, upgrades, canaries, emergencies, treasury/provider proposal records, conflicts, appeals, audit, health, version, and metrics.
-- The read-only governance UI consumes the real nested proposal and public signed-vote contracts. Fake wallet and unsigned-vote controls were removed.
-- The UI has a committed dependency lock, production build, type-check, render smoke test, and zero-known-vulnerability npm audit.
+- The read-only governance UI consumes the real nested proposal contract, including diffs, votes, timelocks, conflicts, execution receipts, and audit history. Fake wallet and unsigned-vote controls are absent.
+- The UI has 12 locale boundaries, Arabic RTL, semantic keyboard controls, a 390px real-Chrome check, a committed dependency lock, production build, type-check, render tests, and zero-known-vulnerability npm audit.
 - Governance CI verifies Go tests and vet, JSON metadata, UI build/test/type-check/audit, forbidden text, secret patterns, and deterministic Go binaries.
 
 ## Verification
 
-- `bash scripts/verify/governance-check.sh` — passed on 2026-07-28.
-- `go test ./...` — passed on 2026-07-28.
-- `npm --prefix apps/governance test` — 1 render smoke test passed.
+- `bash scripts/verify/governance-check.sh` — passed on 2026-07-29.
+- `go test -race -count=1 ./internal/governance ./chain/governance` — passed on 2026-07-29.
+- `npm --prefix apps/governance test` — 2 render and locale tests passed.
+- `npm --prefix apps/governance run test:browser` — 1 real-Chrome keyboard, RTL, 390px, and state-view test passed.
 - `npm --prefix apps/governance audit --audit-level=moderate` — 0 known vulnerabilities.
-- Remote branch SHA was verified as `ea949aacac147505360528583bd7fade12f7cac8`.
+- `govulncheck` over Governance runtime, chain, and commands — 0 reachable vulnerabilities after upgrading gRPC to 1.82.1.
+- Source-bound UI, runtime, and patched gRPC evidence is attached to `0ed74c9e737ca6d5bbdf226f6ca487dc398b4755`.
 
 ## Truthful release state
 

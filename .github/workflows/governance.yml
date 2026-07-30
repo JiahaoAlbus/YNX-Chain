@@ -24,8 +24,12 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: apps/governance/package-lock.json
+      - name: Verify immutable GitHub Actions pins
+        run: node scripts/verify/github-actions-pins-check.mjs
       - name: Install governance UI dependencies
         run: npm --prefix apps/governance ci
+      - name: Install Playwright Chromium
+        run: npm --prefix apps/governance exec playwright install --with-deps chromium
       - name: Verify governance control plane
         run: bash ./scripts/verify/governance-check.sh
       - name: Exercise four-validator governance Testnet lifecycle
