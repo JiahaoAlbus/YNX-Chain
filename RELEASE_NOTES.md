@@ -12,7 +12,7 @@ Consumer portability and release integrity advanced in three protected checkpoin
 
 - `6e811f74c3d68aa70d3216fea9682e932f9a3e73` adds the strict TypeScript SDK. It compiled successfully and passed 18 canonical-vector, schema, derivation, transport, and response-bound tests.
 - `1d17e520186a500f5c9ab04ee88769637d88fc59` adds `ynx-oracle-cli`. Go race tests passed, and the CLI emits no price until market, type, policy version, freshness, confidence, coverage, lineage, and derivation checks pass.
-- `7ba44cfbe66455884ac6c2ea8525e9738b7f1396` freezes the aligned Oracle candidate with deterministic macOS arm64 and Linux arm64 server/CLI bundles plus TypeScript and Go SDK candidates. Canonical manifest, SHA-256/bytes, target validation, CycloneDX SBOM, provenance, detached-signature verification, tamper rejection, clean SDK consumers, a real macOS install/cold-start/version-binding/graceful-shutdown drill, zero-high dependency audit, immutable Actions pins and real-Chrome accessibility passed.
+- `8f4310988a6641c5b023497c74e901ff508771fe` freezes the aligned Oracle candidate with scoped Oracle release/integration authority, deterministic macOS arm64 and Linux arm64 server/CLI bundles plus TypeScript and Go SDK candidates. Canonical manifest, SHA-256/bytes, target validation, CycloneDX SBOM, provenance, detached-signature verification, tamper rejection, clean SDK consumers, a real macOS install/cold-start/version-binding/graceful-shutdown drill, zero-high dependency audit, immutable Actions pins, docs compliance, Resource Market contract isolation and real-Chrome accessibility passed.
 
 A real limited-source public Testnet control plane is deployed at
 `https://oracle-testnet.43.153.202.237.sslip.io` from deployment commit

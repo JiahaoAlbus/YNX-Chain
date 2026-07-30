@@ -13,7 +13,7 @@
 
 ## Current truth
 
-Frozen source commit: `7ba44cfbe66455884ac6c2ea8525e9738b7f1396`.
+Frozen source commit: `8f4310988a6641c5b023497c74e901ff508771fe`.
 
 The long-term goal is not complete. The following release states remain false until direct evidence exists:
 

@@ -6,7 +6,7 @@ Namespace: `oracle`
 
 YNX Oracle & Market Data is the sole owner of canonical price and market-data facts. Consumer products must not maintain a conflicting definition of asset, market, timestamp, price type, staleness, quality, correction state, or lineage.
 
-**Frozen Oracle source commit:** `7ba44cfbe66455884ac6c2ea8525e9738b7f1396`
+**Frozen Oracle source commit:** `8f4310988a6641c5b023497c74e901ff508771fe`
 **Schema:** `ynx.oracle.v1`  
 **Aggregation policy:** `weighted-median-mad-v1`  
 **Derivatives policy:** `index-funding-mark-v1`  
@@ -45,7 +45,7 @@ The previous observation contract allowed providers to publish index, mark, and 
 
 ## Evidence and acceptance
 
-Local Oracle race tests, vet, Web tests, real-Chrome accessibility, TypeScript SDK tests, deterministic release integrity, dependency audit and immutable Actions-pin checks pass against the source commit. The full-repository test command was also run; failures were outside Oracle ownership and were limited to missing EVM contract artifacts and a Resource Market vector inherited from current `main` without its required contract identifier.
+Local Oracle race tests, vet, Web tests, real-Chrome accessibility, TypeScript SDK tests, deterministic release integrity, dependency audit and immutable Actions-pin checks pass against the source commit. After generating pinned contract selector metadata and restoring the Resource Market authority paths inherited from current `main`, the full repository test suite also passes.
 
 Central integration, staging, public deployment, Explorer proof, Monitor alerts, provider activation, and consumer acceptance remain false until direct evidence is returned. The authoritative machine-readable files are:
 

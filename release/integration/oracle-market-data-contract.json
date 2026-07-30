@@ -3,7 +3,7 @@
   "contractId": "ynx-oracle-market-data-v1",
   "productId": "ynx-oracle-market-data",
   "owner": "19 Oracle & Market Data",
-  "sourceCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
+  "sourceCommit": "8f4310988a6641c5b023497c74e901ff508771fe",
   "versions": {
     "schema": "ynx.oracle.v1",
     "aggregationPolicy": "weighted-median-mad-v1",
@@ -137,12 +137,9 @@
     "targetedRaceResult": "passed",
     "vetCommand": "go vet ./internal/oracle/... ./sdk/oracle/go ./cmd/ynx-oracled ./cmd/ynx-oracle-provider ./cmd/ynx-oracle-cli",
     "vetResult": "passed",
-    "fullRepositoryCommand": "go test ./...",
-    "fullRepositoryResult": "failed-outside-oracle-ownership",
-    "fullRepositoryFailures": [
-      "missing SampleEVMWriteCounter contract artifact in BFT and consensus tests",
-      "resource-market integration vector from current main lacks the contract identifier required by its test"
-    ],
+    "fullRepositoryCommand": "make contract-tooling-check && make test",
+    "fullRepositoryResult": "passed",
+    "fullRepositoryFailures": [],
     "publicTestnetSmokeResult": "passed-limited-source-fail-closed",
     "publicTestnetUrl": "https://oracle-testnet.43.153.202.237.sslip.io",
     "publicTestnetSourceCommit": "f71d5ca5c2ede28477fbadff36701a9f040e311f",

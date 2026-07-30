@@ -8,7 +8,7 @@ A provider-published mark or index could silently become a single-venue liquidat
 
 ## Canonical resolution implemented
 
-Frozen Oracle source commit `7ba44cfbe66455884ac6c2ea8525e9738b7f1396` enforces the following:
+Frozen Oracle source commit `8f4310988a6641c5b023497c74e901ff508771fe` enforces the following:
 
 1. Providers may submit `spot_price`, `premium_reference`, and `basis_reference` only when their registry entry covers the exact market, endpoint, and API version.
 2. Providers cannot submit `index_price`, `mark_price`, or `funding_reference`.

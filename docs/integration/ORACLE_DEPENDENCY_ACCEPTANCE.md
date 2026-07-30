@@ -2,7 +2,7 @@
 
 Namespace: `oracle`
 
-**Frozen Oracle source commit:** `7ba44cfbe66455884ac6c2ea8525e9738b7f1396`
+**Frozen Oracle source commit:** `8f4310988a6641c5b023497c74e901ff508771fe`
 
 No dependency below is accepted merely because an adapter, schema, or handoff file exists. Acceptance requires direct consumer-owner evidence against the exact source commit.
 
