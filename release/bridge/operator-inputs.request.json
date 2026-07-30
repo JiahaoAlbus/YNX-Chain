@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "ynx-operator-inputs/v1",
+  "productId": "21",
+  "product": "YNX Bridge & Interoperability",
+  "requestStatus": "required-only-for-executable-shared-testnet-and-later-gates",
+  "sourceCommit": "77cb1b44912ab3e9850522a618959f67e7b0037b",
+  "responseChannel": "approved control plane or named owner handoff",
+  "neverProvideInChatOrRepository": [
+    "private key",
+    "seed phrase",
+    "relayer or validator key",
+    "PEM, keystore or HSM credential",
+    "complete Provider API secret",
+    "production database credential",
+    "card or identity-document secret"
+  ],
+  "inputs": [
+    {
+      "id": "approved-route-and-contract-evidence",
+      "ownerClass": "provider-legal-and-protocol-owner",
+      "requiredFor": [
+        "executableYnxRouteAvailable",
+        "officialStablecoinRouteAvailable"
+      ],
+      "provide": [
+        "approved Provider or proof model and public version",
+        "agreement and jurisdiction approval references",
+        "verified source and destination chain IDs",
+        "verified contract addresses and explorer links",
+        "token symbol, decimals, mint-burn or lock-release authority",
+        "finality, fee, refund and outage policy"
+      ],
+      "prohibited": "Do not provide complete Provider credentials; provide only an approved secret-manager reference after service-account scope and rotation are reviewed."
+    },
+    {
+      "id": "secure-signer-and-threshold-ceremony",
+      "ownerClass": "security-custody-owner",
+      "requiredFor": [
+        "externalSubmissionEnabled",
+        "destinationMintOrReleaseEnabled"
+      ],
+      "provide": [
+        "approved HSM, MPC or threshold signer reference",
+        "public keys and threshold policy",
+        "two-person ceremony and rollback records",
+        "limit, pause, rotation, revocation and emergency-exit approvals"
+      ],
+      "prohibited": "Do not provide private key material, seed phrases, PEM files or raw HSM credentials."
+    },
+    {
+      "id": "funded-testnet-evidence-authority",
+      "ownerClass": "founder-testnet-treasury-owner",
+      "requiredFor": [
+        "fundedTestnetDeposit",
+        "fundedTestnetWithdrawal",
+        "failureRetryRefundEvidence"
+      ],
+      "provide": [
+        "approved public Testnet funding addresses",
+        "funding and gas transaction hashes",
+        "per-asset and per-route test limits",
+        "authorized test window and named observers"
+      ],
+      "prohibited": "Do not provide wallet secrets or unrestricted withdrawal authority."
+    },
+    {
+      "id": "independent-security-and-governance-acceptance",
+      "ownerClass": "independent-security-reviewer-and-governance-owner",
+      "requiredFor": [
+        "publicMutationEnabled",
+        "productionSigned",
+        "mainnetReleased"
+      ],
+      "provide": [
+        "review scope bound to source and artifact digests",
+        "findings, remediation and explicit acceptance or rejection",
+        "governance proposal, timelock and execution receipts",
+        "public incident, dispute, support and recovery owners"
+      ]
+    }
+  ],
+  "releaseRule": "Missing evidence keeps only the affected capability false. Public read-only evidence and unsigned downloads must never be promoted to executable, production-signed, canonical, trustless or Mainnet status."
+}
