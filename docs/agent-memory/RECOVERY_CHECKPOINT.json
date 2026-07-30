@@ -1,43 +1,57 @@
 {
-  "schemaVersion": "1.0",
+  "schemaVersion": "1.1",
   "productNumber": "04",
   "productName": "YNX Pay",
   "phase": "INTEGRATE",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay",
   "branch": "codex/final-pay",
-  "localSha": "21a2f0412598ef94dd33ff132456c63d5cee6798",
-  "remoteSha": "21a2f0412598ef94dd33ff132456c63d5cee6798",
-  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
-  "dirty": false,
-  "ahead": 27,
-  "behind": 0,
+  "implementationSourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+  "evidenceCommit": "8968cd27d6054d75286702401ec8484e7efe050a",
+  "remoteFinalBranchShaBeforeFreeze": "4b17b29b652b61100f6a7e7715b1d3c3316c3914",
+  "candidateValidationBranch": "codex/pay-native-ci-recovery",
+  "candidateValidationSha": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+  "recovery": {
+    "remoteBranch": "recovery/pay-pre-continuation-20260730T185519Z",
+    "bundle": "/Users/huangjiahao/Desktop/YNX Recovery Bundles/pay-pre-continuation-20260730T185519Z/pay-pre-continuation.bundle",
+    "bundleSha256": "c5c5e31387368f84e9493ede5c40e2ff2b148433ee20bf5c3e5a86a06c9bfb34"
+  },
   "latestSuccessfulTests": [
     "go test ./internal/payproduct/... -count=1",
     "go test -race ./internal/payproduct/... -count=1",
+    "go vet ./internal/payproduct/...",
     "npm run check (apps/pay)",
-    "make pay-api-check"
+    "make pay-api-check",
+    "bash internal/payproduct/smoke.sh",
+    "GitHub Actions exact-source run 30575350364"
   ],
-  "latestCiRuns": [
+  "latestCiRun": {
+    "id": 30575350364,
+    "headSha": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+    "conclusion": "success",
+    "jobs": {
+      "test": "success",
+      "payIosNative": "success",
+      "cardIosNative": "success"
+    }
+  },
+  "artifacts": [
     {
-      "pullRequest": 11,
-      "headSha": "21a2f0412598ef94dd33ff132456c63d5cee6798",
-      "status": "in_progress"
+      "id": 8772707422,
+      "name": "ynx-pay-ios-simulator-6cbac9f4654b5715d32f1e561819e593c868a6f1",
+      "expiresAt": "2026-08-29T19:42:56Z",
+      "classification": "unsigned authenticated expiring CI evidence"
+    },
+    {
+      "id": 8772713880,
+      "name": "ynx-card-ios-simulator-6cbac9f4654b5715d32f1e561819e593c868a6f1",
+      "expiresAt": "2026-08-29T19:43:11Z",
+      "classification": "unsigned authenticated expiring CI evidence"
     }
   ],
-  "pullRequests": [
-    {
-      "number": 11,
-      "state": "OPEN",
-      "mergeable": true,
-      "headSha": "21a2f0412598ef94dd33ff132456c63d5cee6798"
-    }
-  ],
-  "release": null,
-  "artifacts": [],
   "publicRoutes": [
     {
       "url": "https://ynxweb4.com/pay",
-      "status": "generic-spa-fallback",
+      "status": "generic-site-fallback",
       "sourceBound": false
     },
     {
@@ -48,24 +62,24 @@
     }
   ],
   "completed": [
-    "recovered",
-    "protectedRemoteCheckpoint",
-    "mergedCurrentMain",
-    "targetedLocalVerification",
-    "integrationPullRequestOpened"
+    "recoveredAndBackedUp",
+    "dirtyWorkPreservedAndFixed",
+    "allWorkflowActionsPinned",
+    "localPayVerificationPassed",
+    "exactSourceCiPassed",
+    "unsignedIosSimulatorInstalledAndColdLaunched",
+    "paySpecificIntegrationEvidenceNamespaced"
   ],
   "remaining": [
-    "successfulCiForFinalSha",
+    "protectedFinalBranchFreeze",
     "integratedCentral",
     "freshAuthoritativeTestnetFlow",
+    "androidInstallEvidence",
+    "productionSignedArtifacts",
     "currentSourcePublicRuntime",
-    "hostedImmutableArtifacts",
+    "publicImmutableDownloads",
     "paySpecificWebsiteRoute"
   ],
-  "blockers": [
-    "PAY-INTEGRATION-001",
-    "PAY-PUBLIC-001"
-  ],
-  "nextAction": "Inspect the final PR #11 check rollup, fix Pay-owned failures, and bind successful run IDs to the release evidence.",
-  "updatedAt": "2026-07-29T02:34:00Z"
+  "nextAction": "Commit this checkpoint, validate the exact evidence head, freeze origin/codex/final-pay with strict branch protection, then merge Pay into 29-integration.",
+  "updatedAt": "2026-07-30T19:47:00Z"
 }
