@@ -319,6 +319,16 @@ test("real Chrome verifies Oracle keyboard, RTL, reduced-motion, theme, large-te
 
     await evaluate(client, sessionId, "document.activeElement?.blur() || true");
     await press(client, sessionId, "Tab", "Tab", 9);
+    await waitFor(
+      client,
+      sessionId,
+      `(() => {
+        const active = document.activeElement;
+        if (!active?.classList?.contains('skip')) return false;
+        return ['none', 'matrix(1, 0, 0, 1, 0, 0)'].includes(getComputedStyle(active).transform);
+      })()`,
+      "focused skip-link visibility",
+    );
     const skipFocus = await evaluate(client, sessionId, `(() => {
       const active = document.activeElement;
       const style = getComputedStyle(active);
