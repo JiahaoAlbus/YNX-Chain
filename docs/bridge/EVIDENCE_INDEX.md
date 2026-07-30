@@ -1,10 +1,13 @@
 # Bridge Evidence Index
 
-Updated: 2026-07-29T02:38:24Z
+Updated: 2026-07-30T12:02:10Z
 
-- Latest verified source commit: `96a64792a6343ec379763bc7e382c1d0a4a75f3d`
-- Successful Bridge CI: run `30417171059`, job `90466102715`
-- CI verification artifact: ID `8710575111`, digest `sha256:4264673f262d4318d6be7adeaf52c323fa9da8acf5a3ef76934110eead0ec40b`, expiring 2026-08-28; this is an Actions verification artifact, not an immutable release download.
+- Frozen release source commit: `40b99be92a9fd7a1e83cab3da27bbe233bf2695c`
+- Successful Bridge CI: run `30419513969`, job `90473200772`
+- CI verification artifact: ID `8711399511`, digest `sha256:bb1185235fd22cdfae5b98efdb723b1b70f48f32aea7c4dd0d42fae6c506e54f`, expiring 2026-08-28; this remains an expiring Actions artifact.
+- Immutable pre-release: `https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynx-bridge-v0.3.1-testnet-candidate`, 10 assets, signing class `unsigned-testnet-candidate`.
+- Independent download verification: all `SHA256SUMS` entries passed, the packaged SDK installed/imported, and the macOS ARM64 coordinator passed configuration validation plus a real cold start.
+- Candidate hashes: Linux AMD64 `0836bc034dfd5b8d3e6e58947ab7e42751d84bc6a2cee26df654aead55ce34b4`; macOS ARM64 `2e0756979ae693292dd2e1eb281253f866baad53e204b165817f083195e0b164`; SDK `dbbdd2a27a2131b43800d732791ec832a6daf0ae2fb584cddd7efff51581f47c`.
 - Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`, `internal/appgateway`, `cmd/ynx-app-gatewayd`; deployed Testnet runtime commit `857371f9b19422861c0675ca6cbd89a7750744ad`
 - Remote Testnet coordinator, artifact, permission, App Gateway, and fail-closed runtime proof: `docs/bridge/testnet-deployment-evidence.json`
 - Independent-node public TLS read-only surface and mutation-boundary proof: `docs/bridge/public-read-evidence.json`
@@ -52,5 +55,6 @@ Updated: 2026-07-29T02:38:24Z
 - Restore evidence: `docs/bridge/restore-evidence.json`; restore runner `scripts/verify/bridge-restore-check.sh` allocates an isolated loopback port and passed two concurrent drills on 2026-07-29.
 - Website route evidence: direct HTTP observation of `https://ynxweb4.com/bridge`; route HTTP 200 is proved, but product-specific canonical/title/description/Open Graph/JSON-LD are not proved and are handed to `28-website`.
 - Evidence gate: `scripts/verify/bridge-evidence-check.mjs`
+- Release-candidate generator and verifier: `scripts/package/bridge-release-candidate.mjs`, `scripts/verify/bridge-release-candidate.mjs`
 
 Generated test output is ephemeral and is not public or remote evidence. A release evidence record must bind future logs, artifacts, transaction receipts, API responses, and deployment URLs to the exact source commit that produced them.

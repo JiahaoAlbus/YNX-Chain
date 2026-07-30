@@ -3,7 +3,7 @@
   "product": "YNX Bridge & Interoperability",
   "productSlug": "ynx-bridge",
   "branch": "codex/final-bridge",
-  "sourceCommit": "914249bc9772f9e813470291f3ad7c57205edbe9",
+  "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
   "status": "ACTIVE",
   "currentPhase": "TESTNET",
   "completedPhases": ["RECOVER", "PROTECT", "FREEZE", "INTEGRATE"],
@@ -19,7 +19,7 @@
     "notApplicable",
     "verifiedComplete"
   ],
-  "lastUpdated": "2026-07-27T15:19:57Z",
+  "lastUpdated": "2026-07-30T12:02:10Z",
   "items": [
     {
       "id": "BR-REC-001",
@@ -682,16 +682,16 @@
       "category": "github-release",
       "requirement": "Publish a Bridge-specific GitHub prerelease and immutable artifacts with SBOM, provenance, hash, bytes, signing class, install, and cold-start evidence.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": ["gh release list contains no Bridge release", "verification-only Actions artifact 8657978658 exists but is not a server or SDK release artifact"],
-      "sourceCommit": "3060deee4132bcd6bdc0d9284e0291391fa3bc4e",
-      "tests": ["Bridge CI reproducible supply-chain gate passed in run 30278915644"],
-      "artifact": ["verification-only artifact 8657978658; content download not independently unpacked because Blob storage TLS handshakes timed out twice"],
-      "publicProof": ["https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30278915644"],
-      "blockedBy": ["Bridge candidate packaging", "hosted immutable server and SDK release artifacts", "install and cold-start evidence", "GitHub prerelease publication"],
+      "status": "verifiedComplete",
+      "evidence": ["GitHub pre-release ynx-bridge-v0.3.1-testnet-candidate", "all ten downloaded assets passed SHA256SUMS", "downloaded SDK installed and imported", "downloaded host binary passed configuration validation and cold start"],
+      "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+      "tests": ["make bridge-release-candidate-check", "Bridge CI run 30419513969", "independent gh release download and release-candidate verifier"],
+      "artifact": ["https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynx-bridge-v0.3.1-testnet-candidate", "Linux AMD64 sha256 0836bc034dfd5b8d3e6e58947ab7e42751d84bc6a2cee26df654aead55ce34b4", "macOS ARM64 sha256 2e0756979ae693292dd2e1eb281253f866baad53e204b165817f083195e0b164", "SDK sha256 dbbdd2a27a2131b43800d732791ec832a6daf0ae2fb584cddd7efff51581f47c"],
+      "publicProof": ["https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30419513969", "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynx-bridge-v0.3.1-testnet-candidate"],
+      "blockedBy": [],
       "owner": "YNX 21 and YNX 30",
-      "nextAction": "Build reproducible candidate server and SDK archives, publish a prerelease without claiming production signing, and verify downloaded bytes and installation.",
-      "lastUpdated": "2026-07-27T15:19:57Z"
+      "nextAction": "Keep the candidate immutable and never promote it to production-signed or executable-route status without separate evidence.",
+      "lastUpdated": "2026-07-30T12:02:10Z"
     },
     {
       "id": "BR-COMP-001",
@@ -752,10 +752,10 @@
       "tests": ["partial preflight on 2026-07-27"],
       "artifact": ["docs/bridge/migration-rollback-evidence.json"],
       "publicProof": [],
-      "blockedBy": ["remaining local gates", "real route and public execution evidence", "Bridge CI/release artifacts"],
+      "blockedBy": ["real route and public execution evidence", "central consumer acceptance", "Website product-specific metadata"],
       "owner": "YNX 21 and YNX 30",
-      "nextAction": "Continue with Bridge CI/artifact delivery, metadata truth sync, consumer acceptance, and shared Testnet prerequisites.",
-      "lastUpdated": "2026-07-27T14:43:56Z"
+      "nextAction": "Complete exact-head preflight and protected central acceptance while keeping executable Testnet route evidence external-blocked.",
+      "lastUpdated": "2026-07-30T12:02:10Z"
     }
   ]
 }

@@ -147,11 +147,11 @@
   "releaseState": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": false,
+    "installedLocal": true,
     "integratedCentral": true,
     "deployedStaging": true,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   }

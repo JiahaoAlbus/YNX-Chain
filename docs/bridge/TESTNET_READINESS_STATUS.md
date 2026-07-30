@@ -1,9 +1,9 @@
 # YNX Bridge Testnet Readiness Status
 
-Updated: 2026-07-29T02:38:24Z  
+Updated: 2026-07-30T12:02:10Z
 Product: `21 — YNX Bridge & Interoperability`  
 Branch: `codex/final-bridge`  
-Protected implementation commit: `96a64792a6343ec379763bc7e382c1d0a4a75f3d`
+Frozen release source commit: `40b99be92a9fd7a1e83cab3da27bbe233bf2695c`
 
 ## Status matrix
 
@@ -12,13 +12,13 @@ Protected implementation commit: `96a64792a6343ec379763bc7e382c1d0a4a75f3d`
 | recovered | true | Worktree, branch, remote, history, evidence, public endpoints, and CI were re-audited. |
 | implementedLocal | true | Bridge coordinator, App Gateway integration, SDK, Provider runtime, observability, migration, restore, and supply-chain gates exist. |
 | testedLocal | true | Focused race tests and Bridge verification targets passed on 2026-07-29 after the restore-port defect was fixed. |
-| installedLocal | false | No end-user local installation package is claimed. |
+| installedLocal | true | The downloaded SDK installed/imported and the downloaded host binary passed configuration validation plus a real cold start. |
 | integratedCentral | true | Canonical App Gateway Bridge Product Session routes and Wallet-sidecar compatibility are deployed. Consumer-owner acceptance is still incomplete. |
 | testnetVerified | false | No funded YNX deposit or withdrawal exists. |
 | deployedStaging | true | Remote Testnet coordinator and Provider observation are deployed. |
 | deployedPublic | true | Public read-only status/evidence is reachable through TLS. Public mutation and asset movement remain disabled. |
-| releasePublished | false | No Bridge-specific GitHub pre-release has been published. |
-| downloadHosted | false | No immutable Bridge binary/SDK release package is hosted. |
+| releasePublished | true | GitHub pre-release `ynx-bridge-v0.3.1-testnet-candidate` is published at frozen source `40b99be9…`. |
+| downloadHosted | true | Ten immutable candidate assets are hosted with SHA-256, SBOM, provenance, notices and installation instructions. |
 | productionSigned | false | Existing builds are unsigned Testnet candidates. |
 | mainnetReleased | false | Mainnet and production asset movement are not claimed. |
 
@@ -57,6 +57,8 @@ This proves public read-only Testnet evidence, not an executable YNX Bridge rout
 - Circle CCTP V2 Sandbox fee/health observation with fail-closed YNX route status
 - structured metrics, alerts, dashboard, request IDs, trace context, and incident history
 - reproducible Linux/AMD64 build check, SPDX SBOM generation, dependency audit, and secret/placeholder gates
+- reproducible Linux/AMD64 and macOS/ARM64 release candidates plus SDK packaging
+- independent release download, checksum, SDK install/import and binary cold-start verification
 
 ## Recovered defect
 
@@ -77,7 +79,6 @@ The following remain false and may not be promoted:
 - independent security review
 - shared Testnet acceptance by all central owners
 - Monitor delivery and public incident integration
-- immutable hosted release artifacts with verified installation/cold start
 
 ## Website audit
 

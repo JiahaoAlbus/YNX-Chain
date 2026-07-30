@@ -1,13 +1,14 @@
 # YNX Bridge Integration Handoff
 
-Updated: 2026-07-29T02:38:24Z
+Updated: 2026-07-30T12:02:10Z
 
 Status: remote Testnet coordinator, canonical App Gateway integration, public read-only ingress, and supported external-route Provider API probe deployed; approved YNX Provider route, YNX contracts, funded transfer execution, and cross-owner acceptance are not complete.
 
 Deployed Testnet runtime commit: `857371f9b19422861c0675ca6cbd89a7750744ad`  
-Latest verified source commit: `96a64792a6343ec379763bc7e382c1d0a4a75f3d`  
-Latest successful Bridge CI: `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30417171059`  
-Verification artifact digest: `sha256:4264673f262d4318d6be7adeaf52c323fa9da8acf5a3ef76934110eead0ec40b`
+Frozen release source commit: `40b99be92a9fd7a1e83cab3da27bbe233bf2695c`
+Latest successful Bridge CI: `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30419513969`
+Verification artifact digest: `sha256:bb1185235fd22cdfae5b98efdb723b1b70f48f32aea7c4dd0d42fae6c506e54f`
+Published unsigned candidate: `https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynx-bridge-v0.3.1-testnet-candidate`
 
 Integration contract: `release/integration/ynx-bridge-contract.json`  
 Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`

@@ -31,7 +31,29 @@
   ],
   "status": "public-read-only-testnet-coordinator",
   "screenshots": [],
-  "downloads": [],
+  "downloads": [
+    {
+      "name": "YNX Bridge coordinator — Linux AMD64",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-bridge-v0.3.1-testnet-candidate/ynx-bridged-40b99be92a9f-linux-amd64",
+      "bytes": 7274644,
+      "sha256": "0836bc034dfd5b8d3e6e58947ab7e42751d84bc6a2cee26df654aead55ce34b4",
+      "signingClass": "unsigned-testnet-candidate"
+    },
+    {
+      "name": "YNX Bridge coordinator — macOS ARM64",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-bridge-v0.3.1-testnet-candidate/ynx-bridged-40b99be92a9f-darwin-arm64",
+      "bytes": 6917570,
+      "sha256": "2e0756979ae693292dd2e1eb281253f866baad53e204b165817f083195e0b164",
+      "signingClass": "unsigned-testnet-candidate"
+    },
+    {
+      "name": "YNX Bridge read-only JavaScript SDK 0.3.1",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-bridge-v0.3.1-testnet-candidate/ynx-bridge-sdk-0.3.1.tgz",
+      "bytes": 7659,
+      "sha256": "dbbdd2a27a2131b43800d732791ec832a6daf0ae2fb584cddd7efff51581f47c",
+      "signingClass": "unsigned-testnet-candidate"
+    }
+  ],
   "supportUrl": null,
   "privacyUrl": null,
   "securityUrl": null,
@@ -51,7 +73,7 @@
     "productSpecificMetadataVerified": false,
     "gap": "The fetched SPA shell uses the root canonical URL and generic site title and description. Owner 28-website must render route-specific canonical, Open Graph, JSON-LD, title and description."
   },
-  "latestVerifiedSourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+  "latestVerifiedSourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
   "structuredDataSuggestion": {
     "type": "WebApplication",
     "applicationCategory": "FinanceApplication",

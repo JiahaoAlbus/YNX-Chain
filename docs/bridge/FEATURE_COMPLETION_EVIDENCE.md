@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-29. Runtime and public read-only Testnet evidence source commit: `857371f9b19422861c0675ca6cbd89a7750744ad`; latest verified source commit: `96a64792a6343ec379763bc7e382c1d0a4a75f3d`. GitHub Actions run `30417171059` passed the full Bridge workflow and produced expiring verification artifact `8710575111` with digest `sha256:4264673f262d4318d6be7adeaf52c323fa9da8acf5a3ef76934110eead0ec40b`. The restore runner now isolates every drill on a dynamically selected loopback port; a normal drill and two concurrent drills passed. The deployed Provider health observation is verified to refresh every 60 seconds, fail closed on a real egress outage, automatically recover, persist eight integrity-linked incident events, and preserve their identifiers across a service restart. The deployed App Gateway simultaneously reports healthy Bridge and canonical Wallet upstreams and uses a soft Wallet dependency so an unrelated Wallet service failure cannot become a hard Bridge availability dependency.
+Status date: 2026-07-30. Runtime and public read-only Testnet evidence source commit: `857371f9b19422861c0675ca6cbd89a7750744ad`; frozen release source commit: `40b99be92a9fd7a1e83cab3da27bbe233bf2695c`. GitHub Actions run `30419513969` passed the full Bridge workflow and produced expiring verification artifact `8711399511` with digest `sha256:bb1185235fd22cdfae5b98efdb723b1b70f48f32aea7c4dd0d42fae6c506e54f`. The immutable pre-release `ynx-bridge-v0.3.1-testnet-candidate` hosts ten unsigned assets. Independent download verification passed all checksums, installed/imported the SDK, and cold-started the host binary after configuration validation. The restore runner isolates every drill on a dynamically selected loopback port. The deployed Provider health observation is verified to refresh every 60 seconds, fail closed on a real egress outage, automatically recover, persist eight integrity-linked incident events, and preserve their identifiers across a service restart. The deployed App Gateway simultaneously reports healthy Bridge and canonical Wallet upstreams and uses a soft Wallet dependency so an unrelated Wallet service failure cannot become a hard Bridge availability dependency.
 
 ## Evidence-backed state
 
@@ -35,7 +35,7 @@ Status date: 2026-07-29. Runtime and public read-only Testnet evidence source co
 | Destination mint or release execution | false | false | false | false | false | false |
 | Official stablecoin transfer route | false | false | false | false | false | false |
 
-`productionSigned`, `downloadHosted`, and `storeReleased` are false because this server component has no signed end-user package or store distribution.
+`downloadHosted` and release-candidate `installedLocal` are true. `productionSigned` and `storeReleased` remain false because the hosted server/SDK package is an unsigned Testnet candidate and has no store distribution.
 
 ## Direct local evidence
 
@@ -53,11 +53,12 @@ Status date: 2026-07-29. Runtime and public read-only Testnet evidence source co
 - `make bridge-capacity-check`
 - `make bridge-restore-check`
 - `make bridge-evidence-check`
+- `make bridge-release-candidate-check`
 - `go test ./...`
 - `make no-placeholder-check`
 - `make secret-scan`
 
-The API check launches the compiled daemon and exercises public fail-closed route/asset catalogs, unauthorized rejection, create replay/conflict, persistent restart and semantic state validation, pause/resume rejection, exposure limits, public transparency, an intentionally unbalanced reconciliation, truthful metrics, state file mode, and secret non-disclosure. Provider Registry unit and SDK tests prove deterministic route binding, explicit unavailable credentials/contracts/commercial rights/health, incomplete incident-history coverage, and rejection of readiness overclaims. Focused race tests additionally prove exact reconciliation replay across newer observations and restart, fail-closed migration, and rejection of forged replay/accounting/timestamp, quorum, signature, index, and audit state.
+The API check launches the compiled daemon and exercises public fail-closed route/asset catalogs, unauthorized rejection, create replay/conflict, persistent restart and semantic state validation, pause/resume rejection, exposure limits, public transparency, an intentionally unbalanced reconciliation, truthful metrics, state file mode, and secret non-disclosure. Provider Registry unit and SDK tests prove deterministic route binding, explicit unavailable credentials/contracts/commercial rights/health, incomplete incident-history coverage, and rejection of readiness overclaims. Focused race tests additionally prove exact reconciliation replay across newer observations and restart, fail-closed migration, and rejection of forged replay/accounting/timestamp, quorum, signature, index, and audit state. The release gate independently rebuilds each binary twice, packages the SDK twice, validates provenance/SBOM/checksums, installs the SDK and cold-starts the host binary.
 
 ## Missing completion evidence
 

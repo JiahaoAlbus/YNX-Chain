@@ -1,5 +1,14 @@
 # Bridge Release Notes
 
+## Unsigned Testnet candidate publication — 2026-07-30
+
+- Froze source commit `40b99be92a9fd7a1e83cab3da27bbe233bf2695c` and published pre-release `ynx-bridge-v0.3.1-testnet-candidate`.
+- Published reproducible Linux AMD64 and macOS ARM64 coordinator binaries, Bridge SDK 0.3.1, SPDX SBOMs, SLSA-shaped provenance, checksum manifest, installation instructions and third-party notices.
+- Independently downloaded all ten assets and verified every checksum.
+- Installed and imported the downloaded SDK and cold-started the downloaded macOS ARM64 binary after configuration validation.
+- GitHub Actions run `30419513969` passed the full Bridge workflow, including race tests, repository tests, migration, capacity, restore, evidence, supply-chain and release-candidate installation/cold-start checks.
+- The release is explicitly unsigned and non-executable for YNX routes; external submission, user asset movement, funded deposit/withdrawal, production signing, canonical proof and Mainnet remain false.
+
 ## Recovery and verification refresh — 2026-07-29
 
 - Recovered the exact `21-bridge` Worktree, branch, remote, local/remote SHA, public runtime, Website route, CI and artifact state without destructive Git operations.

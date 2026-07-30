@@ -1,20 +1,20 @@
 {
   "schemaVersion": 2,
   "product": "YNX Bridge",
-  "releaseClass": "remote-testnet-coordinator-candidate",
+  "releaseClass": "remote-testnet-coordinator-and-unsigned-artifact-candidate",
   "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
-  "latestVerifiedSourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
-  "sourceCommitRequiredBeforeRelease": true,
+  "latestVerifiedSourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+  "sourceCommitRequiredBeforeRelease": false,
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
   "sdkVersion": "0.3.1",
   "implementedLocal": true,
   "testedLocal": true,
-  "installedLocal": false,
+  "installedLocal": true,
   "integratedCentral": true,
   "deployedStaging": true,
   "deployedPublic": false,
-  "downloadHosted": false,
+  "downloadHosted": true,
   "productionSigned": false,
   "storeReleased": false,
   "externalSubmissionEnabled": false,
@@ -88,7 +88,39 @@
     "lightClientProofVerified": false,
     "canonicalBridgeClaim": false
   },
-  "artifacts": [],
+  "artifacts": [
+    {
+      "type": "github-prerelease",
+      "tag": "ynx-bridge-v0.3.1-testnet-candidate",
+      "releaseId": "RE_kwDOTJguhM4Vmcyk",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynx-bridge-v0.3.1-testnet-candidate",
+      "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+      "signingClass": "unsigned-testnet-candidate",
+      "productionSigned": false,
+      "assetCount": 10,
+      "downloadedAndVerified": true,
+      "sdkInstalledAndImported": true,
+      "binaryColdStartVerified": true
+    },
+    {
+      "type": "linux-amd64-binary",
+      "name": "ynx-bridged-40b99be92a9f-linux-amd64",
+      "bytes": 7274644,
+      "sha256": "0836bc034dfd5b8d3e6e58947ab7e42751d84bc6a2cee26df654aead55ce34b4"
+    },
+    {
+      "type": "darwin-arm64-binary",
+      "name": "ynx-bridged-40b99be92a9f-darwin-arm64",
+      "bytes": 6917570,
+      "sha256": "2e0756979ae693292dd2e1eb281253f866baad53e204b165817f083195e0b164"
+    },
+    {
+      "type": "javascript-sdk",
+      "name": "ynx-bridge-sdk-0.3.1.tgz",
+      "bytes": 7659,
+      "sha256": "dbbdd2a27a2131b43800d732791ec832a6daf0ae2fb584cddd7efff51581f47c"
+    }
+  ],
   "dependencyAudit": {
     "source": "https://registry.npmjs.org/-/npm/v1/security/advisories/bulk",
     "auditedPackages": 86,
@@ -97,17 +129,17 @@
   },
   "ciVerification": {
     "workflow": "bridge",
-    "runId": 30417171059,
-    "jobId": 90466102715,
-    "sourceCommit": "96a64792a6343ec379763bc7e382c1d0a4a75f3d",
+    "runId": 30419513969,
+    "jobId": 90473200772,
+    "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
     "conclusion": "success",
-    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30417171059",
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30419513969",
     "verificationArtifact": {
-      "id": 8710575111,
-      "name": "ynx-bridge-verification-96a64792a6343ec379763bc7e382c1d0a4a75f3d",
-      "bytes": 41474,
-      "digest": "sha256:4264673f262d4318d6be7adeaf52c323fa9da8acf5a3ef76934110eead0ec40b",
-      "expiresAt": "2026-08-28T02:34:54Z",
+      "id": 8711399511,
+      "name": "ynx-bridge-verification-40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+      "bytes": 6024857,
+      "digest": "sha256:bb1185235fd22cdfae5b98efdb723b1b70f48f32aea7c4dd0d42fae6c506e54f",
+      "expiresAt": "2026-08-28T03:26:24Z",
       "releaseArtifact": false,
       "archiveContentsIndependentlyVerified": false,
       "archiveVerificationBlocker": "The Actions artifact is expiring verification evidence and has not been promoted to an immutable release package."
@@ -151,8 +183,6 @@
     }
   ],
   "knownAutonomousGaps": [
-    "publish downloadable reproducible server and SDK candidate artifacts",
-    "verify downloaded release bytes, installation, and cold start",
     "redeploy and re-probe the latest verified source commit",
     "obtain central consumer acceptance receipts",
     "complete product-specific Website canonical and structured metadata"
