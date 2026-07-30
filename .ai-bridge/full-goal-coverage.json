@@ -595,15 +595,15 @@
       "requirement": "Host public immutable downloads and obtain production signing where applicable.",
       "applicability": "required for server/CLI/SDK downloads; store release not applicable",
       "status": "externalBlocked",
-      "evidence": ["release/product-state.json"],
+      "evidence": ["release/product-state.json", "release/product-release.json"],
       "sourceCommit": "f71d5ca5c2ede28477fbadff36701a9f040e311f",
-      "tests": ["downloadHosted=false and productionSigned=false"],
+      "tests": ["Source-only prerelease 362192263 was downloaded and all five asset SHA-256 digests matched; runnable artifact downloadHosted=false and productionSigned=false."],
       "artifact": "release/operator-inputs.request.json",
       "publicProof": null,
       "blockedBy": ["Artifact registry/download hosting authority", "Production signing policy and signer"],
       "owner": "30 Security/SRE and 28 Website",
-      "nextAction": "Host only after artifact gate and signer custody are approved; do not treat local binaries as hosted releases.",
-      "lastUpdated": "2026-07-27T10:00:00Z"
+      "nextAction": "The frozen source is hosted with provenance; host runnable artifacts only after artifact gate and signer custody approval, and do not treat the source prerelease as a production binary release.",
+      "lastUpdated": "2026-07-30T04:40:00Z"
     },
     {
       "id": "ORACLE-SEO-001",

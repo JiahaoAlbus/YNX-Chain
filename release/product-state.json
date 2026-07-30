@@ -27,7 +27,8 @@
     "TypeScript consumer SDK commit 6e811f7 compiled successfully and passed 18 canonical vector, schema, derivation, transport, and response-bound tests.",
     "Fail-closed consumer CLI commit 1d17e520186a500f5c9ab04ee88769637d88fc59 passed race tests with the Go SDK and refuses to print unsafe prices.",
     "Artifact source commit 7ba44cfbe66455884ac6c2ea8525e9738b7f1396 produced deterministic macOS arm64 and Linux arm64 server/CLI bundles plus TypeScript and Go SDK candidates with SHA-256, bytes, CycloneDX SBOM, provenance, tamper rejection, isolated consumer checks, and a real macOS install/cold-start/version-commit/graceful-shutdown drill. Evidence is release/evidence/oracle-artifact-verification-7ba44cfbe664.json.",
-    "Oracle Web dependencies audit with zero high-severity findings, all 20 external GitHub Actions references use immutable full commit pins, and the real Chrome keyboard/RTL/reduced-motion/theme/large-text/390px accessibility suite passed."
+    "Oracle Web dependencies audit with zero high-severity findings, all 20 external GitHub Actions references use immutable full commit pins, and the real Chrome keyboard/RTL/reduced-motion/theme/large-text/390px accessibility suite passed.",
+    "Unsigned source-only prerelease 362192263 hosts the exact frozen source archive plus manifest, provenance, SBOM and verification evidence; all five downloaded asset digests were independently verified."
   ],
   "repositoryPreflight": {
     "command": "go test ./...",
@@ -43,7 +44,7 @@
     "The public Testnet is intentionally limited-source and publishes no authoritative price until at least three approved independent providers and reporter signers are active.",
     "Explorer evidence and Monitor evidence are not yet available.",
     "The Oracle Web deployment is owner-only and does not satisfy public /oracle availability.",
-    "The local container and deterministic release artifacts are not hosted, registry-addressable, or production-signed.",
+    "The source archive is hosted as an unsigned prerelease, but runnable server, CLI and SDK artifacts are not publicly hosted, registry-addressable or production-signed.",
     "Linux arm64 archive and binary targets are verified, but native Linux install and cold-start evidence is not yet recorded.",
     "Cross-product and Chain Core integration has not been accepted."
   ]

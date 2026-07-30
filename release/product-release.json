@@ -31,6 +31,24 @@
     "release/evidence/oracle-artifact-sbom-7ba44cfbe664.cdx.json",
     "release/evidence/oracle-artifact-verification-7ba44cfbe664.json"
   ],
+  "sourceRelease": {
+    "status": "published-prerelease",
+    "sourceOnly": true,
+    "productionSigned": false,
+    "publicReleaseEligible": false,
+    "id": 362192263,
+    "tag": "oracle-market-data-v0.1.0-testnet-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/oracle-market-data-v0.1.0-testnet-source-candidate",
+    "publishedAt": "2026-07-30T04:39:00Z",
+    "targetCommit": "7ba44cfbe66455884ac6c2ea8525e9738b7f1396",
+    "assetCount": 5,
+    "archive": {
+      "name": "ynx-oracle-market-data-source-7ba44cfbe664.tar.gz",
+      "bytes": 6446422,
+      "sha256": "15778df6d066868d491ffced4efe021399a811b0e232bde5d23b6600dea699df"
+    },
+    "downloadedAllAssetDigestsVerified": true
+  },
   "publicApi": {
     "url": "https://oracle-testnet.43.153.202.237.sslip.io",
     "access": "public",
