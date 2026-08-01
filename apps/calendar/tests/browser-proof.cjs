@@ -1,15 +1,18 @@
 const { spawn } = require("node:child_process");
+const { once } = require("node:events");
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require("playwright");
 
 const root = path.resolve(__dirname, "../../..");
-const port = 18196;
-const walletPort = 19196;
+const portOffset = process.pid % 10_000;
+const port = 20_000 + portOffset;
+const walletPort = 40_000 + portOffset;
 const base = `http://127.0.0.1:${port}`;
 const artifact = path.join(__dirname, "artifacts");
 fs.mkdirSync(artifact, { recursive: true });
+const dataDir = fs.mkdtempSync("/tmp/ynx-calendar-browser-");
 
 const wallet = http
   .createServer((req, res) => {
@@ -54,21 +57,71 @@ const proc = spawn("go", ["run", "./apps/calendar"], {
   env: {
     ...process.env,
     YNX_CALENDAR_ADDR: `127.0.0.1:${port}`,
-    YNX_CALENDAR_DATA_DIR: fs.mkdtempSync("/tmp/ynx-calendar-browser-"),
+    YNX_CALENDAR_DATA_DIR: dataDir,
     YNX_WALLET_VERIFY_URL: `http://127.0.0.1:${walletPort}`,
   },
   stdio: "inherit",
   detached: true,
 });
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-async function wait() {
-  for (let i = 0; i < 60; i++) {
+async function waitForServer() {
+  const deadline = Date.now() + 45_000;
+  while (Date.now() < deadline) {
+    if (proc.exitCode !== null || proc.signalCode !== null) {
+      throw Error(
+        `Calendar server exited before health became ready (exit=${proc.exitCode}, signal=${proc.signalCode})`,
+      );
+    }
     try {
-      if ((await fetch(`${base}/v1/health`)).ok) return;
+      const response = await fetch(`${base}/v1/health`, {
+        signal: AbortSignal.timeout(1_000),
+      });
+      if (response.ok) return;
     } catch {}
-    await sleep(200);
+    await sleep(250);
   }
-  throw Error("Calendar server did not start");
+  throw Error("Calendar server did not become healthy within 45 seconds");
+}
+function waitForProcessExit(child, timeoutMs) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) {
+    return Promise.resolve(true);
+  }
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      child.off("exit", onExit);
+      resolve(false);
+    }, timeoutMs);
+    const onExit = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+    child.once("exit", onExit);
+  });
+}
+async function stopProcessGroup(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  const signal = (name) => {
+    try {
+      process.kill(-child.pid, name);
+    } catch {
+      try {
+        child.kill(name);
+      } catch {}
+    }
+  };
+  signal("SIGTERM");
+  if (await waitForProcessExit(child, 5_000)) return;
+  signal("SIGKILL");
+  await waitForProcessExit(child, 2_000);
+}
+async function closeServer(server) {
+  if (!server.listening) return;
+  server.closeIdleConnections?.();
+  server.closeAllConnections?.();
+  await Promise.race([
+    new Promise((resolve) => server.close(resolve)),
+    sleep(2_000),
+  ]);
 }
 async function api(url, method = "GET", body, cookie) {
   const response = await fetch(base + url, {
@@ -100,7 +153,8 @@ function unnamedInteractive() {
 (async () => {
   let browser;
   try {
-    await wait();
+    if (!wallet.listening) await once(wallet, "listening");
+    await waitForServer();
     const challenge = await api("/v1/auth/challenges", "POST", {});
     const authorizationRequest = {
       version: "wallet-auth-v1",
@@ -305,12 +359,9 @@ function unnamedInteractive() {
     );
   } finally {
     if (browser) await browser.close();
-    wallet.close();
-    try {
-      process.kill(-proc.pid, "SIGTERM");
-    } catch {
-      proc.kill();
-    }
+    await closeServer(wallet);
+    await stopProcessGroup(proc);
+    fs.rmSync(dataDir, { recursive: true, force: true });
   }
 })().catch((error) => {
   console.error(error);

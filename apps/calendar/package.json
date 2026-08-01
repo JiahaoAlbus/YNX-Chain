@@ -6,7 +6,9 @@
   "scripts": {
     "localize:native": "node tests/generate-native-localizations.mjs",
     "test": "npm run localize:native && node --check web/app.js && node --test tests/*.test.mjs",
+    "test:release": "node --test tests/release-manifest.test.mjs",
     "build": "go build -ldflags \"-X main.buildCommit=$(git rev-parse HEAD) -X main.buildRelease=ynx-calendar-0.2.0-testnet-preview -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)\" -o /tmp/ynx-calendard .",
+    "build:statectl": "go build -o /tmp/ynx-calendar-state ./statectl",
     "package:desktop": "sh scripts/package-desktop.sh",
     "proof:desktop": "sh tests/desktop-install-proof.sh",
     "build:android": "sh scripts/build-android.sh",

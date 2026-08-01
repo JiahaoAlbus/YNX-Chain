@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "36",
+  "productName": "YNX Calendar",
+  "phase": "FREEZE",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar",
+  "branch": "codex/final-calendar",
+  "runtimeSourceSha": "b00f32da16218edb90fcc9f9b504607e374077ce",
+  "localSha": "b00f32da16218edb90fcc9f9b504607e374077ce",
+  "remoteSha": "b00f32da16218edb90fcc9f9b504607e374077ce",
+  "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
+  "dirty": true,
+  "ahead": 0,
+  "behind": 0,
+  "latestSuccessfulTests": [
+    "go test ./internal/calendar ./apps/calendar/statectl",
+    "go test -race ./internal/calendar",
+    "go vet ./internal/calendar ./apps/calendar/statectl",
+    "npm test",
+    "npm run test:release",
+    "npm run build",
+    "npm run build:statectl",
+    "npm run smoke",
+    "npm run browser:proof twice consecutively with different process-derived ports",
+    "JSON validation for eight modified JSON files and eleven JSONL records",
+    "git diff --check",
+    "node --check tests/browser-proof.cjs",
+    "operator backup and isolated restore drill"
+  ],
+  "latestCiRuns": [],
+  "pullRequests": [],
+  "release": {
+    "currentSource": null,
+    "historicalPreviewTag": "ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f",
+    "historicalPreviewSource": "e227c4f0505537b19f4588ea26478c54518f0a4c"
+  },
+  "artifacts": [],
+  "publicRoutes": [
+    {
+      "url": "https://ynxweb4.com/calendar",
+      "httpStatus": 200,
+      "contentMatch": false,
+      "observedTitle": "YNX Chain — Web4 Layer-1 Ecosystem",
+      "observedCanonical": "https://ynxweb4.com/",
+      "classification": "homepage route fallback; not Calendar publication evidence"
+    }
+  ],
+  "completed": [
+    "worktree and repository recovery",
+    "runtime source commit pushed and local/remote equality verified",
+    "recurrence schema and mutation scopes",
+    "state payload schema version 1",
+    "authenticated legacy schema compatibility",
+    "deterministic authenticated backup",
+    "fail-closed isolated restore",
+    "operator backup/restore CLI",
+    "local restore drill",
+    "release and integration evidence refresh"
+  ],
+  "remaining": [
+    "commit and push evidence checkpoint",
+    "central dependency acceptance and shared Testnet",
+    "Security/SRE encrypted retention and independent key escrow",
+    "current-source install, SBOM, provenance and immutable hosted artifacts",
+    "real Calendar Website page and public canonical probes",
+    "representative capacity, RTO/RPO and unit economics"
+  ],
+  "blockers": [
+    "CAL-BLOCK-SEC-001",
+    "CAL-BLOCK-INT-001",
+    "CAL-BLOCK-DEPS-001",
+    "CAL-BLOCK-WEB-001",
+    "CAL-BLOCK-REL-001"
+  ],
+  "nextAction": "Validate the evidence tree, commit and push it, verify Local/Remote equality, inspect GitHub state for the final evidence SHA, then submit CAL-X-013 to Integration and Security/SRE.",
+  "updatedAt": "2026-08-01T14:42:55Z"
+}

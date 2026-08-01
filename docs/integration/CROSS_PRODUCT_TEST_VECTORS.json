@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "productId": "com.ynx.calendar",
   "contractVersion": "1.0.0-draft",
-  "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-  "generatedAt": "2026-07-27T15:47:17Z",
+  "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+  "generatedAt": "2026-07-29T02:50:09Z",
   "vectors": [
     {
       "id": "CAL-X-001",
@@ -143,7 +143,7 @@
       "name": "current-source platform artifacts",
       "owners": ["36-calendar", "30-security-platform"],
       "status": "build-pass-install-and-host-pending",
-      "preconditions": ["source commit 9cf30f16c4312b4438d087b1df58cec68df54f15"],
+      "preconditions": ["source commit b00f32da16218edb90fcc9f9b504607e374077ce"],
       "steps": ["build Web/Go, Android debug, iOS simulator, and macOS test-only artifacts", "generate SBOM and provenance", "install and cold-start", "restart and resolve callback", "publish immutable hashes and bytes"],
       "expected": ["every artifact names exact source commit", "signing class is truthful", "no old e227c4f artifact is presented as current", "productionSigned remains false without production evidence"],
       "localEvidence": ["npm run build", "npm run build:android", "npm run check:ios", "npm run smoke", "npm run browser:proof"],
@@ -159,6 +159,17 @@
       "expected": ["websitePublished and deployedPublic are separate", "no worktree, branch, local path, internal host, or unsupported production claim is exposed", "current source and historical preview artifacts are visibly distinguished"],
       "localEvidence": [],
       "centralEvidenceRequired": ["Website deployment commit", "public URL probes", "Security/SRE acceptance"]
+    },
+    {
+      "id": "CAL-X-013",
+      "name": "authenticated backup and isolated restore",
+      "owners": ["36-calendar", "30-security-platform"],
+      "status": "local-pass-security-retention-pending",
+      "preconditions": ["persistent Calendar store with retained HMAC key", "existing isolated restore root"],
+      "steps": ["create two backups at the same state and timestamp", "verify byte-for-byte determinism", "restore to a new relative target", "reopen and compare state SHA-256", "repeat with tampered, wrong-product, incompatible-version, stale, absolute, path-escaping, symbolic-link and existing targets"],
+      "expected": ["valid backup restores without modifying live state", "restored state digest equals backup digest", "all invalid inputs fail closed", "operator output exposes only the relative target", "production encryption and offsite retention remain unclaimed"],
+      "localEvidence": ["TestCalendarBackupRestoreIsAuthenticatedDeterministicAndIsolated", "TestCalendarRestoreRejectsInvalidInputs", "TestCalendarLegacyStateSchemaNormalizesAndFutureSchemaFailsClosed", "operator backup and restore drill"],
+      "centralEvidenceRequired": ["Security/SRE encrypted retention policy", "independent key escrow proof", "production-scale restore drill"]
     }
   ]
 }

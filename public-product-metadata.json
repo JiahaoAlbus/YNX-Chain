@@ -4,7 +4,7 @@
   "name": "YNX Calendar",
   "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
   "canonicalRoute": "/calendar",
-  "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
+  "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
   "title": "YNX Calendar — Private scheduling with explicit approval",
   "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
   "h1": "Your time, clearly under your control",
@@ -39,21 +39,24 @@
     "Recurring conflict detection with explicit override",
     "Local reminders, audit, export and account deletion",
     "Offline mutation recovery",
+    "Versioned authenticated backup with isolated restore verification",
     "AI drafts with provider, model, cost and approval boundaries",
     "12-language localization with Arabic RTL",
     "Web, Android, iOS and macOS-oriented delivery surfaces"
   ],
   "releaseNotes": [
-    "The current source adds recurrence schema version 1, yearly rules, ByDay, ByMonthDay, DST-safe expansion and single-occurrence exceptions.",
-    "Android builds now resolve a supported JDK and Android SDK or fail closed with a clear error.",
-    "Current source passes Calendar unit, Race, Web, browser, Android build, iOS parse/lint and service smoke gates."
+    "The current source supports occurrence-only, this-and-following and entire-series recurrence mutation with stable lineage and explicit approval.",
+    "Calendar state payload schema version 1 now has deterministic authenticated backup and isolated restore verification.",
+    "Restore rejects tampered, wrong-product, incompatible-version, stale, absolute, path-escaping and symbolic-link inputs.",
+    "Current source passes Calendar unit, Race, Vet, Web, browser, build and service smoke gates."
   ],
   "risksAndLimitations": [
     "Current source has no public runtime deployment.",
     "Current-source mobile and desktop packages are not yet hosted or install-proved.",
     "Wallet/Auth, Mail, AI, Data Fabric and shared Testnet acceptance are pending.",
     "Invitation and reminder delivery is currently local Calendar state, not accepted Mail or push delivery.",
-    "Occurrence-only and this-and-following mutation APIs are still incomplete.",
+    "Backup confidentiality encryption, offsite retention and independent key escrow are not yet accepted by Security/SRE.",
+    "The measured restore result is a local empty-state drill and is not a production-scale RTO or RPO claim.",
     "No production signing, notarization or store release is claimed."
   ],
   "statusLabels": {
@@ -135,7 +138,7 @@
     },
     {
       "question": "Can I export or delete my Calendar data?",
-      "answer": "Local account export and deletion flows exist. Release-grade retention, migration, backup and restore evidence is still being completed."
+      "answer": "Local account export and deletion flows exist. State schema version 1 has authenticated backup and isolated restore verification; encrypted offsite retention and production-scale recovery evidence remain pending."
     }
   ],
   "structuredDataSuggestion": {
@@ -158,5 +161,5 @@
       "record Website deployment commit and public probes"
     ]
   },
-  "generatedAt": "2026-07-27T14:39:45Z"
+  "generatedAt": "2026-07-29T02:50:09Z"
 }

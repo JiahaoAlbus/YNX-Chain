@@ -2,8 +2,8 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "branch": "codex/final-calendar",
-  "commit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-  "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
+  "commit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+  "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
   "artifactSourceCommit": null,
   "version": "0.2.0-current-source",
   "releaseChannel": "local-tested-unreleased",
@@ -39,6 +39,35 @@
     "android": 26,
     "ios": "17.0",
     "macOS": "13.0"
+  },
+  "stateSchemaVersion": 1,
+  "backupRestore": {
+    "implementedLocal": true,
+    "restoreVerified": true,
+    "backupEnvelopeVersion": 1,
+    "integrity": "HMAC-SHA-256 plus SHA-256 state digest",
+    "restoreMode": "isolated-target-only",
+    "defaultMaximumBackupAge": "720h",
+    "localEmptyStateDrill": {
+      "backupBytes": 522,
+      "restoreCommandDurationMs": 61,
+      "rpo": "backup creation point",
+      "stateSha256": "58f20ddf9650f8f3ca038d343694789ee8192273cd80d65bd947a7452ee4b8f4"
+    },
+    "limitations": [
+      "backup confidentiality encryption and offsite retention are not implemented",
+      "restore authentication requires retained Calendar state HMAC key material",
+      "no production-scale RTO or RPO claim is made from the local empty-state drill"
+    ]
+  },
+  "publicProbe": {
+    "url": "https://ynxweb4.com/calendar",
+    "observedAt": "2026-07-29T03:10:38Z",
+    "httpStatus": 200,
+    "contentMatch": false,
+    "observedTitle": "YNX Chain — Web4 Layer-1 Ecosystem",
+    "observedCanonical": "https://ynxweb4.com/",
+    "classification": "homepage route fallback; not Calendar publication evidence"
   },
   "installEvidence": [],
   "buildEvidence": [
@@ -89,6 +118,28 @@
         "accessibility": "interactive controls named",
         "consoleErrors": 0
       }
+    },
+    {
+      "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+      "gate": "go test ./internal/calendar ./apps/calendar/statectl",
+      "result": "pass",
+      "classification": "state schema, deterministic backup, authenticated isolated restore and rejection matrix"
+    },
+    {
+      "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+      "gate": "go test -race ./internal/calendar",
+      "result": "pass"
+    },
+    {
+      "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+      "gate": "go vet ./internal/calendar ./apps/calendar/statectl",
+      "result": "pass"
+    },
+    {
+      "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+      "gate": "operator backup and isolated restore drill",
+      "result": "pass",
+      "classification": "local empty-state drill only; no production-scale disaster-recovery claim"
     }
   ],
   "historicalPreview": {
@@ -160,8 +211,8 @@
     "central Wallet/Auth, AI, Mail, Data Fabric and shared Testnet integration is not accepted or deployed",
     "current-source Android/iOS/macOS artifacts are not install-proved or hosted",
     "no staging runtime, public runtime, production signing, notarization, or store release",
-    "explicit occurrence-only and this-and-following HTTP mutation APIs remain incomplete",
+    "backup confidentiality encryption, offsite retention and independent key escrow remain pending Security/SRE acceptance",
     "repository-wide Go preflight has non-Calendar failures retained in dependency acceptance"
   ],
-  "generatedAt": "2026-07-27T14:39:45Z"
+  "generatedAt": "2026-07-29T02:50:09Z"
 }

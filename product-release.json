@@ -3,7 +3,7 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "owner": "36-calendar",
-  "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
+  "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
   "releaseRecord": "apps/calendar/product-release.json",
   "integrationContract": "release/integration/calendar-contract.json",
   "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
@@ -39,6 +39,10 @@
     "androidDebugBuild": "pass",
     "iosParseAndLint": "pass",
     "serviceSmoke": "pass",
+    "stateSchemaVersion": 1,
+    "authenticatedBackupRestore": "local-pass",
+    "isolatedRestoreDrill": "local-pass",
+    "publicCalendarRoute": "http-200-homepage-fallback-not-calendar",
     "currentSourceInstallProof": false,
     "currentSourceHostedArtifacts": false
   },
@@ -52,5 +56,5 @@
       "Trust signer-file permission test"
     ]
   },
-  "generatedAt": "2026-07-27T14:39:45Z"
+  "generatedAt": "2026-07-29T02:50:09Z"
 }

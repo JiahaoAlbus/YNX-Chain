@@ -7,7 +7,7 @@
 - Product client: `ynx-calendar-v1`
 - Bundle ID: `com.ynxweb4.calendar`
 - Callback: `ynxcalendar://wallet-auth/callback`
-- Runtime source: `9cf30f16c4312b4438d087b1df58cec68df54f15`
+- Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
 - Contract: `release/integration/calendar-contract.json`
 - Status: local-tested proposal; not centrally accepted or deployed
 
@@ -20,6 +20,8 @@ The local Calendar runtime uses explicit preview and approval for event mutation
 Recurrence schema version 1 supports daily, weekly, monthly, yearly, interval, count, until, weekly `ByDay`, monthly `ByMonthDay`, and single-occurrence `cancelled` or `modified` exceptions. Exception IDs are the original local start in the series IANA timezone. Invalid month days and non-leap February 29 dates are skipped rather than rolled forward.
 
 The schema and recurrence mutation API are local-tested. `occurrence`, `this_and_following`, and `entire_series` all use the preview/approval state machine. Future splits preserve stable series lineage and apply or revert the original and derived events atomically. This local proof does not imply central integration or current-source installed artifacts.
+
+State payload schema version 1 is explicit. The operator CLI creates deterministic HMAC-authenticated backups with a SHA-256 state digest and restores only to a new isolated relative target. Tampered, wrong-product, incompatible-version, stale, absolute, path-escaping, symbolic-link and existing-target inputs fail closed. The local drill does not provide backup encryption, offsite retention, independent key escrow or production-scale RTO/RPO evidence; those remain a `30-security-platform` acceptance dependency.
 
 ## Wallet/Auth handoff
 
@@ -64,8 +66,9 @@ Owner `29-integration` should execute `docs/integration/CROSS_PRODUCT_TEST_VECTO
 4. sharing/revocation and privacy-safe availability;
 5. conflict override and offline recovery;
 6. AI preview/approve/reject/cancel;
-7. current-source platform install/cold-start;
-8. public Website truth probes.
+7. authenticated backup and isolated restore with Security/SRE retention acceptance;
+8. current-source platform install/cold-start;
+9. public Website truth probes.
 
 Acceptance must record exact source commits, central dependency commits, request/audit IDs, artifact hashes, and public URLs. Local fixtures or the historical `e227c4f` preview release cannot be used as proof for the current runtime source.
 

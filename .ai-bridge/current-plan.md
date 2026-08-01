@@ -2,45 +2,41 @@
 
 Status: **ACTIVE**  
 Phase: **FREEZE**  
-Runtime source: `9cf30f16c4312b4438d087b1df58cec68df54f15`
+Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
 
 ## Completed checkpoints
 
-- Confirmed the designated worktree and `codex/final-calendar` branch, created the non-force remote upstream, and verified Local/Remote equality.
-- Added recurrence schema v1 with yearly, ByDay, ByMonthDay, DST-safe expansion, invalid-date skipping, and single-occurrence exception data.
-- Added explicit occurrence-only, this-and-following, and entire-series preview/approval APIs with stable series lineage.
-- Made future-series split approval and rollback atomic, idempotent, version-checked, restart-safe, and fail-closed on derived event collisions.
-- Added additive legacy normalization for recurrence schema version and series lineage in stored events and change snapshots.
-- Added a reproducible Android build entrypoint that resolves JDK 17–21 and the Android SDK or fails closed.
-- Passed Calendar unit, Race, Vet, Web/i18n, browser, Go build, Android debug build, iOS parse/lint, and service smoke gates.
-- Frozen the Calendar integration contract, dependency acceptance, cross-product vectors, release truth, and `/calendar` Website handoff without claiming central integration or public deployment.
+- Recovered and verified the designated `36-calendar` worktree, `codex/final-calendar` branch, YNX Chain remote, clean initial state, and Local/Remote equality.
+- Preserved recurrence schema v1 and occurrence, this-and-following and entire-series mutation scopes with stable lineage and atomic approval/revert.
+- Added explicit Calendar state payload schema version 1 while retaining authenticated legacy schema-zero compatibility.
+- Added deterministic HMAC-authenticated backup with SHA-256 state digest.
+- Added isolated restore that refuses live/existing targets and rejects tamper, wrong product, incompatible version, stale/future time, absolute/path escape and symbolic-link traversal.
+- Added the `ynx-calendar-state` operator CLI and completed a local backup/restore drill with matching digest and live state unchanged.
+- Passed targeted Go, Race, Vet, Web, release-manifest, build, smoke and browser gates.
+- Pushed runtime source `b00f32da16218edb90fcc9f9b504607e374077ce` and verified Local SHA equals Remote SHA.
+- Updated release truth, integration contract, test vector CAL-X-013, Website handoff, migration, operations, observability, SLO/capacity and unit-economics evidence without claiming central/public completion.
 
 ## Current slice
 
-1. Bind recurrence mutation, migration, conflict and Testnet evidence to runtime source `9cf30f16c4312b4438d087b1df58cec68df54f15`.
-2. Update release/public metadata so current source and historical `e227c4f` test-only artifacts remain separated.
-3. Validate JSON/JSONL and release manifest gates.
-4. Review, commit, push, and verify Local SHA equals Remote SHA.
+1. Validate all modified JSON, release manifests and documentation references.
+2. Run the complete Calendar verification set including the state operator build.
+3. Commit and push the evidence/recovery checkpoint.
+4. Verify Local SHA equals Remote SHA, inspect GitHub Actions/PR/Release state for the final evidence SHA, and update agent memory.
+5. Probe `ynxweb4.com/calendar` and preserve `deployedPublic=false` unless exact current-source content and canonical evidence exist.
 
-## Next runtime slice
+## Next executable integration slice
 
-Prioritize recovery and persistence before further UI expansion:
+Submit `release/integration/calendar-contract.json` and `CAL-X-013` to `29-integration` and `30-security-platform`. Require accepted encrypted offsite retention, independent key escrow, representative restore data, measured promotion/rollback time and immutable recovery evidence before any production RTO/RPO or disaster-recovery claim.
 
-- add an explicit Calendar state payload schema version;
-- implement deterministic backup and authenticated restore to an isolated target;
-- reject tampered, wrong-product, incompatible-version, stale and path-escaping restore inputs;
-- run destructive restore drills with integrity, restart, RTO/RPO and rollback evidence;
-- preserve old-client compatibility and document that rollback migration evidence remains separate from backup restore.
-
-## Known external dependencies
+In parallel, keep these dependency gates explicit:
 
 - `02-wallet-auth`: accepted Calendar product registration and deployed verifier/introspection/recovery path.
 - `14-ai`: accepted authenticated JSON POST/SSE route.
 - `20-cloud`: versioned notes/attachment object contract.
 - `25-mail`: canonical invitation/reminder delivery contract.
 - `26-data-fabric`: canonical Calendar event envelopes.
+- `28-website`: current `/calendar` page and public deployment on `ynxweb4.com`.
 - `29-integration`: protocol freeze and shared Testnet orchestration.
-- `30-security-platform`: release/artifact security acceptance.
-- `28-website`: `/calendar` public page and deployment.
+- `30-security-platform`: backup encryption/escrow plus release/artifact security acceptance.
 
-The product is not complete and no public runtime deployment is claimed.
+The product remains ACTIVE. No central integration, current-source hosted artifact, staging/public runtime, production signing or store release is claimed.

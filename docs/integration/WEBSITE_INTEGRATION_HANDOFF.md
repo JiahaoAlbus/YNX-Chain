@@ -3,7 +3,7 @@
 Consumer: `28-website`  
 Reviewers: `29-integration`, `30-security-platform`  
 Metadata source: `public-product-metadata.json`  
-Runtime source: `9cf30f16c4312b4438d087b1df58cec68df54f15`
+Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
 
 ## Canonical package
 
@@ -17,6 +17,12 @@ Runtime source: `9cf30f16c4312b4438d087b1df58cec68df54f15`
 - Public runtime deployed: false
 
 Website must consume the exact feature, FAQ, risk, locale, screenshot and structured-data fields from `public-product-metadata.json`. It must not infer that a passing local build is a deployment or that an older preview package represents the current source.
+
+## Current public probe
+
+On 2026-07-29, `https://www.ynxweb4.com/calendar` returned HTTP 200 from Vercel, but the HTML was the generic YNX Chain homepage shell: title `YNX Chain — Web4 Layer-1 Ecosystem`, homepage description and canonical `https://ynxweb4.com/`. This is a route fallback, not a Calendar product page. `websitePublished` and `deployedPublic` therefore remain false.
+
+Recovery condition: deploy Calendar-specific SSR/SSG content with the exact title, description, H1, risks, release-state truth and canonical `https://ynxweb4.com/calendar`, then probe visible content, Open Graph, JSON-LD, robots/sitemap and required support/privacy/security/status routes.
 
 ## Asset handoff
 

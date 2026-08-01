@@ -5,8 +5,8 @@
   "productId": "com.ynx.calendar",
   "productClientId": "ynx-calendar-v1",
   "bundleId": "com.ynxweb4.calendar",
-  "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-  "generatedAt": "2026-07-27T15:47:17Z",
+  "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+  "generatedAt": "2026-07-29T02:50:09Z",
   "authority": {
     "calendarState": "36-calendar",
     "walletIdentityAndSessions": "02-wallet-auth",
@@ -61,7 +61,7 @@
   },
   "calendarSchemas": {
     "diskEnvelopeSchemaVersion": 1,
-    "statePayloadSchemaVersion": null,
+    "statePayloadSchemaVersion": 1,
     "recurrenceSchema": {
       "version": 1,
       "frequencies": ["daily", "weekly", "monthly", "yearly"],
@@ -100,6 +100,16 @@
       "firstOccurrenceSplitPolicy": "reject; use entire_series",
       "replayField": "client_mutation_id",
       "versionField": "base_version"
+    },
+    "backupRestore": {
+      "backupEnvelopeVersion": 1,
+      "statePayloadSchemaVersion": 1,
+      "integrity": ["HMAC-SHA-256 envelope", "SHA-256 state digest"],
+      "restoreTarget": "new isolated relative path inside an existing operator-selected restore root",
+      "restoreNeverOverwritesLiveState": true,
+      "rejectedInputs": ["tampered", "wrong product", "incompatible version", "stale", "future timestamp", "absolute target", "path escape", "symbolic-link traversal", "existing target"],
+      "confidentiality": "not provided by the backup envelope; encrypted retention requires 30-security-platform acceptance",
+      "keyRecovery": "operator must retain Calendar state HMAC key material through an approved secure escrow path"
     }
   },
   "api": [
@@ -156,12 +166,12 @@
   },
   "migration": {
     "diskEnvelopeSchemaVersion": 1,
-    "statePayloadSchemaVersion": null,
+    "statePayloadSchemaVersion": 1,
     "currentRecurrenceSchemaVersion": 1,
-    "oldClientCompatibility": "legacy recurring events and stored change snapshots normalize recurrence version and series lineage during load without replacing IDs",
-    "forwardMigrationEvidence": "additive-load-normalization-tested",
-    "rollbackMigrationEvidence": "missing",
-    "nextRequiredChange": "separately version the Calendar state payload and add explicit forward and rollback fixtures"
+    "oldClientCompatibility": "legacy state payload schema zero normalizes to version one; legacy recurring events and stored change snapshots normalize recurrence version and series lineage without replacing IDs",
+    "forwardMigrationEvidence": "authenticated legacy schema-zero fixture loads and normalizes to state schema one",
+    "rollbackMigrationEvidence": "isolated restore writes a newly authenticated state without overwriting the live state; future schema versions fail closed",
+    "nextRequiredChange": "define a production deprecation window and encrypted offsite retention with independent key escrow"
   },
   "aiBoundary": {
     "centralMethod": "POST",
@@ -201,7 +211,7 @@
     "storeReleased": false
   },
   "releaseStateNotes": {
-    "installedLocal": "Current source 9cf30f1 has not completed install/cold-start proof on all target platforms. Historical e227c4f preview artifacts have separate install evidence.",
+    "installedLocal": "Current source b00f32d has not completed install/cold-start proof on all target platforms. Historical e227c4f preview artifacts have separate install evidence.",
     "downloadHosted": "No current-source artifact is hosted. Historical e227c4f preview downloads are tracked separately in product-release.json."
   }
 }
