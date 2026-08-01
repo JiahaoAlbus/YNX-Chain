@@ -691,39 +691,57 @@ func LatestBlocks(db Database, limit int) []chain.Block {
 
 func LatestBlocksPage(db Database, limit int, after string) ([]chain.Block, string, error) {
 	limit = normalizePageLimit(limit)
-	heights := make([]int, 0, len(db.Blocks))
-	for raw := range db.Blocks {
-		height, err := strconv.Atoi(raw)
-		if err == nil {
-			heights = append(heights, height)
+	if len(db.Blocks) == 0 {
+		return []chain.Block{}, "", nil
+	}
+
+	startHeight := db.LastIndexedHeight
+	if _, found := db.Blocks[strconv.FormatUint(startHeight, 10)]; !found {
+		// Older fixtures and imported snapshots may omit LastIndexedHeight. A
+		// one-pass maximum lookup keeps those databases readable without putting
+		// the production hot path back on a full sort.
+		for rawHeight := range db.Blocks {
+			height, err := strconv.ParseUint(rawHeight, 10, 64)
+			if err == nil && height > startHeight {
+				startHeight = height
+			}
 		}
 	}
-	sort.Sort(sort.Reverse(sort.IntSlice(heights)))
-	start := 0
 	if after != "" {
-		position, err := strconv.Atoi(after)
+		position, err := strconv.ParseUint(after, 10, 64)
 		if err != nil {
 			return nil, "", fmt.Errorf("block cursor position is invalid")
 		}
-		found := false
-		for index, height := range heights {
-			if height == position {
-				start = index + 1
-				found = true
+		if _, found := db.Blocks[strconv.FormatUint(position, 10)]; !found {
+			return nil, "", fmt.Errorf("block cursor position is no longer retained")
+		}
+		if position == 0 {
+			return []chain.Block{}, "", nil
+		}
+		startHeight = position - 1
+	}
+
+	// Indexed block heights are canonical and monotonically increasing. Walk the
+	// height-keyed map directly instead of allocating and sorting every retained
+	// height for each request. The old O(total blocks log total blocks) query held
+	// the store read lock long enough to starve sync writes and, through RWMutex
+	// writer preference, health checks as well.
+	blocks := make([]chain.Block, 0, limit+1)
+	for height := startHeight; ; height-- {
+		if block, found := db.Blocks[strconv.FormatUint(height, 10)]; found {
+			blocks = append(blocks, block)
+			if len(blocks) > limit {
 				break
 			}
 		}
-		if !found {
-			return nil, "", fmt.Errorf("block cursor position is no longer retained")
+		if height == 0 {
+			break
 		}
 	}
-	end := min(start+limit, len(heights))
-	blocks := make([]chain.Block, 0, max(0, end-start))
-	for _, height := range heights[start:end] {
-		blocks = append(blocks, db.Blocks[strconv.Itoa(height)])
-	}
+
 	nextAfter := ""
-	if end < len(heights) && len(blocks) > 0 {
+	if len(blocks) > limit {
+		blocks = blocks[:limit]
 		nextAfter = strconv.FormatUint(blocks[len(blocks)-1].Height, 10)
 	}
 	return blocks, nextAfter, nil
