@@ -96,6 +96,7 @@ func TestLegacySnapshotsMigrateAndFutureVersionFails(t *testing.T) {
 			legacy := emptySnapshot()
 			legacy.Version = version
 			legacy.DataRequests = nil
+			legacy.DataHolds = nil
 			legacy.BulkOperations = nil
 			if version == 1 {
 				legacy.Providers = nil
@@ -108,7 +109,7 @@ func TestLegacySnapshotsMigrateAndFutureVersionFails(t *testing.T) {
 				t.Fatal(err)
 			}
 			if err := migrated.View(func(snapshot Snapshot) error {
-				if snapshot.Version != SnapshotVersion || snapshot.Providers == nil || snapshot.DataRequests == nil || snapshot.BulkOperations == nil {
+				if snapshot.Version != SnapshotVersion || snapshot.Providers == nil || snapshot.DataRequests == nil || snapshot.DataHolds == nil || snapshot.BulkOperations == nil {
 					t.Fatalf("legacy snapshot was not migrated: %+v", snapshot)
 				}
 				return nil

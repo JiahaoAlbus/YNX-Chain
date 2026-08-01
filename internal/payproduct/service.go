@@ -1,6 +1,7 @@
 package payproduct
 
 import (
+	"bytes"
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
@@ -32,37 +33,39 @@ type AIProvider interface {
 	Complete(context.Context, string, string) (provider, model, result string, units int64, err error)
 }
 type Config struct {
-	StorePath         string
-	IntegrityKey      []byte
-	GatewayKey        []byte
-	BootstrapKey      string
-	MonitorKey        string
-	PublicBaseURL     string
-	CentralMerchantID string
-	PayAPI            PayAPI
-	AI                AIProvider
-	ProviderProbe     ProviderProbe
-	WebhookResolver   WebhookResolver
-	HTTPClient        *http.Client
-	Now               func() time.Time
+	StorePath              string
+	IntegrityKey           []byte
+	GatewayKey             []byte
+	BootstrapKey           string
+	DataOperatorCredential string
+	MonitorKey             string
+	PublicBaseURL          string
+	CentralMerchantID      string
+	PayAPI                 PayAPI
+	AI                     AIProvider
+	ProviderProbe          ProviderProbe
+	WebhookResolver        WebhookResolver
+	HTTPClient             *http.Client
+	Now                    func() time.Time
 }
 type Service struct {
-	store             *Store
-	pay               PayAPI
-	ai                AIProvider
-	providerProbe     ProviderProbe
-	bootstrap         string
-	monitorKey        string
-	publicBase        string
-	centralMerchantID string
-	key               []byte
-	gatewayKey        []byte
-	client            *http.Client
-	webhookResolver   WebhookResolver
-	now               func() time.Time
-	mutation          sync.Mutex
-	aiMu              sync.Mutex
-	aiCancels         map[string]context.CancelFunc
+	store                  *Store
+	pay                    PayAPI
+	ai                     AIProvider
+	providerProbe          ProviderProbe
+	bootstrap              string
+	dataOperatorCredential string
+	monitorKey             string
+	publicBase             string
+	centralMerchantID      string
+	key                    []byte
+	gatewayKey             []byte
+	client                 *http.Client
+	webhookResolver        WebhookResolver
+	now                    func() time.Time
+	mutation               sync.Mutex
+	aiMu                   sync.Mutex
+	aiCancels              map[string]context.CancelFunc
 }
 
 func New(cfg Config) (*Service, error) {
@@ -77,6 +80,16 @@ func New(cfg Config) (*Service, error) {
 	}
 	if len(cfg.BootstrapKey) < 24 {
 		return nil, errors.New("merchant bootstrap key must contain at least 24 characters")
+	}
+	dataOperatorCredential := strings.TrimSpace(cfg.DataOperatorCredential)
+	if dataOperatorCredential != "" && len(dataOperatorCredential) < 24 {
+		return nil, errors.New("merchant data operator credential must contain at least 24 characters when configured")
+	}
+	if dataOperatorCredential != "" && (dataOperatorCredential == strings.TrimSpace(cfg.BootstrapKey) || dataOperatorCredential == strings.TrimSpace(cfg.MonitorKey)) {
+		return nil, errors.New("merchant data operator credential must be distinct from bootstrap and monitor credentials")
+	}
+	if dataOperatorCredential != "" && (bytes.Equal([]byte(dataOperatorCredential), cfg.IntegrityKey) || bytes.Equal([]byte(dataOperatorCredential), cfg.GatewayKey)) {
+		return nil, errors.New("merchant data operator credential must be distinct from integrity and gateway credentials")
 	}
 	base := strings.TrimRight(cfg.PublicBaseURL, "/")
 	u, err := url.Parse(base)
@@ -96,7 +109,7 @@ func New(cfg Config) (*Service, error) {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, bootstrap: cfg.BootstrapKey, monitorKey: strings.TrimSpace(cfg.MonitorKey), publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, webhookResolver: resolver, now: now, aiCancels: map[string]context.CancelFunc{}}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, bootstrap: cfg.BootstrapKey, dataOperatorCredential: dataOperatorCredential, monitorKey: strings.TrimSpace(cfg.MonitorKey), publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, webhookResolver: resolver, now: now, aiCancels: map[string]context.CancelFunc{}}
 	if err := service.store.Update(func(data *Snapshot) error {
 		recoveredAt := now().UTC()
 		for id, run := range data.AIRuns {

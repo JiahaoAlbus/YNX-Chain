@@ -56,7 +56,7 @@ func main() {
 			logger.Error("store lock release failed", "event", "store.lock.release", "error", err.Error())
 		}
 	}()
-	service, err := payproduct.New(payproduct.Config{StorePath: storePath, IntegrityKey: key, GatewayKey: gatewayKey, BootstrapKey: bootstrapKey, MonitorKey: strings.TrimSpace(os.Getenv("YNX_PAY_PRODUCT_MONITOR_KEY")), PublicBaseURL: publicURL, CentralMerchantID: centralMerchantID, PayAPI: pay, AI: ai})
+	service, err := payproduct.New(payproduct.Config{StorePath: storePath, IntegrityKey: key, GatewayKey: gatewayKey, BootstrapKey: bootstrapKey, DataOperatorCredential: strings.TrimSpace(os.Getenv("YNX_PAY_PRODUCT_DATA_OPERATOR_CREDENTIAL")), MonitorKey: strings.TrimSpace(os.Getenv("YNX_PAY_PRODUCT_MONITOR_KEY")), PublicBaseURL: publicURL, CentralMerchantID: centralMerchantID, PayAPI: pay, AI: ai})
 	if err != nil {
 		logger.Error("service initialization failed", "event", "service.initialize", "error", err.Error())
 		return

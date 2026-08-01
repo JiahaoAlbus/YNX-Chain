@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "contractId": "ynx.integration.merchant-console.v1",
   "product": {
     "number": "05",
@@ -45,6 +45,12 @@
     ],
     "bootstrap": [
       {"method": "POST", "path": "/v1/merchants/onboard", "authority": "deployment bootstrap key"}
+    ],
+    "dataOperator": [
+      {"method": "POST", "path": "/v1/operator/merchant-data-holds", "authority": "dedicated deployment data-operator credential"},
+      {"method": "POST", "path": "/v1/operator/merchant-data-holds/{id}/release", "authority": "dedicated deployment data-operator credential"},
+      {"method": "POST", "path": "/v1/operator/merchant-data-deletion-requests/{id}/approve", "authority": "dedicated deployment data-operator credential"},
+      {"method": "POST", "path": "/v1/operator/merchant-data-deletion-requests/{id}/execute", "authority": "dedicated deployment data-operator credential"}
     ],
     "walletGateway": [
       {"method": "POST", "path": "/v1/merchant/sessions", "authority": "canonical exact-digest Gateway assertion"},
@@ -107,6 +113,10 @@
     "provider.disable",
     "merchant.data.deletion.request",
     "merchant.data.deletion.cancel",
+    "merchant.data.hold.place",
+    "merchant.data.hold.release",
+    "merchant.data.deletion.approve",
+    "merchant.data.deletion.execute",
     "ai.result",
     "ai.review"
   ],
@@ -121,7 +131,9 @@
     "Bulk webhook retry requires an actor/merchant/delivery/state-bound expiring preview, an idempotency key and per-item persisted progress; restart marks unfinished operations interrupted and requires a fresh preview.",
     "AI output cannot execute payment, refund, payout, secret rotation, role change or settlement mutation.",
     "Merchant data rights are owner-only; exports are tenant-scoped and exclude authorization, session, replay, provider credential and webhook authentication material.",
-    "Deletion requests require exact merchant confirmation, idempotency, a seven-day cooling-off period and retention blockers; request routes never delete data automatically or claim provider/public-chain deletion.",
+    "Deletion requests require exact merchant confirmation, idempotency, a seven-day cooling-off period and retention blockers; merchant-session request routes never delete data automatically.",
+    "Active legal holds block approval and execution. Approval and execution require a separately configured deployment data-operator credential, exact merchant/operator/approval binding and a fresh blocker check.",
+    "Approved deletion removes only eligible local Merchant Console tenant records, retains redacted request/hold/audit evidence, and never claims provider-held or immutable public-chain data was deleted.",
     "Unknown economic values remain unavailable and are never inferred from frontend or manager assertions."
   ],
   "dependencies": [
@@ -139,10 +151,11 @@
     {"owner": "30-security-sre", "contract": "release, provenance, hosting, backup and incident standards", "state": "localPartial"}
   ],
   "migration": {
-    "snapshotCurrent": 4,
+    "snapshotCurrent": 5,
     "snapshotV1Migration": "testedLocal",
     "snapshotV2Migration": "testedLocal",
     "snapshotV3Migration": "testedLocal",
+    "snapshotV4Migration": "testedLocal",
     "futureSchemaPolicy": "reject",
     "reconciliationSchema": 1,
     "rollbackEvidence": "local-only"
