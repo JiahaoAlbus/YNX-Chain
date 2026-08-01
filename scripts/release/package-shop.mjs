@@ -83,7 +83,7 @@ try {
     const packageRelative = relativePosix(payloadRoot, file);
     return {
       path: relative,
-      mode: packageRelative.startsWith('bin/') ? 0o755 : 0o644,
+      mode: packageRelative.startsWith('bin/') || packageRelative.endsWith('.py') ? 0o755 : 0o644,
       body: fs.readFileSync(file),
     };
   });
