@@ -11,7 +11,7 @@ const indexHTML = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f7">
-  <link rel="icon" href="/assets/ynx-logo.png" type="image/png">
+  <link rel="icon" href="/assets/ynx-logo.png?v=df071f54" type="image/png">
   <title>YNX Chain Explorer</title>
   <style>
     :root {
@@ -242,7 +242,7 @@ const indexHTML = `<!doctype html>
 <body>
   <nav class="nav" aria-label="Primary navigation">
     <div class="shell nav-inner">
-      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png" alt=""><span>Chain Explorer</span></a>
+      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54" alt=""><span>Chain Explorer</span></a>
       <div class="nav-links">
         <a href="#network">Overview</a><a href="#live">Blockchain</a><a href="#intelligence">Validators</a><a href="#resourcesPanel">Resources</a>
         <span class="network-pill"><span class="pulse"></span><span id="networkName">Testnet</span></span>
