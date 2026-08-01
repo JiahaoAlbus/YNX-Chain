@@ -12,7 +12,7 @@ Direct current evidence:
 - 7/36 have current central acceptance: 01, 02, 19, 21, 26, 30 and 31.
 - 0/36 satisfy the complete shared-Testnet product gate.
 - 0/12 registered cross-product E2E scenarios have complete Tx/Event/Ledger/Explorer/Monitor evidence.
-- 15/36 worktrees are clean and 9/36 have exact-head successful CI.
+- 16/36 worktrees are clean and 8/36 have exact-head successful CI.
 - 8 public-Testnet runtimes and 5 source candidates are catalogued; 23 products remain pending recovery.
 - AI usage/boundaries are documented for all 36 products. This is coverage evidence, not a production-provider claim.
 - 10/21 asset-relevant products have directly mapped candidate evidence; 11 remain unverified.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-08-01T14:54:47.321Z",
-  "controllerSourceCommit": "512bb11526d2dff45f0e580e88d1e2c7cb047291",
+  "generatedAt": "2026-08-01T15:42:22.394Z",
+  "controllerSourceCommit": "296e9d149f31a939f116296dee55bc6e09c475bf",
   "authority": "Product 29 Integration; fail-closed from PRODUCT_RELEASE_MATRIX.json",
   "products": [
     {
@@ -630,7 +630,7 @@
       "model": null,
       "costBoundary": "no AI cost",
       "auditEvidence": [],
-      "sourceCommit": "a6bb4b0f9dfc0a94273a7176d23f429249a585bf",
+      "sourceCommit": "c173925ca8fa87cf85f66eea4a83725c7a9351df",
       "tests": {
         "testedLocal": true,
         "exactHeadCi": false
@@ -1072,12 +1072,12 @@
         "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
         "release/integration/integration-contract.json"
       ],
-      "sourceCommit": "512bb11526d2dff45f0e580e88d1e2c7cb047291",
+      "sourceCommit": "296e9d149f31a939f116296dee55bc6e09c475bf",
       "tests": {
         "testedLocal": true,
-        "exactHeadCi": true
+        "exactHeadCi": false
       },
-      "status": "candidate-verified"
+      "status": "candidate-unverified"
     },
     {
       "productNumber": "30",
@@ -1336,7 +1336,7 @@
       "model": null,
       "costBoundary": "no AI cost",
       "auditEvidence": [],
-      "sourceCommit": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
+      "sourceCommit": "f77c7d21cad1142e43eaf6d7e40b81f68477a6b8",
       "tests": {
         "testedLocal": true,
         "exactHeadCi": false

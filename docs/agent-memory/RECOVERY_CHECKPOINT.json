@@ -19,8 +19,8 @@
     "readyForPublicTestnet": 0,
     "readyForSourceRelease": 7,
     "holdForRecovery": 29,
-    "cleanWorktrees": 15,
-    "exactHeadCiSuccess": 9
+    "cleanWorktrees": 16,
+    "exactHeadCiSuccess": 8
   },
   "completionAudit": {
     "path": "release/integration/FABLE5_COMPLETION_AUDIT.json",

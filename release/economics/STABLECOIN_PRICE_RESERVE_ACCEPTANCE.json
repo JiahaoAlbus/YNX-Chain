@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-08-01T14:54:47.321Z",
-  "controllerSourceCommit": "512bb11526d2dff45f0e580e88d1e2c7cb047291",
+  "generatedAt": "2026-08-01T15:42:22.394Z",
+  "controllerSourceCommit": "296e9d149f31a939f116296dee55bc6e09c475bf",
   "authority": "Oracle observations and reserve evidence; AI and frontend constants are prohibited price authorities",
   "nativeAsset": {
     "symbol": "YNXT",
@@ -104,7 +104,7 @@
     {
       "asset": "YUSD",
       "status": "testnet-candidate",
-      "sourceCommit": "a6bb4b0f9dfc0a94273a7176d23f429249a585bf",
+      "sourceCommit": "c173925ca8fa87cf85f66eea4a83725c7a9351df",
       "reserve": "sandbox evidence only",
       "reserveAttestation": "candidate cryptographic attestation; no bank custody claim",
       "mint": "testnet sandbox",

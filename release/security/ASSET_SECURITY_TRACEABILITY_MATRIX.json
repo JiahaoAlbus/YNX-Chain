@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-08-01T14:54:47.321Z",
-  "controllerSourceCommit": "512bb11526d2dff45f0e580e88d1e2c7cb047291",
+  "generatedAt": "2026-08-01T15:42:22.394Z",
+  "controllerSourceCommit": "296e9d149f31a939f116296dee55bc6e09c475bf",
   "claimsBoundary": [
     "risk reduction",
     "rapid revocation",
@@ -3323,7 +3323,7 @@
       "productNumber": "17",
       "productName": "YNXT Economics / Treasury / Stablecoin",
       "assetRelevant": true,
-      "sourceCommit": "a6bb4b0f9dfc0a94273a7176d23f429249a585bf",
+      "sourceCommit": "c173925ca8fa87cf85f66eea4a83725c7a9351df",
       "controls": {
         "productScopedSession": {
           "status": "candidate-evidence",
@@ -5811,7 +5811,7 @@
       "productNumber": "29",
       "productName": "YNX Integration / Founder Control",
       "assetRelevant": true,
-      "sourceCommit": "512bb11526d2dff45f0e580e88d1e2c7cb047291",
+      "sourceCommit": "296e9d149f31a939f116296dee55bc6e09c475bf",
       "controls": {
         "productScopedSession": {
           "status": "unverified",
@@ -7104,7 +7104,7 @@
       "productNumber": "36",
       "productName": "YNX Calendar",
       "assetRelevant": false,
-      "sourceCommit": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
+      "sourceCommit": "f77c7d21cad1142e43eaf6d7e40b81f68477a6b8",
       "controls": {
         "productScopedSession": {
           "status": "not-applicable",

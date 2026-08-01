@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-08-01T14:54:47.321Z",
-  "controllerSourceCommit": "512bb11526d2dff45f0e580e88d1e2c7cb047291",
+  "generatedAt": "2026-08-01T15:42:22.394Z",
+  "controllerSourceCommit": "296e9d149f31a939f116296dee55bc6e09c475bf",
   "status": "ACTIVE",
   "completionRule": "Evidence-weighted gate units; no subjective rounding and no file-count proxy",
   "metrics": [
@@ -89,7 +89,7 @@
         "release/integration/PRODUCT_RELEASE_MATRIX.json"
       ],
       "gaps": [
-        "clean 15/36; exact-head CI 9/36; release 1/36; hosted artifact 0/36; restore 34/36"
+        "clean 16/36; exact-head CI 8/36; release 1/36; hosted artifact 0/36; restore 34/36"
       ]
     },
     {
