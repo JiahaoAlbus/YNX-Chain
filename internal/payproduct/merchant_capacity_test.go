@@ -18,7 +18,7 @@ func TestMerchantLocalReadCapacityEvidence(t *testing.T) {
 	const requests, concurrency = 1000, 25
 	now := time.Date(2026, 7, 29, 0, 0, 0, 0, time.UTC)
 	service, _ := testService(t, &fakePay{}, func() time.Time { return now })
-	server := httptest.NewServer(NewServerWithMetadata(service, slog.New(slog.NewJSONHandler(io.Discard, nil)), buildinfo.Info{Commit: "merchant-local-capacity", Release: "local-evidence"}, now).Handler())
+	server := httptest.NewServer(NewServerWithLogger(service, buildinfo.Info{Commit: "merchant-local-capacity", Release: "local-evidence"}, slog.New(slog.NewJSONHandler(io.Discard, nil))).Handler())
 	defer server.Close()
 
 	client := &http.Client{Timeout: 5 * time.Second}

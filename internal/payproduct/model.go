@@ -8,7 +8,7 @@ const (
 	NativeAsset     = "YNXT"
 	NativeFeeYNXT   = int64(1)
 	InvoiceVersion  = 3
-	SnapshotVersion = 4
+	SnapshotVersion = 5
 )
 
 type Merchant struct {
@@ -248,18 +248,44 @@ type ProviderConnection struct {
 	UpdatedAt           time.Time  `json:"updatedAt"`
 }
 type MerchantDataRequest struct {
-	ID            string     `json:"id"`
-	MerchantID    string     `json:"merchantId"`
-	Type          string     `json:"type"`
-	Status        string     `json:"status"`
-	RequestedBy   string     `json:"requestedBy"`
-	Reason        string     `json:"reason"`
-	PolicyVersion string     `json:"policyVersion"`
-	Blockers      []string   `json:"blockers"`
-	EligibleAt    *time.Time `json:"eligibleAt,omitempty"`
-	CanceledAt    *time.Time `json:"canceledAt,omitempty"`
-	CreatedAt     time.Time  `json:"createdAt"`
-	UpdatedAt     time.Time  `json:"updatedAt"`
+	ID                string                            `json:"id"`
+	MerchantID        string                            `json:"merchantId"`
+	Type              string                            `json:"type"`
+	Status            string                            `json:"status"`
+	RequestedBy       string                            `json:"requestedBy"`
+	Reason            string                            `json:"reason"`
+	PolicyVersion     string                            `json:"policyVersion"`
+	Blockers          []string                          `json:"blockers"`
+	EligibleAt        *time.Time                        `json:"eligibleAt,omitempty"`
+	CanceledAt        *time.Time                        `json:"canceledAt,omitempty"`
+	ApprovedBy        string                            `json:"approvedBy,omitempty"`
+	ApprovalReference string                            `json:"approvalReference,omitempty"`
+	ApprovedAt        *time.Time                        `json:"approvedAt,omitempty"`
+	ExecutedBy        string                            `json:"executedBy,omitempty"`
+	ExecutedAt        *time.Time                        `json:"executedAt,omitempty"`
+	ExecutionSummary  *MerchantDeletionExecutionSummary `json:"executionSummary,omitempty"`
+	CreatedAt         time.Time                         `json:"createdAt"`
+	UpdatedAt         time.Time                         `json:"updatedAt"`
+}
+type MerchantDataHold struct {
+	ID                 string     `json:"id"`
+	MerchantID         string     `json:"merchantId"`
+	Status             string     `json:"status"`
+	Reason             string     `json:"reason"`
+	AuthorityReference string     `json:"authorityReference"`
+	PlacedBy           string     `json:"placedBy"`
+	ReleasedBy         string     `json:"releasedBy,omitempty"`
+	CreatedAt          time.Time  `json:"createdAt"`
+	ReleasedAt         *time.Time `json:"releasedAt,omitempty"`
+}
+type MerchantDeletionExecutionSummary struct {
+	RemovedRecords             map[string]int `json:"removedRecords"`
+	RetainedAuditEntries       int            `json:"retainedAuditEntries"`
+	RetainedDataRequests       int            `json:"retainedDataRequests"`
+	RetainedReleasedHolds      int            `json:"retainedReleasedHolds"`
+	ProviderDeletionClaimed    bool           `json:"providerDeletionClaimed"`
+	PublicChainDeletionClaimed bool           `json:"publicChainDeletionClaimed"`
+	Source                     string         `json:"source"`
 }
 type IdempotencyRecord struct {
 	Scope       string    `json:"scope"`
@@ -370,6 +396,7 @@ type Snapshot struct {
 	AIRuns          map[string]AIRun                  `json:"aiRuns"`
 	Providers       map[string]ProviderConnection     `json:"providers"`
 	DataRequests    map[string]MerchantDataRequest    `json:"dataRequests"`
+	DataHolds       map[string]MerchantDataHold       `json:"dataHolds"`
 	BulkOperations  map[string]BulkWebhookRetryResult `json:"bulkOperations"`
 	Idempotency     map[string]IdempotencyRecord      `json:"idempotency"`
 	Nonces          map[string]NonceRecord            `json:"nonces"`

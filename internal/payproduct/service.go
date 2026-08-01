@@ -32,47 +32,50 @@ type AIProvider interface {
 	Complete(context.Context, string, string) (provider, model, result string, units int64, err error)
 }
 type Config struct {
-	StorePath           string
-	IntegrityKey        []byte
-	GatewayKey          []byte
-	BootstrapKey        string
-	PublicBaseURL       string
-	CentralMerchantID   string
-	PayAPI              PayAPI
-	AI                  AIProvider
-	ProviderProbe       ProviderProbe
-	WebhookResolver     WebhookResolver
-	Sponsorship         SponsorshipProvider
-	SponsorPolicy       SponsorPolicy
-	Bridge              BridgeProvider
-	StableApproval      *StableSettlementApproval
-	QuantEvidenceKeys   map[string]ed25519.PublicKey
-	QuantEvidenceMaxAge time.Duration
-	HTTPClient          *http.Client
-	Now                 func() time.Time
+	StorePath              string
+	IntegrityKey           []byte
+	GatewayKey             []byte
+	BootstrapKey           string
+	DataOperatorCredential string
+	MonitorKey             string
+	PublicBaseURL          string
+	CentralMerchantID      string
+	PayAPI                 PayAPI
+	AI                     AIProvider
+	ProviderProbe          ProviderProbe
+	WebhookResolver        WebhookResolver
+	Sponsorship            SponsorshipProvider
+	SponsorPolicy          SponsorPolicy
+	Bridge                 BridgeProvider
+	StableApproval         *StableSettlementApproval
+	QuantEvidenceKeys      map[string]ed25519.PublicKey
+	QuantEvidenceMaxAge    time.Duration
+	HTTPClient             *http.Client
+	Now                    func() time.Time
 }
 type Service struct {
-	store               *Store
-	pay                 PayAPI
-	ai                  AIProvider
-	providerProbe       ProviderProbe
-	sponsorship         SponsorshipProvider
-	sponsorPolicy       SponsorPolicy
-	bridge              BridgeProvider
-	stableApproval      *StableSettlementApproval
-	quantEvidenceKeys   map[string]ed25519.PublicKey
-	quantEvidenceMaxAge time.Duration
-	bootstrap           string
-	publicBase          string
-	centralMerchantID   string
-	key                 []byte
-	gatewayKey          []byte
-	client              *http.Client
-	webhookResolver     WebhookResolver
-	now                 func() time.Time
-	mutation            sync.Mutex
-	aiMu                sync.Mutex
-	aiCancels           map[string]context.CancelFunc
+	store                  *Store
+	pay                    PayAPI
+	ai                     AIProvider
+	providerProbe          ProviderProbe
+	sponsorship            SponsorshipProvider
+	sponsorPolicy          SponsorPolicy
+	bridge                 BridgeProvider
+	stableApproval         *StableSettlementApproval
+	quantEvidenceKeys      map[string]ed25519.PublicKey
+	quantEvidenceMaxAge    time.Duration
+	bootstrap              string
+	dataOperatorCredential string
+	publicBase             string
+	centralMerchantID      string
+	key                    []byte
+	gatewayKey             []byte
+	client                 *http.Client
+	webhookResolver        WebhookResolver
+	now                    func() time.Time
+	mutation               sync.Mutex
+	aiMu                   sync.Mutex
+	aiCancels              map[string]context.CancelFunc
 }
 
 func New(cfg Config) (*Service, error) {
@@ -87,6 +90,13 @@ func New(cfg Config) (*Service, error) {
 	}
 	if len(cfg.BootstrapKey) < 24 {
 		return nil, errors.New("merchant bootstrap key must contain at least 24 characters")
+	}
+	dataOperatorCredential := strings.TrimSpace(cfg.DataOperatorCredential)
+	if dataOperatorCredential != "" && len(dataOperatorCredential) < 24 {
+		return nil, errors.New("merchant data operator credential must contain at least 24 characters when configured")
+	}
+	if dataOperatorCredential != "" && (dataOperatorCredential == strings.TrimSpace(cfg.BootstrapKey) || dataOperatorCredential == strings.TrimSpace(cfg.MonitorKey) || dataOperatorCredential == string(cfg.IntegrityKey) || dataOperatorCredential == string(cfg.GatewayKey)) {
+		return nil, errors.New("merchant data operator credential must be distinct from bootstrap, monitor, integrity and gateway credentials")
 	}
 	base := strings.TrimRight(cfg.PublicBaseURL, "/")
 	u, err := url.Parse(base)
@@ -115,7 +125,7 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, stableApproval: cfg.StableApproval, quantEvidenceKeys: quantEvidenceKeys, quantEvidenceMaxAge: quantEvidenceMaxAge, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, webhookResolver: resolver, now: now, aiCancels: map[string]context.CancelFunc{}}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, stableApproval: cfg.StableApproval, quantEvidenceKeys: quantEvidenceKeys, quantEvidenceMaxAge: quantEvidenceMaxAge, bootstrap: cfg.BootstrapKey, dataOperatorCredential: dataOperatorCredential, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, webhookResolver: resolver, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
 		recoveredAt := now().UTC()
 		for id, run := range data.AIRuns {
