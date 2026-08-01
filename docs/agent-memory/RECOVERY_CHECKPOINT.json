@@ -22,7 +22,7 @@
     "npm run build:statectl",
     "npm run smoke",
     "npm run browser:proof twice consecutively with different process-derived ports",
-    "JSON validation for eight modified JSON files and eleven JSONL records",
+    "JSON validation for eight modified JSON files and thirteen JSONL records",
     "git diff --check",
     "node --check tests/browser-proof.cjs",
     "operator backup and isolated restore drill"
@@ -33,7 +33,7 @@
     "commitSha": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
     "pullRequestSearchResult": "none",
     "commitWorkflowRunsResult": "none",
-    "releaseListInspectedAt": "2026-08-01T14:52:31Z",
+    "releaseListInspectedAt": "2026-08-01T15:13:07Z",
     "currentSourceCalendarRelease": null
   },
   "release": {
@@ -85,5 +85,5 @@
     "CAL-BLOCK-REL-001"
   ],
   "nextAction": "Submit the Calendar integration contract and CAL-X-013 to Integration and Security/SRE; keep public and release states false until central, artifact and canonical Website evidence exists.",
-  "updatedAt": "2026-08-01T14:52:31Z"
+  "updatedAt": "2026-08-01T15:13:07Z"
 }

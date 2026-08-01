@@ -1,6 +1,6 @@
 # YNX Calendar current state
 
-Updated: 2026-08-01T14:52:31Z
+Updated: 2026-08-01T15:13:07Z
 
 - Product: 36 — YNX Calendar
 - Product ID: `com.ynx.calendar`
@@ -27,7 +27,7 @@ Updated: 2026-08-01T14:52:31Z
 - `npm run build:statectl`
 - `npm run smoke`
 - `npm run browser:proof` twice consecutively with different process-derived ports
-- JSON validation for eight modified JSON files and eleven JSONL records
+- JSON validation for eight modified JSON files and thirteen JSONL records
 - `git diff --check`
 - `node --check tests/browser-proof.cjs`
 - operator backup and isolated restore drill
