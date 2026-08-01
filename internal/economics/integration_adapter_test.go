@@ -72,6 +72,132 @@ func TestEconomicsIntegrationBundleDeterministicAndReconciled(t *testing.T) {
 	}
 }
 
+func TestEconomicsIntegrationBundleIncludesSafetyModuleCanonicalConsumers(t *testing.T) {
+	economicState, stakingState, safetyState := integrationRuntimeFixtureWithSafety(t)
+	first, err := BuildEconomicsIntegrationBundleWithSafety(integrationFixtureSourceCommit, economicState, stakingState, &safetyState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := BuildEconomicsIntegrationBundleWithSafety(integrationFixtureSourceCommit, economicState, stakingState, &safetyState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.BundleHash != second.BundleHash {
+		t.Fatalf("Safety Module integration replay changed hash: first=%s second=%s", first.BundleHash, second.BundleHash)
+	}
+	if first.SafetyStateHash != safetyState.StateHash {
+		t.Fatalf("Safety Module state hash mismatch: got=%s want=%s", first.SafetyStateHash, safetyState.StateHash)
+	}
+	if len(first.Envelopes) != 5+len(safetyState.Events) || len(first.Explorer) != len(first.Envelopes) || len(first.Monitor) <= 15 {
+		t.Fatalf("unexpected Safety Module integration cardinality: events=%d envelopes=%d explorer=%d monitor=%d", len(safetyState.Events), len(first.Envelopes), len(first.Explorer), len(first.Monitor))
+	}
+	safetyEnvelopes := 0
+	monitorByEvent := map[string]int{}
+	for _, check := range first.Monitor {
+		monitorByEvent[check.SourceEventID]++
+	}
+	for _, envelope := range first.Envelopes {
+		if !safetyIntegrationEventTypeAllowed(envelope.EventType) {
+			continue
+		}
+		safetyEnvelopes++
+		var event SafetyModuleRuntimeEvent
+		if err := json.Unmarshal(envelope.Payload, &event); err != nil {
+			t.Fatal(err)
+		}
+		if event.ExternalTransferExecuted || envelope.SharedTestnet || envelope.PublicDeployment || envelope.Production {
+			t.Fatalf("Safety Module integration overclaimed execution or release state: envelope=%+v event=%+v", envelope, event)
+		}
+		if monitorByEvent[event.ID] < 1 {
+			t.Fatalf("Safety Module event %s has no monitor checks", event.ID)
+		}
+	}
+	if safetyEnvelopes != len(safetyState.Events) {
+		t.Fatalf("wrapped %d of %d Safety Module events", safetyEnvelopes, len(safetyState.Events))
+	}
+	if err := ValidateEconomicsIntegrationBundle(first); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEconomicsIntegrationBundleRejectsRehashedSafetyPayloadTampering(t *testing.T) {
+	economicState, stakingState, safetyState := integrationRuntimeFixtureWithSafety(t)
+	bundle, err := BuildEconomicsIntegrationBundleWithSafety(integrationFixtureSourceCommit, economicState, stakingState, &safetyState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tampered := cloneIntegrationBundle(t, bundle)
+	index := -1
+	for candidate := range tampered.Envelopes {
+		if safetyIntegrationEventTypeAllowed(tampered.Envelopes[candidate].EventType) {
+			index = candidate
+			break
+		}
+	}
+	if index < 0 {
+		t.Fatal("Safety Module event missing from integration fixture")
+	}
+	var event SafetyModuleRuntimeEvent
+	if err := json.Unmarshal(tampered.Envelopes[index].Payload, &event); err != nil {
+		t.Fatal(err)
+	}
+	event.AmountYNXT++
+	event.ID = safetyRuntimeEventID(event)
+	event.AuditHash = safetyRuntimeEventAuditHash(event)
+	tampered.Envelopes[index].EventID = event.ID
+	tampered.Envelopes[index].Payload = mustJSON(t, event)
+	tampered.Envelopes[index].SourceEventAuditHash = event.AuditHash
+	tampered.Envelopes[index].PayloadHash = integrationPayloadHash(tampered.Envelopes[index].Payload)
+	tampered.Envelopes[index].AuditHash = economicsIntegrationEnvelopeHash(tampered.Envelopes[index])
+	tampered.BundleHash = economicsIntegrationBundleHash(tampered)
+	assertRuntimeErrorCode(t, ValidateEconomicsIntegrationBundle(tampered), CodeIntegrationInvalidProjection)
+}
+
+func TestEconomicsIntegrationBundleRejectsRehashedSafetySemanticConflict(t *testing.T) {
+	economicState, stakingState, safetyState := integrationRuntimeFixtureWithSafety(t)
+	bundle, err := BuildEconomicsIntegrationBundleWithSafety(integrationFixtureSourceCommit, economicState, stakingState, &safetyState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tampered := cloneIntegrationBundle(t, bundle)
+	index := -1
+	for candidate := range tampered.Envelopes {
+		if tampered.Envelopes[candidate].EventType == "ynx.safety.stake_registered.v1" {
+			index = candidate
+			break
+		}
+	}
+	if index < 0 {
+		t.Fatal("Safety Module stake registration event missing from integration fixture")
+	}
+	var event SafetyModuleRuntimeEvent
+	if err := json.Unmarshal(tampered.Envelopes[index].Payload, &event); err != nil {
+		t.Fatal(err)
+	}
+	event.Threshold = 1
+	event.VerifiedSignatures = 1
+	event.ID = safetyRuntimeEventID(event)
+	event.AuditHash = safetyRuntimeEventAuditHash(event)
+	tampered.Envelopes[index].EventID = event.ID
+	tampered.Envelopes[index].Payload = mustJSON(t, event)
+	tampered.Envelopes[index].SourceEventAuditHash = event.AuditHash
+	tampered.Envelopes[index].PayloadHash = integrationPayloadHash(tampered.Envelopes[index].Payload)
+	tampered.Envelopes[index].AuditHash = economicsIntegrationEnvelopeHash(tampered.Envelopes[index])
+	tampered.BundleHash = economicsIntegrationBundleHash(tampered)
+	assertRuntimeErrorCode(t, ValidateEconomicsIntegrationBundle(tampered), CodeIntegrationInvalidEnvelope)
+}
+
+func TestEconomicsIntegrationBundleRejectsInvalidSafetyStateHash(t *testing.T) {
+	economicState, stakingState, safetyState := integrationRuntimeFixtureWithSafety(t)
+	bundle, err := BuildEconomicsIntegrationBundleWithSafety(integrationFixtureSourceCommit, economicState, stakingState, &safetyState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bundle.SafetyStateHash = "sha256:00"
+	bundle.BundleHash = economicsIntegrationBundleHash(bundle)
+	assertRuntimeErrorCode(t, ValidateEconomicsIntegrationBundle(bundle), CodeIntegrationInvalidBundle)
+}
+
 func TestEconomicsIntegrationBundleRejectsRehashedLedgerTampering(t *testing.T) {
 	bundle := integrationBundleFixture(t)
 	tampered := cloneIntegrationBundle(t, bundle)
@@ -133,6 +259,12 @@ func integrationBundleFixture(t *testing.T) EconomicsIntegrationBundle {
 
 func integrationRuntimeFixture(t *testing.T) (EconomicRuntimeState, StakingRiskState) {
 	t.Helper()
+	economicState, stakingState, _ := integrationRuntimeFixtureWithSafety(t)
+	return economicState, stakingState
+}
+
+func integrationRuntimeFixtureWithSafety(t *testing.T) (EconomicRuntimeState, StakingRiskState, SafetyModuleRuntimeState) {
+	t.Helper()
 	var economicInput RuntimeReplayInput
 	readIntegrationFixture(t, "../../economics/examples/runtime-replay.json", &economicInput)
 	economicState, err := ReplayEconomicRuntime(economicInput)
@@ -145,7 +277,13 @@ func integrationRuntimeFixture(t *testing.T) (EconomicRuntimeState, StakingRiskS
 	if err != nil {
 		t.Fatal(err)
 	}
-	return economicState, stakingState
+	var safetyInput SafetyModuleRuntimeReplayInput
+	readIntegrationFixture(t, "../../economics/examples/safety-module-runtime-replay.json", &safetyInput)
+	safetyState, err := ReplaySafetyModuleRuntime(safetyInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return economicState, stakingState, safetyState
 }
 
 func readIntegrationFixture(t *testing.T, path string, output any) {

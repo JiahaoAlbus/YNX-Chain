@@ -17,6 +17,7 @@ func main() {
 	statePath := flag.String("state", "", "path to the local economics integration store JSON file")
 	economicsInputPath := flag.String("economics-input", "", "path to a deterministic economics runtime replay JSON input")
 	stakingInputPath := flag.String("staking-input", "", "path to a deterministic staking risk runtime replay JSON input")
+	safetyInputPath := flag.String("safety-input", "", "optional path to a deterministic Safety Module runtime replay JSON input")
 	sourceCommit := flag.String("source-commit", "", "40-character lowercase source commit represented by this integration bundle")
 	ingestedAtValue := flag.String("ingested-at", "", "RFC3339 timestamp for deterministic local ingestion")
 	createdAtValue := flag.String("created-at", "", "optional RFC3339 creation timestamp for a new store; defaults to bundle generatedAt")
@@ -42,7 +43,18 @@ func main() {
 		fail(err.Error())
 	}
 
-	bundle, err := economics.BuildEconomicsIntegrationBundle(*sourceCommit, economicState, stakingState)
+	var safetyState *economics.SafetyModuleRuntimeState
+	if *safetyInputPath != "" {
+		var safetyInput economics.SafetyModuleRuntimeReplayInput
+		decodeFile(*safetyInputPath, &safetyInput)
+		replayed, replayErr := economics.ReplaySafetyModuleRuntime(safetyInput)
+		if replayErr != nil {
+			fail(replayErr.Error())
+		}
+		safetyState = &replayed
+	}
+
+	bundle, err := economics.BuildEconomicsIntegrationBundleWithSafety(*sourceCommit, economicState, stakingState, safetyState)
 	if err != nil {
 		fail(err.Error())
 	}
@@ -63,6 +75,7 @@ func main() {
 			ContractID       string                                     `json:"contractId"`
 			SourceCommit     string                                     `json:"sourceCommit"`
 			BundleHash       string                                     `json:"bundleHash"`
+			SafetyStateHash  string                                     `json:"safetyStateHash,omitempty"`
 			Applied          bool                                       `json:"applied"`
 			Idempotent       bool                                       `json:"idempotent"`
 			Revision         int64                                      `json:"revision"`
@@ -74,6 +87,7 @@ func main() {
 			ContractID:      next.ContractID,
 			SourceCommit:    receipt.SourceCommit,
 			BundleHash:      receipt.BundleHash,
+			SafetyStateHash: bundle.SafetyStateHash,
 			Applied:         receipt.Applied,
 			Idempotent:      receipt.Idempotent,
 			Revision:        next.Revision,

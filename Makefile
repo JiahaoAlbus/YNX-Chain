@@ -539,7 +539,7 @@ staking-risk-runtime-check:
 
 economics-integration-adapter-check:
 	go test -race ./internal/economics ./cmd/ynx-economics-integration
-	go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -summary >/dev/null
+	go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -safety-input economics/examples/safety-module-runtime-replay.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -summary >/dev/null
 
 economics-integration-store-check:
 	go test -race ./internal/economics ./cmd/ynx-economics-integration-store

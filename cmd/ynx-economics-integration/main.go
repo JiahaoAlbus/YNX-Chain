@@ -14,6 +14,7 @@ import (
 func main() {
 	economicsInputPath := flag.String("economics-input", "", "path to a deterministic economics runtime replay JSON input")
 	stakingInputPath := flag.String("staking-input", "", "path to a deterministic staking risk runtime replay JSON input")
+	safetyInputPath := flag.String("safety-input", "", "optional path to a deterministic Safety Module runtime replay JSON input")
 	sourceCommit := flag.String("source-commit", "", "40-character lowercase source commit represented by this integration bundle")
 	summaryOnly := flag.Bool("summary", false, "emit only deterministic integration counts and hashes")
 	flag.Parse()
@@ -35,7 +36,18 @@ func main() {
 		fail(err.Error())
 	}
 
-	bundle, err := economics.BuildEconomicsIntegrationBundle(*sourceCommit, economicState, stakingState)
+	var safetyState *economics.SafetyModuleRuntimeState
+	if *safetyInputPath != "" {
+		var safetyInput economics.SafetyModuleRuntimeReplayInput
+		decodeFile(*safetyInputPath, &safetyInput)
+		replayed, replayErr := economics.ReplaySafetyModuleRuntime(safetyInput)
+		if replayErr != nil {
+			fail(replayErr.Error())
+		}
+		safetyState = &replayed
+	}
+
+	bundle, err := economics.BuildEconomicsIntegrationBundleWithSafety(*sourceCommit, economicState, stakingState, safetyState)
 	if err != nil {
 		fail(err.Error())
 	}
@@ -48,6 +60,7 @@ func main() {
 			SourceCommit      string                             `json:"sourceCommit"`
 			EconomicStateHash string                             `json:"economicStateHash"`
 			StakingStateHash  string                             `json:"stakingStateHash"`
+			SafetyStateHash   string                             `json:"safetyStateHash,omitempty"`
 			EnvelopeCount     int                                `json:"envelopeCount"`
 			BillingCount      int                                `json:"billingCount"`
 			ExplorerCount     int                                `json:"explorerCount"`
@@ -59,6 +72,7 @@ func main() {
 			SourceCommit:      bundle.SourceCommit,
 			EconomicStateHash: bundle.EconomicStateHash,
 			StakingStateHash:  bundle.StakingStateHash,
+			SafetyStateHash:   bundle.SafetyStateHash,
 			EnvelopeCount:     len(bundle.Envelopes),
 			BillingCount:      len(bundle.BillingLedger),
 			ExplorerCount:     len(bundle.Explorer),

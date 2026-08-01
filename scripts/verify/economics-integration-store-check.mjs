@@ -18,6 +18,8 @@ const args = [
   "economics/examples/runtime-replay.json",
   "-staking-input",
   "economics/examples/staking-risk-runtime-replay.json",
+  "-safety-input",
+  "economics/examples/safety-module-runtime-replay.json",
   "-source-commit",
   sourceCommit,
   "-ingested-at",
@@ -34,12 +36,13 @@ try {
   assert.equal(first.revision, 2);
   assert.equal(first.acceptedBundles, 1);
   assert.deepEqual(first.recordCounts, {
-    envelopes: 5,
+    envelopes: 8,
     billingLedger: 18,
-    explorer: 5,
-    monitor: 15,
+    explorer: 8,
+    monitor: 24,
   });
   assert.match(first.bundleHash, /^sha256:[0-9a-f]{64}$/);
+  assert.match(first.safetyStateHash, /^sha256:[0-9a-f]{64}$/);
   assert.match(first.storeStateHash, /^sha256:[0-9a-f]{64}$/);
   assert.match(first.receiptAuditHash, /^sha256:[0-9a-f]{64}$/);
 
@@ -62,14 +65,15 @@ try {
   assert.equal(persisted.contractId, "ynx.economics.integration.v1");
   assert.equal(persisted.revision, 2);
   assert.equal(persisted.acceptedBundles.length, 1);
+  assert.match(persisted.acceptedBundles[0].safetyStateHash, /^sha256:[0-9a-f]{64}$/);
   assert.equal(persisted.auditEvents.length, 1);
-  assert.equal(persisted.envelopes.length, 5);
+  assert.equal(persisted.envelopes.length, 8);
   assert.equal(persisted.billingLedger.length, 18);
-  assert.equal(persisted.explorer.length, 5);
-  assert.equal(persisted.monitor.length, 15);
+  assert.equal(persisted.explorer.length, 8);
+  assert.equal(persisted.monitor.length, 24);
   assert.equal(persisted.stateHash, first.storeStateHash);
 
-  console.log(`economics integration store verified: source=${sourceCommit} bundle=${first.bundleHash} state=${first.storeStateHash} records=5/18/5/15`);
+  console.log(`economics integration store verified: source=${sourceCommit} bundle=${first.bundleHash} state=${first.storeStateHash} records=8/18/8/24 safety=true`);
 } finally {
   fs.rmSync(directory, { recursive: true, force: true });
 }

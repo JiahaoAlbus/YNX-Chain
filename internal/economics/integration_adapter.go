@@ -138,6 +138,7 @@ type EconomicsIntegrationBundle struct {
 	EvidenceClass     string                         `json:"evidenceClass"`
 	EconomicStateHash string                         `json:"economicStateHash"`
 	StakingStateHash  string                         `json:"stakingStateHash"`
+	SafetyStateHash   string                         `json:"safetyStateHash,omitempty"`
 	Envelopes         []EconomicsIntegrationEnvelope `json:"envelopes"`
 	BillingLedger     []EconomicsBillingLedgerEntry  `json:"billingLedger"`
 	Explorer          []EconomicsExplorerProjection  `json:"explorer"`
@@ -147,6 +148,10 @@ type EconomicsIntegrationBundle struct {
 }
 
 func BuildEconomicsIntegrationBundle(sourceCommit string, economicState EconomicRuntimeState, stakingState StakingRiskState) (EconomicsIntegrationBundle, error) {
+	return BuildEconomicsIntegrationBundleWithSafety(sourceCommit, economicState, stakingState, nil)
+}
+
+func BuildEconomicsIntegrationBundleWithSafety(sourceCommit string, economicState EconomicRuntimeState, stakingState StakingRiskState, safetyState *SafetyModuleRuntimeState) (EconomicsIntegrationBundle, error) {
 	if !validIntegrationSourceCommit(sourceCommit) {
 		return EconomicsIntegrationBundle{}, runtimeError(CodeIntegrationInvalidBundle, "integration source commit must be a canonical 40-character lowercase git commit")
 	}
@@ -155,6 +160,11 @@ func BuildEconomicsIntegrationBundle(sourceCommit string, economicState Economic
 	}
 	if err := ValidateStakingRiskState(stakingState); err != nil {
 		return EconomicsIntegrationBundle{}, err
+	}
+	if safetyState != nil {
+		if err := ValidateSafetyModuleRuntimeState(*safetyState); err != nil {
+			return EconomicsIntegrationBundle{}, err
+		}
 	}
 
 	bundle := EconomicsIntegrationBundle{
@@ -170,6 +180,10 @@ func BuildEconomicsIntegrationBundle(sourceCommit string, economicState Economic
 		Explorer:          []EconomicsExplorerProjection{},
 		Monitor:           []EconomicsMonitorCheck{},
 		ReleaseStates:     LocalCandidateIntegrationReleaseStates(),
+	}
+	if safetyState != nil {
+		bundle.GeneratedAt = laterTime(bundle.GeneratedAt, safetyState.LastAsOf)
+		bundle.SafetyStateHash = safetyState.StateHash
 	}
 
 	for _, event := range economicState.EconomicEvents {
@@ -228,6 +242,25 @@ func BuildEconomicsIntegrationBundle(sourceCommit string, economicState Economic
 		}
 		bundle.Monitor = append(bundle.Monitor, checks...)
 	}
+	if safetyState != nil {
+		for index, event := range safetyState.Events {
+			envelope, err := newSafetyIntegrationEnvelope(event, int64(index+1), sourceCommit)
+			if err != nil {
+				return EconomicsIntegrationBundle{}, err
+			}
+			bundle.Envelopes = append(bundle.Envelopes, envelope)
+			projection, err := newSafetyExplorerProjection(event, sourceCommit)
+			if err != nil {
+				return EconomicsIntegrationBundle{}, err
+			}
+			bundle.Explorer = append(bundle.Explorer, projection)
+			checks, err := newSafetyMonitorChecks(event, safetyState.Policy, sourceCommit)
+			if err != nil {
+				return EconomicsIntegrationBundle{}, err
+			}
+			bundle.Monitor = append(bundle.Monitor, checks...)
+		}
+	}
 
 	sort.Slice(bundle.Envelopes, func(i, j int) bool {
 		if bundle.Envelopes[i].OccurredAt.Equal(bundle.Envelopes[j].OccurredAt) {
@@ -271,7 +304,7 @@ func ValidateEconomicsIntegrationBundle(bundle EconomicsIntegrationBundle) error
 	if bundle.SchemaVersion != EconomicsIntegrationSchemaVersion || bundle.ContractID != EconomicsIntegrationContractID || !validIntegrationSourceCommit(bundle.SourceCommit) || bundle.GeneratedAt.IsZero() || bundle.EvidenceClass != IntegrationEvidenceClass {
 		return runtimeError(CodeIntegrationInvalidBundle, "integration bundle metadata is invalid")
 	}
-	if !validEvidenceHash(bundle.EconomicStateHash) || !validEvidenceHash(bundle.StakingStateHash) || bundle.ReleaseStates != LocalCandidateIntegrationReleaseStates() {
+	if !validEvidenceHash(bundle.EconomicStateHash) || !validEvidenceHash(bundle.StakingStateHash) || (bundle.SafetyStateHash != "" && !validEvidenceHash(bundle.SafetyStateHash)) || bundle.ReleaseStates != LocalCandidateIntegrationReleaseStates() {
 		return runtimeError(CodeIntegrationInvalidBundle, "integration bundle state hashes or release truth are invalid")
 	}
 	if len(bundle.Envelopes) == 0 || len(bundle.Explorer) != len(bundle.Envelopes) || len(bundle.Monitor) == 0 {
@@ -389,6 +422,14 @@ func validateIntegrationEnvelopePayload(envelope EconomicsIntegrationEnvelope) e
 		if err := json.Unmarshal(envelope.Payload, &event); err != nil || event.ID != envelope.EventID || event.Type != envelope.EventType || event.Version != envelope.EventVersion || event.Source != envelope.Source || !event.ExecutedAt.UTC().Equal(envelope.OccurredAt) || event.AuditHash != envelope.SourceEventAuditHash || event.ID != stakingRiskEventID(event) || event.AuditHash != stakingRiskEventAuditHash(event) {
 			return runtimeError(CodeIntegrationInvalidEnvelope, "staking envelope payload is not the canonical source event")
 		}
+	case "ynx.safety.stake_registered.v1", "ynx.safety.exit_requested.v1", "ynx.safety.exit_completed.v1", "ynx.safety.insurance_funding_recorded.v1", "ynx.safety.shortfall_processed.v1":
+		var event SafetyModuleRuntimeEvent
+		if err := json.Unmarshal(envelope.Payload, &event); err != nil || event.ID != envelope.EventID || event.Type != envelope.EventType || event.Version != envelope.EventVersion || event.Source != envelope.Source || !event.OccurredAt.UTC().Equal(envelope.OccurredAt) || event.AuditHash != envelope.SourceEventAuditHash || event.ID != safetyRuntimeEventID(event) || event.AuditHash != safetyRuntimeEventAuditHash(event) {
+			return runtimeError(CodeIntegrationInvalidEnvelope, "Safety Module envelope payload is not the canonical source event")
+		}
+		if err := validateSafetyIntegrationEvent(event); err != nil {
+			return err
+		}
 	case StableReserveAttestedEventType:
 		event, err := decodeStableReserveEvent(envelope.Payload)
 		if err != nil || event.ID != envelope.EventID || event.Type != envelope.EventType ||
@@ -454,6 +495,17 @@ func newStakingIntegrationEnvelope(event StakingRiskEvent, sequence int64, sourc
 		return EconomicsIntegrationEnvelope{}, runtimeError(CodeIntegrationInvalidEnvelope, "staking event cannot be wrapped")
 	}
 	return newIntegrationEnvelope(event.Type, event.Version, event.ID, event.Source, sourceCommit, event.AuditHash, event.ExecutedAt, sequence, "staking:"+event.Validator, event)
+}
+
+func newSafetyIntegrationEnvelope(event SafetyModuleRuntimeEvent, sequence int64, sourceCommit string) (EconomicsIntegrationEnvelope, error) {
+	if err := validateSafetyIntegrationEvent(event); err != nil {
+		return EconomicsIntegrationEnvelope{}, err
+	}
+	partition := "safety:module"
+	if strings.TrimSpace(event.Participant) != "" {
+		partition = "safety:" + strings.TrimSpace(event.Participant)
+	}
+	return newIntegrationEnvelope(event.Type, event.Version, event.ID, event.Source, sourceCommit, event.AuditHash, event.OccurredAt, sequence, partition, event)
 }
 
 func newIntegrationEnvelope(eventType string, eventVersion int, eventID, source, sourceCommit, sourceAudit string, occurredAt time.Time, sequence int64, partition string, payload any) (EconomicsIntegrationEnvelope, error) {
@@ -644,6 +696,47 @@ func newStakingExplorerProjection(event StakingRiskEvent, sourceCommit string) (
 	return projection, nil
 }
 
+func newSafetyExplorerProjection(event SafetyModuleRuntimeEvent, sourceCommit string) (EconomicsExplorerProjection, error) {
+	projection := EconomicsExplorerProjection{
+		SchemaVersion:  EconomicsIntegrationSchemaVersion,
+		ContractID:     EconomicsIntegrationContractID,
+		SourceCommit:   sourceCommit,
+		SourceEventID:  event.ID,
+		EventType:      event.Type,
+		EventVersion:   event.Version,
+		OccurredAt:     event.OccurredAt.UTC(),
+		Source:         event.Source,
+		AuthorityOwner: "17 Economics",
+		Candidate:      true,
+		Metrics: map[string]int64{
+			"amountYnxt":             event.AmountYNXT,
+			"closingInsuranceYnxt":   event.ClosingInsuranceYNXT,
+			"insuranceFundedYnxt":    event.InsuranceFundedYNXT,
+			"insuranceUsedYnxt":      event.InsuranceUsedYNXT,
+			"openingInsuranceYnxt":   event.OpeningInsuranceYNXT,
+			"slashAllocationCount":   int64(len(event.SlashAllocations)),
+			"stakeSlashedYnxt":       event.StakeSlashedYNXT,
+			"threshold":              int64(event.Threshold),
+			"uncoveredShortfallYnxt": event.UncoveredShortfallYNXT,
+			"verifiedSignatures":     int64(event.VerifiedSignatures),
+		},
+		Labels: map[string]string{
+			"actionId":                 event.ActionID,
+			"evidenceHash":             event.EvidenceHash,
+			"externalTransferExecuted": fmt.Sprintf("%t", event.ExternalTransferExecuted),
+			"participant":              event.Participant,
+			"trigger":                  event.Trigger,
+		},
+		ReleaseStates: LocalCandidateIntegrationReleaseStates(),
+	}
+	projection.ID = economicsExplorerProjectionID(projection)
+	projection.AuditHash = economicsExplorerProjectionHash(projection)
+	if err := ValidateEconomicsExplorerProjection(projection); err != nil {
+		return EconomicsExplorerProjection{}, err
+	}
+	return projection, nil
+}
+
 func newEconomicMonitorChecks(event CanonicalEconomicEvent, sourceCommit string) ([]EconomicsMonitorCheck, error) {
 	checks := []struct {
 		name     string
@@ -697,6 +790,74 @@ func newStakingMonitorChecks(event StakingRiskEvent, policy StakingRiskPolicy, s
 	result := make([]EconomicsMonitorCheck, 0, len(checks))
 	for _, item := range checks {
 		check, err := newMonitorCheck(sourceCommit, event.ID, item.name, "pass", item.severity, item.observed, item.expected, event.ExecutedAt)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, check)
+	}
+	return result, nil
+}
+
+func newSafetyMonitorChecks(event SafetyModuleRuntimeEvent, policy SafetyModuleRuntimePolicy, sourceCommit string) ([]EconomicsMonitorCheck, error) {
+	checks := []struct {
+		name     string
+		severity string
+		observed string
+		expected string
+	}{
+		{"safety_external_execution_disabled", "critical", fmt.Sprintf("externalTransferExecuted=%t", event.ExternalTransferExecuted), "candidate integration events never execute custody Treasury insurance or withdrawal transfers"},
+		{"safety_event_integrity", "info", event.AuditHash, "canonical Safety Module event audit hash"},
+	}
+	switch event.Type {
+	case "ynx.safety.stake_registered.v1", "ynx.safety.exit_requested.v1", "ynx.safety.exit_completed.v1":
+		checks = append(checks, struct {
+			name     string
+			severity string
+			observed string
+			expected string
+		}{"safety_participant_amount", "critical", fmt.Sprintf("participant=%s amount=%d", event.Participant, event.AmountYNXT), "participant is explicit and amount is positive"})
+	case "ynx.safety.insurance_funding_recorded.v1":
+		checks = append(checks,
+			struct {
+				name     string
+				severity string
+				observed string
+				expected string
+			}{"safety_insurance_funding_reconciliation", "critical", fmt.Sprintf("%d+%d=%d", event.OpeningInsuranceYNXT, event.InsuranceFundedYNXT, event.ClosingInsuranceYNXT), "openingInsurance+insuranceFunding=closingInsurance"},
+			struct {
+				name     string
+				severity string
+				observed string
+				expected string
+			}{"safety_authorization_threshold", "critical", fmt.Sprintf("verified=%d threshold=%d", event.VerifiedSignatures, event.Threshold), "verified signatures meet the governance threshold"},
+		)
+	case "ynx.safety.shortfall_processed.v1":
+		checks = append(checks,
+			struct {
+				name     string
+				severity string
+				observed string
+				expected string
+			}{"safety_shortfall_reconciliation", "critical", fmt.Sprintf("insurance=%d stake=%d uncovered=%d shortfall=%d", event.InsuranceUsedYNXT, event.StakeSlashedYNXT, event.UncoveredShortfallYNXT, event.AmountYNXT), "insuranceUsed+stakeSlashed+uncoveredShortfall=shortfall"},
+			struct {
+				name     string
+				severity string
+				observed string
+				expected string
+			}{"safety_insurance_waterfall", "critical", fmt.Sprintf("opening=%d used=%d closing=%d maximumDrawBps=%d", event.OpeningInsuranceYNXT, event.InsuranceUsedYNXT, event.ClosingInsuranceYNXT, policy.MaximumInsuranceDrawBPS), "insurance draw respects the published cap and closing reserve reconciliation"},
+			struct {
+				name     string
+				severity string
+				observed string
+				expected string
+			}{"safety_authorization_threshold", "critical", fmt.Sprintf("verified=%d threshold=%d", event.VerifiedSignatures, event.Threshold), "verified signatures meet the governance threshold"},
+		)
+	default:
+		return nil, runtimeError(CodeIntegrationInvalidMonitor, "Safety Module monitor event type is unsupported")
+	}
+	result := make([]EconomicsMonitorCheck, 0, len(checks))
+	for _, item := range checks {
+		check, err := newMonitorCheck(sourceCommit, event.ID, item.name, "pass", item.severity, item.observed, item.expected, event.OccurredAt)
 		if err != nil {
 			return nil, err
 		}
@@ -787,6 +948,11 @@ func validateProjectionAgainstEnvelope(projection EconomicsExplorerProjection, e
 		if err := json.Unmarshal(envelope.Payload, &event); err != nil || projection.Labels["validator"] != event.Validator || projection.Labels["proposalId"] != event.ProposalID || projection.Metrics["openingExposureYnxt"] != event.OpeningExposureYNXT || projection.Metrics["closingExposureYnxt"] != event.ClosingExposureYNXT || projection.Metrics["totalSlashYnxt"] != event.TotalSlashYNXT {
 			return runtimeError(CodeIntegrationInvalidProjection, "staking Explorer projection does not match the source envelope")
 		}
+	case "ynx.safety.stake_registered.v1", "ynx.safety.exit_requested.v1", "ynx.safety.exit_completed.v1", "ynx.safety.insurance_funding_recorded.v1", "ynx.safety.shortfall_processed.v1":
+		var event SafetyModuleRuntimeEvent
+		if err := json.Unmarshal(envelope.Payload, &event); err != nil || projection.Labels["actionId"] != event.ActionID || projection.Labels["participant"] != event.Participant || projection.Labels["trigger"] != event.Trigger || projection.Labels["externalTransferExecuted"] != "false" || projection.Metrics["amountYnxt"] != event.AmountYNXT || projection.Metrics["openingInsuranceYnxt"] != event.OpeningInsuranceYNXT || projection.Metrics["closingInsuranceYnxt"] != event.ClosingInsuranceYNXT || projection.Metrics["insuranceUsedYnxt"] != event.InsuranceUsedYNXT || projection.Metrics["stakeSlashedYnxt"] != event.StakeSlashedYNXT || projection.Metrics["uncoveredShortfallYnxt"] != event.UncoveredShortfallYNXT {
+			return runtimeError(CodeIntegrationInvalidProjection, "Safety Module Explorer projection does not match the source envelope")
+		}
 	case StableReserveAttestedEventType:
 		event, err := decodeStableReserveEvent(envelope.Payload)
 		if err != nil || projection.Labels["asset"] != event.Snapshot.Asset ||
@@ -809,9 +975,58 @@ func validateProjectionAgainstEnvelope(projection EconomicsExplorerProjection, e
 	return nil
 }
 
+func validateSafetyIntegrationEvent(event SafetyModuleRuntimeEvent) error {
+	if event.Version != 1 || !safetyIntegrationEventTypeAllowed(event.Type) || !validSafetyActionID(event.ActionID) || event.ID != safetyRuntimeEventID(event) || event.AuditHash != safetyRuntimeEventAuditHash(event) || event.OccurredAt.IsZero() || event.ExternalTransferExecuted || event.Source != "ynx-safety-module-runtime-candidate-v1" || !validEvidenceHash(event.EvidenceHash) {
+		return runtimeError(CodeIntegrationInvalidEnvelope, "Safety Module event metadata, audit hash, or execution boundary is invalid")
+	}
+	switch event.Type {
+	case "ynx.safety.stake_registered.v1", "ynx.safety.exit_requested.v1", "ynx.safety.exit_completed.v1":
+		if !validSafetyParticipant(event.Participant) || event.AmountYNXT <= 0 || event.Trigger != "" || event.OpeningInsuranceYNXT != 0 || event.InsuranceFundedYNXT != 0 || event.InsuranceUsedYNXT != 0 || event.StakeSlashedYNXT != 0 || event.UncoveredShortfallYNXT != 0 || event.ClosingInsuranceYNXT != 0 || len(event.SlashAllocations) != 0 || event.Threshold != 0 || event.VerifiedSignatures != 0 {
+			return runtimeError(CodeIntegrationInvalidEnvelope, "Safety Module participant event contains conflicting accounting or authorization fields")
+		}
+	case "ynx.safety.insurance_funding_recorded.v1":
+		closing, err := checkedSum(event.OpeningInsuranceYNXT, event.InsuranceFundedYNXT)
+		if err != nil || event.Participant != "" || event.Trigger != "" || event.AmountYNXT <= 0 || event.InsuranceFundedYNXT != event.AmountYNXT || closing != event.ClosingInsuranceYNXT || event.InsuranceUsedYNXT != 0 || event.StakeSlashedYNXT != 0 || event.UncoveredShortfallYNXT != 0 || len(event.SlashAllocations) != 0 || event.Threshold < 1 || event.VerifiedSignatures < event.Threshold {
+			return runtimeError(CodeIntegrationInvalidEnvelope, "Safety Module insurance funding event does not reconcile")
+		}
+	case "ynx.safety.shortfall_processed.v1":
+		covered, err := checkedSum(event.InsuranceUsedYNXT, event.StakeSlashedYNXT, event.UncoveredShortfallYNXT)
+		if err != nil || event.Participant != "" || (event.Trigger != "protocol_shortfall" && event.Trigger != "consensus_safety_failure") || event.AmountYNXT <= 0 || event.InsuranceFundedYNXT != 0 || covered != event.AmountYNXT || event.OpeningInsuranceYNXT < event.InsuranceUsedYNXT || event.OpeningInsuranceYNXT-event.InsuranceUsedYNXT != event.ClosingInsuranceYNXT || event.Threshold < 1 || event.VerifiedSignatures < event.Threshold {
+			return runtimeError(CodeIntegrationInvalidEnvelope, "Safety Module shortfall event does not reconcile")
+		}
+		var allocated int64
+		previousParticipant := ""
+		for _, allocation := range event.SlashAllocations {
+			if !validSafetyParticipant(allocation.Participant) || allocation.Participant <= previousParticipant || allocation.OpeningYNXT < allocation.SlashYNXT || allocation.OpeningYNXT-allocation.SlashYNXT != allocation.RemainingYNXT || allocation.SlashYNXT <= 0 || (allocation.Status != SafetyStakeStatusActive && allocation.Status != SafetyStakeStatusCooling) {
+				return runtimeError(CodeIntegrationInvalidEnvelope, "Safety Module slash allocation is invalid")
+			}
+			allocated, err = checkedSum(allocated, allocation.SlashYNXT)
+			if err != nil {
+				return runtimeError(CodeIntegrationInvalidEnvelope, "Safety Module slash allocation overflows")
+			}
+			previousParticipant = allocation.Participant
+		}
+		if allocated != event.StakeSlashedYNXT {
+			return runtimeError(CodeIntegrationInvalidEnvelope, "Safety Module slash allocations do not equal the event stake slash")
+		}
+	default:
+		return runtimeError(CodeIntegrationInvalidEnvelope, "Safety Module event type is unsupported")
+	}
+	return nil
+}
+
 func integrationEventTypeAllowed(eventType string) bool {
 	switch eventType {
 	case "ynx.economics.epoch_settled.v1", "ynx.economics.policy_change_scheduled.v1", "ynx.economics.policy_change_activated.v1", "ynx.staking.validator_slashed.v1", "ynx.staking.validator_unjailed.v1", StableReserveAttestedEventType:
+		return true
+	default:
+		return safetyIntegrationEventTypeAllowed(eventType)
+	}
+}
+
+func safetyIntegrationEventTypeAllowed(eventType string) bool {
+	switch eventType {
+	case "ynx.safety.stake_registered.v1", "ynx.safety.exit_requested.v1", "ynx.safety.exit_completed.v1", "ynx.safety.insurance_funding_recorded.v1", "ynx.safety.shortfall_processed.v1":
 		return true
 	default:
 		return false
