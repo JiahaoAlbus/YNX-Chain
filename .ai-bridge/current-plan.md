@@ -2,34 +2,31 @@
 
 Status: ACTIVE
 Stage: INTEGRATE
-Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration`
-Branch: `codex/final-integration`
-Remote checkpoint: `b1929a5159dc50e02124f6827ccdc6dff7fce9cb`
+Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/17-tokenomics`
+Branch: `codex/final-tokenomics`
+Base remote checkpoint: `7c540b7f3f5872adbd8f65e4c8975eeac41c3a3f`
+Current local checkpoint: `eccd506558268365fdd801ad4923f1b8ea3b20fc`
 
-## Current objective
+## Completed in the current slice
 
-Protect Product 01 Chain Core's completed source candidate through central acceptance without overstating shared Testnet, public runtime, production signing, store or Mainnet status.
+1. Added a governed Safety Module runtime candidate with voluntary native-wallet YNXT stake accounting, stake cap, non-recursive provenance, cooldown and exit queue.
+2. Added insurance-first shortfall processing, cooling-stake slashing, lifetime maximum slash enforcement, explicit uncovered shortfall and canonical audit events.
+3. Added threshold Ed25519 governance authorization, timelock, replay protection, deterministic replay, restart validation and state tamper rejection.
+4. Added `cmd/ynx-safety-module-runtime`, a replay fixture and `make safety-module-runtime-check`.
+5. Passed `make safety-module-runtime-check`, `go test ./...`, `make economics-local-candidate-check`, `make no-placeholder-check` and `make secret-scan`.
+6. Created and verified incremental recovery bundle `recovery/2026-08-01/safety-module-runtime/ynx17-safety-runtime-eccd5065.bundle` with SHA-256 `b116513de5a5bdf03174d09049525fe3e7e4a8868f3881d2e9247d7b4c0322a0`.
 
-## Completed
+## Current protection state
 
-1. Recovered, protected, tested, pushed and source-published Product 01 at exact owner head `324f376dac2db434673ccec2c6d212ed3d23f79e`.
-2. Merged that exact candidate into Product 29 at `329092c19794ee376248750c2b138090e8418e08`, retaining Product 29's central authority files and combining Product 01 gates.
-3. Registered Product 01's product-scoped coverage, release, artifact, metadata, contract, handoff, vector and dependency evidence.
-4. Passed Product 01's complete central test slice and recorded the exact owner CI and hosted source artifact.
-5. Issued the fail-closed receipt `release/integration/evidence/product-01-central-acceptance-329092c1.json`.
-6. Refreshed acceptance, coverage and Product Release Matrix state to 2 centrally accepted products.
+- Working tree after the code commit contains only release/recovery checkpoint updates.
+- Direct push to `codex/final-tokenomics` is correctly blocked by protected-branch policy requiring a pull request and required `test` check.
+- Push to `automation/ynx17-safety-runtime-eccd5065` has been attempted but GitHub TLS connectivity was transiently unavailable.
+- No reset, clean, force push, cross-worktree modification, secret exposure or execution authority was used.
 
 ## Next actions
 
-1. Commit the generated evidence refreshed against exact central-acceptance source `6de79e31a7dd44fcb7df9edbf65a3090da6967c3`.
-2. Run the clean exact-source protection preflight.
-3. Push without force, restore exact branch protection, verify local/tracking/REST SHA equality and wait for every PR #17 check at the exact final head.
-4. Recover Product 26 Data Fabric next because Product 02 depends on Products 01, 26 and 30.
-
-## Guardrails
-
-- Never modify another product worktree while Product 29 is writable.
-- Preserve all dirty owner worktrees.
-- Source release is not shared Testnet or public release.
-- `ynxweb4.com` is the only official Website authority; never change `huangjeo.com`.
-- Keep the global release gate closed until every required source, vector, Testnet, public and independent acceptance fact is directly verified.
+1. Commit the release/recovery checkpoint update.
+2. Push the exact local head to `automation/ynx17-safety-runtime-eccd5065` when GitHub connectivity succeeds and verify Local SHA equals that remote branch SHA.
+3. Open a pull request into protected `codex/final-tokenomics`; require the `test` check before merge.
+4. After protection, extend the Product 17 Integration Contract and adapter/store with Safety Module canonical events, then produce owner-specific Data Fabric, Explorer and Monitor test vectors without modifying their worktrees.
+5. Keep `integratedCentral`, staging, public, production signing and production states false until direct evidence exists.

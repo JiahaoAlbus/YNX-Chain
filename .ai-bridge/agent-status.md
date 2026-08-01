@@ -1,60 +1,60 @@
-# YNX 29 Integration Agent Status
+# YNX 17 Economics Agent Status
 
-Updated: 2026-07-29T19:29:29Z
+Updated: 2026-08-01T14:20:57Z
 Lifecycle: ACTIVE
 Stage: INTEGRATE
 
-## Protected integration source
+## Workspace
 
-- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration`
-- Branch: `codex/final-integration`
-- Last synchronized remote checkpoint: `b1929a5159dc50e02124f6827ccdc6dff7fce9cb`
-- Product 01 merge commit: `329092c19794ee376248750c2b138090e8418e08`
-- Product 01 central-acceptance commit: `6de79e31a7dd44fcb7df9edbf65a3090da6967c3`
-- Product 01 accepted owner source: `324f376dac2db434673ccec2c6d212ed3d23f79e`
-- Current tree is intentionally dirty only with generated evidence refreshed against central-acceptance commit `6de79e31a7dd44fcb7df9edbf65a3090da6967c3`. No other product worktree is being modified.
+- Root: `/Users/huangjiahao/Desktop/YNX Final Worktrees/17-tokenomics`
+- Branch: `codex/final-tokenomics`
+- Tracking base: `7c540b7f3f5872adbd8f65e4c8975eeac41c3a3f`
+- Current local code checkpoint: `eccd506558268365fdd801ad4923f1b8ea3b20fc`
+- Direct protected-branch push: blocked as expected; pull request and required `test` check are mandatory.
+- Alternate source branch push: pending because GitHub TLS connectivity was transiently unavailable.
 
-## Centrally accepted products
+## Completed runtime slice
 
-1. Product 30 Security/SRE: accepted at owner source `e670749b83a1b40d09ed717eb3515d539c005c49` through Integration merge `a472d588b4f037c57db6d7941b1b37572f91d114`.
-2. Product 01 Chain Core: accepted at owner source `324f376dac2db434673ccec2c6d212ed3d23f79e` through Integration merge `329092c19794ee376248750c2b138090e8418e08`.
+- Governed Safety Module accounting runtime
+- Voluntary stake cap and native-wallet provenance enforcement
+- Cooldown and exit queue
+- Insurance-first shortfall waterfall
+- Cooling-stake slash exposure
+- Lifetime maximum slash cap
+- Threshold Ed25519 governance authorization and timelock
+- Canonical events, deterministic replay, restart and tamper validation
+- No Treasury signing, custody transfer, withdrawal transfer or production execution path
 
-Product 01 acceptance is bound to:
+## Verification
 
-- clean synchronized protected owner branch and merge ancestry;
-- six successful exact-head GitHub workflow runs;
-- zero open owner coverage rows;
-- 71 passing Integration contract vectors;
-- full Go, Chain Core release, BFT/EVM receipt, account-abstraction, solvency, state-sync and StreamBFT checks;
-- a zero-vulnerability production dependency audit;
-- source-only prerelease `chain-core-v0.2.0-source-candidate`;
-- downloaded archive SHA-256 `6828d6c0b008964394716de87646e90ea64b59faaae85be16e030b24c63995b6`.
+Passed:
 
-The receipt is `release/integration/evidence/product-01-central-acceptance-329092c1.json`.
-
-## Current inventory
-
-- 36 products registered; all 36 branches, remotes, worktrees and upstreams observed.
-- 35 synchronized worktrees; Product 29 is intentionally ahead pending this checkpoint push.
-- 11 clean and 25 dirty owner worktrees.
-- 2 centrally accepted products.
-- Product Release Matrix: 3 `READY_FOR_SOURCE_RELEASE`, 33 `HOLD_FOR_RECOVERY`, 0 `READY_FOR_PUBLIC_TESTNET`.
-
-## Verification status
-
-Passed in the merged central tree:
-
+- `make safety-module-runtime-check`
 - `go test ./...`
-- `make integration-contract-check`
-- `make chain-core-release-check`
-- `make bft-evm-receipt-check`
-- `make account-abstraction-check solvency-check`
-- `make consensus-state-sync-check streambft-candidate-check`
-- production-only npm audit with zero vulnerabilities
-- Integration acceptance and Product Release Matrix validation
+- `make economics-local-candidate-check`
+- `make economics-release-boundary-check`
+- `make no-placeholder-check`
+- `make secret-scan`
+- incremental Git bundle verification
 
-`make integration-release-acceptance-check` correctly remains closed because 67 Integration coverage rows are non-terminal, all cross-product vectors are not yet verified, Product 29 is not yet synchronized and not every product is terminal.
+## Release truth
 
-## Exact next action
+- implementedLocal: true
+- testedLocal: true
+- installedLocal: unchanged from prior evidence
+- integratedCentral: false
+- deployedStaging: false
+- deployedPublic: false
+- downloadHosted: false for the new runtime binary
+- productionSigned: false
+- production: false
 
-Commit the source-bound generated evidence, run the clean exact-source protection preflight, push through the protected branch without force, restore and verify protection, then require exact-final-head PR #17 CI before advancing to Product 26.
+## Recovery
+
+Bundle: `recovery/2026-08-01/safety-module-runtime/ynx17-safety-runtime-eccd5065.bundle`
+SHA-256: `b116513de5a5bdf03174d09049525fe3e7e4a8868f3881d2e9247d7b4c0322a0`
+Required base: `7c540b7f3f5872adbd8f65e4c8975eeac41c3a3f`
+
+## Next exact action
+
+Commit release/recovery evidence, push the exact head to `automation/ynx17-safety-runtime-eccd5065`, verify remote equality, open a pull request to protected `codex/final-tokenomics`, and require the `test` status check before merge.
