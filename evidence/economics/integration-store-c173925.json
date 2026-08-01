@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "ynx-economics-local-integration-store-c173925",
+  "sourceCommit": "c173925ca8fa87cf85f66eea4a83725c7a9351df",
+  "capturedAt": "2026-08-01T14:53:22Z",
+  "classification": "local-deterministic-durable-integration-evidence",
+  "contractId": "ynx.economics.integration.v1",
+  "commands": [
+    "make economics-integration-store-check",
+    "go run ./cmd/ynx-economics-integration-store -state /tmp/ynx17-safety-integration-c173925c-v2.json -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -safety-input economics/examples/safety-module-runtime-replay.json -source-commit c173925ca8fa87cf85f66eea4a83725c7a9351df -ingested-at 2030-01-01T00:00:00Z -summary"
+  ],
+  "bundleHash": "sha256:9db5edc9cb4d81b3c2eed6429e6c6408e23b1d0c89986e0f6b55514969d2d9b5",
+  "safetyStateHash": "sha256:34fe991871a830886106aff9aa78d589976265c4fe756e5dc8e1a7263fe7b07b",
+  "storeStateHash": "sha256:3dc031af84abc8d7c268bddbd75f909c080b577198cac9e85f084f56633678d4",
+  "receiptAuditHash": "sha256:865dfc36061a8224c626b2016064405da9b1b73e5ca19a16c6ca5ec97c65b1d2",
+  "revision": 2,
+  "acceptedBundles": 1,
+  "recordCounts": {
+    "canonicalEnvelopes": 8,
+    "billingLedgerEntries": 18,
+    "explorerProjections": 8,
+    "monitorChecks": 24
+  },
+  "verifiedBoundaries": {
+    "firstIngestApplied": true,
+    "sameBundleReplayIdempotent": true,
+    "semanticFactsNotDoubleCountedAcrossRewrappedCommits": true,
+    "sourceCommitRebindingRejected": true,
+    "unacceptedRecordSourceRejected": true,
+    "cumulativeRecordCountsReconciled": true,
+    "safetyStateCommitmentPersisted": true,
+    "safetyEventsPersistedAsCanonicalEnvelopes": true,
+    "atomicPersistence": true,
+    "stateFileMode0600": true,
+    "restartRecovery": true,
+    "freshPathRestore": true,
+    "stateHashTamperingRejected": true,
+    "insecurePermissionsRejected": true,
+    "symlinkLoadRejected": true
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "directEvidenceMissing": {
+    "dataFabricAcceptance": true,
+    "sharedTestnetTransactions": true,
+    "sharedTestnetBlocksAndReceipts": true,
+    "explorerAcceptance": true,
+    "monitorAcceptance": true,
+    "publicUrls": true
+  }
+}
