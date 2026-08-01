@@ -6,7 +6,8 @@
 - Phase: FREEZE
 - Long-term status: ACTIVE
 - Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
-- Runtime checkpoint: pushed to `origin/codex/final-calendar`; Local/Remote equality verified
+- Runtime checkpoint: `b00f32da16218edb90fcc9f9b504607e374077ce`, pushed to `origin/codex/final-calendar`
+- Evidence checkpoint: `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`, pushed with Local/Remote equality and Ahead/Behind `0/0`
 - Concurrent writer: none detected for this worktree
 
 ## Passing Calendar gates
@@ -21,7 +22,8 @@
 - `npm run build:android`
 - `npm run check:ios`
 - `npm run smoke`
-- `npm run browser:proof`
+- `npm run browser:proof` twice consecutively on distinct process-derived ports
+- JSON/JSONL validation, `git diff --check` and `node --check tests/browser-proof.cjs`
 - local operator backup and isolated restore drill
 
 ## Current runtime capability
@@ -48,7 +50,9 @@
 ## Release truth
 
 - Current source is locally implemented and tested but not centrally integrated or publicly deployed.
+- GitHub inspection for evidence checkpoint `06f8b2bc` returned no PR, no workflow runs and no current-source Calendar release.
 - Current-source Android/iOS/macOS install and hosted artifact proof remains incomplete.
 - Historical preview artifacts remain bound to `e227c4f0505537b19f4588ea26478c54518f0a4c`, not to the current runtime source.
+- `https://ynxweb4.com/calendar` redirects to a generic homepage shell with root canonical; `websitePublished` and `deployedPublic` remain false.
 - No staging/public runtime, current-source hosted download, production signing, notarization or store release is claimed.
 - Website handoff targets only `ynxweb4.com/calendar`; `huangjeo.com` remains the Founder site.

@@ -31,3 +31,15 @@ YNX Calendar product, canonical, status, support and public evidence use only `y
 ## 2026-07-29 — no premature current-source release
 
 No current-source GitHub Release will be created without exact-source CI, artifacts, SHA-256, SBOM, provenance, install/cold-start proof and truthful signing class. Historical `e227c4f` preview artifacts remain separate.
+
+## 2026-08-01 — browser proof must own and clean its resources
+
+Browser proof uses process-derived port ranges, a bounded 45-second health wait, child-exit detection, bounded wallet-server closure, process-group SIGTERM/SIGKILL fallback and temporary data-directory cleanup. Two consecutive proof runs on distinct ports are required evidence for this reliability fix.
+
+## 2026-08-01 — redirected generic content is still not deployment
+
+`https://ynxweb4.com/calendar` now redirects to `https://www.ynxweb4.com/dapp/calendar`, but the response still has the generic YNX Chain homepage title, no Calendar-specific H1 and root canonical. Redirect success and HTTP 200 do not change `websitePublished=false` or `deployedPublic=false`.
+
+## 2026-08-01 — evidence checkpoint does not authorize a release
+
+Evidence checkpoint `06f8b2bce60780ca27cf71a0705bfdf060dc57f6` is pushed and remote-equal. GitHub returned no PR or workflow runs for that commit, and the release list contained no current-source Calendar release. This checkpoint freezes truthful evidence; it does not satisfy CI, artifact, SBOM, provenance, install or signing gates.

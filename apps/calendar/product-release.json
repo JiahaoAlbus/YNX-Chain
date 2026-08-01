@@ -62,12 +62,13 @@
   },
   "publicProbe": {
     "url": "https://ynxweb4.com/calendar",
-    "observedAt": "2026-07-29T03:10:38Z",
+    "finalUrl": "https://www.ynxweb4.com/dapp/calendar",
+    "observedAt": "2026-08-01T14:52:31Z",
     "httpStatus": 200,
     "contentMatch": false,
     "observedTitle": "YNX Chain — Web4 Layer-1 Ecosystem",
     "observedCanonical": "https://ynxweb4.com/",
-    "classification": "homepage route fallback; not Calendar publication evidence"
+    "classification": "redirected generic homepage shell; not Calendar publication evidence"
   },
   "installEvidence": [],
   "buildEvidence": [

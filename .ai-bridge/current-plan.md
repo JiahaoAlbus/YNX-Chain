@@ -15,14 +15,11 @@ Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
 - Passed targeted Go, Race, Vet, Web, release-manifest, build, smoke and browser gates.
 - Pushed runtime source `b00f32da16218edb90fcc9f9b504607e374077ce` and verified Local SHA equals Remote SHA.
 - Updated release truth, integration contract, test vector CAL-X-013, Website handoff, migration, operations, observability, SLO/capacity and unit-economics evidence without claiming central/public completion.
-
-## Current slice
-
-1. Validate all modified JSON, release manifests and documentation references.
-2. Run the complete Calendar verification set including the state operator build.
-3. Commit and push the evidence/recovery checkpoint.
-4. Verify Local SHA equals Remote SHA, inspect GitHub Actions/PR/Release state for the final evidence SHA, and update agent memory.
-5. Probe `ynxweb4.com/calendar` and preserve `deployedPublic=false` unless exact current-source content and canonical evidence exist.
+- Hardened browser-proof reliability with process-derived port ranges, a bounded 45-second startup health wait and bounded browser/server/process cleanup; two consecutive runs passed on distinct ports.
+- Validated the dirty evidence tree, all modified JSON/JSONL and the complete Calendar Go/Race/Vet, npm test, release test, build, statectl build, smoke and browser-proof gates.
+- Committed and pushed evidence checkpoint `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`; verified Local/Remote equality and Ahead/Behind `0/0`.
+- Inspected GitHub state: no PR, no workflow runs for the evidence SHA and no current-source Calendar release.
+- Re-probed `ynxweb4.com/calendar`; it redirects to a generic homepage shell with root canonical, so `websitePublished` and `deployedPublic` remain false.
 
 ## Next executable integration slice
 

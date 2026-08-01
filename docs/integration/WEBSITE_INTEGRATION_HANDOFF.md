@@ -20,7 +20,7 @@ Website must consume the exact feature, FAQ, risk, locale, screenshot and struct
 
 ## Current public probe
 
-On 2026-07-29, `https://www.ynxweb4.com/calendar` returned HTTP 200 from Vercel, but the HTML was the generic YNX Chain homepage shell: title `YNX Chain — Web4 Layer-1 Ecosystem`, homepage description and canonical `https://ynxweb4.com/`. This is a route fallback, not a Calendar product page. `websitePublished` and `deployedPublic` therefore remain false.
+On 2026-08-01, `https://ynxweb4.com/calendar` redirected to `https://www.ynxweb4.com/dapp/calendar` and returned HTTP 200, but the HTML remained the generic YNX Chain homepage shell: title `YNX Chain — Web4 Layer-1 Ecosystem`, no Calendar-specific H1, and canonical `https://ynxweb4.com/`. This is a redirected route fallback, not a Calendar product page. `websitePublished` and `deployedPublic` therefore remain false.
 
 Recovery condition: deploy Calendar-specific SSR/SSG content with the exact title, description, H1, risks, release-state truth and canonical `https://ynxweb4.com/calendar`, then probe visible content, Open Graph, JSON-LD, robots/sitemap and required support/privacy/security/status routes.
 

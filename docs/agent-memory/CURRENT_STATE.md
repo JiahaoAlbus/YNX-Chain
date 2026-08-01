@@ -1,17 +1,18 @@
 # YNX Calendar current state
 
-Updated: 2026-08-01T14:42:55Z
+Updated: 2026-08-01T14:52:31Z
 
 - Product: 36 — YNX Calendar
 - Product ID: `com.ynx.calendar`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar`
 - Branch: `codex/final-calendar`
 - Runtime source SHA: `b00f32da16218edb90fcc9f9b504607e374077ce`
-- Local Git SHA at checkpoint start: `b00f32da16218edb90fcc9f9b504607e374077ce`
-- Remote branch SHA at checkpoint start: `b00f32da16218edb90fcc9f9b504607e374077ce`
-- `origin/main` SHA: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
-- Ahead / Behind: `0 / 0` before the evidence checkpoint commit
-- Dirty state: yes — release/evidence/agent-memory checkpoint is validated and awaiting commit; runtime code is already committed and pushed
+- Evidence checkpoint SHA: `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`
+- Evidence checkpoint local SHA: `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`
+- Evidence checkpoint remote SHA: `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`
+- `origin/main` SHA observed during recovery: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
+- Ahead / Behind at evidence checkpoint: `0 / 0`
+- The evidence checkpoint was committed and pushed; this file is the subsequent docs-only final-state update.
 - Current phase: FREEZE
 - Long-term status: ACTIVE
 
@@ -34,10 +35,10 @@ Updated: 2026-08-01T14:42:55Z
 ## GitHub
 
 - Upstream: `origin/codex/final-calendar`
-- Pull request for this head: none observed during recovery
-- Branch Actions runs: none observed during recovery
-- Current-source release: none
-- Historical prerelease: `ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f`, bound to source `e227c4f0505537b19f4588ea26478c54518f0a4c`; historical test-only evidence
+- Pull request for evidence checkpoint `06f8b2bc`: none returned by GitHub search
+- Workflow runs for evidence checkpoint `06f8b2bc`: none returned by the GitHub commit-run query
+- Current-source Calendar release: none in the repository release list inspected on 2026-08-01
+- Historical prerelease: `ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f`, published 2026-07-18 and retained as historical test-only evidence for source `e227c4f0505537b19f4588ea26478c54518f0a4c`
 - Current-source artifact/SBOM/provenance: absent
 
 ## Runtime and recovery
@@ -53,7 +54,7 @@ Updated: 2026-08-01T14:42:55Z
 
 - Official product domain: `ynxweb4.com`
 - Canonical candidate: `https://ynxweb4.com/calendar`
-- Probe on 2026-07-29: HTTP 200, but HTML title/description/canonical are the generic YNX Chain homepage and canonical points to `https://ynxweb4.com/`
+- Probe on 2026-08-01: `https://ynxweb4.com/calendar` redirected to `https://www.ynxweb4.com/dapp/calendar` and returned HTTP 200, but the title remained the generic YNX Chain homepage, no Calendar-specific H1 was present, and canonical still pointed to `https://ynxweb4.com/`
 - `websitePublished`: false
 - `deployedPublic`: false
 - `downloadHosted`: false for current source
@@ -74,11 +75,9 @@ Updated: 2026-08-01T14:42:55Z
 
 ## Remaining
 
-- Commit/push the current evidence checkpoint and verify Local/Remote equality
-- Recheck GitHub Actions, PR and Release state for final evidence SHA
 - Central Wallet/Auth, AI, Mail and Data Fabric acceptance
-- Integration contract freeze and shared Testnet
-- Security/SRE backup encryption, escrow, artifact, SBOM and provenance acceptance
+- Integration acceptance of the Calendar contract and CAL-X-013 plus shared Testnet execution
+- Security/SRE backup encryption, independent key escrow, artifact, SBOM and provenance acceptance
 - Current-source install/cold-start and immutable hosted artifacts
 - Real `/calendar` Website page and public content/canonical probes
 - Representative capacity, RTO/RPO and unit-economics measurements

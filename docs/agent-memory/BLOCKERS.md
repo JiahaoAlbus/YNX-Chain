@@ -36,8 +36,8 @@ These are not excuses for unfinished local work. Each blocker is outside Calenda
 ## CAL-BLOCK-WEB-001 — `/calendar` route fallback
 
 - Owner: `28-website`
-- Reason: `https://ynxweb4.com/calendar` returns HTTP 200 but serves the generic YNX Chain homepage and canonical `https://ynxweb4.com/`.
-- Raw evidence: public probe at 2026-07-29T03:10:38Z and `docs/integration/WEBSITE_INTEGRATION_HANDOFF.md`.
+- Reason: `https://ynxweb4.com/calendar` redirects to `https://www.ynxweb4.com/dapp/calendar` and returns HTTP 200, but serves the generic YNX Chain homepage, has no Calendar-specific H1 and declares canonical `https://ynxweb4.com/`.
+- Raw evidence: public probe at 2026-08-01T14:52:31Z and `docs/integration/WEBSITE_INTEGRATION_HANDOFF.md`.
 - Prepared: current public metadata, FAQ, risks, structured-data proposal, asset list and exact publication gates.
 - Minimum input: Website deployment commit consuming current metadata.
 - Recovery condition: Calendar-specific visible content and canonical `https://ynxweb4.com/calendar`, plus Open Graph, JSON-LD, sitemap and required route probes.
