@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "ynx-developer-v1",
   "version": "0.2.0",
-  "generatedAt": "2026-07-29T02:47:07Z",
+  "generatedAt": "2026-07-29T03:22:13Z",
   "artifacts": [
     {
       "name": "ynx-developer-testnet-preview-macos-unsigned.zip",
@@ -16,7 +16,8 @@
       "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
       "provenanceEmbedded": true,
       "signingClass": "adhoc-no-team-id",
-      "hosted": false,
+      "hosted": true,
+      "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-macos-unsigned.zip",
       "evidence": "Current-source package embedded exact source/tree/runtime/SBOM provenance; extracted resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed on macOS."
     },
     {
@@ -33,14 +34,15 @@
       "currentSource": true,
       "signingClass": "unsigned-no-authenticode",
       "authenticodeStatus": "NotSigned",
-      "hosted": false,
+      "hosted": true,
+      "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
       "ciRunId": 30417693593,
       "ciJobId": 90467659180,
       "ciArtifactId": 8710756758,
       "ciArtifactOuterSha256": "5c52a2f911525732fb8ded1e5f72ba79d8f8b48ff1907899870afa355c54c289",
       "ciArtifactOuterBytes": 105947991,
       "ciArtifactExpiresAt": "2026-08-12T02:46:59Z",
-      "evidence": "Current-source workflow run 30417693593 compiled and packaged the WPF/WebView2 App on Windows Server 2025, passed 22 client and 20 Web tests, verified embedded source/tree/runtime/SBOM provenance, extracted the portable ZIP, passed native resource self-test, classified the executable as Authenticode NotSigned, cold-launched the real App, observed bundled node.exe running server.mjs, closed the main window, verified child cleanup and uploaded the transient CI artifact. This is not yet a public immutable download."
+      "evidence": "Current-source workflow run 30417693593 compiled and packaged the WPF/WebView2 App on Windows Server 2025, passed 22 client and 20 Web tests, verified embedded source/tree/runtime/SBOM provenance, extracted the portable ZIP, passed native resource self-test, classified the executable as Authenticode NotSigned, cold-launched the real App, observed bundled node.exe running server.mjs, closed the main window and verified child cleanup. The exact inner ZIP is now hosted by the immutable GitHub Testnet Preview pre-release; the separate Actions artifact remains transient."
     }
   ]
 }

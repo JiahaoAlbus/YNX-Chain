@@ -13,6 +13,15 @@
   "deployedPublic": false,
   "publicRouteVerified": false,
   "releaseClass": "unsigned-testnet-preview",
+  "release": {
+    "published": true,
+    "tag": "developer-v0.2.0-testnet-preview.1",
+    "name": "YNX Developer 0.2.0 Testnet Preview 1",
+    "targetCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
+    "publishedAt": "2026-07-29T03:22:13Z",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
+    "prerelease": true
+  },
   "summary": "A bounded Web IDE and native Testnet Preview for YNX Chain projects, API Studio workflows, permissioned AI Build and Wallet-only deployment review.",
   "surfaces": [
     "web-ide",
@@ -38,7 +47,8 @@
       "sha256": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
       "bytes": 38450128,
       "signingClass": "adhoc-no-team-id",
-      "hosted": false
+      "hosted": true,
+      "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-macos-unsigned.zip"
     },
     "windowsX64": {
       "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
@@ -48,16 +58,25 @@
       "sha256": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29",
       "bytes": 106341644,
       "signingClass": "unsigned-no-authenticode",
-      "hosted": false
+      "hosted": true,
+      "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-windows-x64-unsigned.zip"
     }
   },
   "publicEvidence": {
     "staging": false,
     "production": false,
-    "downloadHosted": false,
-    "immutableArtifactUrls": [],
+    "downloadHosted": true,
+    "immutableArtifactUrls": [
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-macos-unsigned.zip",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/SHA256SUMS.txt",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/PROVENANCE.json",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/sbom.cdx.json"
+    ],
     "healthUrls": [],
-    "verifiedUrls": []
+    "verifiedUrls": [
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1"
+    ]
   },
   "websiteHandoff": {
     "targetOwner": "28-website",
@@ -88,10 +107,10 @@
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false,
     "mainnetReleased": false
   },
-  "generatedAt": "2026-07-29T02:47:07Z"
+  "generatedAt": "2026-07-29T03:22:13Z"
 }

@@ -18,15 +18,25 @@
   "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": false,
-  "downloadHosted": false,
+  "downloadHosted": true,
   "productionSigned": false,
   "storeReleased": false,
-  "releasePublished": false,
-  "releaseTag": null,
-  "releaseUrl": null,
-  "publicUrls": [],
+  "releasePublished": true,
+  "releaseTag": "developer-v0.2.0-testnet-preview.1",
+  "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
+  "releaseTargetCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
+  "releasePublishedAt": "2026-07-29T03:22:13Z",
+  "publicUrls": [
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1"
+  ],
   "healthUrls": [],
-  "artifactUrls": [],
+  "artifactUrls": [
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-macos-unsigned.zip",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/SHA256SUMS.txt",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/PROVENANCE.json",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/sbom.cdx.json"
+  ],
   "featureStatus": {
     "apiStudio": {
       "implementedLocal": true,
@@ -163,15 +173,15 @@
   },
   "knownLimitations": [
     "No public Web staging or public deployment URL exists.",
-    "No immutable public artifact URL exists; the Windows CI artifact expires after 14 days and the macOS ZIP is local only.",
+    "Immutable GitHub pre-release URLs exist for both unsigned Testnet Preview packages; the separate Windows Actions artifact still expires after 14 days and is not the public release source.",
     "No Developer ID, notarization, Authenticode, signed installer, signed updater or store release exists.",
     "No central Wallet registry/provider integration or real Wallet-signed deployment was performed.",
     "No provider-backed AI generation was performed because no operator provider credential/configuration was supplied.",
     "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
     "Current-source API Studio is installed and cold-launched in local macOS arm64 and Windows x64 unsigned Testnet Previews; neither is a public, notarized, Authenticode-signed or production release.",
-    "The current Windows artifact is a transient GitHub Actions artifact expiring 2026-08-12 and is not an immutable public product download until the GitHub pre-release is published.",
+    "The GitHub pre-release now hosts immutable unsigned Testnet Preview assets; the separate Windows Actions artifact remains transient and must not replace the release asset URL.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The pinned chain compiler response truthfully reports deterministic analyzer output unless a matching production solc artifact exists; no arbitrary EVM or remote public verification claim is made."
   ],
-  "generatedAt": "2026-07-29T02:47:07Z"
+  "generatedAt": "2026-07-29T03:22:13Z"
 }

@@ -21,17 +21,18 @@ Website owner: `28-website`
 - Release class: unsigned Testnet Preview
 - `implementedLocal=true`, `testedLocal=true`, `installedLocal=true`
 - `integratedCentral=false`, `deployedStaging=false`, `deployedPublic=false`
-- `downloadHosted=false`, `productionSigned=false`, `storeReleased=false`
+- `downloadHosted=true`, `productionSigned=false`, `storeReleased=false`
+- GitHub pre-release: `developer-v0.2.0-testnet-preview.1` (published 2026-07-29, unsigned Testnet Preview)
 
 ## Page content package
 
-The page may truthfully describe YNX Developer as a bounded Web IDE and native Testnet Preview for YNX Chain projects, API Studio workflows, permissioned YNX AI Build and Wallet-only deployment review. It must not claim arbitrary EVM compatibility, private-key custody, provider activation, central integration, a public production release, production signing or immutable hosted downloads.
+The page may truthfully describe YNX Developer as a bounded Web IDE and native Testnet Preview for YNX Chain projects, API Studio workflows, permissioned YNX AI Build and Wallet-only deployment review. It may link to the immutable unsigned GitHub pre-release downloads. It must not claim arbitrary EVM compatibility, private-key custody, provider activation, central integration, a public production release or production signing.
 
 Recommended evidence cards:
 
 1. Web IDE and API Studio — OpenAPI validation, reviewed previews, explicit approval, host-broker credential references, bounded response inspection and generated client/adapter artifacts.
 2. Accessibility and responsive evidence — 15/15 Chrome checks and six current-source screenshots from a clean pushed source.
-3. Desktop Testnet Preview — locally verified macOS arm64 and Windows x64 packages, both unsigned and unhosted.
+3. Desktop Testnet Preview — locally verified macOS arm64 and Windows x64 packages, both unsigned and hosted by the GitHub pre-release.
 4. Wallet-only boundary — Developer never stores a private key and cannot claim deployment success without an authoritative Wallet-signed receipt.
 
 ## Current-source visual assets
@@ -47,7 +48,7 @@ Exact hashes are authoritative in `evidence/ui/current-accessibility/accessibili
 
 ## Download boundary
 
-No immutable public artifact URL exists yet. The current macOS ZIP is local only. The current Windows Artifact is a transient GitHub Actions artifact (`8710756758`) that expires on 2026-08-12 and must not be presented as the official public download. Website owner must keep download CTAs disabled or marked unavailable until the GitHub pre-release assets are published and their immutable URLs are recorded. Even after publication, every CTA must say unsigned Testnet Preview; production signing remains unavailable.
+Immutable public URLs now exist for the exact macOS and Windows ZIPs under GitHub pre-release `developer-v0.2.0-testnet-preview.1`. The Windows Actions artifact (`8710756758`) still expires on 2026-08-12 and must not be used as the public download. Every CTA must say unsigned Testnet Preview; production signing remains unavailable.
 
 ## Acceptance gates for Website owner
 
@@ -57,7 +58,7 @@ Before setting `deployedPublic=true`, owner 28 must verify:
 2. Canonical, Open Graph, JSON-LD, sitemap and robots all use `https://ynxweb4.com/developer`.
 3. Page copy preserves every release and signing boundary above.
 4. Screenshot bytes match the supplied SHA-256 values.
-5. Download controls do not expose transient or local-only artifacts.
+5. Download controls use only the immutable GitHub pre-release URLs and label both packages unsigned Testnet Preview.
 6. Public HTTP 200 content visibly identifies YNX Developer rather than a placeholder or generic product page.
 7. The deployed commit and deployment URL are recorded in owner 28 evidence and accepted by owner 29.
 
