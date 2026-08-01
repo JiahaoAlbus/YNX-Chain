@@ -76,6 +76,12 @@ func (s *Server) handleLogo(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write(logoPNG)
 }
 
+func (s *Server) handleIcon(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	_, _ = w.Write(iconPNG)
+}
+
 type dashboardSnapshot struct {
 	Summary      Summary             `json:"summary"`
 	Blocks       []chain.Block       `json:"blocks"`

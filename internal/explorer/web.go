@@ -5,13 +5,17 @@ import _ "embed"
 //go:embed assets/ynx-logo.png
 var logoPNG []byte
 
+//go:embed assets/ynx-icon.png
+var iconPNG []byte
+
 const indexHTML = `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f7">
-  <link rel="icon" href="/assets/ynx-logo.png?v=df071f54" type="image/png">
+  <link rel="icon" href="/assets/ynx-icon.png?v=aacc2912" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/ynx-icon.png?v=aacc2912">
   <title>YNX Chain Explorer</title>
   <style>
     :root {
@@ -34,7 +38,7 @@ const indexHTML = `<!doctype html>
     .nav { position:sticky; top:0; z-index:20; height:54px; border-bottom:1px solid rgba(0,0,0,.08); background:rgba(250,250,252,.82); backdrop-filter:saturate(180%) blur(18px); -webkit-backdrop-filter:saturate(180%) blur(18px); }
     .nav-inner { height:100%; display:flex; align-items:center; gap:28px; }
     .brand { display:flex; align-items:center; gap:10px; font-size:15px; font-weight:650; white-space:nowrap; }
-    .brand-logo { display:block; width:44px; height:24px; object-fit:contain; }
+    .brand-logo { display:block; width:auto; height:24px; max-width:46px; object-fit:contain; object-position:center; }
     .nav-links { display:flex; align-items:center; gap:24px; margin-left:auto; color:#424245; font-size:13px; }
     .nav-links a:hover { color:var(--blue); }
     .network-pill { display:flex; align-items:center; gap:7px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.76); font-size:12px; color:#424245; }
@@ -79,17 +83,11 @@ const indexHTML = `<!doctype html>
     .metric-foot { margin-top:13px; color:var(--faint); font-size:12px; }
     .metric-foot.good { color:var(--green); }
 
-    .overview { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(280px,.8fr); gap:14px; margin-bottom:22px; }
+    .overview { display:grid; grid-template-columns:minmax(280px,.82fr) minmax(390px,1.18fr) minmax(250px,.68fr); gap:14px; margin-bottom:22px; align-items:start; }
     .panel { border:1px solid var(--line-soft); border-radius:8px; background:var(--surface); box-shadow:var(--shadow); overflow:hidden; }
     .panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:22px 22px 18px; border-bottom:1px solid var(--line-soft); }
     .panel-head h2,.section-head h2 { margin:0; font-size:20px; line-height:1.2; font-weight:650; }
     .panel-head p,.section-head p { margin:5px 0 0; color:var(--muted); font-size:13px; }
-    .activity { height:198px; display:flex; align-items:flex-end; gap:8px; padding:28px 22px 24px; }
-    .activity.empty-window { height:76px; align-items:center; padding:18px 22px; }
-    .bar-wrap { flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:8px; min-width:0; }
-    .bar { width:100%; min-height:5px; border-radius:4px 4px 2px 2px; background:var(--blue); opacity:.8; transition:height .35s ease; }
-    .bar:hover { opacity:1; }
-    .bar-label { color:var(--faint); font-size:10px; white-space:nowrap; }
     .chain-facts { display:grid; padding:8px 22px; }
     .fact { display:grid; grid-template-columns:112px minmax(0,1fr); gap:12px; padding:14px 0; border-bottom:1px solid var(--line-soft); font-size:13px; }
     .fact:last-child { border-bottom:0; }
@@ -114,14 +112,15 @@ const indexHTML = `<!doctype html>
     .muted { color:var(--muted); }
     .empty { padding:36px 20px; color:var(--muted); text-align:center; }
 
-    .live-board { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:14px; margin-top:22px; }
-    .live-board .panel { min-width:0; box-shadow:none; }
-    .live-board .panel-head { padding:18px 18px 14px; }
-    .live-list { min-height:450px; }
-    .live-row { display:grid; width:100%; align-items:center; gap:12px; min-height:72px; padding:12px 18px; border:0; border-bottom:1px solid var(--line-soft); color:var(--ink); background:var(--surface); text-align:left; transition:background .15s; }
+    .overview .panel { min-width:0; }
+    .overview .panel-head { min-height:82px; padding:17px 18px 13px; }
+    .overview .panel-head h2 { font-size:18px; }
+    .overview .panel-head p { max-width:280px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .live-list { min-height:0; overflow:visible; }
+    .live-row { display:grid; width:100%; align-items:center; gap:10px; min-height:64px; padding:10px 14px; border:0; border-bottom:1px solid var(--line-soft); color:var(--ink); background:var(--surface); text-align:left; transition:background .15s; }
     .live-row:last-child { border-bottom:0; }
     .live-row:hover { background:#f7faff; }
-    .block-live-row { grid-template-columns:54px minmax(0,1fr) auto; }
+    .block-live-row { grid-template-columns:42px minmax(0,1fr) auto; }
     .block-live-row.empty-block-row { min-height:50px; opacity:.64; grid-template-columns:42px minmax(0,1fr) auto; }
     .block-live-row.empty-block-row .row-icon { width:30px; height:30px; font-size:10px; }
     .tx-live-row { grid-template-columns:44px minmax(0,1fr) auto; }
@@ -130,7 +129,7 @@ const indexHTML = `<!doctype html>
     .row-title { display:flex; align-items:center; gap:8px; min-width:0; font-size:13px; font-weight:600; }
     .row-subtitle { display:flex; gap:8px; margin-top:5px; min-width:0; color:var(--muted); font-size:12px; }
     .transfer-flow { display:flex; align-items:center; gap:8px; min-width:0; }
-    .address-chip { max-width:132px; padding:3px 7px; border-radius:6px; color:var(--blue); background:var(--blue-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .address-chip { max-width:112px; padding:3px 7px; border-radius:6px; color:var(--blue); background:var(--blue-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .flow-arrow { position:relative; width:34px; height:1px; flex:none; background:linear-gradient(90deg,#9dccff,var(--blue)); }
     .flow-arrow::after { content:""; position:absolute; right:-1px; top:-3px; width:6px; height:6px; border-top:1px solid var(--blue); border-right:1px solid var(--blue); transform:rotate(45deg); }
     .tx-live-row:hover .flow-arrow { animation:flow-signal 1s ease-in-out infinite; }
@@ -144,7 +143,7 @@ const indexHTML = `<!doctype html>
     .stream-clock.live .stream-dot { animation:live-pulse 1.8s ease-out infinite; }
     .filter-control { display:flex; align-items:center; gap:8px; }
     .filter-control select { height:32px; padding:0 28px 0 10px; border:1px solid var(--line); border-radius:7px; color:var(--ink); background:var(--surface); font-size:12px; }
-    .filter-control input { width:190px; height:32px; padding:0 10px; border:1px solid var(--line); border-radius:7px; color:var(--ink); background:var(--surface); font-size:12px; outline:none; }
+    .filter-control input { width:150px; height:32px; padding:0 10px; border:1px solid var(--line); border-radius:7px; color:var(--ink); background:var(--surface); font-size:12px; outline:none; }
     .filter-control input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(0,113,227,.1); }
 
     .drawer-backdrop { position:fixed; inset:0; z-index:40; visibility:hidden; background:rgba(0,0,0,.2); opacity:0; transition:opacity .25s,visibility .25s; }
@@ -209,8 +208,8 @@ const indexHTML = `<!doctype html>
 
     @media (max-width:900px) {
       .metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
-      .overview { grid-template-columns:1fr; }
-      .live-board { grid-template-columns:1fr; }
+      .overview { grid-template-columns:1fr 1fr; }
+      .overview .network-facts-panel { grid-column:1 / -1; }
       .block-ribbon { grid-template-columns:104px minmax(0,1fr); }
       .nav-links a { display:none; }
       .hero { padding-top:48px; }
@@ -247,6 +246,9 @@ const indexHTML = `<!doctype html>
       .wallet-button { width:100%; }
       .result-grid { grid-template-columns:112px minmax(0,1fr); }
       .resource-metrics { grid-template-columns:1fr 1fr; }
+      .overview { grid-template-columns:1fr; }
+      .overview .network-facts-panel { grid-column:auto; }
+      .overview .panel-head p { white-space:normal; }
       .footer-inner { flex-direction:column; }
       .detail-summary { grid-template-columns:1fr 1fr; }
       .detail-row { grid-template-columns:100px minmax(0,1fr) auto; }
@@ -257,9 +259,9 @@ const indexHTML = `<!doctype html>
 <body>
   <nav class="nav" aria-label="Primary navigation">
     <div class="shell nav-inner">
-      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54" alt=""><span data-i18n="brand">Chain Explorer</span></a>
+      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54b" width="46" height="24" alt=""><span data-i18n="brand">Chain Explorer</span></a>
       <div class="nav-links">
-        <a href="#network" data-i18n="navOverview">Overview</a><a href="#live" data-i18n="navBlockchain">Blockchain</a><a href="#accounts" data-i18n="navAccounts">Accounts</a><a href="#intelligence" data-i18n="navValidators">Validators</a><a href="#resourcesPanel" data-i18n="navResources">Resources</a>
+        <a href="#network" data-i18n="navOverview">Overview</a><a href="#blocks" data-i18n="navBlockchain">Blockchain</a><a href="#accounts" data-i18n="navAccounts">Accounts</a><a href="#intelligence" data-i18n="navValidators">Validators</a><a href="#resourcesPanel" data-i18n="navResources">Resources</a>
         <select class="language-select" id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh">中文</option></select>
         <span class="network-pill"><span class="pulse"></span><span id="networkName">Testnet</span></span>
       </div>
@@ -302,11 +304,15 @@ const indexHTML = `<!doctype html>
       </section>
 
       <section class="overview" id="network">
-        <article class="panel">
-          <div class="panel-head"><div><h2 data-i18n="blockActivity">Block activity</h2><p data-i18n="blockActivityCopy">Transactions included in the latest indexed blocks</p></div><span class="muted mono" id="activityTotal">-- txs</span></div>
-          <div class="activity" id="activityChart" aria-label="Recent block transaction activity"></div>
+        <article class="panel" id="blocks">
+          <div class="panel-head"><div><h2 data-i18n="latestBlocks">Live blocks</h2><p data-i18n="latestBlocksCopy">Finalized blocks arriving now</p></div><span class="stream-clock live"><span class="stream-dot"></span><span data-i18n="live">Live</span></span></div>
+          <div class="live-list" id="blocksBody"><div class="empty">Loading blocks...</div></div>
         </article>
-        <article class="panel">
+        <article class="panel" id="transactions">
+          <div class="panel-head"><div><h2 data-i18n="latestTransactions">Live transactions</h2><p data-i18n="latestTransactionsCopy">Newest indexed transfers and actions</p></div><div class="filter-control"><input id="txQuickFind" data-i18n-placeholder="quickFindPlaceholder" placeholder="Find hash, address, amount…" aria-label="Quick find transactions"><select id="txFilter" aria-label="Filter transaction type"><option value="all">All</option><option value="transfer">Transfers</option><option value="resource">Resources</option><option value="faucet">Faucet</option></select></div></div>
+          <div class="live-list" id="txsBody"><div class="empty">Loading transactions...</div></div>
+        </article>
+        <article class="panel network-facts-panel">
           <div class="panel-head"><div><h2 data-i18n="networkDetails">Network details</h2><p data-i18n="networkDetailsCopy">Current chain configuration</p></div></div>
           <dl class="chain-facts">
             <div class="fact"><dt>Chain ID</dt><dd class="mono" id="chainId">--</dd></div>
@@ -330,17 +336,6 @@ const indexHTML = `<!doctype html>
           <div class="resource-metrics" id="resourceMetrics"><article class="resource-item"><small>Loading resource market</small></article></div>
           <div class="policy-line" id="resourcePolicy"></div>
         </div>
-      </section>
-
-      <section class="live-board" id="live">
-        <article class="panel" id="blocks">
-          <div class="panel-head"><div><h2 data-i18n="latestBlocks">Latest blocks</h2><p data-i18n="latestBlocksCopy">Finalized blocks arriving from the live indexer</p></div><button class="section-link" type="button" data-refresh data-i18n="refresh">Refresh</button></div>
-          <div class="live-list" id="blocksBody"><div class="empty">Loading blocks...</div></div>
-        </article>
-        <article class="panel" id="transactions">
-          <div class="panel-head"><div><h2 data-i18n="latestTransactions">Latest transactions</h2><p data-i18n="latestTransactionsCopy">Transfers and protocol actions on YNX Chain</p></div><div class="filter-control"><input id="txQuickFind" data-i18n-placeholder="quickFindPlaceholder" placeholder="Find hash, address, amount…" aria-label="Quick find transactions"><select id="txFilter" aria-label="Filter transaction type"><option value="all">All activity</option><option value="transfer">Transfers</option><option value="resource">Resources</option><option value="faucet">Faucet</option></select></div></div>
-          <div class="live-list" id="txsBody"><div class="empty">Loading transactions...</div></div>
-        </article>
       </section>
 
       <section class="section" id="accounts">
@@ -377,8 +372,8 @@ const indexHTML = `<!doctype html>
     let toastTimer = null;
     const $ = (id) => document.getElementById(id);
     const messages = {
-      en:{brand:'Chain Explorer',navOverview:'Overview',navBlockchain:'Blockchain',navAccounts:'Accounts',navValidators:'Validators',navResources:'Resources',heroTitle:'YNX Chain network explorer',heroCopy:'Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.',searchPlaceholder:'Search ynx1 address, transaction, block, or EVM compatibility address',search:'Search',latestBlock:'Latest block',networkTps:'Network TPS',indexedWindow:'Latest indexed window',blockTime:'Block time',observedAverage:'Observed average',indexedTxs:'Transactions indexed',verifiedIndexer:'Verified by the indexer',validators:'Validators',reportedRpc:'Reported by chain RPC',indexerSync:'Indexer sync',blockActivity:'Block activity',blockActivityCopy:'Transactions included in the latest indexed blocks',networkDetails:'Network details',networkDetailsCopy:'Current chain configuration',latestBlocks:'Latest blocks',latestBlocksCopy:'Finalized blocks arriving from the live indexer',refresh:'Refresh',latestTransactions:'Latest transactions',latestTransactionsCopy:'Transfers and protocol actions on YNX Chain',quickFindPlaceholder:'Find hash, address, amount…',accountLeaderboard:'YNXT account leaderboard',accountLeaderboardCopy:'Authoritative public-ledger ranking by current liquid YNXT balance',operational:'Network operational',degraded:'Upstream degraded',fullySynced:'Fully synchronized',catchingUp:'Indexer catching up',noMatching:'No matching transactions in the live window.',emptyWindow:'No transactions in the latest block window. Empty blocks are condensed.',rpcResponding:'RPC and indexer are responding'},
-      zh:{brand:'链上浏览器',navOverview:'概览',navBlockchain:'区块链',navAccounts:'账户',navValidators:'验证者',navResources:'资源',heroTitle:'YNX Chain 区块链浏览器',heroCopy:'查看公共测试网的实时区块、交易、验证者、账户、手续费与原生 YNXT 资源经济数据。',searchPlaceholder:'搜索 ynx1 地址、交易哈希、区块高度或 EVM 兼容地址',search:'搜索',latestBlock:'最新区块',networkTps:'网络 TPS',indexedWindow:'最近索引窗口',blockTime:'平均出块时间',observedAverage:'实时观测平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器验证',validators:'验证者',reportedRpc:'由链 RPC 报告',indexerSync:'索引同步',blockActivity:'区块交易活动',blockActivityCopy:'最近已索引区块中的交易数量',networkDetails:'网络详情',networkDetailsCopy:'当前链配置',latestBlocks:'最新区块',latestBlocksCopy:'来自实时索引器的最终区块；空区块已紧凑显示',refresh:'刷新',latestTransactions:'最新交易',latestTransactionsCopy:'YNX Chain 上的转账与协议操作',quickFindPlaceholder:'快速查找哈希、地址、金额…',accountLeaderboard:'YNXT 账户富豪榜',accountLeaderboardCopy:'按当前可用 YNXT 余额排序的权威公共账本排名',operational:'网络运行正常',degraded:'上游服务降级',fullySynced:'已完全同步',catchingUp:'索引器正在追赶',noMatching:'实时窗口内没有匹配交易。',emptyWindow:'最近区块窗口没有交易；空区块已折叠显示。',rpcResponding:'RPC 与索引器正在正常响应'}
+      en:{brand:'Chain Explorer',navOverview:'Overview',navBlockchain:'Blockchain',navAccounts:'Accounts',navValidators:'Validators',navResources:'Resources',heroTitle:'YNX Chain network explorer',heroCopy:'Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.',searchPlaceholder:'Search ynx1 address, transaction, block, or EVM compatibility address',search:'Search',latestBlock:'Latest block',networkTps:'Network TPS',indexedWindow:'Latest indexed window',blockTime:'Block time',observedAverage:'Observed average',indexedTxs:'Transactions indexed',verifiedIndexer:'Verified by the indexer',validators:'Validators',reportedRpc:'Reported by chain RPC',indexerSync:'Indexer sync',networkDetails:'Network details',networkDetailsCopy:'Current chain configuration',latestBlocks:'Real-time blocks',latestBlocksCopy:'Five newest finalized blocks, updated live',refresh:'Refresh',latestTransactions:'Real-time transactions',latestTransactionsCopy:'Five newest indexed transfers and actions',quickFindPlaceholder:'Find hash, address, amount…',accountLeaderboard:'YNXT account leaderboard',accountLeaderboardCopy:'Authoritative public-ledger ranking by current liquid YNXT balance',operational:'Network operational',degraded:'Upstream degraded',fullySynced:'Fully synchronized',catchingUp:'Indexer catching up',noMatching:'No matching transactions in the indexed transaction feed.',rpcResponding:'RPC and indexer are responding',live:'Live'},
+      zh:{brand:'链上浏览器',navOverview:'概览',navBlockchain:'区块链',navAccounts:'账户',navValidators:'验证者',navResources:'资源',heroTitle:'YNX Chain 区块链浏览器',heroCopy:'查看公共测试网的实时区块、交易、验证者、账户、手续费与原生 YNXT 资源经济数据。',searchPlaceholder:'搜索 ynx1 地址、交易哈希、区块高度或 EVM 兼容地址',search:'搜索',latestBlock:'最新区块',networkTps:'网络 TPS',indexedWindow:'最近索引窗口',blockTime:'平均出块时间',observedAverage:'实时观测平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器验证',validators:'验证者',reportedRpc:'由链 RPC 报告',indexerSync:'索引同步',networkDetails:'网络详情',networkDetailsCopy:'当前链配置',latestBlocks:'实时出块',latestBlocksCopy:'最新 5 个最终区块，实时更新',refresh:'刷新',latestTransactions:'实时交易',latestTransactionsCopy:'最新 5 笔已索引转账与协议操作',quickFindPlaceholder:'快速查找哈希、地址、金额…',accountLeaderboard:'YNXT 账户富豪榜',accountLeaderboardCopy:'按当前可用 YNXT 余额排序的权威公共账本排名',operational:'网络运行正常',degraded:'上游服务降级',fullySynced:'已完全同步',catchingUp:'索引器正在追赶',noMatching:'已索引交易流中没有匹配结果。',rpcResponding:'RPC 与索引器正在正常响应',live:'实时'}
     };
     let language = localStorage.getItem('ynx-explorer-language') || (navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en');
     const t = key => messages[language]?.[key] || messages.en[key] || key;
@@ -438,24 +433,8 @@ const indexHTML = `<!doctype html>
       const filter = $('txFilter').value;
       const query = String($('txQuickFind').value || '').trim().toLowerCase();
       const filtered = latestTransactions.filter(tx => (filter === 'all' || (filter === 'resource' ? String(tx.type).includes('resource') : tx.type === filter)) && (!query || [tx.hash,tx.from,tx.to,tx.type,tx.amount,tx.fee,tx.blockNumber].some(value => String(value ?? '').toLowerCase().includes(query))));
-      $('txsBody').innerHTML = filtered.length ? filtered.slice(0,8).map(txRow).join('') : '<div class="empty">' + escapeHTML(t('noMatching')) + '</div>';
+      $('txsBody').innerHTML = filtered.length ? filtered.slice(0,5).map(txRow).join('') : '<div class="empty">' + escapeHTML(t('noMatching')) + '</div>';
       bindQueries();
-    }
-    function renderActivity(blocks) {
-      const recent = blocks.slice().reverse();
-      const counts = recent.map(block => (block.transactions || []).length);
-      const total = counts.reduce((sum,count) => sum + count,0);
-      const max = Math.max(1,...counts);
-      $('activityTotal').textContent = number(total) + (language === 'zh' ? ' 笔交易' : ' txs');
-      $('activityChart').classList.toggle('empty-window',total === 0);
-      if (total === 0) {
-        $('activityChart').innerHTML = '<div class="muted">' + escapeHTML(t('emptyWindow')) + '</div>';
-        return;
-      }
-      $('activityChart').innerHTML = recent.map((block,index) => {
-        const height = 8 + Math.round((counts[index] / max) * 82);
-        return '<div class="bar-wrap" title="Block ' + escapeHTML(block.height) + ': ' + counts[index] + ' transactions"><div class="bar" style="height:' + height + '%"></div><span class="bar-label">' + escapeHTML(compact(block.height,4,2)) + '</span></div>';
-      }).join('') || '<div class="empty">No indexed block activity yet.</div>';
     }
     function renderBlockTrack(blocks,incomingHeight) {
       $('finalityState').textContent = blocks.length ? 'Block #' + number(blocks[0].height) : 'Waiting';
@@ -520,10 +499,9 @@ const indexHTML = `<!doctype html>
       $('lastUpdated').textContent = 'Updated ' + new Date(summary.lastCheckedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       $('heroHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' / ' + number(summary.syncLagBlocks) + '-block index lag';
       document.title = 'Block ' + number(summary.rpcHeight) + ' | YNX Chain Explorer';
-      $('blocksBody').innerHTML = blocks.length ? blocks.slice(0,6).map(blockRow).join('') : '<div class="empty">No indexed blocks yet.</div>';
+      $('blocksBody').innerHTML = blocks.length ? blocks.slice(0,5).map(blockRow).join('') : '<div class="empty">No indexed blocks yet.</div>';
       renderTransactions();
       renderBlockTrack(blocks,incomingHeight);
-      renderActivity(blocks);
       renderIntelligence(validatorData, resources);
       bindQueries();
       $('statusText').textContent = summary.ok ? t('operational') : t('degraded');
