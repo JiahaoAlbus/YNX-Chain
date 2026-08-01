@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "classification": "local-unsigned-reproducible-build-check",
-  "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b",
+  "sourceCommit": "7b68303ba2e15dc63e016793231e39e9283aa8b3",
   "buildCommand": "node scripts/build.mjs",
   "runs": 2,
   "artifacts": {
