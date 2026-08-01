@@ -1,0 +1,52 @@
+{
+  "genesisAsOf": "2026-07-25T00:00:00Z",
+  "genesisInsuranceYnxt": 100000,
+  "committee": {
+    "version": 1,
+    "publicKeys": [
+      "163b5b426abac0c4fcda79fc55e75394f4a44565253cba3781853b49ff3e9385",
+      "a7b1d9ef424217076d8510427b2703f86517d0723bcb09e6a50a5ca29f49ba08",
+      "c06342d5e1d0a994b67bedd2c9ec8205711f2731a89a3fcce99d0f085e9c476e"
+    ],
+    "threshold": 2
+  },
+  "actions": [
+    {
+      "type": "deposit",
+      "executedAt": "2026-07-25T01:00:00Z",
+      "deposit": {
+        "version": 1,
+        "actionId": "safety-deposit-testnet-001",
+        "participant": "ynx-wallet-testnet-alpha",
+        "amountYnxt": 1000000,
+        "provenance": "native_wallet_ynxt",
+        "walletApprovalEvidenceHash": "sha256:22995c4d62921177948dbd366bc9100fe07d15313a0e04da711c823ce2ca06e2",
+        "custodyReceiptHash": "sha256:a9298badd713b15a65497995b711ed3e8d39247c038f90119da45e9e1b49e61e",
+        "approvedAt": "2026-07-25T00:30:00Z",
+        "expiresAt": "2026-07-25T02:00:00Z"
+      }
+    },
+    {
+      "type": "exit_request",
+      "executedAt": "2026-07-25T02:00:00Z",
+      "exit": {
+        "version": 1,
+        "actionId": "safety-exit-request-testnet-001",
+        "participant": "ynx-wallet-testnet-alpha",
+        "walletApprovalEvidenceHash": "sha256:ed2ac4a7dc035a3dddaa021e09763526d74cd72cc3a3ea77faee45ce8fa91348",
+        "requestedAt": "2026-07-25T02:00:00Z"
+      }
+    },
+    {
+      "type": "exit_complete",
+      "executedAt": "2026-08-01T02:00:00Z",
+      "exit": {
+        "version": 1,
+        "actionId": "safety-exit-complete-testnet-001",
+        "participant": "ynx-wallet-testnet-alpha",
+        "walletApprovalEvidenceHash": "sha256:cb1eebecdd4708636da415bd9a79d67ef6eec519d1b5cb8358d7363ab750ed4a",
+        "requestedAt": "2026-07-25T02:00:00Z"
+      }
+    }
+  ]
+}

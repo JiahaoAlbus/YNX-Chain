@@ -426,6 +426,10 @@ bridge-api-check:
 stablecoin-issuer-check:
 	bash ./scripts/verify/stablecoin-issuer-check.sh
 
+safety-module-runtime-check:
+	go test -race ./internal/economics ./cmd/ynx-safety-module-runtime -run 'Safety(Runtime|Module)'
+	go run ./cmd/ynx-safety-module-runtime -input economics/examples/safety-module-runtime-replay.json >/dev/null
+
 resource-market-check:
 	bash ./scripts/verify/resource-market-check.sh
 
