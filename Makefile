@@ -590,8 +590,12 @@ economics-release-boundary-check:
 economics-integration-contract-check:
 	node ./scripts/verify/economics-integration-contract-check.mjs
 
-economics-local-candidate-check: yusd-sandbox-check yusd-restore-drill economics-runtime-check staking-risk-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check
+economics-local-candidate-check: yusd-sandbox-check yusd-restore-drill economics-runtime-check staking-risk-runtime-check safety-module-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check
 	@echo "economics local candidate checks passed; deployment and unresolved security states remain governed by release evidence"
+
+safety-module-runtime-check:
+	go test -race ./internal/economics ./cmd/ynx-safety-module-runtime -run 'Safety(Runtime|Module)'
+	go run ./cmd/ynx-safety-module-runtime -input economics/examples/safety-module-runtime-replay.json >/dev/null
 
 safety-module-candidate-check:
 	go test -race ./internal/economics ./cmd/ynx-safety-module-sim -run 'SafetyModule'
