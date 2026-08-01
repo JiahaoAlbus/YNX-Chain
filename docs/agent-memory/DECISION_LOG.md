@@ -1,5 +1,22 @@
 # Decision Log
 
+## 2026-08-01 — Measure Fable5 completion from evidence gates
+
+- Decision: Publish an evidence-weighted completion audit derived from the 36-product release matrix, capability matrices and registered E2E vectors.
+- Result: Current Testnet-goal completion is 252/501 gate units (50.3%) and status remains `ACTIVE`.
+- Boundary: Documentation coverage is not runtime proof; public operator tests are not automatically per-product shared-Testnet acceptance.
+
+## 2026-08-01 — Add required capability matrices fail closed
+
+- Decision: Generate AI capability, stablecoin price/reserve, asset security traceability and ecosystem function matrices for all 36 products.
+- Decision: Classify YNXT as a Testnet native asset, not a stablecoin; retain YUSD as a Testnet candidate with no production reserve/redemption claim.
+- Decision: Prohibit AI from signing, paying, trading, withdrawing, changing ownership/permissions or deciding consensus, oracle truth or bridge finality.
+
+## 2026-08-01 — Bind the controller scanner to the active release train
+
+- Decision: Retain Product 29's canonical branch while scanning `codex/integration-pay-acceptance-v2` through an explicit `controllerBranch` field.
+- Reason: The active integration work must be measured without rewriting the product registry's historical branch identity.
+
 ## 2026-07-29 — Recover from live evidence
 
 - Decision: Treat Fable5, MCP 29, the exact Worktree, Git and GitHub evidence as authority; do not use prior chat summaries as engineering state.
