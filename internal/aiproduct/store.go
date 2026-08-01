@@ -47,6 +47,7 @@ type persistentState struct {
 	Sessions         map[string]ProductSession               `json:"sessions"`
 	FormalRequests   map[string]FormalWalletRequestRecord    `json:"formalWalletRequests"`
 	FormalChallenges map[string]FormalGatewayChallengeRecord `json:"formalGatewayChallenges"`
+	AppliedBackups   map[string]time.Time                    `json:"appliedBackups,omitempty"`
 }
 
 type Store struct {
@@ -80,7 +81,7 @@ func NewStore(path string, key []byte) (*Store, error) {
 }
 
 func emptyState() persistentState {
-	return persistentState{Version: 1, Conversations: map[string]Conversation{}, Messages: map[string][]storedMessage{}, Attachments: map[string][]storedAttachment{}, Policies: map[string]DataPolicy{}, Permissions: map[string]PermissionRecord{}, Actions: map[string]ActionRecord{}, Appeals: map[string]Appeal{}, Audits: []AuditRecord{}, Challenges: map[string]WalletChallenge{}, Sessions: map[string]ProductSession{}, FormalRequests: map[string]FormalWalletRequestRecord{}, FormalChallenges: map[string]FormalGatewayChallengeRecord{}}
+	return persistentState{Version: 1, Conversations: map[string]Conversation{}, Messages: map[string][]storedMessage{}, Attachments: map[string][]storedAttachment{}, Policies: map[string]DataPolicy{}, Permissions: map[string]PermissionRecord{}, Actions: map[string]ActionRecord{}, Appeals: map[string]Appeal{}, Audits: []AuditRecord{}, Challenges: map[string]WalletChallenge{}, Sessions: map[string]ProductSession{}, FormalRequests: map[string]FormalWalletRequestRecord{}, FormalChallenges: map[string]FormalGatewayChallengeRecord{}, AppliedBackups: map[string]time.Time{}}
 }
 
 func (s *Store) load() error {
@@ -95,19 +96,7 @@ func (s *Store) load() error {
 	if err := json.Unmarshal(raw, &s.state); err != nil {
 		return fmt.Errorf("decode AI product state: %w", err)
 	}
-	if s.state.Version != 1 || s.state.Conversations == nil || s.state.Messages == nil || s.state.Policies == nil || s.state.Permissions == nil || s.state.Actions == nil || s.state.Appeals == nil || s.state.Challenges == nil || s.state.Sessions == nil {
-		return errors.New("AI product state schema is invalid")
-	}
-	if s.state.FormalRequests == nil {
-		s.state.FormalRequests = map[string]FormalWalletRequestRecord{}
-	}
-	if s.state.FormalChallenges == nil {
-		s.state.FormalChallenges = map[string]FormalGatewayChallengeRecord{}
-	}
-	if s.state.Attachments == nil {
-		s.state.Attachments = map[string][]storedAttachment{}
-	}
-	return nil
+	return normalizePersistentState(&s.state)
 }
 
 func (s *Store) saveLocked() error {

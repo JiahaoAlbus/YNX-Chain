@@ -99,9 +99,11 @@ try{
   if(error?.code!=="ENOENT")throw error;
 }
 
-const [server,observabilityRuntime,gatewayServer,gatewayRuntime,productRegistryRuntime,gatewayRegistryPolicy,contentGuard,web,mobile,workflow,envExample,uiAudit,observabilityDoc,sloCapacity,unitEconomics,evidence,sbom,dependencyReview,gatewayPatch,walletPatch]=await Promise.all([
+const [main,server,observabilityRuntime,backupRuntime,gatewayServer,gatewayRuntime,productRegistryRuntime,gatewayRegistryPolicy,contentGuard,web,mobile,workflow,envExample,uiAudit,observabilityDoc,sloCapacity,migrationCompatibility,unitEconomics,evidence,sbom,dependencyReview,gatewayPatch,walletPatch]=await Promise.all([
+  readFile(new URL("main.go",root),"utf8"),
   readFile(new URL("../../internal/aiproduct/server.go",root),"utf8"),
   readFile(new URL("../../internal/aiproduct/observability.go",root),"utf8"),
+  readFile(new URL("../../internal/aiproduct/backup.go",root),"utf8"),
   readFile(new URL("../../internal/aigateway/server.go",root),"utf8"),
   readFile(new URL("../../internal/aigateway/gateway.go",root),"utf8"),
   readFile(new URL("../../internal/aiproduct/product_registry.go",root),"utf8"),
@@ -114,6 +116,7 @@ const [server,observabilityRuntime,gatewayServer,gatewayRuntime,productRegistryR
   readFile(new URL("UI_DESIGN_AUDIT.md",root),"utf8"),
   readFile(new URL("OBSERVABILITY.md",root),"utf8"),
   readFile(new URL("SLO_CAPACITY_PLAN.md",root),"utf8"),
+  readFile(new URL("MIGRATION_COMPATIBILITY.md",root),"utf8"),
   readFile(new URL("UNIT_ECONOMICS.md",root),"utf8"),
   readFile(new URL("evidence-index.json",root),"utf8"),
   json("sbom.cdx.json"),
@@ -169,6 +172,16 @@ assert.match(observabilityRuntime,/gatewayReachable/);
 assert.doesNotMatch(observabilityRuntime,/RawQuery/);
 assert.match(observabilityDoc,/does not claim central Monitor acceptance/);
 assert.match(sloCapacity,/These thresholds are regression guards, not production SLOs/);
+assert.match(main,/backup-create/);
+assert.match(main,/backup-restore/);
+assert.match(backupRuntime,/ynx\.ai\.state-backup\.v1/);
+assert.match(backupRuntime,/func \(s \*Store\) CreateBackup/);
+assert.match(backupRuntime,/func \(s \*Store\) RestoreBackup/);
+assert.match(backupRuntime,/backup replay was rejected/);
+assert.match(backupRuntime,/would roll back a newer local state/);
+assert.match(migrationCompatibility,/does not claim a production migration/);
+assert.match(migrationCompatibility,/Restore an authenticated backup into a fresh state path/);
+assert.match(migrationCompatibility,/achieved RPO\/RTO/);
 assert.match(unitEconomics,/actualUsageReported=false/);
 assert.match(unitEconomics,/owner 26 Data Fabric and Billing Ledger/i);
 assert.match(envExample,/YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH=0/);
