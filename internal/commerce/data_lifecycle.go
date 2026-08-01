@@ -26,6 +26,7 @@ type SellerDataExport struct {
 	Revocations     []SellerRoleRevocation   `json:"revocations"`
 	Invitations     []SellerInvitation       `json:"invitations"`
 	Events          []SellerIntegrationEvent `json:"events"`
+	Providers       []ProviderView           `json:"providers"`
 	Audits          []AuditEvent             `json:"audits"`
 	IncludedClasses []string                 `json:"includedClasses"`
 	ExcludedClasses []string                 `json:"excludedClasses"`
@@ -130,6 +131,16 @@ func (s *Store) ExportSellerData(actor, storeID, purpose string) (SellerDataExpo
 		return events[i].OccurredAt.Before(events[j].OccurredAt)
 	})
 
+	providers := make([]ProviderView, 0)
+	for key, config := range s.s.ProviderConfigs {
+		if config.StoreID != storeID {
+			continue
+		}
+		providers = append(providers, providerView(config))
+		objectIDs[key] = struct{}{}
+	}
+	sort.Slice(providers, func(i, j int) bool { return providers[i].Kind < providers[j].Kind })
+
 	audits := make([]AuditEvent, 0)
 	for _, audit := range s.s.Audits {
 		if _, include := objectIDs[audit.ObjectID]; include {
@@ -155,9 +166,10 @@ func (s *Store) ExportSellerData(actor, storeID, purpose string) (SellerDataExpo
 		Revocations:     revocations,
 		Invitations:     invitations,
 		Events:          events,
+		Providers:       providers,
 		Audits:          audits,
-		IncludedClasses: []string{"store_profile", "catalog", "inventory", "orders", "settlement_and_refund_evidence", "seller_roles", "seller_invitations", "seller_revocations", "seller_outbox", "store_scoped_audit"},
-		ExcludedClasses: []string{"unrelated_stores", "buyer_profiles", "carts", "ai_jobs", "idempotency_records", "rate_limit_windows", "provider_credentials"},
+		IncludedClasses: []string{"store_profile", "catalog", "inventory", "orders", "settlement_and_refund_evidence", "seller_roles", "seller_invitations", "seller_revocations", "seller_outbox", "provider_configuration_metadata", "store_scoped_audit"},
+		ExcludedClasses: []string{"unrelated_stores", "buyer_profiles", "carts", "ai_jobs", "idempotency_records", "rate_limit_windows", "provider_access_references"},
 	}
 	encoded, err := json.Marshal(export)
 	if err != nil {

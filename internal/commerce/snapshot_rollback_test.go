@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -34,7 +35,7 @@ func TestSnapshotFutureVersionRejectedWithoutMutation(t *testing.T) {
 			} else {
 				_, err = Open(path)
 			}
-			if err == nil || !strings.Contains(err.Error(), "unsupported commerce snapshot version 7") {
+			if err == nil || !strings.Contains(err.Error(), fmt.Sprintf("unsupported commerce snapshot version %d", currentSnapshotVersion+1)) {
 				t.Fatalf("future snapshot opened: %v", err)
 			}
 			unchanged, readErr := os.ReadFile(path)
@@ -247,7 +248,7 @@ func TestSnapshotRollbackExportRefusesLossyOrDestructiveOperations(t *testing.T)
 	}
 	for _, target := range []int{2, currentSnapshotVersion, currentSnapshotVersion + 1} {
 		path := filepath.Join(t.TempDir(), "invalid.json")
-		if err := s.ExportRollbackSnapshot(path, target); err == nil || !strings.Contains(err.Error(), "rollback target must be Snapshot v3, v4 or v5") {
+		if err := s.ExportRollbackSnapshot(path, target); err == nil || !strings.Contains(err.Error(), "rollback target must be Snapshot v3, v4, v5 or v6") {
 			t.Fatalf("invalid rollback target %d accepted: %v", target, err)
 		}
 	}
@@ -359,7 +360,7 @@ func TestSnapshotRollbackExportTamperAndFutureBackupFailClosed(t *testing.T) {
 	if err := os.WriteFile(activePath+".bak", futureData, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := RestoreCommerceBackup(activePath, key); err == nil || !strings.Contains(err.Error(), "unsupported commerce snapshot version 7") {
+	if err := RestoreCommerceBackup(activePath, key); err == nil || !strings.Contains(err.Error(), fmt.Sprintf("unsupported commerce snapshot version %d", currentSnapshotVersion+1)) {
 		t.Fatalf("future rollback backup restored: %v", err)
 	}
 	unchanged, err = os.ReadFile(activePath)

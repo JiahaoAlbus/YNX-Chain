@@ -277,7 +277,7 @@ func TestSellerTeamInvitationPersistsAcrossRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if restoredAgain.s.Version != 6 || restoredAgain.s.SellerInvitations[invitation.ID].Status != sellerInvitationAccepted || restoredAgain.s.SellerRoles[store.ID][target] != SellerRoleFulfillment {
+	if restoredAgain.s.Version != currentSnapshotVersion || restoredAgain.s.SellerInvitations[invitation.ID].Status != sellerInvitationAccepted || restoredAgain.s.SellerRoles[store.ID][target] != SellerRoleFulfillment {
 		t.Fatalf("restart lost accepted invitation state: version=%d invitation=%+v roles=%v", restoredAgain.s.Version, restoredAgain.s.SellerInvitations[invitation.ID], restoredAgain.s.SellerRoles[store.ID])
 	}
 }
