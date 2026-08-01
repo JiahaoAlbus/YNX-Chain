@@ -839,13 +839,13 @@
         "baseRefName": "main",
         "baseRefOid": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
         "headRefName": "codex/final-pay",
-        "headRefOid": "4b17b29b652b61100f6a7e7715b1d3c3316c3914",
+        "headRefOid": "24dcce0367d745c9c37cea764c785169e7d4158a",
         "isDraft": false,
         "mergeable": "CONFLICTING",
         "number": 11,
         "reviewDecision": "",
         "state": "OPEN",
-        "title": "feat(pay): integrate evidence-backed YNX Pay candidate",
+        "title": "Pay: protected exact-source owner freeze for central integration",
         "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/11"
       },
       "release": {
@@ -3984,7 +3984,7 @@
         "number": 24,
         "reviewDecision": "REVIEW_REQUIRED",
         "state": "MERGED",
-        "title": "Bridge: protected unsigned Testnet candidate",
+        "title": "Bridge: protected unsigned Testnet candidate (centrally accepted)",
         "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/24"
       },
       "release": {
@@ -5522,13 +5522,13 @@
         "baseRefName": "main",
         "baseRefOid": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
         "headRefName": "codex/final-integration",
-        "headRefOid": "fb3a54712348241240518e72f08355a4d68efca8",
+        "headRefOid": "038600d05bbb797352d25be96d0829bde07a70b7",
         "isDraft": true,
         "mergeable": "MERGEABLE",
         "number": 17,
         "reviewDecision": "",
         "state": "OPEN",
-        "title": "Integration: centrally accept Products 01, 02, 17, 19, 26, 30 and 31",
+        "title": "Integration: centrally accept Products 01, 02, 17, 19, 21, 26, 30 and 31",
         "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/17"
       },
       "release": {

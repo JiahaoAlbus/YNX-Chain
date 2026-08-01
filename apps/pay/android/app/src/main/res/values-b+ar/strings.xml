@@ -1,0 +1,4 @@
+<resources>
+  <string name="CFBundleDisplayName">"YNX Pay"</string>
+  <string name="NSCameraUsageDescription">"تُستخدم الكاميرا فقط لمسح فاتورة YNX Pay موقعة ولا تُخزن أي صورة."</string>
+</resources>

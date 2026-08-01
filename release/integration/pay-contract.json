@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "number": "04",
+    "id": "pay",
+    "name": "YNX Pay",
+    "owner": "04-pay",
+    "branch": "codex/final-pay",
+    "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1"
+  },
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeAsset": "YNXT"
+  },
+  "authority": {
+    "walletAuthOwner": "02-wallet-auth",
+    "chainSettlementOwner": "01-chain-core",
+    "oracleOwner": "19-oracle-market-data",
+    "bridgeOwner": "21-bridge-interoperability",
+    "billingLedgerOwner": "26-data-fabric-billing-ledger",
+    "integrationFreezeOwner": "29-integration",
+    "releaseSecurityOwner": "30-security-sre-release"
+  },
+  "walletBinding": {
+    "productClientId": "ynx-pay-v1",
+    "bundleId": "com.ynxweb4.pay",
+    "callback": "ynxpay://wallet-auth/callback",
+    "scopes": [
+      "account:read",
+      "pay:case:create",
+      "pay:route:select",
+      "pay:settlement:submit",
+      "pay:sponsorship:request"
+    ],
+    "deviceAlgorithm": "p256-sha256",
+    "sessionAssertionDomain": "YNX_PRODUCT_GATEWAY_ASSERTION_V1",
+    "failClosed": true
+  },
+  "api": {
+    "publicRead": [
+      {"method": "GET", "path": "/health"},
+      {"method": "GET", "path": "/v1/settlement-assets"},
+      {"method": "GET", "path": "/v1/invoices/{id}"},
+      {"method": "GET", "path": "/v1/split-payments/{id}"},
+      {"method": "GET", "path": "/v1/quant-bills/{id}"}
+    ],
+    "walletGateway": [
+      {"method": "POST", "path": "/v1/invoices/{id}/settlements", "scope": "pay:settlement:submit"},
+      {"method": "POST", "path": "/v1/invoices/{id}/refund-requests", "scope": "pay:case:create"},
+      {"method": "POST", "path": "/v1/invoices/{id}/disputes", "scope": "pay:case:create"},
+      {"method": "POST", "path": "/v1/invoices/{id}/sponsorship-quotes", "scope": "pay:sponsorship:request"},
+      {"method": "POST", "path": "/v1/invoices/{id}/route-quotes", "scope": "pay:route:select"},
+      {"method": "POST", "path": "/v1/route-quotes/{id}/select", "scope": "pay:route:select"},
+      {"method": "POST", "path": "/v1/split-payments/{id}/shares/{shareId}/claim", "scope": "pay:settlement:submit"}
+    ],
+    "merchant": [
+      {"method": "POST", "path": "/v1/merchant/invoices", "permission": "invoice"},
+      {"method": "POST", "path": "/v1/merchant/split-payments", "permission": "invoice"},
+      {"method": "POST", "path": "/v1/merchant/quant-bills", "roles": ["owner", "finance"]},
+      {"method": "POST", "path": "/v1/merchant/recurring-drafts", "roles": ["owner", "finance"]},
+      {"method": "GET", "path": "/v1/merchant/state", "permission": "read"}
+    ]
+  },
+  "schemas": {
+    "invoice": {
+      "currentVersion": 5,
+      "compatibility": [1, 2, 3, 4, 5],
+      "v4Adds": ["splitPaymentId", "splitShareId", "expectedPayerHash"],
+      "v5Adds": ["serviceBillId", "serviceEvidenceDigest", "expectedPayerHash"],
+      "signature": "merchant-ed25519",
+      "paidAuthority": "authoritative-central-pay-api"
+    },
+    "splitPayment": {
+      "version": 1,
+      "minimumShares": 2,
+      "maximumShares": 20,
+      "states": ["open", "partially_claimed", "partially_paid", "committed", "expired"],
+      "claimAuthority": "wallet-product-session",
+      "childInvoicePerShare": true,
+      "wrongPayerRejected": true,
+      "publicPayerRedaction": true
+    },
+    "quantServiceBill": {
+      "version": 1,
+      "invoiceVersion": 5,
+      "evidenceDomain": "YNX_QUANT_BILLING_EVIDENCE_V1",
+      "calculationDomain": "YNX_QUANT_HIGH_WATER_MARK_V1",
+      "externalEd25519EvidenceRequired": true,
+      "frontendPnlAccepted": false,
+      "managerDeclaredPnlAccepted": false,
+      "wrongPayerRejected": true,
+      "publicPayerRedaction": true
+    },
+    "recurringDraft": {
+      "version": 1,
+      "automaticChargeEnabled": false,
+      "walletApprovalEveryOccurrence": true
+    }
+  },
+  "canonicalEvents": [
+    "invoice.create",
+    "invoice.committed",
+    "invoice.expired",
+    "split.create",
+    "split.share.claim",
+    "quant.bill.create",
+    "refund.requested",
+    "dispute.created",
+    "webhook.dead_letter",
+    "webhook.manual_replay"
+  ],
+  "errorSemantics": {
+    "unknownField": "reject",
+    "replay": "reject",
+    "scopeWidening": "reject",
+    "wrongProduct": "reject",
+    "wrongDevice": "reject",
+    "expiredSession": "reject",
+    "wrongSplitPayer": "reject",
+    "wrongQuantPayer": "reject",
+    "missingQuantVerifier": "unavailable",
+    "staleOrTamperedQuantEvidence": "reject",
+    "unsupportedSettlementAsset": "unavailable",
+    "providerFailure": "explicit failure; never paid"
+  },
+  "migration": {
+    "snapshotVersion": 1,
+    "futureSnapshotVersion": "reject",
+    "missingRecurringDraftsField": "normalize to empty map",
+    "missingSplitPaymentsField": "normalize to empty map",
+    "missingQuantBillsField": "normalize to empty map",
+    "legacyWalletChallengesAndSessions": "drop; establish a fresh canonical Gateway session",
+    "legacyFailedWebhook": "normalize to dead_letter",
+    "invoiceV1V2V3Verification": "preserved",
+    "invoiceV4Writer": "Split local implementation",
+    "invoiceV5Writer": "Quant service-billing local implementation",
+    "backupRestoreContract": "docs/integration/pay-store-recovery.json"
+  },
+  "tests": [
+    "go test ./internal/payproduct/... -count=1",
+    "go test -race ./internal/payproduct/... -count=1",
+    "npm run check (apps/pay; 13 tests plus Android/iOS bundle, Split flow, Invoice v5 and Quant verification)",
+    "TestSplitPaymentCreatesSignedSharesAndBindsClaimedPayer",
+    "TestSplitPaymentValidationFailsClosed",
+    "TestQuantBillingUsesSignedExternalHighWaterMarkEvidence",
+    "TestQuantBillingRejectsTamperStaleAndUnapprovedEvidence",
+    "TestQuantBillingExcludesDepositsFromPerformanceProfit",
+    "TestQuantBillingHTTPRoleAndPublicRedaction",
+    "TestStoreFixtureMigrationBackupRestoreAndRollback",
+    "TestStoreRestoreRejectsCorruptionWrongKeyAndFutureVersionWithoutMutation",
+    "TestDecodeKeyDoesNotDowngradeShortHexToBase64",
+    "go vet ./internal/payproduct/...",
+    "make pay-api-check",
+    "bash internal/payproduct/smoke.sh"
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "externalInputs": [
+    "accepted central Wallet/Gateway registry and deployed product routes",
+    "public Testnet deployment authority",
+    "configured paymaster or stablecoin/bridge provider where applicable",
+    "accepted Quant/Data Fabric Ed25519 verifier key and evidence stream",
+    "mobile production signing and store accounts"
+  ]
+}
