@@ -41,6 +41,7 @@ type EconomicsIntegrationAcceptedBundle struct {
 	BundleHash        string                           `json:"bundleHash"`
 	EconomicStateHash string                           `json:"economicStateHash"`
 	StakingStateHash  string                           `json:"stakingStateHash"`
+	SafetyStateHash   string                           `json:"safetyStateHash,omitempty"`
 	GeneratedAt       time.Time                        `json:"generatedAt"`
 	IngestedAt        time.Time                        `json:"ingestedAt"`
 	BundleCounts      EconomicsIntegrationRecordCounts `json:"bundleCounts"`
@@ -171,6 +172,7 @@ func ApplyEconomicsIntegrationBundle(store EconomicsIntegrationStore, bundle Eco
 		BundleHash:        bundle.BundleHash,
 		EconomicStateHash: bundle.EconomicStateHash,
 		StakingStateHash:  bundle.StakingStateHash,
+		SafetyStateHash:   bundle.SafetyStateHash,
 		GeneratedAt:       bundle.GeneratedAt.UTC(),
 		IngestedAt:        ingestedAt,
 		BundleCounts: EconomicsIntegrationRecordCounts{
@@ -542,7 +544,7 @@ func validateStoredIntegrationRecords(store EconomicsIntegrationStore, acceptedC
 }
 
 func validateEconomicsIntegrationAcceptedBundle(record EconomicsIntegrationAcceptedBundle) error {
-	if record.SchemaVersion != EconomicsIntegrationStoreSchemaVersion || record.ContractID != EconomicsIntegrationContractID || record.ID != economicsIntegrationAcceptedBundleID(record) || record.AuditHash != economicsIntegrationAcceptedBundleHash(record) || !validIntegrationSourceCommit(record.SourceCommit) || !validEvidenceHash(record.BundleHash) || !validEvidenceHash(record.EconomicStateHash) || !validEvidenceHash(record.StakingStateHash) || record.GeneratedAt.IsZero() || record.IngestedAt.Before(record.GeneratedAt) || record.EvidenceClass != IntegrationEvidenceClass || record.SharedTestnet || record.PublicDeployment || record.Production || !validIntegrationBundleCounts(record.BundleCounts) || !validIntegrationRecordCounts(record.AddedCounts) || exceedsIntegrationCounts(record.AddedCounts, record.BundleCounts) {
+	if record.SchemaVersion != EconomicsIntegrationStoreSchemaVersion || record.ContractID != EconomicsIntegrationContractID || record.ID != economicsIntegrationAcceptedBundleID(record) || record.AuditHash != economicsIntegrationAcceptedBundleHash(record) || !validIntegrationSourceCommit(record.SourceCommit) || !validEvidenceHash(record.BundleHash) || !validEvidenceHash(record.EconomicStateHash) || !validEvidenceHash(record.StakingStateHash) || (record.SafetyStateHash != "" && !validEvidenceHash(record.SafetyStateHash)) || record.GeneratedAt.IsZero() || record.IngestedAt.Before(record.GeneratedAt) || record.EvidenceClass != IntegrationEvidenceClass || record.SharedTestnet || record.PublicDeployment || record.Production || !validIntegrationBundleCounts(record.BundleCounts) || !validIntegrationRecordCounts(record.AddedCounts) || exceedsIntegrationCounts(record.AddedCounts, record.BundleCounts) {
 		return runtimeError(CodeIntegrationStoreInvalidState, "accepted integration bundle record is invalid")
 	}
 	return nil

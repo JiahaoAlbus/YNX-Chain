@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "product": "YNXT Economics",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/17-tokenomics",
+  "branch": "codex/final-tokenomics",
+  "baseCommit": "7c540b7f3f5872adbd8f65e4c8975eeac41c3a3f",
+  "checkpointCommit": "eccd506558268365fdd801ad4923f1b8ea3b20fc",
+  "checkpointSubject": "feat(economics): add governed safety module runtime",
+  "bundle": {
+    "path": "recovery/2026-08-01/safety-module-runtime/ynx17-safety-runtime-eccd5065.bundle",
+    "bytes": 12000,
+    "sha256": "b116513de5a5bdf03174d09049525fe3e7e4a8868f3881d2e9247d7b4c0322a0",
+    "verified": true,
+    "requiresCommit": "7c540b7f3f5872adbd8f65e4c8975eeac41c3a3f"
+  },
+  "verification": {
+    "makeSafetyModuleRuntimeCheck": "passed",
+    "goTestAll": "passed",
+    "noPlaceholderCheck": "passed",
+    "secretScan": "passed"
+  },
+  "remote": {
+    "directPushAttempted": true,
+    "directPushResult": "blocked_by_protected_branch_requires_pull_request_and_required_test",
+    "alternateBranch": "automation/ynx17-safety-runtime-eccd5065",
+    "alternatePushResult": "temporarily_unavailable_due_to_github_tls_connectivity",
+    "remoteCheckpointVerified": false
+  },
+  "releaseBoundary": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "production": false
+  }
+}
