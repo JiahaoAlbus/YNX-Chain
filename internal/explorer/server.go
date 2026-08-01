@@ -60,6 +60,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/blocks/{height}", s.handleBlock)
 	s.mux.HandleFunc("GET /api/txs", s.handleTransactions)
 	s.mux.HandleFunc("GET /api/txs/{hash}", s.handleTransaction)
+	s.mux.HandleFunc("GET /api/accounts", s.handleAccountLeaderboard)
 	s.mux.HandleFunc("GET /api/accounts/{address}", s.handleAccount)
 	s.mux.HandleFunc("GET /api/tokens/{symbol}", s.handleToken)
 	s.mux.HandleFunc("GET /api/validators", s.handleValidators)
@@ -291,6 +292,15 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, account)
+}
+
+func (s *Server) handleAccountLeaderboard(w http.ResponseWriter, r *http.Request) {
+	leaderboard, err := s.service.AccountLeaderboard(r.Context(), intQuery(r, "limit", 25))
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, leaderboard)
 }
 
 func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
