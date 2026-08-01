@@ -686,6 +686,33 @@ func (d *Devnet) Account(address string) (Account, bool) {
 	return copyAccount(account), true
 }
 
+// AccountsByBalance returns an immutable public-ledger view ordered by liquid
+// YNXT balance, then by address for deterministic ties. The total is returned
+// separately so callers can truthfully distinguish a bounded page from the
+// complete account set.
+func (d *Devnet) AccountsByBalance(limit int) ([]Account, int) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	accounts := make([]Account, 0, len(d.accounts))
+	for _, account := range d.accounts {
+		accounts = append(accounts, copyAccount(account))
+	}
+	sort.Slice(accounts, func(i, j int) bool {
+		if accounts[i].Balance == accounts[j].Balance {
+			return accounts[i].Address < accounts[j].Address
+		}
+		return accounts[i].Balance > accounts[j].Balance
+	})
+	total := len(accounts)
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	if len(accounts) > limit {
+		accounts = accounts[:limit]
+	}
+	return accounts, total
+}
+
 func (d *Devnet) Validators() []Validator {
 	d.mu.RLock()
 	defer d.mu.RUnlock()

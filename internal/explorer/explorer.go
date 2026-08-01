@@ -313,6 +313,27 @@ type AccountDetail struct {
 	Trace          chain.TrustTrace      `json:"trace"`
 }
 
+type AccountLeaderboard struct {
+	Accounts       []chain.Account `json:"accounts"`
+	Total          int             `json:"total"`
+	Ranking        string          `json:"ranking"`
+	TruthfulStatus string          `json:"truthfulStatus"`
+}
+
+func (s *Service) AccountLeaderboard(ctx context.Context, limit int) (AccountLeaderboard, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	var leaderboard AccountLeaderboard
+	if err := s.rpcClient.getJSON(ctx, "/accounts?limit="+strconv.Itoa(limit), &leaderboard); err != nil {
+		return AccountLeaderboard{}, err
+	}
+	if leaderboard.Ranking != "liquid-ynxt-balance-descending" || leaderboard.TruthfulStatus != "authoritative-public-ledger-account-ranking" {
+		return AccountLeaderboard{}, errors.New("RPC returned an unverifiable account ranking")
+	}
+	return leaderboard, nil
+}
+
 type AddressFormats struct {
 	EVM string `json:"evmAddress"`
 	YNX string `json:"ynxAddress"`

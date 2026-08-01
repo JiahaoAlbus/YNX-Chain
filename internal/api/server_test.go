@@ -48,6 +48,15 @@ func TestRESTAcceptsYNXAliasesAndPersistsCanonicalAccounts(t *testing.T) {
 	if account["account"].(map[string]any)["address"] != recipient {
 		t.Fatalf("account lookup did not resolve YNX alias: %v", account)
 	}
+	var ranking struct {
+		Accounts       []chain.Account `json:"accounts"`
+		Total          int             `json:"total"`
+		TruthfulStatus string          `json:"truthfulStatus"`
+	}
+	doJSON(t, http.MethodGet, server.URL+"/accounts?limit=100", nil, http.StatusOK, &ranking)
+	if ranking.Total < 2 || len(ranking.Accounts) < 2 || ranking.Accounts[0].Balance < ranking.Accounts[1].Balance || ranking.TruthfulStatus != "authoritative-public-ledger-account-ranking" {
+		t.Fatalf("unexpected authoritative account ranking: %+v", ranking)
+	}
 	var invalid map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/accounts/ynx1qqqqqq", nil, http.StatusBadRequest, &invalid)
 }
