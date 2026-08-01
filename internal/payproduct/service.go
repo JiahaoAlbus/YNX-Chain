@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -93,10 +94,7 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := cfg.HTTPClient
-	if client == nil {
-		client = &http.Client{Timeout: 10 * time.Second}
-	}
+	client := secureWebhookClient(cfg.HTTPClient)
 	now := cfg.Now
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
@@ -112,11 +110,20 @@ func New(cfg Config) (*Service, error) {
 	}
 	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, stableApproval: cfg.StableApproval, quantEvidenceKeys: quantEvidenceKeys, quantEvidenceMaxAge: quantEvidenceMaxAge, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
+		recoveredAt := now()
 		for id, run := range data.AIRuns {
 			if run.Status == "running" {
 				run.Status = "interrupted"
 				run.UpdatedAt = now()
 				data.AIRuns[id] = run
+			}
+		}
+		for id, delivery := range data.Deliveries {
+			if delivery.Status == "delivering" {
+				delivery.Status = "retrying"
+				delivery.NextAttemptAt = recoveredAt
+				delivery.UpdatedAt = recoveredAt
+				data.Deliveries[id] = delivery
 			}
 		}
 		return nil
@@ -422,12 +429,21 @@ func (s *Service) Invoice(ctx context.Context, id string) (Invoice, error) {
 	if invoice.Status == "committed" {
 		return invoice, nil
 	}
+	settlement, err := s.pay.Settlement(ctx, invoice.CentralID)
+	if err == nil && settlement.Status == "paid" && !settlement.CreatedAt.IsZero() && !settlement.CreatedAt.After(invoice.ExpiresAt) {
+		accepted, acceptErr := s.acceptSettlement(invoice, merchant, settlement)
+		if acceptErr == nil {
+			return accepted, nil
+		}
+		if s.now().Before(invoice.ExpiresAt) {
+			return Invoice{}, acceptErr
+		}
+	}
 	if !s.now().Before(invoice.ExpiresAt) {
 		invoice.Status = "expired"
 		_ = s.saveInvoice(invoice, "invoice.expired")
 		return invoice, nil
 	}
-	settlement, err := s.pay.Settlement(ctx, invoice.CentralID)
 	if err != nil {
 		return invoice, nil
 	}
@@ -452,7 +468,7 @@ func (s *Service) SubmitSettlement(ctx context.Context, id, payer, tx, key strin
 	return s.acceptSettlement(invoice, merchant, settlement)
 }
 func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.PaySettlement) (Invoice, error) {
-	if v.Status != "paid" || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != merchant.CentralMerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || (invoice.ExpectedPayer != "" && (v.Payer != invoice.ExpectedPayer || invoice.ExpectedPayerHash != hashString("YNX_PAY_EXPECTED_PAYER_V1", invoice.ExpectedPayer))) || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 || !identifierRE.MatchString(v.IdempotencyKey) {
+	if v.Status != "paid" || v.CreatedAt.IsZero() || v.CreatedAt.After(invoice.ExpiresAt) || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != merchant.CentralMerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || (invoice.ExpectedPayer != "" && (v.Payer != invoice.ExpectedPayer || invoice.ExpectedPayerHash != hashString("YNX_PAY_EXPECTED_PAYER_V1", invoice.ExpectedPayer))) || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 || !identifierRE.MatchString(v.IdempotencyKey) {
 		return Invoice{}, errors.New("authoritative settlement evidence is incomplete or mismatched")
 	}
 	invoice.Status = "committed"
@@ -519,7 +535,6 @@ func (s *Service) queueWebhook(merchant Merchant, event, objectID string) error 
 }
 func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, error) {
 	s.mutation.Lock()
-	defer s.mutation.Unlock()
 	var d WebhookDelivery
 	var merchant Merchant
 	err := s.store.View(func(data Snapshot) error {
@@ -532,11 +547,29 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 		return nil
 	})
 	if err != nil {
+		s.mutation.Unlock()
 		return d, err
 	}
 	if d.Status == "delivered" {
+		s.mutation.Unlock()
 		return d, nil
 	}
+	if d.Status == "delivering" {
+		s.mutation.Unlock()
+		return d, errors.New("webhook delivery already in progress")
+	}
+	d.Attempt++
+	d.Status = "delivering"
+	d.UpdatedAt = s.now()
+	if err := s.store.Update(func(data *Snapshot) error {
+		data.Deliveries[id] = d
+		return nil
+	}); err != nil {
+		s.mutation.Unlock()
+		return d, err
+	}
+	s.mutation.Unlock()
+
 	payload, _ := json.Marshal(map[string]any{"event": d.EventType, "objectId": d.ObjectID, "merchantId": d.MerchantID, "occurredAt": d.CreatedAt})
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, d.Endpoint, strings.NewReader(string(payload)))
 	req.Header.Set("Content-Type", "application/json")
@@ -548,7 +581,6 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 	req.Header.Set("X-YNX-Signature", "v"+fmt.Sprint(d.SecretVersion)+"="+d.Signature)
 	applyCorrelationHeaders(req)
 	resp, sendErr := s.client.Do(req)
-	d.Attempt++
 	d.UpdatedAt = s.now()
 	if sendErr == nil {
 		d.HTTPStatus = resp.StatusCode
@@ -568,7 +600,16 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 			d.NextAttemptAt = s.now().Add(time.Duration(1<<min(d.Attempt, 6)) * time.Minute)
 		}
 	}
+	s.mutation.Lock()
+	defer s.mutation.Unlock()
 	err = s.store.Update(func(data *Snapshot) error {
+		current, ok := data.Deliveries[id]
+		if !ok {
+			return errors.New("webhook delivery disappeared while in progress")
+		}
+		if current.Status != "delivering" || current.Attempt != d.Attempt {
+			return errors.New("webhook delivery changed while in progress")
+		}
 		data.Deliveries[id] = d
 		outcome := d.Status
 		if sendErr != nil {
@@ -900,10 +941,71 @@ func validWebhookURL(v string) (string, error) {
 		return "", nil
 	}
 	u, err := url.Parse(v)
-	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" {
 		return "", errors.New("webhook endpoint must be absolute HTTPS without userinfo")
 	}
+	host := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
+	if host == "" || host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") || strings.HasSuffix(host, ".internal") || strings.HasSuffix(host, ".home.arpa") {
+		return "", errors.New("webhook endpoint must use a public Internet host")
+	}
+	if ip := net.ParseIP(host); ip != nil && !publicWebhookIP(ip) {
+		return "", errors.New("webhook endpoint must not target a private or reserved address")
+	}
 	return u.String(), nil
+}
+
+func secureWebhookClient(configured *http.Client) *http.Client {
+	if configured != nil {
+		clone := *configured
+		clone.CheckRedirect = rejectWebhookRedirect
+		if clone.Timeout == 0 {
+			clone.Timeout = 10 * time.Second
+		}
+		return &clone
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = nil
+	transport.DialContext = secureWebhookDialContext
+	return &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: rejectWebhookRedirect}
+}
+
+func rejectWebhookRedirect(_ *http.Request, _ []*http.Request) error {
+	return errors.New("webhook redirects are disabled")
+}
+
+func secureWebhookDialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return nil, fmt.Errorf("invalid webhook destination: %w", err)
+	}
+	resolved, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil || len(resolved) == 0 {
+		return nil, errors.New("webhook destination could not be resolved")
+	}
+	for _, candidate := range resolved {
+		if !publicWebhookIP(candidate.IP) {
+			return nil, errors.New("webhook destination resolved to a private or reserved address")
+		}
+	}
+	dialer := &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}
+	return dialer.DialContext(ctx, network, net.JoinHostPort(resolved[0].IP.String(), port))
+}
+
+func publicWebhookIP(ip net.IP) bool {
+	if ip == nil || !ip.IsGlobalUnicast() || ip.IsPrivate() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified() {
+		return false
+	}
+	reserved := []string{
+		"0.0.0.0/8", "100.64.0.0/10", "192.0.0.0/24", "192.0.2.0/24", "198.18.0.0/15",
+		"198.51.100.0/24", "203.0.113.0/24", "240.0.0.0/4", "2001:db8::/32", "fec0::/10",
+	}
+	for _, cidr := range reserved {
+		_, block, _ := net.ParseCIDR(cidr)
+		if block.Contains(ip) {
+			return false
+		}
+	}
+	return true
 }
 func hashJSON(v any) string         { raw, _ := json.Marshal(v); return hexSHA(raw) }
 func hexSHA(v []byte) string        { h := sha256.Sum256(v); return hex.EncodeToString(h[:]) }

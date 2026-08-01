@@ -288,11 +288,18 @@ func TestSettlementMismatchExpiryAndWebhookRetry(t *testing.T) {
 	}
 }
 
-type roundTripRewrite struct{ target string }
+type roundTripRewrite struct {
+	target string
+	base   http.RoundTripper
+}
 
 func (r roundTripRewrite) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.URL, _ = url.Parse(r.target)
-	return http.DefaultTransport.RoundTrip(req)
+	base := r.base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	return base.RoundTrip(req)
 }
 
 func TestGatewayBoundPaymentCreatesPayerCases(t *testing.T) {

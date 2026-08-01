@@ -21,11 +21,12 @@ func TestWebhookDeadLetterAndAuditedManualReplay(t *testing.T) {
 	defer receiver.Close()
 	now := time.Date(2026, 7, 22, 4, 0, 0, 0, time.UTC)
 	service, _ := testService(t, &fakePay{}, func() time.Time { return now })
-	service.client = receiver.Client()
 	merchant, _ := onboard(t, service)
-	if err := service.SetWebhook(merchant, receiver.URL); err != nil {
+	if err := service.SetWebhook(merchant, "https://hooks.example.test/events"); err != nil {
 		t.Fatal(err)
 	}
+	receiverClient := receiver.Client()
+	service.client = secureWebhookClient(&http.Client{Transport: roundTripRewrite{target: receiver.URL, base: receiverClient.Transport}})
 	if err := service.store.View(func(data Snapshot) error { merchant = data.Merchants[merchant.ID]; return nil }); err != nil {
 		t.Fatal(err)
 	}
