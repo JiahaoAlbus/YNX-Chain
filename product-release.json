@@ -5,7 +5,7 @@
   "productSlug": "trust-center",
   "releaseStatus": "testnet-preview",
   "phase": "FREEZE",
-  "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
+  "sourceCommit": "4d40557229b4232119026cb8c012db3bef2f1be9",
   "sourceBranch": "codex/final-trust-center",
   "asOf": "2026-07-29",
   "states": {
@@ -46,13 +46,18 @@
       "result": "pass"
     },
     {
-      "command": "node scripts/package/trust-center-release.mjs --allow-dirty --out tmp/trust-center-release-ci-fix --evidence tmp/trust-center-evidence-ci-fix",
+      "command": "cd apps/trust-center && npm run test:ui",
+      "result": "pass",
+      "details": "5 Playwright tests: desktop, 390px, keyboard/accessibility, reduced motion, failure states, 12 locales and Arabic RTL"
+    },
+    {
+      "command": "go test ./apps/trust-center",
       "result": "pass"
     },
     {
-      "command": "GitHub Actions trust-center run 30416831778",
+      "command": "GitHub Actions trust-center run 30418987619",
       "result": "pass",
-      "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51"
+      "sourceCommit": "4d40557229b4232119026cb8c012db3bef2f1be9"
     }
   ],
   "repositoryPreflight": {
@@ -69,22 +74,22 @@
     "upstreamConfigured": true,
     "localRemoteShaMatchAtArtifactSource": true,
     "branchActionsRuns": true,
-    "latestSuccessfulRunId": 30416831778,
-    "latestSuccessfulRunCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
+    "latestSuccessfulRunId": 30418987619,
+    "latestSuccessfulRunCommit": "4d40557229b4232119026cb8c012db3bef2f1be9",
     "trustRelease": true,
     "trustArtifact": true
   },
   "release": {
-    "tag": "trust-center-v0.1.0-testnet-preview.1",
-    "name": "YNX Trust Center 0.1.0 Testnet Preview 1",
+    "tag": "trust-center-v0.1.0-testnet-preview.2",
+    "name": "YNX Trust Center 0.1.0 Testnet Preview 2",
     "prerelease": true,
-    "publishedAt": "2026-07-29T02:31:24Z",
-    "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51",
-    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/trust-center-v0.1.0-testnet-preview.1",
+    "publishedAt": "2026-07-29T03:18:03Z",
+    "sourceCommit": "4d40557229b4232119026cb8c012db3bef2f1be9",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/trust-center-v0.1.0-testnet-preview.2",
     "artifact": {
-      "name": "ynx-trust-center-1baeccada8e7-linux-amd64.tar.gz",
-      "sha256": "92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850",
-      "bytes": 4526557,
+      "name": "ynx-trust-center-4d40557229b4-linux-amd64.tar.gz",
+      "sha256": "48c1ee8ebac0ac8aa9f68b98e8ce011783be1e33ed98e11033ea757280a6eb85",
+      "bytes": 4526591,
       "signingClass": "unsigned-local",
       "hosted": true
     },
@@ -101,12 +106,14 @@
     "cmd/ynx-trust-backup/main.go",
     "cmd/ynx-trust-backup/main_test.go",
     "THREAT_MODEL.md",
-    "evidence/trust-center-release-cb1dcbc/artifact-manifest.json",
-    "evidence/trust-center-release-cb1dcbc/bom.cdx.json",
-    "evidence/trust-center-release-cb1dcbc/provenance.json",
-    "evidence/trust-center-release-cb1dcbc/verification.json",
-    "GitHub Actions run 30416831778",
-    "GitHub prerelease trust-center-v0.1.0-testnet-preview.1",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/trust-center-v0.1.0-testnet-preview.2/artifact-manifest.json",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/trust-center-v0.1.0-testnet-preview.2/bom.cdx.json",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/trust-center-v0.1.0-testnet-preview.2/provenance.json",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/trust-center-v0.1.0-testnet-preview.2/verification.json",
+    "GitHub Actions run 30418987619",
+    "GitHub prerelease trust-center-v0.1.0-testnet-preview.2",
+    "UI_DESIGN_AUDIT.md",
+    "apps/trust-center/tests/product.spec.js",
     "docs/handoffs/trust-center-website.md",
     ".ai-bridge/full-goal-coverage.json"
   ],
@@ -132,6 +139,6 @@
       "requirement": "Publish the canonical ynxweb4.com/trust-center route and public evidence after integration and website gates pass."
     }
   ],
-  "nextAutonomousAction": "Run current Web 390px, RTL, keyboard and accessibility evidence, then refresh mobile build/install gates without promoting central or public deployment states.",
+  "nextAutonomousAction": "Refresh Android build and install/cold-launch evidence on a healthy target, then run current iOS syntax/plist checks without promoting central, public or production states.",
   "completionClaim": false
 }

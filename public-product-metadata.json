@@ -11,7 +11,7 @@
     "h1": "Evidence and due process, without hidden asset control",
     "status": "testnet-preview",
     "statusAsOf": "2026-07-29",
-    "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51"
+    "sourceCommit": "4d40557229b4232119026cb8c012db3bef2f1be9"
   },
   "directAnswer": "YNX Trust Center is the YNX Testnet product for request validity, sourced evidence, independent review, appeals, corrections and aggregate transparency. It cannot freeze, seize, blacklist or transfer native YNXT and AI cannot issue a final decision or punishment.",
   "features": [
@@ -58,17 +58,17 @@
   "downloads": [
     {
       "platform": "linux-amd64",
-      "release": "trust-center-v0.1.0-testnet-preview.1",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/trust-center-v0.1.0-testnet-preview.1/ynx-trust-center-1baeccada8e7-linux-amd64.tar.gz",
-      "sha256": "92805078f0a8daebc1e329a293e625d161b600c70371d4cfb7a2ed57e47d1850",
-      "bytes": 4526557,
+      "release": "trust-center-v0.1.0-testnet-preview.2",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/trust-center-v0.1.0-testnet-preview.2/ynx-trust-center-4d40557229b4-linux-amd64.tar.gz",
+      "sha256": "48c1ee8ebac0ac8aa9f68b98e8ce011783be1e33ed98e11033ea757280a6eb85",
+      "bytes": 4526591,
       "signingClass": "unsigned-local",
-      "sourceCommit": "1baeccada8e72eab8277803973d0e598dcf19b51"
+      "sourceCommit": "4d40557229b4232119026cb8c012db3bef2f1be9"
     }
   ],
   "urls": {
     "canonical": "https://ynxweb4.com/trust-center",
-    "releaseEvidence": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/trust-center-v0.1.0-testnet-preview.1",
+    "releaseEvidence": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/trust-center-v0.1.0-testnet-preview.2",
     "support": null,
     "privacy": null,
     "security": null,
