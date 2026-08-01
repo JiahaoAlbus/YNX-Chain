@@ -189,8 +189,8 @@ function copyTree(source, target, include = () => true) {
 function copySelectedFiles(targetRoot) {
   const files = [
     ['README.md', 'docs/REPOSITORY_README.md'],
-    ['OPERATIONS.md', 'docs/OPERATIONS.md'],
-    ['RUNBOOK.md', 'docs/RUNBOOK.md'],
+    ['docs/operations/OPERATIONS_RUNBOOK.md', 'docs/OPERATIONS_RUNBOOK.md'],
+    ['docs/deployment/TESTNET_DEPLOYMENT_GUIDE.md', 'docs/TESTNET_DEPLOYMENT_GUIDE.md'],
     ['MIGRATION_COMPATIBILITY.md', 'docs/MIGRATION_COMPATIBILITY.md'],
     ['OBSERVABILITY.md', 'docs/OBSERVABILITY.md'],
     ['SLO_CAPACITY_PLAN.md', 'docs/SLO_CAPACITY_PLAN.md'],
