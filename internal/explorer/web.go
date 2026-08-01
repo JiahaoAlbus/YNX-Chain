@@ -85,6 +85,7 @@ const indexHTML = `<!doctype html>
     .panel-head h2,.section-head h2 { margin:0; font-size:20px; line-height:1.2; font-weight:650; }
     .panel-head p,.section-head p { margin:5px 0 0; color:var(--muted); font-size:13px; }
     .activity { height:198px; display:flex; align-items:flex-end; gap:8px; padding:28px 22px 24px; }
+    .activity.empty-window { height:76px; align-items:center; padding:18px 22px; }
     .bar-wrap { flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:8px; min-width:0; }
     .bar { width:100%; min-height:5px; border-radius:4px 4px 2px 2px; background:var(--blue); opacity:.8; transition:height .35s ease; }
     .bar:hover { opacity:1; }
@@ -376,8 +377,8 @@ const indexHTML = `<!doctype html>
     let toastTimer = null;
     const $ = (id) => document.getElementById(id);
     const messages = {
-      en:{brand:'Chain Explorer',navOverview:'Overview',navBlockchain:'Blockchain',navAccounts:'Accounts',navValidators:'Validators',navResources:'Resources',heroTitle:'YNX Chain network explorer',heroCopy:'Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.',searchPlaceholder:'Search ynx1 address, transaction, block, or EVM compatibility address',search:'Search',latestBlock:'Latest block',networkTps:'Network TPS',indexedWindow:'Latest indexed window',blockTime:'Block time',observedAverage:'Observed average',indexedTxs:'Transactions indexed',verifiedIndexer:'Verified by the indexer',validators:'Validators',reportedRpc:'Reported by chain RPC',indexerSync:'Indexer sync',blockActivity:'Block activity',blockActivityCopy:'Transactions included in the latest indexed blocks',networkDetails:'Network details',networkDetailsCopy:'Current chain configuration',latestBlocks:'Latest blocks',latestBlocksCopy:'Finalized blocks arriving from the live indexer',refresh:'Refresh',latestTransactions:'Latest transactions',latestTransactionsCopy:'Transfers and protocol actions on YNX Chain',quickFindPlaceholder:'Find hash, address, amount…',accountLeaderboard:'YNXT account leaderboard',accountLeaderboardCopy:'Authoritative public-ledger ranking by current liquid YNXT balance',operational:'Network operational',degraded:'Upstream degraded',fullySynced:'Fully synchronized',catchingUp:'Indexer catching up',noMatching:'No matching transactions in the live window.'},
-      zh:{brand:'链上浏览器',navOverview:'概览',navBlockchain:'区块链',navAccounts:'账户',navValidators:'验证者',navResources:'资源',heroTitle:'YNX Chain 区块链浏览器',heroCopy:'查看公共测试网的实时区块、交易、验证者、账户、手续费与原生 YNXT 资源经济数据。',searchPlaceholder:'搜索 ynx1 地址、交易哈希、区块高度或 EVM 兼容地址',search:'搜索',latestBlock:'最新区块',networkTps:'网络 TPS',indexedWindow:'最近索引窗口',blockTime:'平均出块时间',observedAverage:'实时观测平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器验证',validators:'验证者',reportedRpc:'由链 RPC 报告',indexerSync:'索引同步',blockActivity:'区块交易活动',blockActivityCopy:'最近已索引区块中的交易数量',networkDetails:'网络详情',networkDetailsCopy:'当前链配置',latestBlocks:'最新区块',latestBlocksCopy:'来自实时索引器的最终区块；空区块已紧凑显示',refresh:'刷新',latestTransactions:'最新交易',latestTransactionsCopy:'YNX Chain 上的转账与协议操作',quickFindPlaceholder:'快速查找哈希、地址、金额…',accountLeaderboard:'YNXT 账户富豪榜',accountLeaderboardCopy:'按当前可用 YNXT 余额排序的权威公共账本排名',operational:'网络运行正常',degraded:'上游服务降级',fullySynced:'已完全同步',catchingUp:'索引器正在追赶',noMatching:'实时窗口内没有匹配交易。'}
+      en:{brand:'Chain Explorer',navOverview:'Overview',navBlockchain:'Blockchain',navAccounts:'Accounts',navValidators:'Validators',navResources:'Resources',heroTitle:'YNX Chain network explorer',heroCopy:'Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.',searchPlaceholder:'Search ynx1 address, transaction, block, or EVM compatibility address',search:'Search',latestBlock:'Latest block',networkTps:'Network TPS',indexedWindow:'Latest indexed window',blockTime:'Block time',observedAverage:'Observed average',indexedTxs:'Transactions indexed',verifiedIndexer:'Verified by the indexer',validators:'Validators',reportedRpc:'Reported by chain RPC',indexerSync:'Indexer sync',blockActivity:'Block activity',blockActivityCopy:'Transactions included in the latest indexed blocks',networkDetails:'Network details',networkDetailsCopy:'Current chain configuration',latestBlocks:'Latest blocks',latestBlocksCopy:'Finalized blocks arriving from the live indexer',refresh:'Refresh',latestTransactions:'Latest transactions',latestTransactionsCopy:'Transfers and protocol actions on YNX Chain',quickFindPlaceholder:'Find hash, address, amount…',accountLeaderboard:'YNXT account leaderboard',accountLeaderboardCopy:'Authoritative public-ledger ranking by current liquid YNXT balance',operational:'Network operational',degraded:'Upstream degraded',fullySynced:'Fully synchronized',catchingUp:'Indexer catching up',noMatching:'No matching transactions in the live window.',emptyWindow:'No transactions in the latest block window. Empty blocks are condensed.',rpcResponding:'RPC and indexer are responding'},
+      zh:{brand:'链上浏览器',navOverview:'概览',navBlockchain:'区块链',navAccounts:'账户',navValidators:'验证者',navResources:'资源',heroTitle:'YNX Chain 区块链浏览器',heroCopy:'查看公共测试网的实时区块、交易、验证者、账户、手续费与原生 YNXT 资源经济数据。',searchPlaceholder:'搜索 ynx1 地址、交易哈希、区块高度或 EVM 兼容地址',search:'搜索',latestBlock:'最新区块',networkTps:'网络 TPS',indexedWindow:'最近索引窗口',blockTime:'平均出块时间',observedAverage:'实时观测平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器验证',validators:'验证者',reportedRpc:'由链 RPC 报告',indexerSync:'索引同步',blockActivity:'区块交易活动',blockActivityCopy:'最近已索引区块中的交易数量',networkDetails:'网络详情',networkDetailsCopy:'当前链配置',latestBlocks:'最新区块',latestBlocksCopy:'来自实时索引器的最终区块；空区块已紧凑显示',refresh:'刷新',latestTransactions:'最新交易',latestTransactionsCopy:'YNX Chain 上的转账与协议操作',quickFindPlaceholder:'快速查找哈希、地址、金额…',accountLeaderboard:'YNXT 账户富豪榜',accountLeaderboardCopy:'按当前可用 YNXT 余额排序的权威公共账本排名',operational:'网络运行正常',degraded:'上游服务降级',fullySynced:'已完全同步',catchingUp:'索引器正在追赶',noMatching:'实时窗口内没有匹配交易。',emptyWindow:'最近区块窗口没有交易；空区块已折叠显示。',rpcResponding:'RPC 与索引器正在正常响应'}
     };
     let language = localStorage.getItem('ynx-explorer-language') || (navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en');
     const t = key => messages[language]?.[key] || messages.en[key] || key;
@@ -396,6 +397,11 @@ const indexHTML = `<!doctype html>
     const relativeTime = (value) => {
       const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
       if (!Number.isFinite(seconds)) return 'Time unavailable';
+      if (language === 'zh') {
+        if (seconds < 60) return seconds + ' 秒前';
+        if (seconds < 3600) return Math.floor(seconds / 60) + ' 分钟前';
+        return Math.floor(seconds / 3600) + ' 小时前';
+      }
       if (seconds < 60) return seconds + ' seconds ago';
       if (seconds < 3600) return Math.floor(seconds / 60) + ' minutes ago';
       return Math.floor(seconds / 3600) + ' hours ago';
@@ -438,8 +444,14 @@ const indexHTML = `<!doctype html>
     function renderActivity(blocks) {
       const recent = blocks.slice().reverse();
       const counts = recent.map(block => (block.transactions || []).length);
+      const total = counts.reduce((sum,count) => sum + count,0);
       const max = Math.max(1,...counts);
-      $('activityTotal').textContent = number(counts.reduce((sum,count) => sum + count,0)) + ' txs';
+      $('activityTotal').textContent = number(total) + (language === 'zh' ? ' 笔交易' : ' txs');
+      $('activityChart').classList.toggle('empty-window',total === 0);
+      if (total === 0) {
+        $('activityChart').innerHTML = '<div class="muted">' + escapeHTML(t('emptyWindow')) + '</div>';
+        return;
+      }
       $('activityChart').innerHTML = recent.map((block,index) => {
         const height = 8 + Math.round((counts[index] / max) * 82);
         return '<div class="bar-wrap" title="Block ' + escapeHTML(block.height) + ': ' + counts[index] + ' transactions"><div class="bar" style="height:' + height + '%"></div><span class="bar-label">' + escapeHTML(compact(block.height,4,2)) + '</span></div>';
@@ -495,7 +507,7 @@ const indexHTML = `<!doctype html>
       $('blockTime').textContent = windowStats.blockTime.toFixed(1) + 's';
       $('txCount').textContent = number(summary.indexedTxCount);
       $('validatorCount').textContent = number(summary.validatorCount);
-      $('syncValue').textContent = number(summary.syncLagBlocks) + (summary.syncLagBlocks === 1 ? ' block' : ' blocks');
+      $('syncValue').textContent = number(summary.syncLagBlocks) + (language === 'zh' ? ' 个区块' : (summary.syncLagBlocks === 1 ? ' block' : ' blocks'));
       $('syncState').textContent = summary.syncLagBlocks === 0 ? t('fullySynced') : t('catchingUp');
       $('syncState').className = 'metric-foot' + (summary.syncLagBlocks === 0 ? ' good' : '');
       $('blockAge').textContent = relativeTime(summary.latestBlockTime);
@@ -515,7 +527,7 @@ const indexHTML = `<!doctype html>
       renderIntelligence(validatorData, resources);
       bindQueries();
       $('statusText').textContent = summary.ok ? t('operational') : t('degraded');
-      $('statusDetail').textContent = summary.ok ? source + ' / RPC and indexer are responding' : (summary.indexerError || 'One or more upstream services are degraded');
+      $('statusDetail').textContent = summary.ok ? source + ' / ' + t('rpcResponding') : (summary.indexerError || (language === 'zh' ? '一个或多个上游服务已降级' : 'One or more upstream services are degraded'));
       $('status').className = 'status-bar' + (summary.ok ? '' : ' warn');
       if (incomingHeight > previousHeight) {
         const metric = $('rpcHeight').closest('.metric');
@@ -673,7 +685,7 @@ const indexHTML = `<!doctype html>
     $('resourcesTab').onclick = () => selectIntelligence('resources');
     $('txFilter').onchange = renderTransactions;
     $('txQuickFind').oninput = renderTransactions;
-    $('languageSelect').onchange = event => applyLanguage(event.target.value);
+    $('languageSelect').onchange = event => { applyLanguage(event.target.value); load().catch(showLoadError); };
     $('refreshButton').onclick = () => load().catch(showLoadError);
     document.querySelectorAll('[data-refresh]').forEach(button => button.onclick = () => load().catch(showLoadError));
     $('metamaskButton').onclick = async () => {
