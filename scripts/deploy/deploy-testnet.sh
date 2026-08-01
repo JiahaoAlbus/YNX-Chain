@@ -957,7 +957,7 @@ ${REST_DOMAIN}, ${API_DOMAIN}, ${IDE_DOMAIN} {
 }
 
 bridge.${WEBSITE_DOMAIN} {
-  reverse_proxy 127.0.0.1:38083
+  reverse_proxy 127.0.0.1:6433
 }
 
 web4.${WEBSITE_DOMAIN} {
