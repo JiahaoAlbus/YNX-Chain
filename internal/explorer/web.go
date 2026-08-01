@@ -11,7 +11,7 @@ const indexHTML = `<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f7">
-  <link rel="icon" href="/assets/ynx-logo.png" type="image/png">
+  <link rel="icon" href="/assets/ynx-logo.png?v=df071f54" type="image/png">
   <title>YNX Chain Explorer</title>
   <style>
     :root {
@@ -124,6 +124,11 @@ const indexHTML = `<!doctype html>
     .row-icon.tx { color:#6b45c6; background:#f1edff; }
     .row-title { display:flex; align-items:center; gap:8px; min-width:0; font-size:13px; font-weight:600; }
     .row-subtitle { display:flex; gap:8px; margin-top:5px; min-width:0; color:var(--muted); font-size:12px; }
+    .transfer-flow { display:flex; align-items:center; gap:8px; min-width:0; }
+    .address-chip { max-width:132px; padding:3px 7px; border-radius:6px; color:var(--blue); background:var(--blue-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .flow-arrow { position:relative; width:34px; height:1px; flex:none; background:linear-gradient(90deg,#9dccff,var(--blue)); }
+    .flow-arrow::after { content:""; position:absolute; right:-1px; top:-3px; width:6px; height:6px; border-top:1px solid var(--blue); border-right:1px solid var(--blue); transform:rotate(45deg); }
+    .tx-live-row:hover .flow-arrow { animation:flow-signal 1s ease-in-out infinite; }
     .row-side { text-align:right; font-size:12px; }
     .row-side strong { display:block; font-size:13px; }
     .row-side span { display:block; margin-top:5px; color:var(--muted); }
@@ -193,6 +198,7 @@ const indexHTML = `<!doctype html>
     @keyframes row-arrival { from { opacity:0; transform:translateY(-8px); background:var(--blue-soft); } to { opacity:1; transform:translateY(0); background:transparent; } }
     @keyframes block-arrival { from { opacity:0; transform:translateX(-18px); } to { opacity:1; transform:translateX(0); } }
     @keyframes live-pulse { 0% { box-shadow:0 0 0 0 rgba(36,138,61,.35); } 70% { box-shadow:0 0 0 7px rgba(36,138,61,0); } 100% { box-shadow:0 0 0 0 rgba(36,138,61,0); } }
+    @keyframes flow-signal { 0%,100% { opacity:.45; } 50% { opacity:1; box-shadow:0 0 8px rgba(0,113,227,.45); } }
 
     @media (max-width:900px) {
       .metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
@@ -242,9 +248,9 @@ const indexHTML = `<!doctype html>
 <body>
   <nav class="nav" aria-label="Primary navigation">
     <div class="shell nav-inner">
-      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png" alt=""><span>Chain Explorer</span></a>
+      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54" alt=""><span>Chain Explorer</span></a>
       <div class="nav-links">
-        <a href="#network">Overview</a><a href="#live">Blockchain</a><a href="#intelligence">Validators</a><a href="#resourcesPanel">Resources</a>
+        <a href="#network">Overview</a><a href="#live">Blockchain</a><a href="#accounts">Accounts</a><a href="#intelligence">Validators</a><a href="#resourcesPanel">Resources</a>
         <span class="network-pill"><span class="pulse"></span><span id="networkName">Testnet</span></span>
       </div>
     </div>
@@ -327,6 +333,11 @@ const indexHTML = `<!doctype html>
         </article>
       </section>
 
+      <section class="section" id="accounts">
+        <div class="section-head"><div><h2>YNXT account leaderboard</h2><p>Authoritative public-ledger ranking by current liquid YNXT balance</p></div><span class="muted" id="accountTotal">Loading accounts…</span></div>
+        <div class="table-shell"><table class="accounts-table"><thead><tr><th style="width:9%">Rank</th><th style="width:43%">Account</th><th style="width:18%">Balance</th><th style="width:16%">Staked</th><th style="width:14%">Nonce</th></tr></thead><tbody id="accountsBody"><tr><td colspan="5" class="empty">Loading authoritative account balances...</td></tr></tbody></table></div>
+      </section>
+
       <section class="wallet-band">
         <div><h2>YNX-native identity comes first.</h2><p>YNX applications use the checksummed ynx1 address by default. Standard MetaMask remains available through the isolated EVM compatibility adapter for the same account.</p></div>
         <button id="metamaskButton" class="wallet-button" type="button">Open MetaMask compatibility</button>
@@ -379,10 +390,11 @@ const indexHTML = `<!doctype html>
     }
     function txRow(tx,index = 0) {
       const isNew = index === 0 && previousTxHash && tx.hash !== previousTxHash;
-      const route = tx.sponsor ? '<span>uses</span><span class="mono hash" title="' + escapeHTML(tx.sponsor) + '">' + escapeHTML(compact(tx.sponsor,8,6)) + ' sponsor</span>' : '<span>to</span><span class="mono hash" title="' + escapeHTML(tx.to) + '">' + escapeHTML(compact(tx.to,8,6)) + '</span>';
+      const destination = tx.sponsor || tx.to;
+      const route = '<span class="transfer-flow"><span class="mono address-chip" data-account="' + escapeHTML(tx.from) + '" title="From ' + escapeHTML(tx.from) + '">' + escapeHTML(compact(tx.from,8,6)) + '</span><span class="flow-arrow" aria-label="sent to"></span><span class="mono address-chip" data-account="' + escapeHTML(destination) + '" title="To ' + escapeHTML(destination) + '">' + escapeHTML(compact(destination,8,6)) + '</span></span>';
       const value = tx.resourceConsumed ? escapeHTML(number(tx.resourceConsumed)) + ' ' + escapeHTML(String(tx.resourceType || 'resource').replaceAll('_',' ')) : escapeHTML(number(tx.amount)) + ' YNXT';
       const cost = tx.sponsor ? 'Pool ' + escapeHTML(compact(tx.sponsorPoolId,8,5)) : 'Fee ' + escapeHTML(number(tx.fee));
-      return '<button class="live-row tx-live-row' + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(tx.hash) + '"><span class="row-icon tx">TX</span><span><span class="row-title"><span class="link mono hash" title="' + escapeHTML(tx.hash) + '">' + escapeHTML(compact(tx.hash,12,8)) + '</span><span class="type-tag">' + escapeHTML(tx.type || 'transaction') + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(tx.from) + '">' + escapeHTML(compact(tx.from,8,6)) + '</span>' + route + '</span></span><span class="row-side"><strong>' + value + '</strong><span>' + cost + '</span></span></button>';
+      return '<button class="live-row tx-live-row' + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(tx.hash) + '"><span class="row-icon tx">TX</span><span><span class="row-title"><span class="link mono hash" title="' + escapeHTML(tx.hash) + '">' + escapeHTML(compact(tx.hash,12,8)) + '</span><span class="type-tag">' + escapeHTML(tx.type || 'transaction') + '</span></span><span class="row-subtitle">' + route + '</span></span><span class="row-side"><strong>' + value + '</strong><span>' + cost + '</span></span></button>';
     }
     function calculateWindow(blocks) {
       if (blocks.length < 2) return {blockTime:0,tps:0};
@@ -437,7 +449,16 @@ const indexHTML = `<!doctype html>
       $('resourceMetrics').innerHTML = resourceItems.map(([label,value]) => '<article class="resource-item"><small>' + escapeHTML(label) + '</small><strong>' + escapeHTML(number(value)) + '</strong><small>YNXT</small></article>').join('');
       $('resourcePolicy').innerHTML = '<span>Policy <strong>' + escapeHTML(resources.policyVersion || '--') + '</strong></span><span>Active delegations <strong>' + escapeHTML(number(resources.activeDelegationCount)) + '</strong></span><span>Rentals <strong>' + escapeHTML(number(resources.resourceRentalCount)) + '</strong></span><span>Evidence <strong class="mono">' + escapeHTML(compact(resources.policyHash,10,7)) + '</strong></span>';
     }
-    function bindQueries() { document.querySelectorAll('[data-query]').forEach(button => button.onclick = () => search(button.dataset.query)); }
+    function renderAccounts(leaderboard) {
+      const accounts = leaderboard?.accounts || [];
+      $('accountTotal').textContent = number(leaderboard?.total || accounts.length) + ' public accounts / top ' + number(accounts.length);
+      $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(account.address) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(account.address) + '">' + escapeHTML(account.address) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">No authoritative accounts are available.</td></tr>';
+      bindQueries();
+    }
+    function bindQueries() {
+      document.querySelectorAll('[data-query]').forEach(node => node.onclick = () => search(node.dataset.query));
+      document.querySelectorAll('[data-account]').forEach(node => node.onclick = event => { event.preventDefault(); event.stopPropagation(); search(node.dataset.account); });
+    }
     function renderDashboard(summary, blocks, transactions, validatorData, resources, source = 'Live stream') {
       const windowStats = calculateWindow(blocks);
       const incomingHeight = Number(summary.rpcHeight || 0);
@@ -484,14 +505,16 @@ const indexHTML = `<!doctype html>
     }
     async function load() {
       $('refreshButton').disabled = true;
-      const [summary, blockData, txData, validators, resources] = await Promise.all([
+      const [summary, blockData, txData, validators, resources, leaderboard] = await Promise.all([
         get('/api/summary'),
         get('/api/blocks/latest?limit=12'),
         get('/api/txs?limit=12'),
         get('/api/validators').catch(() => ({})),
-        get('/api/resource-market/analytics').catch(() => ({}))
+        get('/api/resource-market/analytics').catch(() => ({})),
+        get('/api/accounts?limit=10').catch(() => ({accounts:[],total:0}))
       ]);
       renderDashboard(summary, blockData.blocks, txData.transactions, validators, resources, 'Manual snapshot');
+      renderAccounts(leaderboard);
     }
     function startFallbackPolling() {
       if (refreshTimer) return;
