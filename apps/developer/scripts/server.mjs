@@ -4,13 +4,13 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Readable } from "node:stream";
 
-const root = fileURLToPath(new URL("../", import.meta.url));
+const root = fileURLToPath(new URL(process.env.NODE_ENV === "production" ? "../dist/" : "../", import.meta.url));
 const clientRoot = fileURLToPath(new URL("../../../packages/developer-client/src/", import.meta.url));
 const port = Number(process.env.PORT || 4176);
 const releaseVersion = process.env.YNX_DEVELOPER_VERSION || "0.2.0-testnet-preview";
 const sourceCommit = process.env.YNX_DEVELOPER_COMMIT || "development";
 const upstreams = { "/chain": process.env.YNX_DEVELOPER_CHAIN_URL || "http://127.0.0.1:6420", "/ai-gateway": process.env.YNX_DEVELOPER_AI_URL || "http://127.0.0.1:6429", "/app-gateway": process.env.YNX_DEVELOPER_APP_GATEWAY_URL || "http://127.0.0.1:6432" };
-const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml" };
+const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 
 createServer(async (request, response) => {
   const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
