@@ -54,7 +54,7 @@ func (s *Store) CreateStore(actor string, in CreateStoreInput) (StoreProfile, er
 	now := s.now()
 	v := StoreProfile{ID: newID("store"), Owner: actor, Name: strings.TrimSpace(in.Name), Description: in.Description, Policy: in.Policy, TrustURL: in.TrustURL, SettlementAccount: in.SettlementAccount, Status: "onboarding", CreatedAt: now, UpdatedAt: now}
 	s.s.Stores[v.ID] = v
-	s.s.SellerRoles[v.ID] = map[string]string{actor: "owner"}
+	s.s.SellerRoles[v.ID] = map[string]string{actor: SellerRoleOwner}
 	s.recordIdempotencyLocked(actor, "store.create", in.IdempotencyKey, h, v.ID)
 	s.auditLocked(actor, "seller", "store_created", "store", v.ID, "onboarding", "publication requires explicit owner approval")
 	if err := s.persistLocked(); err != nil {
@@ -66,7 +66,11 @@ func (s *Store) CreateStore(actor string, in CreateStoreInput) (StoreProfile, er
 func (s *Store) sellerRoleLocked(storeID, actor string) (string, bool) {
 	roles := s.s.SellerRoles[storeID]
 	role, ok := roles[actor]
-	return role, ok
+	if !ok {
+		return "", false
+	}
+	canonical, valid := canonicalSellerRole(role)
+	return canonical, valid
 }
 func (s *Store) requireSellerLocked(storeID, actor string, allowed ...string) error {
 	role, ok := s.sellerRoleLocked(storeID, actor)
@@ -81,6 +85,14 @@ func (s *Store) requireSellerLocked(storeID, actor string, allowed ...string) er
 	return ErrUnauthorized
 }
 
+func (s *Store) requireSellerPermissionLocked(storeID, actor string, permission sellerPermission) error {
+	role, ok := s.sellerRoleLocked(storeID, actor)
+	if !ok || !sellerRoleAllows(role, permission) {
+		return ErrUnauthorized
+	}
+	return nil
+}
+
 func (s *Store) ActivateStore(actor, id string) (StoreProfile, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -88,7 +100,7 @@ func (s *Store) ActivateStore(actor, id string) (StoreProfile, error) {
 	if !ok {
 		return StoreProfile{}, ErrNotFound
 	}
-	if err := s.requireSellerLocked(id, actor, "owner"); err != nil {
+	if err := s.requireSellerLocked(id, actor, SellerRoleOwner); err != nil {
 		return StoreProfile{}, err
 	}
 	if strings.TrimSpace(v.Policy) == "" {
@@ -107,7 +119,7 @@ func (s *Store) ActivateStore(actor, id string) (StoreProfile, error) {
 func (s *Store) CreateProduct(actor string, in CreateProductInput) (Product, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := s.requireSellerLocked(in.StoreID, actor, "owner", "manager"); err != nil {
+	if err := s.requireSellerPermissionLocked(in.StoreID, actor, permissionCatalogWrite); err != nil {
 		return Product{}, err
 	}
 	if strings.TrimSpace(in.Title) == "" || len(in.Title) > 160 || len(in.Description) > 5000 || len(in.Category) > 80 || len(in.Variants) == 0 || len(in.Variants) > 50 {
@@ -152,7 +164,7 @@ func (s *Store) UpdateProduct(actor, id string, in UpdateProductInput) (Product,
 	if !ok {
 		return Product{}, ErrNotFound
 	}
-	if err := s.requireSellerLocked(p.StoreID, actor, "owner", "manager"); err != nil {
+	if err := s.requireSellerPermissionLocked(p.StoreID, actor, permissionCatalogWrite); err != nil {
 		return Product{}, err
 	}
 	if strings.TrimSpace(in.Title) == "" || len(in.Title) > 160 || len(in.Description) > 5000 || len(in.Category) > 80 || len(in.Variants) == 0 || len(in.Variants) > 50 {
@@ -224,7 +236,7 @@ func (s *Store) PublishProduct(actor, id string) (Product, error) {
 	if !ok {
 		return Product{}, ErrNotFound
 	}
-	if err := s.requireSellerLocked(p.StoreID, actor, "owner", "manager"); err != nil {
+	if err := s.requireSellerPermissionLocked(p.StoreID, actor, permissionCatalogWrite); err != nil {
 		return Product{}, err
 	}
 	st := s.s.Stores[p.StoreID]
@@ -253,7 +265,7 @@ func (s *Store) UnpublishProduct(actor, id string) (Product, error) {
 	if !ok {
 		return Product{}, ErrNotFound
 	}
-	if err := s.requireSellerLocked(p.StoreID, actor, "owner", "manager"); err != nil {
+	if err := s.requireSellerPermissionLocked(p.StoreID, actor, permissionCatalogWrite); err != nil {
 		return Product{}, err
 	}
 	if !p.Published {
@@ -300,7 +312,7 @@ func (s *Store) SetInventory(actor string, in InventoryInput) (Product, error) {
 	if !ok || p.StoreID != in.StoreID {
 		return Product{}, ErrNotFound
 	}
-	if err := s.requireSellerLocked(in.StoreID, actor, "owner", "manager", "fulfillment"); err != nil {
+	if err := s.requireSellerPermissionLocked(in.StoreID, actor, permissionInventoryWrite); err != nil {
 		return Product{}, err
 	}
 	if in.Inventory < 0 {
@@ -487,8 +499,8 @@ func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (Ord
 	if !ok {
 		return Order{}, ErrNotFound
 	}
-	role := s.s.SellerRoles[o.StoreID][actor]
-	if role != "owner" && role != "manager" {
+	role, ok := s.sellerRoleLocked(o.StoreID, actor)
+	if !ok || !sellerRoleAllows(role, permissionRefundApprove) {
 		return Order{}, ErrUnauthorized
 	}
 	if o.Status == "refunded" && o.Refund != nil && o.Refund.ID == e.ID && o.Refund.TransactionHash == e.TransactionHash {
@@ -526,7 +538,8 @@ func (s *Store) Order(actor, role, id string) (Order, error) {
 		return Order{}, ErrUnauthorized
 	}
 	if role == "seller" {
-		if _, ok := s.s.SellerRoles[o.StoreID][actor]; !ok {
+		sellerRole, ok := s.sellerRoleLocked(o.StoreID, actor)
+		if !ok || !sellerRoleAllows(sellerRole, permissionSellerRead) {
 			return Order{}, ErrUnauthorized
 		}
 	}
@@ -537,7 +550,12 @@ func (s *Store) Orders(actor, role string) []Order {
 	defer s.mu.Unlock()
 	out := []Order{}
 	for _, o := range s.s.Orders {
-		if (role == "buyer" && o.Buyer == actor) || (role == "seller" && s.s.SellerRoles[o.StoreID][actor] != "") {
+		allowed := role == "buyer" && o.Buyer == actor
+		if role == "seller" {
+			sellerRole, ok := s.sellerRoleLocked(o.StoreID, actor)
+			allowed = ok && sellerRoleAllows(sellerRole, permissionSellerRead)
+		}
+		if allowed {
 			out = append(out, o)
 		}
 	}
@@ -588,9 +606,9 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 	if role == "seller" {
 		sellerRole = s.s.SellerRoles[o.StoreID][actor]
 	}
-	canFulfill := sellerRole == "owner" || sellerRole == "manager" || sellerRole == "fulfillment"
-	canResolveReturn := sellerRole == "owner" || sellerRole == "manager" || sellerRole == "support"
-	canApproveRefund := sellerRole == "owner" || sellerRole == "manager"
+	canFulfill := sellerRoleAllows(sellerRole, permissionFulfillmentWrite)
+	canResolveReturn := sellerRoleAllows(sellerRole, permissionReturnResolve)
+	canApproveRefund := sellerRoleAllows(sellerRole, permissionRefundApprove)
 	allowed := false
 	switch next {
 	case "cancelled":

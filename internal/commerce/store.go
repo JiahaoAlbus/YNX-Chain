@@ -20,7 +20,7 @@ import (
 
 const (
 	PersistenceSchemaVersionV1      = 1
-	CurrentPersistenceSchemaVersion = 2
+	CurrentPersistenceSchemaVersion = 7
 	persistenceEnvelopeVersion      = 1
 	persistenceRollbackSuffix       = ".schema-rollback"
 )
@@ -30,6 +30,7 @@ var (
 	ErrUnauthorized       = errors.New("unauthorized")
 	ErrConflict           = errors.New("conflict")
 	ErrUnavailable        = errors.New("unavailable")
+	ErrRateLimited        = errors.New("rate limited")
 	ErrInvalidState       = errors.New("invalid state transition")
 	ErrInventory          = errors.New("insufficient inventory")
 	ErrPersistenceVersion = errors.New("unsupported commerce persistence schema version")
@@ -67,6 +68,14 @@ type persistedEnvelope struct {
 	Version  int             `json:"version"`
 	Snapshot json.RawMessage `json:"snapshot"`
 	HMAC     string          `json:"hmac"`
+}
+
+type sellerIntegrationEventV5 struct {
+	ID, EventName, Source, StoreID, Account, Actor string
+	RevocationID, PreviousRole, SessionStatus      string
+	SessionRevocationID                            string
+	SchemaVersion, SessionCount                    int
+	OccurredAt                                     time.Time
 }
 
 func open(path string, integrityKey []byte) (*Store, error) {
@@ -133,7 +142,7 @@ func decodePersisted(data, key []byte, out *Snapshot) error {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, ProviderConfigs: map[string]ProviderConfig{}, RequestWindow: map[string][]time.Time{}}
 }
 
 func (s *Store) normalize() (bool, error) {
@@ -169,6 +178,32 @@ func (s *Store) normalize() (bool, error) {
 	}
 	if s.s.SellerRoles == nil {
 		s.s.SellerRoles = map[string]map[string]string{}
+	}
+	for storeID, roles := range s.s.SellerRoles {
+		if roles == nil {
+			s.s.SellerRoles[storeID] = map[string]string{}
+			migrated = true
+			continue
+		}
+		for account, role := range roles {
+			canonical, ok := canonicalSellerRole(role)
+			if ok && canonical != role {
+				roles[account] = canonical
+				migrated = true
+			}
+		}
+	}
+	if s.s.SellerRevocations == nil {
+		s.s.SellerRevocations = map[string]SellerRoleRevocation{}
+	}
+	if s.s.SellerInvitations == nil {
+		s.s.SellerInvitations = map[string]SellerInvitation{}
+	}
+	if s.s.SellerEvents == nil {
+		s.s.SellerEvents = []SellerIntegrationEvent{}
+	}
+	if s.s.ProviderConfigs == nil {
+		s.s.ProviderConfigs = map[string]ProviderConfig{}
 	}
 	if s.s.RequestWindow == nil {
 		s.s.RequestWindow = map[string][]time.Time{}
@@ -208,6 +243,135 @@ func encodePersisted(snapshot Snapshot, key []byte) ([]byte, error) {
 	mac := hmac.New(sha256.New, key)
 	_, _ = mac.Write(raw)
 	return json.MarshalIndent(persistedEnvelope{Version: persistenceEnvelopeVersion, Snapshot: raw, HMAC: hex.EncodeToString(mac.Sum(nil))}, "", "  ")
+}
+
+func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMessage, error) {
+	if targetVersion < 3 || targetVersion >= CurrentPersistenceSchemaVersion {
+		return nil, errors.New("rollback target must be Snapshot v3, v4, v5 or v6")
+	}
+	if len(s.s.ProviderConfigs) > 0 {
+		return nil, fmt.Errorf("%w: Snapshot v%d cannot represent provider configurations", ErrConflict, targetVersion)
+	}
+	if targetVersion < 6 && len(s.s.SellerInvitations) > 0 {
+		return nil, fmt.Errorf("%w: Snapshot v%d cannot represent Seller invitations", ErrConflict, targetVersion)
+	}
+	if targetVersion < 5 && len(s.s.SellerEvents) > 0 {
+		return nil, fmt.Errorf("%w: Snapshot v%d cannot represent Seller integration events", ErrConflict, targetVersion)
+	}
+	if targetVersion < 4 && len(s.s.SellerRevocations) > 0 {
+		return nil, fmt.Errorf("%w: Snapshot v%d cannot represent Seller role revocations", ErrConflict, targetVersion)
+	}
+
+	raw, err := json.Marshal(s.s)
+	if err != nil {
+		return nil, err
+	}
+	fields := map[string]json.RawMessage{}
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return nil, err
+	}
+	version, err := json.Marshal(targetVersion)
+	if err != nil {
+		return nil, err
+	}
+	fields["Version"] = version
+	fields = omitRawFields(fields, "ProviderConfigs")
+	if targetVersion < 6 {
+		fields = omitRawFields(fields, "SellerInvitations")
+	}
+
+	if targetVersion < 5 {
+		fields = omitRawFields(fields, "SellerEvents")
+	} else if targetVersion == 5 {
+		legacyEvents := make([]sellerIntegrationEventV5, 0, len(s.s.SellerEvents))
+		for _, event := range s.s.SellerEvents {
+			if event.InvitationID != "" || event.Role != "" || event.Status != "" || !event.ExpiresAt.IsZero() {
+				return nil, fmt.Errorf("%w: Snapshot v5 cannot represent Seller event %s", ErrConflict, event.EventName)
+			}
+			legacyEvents = append(legacyEvents, sellerIntegrationEventV5{
+				ID: event.ID, EventName: event.EventName, Source: event.Source, StoreID: event.StoreID,
+				Account: event.Account, Actor: event.Actor, RevocationID: event.RevocationID,
+				PreviousRole: event.PreviousRole, SessionStatus: event.SessionStatus,
+				SessionRevocationID: event.SessionRevocationID, SchemaVersion: event.SchemaVersion,
+				SessionCount: event.SessionCount, OccurredAt: event.OccurredAt,
+			})
+		}
+		encoded, err := json.Marshal(legacyEvents)
+		if err != nil {
+			return nil, err
+		}
+		fields["SellerEvents"] = encoded
+	}
+	if targetVersion < 4 {
+		delete(fields, "SellerRevocations")
+	}
+	return fields, nil
+}
+
+func (s *Store) ExportRollbackSnapshot(path string, targetVersion int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return errors.New("rollback export path required")
+	}
+	if s.path != "" {
+		source, sourceErr := filepath.Abs(s.path)
+		target, targetErr := filepath.Abs(path)
+		if sourceErr == nil && targetErr == nil && source == target {
+			return errors.New("rollback export must not overwrite the active state path")
+		}
+	}
+	rollback, err := s.rollbackSnapshotLocked(targetVersion)
+	if err != nil {
+		return err
+	}
+	data, err := encodePersistedMap(rollback, s.integrityKey)
+	if err != nil {
+		return err
+	}
+	return exclusiveWrite(path, data)
+}
+
+func encodePersistedMap(value map[string]json.RawMessage, key []byte) ([]byte, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	if len(key) == 0 {
+		return json.MarshalIndent(value, "", "  ")
+	}
+	mac := hmac.New(sha256.New, key)
+	_, _ = mac.Write(raw)
+	return json.MarshalIndent(persistedEnvelope{Version: persistenceEnvelopeVersion, Snapshot: raw, HMAC: hex.EncodeToString(mac.Sum(nil))}, "", "  ")
+}
+
+func exclusiveWrite(path string, data []byte) (err error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = f.Close()
+			_ = os.Remove(path)
+		}
+	}()
+	if _, err = f.Write(append(data, '\n')); err != nil {
+		return err
+	}
+	if err = f.Sync(); err != nil {
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+	committed = true
+	return nil
 }
 
 func atomicWrite(path string, data []byte) error {
@@ -317,6 +481,21 @@ func requestHash(v any) string {
 	h := sha256.Sum256(b)
 	return hex.EncodeToString(h[:])
 }
+
+func omitRawFields(fields map[string]json.RawMessage, names ...string) map[string]json.RawMessage {
+	blocked := make(map[string]struct{}, len(names))
+	for _, name := range names {
+		blocked[name] = struct{}{}
+	}
+	out := make(map[string]json.RawMessage, len(fields))
+	for name, value := range fields {
+		if _, omitted := blocked[name]; !omitted {
+			out[name] = value
+		}
+	}
+	return out
+}
+
 func idemMapKey(actor, route, key string) string { return actor + "\x00" + route + "\x00" + key }
 
 func (s *Store) idempotencyLocked(actor, route, key string, input any) (string, bool, error) {
