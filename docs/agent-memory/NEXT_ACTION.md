@@ -1,11 +1,13 @@
-# Next action
+# Next Action
 
-Create a deterministic, account-free Finance API capacity harness that exercises `/health`, protected-auth rejection and `/metrics` using local fixtures; record request count, concurrency, elapsed time, throughput, p50/p95/p99 latency and error rate. Then publish `apps/finance/SLO_CAPACITY_PLAN.md` with explicit local-only limits, alert thresholds, restart semantics and a statement that no production traffic capacity is claimed.
+After PR `#12` is merged, submit `release/integration/resource-market-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, and `docs/integration/DEPENDENCY_ACCEPTANCE.md` to Product `29` for central acceptance against Wallet/Auth, Chain settlement, Data Fabric billing, Explorer, Monitor, and Trust.
 
-Acceptance for the next slice:
+The first executable verification after central acceptance is:
 
-- benchmark input contains no Wallet account, bearer token, balance, activity or planning record;
-- results are reproducible from a committed command or Go benchmark;
-- metrics and logs remain free of financial data;
-- targeted and race tests remain green;
-- evidence is bound to a pushed source SHA.
+1. deploy two independently operated Testnet providers;
+2. execute Quote → Intent → Reservation → Service → segmented Metering → authoritative Settlement;
+3. execute provider Failure → one bounded Retry → Refund/Bond/Appeal;
+4. restart services and verify state recovery;
+5. record authoritative transaction hashes, receipts, provider identities, health/version endpoints, and source SHA without embedding credentials.
+
+Do not publish or mark `integratedCentral`, `testnetVerified`, `deployedPublic`, `releasePublished`, or `downloadHosted` before those direct checks succeed.

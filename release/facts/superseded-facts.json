@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Superseded",
+  "records": [
+    {
+      "supersededId": "SUP-001",
+      "subject": "Initial 2026-07-22 recovery snapshot",
+      "priorSourceCommit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+      "reason": "The documentation branch advanced through five later commits and a fresh branch, worktree, CI, release, artifact, dirty-state, process, and endpoint scan.",
+      "replacement": "docs/coordination/DOCS_COMPLIANCE_RECOVERY_AUDIT.md"
+    },
+    {
+      "supersededId": "SUP-002",
+      "subject": "Documentation package 0.1.0 candidate status",
+      "priorSourceCommit": "2e3c893c7c97e7bc713af4e9a74438ffd125289f",
+      "reason": "The 0.2.0 candidate adds an authoritative facts index, schemas, conflict handling, localization records, and a fail-closed public disclosure gate.",
+      "replacement": "release/facts/release-status.json"
+    },
+    {
+      "supersededId": "SUP-003",
+      "subject": "Unstructured fact smoke fixture",
+      "priorSourceCommit": "git:HEAD",
+      "reason": "The fixture is retained for recovery traceability but is not an authoritative fact source.",
+      "replacement": "release/facts/authoritative-facts.json"
+    }
+  ]
+}

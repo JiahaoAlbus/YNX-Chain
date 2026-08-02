@@ -1,56 +1,28 @@
-# YNX Finance Dependency Acceptance
+# YNX Resource Market dependency acceptance
 
-Finance accepts external capabilities only as versioned, read-only evidence. A dependency is not accepted merely because an endpoint exists or returns HTTP 200.
+No dependency is accepted from file existence, HTTP 200, local mocks or documentation alone. Each row requires direct Testnet or deployment evidence bound to an immutable source commit.
 
-## Universal acceptance gate
+| Owner | Required contract | Current status | Acceptance evidence required | Failure behavior |
+| --- | --- | --- | --- | --- |
+| 01 Chain Core | Authoritative transaction finality, unique transaction identity and settlement receipt evidence | External blocked | Deployed Testnet endpoint; final transaction hash; asset, amount and finality proof; negative replay and mismatch vectors | Keep order `settlement_pending`; never create receipt or release capacity |
+| 02 Wallet/Auth | Exact Resource Market registry, challenge, completion, introspection, expiry and revocation | External blocked | Registry merge commit; deployed Gateway; wrong-product, wrong-device, scope-widening, expiry, revoke and replay results | Reject product session and perform no mutation |
+| 12 Explorer | Public transaction, receipt and source-commit proof | External blocked | Public HTTPS transaction/receipt URL linked to authoritative settlement | Do not claim public settlement evidence |
+| 13 Monitor | Provider health, stale capacity, meter failure, settlement mismatch/replay and incident alerts | External blocked | Deployed alert rules, triggered negative vectors, incident and recovery evidence | Product remains locally observable only |
+| 15 Trust Center | Provider failure, dispute, notice, appeal and correction linkage | Locally implemented, central acceptance pending | Cross-product case IDs and final decision evidence without asset authority | Keep dispute local and do not infer refund |
+| 26 Data Fabric | Canonical usage, billing, fee and settlement events with idempotent lineage | External blocked | Event schema freeze, replay-safe ingestion, meter/receipt reconciliation and ledger query evidence | Do not emit or claim authoritative billing ledger state |
+| 28 Website | `/resource-market` public entry, support/privacy/security/status routes, metadata and downloads | External blocked | Deployed canonical route, remote smoke, indexability and immutable artifact URLs | Keep all public and hosted release booleans false |
+| 29 Integration | Freeze contract version, owner, events, errors, vectors and shared Testnet order | External blocked | Signed acceptance record for `resource-market-integration-v1`; all cross-product vectors pass | Do not maintain a second compatibility protocol |
+| 30 Security/SRE/Release | Secrets, artifact provenance, backup/restore, deployment and release acceptance | External blocked | Source-bound SBOM, scans, immutable hashes, restore drill, deployment record and external review status | Keep production signing and release booleans false |
 
-Every source owner must provide:
+## Resource Market autonomous acceptance
 
-1. Owner and immutable source version or commit.
-2. Network, product, authorized Wallet account and asset identity.
-3. Record-level source and `asOf`, plus exact timestamp semantics.
-4. Bounded coverage, pagination and completeness rules.
-5. Synchronization, stale, partial, unavailable and recovery states.
-6. Canonical error codes and negative test vectors.
-7. Data rights, retention, license and jurisdiction where applicable.
-8. No private key, seed, signer, withdrawal, owner-change or risk-override capability.
-9. Restart, replay, tamper and account-isolation evidence.
-10. Direct Testnet proof before `integratedCentral` or `testnetVerified` changes.
+The product-owned portion is accepted locally only when all of the following pass against the same source commit:
 
-Missing fields fail closed. Finance must display an unavailable or partial state rather than infer values.
+- Resource engine and HTTP product tests, including race detection.
+- Stable error-code contract tests.
+- Settlement transaction replay rejection and signed-meter reconciliation.
+- Product HTTP smoke, health/version truth boundaries and scoped state/export.
+- Contract and cross-product vector schema validation.
+- Backup/restore and migration compatibility checks.
 
-## Current dependency decisions
-
-| Owner | Dependency | Local adapter | Central acceptance | Decision |
-|---|---|---:|---:|---|
-| 02 Wallet/Auth | Product session, introspection, expiry, revoke | Tested locally | No | Exact registry and vector ready; central merge/deployment/installed approval pending. |
-| 12 Explorer | Health, authorized account, latest indexed activity | Tested locally | No | Accepted only as bounded local adapter contract; complete history remains prohibited. |
-| 04 Pay | Owned receipt and dispute evidence | Tested locally | No | Authorized remote smoke pending secret-managed read credential. |
-| 07 Exchange | Subaccounts, positions, orders, fills, fees, funding, PnL | Finance consumer envelope/pending UI tested | No | Owner contract is not accepted; no Exchange payload is exposed. Await exact versioned read-only owner schema and shared vectors. |
-| 27 DEX | Vault, LP, swaps, fees, IL inputs, redemption | Finance consumer envelope/pending UI tested | No | Owner contract is not accepted; no DEX payload is exposed. Await exact vault/account binding and shared vectors. |
-| 08 Quant Lab | Strategy, mandate, PnL, drawdown, fees, risk and exit | Finance consumer envelope/pending UI tested | No | Owner contract is not accepted; no Quant payload is exposed and Finance does not implement a Quant Engine. |
-| 17 Economics | Issuance, burn, staking, treasury and service fees | Partial Explorer YNXT/staked evidence plus pending consumer envelope | No | Owner contract is not accepted; no issuance, burn, treasury, reserve, APY or market payload is exposed. |
-| 14 AI | Draft categorization, explanations and budgets | Tested locally | No | Provider staging, quota, cost and retention evidence pending. |
-| 13 Monitor | Source, API, recovery and SLO observability | No | No | Request/error IDs, metrics and trace propagation pending. |
-| 26 Data Fabric | Canonical Finance read/audit events | No | No | Event schema and billing boundary pending. |
-| 28 Website | `/finance`, metadata, downloads and SEO | Local web only | No | Public route, functional API and evidence not deployed. |
-| 29 Integration | Shared Testnet freeze and proof | No | No | Cross-product sources and central Wallet are incomplete. |
-| 30 Security/SRE | Secret, backup, artifact and release policy | Authenticated local backup/restore tested | No | HMAC-authenticated recovery is local only; encrypted storage/retention approval, deployed restore drill, RTO/RPO, provenance and production signing remain pending. |
-
-## Explicit rejection conditions
-
-Finance rejects a dependency that:
-
-- treats Testnet, sandbox, simulator, unsigned or local-test-signed output as production;
-- omits source, version, `asOf`, coverage or failure state;
-- allows caller-provided account identity to override Wallet introspection;
-- exposes withdrawal, transfer, signing, owner-change, leverage, risk or treasury mutation;
-- represents a quote, webhook, forecast, AI output or HTTP success as asset settlement;
-- represents YNXT amount as fiat value, market cap, revenue, APY or guaranteed return;
-- silently overwrites historical corrections;
-- uses a mock or placeholder in a production bundle;
-- cannot demonstrate replay, tamper, wrong-account and stale-data rejection.
-
-## Re-evaluation rule
-
-A dependency moves from pending to accepted only after the owner supplies its frozen contract, Finance implements the adapter and negative tests, Integration verifies the shared Testnet flow and the release record points to direct evidence. Documentation alone does not change release status.
+Local acceptance is not central integration, public Testnet proof or production release.

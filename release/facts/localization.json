@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Candidate",
+  "reviewPolicy": "Machine Draft must never be represented as Human Reviewed or Legal Reviewed.",
+  "languages": [
+    {"code": "en", "name": "English", "direction": "ltr", "translationStatus": "Source", "record": "release/locales/en.json"},
+    {"code": "zh-CN", "name": "简体中文", "direction": "ltr", "translationStatus": "Machine Draft", "record": "release/locales/zh-CN.json"},
+    {"code": "zh-TW", "name": "繁體中文", "direction": "ltr", "translationStatus": "Machine Draft", "record": "release/locales/zh-TW.json"},
+    {"code": "ja", "name": "日本語", "direction": "ltr", "translationStatus": "Machine Draft", "record": "release/locales/ja.json"},
+    {"code": "ko", "name": "한국어", "direction": "ltr", "translationStatus": "Machine Draft", "record": "release/locales/ko.json"},
+    {"code": "es", "name": "Español", "direction": "ltr", "translationStatus": "Machine Draft", "record": "release/locales/es.json"},
+    {"code": "fr", "name": "Français", "direction": "ltr", "translationStatus": "Machine Draft", "record": "release/locales/fr.json"},
+    {"code": "de", "name": "Deutsch", "direction": "ltr", "translationStatus": "Machine Draft", "record": "release/locales/de.json"},
+    {"code": "pt", "name": "Português", "direction": "ltr", "translationStatus": "Machine Draft", "record": "release/locales/pt.json"},
+    {"code": "ru", "name": "Русский", "direction": "ltr", "translationStatus": "Machine Draft", "record": "release/locales/ru.json"},
+    {"code": "ar", "name": "العربية", "direction": "rtl", "translationStatus": "Machine Draft", "record": "release/locales/ar.json"},
+    {"code": "id", "name": "Bahasa Indonesia", "direction": "ltr", "translationStatus": "Machine Draft", "record": "release/locales/id.json"}
+  ]
+}

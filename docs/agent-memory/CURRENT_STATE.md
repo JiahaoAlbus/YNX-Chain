@@ -1,78 +1,75 @@
-# YNX Finance current state
+# YNX Resource Market — Current State
 
-Updated: 2026-07-29T02:39:50Z
+- Product: `16` — YNX Resource Market
+- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market`
+- Branch: `codex/final-resource-market`
+- Verified candidate source SHA: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Remote candidate SHA: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Main SHA used for synchronization: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
+- Ahead / Behind against upstream at candidate verification: `0 / 0`
+- Dirty state at candidate verification: clean
+- Phase: `INTEGRATE`
+- Product status: local candidate; not a public, production-signed, or authoritative-settlement release
+- Updated: `2026-07-29T02:54:25Z`
 
-- Product: 24 — YNX Finance
-- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance`
-- Branch: `codex/final-finance`
-- Validated product source SHA: `d2e20f4dcb17012b3d30eae7aa348ab245f37324`
-- Remote source SHA: `d2e20f4dcb17012b3d30eae7aa348ab245f37324`
-- `origin/main` SHA: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
-- Ahead / behind at source checkpoint: `0 / 0`
-- Dirty state at source checkpoint: clean; this recovery metadata is committed separately so the cryptographic source SHA remains stable.
-- Phase: `FREEZE`
+## Latest successful tests
 
-## Latest successful verification
-
-- `go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1`
-- `go test -race ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1`
-- `npm run smoke --prefix apps/finance`
+- `go test -count=1 ./...`
+- `go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct`
+- `go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market`
+- `bash apps/resource-market/check.sh`
 - `bash scripts/validate/no-placeholder-check.sh`
-- `bash scripts/validate/secret-scan.sh`
-- `git diff --check`
-- `release/integration/finance-contract.json` JSON parse
+- `npm audit --audit-level=high` in `apps/resource-market`
+- `npm run test:ui` in `apps/resource-market`
+- `npm sbom --sbom-format spdx` in `apps/resource-market`
 
-## GitHub state
+## GitHub
 
-- Open or historical PR for `codex/final-finance`: none found at this checkpoint.
-- GitHub Actions runs attached to source SHA `d2e20f4d...`: none returned by GitHub at this checkpoint.
-- GitHub Release / production artifact for this SHA: not claimed.
-- Local Android install evidence remains local-test-signed; no production or store signature is claimed.
+- Pull request: `#12` — open and mergeable
+- Resource Market Candidate Gates run: `30417957999` — success against `d683c7d28ce129daad358c84680e5980cf8ad069`
+- General CI run: `30417957996` — success
+- Docs compliance run: `30417958003` — success
+- Resource Market iOS Simulator build: run `30417957987` — success
+- Governance check run `30417957971` was still in progress at this checkpoint and is not counted as successful evidence.
+- Resource Market release: none published
 
-## Latest completed slice
+## Verified completed locally
 
-Privacy-safe observability is implemented and tested:
+- Distinct quote, intent, reservation, execution, metering, settlement, failure, refund and dispute state handling
+- Exact offer-scoped capacity reservations and release integrity
+- Provider self-dealing rejection
+- Checked non-negative signed-64-bit amount arithmetic with fail-before-mutation overflow handling
+- Bounded one-to-one failed-order retry lineage with migration coverage
+- Stable failure/error semantics and cross-product negative vectors
+- Twelve-locale browser boundary, Arabic RTL, responsive and accessibility contracts
+- Android debug install/cold-start evidence
+- iOS Simulator build evidence
+- Portable Linux/macOS DAST smoke harness
+- Candidate binary build metadata, SHA-256 generation, Go dependency inventory and SPDX npm SBOM generation in CI
 
-- validated/generated `X-Request-ID` correlation;
-- stable `YNX-FIN-*` error IDs in headers and JSON;
-- structured JSON access/error logs without financial data, bearer tokens, request bodies, query strings or remote addresses;
-- protected `GET /metrics` using a distinct `YNX_FINANCE_OPERATIONS_KEY`;
-- process-scoped route/status/latency and source-outcome counters;
-- explicit restart reset semantics;
-- runtime, secret template, operator docs, integration contract and product metadata updates.
+## Not completed or not proven
 
-## Public and integration state
+- Central Wallet/Auth and Gateway acceptance
+- Authoritative Chain and Data Fabric settlement
+- Explorer, Monitor and Trust central integration
+- Two independently operated public Testnet providers
+- Real funded Testnet workload, failure, retry, refund and authoritative receipt sequence
+- Public deployment, DNS, health and version endpoints
+- `https://ynxweb4.com/resource-market` deployment and indexability evidence
+- Immutable hosted download, production signing, store release, legal review and external security review
 
-- Central Wallet registry merge: false.
-- Persistent central Gateway deployment: false.
-- Central Monitor metrics ingestion: false.
-- Functional staging deployment: false.
-- Public deployment: false.
-- Public download: false.
-- Website route requested: `/finance` on `https://ynxweb4.com`; deployment not verified and therefore not claimed.
-- Canonical YNX website domain remains `ynxweb4.com`; `huangjeo.com` is not used as the product website.
+## Current risk
 
-## Remaining highest-priority work
-
-1. Define and measure bounded local API SLO/capacity evidence with deterministic fixtures and no user data.
-2. Document unit economics and cost-risk assumptions without inventing production traffic or revenue.
-3. Prepare the central Monitor integration contract for the versioned Finance metrics payload.
-4. Open and validate the Finance PR, then evaluate CI for the exact final branch SHA.
-5. Continue external integration gates only after autonomous evidence work is complete.
-
-## Current risks
-
-- Metrics are process-local and reset on restart; no durable or central observability claim is valid.
-- No PR-triggered CI exists for the source SHA yet.
-- Existing mobile dependency advisories remain unresolved and continue to block production release.
-- Explorer history remains bounded and Pay authorized remote smoke still requires an operator credential.
+The local candidate is strongly tested, but central and public claims must remain false until authoritative deployed evidence exists. PR `#12` must not be described as merged until GitHub records the merge.
 
 ## Evidence
 
-- `internal/finance/observability.go`
-- `internal/finance/observability_test.go`
-- `apps/finance/OPERATIONS.md`
-- `apps/finance/product-release.json`
-- `release/integration/finance-contract.json`
-- `release/finance/public-product-metadata.json`
-- `docs/handoffs/finance.md`
+- `apps/resource-market/product-release.json`
+- `apps/resource-market/public-product-metadata.json`
+- `apps/resource-market/operator-inputs.request.json`
+- `apps/resource-market/FEATURE_COMPLETION_EVIDENCE.md`
+- `apps/resource-market/EVIDENCE_INDEX.md`
+- `.ai-bridge/full-goal-coverage.json`
+- `docs/integration/INTEGRATION_HANDOFF.md`
+- `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`

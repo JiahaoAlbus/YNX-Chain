@@ -1,17 +1,18 @@
-# Last success
+# Last Success
 
-At 2026-07-29T02:39:50Z, YNX Finance completed and pushed the privacy-safe observability source slice at:
+At `2026-07-29T02:53:32Z`, GitHub Actions completed Resource Market Candidate Gates run `30417957999` successfully for source SHA `d683c7d28ce129daad358c84680e5980cf8ad069` on PR `#12`.
 
-`d2e20f4dcb17012b3d30eae7aa348ab245f37324`
+The run directly verified:
 
-Verified results:
+- placeholder and secret gates;
+- Go correctness, Race and Vet gates;
+- `govulncheck` for the Resource Market dependency surface;
+- locked npm install and high-severity audit;
+- Playwright browser tests;
+- local API and DAST smoke on Ubuntu;
+- candidate binary build with VCS metadata;
+- SHA-256 output;
+- Go dependency inventory;
+- SPDX npm SBOM generation.
 
-- targeted Go tests passed;
-- Go race tests passed;
-- Finance Smoke passed, including the security gate across 91 text files and 8/8 product/Web/Wallet contract tests;
-- request ID propagation, invalid-ID replacement, stable error IDs, metrics authentication, source counters, privacy exclusions and restart reset behavior passed dedicated tests;
-- no-placeholder and secret scans passed;
-- `git diff --check` passed;
-- source branch push succeeded and local/remote source SHA matched.
-
-No central integration, staging, public deployment, GitHub Release, production signing or store release is inferred from this local success.
+General CI, docs compliance, and the Resource Market iOS Simulator build also succeeded for the same PR head. No public deployment, authoritative settlement, production signature, hosted download, or release publication was established by these runs.

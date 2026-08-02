@@ -1,16 +1,19 @@
-# YNX Finance Open Questions
+# Open questions and external inputs
 
-These are integration or operator inputs, not reasons to stop autonomous local engineering.
+No ordinary engineering decision is waiting for user confirmation.
 
-1. When will 02 Wallet/Auth merge the exact Finance registry entry and expose a persistent deployed Gateway for installed approval/revoke evidence?
-2. What is the secret-manager reference, not the secret value, for an authorized staging Pay read credential?
-3. Which exact owner contract versions, payload schemas, Wallet-account bindings, provenance fields, read capabilities, error codes and negative vectors will 07 Exchange, 27 DEX, 08 Quant Lab and 17 Economics freeze for `finance-source-read-envelope-v1` consumption?
-4. Will 12 Explorer publish an account-scoped cursor contract so Finance can move beyond latest-100 bounded history?
-5. What deployment environment will provide shared Finance cursor and backup-authentication keys, persistent Gateway replay/revocation storage, TLS and encrypted backed-up state?
-6. What Security/SRE retention policy, isolated restore-drill environment and RTO/RPO targets will govern Finance planning data?
-7. Which reproducible mobile toolchain will restore the local Expo executable and provide Android/iOS bundle, Simulator install and cold-launch evidence?
-8. What is the owner decision for the existing high/moderate Expo/tooling advisories and professional legal/privacy translation review?
-9. Which central Owner will resolve the full-repository Consensus/IDE artifact and Consensus/Faucet/Trust key-permission preflight failures?
-10. Which request/error/metrics schema and privacy constraints will 13 Monitor and 26 Data Fabric accept for Finance observability?
+## Central owner acceptance
 
-No private key, seed, PEM, full API secret, signing asset or production credential should be supplied through chat or committed to the repository.
+- `02-wallet-auth`: accept the Resource Market product client, exact Product Session proof semantics and callback tuple.
+- `01-chain-core` and `26-data-fabric`: provide authoritative settlement finality and billing-ledger acceptance for signed usage.
+- `12-explorer`, `13-monitor` and `15-trust-center`: accept receipt proof, alert/incident and dispute/appeal vectors.
+- `29-integration`: freeze the shared contract and execute all cross-product vectors against deployed Testnet services.
+
+## Public and operator inputs
+
+- Two independently operated public Provider endpoints with real CPU/Developer/Quant/AI workloads.
+- Testnet funding and authorized settlement identity.
+- Website/DNS deployment authority, support/privacy/security/status URLs and production signing assets.
+- Jurisdiction-specific retention, dispute, refund and insurance review.
+
+These inputs block central, Testnet and public verification. No remaining ordinary local engineering decision requires user confirmation; the next action is PR merge followed by central acceptance and deployed Testnet execution.

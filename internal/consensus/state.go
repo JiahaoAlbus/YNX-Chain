@@ -15,7 +15,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-const CommittedStateVersion = 7
+const CommittedStateVersion = 8
 
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
@@ -58,6 +58,8 @@ type CommittedState struct {
 	EVMReceipts                []BFTEVMReceipt                 `json:"evmReceipts"`
 	EVMLogs                    []BFTEVMLog                     `json:"evmLogs"`
 	IDEIdempotency             []BFTIDEIdempotency             `json:"ideIdempotency"`
+	GovernanceExecutions       []BFTGovernanceExecution        `json:"governanceExecutions"`
+	GovernanceExecutionAudit   []BFTGovernanceExecutionAudit   `json:"governanceExecutionAudit"`
 	AppHash                    string                          `json:"appHash"`
 }
 
@@ -98,6 +100,8 @@ type committedStateHashDocument struct {
 	EVMReceipts                []BFTEVMReceipt                 `json:"evmReceipts"`
 	EVMLogs                    []BFTEVMLog                     `json:"evmLogs"`
 	IDEIdempotency             []BFTIDEIdempotency             `json:"ideIdempotency"`
+	GovernanceExecutions       []BFTGovernanceExecution        `json:"governanceExecutions"`
+	GovernanceExecutionAudit   []BFTGovernanceExecutionAudit   `json:"governanceExecutionAudit"`
 }
 
 func initialCommittedState(migration chain.ConsensusMigrationState) CommittedState {
@@ -139,6 +143,8 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		EVMReceipts:                []BFTEVMReceipt{},
 		EVMLogs:                    []BFTEVMLog{},
 		IDEIdempotency:             []BFTIDEIdempotency{},
+		GovernanceExecutions:       []BFTGovernanceExecution{},
+		GovernanceExecutionAudit:   []BFTGovernanceExecutionAudit{},
 		AppHash:                    migration.StateHash,
 	}
 }
@@ -182,6 +188,8 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		EVMReceipts:                cloneBFTEVMReceipts(execution.evmReceipts),
 		EVMLogs:                    cloneBFTEVMLogs(execution.evmLogs),
 		IDEIdempotency:             append([]BFTIDEIdempotency(nil), execution.ideIdempotency...),
+		GovernanceExecutions:       append([]BFTGovernanceExecution(nil), execution.governanceExecutions...),
+		GovernanceExecutionAudit:   append([]BFTGovernanceExecutionAudit(nil), execution.governanceExecutionAudit...),
 	}
 	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() {
 		state.AppHash = migration.StateHash
@@ -280,6 +288,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateIDECommittedState(s); err != nil {
 		return err
 	}
+	if err := validateGovernanceExecutionCommittedState(s); err != nil {
+		return err
+	}
 	if liquid > math.MaxInt64-staked || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
 		return errors.New("committed or migration total YNXT supply overflows int64")
 	}
@@ -302,7 +313,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 
 func (s CommittedState) calculateHash() (string, error) {
 	doc := committedStateHashDocument{
-		Domain:                     "YNX_ABCI_STATE_V7",
+		Domain:                     "YNX_ABCI_STATE_V8",
 		Version:                    s.Version,
 		ChainID:                    s.ChainID,
 		MigrationStateHash:         s.MigrationStateHash,
@@ -338,6 +349,8 @@ func (s CommittedState) calculateHash() (string, error) {
 		EVMReceipts:                s.EVMReceipts,
 		EVMLogs:                    s.EVMLogs,
 		IDEIdempotency:             s.IDEIdempotency,
+		GovernanceExecutions:       s.GovernanceExecutions,
+		GovernanceExecutionAudit:   s.GovernanceExecutionAudit,
 	}
 	payload, err := json.Marshal(doc)
 	if err != nil {
@@ -348,7 +361,7 @@ func (s CommittedState) calculateHash() (string, error) {
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
+	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit) != 0
 }
 
 func validatePayCommittedState(s CommittedState) error {

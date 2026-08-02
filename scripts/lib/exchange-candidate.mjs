@@ -166,10 +166,88 @@ export function buildExchangeCandidateStatus(sources) {
   };
 }
 
+export function buildExchangePublicProductMetadata(sources) {
+  const metadata = sources.metadata.value;
+  return {
+    canonicalUrl: `${metadata.infoURL.replace(/\/+$/, "")}/exchange`,
+    description: "Deterministic YNX Testnet exchange-integration candidate with signed transfer vectors, a verified RPC capability matrix, custody boundaries, and fail-closed confirmation policy.",
+    name: "YNX Exchange Integration",
+    network: {
+      chainId: metadata.chainId,
+      chainIdHex: "0x1917",
+      name: metadata.name,
+      nativeAsset: metadata.nativeCurrency.symbol,
+      testnet: true,
+    },
+    publicEvidence: {
+      candidateRuntimeOperatorControlled: true,
+      independentExchangeVerified: false,
+      liveCheckCommand: "make chainlist-collision-refresh && make exchange-live-check",
+      localCheckCommand: "make exchange-integration-check",
+      packageCheckCommand: "make exchange-package-integrity-check",
+    },
+    routes: {
+      api: "/docs/exchange-listing/CEX_RPC_INTEGRATION_GUIDE",
+      developerDocs: "/docs/exchange-listing/TECHNICAL_INTEGRATION_GUIDE",
+      faq: "/faq",
+      manual: "/docs/guides/EXCHANGE_GUIDE",
+      product: "/exchange",
+      security: "/security",
+      status: "/status",
+      support: "/support",
+    },
+    schema: "ynx-public-product-metadata/v1",
+    status: buildExchangeCandidateStatus(sources),
+    title: "YNX Exchange Integration — Testnet Candidate",
+  };
+}
+
+export function buildExchangeProductRelease(sources) {
+  return {
+    artifacts: [
+      "exchange-status.json",
+      "public-product-metadata.json",
+      "rpc-capabilities.json",
+      "signed-transaction-vectors.json",
+      "ynx-testnet-exchange-profile.json",
+    ],
+    evidence: {
+      deterministicPackage: true,
+      exactReplayTested: true,
+      restartPersistenceTested: true,
+      signedDepositTested: true,
+      signedWithdrawalTested: true,
+      tamperRejectionTested: true,
+    },
+    externalStates: {
+      exchangeListed: false,
+      exchangePartnership: false,
+      exchangeSubmitted: false,
+      independentExchangeVerified: false,
+      mainnet: false,
+      productionCustodyApproved: false,
+      productionSigned: false,
+    },
+    product: "YNX Exchange Integration",
+    release: "1.0.0-testnet-candidate",
+    releaseClass: "testnet-integration-candidate",
+    schema: "ynx-product-release/v1",
+    sourceCommitBoundByManifest: true,
+    testCommands: [
+      "make exchange-vector-check",
+      "make exchange-package-integrity-check",
+      "make exchange-integration-check",
+      "make exchange-live-check",
+    ],
+  };
+}
+
 export function exchangeExpectedBodies(sources) {
   const profile = buildExchangeProfile(sources);
   return new Map([
     ["exchange-status.json", Buffer.from(canonicalJSON(buildExchangeCandidateStatus(sources)))],
+    ["product-release.json", Buffer.from(canonicalJSON(buildExchangeProductRelease(sources)))],
+    ["public-product-metadata.json", Buffer.from(canonicalJSON(buildExchangePublicProductMetadata(sources)))],
     ["rpc-capabilities.json", Buffer.from(canonicalJSON(profile.rpcCapabilities))],
     ["signed-transaction-vectors.json", sources.vectors.body],
     ["ynx-testnet-exchange-profile.json", Buffer.from(canonicalJSON(profile))],

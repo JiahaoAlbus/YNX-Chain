@@ -228,33 +228,32 @@ check_node "silicon-valley" "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HO
 check_node "seoul" "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY" "ynx-chaind" "$SEOUL_VALIDATOR_ADDRESS"
 
 check_replication_convergence() {
-  local primary_status target_height target_hash
-  primary_status="$(ssh -i "$PRIMARY_NODE_SSH_KEY" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$PRIMARY_NODE_USER@$PRIMARY_NODE_HOST" "curl -fsS http://127.0.0.1:6420/status")" || return 1
-  target_height="$(printf '%s' "$primary_status" | node -e 'const x=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(String(x.height ?? ""));')"
-  target_hash="$(printf '%s' "$primary_status" | node -e 'const x=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(String(x.latestBlockHash ?? ""));')"
-  [[ "$target_height" =~ ^[0-9]+$ && -n "$target_hash" ]] || return 1
-
   check_replica() {
-    local role="$1" user="$2" host="$3" key="$4" block="" identity="" observed_hash="" write_code=""
+    local role="$1" user="$2" host="$3" key="$4" identity="" observed="" observed_height="" observed_hash="" replica_block="" replica_hash="" primary_block="" primary_hash="" write_code=""
     for _ in {1..20}; do
-      block="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -fsS http://127.0.0.1:6420/blocks/$target_height" 2>/dev/null || true)"
-      observed_hash="$(printf '%s' "$block" | node -e 'let x={}; try{x=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{} process.stdout.write(String(x.hash ?? ""));')"
-      [[ "$observed_hash" == "$target_hash" ]] && break
+      identity="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -fsS http://127.0.0.1:6420/node/identity" 2>/dev/null || true)"
+      observed="$(printf '%s' "$identity" | node -e 'let x={}; try{x=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{} const r=x.replication||{}; const ok=x.blockProductionEnabled===false && x.replicationMode==="authoritative_follower" && String(x.replicationSource||"").includes("'"$PRIMARY_NODE_HOST"':6420") && r.configured===true && r.status==="synced" && r.catchingUp===false && r.fresh===true && Number.isSafeInteger(r.localHeight) && r.localHeight>0 && r.localHeight===r.sourceHeight && typeof r.localBlockHash==="string" && r.localBlockHash.length>0 && r.localBlockHash===r.sourceBlockHash; if(ok) process.stdout.write(`${r.localHeight}\t${r.localBlockHash}`);')"
+      IFS=$'\t' read -r observed_height observed_hash <<<"$observed"
+      if [[ "$observed_height" =~ ^[0-9]+$ && -n "$observed_hash" ]]; then
+        replica_block="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -fsS http://127.0.0.1:6420/blocks/$observed_height" 2>/dev/null || true)"
+        replica_hash="$(printf '%s' "$replica_block" | node -e 'let x={}; try{x=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{} process.stdout.write(String(x.hash ?? ""));')"
+        primary_block="$(ssh -i "$PRIMARY_NODE_SSH_KEY" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$PRIMARY_NODE_USER@$PRIMARY_NODE_HOST" "curl -fsS http://127.0.0.1:6420/blocks/$observed_height" 2>/dev/null || true)"
+        primary_hash="$(printf '%s' "$primary_block" | node -e 'let x={}; try{x=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{} process.stdout.write(String(x.hash ?? ""));')"
+        [[ "$replica_hash" == "$observed_hash" && "$primary_hash" == "$observed_hash" ]] && break
+      fi
       sleep 1
     done
-    [[ "$observed_hash" == "$target_hash" ]] || { echo "replicationConvergence.$role=failed target=$target_height/$target_hash observed=$observed_hash"; return 1; }
-    identity="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -fsS http://127.0.0.1:6420/node/identity")" || return 1
-    printf '%s' "$identity" | node -e 'const x=JSON.parse(require("fs").readFileSync(0,"utf8")); if (x.blockProductionEnabled !== false || x.replicationMode !== "authoritative_follower" || !String(x.replicationSource||"").includes("'"$PRIMARY_NODE_HOST"':6420")) process.exit(1);' || return 1
+    [[ "$replica_hash" == "$observed_hash" && "$primary_hash" == "$observed_hash" ]] || { echo "replicationConvergence.$role=failed lifecycle-or-canonical-hash"; return 1; }
     write_code="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{\"address\":\"ynx_replica_write_probe\",\"amount\":1}' http://127.0.0.1:6420/faucet")" || return 1
     [[ "$write_code" == "409" ]] || { echo "replicationReadOnly.$role=failed HTTP=$write_code"; return 1; }
-    echo "replicationConvergence.$role=ok height=$target_height hash=$target_hash"
+    echo "replicationConvergence.$role=ok height=$observed_height hash=$observed_hash"
     echo "replicationReadOnly.$role=ok HTTP=409"
   }
 
   check_replica singapore "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY" || return 1
   check_replica silicon-valley "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY" || return 1
   check_replica seoul "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY" || return 1
-  echo "replicationConvergence=passed height=$target_height hash=$target_hash"
+  echo "replicationConvergence=passed"
 }
 
 if check_replication_convergence | tee -a "$report"; then

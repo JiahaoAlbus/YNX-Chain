@@ -1,0 +1,32 @@
+name: Trust Resource Native Preview
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/trust-center/mobile/**'
+      - 'apps/resource-market/mobile/**'
+      - '.github/workflows/trust-resource-native-preview.yml'
+
+jobs:
+  ios-simulator-build:
+    runs-on: macos-15
+    strategy:
+      matrix:
+        include:
+          - project: apps/trust-center/mobile/ios/YNXTrust.xcodeproj
+            scheme: YNXTrust
+          - project: apps/resource-market/mobile/ios/YNXResource.xcodeproj
+            scheme: YNXResource
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build unsigned Simulator app
+        run: >-
+          xcodebuild
+          -project "${{ matrix.project }}"
+          -scheme "${{ matrix.scheme }}"
+          -configuration Debug
+          -sdk iphonesimulator
+          -derivedDataPath "$RUNNER_TEMP/derived-${{ matrix.scheme }}"
+          CODE_SIGNING_ALLOWED=NO
+          build

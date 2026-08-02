@@ -1,189 +1,141 @@
 {
   "schemaVersion": 1,
-  "product": "YNX Finance",
-  "contractVersion": "finance-read-v1",
-  "sourceCommit": "592195a1a4c5bed434d984482a1e87202de213ce",
+  "contractVersion": "resource-market-integration-v1",
+  "product": "ynx-resource-market",
+  "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
   "vectors": [
     {
-      "id": "FIN-WALLET-PRODUCT-TAMPER",
-      "dependencyOwner": "02-wallet-auth",
-      "precondition": "Central introspection returns a session whose bundle or product differs from the Finance registry tuple.",
-      "request": "GET /api/portfolio with the tampered session",
-      "expectedStatus": 401,
-      "expectedCode": "session_rejected",
-      "expectedInvariant": "No upstream source is queried and no account data is returned.",
-      "automatedEvidence": "internal/finance/finance_test.go:TestCentralSessionFailsClosedOnProductTamper"
+      "id": "RM-AUTH-WRONG-PRODUCT-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "16-resource-market"],
+      "precondition": "A valid product-session proof was issued for a different requestingProduct or productClientId.",
+      "action": "Submit the proof to POST /api/market/actions.",
+      "expectedHttpStatus": 401,
+      "expectedCode": "RESOURCE_REQUEST_REJECTED",
+      "expectedState": "no mutation; proof not accepted for Resource Market",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-EXPLORER-HEALTH-UNAVAILABLE",
-      "dependencyOwner": "12-explorer",
-      "precondition": "Explorer /health is unavailable or non-2xx.",
-      "request": "GET /api/portfolio with a valid Finance session",
-      "expectedStatus": 200,
-      "expectedSourceState": {
-        "explorerStatus.available": false,
-        "explorerStatus.syncStatus": "unavailable",
-        "balanceYnxt": 0,
-        "activity": []
-      },
-      "expectedInvariant": "Unavailable Explorer evidence never becomes a fake zero-balance claim or synthetic activity.",
-      "automatedEvidence": "internal/finance/finance_test.go:TestUnavailableSourcesStayUnavailableAndOriginFailsClosed"
+      "id": "RM-AUTH-REPLAY-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "16-resource-market"],
+      "precondition": "A valid exact-method/path/body product-session proof has already been consumed once.",
+      "action": "Replay the same proof against the same request.",
+      "expectedHttpStatus": 401,
+      "expectedCode": "RESOURCE_REQUEST_REJECTED",
+      "expectedState": "no second mutation; replay set remains persisted",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-EXPLORER-NATIVE-MISMATCH",
-      "dependencyOwner": "12-explorer",
-      "precondition": "Explorer /health reports ok=true but a native symbol other than YNXT.",
-      "request": "Build Portfolio for the authorized account",
-      "expectedSourceState": {
-        "explorerStatus.available": false,
-        "explorerStatus.error": "Explorer health failed network or native-asset validation"
-      },
-      "expectedInvariant": "Finance does not accept balances or activity from a source with mismatched asset identity.",
-      "automatedEvidence": "required follow-up unit vector"
+      "id": "RM-SETTLEMENT-PREMATURE-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "16-resource-market"],
+      "precondition": "Order is accepted, capacity_reserved, service_started, metered_usage or service_completed but not settlement_pending.",
+      "action": "Settlement authority submits confirm_settlement.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_STATE_INVALID",
+      "expectedState": "order state unchanged; no receipt created; capacity not released",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-EXPLORER-ACCOUNT-MISMATCH",
-      "dependencyOwner": "12-explorer",
-      "precondition": "Explorer account response address differs from the normalized Wallet-authorized account.",
-      "request": "Build Portfolio for the authorized account",
-      "expectedSourceState": {
-        "explorerStatus.available": false,
-        "explorerStatus.error": "Explorer returned evidence for a different account"
-      },
-      "expectedInvariant": "Caller input or upstream substitution cannot switch portfolio identity.",
-      "automatedEvidence": "required follow-up unit vector"
+      "id": "RM-SETTLEMENT-RECONCILE-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "16-resource-market", "26-data-fabric"],
+      "precondition": "Order is settlement_pending with signed metering totals.",
+      "action": "Settlement authority submits a receipt whose grossCost, providerNet or protocolFee differs from signed metering.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_RECONCILIATION",
+      "expectedState": "order remains settlement_pending; no receipt created; reserved capacity retained",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-ACTIVITY-CURSOR-TAMPER",
-      "dependencyOwner": "24-finance",
-      "precondition": "A valid activity cursor has one encoded character changed.",
-      "request": "GET /api/activity?cursor={tampered}",
-      "expectedStatus": 400,
-      "expectedCode": "invalid_cursor",
-      "expectedInvariant": "No page is returned from a cursor without a valid HMAC-SHA-256 signature.",
-      "automatedEvidence": "internal/finance/finance_test.go:TestOverviewPersistenceExportAndAIReview"
+      "id": "RM-SETTLEMENT-REPLAY-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "12-explorer", "16-resource-market", "26-data-fabric"],
+      "precondition": "A normalized transaction hash has already been consumed by an existing Resource Market receipt.",
+      "action": "Settlement authority submits the same transaction hash with different case or surrounding whitespace for another order.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_REPLAY",
+      "expectedEngineErrorContains": "already consumed",
+      "expectedState": "second order remains settlement_pending; no second receipt created; no double capacity release",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-ACTIVITY-CURSOR-WRONG-ACCOUNT",
-      "dependencyOwner": "24-finance",
-      "precondition": "A valid cursor issued to Wallet account A is presented with a valid session for account B.",
-      "request": "GET /api/activity?cursor={accountA-cursor}",
-      "expectedStatus": 400,
-      "expectedCode": "invalid_cursor",
-      "expectedInvariant": "Cursor payload and current Wallet account must match exactly.",
-      "automatedEvidence": "required follow-up unit vector"
+      "id": "RM-METER-TAMPER-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "Provider worker key is active and a canonical meter payload was signed.",
+      "action": "Change quantity, interval, order, provider, source or signature before record_usage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_PROOF_REJECTED",
+      "expectedState": "no meter, billing event or order transition",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-ACTIVITY-CURSOR-STALE-SNAPSHOT",
-      "dependencyOwner": "24-finance / 12-explorer",
-      "precondition": "The activity IDs or timestamps change after a cursor is issued.",
-      "request": "GET /api/activity?cursor={old-snapshot-cursor}",
-      "expectedStatus": 400,
-      "expectedCode": "invalid_cursor",
-      "expectedInvariant": "Pagination restarts rather than mixing records from different source snapshots.",
-      "automatedEvidence": "required follow-up unit vector"
+      "id": "RM-METER-OVERLAP-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "At least one signed usage interval is already accepted for the order.",
+      "action": "Submit another interval that overlaps any accepted interval or begins before evidenced service start.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_METER_WINDOW_INVALID",
+      "expectedState": "no additional meter or billing event; accepted usage remains unchanged",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-PAY-CREDENTIAL-MISSING",
-      "dependencyOwner": "04-pay",
-      "precondition": "Pay URL is not configured or the server-side read key is unavailable.",
-      "request": "GET /api/portfolio with a valid Finance session",
-      "expectedStatus": 200,
-      "expectedSourceState": {
-        "payStatus.available": false,
-        "payStatus.syncStatus": "not-configured",
-        "payReceipts": []
-      },
-      "expectedInvariant": "Finance never inserts a placeholder receipt or claims settlement.",
-      "automatedEvidence": "internal/finance/upstream.go and remote unauthorized smoke"
+      "id": "RM-METER-LIMIT-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "The order already contains one or more accepted signed usage segments.",
+      "action": "Submit a segment that makes cumulative usage exceed ordered units or breaks cumulative fee lineage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_METER_LIMIT",
+      "expectedState": "no additional meter; cumulative quantity and fee totals remain bounded",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-PAY-UNOWNED-EVENT",
-      "dependencyOwner": "04-pay",
-      "precondition": "Pay returns a valid event whose payer, merchant, buyer, seller, signer, from, to and account fields do not match the Wallet account.",
-      "request": "Build Portfolio for the authorized account",
-      "expectedStatus": 200,
-      "expectedInvariant": "The event is omitted from payReceipts.",
-      "automatedEvidence": "internal/finance/finance_test.go:TestOverviewPersistenceExportAndAIReview"
+      "id": "RM-MATCH-SELF-DEAL-001",
+      "category": "matching",
+      "owners": ["16-resource-market", "29-integration"],
+      "precondition": "The authenticated buyer wallet is the wallet that owns the selected provider offer.",
+      "action": "Create a fixed-price quote or submit an auction bid for the provider's own capacity.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SELF_DEALING_REJECTED",
+      "expectedState": "no quote, bid, order, reservation, usage or settlement mutation",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-AI-WITHOUT-CONSENT",
-      "dependencyOwner": "14-ai / 24-finance",
-      "precondition": "AI draft request lacks explicit consent or requests records not owned by the Wallet account.",
-      "request": "POST /api/ai/jobs",
-      "expectedStatus": 503,
-      "expectedCode": "ai_unavailable",
-      "expectedInvariant": "No private source context is sent and no financial action occurs.",
-      "automatedEvidence": "internal/finance/service and AI tests"
+      "id": "RM-CAPACITY-OFFER-SCOPE-001",
+      "category": "capacity",
+      "owners": ["16-resource-market", "29-integration"],
+      "precondition": "One provider publishes two offers for the same resource and the first offer is fully reserved while the second retains capacity.",
+      "action": "Request or reserve additional units against the exhausted first offer.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_CAPACITY_UNAVAILABLE",
+      "expectedState": "the exhausted offer remains unavailable; sibling offer capacity is not borrowed; existing reservations remain unchanged",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-READ-SOURCE-OWNER-PENDING",
-      "dependencyOwner": "07-exchange / 27-dex / 08-quant-lab / 17-tokenomics / 29-integration",
-      "precondition": "No exact owner payload contract has been frozen and explicitly accepted by Finance.",
-      "request": "GET /api/sources or GET /api/portfolio with a valid Finance session",
-      "expectedStatus": 200,
-      "expectedSourceState": {
-        "ownerContractAccepted": false,
-        "status.available": false,
-        "status.syncStatus": "owner-contract-pending",
-        "action.configured": false
-      },
-      "expectedInvariant": "No balance, position, PnL, APY, supply or fee payload is inferred while the owner contract is pending.",
-      "automatedEvidence": "internal/finance/read_sources_test.go:TestReadSourcesStayPendingWithoutOwnerContracts and internal/finance/finance_test.go"
+      "id": "RM-BILLING-OVERFLOW-001",
+      "category": "billing-integrity",
+      "owners": ["16-resource-market", "26-data-fabric", "29-integration"],
+      "precondition": "A requested quote, auction allocation, signed meter aggregation, settlement aggregation or dispute refund calculation would exceed the non-negative signed 64-bit amount range.",
+      "action": "Execute the affected market action with an authenticated product session and otherwise valid lineage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_AMOUNT_OUT_OF_RANGE",
+      "expectedState": "no quote, bid clearing, meter, receipt, refund, reservation release or dispute decision mutation",
+      "publicClaimAllowed": false
     },
     {
-      "id": "FIN-READ-SOURCE-WRONG-BINDING",
-      "dependencyOwner": "source owner / 24-finance / 29-integration",
-      "precondition": "An otherwise valid envelope changes the authorized account, network, native asset, owner, owner contract version or payload schema.",
-      "request": "Validate the owner payload through finance-source-read-envelope-v1",
-      "expectedStatus": "rejected",
-      "expectedInvariant": "Finance never exposes evidence whose account, chain, asset, owner or version binding differs from the accepted contract.",
-      "automatedEvidence": "internal/finance/read_sources_test.go:TestValidateReadSourceEnvelopeFailsClosed"
-    },
-    {
-      "id": "FIN-READ-SOURCE-MUTATION-DISGUISE",
-      "dependencyOwner": "source owner / 24-finance",
-      "precondition": "A capability such as exchange.withdraw.execute.read or quant.mandate.write.read ends with read but contains mutation semantics.",
-      "request": "Validate the accepted contract or source envelope",
-      "expectedStatus": "rejected",
-      "expectedInvariant": "A .read suffix cannot grant signing, execution, write, control, approval, pause, revoke or settlement authority.",
-      "automatedEvidence": "internal/finance/read_sources_test.go:TestValidateReadSourceEnvelopeFailsClosed and TestAcceptedContractCannotDeclareMutationCapability"
-    },
-    {
-      "id": "FIN-READ-SOURCE-PROVENANCE-TAMPER",
-      "dependencyOwner": "source owner / 24-finance",
-      "precondition": "The envelope contains an unknown field, future asOf time, incomplete provenance, duplicate capability or empty payload.",
-      "request": "Validate the owner payload through finance-source-read-envelope-v1",
-      "expectedStatus": "rejected",
-      "expectedInvariant": "Malformed or ambiguous provenance cannot become an available Finance source.",
-      "automatedEvidence": "internal/finance/read_sources_test.go:TestValidateReadSourceEnvelopeFailsClosed"
-    },
-    {
-      "id": "FIN-READ-SOURCE-UNSAFE-ACTION-URL",
-      "dependencyOwner": "24-finance / source owner",
-      "precondition": "An operator configures HTTP, javascript or credential-bearing owner navigation URL.",
-      "request": "Configure the Finance source action registry",
-      "expectedStatus": "rejected or omitted",
-      "expectedInvariant": "Only reviewed absolute HTTPS navigation is exposed; an action URL never configures a data adapter or marks a source available.",
-      "automatedEvidence": "internal/finance/read_sources_test.go:TestReadSourcesStayPendingWithoutOwnerContracts and apps/finance/tests/read-sources-web.test.mjs"
-    },
-    {
-      "id": "FIN-EXCHANGE-WITHDRAWAL-CAPABILITY",
-      "dependencyOwner": "07-exchange",
-      "precondition": "An Exchange integration proposes a credential or method with withdrawal execution, owner-change or address-management authority.",
-      "request": "Dependency acceptance review",
-      "expectedStatus": "rejected",
-      "expectedInvariant": "Finance accepts withdrawal records as read evidence only and never receives execution credentials.",
-      "automatedEvidence": "internal/finance/read_sources_test.go:TestValidateReadSourceEnvelopeFailsClosed"
-    },
-    {
-      "id": "FIN-QUANT-EXECUTION-CAPABILITY",
-      "dependencyOwner": "08-quant-lab",
-      "precondition": "A Quant integration attempts deployment, trade placement, leverage/risk-limit change or mandate mutation from Finance.",
-      "request": "Dependency acceptance review",
-      "expectedStatus": "rejected",
-      "expectedInvariant": "Finance renders read-only evidence and navigation to the owner product; it never becomes a Quant Engine or signer.",
-      "automatedEvidence": "internal/finance/read_sources_test.go:TestAcceptedContractCannotDeclareMutationCapability"
+      "id": "RM-FAILURE-NO-FAKE-REFUND-001",
+      "category": "failure-dispute",
+      "owners": ["15-trust-center", "16-resource-market", "26-data-fabric"],
+      "precondition": "Provider reports failure for an active reserved order.",
+      "action": "Observe order, receipt and dispute state before an independently evidenced final decision and authoritative refund transaction.",
+      "expectedHttpStatus": 200,
+      "expectedCode": null,
+      "expectedState": "order becomes provider_failed; reservation releases; no receipt or refund is fabricated; dispute may be opened",
+      "publicClaimAllowed": true
     }
   ]
 }

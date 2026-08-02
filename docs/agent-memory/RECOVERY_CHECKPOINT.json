@@ -1,61 +1,99 @@
 {
   "schemaVersion": "1.0",
-  "productNumber": "24",
-  "productName": "YNX Finance",
-  "phase": "FREEZE",
-  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
-  "branch": "codex/final-finance",
-  "localSha": "d2e20f4dcb17012b3d30eae7aa348ab245f37324",
-  "remoteSha": "d2e20f4dcb17012b3d30eae7aa348ab245f37324",
+  "productNumber": "16",
+  "productName": "YNX Resource Market",
+  "phase": "INTEGRATE",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market",
+  "branch": "codex/final-resource-market",
+  "localSha": "d683c7d28ce129daad358c84680e5980cf8ad069",
+  "remoteSha": "d683c7d28ce129daad358c84680e5980cf8ad069",
   "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
   "dirty": false,
   "ahead": 0,
   "behind": 0,
   "latestSuccessfulTests": [
-    "go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1",
-    "go test -race ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1",
-    "npm run smoke --prefix apps/finance",
+    "go test -count=1 ./...",
+    "go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct",
+    "go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market",
+    "bash apps/resource-market/check.sh",
     "bash scripts/validate/no-placeholder-check.sh",
-    "bash scripts/validate/secret-scan.sh",
-    "git diff --check"
+    "npm audit --audit-level=high (apps/resource-market)",
+    "npm run test:ui (apps/resource-market)",
+    "npm sbom --sbom-format spdx (apps/resource-market)"
   ],
-  "latestCiRuns": [],
-  "pullRequests": [],
+  "latestCiRuns": [
+    {
+      "id": 30417957999,
+      "workflow": "Resource Market Candidate Gates",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417957996,
+      "workflow": "ci",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417958003,
+      "workflow": "docs-compliance",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417957987,
+      "workflow": "Trust Resource Native Preview",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417957971,
+      "workflow": "governance",
+      "status": "in_progress_at_checkpoint",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    }
+  ],
+  "pullRequests": [
+    {
+      "number": 12,
+      "state": "OPEN",
+      "mergeable": true,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/12",
+      "headSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    }
+  ],
   "release": null,
-  "artifacts": [
-    {
-      "type": "local-android-apk",
-      "productionSigned": false,
-      "sha256": "37208e56e96357371b19afc290d82d68adf1f0596213dbcd777341a949915f4e"
-    }
-  ],
-  "publicRoutes": [
-    {
-      "url": "https://ynxweb4.com/finance",
-      "deployedPublic": false,
-      "verified": false
-    }
-  ],
+  "artifacts": [],
+  "publicRoutes": [],
   "completed": [
-    "recovered real worktree and branch identity",
-    "protected and pushed prior source-contract work",
-    "implemented privacy-safe request correlation and stable error IDs",
-    "implemented structured JSON access/error logs",
-    "implemented protected process-scoped finance-metrics-v1 endpoint",
-    "tested metrics privacy, authentication, source outcomes and restart reset",
-    "updated operations, secret inventory, integration and public metadata"
+    "main-synchronized candidate",
+    "offer-scoped capacity reservation integrity",
+    "provider self-dealing rejection",
+    "checked amount arithmetic",
+    "bounded retry lineage",
+    "twelve-locale browser and accessibility boundary",
+    "portable local API and DAST smoke",
+    "candidate SHA-256 and dependency inventory generation",
+    "SPDX npm SBOM generation",
+    "Android debug install and cold start evidence",
+    "iOS Simulator build evidence"
   ],
   "remaining": [
-    "bounded local SLO and capacity evidence",
-    "unit economics and cost-risk disclosure",
-    "central Monitor integration contract and acceptance",
-    "pull request and exact-SHA CI validation",
-    "central Wallet integration",
-    "authorized Pay receipt smoke",
-    "staging and public deployment",
-    "production signing and store release"
+    "merge PR 12",
+    "central integration acceptance",
+    "two independent Testnet providers",
+    "authoritative public settlement and refund evidence",
+    "restart recovery on deployed services",
+    "public deployment and ynxweb4.com resource-market route",
+    "immutable hosted artifact and production signing",
+    "legal and external security review"
   ],
-  "blockers": [],
-  "nextAction": "Create a deterministic account-free Finance API capacity harness, record local p50/p95/p99 latency and throughput, and publish apps/finance/SLO_CAPACITY_PLAN.md without claiming production capacity.",
-  "updatedAt": "2026-07-29T02:39:50Z"
+  "blockers": [
+    "RM-BLOCK-001 central integration acceptance",
+    "RM-BLOCK-002 independent Testnet providers and funded settlement",
+    "RM-BLOCK-003 public deployment and website closure",
+    "RM-BLOCK-004 production signing and professional review"
+  ],
+  "nextAction": "After PR 12 is merged, submit the frozen integration contract and vectors to Product 29, then execute the complete success and failure/recovery sequence with two independent Testnet providers and authoritative settlement.",
+  "updatedAt": "2026-07-29T02:54:25Z"
 }

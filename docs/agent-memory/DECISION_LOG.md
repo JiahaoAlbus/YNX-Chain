@@ -1,25 +1,25 @@
-# Decision log
+# Decision Log
 
-## 2026-07-29 — Finance observability remains privacy-minimal
+## 2026-07-29 — Synchronize with current main before further release work
 
-Decision: collect route-level operational telemetry only. Logs and metrics exclude Wallet accounts, bearer tokens, request bodies, query strings, balances, activity, notes, budgets and remote addresses.
+Merged `origin/main` at `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc` into `codex/final-resource-market`. Product-owned `.ai-bridge` recovery state was retained; the shared root operator-input registry remained owned by main; Resource Market-specific operator inputs were moved to `apps/resource-market/operator-inputs.request.json`.
 
-Reason: Finance handles sensitive personal financial evidence. Correlation and reliability data are necessary, but user-level telemetry is not required for the current reliability objectives.
+Rationale: the branch was 78 commits behind main and a release candidate without current shared runtime/governance/monitoring changes would not be integration-ready.
 
-## 2026-07-29 — Metrics fail closed behind a distinct secret
+## 2026-07-29 — Preserve stricter placeholder detection with portable fallback
 
-Decision: protect `GET /metrics` with `X-YNX-Operations-Key`, sourced from mandatory `YNX_FINANCE_OPERATIONS_KEY` with a 32-character minimum.
+The merged `scripts/validate/no-placeholder-check.sh` keeps the Resource Market branch's broader fake-claim patterns and `.github`/`apps` coverage, while retaining main's `grep` fallback. Generated dependency/build directories are excluded from both scanners.
 
-Reason: operational telemetry should not be a public product API, and the credential must not reuse Wallet, Pay, AI, cursor, backup or signing secrets.
+Rationale: scan source and controlled documentation, not third-party package examples; fail on scanner errors instead of silently succeeding.
 
-## 2026-07-29 — Counters are explicitly process-scoped
+## 2026-07-29 — Treat local and public states separately
 
-Decision: in-memory counters include process instance, start time and restart-reset language. No persistence or central Monitor integration is claimed.
+`implementedLocal`/component evidence may be recorded only for directly tested local behavior. Central integration, public deployment, authoritative settlement, hosted download, production signing and store release remain false.
 
-Reason: truthfully exposing the lifecycle is safer than implying continuity that the runtime does not provide.
+Rationale: PR, CI, local smoke, handoff creation, and HTTP fixtures are not equivalent to deployed authority or public availability.
 
-## 2026-07-29 — Stable errors are class identifiers, not incident secrets
+## 2026-07-29 — Bind release evidence to tested source, not the later metadata commit
 
-Decision: map public error codes deterministically to `YNX-FIN-*`; pair each response with a request ID.
+`apps/resource-market/product-release.json` and public metadata bind source SHA `d683c7d28ce129daad358c84680e5980cf8ad069`, the exact candidate tested by successful GitHub Actions run `30417957999`. The subsequent checkpoint/evidence commit is administrative and must not replace the tested source identity.
 
-Reason: operators can aggregate failure classes and correlate one request without exposing stack traces, internal credentials or user financial data.
+Rationale: avoids circular self-referential metadata and preserves a verifiable source-to-CI relationship.
