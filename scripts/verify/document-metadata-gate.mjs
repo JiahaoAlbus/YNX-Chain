@@ -19,6 +19,12 @@ const allowedAuthorityClasses = new Set([
   "privacy-draft",
   "acceptable-use-draft",
   "staking-safety-framework",
+  "trading-core-framework",
+  "wallet-auth-mandate",
+  "bridge-oracle-data-fabric",
+  "quant-risk-framework",
+  "trust-market-integrity",
+  "product-architecture",
 ]);
 
 function normalize(value) {

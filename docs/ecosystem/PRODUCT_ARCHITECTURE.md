@@ -1,5 +1,16 @@
 # YNX Ecosystem Product Architecture
 
+| Metadata | Value |
+| --- | --- |
+| Version | 0.1.0-candidate |
+| Effective date | 2026-07-29 |
+| Source commit | `759c545367faf66a5168d9cf5b3cf64e0057233d` |
+| Accepted central source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-29 |
+| Superseded version | None |
+| Review status | Portfolio architecture and delivery contract; product rows preserve incomplete, candidate and non-launched boundaries |
+
 ## Product rule
 
 YNX Chain is a full-stack blockchain ecosystem made of distinct products, not one overloaded super App. Wallet is a wallet, Social is a social network, Exchange is an exchange, Shop is commerce, and Monitor is an operator tool. Each product has its own package, bundle identifier, navigation, release evidence, security scopes, and product-appropriate icon.
@@ -82,3 +93,7 @@ A product is visible as usable only after all applicable items exist:
 8. Explicit incomplete and external-approval boundaries.
 
 This architecture is a delivery contract. It does not claim that complete Social, Wallet, Pay, Exchange, Shop, Developer, AI, Monitor, Trust Center, Resource Market, or Browser products are already launched.
+
+## Change log
+
+- 0.1.0-candidate (2026-07-29): Added the versioned portfolio architecture authority tuple and preserved per-product candidate, incomplete and non-launched delivery boundaries.

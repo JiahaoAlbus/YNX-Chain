@@ -1,10 +1,15 @@
 # Trading Core, UltraLiquidity, and FairFlow
 
-Version: 0.1.0-candidate  
-Effective date: not effective  
-Last reviewed: 2026-07-22  
-Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`  
-Product release: research and interface specification; no deployed trading venue
+| Metadata | Value |
+| --- | --- |
+| Version | 0.1.1-candidate |
+| Effective date | 2026-07-29 |
+| Source commit | `759c545367faf66a5168d9cf5b3cf64e0057233d` |
+| Accepted central source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-29 |
+| Superseded version | 0.1.0-candidate |
+| Review status | Research and interface disclosure; no deployed exchange, DEX, shared-liquidity network or production matching engine |
 
 ## Direct answer
 
@@ -53,4 +58,5 @@ Activation requires reviewed custody/mandate contracts, provider approvals, dete
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-29): Normalized the seven-field authority tuple, preserved the accepted central source, and made the non-live trading-venue boundary explicit.
 - 0.1.0-candidate: established truthful non-live boundary and candidate lifecycle.
