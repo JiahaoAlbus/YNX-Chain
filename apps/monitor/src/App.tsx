@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { can, login, request, type Session } from "./api";
 import { localeNames, locales, type Locale, useI18n } from "./i18n";
+import ynxLogo from "../../../assets/brand/ynx-logo.png";
 
 interface Probe {
   id: string;
@@ -66,6 +67,13 @@ interface Audit {
   action: string;
   target: string;
   outcome: string;
+}
+interface PublicStatus {
+  availability: "available";
+  status: string;
+  asOf: string;
+  message?: string;
+  services: Array<{ id: string; name: string; status: string; asOf: string; message?: string }>;
 }
 const views = [
   "Overview",
@@ -409,6 +417,19 @@ function Login({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [publicStatus, setPublicStatus] = useState<PublicStatus>();
+  const [publicStatusError, setPublicStatusError] = useState("");
+  useEffect(() => {
+    let active = true;
+    fetch("/status", { headers: { accept: "application/json" } })
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok || body.availability !== "available") throw new Error(body.error || `HTTP ${response.status}`);
+        if (active) setPublicStatus(body as PublicStatus);
+      })
+      .catch((reason) => active && setPublicStatusError(reason instanceof Error ? reason.message : "public_status_unavailable"));
+    return () => { active = false; };
+  }, []);
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -425,7 +446,7 @@ function Login({
     <main className="login-shell">
       <section className="login-context">
         <div className="monitor-brand large">
-          <span>Y</span>
+          <img src={ynxLogo} alt="" />
           <div>
             YNX<strong>MONITOR</strong>
           </div>
@@ -442,6 +463,18 @@ function Login({
           <li>Operator: record and approve bounded workflow state</li>
           <li>Infrastructure execution remains outside this product</li>
         </ul>
+        <section className="public-status-panel" aria-live="polite">
+          <div><span>PUBLIC TESTNET STATUS</span><strong>{publicStatus?.status || (publicStatusError ? "unavailable" : "checking")}</strong></div>
+          {publicStatus ? (
+            <>
+              <p>{publicStatus.message || "Current approved public probe projection."}</p>
+              <div className="public-service-list">
+                {publicStatus.services.map((service) => <div key={service.id}><span>{service.name}</span><strong className={`public-service ${service.status}`}>{service.status.replaceAll("_", " ")}</strong></div>)}
+              </div>
+              <small>As of {new Date(publicStatus.asOf).toLocaleString()} · process health and owner facts remain separate.</small>
+            </>
+          ) : <p>{publicStatusError || "Loading signed, approved public evidence…"}</p>}
+        </section>
       </section>
       <form className="login-card" onSubmit={submit}>
         <div className="login-locales">

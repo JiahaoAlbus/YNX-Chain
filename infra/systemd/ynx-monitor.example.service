@@ -1,0 +1,25 @@
+[Unit]
+Description=YNX Monitor Testnet control plane
+After=network-online.target ynx-chaind.service ynx-indexerd.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/ynx-monitor/current/apps/monitor
+EnvironmentFile=/etc/ynx/ynx-monitor.env
+ExecStartPre=/usr/bin/node scripts/publish-public-status.mjs
+ExecStart=/usr/bin/node --import tsx server/index.ts
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
+LimitNOFILE=65536
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-monitor
+
+[Install]
+WantedBy=multi-user.target

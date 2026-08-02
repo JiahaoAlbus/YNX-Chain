@@ -65,6 +65,7 @@ export function loadUsers():UserConfig[] {
     if(new Set(users.map(user=>user.username)).size!==users.length)throw new Error('YNX_MONITOR_USERS usernames must be unique');
     return users;
   }
+  if(process.env.YNX_MONITOR_DISABLE_PASSWORD_LOGIN==='1')return [];
   if(process.env.YNX_MONITOR_DEV_USERS==='1') return [
     {username:'operator',role:'operator',passwordHash:hashPassword('operator-local')},
     {username:'viewer',role:'viewer',passwordHash:hashPassword('viewer-local')},

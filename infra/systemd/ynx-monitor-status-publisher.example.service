@@ -1,0 +1,17 @@
+[Unit]
+Description=Publish bounded YNX Monitor public Testnet status
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/ynx-monitor/current/apps/monitor
+EnvironmentFile=/etc/ynx/ynx-monitor.env
+ExecStart=/usr/bin/node scripts/publish-public-status.mjs
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-monitor

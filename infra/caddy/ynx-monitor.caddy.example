@@ -1,0 +1,15 @@
+monitor.ynxweb4.com {
+	encode zstd gzip
+
+	@control path /health /version /status /ops/*
+	handle @control {
+		reverse_proxy 127.0.0.1:18112
+	}
+
+	handle {
+		root * /opt/ynx-monitor/current/apps/monitor/dist
+		try_files {path} /index.html
+		header X-Content-Type-Options "nosniff"
+		file_server
+	}
+}

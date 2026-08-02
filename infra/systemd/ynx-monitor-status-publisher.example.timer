@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh YNX Monitor public Testnet status
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+AccuracySec=5s
+Persistent=true
+Unit=ynx-monitor-status-publisher.service
+
+[Install]
+WantedBy=timers.target

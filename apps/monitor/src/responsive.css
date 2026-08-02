@@ -18,3 +18,14 @@
   .locale-bar{align-items:stretch}.locale-bar label{flex:1}.locale-bar select{width:100%}
   .alert-list article { overflow: hidden; }
 }
+
+.monitor-brand > img { display:block; width:46px; height:auto; max-height:31px; object-fit:contain; }
+.public-status-panel { margin-top:22px; border:1px solid var(--line); background:var(--panel); padding:15px; }
+.public-status-panel > div:first-child,.public-service-list > div { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.public-status-panel > div:first-child span,.public-status-panel small { color:var(--muted); font-size:10px; letter-spacing:.08em; }
+.public-status-panel > div:first-child strong,.public-service { color:var(--green); font-size:10px; text-transform:uppercase; }
+.public-status-panel p { margin:12px 0; color:#aebddd; font-size:12px; }
+.public-service-list { display:grid; border-top:1px solid var(--line); }
+.public-service-list > div { min-height:34px; border-bottom:1px solid var(--line); font-size:11px; }
+.public-service.major_outage,.public-service.partial_outage,.public-service.unknown { color:var(--red); }
+.public-service.degraded,.public-service.maintenance { color:var(--amber); }
