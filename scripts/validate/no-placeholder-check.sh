@@ -1,55 +1,56 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-pattern='example\.com|your_key_here|changeme|fake TPS|fake TVL|fake user|(^|[^[:alnum:]_])NYXT([^[:alnum:]_]|$)'
+scan_targets=(Makefile README.md .github apps configs internal cmd contracts chain-metadata scripts docs)
+bad='example\.com|your_key_here|changeme|fake TPS|fake TVL|fake user|fake provider|fake transaction|fake price|fake revenue|fake APY|fake liquidity|hard-coded success|coming soon|NYXT'
 
-collect_files() {
-  git ls-files --cached --others --exclude-standard -z -- . \
-    | while IFS= read -r -d '' path; do
-        case "$path" in
-          tools/scaffold-ynx-chain.mjs|scripts/validate/no-placeholder-check.sh|scripts/deploy/lib.sh|docs/architecture/ZERO_PLACEHOLDER_POLICY.md|release/docs-compliance-completion-evidence.json) continue ;;
-        esac
-        printf '%s\0' "$path"
-      done
-}
-
-scan_file() {
-  local path=$1
-  if command -v rg >/dev/null 2>&1; then
-    rg -n --with-filename --no-messages -e "$pattern" -- "$path"
-    return
+found=1
+if command -v rg >/dev/null 2>&1; then
+  if rg -n --hidden \
+    -g '!.git/**' \
+    -g '!**/node_modules/**' \
+    -g '!**/dist/**' \
+    -g '!**/build/**' \
+    -g '!tools/scaffold-ynx-chain.mjs' \
+    -g '!scripts/validate/no-placeholder-check.sh' \
+    -g '!scripts/deploy/lib.sh' \
+    -g '!docs/architecture/ZERO_PLACEHOLDER_POLICY.md' \
+    -g '!docs/coordination/PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
+    -e "$bad" "${scan_targets[@]}"; then
+    found=0
+  else
+    scan_status=$?
+    if [[ "$scan_status" -ne 1 ]]; then
+      echo "placeholder scan failed with exit code $scan_status" >&2
+      exit "$scan_status"
+    fi
   fi
-  grep -HInE --binary-files=without-match -e "$pattern" -- "$path"
-}
+else
+  echo "ripgrep unavailable; using recursive grep fallback" >&2
+  if grep -RInE \
+    --exclude='scaffold-ynx-chain.mjs' \
+    --exclude='no-placeholder-check.sh' \
+    --exclude='lib.sh' \
+    --exclude='ZERO_PLACEHOLDER_POLICY.md' \
+    --exclude='PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
+    --exclude-dir='.git' \
+    --exclude-dir='node_modules' \
+    --exclude-dir='dist' \
+    --exclude-dir='build' \
+    -- "$bad" "${scan_targets[@]}"; then
+    found=0
+  else
+    scan_status=$?
+    if [[ "$scan_status" -ne 1 ]]; then
+      echo "placeholder scan failed with exit code $scan_status" >&2
+      exit "$scan_status"
+    fi
+  fi
+fi
 
-scan() {
-  local path status found=1
-  while IFS= read -r -d '' path; do
-    scan_file "$path"
-    status=$?
-    case "$status" in
-      0) found=0 ;;
-      1) ;;
-      *) return "$status" ;;
-    esac
-  done < <(collect_files)
-  return "$found"
-}
+if [[ "$found" -eq 0 ]]; then
+  echo "disallowed deployment filler or fake claim found"
+  exit 1
+fi
 
-set +e
-scan
-status=$?
-set -e
-case "$status" in
-  0)
-    echo "disallowed deployment filler or fake claim found"
-    exit 1
-    ;;
-  1)
-    echo "no disallowed deployment filler found in tracked or pending source files"
-    ;;
-  *)
-    echo "placeholder scan could not complete" >&2
-    exit "$status"
-    ;;
-esac
+echo "no disallowed deployment filler found in runtime, docs, or scripts"

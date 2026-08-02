@@ -1,23 +1,29 @@
 # Decisions
 
-## 2026-07-25 recovery authority decisions
+## 2026-07-27 — Capacity reservation authority
 
-1. The recovered documentation fact package is bound to source commit
-   `c8c4ff7263e50afc4c731dac8157aa85e02232dc`; later package commits do not rewrite
-   the historical evidence source.
-2. Dirty or local-ahead sibling worktrees are protected candidate inputs, not merged,
-   deployed or public facts.
-3. Release states are independent. Local implementation or tests do not imply
-   installation, central integration, staging deployment, public deployment, hosted
-   download, production signing or store release.
-4. Testnet identity, Mainnet launch and public StreamBFT activation are separate claims.
-   Mainnet and public consensus activation remain blocked without direct owner evidence.
-5. Operator-host observations through the current proxy path are component-level
-   candidate evidence only and cannot establish independent public availability.
-6. Missing legal, economic, provider or independent-audit approval keeps the related
-   claim blocked; no superlative, guarantee or approval language is inferred.
-7. English locale records are source terminology. Other locale records remain machine
-   drafts until named human review; Arabic additionally requires runtime RTL validation.
-8. The public disclosure gate is fail-closed for missing files, missing schemas,
-   symbolic source identities, broken Claim references, unsupported release states and
-   missing evidence locations.
+A reservation is authoritative only for the exact Offer referenced by the accepted Quote. Provider-level totals are retained as a derived aggregate, but they cannot be used to borrow capacity across sibling Offers.
+
+## 2026-07-27 — Self-dealing
+
+A Provider wallet cannot purchase its own fixed-price capacity or submit an auction bid when it is also the procurement buyer. These paths fail closed and expose `RESOURCE_SELF_DEALING_REJECTED` through the API contract.
+
+## 2026-07-27 — Schema 6 migration
+
+Pre-v6 snapshots derive Offer and Provider reservation ledgers solely from active orders with valid Quote→Offer lineage and persist the upgrade at startup. Once a snapshot is schema 6, ledger mismatch is treated as semantic tampering and startup fails closed; it is never silently repaired.
+
+## 2026-07-27 — Release truth
+
+Passing local tests, Race, Vet and cold-start smoke does not set central, staging, public, hosted, signed or store-release booleans. The product remains `ACTIVE` in `INTEGRATE`.
+
+## 2026-07-27 — Amount arithmetic
+
+All monetary values remain non-negative signed 64-bit integers at the Resource Market boundary. Quote, auction, metering, settlement and dispute calculations use checked arithmetic; overflow returns `RESOURCE_AMOUNT_OUT_OF_RANGE` before any authoritative state mutation. Central consumers must preserve this failure and must not clamp, wrap or reinterpret it as a successful charge, settlement or refund.
+
+## 2026-07-29 — Tested-source evidence binding
+
+Release metadata binds `d683c7d28ce129daad358c84680e5980cf8ad069`, the exact source verified by Resource Market Candidate Gates run `30417957999`. Later checkpoint-only commits do not replace that tested source identity.
+
+## 2026-07-29 — Operator input ownership
+
+The repository-wide `release/operator-inputs.request.json` remains a central/shared file from main. Resource Market-specific deployment, provider, signer, localization and hosting inputs live at `apps/resource-market/operator-inputs.request.json` to avoid overwriting another Owner's central evidence.
