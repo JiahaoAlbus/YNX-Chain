@@ -7,11 +7,31 @@ import { Readable } from "node:stream";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const clientRoot = fileURLToPath(new URL("../../../packages/developer-client/src/", import.meta.url));
 const port = Number(process.env.PORT || 4176);
+const releaseVersion = process.env.YNX_DEVELOPER_VERSION || "0.2.0-testnet-preview";
+const sourceCommit = process.env.YNX_DEVELOPER_COMMIT || "development";
 const upstreams = { "/chain": process.env.YNX_DEVELOPER_CHAIN_URL || "http://127.0.0.1:6420", "/ai-gateway": process.env.YNX_DEVELOPER_AI_URL || "http://127.0.0.1:6429", "/app-gateway": process.env.YNX_DEVELOPER_APP_GATEWAY_URL || "http://127.0.0.1:6432" };
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml" };
 
 createServer(async (request, response) => {
   const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
+  if (request.method === "GET" && (pathname === "/health" || pathname === "/version")) {
+    response.writeHead(200, {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    });
+    response.end(JSON.stringify({
+      ok: true,
+      service: "ynx-developer-web",
+      version: releaseVersion,
+      commit: sourceCommit,
+      network: "YNX Testnet",
+      chainId: 6423,
+      signingBoundary: "wallet-only",
+      publicPreview: true
+    }));
+    return;
+  }
   const prefix = Object.keys(upstreams).find((value) => pathname === value || pathname.startsWith(`${value}/`));
   if (prefix) { await proxy(request, response, upstreams[prefix], request.url.slice(prefix.length) || "/"); return; }
   const base = pathname.startsWith("/client/") ? clientRoot : root;
