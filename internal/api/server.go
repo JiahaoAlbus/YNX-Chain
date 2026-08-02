@@ -69,6 +69,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /", s.handleEVM)
 	s.mux.HandleFunc("GET /blocks/latest", s.handleLatestBlock)
 	s.mux.HandleFunc("GET /blocks/{height}", s.handleBlockByHeight)
+	s.mux.HandleFunc("GET /accounts", s.handleAccounts)
 	s.mux.HandleFunc("GET /accounts/{address}", s.handleAccount)
 	s.mux.HandleFunc("GET /validators", s.handleValidators)
 	s.mux.HandleFunc("GET /validators/peers", s.handleValidatorPeers)
@@ -146,6 +147,25 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
 	s.mux.HandleFunc("GET /monitoring/health", s.handleMonitoring)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
+}
+
+func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
+	limit := 25
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid limit")
+			return
+		}
+		limit = parsed
+	}
+	accounts, total := s.devnet.AccountsByBalance(limit)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"accounts":       accounts,
+		"total":          total,
+		"ranking":        "liquid-ynxt-balance-descending",
+		"truthfulStatus": "authoritative-public-ledger-account-ranking",
+	})
 }
 
 func (s *Server) aiRoute(pattern string, handler http.HandlerFunc) {
