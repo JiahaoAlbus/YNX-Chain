@@ -40,6 +40,7 @@ test("critical security, privacy, permission, recovery and AI labels are localiz
     "AI privacy preview",
     "Estimated cost",
     "Review before applying",
+    "Set a secure YNX Social API endpoint",
   ] as const;
   for (const locale of locales.filter((value) => value !== "en"))
     for (const key of critical)

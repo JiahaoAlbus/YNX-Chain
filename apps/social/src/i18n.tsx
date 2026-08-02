@@ -36,6 +36,8 @@ const en = {
   "Social never creates, imports, or receives your recovery key.":
     "Social never creates, imports, or receives your recovery key.",
   "Restoring private Social session…": "Restoring private Social session…",
+  "Set a secure YNX Social API endpoint":
+    "Set a secure YNX Social API endpoint",
   People: "People",
   Messages: "Messages",
   Moments: "Moments",
@@ -98,6 +100,8 @@ const zhs: Record<Message, string> = {
   "Social never creates, imports, or receives your recovery key.":
     "Social 绝不会创建、导入或接收你的恢复密钥。",
   "Restoring private Social session…": "正在恢复私密 Social 会话…",
+  "Set a secure YNX Social API endpoint":
+    "请配置安全的 YNX Social API 地址",
   People: "联系人",
   Messages: "消息",
   Moments: "动态",
@@ -667,6 +671,46 @@ Object.assign(ar, {
 Object.assign(id, {
   "Social never creates, imports, or receives your recovery key.":
     "Social tidak pernah membuat, mengimpor, atau menerima kunci pemulihan Anda.",
+});
+Object.assign(zht, {
+  "Set a secure YNX Social API endpoint":
+    "請設定安全的 YNX Social API 位址",
+});
+Object.assign(ja, {
+  "Set a secure YNX Social API endpoint":
+    "安全な YNX Social API エンドポイントを設定してください",
+});
+Object.assign(ko, {
+  "Set a secure YNX Social API endpoint":
+    "안전한 YNX Social API 엔드포인트를 설정하세요",
+});
+Object.assign(es, {
+  "Set a secure YNX Social API endpoint":
+    "Configura un endpoint seguro de la API de YNX Social",
+});
+Object.assign(fr, {
+  "Set a secure YNX Social API endpoint":
+    "Configurez un point de terminaison sécurisé pour l’API YNX Social",
+});
+Object.assign(de, {
+  "Set a secure YNX Social API endpoint":
+    "Sicheren YNX-Social-API-Endpunkt konfigurieren",
+});
+Object.assign(pt, {
+  "Set a secure YNX Social API endpoint":
+    "Configure um endpoint seguro da API YNX Social",
+});
+Object.assign(ru, {
+  "Set a secure YNX Social API endpoint":
+    "Настройте безопасный адрес API YNX Social",
+});
+Object.assign(ar, {
+  "Set a secure YNX Social API endpoint":
+    "اضبط نقطة نهاية آمنة لواجهة YNX Social",
+});
+Object.assign(id, {
+  "Set a secure YNX Social API endpoint":
+    "Atur endpoint API YNX Social yang aman",
 });
 Object.assign(zht, {
   "Camera access is used only while you scan a Social profile QR.": "相機只會在掃描 Social 個人資料 QR 碼時使用。",
