@@ -1,12 +1,19 @@
 # Wallet/Auth, Smart Account, and Strategy Mandate
 
-Version: 0.1.0-candidate  
-Last reviewed: 2026-07-22  
-Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`
+| Metadata | Value |
+| --- | --- |
+| Version | 0.1.1-candidate |
+| Effective date | 2026-07-29 |
+| Source commit | `759c545367faf66a5168d9cf5b3cf64e0057233d` |
+| Accepted central source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-29 |
+| Superseded version | 0.1.0-candidate |
+| Review status | Implemented-local authentication disclosure and future smart-account/strategy-mandate gate; no production Wallet registry or live smart account claimed |
 
 ## Accepted local authentication boundary
 
-The local App Gateway accepts an exact client binding, a `ynx1` account, a bounded device identifier, and an Ed25519 device public key. It issues a short-lived challenge under domain `YNX_APP_ACCOUNT_OWNERSHIP_V1`, chain ID 6423, origin/bundle binding, nonce, issue/expiry times, account, device, and device key. Session creation requires both secp256k1 account ownership and device signatures over the exact sign bytes. The challenge is single-use. The service stores only a hash of the random session token and binds authentication to exact origin/bundle and device. Expired, revoked, wrong-origin, wrong-device, malformed, or replayed sessions fail closed.
+The local App Gateway accepts an exact client binding, a `ynx1` account, a bounded device identifier, and an Ed25519 device public key. It issues a short-lived challenge under domain `YNX_APP_ACCOUNT_OWNERSHIP_V1`, chain ID 6423, exact origin and bundle binding, nonce, issue/expiry times, account, device, and device key. Session creation requires both secp256k1 account ownership and device signatures over the exact sign bytes. The challenge is single-use. The service stores only a hash of the random session token and binds authentication to the exact origin, bundle, and device. Expired, revoked, wrong-origin, wrong-device, malformed, or replayed sessions fail closed.
 
 This is implemented local candidate behavior. It is not evidence that every ecosystem product has migrated, that a production Wallet registry exists, or that all clients avoid legacy bearer storage. Product registration, central introspection, multi-device recovery, and public deployment remain integration gates.
 
@@ -41,4 +48,5 @@ Recovery never asks for a seed phrase or private key. Device replacement must re
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-29): Normalized the seven-field authority tuple, preserved the accepted local authentication source, and clarified that production Wallet registry and smart-account activation remain unproved.
 - 0.1.0-candidate: documented implemented local App Gateway facts and future smart-account/mandate gates.

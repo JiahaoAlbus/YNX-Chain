@@ -2,14 +2,15 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.0-candidate |
-| Effective date | 2026-07-22 |
+| Version | 0.1.1-candidate |
+| Effective date | 2026-07-29 |
+| Source commit | `759c545367faf66a5168d9cf5b3cf64e0057233d` |
 | Accepted central source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Bridge candidate reviewed | `fba6b71` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
-| Review status | Bridge local-candidate disclosure and Oracle/Data gap specification |
+| Bridge candidate reviewed | `fba6b7163fa4053f13f9e58f3ff1572b8fe9e39d` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-29 |
+| Superseded version | 0.1.0-candidate |
+| Review status | Bridge local-candidate disclosure and Oracle/Data Fabric gap specification; no live Bridge, general Oracle or general Data Fabric service claimed |
 
 ## Direct answer
 
@@ -257,6 +258,7 @@ vectors, observability, retention and public source/freshness evidence.
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-29): Normalized the seven-field authority tuple, expanded the reviewed Bridge candidate to its full commit identity, and preserved the non-live Bridge/Oracle/Data Fabric boundary.
 - 0.1.0-candidate (2026-07-22): Consolidated Bridge lifecycle, reconciliation,
   relayer and asset boundaries with Oracle authority, feed requirements, Data
   Fabric record contract, consumer rules, failures, operations and release truth.

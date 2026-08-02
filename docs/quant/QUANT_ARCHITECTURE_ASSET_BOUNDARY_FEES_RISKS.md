@@ -1,9 +1,15 @@
 # Quant Architecture, Asset Boundary, Fees, and Risks
 
-Version: 0.1.0-candidate  
-Last reviewed: 2026-07-22  
-Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`  
-Release class: research/simulation disclosure; no accepted production Quant integration
+| Metadata | Value |
+| --- | --- |
+| Version | 0.1.1-candidate |
+| Effective date | 2026-07-29 |
+| Source commit | `759c545367faf66a5168d9cf5b3cf64e0057233d` |
+| Accepted central source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-29 |
+| Superseded version | 0.1.0-candidate |
+| Review status | Research and simulation disclosure; no accepted production Quant, broker, asset-manager or autonomous-trading integration |
 
 YNX Quant is not evidenced here as a deployed asset manager, broker, exchange, or autonomous trading service. Research, backtests, signals, and simulations are advisory outputs. They do not authorize orders or move assets.
 
@@ -33,4 +39,5 @@ Required: accepted source commit and integration diff; provider terms; determini
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-29): Normalized the seven-field authority tuple, preserved the accepted research source, and made the non-production/non-autonomous Quant boundary explicit.
 - 0.1.0-candidate: established non-custodial, non-autonomous and truthful performance boundaries.

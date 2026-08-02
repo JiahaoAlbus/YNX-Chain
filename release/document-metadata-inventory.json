@@ -3,9 +3,9 @@
   "productNumber": 18,
   "productSlug": "docs-compliance-brand",
   "productRelease": "0.2.0-candidate",
-  "sourceCommit": "e36832d5be0c498d8a2f27869f8d70fc112e9442",
+  "sourceCommit": "759c545367faf66a5168d9cf5b3cf64e0057233d",
   "lastUpdated": "2026-07-29",
-  "scope": "Bounded current cohort of fourteen highest-authority public documents. Inclusion validates metadata completeness; it does not imply named professional review, Website acceptance, production signing, active staking policy or Mainnet status.",
+  "scope": "Bounded current cohort of twenty highest-authority public documents. Inclusion validates metadata completeness; it does not imply named professional review, Website acceptance, production signing, live trading, live Bridge/Oracle/Data Fabric, production Wallet/Quant/Trust authority, active staking policy or Mainnet status.",
   "requiredMetadataFields": [
     "Version",
     "Effective date",
@@ -281,6 +281,120 @@
       "publicEvidence": [
         "release/facts/economics.json",
         "release/facts/claims.json"
+      ]
+    },
+    {
+      "id": "trading-core-ultraliquidity-fairflow",
+      "path": "docs/whitepaper/TRADING_CORE_ULTRALIQUIDITY_FAIRFLOW.md",
+      "authorityClass": "trading-core-framework",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "2026-07-29",
+        "Source commit": "759c545367faf66a5168d9cf5b3cf64e0057233d",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-29",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Research and interface disclosure; no deployed exchange, DEX, shared-liquidity network or production matching engine"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/claims.json",
+        "release/facts/economics.json"
+      ]
+    },
+    {
+      "id": "wallet-auth-smart-account-strategy-mandate",
+      "path": "docs/architecture/WALLET_AUTH_SMART_ACCOUNT_STRATEGY_MANDATE.md",
+      "authorityClass": "wallet-auth-mandate",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "2026-07-29",
+        "Source commit": "759c545367faf66a5168d9cf5b3cf64e0057233d",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-29",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Implemented-local authentication disclosure and future smart-account/strategy-mandate gate; no production Wallet registry or live smart account claimed"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/authoritative-facts.json",
+        "release/facts/claims.json"
+      ]
+    },
+    {
+      "id": "bridge-oracle-data-fabric",
+      "path": "docs/bridge/BRIDGE_ORACLE_DATA_FABRIC.md",
+      "authorityClass": "bridge-oracle-data-fabric",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "2026-07-29",
+        "Source commit": "759c545367faf66a5168d9cf5b3cf64e0057233d",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-29",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Bridge local-candidate disclosure and Oracle/Data Fabric gap specification; no live Bridge, general Oracle or general Data Fabric service claimed"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/authoritative-facts.json",
+        "release/facts/evidence.json"
+      ]
+    },
+    {
+      "id": "quant-architecture-risk-framework",
+      "path": "docs/quant/QUANT_ARCHITECTURE_ASSET_BOUNDARY_FEES_RISKS.md",
+      "authorityClass": "quant-risk-framework",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "2026-07-29",
+        "Source commit": "759c545367faf66a5168d9cf5b3cf64e0057233d",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-29",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Research and simulation disclosure; no accepted production Quant, broker, asset-manager or autonomous-trading integration"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/claims.json",
+        "release/facts/economics.json"
+      ]
+    },
+    {
+      "id": "trust-appeals-market-integrity",
+      "path": "docs/trust/TRUST_APPEALS_MARKET_INTEGRITY.md",
+      "authorityClass": "trust-market-integrity",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "2026-07-29",
+        "Source commit": "759c545367faf66a5168d9cf5b3cf64e0057233d",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-29",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Advisory Trust, appeals and market-integrity disclosure; no staffed production review body, legal authority, public deployment or independent oversight claimed"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/claims.json",
+        "release/facts/compliance.json"
+      ]
+    },
+    {
+      "id": "ecosystem-product-architecture",
+      "path": "docs/ecosystem/PRODUCT_ARCHITECTURE.md",
+      "authorityClass": "product-architecture",
+      "metadata": {
+        "Version": "0.1.0-candidate",
+        "Effective date": "2026-07-29",
+        "Source commit": "759c545367faf66a5168d9cf5b3cf64e0057233d",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-29",
+        "Superseded version": "None",
+        "Review status": "Portfolio architecture and delivery contract; product rows preserve incomplete, candidate and non-launched boundaries"
+      },
+      "changeLogVersion": "0.1.0-candidate",
+      "publicEvidence": [
+        "release/facts/authoritative-facts.json",
+        "release/public-product-metadata.json"
       ]
     }
   ]
