@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -49,6 +50,31 @@ func TestFaucetServiceRequestsAndRateLimits(t *testing.T) {
 	}
 	if !strings.Contains(string(logBytes), `"status":"sent"`) || !strings.Contains(string(logBytes), `"status":"rate_limited"`) {
 		t.Fatalf("request log missing statuses: %s", string(logBytes))
+	}
+}
+
+func TestAuthoritativeFaucetNormalizesYNXAliasAndSharesRateLimitIdentity(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	rpc := httptest.NewServer(api.NewServer(devnet))
+	defer rpc.Close()
+	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 100, MaxAmount: 100, Window: time.Hour, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonical := nativeAddress(t, 20)
+	alias, err := accountaddress.Encode(canonical)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, status, err := service.Request(context.Background(), Request{Address: alias}, "127.0.0.1:1000")
+	if err != nil || status != http.StatusCreated {
+		t.Fatalf("YNX alias request status=%d err=%v", status, err)
+	}
+	if response.Address != canonical || response.Transaction.To != canonical || response.Amount != 100 {
+		t.Fatalf("recipient was not canonicalized: %+v", response)
+	}
+	if _, status, err = service.Request(context.Background(), Request{Address: canonical}, "127.0.0.1:1000"); err == nil || status != http.StatusTooManyRequests {
+		t.Fatalf("canonical alias bypassed rate limit: status=%d err=%v", status, err)
 	}
 }
 
