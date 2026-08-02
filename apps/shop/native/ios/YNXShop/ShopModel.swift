@@ -2,8 +2,13 @@ import Foundation
 import SwiftUI
 
 @MainActor final class ShopModel:ObservableObject {
-    @Published var products:[Product]=[],cart:[CartItem]=[],orders:[Order]=[]
-    @Published var state="loading",search="",selected:Product?,signedIn=false
+    @Published var products:[Product]=[]
+    @Published var cart:[CartItem]=[]
+    @Published var orders:[Order]=[]
+    @Published var state="loading"
+    @Published var search=""
+    @Published var selected:Product?
+    @Published var signedIn=false
     @Published var privacyExportURL:URL?
     @Published var appLanguage=UserDefaults.standard.string(forKey:"app-language") ?? Locale.current.identifier
     @Published var aiLanguage=UserDefaults.standard.string(forKey:"ai-language") ?? Locale.current.language.languageCode?.identifier ?? "en"
