@@ -58,6 +58,20 @@ try {
   if (!healthResponse.headers.get("x-request-id") || !healthResponse.headers.get("x-trace-id") || health.observability?.metrics !== "unavailable") {
     throw new Error("observability health contract missing");
   }
+  if (health.externalSearch?.status !== "unavailable" || health.externalSearch?.resultType !== "external-result" || health.externalSearch?.credentialExposed !== false) {
+    throw new Error("external Search health truth missing");
+  }
+
+  const externalStatusResponse = await fetch(`${origin}/api/external/status`);
+  const externalStatus = await externalStatusResponse.json();
+  if (!externalStatusResponse.ok || externalStatus.status !== "unavailable" || externalStatus.separatedFrom?.includes("ynx-index-result") !== true) {
+    throw new Error("external Search status separation missing");
+  }
+  const externalUnavailableResponse = await fetch(`${origin}/api/external/search`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: "YNX", pageSize: 3 }) });
+  const externalUnavailable = await externalUnavailableResponse.json();
+  if (externalUnavailableResponse.status !== 503 || externalUnavailable.code !== "SEARCH_EXTERNAL_PROVIDER_UNAVAILABLE" || !externalUnavailable.errorId) {
+    throw new Error("external Search unavailable contract missing");
+  }
 
   const invalidQueryResponse = await fetch(`${origin}/api/search?q=`);
   const invalidQuery = await invalidQueryResponse.json();

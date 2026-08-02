@@ -7,6 +7,7 @@ let lastQuery = "";
 let lastResult = null;
 let aiController = null;
 let aiSources = [];
+let externalStatus = null;
 let locale = resolve(localStorage.getItem("ynx-search-locale") || navigator.languages?.[0] || navigator.language);
 let aiLocale = resolve(localStorage.getItem("ynx-search-ai-locale") || locale);
 
@@ -59,12 +60,95 @@ function clearResults() {
   $("#pages").replaceChildren();
   $("#summary").textContent = "";
   $("#ai-entry").replaceChildren();
+  $("#external-results").replaceChildren();
+  $("#external-state").textContent = "";
+  $("#external-meta").textContent = "";
+  $("#external-shell").hidden = true;
 }
 
 function freshness(value) {
   if (!value) return "Published date unavailable";
   const days = Math.max(0, Math.floor((Date.now() - Date.parse(value)) / 86400000));
   return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(-days, "day");
+}
+
+function updateExternalBoundary() {
+  const configured = externalStatus?.status === "configured";
+  const optIn = $("#external-opt-in");
+  optIn.disabled = !configured;
+  if (!configured) optIn.checked = false;
+  $("#external-boundary").textContent = text(locale, configured ? "externalReady" : "externalUnavailable");
+}
+
+async function loadExternalStatus() {
+  try {
+    const response = await fetch("/api/external/status");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    externalStatus = await response.json();
+  } catch {
+    externalStatus = null;
+  }
+  updateExternalBoundary();
+  return externalStatus;
+}
+
+function externalResultCard(result) {
+  const article = document.createElement("article");
+  article.className = "result external-result";
+  const retrieval = document.createElement("div");
+  retrieval.className = "retrieval";
+  retrieval.textContent = `${text(locale, "externalLabel")} · ${text(locale, "inference")}: no`;
+  const source = document.createElement("div");
+  source.className = "source";
+  const label = document.createElement("strong");
+  label.textContent = result.provider;
+  const url = document.createElement("span");
+  url.className = "source-url";
+  url.textContent = result.sourceUrl;
+  const asOf = document.createElement("span");
+  asOf.className = "fresh";
+  asOf.textContent = `${text(locale, "externalAsOf")} ${freshness(result.freshness?.asOf)}`;
+  source.append(label, url, asOf);
+  const heading = document.createElement("h3");
+  const link = document.createElement("a");
+  link.href = result.sourceUrl;
+  link.rel = "noopener noreferrer";
+  link.textContent = result.title;
+  heading.append(link);
+  const snippet = document.createElement("p");
+  snippet.textContent = result.snippet || text(locale, "snippetRestricted");
+  const meta = document.createElement("div");
+  meta.className = "result-meta";
+  meta.textContent = `${text(locale, "externalResultClass")} · ${text(locale, "retention")}: ${result.retention?.providerReportedDays ?? "?"}d · ${text(locale, "searchCache")}: ${result.retention?.searchCache ?? "none"}`;
+  article.append(retrieval, source, heading, snippet, meta);
+  return article;
+}
+
+async function searchExternal(query) {
+  const shell = $("#external-shell");
+  shell.hidden = false;
+  $("#external-state").textContent = text(locale, "externalLoading");
+  $("#external-results").replaceChildren();
+  $("#external-meta").textContent = "";
+  try {
+    const response = await fetch("/api/external/search", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query, pageSize: 10 }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    const rate = data.rateLimit?.status === "reported" ? `${data.rateLimit.remaining ?? "?"}/${data.rateLimit.limit ?? "?"}` : text(locale, "unknown");
+    $("#external-meta").textContent = `${data.provider} · ${text(locale, "externalAsOf")} ${freshness(data.asOf)} · ${text(locale, "rateLimit")}: ${rate}`;
+    if (!data.results.length) {
+      $("#external-state").textContent = text(locale, "externalEmpty");
+      return;
+    }
+    $("#external-state").textContent = "";
+    $("#external-results").replaceChildren(...data.results.map(externalResultCard));
+  } catch (error) {
+    $("#external-state").textContent = `${text(locale, "externalFailure")} ${error.message}`;
+  }
 }
 
 async function loadStatus({ open = false } = {}) {
@@ -101,6 +185,7 @@ async function search(nextPage = 1) {
   page = nextPage;
   clearResults();
   setState("loading");
+  if ($("#external-opt-in").checked) void searchExternal(query);
   const params = new URLSearchParams({ q: query, page: String(page) });
   if ($("#source").value) params.set("source", $("#source").value);
   if ($("#freshness").value) params.set("freshnessDays", $("#freshness").value);
@@ -200,9 +285,9 @@ async function prepareAi() {
 }
 
 $("#search-form").onsubmit = event => { event.preventDefault(); search(1); };
-for (const selector of ["#source", "#freshness", "#type"]) $(selector).onchange = () => lastQuery && search(1);
+for (const selector of ["#source", "#freshness", "#type", "#external-opt-in"]) $(selector).onchange = () => lastQuery && search(1);
 $("#status-button").onclick = () => loadStatus({ open: true });
-$("#locale").onchange = () => { locale = $("#locale").value; localStorage.setItem("ynx-search-locale", locale); apply(locale); if ($("#source").options.length) $("#source").options[0].textContent = text(locale, "allSources"); if (!lastResult) setState("initial"); else search(page); };
+$("#locale").onchange = () => { locale = $("#locale").value; localStorage.setItem("ynx-search-locale", locale); apply(locale); updateExternalBoundary(); if ($("#source").options.length) $("#source").options[0].textContent = text(locale, "allSources"); if (!lastResult) setState("initial"); else search(page); };
 $("#ai-locale").onchange = () => { aiLocale = $("#ai-locale").value; localStorage.setItem("ynx-search-ai-locale", aiLocale); };
 
 const savedTheme = localStorage.getItem("ynx-search-theme") || "system";
@@ -310,6 +395,6 @@ addEventListener("online", () => showNotice(text(locale, "online")));
 addEventListener("offline", network);
 network();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
-await loadStatus();
+await Promise.all([loadStatus(), loadExternalStatus()]);
 const initial = new URLSearchParams(location.search).get("q");
 if (initial) { $("#query").value = initial; search(); }

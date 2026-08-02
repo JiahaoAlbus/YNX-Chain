@@ -33,7 +33,9 @@
       <label><span data-i18n="source">Source</span><select id="source"><option value="" data-i18n="allSources">All authorized sources</option></select></label>
       <label><span data-i18n="freshness">Freshness</span><select id="freshness"><option value="" data-i18n="anyTime">Any time</option><option value="7" data-i18n="past7">Past 7 days</option><option value="30" data-i18n="past30">Past 30 days</option><option value="365" data-i18n="pastYear">Past year</option></select></label>
       <label><span data-i18n="type">Type</span><select id="type"><option value="" data-i18n="allTypes">All types</option><option value="text/html" data-i18n="webPages">Web pages</option><option value="application/json">JSON</option><option value="text/plain">Text</option></select></label>
+      <label class="external-toggle"><input id="external-opt-in" type="checkbox" disabled><span data-i18n="externalSearch">Also query the external provider</span></label>
     </div>
+    <p id="external-boundary" class="external-boundary" role="status" aria-live="polite" data-i18n="externalUnavailable">External provider unavailable; no query will be sent.</p>
   </section>
 
   <section id="network" class="notice" role="status" aria-live="polite" hidden></section>
@@ -48,6 +50,11 @@
     <p id="summary" class="summary" aria-live="polite"></p>
     <section id="results" class="results" aria-label="Search results"></section>
     <nav id="pages" class="pages" aria-label="Search result pages"></nav>
+    <section id="external-shell" class="external-shell" aria-labelledby="external-heading" hidden>
+      <div class="external-heading-row"><div><p class="eyebrow" data-i18n="externalLabel">EXTERNAL PROVIDER</p><h3 id="external-heading" data-i18n="externalResults">External provider results</h3></div><p id="external-meta" class="external-meta"></p></div>
+      <div id="external-state" class="external-state" role="status" aria-live="polite"></div>
+      <section id="external-results" class="results external-results" aria-label="External provider results"></section>
+    </section>
   </section>
 </main>
 
