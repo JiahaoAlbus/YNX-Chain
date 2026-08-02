@@ -7,16 +7,16 @@
     "owner": "13-monitor"
   },
   "goalState": "active",
-  "phase": "PROTECT",
-  "sourceCommit": "5914e02134cd17ad20c6d8c9846864861cdfd4a3",
+  "phase": "PUBLIC",
+  "sourceCommit": "5d42be028b22f10253facfc4f779fcccf0fd69b1",
   "releaseCandidate": null,
   "status": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
     "integratedCentral": false,
-    "deployedStaging": false,
-    "deployedPublic": false,
+    "deployedStaging": true,
+    "deployedPublic": true,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
@@ -78,11 +78,11 @@
     "tests": {
       "command": "cd apps/monitor && npm test",
       "result": "passed",
-      "tests": 35,
+      "tests": 39,
       "failed": 0,
       "breakdown": {
-        "monitorRuntimeAndUi": 31,
-        "supplyChainGate": 4
+        "monitorRuntimeAndUi": 34,
+        "publicStatusPublisherAndSupplyChain": 5
       },
       "date": "2026-07-29"
     },
@@ -218,7 +218,7 @@
       "ownerBoundary": "Recorded for central owners; 13-monitor did not modify cross-product code."
     },
     "publicStatus": {
-      "result": "testedLocal",
+      "result": "verifiedPublic",
       "route": "/status",
       "sourceSchema": "ynx.monitor.public-status-source.v1",
       "responseSchema": "ynx.monitor.public-status.v1",
@@ -233,25 +233,30 @@
       ],
       "tests": "apps/monitor/server/public-status.test.ts",
       "testCases": 13,
-      "hosted": false,
-      "publicProof": null
+      "hosted": true,
+      "publicProof": {
+        "web": "https://monitor.ynxweb4.com/",
+        "status": "https://monitor.ynxweb4.com/status",
+        "health": "https://monitor.ynxweb4.com/health",
+        "version": "https://monitor.ynxweb4.com/version",
+        "stagingAlias": "https://monitor-testnet.43.153.202.237.sslip.io/"
+      }
     },
     "realServiceSmoke": {
       "command": "cd apps/monitor && npm run smoke",
-      "result": "failed",
-      "monitorImplementationAttribution": false,
-      "unavailableDependencies": [
-        "node",
-        "identity",
-        "validators",
-        "peers",
-        "peer-sync",
+      "result": "passedPublicBoundedProbes",
+      "monitorImplementationAttribution": true,
+      "verifiedDependencies": [
+        "chain",
         "explorer",
         "indexer",
-        "ai"
+        "wallet-gateway",
+        "ai-gateway",
+        "seller-console",
+        "developer"
       ],
-      "semantics": "All configured central dependency endpoints were unavailable; no healthy or Testnet claim is made.",
-      "date": "2026-07-28"
+      "semantics": "Signed public projection records only current bounded endpoint responses; it does not infer historical uptime, consensus convergence, user-asset safety, provider correctness, or production readiness.",
+      "date": "2026-08-03"
     }
   },
   "artifacts": [
@@ -264,8 +269,16 @@
       "installed": false
     }
   ],
-  "publicEvidence": [],
-  "testnetEvidence": [],
+  "publicEvidence": [
+    "https://monitor.ynxweb4.com/",
+    "https://monitor.ynxweb4.com/health",
+    "https://monitor.ynxweb4.com/version",
+    "https://monitor.ynxweb4.com/status"
+  ],
+  "testnetEvidence": [
+    "The signed public projection reports seven current Testnet service probes and fails closed on stale, tampered, replayed or unapproved input.",
+    "Remote 25-worker checks returned 100/100 HTTP 200 for health, status and the Web shell."
+  ],
   "contracts": [
     "release/integration/monitor-contract.json"
   ],
@@ -274,18 +287,18 @@
   "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
   "coverageMatrix": ".ai-bridge/full-goal-coverage.json",
   "blockers": [
-    "The repository-wide go test ./... preflight fails in cross-product consensus, faucet, trust, and EVM artifact tests outside 13-monitor ownership; the phase remains PROTECT until owner fixes are accepted and the full preflight passes.",
+    "The repository-wide go test ./... preflight fails in cross-product consensus, faucet, trust, and EVM artifact tests outside 13-monitor ownership; this blocks a whole-ecosystem completion claim but does not negate the bounded public Monitor status deployment.",
     "Central owner contracts and shared Testnet endpoints are not yet accepted.",
-    "The redacted public-status runtime is locally tested but no approved publisher feed, hosted endpoint, Website consumption, public probe, artifact, install, or cold-start evidence exists.",
+    "The public status and private operator shell are hosted, but canonical Wallet role assignment and central product-session acceptance are not configured; password login is disabled on the public deployment.",
     "Typed recovery operator UI, incident correlation/escalation, broad ecosystem telemetry, hosted DAST, signed provenance, installation, and cold-start evidence remain incomplete.",
     "The locked dependency graph discloses registry.npmmirror.com in addition to registry.npmjs.org; central Security/SRE acceptance is still required before a hosted artifact claim.",
     "The shared repository secret-scan script can print a false pass when ripgrep is unavailable; Monitor uses its own built-in scanner and central owner remediation remains required."
   ],
-  "nextAction": "Implement typed backup, restore-drill, and rollback-proposal operator UI flows with capability gating, explicit approval, independent-verifier states, and managed desktop/mobile tests.",
-  "lastUpdated": "2026-07-29",
+  "nextAction": "Obtain central Wallet acceptance for the Monitor product binding and role map, then exercise an authenticated incident and independent recovery drill against the shared Testnet deployment.",
+  "lastUpdated": "2026-08-03",
   "evidence": {
     "index": "EVIDENCE_INDEX.md",
     "featureCompletion": "FEATURE_COMPLETION_EVIDENCE.md",
-    "implementationSource": "5914e02134cd17ad20c6d8c9846864861cdfd4a3"
+    "implementationSource": "5d42be028b22f10253facfc4f779fcccf0fd69b1"
   }
 }

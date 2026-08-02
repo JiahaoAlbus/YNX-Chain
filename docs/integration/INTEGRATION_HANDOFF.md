@@ -2,8 +2,8 @@
 
 Status: Candidate, not frozen  
 Owner: `13-monitor`  
-Source commit: `5914e02134cd17ad20c6d8c9846864861cdfd4a3`
-Last updated: 2026-07-29
+Source commit: `5d42be028b22f10253facfc4f779fcccf0fd69b1`
+Last updated: 2026-08-03
 
 ## Protected local delivery
 
@@ -46,7 +46,7 @@ Missing Origin, an untrusted Origin, a missing CSRF token, and an invalid token 
 
 `GET /status` is unauthenticated but never reads private OpsStore state. It accepts only a separate `ynx.monitor.public-status-source.v1` document whose publisher is pinned by `YNX_MONITOR_PUBLIC_STATUS_EXPECTED_SOURCE`, whose canonical JSON is protected by HMAC-SHA256 using `YNX_MONITOR_PUBLIC_STATUS_INTEGRITY_KEY`, and whose approval record is signed as part of the source and names `incident_commander` as the approving role.
 
-The file adapter uses `YNX_MONITOR_PUBLIC_STATUS_PATH`, accepts only a regular non-symbolic-link file no larger than 262,144 bytes, and applies `YNX_MONITOR_PUBLIC_STATUS_MAX_AGE_SECONDS`. The route strips approval identity and integrity material, returns `Cache-Control: no-store`, and rejects unsigned, tampered, wrong-publisher, stale, wrong-role, fake-healthy, private-text, invalid-file, provider-error, and older replayed snapshots with bounded 503 responses. Replay prevention is monotonic within the running Monitor process; a hosted publisher must also provide durable sequence/rollback protection across restarts before public verification.
+The file adapter uses `YNX_MONITOR_PUBLIC_STATUS_PATH`, accepts only a regular non-symbolic-link file no larger than 262,144 bytes, and applies `YNX_MONITOR_PUBLIC_STATUS_MAX_AGE_SECONDS`. The route strips approval identity and integrity material, returns `Cache-Control: no-store`, and rejects unsigned, tampered, wrong-publisher, stale, wrong-role, fake-healthy, private-text, invalid-file, provider-error, and older replayed snapshots with bounded 503 responses. The deployed publisher probes seven local Testnet services with bounded timeouts, signs canonical JSON, and atomically replaces the source file every 30 seconds.
 
 ## Health and version semantics
 
@@ -55,13 +55,14 @@ The file adapter uses `YNX_MONITOR_PUBLIC_STATUS_PATH`, accepts only a regular n
 
 ## Verification bound to the source commit
 
-- `cd apps/monitor && npm test` — 35 passed, 0 failed: 31 runtime/UI cases plus 4 supply-chain fail-closed cases.
+- `cd apps/monitor && npm test` — 39 passed, 0 failed, including publisher and capacity coverage.
 - `cd apps/monitor && npm run build` — TypeScript and production Vite build passed.
 - `cd apps/monitor && npm run test:e2e` — managed desktop/mobile suite passed 8/8.
 - `cd apps/monitor && npm run security:check` — audit 0, credential findings 0 across 690 tracked text files, SAST findings 0 across 12 production files, 163 locked production packages reviewed, two clean builds identical, artifact findings 0.
 - Generated evidence: `release/monitor/security/` contains the CycloneDX SBOM, third-party notices, dependency review, DAST input plan, build manifest, local unsigned provenance, and gate summary.
-- `cd apps/monitor && npm run smoke` — failed because all eight configured central service endpoints were unavailable; no Testnet or dependency-health claim is made.
-- Git protection — protected implementation source `5914e02134cd17ad20c6d8c9846864861cdfd4a3`; final branch/upstream equality is verified after the evidence checkpoint push.
+- Public deployment — `https://monitor.ynxweb4.com/`, `/health`, `/version`, and `/status`; `https://monitor-testnet.43.153.202.237.sslip.io/` remains the independent browser-QA alias while a local stale Vercel DNS response expires.
+- Public concurrency — 25 workers returned 100/100 HTTP 200 for health, signed status, and Web shell; status p95 32.4 ms and Web p95 16.0 ms.
+- Git protection — public runtime source `5d42be028b22f10253facfc4f779fcccf0fd69b1` is pushed.
 
 The repository-wide `go test ./...` preflight was also run and failed in cross-product consensus, faucet, trust, and missing EVM artifact tests outside `13-monitor` ownership. These failures are recorded in `product-release.json`; Monitor does not claim the full monorepo preflight passed and did not modify those owners' code.
 
@@ -84,8 +85,8 @@ Consumers must not infer health from HTTP 200 alone. Every telemetry adapter mus
 
 ## Current blockers and next action
 
-The current phase remains `PROTECT`: Monitor-local tests, build, E2E, dependency audit, threat model, SBOM, license review, credential/SAST scans, reproducible build, and local provenance pass, but the repository-wide phase-transition preflight is not green and `29-integration` has not frozen the contract. The redacted status route is locally tested only; no approved publisher feed, hosted private operator, hosted public endpoint, Website consumption, public probe, hosted DAST, public deployment, production signing, immutable artifact, install, or cold-start claim is made.
+The current phase is `PUBLIC` for the redacted status surface. The hosted deployment has an approved local publisher feed, real bounded Testnet probes, HTTPS, exact YNX branding, and public concurrency evidence. Password login is deliberately disabled on the public deployment, so no demo credential is exposed. The private operator plane is not centrally accepted until Wallet supplies canonical product registration and scoped role assignments; no claim is made for hosted DAST, production signing, immutable desktop artifact, installation, or cold-start evidence.
 
 `30-security-sre-release` must also review two disclosed supply-chain facts: the lock file contains both `registry.npmjs.org` and `registry.npmmirror.com`, and the shared repository `scripts/validate/secret-scan.sh` can print a false pass when `rg` is absent. Monitor does not modify that central script and instead uses a built-in scanner with direct evidence.
 
-The next autonomous slice is typed backup, restore-drill, and rollback-proposal operator UI with capability gating, explicit approvals, independent-verifier states, and managed desktop/mobile tests. The transitional `operator` role remains migration-only and must not be assigned to new principals once scoped-role migration is accepted.
+The next integration slice is central Wallet acceptance for Monitor product sessions and the scoped role map, followed by an authenticated incident and independent recovery drill against the shared Testnet deployment. The transitional `operator` role remains migration-only and must not be assigned to new principals once scoped-role migration is accepted.

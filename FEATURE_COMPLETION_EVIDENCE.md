@@ -1,11 +1,11 @@
 # YNX Monitor Feature Completion Evidence
 
-Goal state: `ACTIVE`  
-Phase: `PROTECT`  
-Implementation source: `5914e02134cd17ad20c6d8c9846864861cdfd4a3`
-Last updated: 2026-07-29
+Goal state: `ACTIVE`
+Phase: `PUBLIC`
+Implementation source: `5d42be028b22f10253facfc4f779fcccf0fd69b1`
+Last updated: 2026-08-03
 
-This document records feature-level evidence only. It does not declare the product complete, centrally integrated, deployed, signed, or public.
+This document records feature-level evidence only. It declares the redacted public status surface deployed, but does not declare the private operator plane centrally accepted, the product complete, production-signed, or store-released.
 
 ## Protected and locally tested
 
@@ -25,6 +25,8 @@ This document records feature-level evidence only. It does not declare the produ
 - Unsigned, tampered, wrong-publisher, stale, wrong-role, fake-healthy, private-text, invalid-file, provider-error, and older replayed snapshots fail closed with bounded 503 responses that do not echo source content.
 - Repeated identical snapshots are readable; after a newer snapshot is accepted, older `asOf` or `publishedAt` snapshots are rejected within the running process.
 - Evidence: `apps/monitor/server/public-status.ts`, `apps/monitor/server/public-status.test.ts`, `MON-PUBLIC-REDACTION-001`, `MON-PUBLIC-INTEGRITY-001`.
+- The publisher at `apps/monitor/scripts/publish-public-status.mjs` performs seven bounded real-service probes, signs canonical JSON, writes atomically, and refuses to invent healthy state after probe failure.
+- Public evidence: `https://monitor.ynxweb4.com/status`; browser fallback during local DNS propagation: `https://monitor-testnet.43.153.202.237.sslip.io/`.
 
 ### Incident lifecycle
 
@@ -64,13 +66,14 @@ This document records feature-level evidence only. It does not declare the produ
 
 ## Current validation set
 
-- `cd apps/monitor && npm test`: 35 passed, 0 failed, including 31 runtime/UI cases and 4 supply-chain fail-closed cases.
+- `cd apps/monitor && npm test`: 39 passed, 0 failed, including runtime/UI, signed-publisher, supply-chain fail-closed, and capacity cases.
 - `cd apps/monitor && npm run build`: passed.
 - `cd apps/monitor && npm run test:e2e`: 8 passed, 0 failed.
 - `cd apps/monitor && npm run security:check`: passed with 0 audit vulnerabilities, 0 credential findings, 0 SAST findings, 163 reviewed production packages, two identical clean builds, and 0 artifact findings.
 - `.github/workflows/monitor-ci.yml` run `30418246140` passed for `9df7d117c5d0c37f191a888acb81125ca3183b33` and uploaded CI evidence artifact `8710923775` with digest `sha256:2f2e1394d42ba5381f5cc95e7009d16f11032cacde3d6cc2f26f04a8d76e930c`; this is not a release artifact.
 - `cd apps/monitor && npm run smoke`: failed because all eight configured central service endpoints were unavailable; no Testnet or dependency-health claim is made.
-- Protected implementation source: `5914e02134cd17ad20c6d8c9846864861cdfd4a3`.
+- Public runtime source: `5d42be028b22f10253facfc4f779fcccf0fd69b1`.
+- Remote 25-worker validation returned 100/100 HTTP 200 for `/health`, `/status`, and `/`; p95 latency was 130.5 ms, 32.4 ms, and 16.0 ms respectively.
 
 ## Incomplete or externally dependent
 
@@ -79,18 +82,18 @@ The following requirements are not completed by the evidence above:
 - central contract freeze and accepted Wallet/Auth expiry, revoke, device, product, and scope vectors;
 - typed authoritative telemetry for consensus, trading, liquidity, Quant, capital, and every YNX product;
 - alert correlation, escalation, notification delivery, and controlled automation;
-- approved public-status publisher feed, independent key provisioning, hosted endpoint, Website consumption, and public probe evidence;
+- Website catalog consumption of the deployed Monitor product;
 - explicit schema migration and rollback-migration drills;
 - real backup, isolated restore, region failure, provider failure, or rollback execution evidence;
-- shared Testnet integration and public probes;
-- SLO load histograms, capacity evidence, and unit economics;
+- full shared Testnet integration beyond the seven public dependency probes;
+- sustained-duration SLO load histograms and unit economics beyond the bounded capacity evidence;
 - hosted DAST execution, signed/hosted provenance, immutable artifact publication, installation, and cold start;
-- hosted private operator, public `/monitor`, downloads, status page, support/privacy/security URLs, and SEO consumption;
+- centrally accepted hosted private operator roles, downloads, support/privacy/security URLs, and SEO consumption;
 - GitHub Release, hosted release artifact, production signing, or store release;
 - central acceptance of the disclosed npm registry mirror and remediation of the shared secret-scan false-pass behavior when ripgrep is absent.
 
 ## Non-green full preflight
 
-The required repository-wide `go test ./...` preflight is not green due to failures in cross-product consensus, faucet, trust, and missing compiled EVM fixture ownership. These failures are recorded in `product-release.json` and `.ai-bridge/execution-log.jsonl`. They are not treated as Monitor-local test failures, but they block the ordered transition from `PROTECT` to `FREEZE` until accepted owner fixes make the full preflight pass.
+The repository-wide `go test ./...` preflight remains non-green due to failures in cross-product consensus, faucet, trust, and missing compiled EVM fixture ownership. These failures are recorded in `product-release.json` and `.ai-bridge/execution-log.jsonl`. They are not treated as Monitor-local failures and do not negate the bounded public status deployment, but they still block a claim that the entire YNX product graph is complete or centrally accepted.
 
 The authoritative per-requirement status remains `.ai-bridge/full-goal-coverage.json`; this feature document cannot override it.

@@ -1,19 +1,19 @@
 # YNX Monitor Evidence Index
 
-Status: Active, phase `PROTECT`  
-Product owner: `13-monitor`  
-Implementation source: `5914e02134cd17ad20c6d8c9846864861cdfd4a3`
-Branch: `codex/final-monitor`  
-Last updated: 2026-07-29
+Status: Active, phase `PUBLIC`
+Product owner: `13-monitor`
+Implementation source: `5d42be028b22f10253facfc4f779fcccf0fd69b1`
+Branch: `codex/final-monitor`
+Last updated: 2026-08-03
 
-This index separates source-bound local evidence from central, Testnet, artifact, hosted, and public evidence that does not yet exist.
+This index separates verified local and public deployment evidence from central acceptance, private-operator, artifact, and recovery evidence that does not yet exist.
 
 ## Source and recovery evidence
 
 | Evidence | Direct location | Result |
 |---|---|---|
 | Exact worktree and branch takeover | `.ai-bridge/execution-log.jsonl` — `takeover-inventory` | Passed |
-| Implementation checkpoint | Git commit `5914e02134cd17ad20c6d8c9846864861cdfd4a3` | Committed; push and remote equality verified at final checkpoint |
+| Implementation checkpoint | Git commit `5d42be028b22f10253facfc4f779fcccf0fd69b1` | Public runtime source; committed and pushed |
 | Local/upstream equality | `product-release.json` → `verifiedLocal.remoteProtection` | Equal at protected implementation source |
 | Full requirement coverage | `.ai-bridge/full-goal-coverage.json` | Active; incomplete items retained |
 | Decisions and boundaries | `.ai-bridge/decisions.md` | Current |
@@ -44,12 +44,14 @@ This index separates source-bound local evidence from central, Testnet, artifact
 
 | Gate | Command | Result |
 |---|---|---|
-| Monitor tests | `cd apps/monitor && npm test` | 35 passed, 0 failed: 31 runtime/UI plus 4 supply-chain fail-closed cases |
+| Monitor tests | `cd apps/monitor && npm test` | 39 passed, 0 failed, including publisher and 1,000-request capacity coverage |
 | Production build | `cd apps/monitor && npm run build` | Passed |
 | Desktop/mobile browser E2E | `cd apps/monitor && npm run test:e2e` | 8 passed, 0 failed |
 | Local supply-chain gate | `cd apps/monitor && npm run security:check` | Passed: audit 0, credential/SAST 0, 163 packages reviewed, two identical clean builds, artifact scan 0 |
 | Product-specific GitHub Actions | `.github/workflows/monitor-ci.yml`, run `30418246140` | Success for `9df7d117c5d0c37f191a888acb81125ca3183b33`; CI evidence artifact `8710923775`, digest `sha256:2f2e1394d42ba5381f5cc95e7009d16f11032cacde3d6cc2f26f04a8d76e930c` |
-| Real-service smoke | `cd apps/monitor && npm run smoke` | Failed because all eight central dependency endpoints were unavailable; no Testnet/healthy claim |
+| Public signed status | `https://monitor.ynxweb4.com/status` | Operational from the public host; seven bounded Testnet service probes; signed, fresh, redacted projection |
+| Public concurrency | `health`, `status`, and Web shell, 25 workers | 100/100 HTTP 200 on every endpoint; status p95 32.4 ms, Web p95 16.0 ms, health p95 130.5 ms |
+| Staging browser QA | `https://monitor-testnet.43.153.202.237.sslip.io/` | Public status and seven service rows rendered; twelve languages exposed; private login remains separate |
 | Repository preflight | `go test ./...` | Failed outside `13-monitor`; details in `product-release.json` |
 
 The failed repository preflight is not hidden or attributed to Monitor. It includes signing-key permission failures in consensus/faucet/trust owners and missing compiled EVM fixtures in BFT/consensus tests. This thread did not modify those owners' code.
@@ -62,7 +64,7 @@ The failed repository preflight is not hidden or attributed to Monitor. It inclu
 | Integration handoff | `docs/integration/INTEGRATION_HANDOFF.md` | Source-bound |
 | Cross-product vectors | `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json` | Source-bound |
 | Dependency acceptance | `docs/integration/DEPENDENCY_ACCEPTANCE.md` | Open |
-| Product release record | `product-release.json` | Active / `PROTECT` |
+| Product release record | `product-release.json` | Active / `PUBLIC`; central acceptance still open |
 
 ## Evidence not yet available
 
@@ -70,9 +72,9 @@ No direct evidence currently supports any of the following claims:
 
 - accepted central Wallet/Auth or other owner contracts;
 - shared Testnet incident, Quant kill-switch, provider/region failure, restore, or rollback drill;
-- hosted private operator workspace or redacted public-status endpoint;
+- accepted and exercised hosted private operator workspace with canonical Wallet roles;
 - GitHub Release, hosted release artifact, signed/hosted provenance, immutable download, installation, or cold start;
-- hosted DAST evidence, staging, or public runtime deployment;
+- hosted DAST evidence and public production signing;
 - production signing or store release.
 
-These states remain false or blocked in `product-release.json` and `.ai-bridge/full-goal-coverage.json`.
+The public status surface is deployed; these narrower states remain false or blocked in `product-release.json` and `.ai-bridge/full-goal-coverage.json`. The official hostname resolves correctly from the deployment host, while the local validation network still receives a stale Vercel answer; the temporary `sslip.io` alias is retained for independent browser QA during DNS propagation.
