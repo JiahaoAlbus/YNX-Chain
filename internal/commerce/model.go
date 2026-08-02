@@ -174,6 +174,23 @@ type SellerIntegrationEvent struct {
 	ExpiresAt, OccurredAt                           time.Time
 }
 
+type ProviderConfig struct {
+	StoreID, Kind, Mode, Endpoint, AccessRef, Health, LastError string
+	Capabilities                                                []string
+	Revision, TestGeneration                                    int64
+	CreatedAt, UpdatedAt, LastTestAt, LastHealthyAt             time.Time
+	LastRotationAt                                              time.Time
+}
+
+type ProviderView struct {
+	StoreID, Kind, Mode, Endpoint, Health, LastError string
+	Capabilities                                     []string
+	HasAccessReference                               bool
+	Revision, TestGeneration                         int64
+	CreatedAt, UpdatedAt, LastTestAt, LastHealthyAt  time.Time
+	LastRotationAt                                   time.Time
+}
+
 type Snapshot struct {
 	Version           int
 	Stores            map[string]StoreProfile
@@ -188,5 +205,6 @@ type Snapshot struct {
 	SellerRevocations map[string]SellerRoleRevocation
 	SellerInvitations map[string]SellerInvitation
 	SellerEvents      []SellerIntegrationEvent
+	ProviderConfigs   map[string]ProviderConfig
 	RequestWindow     map[string][]time.Time
 }

@@ -18,13 +18,14 @@ import (
 	"time"
 )
 
-const currentSnapshotVersion = 6
+const currentSnapshotVersion = 7
 
 var (
 	ErrNotFound     = errors.New("not found")
 	ErrUnauthorized = errors.New("unauthorized")
 	ErrConflict     = errors.New("conflict")
 	ErrUnavailable  = errors.New("unavailable")
+	ErrRateLimited  = errors.New("rate limited")
 	ErrInvalidState = errors.New("invalid state transition")
 	ErrInventory    = errors.New("insufficient inventory")
 )
@@ -133,7 +134,7 @@ func validateSnapshotVersion(version int) error {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: currentSnapshotVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{Version: currentSnapshotVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, ProviderConfigs: map[string]ProviderConfig{}, RequestWindow: map[string][]time.Time{}}
 }
 
 func (s *Store) normalize() bool {
@@ -186,6 +187,9 @@ func (s *Store) normalize() bool {
 	if s.s.SellerEvents == nil {
 		s.s.SellerEvents = []SellerIntegrationEvent{}
 	}
+	if s.s.ProviderConfigs == nil {
+		s.s.ProviderConfigs = map[string]ProviderConfig{}
+	}
 	if s.s.RequestWindow == nil {
 		s.s.RequestWindow = map[string][]time.Time{}
 	}
@@ -228,9 +232,12 @@ func encodePersisted(value any, key []byte) ([]byte, error) {
 
 func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMessage, error) {
 	if targetVersion < 3 || targetVersion >= currentSnapshotVersion {
-		return nil, errors.New("rollback target must be Snapshot v3, v4 or v5")
+		return nil, errors.New("rollback target must be Snapshot v3, v4, v5 or v6")
 	}
-	if len(s.s.SellerInvitations) > 0 {
+	if len(s.s.ProviderConfigs) > 0 {
+		return nil, fmt.Errorf("%w: Snapshot v%d cannot represent provider configurations", ErrConflict, targetVersion)
+	}
+	if targetVersion < 6 && len(s.s.SellerInvitations) > 0 {
 		return nil, fmt.Errorf("%w: Snapshot v%d cannot represent Seller invitations", ErrConflict, targetVersion)
 	}
 	if targetVersion < 5 && len(s.s.SellerEvents) > 0 {
@@ -253,11 +260,14 @@ func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMe
 		return nil, err
 	}
 	fields["Version"] = version
-	delete(fields, "SellerInvitations")
+	fields = omitRawFields(fields, "ProviderConfigs")
+	if targetVersion < 6 {
+		fields = omitRawFields(fields, "SellerInvitations")
+	}
 
 	if targetVersion < 5 {
-		delete(fields, "SellerEvents")
-	} else {
+		fields = omitRawFields(fields, "SellerEvents")
+	} else if targetVersion == 5 {
 		legacyEvents := make([]sellerIntegrationEventV5, 0, len(s.s.SellerEvents))
 		for _, event := range s.s.SellerEvents {
 			if event.InvitationID != "" || event.Role != "" || event.Status != "" || !event.ExpiresAt.IsZero() {
@@ -380,6 +390,21 @@ func requestHash(v any) string {
 	h := sha256.Sum256(b)
 	return hex.EncodeToString(h[:])
 }
+
+func omitRawFields(fields map[string]json.RawMessage, names ...string) map[string]json.RawMessage {
+	blocked := make(map[string]struct{}, len(names))
+	for _, name := range names {
+		blocked[name] = struct{}{}
+	}
+	out := make(map[string]json.RawMessage, len(fields))
+	for name, value := range fields {
+		if _, omitted := blocked[name]; !omitted {
+			out[name] = value
+		}
+	}
+	return out
+}
+
 func idemMapKey(actor, route, key string) string { return actor + "\x00" + route + "\x00" + key }
 
 func (s *Store) idempotencyLocked(actor, route, key string, input any) (string, bool, error) {

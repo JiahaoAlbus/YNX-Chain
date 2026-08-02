@@ -1,6 +1,7 @@
 package commerce
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ type ServerConfig struct {
 	Pay                       HTTPPayVerifier
 	Trust                     TrustGateway
 	AI                        HTTPAIGateway
+	ProviderTester            ProviderTester
 	BuyerAssets, SellerAssets http.FileSystem
 }
 type Server struct {
@@ -59,6 +61,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /api/seller/stores/{id}", s.updateStore)
 	s.mux.HandleFunc("POST /api/seller/stores/{id}/activate", s.activateStore)
 	s.mux.HandleFunc("POST /api/seller/stores/{id}/exports", s.exportSellerData)
+	s.mux.HandleFunc("GET /api/seller/stores/{id}/providers", s.providerConfigs)
+	s.mux.HandleFunc("PUT /api/seller/stores/{id}/providers/{kind}", s.configureProvider)
+	s.mux.HandleFunc("POST /api/seller/stores/{id}/providers/{kind}/test", s.testProvider)
+	s.mux.HandleFunc("POST /api/seller/stores/{id}/providers/{kind}/disable", s.disableProvider)
+	s.mux.HandleFunc("POST /api/seller/stores/{id}/providers/{kind}/rotate", s.rotateProviderReference)
 	s.mux.HandleFunc("GET /api/seller/stores/{id}/roles", s.roles)
 	s.mux.HandleFunc("PUT /api/seller/stores/{id}/roles", s.setRole)
 	s.mux.HandleFunc("POST /api/seller/stores/{id}/roles/{account}/revoke", s.revokeRole)
@@ -115,7 +122,19 @@ func (s *Server) capabilities(w http.ResponseWriter, r *http.Request) {
 	if _, ok := s.cfg.Auth.(ProductAuthorizationRevoker); ok && s.cfg.Auth != nil && s.cfg.Auth.Available() {
 		authorizationRevocation = "candidate_configured"
 	}
-	write(w, 200, map[string]any{"walletAuth": wallet, "walletProtocol": "wallet-auth-v1+p256-sha256", "sellerStoreAuthorizationRevocation": authorizationRevocation, "paySettlement": availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""), "logistics": "unavailable", "tax": "unavailable", "aiProvider": availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""), "trustEvidence": availability(s.cfg.Trust != nil && s.cfg.Trust.Available()), "protectedAIActions": []string{"publish_product", "change_price", "purchase", "refund", "change_seller_policy"}})
+	write(w, 200, map[string]any{
+		"walletAuth": wallet, "walletProtocol": "wallet-auth-v1+p256-sha256",
+		"sellerStoreAuthorizationRevocation": authorizationRevocation,
+		"paySettlement":                      availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""),
+		"logistics":                          "unavailable",
+		"tax":                                "unavailable",
+		"aiProvider":                         availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""),
+		"trustEvidence":                      availability(s.cfg.Trust != nil && s.cfg.Trust.Available()),
+		"providerRegistry":                   "available_local_authority",
+		"providerKinds":                      ProviderKinds(),
+		"providerHealthIsStoreScoped":        true,
+		"protectedAIActions":                 []string{"publish_product", "change_price", "purchase", "refund", "change_seller_policy"},
+	})
 }
 func availability(ok bool) string {
 	if ok {
@@ -155,6 +174,8 @@ func status(err error) int {
 		return 409
 	case errors.Is(err, ErrUnavailable):
 		return 503
+	case errors.Is(err, ErrRateLimited):
+		return http.StatusTooManyRequests
 	default:
 		return 400
 	}
@@ -516,6 +537,94 @@ func (s *Server) exportSellerData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, http.StatusCreated, map[string]any{"export": v})
+}
+func (s *Server) providerConfigs(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	providers, err := s.store.ProviderConfigs(sess.Account, r.PathValue("id"))
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusOK, map[string]any{"providers": providers})
+}
+func (s *Server) configureProvider(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in ProviderConfigInput
+	if !decode(w, r, &in) {
+		return
+	}
+	provider, err := s.store.ConfigureProvider(sess.Account, r.PathValue("id"), r.PathValue("kind"), in)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusOK, map[string]any{"provider": provider})
+}
+func (s *Server) disableProvider(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in ProviderDisableInput
+	if !decode(w, r, &in) {
+		return
+	}
+	provider, err := s.store.DisableProvider(sess.Account, r.PathValue("id"), r.PathValue("kind"), in)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusOK, map[string]any{"provider": provider})
+}
+func (s *Server) rotateProviderReference(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in ProviderRotationInput
+	if !decode(w, r, &in) {
+		return
+	}
+	provider, err := s.store.RotateProviderReference(sess.Account, r.PathValue("id"), r.PathValue("kind"), in)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusOK, map[string]any{"provider": provider})
+}
+func (s *Server) testProvider(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in struct{}
+	if !decode(w, r, &in) {
+		return
+	}
+	request, err := s.store.BeginProviderTest(sess.Account, r.PathValue("id"), r.PathValue("kind"))
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	result := ProviderTestResult{Status: providerHealthUnavailable, Detail: "provider tester is not configured"}
+	var testErr error
+	if s.cfg.ProviderTester != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		result, testErr = s.cfg.ProviderTester.TestProvider(ctx, request)
+		cancel()
+	}
+	provider, err := s.store.CompleteProviderTest(request, result, testErr)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusOK, map[string]any{"provider": provider})
 }
 func (s *Server) roles(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "seller")

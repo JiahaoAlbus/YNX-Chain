@@ -88,7 +88,7 @@ func TestSnapshotV2ManagerMigratesToAdmin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if migrated.s.Version != 6 || migrated.s.SellerRoles["store_legacy"]["ynx_legacy"] != SellerRoleAdmin || migrated.s.SellerRevocations == nil || migrated.s.SellerInvitations == nil || migrated.s.SellerEvents == nil {
+	if migrated.s.Version != currentSnapshotVersion || migrated.s.SellerRoles["store_legacy"]["ynx_legacy"] != SellerRoleAdmin || migrated.s.SellerRevocations == nil || migrated.s.SellerInvitations == nil || migrated.s.SellerEvents == nil || migrated.s.ProviderConfigs == nil {
 		t.Fatalf("legacy role was not migrated: version=%d roles=%v revocations=%v invitations=%v events=%v", migrated.s.Version, migrated.s.SellerRoles, migrated.s.SellerRevocations, migrated.s.SellerInvitations, migrated.s.SellerEvents)
 	}
 }
