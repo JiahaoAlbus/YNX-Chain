@@ -30,6 +30,11 @@ type Service struct {
 	cfg           Config
 	rpcClient     *client
 	indexerClient *client
+
+	leaderboardMu       sync.Mutex
+	leaderboardCache    AccountLeaderboard
+	leaderboardCacheAt  time.Time
+	leaderboardCacheCap int
 }
 
 func New(cfg Config) (*Service, error) {
@@ -276,12 +281,18 @@ func (s *Service) AccountLeaderboard(ctx context.Context, limit int) (AccountLea
 	if limit <= 0 || limit > 100 {
 		limit = 25
 	}
+	s.leaderboardMu.Lock()
+	defer s.leaderboardMu.Unlock()
+	if !s.leaderboardCacheAt.IsZero() && time.Since(s.leaderboardCacheAt) < 15*time.Second && limit <= s.leaderboardCacheCap {
+		return leaderboardPage(s.leaderboardCache, limit), nil
+	}
 	var leaderboard AccountLeaderboard
 	if err := s.rpcClient.getJSON(ctx, "/accounts?limit="+strconv.Itoa(limit), &leaderboard); err == nil {
 		if leaderboard.Ranking != "liquid-ynxt-balance-descending" || leaderboard.TruthfulStatus != "authoritative-public-ledger-account-ranking" {
 			return AccountLeaderboard{}, errors.New("RPC returned an unverifiable account ranking")
 		}
-		return leaderboard, nil
+		s.cacheLeaderboard(leaderboard, limit)
+		return leaderboardPage(leaderboard, limit), nil
 	}
 
 	transactions, err := s.Transactions(ctx, 500)
@@ -341,12 +352,32 @@ func (s *Service) AccountLeaderboard(ctx context.Context, limit int) (AccountLea
 	if len(accounts) > limit {
 		accounts = accounts[:limit]
 	}
-	return AccountLeaderboard{
+	leaderboard = AccountLeaderboard{
 		Accounts:       accounts,
 		Total:          total,
 		Ranking:        "indexed-participant-liquid-ynxt-balance-descending",
 		TruthfulStatus: "observed-indexed-participant-account-ranking",
-	}, nil
+	}
+	s.cacheLeaderboard(leaderboard, limit)
+	return leaderboardPage(leaderboard, limit), nil
+}
+
+func (s *Service) cacheLeaderboard(leaderboard AccountLeaderboard, limit int) {
+	s.leaderboardCache = leaderboardPage(leaderboard, len(leaderboard.Accounts))
+	s.leaderboardCacheAt = time.Now()
+	s.leaderboardCacheCap = limit
+}
+
+func leaderboardPage(leaderboard AccountLeaderboard, limit int) AccountLeaderboard {
+	page := leaderboard
+	if limit < 0 {
+		limit = 0
+	}
+	if limit > len(leaderboard.Accounts) {
+		limit = len(leaderboard.Accounts)
+	}
+	page.Accounts = append([]chain.Account(nil), leaderboard.Accounts[:limit]...)
+	return page
 }
 
 type AddressFormats struct {
