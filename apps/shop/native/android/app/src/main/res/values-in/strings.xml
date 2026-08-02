@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Toko YNX</string>
+    <string name="shop_name">Toko</string>
     <string name="nav_catalog">Jelajahi</string>
     <string name="nav_cart">Keranjang</string>
     <string name="nav_orders">Pesanan</string>

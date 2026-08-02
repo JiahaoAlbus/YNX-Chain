@@ -22,6 +22,7 @@ const privacyKeys = [
 ];
 const required = [
   'app_name',
+  'shop_name',
   'wallet_sign_in',
   'wallet_security',
   'privacy_boundary',
@@ -56,7 +57,7 @@ for (const dir of dirs) {
   for (const key of required) assert.ok(localized[key]?.trim(), `${dir}:${key}`);
   if (dir !== 'values') {
     for (const key of required) {
-      if (!['app_name'].includes(key)) assert.notEqual(localized[key], english[key], `${dir}:${key} still equals English fallback`);
+      if (!['app_name', 'shop_name'].includes(key)) assert.notEqual(localized[key], english[key], `${dir}:${key} still equals English fallback`);
     }
   }
 }
@@ -83,7 +84,11 @@ const auth = await readFile(new URL('ios/YNXShop/WalletAuth.swift', root), 'utf8
 for (const term of ['P256.Signing.PrivateKey', 'YNX_PRODUCT_SESSION_CHALLENGE_V1', 'replay-', 'product-session', 'ynx-shop-v1', 'com.ynxweb4.shop']) assert.ok(auth.includes(term), term);
 const androidActivity = await readFile(new URL('android/app/src/main/java/com/ynxweb4/shop/MainActivity.java', root), 'utf8');
 for (const term of ['/privacy/export', '/privacy/delete', 'ACTION_CREATE_DOCUMENT', 'DELETE_MY_SHOP_DATA', 'R.string.privacy_data_title', 'R.string.privacy_delete_warning', 'R.string.privacy_delete_failed']) assert.ok(androidActivity.includes(term), `android privacy: ${term}`);
+for (const term of ['R.drawable.ynx_logo', 'ImageView.ScaleType.CENTER_INSIDE', 'setAdjustViewBounds(true)', 'setOnApplyWindowInsetsListener']) assert.ok(androidActivity.includes(term), `android branding: ${term}`);
 for (const forbidden of ['Shop data export and deletion', 'Delete personal Shop data', 'Exact confirmation phrase required.', 'Personal Shop data deleted. Receipt']) assert.ok(!androidActivity.includes(forbidden), `android hard-coded privacy copy: ${forbidden}`);
+const logo = await readFile(new URL('android/app/src/main/res/drawable-nodpi/ynx_logo.png', root));
+assert.equal(logo.subarray(1, 4).toString('ascii'), 'PNG', 'Android YNX logo must be PNG');
+assert.deepEqual([logo.readUInt32BE(16), logo.readUInt32BE(20)], [798, 420], 'Android YNX logo must retain the official cropped aspect ratio');
 const manifest = await readFile(new URL('android/app/src/main/AndroidManifest.xml', root), 'utf8');
 const localeController = await readFile(new URL('android/app/src/main/java/com/ynxweb4/shop/LocaleController.java', root), 'utf8');
 assert.ok(manifest.includes('android:supportsRtl="true"'), 'Android manifest must support RTL');

@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">YNX Shop</string>
+    <string name="shop_name">Shop</string>
+    <string name="ynx_logo">YNX</string>
     <string name="nav_catalog">Discover</string>
     <string name="nav_cart">Cart</string>
     <string name="nav_orders">Orders</string>
