@@ -35,6 +35,7 @@ jobs:
 
   ios-simulator:
     runs-on: macos-15
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: apps/shop/native/ios
@@ -59,7 +60,17 @@ jobs:
           APP_PATH="$RUNNER_TEMP/YNXShopDerivedData/Build/Products/Debug-iphonesimulator/YNXShop.app"
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
           xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.ynxweb4.shop
-          xcrun simctl openurl "$DEVICE_ID" "ynxshop://wallet-auth/callback"
+          python3 - "$DEVICE_ID" <<'PY'
+          import subprocess
+          import sys
+
+          subprocess.run(
+              ["xcrun", "simctl", "openurl", sys.argv[1], "ynxshop://wallet-auth/callback"],
+              check=True,
+              timeout=20,
+          )
+          PY
+          xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/ynx-shop-deeplink.png"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$RUNNER_TEMP/YNXShop-simulator.zip"
       - uses: actions/upload-artifact@v4
         with:
@@ -67,3 +78,4 @@ jobs:
           path: |
             ${{ runner.temp }}/YNXShop-simulator.zip
             ${{ runner.temp }}/ynx-shop-ios-build.log
+            ${{ runner.temp }}/ynx-shop-deeplink.png
