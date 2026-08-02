@@ -180,6 +180,26 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 7 || summary.Wallet.ChainIDHex != "0x1917" {
 		t.Fatalf("unexpected summary: %+v", summary)
 	}
+	fallbackHandler := api.NewServerWithConfig(devnet, api.ServerConfig{ResourceGatewayUpstreamKey: resourceUpstreamKey})
+	fallbackRPC := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/accounts" {
+			http.Error(w, "account list endpoint unavailable", http.StatusMethodNotAllowed)
+			return
+		}
+		fallbackHandler.ServeHTTP(w, r)
+	}))
+	defer fallbackRPC.Close()
+	fallbackService, err := New(Config{RPCURL: fallbackRPC.URL, IndexerURL: indexerHTTP.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fallbackLeaderboard, err := fallbackService.AccountLeaderboard(context.Background(), 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fallbackLeaderboard.TruthfulStatus != "observed-indexed-participant-account-ranking" || fallbackLeaderboard.Ranking != "indexed-participant-liquid-ynxt-balance-descending" || len(fallbackLeaderboard.Accounts) == 0 {
+		t.Fatalf("unexpected observed-account fallback: %+v", fallbackLeaderboard)
+	}
 	resp, err = http.Get(server.URL + "/health")
 	if err != nil {
 		t.Fatal(err)

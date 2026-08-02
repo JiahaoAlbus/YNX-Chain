@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -275,13 +277,76 @@ func (s *Service) AccountLeaderboard(ctx context.Context, limit int) (AccountLea
 		limit = 25
 	}
 	var leaderboard AccountLeaderboard
-	if err := s.rpcClient.getJSON(ctx, "/accounts?limit="+strconv.Itoa(limit), &leaderboard); err != nil {
+	if err := s.rpcClient.getJSON(ctx, "/accounts?limit="+strconv.Itoa(limit), &leaderboard); err == nil {
+		if leaderboard.Ranking != "liquid-ynxt-balance-descending" || leaderboard.TruthfulStatus != "authoritative-public-ledger-account-ranking" {
+			return AccountLeaderboard{}, errors.New("RPC returned an unverifiable account ranking")
+		}
+		return leaderboard, nil
+	}
+
+	transactions, err := s.Transactions(ctx, 500)
+	if err != nil {
+		return AccountLeaderboard{}, fmt.Errorf("load indexed participants for leaderboard fallback: %w", err)
+	}
+	addressSet := make(map[string]struct{})
+	for _, tx := range transactions {
+		for _, address := range []string{tx.From, tx.To, tx.Sponsor} {
+			address = strings.TrimSpace(address)
+			if address != "" {
+				addressSet[address] = struct{}{}
+			}
+		}
+	}
+	addresses := make([]string, 0, len(addressSet))
+	for address := range addressSet {
+		addresses = append(addresses, address)
+	}
+	sort.Strings(addresses)
+
+	accounts := make([]chain.Account, 0, len(addresses))
+	var accountsMu sync.Mutex
+	var workers sync.WaitGroup
+	workerSlots := make(chan struct{}, 8)
+	for _, address := range addresses {
+		address := address
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			select {
+			case workerSlots <- struct{}{}:
+				defer func() { <-workerSlots }()
+			case <-ctx.Done():
+				return
+			}
+			var detail AccountDetail
+			if err := s.rpcClient.getJSON(ctx, "/accounts/"+url.PathEscape(address), &detail); err != nil || strings.TrimSpace(detail.Account.Address) == "" {
+				return
+			}
+			accountsMu.Lock()
+			accounts = append(accounts, detail.Account)
+			accountsMu.Unlock()
+		}()
+	}
+	workers.Wait()
+	if err := ctx.Err(); err != nil {
 		return AccountLeaderboard{}, err
 	}
-	if leaderboard.Ranking != "liquid-ynxt-balance-descending" || leaderboard.TruthfulStatus != "authoritative-public-ledger-account-ranking" {
-		return AccountLeaderboard{}, errors.New("RPC returned an unverifiable account ranking")
+	sort.Slice(accounts, func(i, j int) bool {
+		if accounts[i].Balance == accounts[j].Balance {
+			return accounts[i].Address < accounts[j].Address
+		}
+		return accounts[i].Balance > accounts[j].Balance
+	})
+	total := len(accounts)
+	if len(accounts) > limit {
+		accounts = accounts[:limit]
 	}
-	return leaderboard, nil
+	return AccountLeaderboard{
+		Accounts:       accounts,
+		Total:          total,
+		Ranking:        "indexed-participant-liquid-ynxt-balance-descending",
+		TruthfulStatus: "observed-indexed-participant-account-ranking",
+	}, nil
 }
 
 type AddressFormats struct {
