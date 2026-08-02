@@ -15,7 +15,7 @@ import {
   writeCanonicalJSON,
 } from './shop-package-lib.mjs';
 
-const VERSION = '0.2.0-testnet-preview';
+const VERSION = '0.3.0-testnet-preview';
 const args = parseArgs(process.argv.slice(2));
 const sourceCommit = args.commit ?? git(['rev-parse', 'HEAD']);
 if (!/^[0-9a-f]{40}$/.test(sourceCommit)) throw new Error('source commit must be a full lowercase Git SHA');

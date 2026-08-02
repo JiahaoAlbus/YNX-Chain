@@ -20,15 +20,15 @@ import java.util.*;
 
 public final class MainActivity extends Activity {
     private static final int BLUE=Color.rgb(0,47,167),INK=Color.rgb(7,20,51),LINE=Color.rgb(220,227,242),CREATE_PRIVACY_EXPORT=6423;
-    private SecureStore secure; private ApiClient api; private OfflineMutationQueue queue; private WalletAuth wallet;
+    private SecureStore secure; private ApiClient api; private OfflineMutationQueue queue; private WalletAuth wallet; private ImageLoader images;
     private LinearLayout content; private TextView status,cartBadge; private JSONArray products=new JSONArray(),cart=new JSONArray();
     private EditText recipient,address,city,country; private String pendingPrivacyExport="";
 
     @Override protected void attachBaseContext(Context base){super.attachBaseContext(LocaleController.apply(base));}
-    @Override public void onCreate(Bundle state){super.onCreate(state);secure=new SecureStore(this);api=new ApiClient(secure);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);build();restoreCart();handleIntent(getIntent());showCatalog();}
+    @Override public void onCreate(Bundle state){super.onCreate(state);secure=new SecureStore(this);api=new ApiClient(secure);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);images=new ImageLoader();build();restoreCart();handleIntent(getIntent());showCatalog();}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);handleIntent(intent);}
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){super.onActivityResult(requestCode,resultCode,data);if(requestCode!=CREATE_PRIVACY_EXPORT||resultCode!=RESULT_OK||data==null||data.getData()==null||pendingPrivacyExport.isEmpty())return;try(OutputStream out=getContentResolver().openOutputStream(data.getData())){if(out==null)throw new IllegalStateException("export destination unavailable");out.write(pendingPrivacyExport.getBytes(java.nio.charset.StandardCharsets.UTF_8));pendingPrivacyExport="";status.setText(getString(R.string.privacy_export_ready));}catch(Exception error){status.setText(getString(R.string.privacy_export_unavailable));}}
-    @Override protected void onDestroy(){api.close();super.onDestroy();}
+    @Override protected void onDestroy(){api.close();images.close();super.onDestroy();}
 
     private void build(){
         LinearLayout root=column();root.setBackgroundColor(Color.WHITE);
@@ -73,6 +73,8 @@ public final class MainActivity extends Activity {
 
     private View productCard(JSONObject product)throws Exception{
         LinearLayout card=column();card.setPadding(dp(16),dp(16),dp(16),dp(16));card.setBackground(border());
+        JSONArray media=product.optJSONArray("Media");
+        if(media!=null&&media.length()>0){JSONObject asset=media.optJSONObject(0);if(asset!=null){ImageView image=new ImageView(this);image.setScaleType(ImageView.ScaleType.CENTER_CROP);image.setBackgroundColor(Color.rgb(244,246,250));image.setContentDescription(asset.optString("AltText",product.getString("Title")));card.addView(image,new LinearLayout.LayoutParams(-1,dp(190)));images.load(asset.optString("URL"),image);}}
         card.addView(text(product.getString("Title"),20,true));card.addView(text(product.optString("Description"),14,false));
         JSONArray variants=product.getJSONArray("Variants");Spinner picker=new Spinner(this);List<String> labels=new ArrayList<>();List<JSONObject> available=new ArrayList<>();
         for(int j=0;j<variants.length();j++){JSONObject v=variants.getJSONObject(j);long left=v.getLong("Inventory")-v.getLong("Reserved");if(left>=0){labels.add(v.getString("Name")+" · "+formatYNXT(v.getLong("PriceYNXT"))+" · "+left+" "+getString(R.string.inventory));available.add(v);}}

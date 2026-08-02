@@ -46,7 +46,7 @@ const document = {
   version: 1,
   metadata: {
     timestamp: '2026-07-18T14:11:03Z',
-    component: { type: 'application', name: 'YNX Shop + Seller Console', version: '0.2.0-testnet-preview' },
+    component: { type: 'application', name: 'YNX Shop + Seller Console', version: '0.3.0-testnet-preview' },
     properties: [
       { name: 'sourceCommit', value: '38e2f68deb91d5f26e5aeec2318e260cd0742115' },
       { name: 'binary', value: basename(binary) }

@@ -19,8 +19,4 @@ for (const file of [
   await cp(file, `dist/${file}`);
 }
 await cp('assets', 'dist/assets', { recursive: true });
-await cp(
-  'release/ynx-shop-0.2.0-testnet-preview.apk',
-  'dist/ynx-shop-0.2.0-testnet-preview.apk',
-);
 console.log('YNX Shop web build: dist/');
