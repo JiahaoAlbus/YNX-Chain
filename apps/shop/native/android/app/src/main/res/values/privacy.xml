@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">Your Shop data</string>
+    <string name="privacy_data_description">Export your profile, cart, orders, AI records and buyer audit history. Deletion removes profile, addresses, cart and AI records, and pseudonymizes terminal orders. Public-chain settlement addresses and transaction evidence remain verifiable.</string>
+    <string name="privacy_export_button">Export Shop data</string>
+    <string name="privacy_export_ready">Shop data export is ready.</string>
+    <string name="privacy_export_unavailable">Shop data export unavailable.</string>
+    <string name="privacy_share_label">Save Shop data JSON</string>
+    <string name="privacy_delete_button">Delete personal Shop data</string>
+    <string name="privacy_delete_warning">Active payment, fulfillment, return, refund or dispute workflows must reach a terminal state before deletion. Finalized orders are pseudonymized; authoritative public-chain settlement evidence remains retained.</string>
+    <string name="privacy_delete_action">Delete</string>
+    <string name="privacy_exact_required">Enter the exact deletion confirmation phrase.</string>
+    <string name="privacy_deleted">Personal Shop data deleted. Terminal orders were pseudonymized; public-chain settlement evidence remains retained.</string>
+    <string name="privacy_delete_failed">Deletion not completed. Active workflows may still require resolution.</string>
+</resources>
