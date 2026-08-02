@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">متجر YNX</string>
+    <string name="shop_name">المتجر</string>
     <string name="nav_catalog">اكتشاف</string>
     <string name="nav_cart">السلة</string>
     <string name="nav_orders">الطلبات</string>
