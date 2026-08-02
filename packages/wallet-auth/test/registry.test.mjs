@@ -5,10 +5,13 @@ import { centralRegistrationByProduct, migrateCentralRegistryDocumentV1, parseCe
 
 const source = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
 
-test("central candidate contains exactly 26 unique, least-privilege, disabled products", () => {
+test("central registry contains 26 unique, least-privilege products with only Shop approved", () => {
   const registry = parseCentralRegistryDocument(source);
   assert.equal(registry.products.length, 26);
-  assert.equal(registry.products.every((product) => product.reviewState === "pending-review" && !product.enabled), true);
+  const approved = registry.products.filter((product) => product.enabled);
+  assert.deepEqual(approved.map((product) => product.productId), ["shop"]);
+  assert.equal(approved.every((product) => product.reviewState === "approved"), true);
+  assert.equal(registry.products.filter((product) => !product.enabled).every((product) => product.reviewState === "pending-review"), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
   assert.throws(() => centralRegistrationByProduct(registry, "social"), code("REGISTRY_DISABLED"));
   assert.equal(centralRegistrationByProduct(registry, "social", { requireEnabled: false }).bundleId, "com.ynx.social");
