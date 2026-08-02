@@ -102,6 +102,39 @@ func TestFaucetServerEndpoints(t *testing.T) {
 	_ = resp.Body.Close()
 }
 
+func TestFaucetWebsiteCORSAndTrustedProxyIdentity(t *testing.T) {
+	handler := NewServer(nil).Handler()
+	req := httptest.NewRequest(http.MethodOptions, "/request", nil)
+	req.Header.Set("Origin", "https://ynxweb4.com")
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("preflight returned %d", recorder.Code)
+	}
+	if got := recorder.Header().Get("Access-Control-Allow-Origin"); got != "https://ynxweb4.com" {
+		t.Fatalf("unexpected allowed origin %q", got)
+	}
+
+	blocked := httptest.NewRequest(http.MethodOptions, "/request", nil)
+	blocked.Header.Set("Origin", "https://untrusted.invalid")
+	blockedRecorder := httptest.NewRecorder()
+	handler.ServeHTTP(blockedRecorder, blocked)
+	if blockedRecorder.Code != http.StatusForbidden {
+		t.Fatalf("untrusted origin returned %d", blockedRecorder.Code)
+	}
+
+	proxied := httptest.NewRequest(http.MethodPost, "/request", nil)
+	proxied.RemoteAddr = "127.0.0.1:50000"
+	proxied.Header.Set("X-Real-IP", "203.0.113.42")
+	if got := requestClientIdentity(proxied); got != "203.0.113.42" {
+		t.Fatalf("trusted proxy identity = %q", got)
+	}
+	proxied.Header.Set("X-Real-IP", "not-an-ip")
+	if got := requestClientIdentity(proxied); got != "127.0.0.1:50000" {
+		t.Fatalf("invalid proxy identity did not fall back: %q", got)
+	}
+}
+
 func TestFaucetRequiresKey(t *testing.T) {
 	_, err := New(Config{RPCURL: "http://127.0.0.1:6420"})
 	if err == nil || !strings.Contains(err.Error(), "FAUCET_PRIVATE_KEY") {
