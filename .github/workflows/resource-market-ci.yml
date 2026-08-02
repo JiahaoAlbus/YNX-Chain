@@ -53,10 +53,19 @@ jobs:
         run: bash apps/resource-market/check.sh
       - name: Build and inspect candidate artifact
         run: |
-          mkdir -p release/local-ci
-          go build -trimpath -buildvcs=true -o release/local-ci/ynx-resource-market ./apps/resource-market
-          go version -m release/local-ci/ynx-resource-market > release/local-ci/go-build-metadata.txt
-          sha256sum release/local-ci/ynx-resource-market > release/local-ci/SHA256SUMS
-          go list -m -json all > release/local-ci/go-dependencies.json
-          (cd apps/resource-market && npm sbom --sbom-format spdx) > release/local-ci/npm-sbom.spdx.json
+          if node apps/resource-market/scripts/package-release.mjs /tmp/resource-market-unsafe-output; then
+            echo "unsafe output path was accepted" >&2
+            exit 1
+          fi
+          node apps/resource-market/scripts/package-release.mjs release/resource-market-artifacts/ci-a
+          node apps/resource-market/scripts/package-release.mjs release/resource-market-artifacts/ci-b
+          diff -qr release/resource-market-artifacts/ci-a release/resource-market-artifacts/ci-b
           bash scripts/validate/secret-scan.sh
+      - name: Upload unsigned candidate artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: resource-market-candidate-${{ github.sha }}
+          path: release/resource-market-artifacts/ci-a
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
