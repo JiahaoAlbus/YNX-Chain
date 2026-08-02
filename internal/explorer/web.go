@@ -57,8 +57,8 @@ const indexHTML = `<!doctype html>
     .hero-meta { display:flex; flex-wrap:wrap; gap:6px 20px; margin-top:11px; color:var(--faint); font-size:11px; }
     .hero-meta span { display:flex; align-items:center; gap:7px; }
 
-    main { padding:17px 0 64px; }
-    .status-bar { display:flex; align-items:center; gap:10px; min-height:32px; margin-bottom:10px; color:var(--muted); font-size:12px; }
+    main { padding:14px 0 64px; }
+    .status-bar { display:flex; align-items:center; gap:10px; min-height:32px; margin-bottom:8px; color:var(--muted); font-size:12px; }
     .status-bar .state { display:inline-flex; align-items:center; gap:8px; padding:7px 10px; border-radius:7px; background:var(--green-soft); color:var(--green); font-weight:600; }
     .status-bar.warn .state { background:var(--amber-soft); color:var(--amber); }
     .status-bar .refresh { margin-left:auto; border:0; background:transparent; color:var(--blue); padding:7px 0; }
