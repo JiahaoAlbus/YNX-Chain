@@ -275,10 +275,14 @@
     "testedLocal": true,
     "installedLocal": true,
     "integratedCentral": false,
-    "deployedStaging": false,
-    "deployedPublic": false,
-    "downloadHosted": false,
-    "releasePublished": false,
+    "deployedStaging": true,
+    "deployedPublic": true,
+    "downloadHosted": true,
+    "releasePublished": true,
+    "releaseTag": "developer-v0.2.0-testnet-preview.1",
+    "releaseTargetCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
+    "releasePublishedAt": "2026-07-29T03:22:13Z",
+    "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
     "productionSigned": false,
     "storeReleased": false
   }

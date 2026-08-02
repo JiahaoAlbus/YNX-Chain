@@ -24,7 +24,8 @@ content and dependency notices. This file alone is not a substitute.
 The Windows source references Microsoft WebView2 package `1.0.2903.40`. Windows
 CI restores that package and bundles the `node.exe` supplied by the pinned
 `actions/setup-node` Node `22.17.0` toolchain into an unsigned portable Testnet
-Preview. The Windows CI artifact is not production-signed or publicly hosted.
+Preview. The exact ZIP is publicly hosted by the GitHub pre-release but remains
+unsigned and is not a production distribution.
 
 ## macOS desktop runtime
 
