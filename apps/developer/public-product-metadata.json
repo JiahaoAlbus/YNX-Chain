@@ -5,13 +5,13 @@
   "productName": "YNX Developer / YNX AI Build",
   "version": "0.2.0",
   "branch": "codex/final-developer",
-  "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
+  "sourceCommit": "70f7c3ca7540327aca3736b398c52a67b8e86f34",
   "officialDomain": "https://ynxweb4.com",
   "canonicalPath": "/developer",
   "canonicalUrl": "https://ynxweb4.com/developer",
-  "routeStatus": "handoff-ready-not-deployed",
-  "deployedPublic": false,
-  "publicRouteVerified": false,
+  "routeStatus": "public-testnet-verified",
+  "deployedPublic": true,
+  "publicRouteVerified": true,
   "releaseClass": "unsigned-testnet-preview",
   "release": {
     "published": true,
@@ -48,7 +48,7 @@
       "bytes": 38450128,
       "signingClass": "adhoc-no-team-id",
       "hosted": true,
-      "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-macos-unsigned.zip"
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-macos-arm64-unsigned.zip"
     },
     "windowsX64": {
       "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
@@ -59,29 +59,33 @@
       "bytes": 106341644,
       "signingClass": "unsigned-no-authenticode",
       "hosted": true,
-      "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-windows-x64-unsigned.zip"
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-windows-x64-unsigned.zip"
     }
   },
   "publicEvidence": {
-    "staging": false,
+    "staging": true,
     "production": false,
     "downloadHosted": true,
     "immutableArtifactUrls": [
-      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-macos-unsigned.zip",
-      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
-      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/SHA256SUMS.txt",
-      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/PROVENANCE.json",
-      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/sbom.cdx.json"
+      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-macos-arm64-unsigned.zip",
+      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-windows-x64-unsigned.zip",
+      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
+      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
+      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json"
     ],
-    "healthUrls": [],
+    "healthUrls": [
+      "https://developer.ynxweb4.com/health",
+      "https://developer.ynxweb4.com/chain/status"
+    ],
     "verifiedUrls": [
+      "https://developer.ynxweb4.com/",
       "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1"
     ]
   },
   "websiteHandoff": {
     "targetOwner": "28-website",
     "integrationOwner": "29-integration",
-    "status": "prepared-local-not-integrated",
+    "status": "public-route-integrated",
     "requiredRoute": "/developer",
     "requiredCanonical": "https://ynxweb4.com/developer",
     "screenshots": [
@@ -105,12 +109,12 @@
   },
   "truthBoundaries": {
     "integratedCentral": false,
-    "deployedStaging": false,
-    "deployedPublic": false,
+    "deployedStaging": true,
+    "deployedPublic": true,
     "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false,
     "mainnetReleased": false
   },
-  "generatedAt": "2026-07-29T03:22:13Z"
+  "generatedAt": "2026-08-03T07:20:00+08:00"
 }

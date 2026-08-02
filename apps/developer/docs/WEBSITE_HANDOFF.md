@@ -9,7 +9,7 @@ Website owner: `28-website`
 
 - Official domain: `https://ynxweb4.com`
 - Canonical route: `https://ynxweb4.com/developer`
-- Route status: prepared locally, not integrated or deployed
+- Route status: public Testnet route verified at `https://developer.ynxweb4.com/`; website DApp route integration is in review
 - Founder domain `huangjeo.com` is not a product, documentation, release, support or canonical URL for this handoff.
 
 ## Source and release truth
@@ -20,7 +20,7 @@ Website owner: `28-website`
 - Product release truth: `apps/developer/product-release.json`
 - Release class: unsigned Testnet Preview
 - `implementedLocal=true`, `testedLocal=true`, `installedLocal=true`
-- `integratedCentral=false`, `deployedStaging=false`, `deployedPublic=false`
+- `integratedCentral=false`, `deployedStaging=true`, `deployedPublic=true`
 - `downloadHosted=true`, `productionSigned=false`, `storeReleased=false`
 - GitHub pre-release: `developer-v0.2.0-testnet-preview.1` (published 2026-07-29, unsigned Testnet Preview)
 
@@ -48,7 +48,7 @@ Exact hashes are authoritative in `evidence/ui/current-accessibility/accessibili
 
 ## Download boundary
 
-Immutable public URLs now exist for the exact macOS and Windows ZIPs under GitHub pre-release `developer-v0.2.0-testnet-preview.1`. The Windows Actions artifact (`8710756758`) still expires on 2026-08-12 and must not be used as the public download. Every CTA must say unsigned Testnet Preview; production signing remains unavailable.
+Immutable public URLs exist for the exact macOS and Windows ZIPs under GitHub pre-release `developer-v0.2.0-testnet-preview.1`. Exact copies with the same SHA-256 and byte counts are also served from `https://developer.ynxweb4.com/downloads/` so the official website can provide direct YNX-domain downloads. The Windows Actions artifact (`8710756758`) still expires on 2026-08-12 and must not be used as the public download. Every CTA must say unsigned Testnet Preview; production signing remains unavailable.
 
 ## Acceptance gates for Website owner
 

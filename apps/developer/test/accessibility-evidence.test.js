@@ -55,13 +55,13 @@ test("committed accessibility evidence and public metadata preserve exact hashes
   }
   assert.equal(metadata.officialDomain, "https://ynxweb4.com");
   assert.equal(metadata.canonicalUrl, "https://ynxweb4.com/developer");
-  assert.equal(metadata.deployedPublic, false);
-  assert.equal(metadata.publicRouteVerified, false);
+  assert.equal(metadata.deployedPublic, true);
+  assert.equal(metadata.publicRouteVerified, true);
   assert.equal(metadata.publicEvidence.immutableArtifactUrls.length, 5);
-  assert.ok(metadata.publicEvidence.immutableArtifactUrls.every((url) => url.startsWith("https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/")));
+  assert.ok(metadata.publicEvidence.immutableArtifactUrls.every((url) => url.startsWith("https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-")));
   assert.equal(release.browserAccessibilityEvidence.status, "passed");
   assert.equal(release.browserAccessibilityEvidence.independentCertification, false);
-  assert.equal(release.deployedPublic, false);
+  assert.equal(release.deployedPublic, true);
   assert.equal(release.productionSigned, false);
 });
 
@@ -108,7 +108,7 @@ test("release manifests, provenance and website metadata agree on current unsign
   assert.equal(metadata.release.targetCommit, "fc7e9b5146d514aaae02bb01e4e20c62ff32867a");
   assert.equal(metadata.localEvidence.macosArm64.hosted, true);
   assert.equal(metadata.localEvidence.windowsX64.hosted, true);
-  assert.equal(metadata.routeStatus, "handoff-ready-not-deployed");
+  assert.equal(metadata.routeStatus, "public-testnet-verified");
   assert.equal(provenance.truthBoundaries.productionSigned, false);
   assert.equal(provenance.truthBoundaries.deployedPublic, false);
 });

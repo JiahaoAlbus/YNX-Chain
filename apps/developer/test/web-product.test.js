@@ -83,7 +83,8 @@ test("product release truth separates local proof from central, deployment and s
   const release=JSON.parse(await read("product-release.json"));
   for(const key of ["productId","name","branch","commit","version","surfaces","implementedLocal","testedLocal","installedLocal","integratedCentral","deployedStaging","deployedPublic","downloadHosted","productionSigned","storeReleased","publicUrls","healthUrls","artifactUrls","sha256","bytes","signingClass","minOS","installEvidence","centralIntegration","knownLimitations","generatedAt"])assert.ok(Object.hasOwn(release,key),`missing ${key}`);
   assert.equal(release.implementedLocal,true);assert.equal(release.testedLocal,true);assert.equal(release.installedLocal,true);
-  for(const key of ["integratedCentral","deployedStaging","deployedPublic","productionSigned","storeReleased"])assert.equal(release[key],false,key);
+  for(const key of ["integratedCentral","productionSigned","storeReleased"])assert.equal(release[key],false,key);
+  for(const key of ["deployedStaging","deployedPublic"])assert.equal(release[key],true,key);
   assert.equal(release.downloadHosted,true);assert.equal(release.releasePublished,true);
-  assert.equal(release.publicUrls.length,1);assert.deepEqual(release.healthUrls,[]);assert.equal(release.artifactUrls.length,5);
+  assert.equal(release.publicUrls.length,2);assert.equal(release.healthUrls.length,2);assert.equal(release.artifactUrls.length,5);
 });

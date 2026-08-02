@@ -1,10 +1,10 @@
 {
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
-  "branch": "codex/final-developer",
-  "commit": "7f976c1e06292360160325b00fa0875e6a2567f6",
+  "branch": "codex/developer-hosted-preview-metadata",
+  "commit": "70f7c3ca7540327aca3736b398c52a67b8e86f34",
   "version": "0.2.0",
-  "sourceCheckpoint": "current-source-desktop-artifacts-2026-07-29",
+  "sourceCheckpoint": "public-testnet-web-and-desktop-artifacts-2026-08-03",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -16,8 +16,8 @@
   "testedLocal": true,
   "installedLocal": true,
   "integratedCentral": false,
-  "deployedStaging": false,
-  "deployedPublic": false,
+  "deployedStaging": true,
+  "deployedPublic": true,
   "downloadHosted": true,
   "productionSigned": false,
   "storeReleased": false,
@@ -27,15 +27,19 @@
   "releaseTargetCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
   "releasePublishedAt": "2026-07-29T03:22:13Z",
   "publicUrls": [
+    "https://developer.ynxweb4.com/",
     "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1"
   ],
-  "healthUrls": [],
+  "healthUrls": [
+    "https://developer.ynxweb4.com/health",
+    "https://developer.ynxweb4.com/chain/status"
+  ],
   "artifactUrls": [
-    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-macos-unsigned.zip",
-    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
-    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/SHA256SUMS.txt",
-    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/PROVENANCE.json",
-    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/sbom.cdx.json"
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-macos-arm64-unsigned.zip",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-windows-x64-unsigned.zip",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json"
   ],
   "featureStatus": {
     "apiStudio": {
@@ -47,8 +51,8 @@
         "windowsX64": true
       },
       "integratedCentral": false,
-      "deployedStaging": false,
-      "deployedPublic": false,
+      "deployedStaging": true,
+      "deployedPublic": true,
       "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "tests": {
         "developerClient": "22 passed",
@@ -105,7 +109,9 @@
     ],
     "independentCertification": false,
     "installedDesktopRecapture": false,
-    "publicDeploymentEvidence": false
+    "publicDeploymentEvidence": true,
+    "publicURL": "https://developer.ynxweb4.com/",
+    "publicBrowserVerification": "live chain height, twelve-language selector, IDE landmarks and bounded AI/provider state verified in the in-app browser on 2026-08-03"
   },
   "sha256": {
     "macosArm64UnsignedZip": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
@@ -172,7 +178,7 @@
     "apiCredentialBroker": "host contract is implemented and tested, but no central broker or provider credential is connected"
   },
   "knownLimitations": [
-    "No public Web staging or public deployment URL exists.",
+    "The Web IDE is a public Testnet preview; it is not a production or Mainnet development service.",
     "Immutable GitHub pre-release URLs exist for both unsigned Testnet Preview packages; the separate Windows Actions artifact still expires after 14 days and is not the public release source.",
     "No Developer ID, notarization, Authenticode, signed installer, signed updater or store release exists.",
     "No central Wallet registry/provider integration or real Wallet-signed deployment was performed.",
@@ -183,5 +189,5 @@
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The pinned chain compiler response truthfully reports deterministic analyzer output unless a matching production solc artifact exists; no arbitrary EVM or remote public verification claim is made."
   ],
-  "generatedAt": "2026-07-29T03:22:13Z"
+  "generatedAt": "2026-08-03T07:20:00+08:00"
 }
