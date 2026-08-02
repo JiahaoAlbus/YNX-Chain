@@ -12,7 +12,7 @@ Environment=NODE_ENV=production
 Environment=PORT=18111
 Environment=YNX_DEVELOPER_VERSION=0.2.0-testnet-preview
 Environment=YNX_DEVELOPER_COMMIT=5367814e
-Environment=YNX_DEVELOPER_CHAIN_URL=http://127.0.0.1:6426
+Environment=YNX_DEVELOPER_CHAIN_URL=http://127.0.0.1:6420
 Environment=YNX_DEVELOPER_AI_URL=http://127.0.0.1:6429
 Environment=YNX_DEVELOPER_APP_GATEWAY_URL=http://127.0.0.1:6432
 ExecStart=/usr/bin/node apps/developer/scripts/server.mjs
