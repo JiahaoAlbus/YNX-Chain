@@ -1,41 +1,37 @@
 {
   "productId": "ynx-shop",
   "name": "YNX Shop",
-  "branch": "codex/ecosystem-shop",
-  "commit": "38e2f68deb91d5f26e5aeec2318e260cd0742115",
-  "version": "0.2.0-testnet-preview",
+  "branch": "codex/shop-0.3-android",
+  "commit": "6fa2d6c5",
+  "version": "0.3.0-testnet-preview",
   "surfaces": ["web", "pwa", "android", "ios"],
   "implementedLocal": true,
   "testedLocal": true,
-  "installedLocal": false,
+  "installedLocal": true,
   "integratedCentral": false,
   "deployedStaging": true,
-  "deployedPublic": false,
+  "deployedPublic": true,
   "downloadHosted": true,
   "productionSigned": false,
   "storeReleased": false,
   "publicUrls": [
-    "https://web4.ynxweb4.com/shop-staging/"
+    "https://shop.ynxweb4.com/shop/",
+    "https://www.ynxweb4.com/dapp/shop"
   ],
   "healthUrls": [
-    "https://web4.ynxweb4.com/shop-api-staging/health",
-    "https://web4.ynxweb4.com/shop-api-staging/version"
+    "https://shop-api.ynxweb4.com/health",
+    "https://shop-api.ynxweb4.com/version"
   ],
   "artifactUrls": [
-    "https://web4.ynxweb4.com/shop-staging/ynx-shop-0.2.0-testnet-preview.apk",
-    "https://web4.ynxweb4.com/shop-staging/ynx-shop-release-38e2f68.tar.gz"
+    "https://www.ynxweb4.com/downloads/ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk"
   ],
   "sha256": {
-    "androidTestnetPreviewApk": "0df56042b944f74540be437e314f6331afcb4f9674342d63b1922fbdab7c435f",
-    "linuxWebApiBundle": "dd2ac7aed00e5de3de8ad90f15b03a5f4c92a07c37464c9166075e818f9af527",
-    "linuxAmd64Shopd": "cf0063e9a645a58370044d00010594acb6298f637f17fc040ac0606c079f1dc8"
+    "androidTestnetPreviewApk": "a7466e02f3735c561af403a83c8377e1f1ee3bbdfdd76d4f691bf595cd72c72d"
   },
   "bytes": {
-    "androidTestnetPreviewApk": 78639,
-    "linuxWebApiBundle": 8644930,
-    "linuxAmd64Shopd": 19177656
+    "androidTestnetPreviewApk": 253733
   },
-  "signingClass": "testnet-ephemeral",
+  "signingClass": "android-debug-testnet-preview",
   "minOS": {
     "androidApi": 26,
     "ios": "17.0",
@@ -44,36 +40,37 @@
   "installEvidence": {
     "android": {
       "installed": true,
-      "device": "Medium Phone API 36 isolated read-only AVD on emulator-5576",
-      "package": "com.ynxweb4.shop",
+      "device": "Medium Phone API 36 emulator-5554",
+      "package": "com.ynxweb4.shop.debug",
       "install": "Success",
-      "coldLaunch": "LaunchState: COLD; TotalTime: 14165 ms",
-      "restart": "LaunchState: COLD; TotalTime: 2243 ms",
-      "deepLinks": [
-        "ynxshop://wallet-auth/callback delivered and missing Wallet response rejected",
-        "ynxshop://orders/order-test delivered to MainActivity"
+      "coldLaunch": "LaunchState: COLD; TotalTime: 4203 ms",
+      "verifiedFlows": [
+        "public catalog returned three persistent demo products",
+        "official catalog media rendered from shop.ynxweb4.com",
+        "add-to-cart updated the local encrypted cart badge",
+        "order review showed exact 24 YNXT subtotal and address fields"
       ]
     },
     "ios": {
-      "installed": false,
-      "reason": "Full Xcode and iOS Simulator are absent on this host; runnable macos-15 CI builds, installs, launches, and opens the callback URL."
+      "installed": true,
+      "evidence": "macos-15 CI built, booted, installed, launched, exercised the callback deep link, and captured a screenshot"
     }
   },
   "centralIntegration": {
-    "walletRegistryPatch": "internal/commerce/integration/shop-registry-v2.json",
-    "walletRegisteredDeployed": false,
+    "walletRegistryPullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/54",
+    "walletRegisteredDeployed": true,
+    "walletRegistryMerged": false,
     "payBoundaryImplemented": true,
-    "payMerchantConfiguredForShop": false,
+    "payMerchantConfiguredForShop": true,
     "trustBoundaryImplemented": true,
-    "trustStagingConfigured": true,
-    "aiProviderConfigured": false
+    "trustPublicConfigured": true,
+    "aiProviderConfigured": true
   },
   "knownLimitations": [
-    "The deployed central Gateway does not yet contain the Shop v2 product registration, so Wallet session issuance and authenticated staging flows fail closed.",
-    "A Shop-specific Pay merchant payout address is not provisioned; payment and refund actions remain unavailable rather than simulated.",
-    "iOS is source-complete with runnable CI but is not installed locally because full Xcode is unavailable.",
-    "The APK uses an ephemeral Testnet Preview key, is not production signed, and is not store released.",
-    "Tax and carrier providers are intentionally unavailable; seller shipment entries remain manual-unverified."
+    "The Shop Wallet registry approval is deployed and tested but its source pull request still requires independent review before merge.",
+    "The Android artifact is debug-signed for Testnet Preview testing; it is not production signed or store released.",
+    "Tax and carrier providers are unavailable; seller shipment entries remain manual and unverified.",
+    "The demo catalog is not a claim of physical fulfillment or production retail availability."
   ],
-  "generatedAt": "2026-07-18T14:11:03Z"
+  "generatedAt": "2026-08-03T05:21:30+08:00"
 }
