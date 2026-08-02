@@ -21,7 +21,11 @@ struct CatalogView:View {@EnvironmentObject var model:ShopModel
 struct ProductView:View {let product:Product;@EnvironmentObject var model:ShopModel
     var body:some View{List{Text(product.Description ?? "");ForEach(product.Variants){v in HStack{VStack(alignment:.leading){Text(v.Name);Text(v.PriceYNXT.formatted()+" YNXT");Text("\(v.Available) \(String(localized:"inventory"))").font(.caption)};Spacer();Button("add_cart"){model.add(product,v)}.disabled(v.Available<1)}};Section("trust_evidence"){Text("trust_boundary")}}.navigationTitle(product.Name)}
 }
-struct CartView:View {@EnvironmentObject var model:ShopModel;@State var recipient="",address="",city="",country=""
+struct CartView:View {@EnvironmentObject var model:ShopModel
+    @State var recipient=""
+    @State var address=""
+    @State var city=""
+    @State var country=""
     var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){Text("\($0.Quantity) × \($0.VariantID)")}}
         Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty)}}.navigationTitle("nav_cart")}
 }
