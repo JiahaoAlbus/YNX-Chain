@@ -22,9 +22,12 @@ type Server struct {
 	build     buildinfo.Info
 	startedAt time.Time
 
-	streamMu      sync.Mutex
-	streamClients map[chan streamEvent]struct{}
-	streamRunning bool
+	streamMu          sync.Mutex
+	streamClients     map[chan streamEvent]struct{}
+	streamRunning     bool
+	dashboardMu       sync.Mutex
+	dashboardCached   dashboardSnapshot
+	dashboardCachedAt time.Time
 
 	economicsRequests       atomic.Uint64
 	economicsErrors         atomic.Uint64
@@ -86,6 +89,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /version", s.handleVersion)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/summary", s.handleSummary)
+	s.mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
 	s.mux.HandleFunc("GET /api/economics/disclosure", s.handleEconomicsDisclosure)
 	s.mux.HandleFunc("GET /api/economics/health", s.handleEconomicsHealth)
 	s.mux.HandleFunc("GET /api/stable/reserve", s.handleStableReserve)
@@ -127,7 +131,7 @@ type dashboardSnapshot struct {
 	Warnings     []string            `json:"warnings,omitempty"`
 }
 
-func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, error) {
+func (s *Server) freshDashboardSnapshot(ctx context.Context) (dashboardSnapshot, error) {
 	var (
 		summary                             Summary
 		blocks                              []chain.Block
@@ -165,6 +169,30 @@ func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, erro
 	summary.Build = s.build
 	summary.StartedAt = s.startedAt
 	return dashboardSnapshot{Summary: summary, Blocks: blocks, Transactions: transactions, Validators: validators, Resources: resources, Warnings: warnings}, nil
+}
+
+func (s *Server) dashboardSnapshot() (dashboardSnapshot, error) {
+	s.dashboardMu.Lock()
+	defer s.dashboardMu.Unlock()
+	if !s.dashboardCachedAt.IsZero() && time.Since(s.dashboardCachedAt) < 2*time.Second {
+		return s.dashboardCached, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+	defer cancel()
+	snapshot, err := s.freshDashboardSnapshot(ctx)
+	if err == nil {
+		s.dashboardCached = snapshot
+		s.dashboardCachedAt = time.Now()
+		return snapshot, nil
+	}
+	if !s.dashboardCachedAt.IsZero() && time.Since(s.dashboardCachedAt) < 30*time.Second {
+		stale := s.dashboardCached
+		stale.Summary.OK = false
+		stale.Summary.IndexerError = "live refresh failed; showing a recent verified snapshot"
+		stale.Warnings = append(append([]string{}, stale.Warnings...), err.Error())
+		return stale, nil
+	}
+	return dashboardSnapshot{}, err
 }
 
 func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
@@ -225,7 +253,7 @@ func (s *Server) runStream() {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	for {
-		snapshot, err := s.dashboardSnapshot(context.Background())
+		snapshot, err := s.dashboardSnapshot()
 		event := streamEvent{event: "dashboard"}
 		if err != nil {
 			event.event = "upstream-error"
@@ -292,6 +320,15 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 	summary.Build = s.build
 	summary.StartedAt = s.startedAt
 	writeJSON(w, http.StatusOK, summary)
+}
+
+func (s *Server) handleDashboard(w http.ResponseWriter, _ *http.Request) {
+	snapshot, err := s.dashboardSnapshot()
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, snapshot)
 }
 
 func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
