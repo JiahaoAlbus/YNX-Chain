@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">YNX 쇼핑</string>
+    <string name="shop_name">쇼핑</string>
     <string name="nav_catalog">둘러보기</string>
     <string name="nav_cart">장바구니</string>
     <string name="nav_orders">주문</string>

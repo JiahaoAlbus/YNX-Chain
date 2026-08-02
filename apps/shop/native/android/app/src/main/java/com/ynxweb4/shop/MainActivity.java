@@ -32,8 +32,16 @@ public final class MainActivity extends Activity {
 
     private void build(){
         LinearLayout root=column();root.setBackgroundColor(Color.WHITE);
+        root.setOnApplyWindowInsetsListener((view,insets)->{
+            view.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());
+            return insets;
+        });
         LinearLayout header=row();header.setPadding(dp(18),dp(16),dp(18),dp(10));
-        TextView brand=text(getString(R.string.app_name),24,true);brand.setTextColor(INK);header.addView(brand,new LinearLayout.LayoutParams(0,dp(52),1));
+        LinearLayout brand=row();
+        ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.ynx_logo);logo.setAdjustViewBounds(true);logo.setScaleType(ImageView.ScaleType.CENTER_INSIDE);logo.setContentDescription(getString(R.string.ynx_logo));
+        brand.addView(logo,new LinearLayout.LayoutParams(dp(76),dp(44)));
+        TextView brandName=text(getString(R.string.shop_name),19,true);brandName.setTextColor(INK);brandName.setPadding(dp(8),0,0,0);brand.addView(brandName);
+        header.addView(brand,new LinearLayout.LayoutParams(0,dp(52),1));
         Button walletButton=button(getString(R.string.wallet_sign_in));walletButton.setContentDescription(getString(R.string.wallet_sign_in));walletButton.setOnClickListener(v->signIn());header.addView(walletButton);
         root.addView(header);
         status=text(getString(R.string.loading),13,false);status.setContentDescription(getString(R.string.accessibility_status));status.setPadding(dp(18),dp(8),dp(18),dp(8));status.setTextColor(Color.DKGRAY);root.addView(status);
