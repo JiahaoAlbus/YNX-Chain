@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "ynx.monitor.dependency-review.v1",
+  "sourceCommit": "da552c4e86d8d895dbc10bcab38d93ee3228ddac",
+  "generatedFrom": "apps/monitor/package-lock.json",
+  "lockfileVersion": 3,
+  "packageCount": 163,
+  "directProductionDependencies": [
+    "@types/express",
+    "@types/node",
+    "@types/react",
+    "@types/react-dom",
+    "@vitejs/plugin-react",
+    "express",
+    "react",
+    "react-dom",
+    "tsx",
+    "typescript",
+    "vite"
+  ],
+  "licenses": [
+    "0BSD",
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "MPL-2.0"
+  ],
+  "allowedLicenses": [
+    "0BSD",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "MPL-2.0"
+  ],
+  "registryHosts": [
+    "registry.npmjs.org",
+    "registry.npmmirror.com"
+  ],
+  "nonCanonicalRegistryHosts": [
+    "registry.npmmirror.com"
+  ],
+  "policy": {
+    "exactVersionsRequired": true,
+    "integrityRequired": true,
+    "httpsRequired": true,
+    "missingLicenseFails": true,
+    "unapprovedLicenseFails": true,
+    "mirrorUsageIsReportedNotConcealed": true
+  },
+  "findings": []
+}
