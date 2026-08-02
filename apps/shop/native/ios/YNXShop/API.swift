@@ -1,9 +1,70 @@
 import Foundation
 
-struct Product:Codable,Identifiable { let ID:String; let StoreID:String; let Name:String; let Description:String?; let Category:String?; let Variants:[Variant]; var id:String{ID} }
-struct Variant:Codable,Identifiable { let ID:String; let Name:String; let PriceYNXT:Int64; let Available:Int; var id:String{ID} }
-struct CartItem:Codable,Identifiable { let ProductID:String; let VariantID:String; var Quantity:Int; var id:String{ProductID+VariantID} }
-struct Order:Codable,Identifiable { let ID:String; let Status:String; let TotalYNXT:Int64; let RefundStatus:String?; let TrustStatus:String?; let PayDeepLink:String?; var id:String{ID} }
+struct Product: Codable, Identifiable {
+    let productID: String
+    let storeID: String
+    let name: String
+    let description: String?
+    let category: String?
+    let variants: [Variant]
+    var id: String { productID }
+
+    enum CodingKeys: String, CodingKey {
+        case productID = "ID"
+        case storeID = "StoreID"
+        case name = "Name"
+        case description = "Description"
+        case category = "Category"
+        case variants = "Variants"
+    }
+}
+
+struct Variant: Codable, Identifiable {
+    let variantID: String
+    let name: String
+    let priceYNXT: Int64
+    let available: Int
+    var id: String { variantID }
+
+    enum CodingKeys: String, CodingKey {
+        case variantID = "ID"
+        case name = "Name"
+        case priceYNXT = "PriceYNXT"
+        case available = "Available"
+    }
+}
+
+struct CartItem: Codable, Identifiable {
+    let productID: String
+    let variantID: String
+    var quantity: Int
+    var id: String { productID + variantID }
+
+    enum CodingKeys: String, CodingKey {
+        case productID = "ProductID"
+        case variantID = "VariantID"
+        case quantity = "Quantity"
+    }
+}
+
+struct Order: Codable, Identifiable {
+    let orderID: String
+    let status: String
+    let totalYNXT: Int64
+    let refundStatus: String?
+    let trustStatus: String?
+    let payDeepLink: String?
+    var id: String { orderID }
+
+    enum CodingKeys: String, CodingKey {
+        case orderID = "ID"
+        case status = "Status"
+        case totalYNXT = "TotalYNXT"
+        case refundStatus = "RefundStatus"
+        case trustStatus = "TrustStatus"
+        case payDeepLink = "PayDeepLink"
+    }
+}
 struct CatalogResponse:Codable { let products:[Product] }
 struct OrdersResponse:Codable { let orders:[Order] }
 
