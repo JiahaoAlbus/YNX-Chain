@@ -1,0 +1,7 @@
+# YNX Social privacy, retention and service exit
+
+Social, Chat and Square each expose actor-scoped export and explicit-confirmation deletion behavior. Social removes its profile, relationship, device, session, group, media, moment, reaction, report, automation and idempotency state. Chat removes the actor's devices and rotations, removes two-party conversations that cannot continue, deletes actor-sent ciphertext and removes actor recipient envelopes from surviving conversations. Square removes the profile, devices, reactions, follows, notifications and actor-created comments; posts are reduced to non-discoverable `[deleted]` tombstones so other participants' references do not silently point to a different active record.
+
+All three stores save atomically and must restart with their integrity checks intact after deletion. Tests prove export scope, erasure, other-participant boundaries and restart.
+
+Append-only audit chains are a declared retention exception: prior audit entries are not rewritten because that would destroy hash-chain integrity and dispute/security evidence. New erasure events use a domain-separated pseudonym rather than the raw account. A jurisdiction-specific retention period, lawful-basis decision, subject-request response SLA and eventual audit compaction ceremony require legal and Trust approval before production. Local behavior does not establish that approval.

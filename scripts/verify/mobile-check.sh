@@ -3,6 +3,30 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
+match_file() {
+  local pattern="$1"
+  local path="$2"
+  if command -v rg >/dev/null 2>&1; then
+    rg -q "$pattern" "$path"
+  else
+    grep -Eq -- "$pattern" "$path"
+  fi
+}
+
+scan_unprotected_storage() {
+  if command -v rg >/dev/null 2>&1; then
+    rg -n 'AsyncStorage|localStorage|sessionStorage' apps/mobile --glob '!package-lock.json' --glob '!scripts/**'
+  else
+    grep -RInE \
+      --exclude='package-lock.json' \
+      --exclude-dir='scripts' \
+      --exclude-dir='node_modules' \
+      --exclude-dir='dist' \
+      --exclude-dir='.expo' \
+      -- 'AsyncStorage|localStorage|sessionStorage' apps/mobile
+  fi
+}
+
 if [[ ! -d apps/mobile/node_modules ]]; then
   npm --prefix apps/mobile ci --ignore-scripts --no-audit --no-fund
 fi
@@ -46,35 +70,35 @@ done
 cmp -s assets/brand/ynx-logo.png apps/mobile/assets/ynx-logo.png
 cmp -s assets/brand/ynx-logo.png internal/explorer/assets/ynx-logo.png
 test ! -e apps/mobile/assets/ynx-mark.svg
-rg -q 'require\("\./assets/ynx-logo\.png"\)' apps/mobile/App.tsx
-rg -q '"backgroundColor": "#FFFFFF"' apps/mobile/app.json
-rg -q 'await this\.authorize\("ownership-proof"\)' apps/mobile/src/api/mobileSession.ts
-rg -q 'await this\.authorize\("signed-post"\)' apps/mobile/src/api/mobileSession.ts
-rg -q 'await authorizeLocalKeyUse\("identity-removal"\)' apps/mobile/App.tsx
-rg -q 'await authorizeLocalKeyUse\("native-transfer"\)' apps/mobile/src/components/NativeWalletDashboard.tsx
-rg -q 'Cross-chain.*Not active' apps/mobile/src/components/NativeWalletDashboard.tsx
-rg -q 'chainId=6423&asset=YNXT' apps/mobile/src/components/NativeWalletDashboard.tsx
-rg -q 'type WalletRoute = "assets" \| "activity" \| "account"' apps/mobile/src/components/NativeWalletDashboard.tsx
-rg -q 'YNX_NATIVE_TX_V1' apps/mobile/src/crypto/ynxSigner.ts
-rg -q 'x25519-hkdf-sha256-xchacha20poly1305' apps/mobile/src/crypto/chatCrypto.ts
-rg -q 'createChatEnvelopeSet' apps/mobile/src/api/mobileSession.ts
-rg -q 'rotateCurrentChatDevice' apps/mobile/src/api/mobileSession.ts
-rg -q 'Manage Chat devices' apps/mobile/src/components/NativeChatScreen.tsx
-rg -q 'await this\.authorize\("device-rotation"\)' apps/mobile/src/api/mobileSession.ts
-rg -q 'type Tab = "social" \| "wallet" \| "pay" \| "network"' apps/mobile/App.tsx
-rg -q 'type SocialRoute = "feed" \| "messages" \| "alerts"' apps/mobile/App.tsx
-rg -q 'createSquareComment' apps/mobile/src/api/mobileSession.ts
-rg -q 'setSquareReaction' apps/mobile/src/api/mobileSession.ts
-rg -q 'setSquareFollow' apps/mobile/src/api/mobileSession.ts
-rg -q 'createSquareReport' apps/mobile/src/api/mobileSession.ts
-rg -q 'parseSquareComments' apps/mobile/src/api/square.ts
-rg -q 'listSquareNotifications' apps/mobile/src/api/mobileSession.ts
-rg -q 'setSquareProfile' apps/mobile/src/api/mobileSession.ts
-rg -q 'NativeSocialAlertsScreen' apps/mobile/App.tsx
-rg -q 'https://rpc\.ynxweb4\.com' apps/mobile/src/api/nativeWallet.ts
+match_file 'require\("\./assets/ynx-logo\.png"\)' apps/mobile/App.tsx
+match_file '"backgroundColor": "#FFFFFF"' apps/mobile/app.json
+match_file 'await this\.authorize\("ownership-proof"\)' apps/mobile/src/api/mobileSession.ts
+match_file 'await this\.authorize\("signed-post"\)' apps/mobile/src/api/mobileSession.ts
+match_file 'await authorizeLocalKeyUse\("identity-removal"\)' apps/mobile/App.tsx
+match_file 'await authorizeLocalKeyUse\("native-transfer"\)' apps/mobile/src/components/NativeWalletDashboard.tsx
+match_file 'Cross-chain.*Not active' apps/mobile/src/components/NativeWalletDashboard.tsx
+match_file 'chainId=6423&asset=YNXT' apps/mobile/src/components/NativeWalletDashboard.tsx
+match_file 'type WalletRoute = "assets" \| "activity" \| "account"' apps/mobile/src/components/NativeWalletDashboard.tsx
+match_file 'YNX_NATIVE_TX_V1' apps/mobile/src/crypto/ynxSigner.ts
+match_file 'x25519-hkdf-sha256-xchacha20poly1305' apps/mobile/src/crypto/chatCrypto.ts
+match_file 'createChatEnvelopeSet' apps/mobile/src/api/mobileSession.ts
+match_file 'rotateCurrentChatDevice' apps/mobile/src/api/mobileSession.ts
+match_file 'Manage Chat devices' apps/mobile/src/components/NativeChatScreen.tsx
+match_file 'await this\.authorize\("device-rotation"\)' apps/mobile/src/api/mobileSession.ts
+match_file 'type Tab = "social" \| "wallet" \| "pay" \| "network"' apps/mobile/App.tsx
+match_file 'type SocialRoute = "feed" \| "messages" \| "alerts"' apps/mobile/App.tsx
+match_file 'createSquareComment' apps/mobile/src/api/mobileSession.ts
+match_file 'setSquareReaction' apps/mobile/src/api/mobileSession.ts
+match_file 'setSquareFollow' apps/mobile/src/api/mobileSession.ts
+match_file 'createSquareReport' apps/mobile/src/api/mobileSession.ts
+match_file 'parseSquareComments' apps/mobile/src/api/square.ts
+match_file 'listSquareNotifications' apps/mobile/src/api/mobileSession.ts
+match_file 'setSquareProfile' apps/mobile/src/api/mobileSession.ts
+match_file 'NativeSocialAlertsScreen' apps/mobile/App.tsx
+match_file 'https://rpc\.ynxweb4\.com' apps/mobile/src/api/nativeWallet.ts
 test -s testdata/mobile-native-transfer-vector.json
 
-if rg -n 'AsyncStorage|localStorage|sessionStorage' apps/mobile --glob '!package-lock.json' --glob '!scripts/**'; then
+if scan_unprotected_storage; then
   echo "mobile-check failed: account or session data must not use unprotected web/async storage" >&2
   exit 1
 fi
