@@ -1,4 +1,4 @@
-developer.ynxweb4.com {
+ide.ynxweb4.com, developer.ynxweb4.com {
 	encode zstd gzip
 
 	@downloads path /downloads/*
