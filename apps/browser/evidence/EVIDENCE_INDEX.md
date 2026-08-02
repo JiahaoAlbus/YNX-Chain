@@ -2,11 +2,11 @@
 
 ## Current local checkpoint
 
-Source commit: `bde6939223693d5cdf5d05f309ac888c091ab815`
+Source commit: `2beece6f66a330811f474f24189e53aacb5bb636`
 Wallet callback runtime commit: `d9580e6b9d09a9d2eec69fbcb6d35a9ddf6997ed`
 Native download runtime commit: `668cb44dab95374ba9e5342d754b6ec568564f2b`
 
-- Browser tests: 14/14 pass.
+- Browser tests: 18/18 pass.
 - Native macOS tests: 20/20 pass, including 17 Wallet callback boundary tests and 3 download-persistence tests.
 - Browser Smoke: persistent state and exact-origin permission boundary pass.
 - Web4 permissions/Wallet registry tests: 15/15 pass.
@@ -18,6 +18,7 @@ Native download runtime commit: `668cb44dab95374ba9e5342d754b6ec568564f2b`
 - Two consecutive same-host builds produced the same ZIP SHA-256.
 - macOS cold start, termination and restart: pass.
 - Current machine-readable callback and artifact evidence: `macos-wallet-callback-bde6939.json`.
+- Current non-destructive installation evidence: `macos-install-2beece6.json`; the exact reviewed binary is installed under an immutable name and LaunchServices resolves the protocol to that hash.
 - Historical machine-readable evidence: `macos-release-f2f9aae.json` and `macos-release-88bf8dd.json`.
 
 ## Local artifacts
@@ -27,7 +28,7 @@ Native download runtime commit: `668cb44dab95374ba9e5342d754b6ec568564f2b`
   branch install/cold-start rerun.
 - macOS: `dist/macos/YNX-Browser-Testnet-Preview-macOS.zip` (generated,
   ignored); 138216 bytes; SHA-256
-  `fa22ac3924f68f25658257b42341f5af44274a5faa8ceceb57a2a76ef94bf2f7`.
+  `c487748ca19c65b62425b5ba536c7714e49321afad6e590fd70be15f5b88c655`.
 - macOS executable SHA-256:
   `cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9`.
 - Reproducibility scope: two consecutive builds on the same host, toolchain,
@@ -36,10 +37,11 @@ Native download runtime commit: `668cb44dab95374ba9e5342d754b6ec568564f2b`
 
 The macOS app is an ad-hoc-signed local Testnet Preview. `codesign` verification
 passes, while Gatekeeper rejects it because it is not Developer ID signed or
-notarized. LaunchServices also knew a source-mismatched user Applications copy
-with the same bundle identifier, so current-source `installedLocal` remains
-false. Controlled callback evidence explicitly targeted the repository Dist app.
-It is not production signed, hosted, current-source installed, or store released.
+notarized. The installer preserved the source-mismatched user Applications copy,
+installed the exact reviewed binary under an immutable evidence name and proved
+LaunchServices resolves the protocol to that hash. `installedLocal` is therefore
+true only for this evidence host. It is not production signed, hosted, notarized,
+cross-host verified, or store released.
 
 ## Platform CI
 
@@ -65,9 +67,6 @@ inside each artifact. The final run URL and results are recorded in
 - Complete a centrally accepted positive macOS Wallet/Auth callback with Gateway
   signature and product-device challenge verification. Local negative protocol
   paths are proven; no Product Session is created locally.
-- Install the exact current-source macOS artifact without overwriting the
-  source-mismatched user Applications copy, then prove LaunchServices resolves
-  the protocol to the reviewed binary hash.
 - Run Windows/.NET 8 compile, package, install, protocol registration and
   Wallet callback replay/tamper/expiry tests.
 - Rerun Android final-branch installation and full iOS Simulator evidence.
