@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -91,7 +92,7 @@ func (s *Server) security(next http.Handler) http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data: https:")
 		w.Header().Set("Cache-Control", "no-store")
-		if r.Method != http.MethodGet && !s.store.Allow(r.RemoteAddr, "http.mutation", 240, time.Minute) {
+		if r.Method != http.MethodGet && !s.store.Allow(clientSubject(r), "http.mutation", 240, time.Minute) {
 			fail(w, http.StatusTooManyRequests, errors.New("mutation rate limit exceeded"))
 			return
 		}
@@ -191,13 +192,37 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request, roles ...string) (
 func (s *Server) rate(w http.ResponseWriter, r *http.Request, actor, action string) bool {
 	subject := actor
 	if subject == "" {
-		subject = r.RemoteAddr
+		subject = clientSubject(r)
 	}
 	if !s.store.Allow(subject, action, 60, time.Minute) {
 		fail(w, 429, errors.New("rate limit exceeded"))
 		return false
 	}
 	return true
+}
+
+// clientSubject keeps public clients in separate rate-limit buckets when the
+// service is behind the local Caddy reverse proxy. Forwarded headers are never
+// trusted from a non-loopback peer, preventing a public caller from choosing a
+// different bucket by spoofing X-Forwarded-For.
+func clientSubject(r *http.Request) string {
+	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+	if err != nil {
+		host = strings.TrimSpace(r.RemoteAddr)
+	}
+	peer := net.ParseIP(host)
+	if peer != nil && peer.IsLoopback() {
+		for _, part := range strings.Split(r.Header.Get("X-Forwarded-For"), ",") {
+			candidate := net.ParseIP(strings.TrimSpace(part))
+			if candidate != nil && !candidate.IsUnspecified() {
+				return candidate.String()
+			}
+		}
+	}
+	if peer != nil {
+		return peer.String()
+	}
+	return host
 }
 
 func (s *Server) authConfig(w http.ResponseWriter, r *http.Request) {
