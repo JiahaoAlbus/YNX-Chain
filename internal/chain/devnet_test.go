@@ -3,13 +3,63 @@ package chain
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
+
+func TestConcurrentTransfersCommitInOneDurableBlock(t *testing.T) {
+	dir := t.TempDir()
+	devnet, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet("ynx_concurrent_sender", 300); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+
+	const transfers = 100
+	errors := make(chan error, transfers)
+	var workers sync.WaitGroup
+	for index := 0; index < transfers; index++ {
+		workers.Add(1)
+		go func(index int) {
+			defer workers.Done()
+			_, err := devnet.Transfer("ynx_concurrent_sender", fmt.Sprintf("ynx_concurrent_recipient_%03d", index), 1)
+			errors <- err
+		}(index)
+	}
+	workers.Wait()
+	close(errors)
+	for err := range errors {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	block := devnet.ProduceBlock()
+	if len(block.Transactions) != transfers {
+		t.Fatalf("expected %d transactions in one block, got %d", transfers, len(block.Transactions))
+	}
+	account, ok := devnet.Account("ynx_concurrent_sender")
+	if !ok || account.Nonce != transfers || account.Balance != 100 {
+		t.Fatalf("unexpected committed sender state: account=%+v found=%v", account, ok)
+	}
+	restored, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	committed := restored.LatestBlock()
+	if committed.Hash != block.Hash || len(committed.Transactions) != transfers {
+		t.Fatalf("concurrent block was not durably restored: %+v", committed)
+	}
+}
 
 func TestLegacyKeccak256Vector(t *testing.T) {
 	got := hex.EncodeToString(legacyKeccak256(nil))

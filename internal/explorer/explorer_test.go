@@ -4,10 +4,13 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -78,7 +81,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	server := httptest.NewServer(NewServerWithBuild(svc, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 
-	for _, path := range []string{"/health", "/version", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
+	for _, path := range []string{"/health", "/version", "/api/summary", "/api/dashboard", "/api/blocks/latest", "/api/txs", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -130,7 +133,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	html := string(body)
 	for _, marker := range []string{
 		"Open MetaMask compatibility",
-		"/api/summary",
+		"/api/dashboard",
 		"new EventSource('/api/stream')",
 		"Network TPS",
 		"Latest transactions",
@@ -223,6 +226,71 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	_ = streamResp.Body.Close()
 	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":7`) || !strings.Contains(streamData, `"resource_sponsored_action"`) || !strings.Contains(streamData, `"sponsorPoolId"`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
 		t.Fatalf("stream did not return a live dashboard snapshot: %s", streamData)
+	}
+}
+
+func TestDashboardSnapshotIsSharedAcrossConcurrentUsers(t *testing.T) {
+	var rpcRequests atomic.Int64
+	var indexerRequests atomic.Int64
+	rpc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rpcRequests.Add(1)
+		switch r.URL.Path {
+		case "/status":
+			_ = json.NewEncoder(w).Encode(Status{Network: "YNX Testnet", Slug: "ynx-testnet", ChainID: 6423, NativeCoinName: "YNXT", NativeCurrencySymbol: "YNXT", Decimals: 18, PublicNetwork: true, Height: 100, ValidatorCount: 4})
+		case "/validators":
+			_ = json.NewEncoder(w).Encode(map[string]any{"validators": []any{}})
+		case "/resource-market/analytics":
+			_ = json.NewEncoder(w).Encode(map[string]any{"policyVersion": "test"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer rpc.Close()
+	indexerHTTP := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		indexerRequests.Add(1)
+		switch r.URL.Path {
+		case "/health":
+			_ = json.NewEncoder(w).Encode(IndexerHealth{OK: true, Service: "ynx-indexerd", Network: "YNX Testnet", ChainID: 6423, NativeSymbol: "YNXT", LastIndexedHeight: 100})
+		case "/blocks/latest":
+			_ = json.NewEncoder(w).Encode(map[string]any{"blocks": []any{}})
+		case "/txs":
+			_ = json.NewEncoder(w).Encode(map[string]any{"transactions": []any{}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer indexerHTTP.Close()
+	svc, err := New(Config{RPCURL: rpc.URL, IndexerURL: indexerHTTP.URL, ResourceUpstreamKey: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(svc).Handler())
+	defer server.Close()
+	const users = 40
+	var wg sync.WaitGroup
+	errors := make(chan error, users)
+	wg.Add(users)
+	for range users {
+		go func() {
+			defer wg.Done()
+			response, err := http.Get(server.URL + "/api/dashboard")
+			if err != nil {
+				errors <- err
+				return
+			}
+			defer response.Body.Close()
+			if response.StatusCode != http.StatusOK {
+				errors <- fmt.Errorf("dashboard returned %d", response.StatusCode)
+			}
+		}()
+	}
+	wg.Wait()
+	close(errors)
+	for err := range errors {
+		t.Fatal(err)
+	}
+	if rpcRequests.Load() != 3 || indexerRequests.Load() != 3 {
+		t.Fatalf("40 concurrent users did not share one upstream snapshot: rpc=%d indexer=%d", rpcRequests.Load(), indexerRequests.Load())
 	}
 }
 

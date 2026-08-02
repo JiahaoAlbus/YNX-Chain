@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "product": "pay",
+  "capability": "recurring-draft",
+  "status": "implementedLocal",
+  "execution": {
+    "automaticChargeEnabled": false,
+    "standingWithdrawalAuthority": false,
+    "walletApprovalEveryOccurrence": true,
+    "futureInvoiceGeneration": "not_implemented",
+    "reason": "A draft is a signed schedule template, not payment authority. Each occurrence requires a separate signed invoice and Wallet-reviewed transaction."
+  },
+  "bounds": {
+    "minimumCadenceDays": 1,
+    "maximumCadenceDays": 365,
+    "minimumOccurrences": 2,
+    "maximumOccurrences": 120,
+    "maximumStartHorizonDays": 365
+  },
+  "authority": {
+    "createRoles": ["owner", "finance"],
+    "merchantSignature": "ed25519",
+    "payerPrivateKeyAccess": false,
+    "paidStateFromDraft": false
+  }
+}

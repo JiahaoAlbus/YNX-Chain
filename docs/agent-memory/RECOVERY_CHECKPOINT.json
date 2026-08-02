@@ -4,98 +4,49 @@
   "productName": "YNX Integration / Founder Control",
   "phase": "INTEGRATE",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
-  "branch": "codex/final-integration",
+  "branch": "codex/integration-pay-acceptance-v2",
   "repository": "JiahaoAlbus/YNX-Chain",
-  "localSha": "6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
-  "remoteSha": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
-  "mainSha": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
+  "lastSynchronizedSha": "512bb11526d2dff45f0e580e88d1e2c7cb047291",
   "dirty": true,
-  "ahead": 85,
-  "behind": 0,
-  "latestSuccessfulTests": [
-    "go test ./...",
-    "make integration-contract-check (71 vectors)",
-    "make chain-core-release-check",
-    "make bft-evm-receipt-check",
-    "make account-abstraction-check solvency-check",
-    "make consensus-state-sync-check streambft-candidate-check",
-    "npm audit --omit=dev --audit-level=high (0 vulnerabilities)",
-    "make integration-acceptance-check",
-    "make integration-product-release-matrix-check"
-  ],
-  "pullRequests": [
-    {
-      "number": 17,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/17",
-      "draft": true,
-      "lastFullyGreenHead": "b1929a5159dc50e02124f6827ccdc6dff7fce9cb",
-      "finalHeadPending": true
-    }
-  ],
-  "integratedCandidates": [
-    {
-      "productNumber": "30",
-      "candidateCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
-      "centralAcceptance": true,
-      "integrationCommit": "a472d588b4f037c57db6d7941b1b37572f91d114",
-      "acceptanceReceipt": "release/integration/evidence/product-30-central-acceptance-a472d588.json",
-      "sourcePrereleasePublished": true,
-      "sourceArtifactHosted": true
-    },
-    {
-      "productNumber": "01",
-      "candidateCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e",
-      "centralAcceptance": true,
-      "integrationCommit": "329092c19794ee376248750c2b138090e8418e08",
-      "acceptanceReceipt": "release/integration/evidence/product-01-central-acceptance-329092c1.json",
-      "sourcePrereleasePublished": true,
-      "sourceArtifactHosted": true
-    }
-  ],
   "matrix": {
-    "path": "release/integration/acceptance-matrix.json",
-    "releaseMatrixPath": "release/integration/PRODUCT_RELEASE_MATRIX.json",
     "totalProducts": 36,
-    "syncedBranches": 35,
-    "registeredWorktrees": 36,
-    "implementedLocalCandidates": 5,
-    "inProgress": 29,
-    "centrallyAccepted": 2,
+    "syncedBranches": 33,
+    "implemented": 32,
+    "tested": 31,
+    "built": 31,
+    "centrallyAccepted": 7,
+    "sharedTestnetVerified": 0,
     "readyForPublicTestnet": 0,
-    "readyForSourceRelease": 3,
-    "holdForRecovery": 33
+    "readyForSourceRelease": 7,
+    "holdForRecovery": 29,
+    "cleanWorktrees": 16,
+    "exactHeadCiSuccess": 8
   },
-  "githubEvidence": {
-    "path": "release/integration/github-evidence.json",
-    "runsAvailable": true,
-    "releasesAvailable": true,
-    "artifactsAvailable": true
+  "completionAudit": {
+    "path": "release/integration/FABLE5_COMPLETION_AUDIT.json",
+    "status": "ACTIVE",
+    "numerator": 252,
+    "denominator": 501,
+    "percent": 50.3,
+    "completedE2E": 0,
+    "registeredE2E": 12
   },
-  "publicRoutes": [
-    {
-      "url": "https://ynxweb4.com/integration",
-      "status": "unverified"
-    }
+  "publicEvidence": [
+    "100 signed Testnet transfers",
+    "20 concurrent transfers included in block 712332",
+    "1000/1000 public service concurrency requests succeeded",
+    "Website and Explorer visually verified with Computer Control"
   ],
-  "completed": [
-    "protected and source-published Product 01 at exact owner source 324f376dac2db434673ccec2c6d212ed3d23f79e",
-    "merged Product 01 through Integration commit 329092c19794ee376248750c2b138090e8418e08",
-    "passed all Product 01 central acceptance tests",
-    "bound Product 01 acceptance to exact owner CI, source release and downloaded archive digest",
-    "refreshed 36-product acceptance, coverage and release matrices",
-    "retained Product 30's prior central acceptance"
-  ],
-  "remaining": [
-    "commit the generated evidence refreshed against exact acceptance source 6de79e31a7dd44fcb7df9edbf65a3090da6967c3",
-    "push and obtain exact-final-head green PR 17 CI",
-    "recover and centrally accept Product 26 Data Fabric",
-    "execute remaining products, shared Testnet, E2E, releases and public proof"
-  ],
-  "blockers": [
-    "final Product 29 acceptance checkpoint is not yet synchronized or exact-head green",
-    "67 Integration coverage rows and remaining cross-product vectors are non-terminal",
-    "shared Testnet and public deployment remain unverified"
-  ],
-  "nextAction": "Commit the source-bound generated evidence, run exact-source preflight, push Product 29, verify exact-final-head CI, then recover Product 26.",
-  "updatedAt": "2026-07-29T19:29:29Z"
+  "unsynchronizedProducts": ["04", "12", "17"],
+  "hardLocks": {
+    "allValidSourcePushed": false,
+    "tier1CentralAcceptanceComplete": false,
+    "fourValidatorRestartRestoreComplete": false,
+    "atLeastEightE2EComplete": false,
+    "websiteMainVercelSourceEqualityProven": false,
+    "independentPublicProofComplete": false,
+    "externalProductionClaimsRemainFalse": true
+  },
+  "nextAction": "Validate, commit and push Product 29; then recover Products 04, 12 and 17 one at a time before executing real cross-product E2E vectors.",
+  "updatedAt": "2026-08-01T14:40:45Z"
 }

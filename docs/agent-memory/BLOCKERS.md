@@ -1,19 +1,19 @@
 # Blockers
 
-Updated: `2026-07-29T18:07:49Z`
+Updated: `2026-08-01T14:40:45Z`
 
-No local execution-infrastructure or external blocker is active.
+The work is active; no repeated external condition currently qualifies the goal as blocked.
 
-Autonomous remaining work:
+Open evidence gates:
 
-- Product 29 PR #17 was fully green at `edefd412…`; the new central-acceptance checkpoint requires its own exact-head CI.
-- The detailed Product Release Matrix exists; 34 products remain conservatively classified `HOLD_FOR_RECOVERY`.
-- Product 30 is centrally source-accepted and source-hosted, but shared-Testnet security, monitoring, recovery and public infrastructure drills remain separate.
-- Central protocol freeze, shared Testnet, cross-product E2E, release train and public proof remain incomplete.
-- Twenty-six owner Worktrees were dirty during the latest point-in-time scan and must be processed one at a time.
-- PRs #7, #11, #13, #14 and #15 conflict with `main`; Product 01 is the next Phase 0 recovery target.
-- No audited PR has the combination of a protected base branch and independent approval, so the safe merge order is currently empty.
+- Products 04, 12 and 17 have valid-looking local commits not yet synchronized to their remotes.
+- 20/36 owner worktrees are dirty and require one-at-a-time preservation, validation and checkpointing.
+- Only 7/36 products have current fail-closed central acceptance.
+- All 12 registered cross-product E2E vectors remain `notStarted`; at least eight complete vectors are required.
+- No product currently satisfies the full shared-Testnet verification gate.
+- Direct four-validator restart/restore proof is incomplete; the Silicon validator host is currently inaccessible over SSH.
+- Website main/Vercel/source equality and independent public proof are not yet established.
+- Exact-head CI covers only 8/36 product heads.
+- 11/21 asset-relevant products lack directly mapped candidate evidence.
 
-Default-branch Dependabot still reports 24 alerts because the Product 30 remediation is not in `main`; this is autonomous release-train work, not an external blocker.
-
-Production signing, HSM/KMS, stores, paid providers, legal approval, independent audit, production DNS/cloud authority, real assets and Mainnet decision are not requested until autonomous candidate work is exhausted.
+External production authority remains intentionally absent for production signing/HSM, real reserves and custody, app stores, independent audit, production DNS/cloud changes and Mainnet approval. These do not prevent continued Testnet/source recovery work.
