@@ -8,9 +8,17 @@ export interface ClientEncryptionContext { product: Product; account: string; co
 export interface ClientEncryptionEnvelope { schemaVersion: 1; mediaType: "application/vnd.ynx.cloud-encrypted+json"; algorithm: "AES-256-GCM"; context: Required<ClientEncryptionContext>; nonce: string; ciphertext: string; ciphertextSha256: string; plaintextBytes: number }
 export interface ClientEncryptionMetadata { clientSide: true; algorithm: "AES-256-GCM"; keyHint: string; recoveryPolicy: string }
 export interface ClientEncryptionResult { content: Uint8Array; contentType: "application/vnd.ynx.cloud-encrypted+json"; encryption: ClientEncryptionMetadata; envelope: ClientEncryptionEnvelope }
+export interface ClientRecoveryPackage { schemaVersion: 1; mediaType: "application/vnd.ynx.cloud-key-recovery+json"; algorithm: "AES-256-GCM"; context: Required<ClientEncryptionContext>; generation: number; recoveryPolicyId: string; keyHint: string; keyFingerprint: string; nonce: string; wrappedKey: string; wrappedKeySha256: string }
+export interface ClientRecoveryPackageResult { content: Uint8Array; contentType: "application/vnd.ynx.cloud-key-recovery+json"; recoveryPackage: ClientRecoveryPackage }
+export interface RecoveredClientKey { key: string; generation: number; recoveryPolicyId: string; keyHint: string; context: Required<ClientEncryptionContext> }
+export interface RotatedClientEncryptionResult extends ClientEncryptionResult { previousContext: Required<ClientEncryptionContext>; nextContext: Required<ClientEncryptionContext>; previousKeyFingerprint: string; nextKeyFingerprint: string }
 export declare function generateClientSideEncryptionKey(): Promise<string>;
+export declare function generateClientSideRecoveryKey(): Promise<string>;
 export declare function encryptClientSideContent(options: { content: string | ArrayBuffer | ArrayBufferView; key: string; context: ClientEncryptionContext; recoveryPolicy: string; keyHint?: string }): Promise<ClientEncryptionResult>;
 export declare function decryptClientSideContent(options: { content: string | ArrayBuffer | ArrayBufferView; key: string; expectedContext: ClientEncryptionContext }): Promise<Uint8Array>;
+export declare function createClientSideRecoveryPackage(options: { key: string; recoveryKey: string; context: ClientEncryptionContext; generation?: number; recoveryPolicyId: string; keyHint?: string }): Promise<ClientRecoveryPackageResult>;
+export declare function recoverClientSideEncryptionKey(options: { recoveryPackage: string | ArrayBuffer | ArrayBufferView; recoveryKey: string; expectedContext: ClientEncryptionContext; expectedRecoveryPolicyId: string; minimumGeneration?: number }): Promise<RecoveredClientKey>;
+export declare function rotateClientSideEncryptedContent(options: { content: string | ArrayBuffer | ArrayBufferView; currentKey: string; nextKey: string; expectedContext: ClientEncryptionContext; nextVersion: number; recoveryPolicy: string; keyHint?: string }): Promise<RotatedClientEncryptionResult>;
 export declare class YNXCloudError extends Error { status: number; requestId: string; errorId: string; retryAfter: number }
 export declare class YNXCloudClient {
   constructor(options: ClientOptions);

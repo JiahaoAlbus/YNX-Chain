@@ -3,6 +3,8 @@ const IDEMPOTENT = new Set(["GET", "HEAD", "PUT", "DELETE"]);
 const CLIENT_ENCRYPTION_ALGORITHM = "AES-256-GCM";
 const CLIENT_ENVELOPE_MEDIA_TYPE = "application/vnd.ynx.cloud-encrypted+json";
 const CLIENT_ENVELOPE_DOMAIN = "ynx-cloud-client-envelope-v1";
+const CLIENT_RECOVERY_MEDIA_TYPE = "application/vnd.ynx.cloud-key-recovery+json";
+const CLIENT_RECOVERY_DOMAIN = "ynx-cloud-key-recovery-v1";
 
 export class YNXCloudError extends Error {
   constructor(message, { status = 0, requestId = "", errorId = "", retryAfter = 0, cause } = {}) {
@@ -88,6 +90,24 @@ function contextAAD(context) {
   return new TextEncoder().encode(`${CLIENT_ENVELOPE_DOMAIN}\n${JSON.stringify(context)}`);
 }
 
+function recoveryField(value, field, maximum = 128) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (!normalized || normalized.length > maximum || !/^[A-Za-z0-9._:@/-]+$/.test(normalized)) {
+    throw new TypeError(`${field} must contain 1 to ${maximum} safe characters`);
+  }
+  return normalized;
+}
+
+function positiveInteger(value, field) {
+  const normalized = Number(value);
+  if (!Number.isSafeInteger(normalized) || normalized < 1) throw new TypeError(`${field} must be a positive integer`);
+  return normalized;
+}
+
+function recoveryAAD(context, generation, recoveryPolicyId) {
+  return new TextEncoder().encode(`${CLIENT_RECOVERY_DOMAIN}\n${JSON.stringify({ context, generation, recoveryPolicyId })}`);
+}
+
 async function sha256(provider, value) {
   return new Uint8Array(await provider.subtle.digest("SHA-256", value));
 }
@@ -112,9 +132,26 @@ function parseClientEnvelope(content) {
   return parsed;
 }
 
+function parseRecoveryPackage(content) {
+  let parsed;
+  try {
+    parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes(content, "recovery package")));
+  } catch (cause) {
+    throw new YNXCloudError("Recovery package is not valid YNX recovery JSON", { cause });
+  }
+  if (parsed?.schemaVersion !== 1 || parsed?.algorithm !== CLIENT_ENCRYPTION_ALGORITHM || parsed?.mediaType !== CLIENT_RECOVERY_MEDIA_TYPE) {
+    throw new YNXCloudError("Recovery package uses an unsupported version or algorithm");
+  }
+  return parsed;
+}
+
 export async function generateClientSideEncryptionKey() {
   const provider = cryptoProvider();
   return base64urlEncode(provider.getRandomValues(new Uint8Array(32)));
+}
+
+export async function generateClientSideRecoveryKey() {
+  return generateClientSideEncryptionKey();
 }
 
 export async function encryptClientSideContent({ content, key, context, recoveryPolicy, keyHint = "" } = {}) {
@@ -175,6 +212,123 @@ export async function decryptClientSideContent({ content, key, expectedContext }
     throw new YNXCloudError("Encrypted content plaintext length evidence is invalid");
   }
   return plaintext;
+}
+
+export async function createClientSideRecoveryPackage({ key, recoveryKey, context, generation = 1, recoveryPolicyId, keyHint = "" } = {}) {
+  const provider = cryptoProvider();
+  const dataKey = base64urlDecode(key, "key");
+  let wrappingKey;
+  try {
+    wrappingKey = base64urlDecode(recoveryKey, "recoveryKey");
+    if (dataKey.length !== 32 || wrappingKey.length !== 32) throw new TypeError("key and recoveryKey must each contain exactly 32 bytes");
+    if (equalBytes(dataKey, wrappingKey)) throw new TypeError("recoveryKey must be independent from the content encryption key");
+    const normalizedContext = encryptionContext(context);
+    const normalizedGeneration = positiveInteger(generation, "generation");
+    const normalizedPolicyId = recoveryField(recoveryPolicyId, "recoveryPolicyId");
+    const normalizedHint = keyHint === "" ? "" : recoveryField(keyHint, "keyHint");
+    const iv = provider.getRandomValues(new Uint8Array(12));
+    const imported = await provider.subtle.importKey("raw", wrappingKey, { name: "AES-GCM" }, false, ["encrypt"]);
+    const wrappedKey = new Uint8Array(await provider.subtle.encrypt({
+      name: "AES-GCM",
+      iv,
+      additionalData: recoveryAAD(normalizedContext, normalizedGeneration, normalizedPolicyId),
+      tagLength: 128,
+    }, imported, dataKey));
+    const recoveryPackage = {
+      schemaVersion: 1,
+      mediaType: CLIENT_RECOVERY_MEDIA_TYPE,
+      algorithm: CLIENT_ENCRYPTION_ALGORITHM,
+      context: normalizedContext,
+      generation: normalizedGeneration,
+      recoveryPolicyId: normalizedPolicyId,
+      keyHint: normalizedHint,
+      keyFingerprint: base64urlEncode(await sha256(provider, dataKey)),
+      nonce: base64urlEncode(iv),
+      wrappedKey: base64urlEncode(wrappedKey),
+      wrappedKeySha256: base64urlEncode(await sha256(provider, wrappedKey)),
+    };
+    return {
+      content: new TextEncoder().encode(JSON.stringify(recoveryPackage)),
+      contentType: CLIENT_RECOVERY_MEDIA_TYPE,
+      recoveryPackage,
+    };
+  } finally {
+    dataKey.fill(0);
+    wrappingKey?.fill(0);
+  }
+}
+
+export async function recoverClientSideEncryptionKey({ recoveryPackage, recoveryKey, expectedContext, expectedRecoveryPolicyId, minimumGeneration = 1 } = {}) {
+  const provider = cryptoProvider();
+  const parsed = parseRecoveryPackage(recoveryPackage);
+  const normalizedExpected = encryptionContext(expectedContext);
+  const normalizedPackageContext = encryptionContext(parsed.context);
+  if (JSON.stringify(normalizedExpected) !== JSON.stringify(normalizedPackageContext)) {
+    throw new YNXCloudError("Recovery package context does not match the requested account, product, object, or version");
+  }
+  const expectedPolicyId = recoveryField(expectedRecoveryPolicyId, "expectedRecoveryPolicyId");
+  const packagePolicyId = recoveryField(parsed.recoveryPolicyId, "recovery package policy ID");
+  if (packagePolicyId !== expectedPolicyId) throw new YNXCloudError("Recovery package policy does not match the expected policy");
+  const generation = positiveInteger(parsed.generation, "recovery package generation");
+  const minimum = positiveInteger(minimumGeneration, "minimumGeneration");
+  if (generation < minimum) throw new YNXCloudError("Recovery package generation is stale");
+  const wrappingKey = base64urlDecode(recoveryKey, "recoveryKey");
+  let dataKey;
+  try {
+    if (wrappingKey.length !== 32) throw new TypeError("recoveryKey must contain exactly 32 bytes");
+    const iv = base64urlDecode(parsed.nonce, "recovery package nonce");
+    if (iv.length !== 12) throw new YNXCloudError("Recovery package nonce length is invalid");
+    const wrappedKey = base64urlDecode(parsed.wrappedKey, "recovery package wrapped key");
+    if (wrappedKey.length !== 48) throw new YNXCloudError("Recovery package wrapped-key length is invalid");
+    const expectedWrappedHash = base64urlDecode(parsed.wrappedKeySha256, "recovery package wrapped-key hash");
+    if (expectedWrappedHash.length !== 32 || !equalBytes(expectedWrappedHash, await sha256(provider, wrappedKey))) throw new YNXCloudError("Recovery package failed its wrapped-key integrity check");
+    const expectedFingerprint = base64urlDecode(parsed.keyFingerprint, "recovery package key fingerprint");
+    if (expectedFingerprint.length !== 32) throw new YNXCloudError("Recovery package key fingerprint length is invalid");
+    const normalizedHint = parsed.keyHint === "" ? "" : recoveryField(parsed.keyHint, "recovery package key hint");
+    const imported = await provider.subtle.importKey("raw", wrappingKey, { name: "AES-GCM" }, false, ["decrypt"]);
+    dataKey = new Uint8Array(await provider.subtle.decrypt({
+      name: "AES-GCM",
+      iv,
+      additionalData: recoveryAAD(normalizedPackageContext, generation, packagePolicyId),
+      tagLength: 128,
+    }, imported, wrappedKey));
+    if (dataKey.length !== 32) throw new YNXCloudError("Recovered key length is invalid");
+    if (!equalBytes(expectedFingerprint, await sha256(provider, dataKey))) throw new YNXCloudError("Recovery package key fingerprint does not match");
+    return { key: base64urlEncode(dataKey), generation, recoveryPolicyId: packagePolicyId, keyHint: normalizedHint, context: normalizedPackageContext };
+  } catch (cause) {
+    if (cause instanceof YNXCloudError || cause instanceof TypeError) throw cause;
+    throw new YNXCloudError("Recovery package could not be authenticated or unwrapped", { cause });
+  } finally {
+    wrappingKey.fill(0);
+    dataKey?.fill(0);
+  }
+}
+
+export async function rotateClientSideEncryptedContent({ content, currentKey, nextKey, expectedContext, nextVersion, recoveryPolicy, keyHint = "" } = {}) {
+  const provider = cryptoProvider();
+  const currentContext = encryptionContext(expectedContext);
+  const version = positiveInteger(nextVersion, "nextVersion");
+  if (version <= currentContext.version) throw new TypeError("nextVersion must be greater than the current context version");
+  const currentRaw = base64urlDecode(currentKey, "currentKey");
+  let nextRaw;
+  try {
+    nextRaw = base64urlDecode(nextKey, "nextKey");
+    if (currentRaw.length !== 32 || nextRaw.length !== 32) throw new TypeError("currentKey and nextKey must each contain exactly 32 bytes");
+    if (equalBytes(currentRaw, nextRaw)) throw new TypeError("nextKey must differ from currentKey");
+    const previousKeyFingerprint = base64urlEncode(await sha256(provider, currentRaw));
+    const nextKeyFingerprint = base64urlEncode(await sha256(provider, nextRaw));
+    const plaintext = await decryptClientSideContent({ content, key: currentKey, expectedContext: currentContext });
+    try {
+      const nextContext = { ...currentContext, version };
+      const encrypted = await encryptClientSideContent({ content: plaintext, key: nextKey, context: nextContext, recoveryPolicy, keyHint });
+      return { ...encrypted, previousContext: currentContext, nextContext, previousKeyFingerprint, nextKeyFingerprint };
+    } finally {
+      plaintext.fill(0);
+    }
+  } finally {
+    currentRaw.fill(0);
+    nextRaw?.fill(0);
+  }
 }
 
 export class YNXCloudClient {
