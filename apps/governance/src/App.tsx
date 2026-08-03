@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { ProposalList } from './components/ProposalList';
 import { ProposalDetail } from './components/ProposalDetail';
+import { I18nProvider, Locale, supportedLocales, useI18n } from './i18n';
 
 type View = 'list' | 'detail';
 
-export const App: React.FC = () => {
+const GovernanceApp: React.FC = () => {
   const [view, setView] = useState<View>('list');
   const [selectedProposalId, setSelectedProposalId] = useState<string | null>(null);
+  const { locale, setLocale, t, dir, localeNames } = useI18n();
 
   const handleSelectProposal = (id: string) => {
     setSelectedProposalId(id);
@@ -19,20 +21,31 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div style={styles.app}>
-      <nav style={styles.nav}>
+    <div style={styles.app} lang={locale} dir={dir}>
+      <nav style={styles.nav} aria-label={t('proposals')}>
         <div style={styles.navContent}>
           <div style={styles.logo}>
             <span style={styles.logoText}>YNX</span>
             <span style={styles.logoSubtext}>Governance</span>
           </div>
           <div style={styles.navLinks}>
-            <a href="/governance" style={styles.navLink}>Proposals</a>
-            <a href="/governance/roles" style={styles.navLink}>Roles</a>
-            <a href="/governance/emergencies" style={styles.navLink}>Emergency</a>
-            <a href="/governance/docs" style={styles.navLink}>Docs</a>
+            <a href="/governance" style={styles.navLink}>{t('proposals')}</a>
+            <a href="/governance/roles" style={styles.navLink}>{t('roles')}</a>
+            <a href="/governance/emergencies" style={styles.navLink}>{t('emergency')}</a>
+            <a href="/governance/docs" style={styles.navLink}>{t('docs')}</a>
           </div>
-          <a href="/docs/governance/operations" style={styles.operatorLink}>Operator guide</a>
+          <label style={styles.languageLabel}>
+            <span>{t('language')}</span>
+            <select
+              aria-label={t('language')}
+              value={locale}
+              onChange={(event) => setLocale(event.target.value as Locale)}
+              style={styles.languageSelect}
+            >
+              {supportedLocales.map((code) => <option key={code} value={code}>{localeNames[code]}</option>)}
+            </select>
+          </label>
+          <a href="/docs/governance/operations" style={styles.operatorLink}>{t('operatorGuide')}</a>
         </div>
       </nav>
 
@@ -48,20 +61,20 @@ export const App: React.FC = () => {
           <div style={styles.footerSection}>
             <h3 style={styles.footerTitle}>YNX Governance</h3>
             <p style={styles.footerText}>
-              Decentralized governance for YNX Chain protocol parameters, upgrades, and treasury.
+              {t('description')}
             </p>
           </div>
           <div style={styles.footerSection}>
-            <h4 style={styles.footerSubtitle}>Resources</h4>
-            <a href="/docs/governance" style={styles.footerLink}>Documentation</a>
-            <a href="/docs/governance/threat-model" style={styles.footerLink}>Threat Model</a>
-            <a href="/docs/governance/operations" style={styles.footerLink}>Operations</a>
+            <h4 style={styles.footerSubtitle}>{t('resources')}</h4>
+            <a href="/docs/governance" style={styles.footerLink}>{t('documentation')}</a>
+            <a href="/docs/governance/threat-model" style={styles.footerLink}>{t('threatModel')}</a>
+            <a href="/docs/governance/operations" style={styles.footerLink}>{t('operations')}</a>
           </div>
           <div style={styles.footerSection}>
-            <h4 style={styles.footerSubtitle}>Community</h4>
+            <h4 style={styles.footerSubtitle}>{t('community')}</h4>
             <a href="https://forum.ynx.network" style={styles.footerLink}>Forum</a>
             <a href="https://github.com/ynx-chain" style={styles.footerLink}>GitHub</a>
-            <a href="/explorer" style={styles.footerLink}>Explorer</a>
+            <a href="/explorer" style={styles.footerLink}>{t('explorer')}</a>
           </div>
         </div>
         <div style={styles.footerBottom}>
@@ -71,6 +84,10 @@ export const App: React.FC = () => {
     </div>
   );
 };
+
+export const App = ({ initialLocale = 'en' }: { initialLocale?: Locale }) => (
+  <I18nProvider initialLocale={initialLocale}><GovernanceApp /></I18nProvider>
+);
 
 const styles: { [key: string]: React.CSSProperties } = {
   app: {
@@ -93,6 +110,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: '16px',
+    flexWrap: 'wrap',
   },
   logo: {
     display: 'flex',
@@ -115,6 +134,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '24px',
     flex: 1,
     justifyContent: 'center',
+    flexWrap: 'wrap',
   },
   navLink: {
     fontSize: '14px',
@@ -132,6 +152,22 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '600',
     textDecoration: 'none',
     transition: 'background-color 0.2s',
+  },
+  languageLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '13px',
+    color: '#424242',
+  },
+  languageSelect: {
+    minHeight: '40px',
+    maxWidth: '180px',
+    border: '1px solid #757575',
+    borderRadius: '8px',
+    backgroundColor: '#FFFFFF',
+    color: '#212121',
+    padding: '6px 8px',
   },
   main: {
     flex: 1,

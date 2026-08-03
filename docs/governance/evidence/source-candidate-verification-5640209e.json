@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "ynx-governance-source-candidate-verification/v1",
+  "status": "passed",
+  "productId": "31",
+  "product": "YNX Governance & Protocol Control",
+  "owner": "31-governance",
+  "branch": "codex/final-governance",
+  "frozenSourceCommit": "5640209e9c7df9789916bd99f61124db566842b4",
+  "evidenceHead": "fa034972c39451ba74e4a46006384a9e0a82ff59",
+  "sourceReachableFromEvidenceHead": true,
+  "localRemoteEvidenceHeadEqual": true,
+  "worktreeCleanBeforeRelease": true,
+  "branchProtection": {
+    "enabled": true,
+    "strictStatusChecks": true,
+    "requiredContexts": [
+      "governance-check",
+      "test",
+      "Public disclosure authority gate"
+    ],
+    "enforceAdmins": true,
+    "requiredApprovals": 1,
+    "requireCodeOwnerReviews": true,
+    "requireLastPushApproval": true,
+    "dismissStaleReviews": true,
+    "requiredLinearHistory": true,
+    "requiredConversationResolution": true,
+    "allowForcePushes": false,
+    "allowDeletions": false
+  },
+  "exactHeadCi": {
+    "verified": true,
+    "sourceCommit": "fa034972c39451ba74e4a46006384a9e0a82ff59",
+    "successfulWorkflowRunIds": [
+      30522548957,
+      30522550809,
+      30522550810,
+      30522550829,
+      30522550837,
+      30522550880
+    ],
+    "successfulCheckRuns": 7,
+    "failed": 0,
+    "pending": 0
+  },
+  "tests": [
+    {
+      "command": "bash scripts/verify/governance-check.sh",
+      "status": "passed",
+      "result": "Governance Go tests and vet, JSON, UI typecheck, unit tests, production build, real Chrome keyboard/RTL/390px checks, zero-vulnerability npm audit, forbidden-text and secret scans, and deterministic binaries passed."
+    },
+    {
+      "command": "bash scripts/verify/governance-testnet-drill.sh",
+      "status": "passed",
+      "result": "Four validators and nine processes completed Canary, canonical execution, receipt verification, restart and restored-state verification."
+    },
+    {
+      "command": "go test -race -count=1 ./internal/governance ./chain/governance",
+      "status": "passed",
+      "result": "Governance runtime and chain governance race suites passed."
+    },
+    {
+      "command": "make contract-tooling-check && make test",
+      "status": "passed",
+      "result": "Contract selector metadata, Hardhat and Foundry boundaries, and all merged command/internal Go packages passed."
+    },
+    {
+      "command": "make docs-compliance-check; deployment-filler scan; make secret-scan",
+      "status": "passed",
+      "result": "Public authority, documentation, forbidden deployment filler and secret scans passed."
+    },
+    {
+      "command": "node scripts/verify/github-actions-pins-check.mjs",
+      "status": "passed",
+      "result": "All 16 external GitHub Actions references use immutable 40-character commits."
+    },
+    {
+      "command": "node scripts/package/governance-release.mjs <two independent output directories>",
+      "status": "passed",
+      "result": "Binaries, SBOM, notices and Go build records were byte-identical across two independent package runs."
+    }
+  ],
+  "sourceRelease": {
+    "id": 362260575,
+    "tag": "governance-v0.4.2-testnet-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/governance-v0.4.2-testnet-source-candidate",
+    "publishedAt": "2026-07-30T07:44:07Z",
+    "targetCommit": "5640209e9c7df9789916bd99f61124db566842b4",
+    "prerelease": true,
+    "draft": false,
+    "sourceOnly": true,
+    "assetCount": 4,
+    "downloadedAllAssetDigestsVerified": true,
+    "assets": [
+      {
+        "name": "ynx-governance-source-5640209e.tar.gz",
+        "bytes": 6166250,
+        "sha256": "21561652a42c62a01e02cc2b26806033f8648d88a3a96599ec046d879b36df52"
+      },
+      {
+        "name": "governance-sbom.cdx.json",
+        "bytes": 96871,
+        "sha256": "57a1634b02b880535fc2ec3dc0c8dc147ba0344201b4e8d27033f79c9d68c81c"
+      },
+      {
+        "name": "provenance.json",
+        "bytes": 1725,
+        "sha256": "540d7d169bf43494406fe12980e6669db52d46ee54e9669c0cf40134e50d4b62"
+      },
+      {
+        "name": "THIRD_PARTY_NOTICES.md",
+        "bytes": 724,
+        "sha256": "1aa630d55f785519d8b51873bd1d5c369c104d5489d4a73a274a89d17a36d446"
+      }
+    ]
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "sharedTestnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "sourceReleasePublished": true,
+    "runnableArtifactHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  }
+}
