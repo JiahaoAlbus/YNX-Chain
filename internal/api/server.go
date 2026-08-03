@@ -1401,6 +1401,14 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 			return nil, rpcInvalidParams("eth_blockNumber accepts no parameters")
 		}
 		return hexQuantity(latest.Height), nil
+	case "eth_gasPrice", "eth_maxPriorityFeePerGas":
+		if len(params) != 0 {
+			return nil, rpcInvalidParams(method + " accepts no parameters")
+		}
+		// The Testnet execution model currently charges a deterministic minimum
+		// unit price. Returning it through the standard methods keeps common EVM
+		// clients compatible without implying a production fee market.
+		return "0x1", nil
 	case "eth_getBalance", "eth_getTransactionCount":
 		if len(params) < 1 || len(params) > 2 {
 			return nil, rpcInvalidParams(method + " requires an address and optional latest/pending block tag")

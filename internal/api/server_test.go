@@ -594,6 +594,19 @@ func TestEVMRPCNormalizesChecksummedAccountQueries(t *testing.T) {
 	}
 }
 
+func TestEVMRPCExposesDeterministicTestnetGasPrice(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+	for index, method := range []string{"eth_gasPrice", "eth_maxPriorityFeePerGas"} {
+		var out map[string]any
+		doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": index + 1, "method": method, "params": []any{}}, http.StatusOK, &out)
+		if out["result"] != "0x1" {
+			t.Fatalf("expected deterministic Testnet gas price for %s, got %v", method, out)
+		}
+	}
+}
+
 func TestPrometheusMetrics(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	server := httptest.NewServer(NewServer(devnet))
