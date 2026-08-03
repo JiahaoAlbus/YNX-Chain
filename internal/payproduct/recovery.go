@@ -401,5 +401,5 @@ func sha256Hex(raw []byte) string {
 }
 
 func snapshotRecordCounts(snapshot Snapshot) map[string]int {
-	return map[string]int{"merchants": len(snapshot.Merchants), "members": len(snapshot.MerchantMembers), "catalog": len(snapshot.Catalog), "invoices": len(snapshot.Invoices), "refunds": len(snapshot.Refunds), "disputes": len(snapshot.Disputes), "webhookDeliveries": len(snapshot.Deliveries), "aiRuns": len(snapshot.AIRuns), "providers": len(snapshot.Providers), "dataRequests": len(snapshot.DataRequests), "bulkOperations": len(snapshot.BulkOperations), "auditEntries": len(snapshot.Audit)}
+	return map[string]int{"merchants": len(snapshot.Merchants), "members": len(snapshot.MerchantMembers), "catalog": len(snapshot.Catalog), "invoices": len(snapshot.Invoices), "refunds": len(snapshot.Refunds), "disputes": len(snapshot.Disputes), "webhookDeliveries": len(snapshot.Deliveries), "aiRuns": len(snapshot.AIRuns), "providers": len(snapshot.Providers), "dataRequests": len(snapshot.DataRequests), "dataHolds": len(snapshot.DataHolds), "bulkOperations": len(snapshot.BulkOperations), "auditEntries": len(snapshot.Audit)}
 }

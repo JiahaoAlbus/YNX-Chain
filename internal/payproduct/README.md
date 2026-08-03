@@ -27,6 +27,21 @@ with `X-YNX-Monitor-Key`. Without it the endpoint fails closed. The returned
 request counters and duration buckets are direct process-local observations and
 reset on restart; structured JSON request logs are written to stdout.
 
+Set the optional `YNX_PAY_PRODUCT_DATA_OPERATOR_CREDENTIAL` to a separate value
+containing at least 24 characters before using legal-hold, deletion-approval or
+deletion-execution routes. Callers must send the exact value in
+`X-YNX-Data-Operator-Credential`. When the credential is absent, those routes
+return service unavailable; an invalid value is unauthorized. Merchant sessions
+cannot approve or execute deletion.
+
+Approved deletion is deliberately local and fail-closed. A merchant owner first
+creates a request with a 168-hour cooling-off period. A deployment data operator
+may place or release legal holds, approve only after a fresh blocker check, and
+execute only with the same operator and approval reference plus an idempotency
+key. Execution removes eligible local tenant records and retains redacted
+request, released-hold and audit evidence. It never claims that provider-held or
+immutable public-chain data was deleted.
+
 Wallet authorization implements the central Wallet/Gateway contract: canonical
 Wallet request and approval, compact low-S secp256k1 account signature, P-256
 product-device challenge completion, exact product/bundle/scope binding, expiry
@@ -42,12 +57,12 @@ looked-up receipt against the exact transaction hash. Missing external evidence
 fails closed; the script never creates a signature or settlement.
 
 `live-testnet-proof.mjs` is the operator acceptance harness. With explicit
-product, central Gateway, RPC, faucet and bootstrap endpoints, it creates cryptographic Wallet
-and Gateway requests, signs and broadcasts a native YNXT transaction, waits for
-authoritative committed evidence, and exercises receipt, refund, dispute,
-webhook, reconciliation, audit, replay rejection and AI status. It writes the
-sanitized result to `proof/live-testnet-payment.json`; it never injects a paid
-status.
+product, central Gateway, RPC, faucet and bootstrap endpoints, it creates
+cryptographic Wallet and Gateway requests, signs and broadcasts a native YNXT
+transaction, waits for authoritative committed evidence, and exercises receipt,
+refund, dispute, webhook, reconciliation, audit, replay rejection and AI status.
+It writes the sanitized result to `proof/live-testnet-payment.json`; it never
+injects a paid status.
 
 Webhook deliveries bind the HMAC to `YNX_PAY_WEBHOOK_V1`, delivery ID, exact
 RFC3339Nano timestamp and payload hash. Receivers must validate

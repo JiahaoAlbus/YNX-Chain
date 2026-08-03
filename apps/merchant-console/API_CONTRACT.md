@@ -1,6 +1,6 @@
 # Merchant product API contract
 
-Contract date: 2026-07-27. The implementation source of truth is
+Contract date: 2026-07-29. The implementation source of truth is
 `internal/payproduct/server.go`; this document describes the current v1 HTTP
 surface and does not claim a deployed endpoint.
 
@@ -18,7 +18,9 @@ surface and does not claim a deployed endpoint.
   changes invalidate older sessions.
 - Gateway settlement/refund/dispute endpoints use the canonical signed Gateway
   assertion headers and exact request digest. Bootstrap and monitoring use
-  separate server-only headers. There is no fallback authentication.
+  separate server-only headers. Data-hold, approval and deletion-execution
+  routes use a dedicated deployment credential and fail closed when it is not
+  configured. There is no fallback authentication.
 
 ## Route inventory
 
@@ -45,10 +47,14 @@ surface and does not claim a deployed endpoint.
 | `POST /v1/merchant/webhook/rotate` | merchant session | `webhook` | 200 | Rotate server-side secret; browser never receives it |
 | `POST /v1/merchant/webhooks/{id}/retry` | merchant session | `webhook` | 200 | Retry persisted merchant-owned delivery |
 | `GET /v1/merchant/reconciliation.csv` | merchant session | `reconcile` | 200 | Download schema-v1 CSV with authoritative settlement evidence |
-| `GET /v1/merchant/data-rights` | merchant session | `data-manage` (owner) | 200 | Read retention policy and merchant-scoped deletion request history |
+| `GET /v1/merchant/data-rights` | merchant session | `data-manage` (owner) | 200 | Read retention policy plus merchant-scoped request and legal-hold history |
 | `GET /v1/merchant/data-export` | merchant session | `data-manage` (owner) | 200 | Download schema-v1 tenant-scoped JSON export with runtime authorization material redacted |
 | `POST /v1/merchant/data-deletion-requests` | merchant session | `data-manage` (owner) | 201 | Create idempotent, audited cooling-off/retention-blocked request; never deletes automatically |
-| `POST /v1/merchant/data-deletion-requests/{id}/cancel` | merchant session | `data-manage` (owner) | 200 | Cancel a merchant-owned request before execution authority exists |
+| `POST /v1/merchant/data-deletion-requests/{id}/cancel` | merchant session | `data-manage` (owner) | 200 | Cancel a merchant-owned request before completion |
+| `POST /v1/operator/merchant-data-holds` | `X-YNX-Data-Operator-Credential` | deployment data operator | 201 | Place an idempotent legal/retention hold that blocks approval and execution |
+| `POST /v1/operator/merchant-data-holds/{id}/release` | `X-YNX-Data-Operator-Credential` | deployment data operator | 200 | Release an active hold with operator and reason audit evidence |
+| `POST /v1/operator/merchant-data-deletion-requests/{id}/approve` | `X-YNX-Data-Operator-Credential` | deployment data operator | 200 | Approve only after the 168-hour cooling period and a fresh blocker check |
+| `POST /v1/operator/merchant-data-deletion-requests/{id}/execute` | `X-YNX-Data-Operator-Credential` | deployment data operator | 200 | Idempotently remove eligible local tenant data and retain redacted completion evidence |
 | `GET /v1/merchant/providers/catalog` | merchant session | `read` | 200 | Read versioned official-provider catalog metadata |
 | `PUT /v1/merchant/providers` | merchant session | `provider-manage` | 200 | Register opaque server-side credential reference |
 | `POST /v1/merchant/providers/{id}/test` | merchant session | `provider-test` | 200 | Persist adapter-supplied probe evidence; never invent health |
@@ -69,12 +75,12 @@ surface and does not claim a deployed endpoint.
 Unknown roles and permissions fail closed and are covered by fuzz, fault and
 100,000-iteration soak tests.
 
-## Merchant data export schema v1 and deletion requests
+## Merchant data export schema v1 and deletion lifecycle
 
 The export response declares `X-YNX-Data-Export-Schema: 1` and includes only the
 authenticated merchant's profile, members, catalog, invoices, refunds, disputes,
-webhook records, AI runs, provider records, data requests and audit trail.
-Merchant secret hashes/ciphers, console sessions, Gateway replay state,
+webhook records, AI runs, provider records, data requests, legal holds and audit
+trail. Merchant secret hashes/ciphers, console sessions, Gateway replay state,
 idempotency/nonces, provider credential references and webhook signatures are
 excluded or redacted. The export does not claim deletion of third-party provider
 or immutable public-chain data.
@@ -82,9 +88,18 @@ or immutable public-chain data.
 Deletion requests require the exact merchant ID, an 8–500 character reason and
 an idempotency key. Requests enter `cooling_off` for 168 hours or
 `retention_blocked` when financial evidence, open cases, pending deliveries or
-provider disposition remain unresolved. The request and cancel routes are
-audited and never perform automatic deletion; execution requires an accepted
-retention policy and explicit operator authority.
+provider disposition remain unresolved. Active legal holds add the explicit
+`legal-hold-active` blocker. Merchant owners may request and cancel, but cannot
+approve or execute deletion.
+
+Operator routes require `YNX_PAY_PRODUCT_DATA_OPERATOR_CREDENTIAL` containing at
+least 24 characters and the exact value in `X-YNX-Data-Operator-Credential`.
+Approval rechecks cooling-off and blockers. Execution requires a matching
+operator, approval reference and idempotency key, then removes only eligible
+local tenant records, invalidates local sessions/nonces, and retains redacted
+request, released-hold and audit evidence. Its summary explicitly sets provider
+and public-chain deletion claims to false. Snapshot schema v5 adds legal holds
+and deletion completion evidence; older supported snapshots normalize forward.
 
 Webhook delivery never follows redirects or environment proxies. The production
 transport validates every DNS answer, rejects mixed public/private answers and

@@ -32,6 +32,7 @@ type MerchantDataRightsOverview struct {
 	MerchantID    string                      `json:"merchantId"`
 	Policy        MerchantDataRetentionPolicy `json:"policy"`
 	Requests      []MerchantDataRequest       `json:"requests"`
+	Holds         []MerchantDataHold          `json:"holds"`
 	AsOf          time.Time                   `json:"asOf"`
 	Source        string                      `json:"source"`
 }
@@ -48,6 +49,7 @@ type MerchantDataExport struct {
 	AIRuns         []AIRun                     `json:"aiRuns"`
 	Providers      []ProviderConnection        `json:"providers"`
 	DataRequests   []MerchantDataRequest       `json:"dataRequests"`
+	DataHolds      []MerchantDataHold          `json:"dataHolds"`
 	BulkOperations []BulkWebhookRetryResult    `json:"bulkOperations"`
 	Audit          []AuditEntry                `json:"audit"`
 	Policy         MerchantDataRetentionPolicy `json:"policy"`
@@ -82,7 +84,7 @@ func (s *Service) MerchantDataRights(actor MerchantPrincipal) (MerchantDataRight
 	if actor.Role != "owner" {
 		return MerchantDataRightsOverview{}, errors.New("owner role required for merchant data rights")
 	}
-	out := MerchantDataRightsOverview{SchemaVersion: merchantDataExportSchemaVersion, MerchantID: actor.Merchant.ID, Policy: merchantDataRetentionPolicy(), Requests: []MerchantDataRequest{}, AsOf: s.now().UTC(), Source: "integrity-protected-merchant-store"}
+	out := MerchantDataRightsOverview{SchemaVersion: merchantDataExportSchemaVersion, MerchantID: actor.Merchant.ID, Policy: merchantDataRetentionPolicy(), Requests: []MerchantDataRequest{}, Holds: []MerchantDataHold{}, AsOf: s.now().UTC(), Source: "integrity-protected-merchant-store"}
 	err := s.store.View(func(data Snapshot) error {
 		if _, ok := data.Merchants[actor.Merchant.ID]; !ok {
 			return errors.New("merchant not found")
@@ -92,12 +94,18 @@ func (s *Service) MerchantDataRights(actor MerchantPrincipal) (MerchantDataRight
 				out.Requests = append(out.Requests, request)
 			}
 		}
+		for _, hold := range data.DataHolds {
+			if hold.MerchantID == actor.Merchant.ID {
+				out.Holds = append(out.Holds, hold)
+			}
+		}
 		sort.Slice(out.Requests, func(i, j int) bool {
 			if out.Requests[i].CreatedAt.Equal(out.Requests[j].CreatedAt) {
 				return out.Requests[i].ID < out.Requests[j].ID
 			}
 			return out.Requests[i].CreatedAt.Before(out.Requests[j].CreatedAt)
 		})
+		sort.Slice(out.Holds, func(i, j int) bool { return out.Holds[i].CreatedAt.Before(out.Holds[j].CreatedAt) })
 		return nil
 	})
 	return out, err
@@ -119,6 +127,7 @@ func (s *Service) ExportMerchantData(actor MerchantPrincipal) (MerchantDataExpor
 		AIRuns:         []AIRun{},
 		Providers:      []ProviderConnection{},
 		DataRequests:   []MerchantDataRequest{},
+		DataHolds:      []MerchantDataHold{},
 		BulkOperations: []BulkWebhookRetryResult{},
 		Audit:          []AuditEntry{},
 		Policy:         merchantDataRetentionPolicy(),
@@ -184,6 +193,11 @@ func (s *Service) ExportMerchantData(actor MerchantPrincipal) (MerchantDataExpor
 		for _, request := range data.DataRequests {
 			if request.MerchantID == actor.Merchant.ID {
 				out.DataRequests = append(out.DataRequests, request)
+			}
+		}
+		for _, hold := range data.DataHolds {
+			if hold.MerchantID == actor.Merchant.ID {
+				out.DataHolds = append(out.DataHolds, hold)
 			}
 		}
 		for _, operation := range data.BulkOperations {
@@ -331,6 +345,11 @@ func merchantDeletionBlockers(data Snapshot, merchantID string) []string {
 			seen["unresolved-bulk-operation"] = true
 		}
 	}
+	for _, hold := range data.DataHolds {
+		if hold.MerchantID == merchantID && hold.Status == "active" {
+			seen["legal-hold-active"] = true
+		}
+	}
 	out := make([]string, 0, len(seen))
 	for blocker := range seen {
 		out = append(out, blocker)
@@ -349,6 +368,7 @@ func sortMerchantDataExport(out *MerchantDataExport) {
 	sort.Slice(out.AIRuns, func(i, j int) bool { return out.AIRuns[i].ID < out.AIRuns[j].ID })
 	sort.Slice(out.Providers, func(i, j int) bool { return out.Providers[i].ID < out.Providers[j].ID })
 	sort.Slice(out.DataRequests, func(i, j int) bool { return out.DataRequests[i].ID < out.DataRequests[j].ID })
+	sort.Slice(out.DataHolds, func(i, j int) bool { return out.DataHolds[i].ID < out.DataHolds[j].ID })
 	sort.Slice(out.BulkOperations, func(i, j int) bool { return out.BulkOperations[i].OperationID < out.BulkOperations[j].OperationID })
 	sort.Slice(out.Audit, func(i, j int) bool {
 		if out.Audit[i].At.Equal(out.Audit[j].At) {

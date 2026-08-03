@@ -24,6 +24,9 @@ type AIRunInput struct {
 var aiOutputLanguages = map[string]string{"en": "English", "zh-Hans": "Simplified Chinese", "zh-Hant": "Traditional Chinese", "ja": "Japanese", "ko": "Korean", "es": "Spanish", "fr": "French", "de": "German", "pt": "Portuguese", "ru": "Russian", "ar": "Arabic", "id": "Bahasa Indonesia"}
 
 func (s *Service) StartAI(ctx context.Context, merchant Merchant, input AIRunInput) (AIRun, error) {
+	s.mutation.Lock()
+	defer s.mutation.Unlock()
+
 	classes, ok := aiWorkflows[input.Workflow]
 	if !ok {
 		return AIRun{}, errors.New("unsupported Pay AI workflow")
@@ -77,11 +80,16 @@ func (s *Service) StartAI(ctx context.Context, merchant Merchant, input AIRunInp
 	}
 	now := s.now()
 	run := AIRun{ID: "air_" + randomToken(12), MerchantID: merchant.ID, Workflow: input.Workflow, ContextIDs: append([]string(nil), input.ContextIDs...), ContextClasses: classes, Provider: "YNX AI Gateway", Status: "running", Permission: "allow-once", EstimatedUnits: int64(len(records)) * 250, OutputLanguage: input.OutputLanguage, CreatedAt: now, UpdatedAt: now}
-	_ = s.store.Update(func(data *Snapshot) error {
+	if err := s.store.Update(func(data *Snapshot) error {
+		if _, ok := data.Merchants[merchant.ID]; !ok {
+			return errors.New("merchant not found")
+		}
 		data.AIRuns[run.ID] = run
 		appendAudit(data, merchant.ID, merchant.ID, "ai."+input.Workflow, run.ID, "authorized", "bounded records only", now)
 		return nil
-	})
+	}); err != nil {
+		return AIRun{}, err
+	}
 	if s.ai == nil {
 		run.Status = "provider_unavailable"
 		run.UpdatedAt = s.now()
