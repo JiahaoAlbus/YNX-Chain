@@ -100,6 +100,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /read-sources.js", s.web)
 	s.mux.HandleFunc("GET /styles.css", s.web)
 	s.mux.HandleFunc("GET /manifest.webmanifest", s.web)
+	s.mux.HandleFunc("GET /ynx-logo.png", s.web)
 }
 func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, session Session) {
 	var input struct {
@@ -590,7 +591,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/app.js": "app.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest"}[r.URL.Path]
+	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/app.js": "app.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)
 		return

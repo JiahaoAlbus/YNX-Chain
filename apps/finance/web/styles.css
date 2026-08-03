@@ -20,3 +20,4 @@
   .notice{background:#172650;color:#b2c4ff;border-color:#3659b5}.notice.error{background:#3c1717;color:#fda29b;border-color:#7a271a}
   .skip{background:#111827;color:var(--blue)}
 }
+.brand .mark{width:44px;height:28px;display:block;object-fit:contain;object-position:center;background:transparent;border-radius:0}
