@@ -1,0 +1,13 @@
+pay-app.ynxweb4.com, pay-app-testnet.43.153.202.237.sslip.io {
+  root * /opt/ynx/pay-app-current
+  encode zstd gzip
+
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy strict-origin-when-cross-origin
+    Permissions-Policy "camera=(self)"
+  }
+
+  try_files {path} /index.html
+  file_server
+}
