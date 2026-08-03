@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 3,
+  "productId": "exchange",
+  "displayName": "YNX Exchange",
+  "reviewState": "pending-review",
+  "enabled": false,
+  "productClientId": "ynx-exchange-v1",
+  "requestingProduct": "exchange",
+  "bundleId": "com.ynxweb4.exchange",
+  "callbacks": [
+    "ynxexchange://wallet-auth/callback"
+  ],
+  "scopes": [
+    "exchange:ai",
+    "exchange:deposit",
+    "exchange:read",
+    "exchange:trade",
+    "exchange:withdrawal-review"
+  ],
+  "maxScopes": 5,
+  "productDeviceAlgorithms": [
+    "p256-sha256"
+  ],
+  "sessionDurationSeconds": 180,
+  "revocationPolicy": {
+    "session": true,
+    "approval": true,
+    "device": true,
+    "accountAllDevices": true
+  }
+}
