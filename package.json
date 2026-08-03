@@ -14,6 +14,7 @@
     "dex:concentrated:test": "hardhat run ./scripts/dex/concentrated-test.mjs --network dexTest",
     "dex:release:test": "node --test ./scripts/dex/source-base.test.mjs",
     "dex:deploy:testnet": "hardhat run ./scripts/dex/deploy-testnet.mjs --network ynxTestnet",
+    "dex:deploy:public-testnet": "hardhat run ./scripts/dex/deploy-public-testnet.mjs --network ynxTestnet",
     "dex:manifests:check": "node ./scripts/dex/check-manifests.mjs",
     "dex:testnet:probe": "node ./scripts/dex/probe-testnet.mjs",
     "dex:package:all": "npm run hardhat:build && npm run package:pwa --prefix apps/dex && node ./scripts/dex/package-all.mjs",
