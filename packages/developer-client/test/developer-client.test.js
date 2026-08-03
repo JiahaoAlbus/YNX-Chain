@@ -134,7 +134,7 @@ test("AI context is least privilege, cost is labeled estimate, permission is man
   const result = await agent.stream(prepared, { accessToken: "session-token", approved: true });
   assert.equal(result.status, "review-required"); assert.match(result.output, /src\/A.sol:1/);
   assert.equal(requestURL, "http://127.0.0.1:6429/ai/stream"); assert.equal(requestOptions.method, "POST");
-  assert.equal(requestURL.includes(prepared.prompt), false); assert.equal(JSON.parse(requestOptions.body).workflow, "developer.coding-agent");
+  assert.equal(requestURL.includes(prepared.prompt), false); assert.deepEqual(JSON.parse(requestOptions.body).includedContext, ["conversation", "selected_files"]); assert.equal(JSON.parse(requestOptions.body).attachments[0].name, "src/A.sol");
   assert.equal(agent.review(result, "reject").status, "rejected");
 });
 

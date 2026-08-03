@@ -150,7 +150,7 @@
         <fieldset id="context-files" class="context"><legend data-i18n="approvedContext">Approved context</legend><p class="muted compact">Open a project to select files.</p></fieldset>
         <label class="field"><span data-i18n="modelProvider">Model / provider</span><select id="model-select" class="select"><option value="ynx-gateway">YNX Gateway policy</option><option value="grok-build-acp">Approved Grok via ACP sidecar</option><option value="local-inference">Local inference (when configured)</option></select></label>
         <label class="field"><span data-i18n="aiLanguage">AI output language</span><select id="ai-language" class="select"></select></label>
-        <label class="field"><span>Session-only Gateway access</span><input id="gateway-token" type="password" autocomplete="off" placeholder="Not persisted"></label>
+        <div class="agent-note">Public Testnet AI session · the server keeps the provider credential private and applies per-user rate limits.</div>
         <label class="field"><span>Coding intent</span><textarea id="ai-intent" rows="5" placeholder="Explain a diagnostic, propose a diff, or generate tests…"></textarea></label>
         <div id="cost-estimate" class="estimate"><span>Cost estimate</span><strong>Select context</strong><small>Provider billing is unavailable until reported.</small></div>
         <div class="permission-matrix"><span class="eyebrow" data-i18n="permissions">Permissions</span><div>Read · context scoped</div><div>Write · review + allow once</div><div>Execute / network / package · allow once</div><div>Secrets / Git / deploy · separate approval</div></div>

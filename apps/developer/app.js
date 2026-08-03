@@ -14,10 +14,10 @@ import { WalletDeployment } from "/client/wallet.js";
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 const node = (tag, className, text) => { const item = document.createElement(tag); if (className) item.className = className; if (text !== undefined) item.textContent = text; return item; };
-const config = { chainURL: localStorage.getItem("ynx.developer.v1.chainURL") || "/chain", aiURL: localStorage.getItem("ynx.developer.v1.aiURL") || "/ai-gateway" };
+const config = { chainURL: localStorage.getItem("ynx.developer.v1.chainURL") || "/chain", compilerURL: "/compiler", aiURL: "/ai-build" };
 const workspace = new ProjectWorkspace({ persistence: new IndexedDBPersistence() });
-const chain = new YNXChainClient({ baseURL: config.chainURL });
-const ai = new AICodingAgent({ gatewayURL: config.aiURL });
+const chain = new YNXChainClient({ baseURL: config.chainURL, compilerURL: config.compilerURL });
+const ai = new AICodingAgent({ gatewayURL: config.aiURL, managedSession: true });
 const i18n = new DeveloperI18n();
 const walletSession = new DeveloperWalletSession({ wallet: globalThis.ynxWallet, gatewayURL: "/app-gateway" });
 const commands = new CommandAudit({ executor: globalThis.ynxDesktop?.executeApprovedCommand });
@@ -348,7 +348,7 @@ async function revert() {
 
 async function compile() {
   if (!state.project || !state.path?.endsWith(".sol")) return toast("Open a Solidity file to compile."); await saveEditor(); activatePanel("output"); const output = $("#command-output"); output.textContent = `Checking pinned compiler at ${config.chainURL}…`;
-  try { const source = state.project.files[state.path]; const name = source.match(/contract\s+([A-Za-z_]\w*)/u)?.[1] || state.path.split("/").pop().replace(/\.sol$/, ""); state.artifact = await chain.compile({ name, source }); output.textContent = JSON.stringify({ evidence: "real /ide/compile response", compiler: "Solidity 0.8.24", boundedExecution: true, artifact: state.artifact }, null, 2); $("#deployment-state").textContent = "Real compile evidence available. Deployment still requires Wallet review, authorization, final approval and authoritative receipt."; $("#deployment-state").className = "state-card success"; toast("Compile succeeded with returned evidence."); }
+  try { const source = state.project.files[state.path]; const name = source.match(/contract\s+([A-Za-z_]\w*)/u)?.[1] || state.path.split("/").pop().replace(/\.sol$/, ""); state.artifact = await chain.compile({ name, source }); output.textContent = JSON.stringify({ evidence: "real solc 0.8.24 standard-json compiler output", compiler: state.artifact.compiler, boundedExecution: true, artifact: state.artifact }, null, 2); $("#deployment-state").textContent = "Real ABI and EVM bytecode are compiled. Deployment still requires Wallet review, authorization, final approval and an authoritative receipt; unsupported chain execution remains blocked."; $("#deployment-state").className = "state-card success"; toast("Solidity compilation succeeded."); }
   catch (error) { state.artifact = null; showError(error, output); }
 }
 
@@ -368,8 +368,8 @@ async function refreshNetwork() {
 }
 
 async function refreshProvider() {
-  const status = await ai.status(); const pill = $("#provider-status"); pill.textContent = status.available ? `${status.model} · ready` : "Unavailable"; pill.className = `provider ${status.available ? "available" : "unavailable"}`;
-  const select=$("#model-select"); select.options[0].textContent=status.available?`YNX Gateway · ${status.model}`:"YNX Gateway · unavailable";
+  const status = await ai.status(); const pill = $("#provider-status"); const unavailableLabel=status.error === "provider_rate_limited" ? "Provider quota unavailable" : "Unavailable"; pill.textContent = status.available ? `${status.model} · ready` : unavailableLabel; pill.className = `provider ${status.available ? "available" : "unavailable"}`;
+  const select=$("#model-select"); select.options[0].textContent=status.available?`YNX Gateway · ${status.model}`:`YNX Gateway · ${unavailableLabel.toLowerCase()}`;
 }
 
 async function askAI() {
@@ -381,7 +381,7 @@ async function askAI() {
     if (!await modal({ title: "Approve AI context and estimated cost", content: review, confirm: "Stream from Gateway" })) return;
     const network=state.aiBuild.requestPermission("network",{reason:"Send only the approved context through the selected provider interface",scope:{provider:$("#model-select").value,paths:state.aiPrepared.files.map((file)=>file.path)}}); state.aiBuild.decidePermission(network.requestId,"allow-once"); saveAIBuild();
     $("#ask-ai").disabled = true; $("#cancel-ai").disabled = false; $("#ai-output").textContent = "";
-    state.aiResult = await ai.stream(state.aiPrepared, { accessToken: $("#gateway-token").value, model: $("#model-select").value, outputLanguage: $("#ai-language").value, approved: true, onToken: (token) => { $("#ai-output").textContent += token; } });
+    state.aiResult = await ai.stream(state.aiPrepared, { model: $("#model-select").value, outputLanguage: $("#ai-language").value, approved: true, onToken: (token) => { $("#ai-output").textContent += token; } });
     state.aiBuild.recordTool({name:"provider.stream",permission:"network",requestId:network.requestId,inputSummary:`${state.aiPrepared.files.length} approved files`,status:"passed",outputSummary:`${state.aiResult.output.length} output characters`});
     const providerProposals=proposedFiles(state.aiResult.output); if(providerProposals.length){const proposal=state.aiBuild.proposeDiff(providerProposals.map((file)=>({path:file.path,before:state.project.files[file.path]??"",after:file.content})),"Provider-proposed bounded file changes");state.aiProposalId=proposal.id;} saveAIBuild();
     state.project = await workspace.recordConversation(state.project.id, { intent: state.aiPrepared.intent, approvedPaths: state.aiPrepared.files.map((file) => file.path), model: $("#model-select").value, status: state.aiResult.status, output: state.aiResult.output }); renderAIHistory();
