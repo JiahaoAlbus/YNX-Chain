@@ -224,7 +224,7 @@ ynx_write_kv_env "$work/config/ynx-app-gatewayd.env" \
 cat >> "$work/config/ynx-app-gatewayd.env" <<EOF
 YNX_APP_GATEWAY_CHAT_URL=http://127.0.0.1:6435
 YNX_APP_GATEWAY_SQUARE_URL=http://127.0.0.1:6436
-YNX_APP_GATEWAY_SOCIAL_URL=http://127.0.0.1:6438
+YNX_APP_GATEWAY_SOCIAL_URL=http://127.0.0.1:6491
 YNX_APP_GATEWAY_PAY_URL=http://127.0.0.1:6430
 YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
 YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
@@ -858,7 +858,7 @@ ${NGINX_SERVER_NAME}, ${TESTNET_DOMAIN}, ${RPC_DOMAIN}, ${EVM_RPC_DOMAIN} {
 
 ${REST_DOMAIN}, ${API_DOMAIN}, ${IDE_DOMAIN} {
   handle /social/* {
-    reverse_proxy 127.0.0.1:6438
+    reverse_proxy 127.0.0.1:6491
   }
   handle /app/* {
     reverse_proxy 127.0.0.1:6437

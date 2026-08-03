@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	httpAddr := flag.String("http", envOrDefault("YNX_SOCIAL_HTTP_ADDR", "127.0.0.1:6438"), "Social HTTP listen address")
+	httpAddr := flag.String("http", envOrDefault("YNX_SOCIAL_HTTP_ADDR", "127.0.0.1:6491"), "Social HTTP listen address")
 	stateDir := flag.String("state-dir", envOrDefault("YNX_SOCIAL_STATE_DIR", "tmp/social"), "Social persistent state directory")
 	checkConfig := flag.Bool("check-config", false, "validate configuration without starting the service")
 	flag.Parse()
