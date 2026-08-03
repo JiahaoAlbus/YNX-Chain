@@ -197,7 +197,7 @@ func (s *Server) handlePublicStatus(w http.ResponseWriter, r *http.Request) {
 		request.Header.Set("X-YNX-AI-Key", s.cfg.GatewayKey)
 	}
 	status := http.StatusServiceUnavailable
-	available, providerConfigured, upstreamReachable := false, false, false
+	gatewayReady, providerConfigured, upstreamReachable := false, false, false
 	model := ""
 	detail := "AI provider status is unavailable; no substitute answer is generated."
 	if err == nil {
@@ -212,20 +212,20 @@ func (s *Server) handlePublicStatus(w http.ResponseWriter, r *http.Request) {
 			}
 			if response.StatusCode >= 200 && response.StatusCode < 300 && json.NewDecoder(io.LimitReader(response.Body, 32<<10)).Decode(&health) == nil {
 				providerConfigured, upstreamReachable, model = health.ProviderConfigured, health.UpstreamOK, strings.TrimSpace(health.Model)
-				available = health.OK && providerConfigured && upstreamReachable && model != ""
-				if available {
+				gatewayReady = health.OK && providerConfigured && upstreamReachable && model != ""
+				if gatewayReady {
 					status = http.StatusOK
-					detail = "The configured provider and model endpoint are reachable. Conversation generation still requires an accepted YNX Wallet product session."
+					detail = "The Gateway and configured model endpoint are reachable. Successful generation is not implied and still requires current provider quota plus an accepted YNX Wallet product session."
 				}
 			}
 		}
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, status, map[string]any{
-		"ok": available, "providerAvailable": available, "providerConfigured": providerConfigured,
+		"ok": gatewayReady, "gatewayReady": gatewayReady, "providerAvailable": false, "providerConfigured": providerConfigured,
 		"upstreamReachable": upstreamReachable, "provider": s.cfg.ProviderName, "model": model,
 		"quota": "not reported by provider", "walletAccess": "canonical product-session acceptance pending",
-		"generationLive": false, "status": detail, "asOf": time.Now().UTC().Format(time.RFC3339),
+		"generationLive": false, "providerGenerationEvidence": "latest bounded provider run returned 429; no substitute answer", "status": detail, "asOf": time.Now().UTC().Format(time.RFC3339),
 		"source": "ynx-ai-gatewayd health projection", "version": "ynx.ai.public-status.v1",
 	})
 }

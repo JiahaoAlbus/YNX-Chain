@@ -132,7 +132,7 @@ func TestPublicStatusReportsProviderTruthWithoutAuthentication(t *testing.T) {
 	if err := json.NewDecoder(response.Body).Decode(&status); err != nil {
 		t.Fatal(err)
 	}
-	if status["providerAvailable"] != true || status["model"] != "ynx-test-model" || status["generationLive"] != false {
+	if status["gatewayReady"] != true || status["providerAvailable"] != false || status["model"] != "ynx-test-model" || status["generationLive"] != false {
 		t.Fatalf("public status widened the product boundary: %+v", status)
 	}
 	for _, forbidden := range []string{"apiKey", "gatewayKey", "auditLog", "path"} {
