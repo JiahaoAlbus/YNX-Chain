@@ -1,0 +1,189 @@
+{
+  "schemaVersion": "ynx.ai.cross-product-vectors.v1",
+  "productId": "ynx-ai",
+  "contract": "release/integration/ynx-ai-contract.json",
+  "runtimeSourceCommit": "16d6d71e2f93418e37fe9d024f58c492ca1baad4",
+  "vectors": [
+    {
+      "id": "AI-WALLET-WRONG-PRODUCT",
+      "owner": "02-wallet-auth",
+      "surface": "wallet-session",
+      "mutation": "requestingProduct differs from ai",
+      "expected": "reject",
+      "requiredEvidence": "central verifier response and audit ID"
+    },
+    {
+      "id": "AI-WALLET-WRONG-BUNDLE",
+      "owner": "02-wallet-auth",
+      "surface": "wallet-session",
+      "mutation": "bundleId differs from com.ynxweb4.ai",
+      "expected": "reject",
+      "requiredEvidence": "central verifier response and audit ID"
+    },
+    {
+      "id": "AI-WALLET-CALLBACK-REPLACEMENT",
+      "owner": "02-wallet-auth",
+      "surface": "wallet-session",
+      "mutation": "callback differs from ynxai://wallet-auth/callback",
+      "expected": "reject",
+      "requiredEvidence": "callback mismatch response and audit ID"
+    },
+    {
+      "id": "AI-WALLET-WRONG-DEVICE",
+      "owner": "02-wallet-auth",
+      "surface": "wallet-session",
+      "mutation": "device public key or device ID differs from approval binding",
+      "expected": "reject",
+      "requiredEvidence": "device-binding rejection and audit ID"
+    },
+    {
+      "id": "AI-WALLET-SCOPE-WIDEN",
+      "owner": "02-wallet-auth",
+      "surface": "wallet-session",
+      "mutation": "add, remove, duplicate, or reorder one ordered AI scope",
+      "expected": "reject",
+      "requiredEvidence": "scope digest rejection and audit ID"
+    },
+    {
+      "id": "AI-WALLET-REPLAY",
+      "owner": "02-wallet-auth",
+      "surface": "wallet-session",
+      "mutation": "reuse nonce, approval digest, or completed session exchange",
+      "expected": "reject",
+      "requiredEvidence": "replay rejection and audit ID"
+    },
+    {
+      "id": "AI-WALLET-EXPIRED-OR-REVOKED",
+      "owner": "02-wallet-auth",
+      "surface": "wallet-session",
+      "mutation": "use expired, device-revoked, approval-revoked, or session-revoked state",
+      "expected": "reject",
+      "requiredEvidence": "active-session guard rejection and audit ID"
+    },
+    {
+      "id": "AI-GATEWAY-LEGACY-GET",
+      "owner": "14-ai",
+      "surface": "POST /ai/stream",
+      "mutation": "send GET /ai/stream?session=legacy&q=secret-prompt",
+      "expected": "HTTP 405; provider not called",
+      "localEvidence": "TestGatewayStreamRejectsLegacyQueryAndUnknownFields"
+    },
+    {
+      "id": "AI-GATEWAY-QUERY-BEARING-POST",
+      "owner": "14-ai",
+      "surface": "POST /ai/stream",
+      "mutation": "append any query string to an otherwise valid POST",
+      "expected": "HTTP 400 invalid_request; provider not called",
+      "localEvidence": "TestGatewayStreamRejectsLegacyQueryAndUnknownFields"
+    },
+    {
+      "id": "AI-GATEWAY-UNSUPPORTED-MEDIA",
+      "owner": "14-ai",
+      "surface": "POST /ai/stream",
+      "mutation": "send a non-application/json content type",
+      "expected": "HTTP 415 unsupported_media_type; provider not called",
+      "localEvidence": "TestGatewayStreamRejectsLegacyQueryAndUnknownFields"
+    },
+    {
+      "id": "AI-GATEWAY-UNKNOWN-FIELD",
+      "owner": "14-ai",
+      "surface": "POST /ai/stream",
+      "mutation": "add an unknown top-level JSON field or a second JSON value",
+      "expected": "HTTP 400 invalid_request; provider not called",
+      "localEvidence": "TestGatewayStreamRejectsLegacyQueryAndUnknownFields"
+    },
+    {
+      "id": "AI-GATEWAY-IMPLICIT-ATTACHMENT",
+      "owner": "14-ai",
+      "surface": "POST /ai/stream",
+      "mutation": "send attachment content without includedContext selected_files",
+      "expected": "HTTP 400 invalid_request; provider not called",
+      "localEvidence": "TestGatewayStreamRequiresExplicitFileContextAndPreservesPromptPrivacy"
+    },
+    {
+      "id": "AI-GATEWAY-PROMPT-PRIVACY",
+      "owner": "14-ai",
+      "surface": "Gateway audit",
+      "mutation": "complete a valid prompt plus selected attachment request",
+      "expected": "audit contains original prompt hash and request metadata; no raw prompt, attachment, query, or access key",
+      "localEvidence": "TestGatewayStreamRequiresExplicitFileContextAndPreservesPromptPrivacy"
+    },
+    {
+      "id": "AI-PROVIDER-429",
+      "owner": "14-ai",
+      "surface": "product generation",
+      "mutation": "provider returns HTTP 429",
+      "expected": "Gateway returns HTTP 429 provider_rate_limited without exposing the Provider body; product creates no assistant completion",
+      "localEvidence": "TestGatewayStreamPreservesProvider429WithStableErrorCode; TestProviderQuotaFailurePreserves429AndCreatesNoMessages"
+    },
+    {
+      "id": "AI-CANCEL-WRONG-ACCOUNT",
+      "owner": "14-ai",
+      "surface": "POST /api/generations/{generationId}/cancel",
+      "mutation": "a different authenticated Wallet account submits the active generation ID",
+      "expected": "HTTP 404; generation remains active; existence is not disclosed",
+      "localEvidence": "TestGenerationCancelIsBoundToOwningAccount"
+    },
+    {
+      "id": "AI-CANCEL-OWNER",
+      "owner": "14-ai",
+      "surface": "POST /api/generations/{generationId}/cancel",
+      "mutation": "the owning Wallet account cancels its active generation",
+      "expected": "HTTP 202 and truthful interrupted SSE error; no completion claim",
+      "localEvidence": "TestGenerationCancelIsBoundToOwningAccount"
+    },
+    {
+      "id": "AI-ACTION-APPROVED-NOT-EXECUTED",
+      "owner": "14-ai",
+      "surface": "tool approval",
+      "mutation": "approve a valid product or chain action proposal",
+      "expected": "state becomes approved_not_executed; no external side effect; Wallet review remains required for chain action",
+      "localEvidence": "TestActionApprovalRecordsReviewButNeverExecution"
+    },
+    {
+      "id": "AI-ACTION-EXPIRED-OR-MISMATCHED-PERMISSION",
+      "owner": "14-ai",
+      "surface": "tool approval",
+      "mutation": "approve with expired permission or mismatched scope, target, session, or requester",
+      "expected": "reject and preserve proposed/non-executed state",
+      "localEvidence": "TestActionApprovalRejectsMismatchedOrExpiredPermission"
+    },
+    {
+      "id": "AI-CROSS-PRODUCT-CONTEXT-DENY",
+      "owner": "14-ai",
+      "surface": "Product AI Registry",
+      "mutation": "request private Social, Mail, Cloud, Browser, Finance, Wallet, or Quant context without explicit product-specific selection and approved scope",
+      "expected": "deny by default; no provider request",
+      "status": "local runtime pass; central owner acceptance and shared Testnet pending",
+      "localEvidence": "TestProductContextSelectionRequiresExactPermissionAndFreshness"
+    },
+    {
+      "id": "AI-CROSS-PRODUCT-CONTEXT-STALE-OR-REUSED",
+      "owner": "14-ai",
+      "surface": "Product AI Registry",
+      "mutation": "reuse permission in another conversation, duplicate a permission in one request, widen data class, exceed byte budget, or submit stale/future source metadata",
+      "expected": "deny before Gateway/provider request; no raw reference ID in Gateway audit",
+      "status": "local runtime pass; central execution pending",
+      "localEvidence": "TestProductContextSelectionRequiresExactPermissionAndFreshness"
+    },
+    {
+      "id": "AI-ATTACHMENT-INDIRECT-INJECTION",
+      "owner": "14-ai",
+      "surface": "POST /ai/stream",
+      "mutation": "selected attachment contains restricted credential material or instructions to override policy and execute a sensitive action",
+      "expected": "restricted_context before provider request; bounded audit without raw attachment content",
+      "status": "local runtime pass; remote provider vector pending",
+      "localEvidence": "TestContentGuardRejectsSecretsCardsAndIndirectInjection"
+    },
+    {
+      "id": "AI-BILLING-ACTUAL-USAGE-UNKNOWN",
+      "owner": "26-data-fabric",
+      "surface": "usage and billing receipt",
+      "mutation": "provider response omits actual token, compute, or money metadata",
+      "expected": "actualUsageReported=false; no fabricated charge, burn, treasury, or quota value",
+      "status": "local product truth exists; canonical ledger contract pending"
+    }
+  ],
+  "acceptanceRule": "A vector is accepted only with direct response, audit, test, transaction, artifact, or public evidence from the stated owner. Local evidence cannot be relabeled central or public.",
+  "lastUpdated": "2026-07-27"
+}

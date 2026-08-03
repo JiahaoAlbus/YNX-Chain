@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 2,
+  "productId": "ynx-ai",
+  "walletAuth": {
+    "status": "not-integrated-central",
+    "canonicalPackage": "@ynx-chain/wallet-auth",
+    "expectedOwnerBranch": "codex/final-wallet-auth",
+    "registryEntry": "wallet-registry-entry.json",
+    "vector": "wallet-auth-vector.json",
+    "requiredVerifier": "verifyCentralWalletSession",
+    "requiredSessionGuard": "assertCentralWalletSessionActive",
+    "productionBehaviorUntilIntegrated": "fail-closed"
+  },
+  "aiGateway": {
+    "status": "deployed-public-not-centrally-accepted",
+    "runtimeSource": "internal/aigateway/server.go",
+    "sourceCommit": "16d6d71e2f93418e37fe9d024f58c492ca1baad4",
+    "deployedBuildCommit": "5c84e062ac2112ef164ea0302d4cdbe44c79c337",
+    "publicHealth": "https://ai.ynxweb4.com/health",
+    "requiredRoute": "POST /ai/stream",
+    "requestMediaType": "application/json",
+    "forbiddenTransport": "prompt or attachment content in URL/query/log",
+    "strictUnknownFieldRejection": true,
+    "explicitAttachmentContextRequired": true,
+    "productAIRegistryVersion": "1.0.0",
+    "productContextTransport": "validated metadata and account/conversation-scoped reference hashes only",
+    "restrictedContextGuard": true,
+    "stableErrorEnvelope": [
+      "code",
+      "error",
+      "requestId"
+    ],
+    "provider429Code": "provider_rate_limited",
+    "providerBodyExposed": false,
+    "bodyLimitBytes": 2097152,
+    "supportedOutputLanguages": [
+      "en",
+      "zh-CN",
+      "zh-TW",
+      "ja",
+      "ko",
+      "es",
+      "fr",
+      "de",
+      "pt",
+      "ru",
+      "ar",
+      "id"
+    ],
+    "tests": [
+      "go test ./internal/aigateway",
+      "go test -race ./internal/aigateway",
+      "go test ./internal/aigateway ./internal/aiproduct ./cmd/ynx-ai-gatewayd"
+    ],
+    "historicalPatch": "central-ai-gateway-post.patch"
+  },
+  "claims": {
+    "integratedCentral": false,
+    "generationLive": false,
+    "reason": "The POST-body Gateway and public AI Web product are deployed, but canonical Wallet Auth is not integrated and the bounded provider generation run returned HTTP 429 with no substitute answer."
+  },
+  "lastUpdated": "2026-08-02"
+}
