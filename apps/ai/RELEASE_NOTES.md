@@ -1,6 +1,6 @@
 # YNX AI 1.0.0 Testnet Preview
 
-This preview implements the independent AI product locally. It is not a public launch and does not claim central integration, hosted downloads, production signing, store release, or successful provider generation.
+This preview publishes the independent AI Web product at `https://assistant.ynxweb4.com/`. It does not claim central Wallet acceptance, hosted native downloads, production signing, store release, or successful provider generation.
 
 ## Product changes
 
@@ -20,4 +20,6 @@ This preview implements the independent AI product locally. It is not a public l
 - `generationLive=false`: no provider-backed successful staging output exists.
 - Android APK is test-signed, not production-signed, and not hosted.
 - iOS cannot be built locally without Xcode; the checked-in macOS workflow performs a real Simulator build/install/launch/deep-link/hash sequence.
-- No staging or public URL exists.
+- The public Web surface, liveness, readiness and redacted provider-status endpoints are deployed over HTTPS.
+- The deployed Gateway accepts the strict POST-body SSE contract. The bounded provider run returned HTTP 429 and no substitute answer; therefore `generationLive=false` remains authoritative.
+- Public 25-worker checks returned 100/100 HTTP 200 for health, redacted status and the Web shell.

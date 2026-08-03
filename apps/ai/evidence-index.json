@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-ai",
-  "generatedAt": "2026-07-29",
+  "generatedAt": "2026-08-02",
   "evidence": [
     {
       "requirement": "Wallet replay/tamper/restart/revoke local fixture behavior",
@@ -92,6 +92,24 @@
       "requirement": "Central Wallet/Gateway/provider",
       "source": "apps/ai/integration/central-integration.json",
       "status": "not-integrated-central"
+    },
+    {
+      "requirement": "Public Web product, exact YNX branding, redacted Gateway status and fail-closed Wallet boundary",
+      "source": "https://assistant.ynxweb4.com/; https://assistant.ynxweb4.com/api/public-status; source 16d6d71e2f93418e37fe9d024f58c492ca1baad4",
+      "status": "deployed-public-browser-verified",
+      "publicClaim": true
+    },
+    {
+      "requirement": "Provider-backed generation truth",
+      "source": "POST /ai/stream release validation against deployed source 5c84e062ac2112ef164ea0302d4cdbe44c79c337",
+      "status": "provider-rate-limited-429-no-substitute-answer",
+      "generationLive": false
+    },
+    {
+      "requirement": "Public bounded concurrency",
+      "source": "25-worker remote checks from the Testnet host against health, public status and Web shell",
+      "status": "300-of-300-http-200",
+      "p95Ms": { "health": 120.8, "publicStatus": 46.1, "web": 17.4 }
     }
   ]
 }

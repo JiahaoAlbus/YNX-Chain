@@ -2,7 +2,7 @@
 
 ## Evidence boundary
 
-This document describes the observability behavior implemented by the local YNX AI product process. It does not claim central Monitor acceptance, shared-Testnet telemetry, public uptime, production alert delivery, or distributed trace export.
+This document describes the observability behavior implemented by the public YNX AI product process. It does not claim central Monitor acceptance, production alert delivery, or distributed trace export.
 
 ## Endpoints
 
@@ -31,6 +31,10 @@ Prometheus text exposition with intentionally low-cardinality series:
 
 No account, conversation, attachment, action, prompt, query parameter, request ID, or raw route parameter appears as a metric label.
 
+### `GET /api/public-status`
+
+Public, redacted Gateway projection. It reports configured model and endpoint reachability without credentials, audit paths, prompts or private state. `gatewayReady` never implies `generationLive`: the current bounded release run returned provider HTTP 429, and the UI exposes that failure without generating substitute content.
+
 ## Structured logs
 
 The production entry point supplies a JSON `slog` logger. Every completed request emits:
@@ -52,4 +56,4 @@ YNX AI preserves a bounded W3C `traceparent` value in structured request logs fo
 
 ## Alert and dashboard handoff
 
-Owner 13 Monitor and owner 30 Security/SRE can scrape `/metrics` and probe `/healthz` plus `/readyz`. Central dashboards, alert routes, retention, incident paging, and staged failure evidence remain pending owner acceptance and deployment.
+Owner 13 Monitor and owner 30 Security/SRE can scrape `/metrics` and probe `/healthz` plus `/readyz`. The public surface is deployed at `https://assistant.ynxweb4.com/`; central dashboards, alert routes, retention and incident paging remain pending owner acceptance.

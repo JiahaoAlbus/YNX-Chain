@@ -11,7 +11,7 @@
     "name": "YNX AI",
     "owner": "14-ai",
     "branch": "codex/final-ai",
-    "runtimeSourceCommit": "8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154",
+    "runtimeSourceCommit": "16d6d71e2f93418e37fe9d024f58c492ca1baad4",
     "evidenceCheckpointCommit": "b066b65aac8c8b197ab9b38659e937e73544daf1"
   },
   "network": {
@@ -334,10 +334,10 @@
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": false,
+    "installedLocal": true,
     "integratedCentral": false,
-    "deployedStaging": false,
-    "deployedPublic": false,
+    "deployedStaging": true,
+    "deployedPublic": true,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false,

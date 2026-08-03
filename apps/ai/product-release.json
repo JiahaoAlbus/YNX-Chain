@@ -3,11 +3,11 @@
   "product": "YNX AI",
   "slug": "ai",
   "owner": "14-ai",
-  "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+  "sourceCommit": "16d6d71e2f93418e37fe9d024f58c492ca1baad4",
   "name": "YNX AI",
   "branch": "codex/final-ai",
-  "commit": "8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154",
-  "version": "1.0.0-testnet-preview",
+  "commit": "16d6d71e2f93418e37fe9d024f58c492ca1baad4",
+  "version": "0.2.0-testnet-preview.2",
   "surfaces": [
     "web",
     "android",
@@ -15,23 +15,29 @@
   ],
   "implementedLocal": true,
   "testedLocal": true,
-  "installedLocal": false,
+  "installedLocal": true,
   "installedPlatforms": [
     "android",
-    "web-local"
+    "web-public"
   ],
   "notInstalledPlatforms": [
     "ios"
   ],
   "integratedCentral": false,
-  "deployedStaging": false,
-  "deployedPublic": false,
+  "deployedStaging": true,
+  "deployedPublic": true,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
   "generationLive": false,
-  "publicUrls": [],
-  "healthUrls": [],
+  "publicUrls": [
+    "https://assistant.ynxweb4.com/"
+  ],
+  "healthUrls": [
+    "https://assistant.ynxweb4.com/healthz",
+    "https://assistant.ynxweb4.com/readyz",
+    "https://assistant.ynxweb4.com/api/public-status"
+  ],
   "artifactUrls": [],
   "sha256": {
     "androidTestnetPreviewApk": "feca84462a0ae16237bac4c783683958ecf590105345e8f0b205acb9f36501a5",
@@ -54,21 +60,28 @@
   "installEvidence": {
     "android": "Current APK feca8446...501a5 installed on the task-owned API 36 emulator-5582. Package metadata, ordinary cold launch, force-stop/restart, exact callback deep link cold launch, top-resumed MainActivity, and live process were verified.",
     "ios": "Not installed locally: host has Command Line Tools only. .github/workflows/ynx-ai-mobile.yml performs build/install/cold launch/restart/deep link and hash on macOS.",
-    "web": "Local process /healthz and responsive light/dark browser rendering verified; no remote staging URL."
+    "web": "Public HTTPS product, health, readiness and redacted provider-status surfaces are deployed and browser-verified at assistant.ynxweb4.com. The exact YNX logo is rendered without distortion."
   },
   "centralIntegration": {
     "walletAuth": "not integrated; exact schema-v2 entry/vector/patch supplied under apps/ai/integration; production local-auth routes fail closed by default",
-    "aiGateway": "POST JSON-body stream contract, stable Provider errors, restricted-content guard, and Product AI Registry enforcement implemented and race-tested at 8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154; not deployed or centrally accepted",
-    "provider": "no provider-backed successful staging output evidenced; generationLive=false"
+    "aiGateway": "POST JSON-body SSE, stable Provider errors, restricted-content guard, Product AI Registry and authoritative chain context are deployed at source 5c84e062; central contract acceptance remains false",
+    "provider": "configured model endpoint health is reachable, but the bounded provider generation run returned HTTP 429/provider_rate_limited; no answer was substituted and generationLive=false"
   },
   "knownLimitations": [
     "Canonical Wallet Auth AI registry and verifier are not merged or deployed.",
-    "Central AI Gateway POST-body stream contract is implemented and tested on codex/final-ai, but is not deployed or accepted as central evidence.",
-    "No staging/public URL, hosted download, production signing, or store release exists.",
-    "No true provider success is claimed; current central provider evidence reports quota/rate-limit failure.",
+    "The AI Gateway POST-body stream contract is deployed, but is not yet accepted as the frozen central contract.",
+    "The public Web product is deployed; no hosted native download, production signing, or store release exists.",
+    "No true provider generation success is claimed; the current bounded provider evidence is HTTP 429/provider_rate_limited.",
     "Product-context references are locally policy-validated metadata and hashes only; no product owner adapter has centrally supplied underlying private record content.",
     "Local host lacks Xcode; iOS evidence depends on the runnable CI workflow and is not yet a successful run.",
-    "Durable screenshot coverage is incomplete; browser light/dark/mobile failure states were inspected interactively."
+    "Public desktop browser and fail-closed login states were inspected interactively; hosted mobile viewport evidence remains to be refreshed."
   ],
-  "generatedAt": "2026-07-29"
+  "publicCapacityEvidence": {
+    "workers": 25,
+    "requestsPerEndpoint": 100,
+    "health": { "success": "100/100", "p95Ms": 120.8, "p99Ms": 123.0 },
+    "publicStatus": { "success": "100/100", "p95Ms": 46.1, "p99Ms": 47.0 },
+    "web": { "success": "100/100", "p95Ms": 17.4, "p99Ms": 18.0 }
+  },
+  "generatedAt": "2026-08-02"
 }

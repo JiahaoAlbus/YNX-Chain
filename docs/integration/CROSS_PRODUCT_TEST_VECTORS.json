@@ -2,7 +2,7 @@
   "schemaVersion": "ynx.ai.cross-product-vectors.v1",
   "productId": "ynx-ai",
   "contract": "release/integration/ynx-ai-contract.json",
-  "runtimeSourceCommit": "8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154",
+  "runtimeSourceCommit": "16d6d71e2f93418e37fe9d024f58c492ca1baad4",
   "vectors": [
     {
       "id": "AI-WALLET-WRONG-PRODUCT",

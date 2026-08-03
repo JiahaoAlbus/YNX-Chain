@@ -12,9 +12,11 @@
     "productionBehaviorUntilIntegrated": "fail-closed"
   },
   "aiGateway": {
-    "status": "tested-local-not-deployed",
+    "status": "deployed-public-not-centrally-accepted",
     "runtimeSource": "internal/aigateway/server.go",
-    "sourceCommit": "8c7af8d2509a1a0dc2f7d306b0f9c7c5c43ff154",
+    "sourceCommit": "16d6d71e2f93418e37fe9d024f58c492ca1baad4",
+    "deployedBuildCommit": "5c84e062ac2112ef164ea0302d4cdbe44c79c337",
+    "publicHealth": "https://ai.ynxweb4.com/health",
     "requiredRoute": "POST /ai/stream",
     "requestMediaType": "application/json",
     "forbiddenTransport": "prompt or attachment content in URL/query/log",
@@ -55,7 +57,7 @@
   "claims": {
     "integratedCentral": false,
     "generationLive": false,
-    "reason": "The POST-body Gateway contract is implemented and tested on codex/final-ai, but canonical Wallet Auth is not integrated and no provider-backed staging deployment or public endpoint is evidenced."
+    "reason": "The POST-body Gateway and public AI Web product are deployed, but canonical Wallet Auth is not integrated and the bounded provider generation run returned HTTP 429 with no substitute answer."
   },
-  "lastUpdated": "2026-07-29"
+  "lastUpdated": "2026-08-02"
 }
