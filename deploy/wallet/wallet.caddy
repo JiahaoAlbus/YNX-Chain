@@ -1,4 +1,4 @@
-wallet-auth.ynxweb4.com {
+wallet-auth.ynxweb4.com, wallet-auth-testnet.43.153.202.237.sslip.io {
   encode zstd gzip
   header {
     Strict-Transport-Security "max-age=31536000; includeSubDomains"
