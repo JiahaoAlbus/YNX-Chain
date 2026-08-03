@@ -21,6 +21,6 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" \
 ./android/gradlew -p android assembleRelease --no-daemon
 ```
 
-The default Android emulator endpoint is `http://10.0.2.2:8787`; it can be changed in Settings and persists across restart. The client never creates a local substitute session: Wallet approval must complete at the central Gateway `/wallet-auth/sessions` and `/wallet-auth/sessions/complete` routes. Until the central registry contains `ynx-finance-v1`, sign-in correctly ends as unavailable.
+The release default is the public Testnet service at `https://finance.ynxweb4.com`; local development can override it with `EXPO_PUBLIC_YNX_FINANCE_API_URL` or change it in Settings. The client never creates a local substitute session: Wallet approval must complete through the canonical Wallet Gateway. If the registered Finance client, requested scopes, device proof or account binding is not accepted, sign-in fails closed.
 
 Cached data is labelled offline and never presented as live. Import accepts only the versioned Finance export envelope. Export includes public account evidence and private planning data and should be stored securely.
