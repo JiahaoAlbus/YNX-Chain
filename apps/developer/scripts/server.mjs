@@ -18,6 +18,8 @@ const aiLimits = new Map();
 const managedAIState = { available: null, error: null, checkedAt: null };
 let activeCompilers = 0;
 const MAX_ACTIVE_COMPILERS = 4;
+const compilerQueue = [];
+const MAX_QUEUED_COMPILERS = 64;
 
 function json(response, status, value, headers = {}) {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers });
@@ -56,21 +58,18 @@ createServer(async (request, response) => {
     return;
   }
   if (request.method === "GET" && pathname === "/compiler/compiler") {
-    json(response, 200, { id: "solidity-0.8.24", compiler: "solc", version: "0.8.24", optimizerEnabled: true, optimizerRuns: 200, pinned: true, productionCompilerEnabled: true, execution: "worker-isolated-standard-json", maxSourceBytes: 524288, maxConcurrentCompilers: MAX_ACTIVE_COMPILERS });
+    json(response, 200, { id: "solidity-0.8.24", compiler: "solc", version: "0.8.24", optimizerEnabled: true, optimizerRuns: 200, pinned: true, productionCompilerEnabled: true, execution: "worker-isolated-standard-json", maxSourceBytes: 524288, maxConcurrentCompilers: MAX_ACTIVE_COMPILERS, maxQueuedCompilers: MAX_QUEUED_COMPILERS, activeCompilers, queuedCompilers: compilerQueue.length });
     return;
   }
   if (request.method === "POST" && pathname === "/compiler/compile") {
-    if (activeCompilers >= MAX_ACTIVE_COMPILERS) { json(response, 503, { ok: false, error: "Compiler capacity is busy. Retry shortly." }, { "retry-after": "2" }); return; }
     let body;
     try { body = JSON.parse((await readBody(request, 600 * 1024)).toString("utf8")); }
     catch (error) { json(response, error.status || 400, { ok: false, error: error.message || "Invalid compiler request." }); return; }
     if (typeof body.source !== "string" || body.source.length === 0 || Buffer.byteLength(body.source) > 512 * 1024 || !/pragma\s+solidity\s+(?:=\s*)?0\.8\.24\s*;/u.test(body.source)) { json(response, 400, { ok: false, error: "Compile requires source up to 512 KiB with exact pragma Solidity 0.8.24." }); return; }
-    activeCompilers += 1;
     try {
-      const result = await runCompiler({ name: typeof body.name === "string" ? body.name.slice(0, 128) : "Contract", source: body.source });
+      const result = await scheduleCompiler({ name: typeof body.name === "string" ? body.name.slice(0, 128) : "Contract", source: body.source });
       json(response, result.status || (result.ok ? 200 : 500), result);
-    } catch (error) { json(response, 500, { ok: false, error: error.message || "Compiler worker failed." }); }
-    finally { activeCompilers -= 1; }
+    } catch (error) { json(response, error.status || 500, { ok: false, error: error.message || "Compiler worker failed." }, error.status === 503 ? { "retry-after": "2" } : {}); }
     return;
   }
   if (pathname === "/ai-build/health" && request.method === "GET") {
@@ -128,4 +127,16 @@ function runCompiler(payload) {
     worker.once("error", (error) => { clearTimeout(timeout); reject(error); });
     worker.once("exit", (code) => { if (code !== 0) { clearTimeout(timeout); reject(new Error(`Compiler worker exited with code ${code}.`)); } });
   });
+}
+
+function scheduleCompiler(payload) {
+  if (activeCompilers >= MAX_ACTIVE_COMPILERS && compilerQueue.length >= MAX_QUEUED_COMPILERS) return Promise.reject(Object.assign(new Error("Compiler queue is full. Retry shortly."), { status: 503 }));
+  return new Promise((resolve, reject) => { compilerQueue.push({ payload, resolve, reject }); pumpCompilerQueue(); });
+}
+
+function pumpCompilerQueue() {
+  while (activeCompilers < MAX_ACTIVE_COMPILERS && compilerQueue.length) {
+    const task = compilerQueue.shift(); activeCompilers += 1;
+    runCompiler(task.payload).then(task.resolve, task.reject).finally(() => { activeCompilers -= 1; pumpCompilerQueue(); });
+  }
 }
