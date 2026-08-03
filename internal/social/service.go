@@ -308,6 +308,50 @@ func (s *Service) CreateInvite(actor Session, ttl time.Duration) (Invite, string
 	return record, token, s.saveOrRollbackLocked(before)
 }
 
+// ResolveDiscovery keeps every user-facing discovery method inside the Social
+// service boundary. Raw contact hashes are deliberately not reversible; a
+// deployment must provide an approved contacts matcher before that source can
+// return a result.
+func (s *Service) ResolveDiscovery(source, value string) (string, error) {
+	source, value = strings.TrimSpace(source), strings.TrimSpace(value)
+	switch source {
+	case "handle", "recommendation":
+		if s.cfg.Square == nil {
+			return "", fmt.Errorf("%w: Square discovery unavailable", ErrConflict)
+		}
+		profile, err := s.cfg.Square.ProfileByHandle(strings.TrimPrefix(value, "@"))
+		if err != nil {
+			return "", ErrNotFound
+		}
+		return profile.Account, nil
+	case "qr":
+		const prefix = "ynxsocial://profile/"
+		if !strings.HasPrefix(value, prefix) || s.cfg.Square == nil {
+			return "", ErrInvalid
+		}
+		profile, err := s.cfg.Square.ProfileByHandle(strings.TrimPrefix(value, prefix))
+		if err != nil {
+			return "", ErrNotFound
+		}
+		return profile.Account, nil
+	case "invite":
+		hash := sha256.Sum256([]byte(value))
+		digest, now := hex.EncodeToString(hash[:]), s.cfg.Now().UTC()
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		for _, invite := range s.state.Invites {
+			if invite.TokenHash == digest && invite.RevokedAt == nil && invite.ExpiresAt.After(now) {
+				return invite.Owner, nil
+			}
+		}
+		return "", ErrNotFound
+	case "contacts":
+		return "", fmt.Errorf("%w: contacts matching is not configured", ErrNotFound)
+	default:
+		return "", ErrInvalid
+	}
+}
+
 func (s *Service) RequestContact(actor Session, in ContactRequestInput) (ContactRequest, bool, error) {
 	target, err := nativewallet.NormalizeNativeAddress(in.TargetAccount)
 	if err != nil || target == actor.Account || !identifierPattern.MatchString(in.IdempotencyKey) || !allowedSources[in.Source] {
