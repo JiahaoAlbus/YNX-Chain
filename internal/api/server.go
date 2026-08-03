@@ -1405,9 +1405,10 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 		if len(params) < 1 || len(params) > 2 {
 			return nil, rpcInvalidParams(method + " requires an address and optional latest/pending block tag")
 		}
-		addr, ok := params[0].(string)
-		if !ok || !accountaddress.IsCanonical(addr) {
-			return nil, rpcInvalidParams(method + " requires a canonical lowercase EVM address")
+		rawAddr, ok := params[0].(string)
+		addr, normalizeErr := accountaddress.Normalize(rawAddr)
+		if !ok || normalizeErr != nil {
+			return nil, rpcInvalidParams(method + " requires a valid 20-byte EVM or YNX address")
 		}
 		if len(params) == 2 && params[1] != "latest" && params[1] != "pending" {
 			return nil, rpcInvalidParams(method + " currently supports only latest or pending state")

@@ -578,6 +578,22 @@ func TestEVMRPCBatch(t *testing.T) {
 	}
 }
 
+func TestEVMRPCNormalizesChecksummedAccountQueries(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+	const checksum = "0x7385739D422C89e36886a85329Fab7DAE111bBEC"
+	const canonical = "0x7385739d422c89e36886a85329fab7dae111bbec"
+	if _, err := devnet.Faucet(canonical, 7); err != nil {
+		t.Fatal(err)
+	}
+	var out map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 1, "method": "eth_getBalance", "params": []any{checksum, "latest"}}, http.StatusOK, &out)
+	if out["result"] != "0x7" {
+		t.Fatalf("expected normalized checksummed balance, got %v", out)
+	}
+}
+
 func TestPrometheusMetrics(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	server := httptest.NewServer(NewServer(devnet))
