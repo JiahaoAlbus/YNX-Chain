@@ -44,6 +44,22 @@ export function walletIdentityFromPublicKey(publicKeyHex) {
   return encodeYNX(digest.slice(-20));
 }
 
+export function evmAddressFromYNX(account) {
+  if (typeof account !== "string" || account !== account.toLowerCase() || !account.startsWith("ynx1")) throw new WalletAuthError("INVALID_ACCOUNT", "YNX account is invalid");
+  const encoded = account.slice(4);
+  const values = [...encoded].map((character) => CHARSET.indexOf(character));
+  if (values.length !== 38 || values.some((value) => value < 0) || polymod([...hrpExpand("ynx"), ...values]) !== 1) throw new WalletAuthError("INVALID_ACCOUNT", "YNX account checksum is invalid");
+  const data = values.slice(0, -6);
+  const payload = convertBitsStrict(data, 5, 8);
+  if (payload.length !== 20) throw new WalletAuthError("INVALID_ACCOUNT", "YNX account payload is invalid");
+  return `0x${bytesToHex(Uint8Array.from(payload))}`;
+}
+
+export function ynxAddressFromEVM(address) {
+  if (typeof address !== "string" || !/^0x[0-9a-f]{40}$/.test(address)) throw new WalletAuthError("INVALID_ACCOUNT", "EVM compatibility address is invalid");
+  return encodeYNX(hexToBytes(address.slice(2)));
+}
+
 function validSecret(value) {
   if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value)) throw new WalletAuthError("INVALID_SECRET", "Wallet account secret must be 32-byte lowercase hex");
   const bytes = hexToBytes(value);
@@ -68,6 +84,19 @@ function convertBits(data, fromBits, toBits, pad) {
     while (bits >= toBits) { bits -= toBits; result.push((accumulator >> bits) & maxValue); }
   }
   if (pad && bits > 0) result.push((accumulator << (toBits - bits)) & maxValue);
+  return result;
+}
+
+function convertBitsStrict(data, fromBits, toBits) {
+  let accumulator = 0, bits = 0;
+  const result = [], maxValue = (1 << toBits) - 1, maxAccumulator = (1 << (fromBits + toBits - 1)) - 1;
+  for (const value of data) {
+    if (!Number.isInteger(value) || value < 0 || value >= (1 << fromBits)) throw new WalletAuthError("INVALID_ACCOUNT", "YNX account data is invalid");
+    accumulator = ((accumulator << fromBits) | value) & maxAccumulator;
+    bits += fromBits;
+    while (bits >= toBits) { bits -= toBits; result.push((accumulator >> bits) & maxValue); }
+  }
+  if (bits >= fromBits || ((accumulator << (toBits - bits)) & maxValue) !== 0) throw new WalletAuthError("INVALID_ACCOUNT", "YNX account padding is invalid");
   return result;
 }
 
