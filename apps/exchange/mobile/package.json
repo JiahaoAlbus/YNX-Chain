@@ -14,7 +14,7 @@
   "dependencies": {
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
-    "@ynx-chain/wallet-auth": "file:vendor/wallet-auth",
+    "@ynx-chain/wallet-auth": "file:../../../packages/wallet-auth",
     "expo": "~57.0.4",
     "expo-crypto": "~57.0.0",
     "expo-linking": "~57.0.0",
