@@ -30,6 +30,7 @@ YNX_BRIDGE_DEPLOY_ENABLED="${YNX_BRIDGE_DEPLOY_ENABLED:-false}"
 YNX_STABLECOIN_DEPLOY_ENABLED="${YNX_STABLECOIN_DEPLOY_ENABLED:-false}"
 YNX_CHAT_DEPLOY_ENABLED="${YNX_CHAT_DEPLOY_ENABLED:-false}"
 YNX_SQUARE_DEPLOY_ENABLED="${YNX_SQUARE_DEPLOY_ENABLED:-false}"
+YNX_SOCIAL_DEPLOY_ENABLED="${YNX_SOCIAL_DEPLOY_ENABLED:-false}"
 YNX_APP_GATEWAY_DEPLOY_ENABLED="${YNX_APP_GATEWAY_DEPLOY_ENABLED:-false}"
 YNX_APP_GATEWAY_HTTP_ADDR="${YNX_APP_GATEWAY_HTTP_ADDR:-127.0.0.1:6437}"
 YNX_APP_GATEWAY_ALLOWED_ORIGINS="${YNX_APP_GATEWAY_ALLOWED_ORIGINS:-https://${WEBSITE_DOMAIN:-www.ynxweb4.com},https://ynxweb4.com}"
@@ -96,6 +97,15 @@ if [[ "$YNX_SQUARE_DEPLOY_ENABLED" == "true" ]]; then
   ynx_require_env "${square_required[@]}"
   ynx_reject_unsafe_env_values "${square_required[@]}"
 fi
+case "$YNX_SOCIAL_DEPLOY_ENABLED" in
+  true | false) ;;
+  *) echo "YNX_SOCIAL_DEPLOY_ENABLED must be true or false"; exit 1 ;;
+esac
+if [[ "$YNX_SOCIAL_DEPLOY_ENABLED" == "true" ]]; then
+  social_required=(YNX_SOCIAL_HTTP_ADDR YNX_SOCIAL_STATE_DIR YNX_SOCIAL_TOKEN_KEY YNX_SOCIAL_INTERNAL_API_KEY)
+  ynx_require_env "${social_required[@]}"
+  ynx_reject_unsafe_env_values "${social_required[@]}"
+fi
 case "$YNX_APP_GATEWAY_DEPLOY_ENABLED" in
   true | false) ;;
   *) echo "YNX_APP_GATEWAY_DEPLOY_ENABLED must be true or false"; exit 1 ;;
@@ -137,6 +147,7 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldfl
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-stablecoind" ./cmd/ynx-stablecoind
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-chatd" ./cmd/ynx-chatd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-squared" ./cmd/ynx-squared
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$work/bin/ynx-sociald" ./cmd/ynx-sociald
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-app-gatewayd" ./cmd/ynx-app-gatewayd
 cat > "$work/config/release.env" <<EOF
 YNX_RELEASE_COMMIT=${commit}
@@ -201,11 +212,19 @@ YNX_SQUARE_RATE_LIMIT_WINDOW=1m
 YNX_SQUARE_RATE_LIMIT_MAX=120
 YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
 EOF
+ynx_write_kv_env "$work/config/ynx-sociald.env" \
+  YNX_SOCIAL_HTTP_ADDR YNX_SOCIAL_STATE_DIR YNX_SOCIAL_TOKEN_KEY YNX_SOCIAL_INTERNAL_API_KEY
+cat >> "$work/config/ynx-sociald.env" <<EOF
+YNX_SOCIAL_RATE_LIMIT_WINDOW=${YNX_SOCIAL_RATE_LIMIT_WINDOW:-1m}
+YNX_SOCIAL_RATE_LIMIT_MAX=${YNX_SOCIAL_RATE_LIMIT_MAX:-300}
+YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
+EOF
 ynx_write_kv_env "$work/config/ynx-app-gatewayd.env" \
   YNX_APP_GATEWAY_DEPLOY_ENABLED YNX_APP_GATEWAY_HTTP_ADDR YNX_APP_GATEWAY_ALLOWED_ORIGINS
 cat >> "$work/config/ynx-app-gatewayd.env" <<EOF
 YNX_APP_GATEWAY_CHAT_URL=http://127.0.0.1:6435
 YNX_APP_GATEWAY_SQUARE_URL=http://127.0.0.1:6436
+YNX_APP_GATEWAY_SOCIAL_URL=http://127.0.0.1:6438
 YNX_APP_GATEWAY_PAY_URL=http://127.0.0.1:6430
 YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
 YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
@@ -218,6 +237,7 @@ YNX_APP_GATEWAY_SESSION_TTL=30m
 EOF
 printf 'YNX_APP_GATEWAY_CHAT_API_KEY=%q\n' "${YNX_CHAT_API_KEY:-disabled-chat-key}" >> "$work/config/ynx-app-gatewayd.env"
 printf 'YNX_APP_GATEWAY_SQUARE_API_KEY=%q\n' "${YNX_SQUARE_API_KEY:-disabled-square-key}" >> "$work/config/ynx-app-gatewayd.env"
+printf 'YNX_APP_GATEWAY_SOCIAL_API_KEY=%q\n' "${YNX_SOCIAL_INTERNAL_API_KEY:-disabled-social-key}" >> "$work/config/ynx-app-gatewayd.env"
 printf 'YNX_APP_GATEWAY_PAY_API_KEY=%q\n' "${YNX_PAY_API_KEY:-disabled-pay-key}" >> "$work/config/ynx-app-gatewayd.env"
 cat >> "$work/config/ynx-chaind.env" <<EOF
 YNX_NETWORK=testnet
@@ -587,10 +607,40 @@ ReadWritePaths=/var/lib/ynx-chain/square
 WantedBy=multi-user.target
 EOF
 
+cat > "$work/systemd/ynx-sociald.service" <<'EOF'
+[Unit]
+Description=YNX Social wallet-bound application service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-sociald.env
+ExecStart=/usr/local/bin/ynx-sociald
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/ynx-chain/social
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat > "$work/systemd/ynx-app-gatewayd.service" <<'EOF'
 [Unit]
 Description=YNX Chain first-party browser application gateway
-After=network-online.target ynx-chatd.service ynx-squared.service ynx-payd.service
+After=network-online.target ynx-chatd.service ynx-squared.service ynx-sociald.service ynx-payd.service
 Wants=network-online.target
 
 [Service]
@@ -807,6 +857,9 @@ ${NGINX_SERVER_NAME}, ${TESTNET_DOMAIN}, ${RPC_DOMAIN}, ${EVM_RPC_DOMAIN} {
 }
 
 ${REST_DOMAIN}, ${API_DOMAIN}, ${IDE_DOMAIN} {
+  handle /social/* {
+    reverse_proxy 127.0.0.1:6438
+  }
   handle /app/* {
     reverse_proxy 127.0.0.1:6437
   }
@@ -1021,6 +1074,13 @@ ynx_install_primary_node() {
     expected_services="${expected_services}YNX_EXPECT_SQUARE_SERVICE=1 "
   else
     echo "Square deployment remains disabled; release package contains ynx-squared but no remote service is installed"
+  fi
+  if [[ "$YNX_SOCIAL_DEPLOY_ENABLED" == "true" ]]; then
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx -m 0700 /var/lib/ynx-chain/social && sudo install -m 0755 '$remote_dir/bin/ynx-sociald' /usr/local/bin/ynx-sociald && sudo install -m 0644 '$remote_dir/systemd/ynx-sociald.service' /etc/systemd/system/ynx-sociald.service && sudo install -m 0600 '$remote_dir/config/ynx-sociald.env' /etc/ynx/ynx-sociald.env"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-sociald.env; set +a; /usr/local/bin/ynx-sociald --check-config >/dev/null'"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-sociald && sudo systemctl restart ynx-sociald && sudo systemctl --no-pager --full status ynx-sociald"
+  else
+    echo "Social deployment remains disabled; release package contains ynx-sociald but no remote service is installed"
   fi
   if [[ "$YNX_APP_GATEWAY_DEPLOY_ENABLED" == "true" ]]; then
     ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx -m 0700 /var/lib/ynx-chain/app-gateway && sudo install -m 0755 '$remote_dir/bin/ynx-app-gatewayd' /usr/local/bin/ynx-app-gatewayd && sudo install -m 0644 '$remote_dir/systemd/ynx-app-gatewayd.service' /etc/systemd/system/ynx-app-gatewayd.service && sudo install -m 0600 '$remote_dir/config/ynx-app-gatewayd.env' /etc/ynx/ynx-app-gatewayd.env"
