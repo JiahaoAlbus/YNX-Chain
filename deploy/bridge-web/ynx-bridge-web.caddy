@@ -1,0 +1,18 @@
+bridge-app.ynxweb4.com, bridge-app-testnet.43.153.202.237.sslip.io {
+  encode zstd gzip
+
+  handle_path /api/* {
+    reverse_proxy 127.0.0.1:6433
+  }
+
+  handle {
+    root * /opt/ynx/bridge-web-current
+    header {
+      X-Content-Type-Options nosniff
+      Referrer-Policy strict-origin-when-cross-origin
+      Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+    try_files {path} /index.html
+    file_server
+  }
+}

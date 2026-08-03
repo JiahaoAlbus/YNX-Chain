@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Inspect live YNX Bridge Testnet route, provider, and safety evidence.">
+  <title>YNX Bridge — Testnet route monitor</title>
+  <link rel="icon" href="/ynx-logo.png">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="YNX Bridge home"><img src="/ynx-logo.png" alt="YNX" width="58" height="38"><span><small>TESTNET</small>YNX Bridge</span></a>
+    <nav aria-label="Bridge navigation"><a href="#routes">Routes</a><a href="#providers">Providers</a><a href="https://explorer.ynxweb4.com" rel="noreferrer">Explorer</a><button id="refresh" type="button">Refresh</button></nav>
+  </header>
+
+  <main>
+    <section class="status-strip" aria-live="polite">
+      <div><span id="status-dot" class="dot warning"></span><strong id="runtime-status">Checking runtime…</strong><span id="as-of">Connecting to bridge evidence</span></div>
+      <span class="network">YNX Testnet · Chain 6423</span>
+    </section>
+
+    <section class="workspace">
+      <div class="transfer-panel">
+        <p class="eyebrow">CROSS-CHAIN TRANSFER</p>
+        <h1>Review the route before you sign</h1>
+        <p class="intro">Quotes, fees, provider state, contracts, and execution availability are read from the running coordinator. No route is presented as usable unless every required dependency is verified.</p>
+        <div class="field-grid">
+          <label>From<select id="source-chain" disabled><option>Ethereum Sepolia</option></select></label>
+          <button class="swap" type="button" disabled aria-label="Reverse route">⇄</button>
+          <label>To<select id="destination-chain" disabled><option>Base Sepolia</option></select></label>
+        </div>
+        <label>Amount<div class="amount"><input type="text" inputmode="decimal" value="100" aria-label="Transfer amount" disabled><span>USDC</span></div></label>
+        <div class="quote-row"><span>Provider quote</span><strong id="quote-state">Unavailable</strong></div>
+        <div class="quote-row"><span>Estimated time</span><strong id="estimate">—</strong></div>
+        <div class="quote-row"><span>External submission</span><strong id="submission">Disabled</strong></div>
+        <button class="primary" type="button" disabled>Transfer unavailable</button>
+        <p class="safety">The button remains disabled because the coordinator has no verified executable route or destination contract. This preview never fabricates a transaction.</p>
+      </div>
+
+      <aside class="evidence-panel">
+        <div class="panel-heading"><div><p class="eyebrow">LIVE EVIDENCE</p><h2>Coordinator health</h2></div><span id="service-state" class="pill">Loading</span></div>
+        <div class="metrics">
+          <article><span>Configured routes</span><strong id="route-count">—</strong></article>
+          <article><span>Available providers</span><strong id="provider-count">—</strong></article>
+          <article><span>Recorded transfers</span><strong id="transfer-count">—</strong></article>
+          <article><span>Finalized locally</span><strong id="finalized-count">—</strong></article>
+        </div>
+        <dl class="facts">
+          <div><dt>Provider</dt><dd id="provider-status">—</dd></div>
+          <div><dt>Contracts</dt><dd id="contract-status">—</dd></div>
+          <div><dt>Reconciliation</dt><dd id="reconciliation-status">—</dd></div>
+          <div><dt>State integrity</dt><dd id="state-integrity">—</dd></div>
+        </dl>
+      </aside>
+    </section>
+
+    <section id="routes" class="data-section"><div class="section-heading"><div><p class="eyebrow">ROUTE REGISTRY</p><h2>Configured candidates</h2></div><p>Live coordinator data—not a marketing list.</p></div><div id="route-list" class="cards"><p class="loading">Loading routes…</p></div></section>
+    <section id="providers" class="data-section"><div class="section-heading"><div><p class="eyebrow">PROVIDER REGISTRY</p><h2>Connectivity and review state</h2></div></div><div id="provider-list" class="cards"><p class="loading">Loading providers…</p></div></section>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>
