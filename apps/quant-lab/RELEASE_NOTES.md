@@ -38,6 +38,8 @@ This release introduces an independent research, Paper and bounded Testnet Previ
   metrics. No trace backend, dashboard, monitor ingestion or alert delivery is
   claimed.
 
-Historical and simulated results do not predict returns. This candidate is not
-a real-money trading product. It is not centrally integrated, deployed, hosted,
-production signed, or store released.
+The research-only Web surface is publicly deployed with per-request isolation
+and actual YNX Testnet match data. Historical and simulated results do not
+predict returns. This candidate is not a real-money trading product. It is not
+centrally integrated, production signed, or store released; public Paper,
+Testnet order submission and live funds remain disabled.

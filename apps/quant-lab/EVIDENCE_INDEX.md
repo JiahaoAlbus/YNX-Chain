@@ -63,11 +63,27 @@ and archive byte counts remained stable, but hashes differed from the earlier
 host/toolchain evidence; the current hashes reproduced across two clean builds
 and the macOS archive was re-verified from a fresh extraction.
 
+## Public Testnet research evidence collected 2026-08-03
+
+- canonical URL: `https://quant.ynxweb4.com/`; source-bound fallback:
+  `https://quant-testnet.43.153.202.237.sslip.io/`
+- deployed binary commit: `18a73981b04361e4dc5e75706d4b96203fb8d76f`
+- authoritative input: 30 actual matches created by the YNX-owned deterministic
+  Testnet matching engine; the adapter reports `synthetic: false`
+- public state model: a fresh integrity-checked workspace per request; no shared
+  user experiment, strategy, Paper, Wallet, or order state
+- capacity probe from the public host: 100/100 research requests returned HTTP
+  201 at concurrency 50, and 100/100 status requests returned HTTP 200
+- reverse-proxy boundary: proxied requests cannot enable local Paper, Risk, or
+  Testnet mutation routes by supplying the local preview header
+- public capabilities: research enabled; Paper, Testnet order submission, and
+  live funds disabled
+
 ## Missing remote evidence
 
-CI run URL, staging/public health response, canonical Gateway session, Wallet
-mandate approval/revoke receipt, Exchange order/fill, DEX vault actions,
+Green merge CI, canonical Gateway session, Wallet mandate approval/revoke
+receipt, Wallet-authorized Exchange order/fill, DEX vault actions,
 Explorer/Finance/Monitor/Trust correlation, registry manifest digest, container
 signing/external vulnerability scan/immutable hosting, hosted SDK/download URLs,
-production desktop signing/notarization, Windows host launch, and public uptime
-evidence.
+production desktop signing/notarization, Windows host launch, and extended
+public uptime evidence.
