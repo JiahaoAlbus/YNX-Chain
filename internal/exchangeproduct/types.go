@@ -49,7 +49,7 @@ type Config struct {
 }
 
 type GatewayAuthorizer interface {
-	Authorize(token, scope, clientID string) (WalletSession, error)
+	Authorize(productSessionProof, scope, clientID string) (WalletSession, error)
 }
 
 type IntegrationStatus struct {
@@ -118,14 +118,16 @@ type WalletChallenge struct {
 }
 
 type WalletSession struct {
-	TokenHash       string    `json:"tokenHash"`
-	Account         string    `json:"account"`
-	DeviceID        string    `json:"deviceId"`
-	WalletPublicKey string    `json:"walletPublicKey"`
-	Scopes          []string  `json:"scopes"`
-	CreatedAt       time.Time `json:"createdAt"`
-	ExpiresAt       time.Time `json:"expiresAt"`
-	RevokedAt       time.Time `json:"revokedAt,omitempty"`
+	TokenHash        string    `json:"tokenHash"`
+	Account          string    `json:"account"`
+	DeviceID         string    `json:"deviceId"`
+	WalletPublicKey  string    `json:"walletPublicKey"`
+	ProductDeviceKey string    `json:"productDeviceKey,omitempty"`
+	SessionBinding   string    `json:"sessionBinding,omitempty"`
+	Scopes           []string  `json:"scopes"`
+	CreatedAt        time.Time `json:"createdAt"`
+	ExpiresAt        time.Time `json:"expiresAt"`
+	RevokedAt        time.Time `json:"revokedAt,omitempty"`
 }
 
 type Balance struct {

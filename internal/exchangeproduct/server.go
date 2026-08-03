@@ -221,7 +221,7 @@ func (s *Server) testCredits(w http.ResponseWriter, r *http.Request) {
 	respond(w, v, err, 201)
 }
 func (s *Server) auth(w http.ResponseWriter, r *http.Request, scope string) (WalletSession, bool) {
-	v, err := s.service.Authenticate(r.Header.Get("Authorization"), scope)
+	v, err := s.service.Authenticate(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
 	if err != nil {
 		respond(w, nil, err, 200)
 		return WalletSession{}, false
@@ -283,20 +283,20 @@ type HTTPGatewayAuthorizer struct {
 	Client  *http.Client
 }
 
-func (g HTTPGatewayAuthorizer) Authorize(token, scope, clientID string) (WalletSession, error) {
-	if token == "" || scope == "" || clientID == "" {
+func (g HTTPGatewayAuthorizer) Authorize(productSessionProof, scope, clientID string) (WalletSession, error) {
+	if productSessionProof == "" || scope == "" || clientID == "" {
 		return WalletSession{}, ErrUnauthorized
 	}
 	client := g.Client
 	if client == nil {
 		client = http.DefaultClient
 	}
-	body, _ := json.Marshal(map[string]string{"productClientId": clientID, "scope": scope})
-	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(g.BaseURL, "/")+"/v1/sessions/introspect", strings.NewReader(string(body)))
+	body := []byte(`{"requiredScopes":["` + scope + `"]}`)
+	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(g.BaseURL, "/")+"/v1/wallet/sessions/introspect", strings.NewReader(string(body)))
 	if err != nil {
 		return WalletSession{}, ErrUnavailable
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-YNX-Product-Session-Proof", productSessionProof)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
@@ -312,21 +312,28 @@ func (g HTTPGatewayAuthorizer) Authorize(token, scope, clientID string) (WalletS
 	if resp.StatusCode != http.StatusOK {
 		return WalletSession{}, ErrUnavailable
 	}
-	var v struct {
-		VerifierVersion  string   `json:"verifierVersion"`
-		ProductClientID  string   `json:"productClientId"`
-		BundleID         string   `json:"bundleId"`
-		Account          string   `json:"account"`
-		AccountPublicKey string   `json:"accountPublicKey"`
-		ExpiresAt        string   `json:"expiresAt"`
-		Scopes           []string `json:"scopes"`
+	var envelope struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			Active  bool `json:"active"`
+			Session struct {
+				VerifierVersion  string   `json:"verifierVersion"`
+				ProductClientID  string   `json:"productClientId"`
+				BundleID         string   `json:"bundleId"`
+				Account          string   `json:"account"`
+				ProductDeviceKey string   `json:"productDeviceKey"`
+				SessionBinding   string   `json:"sessionBinding"`
+				ExpiresAt        string   `json:"expiresAt"`
+				Scopes           []string `json:"scopes"`
+			} `json:"session"`
+		} `json:"result"`
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&v); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&envelope); err != nil || !envelope.OK || !envelope.Result.Active {
 		return WalletSession{}, ErrUnavailable
 	}
+	v := envelope.Result.Session
 	account, err := nativewallet.NormalizeNativeAddress(v.Account)
-	derived, keyErr := walletAccount(v.AccountPublicKey)
-	if err != nil || keyErr != nil || derived != account || v.VerifierVersion != "wallet-auth-v1" || v.ProductClientID != clientID || v.BundleID != "com.ynxweb4.exchange" {
+	if err != nil || v.VerifierVersion != "wallet-auth-v1" || v.ProductClientID != clientID || v.BundleID != "com.ynxweb4.exchange" || len(v.ProductDeviceKey) != 44 || len(v.SessionBinding) != 64 {
 		return WalletSession{}, ErrUnauthorized
 	}
 	expires, err := time.Parse(time.RFC3339Nano, v.ExpiresAt)
@@ -343,7 +350,7 @@ func (g HTTPGatewayAuthorizer) Authorize(token, scope, clientID string) (WalletS
 	if !found {
 		return WalletSession{}, ErrForbidden
 	}
-	return WalletSession{Account: account, WalletPublicKey: v.AccountPublicKey, Scopes: append([]string(nil), v.Scopes...), ExpiresAt: expires}, nil
+	return WalletSession{Account: account, ProductDeviceKey: v.ProductDeviceKey, SessionBinding: v.SessionBinding, Scopes: append([]string(nil), v.Scopes...), ExpiresAt: expires}, nil
 }
 
 func walletAccount(publicKeyHex string) (string, error) {

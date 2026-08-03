@@ -529,34 +529,35 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var gotPath, gotAuth string
+	var gotPath, gotProof string
 	allowTrade := false
 	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
-		gotAuth = r.Header.Get("Authorization")
+		gotProof = r.Header.Get("X-YNX-Product-Session-Proof")
 		scopes := []string{"exchange:read"}
 		if allowTrade {
 			scopes = append(scopes, "exchange:trade")
 		}
-		writeJSON(w, 200, map[string]any{"verifierVersion": "wallet-auth-v1", "productClientId": "ynx-exchange-v1", "bundleId": "com.ynxweb4.exchange", "account": account, "accountPublicKey": publicKey, "scopes": scopes, "expiresAt": expires})
+		writeJSON(w, 200, map[string]any{"ok": true, "result": map[string]any{"active": true, "session": map[string]any{"verifierVersion": "wallet-auth-v1", "productClientId": "ynx-exchange-v1", "bundleId": "com.ynxweb4.exchange", "account": account, "productDeviceKey": "A1234567890123456789012345678901234567890123", "sessionBinding": strings.Repeat("a", 64), "scopes": scopes, "expiresAt": expires}}})
 	}))
 	defer gateway.Close()
 	authorizer := HTTPGatewayAuthorizer{BaseURL: gateway.URL, Client: gateway.Client()}
-	session, err := authorizer.Authorize("central-token", "exchange:read", "ynx-exchange-v1")
+	session, err := authorizer.Authorize(`{"version":"1"}`, "exchange:read", "ynx-exchange-v1")
 	if err != nil || session.Account != account {
 		t.Fatalf("account=%s public=%s session=%+v err=%v", account, publicKey, session, err)
 	}
-	if gotPath != "/v1/sessions/introspect" || gotAuth != "Bearer central-token" {
-		t.Fatalf("gateway request path=%s auth=%s", gotPath, gotAuth)
+	if gotPath != "/v1/wallet/sessions/introspect" || gotProof != `{"version":"1"}` {
+		t.Fatalf("gateway request path=%s proof=%s", gotPath, gotProof)
 	}
-	if _, err := authorizer.Authorize("central-token", "exchange:trade", "ynx-exchange-v1"); err != ErrForbidden {
+	if _, err := authorizer.Authorize(`{"version":"1"}`, "exchange:trade", "ynx-exchange-v1"); err != ErrForbidden {
 		t.Fatalf("scope err=%v", err)
 	}
 	allowTrade = true
-	centralSession, err := authorizer.Authorize("central-token", "exchange:trade", "ynx-exchange-v1")
+	centralSession, err := authorizer.Authorize(`{"version":"1"}`, "exchange:trade", "ynx-exchange-v1")
 	if err != nil {
 		t.Fatal(err)
 	}
+	centralSession.WalletPublicKey = publicKey
 	s, _, _ := newTestService(t)
 	if _, err := s.CreditTestQuote(adminKey, account, 10*AmountScale, "central-action-credit"); err != nil {
 		t.Fatal(err)

@@ -222,8 +222,8 @@ func (s *Service) CompleteSession(req CompleteSessionRequest) (WalletSession, st
 	return session, token, nil
 }
 
-func (s *Service) Authenticate(token, scope string) (WalletSession, error) {
-	raw := strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
+func (s *Service) Authenticate(productSessionProof, scope string) (WalletSession, error) {
+	raw := strings.TrimSpace(productSessionProof)
 	if raw == "" || s.cfg.Gateway == nil || s.cfg.GatewayClientID == "" {
 		return WalletSession{}, ErrUnauthorized
 	}
