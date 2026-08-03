@@ -11,6 +11,8 @@
   ],
   "sessionFailClosed": true,
   "actionFailClosed": true,
+  "sessionIntegratedCentral": true,
+  "actionIntegratedCentral": false,
   "integratedCentral": false,
-  "reason": "Central registry merge, deployed route and canonical action-verification response are not attested."
+  "reason": "The exact Exchange client is approved for public-Testnet Wallet sessions. Protected actions remain fail-closed until the canonical action-verification route is deployed and attested."
 }

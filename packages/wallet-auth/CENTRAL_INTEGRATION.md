@@ -37,12 +37,12 @@ Schema v2 remains the exact protocol projection consumed by the verifier: `schem
 
 ## Approved public-testnet products
 
-`shop` is approved for public-testnet Wallet sessions. The approval is scoped to the
-registered `ynx-shop-v1` client, the `com.ynxweb4.shop` bundle, the
-`ynxshop://wallet-auth/callback` callback, and the three least-privilege Shop scopes
-listed in `central-registry.json`. It is backed by the public Shop deployment,
-passing commerce/native/release tests, and a dedicated deep-link callback contract.
-All other products remain disabled until equivalent product-owned evidence exists.
+`shop` and `exchange` are approved for public-testnet Wallet sessions. Each approval
+is restricted to the exact client, bundle, callback, algorithms and least-privilege
+scopes listed in `central-registry.json`. Exchange action signing is a separate
+boundary: orders, cancellation and withdrawals remain fail-closed until the
+canonical action-verification route is deployed and attested. All other products
+remain disabled until equivalent product-owned evidence exists.
 
 ## Canonical envelope and verifier
 
