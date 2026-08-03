@@ -1,0 +1,12 @@
+merchant.ynxweb4.com, merchant-testnet.43.153.202.237.sslip.io {
+	encode zstd gzip
+	root * /opt/ynx/merchant-console-current
+	try_files {path} /index.html
+	file_server
+	header {
+		Content-Security-Policy "default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'"
+		Referrer-Policy no-referrer
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		X-Content-Type-Options nosniff
+	}
+}
