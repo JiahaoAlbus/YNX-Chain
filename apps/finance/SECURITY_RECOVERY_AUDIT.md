@@ -36,4 +36,4 @@ Reviewed 2026-07-29 for the 1.2.0 Testnet candidate.
 
 ## Verdict
 
-Acceptable as a local Testnet candidate and signed-out Web feasibility companion. Not acceptable to mark centrally integrated, production deployed, production signed or store released until all external gates in `product-release.json` are satisfied.
+Acceptable as a centrally integrated public Testnet preview with an official-site Android download and a signed-out Web companion. It is not acceptable to call production signed or store released: final enrolled-biometric callback evidence, authorized Pay receipt smoke, production Gateway persistence/operations, iOS evidence, production signing and store review remain open in `product-release.json`.
