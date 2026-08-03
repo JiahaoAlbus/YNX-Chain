@@ -1,0 +1,79 @@
+{
+  "backupRestore": {
+    "auditContinuityPassed": true,
+    "backupBytes": 874,
+    "backupSha256": "74c201d094267126e30d6dad94bd0a3b427c6e408bf43cf56d72e723e80b78be",
+    "isolatedRestorePassed": true
+  },
+  "compose": {
+    "healthy": true,
+    "loopbackPreviewBoundaryPreserved": true,
+    "loopbackWebBinding": true,
+    "services": [
+      "ynx-quantd",
+      "ynx-quant-worker",
+      "ynx-quant-paperd",
+      "ynx-quant-riskd",
+      "ynx-quant-web"
+    ]
+  },
+  "evidenceDate": "2026-07-27T15:35:34.004670+00:00",
+  "health": {
+    "commit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
+    "liveFundsEnabled": false,
+    "mode": "simulated_testnet_only",
+    "productId": "ynx-quant-lab",
+    "ready": true,
+    "serviceRole": "all",
+    "signals": {
+      "killSwitch": false,
+      "pendingUnknownExecutions": 0,
+      "reconciliationDelta": 0
+    },
+    "status": "ok",
+    "version": "0.2.0-testnet"
+  },
+  "image": {
+    "architecture": "arm64",
+    "bytes": 41667295,
+    "hosted": false,
+    "id": "sha256:70e32c90601dc50c4770d04d40bd684a8bde52848e969afb9e8ddfbbaceb3f35",
+    "os": "linux",
+    "signingClass": "local-unsigned-container-candidate",
+    "user": "65532:65532"
+  },
+  "limitations": [
+    "Local Docker Desktop evidence only",
+    "Image is not signed, hosted, externally scanned, or deployed publicly",
+    "No canonical Wallet, Exchange, DEX, Oracle, or shared Testnet integration is claimed"
+  ],
+  "productId": "ynx-quant-lab",
+  "restart": {
+    "auditHashPersisted": true,
+    "killSwitchPersisted": true,
+    "orderedStopStartPassed": true
+  },
+  "restoreHealth": {
+    "commit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
+    "liveFundsEnabled": false,
+    "mode": "simulated_testnet_only",
+    "productId": "ynx-quant-lab",
+    "ready": true,
+    "serviceRole": "all",
+    "signals": {
+      "killSwitch": true,
+      "pendingUnknownExecutions": 0,
+      "reconciliationDelta": 0
+    },
+    "status": "ok",
+    "version": "0.2.0-testnet"
+  },
+  "schemaVersion": 1,
+  "security": {
+    "capDropAll": true,
+    "namedVolumeOwnedByRuntimeUser": true,
+    "noNewPrivileges": true,
+    "readOnlyRootFilesystem": true
+  },
+  "sourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e"
+}

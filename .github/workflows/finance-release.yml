@@ -63,11 +63,11 @@ jobs:
           if-no-files-found: error
 
   ios-simulator-cold-launch:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
-      - name: Select Swift 6.2 toolchain
-        run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer && xcodebuild -version && swift --version
+      - name: Record Xcode and Swift toolchain
+        run: xcodebuild -version && swift --version
       - uses: actions/setup-node@v4
         with: {node-version: '24'}
       - run: npm ci

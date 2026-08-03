@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "productId": "exchange",
+  "walletAuthSourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
+  "registryEntry": "wallet-registry-entry.json",
+  "requiredGatewayRoutes": [
+    "POST /v1/wallet/session-challenges",
+    "POST /v1/wallet/sessions",
+    "POST /v1/sessions/introspect",
+    "POST /v1/wallet/actions/verify"
+  ],
+  "sessionFailClosed": true,
+  "actionFailClosed": true,
+  "integratedCentral": false,
+  "reason": "Central registry merge, deployed route and canonical action-verification response are not attested."
+}
