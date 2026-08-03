@@ -14,6 +14,16 @@ for required in \
   "ynx_chain_validators" \
   "ynx_chain_pending_transactions" \
   "ynx_chain_persistence_error" \
+  "ynx_chain_replication_configured" \
+  "ynx_chain_replication_status_info" \
+  "ynx_chain_replication_catching_up" \
+  "ynx_chain_replication_fresh" \
+  "ynx_chain_replication_lag_blocks" \
+  "ynx_chain_replication_attempts_total" \
+  "ynx_chain_replication_successes_total" \
+  "ynx_chain_replication_failures_total" \
+  "ynx_chain_replication_consecutive_failures" \
+  "ynx_chain_replication_last_success_timestamp_seconds" \
   "ynx_resource_delegated_ynxt"
 do
   if ! grep -Fq "$required" <<<"$metrics"; then
@@ -30,6 +40,10 @@ node -e 'JSON.parse(require("fs").readFileSync("infra/monitoring/grafana-dashboa
 grep -Fq "ynx_explorer_sync_lag_blocks" infra/monitoring/grafana-dashboard.json
 grep -Fq "metrics_path: /metrics" infra/monitoring/prometheus.yml
 grep -Fq "YNXChainNoBlockProgress" infra/monitoring/ynx-alerts.yml
+grep -Fq "YNXFollowerReplicationDegraded" infra/monitoring/ynx-alerts.yml
+grep -Fq "YNXFollowerReplicationCatchingUp" infra/monitoring/ynx-alerts.yml
+grep -Fq "YNXFollowerReplicationLagging" infra/monitoring/ynx-alerts.yml
+grep -Fq "YNXFollowerReplicationFailures" infra/monitoring/ynx-alerts.yml
 grep -Fq "ynx-indexerd:6426" infra/monitoring/prometheus.yml
 grep -Fq "YNXIndexerLagging" infra/monitoring/ynx-alerts.yml
 grep -Fq "ynx-explorerd:6427" infra/monitoring/prometheus.yml
@@ -37,6 +51,9 @@ grep -Fq "YNXExplorerLagging" infra/monitoring/ynx-alerts.yml
 grep -Fq "ynx-faucetd:6428" infra/monitoring/prometheus.yml
 grep -Fq "YNXFaucetDown" infra/monitoring/ynx-alerts.yml
 grep -Fq "ynx_faucet_requests_total" infra/monitoring/grafana-dashboard.json
+grep -Fq "Follower Replication Health" infra/monitoring/grafana-dashboard.json
+grep -Fq "ynx_chain_replication_lag_blocks" infra/monitoring/grafana-dashboard.json
+grep -Fq "ynx_chain_replication_failures_total" infra/monitoring/grafana-dashboard.json
 grep -Fq "ynx-ai-gatewayd:6429" infra/monitoring/prometheus.yml
 grep -Fq "YNXAIGatewayDown" infra/monitoring/ynx-alerts.yml
 grep -Fq "ynx-payd:6430" infra/monitoring/prometheus.yml

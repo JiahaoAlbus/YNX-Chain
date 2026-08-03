@@ -28,7 +28,7 @@ export async function verifyLiveChainlistEndpoints({rootDir, outputPath}) {
   if (rest.chainId !== 6423 || rest.nativeCurrencySymbol !== "YNXT" || rest.publicNetwork !== true || !Number.isSafeInteger(rest.height) || rest.height <= 0) {
     throw new Error("public REST identity/status mismatch");
   }
-  if (typeof rest.build?.commit !== "string" || !/^[0-9a-f]{12}$/.test(rest.build.commit) || typeof rest.build?.release !== "string") throw new Error("public REST build identity is missing");
+  if (typeof rest.build?.commit !== "string" || !/^(?:[0-9a-f]{12}|[0-9a-f]{40})$/.test(rest.build.commit) || typeof rest.build?.release !== "string") throw new Error("public REST build identity is missing");
 
   const faucetURL = new URL(config.faucetHealthPath, `${metadata.faucets[0]}/`).toString();
   const faucet = await requestJSON(faucetURL, {}, config, "Faucet health");

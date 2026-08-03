@@ -48,6 +48,14 @@ required_patterns=(
   "status.buildRelease"
   "nodeIdentity.buildCommit"
   "nodeIdentity.buildRelease"
+  "r.status===\"synced\""
+  "r.catchingUp===false"
+  "r.fresh===true"
+  "r.localHeight===r.sourceHeight"
+  "r.localBlockHash===r.sourceBlockHash"
+  "replica_hash"
+  "primary_hash"
+  "replicationReadOnly"
 )
 
 for pattern in "${required_patterns[@]}"; do

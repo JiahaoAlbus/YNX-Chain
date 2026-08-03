@@ -1,0 +1,9 @@
+{
+  "name": "@ynx-chain/finance-edge-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "scripts": {"test": "node --test test/*.test.mjs", "start": "node src/server.mjs"},
+  "dependencies": {"@ynx-chain/wallet-auth": "file:../../../packages/wallet-auth"}
+}

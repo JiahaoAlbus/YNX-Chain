@@ -504,6 +504,43 @@ func TestChatHTTPAuthenticationAndRoutes(t *testing.T) {
 	}
 }
 
+func TestChatAccountExportDeleteAndRestart(t *testing.T) {
+	now := time.Date(2026, 7, 29, 4, 0, 0, 0, time.UTC)
+	statePath := filepath.Join(t.TempDir(), "chat-privacy", "state.json")
+	service := newTestService(t, statePath, func() time.Time { return now })
+	alice := registerTestDevice(t, service, aliceAddress, "alice-privacy", 0x31)
+	bob := registerTestDevice(t, service, bobAddress, "bob-privacy", 0x32)
+	conversation, err := service.CreateConversation(alice.device, CreateConversationRequest{IdempotencyKey: "privacy-conversation", Members: []string{aliceAddress, bobAddress}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	message := encryptedMessageRequest(t, conversation.Record.ID, "privacy-message", alice, []testDevice{alice, bob}, "erase this ciphertext", 0x33)
+	if _, err := service.SendMessage(alice.device, conversation.Record.ID, message); err != nil {
+		t.Fatal(err)
+	}
+	exported := service.ExportAccount(alice.device)
+	if exported.Account != aliceAddress || len(exported.Devices) != 1 || len(exported.Conversations) != 1 || len(exported.Messages) != 1 {
+		t.Fatalf("incomplete Chat export: %+v", exported)
+	}
+	if err := service.DeleteAccount(alice.device); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := service.state.Devices[alice.device.ID]; ok {
+		t.Fatal("deleted Chat device remains")
+	}
+	if _, ok := service.state.Conversations[conversation.Record.ID]; ok {
+		t.Fatal("two-party conversation survived service exit with one member")
+	}
+	for _, event := range service.state.Audit {
+		if event.Type == "account_erased" && strings.Contains(event.ObjectID, aliceAddress) {
+			t.Fatalf("erasure event leaked raw account: %+v", event)
+		}
+	}
+	if _, err := New(Config{StatePath: statePath, APIKey: chatAPIKey, Now: func() time.Time { return now }}); err != nil {
+		t.Fatalf("restart after Chat erasure: %v", err)
+	}
+}
+
 func newTestService(t *testing.T, statePath string, now func() time.Time) *Service {
 	t.Helper()
 	service, err := New(Config{StatePath: statePath, APIKey: chatAPIKey, Now: now})

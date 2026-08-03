@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -18,6 +19,8 @@ type Config struct {
 	ChatAPIKey       string
 	SquareURL        string
 	SquareAPIKey     string
+	SocialURL        string
+	SocialAPIKey     string
 	PayURL           string
 	PayAPIKey        string
 	AllowedOrigins   []string
@@ -38,6 +41,7 @@ type Gateway struct {
 	cfg       Config
 	chatURL   *url.URL
 	squareURL *url.URL
+	socialURL *url.URL
 	payURL    *url.URL
 	origins   map[string]struct{}
 	mu        sync.Mutex
@@ -55,7 +59,7 @@ const (
 	nativeMobileClient  = "ynx-mobile-v1"
 	nativeMobileBinding = "ynx-mobile://com.ynxweb4.mobile"
 	nativeSocialClient  = "ynx-social-v1"
-	nativeSocialBinding = "ynx-social://com.ynxweb4.social"
+	nativeSocialBinding = "ynx-social://com.ynx.social"
 	nativeWalletClient  = "ynx-wallet-v1"
 	nativeWalletBinding = "ynx-wallet://com.ynxweb4.wallet"
 )
@@ -72,6 +76,7 @@ func New(cfg Config) (*Gateway, error) {
 	}
 	chatURL, _ := url.Parse(cfg.ChatURL)
 	squareURL, _ := url.Parse(cfg.SquareURL)
+	socialURL, _ := url.Parse(cfg.SocialURL)
 	payURL, _ := url.Parse(cfg.PayURL)
 	origins := make(map[string]struct{}, len(cfg.AllowedOrigins))
 	for _, origin := range cfg.AllowedOrigins {
@@ -87,7 +92,7 @@ func New(cfg Config) (*Gateway, error) {
 	if err != nil {
 		return nil, err
 	}
-	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, payURL: payURL, origins: origins, visitors: map[string]visitor{}, state: state}
+	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, socialURL: socialURL, payURL: payURL, origins: origins, visitors: map[string]visitor{}, state: state}
 	if !exists {
 		if err := saveState(cfg.StatePath, &gateway.state); err != nil {
 			return nil, err
@@ -103,6 +108,14 @@ func ValidateConfig(cfg Config) error {
 	if err := validateLoopbackURL("YNX_APP_GATEWAY_SQUARE_URL", cfg.SquareURL); err != nil {
 		return err
 	}
+	if cfg.SocialURL != "" {
+		if err := validateLoopbackURL("YNX_APP_GATEWAY_SOCIAL_URL", cfg.SocialURL); err != nil {
+			return err
+		}
+		if len(strings.TrimSpace(cfg.SocialAPIKey)) < 16 {
+			return errors.New("YNX_APP_GATEWAY_SOCIAL_API_KEY must contain at least 16 characters")
+		}
+	}
 	if err := validateLoopbackURL("YNX_APP_GATEWAY_PAY_URL", cfg.PayURL); err != nil {
 		return err
 	}
@@ -111,6 +124,9 @@ func ValidateConfig(cfg Config) error {
 	}
 	if len(strings.TrimSpace(cfg.SquareAPIKey)) < 16 {
 		return errors.New("YNX_APP_GATEWAY_SQUARE_API_KEY must contain at least 16 characters")
+	}
+	if cfg.SocialURL == "" && strings.TrimSpace(cfg.SocialAPIKey) != "" {
+		return errors.New("YNX_APP_GATEWAY_SOCIAL_URL must be set when YNX_APP_GATEWAY_SOCIAL_API_KEY is configured")
 	}
 	if len(strings.TrimSpace(cfg.PayAPIKey)) < 16 {
 		return errors.New("YNX_APP_GATEWAY_PAY_API_KEY must contain at least 16 characters")
@@ -200,7 +216,7 @@ func (g *Gateway) BindingAllowed(binding string) bool {
 func productRouteAllowed(binding, service string) bool {
 	switch binding {
 	case nativeSocialBinding:
-		return service == "chat" || service == "square"
+		return service == "chat" || service == "square" || service == "social"
 	case nativeWalletBinding:
 		return false
 	default:
@@ -237,6 +253,11 @@ func (g *Gateway) upstream(service string) (*url.URL, string, string, bool) {
 		return g.squareURL, g.cfg.SquareAPIKey, "X-YNX-Square-Key", true
 	case "pay":
 		return g.payURL, g.cfg.PayAPIKey, "X-YNX-Pay-Key", true
+	case "social":
+		if g.socialURL == nil {
+			return nil, "", "", false
+		}
+		return g.socialURL, g.cfg.SocialAPIKey, "X-YNX-Social-Key", true
 	default:
 		return nil, "", "", false
 	}
@@ -269,6 +290,12 @@ func publicRouteAllowed(service, method, path string) bool {
 			return method == "GET" && validSegment(parts[2])
 		case len(parts) == 4 && parts[1] == "invoices" && parts[3] == "settlement":
 			return method == "GET" && validSegment(parts[2])
+		}
+	}
+	if service == "social" {
+		switch {
+		case len(parts) == 4 && parts[1] == "v1" && parts[2] == "wallet" && (parts[3] == "challenge" || parts[3] == "login"):
+			return method == http.MethodPost
 		}
 	}
 	return false
@@ -322,6 +349,83 @@ func protectedRouteAllowed(service, method, path string) bool {
 		}
 	case "pay":
 		return len(parts) == 4 && parts[1] == "invoices" && validSegment(parts[2]) && parts[3] == "settle" && method == "POST"
+	case "social":
+		if len(parts) < 3 || parts[1] != "v1" {
+			return false
+		}
+		parts = parts[2:]
+		switch {
+		case len(parts) == 1 && parts[0] == "profile" && (method == http.MethodGet || method == http.MethodPut):
+			return true
+		case len(parts) == 1 && parts[0] == "settings" && (method == http.MethodGet || method == http.MethodPut):
+			return true
+		case len(parts) == 1 && parts[0] == "invites" && method == http.MethodPost:
+			return true
+		case len(parts) == 1 && parts[0] == "contacts" && method == http.MethodGet:
+			return true
+		case len(parts) == 1 && parts[0] == "contact-matches" && method == http.MethodPost:
+			return true
+		case len(parts) == 1 && parts[0] == "conversations" && (method == http.MethodGet || method == http.MethodPost):
+			return true
+		case len(parts) == 2 && parts[0] == "conversations" && parts[1] == "groups" && method == http.MethodPost:
+			return true
+		case len(parts) == 2 && parts[0] == "conversations" && validSegment(parts[1]) && method == http.MethodGet:
+			return true
+		case len(parts) == 3 && parts[0] == "conversations" && validSegment(parts[1]) && parts[2] == "devices" && method == http.MethodGet:
+			return true
+		case len(parts) == 3 && parts[0] == "conversations" && validSegment(parts[1]) && parts[2] == "messages" && (method == http.MethodGet || method == http.MethodPost):
+			return true
+		case len(parts) == 5 && parts[0] == "conversations" && validSegment(parts[1]) && parts[2] == "messages" && validSegment(parts[3]) && (parts[4] == "delivered" || parts[4] == "read") && method == http.MethodPost:
+			return true
+		case len(parts) == 3 && parts[0] == "conversations" && validSegment(parts[1]) && parts[2] == "members" && method == http.MethodPost:
+			return true
+		case len(parts) == 1 && parts[0] == "feed" && (method == http.MethodGet || method == http.MethodPost):
+			return true
+		case len(parts) == 3 && parts[0] == "feed" && validSegment(parts[1]) && parts[2] == "comments" && (method == http.MethodGet || method == http.MethodPost):
+			return true
+		case len(parts) == 3 && parts[0] == "feed" && validSegment(parts[1]) && parts[2] == "reaction" && method == http.MethodPost:
+			return true
+		case len(parts) == 2 && parts[0] == "feed" && validSegment(parts[1]) && method == http.MethodDelete:
+			return true
+		case len(parts) == 1 && parts[0] == "follows" && method == http.MethodPost:
+			return true
+		case len(parts) == 1 && parts[0] == "reports" && (method == http.MethodPost):
+			return true
+		case len(parts) == 2 && parts[0] == "reports" && validSegment(parts[1]) && method == http.MethodGet:
+			return true
+		case len(parts) == 3 && parts[0] == "reports" && validSegment(parts[1]) && parts[2] == "appeal" && method == http.MethodPost:
+			return true
+		case len(parts) == 1 && parts[0] == "contact-requests" && (method == http.MethodGet || method == http.MethodPost):
+			return true
+		case len(parts) == 2 && parts[0] == "contact-requests" && validSegment(parts[1]) && method == http.MethodPost:
+			return true
+		case len(parts) == 2 && parts[0] == "contacts" && parts[1] == "delete" && method == http.MethodPost:
+			return true
+		case len(parts) == 2 && parts[0] == "privacy" && parts[1] == "delete" && method == http.MethodDelete:
+			return true
+		case len(parts) == 2 && parts[0] == "privacy" && ((parts[1] == "block" && method == http.MethodPost) || (parts[1] == "mute" && method == http.MethodPost)):
+			return true
+		case len(parts) == 2 && parts[0] == "privacy" && parts[1] == "export" && method == http.MethodGet:
+			return true
+		case len(parts) == 1 && parts[0] == "media" && method == http.MethodPost:
+			return true
+		case len(parts) == 2 && parts[0] == "media" && validSegment(parts[1]) && method == http.MethodGet:
+			return true
+		case len(parts) == 1 && parts[0] == "notifications" && method == http.MethodGet:
+			return true
+		case len(parts) == 3 && parts[0] == "notifications" && validSegment(parts[1]) && parts[2] == "read" && method == http.MethodPost:
+			return true
+		case len(parts) == 3 && parts[0] == "devices" && validSegment(parts[1]) && parts[2] == "rotate" && method == http.MethodPost:
+			return true
+		case len(parts) == 2 && parts[0] == "ai" && parts[1] == "jobs" && method == http.MethodPost:
+			return true
+		case len(parts) == 4 && parts[0] == "ai" && parts[1] == "jobs" && validSegment(parts[2]) && parts[3] == "stream" && method == http.MethodPost:
+			return true
+		case len(parts) == 3 && parts[0] == "ai" && parts[1] == "jobs" && validSegment(parts[2]) && method == http.MethodPost:
+			return true
+		case len(parts) == 2 && parts[0] == "session" && parts[1] == "revoke" && method == http.MethodPost:
+			return true
+		}
 	}
 	return false
 }

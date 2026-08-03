@@ -1,177 +1,56 @@
-# YNX Quant Lab Integration Handoff
+# YNX Resource Market integration handoff
 
-**Product:** 08 — YNX Quant Lab  
-**Owner:** `08-quant-lab`  
-**Contract:** `release/integration/ynx-quant-lab-contract.json`  
-**Runtime source:** `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`  
-**Evidence checkpoint:** `3bff013d86ed5682950a38b114884ce6f17c423d`
-**Owner candidate snapshot:** `apps/quant-lab/integration/owner-contract-snapshot.json`
-**State:** Owner proposal aligned to observed candidates; central acceptance and shared Testnet verification pending
-**Environment:** YNX Testnet only; live funds disabled
+## Identity
 
-## What Quant owns
+- Product owner: `16-resource-market`
+- Contract: `release/integration/resource-market-contract.json`
+- Contract version: `resource-market-integration-v1`
+- Implementation source: `a940d2efa824bd9f43522ed792c9a563b55e1e11`
+- Current phase: `FREEZE → INTEGRATE`
+- Current product status: local candidate; not centrally integrated, staged, public, production-signed or store-released.
 
-Quant owns strategy research, versioned datasets, deterministic backtests,
-walk-forward and sensitivity analysis, Paper and Shadow operation, independent
-risk enforcement, strategy lifecycle, bounded execution intent generation,
-PnL/fee attribution, restart/reconciliation, and the Quant-facing half of
-Exchange and DEX adapters.
+## Authority split
 
-Quant does **not** own Wallet identity or signing, Exchange matching or custody,
-DEX Vault contracts, Oracle price facts, Chain finality, Data Fabric canonical
-events, public Explorer facts, deployment authority, or production signing.
-Those capabilities must remain behind their owner contracts.
+Resource Market owns provider registration, verified capacity, offers, matching, auctions, reservation, service lifecycle, signed usage metering and local dispute evidence. It does not own Wallet identity, asset finality, billing-ledger authority, public Explorer proof, central monitoring, public Website entry or protocol freeze.
 
-## Current verified boundary
+A quote, accepted intent, reservation, service start, meter, service completion, HTTP success or provider statement is never asset settlement. Reservations are bound to the exact Offer referenced by the accepted Quote; capacity from a sibling Offer cannot satisfy or release that reservation. Settlement is accepted only when an authorized settlement identity supplies a non-empty asset, transaction hash, evidence and source; amounts exactly reconcile to signed meters; the order is `settlement_pending`; and the normalized transaction hash has not already been consumed by another receipt.
 
-The local release gate passes Go tests and vet, browser/UI checks, twelve locale
-catalog parity, Arabic RTL and 390 px overflow checks, Python and TypeScript SDK
-tests, archive safety checks, Compose/Kubernetes syntax gates, reproducible
-macOS/Windows candidate builds, release-record truth checks, and macOS install
-and cold-start verification.
+## Canonical integration inputs
 
-The Quant runtime implements concrete owner-transport Exchange and DEX adapter
-constructors. A remote execution is completed only when a fresh terminal receipt
-binds the exact adapter, request ID, sequence, requested amount, status, source,
-version, coverage, confidence and audit ID. Nonterminal, stale, future,
-malformed or mismatched responses remain `reserved_outcome_unknown`; retry does
-not call the venue again. Reconciliation requires an exact authoritative delta,
-and any nonzero delta must activate the persistent Quant kill switch.
+- Wallet registry: `apps/resource-market/integration/canonical-wallet-registry.json`
+- Wallet vectors: `apps/resource-market/integration/canonical-wallet-v1-test-vector.json`
+- Existing central manifest: `apps/resource-market/integration/central-integration-manifest.json`
+- Frozen product contract: `release/integration/resource-market-contract.json`
+- Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 
-This is a tested integration boundary, **not** evidence of a real Exchange or
-DEX Testnet trade.
+## Required central behavior
 
-## Required owner inputs
+1. Product 02 registers the exact client, bundle, callback, ordered scopes and P-256 product-device algorithm.
+2. Product 29 freezes the exact method/path/body product-session proof semantics and one-to-one proxy route mapping.
+3. Product 01 provides authoritative transaction finality and settlement evidence; product 16 does not infer finality.
+4. Product 26 accepts only signed-meter and confirmed-settlement events, preserving idempotency and lineage.
+5. Product 12 exposes public receipt evidence only after authoritative settlement.
+6. Product 13 alerts on stale providers, metering failures, settlement reconciliation failure and receipt replay rejection.
+7. Product 15 links provider failure and dispute/appeal evidence without gaining asset authority.
+8. Product 28 publishes only release states that have direct evidence.
 
-### 02 — Wallet/Auth
+## Stable errors
 
-A reachable owner candidate now exists at Wallet contract source
-`61df5559c647d880cc1d435bece9d89ff66a07e1`, observed on branch HEAD
-`a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f`. It is not exact-HEAD-bound or
-centrally accepted. Freeze and enable the canonical Product Session flow for:
+The product returns a stable `code` with `errorId`, `requestId` and `traceId`. Settlement integrations must preserve at least:
 
-- Wallet product `quant`
-- product client `ynx-quant-v1`
-- bundle `com.ynxweb4.quant`
-- callback `ynxquant://wallet-auth/callback`
-- P-256 device challenge
-- ordered scopes `quant:account`, `quant:mandate:create`,
-  `quant:mandate:execute`, `quant:mandate:revoke`
-- Product Session v1 and HTTP proof v1
-- StrategyMandate v2 and StrategyAction v1 authorization, expiry, revoke, kill
-  and emergency-exit propagation
-- wrong-product, wrong-bundle, wrong-device, callback replacement, scope
-  widening/reordering, unknown-field, future-time and replay rejection
+- `RESOURCE_SELF_DEALING_REJECTED`
+- `RESOURCE_AMOUNT_OUT_OF_RANGE`
+- `RESOURCE_CAPACITY_UNAVAILABLE`
+- `RESOURCE_METER_WINDOW_INVALID`
+- `RESOURCE_METER_LIMIT`
+- `RESOURCE_SETTLEMENT_STATE_INVALID`
+- `RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED`
+- `RESOURCE_SETTLEMENT_RECONCILIATION`
+- `RESOURCE_SETTLEMENT_REPLAY`
 
-The owner candidate registration remains `pending-review` and disabled. The
-shared StrategyMandate vector and its digests are source evidence only; they
-have not been executed against Quant in the shared Testnet.
+No consumer may translate these failures into success, paid, settled or refunded.
 
-Quant must receive only an attestation and bounded mandate facts. It must never
-receive a private key, Seed, withdrawal credential or owner-change authority.
+## Acceptance gate
 
-### 07 — Exchange
-
-Provide a no-withdraw, subaccount-only transport that implements the operations
-in the contract:
-
-- execute one bounded order intent
-- return a terminal `filled`, `rejected` or `cancelled` receipt
-- expose authoritative cash/position reconciliation
-- preserve request ID, sequence and audit correlation
-- reject withdrawal, owner change, withdrawal-address change, credential export
-  and risk widening
-
-Accepted/open/partial responses are not terminal enough for Quant completion.
-
-### 27 — DEX
-
-Provide a user-owned Strategy Vault transport with a limited session key:
-
-- only accepted Vault, pool/router and method set
-- bounded Swap, DCA/TWAP, LP and rebalance operations
-- terminal transaction/action receipt
-- authoritative Vault reconciliation
-- revoke and owner-authorized emergency exit
-- no arbitrary transfer, owner change or unlimited approval
-
-### 19 — Oracle & Market Data
-
-Provide accepted versioned historical and live feeds with `source`, `asOf`,
-`version`, `coverage`, `confidence`, stale/failure state and correction lineage.
-Quant rejects missing-source, future, stale, nonpositive, insufficient-coverage
-or unavailable observations.
-
-### 26 — Data Fabric & Billing Ledger
-
-Accept exactly one canonical schema/version mapping for Quant research,
-lifecycle, mandate, execution, risk, PnL/fee, revoke and recovery facts. Local
-audit event names are not yet central canonical events. Billing must reconcile
-against real venue fees, funding, gas, compute and data usage rather than
-front-end or manager assertions.
-
-### 01 / 12 / 13 / 15 / 24 / 29 / 30
-
-- Chain Core: Testnet finality, Faucet, transaction and receipt facts
-- Explorer: public-safe transaction, order/fill, mandate/risk and release proof
-- Monitor: risk, kill switch, reconciliation, pending-unknown and incident flow
-- Trust: mandate-overreach and incorrect fee/PnL evidence and appeal path
-- Finance: read-only user strategy and PnL view
-- Integration: freeze one protocol version and run shared Testnet vectors
-- Security/SRE/Release: deployed backup, scan, artifact and public release gates
-
-## Required execution sequence
-
-1. Freeze Wallet registry/session and StrategyMandate schemas.
-2. Freeze Oracle observation and correction semantics.
-3. Freeze Exchange and DEX terminal receipt and reconciliation schemas.
-4. Freeze Data Fabric event and Billing Ledger mapping.
-5. Run negative vectors before enabling any shared Testnet mutation.
-6. Run bounded Exchange Testnet flow and retain raw evidence.
-7. Run bounded DEX Vault Testnet flow and retain raw evidence.
-8. Run risk breach, revoke, restart, reconciliation and recovery vectors.
-9. Correlate Explorer, Monitor, Finance, Trust and Data Fabric facts.
-10. Only then proceed to public deployment and immutable hosted artifacts.
-
-## Open conflicts and migration
-
-### Local preview versus canonical Wallet
-
-Current local mutation routes require loopback and
-`X-YNX-Preview-Mode: local-paper`. They are suitable only for research/Paper
-preview. Migration must keep this local boundary while adding canonical Gateway
-Product Session introspection for integrated access. Local mandate registration
-must not be promoted; shared Testnet execution requires Wallet attestation.
-
-### Local audit events versus canonical Data Fabric events
-
-Current local append-only event names are evidence sources, not a second central
-event protocol. Map them to one accepted Data Fabric schema through Integration.
-After freeze, reject unsupported versions rather than silently supporting two
-long-lived canonical forms.
-
-## Release truth
-
-Current release state:
-
-- `implementedLocal`: true
-- `testedLocal`: true
-- `installedLocal`: true for the macOS local candidate
-- `integratedCentral`: false
-- `deployedStaging`: false
-- `deployedPublic`: false
-- `downloadHosted`: false
-- `productionSigned`: false
-- `storeReleased`: false
-
-No HTTP response, local test, Paper fill, injected transport, Simulator,
-cross-compile or ad-hoc signature may promote a later state without direct
-evidence.
-
-## Evidence required for acceptance
-
-Use `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`. Each accepted vector must
-retain source commits, raw request/response or event records, timestamps,
-transaction/order/fill/Vault references where applicable, Explorer and Monitor
-correlation, state/balance snapshots, and exact failure evidence for negative
-cases. A narrative summary alone is not acceptance.
+Central integration remains false until every applicable dependency row in `DEPENDENCY_ACCEPTANCE.md` has direct evidence and the vectors in `CROSS_PRODUCT_TEST_VECTORS.json` pass against deployed Testnet services. Local tests are not public or central proof.

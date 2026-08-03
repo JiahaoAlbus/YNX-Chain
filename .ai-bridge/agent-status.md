@@ -1,36 +1,25 @@
-# YNX Quant Lab Agent Status
+# Agent status
 
-- Product: 08 — YNX Quant Lab
-- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/08-quant-lab`
-- Branch: `codex/final-quant-lab`
-- Stage: INTEGRATE
-- Goal: Active
-- Last fully verified source checkpoint: `3bff013d86ed5682950a38b114884ce6f17c423d`
-- Agent Memory: `docs/agent-memory/RECOVERY_CHECKPOINT.json`
+- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market`
+- Branch: `codex/final-resource-market`
+- Stage: `INTEGRATE`
+- Goal status: `ACTIVE`
+- Tested source: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Tested source remote status: pushed and verified equal on `origin/codex/final-resource-market`
+- Evidence synchronization timestamp: `2026-07-29T02:54:25Z`
+- Pull request: `#12` open and mergeable
 
-## Verified local state
+## Verified gates for the tested source
 
-- Exact worktree, branch and `JiahaoAlbus/YNX-Chain` remote identity verified.
-- Local and remote branch matched at the source checkpoint.
-- Committed full Quant release Preflight passed on 2026-07-29.
-- MacOS and Windows archives reproduced twice with Go 1.25.7 on Darwin arm64.
-- MacOS archive strict ad-hoc signature and fresh packaged cold start passed with exact version commit, ready health, live funds disabled, build/risk metrics, frontend identity and clean shutdown.
-- Linux arm64 five-service Compose runtime, non-root/read-only/capability boundaries, restart, backup and isolated restore evidence remains valid at artifact source `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`.
-- Exchange and DEX adapters remain fail closed; no live-funds capability is enabled.
+- `go test -count=1 ./...`
+- `go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct`
+- `go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market`
+- `bash apps/resource-market/check.sh`
+- Resource Market Candidate Gates `30417957999`: success
+- General CI `30417957996`: success
+- Docs compliance `30417958003`: success
+- Resource Market iOS Simulator build in `30417957987`: success
 
-## Truthful incomplete state
+## Current truth
 
-- `integratedCentral=false`
-- `deployedStaging=false`
-- `deployedPublic=false`
-- `downloadHosted=false`
-- `productionSigned=false`
-- `storeReleased=false`
-- No current product-branch CI run, PR or Quant GitHub Release exists.
-- Container evidence is local Linux arm64 only; no registry manifest digest, signature, immutable hosting, external vulnerability scan or Linux amd64 runtime evidence exists.
-- Windows candidate has not been launched, installed or uninstalled on a Windows host.
-- No real Exchange order/fill, DEX Vault action, Wallet attestation, shared Testnet receipt or public endpoint is claimed.
-
-## Immediate action
-
-Inspect explicit versioned owner artifacts on the current remote branches for products 02, 07, 19, 26, 27 and 29. Update only Quant-owned integration contracts, dependency acceptance and vectors supported by direct source evidence; keep unresolved versions pending and fail closed.
+The product remains a tested local candidate. It is not yet merged to main, centrally integrated, authoritative-settlement verified, staged, public, download-hosted, production-signed, store-released, or professionally approved. Public settlement, two independent public providers and real Cloud/AI/Developer/Quant consumption remain unproven.

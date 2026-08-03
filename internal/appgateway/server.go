@@ -76,8 +76,13 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	}
 	upstreams := map[string]upstreamHealth{}
 	ok := true
-	for _, service := range []string{"chat", "square", "pay"} {
+	for _, service := range []string{"chat", "square", "pay", "social"} {
 		base, _, _, _ := s.gateway.upstream(service)
+		if base == nil {
+			ok = false
+			upstreams[service] = upstreamHealth{OK: false, Service: service, TruthfulStatus: "upstream-unavailable"}
+			continue
+		}
 		request, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, base.String()+"/health", nil)
 		response, err := s.client.Do(request)
 		if err != nil {
@@ -186,7 +191,11 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	base, key, keyHeader, _ := s.gateway.upstream(service)
+	base, key, keyHeader, ok := s.gateway.upstream(service)
+	if !ok || base == nil {
+		writeError(w, http.StatusServiceUnavailable, "target service route is unavailable")
+		return
+	}
 	upstreamURL := *base
 	upstreamURL.Path = upstreamPath
 	upstreamURL.RawPath = ""
@@ -320,7 +329,7 @@ func resolveAppPath(escapedPath string) (string, string, bool) {
 		return "", "", false
 	}
 	pieces := strings.SplitN(strings.TrimPrefix(escapedPath, "/app/"), "/", 2)
-	if len(pieces) != 2 || (pieces[0] != "chat" && pieces[0] != "square" && pieces[0] != "pay") {
+	if len(pieces) != 2 || (pieces[0] != "chat" && pieces[0] != "square" && pieces[0] != "pay" && pieces[0] != "social") {
 		return "", "", false
 	}
 	return pieces[0], "/" + pieces[0] + "/" + pieces[1], true

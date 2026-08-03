@@ -1,110 +1,75 @@
-# YNX 08 Quant Lab — Current State
+# YNX Resource Market — Current State
 
-Updated: 2026-07-29T02:45:09Z
+- Product: `16` — YNX Resource Market
+- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market`
+- Branch: `codex/final-resource-market`
+- Verified candidate source SHA: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Remote candidate SHA: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Main SHA used for synchronization: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
+- Ahead / Behind against upstream at candidate verification: `0 / 0`
+- Dirty state at candidate verification: clean
+- Phase: `INTEGRATE`
+- Product status: local candidate; not a public, production-signed, or authoritative-settlement release
+- Updated: `2026-07-29T02:54:25Z`
 
-## Identity
+## Latest successful tests
 
-- Product: `08 — YNX Quant Lab`
-- Owner boundary: ecosystem Quant Engine; Exchange, DEX, Wallet/Auth, Oracle, Data Fabric, Website and central Integration remain owned by their designated products.
-- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/08-quant-lab`
-- Branch: `codex/final-quant-lab`
-- Repository: `https://github.com/JiahaoAlbus/YNX-Chain`
-- Verified source checkpoint: `3bff013d86ed5682950a38b114884ce6f17c423d`
-- Remote branch checkpoint: `3bff013d86ed5682950a38b114884ce6f17c423d`
-- `origin/main`: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
-- Divergence from `origin/main`: 78 commits behind, 38 commits ahead.
-- Dirty state at checkpoint: clean.
+- `go test -count=1 ./...`
+- `go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct`
+- `go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market`
+- `bash apps/resource-market/check.sh`
+- `bash scripts/validate/no-placeholder-check.sh`
+- `npm audit --audit-level=high` in `apps/resource-market`
+- `npm run test:ui` in `apps/resource-market`
+- `npm sbom --sbom-format spdx` in `apps/resource-market`
 
-The SHA above is the last fully verified source checkpoint before this Agent Memory record is committed. Resolve the commit containing this record with `git log -1 --format=%H -- docs/agent-memory/RECOVERY_CHECKPOINT.json`.
+## GitHub
 
-## Current phase
+- Pull request: `#12` — open and mergeable
+- Resource Market Candidate Gates run: `30417957999` — success against `d683c7d28ce129daad358c84680e5980cf8ad069`
+- General CI run: `30417957996` — success
+- Docs compliance run: `30417958003` — success
+- Resource Market iOS Simulator build: run `30417957987` — success
+- Governance check run `30417957971` was still in progress at this checkpoint and is not counted as successful evidence.
+- Resource Market release: none published
 
-`INTEGRATE` — local product, desktop, SDK, API, risk, persistence, capacity and container candidate gates have evidence; central contracts, real shared Testnet execution, public deployment and production release gates remain incomplete.
+## Verified completed locally
 
-## Latest successful verification
+- Distinct quote, intent, reservation, execution, metering, settlement, failure, refund and dispute state handling
+- Exact offer-scoped capacity reservations and release integrity
+- Provider self-dealing rejection
+- Checked non-negative signed-64-bit amount arithmetic with fail-before-mutation overflow handling
+- Bounded one-to-one failed-order retry lineage with migration coverage
+- Stable failure/error semantics and cross-product negative vectors
+- Twelve-locale browser boundary, Arabic RTL, responsive and accessibility contracts
+- Android debug install/cold-start evidence
+- iOS Simulator build evidence
+- Portable Linux/macOS DAST smoke harness
+- Candidate binary build metadata, SHA-256 generation, Go dependency inventory and SPDX npm SBOM generation in CI
 
-`apps/quant-lab/scripts/verify-release.sh` passed on committed checkpoint `3bff013d86ed5682950a38b114884ce6f17c423d` on 2026-07-29. It covered:
+## Not completed or not proven
 
-- Quant Go tests and `go vet`;
-- UI catalogue, twelve-locale and browser/mobile/RTL tests;
-- TypeScript and Python SDK tests;
-- integration package validation;
-- archive structural and credential safety checks;
-- Docker Compose configuration and Kubernetes YAML parsing;
-- two-run macOS/Windows archive reproducibility in the recorded Go 1.25.7 Darwin arm64 toolchain;
-- strict ad-hoc macOS signature verification;
-- fresh packaged macOS cold start with exact source commit, ready health, live funds disabled, build/risk metrics, frontend identity and clean port release.
+- Central Wallet/Auth and Gateway acceptance
+- Authoritative Chain and Data Fabric settlement
+- Explorer, Monitor and Trust central integration
+- Two independently operated public Testnet providers
+- Real funded Testnet workload, failure, retry, refund and authoritative receipt sequence
+- Public deployment, DNS, health and version endpoints
+- `https://ynxweb4.com/resource-market` deployment and indexability evidence
+- Immutable hosted download, production signing, store release, legal review and external security review
 
-Container runtime/restart/restore evidence remains bound to source commit `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e` and local Linux arm64 image ID `sha256:70e32c90601dc50c4770d04d40bd684a8bde52848e969afb9e8ddfbbaceb3f35`.
+## Current risk
 
-## GitHub state
+The local candidate is strongly tested, but central and public claims must remain false until authoritative deployed evidence exists. PR `#12` must not be described as merged until GitHub records the merge.
 
-- Pull request for `codex/final-quant-lab`: none.
-- GitHub Actions for current checkpoint: none. Repository CI currently triggers on `main` push or pull requests to `main`, not direct pushes to this product branch.
-- Quant-specific GitHub Release: none.
-- Hosted immutable Quant artifacts: none.
-- SBOM: local `apps/quant-lab/SBOM.cdx.json`; no published release attachment or provenance claim.
+## Evidence
 
-## Candidate artifacts
-
-- macOS arm64 ZIP: 7,377,983 bytes; SHA-256 `7df2bb3fd2f59ef3594a770004866feb8dff3495c3836bfeadec03d98dae2739`; ad-hoc test signing; fresh cold start verified; unhosted.
-- Windows x64 ZIP: 8,094,598 bytes; SHA-256 `4cdacd903aee1ab7aeafc9943258f42cf8522b19a8eda3e4f618b963c0a2f392`; unsigned cross-compile; not run on Windows; unhosted.
-- Linux arm64 OCI candidate: local image only; unsigned, unhosted, no registry manifest digest and no external vulnerability scan.
-
-## Public state
-
-- `integratedCentral=false`
-- `deployedStaging=false`
-- `deployedPublic=false`
-- `downloadHosted=false`
-- `productionSigned=false`
-- `storeReleased=false`
-- Canonical target: `https://quant.ynxweb4.com`
-- Verified public route: none.
-
-No local, candidate, handoff or HTTP metadata is represented as a public deployment.
-
-## Completed locally
-
-- deterministic research/backtest and strategy lifecycle;
-- paper and shadow execution boundaries;
-- fail-closed Exchange and DEX receipt adapters;
-- independent risk controls and persistent kill switch;
-- local audit, recovery and persistence tests;
-- REST/WebSocket, CLI, Python SDK and TypeScript SDK;
-- twelve locales, Arabic RTL, responsive browser evidence;
-- measured local API/backtest/worker capacity evidence;
-- reproducible desktop candidates and repeatable macOS cold-start gate;
-- local Linux arm64 Compose runtime/restart/restore evidence;
-- Quant integration contract, test vectors and dependency-acceptance package.
-
-## Remaining
-
-- consume accepted Wallet/Auth, Exchange, DEX, Oracle and Data Fabric owner contracts and central freeze;
-- execute real bounded Exchange and DEX shared-Testnet vectors with authoritative receipts, revoke, risk, restart and reconciliation evidence;
-- correlate canonical events with Explorer, Monitor, Finance, Trust and Data Fabric;
-- run Windows installation/cold-start/uninstall/security evidence;
-- run Linux amd64 container runtime evidence, registry publication, signature and external scan;
-- run deployed migration/restore/RTO/RPO and accessibility audits;
-- create PR and obtain CI for the final candidate SHA;
-- publish approved release, immutable downloads, SBOM/provenance and website handoff;
-- verify the real `ynxweb4.com` Quant route and public health/version evidence.
-
-## Current risks
-
-- A product-branch-only push does not produce CI under the current workflow trigger.
-- Local artifact reproducibility is toolchain-bound; source commit alone is insufficient release provenance.
-- Owner contracts and shared Testnet facts are not frozen in this branch; live mutation remains fail-closed.
-- Production signing, registry credentials and public deployment require authorized operator paths and must not be simulated.
-
-## Evidence index
-
-- `apps/quant-lab/EVIDENCE_INDEX.md`
-- `apps/quant-lab/FEATURE_COMPLETION_EVIDENCE.md`
-- `apps/quant-lab/product-release.json`
-- `apps/quant-lab/security-verification.json`
-- `apps/quant-lab/container-verification.json`
-- `apps/quant-lab/evidence/`
+- `apps/resource-market/product-release.json`
+- `apps/resource-market/public-product-metadata.json`
+- `apps/resource-market/operator-inputs.request.json`
+- `apps/resource-market/FEATURE_COMPLETION_EVIDENCE.md`
+- `apps/resource-market/EVIDENCE_INDEX.md`
 - `.ai-bridge/full-goal-coverage.json`
-- `docs/integration/`
-- `release/integration/ynx-quant-lab-contract.json`
+- `docs/integration/INTEGRATION_HANDOFF.md`
+- `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`

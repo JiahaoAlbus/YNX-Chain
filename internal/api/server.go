@@ -69,6 +69,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /", s.handleEVM)
 	s.mux.HandleFunc("GET /blocks/latest", s.handleLatestBlock)
 	s.mux.HandleFunc("GET /blocks/{height}", s.handleBlockByHeight)
+	s.mux.HandleFunc("GET /accounts", s.handleAccounts)
 	s.mux.HandleFunc("GET /accounts/{address}", s.handleAccount)
 	s.mux.HandleFunc("GET /validators", s.handleValidators)
 	s.mux.HandleFunc("GET /validators/peers", s.handleValidatorPeers)
@@ -146,6 +147,25 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
 	s.mux.HandleFunc("GET /monitoring/health", s.handleMonitoring)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
+}
+
+func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
+	limit := 25
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid limit")
+			return
+		}
+		limit = parsed
+	}
+	accounts, total := s.devnet.AccountsByBalance(limit)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"accounts":       accounts,
+		"total":          total,
+		"ranking":        "liquid-ynxt-balance-descending",
+		"truthfulStatus": "authoritative-public-ledger-account-ranking",
+	})
 }
 
 func (s *Server) aiRoute(pattern string, handler http.HandlerFunc) {
@@ -1169,6 +1189,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	cfg := s.devnet.Config()
 	summary := s.devnet.ExplorerSummary()
 	resourceAnalytics := s.devnet.ResourceAnalytics()
+	replication := s.devnet.NodeIdentity().Replication
 	labels := fmt.Sprintf(`network="%s",chain_id="%d",native_symbol="%s"`, prometheusLabel(cfg.Slug), cfg.ChainID, prometheusLabel(cfg.NativeCurrencySymbol))
 	persistenceError := 0
 	if summary.PersistenceError != "" {
@@ -1202,6 +1223,43 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprint(w, "# HELP ynx_chain_persistence_error Whether the node reports a persistence error.\n")
 	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_persistence_error gauge\n")
 	_, _ = fmt.Fprintf(w, "ynx_chain_persistence_error{%s} %d\n", labels, persistenceError)
+	replicationConfigured := boolMetric(replication.Configured)
+	replicationCatchingUp := boolMetric(replication.CatchingUp)
+	replicationFresh := boolMetric(replication.Fresh)
+	lastSuccessTimestamp := int64(0)
+	if replication.LastSuccessAt != nil {
+		lastSuccessTimestamp = replication.LastSuccessAt.Unix()
+	}
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_replication_configured Whether authoritative follower replication is configured on this node.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_replication_configured gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_replication_configured{%s} %d\n", labels, replicationConfigured)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_replication_status_info Current bounded authoritative replication lifecycle state.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_replication_status_info gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_replication_status_info{%s,status=\"%s\"} 1\n", labels, prometheusLabel(replication.Status))
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_replication_catching_up Whether this follower is awaiting fresh exact source convergence.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_replication_catching_up gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_replication_catching_up{%s} %d\n", labels, replicationCatchingUp)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_replication_fresh Whether the latest authenticated replication success is fresh.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_replication_fresh gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_replication_fresh{%s} %d\n", labels, replicationFresh)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_replication_lag_blocks Authenticated source height minus local follower height.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_replication_lag_blocks gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_replication_lag_blocks{%s} %d\n", labels, replication.LagBlocks)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_replication_attempts_total Replication attempts since process start.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_replication_attempts_total counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_replication_attempts_total{%s} %d\n", labels, replication.Attempts)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_replication_successes_total Successful authenticated replication applications since process start.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_replication_successes_total counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_replication_successes_total{%s} %d\n", labels, replication.Successes)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_replication_failures_total Failed replication attempts since process start.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_replication_failures_total counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_replication_failures_total{%s} %d\n", labels, replication.Failures)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_replication_consecutive_failures Current consecutive replication failure count.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_replication_consecutive_failures gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_replication_consecutive_failures{%s} %d\n", labels, replication.ConsecutiveFailures)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_replication_last_success_timestamp_seconds Unix time of the latest authenticated replication success, or zero before success.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_replication_last_success_timestamp_seconds gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_replication_last_success_timestamp_seconds{%s} %d\n", labels, lastSuccessTimestamp)
 	_, _ = fmt.Fprint(w, "# HELP ynx_resource_delegated_ynxt Total YNXT delegated into resource capacity.\n")
 	_, _ = fmt.Fprint(w, "# TYPE ynx_resource_delegated_ynxt gauge\n")
 	_, _ = fmt.Fprintf(w, "ynx_resource_delegated_ynxt{%s} %d\n", labels, resourceAnalytics.DelegatedYNXT)
@@ -1770,6 +1828,13 @@ func prometheusLabel(value string) string {
 	value = strings.ReplaceAll(value, "\r", "")
 	value = strings.ReplaceAll(value, `"`, `\"`)
 	return value
+}
+
+func boolMetric(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }
 
 func int64Query(r *http.Request, key string) (int64, error) {

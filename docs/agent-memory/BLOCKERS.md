@@ -1,53 +1,41 @@
-# Blockers and Dependency Gates
+# Blockers
 
-Updated: 2026-07-29T02:45:09Z
+## RM-BLOCK-001 — Central integration acceptance
 
-The product is not classified as `EXTERNAL BLOCKED`; autonomous integration, evidence and packaging work remains. The gates below must remain truthful and fail closed.
+- Owner: Products `02`, `01`, `26`, `12`, `13`, `15`, coordinated by Product `29`
+- Reason: Resource Market cannot authoritatively own Wallet/Auth, Chain settlement, Billing Ledger, Explorer, Monitor, or Trust services.
+- Evidence: `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/DEPENDENCY_ACCEPTANCE.md`, `release/integration/resource-market-contract.json`
+- Prepared: frozen contract, schemas, adapters, negative vectors, fail-closed local implementation and passing CI
+- Minimum external input: central acceptance/merge target and deployed Testnet endpoints tied to an approved source SHA
+- Recovery condition: central routes are deployed and the supplied vectors can be executed
+- First action after recovery: run the central contract and replay/overflow/failure vectors against deployed services
 
-## Q08-DEP-001 — Central contract freeze
+## RM-BLOCK-002 — Independent Testnet providers and funded settlement
 
-- Owner: 02 Wallet/Auth, 07 Exchange, 19 Oracle/Market Data, 26 Data Fabric, 27 DEX and 29 Integration.
-- State: dependency pending.
-- Evidence: `docs/integration/DEPENDENCY_ACCEPTANCE.md` and `.ai-bridge/open-questions.md`.
-- Missing facts: accepted versioned Product Session/StrategyMandate, terminal receipt/reconciliation, market-data correction/freshness, event/Billing Ledger mapping and shared Testnet environment contracts.
-- Quant preparation complete: local fail-closed adapters, integration contract, schemas and negative vectors exist.
-- Resume condition: source-addressable owner artifacts or a central accepted manifest explicitly naming the contract versions.
-- First action after resolution: bind the accepted versions in Quant-owned integration files and run negative plus bounded Testnet vectors.
+- Owner: Resource provider operators and Testnet asset/custody owner
+- Reason: local fixtures cannot prove independent provider operation or authoritative asset settlement.
+- Evidence: `apps/resource-market/operator-inputs.request.json`
+- Prepared: provider lifecycle, matching, capacity, metering, failure, retry, refund, bond and appeal paths are locally tested
+- Minimum external input: two approved independent provider endpoints/identities, approved secret-manager references, and a funded bounded Testnet account/signer path
+- Recovery condition: providers and settlement path pass health, identity and source-SHA checks
+- First action after recovery: execute the complete success and failure/recovery sequence and persist receipts
 
-## Q08-DEP-002 — Shared Testnet execution evidence
+## RM-BLOCK-003 — Public deployment and website closure
 
-- Owner: 01 Chain, 02 Wallet/Auth, 07 Exchange, 19 Oracle, 26 Data Fabric, 27 DEX and 29 Integration.
-- State: dependency pending.
-- Missing evidence: real faucet/account path, StrategyMandate receipt, Exchange order/fill, DEX vault action, risk breach, revoke, emergency exit, restart and exact reconciliation correlated across products.
-- Quant preparation complete: deterministic local adapters and receipt-binding/replay/reconciliation tests.
-- Resume condition: accepted shared Testnet manifest, endpoints, accounts and evidence store.
-- First action after resolution: execute the approved no-withdraw Exchange vector, then the bounded DEX Vault vector.
+- Owner: Product `28` Website and deployment/DNS owner
+- Reason: Product `16` must not directly modify the Website worktree or claim a generated handoff is deployed.
+- Evidence: `apps/resource-market/public-product-metadata.json`, `apps/resource-market/product-release.json`
+- Prepared: canonical route `/resource-market`, public metadata, risk text and FAQ contract
+- Minimum external input: accepted Website handoff, deployed HTTPS service origin, DNS/public route ownership and remote health/version endpoints
+- Recovery condition: `https://ynxweb4.com/resource-market` serves the approved content and remote indexability checks pass
+- First action after recovery: run content, canonical, robots, sitemap, Open Graph, JSON-LD and remote smoke verification
 
-## Q08-ENV-001 — Windows execution host
+## RM-BLOCK-004 — Production signing and professional review
 
-- Owner: authorized release operator or CI/SRE owner.
-- State: environment unavailable.
-- Evidence: Windows x64 archive is reproducibly cross-compiled but `installedLocal=false` and `coldStartVerified=false` in `apps/quant-lab/product-release.json`.
-- Preparation complete: archive, hash, scanner and packaged supervisor are present.
-- Why not locally resolvable: the current host is macOS arm64 and must not fabricate Windows execution evidence.
-- Minimum input: a trusted Windows x64 runner or host capable of launch, installation, uninstall and security checks.
-- First action after resolution: verify hash, signature class, clean install, cold start, health/version/frontend, shutdown, uninstall and residual files.
-
-## Q08-ENV-002 — Linux amd64 container and external scan
-
-- Owner: 30 Security/SRE/Release and authorized registry operator.
-- State: environment and release path unavailable.
-- Evidence: local Linux arm64 image runtime/restart/restore passed; no Linux amd64 runtime, registry digest, signature, immutable hosting or external vulnerability scan exists.
-- Preparation complete: pinned Dockerfile, Compose gate, local runtime evidence and SBOM.
-- Minimum input: Linux amd64 runner, approved registry path and external scanner/signing workflow.
-- First action after resolution: build from the exact source commit, run the same recovery gate, publish by digest, sign and scan.
-
-## Q08-REL-001 — Production signing and public release
-
-- Owner: Founder/authorized release operator, 28 Website and 30 Security/SRE/Release.
-- State: external authorization required after autonomous gates.
-- Evidence: macOS is ad-hoc test signed; Windows is unsigned; no hosted download, GitHub Quant Release, public deployment or verified `ynxweb4.com` Quant route exists.
-- Preparation complete: local candidates, hashes, release metadata and canonical website target.
-- Why not autonomously resolvable: production certificates, notarization, registry, Vercel/public deployment and irreversible release authority must not be exposed or simulated.
-- Minimum input: minimum-privilege signing, hosting and deployment workflows after central/Testnet approval.
-- First action after resolution: build approved artifacts from the frozen release commit, sign/notarize, attach SBOM/provenance, publish immutable downloads and verify public routes.
+- Owner: Product `30`, custody/signing owner, legal/security reviewers
+- Reason: production keys, irreversible signing authority, store accounts and professional approvals are external controlled inputs.
+- Evidence: `apps/resource-market/operator-inputs.request.json`
+- Prepared: unsigned candidate build, hashes, SBOM path, notices, threat model and review packet
+- Minimum external input: approved secure signer references, public certificate chain, named legal/security reviewers and artifact-host approval
+- Recovery condition: signed artifacts and review records bind the exact candidate source and digest
+- First action after recovery: verify signatures, provenance, review scope and immutable hosted bytes before changing release states

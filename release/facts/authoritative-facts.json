@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/authoritative-facts.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Candidate",
+  "records": {
+    "brand": "release/facts/brand.json",
+    "network": "release/facts/network.json",
+    "release": "release/facts/release-status.json",
+    "economics": "release/facts/economics.json",
+    "compliance": "release/facts/compliance.json",
+    "publicUrls": "release/facts/public-urls.json",
+    "evidence": "release/facts/evidence.json",
+    "claims": "release/facts/claims.json",
+    "glossary": "release/facts/glossary.json",
+    "faq": "release/facts/faq.json",
+    "localization": "release/facts/localization.json",
+    "supersededFacts": "release/facts/superseded-facts.json"
+  }
+}

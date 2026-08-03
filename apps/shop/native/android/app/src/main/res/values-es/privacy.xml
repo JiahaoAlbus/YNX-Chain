@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">Tus datos de Shop</string>
+    <string name="privacy_data_description">Exporta tu perfil, carrito, pedidos, registros de IA y auditoría del comprador. La eliminación borra perfil, direcciones, carrito y registros de IA, y seudonimiza los pedidos terminales. Las direcciones de liquidación y la evidencia de transacciones en la cadena pública siguen siendo verificables.</string>
+    <string name="privacy_export_button">Exportar datos de Shop</string>
+    <string name="privacy_export_ready">La exportación de datos de Shop está lista.</string>
+    <string name="privacy_export_unavailable">La exportación de datos de Shop no está disponible.</string>
+    <string name="privacy_share_label">Guardar JSON de datos de Shop</string>
+    <string name="privacy_delete_button">Eliminar datos personales de Shop</string>
+    <string name="privacy_delete_warning">Los procesos activos de pago, preparación, devolución, reembolso o disputa deben alcanzar un estado terminal antes de eliminar. Los pedidos finalizados se seudonimizan; se conserva la evidencia autorizada de liquidación en cadena pública.</string>
+    <string name="privacy_delete_action">Eliminar</string>
+    <string name="privacy_exact_required">Escribe exactamente la frase de confirmación de eliminación.</string>
+    <string name="privacy_deleted">Se eliminaron tus datos personales de Shop. Los pedidos terminales se seudonimizaron y se conserva la evidencia de liquidación en cadena pública.</string>
+    <string name="privacy_delete_failed">No se completó la eliminación. Puede que aún deban resolverse procesos activos.</string>
+</resources>

@@ -7,12 +7,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -47,6 +49,15 @@ func TestRESTAcceptsYNXAliasesAndPersistsCanonicalAccounts(t *testing.T) {
 	doJSON(t, http.MethodGet, server.URL+"/accounts/"+recipientAlias, nil, http.StatusOK, &account)
 	if account["account"].(map[string]any)["address"] != recipient {
 		t.Fatalf("account lookup did not resolve YNX alias: %v", account)
+	}
+	var ranking struct {
+		Accounts       []chain.Account `json:"accounts"`
+		Total          int             `json:"total"`
+		TruthfulStatus string          `json:"truthfulStatus"`
+	}
+	doJSON(t, http.MethodGet, server.URL+"/accounts?limit=100", nil, http.StatusOK, &ranking)
+	if ranking.Total < 2 || len(ranking.Accounts) < 2 || ranking.Accounts[0].Balance < ranking.Accounts[1].Balance || ranking.TruthfulStatus != "authoritative-public-ledger-account-ranking" {
+		t.Fatalf("unexpected authoritative account ranking: %+v", ranking)
 	}
 	var invalid map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/accounts/ynx1qqqqqq", nil, http.StatusBadRequest, &invalid)
@@ -527,11 +538,55 @@ func TestPrometheusMetrics(t *testing.T) {
 		"ynx_chain_transactions_total",
 		"ynx_chain_validators",
 		"ynx_chain_persistence_error",
+		`ynx_chain_replication_configured{network="testnet",chain_id="6423",native_symbol="YNXT"} 0`,
+		`ynx_chain_replication_status_info{network="testnet",chain_id="6423",native_symbol="YNXT",status="not_configured"} 1`,
+		`ynx_chain_replication_catching_up{network="testnet",chain_id="6423",native_symbol="YNXT"} 0`,
 		"ynx_resource_delegated_ynxt",
 	} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("metrics missing %q in:\n%s", expected, body)
 		}
+	}
+}
+
+func TestPrometheusFollowerReplicationFailureMetrics(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	devnet.SetNodeIdentityConfig(chain.NodeIdentityConfig{
+		ValidatorAddress:  "ynx_validator_singapore",
+		ReplicationMode:   "authoritative_follower",
+		ReplicationSource: "http://primary.internal:6420",
+		PeerSyncInterval:  time.Second,
+	})
+	devnet.BeginReplicationAttempt()
+	devnet.RecordReplicationFailure("fetch", errors.New("source unavailable"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/metrics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{
+		`ynx_chain_replication_configured{network="testnet",chain_id="6423",native_symbol="YNXT"} 1`,
+		`ynx_chain_replication_status_info{network="testnet",chain_id="6423",native_symbol="YNXT",status="degraded"} 1`,
+		`ynx_chain_replication_catching_up{network="testnet",chain_id="6423",native_symbol="YNXT"} 1`,
+		`ynx_chain_replication_fresh{network="testnet",chain_id="6423",native_symbol="YNXT"} 0`,
+		`ynx_chain_replication_attempts_total{network="testnet",chain_id="6423",native_symbol="YNXT"} 1`,
+		`ynx_chain_replication_failures_total{network="testnet",chain_id="6423",native_symbol="YNXT"} 1`,
+		`ynx_chain_replication_consecutive_failures{network="testnet",chain_id="6423",native_symbol="YNXT"} 1`,
+		`ynx_chain_replication_last_success_timestamp_seconds{network="testnet",chain_id="6423",native_symbol="YNXT"} 0`,
+	} {
+		if !strings.Contains(string(body), expected) {
+			t.Fatalf("replication metrics missing %q in:\n%s", expected, body)
+		}
+	}
+	if strings.Contains(string(body), "primary.internal") {
+		t.Fatal("replication source URL leaked into Prometheus metrics")
 	}
 }
 

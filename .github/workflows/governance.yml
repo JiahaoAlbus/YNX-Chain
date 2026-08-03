@@ -1,0 +1,32 @@
+name: governance
+
+on:
+  push:
+    branches: [main, codex/final-governance]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  governance-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: apps/governance/package-lock.json
+      - name: Install governance UI dependencies
+        run: npm --prefix apps/governance ci
+      - name: Verify governance control plane
+        run: bash ./scripts/verify/governance-check.sh
+      - name: Exercise four-validator governance Testnet lifecycle
+        run: bash ./scripts/verify/governance-testnet-drill.sh

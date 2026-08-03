@@ -1,88 +1,99 @@
 {
   "schemaVersion": "1.0",
-  "productNumber": "08",
-  "productName": "YNX Quant Lab",
+  "productNumber": "16",
+  "productName": "YNX Resource Market",
   "phase": "INTEGRATE",
-  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/08-quant-lab",
-  "branch": "codex/final-quant-lab",
-  "localSha": "3bff013d86ed5682950a38b114884ce6f17c423d",
-  "remoteSha": "3bff013d86ed5682950a38b114884ce6f17c423d",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market",
+  "branch": "codex/final-resource-market",
+  "localSha": "d683c7d28ce129daad358c84680e5980cf8ad069",
+  "remoteSha": "d683c7d28ce129daad358c84680e5980cf8ad069",
   "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
-  "shaSemantics": "localSha and remoteSha are the last fully verified source checkpoint before the agent-memory-only commit; resolve the commit containing this record with git log -1 --format=%H -- docs/agent-memory/RECOVERY_CHECKPOINT.json",
   "dirty": false,
-  "ahead": 38,
-  "behind": 78,
+  "ahead": 0,
+  "behind": 0,
   "latestSuccessfulTests": [
-    "apps/quant-lab/scripts/verify-release.sh on committed checkpoint 3bff013d86ed5682950a38b114884ce6f17c423d",
-    "repeatable macOS arm64 packaged cold start with exact source, health, metrics, frontend and clean shutdown",
-    "two-run macOS and Windows archive reproducibility with go1.25.7-darwin-arm64",
-    "local Linux arm64 Compose runtime, restart and isolated restore at artifact source 8b211d08a67abc9e2b3d3f3254bbc87f4293b08e"
+    "go test -count=1 ./...",
+    "go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct",
+    "go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market",
+    "bash apps/resource-market/check.sh",
+    "bash scripts/validate/no-placeholder-check.sh",
+    "npm audit --audit-level=high (apps/resource-market)",
+    "npm run test:ui (apps/resource-market)",
+    "npm sbom --sbom-format spdx (apps/resource-market)"
   ],
-  "latestCiRuns": [],
-  "ciNote": "No workflow run exists for the current product-branch checkpoint because repository CI triggers on main pushes or pull requests to main.",
-  "pullRequests": [],
-  "release": null,
-  "artifacts": [
+  "latestCiRuns": [
     {
-      "name": "YNX-Quant-Lab-0.2.0-testnet-macos-arm64.zip",
-      "platform": "macOS arm64",
-      "bytes": 7377983,
-      "sha256": "7df2bb3fd2f59ef3594a770004866feb8dff3495c3836bfeadec03d98dae2739",
-      "signingClass": "adhoc-test-only",
-      "installedLocal": true,
-      "coldStartVerified": true,
-      "hosted": false
+      "id": 30417957999,
+      "workflow": "Resource Market Candidate Gates",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
     },
     {
-      "name": "YNX-Quant-Lab-0.2.0-testnet-windows-x64.zip",
-      "platform": "Windows x64",
-      "bytes": 8094598,
-      "sha256": "4cdacd903aee1ab7aeafc9943258f42cf8522b19a8eda3e4f618b963c0a2f392",
-      "signingClass": "unsigned-cross-compiled",
-      "installedLocal": false,
-      "coldStartVerified": false,
-      "hosted": false
+      "id": 30417957996,
+      "workflow": "ci",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
     },
     {
-      "name": "ynx-quant:testnet-verify-8b211d08a67a",
-      "platform": "Linux arm64 OCI image",
-      "imageId": "sha256:70e32c90601dc50c4770d04d40bd684a8bde52848e969afb9e8ddfbbaceb3f35",
-      "digestClass": "local-image-id-not-registry-manifest",
-      "runtimeVerified": true,
-      "restartVerified": true,
-      "restoreVerified": true,
-      "signed": false,
-      "hosted": false
+      "id": 30417958003,
+      "workflow": "docs-compliance",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417957987,
+      "workflow": "Trust Resource Native Preview",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417957971,
+      "workflow": "governance",
+      "status": "in_progress_at_checkpoint",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
     }
   ],
+  "pullRequests": [
+    {
+      "number": 12,
+      "state": "OPEN",
+      "mergeable": true,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/12",
+      "headSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    }
+  ],
+  "release": null,
+  "artifacts": [],
   "publicRoutes": [],
-  "canonicalTarget": "https://quant.ynxweb4.com",
   "completed": [
-    "recovered exact worktree, branch, remote and Git state",
-    "protected current desktop artifact truth and toolchain provenance",
-    "passed committed local release preflight",
-    "verified local API, backtest and worker capacity",
-    "verified local Linux arm64 container runtime, restart and restore",
-    "maintained fail-closed Quant integration contract and vectors"
+    "main-synchronized candidate",
+    "offer-scoped capacity reservation integrity",
+    "provider self-dealing rejection",
+    "checked amount arithmetic",
+    "bounded retry lineage",
+    "twelve-locale browser and accessibility boundary",
+    "portable local API and DAST smoke",
+    "candidate SHA-256 and dependency inventory generation",
+    "SPDX npm SBOM generation",
+    "Android debug install and cold start evidence",
+    "iOS Simulator build evidence"
   ],
   "remaining": [
-    "accepted central owner contracts and dependency freeze",
-    "real Exchange and DEX shared-Testnet receipts and reconciliation",
-    "cross-product event correlation",
-    "Windows host execution evidence",
-    "Linux amd64 container, registry digest, signature and external scan",
-    "deployed migration, restore, RTO/RPO and accessibility evidence",
-    "pull request and CI for final candidate SHA",
-    "approved release, immutable artifacts, SBOM and provenance publication",
-    "public deployment and verified ynxweb4.com Quant route"
+    "merge PR 12",
+    "central integration acceptance",
+    "two independent Testnet providers",
+    "authoritative public settlement and refund evidence",
+    "restart recovery on deployed services",
+    "public deployment and ynxweb4.com resource-market route",
+    "immutable hosted artifact and production signing",
+    "legal and external security review"
   ],
   "blockers": [
-    "Q08-DEP-001 central contract freeze",
-    "Q08-DEP-002 shared Testnet execution evidence",
-    "Q08-ENV-001 Windows execution host",
-    "Q08-ENV-002 Linux amd64 registry and external scan path",
-    "Q08-REL-001 production signing and public release authorization"
+    "RM-BLOCK-001 central integration acceptance",
+    "RM-BLOCK-002 independent Testnet providers and funded settlement",
+    "RM-BLOCK-003 public deployment and website closure",
+    "RM-BLOCK-004 production signing and professional review"
   ],
-  "nextAction": "Inspect source-addressable owner integration artifacts on current remote branches for products 02, 07, 19, 26, 27 and 29; bind only explicit accepted versions into Quant-owned contracts, dependency acceptance and negative vectors; validate, test, commit and push.",
-  "updatedAt": "2026-07-29T02:45:09Z"
+  "nextAction": "After PR 12 is merged, submit the frozen integration contract and vectors to Product 29, then execute the complete success and failure/recovery sequence with two independent Testnet providers and authoritative settlement.",
+  "updatedAt": "2026-07-29T02:54:25Z"
 }
