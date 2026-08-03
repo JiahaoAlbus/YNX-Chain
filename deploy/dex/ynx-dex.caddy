@@ -1,0 +1,23 @@
+dex.ynxweb4.com, dex-testnet.43.153.202.237.sslip.io {
+	encode zstd gzip
+	handle /health {
+		reverse_proxy 127.0.0.1:6482
+	}
+	handle /version {
+		reverse_proxy 127.0.0.1:6482
+	}
+	handle /v1/* {
+		reverse_proxy 127.0.0.1:6482
+	}
+	handle {
+		root * /opt/ynx/dex-current/web
+		try_files {path} /index.html
+		file_server
+	}
+	header {
+		Content-Security-Policy "default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'"
+		Referrer-Policy no-referrer
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		X-Content-Type-Options nosniff
+	}
+}
