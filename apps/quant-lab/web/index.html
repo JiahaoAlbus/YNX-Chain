@@ -10,11 +10,17 @@
   <body>
     <a class="skip" href="#workspace" data-i18n="research">Research</a>
     <header>
-      <div>
-        <p class="eyebrow">YNX QUANT LAB</p>
-        <h1 data-i18n="tagline">Research, paper & testnet</h1>
+      <div class="brand">
+        <img src="ynx-logo.png" alt="YNX" />
+        <div>
+          <p class="eyebrow">YNX FINANCIAL LABS</p>
+          <h1>Quant</h1>
+        </div>
       </div>
-      <div class="mode"><span></span><b data-i18n="mode">SIMULATED / TESTNET ONLY</b></div>
+      <div class="header-actions">
+        <a href="https://ynxweb4.com/dapp/quant">Product guide</a>
+        <div class="mode"><span></span><b data-i18n="mode">SIMULATED / TESTNET ONLY</b></div>
+      </div>
     </header>
     <div class="shell">
       <aside>
@@ -56,9 +62,17 @@
           </div>
           <button id="refresh" data-i18n="refresh">Refresh</button>
         </div>
+        <section class="market-strip" aria-label="Live research status">
+          <div><small>MARKET</small><strong>YNXT / YUSD_TEST</strong></div>
+          <div><small>DATA</small><strong id="market-status">Checking…</strong></div>
+          <div><small>OBSERVED BARS</small><strong id="market-bars">—</strong></div>
+          <div><small>USER STATE</small><strong>Isolated per run</strong></div>
+          <div><small>LIVE FUNDS</small><strong class="danger">Disabled</strong></div>
+        </section>
         <section id="research" class="view active">
           <div class="split">
             <div>
+              <p class="section-kicker">PUBLIC RESEARCH WORKSPACE</p>
               <h2 data-i18n="runTitle">Run a reproducible experiment</h2>
               <p class="lead" data-i18n="runLead">
                 Out-of-sample by construction. Fees, slippage, participation,
@@ -102,8 +116,14 @@
                       min="0"
                   /></label>
                 </div>
-                <button class="primary" data-i18n="runAction">Run out-of-sample backtest</button>
+                <button id="run-backtest" class="primary" data-i18n="runAction">Run out-of-sample backtest</button>
               </form>
+              <div id="latest-result" class="result-card" hidden>
+                <div><small>OOS RETURN</small><strong id="result-return">—</strong></div>
+                <div><small>BUY / HOLD</small><strong id="result-baseline">—</strong></div>
+                <div><small>MAX DRAWDOWN</small><strong id="result-drawdown">—</strong></div>
+                <div><small>TRADES</small><strong id="result-trades">—</strong></div>
+              </div>
             </div>
             <aside class="inspector">
               <h3 data-i18n="leakage">Leakage guard</h3>
@@ -127,6 +147,10 @@
                 <div>
                   <dt data-i18n="liveFunds">Live funds</dt>
                   <dd class="danger" data-i18n="disabled">Disabled</dd>
+                </div>
+                <div>
+                  <dt>Public state</dt>
+                  <dd>Per-request</dd>
                 </div>
               </dl>
             </aside>

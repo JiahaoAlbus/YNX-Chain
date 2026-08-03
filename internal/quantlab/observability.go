@@ -130,7 +130,7 @@ func (s *Server) observe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-YNX-Request-ID", requestID(r))
 	w.Header().Set("X-YNX-Trace-ID", traceID(r))
 	observed := &observedWriter{ResponseWriter: w}
-	if r.Method != http.MethodGet && !localPreviewRequest(r) {
+	if r.Method != http.MethodGet && !publicResearchRequest(r) && !localPreviewRequest(r) {
 		writeProblem(observed, r, http.StatusForbidden, "local_write_boundary_rejected")
 	} else {
 		s.mux.ServeHTTP(observed, r)

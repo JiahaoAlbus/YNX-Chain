@@ -3,11 +3,13 @@ package quantlab
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/gorilla/websocket"
@@ -29,12 +31,88 @@ func TestHTTPWriteBoundaryAndStrictSchema(t *testing.T) {
 	if r.StatusCode != 200 {
 		t.Fatalf("local boundary=%d", r.StatusCode)
 	}
+	proxied, _ := http.NewRequest("POST", server.URL+"/v1/risk/kill", strings.NewReader(body))
+	proxied.Header.Set("Content-Type", "application/json")
+	proxied.Header.Set("X-YNX-Preview-Mode", "local-paper")
+	proxied.Header.Set("X-Forwarded-For", "198.51.100.8")
+	r, _ = server.Client().Do(proxied)
+	if r.StatusCode != http.StatusForbidden {
+		t.Fatalf("proxied local boundary=%d", r.StatusCode)
+	}
 	req, _ = http.NewRequest("POST", server.URL+"/v1/risk/kill", strings.NewReader(`{"reason":"operator test","unknown":true}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-YNX-Preview-Mode", "local-paper")
 	r, _ = server.Client().Do(req)
 	if r.StatusCode != 400 {
 		t.Fatalf("unknown field=%d", r.StatusCode)
+	}
+}
+
+func TestPublicResearchIsRemoteSafeAndDoesNotMutateSharedState(t *testing.T) {
+	service, err := New(Config{StatePath: filepath.Join(t.TempDir(), "shared.json"), MarketData: fixtureMarket{bars: bars()}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewRoleServer(service, "research"))
+	defer server.Close()
+	payload := `{"strategy":{"ID":"public-ma","Name":"Public MA","Family":"transparent","License":"Apache-2.0","Seed":7,"Params":{"fast":3,"slow":8}},"assumptions":{"FeeBPS":10,"SlippageBPS":5,"LatencyBars":1,"ParticipationBPS":1000,"Seed":7,"TrainEnd":10,"WalkForwardWindows":3}}`
+	req, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/public/research/backtests/from-market", strings.NewReader(payload))
+	req.Header.Set("Origin", "https://quant.ynxweb4.com")
+	response, err := server.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(response.Body)
+		t.Fatalf("status=%d body=%s", response.StatusCode, body)
+	}
+	if len(service.Snapshot()["experiments"].(map[string]Experiment)) != 0 {
+		t.Fatal("public research mutated shared service state")
+	}
+	status, err := server.Client().Get(server.URL + "/v1/public/status")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer status.Body.Close()
+	var document map[string]any
+	if json.NewDecoder(status.Body).Decode(&document) != nil || document["mode"] != "public_stateless_research" {
+		t.Fatalf("status document=%v", document)
+	}
+}
+
+func TestPublicResearchSupportsConcurrentIsolatedUsers(t *testing.T) {
+	service, err := New(Config{StatePath: filepath.Join(t.TempDir(), "shared.json"), MarketData: fixtureMarket{bars: bars()}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewRoleServer(service, "research"))
+	defer server.Close()
+	payload := `{"strategy":{"ID":"concurrent-ma","Name":"Concurrent MA","Family":"transparent","License":"Apache-2.0","Seed":7,"Params":{"fast":3,"slow":8}},"assumptions":{"FeeBPS":10,"SlippageBPS":5,"LatencyBars":1,"ParticipationBPS":1000,"Seed":7,"TrainEnd":10,"WalkForwardWindows":3}}`
+	var wait sync.WaitGroup
+	errors := make(chan error, 50)
+	for index := 0; index < 50; index++ {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			response, requestErr := http.Post(server.URL+"/v1/public/research/backtests/from-market", "application/json", strings.NewReader(payload))
+			if requestErr != nil {
+				errors <- requestErr
+				return
+			}
+			defer response.Body.Close()
+			if response.StatusCode != http.StatusCreated {
+				errors <- fmt.Errorf("status=%d", response.StatusCode)
+			}
+		}()
+	}
+	wait.Wait()
+	close(errors)
+	for requestErr := range errors {
+		t.Fatal(requestErr)
+	}
+	if len(service.Snapshot()["experiments"].(map[string]Experiment)) != 0 {
+		t.Fatal("concurrent public research mutated shared state")
 	}
 }
 

@@ -15,11 +15,12 @@ import (
 )
 
 type Server struct {
-	service *Service
-	mux     *http.ServeMux
-	role    string
-	logger  *slog.Logger
-	metrics serverMetrics
+	service       *Service
+	mux           *http.ServeMux
+	role          string
+	logger        *slog.Logger
+	metrics       serverMetrics
+	researchSlots chan struct{}
 }
 
 func NewServer(s *Service) *Server {
@@ -35,13 +36,15 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	if !allowed[role] {
 		panic("invalid quant service role")
 	}
-	v := &Server{service: s, mux: http.NewServeMux(), role: role, logger: newJSONLogger(logWriter)}
+	v := &Server{service: s, mux: http.NewServeMux(), role: role, logger: newJSONLogger(logWriter), researchSlots: make(chan struct{}, 32)}
 	v.mux.HandleFunc("GET /health", v.health)
 	v.mux.HandleFunc("GET /version", v.version)
+	v.mux.HandleFunc("GET /v1/public/status", v.publicStatus)
 	v.mux.HandleFunc("GET /v1/snapshot", v.snapshot)
 	v.mux.HandleFunc("GET /v1/stream", v.stream)
 	v.mux.HandleFunc("GET /metrics", v.metricsHandler)
 	if role == "all" || role == "research" {
+		v.mux.HandleFunc("POST /v1/public/research/backtests/from-market", v.publicBacktestFromMarket)
 		v.mux.HandleFunc("POST /v1/datasets", v.dataset)
 		v.mux.HandleFunc("POST /v1/backtests", v.backtest)
 		v.mux.HandleFunc("POST /v1/backtests/from-market", v.backtestFromMarket)
@@ -60,6 +63,58 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	v.mux.HandleFunc("/", v.notFound)
 	return v
 }
+
+func publicResearchRequest(r *http.Request) bool {
+	return r.Method == http.MethodPost && r.URL.Path == "/v1/public/research/backtests/from-market"
+}
+
+func (s *Server) publicStatus(w http.ResponseWriter, r *http.Request) {
+	status := "unavailable"
+	source := ""
+	barCount := 0
+	if s.service.cfg.MarketData != nil {
+		if bars, observedSource, err := s.service.cfg.MarketData.History("YNXT-YUSD_TEST", 10000); err == nil && len(bars) >= 20 {
+			status, source, barCount = "ready", observedSource, len(bars)
+		}
+	}
+	write(w, http.StatusOK, map[string]any{
+		"productId": ProductID, "version": Version, "commit": BuildCommit,
+		"mode": "public_stateless_research", "market": "YNXT-YUSD_TEST",
+		"marketData":   map[string]any{"status": status, "source": source, "bars": barCount, "synthetic": false},
+		"multiUser":    map[string]any{"stateIsolation": "per-request", "sharedUserState": false, "maxConcurrentResearch": cap(s.researchSlots)},
+		"capabilities": map[string]bool{"research": status == "ready", "paper": false, "testnetExecution": false, "liveFunds": false},
+	})
+}
+
+func (s *Server) publicBacktestFromMarket(w http.ResponseWriter, r *http.Request) {
+	select {
+	case s.researchSlots <- struct{}{}:
+		defer func() { <-s.researchSlots }()
+	case <-r.Context().Done():
+		writeProblem(w, r, http.StatusServiceUnavailable, "research_capacity_reached")
+		return
+	}
+	var q struct {
+		Strategy    StrategySpec `json:"strategy"`
+		Assumptions Assumptions  `json:"assumptions"`
+	}
+	if !decode(w, r, &q) {
+		return
+	}
+	dir, err := os.MkdirTemp("", "ynx-quant-public-")
+	if err != nil {
+		writeProblem(w, r, http.StatusServiceUnavailable, "research_workspace_unavailable")
+		return
+	}
+	defer os.RemoveAll(dir)
+	isolated, err := New(Config{StatePath: dir + "/state.json", Now: s.service.cfg.Now, MarketData: s.service.cfg.MarketData})
+	if err != nil {
+		writeProblem(w, r, http.StatusServiceUnavailable, "research_workspace_unavailable")
+		return
+	}
+	result, runErr := isolated.RunBacktestFromMarket(q.Strategy, q.Assumptions)
+	respond(w, r, result, runErr, http.StatusCreated)
+}
 func (s *Server) dataset(w http.ResponseWriter, r *http.Request) {
 	var q DatasetRecord
 	if !decode(w, r, &q) {
@@ -74,6 +129,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.observe(w, r)
 }
 func localPreviewRequest(r *http.Request) bool {
+	if strings.TrimSpace(r.Header.Get("Forwarded")) != "" || strings.TrimSpace(r.Header.Get("X-Forwarded-For")) != "" {
+		return false
+	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	ip := net.ParseIP(host)
 	if err != nil || ip == nil || !ip.IsLoopback() || r.Header.Get("X-YNX-Preview-Mode") != "local-paper" {

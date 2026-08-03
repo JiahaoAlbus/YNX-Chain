@@ -1,6 +1,8 @@
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
 let snapshot = { paper: {}, strategies: {}, experiments: {}, audit: [] };
+const publicMode = !["127.0.0.1", "localhost", "::1"].includes(location.hostname);
+let publicStatus = null;
 const supportedLocales = QuantI18n.locales;
 let locale = localStorage.getItem("ynx.quant.locale") || navigator.languages.find((value) => supportedLocales.includes(value)) || navigator.language.split("-")[0];
 if (!supportedLocales.includes(locale)) locale = "en";
@@ -32,7 +34,13 @@ const toast = (m) => {
   setTimeout(() => e.classList.remove("show"), 3000);
 };
 async function refresh() {
-  snapshot = await api("/v1/snapshot");
+  publicStatus = await api("/v1/public/status");
+  const market = publicStatus.marketData || {};
+  $("#market-status").textContent = market.status === "ready" ? "Authoritative tape ready" : "Waiting for matched trades";
+  $("#market-status").className = market.status === "ready" ? "ready" : "warning";
+  $("#market-bars").textContent = market.bars || 0;
+  $("#run-backtest").disabled = publicMode && market.status !== "ready";
+  if (!publicMode) snapshot = await api("/v1/snapshot");
   render();
 }
 function render() {
@@ -113,9 +121,21 @@ $("#backtest").onsubmit = async (e) => {
         walkForwardWindows: 3,
       },
     };
-    await api("/v1/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
+    const result = await api(publicMode ? "/v1/public/research/backtests/from-market" : "/v1/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
+    if (publicMode) {
+      snapshot.experiments[result.ID || result.id || `run-${Date.now()}`] = result;
+      snapshot.strategies[result.Strategy?.ID || result.strategy?.ID || body.strategy.id] = result.Strategy || result.strategy || body.strategy;
+    }
+    const metrics = result.Metrics || result.metrics;
+    if (metrics) {
+      $("#latest-result").hidden = false;
+      $("#result-return").textContent = `${metrics.ReturnBPS ?? metrics.returnBPS ?? 0} bps`;
+      $("#result-baseline").textContent = `${metrics.BuyHoldBPS ?? metrics.buyHoldBPS ?? 0} bps`;
+      $("#result-drawdown").textContent = `${metrics.MaxDrawdownBPS ?? metrics.maxDrawdownBPS ?? 0} bps`;
+      $("#result-trades").textContent = metrics.Trades ?? metrics.trades ?? 0;
+    }
     toast("Out-of-sample experiment completed and audited");
-    await refresh();
+    if (publicMode) render(); else await refresh();
   } catch (e) {
     toast(e.message);
   }
@@ -166,4 +186,7 @@ $("#kill").onclick = async () => {
   }
 };
 applyLocale();
+if (publicMode) {
+  ["paper-order", "reconcile", "kill"].forEach((id) => { const control = document.getElementById(id); if (control) control.disabled = true; });
+}
 refresh().catch((e) => toast("Service unavailable: " + e.message));

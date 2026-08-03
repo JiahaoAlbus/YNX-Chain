@@ -25,9 +25,19 @@ type HTTPExchangeMarketData struct {
 	Client  *http.Client
 }
 type exchangeTrade struct {
-	PriceMicro  int64     `json:"priceMicro"`
-	AmountMicro int64     `json:"amountMicro"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID           string    `json:"id"`
+	Market       string    `json:"market"`
+	PriceMicro   int64     `json:"priceMicro"`
+	AmountMicro  int64     `json:"amountMicro"`
+	BuyOrderID   string    `json:"buyOrderId"`
+	SellOrderID  string    `json:"sellOrderId"`
+	Buyer        string    `json:"buyer"`
+	Seller       string    `json:"seller"`
+	BuyerFee     int64     `json:"buyerFeeMicro"`
+	SellerFee    int64     `json:"sellerFeeMicro"`
+	CreatedAt    time.Time `json:"createdAt"`
+	SourceType   string    `json:"sourceType"`
+	SourceDigest string    `json:"sourceDigest"`
 }
 type tradeTape struct {
 	Market        string          `json:"market"`
