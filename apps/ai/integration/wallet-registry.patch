@@ -1,0 +1,43 @@
+diff --git a/apps/wallet/src/protocol/registry.ts b/apps/wallet/src/protocol/registry.ts
+index 6115eb4..cba4ba2 100644
+--- a/apps/wallet/src/protocol/registry.ts
++++ b/apps/wallet/src/protocol/registry.ts
+@@ -3,6 +3,12 @@ import { parseCentralRegistryEntry, registryParserBinding, type ProductBinding }
+ // Wallet-side reviewed tuples. Central registry deployment remains a separate
+ // gate: this exact local allow-list only decides which requests Wallet may show.
+ const REVIEWED_ENTRIES = [
++  {
++    schemaVersion: 2, productClientId: "ynx-ai-v1", requestingProduct: "ai",
++    bundleId: "com.ynxweb4.ai", callbacks: ["ynxai://wallet-auth/callback"],
++    scopes: ["ai:actions", "ai:attachments", "ai:conversations", "ai:data-control", "ai:generate", "ai:permissions"], maxScopes: 6,
++    productDeviceAlgorithms: ["p256-sha256"],
++  },
+   {
+     schemaVersion: 2, productClientId: "ynx-card-v1", requestingProduct: "ynx-card",
+     bundleId: "com.ynxweb4.card", callbacks: ["ynxcard://wallet-auth/callback"],
+@@ -26,6 +32,12 @@ const REVIEWED_ENTRIES = [
+ export const PRODUCT_REGISTRY:Readonly<Record<string,ProductBinding>>=Object.freeze(Object.assign({},...REVIEWED_ENTRIES.map((entry)=>registryParserBinding(parseCentralRegistryEntry(entry)))));
+ 
+ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freeze({
++  "ai:actions": "Review AI tool and chain-action proposals. Approval records review only and never executes or signs.",
++  "ai:attachments": "Share only text files explicitly selected for this AI generation.",
++  "ai:conversations": "Create and manage this account's encrypted AI conversation history.",
++  "ai:data-control": "Manage AI retention, context policy, export, and deletion for this account.",
++  "ai:generate": "Send an explicit prompt and selected context to the configured AI provider through the Gateway.",
++  "ai:permissions": "Create and review bounded AI permissions; this cannot bypass Wallet or Trust.",
+   "account:read": "Share this account's public ynx1 address. No secret or recovery material leaves Wallet.",
+   "card:application:write": "Create or update only this account's sandbox Card application.",
+   "card:controls:write": "Manage only this account's Card controls after a separate review.",
+diff --git a/packages/wallet-auth/central-registry.json b/packages/wallet-auth/central-registry.json
+index 762d8b7..be7ca64 100644
+--- a/packages/wallet-auth/central-registry.json
++++ b/packages/wallet-auth/central-registry.json
+@@ -2,7 +2,7 @@
+   "registryVersion": 1,
+   "chainId": "ynx_6423-1",
+   "products": [
+-    {"schemaVersion":3,"productId":"ai","displayName":"YNX AI","reviewState":"pending-review","enabled":false,"productClientId":"ynx-ai-v1","requestingProduct":"ai","bundleId":"com.ynxweb4.ai","callbacks":["ynxai://wallet-auth/callback"],"scopes":["ai:account","ai:generate","ai:history"],"maxScopes":3,"productDeviceAlgorithms":["p256-sha256"],"sessionDurationSeconds":240,"revocationPolicy":{"session":true,"approval":true,"device":true,"accountAllDevices":true}},
++    {"schemaVersion":3,"productId":"ai","displayName":"YNX AI","reviewState":"pending-review","enabled":false,"productClientId":"ynx-ai-v1","requestingProduct":"ai","bundleId":"com.ynxweb4.ai","callbacks":["ynxai://wallet-auth/callback"],"scopes":["ai:actions","ai:attachments","ai:conversations","ai:data-control","ai:generate","ai:permissions"],"maxScopes":6,"productDeviceAlgorithms":["p256-sha256"],"sessionDurationSeconds":240,"revocationPolicy":{"session":true,"approval":true,"device":true,"accountAllDevices":true}},
+     {"schemaVersion":3,"productId":"browser","displayName":"YNX Browser","reviewState":"pending-review","enabled":false,"productClientId":"ynx-browser-v1","requestingProduct":"browser","bundleId":"com.ynxweb4.browser","callbacks":["ynxbrowser://wallet-auth/callback"],"scopes":["browser:account","browser:sync"],"maxScopes":2,"productDeviceAlgorithms":["p256-sha256"],"sessionDurationSeconds":240,"revocationPolicy":{"session":true,"approval":true,"device":true,"accountAllDevices":true}},
+     {"schemaVersion":3,"productId":"calendar","displayName":"YNX Calendar","reviewState":"pending-review","enabled":false,"productClientId":"ynx-calendar-v1","requestingProduct":"calendar","bundleId":"com.ynxweb4.calendar","callbacks":["ynxcalendar://wallet-auth/callback"],"scopes":["calendar:account","calendar:recover"],"maxScopes":2,"productDeviceAlgorithms":["p256-sha256"],"sessionDurationSeconds":240,"revocationPolicy":{"session":true,"approval":true,"device":true,"accountAllDevices":true}},
+     {"schemaVersion":3,"productId":"card","displayName":"YNX Card","reviewState":"pending-review","enabled":false,"productClientId":"ynx-card-v1","requestingProduct":"ynx-card","bundleId":"com.ynxweb4.card","callbacks":["ynxcard://wallet-auth/callback"],"scopes":["account:read","card:application:write","card:controls:write","card:dispute:write"],"maxScopes":4,"productDeviceAlgorithms":["p256-sha256"],"sessionDurationSeconds":180,"revocationPolicy":{"session":true,"approval":true,"device":true,"accountAllDevices":true}},
