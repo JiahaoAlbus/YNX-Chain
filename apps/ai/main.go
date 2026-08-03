@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -30,7 +31,12 @@ var assets embed.FS
 func main() {
 	httpAddr := flag.String("http", env("YNX_AI_CLIENT_HTTP_ADDR", "127.0.0.1:6438"), "YNX AI client listen address")
 	statePath := flag.String("state", env("YNX_AI_CLIENT_STATE_PATH", ""), "absolute encrypted product state path")
+	backupCreate := flag.String("backup-create", "", "create an immutable encrypted backup at this absolute path and exit")
+	backupRestore := flag.String("backup-restore", "", "restore an authenticated encrypted backup into the configured state path and exit")
 	flag.Parse()
+	if *backupCreate != "" && *backupRestore != "" {
+		log.Fatal("-backup-create and -backup-restore are mutually exclusive")
+	}
 	if *statePath == "" {
 		log.Fatal("YNX_AI_CLIENT_STATE_PATH is required")
 	}
@@ -41,6 +47,26 @@ func main() {
 	store, err := aiproduct.NewStore(*statePath, key)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if *backupCreate != "" {
+		manifest, err := store.CreateBackup(*backupCreate)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(manifest); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+	if *backupRestore != "" {
+		manifest, err := store.RestoreBackup(*backupRestore)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(manifest); err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
 	web, err := fs.Sub(assets, "web")
 	if err != nil {
