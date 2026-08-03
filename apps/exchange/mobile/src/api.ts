@@ -1,5 +1,5 @@
 import type {CentralSession} from "./wallet";
-const BASE=(process.env.EXPO_PUBLIC_YNX_EXCHANGE_API_URL||"http://10.0.2.2:6442/api").replace(/\/$/,"");
+const BASE=(process.env.EXPO_PUBLIC_YNX_EXCHANGE_API_URL||"https://exchange.ynxweb4.com/api").replace(/\/$/,"");
 export type IntegrationStatus={gateway:string;gatewayReason?:string;walletRegistry:string;custody:string;indexer:string;crossChain:string};
 export type Config={chainId:string;custodyAddress:string;integrations:IntegrationStatus;networks:Array<{asset:string;network:string;depositEnabled:boolean;withdrawalEnabled:boolean;withdrawalReviewEnabled:boolean;crossChain:boolean;unavailableReason?:string;withdrawalFeeMicro?:number}>;warnings:string[]};
 export type Order={id:string;side:string;priceMicro:number;amountMicro:number;filledMicro:number;status:string;createdAt:string;authorizationDigest:string};
