@@ -4,7 +4,8 @@
   "contractId": "ynx-quant-lab-contract-v1",
   "sourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
   "state": "owner-proposal-not-yet-executed-on-shared-testnet",
-  "generatedAt": "2026-07-27T00:00:00Z",
+  "generatedAt": "2026-07-29T03:02:39Z",
+  "ownerContractSnapshot": "apps/quant-lab/integration/owner-contract-snapshot.json",
   "truthBoundary": "Local injected transports and fixtures validate the Quant boundary only. A vector is testnetVerified only after owner services, authoritative receipts, transaction references, Explorer proof, and retained raw evidence are present.",
   "vectors": [
     {
@@ -12,14 +13,14 @@
       "category": "wallet-auth-positive",
       "owners": ["02-wallet-auth", "08-quant-lab", "29-integration"],
       "preconditions": [
-        "ynx-quant-lab registry entry accepted and enabled",
+        "Wallet owner candidate registration for product=quant, client=ynx-quant-v1 and bundle=com.ynxweb4.quant is centrally accepted and enabled",
         "device P-256 challenge approved",
-        "ordered scopes equal quant:research, quant:paper, quant:audit:read as requested",
-        "session expiry no more than 300 seconds"
+        "ordered scopes are an exact requested subset of quant:account, quant:mandate:create, quant:mandate:execute and quant:mandate:revoke",
+        "Product Session v1 and HTTP proof v1 are frozen by Integration"
       ],
-      "action": "Complete Product Session and introspect it at the canonical Gateway before a Quant read or local-paper operation.",
+      "action": "Complete Product Session at /v1/wallet/sessions/complete and introspect it at /v1/wallet/sessions/introspect before a protected Quant operation.",
       "expected": [
-        "session binding includes product, client, bundle, callback, device, account, ordered scopes, purpose, nonce, createdAt and expiresAt",
+        "session binding includes network, chain, requestingProduct, productClientId, bundleId, callback, product device algorithm/key, account, ordered scopes, purpose, nonce, issuedAt, expiresAt, requestDigest, approvalDigest and sessionBinding",
         "Quant receives no private key or long-lived bearer",
         "request and audit correlation identifiers are preserved"
       ],
@@ -47,11 +48,12 @@
       "category": "strategy-mandate-positive",
       "owners": ["02-wallet-auth", "08-quant-lab", "07-exchange", "29-integration"],
       "preconditions": [
-        "Wallet Product Session valid",
-        "StrategyMandate binds user Exchange subaccount, strategy hash/version, YNXT-YUSD_TEST, buy/sell method, capital, position, leverage, slippage, gas, frequency, loss, drawdown, expiry and nonce domain",
-        "no-withdraw boundary attested"
+        "Wallet Product Session v1 is valid for ynx-quant-v1",
+        "StrategyMandate v2 and StrategyAction v1 are frozen with shared vector mandate digest 132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270",
+        "mandate binds execution account, venue/assets/markets/methods/targets, capital, position, leverage BPS, order, slippage BPS, gas, frequency, loss, drawdown, expiry and nonce domain",
+        "no-withdraw, no-owner-change, no-arbitrary-transfer and no-unlimited-approval boundaries are attested"
       ],
-      "action": "Verify the mandate and submit one bounded Exchange order intent.",
+      "action": "Authorize the exact StrategyAction at /v1/wallet/mandates/authorize-action and submit one bounded Exchange order intent.",
       "expected": [
         "Quant accepts only the exact signed limits",
         "Exchange transport cannot withdraw, change owner, change withdrawal address, export credentials or widen risk",
@@ -81,9 +83,10 @@
       "category": "oracle-positive",
       "owners": ["19-oracle-market-data", "08-quant-lab", "29-integration"],
       "preconditions": [
-        "accepted market-data schema and provider registry version",
-        "historical bars and latest observation include source, asOf, version, coverage, confidence and failure state",
-        "timestamp is within accepted freshness bound"
+        "Oracle owner candidate ynx-oracle-market-data-v1 is centrally accepted for Quant",
+        "schema ynx.oracle.v1 and weighted-median-mad-v1/index-funding-mark-v1 policies are frozen",
+        "historical bars and latest observation include schema, market, type, source, version, asOf, confidencePpm, coveragePpm, stale, quality state and lineageHash",
+        "timestamp and correction lineage are within accepted policy"
       ],
       "action": "Run deterministic research/backtest and Shadow observation from the accepted feed.",
       "expected": [
@@ -155,9 +158,10 @@
       "category": "dex-testnet-positive",
       "owners": ["01-chain-core", "02-wallet-auth", "08-quant-lab", "12-explorer", "13-monitor", "19-oracle-market-data", "26-data-fabric", "27-dex", "29-integration"],
       "preconditions": [
+        "DEX owner candidate ynx-dex-integration-v1 is centrally accepted and deployed on chain 6423",
         "user deposits Testnet assets to own Strategy Vault",
-        "limited session key binds Vault, pools/routers, methods and risk limits",
-        "accepted DEX transport and Oracle feed healthy"
+        "limited signed intent binds chainId, ynx-quant-v1, Vault/owner, method, argsDigest, nonce domain, action nonce, deadline and scope",
+        "accepted Vault methods, authoritative indexer reconciliation and Oracle feed are healthy"
       ],
       "action": "Execute a bounded DCA or TWAP action and one LP rebalance, then reconcile the Vault.",
       "expected": [
@@ -237,11 +241,14 @@
       "id": "QX-DATAFABRIC-001",
       "category": "canonical-events-and-billing",
       "owners": ["08-quant-lab", "12-explorer", "13-monitor", "15-trust-center", "24-finance", "26-data-fabric", "29-integration"],
-      "preconditions": ["26-data-fabric accepts one event schema/version mapping"],
-      "action": "Emit research, lifecycle, mandate, execution, risk, PnL/fee, revoke and recovery events from one bounded flow.",
+      "preconditions": [
+        "26-data-fabric and 29-integration accept event envelope v2.0 and the Quant mandate candidate mapping",
+        "producer schema and ledger account/currency/asset mappings are frozen"
+      ],
+      "action": "Emit candidate quant.mandate.activated, quant.pnl.recorded, quant.fee.posted and quant.kill_switch.activated events plus retained local evidence for research, lifecycle, execution, revoke and recovery facts.",
       "expected": [
-        "one canonical event version per fact",
-        "idempotent ingestion",
+        "one accepted canonical event version per fact; local event names remain evidence rather than a parallel canonical protocol",
+        "duplicate ingestion acknowledges without reapplying effect and out-of-order/tampered input fails closed",
         "Finance remains read-only",
         "Explorer exposes public-safe proof only",
         "Trust can reference evidence without receiving secrets or strategy source",
