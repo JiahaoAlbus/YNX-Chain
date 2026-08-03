@@ -17,13 +17,15 @@ permissions:
 
 jobs:
   build-install-launch:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 45
     defaults:
       run:
         working-directory: apps/exchange/mobile
     steps:
       - uses: actions/checkout@v4
+      - name: Record Xcode and Swift toolchain
+        run: xcodebuild -version && swift --version
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

@@ -17,7 +17,7 @@ This release introduces an independent research, Paper and bounded Testnet Previ
   rejection; replay rejection; and idempotent broker proof.
   Default verifier, authoritative risk feed and broker are unavailable; live
   funds remain disabled.
-- Market data comes only from the Exchange owned actual-match tape. No synthetic product prices, fake liquidity, fake volume or fake fills.
+- Market data comes only from the Exchange-owned actual-match tape. The product does not infer prices, liquidity, volume, or fills that are absent from authoritative matches.
 - 12 locale catalogs, Arabic RTL, light/dark, responsive workbench and reduced motion.
 - Upstream evaluation records exact NautilusTrader, Freqtrade/FreqAI and LEAN commits/licenses; no third-party binary is bundled.
 - Sequential Draft-to-Archived lifecycle with risk/evidence gates and active
