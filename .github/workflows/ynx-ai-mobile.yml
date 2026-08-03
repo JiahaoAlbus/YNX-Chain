@@ -17,13 +17,21 @@ permissions:
 
 jobs:
   ios-simulator:
-    runs-on: macos-15
+    # ExpoModulesJSI in Expo 57 declares Swift tools 6.2. macOS 15 currently
+    # defaults to Xcode 16.4 / Swift 6.1 on GitHub-hosted ARM runners, which
+    # cannot resolve that package. macOS 26 provides the matching Xcode 26
+    # toolchain and Simulator runtime.
+    runs-on: macos-26
     timeout-minutes: 45
     defaults:
       run:
         working-directory: apps/ai/mobile
     steps:
       - uses: actions/checkout@v4
+      - name: Record selected Apple toolchain
+        run: |
+          xcodebuild -version
+          swift --version
       - uses: pnpm/action-setup@v4
         with:
           version: "10"
