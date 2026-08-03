@@ -23,7 +23,9 @@ export class FinanceWalletGateway {
     this.sessions=new Map();
     this.nonces=new OneTimeNonceStore();
     this.revokedSessionBindings=[];
-    this.revokedRequestDigests=[];
+    this.revokedApprovalDigests=[];
+    this.revokedDeviceBindings=[];
+    this.accountLogoutRecords=[];
   }
 
   begin(input) {
@@ -52,7 +54,7 @@ export class FinanceWalletGateway {
   introspect(accessToken) {
     const value=this.sessions.get(accessToken);
     if(!value) throw new Error('central session is missing');
-    return assertCentralWalletSessionActive(value,{revokedSessionBindings:this.revokedSessionBindings,revokedRequestDigests:this.revokedRequestDigests},this.now());
+    return assertCentralWalletSessionActive(value,{revokedSessionBindings:this.revokedSessionBindings,revokedApprovalDigests:this.revokedApprovalDigests,revokedDeviceBindings:this.revokedDeviceBindings,accountLogoutRecords:this.accountLogoutRecords},this.now());
   }
 
   revoke(accessToken) {
