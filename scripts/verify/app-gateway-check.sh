@@ -31,6 +31,7 @@ common_gateway_env=(
   YNX_APP_GATEWAY_PAY_API_KEY="$pay_key"
   YNX_APP_GATEWAY_SOCIAL_URL=http://127.0.0.1:17438
   YNX_APP_GATEWAY_SOCIAL_API_KEY="$social_key"
+  YNX_APP_GATEWAY_WALLET_URL=http://127.0.0.1:17439
   YNX_APP_GATEWAY_ALLOWED_ORIGINS=https://www.ynxweb4.com,https://ynxweb4.com
   YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
   YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
@@ -50,6 +51,10 @@ pids+=("$!")
 node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({ok:true,service:"ynx-payd",remoteDeployed:false,truthfulStatus:"local-test"}))}).listen(17429,"127.0.0.1")' >"$tmp/pay.log" 2>&1 &
 pids+=("$!")
 node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({ok:true,service:"ynx-social",remoteDeployed:false,truthfulStatus:"local-test"}))}).listen(17438,"127.0.0.1")' >"$tmp/social.log" 2>&1 &
+pids+=("$!")
+mkdir -p "$tmp/wallet-gateway"
+chmod 0700 "$tmp/wallet-gateway"
+env YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1 YNX_WALLET_GATEWAY_HTTP_PORT=17439 YNX_WALLET_GATEWAY_STATE_PATH="$tmp/wallet-gateway/state.json" node packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs >"$tmp/wallet.log" 2>&1 &
 pids+=("$!")
 env "${common_gateway_env[@]}" YNX_APP_GATEWAY_HTTP_ADDR=127.0.0.1:17437 "$tmp/ynx-app-gatewayd" >"$tmp/gateway.log" 2>&1 &
 pids+=("$!")

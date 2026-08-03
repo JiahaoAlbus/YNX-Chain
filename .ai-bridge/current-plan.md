@@ -1,20 +1,18 @@
-# Current plan
+# YNX Wallet/Auth current plan
 
-- Product: YNX Resource Market (`16-resource-market`)
-- Stage: `INTEGRATE`
-- Long-term goal: `ACTIVE`
-- Protected tested source: `d683c7d28ce129daad358c84680e5980cf8ad069`
-- Branch: `codex/final-resource-market`
-- Pull request: `#12`
+Status: Active. Current phase: INTEGRATE. The local encrypted Gateway backup/restore and version-compatibility slice is complete and source-bound.
 
-## Protected checkpoint
+1. Preserve the canonical Wallet/Auth implementation source `c7a6bded387223429f0708f80b50f086d8ff944d`, its verified 100/100 package test checkpoint and the six-asset source-only prerelease.
+2. Preserve the local backup/restore evidence at `apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json`: 6/6 focused tests, exact non-empty restore, replay-state preservation, tamper/policy/permission rejection, validated legacy normalization, future-schema rejection and a 20-sample local drill.
+3. Submit the exact Registry, Gateway HTTP/Node host, backup, observability, StrategyMandate and shared-vector contract to the central App Gateway and `29-integration`; do not create a second compatibility protocol.
+4. After central acceptance, run installed Wallet→Social, Wallet→Pay, Wallet→Quant→Exchange and Wallet→Quant→DEX flows plus central durable-store restore, Explorer and Monitor evidence.
+5. Reattempt current-source Android/iOS installed evidence only when a real emulator/device or full Xcode runtime exists.
+6. Keep `integratedCentral`, runtime `deployedStaging`, runtime `deployedPublic`, Smart Account Testnet receipt, production KMS/RTO/RPO, production signing and store states false until direct owner/operator evidence exists.
 
-The tested source is pushed and remote-equal. GitHub Resource Market Candidate Gates run `30417957999` passed correctness, Race, Vet, govulncheck, npm audit, browser tests, Ubuntu API/DAST smoke, candidate binary build, SHA-256 generation, Go dependency inventory, SPDX npm SBOM generation and secret scanning. General CI, docs compliance and the Resource Market iOS Simulator build also passed. Product release and public metadata bind this tested source.
+## Implementation contract
 
-## Exact next autonomous action
-
-Complete PR `#12` checks and merge only after GitHub reports all required checks successful. After merge, submit the frozen Resource Market integration contract and vectors to Product `29`, then execute the full success and provider-failure/retry/refund sequence with two independent Testnet providers and authoritative settlement.
-
-## External dependencies that remain
-
-Central Wallet/Gateway acceptance, authoritative Chain/Data Fabric settlement, Explorer/Monitor/Trust integration, two independent public providers, Testnet funding, public deployment/DNS, production signing, artifact hosting and legal/security review remain unproven. These boundaries must remain false in release metadata until direct evidence exists.
+- Work only in `02-wallet-auth` on `codex/final-wallet-auth`.
+- Preserve protected commits and concurrent work; do not reset, clean, force-push or overwrite sibling ownership.
+- Use small source-bound checkpoints and focused gates before broader preflight.
+- Update Integration Contract, Release Record, evidence index and agent status after each verified slice.
+- Never place a private key, seed, recovery material, signing asset or provider secret in Git, logs, evidence or chat.

@@ -20,7 +20,7 @@ test("Social -> Wallet -> callback -> Gateway yields only a Social-device-bound 
   const completion = signGatewayChallenge(challenge, PRODUCT_DEVICE_SECRET);
   const session = verifyGatewayCompletion(completion, verified, NOW);
   assert.equal(session.productClientId, "ynx-social-v1");
-  assert.equal(session.bundleId, "com.ynxweb4.social");
+  assert.equal(session.bundleId, "com.ynx.social");
   assert.deepEqual(session.scopes, ["account:read", "profile:link"]);
   assert.throws(() => nonces.consume(parsed, NOW), (error) => error instanceof WalletAuthError && error.code === "REPLAY");
 });
@@ -31,7 +31,7 @@ test("callback interception cannot complete the product-device challenge", () =>
   const challenge = createGatewayChallenge(approval, { challenge: "gateway_challenge_abcdefghijklmnop", expiresAt: "2026-07-15T12:03:00.000Z" }, NOW);
   const attackerSecret = Buffer.alloc(32, 0x24).toString("base64url");
   assert.throws(() => signGatewayChallenge(challenge, attackerSecret), (error) => error instanceof WalletAuthError && error.code === "DEVICE_MISMATCH");
-  assert.throws(() => parseCallbackURL(createCallbackURL(approval).replace("ynxsocial:", "attacker:"), parsed.callback), /substituted/);
+  assert.throws(() => parseCallbackURL(createCallbackURL(approval).replace("ynx-social:", "attacker:"), parsed.callback), /substituted/);
   assert.throws(() => parseCallbackURL(`${createCallbackURL(approval)}&state=attacker`, parsed.callback), /substituted/);
   assert.throws(() => parseCallbackURL(`${createCallbackURL(approval)}#attacker`, parsed.callback), /substituted/);
 });

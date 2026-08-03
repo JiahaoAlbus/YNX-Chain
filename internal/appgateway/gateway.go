@@ -23,6 +23,7 @@ type Config struct {
 	SocialAPIKey     string
 	PayURL           string
 	PayAPIKey        string
+	WalletURL        string
 	AllowedOrigins   []string
 	MaxBodyBytes     int64
 	MaxResponseBytes int64
@@ -43,6 +44,7 @@ type Gateway struct {
 	squareURL *url.URL
 	socialURL *url.URL
 	payURL    *url.URL
+	walletURL *url.URL
 	origins   map[string]struct{}
 	mu        sync.Mutex
 	visitors  map[string]visitor
@@ -78,6 +80,7 @@ func New(cfg Config) (*Gateway, error) {
 	squareURL, _ := url.Parse(cfg.SquareURL)
 	socialURL, _ := url.Parse(cfg.SocialURL)
 	payURL, _ := url.Parse(cfg.PayURL)
+	walletURL, _ := url.Parse(cfg.WalletURL)
 	origins := make(map[string]struct{}, len(cfg.AllowedOrigins))
 	for _, origin := range cfg.AllowedOrigins {
 		origins[strings.TrimSpace(origin)] = struct{}{}
@@ -92,7 +95,7 @@ func New(cfg Config) (*Gateway, error) {
 	if err != nil {
 		return nil, err
 	}
-	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, socialURL: socialURL, payURL: payURL, origins: origins, visitors: map[string]visitor{}, state: state}
+	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, socialURL: socialURL, payURL: payURL, walletURL: walletURL, origins: origins, visitors: map[string]visitor{}, state: state}
 	if !exists {
 		if err := saveState(cfg.StatePath, &gateway.state); err != nil {
 			return nil, err
@@ -117,6 +120,9 @@ func ValidateConfig(cfg Config) error {
 		}
 	}
 	if err := validateLoopbackURL("YNX_APP_GATEWAY_PAY_URL", cfg.PayURL); err != nil {
+		return err
+	}
+	if err := validateLoopbackURL("YNX_APP_GATEWAY_WALLET_URL", cfg.WalletURL); err != nil {
 		return err
 	}
 	if len(strings.TrimSpace(cfg.ChatAPIKey)) < 16 {
@@ -258,6 +264,8 @@ func (g *Gateway) upstream(service string) (*url.URL, string, string, bool) {
 			return nil, "", "", false
 		}
 		return g.socialURL, g.cfg.SocialAPIKey, "X-YNX-Social-Key", true
+	case "wallet":
+		return g.walletURL, "", "", true
 	default:
 		return nil, "", "", false
 	}
