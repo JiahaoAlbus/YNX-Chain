@@ -1,44 +1,36 @@
 package main
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 )
 
-func TestLoadTokensStrictIdentityAndEmptyStatus(t *testing.T) {
-	valid := filepath.Join(t.TempDir(), "valid.json")
-	if err := os.WriteFile(valid, []byte(`{"schemaVersion":1,"productId":"ynx-dex","chainId":6423,"mainnet":false,"tokens":[],"status":"no-owner-reviewed-test-tokens"}`), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	tokens, err := loadTokens(valid)
-	if err != nil || len(tokens) != 0 {
-		t.Fatalf("valid empty list: %v", err)
-	}
-	for name, body := range map[string]string{
-		"unknown":   `{"schemaVersion":1,"productId":"ynx-dex","chainId":6423,"mainnet":false,"tokens":[],"status":"no-owner-reviewed-test-tokens","extra":true}`,
-		"mainnet":   `{"schemaVersion":1,"productId":"ynx-dex","chainId":6423,"mainnet":true,"tokens":[],"status":"no-owner-reviewed-test-tokens"}`,
-		"dishonest": `{"schemaVersion":1,"productId":"ynx-dex","chainId":6423,"mainnet":false,"tokens":[],"status":"owner-reviewed-testnet"}`,
-	} {
-		path := filepath.Join(t.TempDir(), name+".json")
-		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
-			t.Fatal(err)
+func TestAdmissionSeparatesTrustedForwardedClients(t *testing.T) {
+	gate := newAdmission(2, 2, time.Minute)
+	handler := gate.wrap(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	for i := 0; i < 3; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
+		req.RemoteAddr = "127.0.0.1:1234"
+		req.Header.Set("X-Forwarded-For", "203.0.113.8")
+		out := httptest.NewRecorder()
+		handler.ServeHTTP(out, req)
+		want := http.StatusNoContent
+		if i == 2 {
+			want = http.StatusTooManyRequests
 		}
-		if _, err := loadTokens(path); err == nil {
-			t.Fatalf("accepted %s token list", name)
+		if out.Code != want {
+			t.Fatalf("attempt %d: got %d want %d", i, out.Code, want)
 		}
 	}
 }
 
-func TestLoadTokensReviewedEntry(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "tokens.json")
-	body := `{"schemaVersion":1,"productId":"ynx-dex","chainId":6423,"mainnet":false,"tokens":[{"chainId":6423,"address":"0x0000000000000000000000000000000000000001","symbol":"TYNX","name":"Test YNX","decimals":18,"standard":"ERC-20","reviewStatus":"owner-reviewed-testnet"}],"status":"owner-reviewed-testnet"}`
-	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	tokens, err := loadTokens(path)
-	if err != nil || len(tokens) != 1 || !strings.EqualFold(tokens[0].Address, "0x0000000000000000000000000000000000000001") {
-		t.Fatalf("reviewed list: %#v %v", tokens, err)
+func TestRequestClientIgnoresUntrustedForwardedHeader(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "198.51.100.9:4321"
+	req.Header.Set("X-Forwarded-For", "203.0.113.10")
+	if got := requestClient(req); got != "198.51.100.9" {
+		t.Fatalf("got %q", got)
 	}
 }

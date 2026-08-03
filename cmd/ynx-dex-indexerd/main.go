@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
@@ -75,7 +77,7 @@ func main() {
 			}
 		}()
 	}
-	httpServer := &http.Server{Addr: env("YNX_DEX_HTTP_ADDR", "127.0.0.1:6436"), Handler: server.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 30 * time.Second}
+	httpServer := &http.Server{Addr: env("YNX_DEX_HTTP_ADDR", "127.0.0.1:6436"), Handler: newAdmission(128, 600, time.Minute).wrap(server.Handler()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -86,6 +88,75 @@ func main() {
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+type rateWindow struct {
+	count int
+	reset time.Time
+}
+type admission struct {
+	slots   chan struct{}
+	limit   int
+	window  time.Duration
+	now     func() time.Time
+	mu      sync.Mutex
+	clients map[string]rateWindow
+}
+
+func newAdmission(maxConcurrent, limit int, window time.Duration) *admission {
+	return &admission{slots: make(chan struct{}, maxConcurrent), limit: limit, window: window, now: time.Now, clients: map[string]rateWindow{}}
+}
+
+func (a *admission) wrap(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !a.allow(requestClient(r)) {
+			w.Header().Set("Retry-After", "60")
+			http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
+			return
+		}
+		select {
+		case a.slots <- struct{}{}:
+			defer func() { <-a.slots }()
+			next.ServeHTTP(w, r)
+		default:
+			w.Header().Set("Retry-After", "1")
+			http.Error(w, "service busy", http.StatusServiceUnavailable)
+		}
+	})
+}
+
+func (a *admission) allow(client string) bool {
+	now := a.now()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	entry, ok := a.clients[client]
+	if !ok || !now.Before(entry.reset) {
+		a.clients[client] = rateWindow{count: 1, reset: now.Add(a.window)}
+		return true
+	}
+	if entry.count >= a.limit {
+		return false
+	}
+	entry.count++
+	a.clients[client] = entry
+	return true
+}
+
+func requestClient(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	ip := net.ParseIP(host)
+	if ip != nil && ip.IsLoopback() {
+		if forwarded := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0]); net.ParseIP(forwarded) != nil {
+			return forwarded
+		}
+	}
+	if ip != nil {
+		return ip.String()
+	}
+	return "unknown"
 }
 
 func envUint(key string, fallback uint64) (uint64, error) {
