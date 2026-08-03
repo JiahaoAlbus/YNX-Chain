@@ -1,0 +1,7 @@
+.auth-mark,.logo-mark{
+  background:transparent url("/ynx-logo.png") center/contain no-repeat!important;
+  color:transparent!important;
+  border-radius:0!important;
+}
+.auth-mark{width:64px!important;height:38px!important}
+.logo-mark{width:44px!important;height:28px!important}
