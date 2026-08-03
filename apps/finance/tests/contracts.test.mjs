@@ -15,7 +15,8 @@ test('product states its non-bank and non-custodial boundary',()=>{
   for(const prohibited of ['APY 8%','Guaranteed return','Visa card balance']) assert.equal(html.includes(prohibited),false);
 });
 test('wallet, real-source, export and AI review paths are wired',()=>{
-  for(const path of ['/wallet-auth/sessions','/wallet-auth/sessions/complete']) assert.ok(wallet.includes(path),path);
+  for(const path of ['/v1/wallet/sessions/complete','/v1/wallet/sessions/introspect']) assert.ok(wallet.includes(path),path);
+  assert.ok(wallet.includes('createProductSessionProof'));
   for(const path of ['/api/overview','/api/statements','/api/export?format=json','/api/ai/jobs']) assert.ok(js.includes(path),path);
   assert.equal(js.includes('/api/auth/session'),false,'legacy local auth must be absent');
   assert.ok(js.includes("sessionStorage"));

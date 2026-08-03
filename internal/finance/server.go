@@ -100,6 +100,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /read-sources.js", s.web)
 	s.mux.HandleFunc("GET /styles.css", s.web)
 	s.mux.HandleFunc("GET /manifest.webmanifest", s.web)
+	s.mux.HandleFunc("GET /ynx-logo.png", s.web)
 }
 func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, session Session) {
 	var input struct {
@@ -135,7 +136,7 @@ func (s *Server) protected(scope string, next handler) http.HandlerFunc {
 			writeError(w, http.StatusForbidden, "origin_not_allowed", "Request origin is not registered")
 			return
 		}
-		session, err := s.auth.Verify(r.Header.Get("Authorization"), scope)
+		session, err := s.auth.Verify(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "session_rejected", err.Error())
 			return
@@ -175,7 +176,6 @@ func (s *Server) allow(token, method string) bool {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request, _ Session) {
-	s.auth.Revoke(r.Header.Get("Authorization"))
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -521,7 +521,6 @@ func (s *Server) deleteAccount(w http.ResponseWriter, r *http.Request, session S
 		writeError(w, 500, "persistence_failed", err.Error())
 		return
 	}
-	s.auth.Revoke(r.Header.Get("Authorization"))
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -590,7 +589,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/app.js": "app.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest"}[r.URL.Path]
+	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/app.js": "app.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)
 		return

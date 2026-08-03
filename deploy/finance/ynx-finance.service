@@ -1,0 +1,25 @@
+[Unit]
+Description=YNX Finance public Testnet companion and API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/finance.env
+WorkingDirectory=/opt/ynx/finance-current
+ExecStart=/opt/ynx/finance-current/ynx-finance
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx/finance
+MemoryMax=768M
+TasksMax=256
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
