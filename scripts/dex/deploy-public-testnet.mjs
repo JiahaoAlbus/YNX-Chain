@@ -10,7 +10,7 @@ const [deployer]=await ethers.getSigners();
 const chainId=Number((await ethers.provider.getNetwork()).chainId);
 const expectedChain=Number(process.env.DEX_EXPECTED_CHAIN_ID||6423);
 if(chainId!==expectedChain)throw new Error(`Refusing deployment to chain ${chainId}; expected ${expectedChain}`);
-if((await ethers.provider.getBalance(deployer.address))===0n)throw new Error("Testnet deployer has no YNXT gas balance");
+if((await ethers.provider.getBalance(deployer.address.toLowerCase()))===0n)throw new Error("Testnet deployer has no YNXT gas balance");
 
 const unit=10n**18n,maxSupply=100_000_000n*unit,initialSupply=10_000_000n*unit;
 const txs=[];
