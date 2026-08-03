@@ -4,8 +4,9 @@
 **Owner:** `08-quant-lab`  
 **Contract:** `release/integration/ynx-quant-lab-contract.json`  
 **Runtime source:** `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`  
-**Evidence checkpoint:** `9ef357d6b32f25a132d7d72a4157b5d8c575d9e9`  
-**State:** Owner proposal; central acceptance and shared Testnet verification pending  
+**Evidence checkpoint:** `3bff013d86ed5682950a38b114884ce6f17c423d`
+**Owner candidate snapshot:** `apps/quant-lab/integration/owner-contract-snapshot.json`
+**State:** Owner proposal aligned to observed candidates; central acceptance and shared Testnet verification pending
 **Environment:** YNX Testnet only; live funds disabled
 
 ## What Quant owns
@@ -44,17 +45,27 @@ DEX Testnet trade.
 
 ### 02 — Wallet/Auth
 
-Provide an accepted registry entry and canonical Product Session flow for:
+A reachable owner candidate now exists at Wallet contract source
+`61df5559c647d880cc1d435bece9d89ff66a07e1`, observed on branch HEAD
+`a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f`. It is not exact-HEAD-bound or
+centrally accepted. Freeze and enable the canonical Product Session flow for:
 
-- product client `ynx-quant-lab-v1`
-- bundle `com.ynxweb4.quantlab`
+- Wallet product `quant`
+- product client `ynx-quant-v1`
+- bundle `com.ynxweb4.quant`
 - callback `ynxquant://wallet-auth/callback`
 - P-256 device challenge
-- ordered product scopes
-- five-minute session maximum
-- StrategyMandate verification, introspection, expiry and revoke propagation
+- ordered scopes `quant:account`, `quant:mandate:create`,
+  `quant:mandate:execute`, `quant:mandate:revoke`
+- Product Session v1 and HTTP proof v1
+- StrategyMandate v2 and StrategyAction v1 authorization, expiry, revoke, kill
+  and emergency-exit propagation
 - wrong-product, wrong-bundle, wrong-device, callback replacement, scope
   widening/reordering, unknown-field, future-time and replay rejection
+
+The owner candidate registration remains `pending-review` and disabled. The
+shared StrategyMandate vector and its digests are source evidence only; they
+have not been executed against Quant in the shared Testnet.
 
 Quant must receive only an attestation and bounded mandate facts. It must never
 receive a private key, Seed, withdrawal credential or owner-change authority.

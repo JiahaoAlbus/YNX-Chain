@@ -9,8 +9,9 @@
   "contractState": "owner-proposal-integration-pending",
   "integrationFreezeOwner": "29-integration",
   "sourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
-  "evidenceCommit": "9ef357d6b32f25a132d7d72a4157b5d8c575d9e9",
-  "generatedAt": "2026-07-27T00:00:00Z",
+  "evidenceCommit": "3bff013d86ed5682950a38b114884ce6f17c423d",
+  "generatedAt": "2026-07-29T03:02:39Z",
+  "ownerContractSnapshot": "apps/quant-lab/integration/owner-contract-snapshot.json",
   "network": {
     "environment": "YNX Testnet only",
     "cosmosChainId": "ynx_6423-1",
@@ -21,31 +22,44 @@
   },
   "productRegistration": {
     "registrySchemaVersion": 3,
-    "productClientId": "ynx-quant-lab-v1",
-    "bundleId": "com.ynxweb4.quantlab",
+    "productId": "quant",
+    "productClientId": "ynx-quant-v1",
+    "bundleId": "com.ynxweb4.quant",
     "callback": "ynxquant://wallet-auth/callback",
     "reviewState": "pending-review",
     "enabled": false,
     "deviceAlgorithms": ["p256-sha256"],
-    "sessionDurationSeconds": 300,
-    "mandateNonceDomain": "ynx-quant-testnet-v1"
+    "requestedSessionDurationSeconds": 300,
+    "mandateNonceDomainPattern": "ynx:strategy:<account>:<productClientId>:<mandateId>",
+    "ownerCandidateSourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
+    "ownerCandidateExactHeadBound": false,
+    "centrallyAccepted": false
   },
   "auth": {
     "owner": "02-wallet-auth",
-    "state": "not-integrated",
+    "state": "owner-candidate-observed-central-integration-pending",
+    "protocolVersions": {
+      "productSession": 1,
+      "productSessionHttpProof": 1,
+      "strategyMandate": 2,
+      "strategyAction": 1
+    },
     "requiredProductScopes": [
-      "quant:audit:read",
-      "quant:paper",
-      "quant:research",
-      "quant:testnet-execute"
+      "quant:account",
+      "quant:mandate:create",
+      "quant:mandate:execute",
+      "quant:mandate:revoke"
     ],
     "requiredGatewayRoutes": [
-      "POST /v1/wallet/session-challenges",
-      "POST /v1/wallet/sessions",
-      "POST /v1/sessions/introspect",
-      "POST /v1/wallet/mandates/verify",
+      "POST /v1/wallet/sessions/complete",
+      "POST /v1/wallet/sessions/introspect",
+      "POST /v1/wallet/sessions/revoke",
+      "POST /v1/wallet/mandates/activate",
+      "POST /v1/wallet/mandates/authorize-action",
+      "GET /v1/wallet/mandates",
       "POST /v1/wallet/mandates/revoke",
-      "GET /v1/wallet/mandates/{digest}/introspect"
+      "POST /v1/wallet/mandates/kill",
+      "POST /v1/wallet/mandates/emergency-exit"
     ],
     "failClosedConditions": [
       "unknown product or registry version",
@@ -66,18 +80,18 @@
   "walletTuple": {
     "requiredBindings": [
       "network",
-      "chainId",
-      "productId",
+      "chain",
+      "requestingProduct",
       "productClientId",
       "bundleId",
       "callback",
-      "deviceId",
-      "devicePublicKey",
+      "productDeviceAlgorithm",
+      "productDeviceKey",
       "account",
       "orderedScopes",
       "purpose",
       "nonce",
-      "createdAt",
+      "issuedAt",
       "expiresAt",
       "requestDigest",
       "approvalDigest",
@@ -86,35 +100,56 @@
   },
   "strategyMandate": {
     "owner": "02-wallet-auth for signature and revoke; 08-quant-lab for enforcement",
-    "state": "local-enforcement-tested-central-attestation-pending",
+    "state": "wallet-v2-candidate-observed-local-enforcement-tested-central-attestation-pending",
+    "schemaVersion": 2,
+    "actionSchemaVersion": 1,
+    "sharedVector": {
+      "path": "packages/wallet-auth/testdata/strategy-mandate-v2.json",
+      "mandateDigest": "132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270",
+      "actionDigest": "ba22184ba59fb7195df56128c832f26b582e9da0600f04687f234d83b31a8e45",
+      "actionNonceKey": "1d01253d409b8e4ca16085cbd5aa7893e15e778e4659b218629235b0c8dda479",
+      "executedAgainstQuant": false
+    },
     "requiredBindings": [
-      "productId",
-      "bundleId",
-      "deviceId",
+      "mandateId",
       "account",
+      "productClientId",
+      "sessionBinding",
       "strategyHash",
       "strategyVersion",
-      "venue",
-      "assets",
-      "markets",
-      "methods",
-      "scope",
-      "nonce",
+      "engineCommit",
+      "engineRelease",
+      "executionKind",
+      "executionAccount",
       "nonceDomain",
+      "allowedVenues",
+      "allowedAssets",
+      "allowedMarkets",
+      "allowedMethods",
+      "allowedContracts",
+      "allowedTargets",
       "maxCapital",
-      "maxNotional",
       "maxPosition",
-      "maxLeverage",
+      "maxLeverageBps",
       "maxOrder",
-      "maxSlippage",
+      "maxSlippageBps",
       "maxGas",
-      "maxFrequency",
-      "maxDailyLoss",
-      "maxDrawdown",
+      "maxFrequencyPerHour",
+      "dailyLossLimit",
+      "drawdownLimit",
+      "noWithdraw",
+      "ownerChangeAllowed",
+      "arbitraryTransferAllowed",
+      "unlimitedApprovalAllowed",
+      "killSwitch",
+      "revoke",
+      "emergencyExit",
+      "testnetNoValue",
+      "issuedAt",
       "expiresAt",
-      "testnetOnly",
-      "revokeEndpoint",
-      "killSwitch"
+      "source",
+      "asOf",
+      "version"
     ],
     "assetBoundaries": {
       "exchange": "User-owned Exchange subaccount; no-withdraw API wallet only",
@@ -194,15 +229,31 @@
   },
   "marketData": {
     "owner": "19-oracle-market-data",
-    "state": "adapter-boundary-tested-owner-provider-pending",
-    "requiredFields": ["source", "asOf", "version", "coverage", "confidence", "stale", "failure"],
-    "requiredInputs": ["historical bars", "latest matched-trade tick", "order-book or liquidity observation", "funding and fee inputs when applicable", "Oracle freshness and venue health"],
-    "failClosedConditions": ["missing source", "future timestamp", "stale timestamp", "nonpositive price", "insufficient coverage", "provider failure", "unaccepted correction lineage"]
+    "state": "oracle-v1-candidate-observed-adapter-boundary-tested-central-acceptance-pending",
+    "contractId": "ynx-oracle-market-data-v1",
+    "ownerCandidateSourceCommit": "f71d5ca5c2ede28477fbadff36701a9f040e311f",
+    "schema": "ynx.oracle.v1",
+    "aggregationPolicy": "weighted-median-mad-v1",
+    "derivativesPolicy": "index-funding-mark-v1",
+    "requiredFields": ["schema", "market", "type", "source", "version", "asOf", "confidencePpm", "coveragePpm", "stale", "quality.status", "quality.circuitBreaker", "quality.failure", "lineageHash"],
+    "requiredInputs": ["historical bars", "latest matched-trade tick", "order-book or liquidity observation", "funding and fee inputs when applicable", "Oracle freshness and venue health", "correction lineage"],
+    "failClosedConditions": ["missing source", "future timestamp", "stale timestamp", "nonpositive price", "insufficient coverage", "divergent quality", "circuit breaker", "provider failure", "unaccepted correction lineage", "last-good value relabeled fresh"],
+    "ownerReportedPublicTestnetDoesNotProveQuantIntegration": true
   },
   "canonicalEvents": {
     "owner": "08-quant-lab until 26-data-fabric and 29-integration acceptance",
-    "schemaState": "local-audit-events-not-yet-central-canonical",
-    "events": [
+    "schemaState": "data-fabric-v2-candidate-mapping-observed-not-central-canonical",
+    "ownerCandidateSourceCommit": "3a1bcceddc9e680761ce9563bb3d6cd823037222",
+    "eventEnvelopeVersion": "2.0",
+    "candidateMapping": {
+      "path": "integration/product-event-contracts.json",
+      "aggregate": "mandate",
+      "saga": "quant-mandate-pnl-fee-kill-switch",
+      "authority": "ynx-quant",
+      "eventTypes": ["quant.mandate.activated", "quant.pnl.recorded", "quant.fee.posted", "quant.kill_switch.activated"],
+      "integratedCentral": false
+    },
+    "localEvidenceEvents": [
       "dataset_registered",
       "strategy_drafted",
       "strategy_research_validated",
@@ -259,15 +310,15 @@
   },
   "dependencies": [
     {"product": "01-chain-core", "need": "YNX Testnet finality, receipts, Faucet, account and transaction proof", "acceptance": "pending"},
-    {"product": "02-wallet-auth", "need": "Product Session, mandate verification, expiry and revoke propagation", "acceptance": "pending"},
-    {"product": "07-exchange", "need": "no-withdraw subaccount transport, terminal order/fill receipts and authoritative reconciliation", "acceptance": "pending"},
+    {"product": "02-wallet-auth", "need": "Product Session, mandate verification, expiry and revoke propagation", "candidateContract": "wallet-auth-contract.json@61df5559c647d880cc1d435bece9d89ff66a07e1", "candidateState": "reachable-not-head-bound-pending-review-disabled", "acceptance": "pending"},
+    {"product": "07-exchange", "need": "no-withdraw subaccount transport, terminal order/fill receipts and authoritative reconciliation", "candidateContract": "exchange-contract.json@42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d", "candidateState": "reachable-not-head-bound-terminal-receipt-schema-pending", "acceptance": "pending"},
     {"product": "12-explorer", "need": "public transaction, order/fill, mandate/risk and release proof", "acceptance": "pending"},
     {"product": "13-monitor", "need": "risk, kill switch, pending-unknown, reconciliation and incident integration", "acceptance": "pending"},
     {"product": "15-trust-center", "need": "mandate-overreach, incorrect fee/PnL and appeal evidence path", "acceptance": "pending"},
-    {"product": "19-oracle-market-data", "need": "accepted historical/live market data and freshness/quality semantics", "acceptance": "pending"},
+    {"product": "19-oracle-market-data", "need": "accepted historical/live market data and freshness/quality semantics", "candidateContract": "oracle-market-data-contract.json@f71d5ca5c2ede28477fbadff36701a9f040e311f", "candidateState": "reachable-not-head-bound-public-owner-smoke-not-quant-accepted", "acceptance": "pending"},
     {"product": "24-finance", "need": "read-only user PnL and strategy activity views", "acceptance": "pending"},
-    {"product": "26-data-fabric", "need": "canonical event and billing/PnL ledger acceptance", "acceptance": "pending"},
-    {"product": "27-dex", "need": "Strategy Vault transport, terminal swap/LP/rebalance and emergency-exit receipts", "acceptance": "pending"},
+    {"product": "26-data-fabric", "need": "canonical event and billing/PnL ledger acceptance", "candidateContract": "ynx-data-fabric-contract.json@3a1bcceddc9e680761ce9563bb3d6cd823037222", "candidateState": "reachable-not-head-bound-v2-quant-mapping-not-central", "acceptance": "pending"},
+    {"product": "27-dex", "need": "Strategy Vault transport, terminal swap/LP/rebalance and emergency-exit receipts", "candidateContract": "ynx-dex-contract.json@7d61369e02ab4d50a9fc36c927dc487e47ce9814", "candidateState": "reachable-not-head-bound-not-deployed-terminal-receipt-schema-pending", "acceptance": "pending"},
     {"product": "29-integration", "need": "protocol freeze, shared Testnet environment and cross-product evidence", "acceptance": "pending"},
     {"product": "30-security-sre-release", "need": "release, artifact, deployment, backup, scan and public evidence gates", "acceptance": "pending"}
   ],
@@ -310,7 +361,25 @@
       "id": "QUANT-CONFLICT-002",
       "state": "open",
       "description": "Local audit event names are not yet accepted Data Fabric canonical event schemas.",
-      "migration": "map to one accepted event version through 26-data-fabric and 29-integration; do not maintain two long-lived canonical schemas"
+      "migration": "map to the observed Data Fabric v2 Quant candidate after 26-data-fabric and 29-integration acceptance; do not maintain two long-lived canonical schemas"
+    },
+    {
+      "id": "QUANT-CONFLICT-003",
+      "state": "migration-prepared-central-acceptance-pending",
+      "description": "The earlier Quant Wallet proposal used ynx-quant-lab-v1, com.ynxweb4.quantlab and research/paper scopes, while the reachable Wallet owner candidate uses ynx-quant-v1, com.ynxweb4.quant and mandate lifecycle scopes.",
+      "migration": "Quant-owned registry, contract and vectors now use the Wallet owner candidate identifiers while remaining pending-review, disabled and not centrally integrated"
+    },
+    {
+      "id": "QUANT-CONFLICT-004",
+      "state": "open-owner-correction-required",
+      "description": "The Oracle owner contract dependency list names product 09 as DEX, but current ecosystem ownership assigns DEX to product 27.",
+      "migration": "19-oracle-market-data and 29-integration must publish one corrected owner identifier before protocol freeze"
+    },
+    {
+      "id": "QUANT-CONFLICT-005",
+      "state": "open",
+      "description": "Observed owner contract source commits are reachable ancestors but do not equal their current product branch heads.",
+      "migration": "29-integration must freeze exact accepted source commits; Quant must not infer acceptance from branch reachability"
     }
   ]
 }
