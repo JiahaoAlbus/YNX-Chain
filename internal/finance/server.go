@@ -136,7 +136,7 @@ func (s *Server) protected(scope string, next handler) http.HandlerFunc {
 			writeError(w, http.StatusForbidden, "origin_not_allowed", "Request origin is not registered")
 			return
 		}
-		session, err := s.auth.Verify(r.Header.Get("Authorization"), scope)
+		session, err := s.auth.Verify(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "session_rejected", err.Error())
 			return
@@ -176,7 +176,6 @@ func (s *Server) allow(token, method string) bool {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request, _ Session) {
-	s.auth.Revoke(r.Header.Get("Authorization"))
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -522,7 +521,6 @@ func (s *Server) deleteAccount(w http.ResponseWriter, r *http.Request, session S
 		writeError(w, 500, "persistence_failed", err.Error())
 		return
 	}
-	s.auth.Revoke(r.Header.Get("Authorization"))
 	w.WriteHeader(http.StatusNoContent)
 }
 

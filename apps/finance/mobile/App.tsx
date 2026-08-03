@@ -9,6 +9,7 @@ import {AIJob,FinanceAPI,Overview,Privacy,ReadSource} from './src/api';
 import {Locale,formatDate,formatYNXT,locales,messages,normalizeLocale} from './src/i18n';
 import {clearToken,defaultSettings,loadCache,loadSettings,saveCache,saveSettings,saveToken,token} from './src/storage';
 import {completeWallet,startWallet} from './src/wallet';
+import type {CentralWalletSession} from '@ynx-chain/wallet-auth';
 
 type Tab='overview'|'activity'|'plan'|'reports'|'ai'|'settings';
 type AIKind='categorize'|'explain_fees'|'draft_budget'|'detect_anomalies'|'explain_recurring';
@@ -26,7 +27,7 @@ export default function App(){
   const {width}=useWindowDimensions();
   const [settings,setSettings]=useState(defaultSettings);
   const palette=settings.theme==='system'?(system==='dark'?dark:light):(settings.theme==='dark'?dark:light);
-  const [session,setSession]=useState<string|null>(null),[data,setData]=useState<Overview|null>(null),[cached,setCached]=useState(false),[busy,setBusy]=useState(true),[error,setError]=useState('');
+  const [session,setSession]=useState<CentralWalletSession|null>(null),[data,setData]=useState<Overview|null>(null),[cached,setCached]=useState(false),[busy,setBusy]=useState(true),[error,setError]=useState('');
   const [tab,setTab]=useState<Tab>('overview'),[review,setReview]=useState<Record<string,unknown>|null>(null),[audit,setAudit]=useState<Array<Record<string,unknown>>>([]);
   const [name,setName]=useState(''),[amount,setAmount]=useState(''),[categoryId,setCategoryId]=useState(''),[note,setNote]=useState(''),[noteRecord,setNoteRecord]=useState('');
   const [selected,setSelected]=useState<string[]>([]),[aiKind,setAIKind]=useState<AIKind>('detect_anomalies'),[aiConsent,setAIConsent]=useState(false),[aiJob,setAIJob]=useState<AIJob|null>(null);
@@ -35,9 +36,9 @@ export default function App(){
   const maxWidth=Math.min(width,860);
 
   const refresh=async()=>{if(!api)return;setBusy(true);setError('');try{const next=await api.overview();setData(next);setCached(false);if(!categoryId&&next.profile.categories[0])setCategoryId(next.profile.categories[0].id);await saveCache(next)}catch(value){setError(messageOf(value));const saved=await loadCache();if(saved?.data){setData(saved.data as Overview);setCached(true)}}finally{setBusy(false)}};
-  useEffect(()=>{void(async()=>{const loaded=await loadSettings();setSettings(loaded);setSession(await token());const saved=await loadCache();if(saved?.data){setData(saved.data as Overview);setCached(true)}setBusy(false)})()},[]);
+  useEffect(()=>{void(async()=>{const loaded=await loadSettings();setSettings(loaded);const stored=await token();if(stored){try{const parsed=JSON.parse(stored) as CentralWalletSession;if(Date.parse(parsed.expiresAt)>Date.now())setSession(parsed);else await clearToken()}catch{await clearToken()}}const saved=await loadCache();if(saved?.data){setData(saved.data as Overview);setCached(true)}setBusy(false)})()},[]);
   useEffect(()=>{if(api)void refresh()},[api]);
-  useEffect(()=>{const handle=async({url}:{url:string})=>{try{setBusy(true);setError('');const out=await completeWallet(url,settings.apiBase);if(!out.token)throw new Error('Central Gateway returned no Finance session token');await saveToken(out.token);setSession(out.token)}catch(value){setError(messageOf(value))}finally{setBusy(false)}};const sub=Linking.addEventListener('url',handle);void Linking.getInitialURL().then(url=>{if(url?.includes('wallet-auth/callback'))return handle({url})});return()=>sub.remove()},[settings.apiBase]);
+  useEffect(()=>{const handle=async({url}:{url:string})=>{try{setBusy(true);setError('');const out=await completeWallet(url);await saveToken(JSON.stringify(out));setSession(out)}catch(value){setError(messageOf(value))}finally{setBusy(false)}};const sub=Linking.addEventListener('url',handle);void Linking.getInitialURL().then(url=>{if(url?.includes('wallet-auth/callback'))return handle({url})});return()=>sub.remove()},[]);
 
   const persist=async(next:typeof settings)=>{setSettings(next);await saveSettings(next)};
   const mutate=async(work:()=>Promise<unknown>)=>{try{setBusy(true);setError('');await work();await refresh()}catch(value){setError(messageOf(value));setBusy(false)}};

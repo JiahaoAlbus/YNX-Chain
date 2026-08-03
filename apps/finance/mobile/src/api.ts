@@ -14,9 +14,10 @@ export type Support={helpUrl:string;privacyUrl:string;disputeUrl:string};
 export type Overview={portfolio:{account:string;network:string;symbol:string;balanceYnxt:number;stakedYnxt:number;activity:Activity[];payReceipts:PayReceipt[];explorerStatus:SourceStatus;payStatus:SourceStatus;readSources:Record<string,ReadSource>;asOf:string;readOnly:boolean};profile:{categories:Category[];budgets:Budget[];reminders:Reminder[];notes:Note[];privacy:Privacy;aiJobs:AIJob[]};budgetProgress:BudgetProgress[];alerts:Array<Record<string,unknown>>;support:Support;boundaries:Record<string,unknown>};
 
 export class FinanceAPI{
-  constructor(readonly base:string,readonly session:string){}
+  constructor(readonly base:string,readonly session:CentralWalletSession){}
+  private scope(path:string){if(path.startsWith('/api/ai/'))return 'finance.ai.draft';if(['/api/categories','/api/budgets','/api/reminders','/api/notes','/api/privacy','/api/account'].some(value=>path.startsWith(value))||path.includes('/category'))return 'finance.profile.write';return 'finance.portfolio.read'}
   private async response(path:string,init?:RequestInit){
-    const response=await fetch(this.base.replace(/\/$/,'')+path,{...init,headers:{'Content-Type':'application/json','Authorization':`Bearer ${this.session}`,...init?.headers}});
+    const response=await fetch(this.base.replace(/\/$/,'')+path,{...init,headers:{'Content-Type':'application/json','X-YNX-Product-Session-Proof':await gatewayProof(this.session,this.scope(path)),...init?.headers}});
     if(!response.ok)throw new Error(`${response.status}: ${(await response.text()).slice(0,200)}`);
     return response;
   }
@@ -37,3 +38,5 @@ export class FinanceAPI{
   cancelAI(id:string){return this.create<AIJob>(`/api/ai/jobs/${encodeURIComponent(id)}/cancel`,{})}
   deleteAccount(){return this.call('/api/account',{method:'DELETE',body:JSON.stringify({confirmation:'DELETE FINANCE DATA'})})}
 }
+import type {CentralWalletSession} from '@ynx-chain/wallet-auth';
+import {gatewayProof} from './wallet';

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -32,9 +33,9 @@ type Session struct {
 // Authenticator accepts only opaque sessions issued by the canonical Wallet
 // Gateway. It deliberately has no local assertion or fallback session.
 type Authenticator struct {
-	introspectionURL, revocationURL, internalKey, clientID, bundleID string
-	client                                                           *http.Client
-	now                                                              func() time.Time
+	introspectionURL, clientID, bundleID string
+	client                               *http.Client
+	now                                  func() time.Time
 }
 
 func NewAuthenticator(gatewayURL, internalKey, clientID, bundleID string) (*Authenticator, error) {
@@ -48,17 +49,20 @@ func NewAuthenticator(gatewayURL, internalKey, clientID, bundleID string) (*Auth
 		return nil, errors.New("canonical Finance client or bundle binding is invalid")
 	}
 	base := strings.TrimRight(gatewayURL, "/")
-	return &Authenticator{introspectionURL: base + "/wallet-auth/introspect", revocationURL: base + "/wallet-auth/revoke", internalKey: internalKey, clientID: clientID, bundleID: bundleID, client: &http.Client{Timeout: 5 * time.Second}, now: time.Now}, nil
+	return &Authenticator{introspectionURL: base + "/v1/wallet/sessions/introspect", clientID: clientID, bundleID: bundleID, client: &http.Client{Timeout: 5 * time.Second}, now: time.Now}, nil
 }
 
-func (a *Authenticator) Verify(header, scope string) (Session, error) {
-	token := strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
-	if token == "" || token == header || len(token) > 2048 {
-		return Session{}, errors.New("canonical bearer session required")
+func (a *Authenticator) Verify(proof, scope string) (Session, error) {
+	proof = strings.TrimSpace(proof)
+	if proof == "" || len(proof) > 8192 {
+		return Session{}, errors.New("canonical Product Session proof required")
 	}
-	req, _ := http.NewRequest(http.MethodPost, a.introspectionURL, bytes.NewReader([]byte("{}")))
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("X-YNX-Finance-Internal-Key", a.internalKey)
+	body, _ := json.Marshal(map[string]any{"requiredScopes": []string{scope}})
+	if scope == "" {
+		body = []byte(`{"requiredScopes":[]}`)
+	}
+	req, _ := http.NewRequest(http.MethodPost, a.introspectionURL, bytes.NewReader(body))
+	req.Header.Set("X-YNX-Product-Session-Proof", proof)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := a.client.Do(req)
 	if err != nil {
@@ -68,23 +72,27 @@ func (a *Authenticator) Verify(header, scope string) (Session, error) {
 	if resp.StatusCode != http.StatusOK {
 		return Session{}, errors.New("central Wallet session is missing, expired, or revoked")
 	}
-	var raw struct {
-		Verifier       string   `json:"verifierVersion"`
-		SessionBinding string   `json:"sessionBinding"`
-		ProductClient  string   `json:"productClientId"`
-		BundleID       string   `json:"bundleId"`
-		RequestDigest  string   `json:"requestDigest"`
-		Account        string   `json:"account"`
-		Scopes         []string `json:"scopes"`
-		IssuedAt       string   `json:"issuedAt"`
-		ExpiresAt      string   `json:"expiresAt"`
+	var envelope struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			Active  bool `json:"active"`
+			Session struct {
+				Verifier       string   `json:"verifierVersion"`
+				SessionBinding string   `json:"sessionBinding"`
+				ProductClient  string   `json:"productClientId"`
+				BundleID       string   `json:"bundleId"`
+				RequestDigest  string   `json:"requestDigest"`
+				Account        string   `json:"account"`
+				Scopes         []string `json:"scopes"`
+				ExpiresAt      string   `json:"expiresAt"`
+			} `json:"session"`
+		} `json:"result"`
 	}
-	dec := json.NewDecoder(resp.Body)
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&raw); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&envelope); err != nil || !envelope.OK || !envelope.Result.Active {
 		return Session{}, errors.New("central Wallet session response is invalid")
 	}
-	expiresAt, err := time.Parse(time.RFC3339, raw.ExpiresAt)
+	raw := envelope.Result.Session
+	expiresAt, err := time.Parse(time.RFC3339Nano, raw.ExpiresAt)
 	if err != nil || !expiresAt.After(a.now().UTC()) || raw.Verifier != "wallet-auth-v1" || raw.ProductClient != a.clientID || raw.BundleID != a.bundleID || len(raw.SessionBinding) != 64 || len(raw.RequestDigest) != 64 {
 		return Session{}, errors.New("central Wallet session binding is invalid")
 	}
@@ -99,21 +107,7 @@ func (a *Authenticator) Verify(header, scope string) (Session, error) {
 	if !contains(raw.Scopes, "finance.portfolio.read") || (scope != "" && !contains(raw.Scopes, scope)) {
 		return Session{}, fmt.Errorf("central Wallet session lacks %s scope", scope)
 	}
-	return Session{Token: token, Verifier: raw.Verifier, SessionBinding: raw.SessionBinding, ProductClient: raw.ProductClient, BundleID: raw.BundleID, RequestDigest: raw.RequestDigest, Account: account, Scopes: raw.Scopes, ExpiresAt: expiresAt}, nil
-}
-
-func (a *Authenticator) Revoke(header string) {
-	token := strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
-	if token == "" || token == header {
-		return
-	}
-	req, _ := http.NewRequest(http.MethodPost, a.revocationURL, bytes.NewReader([]byte("{}")))
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("X-YNX-Finance-Internal-Key", a.internalKey)
-	resp, err := a.client.Do(req)
-	if err == nil {
-		resp.Body.Close()
-	}
+	return Session{Token: raw.SessionBinding, Verifier: raw.Verifier, SessionBinding: raw.SessionBinding, ProductClient: raw.ProductClient, BundleID: raw.BundleID, RequestDigest: raw.RequestDigest, Account: account, Scopes: raw.Scopes, ExpiresAt: expiresAt}, nil
 }
 
 func validateScopes(scopes []string) error {

@@ -30,14 +30,14 @@ func (f fakeAI) Stream(_ context.Context, _ AIRequest, emit func(string)) (map[s
 
 func TestCentralSessionFailsClosedOnProductTamper(t *testing.T) {
 	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewEncoder(w).Encode(testCentralSession(map[string]any{"bundleId": "evil.bundle"}))
+		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{"active": true, "session": testCentralSession(map[string]any{"bundleId": "evil.bundle"})}})
 	}))
 	defer central.Close()
 	auth, err := NewAuthenticator(central.URL, strings.Repeat("i", 32), "ynx-finance-v1", "com.ynxweb4.finance")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := auth.Verify("Bearer central-token", "finance.portfolio.read"); err == nil || !strings.Contains(err.Error(), "binding") {
+	if _, err := auth.Verify("central-product-proof", "finance.portfolio.read"); err == nil || !strings.Contains(err.Error(), "binding") {
 		t.Fatalf("expected product binding rejection, got %v", err)
 	}
 }
@@ -292,15 +292,11 @@ func testCentralSession(overrides map[string]any) map[string]any {
 func testAuthenticator(t *testing.T, token string) (*Authenticator, Session) {
 	t.Helper()
 	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/wallet-auth/revoke" {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		if r.URL.Path != "/wallet-auth/introspect" || r.Header.Get("X-YNX-Finance-Internal-Key") != strings.Repeat("i", 32) || r.Header.Get("Authorization") != "Bearer "+token {
+		if r.URL.Path != "/v1/wallet/sessions/introspect" || r.Header.Get("X-YNX-Product-Session-Proof") != token {
 			http.Error(w, "rejected", http.StatusUnauthorized)
 			return
 		}
-		_ = json.NewEncoder(w).Encode(testCentralSession(nil))
+		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{"active": true, "session": testCentralSession(nil)}})
 	}))
 	t.Cleanup(central.Close)
 	auth, err := NewAuthenticator(central.URL, strings.Repeat("i", 32), "ynx-finance-v1", "com.ynxweb4.finance")
@@ -336,7 +332,7 @@ func authorizedRequest(endpoint, method string, body any, token, origin string) 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-YNX-Product-Session-Proof", token)
 	if origin != "" {
 		req.Header.Set("Origin", origin)
 	}
