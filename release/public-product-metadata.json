@@ -1,62 +1,40 @@
 {
-  "schemaVersion": "1.0.0",
-  "name": "YNX Chain",
-  "alternateNames": ["YNX", "YNX Web4", "YNXWeb4"],
-  "description": "YNX Chain is a Web4 Layer-1 ecosystem. Its currently documented public network is YNX Testnet, whose native Testnet asset is YNXT.",
-  "canonicalUrl": "https://ynxweb4.com/what-is-ynx-chain",
-  "siteUrl": "https://ynxweb4.com",
-  "title": "YNX Chain — Web4 Layer-1 Ecosystem",
-  "metaDescription": "Learn what YNX Chain, YNX Web4, YNXT, and YNX Testnet are, with evidence-linked technical, security, economic, and risk disclosures.",
-  "h1": "YNX Chain",
-  "brand": {
-    "primaryColor": "#002FA7",
-    "backgroundColor": "#FFFFFF",
-    "logo": "/assets/brand/ynx-logo.png"
+  "schemaVersion": "ynx-public-product-metadata/v1",
+  "productId": "02",
+  "product": "YNX Wallet / Auth",
+  "slug": "wallet-auth",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+  "name": "YNX Wallet",
+  "aliases": ["YNX Auth", "YNX Web4 Identity"],
+  "canonicalRoute": "/wallet",
+  "canonicalUrl": "https://ynxweb4.com/wallet",
+  "title": "YNX Wallet — Web4 identity and Testnet signing",
+  "metaDescription": "A self-custody Testnet wallet for YNX identity, product-scoped sessions, exact transaction review, revocation and recovery.",
+  "h1": "Your YNX identity and signing root",
+  "features": ["Self-custody accounts","Product-scoped sessions","Exact permission review","Signed Testnet transfers","Recovery and revocation"],
+  "risks": ["Testnet assets have no represented real-world value.","Recovery material cannot be restored by YNX.","Smart Account and capital candidates are not centrally deployed."],
+  "status": {
+    "channel": "testnet-engineering-preview",
+    "contentPublicVerified": true,
+    "walletRuntimeDeployed": false,
+    "productionSigned": false,
+    "storeReleased": false
   },
-  "network": {
-    "name": "YNX Testnet",
-    "evmChainId": 6423,
-    "evmChainIdHex": "0x1917",
-    "cosmosChainId": "ynx_6423-1",
-    "nativeAsset": "YNXT",
-    "status": "public-testnet-candidate"
+  "sourceCandidate": {
+    "tag": "wallet-auth-v1.0.0-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-auth-v1.0.0-source-candidate",
+    "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+    "sourceArchiveSha256": "e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db",
+    "sourceOnly": true
   },
-  "disambiguation": [
-    "YNX Chain is a Web4 Layer-1 ecosystem.",
-    "YNX Web4 is the application ecosystem powered by YNX Chain.",
-    "YNXT is the native Testnet asset.",
-    "YNX Testnet uses EVM Chain ID 6423.",
-    "YNX is not affiliated with unrelated Lynx-branded products."
-  ],
-  "features": [
-    "EVM-compatible Testnet interfaces",
-    "Multi-validator consensus candidate",
-    "Wallet, developer, explorer, payment, trust, resource, and application candidates",
-    "Evidence-oriented operational and security controls"
-  ],
-  "risks": [
-    "YNX Testnet assets have no represented monetary value or guaranteed liquidity.",
-    "Mainnet launch, production signing, store distribution, third-party audits, and regulatory approval are not implied.",
-    "Product availability and public deployment differ by component and require component-specific evidence."
-  ],
-  "releaseStatus": "documentation-candidate",
   "downloads": [
-    {
-      "type": "documentation-bundle",
-      "manifestUrl": "https://ynxweb4.com/docs-authority/artifact-manifest.json",
-      "status": "hosted-unsigned-candidate",
-      "productionSigned": false
-    }
+    {"platform":"android","signingClass":"local-test-signed","url":"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-Android-test-da82c8b.apk","sha256":"3d7dd0b349721f2364a2ec0519269bee2933c8b718ba26fc68e7e3354ae15256"},
+    {"platform":"ios-simulator","signingClass":"unsigned-simulator-build","url":"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-iOS-Simulator-da82c8b.zip","sha256":"1396a275c90b1333c8cda80acf4428553e995cdcc87f8eaa3baf11fbfc7b3a43"}
   ],
-  "urls": {
-    "support": "https://ynxweb4.com/support",
-    "privacy": "https://ynxweb4.com/privacy",
-    "security": "https://ynxweb4.com/security",
-    "status": "https://ynxweb4.com/status"
-  },
-  "faqRoutes": ["/faq", "/what-is-ynx-chain", "/what-is-ynx-web4", "/what-is-ynxt", "/testnet"],
-  "structuredDataSuggestions": ["Organization", "WebSite", "SoftwareApplication", "TechArticle", "FAQPage", "BreadcrumbList"],
-  "lastUpdated": "2026-07-27",
-  "sourceCommit": "2e3c893c7c97e7bc713af4e9a74438ffd125289f",
-  "evidenceStatus": "direct-public-candidate"
+  "supportUrl": "https://ynxweb4.com/support",
+  "privacyUrl": "https://ynxweb4.com/privacy",
+  "securityUrl": "https://ynxweb4.com/security",
+  "statusUrl": "https://ynxweb4.com/status",
+  "structuredDataSuggestion": {"type":"SoftwareApplication","applicationCategory":"FinanceApplication","operatingSystem":"Android, iOS"}
 }

@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">Seus dados da Shop</string>
+    <string name="privacy_data_description">Exporte perfil, carrinho, pedidos, registros de IA e histórico de auditoria do comprador. A exclusão remove perfil, endereços, carrinho e registros de IA, e pseudonimiza pedidos em estado terminal. Endereços de liquidação e evidências de transação na cadeia pública continuam verificáveis.</string>
+    <string name="privacy_export_button">Exportar dados da Shop</string>
+    <string name="privacy_export_ready">A exportação dos dados da Shop está pronta.</string>
+    <string name="privacy_export_unavailable">A exportação dos dados da Shop está indisponível.</string>
+    <string name="privacy_share_label">Salvar JSON dos dados da Shop</string>
+    <string name="privacy_delete_button">Excluir dados pessoais da Shop</string>
+    <string name="privacy_delete_warning">Fluxos ativos de pagamento, atendimento, devolução, reembolso ou disputa devem chegar a um estado terminal antes da exclusão. Pedidos finalizados são pseudonimizados; a evidência oficial de liquidação na cadeia pública permanece retida.</string>
+    <string name="privacy_delete_action">Excluir</string>
+    <string name="privacy_exact_required">Digite exatamente a frase de confirmação de exclusão.</string>
+    <string name="privacy_deleted">Os dados pessoais da Shop foram excluídos. Pedidos terminais foram pseudonimizados e a evidência de liquidação na cadeia pública permanece retida.</string>
+    <string name="privacy_delete_failed">A exclusão não foi concluída. Fluxos ativos ainda podem precisar de resolução.</string>
+</resources>

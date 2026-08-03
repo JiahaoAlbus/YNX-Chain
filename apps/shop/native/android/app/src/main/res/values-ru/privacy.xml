@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">Ваши данные Shop</string>
+    <string name="privacy_data_description">Экспортируйте профиль, корзину, заказы, записи ИИ и журнал аудита покупателя. При удалении стираются профиль, адреса, корзина и записи ИИ, а завершённые заказы псевдонимизируются. Адреса расчётов и доказательства транзакций в публичной сети остаются проверяемыми.</string>
+    <string name="privacy_export_button">Экспортировать данные Shop</string>
+    <string name="privacy_export_ready">Экспорт данных Shop готов.</string>
+    <string name="privacy_export_unavailable">Экспорт данных Shop недоступен.</string>
+    <string name="privacy_share_label">Сохранить JSON данных Shop</string>
+    <string name="privacy_delete_button">Удалить персональные данные Shop</string>
+    <string name="privacy_delete_warning">Активные процессы оплаты, исполнения, возврата, возмещения или спора должны перейти в конечное состояние до удаления. Завершённые заказы псевдонимизируются; официальный расчётный материал публичной сети сохраняется.</string>
+    <string name="privacy_delete_action">Удалить</string>
+    <string name="privacy_exact_required">Введите точную фразу подтверждения удаления.</string>
+    <string name="privacy_deleted">Персональные данные Shop удалены. Завершённые заказы псевдонимизированы; доказательства расчётов в публичной сети сохранены.</string>
+    <string name="privacy_delete_failed">Удаление не завершено. Возможно, сначала нужно завершить активные процессы.</string>
+</resources>

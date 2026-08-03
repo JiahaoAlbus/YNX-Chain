@@ -7,7 +7,7 @@ import { parseSquareCommentResult, parseSquareFollowResult, parseSquareNotificat
 
 const PRODUCT = process.env.EXPO_PUBLIC_YNX_PRODUCT;
 const CLIENT = PRODUCT === "social" ? "ynx-social-v1" : PRODUCT === "wallet" ? "ynx-wallet-v1" : "ynx-mobile-v1";
-const BINDING = PRODUCT === "social" ? "ynx-social://com.ynxweb4.social" : PRODUCT === "wallet" ? "ynx-wallet://com.ynxweb4.wallet" : "ynx-mobile://com.ynxweb4.mobile";
+const BINDING = PRODUCT === "social" ? "ynx-social://com.ynx.social" : PRODUCT === "wallet" ? "ynx-wallet://com.ynxweb4.wallet" : "ynx-mobile://com.ynxweb4.mobile";
 
 type Session = { token: string; expiresAt: string };
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;

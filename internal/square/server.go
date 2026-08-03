@@ -92,6 +92,18 @@ func (s *Server) square(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch {
+	case len(parts) == 3 && parts[0] == "square" && parts[1] == "privacy" && parts[2] == "export" && r.Method == http.MethodGet:
+		writeJSON(w, http.StatusOK, s.service.ExportAccount(actor))
+	case len(parts) == 3 && parts[0] == "square" && parts[1] == "privacy" && parts[2] == "delete" && r.Method == http.MethodDelete:
+		if r.Header.Get("X-YNX-Confirm-Delete") != "DELETE MY SQUARE DATA" {
+			writeServiceError(w, fmt.Errorf("%w: explicit Square deletion confirmation required", ErrInvalid))
+			return
+		}
+		if err := s.service.DeleteAccount(actor); err != nil {
+			writeServiceError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
 	case len(parts) == 4 && parts[0] == "square" && parts[1] == "devices" && parts[3] == "revoke" && r.Method == http.MethodPost:
 		record, err := s.service.RevokeDevice(actor, parts[2])
 		writeRecord(w, record, err)

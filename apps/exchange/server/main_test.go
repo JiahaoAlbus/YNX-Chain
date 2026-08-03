@@ -1,0 +1,36 @@
+package main
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+)
+
+func TestAdmissionRateLimitAndTrustedForwardedClient(t *testing.T) {
+	gate := newAdmission(2, 2, time.Minute)
+	handler := gate.wrap(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	for attempt := 0; attempt < 3; attempt++ {
+		req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
+		req.RemoteAddr = "127.0.0.1:1234"
+		req.Header.Set("X-Forwarded-For", "203.0.113.8")
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, req)
+		want := http.StatusNoContent
+		if attempt == 2 {
+			want = http.StatusTooManyRequests
+		}
+		if res.Code != want {
+			t.Fatalf("attempt %d: got %d want %d", attempt, res.Code, want)
+		}
+	}
+}
+
+func TestRequestClientIgnoresUntrustedForwardedHeader(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "198.51.100.9:4321"
+	req.Header.Set("X-Forwarded-For", "203.0.113.10")
+	if got := requestClient(req); got != "198.51.100.9" {
+		t.Fatalf("got %q", got)
+	}
+}

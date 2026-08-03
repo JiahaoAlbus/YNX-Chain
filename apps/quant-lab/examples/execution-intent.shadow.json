@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "ynx.quant.execution.v1",
+  "requestId": "shadow-doc-intent-001",
+  "strategyHash": "e97ecad280d90d6059e8b2cfd9422d84cae36e16709aaa39bbdec3f79f90f8f3",
+  "market": "YNXT-YUSD_TEST",
+  "side": "buy",
+  "amount": 1000000,
+  "limitPrice": 1000000,
+  "expectedSequence": 1,
+  "createdAt": "2026-07-23T00:00:00Z"
+}

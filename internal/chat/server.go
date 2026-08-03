@@ -93,6 +93,18 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch {
+	case len(parts) == 3 && parts[0] == "chat" && parts[1] == "privacy" && parts[2] == "export" && r.Method == http.MethodGet:
+		writeJSON(w, http.StatusOK, s.service.ExportAccount(actor))
+	case len(parts) == 3 && parts[0] == "chat" && parts[1] == "privacy" && parts[2] == "delete" && r.Method == http.MethodDelete:
+		if r.Header.Get("X-YNX-Confirm-Delete") != "DELETE MY CHAT DATA" {
+			writeServiceError(w, fmt.Errorf("%w: explicit Chat deletion confirmation required", ErrInvalid))
+			return
+		}
+		if err := s.service.DeleteAccount(actor); err != nil {
+			writeServiceError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"deleted": true})
 	case len(parts) == 4 && parts[0] == "chat" && parts[1] == "devices" && parts[3] == "rotate" && r.Method == http.MethodPost:
 		var request RotateDeviceRequest
 		if err := decodeBody(body, &request); err != nil {

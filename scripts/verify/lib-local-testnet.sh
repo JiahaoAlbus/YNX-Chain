@@ -21,12 +21,16 @@ ynx_start_local_testnet() {
   fi
   YNX_NETWORK=testnet YNX_HTTP_ADDR=127.0.0.1:6420 YNX_DATA_DIR="$YNX_VERIFY_WORK/state" go run ./cmd/ynx-chaind >"$YNX_VERIFY_WORK/server.log" 2>&1 &
   export YNX_STARTED_PID=$!
-  for _ in {1..60}; do
+  for _ in {1..120}; do
     curl -fsS "$YNX_REST_URL/health" >/dev/null 2>&1 && return 0
+    if ! kill -0 "$YNX_STARTED_PID" >/dev/null 2>&1; then
+      break
+    fi
     sleep 0.25
   done
   echo "local YNX Testnet did not become healthy"
   sed -n '1,120p' "$YNX_VERIFY_WORK/server.log" 2>/dev/null || true
+  ynx_stop_local_testnet
   return 1
 }
 

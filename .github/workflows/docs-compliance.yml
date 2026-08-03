@@ -42,12 +42,17 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out exact source
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
+
+      - name: Verify immutable GitHub Actions pins
+        run: node scripts/verify/github-actions-pins-check.mjs
 
       - name: Validate authoritative facts
         run: make public-disclosure-check
@@ -70,7 +75,7 @@ jobs:
           node scripts/verify/docs-release-package-check.mjs
 
       - name: Upload website content candidate
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ynx-website-content-${{ github.sha }}
           path: tmp/packages/docs-release/
