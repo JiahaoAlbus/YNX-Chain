@@ -7,8 +7,8 @@ The app vendors the accepted Task 1 Wallet Auth v1 protocol source under `vendor
 Runtime variables (not secrets):
 
 ```sh
-EXPO_PUBLIC_YNX_EXCHANGE_API_URL=http://10.0.2.2:6442/api
-EXPO_PUBLIC_YNX_EXCHANGE_GATEWAY_URL=https://approved-gateway.example
+EXPO_PUBLIC_YNX_EXCHANGE_API_URL=https://exchange.ynxweb4.com/api
+EXPO_PUBLIC_YNX_EXCHANGE_GATEWAY_URL=https://wallet-auth.ynxweb4.com
 ```
 
 No Gateway URL is committed. Without one, public deterministic market state remains readable and Sign in fails closed after Wallet approval. Order/withdrawal controls remain disabled until a central session and Wallet action-review route exist.
