@@ -8,14 +8,28 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/actions.css">
   <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="/public-status.css">
 </head>
 <body>
   <div id="signin" class="auth-shell">
     <section class="auth-card" aria-labelledby="auth-title">
-      <div class="brand-mark" aria-hidden="true">Y</div>
+      <div class="auth-layout">
+      <div class="auth-intro">
+      <img class="brand-logo" src="/ynx-logo.png" alt="YNX Chain">
       <p class="eyebrow">YNX AI · permissioned intelligence</p>
       <h1 id="auth-title">Bring your Wallet.<br>Keep your authority.</h1>
       <p class="lede">Sign in proves account and device control. It never grants signing, transfer, publishing, sending, permission changes, or freezing authority.</p>
+      <section class="public-runtime" aria-labelledby="runtime-title">
+        <header><div><p class="eyebrow">Public Testnet status</p><h2 id="runtime-title">Provider truth before login</h2></div><span id="public-status-badge" class="runtime-badge checking">Checking</span></header>
+        <p id="public-status-detail">Checking the server-side Gateway and configured provider without exposing credentials.</p>
+        <dl>
+          <div><dt>Gateway</dt><dd id="public-gateway">Checking</dd></div>
+          <div><dt>Provider / model</dt><dd id="public-provider">Checking</dd></div>
+          <div><dt>Access boundary</dt><dd>YNX Wallet product session required</dd></div>
+        </dl>
+      </section>
+      </div>
+      <div class="auth-access">
       <p class="notice"><strong>Canonical integration status:</strong> production sign-in stays fail-closed until the shared Wallet verifier and AI registry entry are deployed. The fields below are available only when a developer explicitly starts local fixture mode.</p>
       <form id="challenge-form" class="auth-grid">
         <label>Native account <input id="account" required placeholder="ynx1…" autocomplete="off"></label>
@@ -37,12 +51,14 @@
         </details>
       </div>
       <p id="auth-error" class="error" role="alert"></p>
+      </div>
+      </div>
     </section>
   </div>
 
   <div id="app" class="app hidden">
     <aside class="rail" aria-label="YNX AI controls">
-      <div class="rail-brand">Y</div>
+      <img class="rail-logo" src="/ynx-logo.png" alt="YNX">
       <button class="rail-button active" data-panel="chat" aria-label="Conversations">◫</button>
       <button class="rail-button" data-panel="review" aria-label="Tool and action review">✓</button>
       <button class="rail-button" data-panel="control" aria-label="Data controls">◎</button>

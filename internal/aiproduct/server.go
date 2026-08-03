@@ -94,6 +94,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/meta", s.handleMeta)
+	s.mux.HandleFunc("GET /api/public-status", s.handlePublicStatus)
 	s.mux.HandleFunc("GET /api/product-ai-registry", s.handleProductAIRegistry)
 	if s.cfg.AllowLocalFixtureAuth {
 		s.mux.HandleFunc("POST /api/auth/challenges", s.handleChallenge)
@@ -186,6 +187,47 @@ func (s *Server) allow(key string, limit int, now time.Time) bool {
 
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"product": ProductID, "chainId": ChainID, "network": ChainNetwork, "nativeAsset": NativeAsset, "walletCallback": s.cfg.ExactWalletCallback, "scopes": FormalScopes, "build": s.cfg.Build, "productAIRegistryVersion": s.registry.RegistryVersion, "productAIRegistryProducts": len(s.registry.Products), "integratedCentral": false, "generationLive": false, "localFixtureAuthEnabled": s.cfg.AllowLocalFixtureAuth, "authAuthority": "production canonical integration pending; sign-in fails closed unless explicit local fixture mode is enabled", "truthBoundary": "provider output only appears after a successful provider-backed Gateway stream"})
+}
+
+func (s *Server) handlePublicStatus(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.GatewayURL+"/health", nil)
+	if err == nil {
+		request.Header.Set("X-YNX-AI-Key", s.cfg.GatewayKey)
+	}
+	status := http.StatusServiceUnavailable
+	available, providerConfigured, upstreamReachable := false, false, false
+	model := ""
+	detail := "AI provider status is unavailable; no substitute answer is generated."
+	if err == nil {
+		response, requestErr := s.client.Do(request)
+		if requestErr == nil {
+			defer response.Body.Close()
+			var health struct {
+				OK                 bool   `json:"ok"`
+				ProviderConfigured bool   `json:"providerConfigured"`
+				UpstreamOK         bool   `json:"upstreamOk"`
+				Model              string `json:"model"`
+			}
+			if response.StatusCode >= 200 && response.StatusCode < 300 && json.NewDecoder(io.LimitReader(response.Body, 32<<10)).Decode(&health) == nil {
+				providerConfigured, upstreamReachable, model = health.ProviderConfigured, health.UpstreamOK, strings.TrimSpace(health.Model)
+				available = health.OK && providerConfigured && upstreamReachable && model != ""
+				if available {
+					status = http.StatusOK
+					detail = "The configured provider and model endpoint are reachable. Conversation generation still requires an accepted YNX Wallet product session."
+				}
+			}
+		}
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, status, map[string]any{
+		"ok": available, "providerAvailable": available, "providerConfigured": providerConfigured,
+		"upstreamReachable": upstreamReachable, "provider": s.cfg.ProviderName, "model": model,
+		"quota": "not reported by provider", "walletAccess": "canonical product-session acceptance pending",
+		"generationLive": false, "status": detail, "asOf": time.Now().UTC().Format(time.RFC3339),
+		"source": "ynx-ai-gatewayd health projection", "version": "ynx.ai.public-status.v1",
+	})
 }
 
 func (s *Server) handleProductAIRegistry(w http.ResponseWriter, r *http.Request) {

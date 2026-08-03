@@ -71,7 +71,7 @@ func newGatewayFixture(t *testing.T, available bool) *httptest.Server {
 			if !available {
 				w.WriteHeader(http.StatusBadGateway)
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"ok": available, "model": "ynx-test-model", "providerConfigured": available, "truthfulStatus": "provider-backed"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": available, "model": "ynx-test-model", "providerConfigured": available, "upstreamOk": available, "truthfulStatus": "provider-backed"})
 		case r.URL.Path == "/ai/stream":
 			if !available {
 				http.Error(w, "provider unavailable", http.StatusBadGateway)
@@ -112,6 +112,34 @@ func testProduct(t *testing.T, gateway string) (*Store, *httptest.Server) {
 		t.Fatal(err)
 	}
 	return store, httptest.NewServer(server.Handler())
+}
+
+func TestPublicStatusReportsProviderTruthWithoutAuthentication(t *testing.T) {
+	gateway := newGatewayFixture(t, true)
+	defer gateway.Close()
+	_, product := testProduct(t, gateway.URL)
+	defer product.Close()
+
+	response, err := http.Get(product.URL + "/api/public-status")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK || response.Header.Get("Cache-Control") != "no-store" {
+		t.Fatalf("unexpected public status response: status=%d cache=%q", response.StatusCode, response.Header.Get("Cache-Control"))
+	}
+	var status map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&status); err != nil {
+		t.Fatal(err)
+	}
+	if status["providerAvailable"] != true || status["model"] != "ynx-test-model" || status["generationLive"] != false {
+		t.Fatalf("public status widened the product boundary: %+v", status)
+	}
+	for _, forbidden := range []string{"apiKey", "gatewayKey", "auditLog", "path"} {
+		if _, ok := status[forbidden]; ok {
+			t.Fatalf("public status exposed %s", forbidden)
+		}
+	}
 }
 
 func authenticate(t *testing.T, productURL string, store *Store, identity testIdentity) SessionOutput {
