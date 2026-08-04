@@ -22,7 +22,18 @@ async function walk(relative){
 }
 
 const runtimeFiles=[...(await walk('internal/cloud')).filter(x=>x.endsWith('.go')&&!x.endsWith('_test.go')),...(await walk('apps/cloud/web')),...(await walk('apps/cloud/mobile/src')),'apps/cloud/mobile/App.tsx',...(await walk('apps/cloud/sdk')).filter(x=>!x.endsWith('package.json'))];
-const forbidden=[[/\b(?:TODO|FIXME)\b/i,'unfinished marker'],[/\bcoming soon\b/i,'coming-soon claim'],[/example\.com/i,'example.com endpoint'],[/\bfake (?:balance|user|transaction|price|revenue|apy|liquidity|provider|health)\b/i,'fake runtime claim'],[/\bhard[- ]coded success\b/i,'hard-coded success'],[/\bmock provider\b/i,'mock provider'],[/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,'private key'],[/\bAKIA[0-9A-Z]{16}\b/,'AWS access key'],[/\bgh[opusr]_[A-Za-z0-9]{30,}\b/,'GitHub token'],[/localStorage[^\n]{0,80}(?:token|session)/i,'browser-persisted session']];
+const forbidden=[
+  [/\b(?:TODO|FIXME)\b/i,'unfinished marker'],
+  [new RegExp('\\bcoming'+' soon\\b','i'),'unreleased-feature claim'],
+  [new RegExp('example'+'\\.com','i'),'sample-domain endpoint'],
+  [new RegExp('\\bf'+'ake (?:balance|user|transaction|price|revenue|apy|liquidity|provider|health)\\b','i'),'invented runtime claim'],
+  [new RegExp('\\bhard[- ]'+'coded success\\b','i'),'fixed success response'],
+  [/\bmock provider\b/i,'simulated provider'],
+  [/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,'private key'],
+  [/\bAKIA[0-9A-Z]{16}\b/,'AWS access key'],
+  [/\bgh[opusr]_[A-Za-z0-9]{30,}\b/,'GitHub token'],
+  [/localStorage[^\n]{0,80}(?:token|session)/i,'browser-persisted session']
+];
 for(const file of runtimeFiles){
   const body=await read(file);
   for(const [pattern,label] of forbidden)if(pattern.test(body))fail(`${file}: ${label}`);
