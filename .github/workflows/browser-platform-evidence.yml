@@ -2,8 +2,14 @@ name: Browser platform evidence
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/browser/**"
+      - "apps/search/**"
+      - "packages/web4-permissions/**"
+      - ".github/workflows/browser-platform-evidence.yml"
   push:
-    branches: [codex/ecosystem-browser-search]
+    branches: [main]
     paths:
       - "apps/browser/android/**"
       - "apps/browser/ios/**"
@@ -24,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Android 36 platform and build tools
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
@@ -33,7 +39,7 @@ jobs:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
         run: apps/browser/scripts/build-android.sh
       - name: Install, cold launch, restart, deep link and isolate Private process
-        uses: ReactiveCircus/android-emulator-runner@v2
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: 36
           arch: x86_64
@@ -71,7 +77,7 @@ jobs:
             adb shell dumpsys package com.ynxweb4.browser > apps/browser/evidence/platform/android/package.txt
             sha256sum apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk > apps/browser/evidence/platform/android/sha256.txt
             stat --printf='%s bytes\n' apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk > apps/browser/evidence/platform/android/size.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: ynx-browser-android-testnet-preview
@@ -84,7 +90,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build, ad-hoc sign and install Testnet Preview
         run: |
           npm --prefix apps/browser ci
@@ -114,7 +120,7 @@ jobs:
           wait "$PID" || true
           shasum -a 256 apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip > apps/browser/evidence/platform/macos/sha256.txt
           stat -f '%z bytes' apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip > apps/browser/evidence/platform/macos/size.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ynx-browser-macos-testnet-preview
           path: |
@@ -126,7 +132,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Select simulator and build
         run: |
           set -o pipefail
@@ -153,7 +159,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "$APP" apps/browser/dist/ios/YNX-Browser-Testnet-Preview-iOS-Simulator.zip
           shasum -a 256 apps/browser/dist/ios/YNX-Browser-Testnet-Preview-iOS-Simulator.zip > apps/browser/evidence/platform/ios/sha256.txt
           stat -f '%z bytes' apps/browser/dist/ios/YNX-Browser-Testnet-Preview-iOS-Simulator.zip > apps/browser/evidence/platform/ios/size.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ynx-browser-ios-simulator-testnet-preview
           path: |
@@ -166,7 +172,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Compile and package WebView2 app
         shell: pwsh
         run: |
@@ -190,7 +196,7 @@ jobs:
           if ($restart.HasExited) { throw "YNX Browser exited during restart" }
           "pid=$($restart.Id) running=true" | Set-Content apps/browser/evidence/platform/windows/restart.txt
           Stop-Process -Id $restart.Id -Force
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ynx-browser-windows-testnet-preview
           path: |
