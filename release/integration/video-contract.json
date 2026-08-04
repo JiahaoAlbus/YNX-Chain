@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 2,
+  "contractId": "ynx-video-integration-v2",
+  "owner": "YNX 33",
+  "product": "YNX Video",
+  "sourceCommit": "cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e",
+  "phase": "INTEGRATE",
+  "authority": {
+    "videoState": "YNX 33",
+    "walletIdentityAndSessions": "YNX 02",
+    "paymentSettlement": "YNX 04",
+    "trustCasesAndAppeals": "YNX 15",
+    "canonicalEventsAndBilling": "YNX 26",
+    "integrationFreeze": "YNX 29",
+    "releaseSecurity": "YNX 30"
+  },
+  "wallet": {
+    "protocol": "wallet-auth-v1",
+    "registrySchemaVersion": 2,
+    "registrations": "internal/video/integration/registry-v2.json",
+    "attestationDomain": "YNX_VIDEO_GATEWAY_REQUEST_V2",
+    "network": "ynx_6423-1",
+    "deviceAlgorithm": "p256-sha256",
+    "failClosed": true
+  },
+  "service": {
+    "basePath": "/video",
+    "health": "GET /video/health",
+    "version": "GET /video/version",
+    "apiPrefix": "/video/v1",
+    "mediaPrefix": "/video/media/",
+    "requestHeaders": ["X-YNX-App-Session", "X-YNX-Device-ID"],
+    "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
+  },
+  "mediaIntegrity": {
+    "stateSchemaVersion": 2,
+    "uploadDigest": "caller-declared sha256 verified in constant time",
+    "variantFields": ["bytes", "sha256", "lineage", "source_object_key", "source_sha256"],
+    "lineageValues": ["original", "derivative"],
+    "coveredAssets": ["hls-playlist", "hls-segment", "original-fallback"],
+    "legacyBackfill": "stored objects are rehashed on service startup",
+    "legacyFailureBoundary": "a missing or unverifiable legacy asset makes the video private and failed",
+    "rawPublicBucket": false
+  },
+  "canonicalStates": {
+    "processing": ["scanning", "transcoding", "ready", "failed", "published"],
+    "visibility": ["private", "unlisted", "public"],
+    "appeal": ["submitted", "accepted", "denied"],
+    "payIntent": ["awaiting_wallet_confirmation"]
+  },
+  "security": {
+    "replayProtection": "persistent nonce consumption before mutation",
+    "requestBinding": ["method", "requestUri", "bodySha256", "requestTime", "nonce"],
+    "rightsRequiredForPublication": true,
+    "rawPublicBucket": false,
+    "aiAutonomousPublishOrRemoval": false
+  },
+  "verification": {
+    "commands": [
+      "go test ./internal/video/...",
+      "go test -race ./internal/video/...",
+      "go vet ./internal/video/...",
+      "npm --prefix apps/video run check",
+      "npm --prefix apps/video run smoke"
+    ],
+    "result": "passedLocal",
+    "verifiedAt": "2026-07-29T02:44:54Z"
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "testnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "dependencies": [
+    {"owner":"YNX 02","contract":"Wallet registrations and Product Session acceptance","status":"pending"},
+    {"owner":"YNX 04","contract":"Pay intent and paid-settlement receipt","status":"pending"},
+    {"owner":"YNX 15","contract":"Delegated per-user Trust appeal","status":"pending"},
+    {"owner":"YNX 26","contract":"Canonical events and billing ledger ingestion","status":"pending"},
+    {"owner":"YNX 29","contract":"Shared-testnet integration freeze","status":"pending"},
+    {"owner":"YNX 30","contract":"Artifact, deployment and security gate","status":"pending"}
+  ],
+  "truthBoundary": "This file freezes the product-owned contract and local verification only. It is not evidence of central acceptance, shared-testnet execution, public deployment, production signing or store release."
+}
