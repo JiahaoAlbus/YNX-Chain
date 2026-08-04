@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "productId": "docs",
+  "name": "YNX Docs",
+  "canonicalRoute": "/docs-app",
+  "title": "YNX Docs — Versioned documents on YNX Testnet",
+  "metaDescription": "Write, autosave, recover conflicts, comment on exact versions, export, and review selected-context AI revisions.",
+  "h1": "Documents with visible versions and recoverable conflicts",
+  "status": "public-testnet-preview",
+  "features": ["Versioned autosave", "Offline draft recovery", "Explicit conflict resolution", "Version-bound comments", "Bounded presence", "Plain-text export", "Reviewed AI revisions", "12 languages and RTL"],
+  "risks": ["Single-host preview without production durability or HA", "Central Wallet verification unavailable; private workflows fail closed", "No character-level real-time coediting or CRDT merge", "No hosted immutable app download", "No production signing or store release"],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": "https://web4.ynxweb4.com/docs-app/api/health",
+  "downloadUrl": null,
+  "structuredDataSuggestion": "SoftwareApplication"
+}
