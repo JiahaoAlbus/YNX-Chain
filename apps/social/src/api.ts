@@ -21,7 +21,7 @@ export function adoptRotatedSession(previous:Session,result:DeviceRotationRespon
 
 export class SocialAPI {
   readonly base:string; private token:string|null;
-  constructor(base=process.env.EXPO_PUBLIC_YNX_SOCIAL_API_BASE ?? "",token:string|null=null){if(!/^https:\/\//.test(base)&&!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base))throw new Error("Set a secure YNX Social API endpoint");this.base=base.replace(/\/$/,"");this.token=token}
+  constructor(base=process.env.EXPO_PUBLIC_YNX_SOCIAL_API_BASE ?? "https://api.ynxweb4.com",token:string|null=null){if(!/^https:\/\//.test(base)&&!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base))throw new Error("Set a secure YNX Social API endpoint");this.base=base.replace(/\/$/,"");this.token=token}
   setToken(value:string|null){this.token=value}
   useSession(value:Session){this.token=value.token}
   walletChallenge(request:WalletAuthorizationRequest,approval:WalletApproval){return this.request<{challenge:ProductSessionChallenge}>("/social/v1/wallet/challenge",{method:"POST",body:{request,approval},auth:false})}

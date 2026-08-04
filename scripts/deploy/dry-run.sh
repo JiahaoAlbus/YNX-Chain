@@ -282,7 +282,7 @@ grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { 
 grep -Fq "server_name resource.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Resource Gateway domain block"; exit 1; }
 grep -Fq "server_name rest.ynx.test api.ynx.test ide.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing REST/API domain server block"; exit 1; }
 grep -Fq "proxy_pass http://127.0.0.1:6437/;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing prefix-stripping App Gateway route"; exit 1; }
-grep -Fq "handle_path /app/*" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy config missing prefix-stripping App Gateway route"; exit 1; }
+grep -Fq "handle /app/*" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy config missing path-preserving App Gateway route"; exit 1; }
 grep -Fq "server_name indexer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer domain server block"; exit 1; }
 grep -Fq "server_name explorer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer domain server block"; exit 1; }
 grep -Fq "server_name faucet.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing faucet domain server block"; exit 1; }

@@ -29,6 +29,7 @@ func NewServer(service *Service, resolver DiscoveryResolver) *Server {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.health)
+	mux.HandleFunc("/social/health", s.health)
 	mux.HandleFunc("/social/v1/wallet/challenge", s.walletChallenge)
 	mux.HandleFunc("/social/v1/wallet/login", s.login)
 	mux.HandleFunc("/social/v1/", s.social)

@@ -181,7 +181,7 @@ function SocialApp() {
     [error, setError] = useState<string | null>(null);
   const api = useMemo(() => {
     try {
-      return new SocialAPI(process.env.EXPO_PUBLIC_YNX_SOCIAL_API_BASE ?? "");
+      return new SocialAPI();
     } catch (caught) {
       setError(message(caught));
       return null;
