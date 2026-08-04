@@ -6,7 +6,8 @@ import {fileURLToPath} from 'node:url';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
 const sourceCommit=process.argv[2];
-if(!/^[0-9a-f]{40}$/.test(sourceCommit||''))throw new Error('usage: node generate-security-artifacts.mjs <exact-source-commit>');
+const sbomOnly=process.argv.includes('--sbom-only');
+if(!/^[0-9a-f]{40}$/.test(sourceCommit||''))throw new Error('usage: node generate-security-artifacts.mjs <exact-source-commit> [--sbom-only]');
 const sha256=body=>createHash('sha256').update(body).digest('hex');
 const relative=file=>path.relative(root,file).split(path.sep).join('/');
 
@@ -49,12 +50,17 @@ for(const component of [...modules,...npm]){
 const components=[...unique.values()].sort((a,b)=>a.purl.localeCompare(b.purl));
 const sbom={bomFormat:'CycloneDX',specVersion:'1.5',version:1,metadata:{component:{type:'application',name:'YNX Cloud and Docs Testnet Preview',version:'1.0.0-testnet-preview'},properties:[{name:'ynx:sourceCommit',value:sourceCommit},{name:'ynx:coverage',value:'Go module graph and Cloud/Docs native pnpm package locks; APK file recorded as an artifact subject'}]},components};
 
+await writeFile(path.join(root,'apps/cloud/evidence/SBOM.cdx.json'),JSON.stringify(sbom,null,2)+'\n');
+if(sbomOnly){
+  console.log(`generated ${components.length} locked components; preserved historical artifact provenance`);
+  process.exit(0);
+}
+
 const artifactPath=path.join(root,'apps/cloud/release/YNX-Cloud-1.0.0-testnet-preview.apk');
 const artifact=await readFile(artifactPath),artifactStat=await stat(artifactPath);
 const materials=[];
 for(const file of [path.join(root,'go.mod'),path.join(root,'go.sum'),...lockfiles]){const body=await readFile(file);materials.push({uri:relative(file),digest:{sha256:sha256(body)}})}
 const provenance={schemaVersion:1,subject:{path:relative(artifactPath),sha256:sha256(artifact),bytes:artifactStat.size,signingClass:'Android debug certificate; Testnet Preview only'},source:{repository:'https://github.com/JiahaoAlbus/YNX-Chain',commit:sourceCommit,branch:'codex/final-cloud'},build:{status:'pre-existing-local-artifact-verified',buildType:'Expo/Gradle Android Testnet Preview',reproducible:false,productionSigned:false,storeReleased:false,claimBoundary:'This record verifies the recovered local artifact and inputs. It is not SLSA provenance, a fresh rebuild, production signing, hosting, or store publication evidence.'},materials};
 
-await writeFile(path.join(root,'apps/cloud/evidence/SBOM.cdx.json'),JSON.stringify(sbom,null,2)+'\n');
 await writeFile(path.join(root,'apps/cloud/evidence/ARTIFACT_PROVENANCE.json'),JSON.stringify(provenance,null,2)+'\n');
 console.log(`generated ${components.length} locked components and verified ${artifactStat.size} artifact bytes`);
