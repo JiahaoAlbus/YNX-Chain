@@ -20,7 +20,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app
       - name: Build unsigned Simulator application
@@ -62,7 +62,7 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist" | sed 's/^/minimumOS=/' | tee "$RUNNER_TEMP/minimum-os.txt"
           codesign -dv --verbose=4 "$APP" > "$RUNNER_TEMP/signing.txt" 2>&1 || echo 'signingClass=unsigned-simulator' > "$RUNNER_TEMP/signing.txt"
       - name: Upload evidence bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ynx-video-ios-simulator-evidence-${{ github.sha }}
           if-no-files-found: error
