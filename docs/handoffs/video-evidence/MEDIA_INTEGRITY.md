@@ -1,7 +1,7 @@
 # YNX Video media integrity evidence
 
-Source commit: `cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e`  
-State schema: `2`  
+Source commit: `cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e`
+State schema: `2`
 Verified at: `2026-07-29T02:44:54Z`
 
 ## Implemented boundary
