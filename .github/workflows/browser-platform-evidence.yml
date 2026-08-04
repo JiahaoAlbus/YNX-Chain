@@ -28,7 +28,7 @@ permissions:
 jobs:
   android-install-cold-launch:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Android 36 platform and build tools
@@ -41,9 +41,9 @@ jobs:
       - name: Install, cold launch, restart, deep link and isolate Private process
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
-          api-level: 36
+          api-level: 35
           arch: x86_64
-          target: google_apis
+          target: default
           disable-animations: true
           emulator-options: -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect
           script: |
