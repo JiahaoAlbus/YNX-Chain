@@ -2,3 +2,5 @@ packages:
   - .
 allowBuilds:
   esbuild: true
+patchedDependencies:
+  expo-modules-jsi@57.0.4: ../../cloud/mobile/patches/expo-modules-jsi@57.0.4.patch
