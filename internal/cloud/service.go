@@ -2195,7 +2195,7 @@ func walletProductBinding(request WalletAuthorizationRequest) (string, error) {
 	bindings := []binding{
 		{"cloud", "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
 		{"docs", "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
-		{"cloud", "ynx-cloud-web-v1", "web.ynx.cloud", "https://cloud.staging.ynx.network/auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
+		{"cloud", "ynx-cloud-web-v1", "web.ynx.cloud", "https://web4.ynxweb4.com/cloud/auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
 		{"docs", "ynx-docs-web-v1", "web.ynx.docs", "https://docs.staging.ynx.network/auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
 	}
 	for _, b := range bindings {
