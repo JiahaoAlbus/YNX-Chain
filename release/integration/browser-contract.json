@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "ynx.browser.integration.v1",
+  "productId": "22",
+  "product": "YNX Browser",
+  "slug": "browser",
+  "contractVersion": "0.2.3-candidate",
+  "status": "candidate-not-centrally-frozen",
+  "owner": {
+    "productNumber": 22,
+    "productSlug": "browser",
+    "responsibility": "Browser runtime, platform clients, local privacy/security mediation, and exact Wallet review handoff"
+  },
+  "sourceCommit": "96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44",
+  "implementationCommits": {
+    "downloadPrivacy": "668cb44dab95374ba9e5342d754b6ec568564f2b",
+    "reproducibleMacosPreview": "f2f9aaed8d3e4231d37c94de352077008a338572",
+    "macosWalletCallback": "d9580e6b9d09a9d2eec69fbcb6d35a9ddf6997ed",
+    "privacySafeMacosAudit": "bde6939223693d5cdf5d05f309ac888c091ab815",
+    "stateLifecycle": "91685b728cefefabec9414317f2663d659062edc",
+    "windowsWalletBuilder": "0515ff50b22547840c6554b29c4af3cd17484800"
+  },
+  "asOf": "2026-07-27",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeAsset": "YNXT",
+    "environment": "testnet"
+  },
+  "walletRegistry": {
+    "authorityOwner": "02-wallet-auth",
+    "candidateSource": "packages/web4-permissions/integration/browser-search-wallet-registry-v2.json",
+    "requestingProduct": "browser",
+    "orderedScopes": ["account:read", "browser:wallet-request"],
+    "maxScopes": 2,
+    "deviceAlgorithm": "p256-sha256",
+    "clients": [
+      {
+        "platform": "android",
+        "productClientId": "ynx-browser-android",
+        "bundleId": "com.ynxweb4.browser",
+        "callback": "ynxbrowser://com.ynxweb4.browser/auth/callback"
+      },
+      {
+        "platform": "ios",
+        "productClientId": "ynx-browser-ios",
+        "bundleId": "com.ynxweb4.browser.ios",
+        "callback": "ynxbrowser://com.ynxweb4.browser.ios/auth/callback"
+      },
+      {
+        "platform": "macos",
+        "productClientId": "ynx-browser-macos",
+        "bundleId": "com.ynxweb4.browser.macos",
+        "callback": "ynxbrowser://com.ynxweb4.browser.macos/auth/callback"
+      },
+      {
+        "platform": "windows",
+        "productClientId": "ynx-browser-windows",
+        "bundleId": "com.ynxweb4.browser.windows",
+        "callback": "ynxbrowser://com.ynxweb4.browser.windows/auth/callback"
+      }
+    ],
+    "requiredBindings": [
+      "version",
+      "nonce",
+      "chainId",
+      "requestingProduct",
+      "productClientId",
+      "bundleId",
+      "productDeviceAlgorithm",
+      "productDeviceKey",
+      "callback",
+      "orderedScopes",
+      "purpose",
+      "issuedAt",
+      "expiresAt"
+    ],
+    "browserAuthorityBoundary": "Browser validates and displays the request, then hands it to Wallet. Browser never signs, pays, submits a transaction, widens scopes, or creates an authoritative Product Session."
+  },
+  "navigation": {
+    "allowedTopLevelSchemes": ["https", "http"],
+    "walletReviewSchemes": ["ynxwallet", "ynx-wallet"],
+    "browserCallbackScheme": "ynxbrowser",
+    "unknownOrMalformedCustomSchemeBehavior": "reject",
+    "phishingBehavior": "configured exact-origin match stops navigation and displays a non-guarantee warning"
+  },
+  "privacy": {
+    "normalSession": "persistent platform data store",
+    "privateSession": "non-persistent or separately isolated platform profile/process where supported",
+    "privatePersistenceForbidden": [
+      "YNX history",
+      "crash recovery",
+      "permission decisions",
+      "AI context",
+      "download metadata"
+    ],
+    "downloadBoundary": "The selected file can remain in the operating-system file system; private downloads must not create a normal YNX Downloads record.",
+    "aiBoundary": "AI cannot access private pages, unselected history, Wallet identity, or unrelated tabs.",
+    "implementationEvidence": {
+      "nativePolicyTests": "apps/browser/native/Tests/YNXBrowserCoreTests/DownloadPersistenceTests.swift",
+      "result": "3/3 pass",
+      "truthBoundary": "The tested persistence function is the same function invoked by the macOS WKDownload delegate; full network and NSSavePanel interaction evidence remains open."
+    }
+  },
+  "localAuditEvents": {
+    "status": "local-noncanonical",
+    "events": [
+      "permission-decision",
+      "wallet-authorization",
+      "ai-context-approved",
+      "ai-run-started",
+      "ai-run-completed",
+      "ai-run-cancelled",
+      "ai-run-failed",
+      "ai-result-reviewed"
+    ],
+    "canonicalEventOwner": "26-data-fabric",
+    "migrationRequirement": "Do not publish these strings as canonical ecosystem events until 26-data-fabric and 29-integration freeze the mapping."
+  },
+  "errorSemantics": {
+    "status": "not-frozen",
+    "requiredBehavior": "fail-closed with user-safe messages and no internal stack, secret, local path, or provider credential exposure",
+    "coveredConditions": [
+      "malformed Wallet request",
+      "replay",
+      "expiry",
+      "wrong chain/product/client/bundle/callback/device",
+      "scope widening or reordering",
+      "private AI request",
+      "AI provider unavailable/quota/timeout",
+      "threat-list match",
+      "permission denial",
+      "download context missing",
+      "renderer/web-content crash"
+    ],
+    "canonicalErrorOwner": "29-integration"
+  },
+  "dependencies": [
+    {"owner": "02-wallet-auth", "contract": "Product registry, Device Challenge, Wallet Approval, Product Session, introspection, expiry and revoke", "acceptance": "pending"},
+    {"owner": "14-ai", "contract": "Provider-neutral Browser assist gateway, streaming/cancel, model/cost/status and audit", "acceptance": "pending"},
+    {"owner": "23-search", "contract": "Reviewed Search deployment, authorized source inventory, suggestion provenance and outage semantics", "acceptance": "pending"},
+    {"owner": "26-data-fabric", "contract": "Canonical privacy-safe Browser audit event mapping", "acceptance": "pending"},
+    {"owner": "28-website", "contract": "/browser public route, metadata, downloads and public status links", "acceptance": "pending"},
+    {"owner": "29-integration", "contract": "Protocol freeze, shared Testnet endpoints and cross-product acceptance", "acceptance": "pending"},
+    {"owner": "30-security-sre-release", "contract": "Threat policy, signing, SBOM/provenance, hosted artifact and release controls", "acceptance": "pending"}
+  ],
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "migration": {
+    "from": "browser-search combined historical handoff and registry candidate",
+    "to": "Browser-owned contract frozen by 29-integration with central-owner acceptance",
+    "compatibility": "No dual long-term Wallet registry. Existing v2 candidate remains the only local tuple source until accepted or explicitly migrated.",
+    "rollback": "Keep Browser fail-closed and disable affected integration surfaces rather than widening callbacks or scopes."
+  },
+  "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+  "handoff": "docs/integration/INTEGRATION_HANDOFF.md"
+}

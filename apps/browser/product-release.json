@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "ynx.product-release.v1",
+  "productNumber": 22,
+  "productName": "YNX Browser",
+  "productSlug": "browser",
+  "version": "0.2.5-public-preview-candidate",
+  "goalStatus": "active",
+  "phase": "FREEZE",
+  "sourceCommit": "96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44",
+  "asOf": "2026-08-04",
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "verifiedThisCheckpoint": {
+    "browserCheck": {
+      "command": "cd apps/browser && npm run check",
+      "result": "pass",
+      "nodeTests": 18,
+      "nativeSwiftTests": 20,
+      "smoke": "pass",
+      "productionSourceGate": "pass",
+      "macosReproducibility": "pass"
+    },
+    "walletPermissionContracts": {
+      "command": "cd packages/web4-permissions && npm test",
+      "result": "pass",
+      "tests": 15,
+      "failures": 0,
+      "boundary": "All four Browser platform request builders bind the reviewed registry tuples; central Wallet/Auth acceptance remains pending."
+    },
+    "privateDownloadIsolation": {
+      "sourceCommit": "668cb44dab95374ba9e5342d754b6ec568564f2b",
+      "result": "tested-native-policy",
+      "details": "The WKDownload delegate calls a shared native persistence function. Three Swift tests prove normal source/filename persistence, zero Private metadata writes, and byte-for-byte preservation of the normal record after a Private completion.",
+      "truthBoundary": "No completed WKWebView network download plus NSSavePanel interaction recording is claimed."
+    },
+    "macosWalletCallback": {
+      "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
+      "callbackRuntimeCommit": "d9580e6b9d09a9d2eec69fbcb6d35a9ddf6997ed",
+      "evidence": "apps/browser/evidence/macos-wallet-callback-bde6939.json",
+      "result": "tested-local-negative-paths",
+      "nativeTests": 17,
+      "totalNativeTestsIncludingDownloads": 20,
+      "runtimeObservedCodes": [
+        "BR-WALLET-CALLBACK-MALFORMED",
+        "BR-WALLET-CALLBACK-ROUTE",
+        "BR-WALLET-CALLBACK-DUPLICATE",
+        "BR-WALLET-CALLBACK-STATE-MISSING"
+      ],
+      "details": "Signed pending state, exact route and query parsing, strict JSON field validation, byte limits, expiry, replay and product/device binding failures are fail closed. Real current-binary protocol probes recorded privacy-safe OSLog error codes only.",
+      "truthBoundary": "No accepted Gateway signature, device challenge, central Product Session, approval, revocation or positive shared-Testnet callback is claimed."
+    },
+    "stateLifecycle": {
+      "sourceCommit": "91685b728cefefabec9414317f2663d659062edc",
+      "result": "tested-local-core",
+      "details": "state v2 migration with v1 rollback backup, private-trace filtering, immutable tab privacy/identity, corrupt-primary recovery, explicit backup/restore, export, selective delete and future-version fail-closed behavior"
+    },
+    "windowsWalletRequestBuilder": {
+      "sourceCommit": "0515ff50b22547840c6554b29c4af3cd17484800",
+      "result": "implemented-and-contract-tested",
+      "details": "non-exportable Windows CNG P-256 identity, signed pending request state, exact single-field callback parsing, nonce/time/chain/client/bundle binding, single-use consumption and no local Product Session"
+    },
+    "productionSourceGate": {
+      "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
+      "result": "pass",
+      "details": "Browser production source trees contain no deployment filler, TODO/FIXME/coming-soon markers, fake-success markers or common embedded-secret patterns; macOS security audit templates exclude URL, nonce, response, source and filename values."
+    },
+    "macosTestnetPreview": {
+      "sourceCommit": "96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44",
+      "evidence": "apps/browser/evidence/macos-public-preview-96dfc52.json",
+      "releaseBuild": "pass",
+      "package": "pass",
+      "archiveIntegrity": "pass",
+      "sameHostReproducibility": "pass",
+      "reproducibilityBuildsCompared": 2,
+      "coldStart": "pass",
+      "restart": "pass",
+      "architecture": "arm64",
+      "signingClass": "adhoc",
+      "gatekeeper": "rejected",
+      "zipBytes": 138203,
+      "zipSha256": "939c50454720be24e8de109f758a49e5f58342542d18d6d513639a2f90c84448",
+      "binarySha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185",
+      "truthBoundary": "Central-candidate arm64 macOS Testnet Preview only. The artifact is reproducible on this host, ad-hoc signed and rejected by Gatekeeper; notarization, Developer ID signing, hosting, store release and cross-host reproducibility remain unproved."
+    },
+    "macosInstall": {
+      "sourceCommit": "96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44",
+      "result": "not-claimed-for-current-candidate",
+      "binarySha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185",
+      "collisionPreservation": "pass",
+      "codesignVerify": "pass-adhoc",
+      "launchServicesExactBinary": "blocked-by-older-same-bundle-registrations",
+      "truthBoundary": "The current candidate copied without overwriting older applications, but LaunchServices resolved the ynxbrowser scheme to an older registered copy. Current-candidate installedLocal therefore remains false."
+    }
+  },
+  "notVerifiedThisCheckpoint": {
+    "macosPositiveWalletCallback": "no accepted Gateway signature, device challenge or central Product Session was available for verification",
+    "macosPrivateDownloadInteraction": "the exact native persistence policy is tested, but a completed WKWebView normal/Private network download pair through NSSavePanel is not yet recorded",
+    "windowsBuild": {
+      "result": "blocked",
+      "reason": "dotnet is not installed in the current macOS workspace; no Windows compile, package, install or protocol-registration success is claimed"
+    },
+    "nativeStateLifecycleUi": "not integrated across all native clients",
+    "androidFinalBranchInstallColdStart": "not rerun",
+    "iosFullXcodeSimulator": "not rerun",
+    "crossHostReproducibility": "not verified",
+    "publicEndpoints": "not verified",
+    "hostedArtifacts": "not verified",
+    "notarization": "not performed",
+    "developerIdSigning": "not performed",
+    "githubActions": "GitHub Actions API lookup failed twice with TLS handshake timeout; no run status is claimed"
+  },
+  "previousEvidence": {
+    "baselineCommit": "a90cfef",
+    "evidenceIndex": "apps/browser/evidence/EVIDENCE_INDEX.md",
+    "platformEvidence": "apps/browser/PLATFORM_EVIDENCE.md",
+    "boundary": "Previous evidence remains historical and is not automatically attributed to this checkpoint"
+  },
+  "externalInputs": [],
+  "nextAction": "Merge the central candidate and publish the exact SHA-256-bound arm64 Testnet Preview on ynxweb4.com with explicit ad-hoc-signing and old-copy warnings; production signing/notarization and shared-Testnet Wallet callback remain later release gates."
+}

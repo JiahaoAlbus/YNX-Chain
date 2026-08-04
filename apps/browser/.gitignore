@@ -1,0 +1,7 @@
+native/.build/
+android/.gradle/
+android/app/build/
+android/.manual-build/
+android/.testnet-preview/
+dist/
+.DS_Store
