@@ -9,7 +9,7 @@
       "requestingProduct": "ynx-creator-studio",
       "bundleId": "com.ynxweb4.creator-studio.web",
       "callbacks": [
-        "https://creator.video.ynxweb4.com/wallet-auth/callback"
+        "https://web4.ynxweb4.com/video/studio/wallet-auth/callback"
       ],
       "scopes": [
         "ai.video.propose",

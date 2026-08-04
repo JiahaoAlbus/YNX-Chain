@@ -1,13 +1,14 @@
 import{walletAuthorizationURL}from"./wallet-auth.js";
 import{ready as i18nReady,t}from"./i18n.js";
-const API=localStorage.getItem("ynx.video.api")||"http://127.0.0.1:8423",$=s=>document.querySelector(s);
+const publicAPI=`${location.origin}/video/api`,localAPI="http://127.0.0.1:8423";
+const API=localStorage.getItem("ynx.video.api")||(location.hostname==="127.0.0.1"||location.hostname==="localhost"?localAPI:publicAPI),$=s=>document.querySelector(s);
 const session=()=>sessionStorage.getItem("ynx.video.session")||new URLSearchParams(location.hash.slice(1)).get("gateway_session");let snapshot=null,currentAI=null;
 async function api(path,opt={}){const headers={...(opt.headers||{})},method=(opt.method||"GET").toUpperCase();if(session())headers["X-YNX-App-Session"]=session();if(!["GET","HEAD"].includes(method))headers["Idempotency-Key"]||=crypto.randomUUID();let response;for(let attempt=0;attempt<2;attempt++){try{response=await fetch(API+path,{...opt,headers});break}catch(error){if(attempt===1)throw error}}const data=await response.json().catch(()=>({error:"Invalid service response"}));if(!response.ok)throw new Error(data.error||`HTTP ${response.status}`);return data}
 const json=body=>({method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),get=(x,lower,upper)=>x?.[lower]??x?.[upper],esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 function status(message,bad=false){$("#status").textContent=message;$("#status").style.color=bad?"#9b2335":"#344054"}
 function rows(target,items,render,empty){$(target).innerHTML=items.length?items.map(render).join(""):`<p class="meta">${empty}</p>`}
 
-$("#signin").onclick=async()=>{try{location.href=await walletAuthorizationURL({requestingProduct:"ynx-creator-studio",productClientId:"ynx-creator-studio-web-v1",bundleId:"com.ynxweb4.creator-studio.web",callback:"https://creator.video.ynxweb4.com/wallet-auth/callback",scopes:["ai.video.propose","pay.payout.intent","video.creator","video.read"],purpose:"Manage owned media, review AI proposals, disputes, and Wallet-confirmed payout intents. No key or recovery material is requested."})}catch(error){status(error.message,true)}};
+$("#signin").onclick=async()=>{try{location.href=await walletAuthorizationURL({requestingProduct:"ynx-creator-studio",productClientId:"ynx-creator-studio-web-v1",bundleId:"com.ynxweb4.creator-studio.web",callback:"https://web4.ynxweb4.com/video/studio/wallet-auth/callback",scopes:["ai.video.propose","pay.payout.intent","video.creator","video.read"],purpose:"Manage owned media, review AI proposals, disputes, and Wallet-confirmed payout intents. No key or recovery material is requested."})}catch(error){status(error.message,true)}};
 if(session()){sessionStorage.setItem("ynx.video.session",session());history.replaceState(null,"",location.pathname);$("#signin").textContent="Wallet connected"}
 document.querySelectorAll("nav button").forEach(button=>button.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x===button));document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id===button.dataset.panel));$("#heading").textContent=button.textContent});
 
