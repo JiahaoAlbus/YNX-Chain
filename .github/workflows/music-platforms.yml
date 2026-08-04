@@ -11,8 +11,8 @@ jobs:
   service:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: {go-version: "1.25"}
       - run: go test ./internal/music ./apps/music/...
       - run: go test -race ./internal/music
@@ -23,15 +23,15 @@ jobs:
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07 # v5.0.0
         with: {distribution: temurin, java-version: "17"}
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
         with: {gradle-version: "9.2.1"}
       - run: gradle --no-daemon testDebugUnitTest assembleDebug assembleRelease
         working-directory: apps/music/android
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ynx-music-android-preview
           path: apps/music/android/app/build/outputs/apk/**/*.apk
@@ -39,7 +39,7 @@ jobs:
   ios-simulator:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Create available iOS Simulator
         shell: bash
         run: |
@@ -68,7 +68,7 @@ jobs:
           xcrun simctl io "$SIMULATOR_UDID" screenshot "$RUNNER_TEMP/ynx-music-ios.png"
           xcrun simctl terminate "$SIMULATOR_UDID" com.ynxweb4.music
           xcrun simctl launch "$SIMULATOR_UDID" com.ynxweb4.music
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ynx-music-ios-simulator-evidence
           path: |
