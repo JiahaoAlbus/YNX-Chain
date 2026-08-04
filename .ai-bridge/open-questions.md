@@ -1,14 +1,34 @@
-# YNX Video open questions and dependency requests
+# YNX Wallet/Auth open questions
 
-These are owner-bound integration questions, not requests for ordinary user decisions.
+No ordinary engineering decision requires Founder input.
 
-1. **YNX 02 Wallet/Auth** — Accept or reject the exact Video mobile/web and Creator Studio registrations, bundle IDs, callbacks, scopes and Gateway v2 attestation tuple in the final integration contract.
-2. **YNX 04 Pay** — Provide the accepted testnet tip/settlement receipt and payout-intent contract, including creator split, fee facts and replay semantics.
-3. **YNX 15 Trust** — Provide a delegated per-user appeal submission contract. Video will not impersonate the creator with a service signer.
-4. **YNX 26 Data Fabric** — Freeze canonical Video usage, moderation and billing event ownership/versioning.
-5. **YNX 29 Integration** — Resolve any conflicting scope/event/error definitions and schedule shared testnet vectors.
-6. **YNX 30 Security/SRE** — Repair the shared placeholder/secret gates so missing `rg` fails closed; provide artifact/release acceptance and public deployment boundary.
-7. **YNX 28 Website** — Consume the Video public metadata package after Integration/SRE freeze; website publication must remain separate from runtime deployment.
-8. **Local operator environment** — Restore a valid ClamAV daemon configuration and signature database without committing machine-local configuration or signatures.
+External acceptance items remain:
 
-No private key, seed, PEM, validator key, payment card data or full provider secret is requested in chat or committed to the repository.
+- Which exact Registry v2/v3 tuples and central Gateway deployment target will 29 Integration accept?
+- Which exact central release/build identity, durable telemetry sink and Monitor dashboard/alert contract will App Gateway, Monitor and 29 Integration accept?
+- Which YNX Testnet EntryPoint mode/address and Bundler RPC will Chain Core expose?
+- Which owner-controlled public policy-signer and risk-officer addresses, funding budget and policy URL are approved for Paymaster deployment?
+- Which production Android/iOS signer paths, store accounts and public Wallet/support/privacy/security/status URLs are approved?
+- Which selective-disclosure issuer and capital-product providers pass legal, security and data-rights review?
+
+Secrets, keys, seed material, PEM files and complete provider credentials must never be supplied through chat or committed to this worktree.
+
+## Documentation owner evidence still required
+
+## Owner evidence still required
+
+- Which exact clean commits and focused tests will Wallet/Auth, Tokenomics, Oracle,
+  Bridge, Data Fabric and Security/SRE hand off for public fact integration?
+- When will Website/Operations provide approved canonical support, privacy, security
+  reporting and service-status routes?
+- Which independent network vantage will verify root site, Explorer, EVM RPC, Gateway
+  and Faucet without the current workstation proxy-path limitation?
+- Which exact artifact, digest, byte count and hosting record will define the first
+  immutable Docs/Compliance candidate package?
+- Who are the named legal, economic and independent-audit reviewers, and what scope,
+  jurisdiction, expiry and approval evidence will each own?
+- Which Chain Core release will establish any future public StreamBFT activation or
+  Mainnet transition, separately from Testnet Chain ID 6423?
+
+Until each owner answers with direct evidence, the corresponding release state or
+public claim remains false, blocked or candidate-only.

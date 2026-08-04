@@ -1,30 +1,18 @@
-# Last successful checkpoint
+# Last Success
 
-At `2026-07-29T03:09:09Z`, YNX Video had a synchronized remote recovery point at `3c7ea829e31278d9728f75c155cceab152e3d16a` and completed two additional current-source verification slices from that head.
+At `2026-07-29T02:53:32Z`, GitHub Actions completed Resource Market Candidate Gates run `30417957999` successfully for source SHA `d683c7d28ce129daad358c84680e5980cf8ad069` on PR `#12`.
 
-## Media and integration checkpoints already pushed
+The run directly verified:
 
-1. `cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e` — per-asset media SHA-256, bytes and original/derivative lineage, state schema v2, legacy backfill and fail-closed migration behavior.
-2. `1572846c4ef676b6b6844e9678e3139df913f36c` — Integration Contract v2, cross-product vectors, evidence and truthful release metadata.
-3. `3c7ea829e31278d9728f75c155cceab152e3d16a` — durable Agent Memory and recovery checkpoint.
+- placeholder and secret gates;
+- Go correctness, Race and Vet gates;
+- `govulncheck` for the Resource Market dependency surface;
+- locked npm install and high-severity audit;
+- Playwright browser tests;
+- local API and DAST smoke on Ubuntu;
+- candidate binary build with VCS metadata;
+- SHA-256 output;
+- Go dependency inventory;
+- SPDX npm SBOM generation.
 
-## Latest direct verification
-
-- `clamscan --version` returned ClamAV 1.5.3.
-- `freshclam --version` failed because `/opt/homebrew/etc/clamav/freshclam.conf` could not be parsed.
-- A scan of the repository-owned MP4 failed because `/opt/homebrew/var/lib/clamav` contained no supported database files.
-- Current-source Video and recovery binaries built successfully.
-- `video-recover backup` completed in 0.47s.
-- `video-recover restore` completed in 1.15s.
-- Source and restored state files were both 418 bytes with SHA-256 `d10b2e736c2e0ae632bd44853d1bfee71a2699dce1dca07e8677c0e98abf1774`.
-- The restored schema-v2 store reopened successfully.
-
-Previously successful gates remain:
-
-- `go test ./internal/video/...`
-- `go test -race ./internal/video/...`
-- `go vet ./internal/video/...`
-- `npm --prefix apps/video run check`
-- `npm --prefix apps/video run smoke`
-
-No ClamAV-backed current-source loopback E2E, PR, final-branch Actions run, Video release, public deployment or production-signed artifact was claimed.
+General CI, docs compliance, and the Resource Market iOS Simulator build also succeeded for the same PR head. No public deployment, authoritative settlement, production signature, hosted download, or release publication was established by these runs.

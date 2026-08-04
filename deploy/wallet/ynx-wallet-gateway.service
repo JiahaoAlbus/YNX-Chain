@@ -1,0 +1,22 @@
+[Unit]
+Description=YNX canonical Wallet/Auth gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/ynx/wallet-auth
+EnvironmentFile=/etc/ynx/wallet-gateway.env
+ExecStart=/usr/bin/node packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-wallet-gateway
+
+[Install]
+WantedBy=multi-user.target

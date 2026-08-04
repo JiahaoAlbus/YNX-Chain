@@ -1,29 +1,25 @@
-# Decision log
+# Decision Log
 
-## 2026-07-29 — Recover from final worktree, not chat state
+## 2026-07-29 — Synchronize with current main before further release work
 
-The Fable5 product identity, MCP 33 workspace, expected worktree, branch and `JiahaoAlbus/YNX-Chain` remote matched. The real repository and GitHub state were used as authority; stale `.ai-bridge` commit references were corrected.
+Merged `origin/main` at `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc` into `codex/final-resource-market`. Product-owned `.ai-bridge` recovery state was retained; the shared root operator-input registry remained owned by main; Resource Market-specific operator inputs were moved to `apps/resource-market/operator-inputs.request.json`.
 
-## 2026-07-29 — Hash every playable media asset
+Rationale: the branch was 78 commits behind main and a release candidate without current shared runtime/governance/monitoring changes would not be integration-ready.
 
-The former model persisted only the original upload digest and exposed an HLS playlist without per-derivative integrity metadata. YNX Video now inventories the playlist and every segment, hashes each asset, records bytes and lineage, and binds derivatives to the original digest.
+## 2026-07-29 — Preserve stricter placeholder detection with portable fallback
 
-## 2026-07-29 — Fail closed during legacy migration
+The merged `scripts/validate/no-placeholder-check.sh` keeps the Resource Market branch's broader fake-claim patterns and `.github`/`apps` coverage, while retaining main's `grep` fallback. Generated dependency/build directories are excluded from both scanners.
 
-Schema v2 startup backfill reads existing objects to populate integrity metadata. When a legacy derivative is missing or unverifiable, the video becomes private and failed with an audit event. It is not left published and it is not silently regenerated during migration.
+Rationale: scan source and controlled documentation, not third-party package examples; fail on scanner errors instead of silently succeeding.
 
-## 2026-07-29 — Separate current source from historical artifacts
+## 2026-07-29 — Treat local and public states separately
 
-Historical Android debug and iOS Simulator hashes/install evidence remain preserved, but `apps/video/product-release.json` marks them not current for the final source commit. Current-source `installedLocal`, public deployment, hosted download, signing and store-release flags remain false.
+`implementedLocal`/component evidence may be recorded only for directly tested local behavior. Central integration, public deployment, authoritative settlement, hosted download, production signing and store release remain false.
 
-## 2026-07-29 — Integration contract v2 is a handoff, not acceptance
+Rationale: PR, CI, local smoke, handoff creation, and HTTP fixtures are not equivalent to deployed authority or public availability.
 
-`ynx-video-integration-v2` includes media-integrity fields and fail-closed legacy semantics. Its existence proves product-owned implementation and local verification only; YNX 29 central acceptance and shared-testnet execution remain separate states.
+## 2026-07-29 — Bind release evidence to tested source, not the later metadata commit
 
-## 2026-07-29 — Installed scanner is not a ready scanner
+`apps/resource-market/product-release.json` and public metadata bind source SHA `d683c7d28ce129daad358c84680e5980cf8ad069`, the exact candidate tested by successful GitHub Actions run `30417957999`. The subsequent checkpoint/evidence commit is administrative and must not replace the tested source identity.
 
-ClamAV 1.5.3 exists locally, but `freshclam.conf` is unparsable and the default database directory contains no supported signatures. The evidence is classified as execution infrastructure, while YNX Video remains fail closed and `testnetVerified` remains false.
-
-## 2026-07-29 — Local restore evidence is scope-qualified
-
-The current-source recovery CLI restored a minimal initialized schema-v2 store with matching state hashes and successful reopen. `restoreVerified` is true only for that local scope; populated media-object, remote durable storage, HA and production disaster recovery remain false.
+Rationale: avoids circular self-referential metadata and preserves a verifiable source-to-CI relationship.

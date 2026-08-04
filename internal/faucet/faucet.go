@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
@@ -200,15 +201,16 @@ type LogEntry struct {
 func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (Response, int, error) {
 	requestID := requestID()
 	ip := clientIP(remoteAddr)
+	recipient, recipientErr := s.normalizeRecipient(req.Address)
 	amount := req.Amount
 	if amount == 0 {
 		amount = s.cfg.DefaultAmount
 	}
-	entry := LogEntry{RequestID: requestID, At: time.Now().UTC(), IP: ip, Address: req.Address, Amount: amount}
+	entry := LogEntry{RequestID: requestID, At: time.Now().UTC(), IP: ip, Address: recipient, Amount: amount}
 	s.mu.Lock()
 	s.requests++
 	s.mu.Unlock()
-	if !s.validRecipient(req.Address) {
+	if recipientErr != nil {
 		entry.Status = "rejected"
 		entry.Error = "invalid address"
 		_ = s.appendLog(entry)
@@ -222,14 +224,14 @@ func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (
 		s.recordDenied(entry.Error)
 		return Response{}, http.StatusBadRequest, fmt.Errorf("amount exceeds faucet limits")
 	}
-	if !s.allow(ip, req.Address, entry.At) {
+	if !s.allow(ip, recipient, entry.At) {
 		entry.Status = "rate_limited"
 		entry.Error = "faucet rate limit exceeded"
 		_ = s.appendLog(entry)
 		s.recordDenied(entry.Error)
 		return Response{}, http.StatusTooManyRequests, fmt.Errorf("faucet rate limit exceeded")
 	}
-	tx, err := s.callRPC(ctx, strings.TrimSpace(req.Address), amount)
+	tx, err := s.callRPC(ctx, recipient, amount)
 	if err != nil {
 		entry.Status = "error"
 		entry.Error = err.Error()
@@ -247,15 +249,28 @@ func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (
 	s.lastHash = tx.Hash
 	s.lastError = ""
 	s.mu.Unlock()
-	return Response{Transaction: tx, Address: strings.TrimSpace(req.Address), Amount: amount, NativeSymbol: "YNXT", RequestID: requestID, TruthfulStatus: s.truthfulStatus()}, http.StatusCreated, nil
+	return Response{Transaction: tx, Address: recipient, Amount: amount, NativeSymbol: "YNXT", RequestID: requestID, TruthfulStatus: s.truthfulStatus()}, http.StatusCreated, nil
 }
 
-func (s *Service) validRecipient(address string) bool {
+func (s *Service) normalizeRecipient(address string) (string, error) {
 	address = strings.TrimSpace(address)
-	if s.cfg.UpstreamMode == UpstreamBFT {
-		return consensus.IsNativeAddress(address) && address != s.signerAddr
+	if strings.HasPrefix(strings.ToLower(address), accountaddress.HRP+"1") || strings.HasPrefix(strings.ToLower(address), "0x") {
+		canonical, err := accountaddress.Normalize(address)
+		if err != nil {
+			return "", err
+		}
+		if s.cfg.UpstreamMode == UpstreamBFT && canonical == s.signerAddr {
+			return "", fmt.Errorf("faucet recipient must differ from signer")
+		}
+		return canonical, nil
 	}
-	return ValidAddress(address)
+	if s.cfg.UpstreamMode == UpstreamBFT {
+		return "", fmt.Errorf("BFT faucet requires a canonical YNX recipient")
+	}
+	if ynxAddressPattern.MatchString(address) {
+		return address, nil
+	}
+	return "", fmt.Errorf("invalid faucet recipient")
 }
 
 func (s *Service) truthfulStatus() string {

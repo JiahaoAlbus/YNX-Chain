@@ -1,0 +1,199 @@
+{
+  "schemaVersion": "ynx-product-release/v1",
+  "product": "YNX Governance & Protocol Control",
+  "slug": "governance",
+  "version": "0.3.0-integration",
+  "generatedAt": "2026-07-28T10:18:11Z",
+  "sourceCommit": "ea949aacac147505360528583bd7fade12f7cac8",
+  "branch": "codex/final-governance",
+  "phase": "INTEGRATE",
+  "status": "Active",
+  "completedWork": [
+    {
+      "id": "runtime-control-registries",
+      "status": "complete",
+      "details": "34 governance objects, 32 bounded integer parameters, 2 canonical SHA-256 upgrade-manifest parameters, and 12 scoped roles load through a digest-bound fail-closed runtime gate."
+    },
+    {
+      "id": "authoritative-parameter-registry-gates",
+      "status": "complete",
+      "details": "Runtime policy must exactly match registered parameter type, scope, and bounds. Proposal creation, voting, finalization, execution preparation, and state restore revalidate the canonical registry and reject drift without mutating state."
+    },
+    {
+      "id": "verifiable-governance-ui",
+      "status": "complete",
+      "details": "The read-only React UI consumes the real nested proposal and public signed-vote API contracts, removes fake wallet and unsigned-vote controls, builds reproducibly from a lockfile, has a render smoke test, and audits with zero known npm vulnerabilities."
+    },
+    {
+      "id": "canonical-proposal-state-machine",
+      "status": "complete",
+      "details": "The 33-state canonical proposal lifecycle has audit-hashed transition history and explicit separation of approval, timelock, submission, execution, verification, failure, and rollback."
+    },
+    {
+      "id": "signed-vote-integrity",
+      "status": "complete",
+      "details": "Ed25519 signed vote envelopes bind chain, domain, proposal, voter, electorate snapshot, choice, operation, revision, nonce, timestamp, and expiry. Replay, duplicate, tamper, wrong binding, replacement, and withdrawal rules are enforced and persisted."
+    },
+    {
+      "id": "persistent-delegation-integrity",
+      "status": "complete",
+      "details": "Ed25519 signed persistent delegation revisions bind chain, domain, delegator, delegate, scope, amount, operation, revision, nonce, start, expiry, direct-vote override policy, and superseded audit hash. Registration, redelegation, revocation, replay, self-delegation, multi-hop, cycles, historical snapshots, partial power, and double counting are enforced fail closed."
+    },
+    {
+      "id": "persistent-timelock-integrity",
+      "status": "complete",
+      "details": "First-class Timelock records bind Proposal ID, exact ActionHash, earliest execution, bounded Grace deadline, public Notice evidence, execution manifest, cancellation, emergency pause, execution outcome, rollback, and an audit-hashed transition history. Early, expired, duplicate, tampered, unauthorized, or divergent operations fail closed."
+    },
+    {
+      "id": "persistent-upgrade-integrity",
+      "status": "complete",
+      "details": "First-class Upgrade records bind Proposal ID, scope, ActionHash, source commit, release, exact manifest, migration, rollback, canary, verification, execution receipt, rollback receipt, and an audit-hashed transition history. Duplicate manifests, conflicting active scopes, divergent restore state, and tampering fail closed."
+    },
+    {
+      "id": "signed-canary-execution-gate",
+      "status": "complete",
+      "details": "Every approved action receives a persistent Canary record. Ed25519-signed cohort and verifier envelopes bind chain, proposal, ActionHash, candidate manifest, canary plan, cohort, health window, thresholds, samples, metrics, state root, evidence, identity, and nonces. Healthy completion, early threshold abort, restart recovery, and exact-manifest execution authorization fail closed."
+    },
+    {
+      "id": "public-read-control-plane",
+      "status": "complete",
+      "details": "Public read APIs expose proposals, signed vote revisions, electorate delegations, roles, parameters, timelocks, executions, upgrades, emergencies, treasury/provider proposal records, conflicts, appeals, audit, health, version, and metrics."
+    },
+    {
+      "id": "migration-and-restore-gates",
+      "status": "complete",
+      "details": "Governance state v7 persists vote, delegation, first-class Timelock, first-class Upgrade, signed Canary cohorts, and signed Canary results; v1 through v6 require explicit migrations. Runtime config v3 requires bounded Timelock Grace policy, and digest-valid tampering still fails closed."
+    },
+    {
+      "id": "canonical-chain-execution-adapter",
+      "status": "complete",
+      "details": "Signed execution intents are submitted through the canonical Chain Core/Comet adapter, reconciled against chain records, and verified using transaction hash, block height, block hash, state root, manifest, source, outcome, and audit identity."
+    }
+  ],
+  "api": {
+    "schema": "ynx-governance-api/v1",
+    "health": "/health",
+    "version": "/version",
+    "metrics": "/metrics",
+    "publicReadEndpoints": [
+      "/proposals",
+      "/proposals/{id}",
+      "/votes",
+      "/delegations",
+      "/roles",
+      "/parameters",
+      "/timelocks",
+      "/executions",
+      "/upgrades",
+      "/canaries",
+      "/emergency-actions",
+      "/treasury",
+      "/providers",
+      "/conflicts",
+      "/appeals",
+      "/audit"
+    ],
+    "authenticatedMutationPrefix": "/governance"
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "evidence": {
+    "targetedTests": [
+      "bash scripts/verify/governance-check.sh",
+      "go test ./internal/governance ./chain/governance",
+      "npm --prefix apps/governance test"
+    ],
+    "fullRepositoryTests": [
+      "go test ./..."
+    ],
+    "verifiedBehaviors": [
+      "valid signed vote",
+      "wrong chain rejection",
+      "wrong domain rejection",
+      "wrong proposal rejection",
+      "wrong voter and public-key rejection",
+      "choice tamper rejection",
+      "wrong electorate snapshot rejection",
+      "expired and future vote rejection",
+      "exact replay rejection",
+      "duplicate vote rejection",
+      "vote replacement revision chain",
+      "vote withdrawal without double counting",
+      "persisted replay rejection after restore",
+      "signature tamper rejection with recomputed snapshot digest",
+      "session voter identity binding",
+      "signed delegation registration, redelegation, and revocation",
+      "delegation replay, tamper, self, multi-hop, and cycle rejection",
+      "partial delegation and direct-vote override without double counting",
+      "historical delegation snapshot binding",
+      "delegation persistence and nonce reconciliation",
+      "session delegator identity and scope binding",
+      "first-class timelock ActionHash and public notice binding",
+      "early and post-grace execution rejection",
+      "duplicate execution submission replay rejection",
+      "exact ActionHash and scoped-session cancellation",
+      "timelock submitted, expired, cancelled, and paused restart recovery",
+      "timelock tamper and proposal-state divergence rejection",
+      "first-class upgrade source, release, manifest, migration, rollback, canary, and verification binding",
+      "duplicate manifest, release identity, and active-scope upgrade conflict rejection",
+      "exact upgrade manifest execution and receipt correlation",
+      "failed upgrade execution and verified rollback receipt correlation",
+      "upgrade restart recovery and digest-valid tamper rejection",
+      "persistent upgrade transitions in public upgrades and audit views",
+      "mandatory signed canary cohort before every execution",
+      "independently signed canary health result and session identity binding",
+      "healthy-window early completion rejection",
+      "early failure-threshold abort and execution rejection",
+      "exact canary candidate manifest execution authorization",
+      "canary nonce reconciliation, restart recovery, and digest-valid signed-result tamper rejection",
+      "persistent canary transitions in public canary and audit views",
+      "v1 through v6 state migration rejection",
+      "v2 runtime config migration rejection",
+      "authoritative registry policy divergence rejection",
+      "authoritative registry drift rejection before voting, finalization, execution, and restore",
+      "canonical Chain Core execution submission and receipt reconciliation",
+      "four-validator multiprocess governance Testnet lifecycle",
+      "governance UI production build, type-check, render smoke test, and zero-vulnerability npm audit"
+    ],
+    "sourceCommit": "ea949aacac147505360528583bd7fade12f7cac8"
+  },
+  "dependencies": {
+    "chainCore": "canonical_execution_adapter_configured_and_locally_verified",
+    "walletAuth": "gateway_assertion_adapter_configured",
+    "explorer": "not_integrated",
+    "monitor": "not_integrated",
+    "trust": "local_appeal_adapter_only",
+    "dataFabric": "not_integrated",
+    "securitySRE": "not_integrated",
+    "integration": "not_accepted",
+    "website": "not_integrated"
+  },
+  "truthfulClaims": [
+    "Signed vote integrity is implemented and tested locally.",
+    "Persistent signed delegation integrity and electorate snapshot binding are implemented and tested locally.",
+    "Persistent Timelock integrity, Grace expiry, exact ActionHash cancellation, and single execution submission are implemented and tested locally.",
+    "Persistent Upgrade integrity, exact manifest execution, restart recovery, and execution or rollback receipt correlation are implemented and tested locally.",
+    "Signed Canary cohort and independent signed health-result integrity, abort thresholds, restart recovery, and exact-manifest execution gating are implemented and tested locally.",
+    "Authoritative parameter-registry validation is enforced at startup, proposal creation, voting, finalization, execution preparation, and restore.",
+    "The governance UI builds from a committed lockfile, reads the real public API contract, exposes no fake mutation controls, and passes its local CI gate with zero known npm vulnerabilities.",
+    "Canonical Chain Core submission and receipt reconciliation are implemented and exercised in a local multiprocess four-validator lifecycle.",
+    "A passed vote is not reported as execution.",
+    "A submitted execution is not reported as verified.",
+    "Treasury and provider views expose proposal records only; they do not claim external execution.",
+    "Shared Testnet acceptance, Explorer evidence, Monitor alerts, production signer custody, website handoff, and public deployment are not complete."
+  ],
+  "nextActions": [
+    "Complete shared Testnet acceptance across Data Fabric, Explorer, Monitor, Trust, Security/SRE, and 29 Integration using immutable transaction and alert evidence.",
+    "Obtain production signer custody, deployment endpoints, DNS/Vercel ownership, and public support/security/status destinations from the external operator.",
+    "Publish the accepted governance product page, user and developer documentation, API, FAQ, security, status, and support evidence through the website handoff."
+  ]
+}

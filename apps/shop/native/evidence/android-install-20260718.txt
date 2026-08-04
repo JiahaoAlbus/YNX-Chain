@@ -1,0 +1,35 @@
+YNX Shop Android Testnet Preview runtime evidence
+Generated: 2026-07-18
+Device: isolated read-only YNX_API_36 AVD, emulator-5576
+OS: Android API 36
+Package: com.ynxweb4.shop
+APK: apps/shop/release/ynx-shop-0.2.0-testnet-preview.apk
+
+adb install -r:
+Performing Streamed Install
+Success
+
+Cold launch after force-stop:
+Status: ok
+LaunchState: COLD
+Activity: com.ynxweb4.shop/.MainActivity
+TotalTime: 14165
+WaitTime: 14821
+Process ID: 7778
+
+Restart after force-stop:
+Status: ok
+LaunchState: COLD
+Activity: com.ynxweb4.shop/.MainActivity
+TotalTime: 2243
+WaitTime: 2288
+
+Deep links:
+- ynxshop://wallet-auth/callback delivered to the already-running MainActivity; an absent response was rejected as "Security verification failed: missing Wallet response".
+- ynxshop://orders/order-test delivered to the already-running MainActivity.
+
+Final activity:
+topResumedActivity=com.ynxweb4.shop/.MainActivity
+
+Host observation:
+The resource-constrained emulator later showed a System UI ANR and exited. This did not change the successful install, two completed cold launches, deep-link delivery, or application process/activity evidence above.

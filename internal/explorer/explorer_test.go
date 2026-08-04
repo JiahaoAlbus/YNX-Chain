@@ -78,7 +78,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	server := httptest.NewServer(NewServerWithBuild(svc, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 
-	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
+	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts?limit=10", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -133,14 +133,24 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"/api/summary",
 		"new EventSource('/api/stream')",
 		"Network TPS",
-		"Latest transactions",
+		"Real-time transactions",
+		"Five newest finalized blocks, updated live",
+		"YNXT account leaderboard",
+		"data-account=",
+		"flow-arrow",
+		"/api/accounts?limit=10",
 		"id=\"txFilter\"",
+		"id=\"txQuickFind\"",
+		"id=\"languageSelect\"",
+		"empty-block-row",
+		"ynx-explorer-language",
 		"id=\"detailBackdrop\"",
 		"Resource economy",
 		"Live finalized block stream",
 		"id=\"blockTrack\"",
 		"No event for ",
 		"/assets/ynx-logo.png",
+		"/assets/ynx-icon.png",
 		"YNX native address (default)",
 		"EVM compatibility address",
 		"tx.sponsor",
@@ -169,6 +179,26 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 7 || summary.Wallet.ChainIDHex != "0x1917" {
 		t.Fatalf("unexpected summary: %+v", summary)
+	}
+	fallbackHandler := api.NewServerWithConfig(devnet, api.ServerConfig{ResourceGatewayUpstreamKey: resourceUpstreamKey})
+	fallbackRPC := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/accounts" {
+			http.Error(w, "account list endpoint unavailable", http.StatusMethodNotAllowed)
+			return
+		}
+		fallbackHandler.ServeHTTP(w, r)
+	}))
+	defer fallbackRPC.Close()
+	fallbackService, err := New(Config{RPCURL: fallbackRPC.URL, IndexerURL: indexerHTTP.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fallbackLeaderboard, err := fallbackService.AccountLeaderboard(context.Background(), 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fallbackLeaderboard.TruthfulStatus != "observed-indexed-participant-account-ranking" || fallbackLeaderboard.Ranking != "indexed-participant-liquid-ynxt-balance-descending" || len(fallbackLeaderboard.Accounts) == 0 {
+		t.Fatalf("unexpected observed-account fallback: %+v", fallbackLeaderboard)
 	}
 	resp, err = http.Get(server.URL + "/health")
 	if err != nil {

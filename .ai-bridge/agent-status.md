@@ -1,35 +1,21 @@
-# YNX Video agent status
+# YNX Wallet/Auth agent status
 
-- Product: YNX Video
-- YNX owner: 33
-- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/33-video`
-- Branch: `codex/final-video`
-- Upstream: `origin/codex/final-video`
-- Current phase: PROTECT → FREEZE
-- Long-term status: ACTIVE
-- Runtime source commit: `11e64797c64cd64d1c6e53f0295c17997bde6f97`
-- Last verified remote SHA: `11e64797c64cd64d1c6e53f0295c17997bde6f97`
-- Concurrent writer detected: no
-
-## Latest verified slice
-
-Upload integrity and rights provenance are now mandatory for new media. The service compares the declared SHA-256 with streamed bytes, persists a structured rights declaration, rejects malformed or expired declarations and prevents publication when rights are absent or expired. Legacy rightsless records still pass state-HMAC verification but cannot be republished until corrected.
-
-## Gates
-
-Passed:
-- `go test -race ./internal/video/...`
-- `go vet ./internal/video/...`
-- `npm --prefix apps/video run check`
-- `npm --prefix apps/video run smoke`
-- `npm --prefix apps/creator-studio run check`
-- `npm --prefix apps/creator-studio run smoke`
-- `git diff --check`
-
-Not counted as passed:
-- `go test ./...`: unrelated shared failures in consensus/faucet/trust and missing IDE artifact; Video package passed.
-- `make no-placeholder-check`: false-green because `rg` is unavailable.
-- `make secret-scan`: false-green because `rg` is unavailable.
-- Current-source ClamAV loopback smoke: local daemon configuration/signature database unavailable.
-
-No production, public deployment, hosted download, production signature, store release or real revenue claim is made.
+- Product: 02 | YNX Wallet / Auth
+- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/02-wallet-auth`
+- Branch: `codex/final-wallet-auth`
+- Goal: Active
+- Phase: INTEGRATE
+- Canonical source commit: `c7a6bded387223429f0708f80b50f086d8ff944d`
+- Protected observability source: `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6`
+- Protected observability evidence: `2d07dd49c6bc737c49d6a8e205b6f2db99ce6fec`
+- Completed slice: encrypted canonical Gateway backup/verify/restore, exact state and consumed-proof replay recovery, fail-closed tamper/permission/no-overwrite/rollback/age policy, and explicit state-version compatibility.
+- Version boundary: validated legacy timestamped state is atomically normalized before backup; unsupported future state schemas are rejected with `STATE_TAMPERED` and are never silently downgraded.
+- Verification: Wallet/Auth 100/100; focused Gateway backup 6/6; 20-sample source-bound local drill; restore-and-cold-start p95 42,441 microseconds; no secret/path emission.
+- Wallet App gate: exact `npm@11.5.1` toolchain, TypeScript, 39/39 tests, product/release/40-requirement/SBOM gates and Android/iOS Hermes exports passed.
+- SBOM: CycloneDX 1.6, 431 components, 504 dependency nodes, 431/431 license coverage, SHA-256 `4b1c905a01ce7fc9f923973c9a97a2de3662a515251d387ba3a7ecdcc087dd85`.
+- Source delivery: prerelease `wallet-auth-v1.0.0-source-candidate`, six assets, frozen source `c7a6bded387223429f0708f80b50f086d8ff944d`, source archive SHA-256 `e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db`; complete download backread matched.
+- Evidence: `apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json` and `apps/wallet/proof/wallet-sbom-release-grade-2026-07-29.json`
+- Packaging boundary: backup and Node host remain Node-only subpaths; the universal package root stays React Native bundle-safe.
+- Truth boundary: central durable-store restore, production KMS/HSM, cross-region backup, production RTO/RPO, central integration, runtime staging/public deployment, production signing and stores remain false.
+- Current blocker: accepted central App Gateway deployment and shared Testnet dependency evidence from their owners.
+- Next action: central-owner acceptance followed by installed cross-product vectors, durable-store restore and Explorer/Monitor evidence.

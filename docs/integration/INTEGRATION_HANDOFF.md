@@ -1,41 +1,56 @@
-# YNX Video integration handoff
+# YNX Resource Market integration handoff
 
-## Frozen product boundary
+## Identity
 
-YNX 33 owns Video service state, media processing, Viewer, Creator Studio and product-specific integration adapters. It does not own Wallet identity/session issuance, Pay settlement, Trust case authority, canonical event billing, central integration freeze, public deployment or production signing.
+- Product owner: `16-resource-market`
+- Contract: `release/integration/resource-market-contract.json`
+- Contract version: `resource-market-integration-v1`
+- Implementation source: `a940d2efa824bd9f43522ed792c9a563b55e1e11`
+- Current phase: `FREEZE → INTEGRATE`
+- Current product status: local candidate; not centrally integrated, staged, public, production-signed or store-released.
 
-Source commit: `cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e`.
-Contract: `release/integration/video-contract.json` (`ynx-video-integration-v2`).
-Wallet registry request: `internal/video/integration/registry-v2.json`.
-Gateway manifest: `internal/video/integration/appgateway-video-manifest.json`.
+## Authority split
 
-## Media integrity contract
+Resource Market owns provider registration, verified capacity, offers, matching, auctions, reservation, service lifecycle, signed usage metering and local dispute evidence. It does not own Wallet identity, asset finality, billing-ledger authority, public Explorer proof, central monitoring, public Website entry or protocol freeze.
 
-Every persisted media variant carries its byte count, SHA-256 and explicit `original` or `derivative` lineage. Derivatives bind to the original object key and original SHA-256. The covered adaptive set is the HLS playlist, every HLS segment and the original fallback. State schema v2 backfills legacy records by rehashing stored objects; a missing or unverifiable legacy asset makes the video private and failed.
+A quote, accepted intent, reservation, service start, meter, service completion, HTTP success or provider statement is never asset settlement. Reservations are bound to the exact Offer referenced by the accepted Quote; capacity from a sibling Offer cannot satisfy or release that reservation. Settlement is accepted only when an authorized settlement identity supplies a non-empty asset, transaction hash, evidence and source; amounts exactly reconcile to signed meters; the order is `settlement_pending`; and the normalized transaction hash has not already been consumed by another receipt.
 
-## Required owner actions
+## Canonical integration inputs
 
-- YNX 02: accept the three exact product registrations and Product Session scopes without wildcard widening.
-- YNX 04: expose Wallet-approved Pay intent and authoritative paid-settlement receipt fields used by Video revenue allocation.
-- YNX 15: freeze a delegated per-user creator appeal route; Video must not sign as the creator.
-- YNX 26: accept versioned Video lifecycle, media-integrity, watch-consent, subscription, report and paid-settlement events.
-- YNX 29: run the cross-product vectors and freeze the single accepted versions.
-- YNX 30: validate security, artifact provenance, deployment and public status evidence.
+- Wallet registry: `apps/resource-market/integration/canonical-wallet-registry.json`
+- Wallet vectors: `apps/resource-market/integration/canonical-wallet-v1-test-vector.json`
+- Existing central manifest: `apps/resource-market/integration/central-integration-manifest.json`
+- Frozen product contract: `release/integration/resource-market-contract.json`
+- Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 
-## Fail-closed rules
+## Required central behavior
 
-A missing or invalid Product Session, replayed nonce, changed request body, wrong product/bundle/callback/device/scope, expired rights declaration, unavailable scanner, missing derivative, asset digest mismatch, absent authoritative Pay receipt or absent delegated Trust signer must remain an explicit unavailable/failure state. No adapter may manufacture success.
+1. Product 02 registers the exact client, bundle, callback, ordered scopes and P-256 product-device algorithm.
+2. Product 29 freezes the exact method/path/body product-session proof semantics and one-to-one proxy route mapping.
+3. Product 01 provides authoritative transaction finality and settlement evidence; product 16 does not infer finality.
+4. Product 26 accepts only signed-meter and confirmed-settlement events, preserving idempotency and lineage.
+5. Product 12 exposes public receipt evidence only after authoritative settlement.
+6. Product 13 alerts on stale providers, metering failures, settlement reconciliation failure and receipt replay rejection.
+7. Product 15 links provider failure and dispute/appeal evidence without gaining asset authority.
+8. Product 28 publishes only release states that have direct evidence.
 
-## Local verification
+## Stable errors
 
-The following passed against source commit `cbf35c029acb14011f4bb25e7b230e4d1fbbbd8e`:
+The product returns a stable `code` with `errorId`, `requestId` and `traceId`. Settlement integrations must preserve at least:
 
-- `go test ./internal/video/...`
-- `go test -race ./internal/video/...`
-- `go vet ./internal/video/...`
-- `npm --prefix apps/video run check`
-- `npm --prefix apps/video run smoke`
+- `RESOURCE_SELF_DEALING_REJECTED`
+- `RESOURCE_AMOUNT_OUT_OF_RANGE`
+- `RESOURCE_CAPACITY_UNAVAILABLE`
+- `RESOURCE_METER_WINDOW_INVALID`
+- `RESOURCE_METER_LIMIT`
+- `RESOURCE_SETTLEMENT_STATE_INVALID`
+- `RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED`
+- `RESOURCE_SETTLEMENT_RECONCILIATION`
+- `RESOURCE_SETTLEMENT_REPLAY`
 
-## Release truth
+No consumer may translate these failures into success, paid, settled or refunded.
 
-Local implementation, tests and historical debug/simulator installation evidence exist. No GitHub Actions run or PR currently exists for `codex/final-video`. Central integration, shared-testnet execution, staging/public deployment, hosted downloads, production signing and store release remain false until independently evidenced.
+## Acceptance gate
+
+Central integration remains false until every applicable dependency row in `DEPENDENCY_ACCEPTANCE.md` has direct evidence and the vectors in `CROSS_PRODUCT_TEST_VECTORS.json` pass against deployed Testnet services. Local tests are not public or central proof.

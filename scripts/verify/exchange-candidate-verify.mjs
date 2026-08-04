@@ -11,7 +11,7 @@ import {
 } from "../lib/exchange-candidate.mjs";
 import {canonicalJSON, sha256} from "../lib/sdk-release.mjs";
 
-const PACKAGE_FILES = ["exchange-status.json", "manifest.json", "rpc-capabilities.json", "signed-transaction-vectors.json", "ynx-testnet-exchange-profile.json"];
+const PACKAGE_FILES = ["exchange-status.json", "manifest.json", "product-release.json", "public-product-metadata.json", "rpc-capabilities.json", "signed-transaction-vectors.json", "ynx-testnet-exchange-profile.json"];
 
 export function verifyExchangeCandidate({candidateDir, sourceRoot}) {
   const sources = loadExchangeSources(sourceRoot);

@@ -1,0 +1,7 @@
+# Insert these handlers before the default web4 reverse_proxy.
+handle_path /music/* {
+  reverse_proxy 127.0.0.1:6440
+}
+handle {
+  reverse_proxy 127.0.0.1:38091
+}

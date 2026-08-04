@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "classification": "local-unsigned-build-input-provenance",
+  "product": "YNX Finance",
+  "sourceCommit": "5cd7e5761c830b5cf766da30a39e0727f4cf54c9",
+  "generatedAt": "2026-07-29T03:39:10.685Z",
+  "inputs": {
+    "apps/finance/mobile/package-lock.json": {
+      "sha256": "afcaa6ad7644fbf493fbcac411ed389006b331192bc061d59b827b2573e62c50",
+      "bytes": 252607
+    }
+  },
+  "outputs": {
+    "release/finance/bom.cdx.json": {
+      "sha256": "05fe828ef51770dd34cdb88619975dbb2b04c47744b62a07c597aa14529935d2",
+      "bytes": 139856,
+      "components": 529
+    }
+  },
+  "limitations": [
+    "Local unsigned evidence; not an independent builder or production signature.",
+    "The SBOM covers the Finance mobile npm lock. Go modules remain covered by go.sum and govulncheck evidence."
+  ]
+}

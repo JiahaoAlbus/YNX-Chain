@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-04T05:57:00+08:00",
+  "environment": "public-testnet",
+  "gateway": "https://wallet-auth.ynxweb4.com",
+  "gatewaySourceCommit": "ec2d2e6e2b16a877be71f5d8a02694b2454ac0a0",
+  "productClientId": "ynx-exchange-v1",
+  "bundleId": "com.ynxweb4.exchange",
+  "account": "ynx1z2kf7fwa3w5n6prxnd7fry2fj0yzcwmxykec3m",
+  "requestDigest": "e0c48a1a00c7d4d778b785924e009130d53b93eee96842cb0c903659b439be28",
+  "sessionBindingPrefix": "efd97fd6907a07bd",
+  "sessionCompletion": {
+    "path": "/v1/wallet/sessions/complete",
+    "status": 200,
+    "ok": true
+  },
+  "sessionIntrospection": {
+    "path": "/v1/wallet/sessions/introspect",
+    "requiredScopes": ["exchange:read"],
+    "proof": "fresh sender-constrained P-256 Product Session proof",
+    "status": 200,
+    "active": true
+  },
+  "privateMaterialPersisted": false,
+  "boundary": "This proves public Exchange Product Session completion and introspection. It does not prove order action authorization, custody withdrawal broadcast, cross-chain routing, production signing, or store release."
+}

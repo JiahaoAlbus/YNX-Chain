@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-04T06:06:00+08:00",
+  "environment": "public-testnet",
+  "walletGateway": {
+    "url": "https://wallet-auth.ynxweb4.com",
+    "sourceCommit": "ec2d2e6e2b16a877be71f5d8a02694b2454ac0a0"
+  },
+  "exchange": {
+    "url": "https://exchange.ynxweb4.com",
+    "sourceCommit": "e9f453c6fd0a4e22000c31a1d38894f19d179bce",
+    "binarySha256": "1ff73e917ee64dde95d6c1f6f4d96bd023e6fd119c1874db88bda28bc7cde568",
+    "healthStatus": 200,
+    "versionCommit": "e9f453c6"
+  },
+  "singleAccountFlow": {
+    "walletSessionCompletionStatus": 200,
+    "exchangeAccountReadStatus": 200,
+    "account": "ynx19p37vlj0zgghqm0x80vvqczmf62hdu23hn4lfg",
+    "balanceAssets": ["YNXT", "YUSD_TEST"],
+    "bearerUsed": false,
+    "proofBound": true
+  },
+  "pooledConcurrency": {
+    "independentWalletSessions": 10,
+    "concurrency": 20,
+    "accountReadRequests": 100,
+    "http200": 100,
+    "failures": 0,
+    "distinctAccounts": 10,
+    "retriedRequests": 0,
+    "elapsedMs": 2519.37,
+    "throughputPerSecond": 39.69,
+    "latencyMs": {
+      "p50": 87.8,
+      "p95": 1677.61,
+      "p99": 1727.64,
+      "max": 2498.24
+    }
+  },
+  "burstBoundary": {
+    "attemptedConcurrency": 100,
+    "result": "failed-before-completion",
+    "observedFailure": "TLS connection reset near request 64",
+    "claim": "The accepted public capacity evidence is the successful 20-concurrent, 10-session run above; no 100-concurrent success is claimed."
+  },
+  "deploymentIncident": {
+    "observed": "A Darwin/ARM binary was mistakenly installed and produced systemd Exec format error and public 502 responses.",
+    "recovery": "A statically linked Linux x86-64 binary from the same source commit was installed immediately; health and version returned 200 and persisted venue state remained intact.",
+    "rollbackBackup": "restricted server-side binary, environment and state backup retained"
+  },
+  "boundary": "This proves concurrent proof-bound account reads. Trading actions, withdrawal broadcast, cross-chain routing, production signing, and store release remain separate gates."
+}

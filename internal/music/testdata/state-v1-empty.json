@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "profiles": {},
+  "tracks": {},
+  "playlists": {},
+  "listeners": {},
+  "usage": {},
+  "allocations": {},
+  "settlements": {},
+  "cases": {},
+  "aiProposals": {},
+  "idempotency": {},
+  "audit": [],
+  "integrityHash": "705bc044b95387b0c66f581a49122064e687d806d0beba634f65841f745f381c"
+}

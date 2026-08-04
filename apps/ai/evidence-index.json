@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-ai",
+  "generatedAt": "2026-08-02",
+  "evidence": [
+    {
+      "requirement": "Wallet replay/tamper/restart/revoke local fixture behavior",
+      "source": "internal/aiproduct/formal_auth_test.go and internal/aiproduct/server_test.go",
+      "status": "tested-local-fixture-only",
+      "centralClaim": false
+    },
+    {
+      "requirement": "Production auth fail-closed before canonical integration",
+      "source": "TestProductionModeFailsClosedWithoutCanonicalAuth",
+      "status": "tested-local"
+    },
+    {
+      "requirement": "Strict POST-body SSE transport, query rejection, explicit attachment context, provider unavailable and 429 truth",
+      "source": "internal/aigateway/server.go; internal/aigateway/gateway_test.go; internal/aigateway/stream_contract_test.go; internal/aiproduct/server_test.go; internal/aiproduct/provider_stream_test.go; apps/ai/mobile/src/api.test.ts",
+      "status": "tested-local-race",
+      "tests": [
+        "go test ./internal/aigateway",
+        "go test -race ./internal/aigateway",
+        "go test ./internal/aigateway ./internal/aiproduct ./cmd/ynx-ai-gatewayd"
+      ],
+      "sourceCommit": "2678a8b0cf3f9463ec7fc205caab486993bf5f18",
+      "centralClaim": false
+    },
+    {
+      "requirement": "Generation cancellation is bound to the owning Wallet account and does not disclose another account's active generation",
+      "source": "internal/aiproduct/server.go; TestGenerationCancelIsBoundToOwningAccount; TestCancelEndpointCancelsRegisteredGeneration",
+      "status": "tested-local-race",
+      "tests": [
+        "go test ./internal/aiproduct",
+        "go test -race ./internal/aiproduct"
+      ],
+      "sourceCommit": "a427a7558e075696265c14162d853ab23c352625"
+    },
+    {
+      "requirement": "Encrypted persistence, attachment bounds/tamper, search and branch",
+      "source": "internal/aiproduct/attachment_test.go; TestConversationSearchAndEncryptedBranch",
+      "status": "tested-local"
+    },
+    {
+      "requirement": "12 locales and Arabic RTL formatting primitives",
+      "source": "apps/ai/mobile/src/i18n/catalog.test.ts; scripts/i18n-layout-check.mjs",
+      "status": "tested-local-static-and-unit"
+    },
+    {
+      "requirement": "Web responsive light/dark and fail-closed sign-in",
+      "source": "interactive in-app browser at local http://127.0.0.1:8096 on 2026-07-18",
+      "status": "inspected-local-not-durable-screenshot"
+    },
+    {
+      "requirement": "Android build, manifest, hash and signing class",
+      "source": "artifact-manifest.json; Gradle BUILD SUCCESSFUL; aapt/apksigner output",
+      "status": "built-verified-installed-cold-launched-restarted-and-deep-linked-on-task-owned-api36"
+    },
+    {
+      "requirement": "iOS Simulator build/install/cold launch/deep link/hash",
+      "source": ".github/workflows/ynx-ai-mobile.yml",
+      "status": "runnable-ci-not-yet-run"
+    },
+    {
+      "requirement": "Local liveness, dependency readiness, low-cardinality metrics, bounded request IDs and structured route logs",
+      "source": "internal/aiproduct/observability.go; internal/aiproduct/observability_test.go; apps/ai/OBSERVABILITY.md",
+      "status": "tested-local-race",
+      "tests": [
+        "go test -count=1 ./internal/aiproduct",
+        "go test -race -count=1 ./internal/aiproduct",
+        "go vet ./internal/aiproduct ./apps/ai",
+        "node apps/ai/scripts/release-check.mjs"
+      ],
+      "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+      "centralClaim": false
+    },
+    {
+      "requirement": "Local health-path capacity regression gate and staged measurement plan",
+      "source": "internal/aiproduct/capacity_test.go; apps/ai/LOCAL_ACCEPTANCE_EVIDENCE.md; apps/ai/SLO_CAPACITY_PLAN.md",
+      "status": "tested-local-health-path-only",
+      "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+      "publicClaim": false
+    },
+    {
+      "requirement": "Reachable vulnerability scan after dependency and Go toolchain remediation",
+      "source": "go.mod; apps/ai/DEPENDENCY_REVIEW.md; docs/agent-memory/LAST_SUCCESS.md",
+      "status": "tested-local-zero-reachable-ai-findings",
+      "sourceCommit": "906478672995242972842d3cf6af6d9c66da3cab",
+      "scope": "internal/aigateway internal/aiproduct cmd/ynx-ai-gatewayd apps/ai"
+    },
+    {
+      "requirement": "Central Wallet/Gateway/provider",
+      "source": "apps/ai/integration/central-integration.json",
+      "status": "not-integrated-central"
+    },
+    {
+      "requirement": "Public Web product, exact YNX branding, redacted Gateway status and fail-closed Wallet boundary",
+      "source": "https://assistant.ynxweb4.com/; https://assistant.ynxweb4.com/api/public-status; source 16d6d71e2f93418e37fe9d024f58c492ca1baad4",
+      "status": "deployed-public-browser-verified",
+      "publicClaim": true
+    },
+    {
+      "requirement": "Provider-backed generation truth",
+      "source": "POST /ai/stream release validation against deployed source 5c84e062ac2112ef164ea0302d4cdbe44c79c337",
+      "status": "provider-rate-limited-429-no-substitute-answer",
+      "generationLive": false
+    },
+    {
+      "requirement": "Public bounded concurrency",
+      "source": "25-worker remote checks from the Testnet host against health, public status and Web shell",
+      "status": "300-of-300-http-200",
+      "p95Ms": { "health": 120.8, "publicStatus": 46.1, "web": 17.4 }
+    }
+  ]
+}

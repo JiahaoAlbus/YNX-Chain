@@ -1,12 +1,13 @@
-# Next action
+# Next Action
 
-Rebuild and verify the current-source Android artifact:
+After PR `#12` is merged, submit `release/integration/resource-market-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, and `docs/integration/DEPENDENCY_ACCEPTANCE.md` to Product `29` for central acceptance against Wallet/Auth, Chain settlement, Data Fabric billing, Explorer, Monitor, and Trust.
 
-1. Inspect `apps/video/android` build instructions, Gradle wrapper and local SDK availability without modifying unrelated worktrees.
-2. Build the debug/test artifact from the current final-branch source.
-3. Record exact artifact path, bytes, SHA-256, package/application ID, min/target SDK and signing class.
-4. If a compatible local emulator is available, install, cold start, restart and open the registered `ynxvideo://` deep link; capture raw command evidence.
-5. If the emulator or SDK is unavailable, preserve exact build/toolchain evidence, classify only the missing execution input, and continue with a product-scoped final-branch CI workflow or observability slice.
-6. Update `apps/video/product-release.json`, artifact manifest, evidence index and this recovery checkpoint without claiming production signing or physical-device coverage.
+The first executable verification after central acceptance is:
 
-After any successful modification: test, inspect diff, commit, push, verify Local SHA equals Remote SHA, then update this checkpoint.
+1. deploy two independently operated Testnet providers;
+2. execute Quote → Intent → Reservation → Service → segmented Metering → authoritative Settlement;
+3. execute provider Failure → one bounded Retry → Refund/Bond/Appeal;
+4. restart services and verify state recovery;
+5. record authoritative transaction hashes, receipts, provider identities, health/version endpoints, and source SHA without embedding credentials.
+
+Do not publish or mark `integratedCentral`, `testnetVerified`, `deployedPublic`, `releasePublished`, or `downloadHosted` before those direct checks succeed.

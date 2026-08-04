@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "ynx-integration-contract/1",
+  "contractVersion": "music-contract-v1",
+  "productId": "ynx-music",
+  "owner": "YNX Music",
+  "sourceCommit": "74716a19d95fc191b54102adc02000a91fafec24",
+  "status": "implementedLocal",
+  "acceptedByIntegration": false,
+  "canonicalIdentity": {
+    "service": "ynx-musicd",
+    "productClientId": "ynx-music-v1",
+    "requestingProduct": "music",
+    "bundleId": "com.ynxweb4.music",
+    "callback": "ynxmusic://auth/callback",
+    "deviceAlgorithm": "p256-sha256"
+  },
+  "walletTuple": {
+    "authorizationRequestVersion": "1",
+    "gatewayChallengePrefix": "YNX_PRODUCT_SESSION_CHALLENGE_V1\\n",
+    "sessionSchema": "wallet-auth-v1",
+    "requiredHeaders": [
+      "X-YNX-App-Session",
+      "X-YNX-Product-Device-Key"
+    ],
+    "scopes": [
+      "music.creator",
+      "music.library",
+      "music.playback",
+      "music.profile"
+    ],
+    "scopeWildcardsAllowed": false,
+    "legacyBearerAllowed": false
+  },
+  "apis": [
+    {"method":"GET","path":"/health","scope":null,"owner":"YNX Music"},
+    {"method":"POST","path":"/api/auth/wallet-v1/challenge","scope":null,"owner":"YNX Wallet / Auth"},
+    {"method":"POST","path":"/api/auth/wallet-v1/session","scope":null,"owner":"YNX Wallet / Auth"},
+    {"method":"GET","path":"/api/me","scope":"music.profile","owner":"YNX Music"},
+    {"method":"PUT","path":"/api/profile","scope":"music.profile","owner":"YNX Music"},
+    {"method":"POST","path":"/api/creator/onboarding","scope":"music.creator","owner":"YNX Music"},
+    {"method":"POST","path":"/api/creator/tracks","scope":"music.creator","owner":"YNX Music"},
+    {"method":"POST","path":"/api/creator/tracks/{id}/release","scope":"music.creator","owner":"YNX Music"},
+    {"method":"GET","path":"/api/catalog","scope":"music.library","owner":"YNX Music"},
+    {"method":"GET","path":"/api/tracks/{id}","scope":"music.library","owner":"YNX Music"},
+    {"method":"GET","path":"/api/tracks/{id}/media","scope":"music.playback","owner":"YNX Music"},
+    {"method":"GET","path":"/api/tracks/{id}/artwork","scope":"music.library","owner":"YNX Music"},
+    {"method":"PUT","path":"/api/library","scope":"music.library","owner":"YNX Music"},
+    {"method":"POST","path":"/api/playback/{id}/position","scope":"music.playback","owner":"YNX Music"},
+    {"method":"POST","path":"/api/playlists","scope":"music.library","owner":"YNX Music"},
+    {"method":"POST","path":"/api/cases","scope":"music.profile","owner":"YNX Music / Trust"},
+    {"method":"POST","path":"/api/creator/allocations","scope":"music.creator","owner":"YNX Music / Data Fabric"},
+    {"method":"POST","path":"/api/creator/settlements","scope":"music.creator","owner":"YNX Music / Pay"},
+    {"method":"POST","path":"/api/ai/proposals","scope":"music.library","owner":"YNX Music / AI"},
+    {"method":"GET","path":"/api/ai/status","scope":"music.library","owner":"YNX Music / AI"},
+    {"method":"GET","path":"/api/ai/proposals/{id}/stream","scope":"music.library","owner":"YNX Music / AI"},
+    {"method":"POST","path":"/api/ai/proposals/{id}/review","scope":"music.library","owner":"YNX Music / AI"}
+  ],
+  "canonicalEvents": [
+    {
+      "type": "music.track.published.v1",
+      "authority": "YNX Music",
+      "status": "proposed",
+      "requiredFields": ["eventId","occurredAt","trackId","creatorAccount","releaseState","rightsDeclarationHash","audioSha256","sourceCommit"]
+    },
+    {
+      "type": "music.usage.recorded.v1",
+      "authority": "YNX Music",
+      "status": "proposed",
+      "requiredFields": ["eventId","occurredAt","usageRecordId","trackId","listenerAccount","listenedMillis","completed","sessionRef","sourceCommit"]
+    },
+    {
+      "type": "music.revenue.allocation.requested.v1",
+      "authority": "YNX Music",
+      "status": "proposed",
+      "requiredFields": ["eventId","occurredAt","allocationId","creatorAccount","sourceRecord","usageRecordIds","currency","amountMicros","sourceCommit"]
+    },
+    {
+      "type": "pay.music.settlement.committed.v1",
+      "authority": "YNX Pay / Data Fabric",
+      "status": "dependency-unaccepted",
+      "requiredFields": ["eventId","occurredAt","settlementId","allocationId","creatorAccount","amountMicros","currency","walletReceiptId","ledgerEventId","status","sourceCommit"]
+    },
+    {
+      "type": "trust.music.case.updated.v1",
+      "authority": "YNX Trust Center",
+      "status": "dependency-unaccepted",
+      "requiredFields": ["eventId","occurredAt","caseId","trackId","kind","status","evidenceHash","decisionRef","sourceCommit"]
+    }
+  ],
+  "idempotency": {
+    "requiredFor": ["POST /api/cases","POST /api/creator/settlements"],
+    "scope": "authenticated-account plus operation namespace",
+    "maxKeyBytes": 128,
+    "sameKeySameBody": "replay-original-result",
+    "sameKeyChangedBody": "409 conflict",
+    "legacyGlobalClaims": "read-only compatibility replay",
+    "atomicPersistence": true
+  },
+  "errors": [
+    {"code":"MUSIC_INVALID","httpStatus":400,"internal":"ErrInvalid"},
+    {"code":"MUSIC_UNAUTHORIZED","httpStatus":401,"internal":"ErrUnauthorized"},
+    {"code":"MUSIC_NOT_FOUND","httpStatus":404,"internal":"ErrNotFound"},
+    {"code":"MUSIC_CONFLICT","httpStatus":409,"internal":"ErrConflict"},
+    {"code":"MUSIC_RATE_LIMITED","httpStatus":429,"internal":"rate limit"},
+    {"code":"MUSIC_CENTRAL_UNAVAILABLE","httpStatus":503,"internal":"central adapter failure"},
+    {"code":"MUSIC_INTERNAL","httpStatus":500,"internal":"unclassified error"}
+  ],
+  "health": {
+    "path": "/health",
+    "readyPath": null,
+    "versionIncluded": true,
+    "integrityChecked": true,
+    "centralIntegratedClaim": false,
+    "licensedPublicCatalogClaim": false,
+    "productionStreamingClaim": false
+  },
+  "persistence": {
+    "schemaVersion": 1,
+    "format": "atomic-json-sha256",
+    "audit": "hash-chained",
+    "privateMediaPathsSerialized": false,
+    "privateMediaPathRecovery": "deterministic by track id",
+    "forwardMigration": false,
+    "rollbackMigration": false,
+    "restoreDrill": false
+  },
+  "dependencies": [
+    {"product":"YNX Wallet / Auth","owner":"02-wallet-auth","accepted":false,"required":"registry entry, challenge, session and introspection"},
+    {"product":"YNX Pay","owner":"04-pay","accepted":false,"required":"review and committed-settlement receipts"},
+    {"product":"YNX Trust Center","owner":"15-trust-center","accepted":false,"required":"rights case create/update schema"},
+    {"product":"YNX AI","owner":"14-ai","accepted":false,"required":"consented proposal stream with provider/model/cost truth"},
+    {"product":"YNX Data Fabric","owner":"26-data-fabric","accepted":false,"required":"canonical usage, allocation and billing ledger events"},
+    {"product":"YNX Integration","owner":"29-integration","accepted":false,"required":"contract freeze and shared testnet vectors"},
+    {"product":"YNX Security / SRE","owner":"30-security-platform","accepted":false,"required":"release, scan, artifact and deployment gates"},
+    {"product":"YNX Website","owner":"28-website","accepted":false,"required":"consume public metadata and publish canonical route"}
+  ],
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "truthBoundaries": {
+    "commercialCatalog": false,
+    "paidRoyaltyFinality": false,
+    "fakeStreams": false,
+    "fakeRevenue": false,
+    "aiCanPublish": false,
+    "aiCanMoveFunds": false,
+    "musicReceivesPrivateKeys": false
+  }
+}

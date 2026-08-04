@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">Vos données Shop</string>
+    <string name="privacy_data_description">Exportez votre profil, panier, commandes, dossiers IA et historique d’audit acheteur. La suppression efface profil, adresses, panier et dossiers IA, et pseudonymise les commandes terminales. Les adresses de règlement et preuves de transaction sur chaîne publique restent vérifiables.</string>
+    <string name="privacy_export_button">Exporter les données Shop</string>
+    <string name="privacy_export_ready">L’export des données Shop est prêt.</string>
+    <string name="privacy_export_unavailable">L’export des données Shop est indisponible.</string>
+    <string name="privacy_share_label">Enregistrer le JSON des données Shop</string>
+    <string name="privacy_delete_button">Supprimer les données personnelles Shop</string>
+    <string name="privacy_delete_warning">Les processus actifs de paiement, préparation, retour, remboursement ou litige doivent atteindre un état terminal avant suppression. Les commandes finalisées sont pseudonymisées ; la preuve de règlement officielle sur chaîne publique est conservée.</string>
+    <string name="privacy_delete_action">Supprimer</string>
+    <string name="privacy_exact_required">Saisissez exactement la phrase de confirmation de suppression.</string>
+    <string name="privacy_deleted">Vos données personnelles Shop ont été supprimées. Les commandes terminales ont été pseudonymisées et la preuve de règlement sur chaîne publique est conservée.</string>
+    <string name="privacy_delete_failed">Suppression non terminée. Des processus actifs doivent peut-être encore être résolus.</string>
+</resources>

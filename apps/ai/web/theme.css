@@ -1,0 +1,60 @@
+:focus-visible {
+  outline: 3px solid #7aa2ff;
+  outline-offset: 3px;
+}
+
+.search-label {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.search-label input {
+  min-height: 38px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+  padding: 8px 10px;
+}
+
+.payload-preview {
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  border-inline-start: 3px solid var(--blue);
+  padding: 10px 12px;
+  background: var(--soft);
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --blue: #87a8ff;
+    --ink: #f2f5ff;
+    --muted: #aeb8d0;
+    --line: #34405a;
+    --soft: #151d2d;
+    --danger: #ff8c82;
+    --shadow: 0 22px 70px rgba(0, 0, 0, .36);
+  }
+
+  body, .workspace, .auth-shell { background: #0c1220; }
+  .auth-card, .auth-grid input, .sessions, .topbar, .composer, .review-card, .settings-card,
+  .account-chip, .conversation-item.active, .icon-button, .session-tabs button.active,
+  .search-label input, dialog, #modal-form, #modal-body input, #modal-body textarea,
+  #modal-body select, #modal-form footer button { background: #111a2a; color: var(--ink); }
+  .notice, .context-strip, .exclusion-row, .boundary-banner { background: #151d2d; }
+  .danger-card { background: #291617; }
+  .danger, .cancel { background: transparent; }
+  .composer textarea { background: transparent; color: var(--ink); }
+  .rail-brand { background: #f2f5ff; color: #002fa7; }
+}
+
+@media (forced-colors: active) {
+  .status-dot, .live-dot { forced-color-adjust: none; }
+}

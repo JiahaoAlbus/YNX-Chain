@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "ynx-governance-local-artifact-evidence/v1",
+  "sourceCommit": "c085e078577fe669b3295169d89d167cc666ba91",
+  "sourceCommitTime": "2026-07-22T23:06:31+08:00",
+  "builder": {
+    "goVersion": "go version go1.25.7 darwin/arm64",
+    "goos": "darwin",
+    "goarch": "arm64",
+    "cgoEnabled": false,
+    "trimpath": true
+  },
+  "verification": {
+    "independentPackageRuns": 2,
+    "byteIdenticalFiles": [
+      "governance-sbom.cdx.json",
+      "THIRD_PARTY_NOTICES.md",
+      "ynx-governance-state",
+      "ynx-governance-state.go-version.txt",
+      "ynx-governanced",
+      "ynx-governanced.go-version.txt"
+    ],
+    "provenanceExcludedFromByteComparisonReason": "generatedAt records each packaging run time",
+    "cycloneDxVersion": "1.5",
+    "sbomComponentCount": 312
+  },
+  "signingClass": "unsigned-local-development",
+  "installedLocal": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "artifacts": [
+    {
+      "file": "governance-sbom.cdx.json",
+      "bytes": 95311,
+      "sha256": "fb45d5c6226d01acdc33d67caedb57feb8776d0e363c04aaa20ce4ce2cb65dde"
+    },
+    {
+      "file": "THIRD_PARTY_NOTICES.md",
+      "bytes": 724,
+      "sha256": "1aa630d55f785519d8b51873bd1d5c369c104d5489d4a73a274a89d17a36d446"
+    },
+    {
+      "file": "ynx-governance-state",
+      "bytes": 5456722,
+      "sha256": "c3c1d64c49069c0d4a1b389e6cc6f99bb3b25988bacbbdba83dda53b2026c4f7"
+    },
+    {
+      "file": "ynx-governance-state.go-version.txt",
+      "bytes": 286,
+      "sha256": "ff56dd3542a485a5463f54075fcb559a8137690cb3480daa98d2fb7e1554d970"
+    },
+    {
+      "file": "ynx-governanced",
+      "bytes": 8760290,
+      "sha256": "b86f8af3c9171a90f0179be2bb791e292fe86a902e6576909255fde6c1368c80"
+    },
+    {
+      "file": "ynx-governanced.go-version.txt",
+      "bytes": 276,
+      "sha256": "4611bb649bb97b25ac3270e4506e9504c49f3f45dd210b8932fa7652a06c5333"
+    }
+  ]
+}

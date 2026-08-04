@@ -1,89 +1,75 @@
-# YNX 33 current state
+# YNX Resource Market — Current State
 
-Updated at: `2026-07-29T03:09:09Z`
-
-## Identity
-
-- Product number: `33`
-- Product name: `YNX Video`
-- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/33-video`
-- Repository: `JiahaoAlbus/YNX-Chain`
-- Branch: `codex/final-video`
-- Last verified branch head before this evidence checkpoint: `3c7ea829e31278d9728f75c155cceab152e3d16a`
-- Last verified remote head before this evidence checkpoint: `3c7ea829e31278d9728f75c155cceab152e3d16a`
-- Main SHA: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
-- Ahead / behind at verification: `0 / 0`
-- Dirty state at verification: clean
-
-## Current phase
-
-`INTEGRATE` — product-owned media integrity and integration contract v2 are implemented and tested locally. Central acceptance, current-source native artifacts, full current-source ClamAV E2E, public deployment and production release remain unproven.
+- Product: `16` — YNX Resource Market
+- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market`
+- Branch: `codex/final-resource-market`
+- Verified candidate source SHA: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Remote candidate SHA: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Main SHA used for synchronization: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
+- Ahead / Behind against upstream at candidate verification: `0 / 0`
+- Dirty state at candidate verification: clean
+- Phase: `INTEGRATE`
+- Product status: local candidate; not a public, production-signed, or authoritative-settlement release
+- Updated: `2026-07-29T02:54:25Z`
 
 ## Latest successful tests
 
-- `go test ./internal/video/...`
-- `go test -race ./internal/video/...`
-- `go vet ./internal/video/...`
-- `npm --prefix apps/video run check`
-- `npm --prefix apps/video run smoke`
-- JSON validation for integration contract, vectors, coverage and product release records
-- Current-source `video-recover` backup and restore with matching state SHA-256
-- Restored schema-v2 store reopen using the current-source server binary
+- `go test -count=1 ./...`
+- `go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct`
+- `go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market`
+- `bash apps/resource-market/check.sh`
+- `bash scripts/validate/no-placeholder-check.sh`
+- `npm audit --audit-level=high` in `apps/resource-market`
+- `npm run test:ui` in `apps/resource-market`
+- `npm sbom --sbom-format spdx` in `apps/resource-market`
 
-## GitHub state
+## GitHub
 
-- Pull request: none for `codex/final-video`
-- GitHub Actions: no run returned for `codex/final-video`
-- Video release/tag: none
-- Remote recovery point: `origin/codex/final-video`
+- Pull request: `#12` — open and mergeable
+- Resource Market Candidate Gates run: `30417957999` — success against `d683c7d28ce129daad358c84680e5980cf8ad069`
+- General CI run: `30417957996` — success
+- Docs compliance run: `30417958003` — success
+- Resource Market iOS Simulator build: run `30417957987` — success
+- Governance check run `30417957971` was still in progress at this checkpoint and is not counted as successful evidence.
+- Resource Market release: none published
 
-## Release and deployment truth
+## Verified completed locally
 
-- implementedLocal: true
-- testedLocal: true
-- builtLocal: historical native artifacts only; not current-source
-- installedLocal: false for current source
-- migrationVerified: true for schema v2
-- restoreVerified: true for the current-source CLI against a minimal initialized local store; production/populated-object restore remains false
-- integratedCentral: false
-- testnetVerified: false
-- deployedStaging: false
-- deployedPublic: false
-- releasePublished: false
-- downloadHosted: false
-- productionSigned: false
-- storeReleased: false
-- Public deployment: none proven
-- `ynxweb4.com` Video route: not proven deployed
+- Distinct quote, intent, reservation, execution, metering, settlement, failure, refund and dispute state handling
+- Exact offer-scoped capacity reservations and release integrity
+- Provider self-dealing rejection
+- Checked non-negative signed-64-bit amount arithmetic with fail-before-mutation overflow handling
+- Bounded one-to-one failed-order retry lineage with migration coverage
+- Stable failure/error semantics and cross-product negative vectors
+- Twelve-locale browser boundary, Arabic RTL, responsive and accessibility contracts
+- Android debug install/cold-start evidence
+- iOS Simulator build evidence
+- Portable Linux/macOS DAST smoke harness
+- Candidate binary build metadata, SHA-256 generation, Go dependency inventory and SPDX npm SBOM generation in CI
 
-## Completed in the latest engineering slice
+## Not completed or not proven
 
-- Added byte count, SHA-256 and explicit original/derivative lineage to every HLS playlist, HLS segment and original fallback variant.
-- Enforced per-video object-key containment, duplicate rejection, nonempty assets and source-digest binding.
-- Upgraded persisted state to schema v2 with explicit rollback migration.
-- Added startup backfill for legacy variant integrity metadata.
-- Made missing or unverifiable legacy assets private and failed, with audit evidence.
-- Published `ynx-video-integration-v2`, updated cross-product vectors and corrected product-release truth for historical native artifacts.
-- Captured a source-bound ClamAV readiness audit proving the local updater configuration and signature database are unusable; Testnet remains false.
-- Built and ran the current-source recovery CLI, measured a 0.47s backup and 1.15s restore, matched state hashes, and reopened the restored store.
+- Central Wallet/Auth and Gateway acceptance
+- Authoritative Chain and Data Fabric settlement
+- Explorer, Monitor and Trust central integration
+- Two independently operated public Testnet providers
+- Real funded Testnet workload, failure, retry, refund and authoritative receipt sequence
+- Public deployment, DNS, health and version endpoints
+- `https://ynxweb4.com/resource-market` deployment and indexability evidence
+- Immutable hosted download, production signing, store release, legal review and external security review
 
-## Current risks
+## Current risk
 
-- Current-source ClamAV-backed loopback E2E is unavailable because the local scanner configuration/signature database is not proven usable.
-- No current-source Android/iOS artifact or install evidence exists.
-- No final-branch CI run, PR or Video release exists.
-- Central Wallet/Auth, Pay, Trust, Data Fabric, Integration and Security/SRE acceptance is pending.
-- Public runtime, hosted downloads, production signing, physical devices and store credentials are absent.
+The local candidate is strongly tested, but central and public claims must remain false until authoritative deployed evidence exists. PR `#12` must not be described as merged until GitHub records the merge.
 
 ## Evidence
 
-- `docs/handoffs/video-evidence/MEDIA_INTEGRITY.md`
-- `docs/handoffs/video-evidence/clamav-readiness-20260729.txt`
-- `docs/handoffs/video-evidence/backup-restore-20260729.txt`
-- `docs/handoffs/video-evidence/EVIDENCE_INDEX.md`
-- `docs/integration/INTEGRATION_HANDOFF.md`
-- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
-- `docs/integration/DEPENDENCY_ACCEPTANCE.md`
-- `release/integration/video-contract.json`
-- `apps/video/product-release.json`
+- `apps/resource-market/product-release.json`
+- `apps/resource-market/public-product-metadata.json`
+- `apps/resource-market/operator-inputs.request.json`
+- `apps/resource-market/FEATURE_COMPLETION_EVIDENCE.md`
+- `apps/resource-market/EVIDENCE_INDEX.md`
 - `.ai-bridge/full-goal-coverage.json`
+- `docs/integration/INTEGRATION_HANDOFF.md`
+- `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
