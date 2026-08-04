@@ -6,5 +6,5 @@
 - Android runtime: `screenshots/docs-android-release.png`; package `com.ynxweb4.docs`, cold launch and `ynxdocs://wallet-auth/callback` routing verified by `adb`.
 - Artifact: `ARTIFACT_MANIFEST.json` and `release/YNX-Docs-1.0.0-testnet-preview.apk`.
 - UI/a11y/RTL: `UI_DESIGN_AUDIT.md`, Web static tests, and native i18n audit.
-- iOS: `.github/workflows/cloud-docs-ios-simulator.yml` is runnable on a full-Xcode GitHub macOS runner. Local iOS evidence is absent and is not claimed.
-- Staging/public/download: absent; corresponding release booleans remain false.
+- iOS: `.github/workflows/cloud-docs-ios-simulator.yml` produced successful unsigned Cloud and Docs Simulator Release packages in [workflow run 30876233140](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30876233140). Device installation, production signing, and store release are not claimed.
+- Public: `https://web4.ynxweb4.com/docs-app/` and `https://web4.ynxweb4.com/docs-app/api/health` are live. UI and health returned 100/100 HTTP 200 responses at concurrency 20; the private object route returned 100/100 HTTP 401 responses without a Wallet session, and an invalid challenge returned HTTP 400. No hosted Docs download, production durability, or HA claim is made.
