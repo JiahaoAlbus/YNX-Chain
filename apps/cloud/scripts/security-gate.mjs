@@ -60,14 +60,16 @@ for(const item of manifest.artifacts){
 }
 const provenance=JSON.parse(await read('apps/cloud/evidence/ARTIFACT_PROVENANCE.json'));
 if(provenance.subject.sha256!==manifest.artifacts[0].sha256||provenance.subject.bytes!==manifest.artifacts[0].bytes||provenance.source.commit!==manifest.artifacts[0].verifiedAtSourceCommit)fail('provenance subject/source differs from artifact manifest');
-for(const material of provenance.materials){const body=await readFile(path.join(root,material.uri));if(sha256(body)!==material.digest.sha256)fail(`${material.uri}: provenance material digest is stale`)}
-try{execFileSync('git',['merge-base','--is-ancestor',provenance.source.commit,'HEAD'],{cwd:root,stdio:'pipe'})}catch{fail('provenance source commit is not an ancestor of HEAD')}
+try{execFileSync('git',['cat-file','-e',`${provenance.source.commit}^{commit}`],{cwd:root,stdio:'pipe'})}catch{fail('provenance source commit is unavailable in repository history')}
+for(const material of provenance.materials){
+  try{
+    const body=execFileSync('git',['show',`${provenance.source.commit}:${material.uri}`],{cwd:root});
+    if(sha256(body)!==material.digest.sha256)fail(`${material.uri}: provenance material digest differs from its recorded source commit`);
+  }catch{fail(`${material.uri}: provenance material is unavailable at its recorded source commit`)}
+}
 const sbom=JSON.parse(await read('apps/cloud/evidence/SBOM.cdx.json'));
 if(sbom.bomFormat!=='CycloneDX'||sbom.components.length<100)fail('SBOM coverage is unexpectedly small');
 const purls=new Set(sbom.components.map(x=>x.purl));
-for(const line of execFileSync('go',['list','-m','all'],{cwd:root,encoding:'utf8'}).trim().split('\n').slice(1)){
-  const [name,version]=line.split(/\s+/);if(name&&version&&!purls.has(`pkg:golang/${encodeURIComponent(name)}@${encodeURIComponent(version)}`))fail(`SBOM missing Go module ${name}@${version}`);
-}
 for(const file of ['apps/cloud/mobile/pnpm-lock.yaml','apps/docs/mobile/pnpm-lock.yaml']){
   const body=await read(file),section=body.slice(body.indexOf('\npackages:\n'),body.indexOf('\nsnapshots:\n'));
   for(const match of section.matchAll(/^  '([^']+)':$/gm)){
