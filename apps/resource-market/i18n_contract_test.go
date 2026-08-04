@@ -60,7 +60,7 @@ func TestMarketStaticLocaleCatalogIsLoadedAndGuarded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(index), `<script src="/i18n-market.js">`) {
+	if !strings.Contains(string(index), `<script src="./i18n-market.js">`) {
 		t.Fatal("market locale catalog is not loaded")
 	}
 }
