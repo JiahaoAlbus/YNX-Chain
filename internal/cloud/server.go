@@ -139,7 +139,7 @@ func (s *Server) observe(next http.Handler) http.Handler {
 			encoded, _ := json.Marshal(record)
 			log.Print(string(encoded))
 		}()
-		client := directClient(r.RemoteAddr)
+		client := directClient(r.RemoteAddr, r.Header.Get("X-Forwarded-For"))
 		now := s.service.cfg.Now()
 		s.mu.Lock()
 		window := s.clients[client]
@@ -188,9 +188,15 @@ func (s *Server) persistTelemetryLocked() {
 		s.telemetryErr = "telemetry persistence failed"
 	}
 }
-func directClient(remote string) string {
+func directClient(remote, forwarded string) string {
 	host, _, err := net.SplitHostPort(remote)
 	if err == nil && host != "" {
+		if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+			candidate := strings.TrimSpace(strings.Split(forwarded, ",")[0])
+			if forwardedIP := net.ParseIP(candidate); forwardedIP != nil && !forwardedIP.IsUnspecified() {
+				return forwardedIP.String()
+			}
+		}
 		return host
 	}
 	if strings.TrimSpace(remote) == "" {
