@@ -50,7 +50,7 @@
       "productId": "cloud",
       "productClientId": "ynx-cloud-web-v1",
       "bundleId": "web.ynx.cloud",
-      "callback": "https://cloud.staging.ynx.network/auth/callback"
+      "callback": "https://web4.ynxweb4.com/cloud/auth/callback"
     },
     {
       "productId": "docs",
