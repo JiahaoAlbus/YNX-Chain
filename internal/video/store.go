@@ -50,8 +50,8 @@ func OpenStore(root string, integrityKey []byte) (*Store, error) {
 
 func emptyState() State { s := State{}; normalize(&s); return s }
 func normalize(s *State) {
-	if s.SchemaVersion < 2 {
-		s.SchemaVersion = 2
+	if s.SchemaVersion < 3 {
+		s.SchemaVersion = 3
 	}
 	if s.Videos == nil {
 		s.Videos = map[string]*Video{}
@@ -106,6 +106,9 @@ func normalize(s *State) {
 	}
 	if s.Rights == nil {
 		s.Rights = map[string]*RightsDeclaration{}
+	}
+	for _, video := range s.Videos {
+		normalizeWorkflowState(video)
 	}
 }
 func (s *Store) read(fn func(State) error) error {

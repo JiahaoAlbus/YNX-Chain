@@ -4,10 +4,20 @@ import "time"
 
 type Visibility string
 
+type WorkflowState string
+
 const (
 	VisibilityPrivate  Visibility = "private"
 	VisibilityUnlisted Visibility = "unlisted"
 	VisibilityPublic   Visibility = "public"
+
+	WorkflowDraft       WorkflowState = "draft"
+	WorkflowInReview    WorkflowState = "in_review"
+	WorkflowApproved    WorkflowState = "approved"
+	WorkflowRejected    WorkflowState = "rejected"
+	WorkflowScheduled   WorkflowState = "scheduled"
+	WorkflowPublished   WorkflowState = "published"
+	WorkflowUnpublished WorkflowState = "unpublished"
 )
 
 type Video struct {
@@ -19,6 +29,16 @@ type Video struct {
 	OwnedDeclaration    bool           `json:"owned_content_declaration"`
 	Visibility          Visibility     `json:"visibility"`
 	Status              string         `json:"status"`
+	WorkflowState       WorkflowState  `json:"workflow_state"`
+	Version             uint64         `json:"version"`
+	Versions            []VideoVersion `json:"versions,omitempty"`
+	ScheduledAt         *time.Time     `json:"scheduled_at,omitempty"`
+	ScheduledVisibility Visibility     `json:"scheduled_visibility,omitempty"`
+	SubmittedAt         *time.Time     `json:"submitted_at,omitempty"`
+	SubmittedBy         string         `json:"submitted_by,omitempty"`
+	ReviewedAt          *time.Time     `json:"reviewed_at,omitempty"`
+	ReviewedBy          string         `json:"reviewed_by,omitempty"`
+	ReviewReason        string         `json:"review_reason,omitempty"`
 	Failure             string         `json:"failure,omitempty"`
 	OriginalName        string         `json:"original_name"`
 	ContentType         string         `json:"content_type"`
@@ -33,6 +53,20 @@ type Video struct {
 	CreatedAt           time.Time      `json:"created_at"`
 	UpdatedAt           time.Time      `json:"updated_at"`
 	PublishedAt         *time.Time     `json:"published_at,omitempty"`
+}
+
+type VideoVersion struct {
+	Sequence       uint64        `json:"sequence"`
+	Actor          string        `json:"actor"`
+	Kind           string        `json:"kind"`
+	PreviousState  WorkflowState `json:"previous_state"`
+	NextState      WorkflowState `json:"next_state"`
+	Title          string        `json:"title"`
+	Description    string        `json:"description"`
+	Visibility     Visibility    `json:"visibility"`
+	ContentSHA256  string        `json:"content_sha256"`
+	MetadataSHA256 string        `json:"metadata_sha256"`
+	RecordedAt     time.Time     `json:"recorded_at"`
 }
 
 type MediaVariant struct {
