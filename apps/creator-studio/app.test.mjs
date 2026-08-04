@@ -25,6 +25,9 @@ test("studio exposes recovery, team, rights, revenue and bounded AI workflows", 
     "Revenue audit",
     "AI production workspace",
     "Delete AI data",
+    "Content lifecycle",
+    "independent review",
+    "immutable version record",
   ]) {
     assert.match(html, new RegExp(term, "i"), `missing UI contract: ${term}`);
   }
@@ -54,6 +57,11 @@ test("studio exposes recovery, team, rights, revenue and bounded AI workflows", 
     "/disputes",
     "/ai/jobs",
     "/stream",
+    "/submit-review",
+    "/review-publication",
+    "/schedule",
+    "/publish-due",
+    "/unpublish",
   ]) {
     assert.ok(js.includes(path), `missing client route: ${path}`);
   }
