@@ -1,0 +1,4 @@
+redir /search /search/ 308
+handle_path /search/* {
+    reverse_proxy 127.0.0.1:6497
+}
