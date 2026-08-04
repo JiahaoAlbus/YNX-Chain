@@ -34,16 +34,20 @@ func startReplicationPolling(ctx context.Context, devnet *chain.Devnet, sourceUR
 	}
 	allowAuthoritativeRebase := true
 	poll := func() {
+		devnet.BeginReplicationAttempt()
 		payload, err := fetchReplicationSnapshot(ctx, client, sourceURL, key)
 		if err != nil {
+			devnet.RecordReplicationFailure("fetch", err)
 			log.Printf("authoritative replication fetch failed source=%s: %v", sourceURL, err)
 			return
 		}
 		result, err := devnet.ApplyReplicationSnapshotJSON(payload, allowAuthoritativeRebase)
 		if err != nil {
+			devnet.RecordReplicationFailure("apply", err)
 			log.Printf("authoritative replication apply failed source=%s: %v", sourceURL, err)
 			return
 		}
+		devnet.RecordReplicationSuccess(result)
 		allowAuthoritativeRebase = false
 		if result.Applied {
 			log.Printf("authoritative replication applied source=%s height=%d hash=%s", sourceURL, result.Height, result.BlockHash)
@@ -52,6 +56,7 @@ func startReplicationPolling(ctx context.Context, devnet *chain.Devnet, sourceUR
 	ticker := time.NewTicker(interval)
 	go func() {
 		defer ticker.Stop()
+		defer devnet.StopReplicationRuntime()
 		poll()
 		for {
 			select {

@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">بياناتك في المتجر</string>
+    <string name="privacy_data_description">صدّر ملفك وسلة التسوق والطلبات وسجلات الذكاء الاصطناعي وسجل تدقيق المشتري. يحذف الإجراء الملف والعناوين والسلة وسجلات الذكاء الاصطناعي ويستبدل هوية الطلبات النهائية بمعرّف مستعار. تبقى عناوين التسوية وأدلة المعاملات على السلسلة العامة قابلة للتحقق.</string>
+    <string name="privacy_export_button">تصدير بيانات المتجر</string>
+    <string name="privacy_export_ready">أصبح تصدير بيانات المتجر جاهزاً.</string>
+    <string name="privacy_export_unavailable">تصدير بيانات المتجر غير متاح.</string>
+    <string name="privacy_share_label">حفظ بيانات المتجر بصيغة JSON</string>
+    <string name="privacy_delete_button">حذف بيانات المتجر الشخصية</string>
+    <string name="privacy_delete_warning">يجب أن تصل عمليات الدفع والتنفيذ والإرجاع والاسترداد أو النزاع النشطة إلى حالة نهائية قبل الحذف. تُستبدل هوية الطلبات النهائية بمعرّف مستعار، وتبقى أدلة التسوية المعتمدة على السلسلة العامة محفوظة.</string>
+    <string name="privacy_delete_action">حذف</string>
+    <string name="privacy_exact_required">أدخل عبارة تأكيد الحذف المطابقة تماماً.</string>
+    <string name="privacy_deleted">حُذفت بيانات المتجر الشخصية. استُبدلت هوية الطلبات النهائية بمعرّف مستعار، وبقيت أدلة التسوية على السلسلة العامة محفوظة.</string>
+    <string name="privacy_delete_failed">لم يكتمل الحذف. قد توجد عمليات نشطة تحتاج إلى معالجة.</string>
+</resources>

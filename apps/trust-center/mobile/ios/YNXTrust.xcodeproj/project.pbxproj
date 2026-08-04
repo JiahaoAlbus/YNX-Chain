@@ -1,0 +1,21 @@
+// !$*UTF8*$!
+{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {
+AA01 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXTrustApp.swift; sourceTree = "<group>";};
+AA02 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>";};
+AA03 = {isa = PBXFileReference; explicitFileType = wrapper.application; path = YNXTrust.app; sourceTree = BUILT_PRODUCTS_DIR;};
+AA04 = {isa = PBXBuildFile; fileRef = AA01;};
+AA10 = {isa = PBXGroup; children = (AA11,AA12); sourceTree = "<group>";};
+AA11 = {isa = PBXGroup; children = (AA01,AA02); path = YNXTrust; sourceTree = "<group>";};
+AA12 = {isa = PBXGroup; children = (AA03); name = Products; sourceTree = "<group>";};
+AA20 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AA04); runOnlyForDeploymentPostprocessing = 0;};
+AA21 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+AA22 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+AA30 = {isa = PBXNativeTarget; buildConfigurationList = AA41; buildPhases = (AA20,AA21,AA22); buildRules = (); dependencies = (); name = YNXTrust; productName = YNXTrust; productReference = AA03; productType = "com.apple.product-type.application";};
+AA40 = {isa = XCBuildConfiguration; buildSettings = {IPHONEOS_DEPLOYMENT_TARGET = 16.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0;}; name = Debug;};
+AA42 = {isa = XCBuildConfiguration; buildSettings = {IPHONEOS_DEPLOYMENT_TARGET = 16.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0;}; name = Release;};
+AA43 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = YNXTrust/Info.plist; MARKETING_VERSION = 0.2.0; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.trust; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2";}; name = Debug;};
+AA44 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = YNXTrust/Info.plist; MARKETING_VERSION = 0.2.0; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.trust; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2";}; name = Release;};
+AA41 = {isa = XCConfigurationList; buildConfigurations = (AA43,AA44); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+AA45 = {isa = XCConfigurationList; buildConfigurations = (AA40,AA42); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+AA50 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600;}; buildConfigurationList = AA45; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; knownRegions = (en,Base,"zh-Hans","zh-Hant",ja,ko,es,fr,de,pt,ru,ar,id); mainGroup = AA10; productRefGroup = AA12; projectDirPath = ""; projectRoot = ""; targets = (AA30);};
+}; rootObject = AA50; }

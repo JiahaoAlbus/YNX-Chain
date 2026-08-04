@@ -1,13 +1,18 @@
-# Last successful YNX Music checkpoint
+# Last Success
 
-Observed at `2026-07-29T02:57:07Z`.
+At `2026-07-29T02:53:32Z`, GitHub Actions completed Resource Market Candidate Gates run `30417957999` successfully for source SHA `d683c7d28ce129daad358c84680e5980cf8ad069` on PR `#12`.
 
-- Runtime source commit: `22653153c62529f782f44b0a35177b531ae7e8af`
-- Evidence checkpoint before memory carrier: `38d51649edb857328bffc0da6b0b805de4973536`
-- Remote branch matched the evidence checkpoint with ahead/behind `0/0`.
-- GitHub Actions `music-platforms` run `30417406111` completed successfully for the runtime source commit.
-- Service, Android and iOS Simulator jobs all passed.
-- Schema-v1 to schema-v2 migration, consistent backup and clean restore passed local tests and Race.
-- Release/evidence/public metadata truth was updated without claiming central integration, public deployment, hosted downloads or production release.
+The run directly verified:
 
-The commit containing this document is the durable memory carrier. Resolve its exact SHA using the branch HEAD.
+- placeholder and secret gates;
+- Go correctness, Race and Vet gates;
+- `govulncheck` for the Resource Market dependency surface;
+- locked npm install and high-severity audit;
+- Playwright browser tests;
+- local API and DAST smoke on Ubuntu;
+- candidate binary build with VCS metadata;
+- SHA-256 output;
+- Go dependency inventory;
+- SPDX npm SBOM generation.
+
+General CI, docs compliance, and the Resource Market iOS Simulator build also succeeded for the same PR head. No public deployment, authoritative settlement, production signature, hosted download, or release publication was established by these runs.

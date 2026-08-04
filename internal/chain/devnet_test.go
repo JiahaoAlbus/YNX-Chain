@@ -2,7 +2,10 @@ package chain
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"math"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -393,6 +396,137 @@ func TestPersistentDevnetRestoresBlocksAndAccounts(t *testing.T) {
 	}
 	if len(trace.Lots) != 1 {
 		t.Fatalf("expected restored trace lot")
+	}
+}
+
+func TestPersistentDevnetRejectsCorruptionAndMigratesLegacySnapshot(t *testing.T) {
+	dir := t.TempDir()
+	cfg := DefaultNetworkConfig("testnet")
+	devnet, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet("ynx_integrity_account", 250); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+
+	path := filepath.Join(dir, "devnet-state.json")
+	payload, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var snapshot devnetSnapshot
+	if err := json.Unmarshal(payload, &snapshot); err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Version != devnetSnapshotVersion || snapshot.StateIntegrity == "" {
+		t.Fatalf("persistent snapshot is not sealed as v2: version=%d integrity=%q", snapshot.Version, snapshot.StateIntegrity)
+	}
+	if err := validateDevnetSnapshotIntegrity(snapshot); err != nil {
+		t.Fatalf("fresh persistent snapshot failed integrity validation: %v", err)
+	}
+	markerPath := filepath.Join(dir, "devnet-state.integrity-version")
+	marker, err := os.ReadFile(markerPath)
+	if err != nil || string(marker) != "2\n" {
+		t.Fatalf("persistent snapshot integrity marker is missing or invalid: marker=%q err=%v", marker, err)
+	}
+	info, err := os.Stat(path)
+	if err != nil || info.Mode().Perm() != 0o600 {
+		t.Fatalf("persistent snapshot permissions are not mode 0600: info=%v err=%v", info, err)
+	}
+
+	var sealed devnetSnapshot
+	if err := json.Unmarshal(payload, &sealed); err != nil {
+		t.Fatal(err)
+	}
+	snapshot.Accounts["ynx_integrity_account"].Balance++
+	tampered, err := json.Marshal(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, tampered, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewPersistentDevnet(cfg, dir); err == nil || !strings.Contains(err.Error(), "state integrity mismatch") {
+		t.Fatalf("corrupted account state was accepted: %v", err)
+	}
+
+	sealed.Version = legacyDevnetSnapshotVersion
+	sealed.StateIntegrity = ""
+	legacy, err := json.Marshal(sealed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, legacy, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewPersistentDevnet(cfg, dir); err == nil || !strings.Contains(err.Error(), "integrity downgrade rejected") {
+		t.Fatalf("post-migration v1 downgrade was accepted: %v", err)
+	}
+
+	legacyDir := t.TempDir()
+	legacyPath := filepath.Join(legacyDir, "devnet-state.json")
+	if err := os.WriteFile(legacyPath, legacy, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := NewPersistentDevnet(cfg, legacyDir)
+	if err != nil {
+		t.Fatalf("valid legacy snapshot did not migrate: %v", err)
+	}
+	account, ok := migrated.Account("ynx_integrity_account")
+	if !ok || account.Balance != 250 {
+		t.Fatalf("legacy migration changed account state: account=%+v ok=%v", account, ok)
+	}
+	migratedPayload, err := os.ReadFile(legacyPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var migratedSnapshot devnetSnapshot
+	if err := json.Unmarshal(migratedPayload, &migratedSnapshot); err != nil {
+		t.Fatal(err)
+	}
+	if migratedSnapshot.Version != devnetSnapshotVersion || migratedSnapshot.StateIntegrity == "" {
+		t.Fatalf("legacy snapshot was not persisted as sealed v2: %+v", migratedSnapshot)
+	}
+	if err := validateDevnetSnapshotIntegrity(migratedSnapshot); err != nil {
+		t.Fatalf("migrated snapshot failed integrity validation: %v", err)
+	}
+	migratedMarker, err := os.ReadFile(filepath.Join(legacyDir, "devnet-state.integrity-version"))
+	if err != nil || string(migratedMarker) != "2\n" {
+		t.Fatalf("legacy migration did not persist its downgrade marker: marker=%q err=%v", migratedMarker, err)
+	}
+}
+
+func TestWriteDurableSnapshotSuccessAndFailureCleanup(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "state.json")
+	payload := []byte(`{"version":2}`)
+	if err := writeDurableSnapshot(path, payload); err != nil {
+		t.Fatal(err)
+	}
+	stored, err := os.ReadFile(path)
+	if err != nil || string(stored) != string(payload) {
+		t.Fatalf("durable snapshot payload mismatch: payload=%q err=%v", stored, err)
+	}
+	if _, err := os.Stat(path + ".tmp"); !os.IsNotExist(err) {
+		t.Fatalf("durable snapshot left a temporary file: %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil || info.Mode().Perm() != 0o600 {
+		t.Fatalf("durable snapshot permissions are not mode 0600: info=%v err=%v", info, err)
+	}
+
+	blockedParent := filepath.Join(dir, "not-a-directory")
+	if err := os.WriteFile(blockedParent, []byte("blocked"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	blockedPath := filepath.Join(blockedParent, "state.json")
+	if err := writeDurableSnapshot(blockedPath, payload); err == nil {
+		t.Fatal("durable snapshot write unexpectedly succeeded through a regular-file parent")
+	}
+	if _, err := os.Stat(blockedPath + ".tmp"); err == nil {
+		t.Fatal("failed durable write left a temporary file")
 	}
 }
 

@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:finance:consumer-proposal:source-read-envelope:v1",
+  "title": "YNX Finance read-source envelope v1",
+  "description": "Finance-owned consumer envelope for wrapping an immutable owner payload after Integration has frozen and Finance has explicitly accepted the owner contract. This schema does not define or supersede any owner payload schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "envelopeVersion",
+    "sourceId",
+    "owner",
+    "network",
+    "nativeAsset",
+    "authorizedAccount",
+    "ownerContractVersion",
+    "payloadSchema",
+    "asOf",
+    "asOfKind",
+    "coverage",
+    "syncStatus",
+    "readOnly",
+    "capabilities",
+    "payload"
+  ],
+  "properties": {
+    "envelopeVersion": {
+      "const": "finance-source-read-envelope-v1"
+    },
+    "sourceId": {
+      "enum": ["exchange", "dex", "quant", "economics"]
+    },
+    "owner": {
+      "enum": ["07-exchange", "27-dex", "08-quant-lab", "17-tokenomics"]
+    },
+    "network": {
+      "const": "ynx_6423-1"
+    },
+    "nativeAsset": {
+      "const": "YNXT"
+    },
+    "authorizedAccount": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128
+    },
+    "ownerContractVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "payloadSchema": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "asOf": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "asOfKind": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "coverage": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "syncStatus": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "readOnly": {
+      "const": true
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9._:/-]*\\.read$"
+      }
+    },
+    "payload": {
+      "oneOf": [
+        {"type": "object"},
+        {"type": "array"}
+      ]
+    }
+  },
+  "x-ynx-contract-status": "consumer-proposal",
+  "x-ynx-integrated-central": false,
+  "x-ynx-runtime-validator": "internal/finance.ValidateReadSourceEnvelope",
+  "x-ynx-cross-field-validation": [
+    "sourceId must map to its exact owner",
+    "authorizedAccount must normalize to the Wallet-authorized account",
+    "ownerContractVersion and payloadSchema must match an explicitly accepted contract",
+    "every capability must be an accepted read capability and must not contain mutation semantics",
+    "asOf must not be materially in the future",
+    "payload must be non-null"
+  ]
+}

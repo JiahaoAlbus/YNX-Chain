@@ -1,205 +1,141 @@
 {
-  "schemaVersion": "ynx-cross-product-test-vectors/1",
-  "productId": "ynx-music",
-  "sourceCommit": "74716a19d95fc191b54102adc02000a91fafec24",
-  "contractVersion": "music-contract-v1",
+  "schemaVersion": 1,
+  "contractVersion": "resource-market-integration-v1",
+  "product": "ynx-resource-market",
+  "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
   "vectors": [
     {
-      "id": "MUSIC-WALLET-001",
-      "category": "wallet-positive",
-      "owner": "YNX Wallet / Auth",
-      "precondition": "Accepted ynx-music-v1 registry entry and active device-bound session",
-      "action": "Introspect a music.library request with the exact product, bundle, device key and scope",
-      "expected": {"httpStatus":200,"active":true,"accountBound":true}
+      "id": "RM-AUTH-WRONG-PRODUCT-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "16-resource-market"],
+      "precondition": "A valid product-session proof was issued for a different requestingProduct or productClientId.",
+      "action": "Submit the proof to POST /api/market/actions.",
+      "expectedHttpStatus": 401,
+      "expectedCode": "RESOURCE_REQUEST_REJECTED",
+      "expectedState": "no mutation; proof not accepted for Resource Market",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-WALLET-002",
-      "category": "wrong-product",
-      "owner": "YNX Wallet / Auth",
-      "mutation": "Replace productClientId with another product",
-      "expected": {"httpStatus":401,"failClosed":true}
+      "id": "RM-AUTH-REPLAY-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "16-resource-market"],
+      "precondition": "A valid exact-method/path/body product-session proof has already been consumed once.",
+      "action": "Replay the same proof against the same request.",
+      "expectedHttpStatus": 401,
+      "expectedCode": "RESOURCE_REQUEST_REJECTED",
+      "expectedState": "no second mutation; replay set remains persisted",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-WALLET-003",
-      "category": "wrong-bundle",
-      "owner": "YNX Wallet / Auth",
-      "mutation": "Replace bundleId with a non-Music bundle",
-      "expected": {"httpStatus":401,"failClosed":true}
+      "id": "RM-SETTLEMENT-PREMATURE-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "16-resource-market"],
+      "precondition": "Order is accepted, capacity_reserved, service_started, metered_usage or service_completed but not settlement_pending.",
+      "action": "Settlement authority submits confirm_settlement.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_STATE_INVALID",
+      "expectedState": "order state unchanged; no receipt created; capacity not released",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-WALLET-004",
-      "category": "wrong-device",
-      "owner": "YNX Wallet / Auth",
-      "mutation": "Use an unrelated compressed P-256 public key",
-      "expected": {"httpStatus":401,"failClosed":true}
+      "id": "RM-SETTLEMENT-RECONCILE-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "16-resource-market", "26-data-fabric"],
+      "precondition": "Order is settlement_pending with signed metering totals.",
+      "action": "Settlement authority submits a receipt whose grossCost, providerNet or protocolFee differs from signed metering.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_RECONCILIATION",
+      "expectedState": "order remains settlement_pending; no receipt created; reserved capacity retained",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-WALLET-005",
-      "category": "scope-widening",
-      "owner": "YNX Wallet / Auth",
-      "mutation": "Use a music.profile session for music.creator",
-      "expected": {"httpStatus":401,"failClosed":true}
+      "id": "RM-SETTLEMENT-REPLAY-001",
+      "category": "settlement",
+      "owners": ["01-chain-core", "12-explorer", "16-resource-market", "26-data-fabric"],
+      "precondition": "A normalized transaction hash has already been consumed by an existing Resource Market receipt.",
+      "action": "Settlement authority submits the same transaction hash with different case or surrounding whitespace for another order.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SETTLEMENT_REPLAY",
+      "expectedEngineErrorContains": "already consumed",
+      "expectedState": "second order remains settlement_pending; no second receipt created; no double capacity release",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-WALLET-006",
-      "category": "expiry-revoke",
-      "owner": "YNX Wallet / Auth",
-      "mutation": "Expire or revoke the product session before API access",
-      "expected": {"httpStatus":401,"failClosed":true}
+      "id": "RM-METER-TAMPER-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "Provider worker key is active and a canonical meter payload was signed.",
+      "action": "Change quantity, interval, order, provider, source or signature before record_usage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_PROOF_REJECTED",
+      "expectedState": "no meter, billing event or order transition",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-WALLET-007",
-      "category": "completion-replay",
-      "owner": "YNX Music",
-      "mutation": "Submit the same Gateway completion twice",
-      "expected": {"firstHttpStatus":200,"secondHttpStatus":409,"errorContains":"replay"}
+      "id": "RM-METER-OVERLAP-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "At least one signed usage interval is already accepted for the order.",
+      "action": "Submit another interval that overlaps any accepted interval or begins before evidenced service start.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_METER_WINDOW_INVALID",
+      "expectedState": "no additional meter or billing event; accepted usage remains unchanged",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-WALLET-008",
-      "category": "approval-tamper",
-      "owner": "YNX Wallet / Auth",
-      "mutation": "Change callback, product, bundle, scope or device key after Wallet approval",
-      "expected": {"httpStatus":400,"failClosed":true}
+      "id": "RM-METER-LIMIT-001",
+      "category": "metering",
+      "owners": ["16-resource-market", "26-data-fabric"],
+      "precondition": "The order already contains one or more accepted signed usage segments.",
+      "action": "Submit a segment that makes cumulative usage exceed ordered units or breaks cumulative fee lineage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_METER_LIMIT",
+      "expectedState": "no additional meter; cumulative quantity and fee totals remain bounded",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-TRUST-001",
-      "category": "idempotent-replay",
-      "owner": "YNX Music / Trust",
-      "action": "Submit the same account, Idempotency-Key and case body concurrently sixteen times",
-      "expected": {"uniqueCaseCount":1,"allResponsesSameId":true,"raceFree":true}
+      "id": "RM-MATCH-SELF-DEAL-001",
+      "category": "matching",
+      "owners": ["16-resource-market", "29-integration"],
+      "precondition": "The authenticated buyer wallet is the wallet that owns the selected provider offer.",
+      "action": "Create a fixed-price quote or submit an auction bid for the provider's own capacity.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SELF_DEALING_REJECTED",
+      "expectedState": "no quote, bid, order, reservation, usage or settlement mutation",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-TRUST-002",
-      "category": "idempotency-tamper",
-      "owner": "YNX Music / Trust",
-      "mutation": "Reuse a Trust key with a changed reason or evidence reference",
-      "expected": {"httpStatus":409,"newCaseCreated":false}
+      "id": "RM-CAPACITY-OFFER-SCOPE-001",
+      "category": "capacity",
+      "owners": ["16-resource-market", "29-integration"],
+      "precondition": "One provider publishes two offers for the same resource and the first offer is fully reserved while the second retains capacity.",
+      "action": "Request or reserve additional units against the exhausted first offer.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_CAPACITY_UNAVAILABLE",
+      "expectedState": "the exhausted offer remains unavailable; sibling offer capacity is not borrowed; existing reservations remain unchanged",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-TRUST-003",
-      "category": "account-scope",
-      "owner": "YNX Music / Trust",
-      "action": "Two different authenticated accounts use the same client key",
-      "expected": {"separateCases":true,"crossAccountDisclosure":false}
+      "id": "RM-BILLING-OVERFLOW-001",
+      "category": "billing-integrity",
+      "owners": ["16-resource-market", "26-data-fabric", "29-integration"],
+      "precondition": "A requested quote, auction allocation, signed meter aggregation, settlement aggregation or dispute refund calculation would exceed the non-negative signed 64-bit amount range.",
+      "action": "Execute the affected market action with an authenticated product session and otherwise valid lineage.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_AMOUNT_OUT_OF_RANGE",
+      "expectedState": "no quote, bid clearing, meter, receipt, refund, reservation release or dispute decision mutation",
+      "publicClaimAllowed": false
     },
     {
-      "id": "MUSIC-TRUST-004",
-      "category": "ownership",
-      "owner": "YNX Music / Trust",
-      "mutation": "A non-owner submits takedown or appeal for another creator track",
-      "expected": {"httpStatus":401,"stateChanged":false}
-    },
-    {
-      "id": "MUSIC-PAY-001",
-      "category": "idempotent-replay",
-      "owner": "YNX Music / Pay",
-      "action": "Submit the same account, Idempotency-Key, allocation and payee concurrently sixteen times",
-      "expected": {"uniqueSettlementCount":1,"allResponsesSameId":true,"status":"requires_wallet_review"}
-    },
-    {
-      "id": "MUSIC-PAY-002",
-      "category": "idempotency-tamper",
-      "owner": "YNX Music / Pay",
-      "mutation": "Reuse a Pay key with a changed payTo or allocation",
-      "expected": {"httpStatus":409,"newSettlementCreated":false}
-    },
-    {
-      "id": "MUSIC-PAY-003",
-      "category": "duplicate-allocation",
-      "owner": "YNX Music / Pay",
-      "mutation": "Create a second settlement for an allocation under a new key",
-      "expected": {"httpStatus":409,"paidFinality":false}
-    },
-    {
-      "id": "MUSIC-PAY-004",
-      "category": "receipt-boundary",
-      "owner": "YNX Pay / Data Fabric",
-      "mutation": "Return a status beyond requires_wallet_review without a signed Pay receipt and canonical ledger event",
-      "expected": {"accepted":false,"creatorBalanceChanged":false,"paidFinality":false}
-    },
-    {
-      "id": "MUSIC-MEDIA-001",
-      "category": "range-playback",
-      "owner": "YNX Music",
-      "action": "Request bytes 0-31 for an authorized published track",
-      "expected": {"httpStatus":206,"acceptRanges":"bytes","contentRangePresent":true}
-    },
-    {
-      "id": "MUSIC-MEDIA-002",
-      "category": "authorization",
-      "owner": "YNX Music / Wallet Auth",
-      "mutation": "Request track media without an active music.playback session",
-      "expected": {"httpStatus":401,"mediaBytesReturned":false}
-    },
-    {
-      "id": "MUSIC-MEDIA-003",
-      "category": "private-draft",
-      "owner": "YNX Music",
-      "mutation": "A listener searches or requests another creator's private draft",
-      "expected": {"listed":false,"httpStatus":404}
-    },
-    {
-      "id": "MUSIC-RIGHTS-001",
-      "category": "missing-rights",
-      "owner": "YNX Music",
-      "mutation": "Upload media without owned/licensed basis, evidence reference, provenance or territories",
-      "expected": {"httpStatus":400,"draftCreated":false}
-    },
-    {
-      "id": "MUSIC-RIGHTS-002",
-      "category": "public-catalog-truth",
-      "owner": "YNX Music",
-      "action": "Start a fresh service with no operator-supplied lawful media",
-      "expected": {"catalogCount":0,"commercialCatalogClaim":false}
-    },
-    {
-      "id": "MUSIC-AI-001",
-      "category": "consent-context",
-      "owner": "YNX Music / AI",
-      "mutation": "Request an AI playlist without explicit permission or with unowned track IDs",
-      "expected": {"httpStatus":400,"providerCalled":false}
-    },
-    {
-      "id": "MUSIC-AI-002",
-      "category": "human-review",
-      "owner": "YNX Music / AI",
-      "action": "Create a bounded proposal, then approve or reject it",
-      "expected": {"automaticPublish":false,"automaticPayment":false,"auditedReview":true}
-    },
-    {
-      "id": "MUSIC-AI-003",
-      "category": "provider-outage",
-      "owner": "YNX Music / AI",
-      "mutation": "AI gateway is unreachable or emits malformed events",
-      "expected": {"successClaimed":false,"existingLibraryChanged":false,"recoverableError":true}
-    },
-    {
-      "id": "MUSIC-STATE-001",
-      "category": "tamper",
-      "owner": "YNX Music",
-      "mutation": "Modify persisted JSON without updating the integrity hash",
-      "expected": {"startupFailsClosed":true,"healthOk":false}
-    },
-    {
-      "id": "MUSIC-STATE-002",
-      "category": "failed-save",
-      "owner": "YNX Music",
-      "mutation": "Make the state path unwritable during a mutation",
-      "expected": {"errorReturned":true,"memoryStateUnchanged":true,"auditUnchanged":true}
-    },
-    {
-      "id": "MUSIC-STATE-003",
-      "category": "restart",
-      "owner": "YNX Music",
-      "action": "Restart after upload, playback progress and usage recording",
-      "expected": {"stateRecovered":true,"privateMediaPathRecovered":true,"mediaStillAuthorized":true}
-    },
-    {
-      "id": "MUSIC-I18N-001",
-      "category": "locale-coverage",
-      "owner": "YNX Music",
-      "action": "Audit all committed locales against the English keyset",
-      "expected": {"locales":12,"missingKeys":0,"arabicRTL":true}
+      "id": "RM-FAILURE-NO-FAKE-REFUND-001",
+      "category": "failure-dispute",
+      "owners": ["15-trust-center", "16-resource-market", "26-data-fabric"],
+      "precondition": "Provider reports failure for an active reserved order.",
+      "action": "Observe order, receipt and dispute state before an independently evidenced final decision and authoritative refund transaction.",
+      "expectedHttpStatus": 200,
+      "expectedCode": null,
+      "expectedState": "order becomes provider_failed; reservation releases; no receipt or refund is fabricated; dispute may be opened",
+      "publicClaimAllowed": true
     }
   ]
 }

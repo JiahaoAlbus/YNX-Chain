@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "date": "2026-07-22",
+  "sourceCommit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+  "lockfiles": [
+    {"path": "go.sum", "sha256": "8084743bd7e108d78d54edee6396f89a0f561da044d5eafe4b561e48e5370793"},
+    {"path": "package-lock.json", "sha256": "c67a2d60d8ba2d791e3740d283e9056bee6e75a341a35dbfaabc8af5b5e4ef24"},
+    {"path": "apps/mobile/package-lock.json", "sha256": "1c6466b450e6d72dcf1e54fe63230c36d76fa40e1228a2b1a08506cc9463d7aa"},
+    {"path": "sdk/browser/package-lock.json", "sha256": "2cc60187bbb546db724f67bedaa33f46cc04c6d46b74cc707de6dc68fd4b0bd2"}
+  ],
+  "inventories": [
+    {"path": "release/sbom-npm.cdx.json", "format": "CycloneDX 1.5", "components": 66, "sha256": "f931330d5649fd213cf16acf315fc29f316ba50521c30939a3312da89c81ebf5"},
+    {"path": "release/go-module-inventory.json", "format": "go-list-module-inventory-1.0.0", "components": 313, "sha256": "1ff6f4511428d99bfe37cc26436b2cdfe5665e0d52da0be4b884011d36b95a8b"}
+  ],
+  "checks": [
+    {"name": "go vet ./...", "result": "passed"},
+    {"name": "make secret-scan", "result": "passed-intermediate-source"},
+    {"name": "npm audit --audit-level=high", "result": "failed", "finding": "three high-severity findings through adm-zip in Hardhat development tooling; npm reports no fix"},
+    {"name": "SAST scanners", "result": "unavailable", "tools": ["gosec", "staticcheck", "semgrep"]},
+    {"name": "vulnerability scanner", "result": "unavailable", "tools": ["govulncheck"]},
+    {"name": "container/artifact scanners", "result": "unavailable", "tools": ["trivy", "grype", "syft"]},
+    {"name": "container source inventory", "result": "not-applicable-to-current-checkout", "reason": "no Dockerfile was found within the inspected depth"}
+  ],
+  "reproducibleBuild": {
+    "command": "CGO_ENABLED=0 go build -trimpath -ldflags=-buildid= -o <isolated-output>/ynx-chaind ./cmd/ynx-chaind",
+    "runs": 2,
+    "matching": true,
+    "sha256": "d8fc1b7582b8531490aab4a110b401189553b51f86ba811710c740a3475c05ee",
+    "bytes": 27487698,
+    "scope": "same host, toolchain, source and dependency cache; unsigned local binary only"
+  },
+  "releaseDecision": "not-approved"
+}

@@ -1,12 +1,34 @@
-# YNX Music open questions
+# YNX Wallet/Auth open questions
 
-Only unresolved facts that affect release truth are listed here.
+No ordinary engineering decision requires Founder input.
 
-1. Which exact central Wallet/Auth v2 contract version will Integration accept for `ynx-music-v1`?
-2. Which Pay committed-receipt schema and Billing Ledger event will authorize a settlement status beyond `requires_wallet_review`?
-3. Which Trust case schema/version will own Music rights disputes after central integration?
-4. Which licensed catalog, territory, CDN and rights-review evidence may be used outside the repository-owned test tone?
-5. Which owner-controlled signing identities, store accounts, immutable artifact host and public runtime route will be approved?
-6. Is the previously documented staging route still serving the exact current source commit? It must remain unverified until probed and commit-bound.
+External acceptance items remain:
 
-These questions do not block autonomous runtime, migration, restore, security, observability, accessibility, capacity, contract, SDK or evidence work.
+- Which exact Registry v2/v3 tuples and central Gateway deployment target will 29 Integration accept?
+- Which exact central release/build identity, durable telemetry sink and Monitor dashboard/alert contract will App Gateway, Monitor and 29 Integration accept?
+- Which YNX Testnet EntryPoint mode/address and Bundler RPC will Chain Core expose?
+- Which owner-controlled public policy-signer and risk-officer addresses, funding budget and policy URL are approved for Paymaster deployment?
+- Which production Android/iOS signer paths, store accounts and public Wallet/support/privacy/security/status URLs are approved?
+- Which selective-disclosure issuer and capital-product providers pass legal, security and data-rights review?
+
+Secrets, keys, seed material, PEM files and complete provider credentials must never be supplied through chat or committed to this worktree.
+
+## Documentation owner evidence still required
+
+## Owner evidence still required
+
+- Which exact clean commits and focused tests will Wallet/Auth, Tokenomics, Oracle,
+  Bridge, Data Fabric and Security/SRE hand off for public fact integration?
+- When will Website/Operations provide approved canonical support, privacy, security
+  reporting and service-status routes?
+- Which independent network vantage will verify root site, Explorer, EVM RPC, Gateway
+  and Faucet without the current workstation proxy-path limitation?
+- Which exact artifact, digest, byte count and hosting record will define the first
+  immutable Docs/Compliance candidate package?
+- Who are the named legal, economic and independent-audit reviewers, and what scope,
+  jurisdiction, expiry and approval evidence will each own?
+- Which Chain Core release will establish any future public StreamBFT activation or
+  Mainnet transition, separately from Testnet Chain ID 6423?
+
+Until each owner answers with direct evidence, the corresponding release state or
+public claim remains false, blocked or candidate-only.

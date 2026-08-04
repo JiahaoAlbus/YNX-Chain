@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "ynx-product-release/v1",
+  "productId": "02",
+  "product": "YNX Wallet / Auth",
+  "slug": "wallet-auth",
+  "owner": "02-wallet-auth",
+  "branch": "codex/final-wallet-auth",
+  "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+  "version": "1.0.0-testnet-preview",
+  "sourceCandidate": {
+    "tag": "wallet-auth-v1.0.0-source-candidate",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-auth-v1.0.0-source-candidate",
+    "releaseId": 362065169,
+    "publishedAt": "2026-07-29T21:39:35Z",
+    "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+    "sourceArchiveSha256": "e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db",
+    "sbomSha256": "4b1c905a01ce7fc9f923973c9a97a2de3662a515251d387ba3a7ecdcc087dd85",
+    "prerelease": true,
+    "sourceOnly": true
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "publicSurface": {
+    "canonicalRoute": "https://ynxweb4.com/wallet",
+    "contentPublicVerified": true,
+    "walletRuntimeDeployed": false
+  },
+  "artifacts": [
+    {
+      "platform": "android",
+      "signingClass": "local-test-signed",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-Android-test-da82c8b.apk",
+      "sha256": "3d7dd0b349721f2364a2ec0519269bee2933c8b718ba26fc68e7e3354ae15256"
+    },
+    {
+      "platform": "ios-simulator",
+      "signingClass": "unsigned-simulator-build",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-iOS-Simulator-da82c8b.zip",
+      "sha256": "1396a275c90b1333c8cda80acf4428553e995cdcc87f8eaa3baf11fbfc7b3a43"
+    }
+  ],
+  "capabilities": {
+    "gatewayBackupRecovery": {
+      "implementedLocal": true,
+      "testedLocal": true,
+      "backupSchemaVersion": 1,
+      "stateSchemaVersion": 1,
+      "algorithm": "aes-256-gcm",
+      "packageTests": "100/100 passed",
+      "focusedRecoveryTests": "6/6 passed",
+      "legacyStateNormalizedBeforeBackup": true,
+      "unsupportedFutureStateRejected": true,
+      "centralRestoreDrillCompleted": false,
+      "productionRtoRpoVerified": false,
+      "evidence": "apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json"
+    }
+  },
+  "knownExternalGaps": [
+    "central Gateway merge and deployment",
+    "installed cross-product acceptance",
+    "Smart Account, Bundler, Paymaster and mandate Testnet receipts",
+    "production mobile signing and store accounts",
+    "independent security review"
+  ]
+}

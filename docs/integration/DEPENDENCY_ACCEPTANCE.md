@@ -1,34 +1,28 @@
-# YNX Music dependency acceptance
+# YNX Resource Market dependency acceptance
 
-Source commit: `74716a19d95fc191b54102adc02000a91fafec24`  
-Contract: `release/integration/music-contract.json` (`music-contract-v1`)  
-Current stage: **PROTECT**  
-Central integration: **not accepted**
+No dependency is accepted from file existence, HTTP 200, local mocks or documentation alone. Each row requires direct Testnet or deployment evidence bound to an immutable source commit.
 
-This file records only direct acceptance evidence. A local adapter, schema proposal or passing mock does not make a central dependency integrated.
+| Owner | Required contract | Current status | Acceptance evidence required | Failure behavior |
+| --- | --- | --- | --- | --- |
+| 01 Chain Core | Authoritative transaction finality, unique transaction identity and settlement receipt evidence | External blocked | Deployed Testnet endpoint; final transaction hash; asset, amount and finality proof; negative replay and mismatch vectors | Keep order `settlement_pending`; never create receipt or release capacity |
+| 02 Wallet/Auth | Exact Resource Market registry, challenge, completion, introspection, expiry and revocation | External blocked | Registry merge commit; deployed Gateway; wrong-product, wrong-device, scope-widening, expiry, revoke and replay results | Reject product session and perform no mutation |
+| 12 Explorer | Public transaction, receipt and source-commit proof | External blocked | Public HTTPS transaction/receipt URL linked to authoritative settlement | Do not claim public settlement evidence |
+| 13 Monitor | Provider health, stale capacity, meter failure, settlement mismatch/replay and incident alerts | External blocked | Deployed alert rules, triggered negative vectors, incident and recovery evidence | Product remains locally observable only |
+| 15 Trust Center | Provider failure, dispute, notice, appeal and correction linkage | Locally implemented, central acceptance pending | Cross-product case IDs and final decision evidence without asset authority | Keep dispute local and do not infer refund |
+| 26 Data Fabric | Canonical usage, billing, fee and settlement events with idempotent lineage | External blocked | Event schema freeze, replay-safe ingestion, meter/receipt reconciliation and ledger query evidence | Do not emit or claim authoritative billing ledger state |
+| 28 Website | `/resource-market` public entry, support/privacy/security/status routes, metadata and downloads | External blocked | Deployed canonical route, remote smoke, indexability and immutable artifact URLs | Keep all public and hosted release booleans false |
+| 29 Integration | Freeze contract version, owner, events, errors, vectors and shared Testnet order | External blocked | Signed acceptance record for `resource-market-integration-v1`; all cross-product vectors pass | Do not maintain a second compatibility protocol |
+| 30 Security/SRE/Release | Secrets, artifact provenance, backup/restore, deployment and release acceptance | External blocked | Source-bound SBOM, scans, immutable hashes, restore drill, deployment record and external review status | Keep production signing and release booleans false |
 
-| Dependency | Owner | Adapter local | Contract test local | Owner accepted | Shared Testnet | Required acceptance evidence |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| Wallet / Auth | YNX 02 | Yes | Yes | No | No | Registry merge for `ynx-music-v1`; challenge/session/introspection endpoints; wrong product, bundle, device, scope, expiry, revoke, replay and tamper vectors; deployed health/version bound to exact source |
-| Pay | YNX 04 | Yes | Yes | No | No | Review URI contract; signed committed-settlement receipt; receipt replay/tamper/amount/payee/allocation vectors; no status beyond `requires_wallet_review` without receipt |
-| Trust Center | YNX 15 | Yes | Yes | No | No | Canonical case create/update schema; evidence hash and decision reference; owner acceptance; deployed negative vectors |
-| AI | YNX 14 | Yes | Yes | No | No | Consent-bound proposal schema; provider/model/cost status; streaming cancellation and malformed-response vectors; no action authority |
-| Data Fabric / Billing Ledger | YNX 26 | Proposed | No | No | No | Accepted canonical usage, allocation and settlement event versions; deduplication domain; retention and replay semantics |
-| Explorer | YNX 12 | No | No | No | No | Read-only public evidence schema for published tracks, rights hash, usage and settlement receipts without private listener data |
-| Monitor | YNX 13 | No | No | No | No | Metrics, health, version, alert and SLO dashboard acceptance |
-| Website | YNX 28 | Package local | JSON local | No | No | Consume `public-product-metadata.json`; publish canonical `/music`; keep website/runtime/download/signing states separate |
-| Integration | YNX 29 | Package local | No | No | No | Freeze one contract version, resolve event conflicts, execute shared vectors and record Owner Acceptance |
-| Security / SRE | YNX 30 | No | No | No | No | Threat model, scans, artifact provenance, backup/restore, release and public-deployment gate acceptance |
+## Resource Market autonomous acceptance
 
-## Fail-closed recovery conditions
+The product-owned portion is accepted locally only when all of the following pass against the same source commit:
 
-- Missing or unhealthy Wallet introspection: protected Music APIs return unauthorized; no local compatibility token is minted.
-- Missing Pay: settlement remains a local review intent and never becomes paid.
-- Missing Trust: local case remains open with central linkage absent; no central decision is invented.
-- Missing AI: proposal failure is shown as unavailable or retryable; library state is unchanged.
-- Missing Data Fabric: usage and allocation stay local evidence and are not described as canonical billing records.
-- Missing Website or deployment authority: public URLs, hosted downloads and publication booleans remain false.
+- Resource engine and HTTP product tests, including race detection.
+- Stable error-code contract tests.
+- Settlement transaction replay rejection and signed-meter reconciliation.
+- Product HTTP smoke, health/version truth boundaries and scoped state/export.
+- Contract and cross-product vector schema validation.
+- Backup/restore and migration compatibility checks.
 
-## Acceptance update rule
-
-Change any `No` above only when the accepting owner provides an exact contract version, source commit, test run or transaction/receipt evidence, and the corresponding negative vectors pass. The Integration owner must freeze conflicting definitions rather than permit permanent dual protocols.
+Local acceptance is not central integration, public Testnet proof or production release.

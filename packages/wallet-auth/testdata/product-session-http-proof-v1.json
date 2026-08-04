@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "description": "Deterministic P-256 sender-constrained Product Session HTTP proof",
+  "session": {
+    "verifierVersion": "wallet-auth-v1",
+    "sessionBinding": "2eea97bc49dcc721376b8d56612bec77c2ee37d47ef85f5d7e1c67abeee89703",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "callback": "ynx-social://com.ynx.social",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "deviceBinding": "fee337c81228076733bc82dfb514c6ec15f6447d029399b8fe59abcf98ae2a10",
+    "requestDigest": "325a60c9502489c92d2f42a413166b84302cf27821dcf3110b04484da3900930",
+    "approvalDigest": "65769c25ede95684a6c55318b9098d53e75c1da608bb26047ef29fefa5e318df",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "scopes": ["account:read", "profile:link"],
+    "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
+    "purpose": "Link this YNX account to the selected Social profile on this device.",
+    "issuedAt": "2026-07-15T12:00:00.000Z",
+    "expiresAt": "2026-07-15T12:03:00.000Z"
+  },
+  "input": {
+    "method": "POST",
+    "path": "/v1/wallet/sessions/introspect",
+    "bodyDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "nonce": "proof_nonce_abcdefghijklmnopqrstu",
+    "issuedAt": "2026-07-15T12:00:00.000Z",
+    "expiresAt": "2026-07-15T12:00:30.000Z"
+  },
+  "proof": {
+    "version": "1",
+    "sessionBinding": "2eea97bc49dcc721376b8d56612bec77c2ee37d47ef85f5d7e1c67abeee89703",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "method": "POST",
+    "path": "/v1/wallet/sessions/introspect",
+    "bodyDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "nonce": "proof_nonce_abcdefghijklmnopqrstu",
+    "issuedAt": "2026-07-15T12:00:00.000Z",
+    "expiresAt": "2026-07-15T12:00:30.000Z",
+    "signature": "MEUCIQCWpSq_0vX9EqD4i8goohhs45gFVDuwiA7HDeiDRoVXAgIgFVTRxYNX1sgjTJXUDjdvoHIeHzAmDGJdra2gz_xTG50"
+  },
+  "expected": {
+    "signBytes": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1\n{\"bodyDigest\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"bundleId\":\"com.ynx.social\",\"expiresAt\":\"2026-07-15T12:00:30.000Z\",\"issuedAt\":\"2026-07-15T12:00:00.000Z\",\"method\":\"POST\",\"nonce\":\"proof_nonce_abcdefghijklmnopqrstu\",\"path\":\"/v1/wallet/sessions/introspect\",\"productClientId\":\"ynx-social-v1\",\"productDeviceKey\":\"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv\",\"sessionBinding\":\"2eea97bc49dcc721376b8d56612bec77c2ee37d47ef85f5d7e1c67abeee89703\",\"version\":\"1\"}",
+    "proofDigest": "f559f8aec0920eaea4abc072434c3ae3924a7a71c59478bb95e74c198ff76de5"
+  }
+}

@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">Ihre Shop-Daten</string>
+    <string name="privacy_data_description">Exportieren Sie Profil, Warenkorb, Bestellungen, KI-Datensätze und Käufer-Auditverlauf. Beim Löschen werden Profil, Adressen, Warenkorb und KI-Datensätze entfernt und abgeschlossene Bestellungen pseudonymisiert. Abrechnungsadressen und Transaktionsnachweise auf der öffentlichen Chain bleiben überprüfbar.</string>
+    <string name="privacy_export_button">Shop-Daten exportieren</string>
+    <string name="privacy_export_ready">Der Export der Shop-Daten ist bereit.</string>
+    <string name="privacy_export_unavailable">Der Export der Shop-Daten ist nicht verfügbar.</string>
+    <string name="privacy_share_label">Shop-Daten als JSON speichern</string>
+    <string name="privacy_delete_button">Persönliche Shop-Daten löschen</string>
+    <string name="privacy_delete_warning">Aktive Zahlungs-, Erfüllungs-, Rückgabe-, Erstattungs- oder Streitfallabläufe müssen vor dem Löschen einen Endzustand erreichen. Abgeschlossene Bestellungen werden pseudonymisiert; der maßgebliche Abrechnungsnachweis auf der öffentlichen Chain bleibt erhalten.</string>
+    <string name="privacy_delete_action">Löschen</string>
+    <string name="privacy_exact_required">Geben Sie die Bestätigungsphrase zum Löschen exakt ein.</string>
+    <string name="privacy_deleted">Persönliche Shop-Daten wurden gelöscht. Abgeschlossene Bestellungen wurden pseudonymisiert; der Abrechnungsnachweis auf der öffentlichen Chain bleibt erhalten.</string>
+    <string name="privacy_delete_failed">Löschen nicht abgeschlossen. Aktive Abläufe müssen möglicherweise noch geklärt werden.</string>
+</resources>

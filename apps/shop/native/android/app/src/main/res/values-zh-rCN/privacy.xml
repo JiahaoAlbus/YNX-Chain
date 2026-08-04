@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">你的商城数据</string>
+    <string name="privacy_data_description">导出你的资料、购物车、订单、AI 记录和买家审计历史。删除会移除资料、地址、购物车和 AI 记录，并对终态订单去标识化；公开链上的结算地址与交易证据仍可验证。</string>
+    <string name="privacy_export_button">导出商城数据</string>
+    <string name="privacy_export_ready">商城数据导出已准备完成。</string>
+    <string name="privacy_export_unavailable">商城数据导出不可用。</string>
+    <string name="privacy_share_label">保存商城数据 JSON</string>
+    <string name="privacy_delete_button">删除个人商城数据</string>
+    <string name="privacy_delete_warning">付款、履约、退货、退款或争议流程必须进入终态后才能删除。终态订单会被去标识化；权威公开链结算证据继续保留。</string>
+    <string name="privacy_delete_action">删除</string>
+    <string name="privacy_exact_required">请输入完全一致的删除确认短语。</string>
+    <string name="privacy_deleted">个人商城数据已删除。终态订单已去标识化；公开链结算证据继续保留。</string>
+    <string name="privacy_delete_failed">删除未完成。可能仍有需要处理的活动流程。</string>
+</resources>

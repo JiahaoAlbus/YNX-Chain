@@ -1,24 +1,18 @@
-# YNX Music active plan
+# YNX Wallet/Auth current plan
 
-Status: ACTIVE
-Stage: PROTECT
-Branch: `codex/final-music`
-Protected source checkpoint: `6cf7506b7eb150c6cfeebf2a8b147d8a5e22d605`
+Status: Active. Current phase: INTEGRATE. The local encrypted Gateway backup/restore and version-compatibility slice is complete and source-bound.
 
-## Current evidence
+1. Preserve the canonical Wallet/Auth implementation source `c7a6bded387223429f0708f80b50f086d8ff944d`, its verified 100/100 package test checkpoint and the six-asset source-only prerelease.
+2. Preserve the local backup/restore evidence at `apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json`: 6/6 focused tests, exact non-empty restore, replay-state preservation, tamper/policy/permission rejection, validated legacy normalization, future-schema rejection and a 20-sample local drill.
+3. Submit the exact Registry, Gateway HTTP/Node host, backup, observability, StrategyMandate and shared-vector contract to the central App Gateway and `29-integration`; do not create a second compatibility protocol.
+4. After central acceptance, run installed Wallet→Social, Wallet→Pay, Wallet→Quant→Exchange and Wallet→Quant→DEX flows plus central durable-store restore, Explorer and Monitor evidence.
+5. Reattempt current-source Android/iOS installed evidence only when a real emulator/device or full Xcode runtime exists.
+6. Keep `integratedCentral`, runtime `deployedStaging`, runtime `deployedPublic`, Smart Account Testnet receipt, production KMS/RTO/RPO, production signing and store states false until direct owner/operator evidence exists.
 
-1. Trust and Pay idempotency are account-scoped, atomic and legacy-compatible.
-2. State mutation is copy-on-write and publishes memory only after durable save.
-3. Startup verifies the outer state hash, every audit sequence/link/event hash, every track identity, private-media file type, private permissions and media SHA-256.
-4. Missing, symlinked, permission-broadened or byte-tampered media fails startup closed.
-5. iOS source fixes the throwing device-key call and MainActor callback isolation.
-6. Local Go, Race, smoke, Wallet contract, 12-locale and Swift parse gates pass.
-7. GitHub run `30381036379` passed Service, Android and the complete dynamic iOS Simulator gate against the exact source checkpoint.
+## Implementation contract
 
-## Current slice
-
-Implement a versioned persisted-state migration registry plus schema-v1 golden compatibility, then add consistent state-and-media backup and clean-directory restore verification. Keep unknown future schemas fail closed and do not confuse ordinary restart with disaster recovery.
-
-## Next gate
-
-Bind run `30381036379` into release and platform evidence, then continue the versioned state migration and consistent state-and-media restore slice. Production signing, physical-device and store claims remain separate.
+- Work only in `02-wallet-auth` on `codex/final-wallet-auth`.
+- Preserve protected commits and concurrent work; do not reset, clean, force-push or overwrite sibling ownership.
+- Use small source-bound checkpoints and focused gates before broader preflight.
+- Update Integration Contract, Release Record, evidence index and agent status after each verified slice.
+- Never place a private key, seed, recovery material, signing asset or provider secret in Git, logs, evidence or chat.

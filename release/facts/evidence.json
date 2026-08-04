@@ -1,0 +1,45 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Candidate",
+  "records": [
+    {
+      "evidenceId": "EVD-001",
+      "subject": "Documentation and compliance recovery baseline",
+      "classification": "Verified local Git recovery",
+      "locations": ["docs/coordination/DOCS_COMPLIANCE_RECOVERY_AUDIT.md", "release/recovery-inventory-2026-07-25.json"],
+      "limitations": "Local Git and control-plane inventory does not prove public deployment, legal approval, audit approval, or independent availability."
+    },
+    {
+      "evidenceId": "EVD-002",
+      "subject": "Fail-closed documentation and disclosure checks",
+      "classification": "Local verification definition",
+      "locations": ["scripts/verify/docs-compliance-check.mjs", "scripts/verify/public-disclosure-gate.mjs"],
+      "limitations": "A passing local gate proves repository consistency at the tested worktree only."
+    },
+    {
+      "evidenceId": "EVD-003",
+      "subject": "Bounded public URL observations",
+      "classification": "Operator-host proxy-path observation",
+      "locations": ["release/evidence/public-url-probe-2026-07-25.json"],
+      "limitations": "The workstation resolved YNX names into 198.18.0.0/15 and is ineligible as an independent direct-public vantage."
+    },
+    {
+      "evidenceId": "EVD-004",
+      "subject": "Branches, tags, GitHub Actions, releases, and artifacts",
+      "classification": "Git and GitHub control-plane inventory",
+      "locations": ["release/recovery-inventory-2026-07-25.json"],
+      "limitations": "Control-plane metadata must not be substituted for artifact installation, server deployment, or public runtime proof."
+    },
+    {
+      "evidenceId": "EVD-005",
+      "subject": "Protected sibling-worktree candidate inputs",
+      "classification": "Unmerged owner-worktree inventory",
+      "locations": ["release/recovery-inventory-2026-07-25.json", "docs/coordination/DOCS_COMPLIANCE_INTEGRATION_MANIFEST.md"],
+      "limitations": "Dirty or local-ahead work remains owned by its product thread and is not an accepted public fact until committed, tested, and handed off."
+    }
+  ]
+}

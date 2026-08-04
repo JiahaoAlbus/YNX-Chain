@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">Shopデータ</string>
+    <string name="privacy_data_description">プロフィール、カート、注文、AI記録、購入者監査履歴をエクスポートできます。削除ではプロフィール、住所、カート、AI記録を消去し、終端状態の注文を仮名化します。公開チェーン上の決済アドレスと取引証拠は検証可能なまま保持されます。</string>
+    <string name="privacy_export_button">Shopデータを書き出す</string>
+    <string name="privacy_export_ready">Shopデータの書き出し準備ができました。</string>
+    <string name="privacy_export_unavailable">Shopデータを書き出せません。</string>
+    <string name="privacy_share_label">ShopデータJSONを保存</string>
+    <string name="privacy_delete_button">個人Shopデータを削除</string>
+    <string name="privacy_delete_warning">支払い、履行、返品、返金、紛争の処理は、削除前に終端状態へ到達する必要があります。終端注文は仮名化され、公開チェーンの決済証拠は保持されます。</string>
+    <string name="privacy_delete_action">削除</string>
+    <string name="privacy_exact_required">削除確認フレーズを完全一致で入力してください。</string>
+    <string name="privacy_deleted">個人Shopデータを削除しました。終端注文は仮名化され、公開チェーンの決済証拠は保持されます。</string>
+    <string name="privacy_delete_failed">削除できませんでした。処理中のワークフローを解決する必要がある可能性があります。</string>
+</resources>

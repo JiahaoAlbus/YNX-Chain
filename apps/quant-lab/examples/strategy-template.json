@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "templateId": "ynx-transparent-moving-average-research-v1",
+  "name": "Transparent moving-average research template",
+  "family": "trend-research",
+  "runtime": "ynx-built-in-ma-v1",
+  "executionEligibility": false,
+  "profitClaim": false,
+  "parameters": {
+    "fastBars": {"type": "integer", "minimum": 2, "maximum": 100, "default": 8},
+    "slowBars": {"type": "integer", "minimum": 3, "maximum": 500, "default": 32}
+  },
+  "requiredEvidence": [
+    "out-of-sample split",
+    "walk-forward windows",
+    "fee and slippage assumptions",
+    "parameter sensitivity",
+    "risk approval",
+    "signed source and artifact hashes"
+  ],
+  "permissions": {
+    "hostFilesystem": false,
+    "arbitraryNetwork": false,
+    "walletKey": false,
+    "providerSecret": false,
+    "withdrawal": false,
+    "ownerChange": false,
+    "riskChange": false
+  },
+  "packageRequirements": {
+    "signatureRequired": true,
+    "dependencyAllowlistRequired": true,
+    "secretScanRequired": true,
+    "malwareScanRequired": true,
+    "deterministicClockRequired": true,
+    "checkpointRecoveryRequired": true
+  },
+  "limitations": [
+    "Research template only; it is not a signed strategy package",
+    "No return, execution, liquidity or fill outcome is promised",
+    "A Wallet mandate and independent risk evidence are required for bounded Testnet"
+  ]
+}
