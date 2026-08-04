@@ -1,6 +1,7 @@
 import { locales, resolve, apply, text } from "./i18n.js";
 
 const $ = selector => document.querySelector(selector);
+const api = path => `./api/${path}`;
 const number = value => new Intl.NumberFormat(locale).format(value);
 let page = 1;
 let lastQuery = "";
@@ -82,7 +83,7 @@ function updateExternalBoundary() {
 
 async function loadExternalStatus() {
   try {
-    const response = await fetch("/api/external/status");
+    const response = await fetch(api("external/status"));
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     externalStatus = await response.json();
   } catch {
@@ -131,7 +132,7 @@ async function searchExternal(query) {
   $("#external-results").replaceChildren();
   $("#external-meta").textContent = "";
   try {
-    const response = await fetch("/api/external/search", {
+    const response = await fetch(api("external/search"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ query, pageSize: 10 }),
@@ -153,7 +154,7 @@ async function searchExternal(query) {
 
 async function loadStatus({ open = false } = {}) {
   try {
-    const response = await fetch("/api/index/status");
+    const response = await fetch(api("index/status"));
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     const current = $("#source").value;
@@ -193,7 +194,7 @@ async function search(nextPage = 1) {
   let response;
   let data;
   try {
-    response = await fetch(`/api/search?${params}`);
+    response = await fetch(`${api("search")}?${params}`);
     data = await response.json();
   } catch {
     setState("failure");
@@ -269,7 +270,7 @@ async function prepareAi() {
   let response;
   let data;
   try {
-    response = await fetch("/api/ai/prepare", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: lastQuery, filters, model: "default", outputLocale: aiLocale }) });
+    response = await fetch(api("ai/prepare"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: lastQuery, filters, model: "default", outputLocale: aiLocale }) });
     data = await response.json();
     if (!response.ok) throw new Error(data.error);
   } catch (error) {
@@ -318,7 +319,7 @@ $("#case-form").onsubmit = async event => {
   if (caseKind === "appeal") payload.parentCaseId = $("#case-parent").value.trim();
   $("#case-submit").disabled = true;
   try {
-    const response = await fetch(`/api/${caseKind}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+    const response = await fetch(api(caseKind), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     $("#case-result").textContent = `${data.case.kind} case ${data.case.id} · ${data.case.status} · Trust: ${data.trustStatus}`;
@@ -336,7 +337,7 @@ $("#ai-approve").onclick = async () => {
   $("#ai-output").textContent = "Connecting to YNX AI Gateway…\n";
   try {
     const filters = { sourceId: $("#source").value || null, freshnessDays: $("#freshness").value ? Number($("#freshness").value) : null, contentType: $("#type").value || null };
-    const response = await fetch("/api/ai/stream", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: lastQuery, filters, model: "default", outputLocale: aiLocale, consent: { approved: true, reviewer: "user" } }), signal: aiController.signal });
+    const response = await fetch(api("ai/stream"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: lastQuery, filters, model: "default", outputLocale: aiLocale, consent: { approved: true, reviewer: "user" } }), signal: aiController.signal });
     if (!response.ok) { const data = await response.json(); throw new Error(data.error); }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -349,7 +350,7 @@ $("#ai-approve").onclick = async () => {
 };
 $("#ai-cancel").onclick = () => aiController?.abort();
 document.querySelectorAll("[data-review]").forEach(button => button.onclick = async () => {
-  await fetch("/api/ai/review", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ decision: button.dataset.review, sourceUrls: aiSources.map(source => source.sourceUrl) }) });
+  await fetch(api("ai/review"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ decision: button.dataset.review, sourceUrls: aiSources.map(source => source.sourceUrl) }) });
   $("#ai-dialog").close();
 });
 
@@ -371,22 +372,22 @@ async function deviceKey() {
 }
 $("#wallet-button").onclick = async () => {
   try {
-    const response = await fetch("/api/wallet/prepare", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ deviceKey: await deviceKey() }) });
+    const response = await fetch(api("wallet/prepare"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ deviceKey: await deviceKey() }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     location.href = data.deepLink;
   } catch (error) { showNotice(`Wallet unavailable: ${error.message}. No session was created.`); }
 };
-if (location.pathname === "/auth/callback") {
+if (location.pathname.endsWith("/auth/callback")) {
   const encoded = new URLSearchParams(location.search).get("response");
   if (encoded) try {
     const normalized = encoded.replaceAll("-", "+").replaceAll("_", "/");
     const value = JSON.parse(atob(normalized + "=".repeat((4 - normalized.length % 4) % 4)));
-    fetch("/api/wallet/callback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(value) }).then(async response => { const data = await response.json(); showNotice(data.message || data.error); history.replaceState({}, "", "/"); });
+    fetch(api("wallet/callback"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(value) }).then(async response => { const data = await response.json(); showNotice(data.message || data.error); history.replaceState({}, "", "./"); });
   } catch { showNotice("Wallet callback rejected: malformed response"); }
 }
 $("#clear-private").onclick = async () => {
-  const response = await fetch("/api/privacy/clear", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ walletChallenges: true, aiAudit: true }) });
+  const response = await fetch(api("privacy/clear"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ walletChallenges: true, aiAudit: true }) });
   const data = await response.json();
   showNotice(response.ok ? `Cleared sign-in and AI audit data. Retained: ${data.retained.join(", ")}.` : data.error);
 };
@@ -394,7 +395,7 @@ function network() { if (navigator.onLine) hideNotice(); else showNotice(text(lo
 addEventListener("online", () => showNotice(text(locale, "online")));
 addEventListener("offline", network);
 network();
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js");
 await Promise.all([loadStatus(), loadExternalStatus()]);
 const initial = new URLSearchParams(location.search).get("q");
 if (initial) { $("#query").value = initial; search(); }

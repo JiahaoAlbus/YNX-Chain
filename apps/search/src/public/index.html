@@ -6,12 +6,12 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#f7f7f9">
   <title>YNX Search · auditable sources</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
 <a class="skip" href="#query" data-i18n="skip">Skip to search</a>
 <header class="site-header">
-  <a class="brand" href="/" aria-label="YNX Search home"><span class="mark" aria-hidden="true">Y</span><strong>YNX Search</strong></a>
+  <a class="brand" href="./" aria-label="YNX Search home"><span class="mark" aria-hidden="true">Y</span><strong>YNX Search</strong></a>
   <span class="scope" data-i18n="searchScope">Authorized sources only · no global coverage claim</span>
   <div class="header-actions">
     <button id="theme-button" class="secondary" type="button" aria-label="Change appearance" title="Change appearance" data-i18n="appearance">Theme</button>
@@ -63,6 +63,6 @@
 <dialog id="case-dialog"><form id="case-form" class="dialog-body"><button id="case-close" type="button" class="close secondary" aria-label="Close" data-i18n="cancel">Close</button><p class="eyebrow">AUDITED REQUEST</p><h2 id="case-title">Submit case</h2><p data-i18n="caseBoundary">Cases are stored with an audit trail and referred to Trust when configured.</p><label class="field"><span data-i18n="source">Source URL</span><input id="case-url" type="url" required maxlength="2048" placeholder="https://…"></label><label class="field"><span data-i18n="reason">Reason and evidence</span><textarea id="case-reason" required minlength="8" maxlength="2000"></textarea></label><label id="case-parent-row" class="field" hidden><span data-i18n="parentCase">Parent case ID</span><input id="case-parent" maxlength="128"></label><label class="field"><span data-i18n="evidenceUrls">Evidence URLs (one per line, maximum 10)</span><textarea id="case-evidence" maxlength="10000"></textarea></label><button id="case-submit" type="submit" data-i18n="submit">Submit</button><p id="case-result" role="status" aria-live="polite"></p></form></dialog>
 
 <footer><div><strong>YNX Search</strong><span data-i18n="publicPreview">Public testnet preview</span></div><nav><button id="clear-private" data-i18n="clearData">Clear sign-in and AI audit data</button><button data-case="correction" data-i18n="correction">Request correction</button><button data-case="removal" data-i18n="removal">Request removal</button><button data-case="appeal" data-i18n="appeal">Appeal a decision</button></nav></footer>
-<script type="module" src="/app.js"></script>
+<script type="module" src="./app.js"></script>
 </body>
 </html>
