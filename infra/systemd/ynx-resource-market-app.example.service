@@ -1,0 +1,26 @@
+[Unit]
+Description=YNX Resource Market public Testnet application
+After=network-online.target ynx-resourced.service ynx-wallet-gatewayd.service
+Wants=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-resource-market-app.env
+ExecStart=/usr/local/bin/ynx-resource-market-app
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/ynx-chain/resource-market-app
+
+[Install]
+WantedBy=multi-user.target
