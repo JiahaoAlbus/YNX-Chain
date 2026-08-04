@@ -447,17 +447,23 @@ func (s *Service) ReviewRights(reviewer, declarationID string, accepted bool, re
 		if reviewer == declaration.DeclaredBy || reviewer == video.Owner {
 			return errors.New("rights declarations require independent review")
 		}
+		now := s.cfg.Now().UTC()
 		if accepted {
 			declaration.State = "verified"
 		} else {
 			declaration.State = "rejected"
+			normalizeWorkflowState(video)
+			previous := video.WorkflowState
 			video.Visibility = VisibilityPrivate
 			video.Status = "ready"
-			video.UpdatedAt = s.cfg.Now().UTC()
+			video.WorkflowState = WorkflowUnpublished
+			resetReview(video)
+			video.UpdatedAt = now
+			recordVideoVersion(video, reviewer, "rights.rejected", previous, video.WorkflowState, now)
 		}
 		declaration.Reviewer = reviewer
 		declaration.ReviewReason = reason
-		declaration.UpdatedAt = s.cfg.Now().UTC()
+		declaration.UpdatedAt = now
 		copy := *declaration
 		copy.Territories = append([]string(nil), declaration.Territories...)
 		copy.ContributorSplits = append([]ContributorSplit(nil), declaration.ContributorSplits...)

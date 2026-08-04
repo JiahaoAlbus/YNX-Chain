@@ -203,6 +203,35 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		respond(w, map[string]bool{"ok": true}, s.service.UpdateMetadata(actor, parts[1], in.Title, in.Description))
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "submit-review" && r.Method == "POST":
+		out, err := s.service.SubmitForReview(actor, parts[1])
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "review-publication" && r.Method == "POST":
+		var in struct {
+			Approved bool   `json:"approved"`
+			Reason   string `json:"reason"`
+		}
+		if decode(r, &in, w) {
+			return
+		}
+		out, err := s.service.ReviewPublication(actor, parts[1], in.Approved, in.Reason)
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "schedule" && r.Method == "POST":
+		var in struct {
+			Visibility  Visibility `json:"visibility"`
+			ScheduledAt time.Time  `json:"scheduled_at"`
+		}
+		if decode(r, &in, w) {
+			return
+		}
+		out, err := s.service.SchedulePublication(actor, parts[1], in.Visibility, in.ScheduledAt)
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "publish-due" && r.Method == "POST":
+		out, err := s.service.PublishDue(actor, parts[1])
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "unpublish" && r.Method == "POST":
+		out, err := s.service.Unpublish(actor, parts[1])
+		respond(w, out, err)
 	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "retry-processing" && r.Method == "POST":
 		out, err := s.service.RetryProcessing(r.Context(), actor, parts[1])
 		respond(w, out, err)

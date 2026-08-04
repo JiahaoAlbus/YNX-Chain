@@ -272,11 +272,15 @@ func (s *Service) Video(actor, videoID string) (*Video, error) {
 		if v == nil {
 			return ErrNotFound
 		}
-		if !videoAuthorized(st, videoID, actor) && !audienceAvailable(st, v, s.cfg.Now().UTC()) {
+		authorized := videoAuthorized(st, videoID, actor)
+		if !authorized && !audienceAvailable(st, v, s.cfg.Now().UTC()) {
 			return ErrForbidden
 		}
-		copy := *v
-		out = &copy
+		if authorized {
+			out = cloneVideo(v)
+		} else {
+			out = audienceVideo(v)
+		}
 		return nil
 	})
 	return out, err
@@ -292,7 +296,11 @@ func (s *Service) Channel(actor, channelID string) (ChannelView, error) {
 		teamAccess := channelAuthorized(st, channelID, actor)
 		for _, v := range st.Videos {
 			if v.ChannelID == channelID && (teamAccess || discoverable(st, v, s.cfg.Now().UTC())) {
-				out.Videos = append(out.Videos, *v)
+				if teamAccess {
+					out.Videos = append(out.Videos, *cloneVideo(v))
+				} else {
+					out.Videos = append(out.Videos, *audienceVideo(v))
+				}
 			}
 		}
 		for _, x := range st.Subscriptions {
@@ -340,7 +348,7 @@ func (s *Service) Studio(actor string) (StudioSnapshot, error) {
 		}
 		for _, video := range st.Videos {
 			if role, ok := channels[video.ChannelID]; ok {
-				out.Videos = append(out.Videos, *video)
+				out.Videos = append(out.Videos, *cloneVideo(video))
 				accessibleVideos[video.ID] = role
 			}
 		}
@@ -415,9 +423,18 @@ func (s *Service) UpdateMetadata(actor, videoID, title, description string) erro
 		if !videoAuthorized(*st, videoID, actor, CreatorRoleEditor) {
 			return ErrForbidden
 		}
+		normalizeWorkflowState(v)
+		previous := v.WorkflowState
+		switch v.WorkflowState {
+		case WorkflowInReview, WorkflowApproved, WorkflowRejected, WorkflowScheduled, WorkflowUnpublished:
+			v.WorkflowState = WorkflowDraft
+			resetReview(v)
+		}
 		v.Title = title
 		v.Description = strings.TrimSpace(description)
-		v.UpdatedAt = s.cfg.Now().UTC()
+		now := s.cfg.Now().UTC()
+		v.UpdatedAt = now
+		recordVideoVersion(v, actor, "metadata.update", previous, v.WorkflowState, now)
 		s.audit(st, actor, "video.metadata.update", "video", videoID, "")
 		return nil
 	})
@@ -496,8 +513,7 @@ func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*
 		v.Probe = probe
 		v.Failure = ""
 		v.UpdatedAt = s.cfg.Now().UTC()
-		copy := *v
-		out = &copy
+		out = cloneVideo(v)
 		s.audit(st, actor, "video.processing.ready", "video", videoID, "retry")
 		return nil
 	})
@@ -586,8 +602,15 @@ func (s *Service) ModerateReport(reviewer, reportID, decision, explanation strin
 		r.State = decision
 		r.UpdatedAt = now
 		if decision == "takedown" {
+			normalizeWorkflowState(v)
+			previous := v.WorkflowState
 			v.Takedown = &Takedown{State: "active", Reason: explanation, Reviewer: reviewer, At: now}
 			v.Visibility = VisibilityPrivate
+			v.Status = "ready"
+			v.WorkflowState = WorkflowUnpublished
+			resetReview(v)
+			v.UpdatedAt = now
+			recordVideoVersion(v, reviewer, "moderation.takedown", previous, v.WorkflowState, now)
 		}
 		s.audit(st, reviewer, "moderation."+decision, "report", reportID, explanation)
 		return nil
@@ -611,11 +634,17 @@ func (s *Service) ReviewAppeal(reviewer, appealID string, accepted bool, explana
 		if accepted {
 			a.State = "accepted"
 			r.State = "appeal_accepted"
+			normalizeWorkflowState(v)
+			previous := v.WorkflowState
 			if v.Takedown != nil {
 				v.Takedown.State = "reversed"
 			}
 			v.Status = "ready"
 			v.Visibility = VisibilityPrivate
+			v.WorkflowState = WorkflowUnpublished
+			resetReview(v)
+			v.UpdatedAt = now
+			recordVideoVersion(v, reviewer, "moderation.appeal_accepted", previous, v.WorkflowState, now)
 		} else {
 			a.State = "denied"
 			r.State = "appeal_denied"
@@ -1074,7 +1103,8 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, rightsErr
 	}
-	v := &Video{ID: vid, Owner: channelOwner, ChannelID: channelID, Title: title, Description: strings.TrimSpace(in.Description), OwnedDeclaration: true, Visibility: VisibilityPrivate, Status: "scanning", OriginalName: filepath.Base(in.Filename), ContentType: in.ContentType, Bytes: n, SHA256: contentSHA256, Rights: &rights, ObjectKey: vid + "/original", CreatedAt: now, UpdatedAt: now}
+	v := &Video{ID: vid, Owner: channelOwner, ChannelID: channelID, Title: title, Description: strings.TrimSpace(in.Description), OwnedDeclaration: true, Visibility: VisibilityPrivate, Status: "scanning", WorkflowState: WorkflowDraft, OriginalName: filepath.Base(in.Filename), ContentType: in.ContentType, Bytes: n, SHA256: contentSHA256, Rights: &rights, ObjectKey: vid + "/original", CreatedAt: now, UpdatedAt: now}
+	recordVideoVersion(v, actor, "workflow.create", "", WorkflowDraft, now)
 	if err = s.store.update(func(st *State) error {
 		st.Videos[vid] = v
 		s.audit(st, actor, "video.upload", "video", vid, v.SHA256)
@@ -1123,7 +1153,7 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		v = x
 		return nil
 	})
-	return v, err
+	return cloneVideo(v), err
 }
 
 func (s *Service) probeMedia(ctx context.Context, original string) (*MediaProbe, error) {
@@ -1279,8 +1309,7 @@ func (s *Service) snapshotVideo(videoID string) *Video {
 	var out *Video
 	_ = s.store.read(func(st State) error {
 		if video := st.Videos[videoID]; video != nil {
-			copy := *video
-			out = &copy
+			out = cloneVideo(video)
 		}
 		return nil
 	})
@@ -1392,6 +1421,10 @@ func (s *Service) Publish(actor, videoID string, visibility Visibility) error {
 		if v.Status != "ready" && v.Status != "published" {
 			return errors.New("video is not ready")
 		}
+		normalizeWorkflowState(v)
+		if v.WorkflowState == WorkflowInReview || v.WorkflowState == WorkflowScheduled {
+			return errors.New("video has an active review or schedule")
+		}
 		if v.Takedown != nil && v.Takedown.State == "active" {
 			return errors.New("video is taken down")
 		}
@@ -1404,12 +1437,17 @@ func (s *Service) Publish(actor, videoID string, visibility Visibility) error {
 				return err
 			}
 		}
+		previous := v.WorkflowState
 		v.Visibility = visibility
 		v.Status = "published"
+		v.WorkflowState = WorkflowPublished
+		v.ScheduledAt = nil
+		v.ScheduledVisibility = ""
 		v.UpdatedAt = now
 		if visibility == VisibilityPublic && v.PublishedAt == nil {
 			v.PublishedAt = &now
 		}
+		recordVideoVersion(v, actor, "workflow.publish_immediate", previous, v.WorkflowState, now)
 		s.audit(st, actor, "video.publish.reviewed", "video", videoID, string(visibility))
 		return nil
 	})
@@ -1420,9 +1458,14 @@ func (s *Service) Search(actor, query string) ([]Video, error) {
 	err := s.store.read(func(st State) error {
 		now := s.cfg.Now().UTC()
 		for _, v := range st.Videos {
-			allowed := discoverable(st, v, now) || channelAuthorized(st, v.ChannelID, actor)
+			teamAccess := channelAuthorized(st, v.ChannelID, actor)
+			allowed := discoverable(st, v, now) || teamAccess
 			if allowed && (query == "" || strings.Contains(strings.ToLower(v.Title+" "+v.Description), query)) {
-				out = append(out, *v)
+				if teamAccess {
+					out = append(out, *cloneVideo(v))
+				} else {
+					out = append(out, *audienceVideo(v))
+				}
 			}
 		}
 		return nil

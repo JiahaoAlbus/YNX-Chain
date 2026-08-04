@@ -12,6 +12,7 @@ import (
 	"net/textproto"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestServerAuthStrictParsingAndModeratorBoundary(t *testing.T) {
@@ -288,4 +289,59 @@ func TestCreatorTeamAndRightsHTTPBoundaries(t *testing.T) {
 	if response := request(http.MethodPost, "/v1/videos/"+video.ID+"/metadata", "editor-session", `{"title":"revoked","description":""}`); response.Code != http.StatusForbidden {
 		t.Fatalf("revoked editor retained HTTP authority: %d %s", response.Code, response.Body.String())
 	}
+}
+
+func TestPublicationLifecycleHTTPContract(t *testing.T) {
+	now := time.Date(2026, 7, 29, 4, 0, 0, 0, time.UTC)
+	s, channel := fixture(t, func(cfg *Config) {
+		cfg.Now = func() time.Time { return now }
+	})
+	acceptRole(t, s, channel.Owner, channel.ID, testEditorAccount, CreatorRoleEditor)
+	acceptRole(t, s, channel.Owner, channel.ID, testModeratorAccount, CreatorRoleModerator)
+	video := uploadWithoutRights(t, s, channel, "HTTP lifecycle")
+	declaration := declareTestRights(t, s, channel.Owner, video)
+	if _, err := s.ReviewRights(testModeratorAccount, declaration.ID, true, "verified"); err != nil {
+		t.Fatal(err)
+	}
+
+	auth := StaticTokenAuth{Tokens: map[string]string{
+		"owner-session":     channel.Owner,
+		"editor-session":    testEditorAccount,
+		"moderator-session": testModeratorAccount,
+	}}
+	handler := NewServer(s, auth).Handler()
+	counter := 0
+	request := func(path, session, body string) *httptest.ResponseRecorder {
+		counter++
+		r := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+		r.Header.Set("Authorization", "Bearer "+session)
+		r.Header.Set("Idempotency-Key", fmt.Sprintf("lifecycle-http-%04d", counter))
+		if body != "" {
+			r.Header.Set("Content-Type", "application/json")
+		}
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		return w
+	}
+	assertWorkflow := func(response *httptest.ResponseRecorder, expected WorkflowState) {
+		t.Helper()
+		if response.Code != http.StatusOK {
+			t.Fatalf("lifecycle route failed: %d %s", response.Code, response.Body.String())
+		}
+		var out Video
+		if err := json.Unmarshal(response.Body.Bytes(), &out); err != nil || out.WorkflowState != expected || out.Version == 0 || len(out.Versions) == 0 {
+			t.Fatalf("lifecycle response lost version evidence: %+v %v body=%s", out, err, response.Body.String())
+		}
+	}
+
+	assertWorkflow(request("/v1/videos/"+video.ID+"/submit-review", "editor-session", ""), WorkflowInReview)
+	assertWorkflow(request("/v1/videos/"+video.ID+"/review-publication", "moderator-session", `{"approved":true,"reason":"approved"}`), WorkflowApproved)
+	scheduledAt := now.Add(time.Hour)
+	assertWorkflow(request("/v1/videos/"+video.ID+"/schedule", "editor-session", fmt.Sprintf(`{"visibility":"public","scheduled_at":"%s"}`, scheduledAt.Format(time.RFC3339))), WorkflowScheduled)
+	if response := request("/v1/videos/"+video.ID+"/publish-due", "editor-session", ""); response.Code != http.StatusBadRequest {
+		t.Fatalf("HTTP lifecycle published before due time: %d %s", response.Code, response.Body.String())
+	}
+	now = now.Add(2 * time.Hour)
+	assertWorkflow(request("/v1/videos/"+video.ID+"/publish-due", "editor-session", ""), WorkflowPublished)
+	assertWorkflow(request("/v1/videos/"+video.ID+"/unpublish", "owner-session", ""), WorkflowUnpublished)
 }

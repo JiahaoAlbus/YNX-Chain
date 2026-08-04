@@ -20,7 +20,7 @@ type Store struct {
 	state           State
 }
 
-const currentStateSchemaVersion = 2
+const currentStateSchemaVersion = 3
 
 type stateMigration struct {
 	from int
@@ -60,6 +60,21 @@ var stateMigrations = []stateMigration{
 				}
 			}
 			state.SchemaVersion = 1
+			return nil
+		},
+	},
+	{
+		from: 2,
+		to:   3,
+		up: func(state *State) error {
+			for _, video := range state.Videos {
+				normalizeWorkflowState(video)
+			}
+			state.SchemaVersion = 3
+			return nil
+		},
+		down: func(state *State) error {
+			state.SchemaVersion = 2
 			return nil
 		},
 	},
@@ -161,6 +176,9 @@ func normalize(s *State) {
 	}
 	if s.Rights == nil {
 		s.Rights = map[string]*RightsDeclaration{}
+	}
+	for _, video := range s.Videos {
+		normalizeWorkflowState(video)
 	}
 }
 func (s *Store) read(fn func(State) error) error {

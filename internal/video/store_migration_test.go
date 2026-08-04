@@ -17,6 +17,7 @@ func TestLegacyStateMigratesAfterIntegrityVerification(t *testing.T) {
 	key := []byte("test-video-integrity-key-32-bytes!!")
 	legacy := emptyState()
 	legacy.SchemaVersion = 0
+	legacy.Videos["vid_legacy"] = &Video{ID: "vid_legacy", Owner: "ynx1legacy", ChannelID: "chn_legacy", Title: "Legacy", Visibility: VisibilityPrivate, Status: "ready", SHA256: "legacy-sha", CreatedAt: time.Unix(1, 0).UTC(), UpdatedAt: time.Unix(2, 0).UTC()}
 	legacy.TeamInvites = nil
 	legacy.TeamMembers = nil
 	legacy.Rights = nil
@@ -43,8 +44,12 @@ func TestLegacyStateMigratesAfterIntegrityVerification(t *testing.T) {
 	if err != nil {
 		t.Fatalf("legacy integrity was checked after schema mutation: %v", err)
 	}
-	if store.state.SchemaVersion != 2 || store.state.TeamInvites == nil || store.state.TeamMembers == nil || store.state.Rights == nil {
+	if store.state.SchemaVersion != 3 || store.state.TeamInvites == nil || store.state.TeamMembers == nil || store.state.Rights == nil {
 		t.Fatalf("legacy state was not normalized: %+v", store.state)
+	}
+	migrated := store.state.Videos["vid_legacy"]
+	if migrated == nil || migrated.WorkflowState != WorkflowDraft || migrated.Version != 1 || len(migrated.Versions) != 1 || migrated.Versions[0].Kind != "workflow.migration" {
+		t.Fatalf("legacy video lifecycle was not migrated: %+v", migrated)
 	}
 	if err = store.update(func(*State) error { return nil }); err != nil {
 		t.Fatal(err)
