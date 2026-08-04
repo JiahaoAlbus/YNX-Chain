@@ -45,8 +45,8 @@ func main() {
 	}
 	clients := map[string]video.GatewayClient{
 		"ynx-video-mobile-v1":       {Product: "ynx-video", BundleID: "com.ynxweb4.video", Callbacks: []string{"ynxvideo://wallet-auth/callback"}, Scopes: []string{"video.comment", "video.history", "video.read", "video.report", "video.subscribe"}},
-		"ynx-video-web-v1":          {Product: "ynx-video", BundleID: "com.ynxweb4.video.web", Callbacks: []string{"https://video.ynxweb4.com/wallet-auth/callback"}, Scopes: []string{"video.comment", "video.history", "video.read", "video.report", "video.subscribe"}},
-		"ynx-creator-studio-web-v1": {Product: "ynx-creator-studio", BundleID: "com.ynxweb4.creator-studio.web", Callbacks: []string{"https://creator.video.ynxweb4.com/wallet-auth/callback"}, Scopes: []string{"ai.video.propose", "pay.payout.intent", "video.creator", "video.read"}},
+		"ynx-video-web-v1":          {Product: "ynx-video", BundleID: "com.ynxweb4.video.web", Callbacks: []string{"https://web4.ynxweb4.com/video/wallet-auth/callback"}, Scopes: []string{"video.comment", "video.history", "video.read", "video.report", "video.subscribe"}},
+		"ynx-creator-studio-web-v1": {Product: "ynx-creator-studio", BundleID: "com.ynxweb4.creator-studio.web", Callbacks: []string{"https://web4.ynxweb4.com/video/studio/wallet-auth/callback"}, Scopes: []string{"ai.video.propose", "pay.payout.intent", "video.creator", "video.read"}},
 	}
 	auth := video.GatewaySessionAuth{Service: svc, Key: []byte(required("YNX_VIDEO_GATEWAY_ATTESTATION_KEY")), Clients: clients, Moderators: moderators}
 	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})

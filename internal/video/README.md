@@ -12,7 +12,7 @@ Production startup requires environment-only secrets:
 YNX_VIDEO_DATA=/var/lib/ynx-video \
 YNX_VIDEO_INTEGRITY_KEY='<at-least-32-byte-secret>' \
 YNX_VIDEO_GATEWAY_ATTESTATION_KEY='<at-least-32-byte-secret>' \
-YNX_VIDEO_SCANNER=clamdscan \
+YNX_VIDEO_SCANNER=clamscan \
 YNX_VIDEO_FFMPEG=ffmpeg \
 YNX_VIDEO_MODERATORS='ynx1...' \
 go run ./internal/video/cmd
@@ -35,6 +35,11 @@ Registered product contracts:
 - `ynx-video-mobile-v1` / `com.ynxweb4.video`
 - `ynx-video-web-v1` / `com.ynxweb4.video.web`
 - `ynx-creator-studio-web-v1` / `com.ynxweb4.creator-studio.web`
+
+The public Testnet viewer and Creator Studio use the same-origin API route
+`https://web4.ynxweb4.com/video/api`. Their registered Wallet callbacks are
+`https://web4.ynxweb4.com/video/wallet-auth/callback` and
+`https://web4.ynxweb4.com/video/studio/wallet-auth/callback` respectively.
 
 Central registry publication remains integration-controller work; this service
 fails closed until the Gateway supplies a valid attestation.

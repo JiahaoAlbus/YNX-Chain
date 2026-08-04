@@ -150,9 +150,9 @@ func (c smokeClient) signed(product, method, path, contentType string, body []by
 	deviceKey := append([]byte{2}, make([]byte, 32)...)
 	fields := map[string]string{"time": now.Format(time.RFC3339Nano), "issued": now.Add(-time.Minute).Format(time.RFC3339Nano), "expires": now.Add(time.Hour).Format(time.RFC3339Nano), "nonce": "smoke-" + hex.EncodeToString(random), "binding": strings.Repeat("a", 64), "requestDigest": strings.Repeat("b", 64), "chain": "ynx_6423-1", "algorithm": "p256-sha256", "deviceKey": base64.RawURLEncoding.EncodeToString(deviceKey), "account": smokeAccount}
 	if product == "creator" {
-		fields["product"], fields["client"], fields["bundle"], fields["callback"], fields["scopes"] = "ynx-creator-studio", "ynx-creator-studio-web-v1", "com.ynxweb4.creator-studio.web", "https://creator.video.ynxweb4.com/wallet-auth/callback", "ai.video.propose pay.payout.intent video.creator video.read"
+		fields["product"], fields["client"], fields["bundle"], fields["callback"], fields["scopes"] = "ynx-creator-studio", "ynx-creator-studio-web-v1", "com.ynxweb4.creator-studio.web", "https://web4.ynxweb4.com/video/studio/wallet-auth/callback", "ai.video.propose pay.payout.intent video.creator video.read"
 	} else {
-		fields["product"], fields["client"], fields["bundle"], fields["callback"], fields["scopes"] = "ynx-video", "ynx-video-web-v1", "com.ynxweb4.video.web", "https://video.ynxweb4.com/wallet-auth/callback", "video.comment video.history video.read video.report video.subscribe"
+		fields["product"], fields["client"], fields["bundle"], fields["callback"], fields["scopes"] = "ynx-video", "ynx-video-web-v1", "com.ynxweb4.video.web", "https://web4.ynxweb4.com/video/wallet-auth/callback", "video.comment video.history video.read video.report video.subscribe"
 	}
 	headers, err := video.SignGatewayRequest(c.key, request, body, fields)
 	if err != nil {
