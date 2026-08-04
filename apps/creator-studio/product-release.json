@@ -1,9 +1,9 @@
 {
   "productId": "ynx-creator-studio",
   "name": "YNX Creator Studio",
-  "branch": "codex/final-video",
-  "commit": "f3a20484a6b3842fdc32bb4ccee160058e0106bf",
-  "version": "0.2.0-testnet-preview.1",
+  "branch": "codex/creator-central-20260804",
+  "commit": "3353bdfada4435f2acdbe09d82d2603a7af796ac",
+  "version": "0.3.0-testnet-preview.1",
   "surfaces": ["web"],
   "implementedLocal": true,
   "testedLocal": true,
@@ -22,8 +22,8 @@
   "signingClass": "not applicable; unhosted Web source",
   "minOS": {"browser": "current evergreen browser"},
   "installEvidence": {
-    "web": "public Testnet route plus 100/100 concurrent viewer and API health requests",
-    "boundary": "single-host public Testnet preview; central Wallet/Gateway registration remains pending"
+    "web": "public Testnet route plus 100/100 concurrent API health, Viewer and Creator Studio requests",
+    "boundary": "single-host public Testnet preview; unauthenticated creator operations return 401 and central Wallet/Gateway registration remains pending"
   },
   "centralIntegration": {
     "status": "integration-request-only",
@@ -36,5 +36,5 @@
     "No live provider AI, Trust delegated appeal or Pay settlement",
     "Analytics and revenue remain zero without authoritative persisted events"
   ],
-  "generatedAt": "2026-08-04T01:32:00Z"
+  "generatedAt": "2026-08-04T02:38:00Z"
 }
