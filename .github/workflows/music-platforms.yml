@@ -1,0 +1,76 @@
+name: music-platforms
+
+on:
+  push:
+    branches: [codex/ecosystem-music, codex/final-music]
+    paths: ["apps/music/**", "internal/music/**", "internal/accountaddress/**", "internal/buildinfo/**", "internal/nativewallet/**", "go.mod", "go.sum", ".github/workflows/music-platforms.yml"]
+  pull_request:
+    paths: ["apps/music/**", "internal/music/**", "internal/accountaddress/**", "internal/buildinfo/**", "internal/nativewallet/**", "go.mod", "go.sum", ".github/workflows/music-platforms.yml"]
+
+jobs:
+  service:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: {go-version: "1.25"}
+      - run: go test ./internal/music ./apps/music/...
+      - run: go test -race ./internal/music
+      - run: bash apps/music/scripts/smoke.sh
+      - run: node apps/music/scripts/central-contract-audit.mjs
+      - run: node apps/music/scripts/i18n-audit.mjs
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07 # v5.0.0
+        with: {distribution: temurin, java-version: "17"}
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+        with: {gradle-version: "9.2.1"}
+      - run: gradle --no-daemon testDebugUnitTest assembleDebug assembleRelease
+        working-directory: apps/music/android
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ynx-music-android-preview
+          path: apps/music/android/app/build/outputs/apk/**/*.apk
+
+  ios-simulator:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Create available iOS Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime_id="$(xcrun simctl list -j runtimes | python3 -c 'import json,sys; runtimes=[r for r in json.load(sys.stdin)["runtimes"] if r.get("isAvailable") and r.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS-")]; runtimes.sort(key=lambda r: tuple(int(p) for p in r.get("version", "0").split("."))); assert runtimes, "no available iOS Simulator runtime"; print(runtimes[-1]["identifier"])')"
+          device_type_id="$(xcrun simctl list -j devicetypes | python3 -c 'import json,sys; types=json.load(sys.stdin)["devicetypes"]; preferred=["iPhone 16 Pro", "iPhone 16", "iPhone 15 Pro", "iPhone 15", "iPhone 14 Pro"]; match=next((t for name in preferred for t in types if t.get("name")==name), None); assert match, "no supported iPhone Simulator device type"; print(match["identifier"])')"
+          simulator_udid="$(xcrun simctl create 'YNX Music CI' "$device_type_id" "$runtime_id")"
+          echo "SIMULATOR_UDID=$simulator_udid" >> "$GITHUB_ENV"
+          echo "IOS_RUNTIME_ID=$runtime_id" >> "$GITHUB_ENV"
+          echo "IOS_DEVICE_TYPE_ID=$device_type_id" >> "$GITHUB_ENV"
+      - name: Build iOS Simulator app
+        run: xcodebuild -project apps/music/ios/YNXMusic.xcodeproj -scheme YNXMusic -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" -derivedDataPath "$RUNNER_TEMP/YNXMusicDerived" CODE_SIGNING_ALLOWED=NO build
+      - name: Install, cold start, reject tampered callback and restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_path="$RUNNER_TEMP/YNXMusicDerived/Build/Products/Debug-iphonesimulator/YNXMusic.app"
+          test "$(plutil -extract CFBundleExecutable raw "$app_path/Info.plist")" = "YNXMusic"
+          test -x "$app_path/YNXMusic"
+          xcrun simctl boot "$SIMULATOR_UDID"
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+          xcrun simctl install "$SIMULATOR_UDID" "$app_path"
+          xcrun simctl launch "$SIMULATOR_UDID" com.ynxweb4.music
+          sleep 5
+          xcrun simctl openurl "$SIMULATOR_UDID" 'ynxmusic://auth/callback?unexpected=tamper'
+          xcrun simctl io "$SIMULATOR_UDID" screenshot "$RUNNER_TEMP/ynx-music-ios.png"
+          xcrun simctl terminate "$SIMULATOR_UDID" com.ynxweb4.music
+          xcrun simctl launch "$SIMULATOR_UDID" com.ynxweb4.music
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ynx-music-ios-simulator-evidence
+          path: |
+            ${{ runner.temp }}/YNXMusicDerived/Build/Products/Debug-iphonesimulator/YNXMusic.app
+            ${{ runner.temp }}/ynx-music-ios.png
