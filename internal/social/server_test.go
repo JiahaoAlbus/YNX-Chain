@@ -72,6 +72,17 @@ func TestServerStrictParserDiscoveryBoundaryAndAuthorization(t *testing.T) {
 	response.Body.Close()
 }
 
+func TestServerExposesPublicPathHealthAlias(t *testing.T) {
+	service, _ := testService(t)
+	server := httptest.NewServer(NewServer(service, testResolver{}).Handler())
+	defer server.Close()
+	response := doRequest(t, http.MethodGet, server.URL+"/social/health", "", nil)
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("social health alias status=%d", response.StatusCode)
+	}
+}
+
 func TestServerRejectsLegacyWalletQueryFieldAuthorization(t *testing.T) {
 	service, _ := testService(t)
 	server := httptest.NewServer(NewServer(service, testResolver{}).Handler())
