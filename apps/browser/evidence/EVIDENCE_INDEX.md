@@ -2,7 +2,17 @@
 
 ## Current local checkpoint
 
-Source commit: `2beece6f66a330811f474f24189e53aacb5bb636`
+Current central-candidate source commit: `96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44`
+
+## 2026-08-04 central public-preview candidate
+
+- `macos-public-preview-96dfc52.json` binds the exact arm64 ZIP and executable hashes to the current central candidate.
+- Browser Node tests: 18/18; native Swift tests: 20/20; Wallet/permission contract tests: 15/15.
+- Two same-host release builds produced the same ZIP SHA-256: `939c50454720be24e8de109f758a49e5f58342542d18d6d513639a2f90c84448`.
+- The package is still ad-hoc signed, rejected by Gatekeeper, not notarized and not Developer ID signed.
+- The current candidate is not described as installed: an older registered app with the same Bundle ID retained the `ynxbrowser` protocol handler on the evidence host.
+
+The records below are historical checkpoints and must not be attributed to the current central candidate unless their source commit matches.
 Wallet callback runtime commit: `d9580e6b9d09a9d2eec69fbcb6d35a9ddf6997ed`
 Native download runtime commit: `668cb44dab95374ba9e5342d754b6ec568564f2b`
 

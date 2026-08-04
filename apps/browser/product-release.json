@@ -3,15 +3,15 @@
   "productNumber": 22,
   "productName": "YNX Browser",
   "productSlug": "browser",
-  "version": "0.2.4-checkpoint",
+  "version": "0.2.5-public-preview-candidate",
   "goalStatus": "active",
   "phase": "FREEZE",
-  "sourceCommit": "2beece6f66a330811f474f24189e53aacb5bb636",
-  "asOf": "2026-07-29",
+  "sourceCommit": "96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44",
+  "asOf": "2026-08-04",
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
+    "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -74,8 +74,8 @@
       "details": "Browser production source trees contain no deployment filler, TODO/FIXME/coming-soon markers, fake-success markers or common embedded-secret patterns; macOS security audit templates exclude URL, nonce, response, source and filename values."
     },
     "macosTestnetPreview": {
-      "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
-      "evidence": "apps/browser/evidence/macos-wallet-callback-bde6939.json",
+      "sourceCommit": "96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44",
+      "evidence": "apps/browser/evidence/macos-public-preview-96dfc52.json",
       "releaseBuild": "pass",
       "package": "pass",
       "archiveIntegrity": "pass",
@@ -86,21 +86,19 @@
       "architecture": "arm64",
       "signingClass": "adhoc",
       "gatekeeper": "rejected",
-      "zipBytes": 138216,
-      "zipSha256": "fa22ac3924f68f25658257b42341f5af44274a5faa8ceceb57a2a76ef94bf2f7",
-      "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
-      "truthBoundary": "Local ad-hoc-signed Testnet Preview only; separate evidence proves a current-source install on one local host, but notarization, production signing, hosting, store release and cross-host reproducibility remain unproved."
+      "zipBytes": 138203,
+      "zipSha256": "939c50454720be24e8de109f758a49e5f58342542d18d6d513639a2f90c84448",
+      "binarySha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185",
+      "truthBoundary": "Central-candidate arm64 macOS Testnet Preview only. The artifact is reproducible on this host, ad-hoc signed and rejected by Gatekeeper; notarization, Developer ID signing, hosting, store release and cross-host reproducibility remain unproved."
     },
     "macosInstall": {
-      "sourceCommit": "2beece6f66a330811f474f24189e53aacb5bb636",
-      "evidence": "apps/browser/evidence/macos-install-2beece6.json",
-      "result": "pass-local-evidence-host",
-      "installedPath": "~/Applications/YNX Browser Testnet Preview-2beece6f66a3-cae76c48e0ac.app",
-      "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+      "sourceCommit": "96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44",
+      "result": "not-claimed-for-current-candidate",
+      "binarySha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185",
       "collisionPreservation": "pass",
       "codesignVerify": "pass-adhoc",
-      "launchServicesExactBinary": "pass",
-      "truthBoundary": "The exact current-source ad-hoc Testnet Preview is installed and protocol-resolved on the local evidence host without overwriting a source-mismatched user copy. This is not Developer ID signing, notarization, public hosting, store release, cross-host proof or central Wallet/Auth acceptance."
+      "launchServicesExactBinary": "blocked-by-older-same-bundle-registrations",
+      "truthBoundary": "The current candidate copied without overwriting older applications, but LaunchServices resolved the ynxbrowser scheme to an older registered copy. Current-candidate installedLocal therefore remains false."
     }
   },
   "notVerifiedThisCheckpoint": {
@@ -127,5 +125,5 @@
     "boundary": "Previous evidence remains historical and is not automatically attributed to this checkpoint"
   },
   "externalInputs": [],
-  "nextAction": "Obtain Developer ID signing/notarization and immutable public hosting, then rerun cross-host install, shared-Testnet Wallet callback and platform evidence before offering a Browser download."
+  "nextAction": "Merge the central candidate and publish the exact SHA-256-bound arm64 Testnet Preview on ynxweb4.com with explicit ad-hoc-signing and old-copy warnings; production signing/notarization and shared-Testnet Wallet callback remain later release gates."
 }

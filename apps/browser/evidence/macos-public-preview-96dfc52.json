@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "ynx.browser.public-preview-evidence.v1",
+  "product": "YNX Browser",
+  "platform": "macOS",
+  "channel": "public-testnet-preview-candidate",
+  "sourceCommit": "96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44",
+  "generatedAt": "2026-08-04T04:36:00Z",
+  "artifact": {
+    "file": "YNX-Browser-Testnet-Preview-macOS.zip",
+    "bytes": 138203,
+    "sha256": "939c50454720be24e8de109f758a49e5f58342542d18d6d513639a2f90c84448",
+    "archiveIntegrity": "pass",
+    "sameHostReproducibility": "pass",
+    "buildsCompared": 2
+  },
+  "application": {
+    "bundleId": "com.ynxweb4.browser.macos",
+    "architecture": "arm64",
+    "executableBytes": 454768,
+    "executableSha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185",
+    "codesignVerify": "pass",
+    "signingClass": "adhoc",
+    "gatekeeper": "rejected"
+  },
+  "verification": {
+    "browserNodeTests": 18,
+    "nativeSwiftTests": 20,
+    "walletPermissionContractTests": 15,
+    "sourceGate": "pass",
+    "coldStartForThisArtifact": "not-recorded",
+    "protocolDefaultHandlerForThisArtifact": "not-proven-on-evidence-host-because-older-same-bundle-copies-remain-registered"
+  },
+  "truthBoundary": "This is an arm64 macOS Testnet Preview candidate built reproducibly on one host from the stated central candidate commit. It is ad-hoc signed, rejected by Gatekeeper, not notarized, not Developer ID signed, not an App Store release, and is not yet claimed as publicly hosted. Users must remove or unregister older YNX Browser previews before relying on the ynxbrowser callback scheme."
+}

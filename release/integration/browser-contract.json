@@ -10,7 +10,7 @@
     "productSlug": "browser",
     "responsibility": "Browser runtime, platform clients, local privacy/security mediation, and exact Wallet review handoff"
   },
-  "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
+  "sourceCommit": "96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44",
   "implementationCommits": {
     "downloadPrivacy": "668cb44dab95374ba9e5342d754b6ec568564f2b",
     "reproducibleMacosPreview": "f2f9aaed8d3e4231d37c94de352077008a338572",
@@ -146,7 +146,7 @@
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
+    "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
