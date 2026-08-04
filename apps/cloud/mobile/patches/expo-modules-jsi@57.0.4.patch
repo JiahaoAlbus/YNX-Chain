@@ -12,14 +12,14 @@ index eb1cc942ba5ec3ff7e359be3b0a3822b24685fe9..1d6d3ab9fb7c3bb769a2f2b818160fa8
    }
    return Date(timeIntervalSince1970: milliseconds.rounded(.towardZero) / 1000.0)
 diff --git a/apple/Sources/ExpoModulesJSI/Contexts/HostFunctionContext.swift b/apple/Sources/ExpoModulesJSI/Contexts/HostFunctionContext.swift
-index 4e39ce1bab9461d6c33a421eb5822446723b22fd..8d832347bbf7bdca9859c0215bdd7e230a68e8eb 100644
+index 4e39ce1bab9461d6c33a421eb5822446723b22fd..7eefea27ea3f09886ee1775797742acfd7b555be 100644
 --- a/apple/Sources/ExpoModulesJSI/Contexts/HostFunctionContext.swift
 +++ b/apple/Sources/ExpoModulesJSI/Contexts/HostFunctionContext.swift
 @@ -1,6 +1,6 @@
  /// Context that captures Swift values to pass them to JSI host function as an unmanaged pointer for interoperability with C++.
  internal final class HostFunctionContext: Sendable {
 -  weak let runtime: JavaScriptRuntime?
-+  weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) weak var runtime: JavaScriptRuntime?
    let name: String?
    let call: JavaScriptRuntime.SyncFunctionClosure
  
@@ -28,12 +28,12 @@ index 4e39ce1bab9461d6c33a421eb5822446723b22fd..8d832347bbf7bdca9859c0215bdd7e23
  /// borrowed ``JavaScriptUnownedValue`` (see ``JavaScriptRuntime/UnownedThisSyncFunctionClosure``).
  internal final class UnownedThisHostFunctionContext: Sendable {
 -  weak let runtime: JavaScriptRuntime?
-+  weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) weak var runtime: JavaScriptRuntime?
    let name: String?
    let call: JavaScriptRuntime.UnownedThisSyncFunctionClosure
  
 diff --git a/apple/Sources/ExpoModulesJSI/Contexts/HostObjectContext.swift b/apple/Sources/ExpoModulesJSI/Contexts/HostObjectContext.swift
-index 7bc72bca9d28987abbba92411a9c3f5be41c427d..5c899286f4e6ed7b0d67047d59f597fc9c9fe183 100644
+index 7bc72bca9d28987abbba92411a9c3f5be41c427d..30dece05a2484ec57b2687314618314e927f09ef 100644
 --- a/apple/Sources/ExpoModulesJSI/Contexts/HostObjectContext.swift
 +++ b/apple/Sources/ExpoModulesJSI/Contexts/HostObjectContext.swift
 @@ -5,7 +5,7 @@ internal final class HostObjectContext: Sendable {
@@ -41,12 +41,12 @@ index 7bc72bca9d28987abbba92411a9c3f5be41c427d..5c899286f4e6ed7b0d67047d59f597fc
    typealias Deallocator = @JavaScriptActor () -> Void
  
 -  weak let runtime: JavaScriptRuntime?
-+  weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) weak var runtime: JavaScriptRuntime?
    let get: Getter
    let set: Setter?
    let getPropertyNames: PropertyNamesGetter
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptActor.swift b/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptActor.swift
-index 9a0b4e03c1b1a03edaa87f407125748c14759c43..020824b168f56cbeff3659782c7ea438e47fd4ed 100644
+index 9a0b4e03c1b1a03edaa87f407125748c14759c43..00dca7b9f1dcfbcb411d75284b782701d1772281 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptActor.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptActor.swift
 @@ -76,7 +76,7 @@ internal class JavaScriptExecutor: SerialExecutor, @unchecked Sendable {
@@ -54,7 +54,7 @@ index 9a0b4e03c1b1a03edaa87f407125748c14759c43..020824b168f56cbeff3659782c7ea438
  /// An actor that is dedicated for the specific runtime.
  internal actor JavaScriptRuntimeActor {
 -  private weak let runtime: JavaScriptRuntime?
-+  private weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) private weak var runtime: JavaScriptRuntime?
    nonisolated private let executor: JavaScriptExecutor
  
    init(runtime: JavaScriptRuntime) {
@@ -63,12 +63,12 @@ index 9a0b4e03c1b1a03edaa87f407125748c14759c43..020824b168f56cbeff3659782c7ea438
  /// Serial executor dedicated for the specific runtime.
  internal final class JavaScriptRuntimeExecutor: JavaScriptExecutor, @unchecked Sendable {
 -  private weak let runtime: JavaScriptRuntime?
-+  private weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) private weak var runtime: JavaScriptRuntime?
  
    init(runtime: JavaScriptRuntime) {
      self.runtime = runtime
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptPropNameID.swift b/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptPropNameID.swift
-index ef4624d883b0a51d409ee7d482ac0f5287b34d57..81589d31b818ebca956d77c3b415ddc61ce70ce0 100644
+index ef4624d883b0a51d409ee7d482ac0f5287b34d57..352d3d365b392abccffbecc0842a99502eb8b034 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptPropNameID.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/JavaScriptPropNameID.swift
 @@ -2,7 +2,7 @@ internal import jsi
@@ -76,12 +76,12 @@ index ef4624d883b0a51d409ee7d482ac0f5287b34d57..81589d31b818ebca956d77c3b415ddc6
  /// Represents something that can be a JS property key.
  public final class JavaScriptPropNameID: JavaScriptType {
 -  private weak let runtime: JavaScriptRuntime?
-+  private weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) private weak var runtime: JavaScriptRuntime?
    internal let pointee: facebook.jsi.PropNameID
  
    /// Creates a PropNameID from existing `facebook.jsi.PropNameID`.
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptArray.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptArray.swift
-index 049acbbd52aa4b187b010e7a215fc59973292b10..89ea289339cf208dee777eb821b0898b701a025f 100644
+index 049acbbd52aa4b187b010e7a215fc59973292b10..ca812c413e867f73098424bf1e521b521904ee46 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptArray.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptArray.swift
 @@ -5,7 +5,7 @@ internal import jsi
@@ -89,12 +89,12 @@ index 049acbbd52aa4b187b010e7a215fc59973292b10..89ea289339cf208dee777eb821b0898b
  /// to the underlying JavaScript array and provides Swift-friendly APIs for common array operations.
  public struct JavaScriptArray: JavaScriptType, ~Copyable {
 -  internal weak let runtime: JavaScriptRuntime?
-+  internal weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) internal weak var runtime: JavaScriptRuntime?
    internal let pointee: facebook.jsi.Array
  
    /// Creates a new JavaScript array with the specified length.
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptArrayBuffer.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptArrayBuffer.swift
-index 34bd6f81769f666e2b221b51253d34fc0a333f13..488b8ec9d282eaab134b986be2391e9b7051dbd4 100644
+index 34bd6f81769f666e2b221b51253d34fc0a333f13..a9fc5f2a6766df46849034f33b2b8c00743d957f 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptArrayBuffer.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptArrayBuffer.swift
 @@ -6,7 +6,7 @@ internal import jsi
@@ -102,12 +102,12 @@ index 34bd6f81769f666e2b221b51253d34fc0a333f13..488b8ec9d282eaab134b986be2391e9b
  /// underlying raw data pointer and size of the buffer.
  public struct JavaScriptArrayBuffer: ~Copyable {
 -  internal weak let runtime: JavaScriptRuntime?
-+  internal weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) internal weak var runtime: JavaScriptRuntime?
    internal let pointee: facebook.jsi.ArrayBuffer
  
    internal init(_ runtime: JavaScriptRuntime, _ arrayBuffer: consuming facebook.jsi.ArrayBuffer) {
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptBigInt.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptBigInt.swift
-index a3a861f2abe8ff3001708fd417701984e30496a2..78b86d81e066d06597c0830eecf45a9299cf3abd 100644
+index a3a861f2abe8ff3001708fd417701984e30496a2..4a68779d13f85b7765295da3260e20addec5e3a0 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptBigInt.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptBigInt.swift
 @@ -37,7 +37,7 @@ internal import jsi
@@ -115,12 +115,12 @@ index a3a861f2abe8ff3001708fd417701984e30496a2..78b86d81e066d06597c0830eecf45a92
  /// You must explicitly convert between them.
  public struct JavaScriptBigInt: JavaScriptType, Sendable, ~Copyable {
 -  internal weak let runtime: JavaScriptRuntime?
-+  internal weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) internal weak var runtime: JavaScriptRuntime?
    internal var pointee: facebook.jsi.BigInt
  
    /// Creates a BigInt from an existing JSI BigInt.
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptError.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptError.swift
-index 936aaa2e8b26b0dd7e2fdcbb172e810e3038e6ec..8788a97b32e172033d3e6e8505ffe65a4f1e1676 100644
+index 936aaa2e8b26b0dd7e2fdcbb172e810e3038e6ec..54c533a2b9cbc1c7013761410f54de717dc76825 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptError.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptError.swift
 @@ -12,7 +12,7 @@ internal import jsi
@@ -128,12 +128,12 @@ index 936aaa2e8b26b0dd7e2fdcbb172e810e3038e6ec..8788a97b32e172033d3e6e8505ffe65a
  ///   JavaScript thread while the runtime is alive.
  public final class JavaScriptError: Error, Sendable {
 -  private weak let runtime: JavaScriptRuntime?
-+  private weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) private weak var runtime: JavaScriptRuntime?
    nonisolated(unsafe) private let pointee: facebook.jsi.JSError
  
    internal init(_ runtime: JavaScriptRuntime, _ error: facebook.jsi.JSError) {
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptFunction.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptFunction.swift
-index 3ff84b8a416e13439961ec245786de43d82bfd04..d65ad761a4557e6ce53f87c70ad061aeaca152a9 100644
+index 3ff84b8a416e13439961ec245786de43d82bfd04..fdff97229be7ca999bef309c91ca61789360bd96 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptFunction.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptFunction.swift
 @@ -4,7 +4,7 @@ internal import ExpoModulesJSI_Cxx
@@ -141,12 +141,12 @@ index 3ff84b8a416e13439961ec245786de43d82bfd04..d65ad761a4557e6ce53f87c70ad061ae
  
  public struct JavaScriptFunction: JavaScriptType, ~Copyable {
 -  internal weak let runtime: JavaScriptRuntime?
-+  internal weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) internal weak var runtime: JavaScriptRuntime?
    internal let pointee: facebook.jsi.Function
  
    internal init(_ runtime: JavaScriptRuntime, _ pointee: consuming facebook.jsi.Function) {
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift
-index cc15fd51c99286307b4129f1a657b66388e98348..423d3524195b384d16f3f5c111a82eb36d58c873 100644
+index cc15fd51c99286307b4129f1a657b66388e98348..869f6662d4764c1f08ed9b1b785fe755213a03ab 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptObject.swift
 @@ -6,7 +6,7 @@ internal import jsi
@@ -154,12 +154,12 @@ index cc15fd51c99286307b4129f1a657b66388e98348..423d3524195b384d16f3f5c111a82eb3
  /// supporting property access, modification, enumeration, prototype manipulation, and function calling.
  public struct JavaScriptObject: JavaScriptType, Sendable, ~Copyable {
 -  internal weak let runtime: JavaScriptRuntime?
-+  internal weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) internal weak var runtime: JavaScriptRuntime?
    internal var pointee: facebook.jsi.Object
  
    /// Creates a new object in the given runtime.
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift
-index c2152bc2efc0b4c84c9c8f26a50166929eb7ba78..c49071e84654d774461e8a066a6425ca806142cc 100644
+index c2152bc2efc0b4c84c9c8f26a50166929eb7ba78..576a4b301463bf6ff235895ac820175d2e2a8502 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptPromise.swift
 @@ -10,7 +10,7 @@ internal import jsi
@@ -167,12 +167,12 @@ index c2152bc2efc0b4c84c9c8f26a50166929eb7ba78..c49071e84654d774461e8a066a6425ca
    private typealias PromiseContinuation = CheckedContinuation<JavaScriptValue.Ref, any Error>
  
 -  private weak let runtime: JavaScriptRuntime?
-+  private weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) private weak var runtime: JavaScriptRuntime?
    private let deferredPromise = DeferredPromise()
  
    /// Owns the promise's JSI values (the object and, for a deferred promise, its resolve/reject
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptTypedArray.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptTypedArray.swift
-index 280c18a0e1957857b72fad9c0c5a76c81eb28549..8d472a3158fde4c16066fa477ab58a053f765466 100644
+index 280c18a0e1957857b72fad9c0c5a76c81eb28549..d19b6b7fea2c6650a55c39286347778587b8917f 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptTypedArray.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptTypedArray.swift
 @@ -8,7 +8,7 @@ internal import ExpoModulesJSI_Cxx
@@ -180,12 +180,12 @@ index 280c18a0e1957857b72fad9c0c5a76c81eb28549..8d472a3158fde4c16066fa477ab58a05
  
  public struct JavaScriptTypedArray: ~Copyable {
 -  internal weak let runtime: JavaScriptRuntime?
-+  internal weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) internal weak var runtime: JavaScriptRuntime?
    internal let pointee: facebook.jsi.Object
  
    /// The underlying `ArrayBuffer` backing this typed array. Stored alongside `pointee`
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptValue.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptValue.swift
-index ded041944f688db05369b6e8bdc63d417577e5ca..59aba1460626fc39e960e1c6c80527e8baa9dfa2 100644
+index ded041944f688db05369b6e8bdc63d417577e5ca..a902ce243b3441833e00b88098abab1b009a5590 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptValue.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptValue.swift
 @@ -7,7 +7,7 @@ internal import jsi
@@ -193,12 +193,12 @@ index ded041944f688db05369b6e8bdc63d417577e5ca..59aba1460626fc39e960e1c6c80527e8
  /// and stored in containers that don't support non-copyable types etc.
  public final class JavaScriptValue: JavaScriptType, Equatable, Escapable {
 -  internal weak let runtime: JavaScriptRuntime?
-+  internal weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) internal weak var runtime: JavaScriptRuntime?
    internal let pointee: facebook.jsi.Value
  
    /// Initializer from the existing JSI value.
 diff --git a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptWeakObject.swift b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptWeakObject.swift
-index 9fffe5e480f4b18d4a5905bb3374f60798975c4e..8cc1f18bacdad5baad5696e78c115981ed7327ba 100644
+index 9fffe5e480f4b18d4a5905bb3374f60798975c4e..03d586466811f3edfeae1e4d688559317d1573e6 100644
 --- a/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptWeakObject.swift
 +++ b/apple/Sources/ExpoModulesJSI/Runtime/Values/JavaScriptWeakObject.swift
 @@ -5,7 +5,7 @@ internal import jsi
@@ -206,7 +206,7 @@ index 9fffe5e480f4b18d4a5905bb3374f60798975c4e..8cc1f18bacdad5baad5696e78c115981
  /// the object is eligible for GC. Method names are inspired by C++ `std::weak_ptr`.
  public struct JavaScriptWeakObject: JavaScriptType, ~Copyable {
 -  internal weak let runtime: JavaScriptRuntime?
-+  internal weak var runtime: JavaScriptRuntime?
++  nonisolated(unsafe) internal weak var runtime: JavaScriptRuntime?
    internal let pointee: facebook.jsi.WeakObject
  
    /// Initializes a weak object with the underlying JSI weak object.
