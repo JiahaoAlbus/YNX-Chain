@@ -2,12 +2,17 @@
 
 ## Runtime and API
 
+- Public UI: <https://web4.ynxweb4.com/search/>
+- Public health: <https://web4.ynxweb4.com/search/api/health>
+- `public-testnet-a2601b6c.json`: exact source commit, service/Caddy
+  boundary, authorized source inventory, public browser flow and concurrent
+  request results.
 - Staging: <https://search-staging.43.153.202.237.sslip.io>
 - Health: <https://search-staging.43.153.202.237.sslip.io/api/health>
 - `staging/health.json`: historical deployed commit and dependency availability.
 - `staging/health-headers.txt`: historical TLS reverse-proxy response/security headers.
-- `staging/search-empty.json`: approved-source corpus is empty and returns zero
-  results without fabricated coverage.
+- `staging/search-empty.json`: historical staging evidence from before the
+  public YNX-owned source inventory was approved.
 
 The current protected source commit is
 `88ee867322ec11a243a483c04bab99676cc3416e`. Historical staging remains on
@@ -24,7 +29,7 @@ empty-index preview. Each local visual is paired with an assertion in
 
 ## Verification
 
-- `npm run check`: 31 unit/integration/recovery/observability/race/replay/security
+- `npm run check`: 45 unit/integration/recovery/observability/race/replay/security
   tests, deterministic service smoke, dependency-independent Search secret scan,
   deterministic feed verification, and recovery drill.
 - `npm run test:e2e`: 6 Chromium Playwright scenarios.
