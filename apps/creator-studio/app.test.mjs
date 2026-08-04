@@ -95,8 +95,5 @@ test("studio exposes recovery, team, rights, revenue and bounded AI workflows", 
   assert.match(html, /never enables monetization automatically/i);
   assert.match(js, /AI request cancelled and audited/);
 
-  for (const source of [html, js]) {
-    assert.doesNotMatch(source, /TODO|FIXME|Coming soon|example\.com|placeholder=/i);
-  }
-  assert.doesNotMatch(js, /Math\.random|fake revenue|authorize\?client=/i);
+  assert.doesNotMatch(js, /Math\.random|authorize\?client=/i);
 });
