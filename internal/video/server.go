@@ -162,6 +162,38 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	case len(parts) == 2 && parts[0] == "channels" && r.Method == "GET":
 		out, err := s.service.Channel(actor, parts[1])
 		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "channels" && parts[2] == "team" && r.Method == "GET":
+		out, err := s.service.Team(actor, parts[1])
+		respond(w, out, err)
+	case len(parts) == 4 && parts[0] == "channels" && parts[2] == "team" && parts[3] == "invites" && r.Method == "POST":
+		var in struct {
+			Account   string      `json:"account"`
+			Role      CreatorRole `json:"role"`
+			ExpiresAt *time.Time  `json:"expires_at"`
+		}
+		if decode(r, &in, w) {
+			return
+		}
+		expiresAt := time.Time{}
+		if in.ExpiresAt != nil {
+			expiresAt = *in.ExpiresAt
+		}
+		out, err := s.service.InviteTeamMember(actor, parts[1], in.Account, in.Role, expiresAt)
+		respond(w, out, err)
+	case len(parts) == 4 && parts[0] == "team" && parts[1] == "invites" && parts[3] == "accept" && r.Method == "POST":
+		out, err := s.service.AcceptTeamInvite(actor, parts[2])
+		respond(w, out, err)
+	case len(parts) == 5 && parts[0] == "channels" && parts[2] == "team" && parts[4] == "role" && r.Method == "POST":
+		var in struct {
+			Role CreatorRole `json:"role"`
+		}
+		if decode(r, &in, w) {
+			return
+		}
+		out, err := s.service.SetTeamRole(actor, parts[1], parts[3], in.Role)
+		respond(w, out, err)
+	case len(parts) == 4 && parts[0] == "channels" && parts[2] == "team" && r.Method == "DELETE":
+		respond(w, map[string]bool{"ok": true}, s.service.RevokeTeamMember(actor, parts[1], parts[3]))
 	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "metadata" && r.Method == "POST":
 		var in struct {
 			Title       string `json:"title"`
@@ -171,6 +203,35 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		respond(w, map[string]bool{"ok": true}, s.service.UpdateMetadata(actor, parts[1], in.Title, in.Description))
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "submit-review" && r.Method == "POST":
+		out, err := s.service.SubmitForReview(actor, parts[1])
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "review-publication" && r.Method == "POST":
+		var in struct {
+			Approved bool   `json:"approved"`
+			Reason   string `json:"reason"`
+		}
+		if decode(r, &in, w) {
+			return
+		}
+		out, err := s.service.ReviewPublication(actor, parts[1], in.Approved, in.Reason)
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "schedule" && r.Method == "POST":
+		var in struct {
+			Visibility  Visibility `json:"visibility"`
+			ScheduledAt time.Time  `json:"scheduled_at"`
+		}
+		if decode(r, &in, w) {
+			return
+		}
+		out, err := s.service.SchedulePublication(actor, parts[1], in.Visibility, in.ScheduledAt)
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "publish-due" && r.Method == "POST":
+		out, err := s.service.PublishDue(actor, parts[1])
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "unpublish" && r.Method == "POST":
+		out, err := s.service.Unpublish(actor, parts[1])
+		respond(w, out, err)
 	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "retry-processing" && r.Method == "POST":
 		out, err := s.service.RetryProcessing(r.Context(), actor, parts[1])
 		respond(w, out, err)
@@ -180,6 +241,27 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		respond(w, map[string]bool{"ok": true}, s.service.Publish(actor, parts[1], in.Visibility))
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "rights" && r.Method == "POST":
+		var in RightsDeclarationInput
+		if decode(r, &in, w) {
+			return
+		}
+		out, err := s.service.DeclareRights(actor, parts[1], in)
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "rights" && parts[2] == "review" && r.Method == "POST":
+		if !s.isModerator(actor) {
+			problem(w, 403, ErrForbidden)
+			return
+		}
+		var in struct {
+			Accepted bool   `json:"accepted"`
+			Reason   string `json:"reason"`
+		}
+		if decode(r, &in, w) {
+			return
+		}
+		out, err := s.service.ReviewRights(actor, parts[1], in.Accepted, in.Reason)
+		respond(w, out, err)
 	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "watch" && r.Method == "POST":
 		var in struct {
 			Seconds   int64

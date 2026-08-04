@@ -19,6 +19,8 @@ h1{margin:2px 0;font-size:1.35rem;letter-spacing:-.025em}
 .locale-controls select{min-width:92px;padding:7px;margin-top:3px}
 button{font:inherit;font-weight:650;background:var(--blue);color:white;border:1px solid var(--blue);border-radius:8px;padding:9px 13px;cursor:pointer}
 button:hover{filter:brightness(.94)}
+button.danger{background:transparent;color:var(--danger);border-color:color-mix(in srgb,var(--danger) 55%,var(--line))}
+button.danger:hover{background:color-mix(in srgb,var(--danger) 8%,transparent)}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid color-mix(in srgb,var(--blue) 28%,transparent);outline-offset:2px}
 main{min-width:0;padding:30px clamp(22px,4vw,54px) 70px;max-width:1280px;width:100%}
 #status{min-height:38px;color:var(--muted);font-size:.86rem}
@@ -36,14 +38,16 @@ main{min-width:0;padding:30px clamp(22px,4vw,54px) 70px;max-width:1280px;width:1
 .callout p{color:var(--muted);line-height:1.55;margin-bottom:0}
 form{max-width:720px;margin:16px 0;display:grid;gap:15px}
 form h3{margin:0;font-size:1rem}
-label{font-size:.82rem;font-weight:650}
+label{font-size:.82rem;font-weight:650;min-width:0}
+label>small{display:block;margin-top:5px;color:var(--muted);font-weight:500;line-height:1.45}
 input,textarea,select{display:block;width:100%;margin-top:6px;border:1px solid #b8c0cc;border-radius:8px;padding:10px;background:var(--surface);color:inherit;font:inherit}
 textarea{min-height:90px;resize:vertical}
 .check{display:flex;align-items:flex-start;gap:9px;font-weight:500;line-height:1.45}
 .check input{width:auto;margin:2px 0}
 .bar{display:flex;justify-content:space-between;align-items:center;gap:16px}
 .table{padding:4px 18px}
-.row{display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(110px,1fr) minmax(100px,1fr) auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+.row{display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(110px,1fr) minmax(100px,1fr) auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);min-width:0}
+.row>*{min-width:0;overflow-wrap:anywhere}
 .row:last-child{border-bottom:0}
 .row small{display:block;color:var(--muted);margin-top:5px;overflow-wrap:anywhere}
 .state{font-size:.75rem;background:#edf1fa;color:#173f99;padding:5px 8px;border-radius:99px;width:max-content}

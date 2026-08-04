@@ -4,7 +4,10 @@
 Creator Studio. It atomically stores HMAC-protected state and a SHA-256-linked
 audit log, bounds private media objects by item and account quota, fails closed
 when scanning is unavailable, and invokes real FFmpeg HLS processing. Interrupted
-scan/transcode jobs become explicit retryable failures after restart.
+scan/transcode jobs become explicit retryable failures after restart. Creator Studio
+adds channel-owned team roles with immediate revocation, source-bound rights
+declarations with independent review, and commercial eligibility that fails closed
+unless rights remain verified.
 
 Production startup requires environment-only secrets:
 
@@ -17,6 +20,13 @@ YNX_VIDEO_FFMPEG=ffmpeg \
 YNX_VIDEO_MODERATORS='ynx1...' \
 go run ./internal/video/cmd
 ```
+
+The loopback `video-smoke` requires the configured moderator set to include
+`ynx1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zcrwn4`. It exercises a repository-owned
+media flow through team invite/accept, editor upload, exact source-hash rights
+declaration, creator self-review rejection, independent review, publication,
+team revocation and post-revocation denial. A missing or unhealthy scanner is a
+hard failure; the smoke never substitutes a mock scanner or synthetic revenue.
 
 ## Wallet and Gateway boundary
 
