@@ -1,0 +1,45 @@
+# YNX Quant Lab 0.2 Testnet Candidate release notes
+
+This release introduces an independent research, Paper and bounded Testnet Preview product.
+
+- Deterministic event-driven out-of-sample backtests with fee, slippage, latency, liquidity participation, partial fill, data-gap, buy/hold, no-trade, walk-forward, regime and parameter-sensitivity evidence.
+- Strategy provenance records source, commit, license, strategy/model/data/feature hashes, split, seed, parameters, assumptions and limitations.
+- Persistent Paper Broker, reconciliation, audit chain and kill switch.
+- Versioned venue-neutral execution intent with tested Paper and non-submitting
+  Shadow adapters, idempotent replay, sequence-gap rejection and explicit
+  source/as-of/coverage/confidence evidence. Adapter reservation/result evidence
+  survives restart, while interrupted unknown outcomes refuse duplicate
+  execution. Exchange and DEX implementations are not shipped.
+- Wallet-signed bounded Testnet mandate boundary with expiry, notional,
+  position, daily-loss, slippage, gas and order-frequency limits; fresh oracle
+  and venue-health observations; projected leverage, drawdown, liquidity, depeg,
+  concentration, cancel/API reliability and supplied VaR/ES limits; overflow
+  rejection; replay rejection; and idempotent broker proof.
+  Default verifier, authoritative risk feed and broker are unavailable; live
+  funds remain disabled.
+- Market data comes only from the Exchange-owned actual-match tape. The product does not infer prices, liquidity, volume, or fills that are absent from authoritative matches.
+- 12 locale catalogs, Arabic RTL, light/dark, responsive workbench and reduced motion.
+- Upstream evaluation records exact NautilusTrader, Freqtrade/FreqAI and LEAN commits/licenses; no third-party binary is bundled.
+- Sequential Draft-to-Archived lifecycle with risk/evidence gates and active
+  Wallet mandate requirement before bounded Testnet.
+- Immediate, idempotent, restart-persistent mandate revocation.
+- Independent core, worker, paper, risk, web, and CLI binaries; REST and
+  source-labelled WebSocket; Python and TypeScript SDK candidates.
+- Tested research-only strategy template and venue-neutral Shadow intent
+  example; no executable unsigned package or invented venue receipt is shipped.
+- Cross-process state coordination, atomic integrity-checked backup/restore,
+  tamper rejection, and restore drill.
+- Docker Compose and Kubernetes candidates with non-root/read-only boundaries.
+  The Docker image is not installed because no local daemon was available.
+- SLO/capacity baseline, unit economics, threat model, operations, migration,
+  observability, evidence index, release truth record, and public metadata.
+- Validated/generated request and trace IDs, stable error IDs, redacted JSON
+  route logs, WebSocket correlation and bounded Prometheus operational/risk
+  metrics. No trace backend, dashboard, monitor ingestion or alert delivery is
+  claimed.
+
+The research-only Web surface is publicly deployed with per-request isolation
+and actual YNX Testnet match data. Historical and simulated results do not
+predict returns. This candidate is not a real-money trading product. It is not
+centrally integrated, production signed, or store released; public Paper,
+Testnet order submission and live funds remain disabled.

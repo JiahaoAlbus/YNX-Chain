@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Finance",
+  "evidenceClass": "local-testnet-recovery",
+  "sourceCommit": "23bcdea565bcfcb7d211512e654f916faf817df3",
+  "verifiedAt": "2026-07-27T14:39:35Z",
+  "stateVersion": 1,
+  "backup": {
+    "format": "ynx-finance-backup-v1",
+    "schemaVersion": 1,
+    "authentication": "HMAC-SHA-256",
+    "minimumAuthenticationKeyBytes": 32,
+    "encrypted": false,
+    "maximumEnvelopeBytes": 67108864,
+    "privateFileMode": "0600",
+    "atomicWrite": true,
+    "fileAndDirectorySync": true
+  },
+  "restore": {
+    "offlineOnly": true,
+    "exactConfirmationRequired": true,
+    "preRestoreStatePreserved": true,
+    "preRestoreSha256Recorded": true,
+    "preRestoreBytesRecorded": true,
+    "restoredStateReopened": true,
+    "privateReceiptWritten": true,
+    "automaticRollbackOnPostWriteFailure": true
+  },
+  "negativeCoverage": [
+    "short authentication key",
+    "wrong authentication key",
+    "tampered state",
+    "tampered manifest",
+    "unknown envelope fields",
+    "unsupported state version",
+    "unsafe live-state and backup path reuse",
+    "Wallet nonce replay after restore"
+  ],
+  "verification": [
+    {
+      "command": "go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1",
+      "result": "passed"
+    },
+    {
+      "command": "go test -race ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1",
+      "result": "passed"
+    },
+    {
+      "command": "npm run smoke --prefix apps/finance",
+      "result": "passed"
+    },
+    {
+      "command": "bash scripts/validate/no-placeholder-check.sh",
+      "result": "passed"
+    },
+    {
+      "command": "bash scripts/validate/secret-scan.sh",
+      "result": "passed"
+    }
+  ],
+  "notClaimed": {
+    "deployedRestoreDrill": true,
+    "remoteRtoRpo": true,
+    "productionRetentionPolicy": true,
+    "encryptedBackupArtifactCommitted": true,
+    "securitySreAcceptance": true,
+    "productionSignedArtifact": true
+  },
+  "blockers": [
+    "Security/SRE encrypted-storage and retention approval",
+    "isolated deployed restore drill",
+    "measured RTO/RPO",
+    "production artifact provenance and signing"
+  ]
+}

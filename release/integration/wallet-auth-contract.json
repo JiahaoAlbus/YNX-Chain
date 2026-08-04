@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 1,
+  "productId": "02",
+  "product": "YNX Wallet / Auth",
+  "slug": "wallet-auth",
+  "productSlug": "wallet-auth",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+  "phase": "INTEGRATE",
+  "network": {
+    "nativeChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "authorityOwner": "01-chain-core"
+  },
+  "protocolVersions": {
+    "authorizationRequest": 1,
+    "walletApproval": 1,
+    "deviceChallenge": 1,
+    "productSession": 1,
+    "productSessionHttpProof": 1,
+    "centralRegistryDocument": 2,
+    "centralProductRegistration": 3,
+    "gatewayAdapterSnapshot": 2,
+    "gatewayHttpKernel": 1,
+    "gatewayNodeState": 1,
+    "gatewayObservability": 1,
+    "gatewayBackup": 1,
+    "strategyMandate": 2,
+    "strategyAction": 1,
+    "strategyMandateStore": 1,
+    "smartAccountPolicy": 1,
+    "signedIntent": 1
+  },
+  "gatewayHttpTransport": {
+    "method": "POST",
+    "contentType": "application/json",
+    "canonicalBody": true,
+    "maxBodyBytes": 1048576,
+    "proofPlacement": "separate-decoded-header-object",
+    "proofIncludedInBodyDigest": false,
+    "stateDigestDomain": "YNX_CANONICAL_GATEWAY_HTTP_STATE_V1",
+    "requestAtomicRollback": true
+  },
+  "gatewayObservability": {
+    "administrativeEndpoints": {"health":"/health","readiness":"/ready","version":"/version","metrics":"/metrics"},
+    "responseIdentifiers": ["x-request-id", "x-trace-id", "x-error-id"],
+    "structuredEventSchemaVersion": 1,
+    "structuredEventSinkFailureIsolation": true,
+    "metricsFormat": "Prometheus text exposition 0.0.4",
+    "boundedRouteLabels": true,
+    "boundedErrorCodeLabels": true,
+    "requestBodyOrProofInEvents": false,
+    "remoteDeploymentRequiresExactBuildIdentity": true,
+    "requiredBuildIdentity": ["sourceCommit", "release", "buildTime"],
+    "localRuntimeDoesNotImplyPublicDeployment": true,
+    "nodeHostImport": "@ynx-chain/wallet-auth/gateway-node-host",
+    "universalPackageRootMobileSafe": true
+  },
+  "gatewayBackupRecovery": {
+    "backupSchemaVersion": 1,
+    "stateSchemaVersion": 1,
+    "algorithm": "aes-256-gcm",
+    "nodeOnlyImport": "@ynx-chain/wallet-auth/gateway-backup",
+    "operatorKeyBytes": 32,
+    "exactStateRestore": true,
+    "consumedProofReplayStateRestored": true,
+    "legacyTimestampedStateValidatedAndNormalized": true,
+    "unsupportedFutureStateSchemaRejected": true,
+    "exclusiveNoOverwrite": true,
+    "minimumCreatedAtRollbackFloor": true,
+    "maximumAgeRpoPolicy": true,
+    "privateDirectoryMode": "0700",
+    "privateFileMode": "0600",
+    "centralDurableStoreIntegrated": false,
+    "productionKmsIntegrated": false,
+    "crossRegionBackupHosted": false,
+    "productionRtoRpoVerified": false,
+    "evidence": "apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json"
+  },
+  "canonicalBindings": [
+    "network",
+    "chain",
+    "requestingProduct",
+    "productClientId",
+    "bundleId",
+    "callback",
+    "productDeviceAlgorithm",
+    "productDeviceKey",
+    "account",
+    "orderedScopes",
+    "purpose",
+    "nonce",
+    "issuedAt",
+    "expiresAt",
+    "requestDigest",
+    "approvalDigest",
+    "sessionBinding"
+  ],
+  "quantProductRegistration": {
+    "productId": "quant",
+    "productClientId": "ynx-quant-v1",
+    "bundleId": "com.ynxweb4.quant",
+    "callback": "ynxquant://wallet-auth/callback",
+    "enabledByDefault": false,
+    "reviewState": "pending-review",
+    "orderedScopes": [
+      "quant:account",
+      "quant:mandate:create",
+      "quant:mandate:execute",
+      "quant:mandate:revoke"
+    ]
+  },
+  "gatewayOperations": [
+    {
+      "operation": "completeProductSession",
+      "path": "/v1/wallet/sessions/complete",
+      "requiredScope": null,
+      "binding": "authorizationRequest+walletApproval+P-256 device challenge; proof header null"
+    },
+    {
+      "operation": "introspectProductSession",
+      "path": "/v1/wallet/sessions/introspect",
+      "requiredScope": "caller-selected subset of granted ordered scopes",
+      "binding": "separate P-256 header proof over method+path+canonical bodyDigest+nonce"
+    },
+    {
+      "operation": "revokeProductSession",
+      "path": "/v1/wallet/sessions/revoke",
+      "requiredScope": null,
+      "binding": "separate path-bound P-256 header proof from the session being revoked"
+    },
+    {
+      "operation": "revokeOwnApproval",
+      "path": "/v1/wallet/approvals/revoke",
+      "requiredScope": null,
+      "binding": "separate path-bound P-256 proof from a session created by the approval"
+    },
+    {
+      "operation": "revokeOwnProductDevice",
+      "path": "/v1/wallet/devices/revoke",
+      "requiredScope": null,
+      "binding": "separate path-bound P-256 proof from the product device being revoked"
+    },
+    {
+      "operation": "logoutAllAccountDevices",
+      "path": "/v1/wallet/accounts/logout-all",
+      "requiredScope": "wallet:sessions",
+      "binding": "canonical ynx-wallet-v1 and com.ynxweb4.wallet Product Session only"
+    },
+    {
+      "operation": "activateStrategyMandate",
+      "path": "/v1/wallet/mandates/activate",
+      "requiredScope": "quant:mandate:create",
+      "binding": "account+productClientId+sessionBinding+P-256 request proof"
+    },
+    {
+      "operation": "authorizeStrategyAction",
+      "path": "/v1/wallet/mandates/authorize-action",
+      "requiredScope": "quant:mandate:execute",
+      "binding": "mandateDigest+nonceDomain+nonce+limits+typed target+P-256 request proof"
+    },
+    {
+      "operation": "listStrategyMandates",
+      "path": "/v1/wallet/mandates",
+      "requiredScope": "quant:account",
+      "binding": "account+productClientId+P-256 request proof"
+    },
+    {
+      "operation": "revokeStrategyMandate",
+      "path": "/v1/wallet/mandates/revoke",
+      "requiredScope": "quant:mandate:revoke",
+      "binding": "account+productClientId+sessionBinding+P-256 request proof"
+    },
+    {
+      "operation": "killStrategyMandate",
+      "path": "/v1/wallet/mandates/kill",
+      "requiredScope": "quant:mandate:revoke",
+      "binding": "account+productClientId+sessionBinding+P-256 request proof"
+    },
+    {
+      "operation": "emergencyExitStrategyMandate",
+      "path": "/v1/wallet/mandates/emergency-exit",
+      "requiredScope": "quant:mandate:revoke",
+      "binding": "existing mandate ownership+bounded exit reason+P-256 request proof"
+    }
+  ],
+  "strategyAssetBoundary": {
+    "exchange": {
+      "required": ["subaccount-only", "no-withdraw", "independent-nonce-domain", "immediate-revoke"],
+      "prohibited": ["master-account", "withdrawal", "owner-change", "shared-nonce-domain"]
+    },
+    "dex": {
+      "required": ["typed-vault-target", "typed-pool-target", "typed-router-target", "exact-method-union"],
+      "prohibited": ["arbitrary-transfer", "owner-change", "unlimited-approval", "upgrade-authority", "scope-expansion"]
+    }
+  },
+  "canonicalErrors": [
+    "UNKNOWN_OR_MISSING_FIELD",
+    "METHOD_NOT_ALLOWED",
+    "UNSUPPORTED_MEDIA_TYPE",
+    "INVALID_PATH",
+    "INVALID_BODY",
+    "INVALID_JSON",
+    "NON_CANONICAL_JSON",
+    "INVALID_PROOF_HEADER",
+    "UNEXPECTED_PROOF_HEADER",
+    "PROOF_REQUIRED",
+    "ROUTE_NOT_FOUND",
+    "WALLET_CONTROL_REQUIRED",
+    "INVALID_REGISTRY",
+    "REGISTRY_DISABLED",
+    "SESSION_NOT_FOUND",
+    "SESSION_BINDING_MISMATCH",
+    "HTTP_BINDING_MISMATCH",
+    "SCOPE_NOT_ALLOWED",
+    "REPLAY",
+    "EXPIRED",
+    "REVOKED",
+    "UNSAFE_MANDATE",
+    "PROHIBITED_METHOD",
+    "INVALID_EXECUTION_BOUNDARY",
+    "MANDATE_BINDING_MISMATCH",
+    "MANDATE_DIGEST_MISMATCH",
+    "SCOPE_EXPANSION",
+    "WRONG_DEX_TARGET",
+    "WRONG_EXECUTION_ACCOUNT",
+    "LIMIT_EXCEEDED",
+    "MANDATE_REVOKED",
+    "MANDATE_KILLED",
+    "MANDATE_EXITED",
+    "INVALID_BACKUP_KEY",
+    "INVALID_BACKUP_OPTIONS",
+    "INVALID_BACKUP_PATH",
+    "INVALID_BACKUP_POLICY",
+    "STATE_TAMPERED",
+    "BACKUP_TAMPERED",
+    "BACKUP_FUTURE",
+    "BACKUP_ROLLBACK",
+    "BACKUP_EXPIRED",
+    "BACKUP_PERMISSIONS",
+    "BACKUP_UNAVAILABLE",
+    "BACKUP_EXISTS",
+    "RESTORE_TARGET_EXISTS",
+    "RESTORE_INTEGRITY"
+  ],
+  "canonicalEventContract": [
+    {"name": "wallet.product_session.created.v1", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"},
+    {"name": "wallet.product_session.revoked.v1", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"},
+    {"name": "wallet.device.revoked.v1", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"},
+    {"name": "wallet.approval.revoked.v1", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"},
+    {"name": "wallet.account.logout_all.v1", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"},
+    {"name": "wallet.strategy_mandate.activated.v2", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"},
+    {"name": "wallet.strategy_action.authorized.v1", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"},
+    {"name": "wallet.strategy_mandate.revoked.v2", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"},
+    {"name": "wallet.strategy_mandate.killed.v2", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"},
+    {"name": "wallet.strategy_mandate.emergency_exit.v2", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"}
+  ],
+  "sharedVectors": [
+    {
+      "path": "packages/wallet-auth/testdata/strategy-mandate-v2.json",
+      "mandateDigest": "132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270",
+      "actionDigest": "ba22184ba59fb7195df56128c832f26b582e9da0600f04687f234d83b31a8e45",
+      "actionNonceKey": "1d01253d409b8e4ca16085cbd5aa7893e15e778e4659b218629235b0c8dda479"
+    },
+    {"path": "packages/wallet-auth/testdata/gateway-p256-v1.json"},
+    {"path": "packages/wallet-auth/testdata/product-session-http-proof-v1.json"},
+    {"path": "packages/wallet-auth/testdata/central-lifecycle-v1.json"},
+    {"path": "packages/wallet-auth/testdata/mobile-native-transfer-v1.json"}
+  ],
+  "dependencies": [
+    {"owner": "01-chain-core", "need": "chain identity, EVM, EntryPoint, transaction and receipt authority", "status": "blocked-external"},
+    {"owner": "app-gateway", "need": "merge and deploy the canonical adapter and observability host with fail-closed persistence and exact build identity", "status": "adapter-ready"},
+    {"owner": "26-data-fabric", "need": "accept canonical event and billing-ledger mappings", "status": "contract-ready"},
+    {"owner": "19-oracle", "need": "capital-product and stablecoin reference facts", "status": "contract-required"},
+    {"owner": "12-explorer", "need": "authorization, transaction, UserOperation and evidence indexing", "status": "contract-required"},
+    {"owner": "13-monitor", "need": "session, sponsor, Gateway, Bundler, Paymaster and mandate telemetry", "status": "contract-ready-local-runtime"},
+    {"owner": "15-trust-center", "need": "appeal, correction and mandate-dispute linkage", "status": "contract-required"},
+    {"owner": "29-integration", "need": "freeze merge order and execute shared Testnet", "status": "handoff-ready"}
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": {"android": true, "iosSimulator": true, "web": false},
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "verification": {
+    "walletAuthPackageTests": "100/100 passed",
+    "gatewayNodeHostTests": "8/8 passed",
+    "gatewayBackupTests": "6/6 passed: exact restore, replay preservation, tamper/policy/permission rejection, legacy normalization and unsupported future-schema rejection",
+    "gatewayBackupDrill": "20 local samples bound to a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f; restore-and-cold-start p95 42441 microseconds; production RTO/RPO not claimed",
+    "browserSdkTests": "7/7 passed after npm ci from its independent lockfile",
+    "jsSdkTests": "5/5 passed",
+    "goRepositoryTests": "umask 0022; go test ./... passed; MCP default umask 0077 made two non-Wallet unsafe-permission fixtures mode 0600 and was preserved as an environment precondition, not a runtime pass",
+    "packageDryRun": "passed",
+    "gatewayHttpKernel": "twelve exact routes; canonical body; separate proof header; immutable registry; replay; restart; rollback; state digest; self-scoped approval/device revoke; Wallet-only all-device logout tested",
+    "gatewayCliLoopbackSmoke": "health/version/ready/metrics and structured JSON events passed",
+    "remoteDeploymentBuildIdentityGate": "missing exact source commit/release/build time rejected",
+    "nodeHostSubpathExport": "CanonicalWalletGatewayNodeHost and observability constants/types exposed from @ynx-chain/wallet-auth/gateway-node-host; universal root excludes Node-only imports",
+    "directTestnetMandateReceipt": false,
+    "directPublicGatewayEvidence": false
+  }
+}

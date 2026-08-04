@@ -13,6 +13,7 @@ if command -v rg >/dev/null 2>&1; then
     -g '!**/build/**' \
     -g '!tools/scaffold-ynx-chain.mjs' \
     -g '!scripts/validate/no-placeholder-check.sh' \
+    -g '!apps/wallet/scripts/release-content-check.mjs' \
     -g '!scripts/deploy/lib.sh' \
     -g '!docs/architecture/ZERO_PLACEHOLDER_POLICY.md' \
     -g '!docs/coordination/PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
@@ -30,6 +31,7 @@ else
   if grep -RInE \
     --exclude='scaffold-ynx-chain.mjs' \
     --exclude='no-placeholder-check.sh' \
+    --exclude='release-content-check.mjs' \
     --exclude='lib.sh' \
     --exclude='ZERO_PLACEHOLDER_POLICY.md' \
     --exclude='PARALLEL_ECOSYSTEM_OBJECTIVES.md' \

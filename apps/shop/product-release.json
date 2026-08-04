@@ -1,0 +1,76 @@
+{
+  "productId": "ynx-shop",
+  "name": "YNX Shop",
+  "branch": "codex/shop-0.3-android",
+  "commit": "6fa2d6c5",
+  "version": "0.3.0-testnet-preview",
+  "surfaces": ["web", "pwa", "android", "ios"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": true,
+  "integratedCentral": false,
+  "deployedStaging": true,
+  "deployedPublic": true,
+  "downloadHosted": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [
+    "https://shop.ynxweb4.com/shop/",
+    "https://www.ynxweb4.com/dapp/shop"
+  ],
+  "healthUrls": [
+    "https://shop-api.ynxweb4.com/health",
+    "https://shop-api.ynxweb4.com/version"
+  ],
+  "artifactUrls": [
+    "https://www.ynxweb4.com/downloads/ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk"
+  ],
+  "sha256": {
+    "androidTestnetPreviewApk": "a7466e02f3735c561af403a83c8377e1f1ee3bbdfdd76d4f691bf595cd72c72d"
+  },
+  "bytes": {
+    "androidTestnetPreviewApk": 253733
+  },
+  "signingClass": "android-debug-testnet-preview",
+  "minOS": {
+    "androidApi": 26,
+    "ios": "17.0",
+    "web": "current evergreen browser"
+  },
+  "installEvidence": {
+    "android": {
+      "installed": true,
+      "device": "Medium Phone API 36 emulator-5554",
+      "package": "com.ynxweb4.shop.debug",
+      "install": "Success",
+      "coldLaunch": "LaunchState: COLD; TotalTime: 4203 ms",
+      "verifiedFlows": [
+        "public catalog returned three persistent demo products",
+        "official catalog media rendered from shop.ynxweb4.com",
+        "add-to-cart updated the local encrypted cart badge",
+        "order review showed exact 24 YNXT subtotal and address fields"
+      ]
+    },
+    "ios": {
+      "installed": true,
+      "evidence": "macos-15 CI built, booted, installed, launched, exercised the callback deep link, and captured a screenshot"
+    }
+  },
+  "centralIntegration": {
+    "walletRegistryPullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/54",
+    "walletRegisteredDeployed": true,
+    "walletRegistryMerged": false,
+    "payBoundaryImplemented": true,
+    "payMerchantConfiguredForShop": true,
+    "trustBoundaryImplemented": true,
+    "trustPublicConfigured": true,
+    "aiProviderConfigured": true
+  },
+  "knownLimitations": [
+    "The Shop Wallet registry approval is deployed and tested but its source pull request still requires independent review before merge.",
+    "The Android artifact is debug-signed for Testnet Preview testing; it is not production signed or store released.",
+    "Tax and carrier providers are unavailable; seller shipment entries remain manual and unverified.",
+    "The demo catalog is not a claim of physical fulfillment or production retail availability."
+  ],
+  "generatedAt": "2026-08-03T05:21:30+08:00"
+}

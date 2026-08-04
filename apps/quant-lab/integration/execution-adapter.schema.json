@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quant.ynxweb4.com/schemas/execution-adapter-v1.json",
+  "title": "YNX Quant venue-neutral order intent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "requestId",
+    "strategyHash",
+    "market",
+    "side",
+    "amount",
+    "limitPrice",
+    "expectedSequence",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "ynx.quant.execution.v1" },
+    "requestId": { "type": "string", "minLength": 8, "maxLength": 128 },
+    "strategyHash": { "type": "string", "pattern": "^[a-fA-F0-9]{64}$" },
+    "market": { "const": "YNXT-YUSD_TEST" },
+    "side": { "enum": ["buy", "sell"] },
+    "amount": { "type": "integer", "minimum": 1 },
+    "limitPrice": { "type": "integer", "minimum": 1 },
+    "expectedSequence": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string", "format": "date-time" }
+  }
+}

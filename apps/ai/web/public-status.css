@@ -1,0 +1,123 @@
+.auth-card {
+  width: min(1120px, 100%);
+  padding: 0;
+}
+
+.auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(340px, .75fr);
+}
+
+.auth-intro,
+.auth-access {
+  min-width: 0;
+  padding: 42px;
+}
+
+.auth-access {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--soft);
+  border-left: 1px solid var(--line);
+}
+
+.auth-access .notice {
+  margin-top: 0;
+  background: #fff;
+}
+
+.brand-logo {
+  display: block;
+  width: 72px;
+  height: auto;
+  max-height: 42px;
+  object-fit: contain;
+  object-position: left center;
+  margin-bottom: 28px;
+}
+
+.rail-logo {
+  display: block;
+  width: 42px;
+  height: 28px;
+  object-fit: contain;
+  margin: 5px 0 21px;
+  background: #fff;
+  padding: 5px;
+}
+
+.public-runtime {
+  margin: 24px 0 16px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  background: #fbfcff;
+}
+
+.public-runtime header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.public-runtime h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -.02em;
+}
+
+.public-runtime > p {
+  margin: 13px 0 17px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.public-runtime dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.public-runtime dl div {
+  min-width: 0;
+  padding: 14px 12px 0 0;
+}
+
+.public-runtime dt {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.public-runtime dd {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.runtime-badge {
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.runtime-badge.checking { color: #6b7280; background: #eef1f6; }
+.runtime-badge.available { color: #087443; background: #e8f7ef; }
+.runtime-badge.unavailable { color: #a15c00; background: #fff4db; }
+
+@media (max-width: 600px) {
+  .auth-layout { grid-template-columns: 1fr; }
+  .auth-intro, .auth-access { padding: 28px 20px; }
+  .auth-access { border-left: 0; border-top: 1px solid var(--line); }
+  .public-runtime dl { grid-template-columns: 1fr; }
+  .public-runtime dl div { padding-top: 11px; }
+  .brand-logo { width: 62px; }
+}

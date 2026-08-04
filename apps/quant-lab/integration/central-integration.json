@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 2,
+  "productId": "ynx-quant-lab",
+  "ownerContractSnapshot": "owner-contract-snapshot.json",
+  "walletAuthSourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
+  "walletAuthObservedBranch": "codex/final-wallet-auth",
+  "walletAuthObservedBranchHead": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
+  "walletAuthSourceReachable": true,
+  "walletAuthExactHeadBound": false,
+  "registryEntry": "wallet-registry-entry.json",
+  "walletProtocolVersions": {
+    "productSession": 1,
+    "productSessionHttpProof": 1,
+    "strategyMandate": 2,
+    "strategyAction": 1
+  },
+  "requiredGatewayRoutes": [
+    "POST /v1/wallet/sessions/complete",
+    "POST /v1/wallet/sessions/introspect",
+    "POST /v1/wallet/sessions/revoke",
+    "POST /v1/wallet/mandates/activate",
+    "POST /v1/wallet/mandates/authorize-action",
+    "GET /v1/wallet/mandates",
+    "POST /v1/wallet/mandates/revoke",
+    "POST /v1/wallet/mandates/kill",
+    "POST /v1/wallet/mandates/emergency-exit"
+  ],
+  "centralAcceptance": {
+    "integrationBranch": "codex/final-integration",
+    "observedBranchHead": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
+    "matrixPath": "release/integration/acceptance-matrix.json",
+    "matrixGeneratedAt": "2026-07-29T02:29:14.029Z",
+    "centrallyAcceptedProducts": 0,
+    "quantAcceptedSourceCommit": null
+  },
+  "integratedCentral": false,
+  "testnetExecutionEnabled": false,
+  "sharedTestnetVerified": false,
+  "liveFundsEnabled": false,
+  "reason": "A reachable Wallet/Auth v2 candidate exists, but its Quant registration is pending-review and disabled; the contract is not bound to the observed branch head, the central acceptance matrix has no accepted products, and no direct shared-Testnet mandate receipt exists."
+}

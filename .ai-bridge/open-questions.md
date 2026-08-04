@@ -1,19 +1,34 @@
-# Open questions and external inputs
+# YNX Wallet/Auth open questions
 
-No ordinary engineering decision is waiting for user confirmation.
+No ordinary engineering decision requires Founder input.
 
-## Central owner acceptance
+External acceptance items remain:
 
-- `02-wallet-auth`: accept the Resource Market product client, exact Product Session proof semantics and callback tuple.
-- `01-chain-core` and `26-data-fabric`: provide authoritative settlement finality and billing-ledger acceptance for signed usage.
-- `12-explorer`, `13-monitor` and `15-trust-center`: accept receipt proof, alert/incident and dispute/appeal vectors.
-- `29-integration`: freeze the shared contract and execute all cross-product vectors against deployed Testnet services.
+- Which exact Registry v2/v3 tuples and central Gateway deployment target will 29 Integration accept?
+- Which exact central release/build identity, durable telemetry sink and Monitor dashboard/alert contract will App Gateway, Monitor and 29 Integration accept?
+- Which YNX Testnet EntryPoint mode/address and Bundler RPC will Chain Core expose?
+- Which owner-controlled public policy-signer and risk-officer addresses, funding budget and policy URL are approved for Paymaster deployment?
+- Which production Android/iOS signer paths, store accounts and public Wallet/support/privacy/security/status URLs are approved?
+- Which selective-disclosure issuer and capital-product providers pass legal, security and data-rights review?
 
-## Public and operator inputs
+Secrets, keys, seed material, PEM files and complete provider credentials must never be supplied through chat or committed to this worktree.
 
-- Two independently operated public Provider endpoints with real CPU/Developer/Quant/AI workloads.
-- Testnet funding and authorized settlement identity.
-- Website/DNS deployment authority, support/privacy/security/status URLs and production signing assets.
-- Jurisdiction-specific retention, dispute, refund and insurance review.
+## Documentation owner evidence still required
 
-These inputs block central, Testnet and public verification. No remaining ordinary local engineering decision requires user confirmation; the next action is PR merge followed by central acceptance and deployed Testnet execution.
+## Owner evidence still required
+
+- Which exact clean commits and focused tests will Wallet/Auth, Tokenomics, Oracle,
+  Bridge, Data Fabric and Security/SRE hand off for public fact integration?
+- When will Website/Operations provide approved canonical support, privacy, security
+  reporting and service-status routes?
+- Which independent network vantage will verify root site, Explorer, EVM RPC, Gateway
+  and Faucet without the current workstation proxy-path limitation?
+- Which exact artifact, digest, byte count and hosting record will define the first
+  immutable Docs/Compliance candidate package?
+- Who are the named legal, economic and independent-audit reviewers, and what scope,
+  jurisdiction, expiry and approval evidence will each own?
+- Which Chain Core release will establish any future public StreamBFT activation or
+  Mainnet transition, separately from Testnet Chain ID 6423?
+
+Until each owner answers with direct evidence, the corresponding release state or
+public claim remains false, blocked or candidate-only.

@@ -1,0 +1,38 @@
+{
+  "release": "0.2.0-testnet-preview",
+  "sourceCommit": "38e2f68deb91d5f26e5aeec2318e260cd0742115",
+  "generatedAt": "2026-07-18T14:11:03Z",
+  "artifacts": [
+    {
+      "name": "YNX Shop Android Testnet Preview",
+      "path": "apps/shop/release/ynx-shop-0.2.0-testnet-preview.apk",
+      "url": "https://web4.ynxweb4.com/shop-staging/ynx-shop-0.2.0-testnet-preview.apk",
+      "sha256": "0df56042b944f74540be437e314f6331afcb4f9674342d63b1922fbdab7c435f",
+      "bytes": 78639,
+      "signingClass": "testnet-ephemeral",
+      "signature": {
+        "schemes": ["APK Signature Scheme v2", "APK Signature Scheme v3"],
+        "certificateDN": "CN=YNX Shop Testnet Preview, O=YNX Testnet, C=CN",
+        "certificateSha256": "f25fe4dda3a938205de4d743f1429a152eade58bb29d653ae8aa87aefb7946ce",
+        "algorithm": "RSA",
+        "keyBits": 3072
+      }
+    },
+    {
+      "name": "YNX Shop/Seller/API Linux amd64 staging bundle",
+      "path": "/tmp/ynx-shop-release-38e2f68.tar.gz",
+      "url": "https://web4.ynxweb4.com/shop-staging/ynx-shop-release-38e2f68.tar.gz",
+      "sha256": "dd2ac7aed00e5de3de8ad90f15b03a5f4c92a07c37464c9166075e818f9af527",
+      "bytes": 8644930,
+      "signingClass": "unsigned-testnet-deployment-bundle"
+    },
+    {
+      "name": "ynx-shopd Linux amd64",
+      "path": "/opt/ynx-shop/releases/38e2f68deb91d5f26e5aeec2318e260cd0742115/bin/ynx-shopd",
+      "url": null,
+      "sha256": "cf0063e9a645a58370044d00010594acb6298f637f17fc040ac0606c079f1dc8",
+      "bytes": 19177656,
+      "signingClass": "unsigned-server-binary"
+    }
+  ]
+}

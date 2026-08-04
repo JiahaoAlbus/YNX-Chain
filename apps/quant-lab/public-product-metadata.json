@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-quant-lab",
+  "name": "YNX Quant Lab",
+  "aliases": ["YNX Quant", "Quant Engine"],
+  "canonicalRoute": "/quant",
+  "canonicalUrl": "https://quant.ynxweb4.com",
+  "title": "YNX Quant Lab — Research, Paper and Bounded Testnet",
+  "metaDescription": "Research, backtest and inspect strategies with explicit data, risk and Wallet authorization boundaries. Historical and simulated results do not predict returns.",
+  "h1": "Research strategies with evidence before execution",
+  "status": "public-testnet-research",
+  "features": ["deterministic backtesting", "walk-forward evidence", "paper execution", "independent risk controls", "Wallet-bounded Testnet contracts"],
+  "risks": ["strategies can lose assets", "historical and simulated results do not predict returns", "provider and network failures can delay or prevent execution"],
+  "faq": [
+    {"question": "Does YNX Quant Lab guarantee returns?", "answer": "No. Historical, backtested, paper and Testnet results do not predict returns, and users bear strategy gains and losses."},
+    {"question": "Can Quant Lab withdraw my assets?", "answer": "No. Quant Lab does not receive Wallet keys or withdrawal rights. Bounded execution requires a revocable Wallet mandate."},
+    {"question": "Where do assets remain?", "answer": "Assets remain in the user's Exchange subaccount or DEX Strategy Vault under the owning product's controls."}
+  ],
+  "logo": "/assets/brand/ynx-logo.png",
+  "icon": "/assets/brand/ynx-logo.png",
+  "downloads": [],
+  "supportUrl": "https://ynxweb4.com/support",
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": "https://quant.ynxweb4.com/api/v1/public/status",
+  "screenshots": [],
+  "structuredDataRecommendation": {"type": "SoftwareApplication", "applicationCategory": "FinanceApplication", "operatingSystem": "Web, macOS candidate, Windows candidate"},
+  "websiteHandoffState": "published-public-research"
+}

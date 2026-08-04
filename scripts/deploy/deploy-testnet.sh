@@ -33,7 +33,7 @@ YNX_SQUARE_DEPLOY_ENABLED="${YNX_SQUARE_DEPLOY_ENABLED:-false}"
 YNX_SOCIAL_DEPLOY_ENABLED="${YNX_SOCIAL_DEPLOY_ENABLED:-false}"
 YNX_APP_GATEWAY_DEPLOY_ENABLED="${YNX_APP_GATEWAY_DEPLOY_ENABLED:-false}"
 YNX_APP_GATEWAY_HTTP_ADDR="${YNX_APP_GATEWAY_HTTP_ADDR:-127.0.0.1:6437}"
-YNX_APP_GATEWAY_ALLOWED_ORIGINS="${YNX_APP_GATEWAY_ALLOWED_ORIGINS:-https://${WEBSITE_DOMAIN:-www.ynxweb4.com},https://ynxweb4.com}"
+YNX_APP_GATEWAY_ALLOWED_ORIGINS="${YNX_APP_GATEWAY_ALLOWED_ORIGINS:-https://www.ynxweb4.com,https://ynxweb4.com}"
 
 required=(
   TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN REST_DOMAIN INDEXER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
@@ -132,7 +132,7 @@ chaind_ldflags="-s -w -X main.buildCommit=${commit} -X main.buildRelease=${relea
 service_ldflags="-s -w -X main.buildCommit=${commit} -X main.buildRelease=${release} -X main.buildTime=${build_time}"
 work="tmp/deploy/${release}"
 rm -rf "$work"
-mkdir -p "$work/bin" "$work/config" "$work/systemd" "$work/nginx" "$work/caddy" "$work/scripts" "$work/docs"
+mkdir -p "$work/bin" "$work/config" "$work/systemd" "$work/nginx" "$work/caddy" "$work/scripts" "$work/docs" "$work/wallet-auth"
 
 echo "building YNX Chain binary for linux/amd64"
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$chaind_ldflags" -o "$work/bin/ynx-chaind" ./cmd/ynx-chaind
@@ -149,6 +149,13 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldfl
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-squared" ./cmd/ynx-squared
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$work/bin/ynx-sociald" ./cmd/ynx-sociald
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-app-gatewayd" ./cmd/ynx-app-gatewayd
+cp -R packages/wallet-auth/src "$work/wallet-auth/src"
+cp -R packages/wallet-auth/scripts "$work/wallet-auth/scripts"
+cp packages/wallet-auth/central-registry.json packages/wallet-auth/package.json packages/wallet-auth/package-lock.json "$work/wallet-auth/"
+npm ci --omit=dev --ignore-scripts --prefix "$work/wallet-auth"
+find "$work/wallet-auth" -type d -exec chmod 0755 {} +
+find "$work/wallet-auth" -type f -exec chmod 0644 {} +
+chmod 0755 "$work/wallet-auth/scripts/ynx-wallet-gatewayd.mjs"
 cat > "$work/config/release.env" <<EOF
 YNX_RELEASE_COMMIT=${commit}
 YNX_RELEASE_NAME=${release}
@@ -226,6 +233,7 @@ YNX_APP_GATEWAY_CHAT_URL=http://127.0.0.1:6435
 YNX_APP_GATEWAY_SQUARE_URL=http://127.0.0.1:6436
 YNX_APP_GATEWAY_SOCIAL_URL=http://127.0.0.1:6491
 YNX_APP_GATEWAY_PAY_URL=http://127.0.0.1:6430
+YNX_APP_GATEWAY_WALLET_URL=http://127.0.0.1:6439
 YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
 YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
 YNX_APP_GATEWAY_RATE_LIMIT_WINDOW=1m
@@ -239,6 +247,13 @@ printf 'YNX_APP_GATEWAY_CHAT_API_KEY=%q\n' "${YNX_CHAT_API_KEY:-disabled-chat-ke
 printf 'YNX_APP_GATEWAY_SQUARE_API_KEY=%q\n' "${YNX_SQUARE_API_KEY:-disabled-square-key}" >> "$work/config/ynx-app-gatewayd.env"
 printf 'YNX_APP_GATEWAY_SOCIAL_API_KEY=%q\n' "${YNX_SOCIAL_INTERNAL_API_KEY:-disabled-social-key}" >> "$work/config/ynx-app-gatewayd.env"
 printf 'YNX_APP_GATEWAY_PAY_API_KEY=%q\n' "${YNX_PAY_API_KEY:-disabled-pay-key}" >> "$work/config/ynx-app-gatewayd.env"
+cat > "$work/config/ynx-wallet-gatewayd.env" <<EOF
+YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1
+YNX_WALLET_GATEWAY_HTTP_PORT=6439
+YNX_WALLET_GATEWAY_STATE_PATH=/var/lib/ynx-chain/wallet-gateway/state.json
+YNX_WALLET_GATEWAY_REGISTRY_PATH=/opt/ynx-chain/releases/${release}/wallet-auth/central-registry.json
+YNX_WALLET_GATEWAY_REMOTE_DEPLOYED=true
+EOF
 cat >> "$work/config/ynx-chaind.env" <<EOF
 YNX_NETWORK=testnet
 YNX_HTTP_ADDR=${YNX_NODE_HTTP_ADDR}
@@ -610,6 +625,7 @@ EOF
 cat > "$work/systemd/ynx-sociald.service" <<'EOF'
 [Unit]
 Description=YNX Social wallet-bound application service
+
 After=network-online.target
 Wants=network-online.target
 
@@ -637,11 +653,41 @@ ReadWritePaths=/var/lib/ynx-chain/social
 WantedBy=multi-user.target
 EOF
 
+cat > "$work/systemd/ynx-wallet-gatewayd.service" <<EOF
+[Unit]
+Description=YNX canonical Wallet and Product Session gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-wallet-gatewayd.env
+ExecStart=/usr/bin/env node /opt/ynx-chain/releases/${release}/wallet-auth/scripts/ynx-wallet-gatewayd.mjs
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/ynx-chain/wallet-gateway
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat > "$work/systemd/ynx-app-gatewayd.service" <<'EOF'
 [Unit]
 Description=YNX Chain first-party browser application gateway
-After=network-online.target ynx-chatd.service ynx-squared.service ynx-sociald.service ynx-payd.service
+After=network-online.target ynx-chatd.service ynx-squared.service ynx-sociald.service ynx-payd.service ynx-wallet-gatewayd.service
 Wants=network-online.target
+Requires=ynx-wallet-gatewayd.service
 
 [Service]
 User=ynx
@@ -787,7 +833,7 @@ server {
   server_name ${REST_DOMAIN} ${API_DOMAIN} ${IDE_DOMAIN};
   client_max_body_size 2m;
   location /app/ {
-    proxy_pass http://127.0.0.1:6437;
+    proxy_pass http://127.0.0.1:6437/;
     proxy_http_version 1.1;
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
@@ -994,7 +1040,7 @@ ynx_node_scp() {
 ynx_capture_predeploy_state() {
   local role="$1" user="$2" host="$3" key="$4"
   local marker="/var/log/ynx-chain/deploy/predeploy-${release}-${role}.txt"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx /var/log/ynx-chain/deploy 2>/dev/null || sudo install -d /var/log/ynx-chain/deploy; { date -u; hostname; uname -a; echo '--- services'; systemctl list-units --type=service --all 'ynx-*' 2>/dev/null || true; systemctl is-active ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd ynx-squared ynx-app-gatewayd 2>/dev/null || true; echo '--- local status'; curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true; curl -fsS http://127.0.0.1:6426/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6427/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6428/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6429/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6430/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6431/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6432/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6433/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6434/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6435/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6436/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6437/health 2>/dev/null || true; echo '--- ingress'; sudo test -f /etc/nginx/conf.d/ynx-chain.conf && sudo sed -n '1,360p' /etc/nginx/conf.d/ynx-chain.conf || true; sudo test -f /etc/caddy/Caddyfile && sudo sed -n '1,360p' /etc/caddy/Caddyfile || true; echo '--- data dirs'; sudo find /var/lib/ynx-chain -maxdepth 3 -type f 2>/dev/null | sort | head -200 || true; } | sudo tee '$marker' >/dev/null && sudo ls -lh '$marker'"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx /var/log/ynx-chain/deploy 2>/dev/null || sudo install -d /var/log/ynx-chain/deploy; { date -u; hostname; uname -a; echo '--- services'; systemctl list-units --type=service --all 'ynx-*' 2>/dev/null || true; systemctl is-active ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd ynx-squared ynx-wallet-gatewayd ynx-app-gatewayd 2>/dev/null || true; echo '--- local status'; curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true; curl -fsS http://127.0.0.1:6426/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6427/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6428/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6429/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6430/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6431/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6432/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6433/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6434/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6435/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6436/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6437/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6438/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6439/health 2>/dev/null || true; echo '--- ingress'; sudo test -f /etc/nginx/conf.d/ynx-chain.conf && sudo sed -n '1,360p' /etc/nginx/conf.d/ynx-chain.conf || true; sudo test -f /etc/caddy/Caddyfile && sudo sed -n '1,360p' /etc/caddy/Caddyfile || true; echo '--- data dirs'; sudo find /var/lib/ynx-chain -maxdepth 3 -type f 2>/dev/null | sort | head -200 || true; } | sudo tee '$marker' >/dev/null && sudo ls -lh '$marker'"
 }
 
 ynx_backup_node() {
@@ -1007,7 +1053,7 @@ ynx_backup_node() {
     echo "using validated off-node backup evidence for $role: $offnode_evidence"
     return 0
   fi
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && if sudo test -s '$backup_path' && sudo tar -tzf '$backup_path' >/dev/null; then sudo ls -lh '$backup_path'; else sudo rm -f '$backup_path' '$partial_path'; sudo tar --ignore-failed-read -czf '$partial_path' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/ynx-bridged.service /etc/systemd/system/ynx-stablecoind.service /etc/systemd/system/ynx-chatd.service /etc/systemd/system/ynx-squared.service /etc/systemd/system/ynx-app-gatewayd.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy /var/lib/ynx-chain 2>/dev/null || true; sudo tar -tzf '$partial_path' >/dev/null && sudo mv '$partial_path' '$backup_path' && sudo ls -lh '$backup_path'; fi"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && if sudo test -s '$backup_path' && sudo tar -tzf '$backup_path' >/dev/null; then sudo ls -lh '$backup_path'; else sudo rm -f '$backup_path' '$partial_path'; sudo tar --ignore-failed-read -czf '$partial_path' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/ynx-bridged.service /etc/systemd/system/ynx-stablecoind.service /etc/systemd/system/ynx-chatd.service /etc/systemd/system/ynx-squared.service /etc/systemd/system/ynx-wallet-gatewayd.service /etc/systemd/system/ynx-app-gatewayd.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy /var/lib/ynx-chain 2>/dev/null || true; sudo tar -tzf '$partial_path' >/dev/null && sudo mv '$partial_path' '$backup_path' && sudo ls -lh '$backup_path'; fi"
 }
 
 ynx_precheck_node_access() {
@@ -1019,7 +1065,7 @@ ynx_precheck_node_access() {
 ynx_prepare_release_on_node() {
   local role="$1" user="$2" host="$3" key="$4"
   ynx_node_ssh "$role" "$user" "$host" "$key" "id -u ynx >/dev/null 2>&1 || sudo useradd --system --home /var/lib/ynx-chain --shell /usr/sbin/nologin ynx"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin && sudo install -d -o ynx -g ynx /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/chat /var/lib/ynx-chain/square /var/log/ynx-chain && sudo chmod 0700 /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/chat /var/lib/ynx-chain/square"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin && sudo install -d -o ynx -g ynx /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/chat /var/lib/ynx-chain/square /var/lib/ynx-chain/wallet-gateway /var/log/ynx-chain && sudo chmod 0700 /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/chat /var/lib/ynx-chain/square /var/lib/ynx-chain/wallet-gateway"
   ynx_capture_predeploy_state "$role" "$user" "$host" "$key"
   ynx_backup_node "$role" "$user" "$host" "$key"
   ynx_node_scp "$role" "$user" "$host" "$key" "$tarball" "$remote_release"
@@ -1083,9 +1129,9 @@ ynx_install_primary_node() {
     echo "Social deployment remains disabled; release package contains ynx-sociald but no remote service is installed"
   fi
   if [[ "$YNX_APP_GATEWAY_DEPLOY_ENABLED" == "true" ]]; then
-    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx -m 0700 /var/lib/ynx-chain/app-gateway && sudo install -m 0755 '$remote_dir/bin/ynx-app-gatewayd' /usr/local/bin/ynx-app-gatewayd && sudo install -m 0644 '$remote_dir/systemd/ynx-app-gatewayd.service' /etc/systemd/system/ynx-app-gatewayd.service && sudo install -m 0600 '$remote_dir/config/ynx-app-gatewayd.env' /etc/ynx/ynx-app-gatewayd.env"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "command -v node >/dev/null && sudo install -d -o ynx -g ynx -m 0700 /var/lib/ynx-chain/app-gateway /var/lib/ynx-chain/wallet-gateway && sudo install -m 0755 '$remote_dir/bin/ynx-app-gatewayd' /usr/local/bin/ynx-app-gatewayd && sudo install -m 0644 '$remote_dir/systemd/ynx-wallet-gatewayd.service' /etc/systemd/system/ynx-wallet-gatewayd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-app-gatewayd.service' /etc/systemd/system/ynx-app-gatewayd.service && sudo install -m 0600 '$remote_dir/config/ynx-wallet-gatewayd.env' /etc/ynx/ynx-wallet-gatewayd.env && sudo install -m 0600 '$remote_dir/config/ynx-app-gatewayd.env' /etc/ynx/ynx-app-gatewayd.env"
     ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-app-gatewayd.env; set +a; /usr/local/bin/ynx-app-gatewayd --check-config >/dev/null'"
-    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-app-gatewayd && sudo systemctl restart ynx-app-gatewayd && sudo systemctl --no-pager --full status ynx-app-gatewayd"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-wallet-gatewayd ynx-app-gatewayd && sudo systemctl restart ynx-wallet-gatewayd && sudo systemctl restart ynx-app-gatewayd && sudo systemctl --no-pager --full status ynx-wallet-gatewayd ynx-app-gatewayd"
     expected_services="${expected_services}YNX_EXPECT_APP_GATEWAY_SERVICE=1 "
   else
     echo "App Gateway deployment remains disabled; release package contains ynx-app-gatewayd but no remote service is installed"

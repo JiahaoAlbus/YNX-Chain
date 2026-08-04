@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">Data Shop Anda</string>
+    <string name="privacy_data_description">Ekspor profil, keranjang, pesanan, catatan AI, dan riwayat audit pembeli. Penghapusan menghapus profil, alamat, keranjang, serta catatan AI dan menyamarkan identitas pesanan berstatus akhir. Alamat penyelesaian dan bukti transaksi pada rantai publik tetap dapat diverifikasi.</string>
+    <string name="privacy_export_button">Ekspor data Shop</string>
+    <string name="privacy_export_ready">Ekspor data Shop siap.</string>
+    <string name="privacy_export_unavailable">Ekspor data Shop tidak tersedia.</string>
+    <string name="privacy_share_label">Simpan JSON data Shop</string>
+    <string name="privacy_delete_button">Hapus data pribadi Shop</string>
+    <string name="privacy_delete_warning">Alur pembayaran, pemenuhan, pengembalian, pengembalian dana, atau sengketa yang aktif harus mencapai status akhir sebelum penghapusan. Identitas pesanan akhir disamarkan; bukti penyelesaian resmi pada rantai publik tetap disimpan.</string>
+    <string name="privacy_delete_action">Hapus</string>
+    <string name="privacy_exact_required">Masukkan frasa konfirmasi penghapusan dengan tepat.</string>
+    <string name="privacy_deleted">Data pribadi Shop dihapus. Identitas pesanan akhir disamarkan dan bukti penyelesaian pada rantai publik tetap disimpan.</string>
+    <string name="privacy_delete_failed">Penghapusan belum selesai. Alur aktif mungkin masih perlu diselesaikan.</string>
+</resources>

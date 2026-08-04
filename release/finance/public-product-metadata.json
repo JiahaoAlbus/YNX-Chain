@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "ynx-public-product-metadata/v1",
+  "productId": "24",
+  "product": "YNX Finance",
+  "slug": "finance",
+  "owner": "24-finance",
+  "sourceCommit": "5cd7e5761c830b5cf766da30a39e0727f4cf54c9",
+  "canonicalRoute": "/finance",
+  "title": "YNX Finance — Read-only portfolio evidence and planning",
+  "metaDescription": "Review source-bound YNX balances, activity, receipts and portfolio evidence without granting custody or execution authority.",
+  "h1": "Personal finance evidence without custody",
+  "features": [
+    "Wallet-scoped read-only portfolio",
+    "Explorer-backed YNXT activity",
+    "Authenticated Pay receipt consumption",
+    "Source, version, freshness and coverage states",
+    "Private planning, export and recovery"
+  ],
+  "risks": [
+    "Finance does not provide banking, brokerage, custody or investment advice.",
+    "Exchange, DEX, Quant and Economics owner contracts are not centrally accepted.",
+    "The Android install is locally test-signed; no production or public release is available."
+  ],
+  "status": {
+    "channel": "integration-candidate",
+    "androidInstalledLocal": true,
+    "publiclyAvailable": false
+  },
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "faq": [
+    {
+      "question": "Can Finance move or trade assets?",
+      "answer": "No. Finance is read-only and cannot sign, trade, withdraw or hold assets."
+    },
+    {
+      "question": "Does Finance show complete account history?",
+      "answer": "Not yet. Current activity is bounded to the latest indexed records and states that coverage explicitly."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "type": "MobileApplication",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Android, iOS"
+  }
+}

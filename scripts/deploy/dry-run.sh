@@ -5,6 +5,14 @@ cd "$(dirname "$0")/../.."
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
+file_mode() {
+  if stat -c '%a' "$1" >/dev/null 2>&1; then
+    stat -c '%a' "$1"
+  else
+    stat -f '%Lp' "$1"
+  fi
+}
+
 cat > "$tmp/deploy.env" <<EOF
 TESTNET_DOMAIN=testnet.ynx.test
 WEBSITE_DOMAIN=www.ynx.test
@@ -177,6 +185,9 @@ grep -Fq "YNX_APP_GATEWAY_CHAT_API_KEY=" "$release_dir/config/ynx-app-gatewayd.e
 grep -Fq "YNX_APP_GATEWAY_SQUARE_API_KEY=" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing Square credential"; exit 1; }
 grep -Fq "YNX_APP_GATEWAY_PAY_API_KEY=" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing Pay credential"; exit 1; }
 grep -Fq "YNX_APP_GATEWAY_PAY_URL=http://127.0.0.1:6430" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing loopback Pay upstream"; exit 1; }
+grep -Fq "YNX_APP_GATEWAY_WALLET_URL=http://127.0.0.1:6439" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing loopback Wallet upstream"; exit 1; }
+grep -Fq "YNX_WALLET_GATEWAY_STATE_PATH=/var/lib/ynx-chain/wallet-gateway/state.json" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "Wallet Gateway env missing persistent state path"; exit 1; }
+grep -Fq "YNX_WALLET_GATEWAY_REMOTE_DEPLOYED=true" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "Wallet Gateway env missing remote deployment truth"; exit 1; }
 grep -Fq "YNX_APP_GATEWAY_STATE_PATH=/var/lib/ynx-chain/app-gateway/state.json" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing persistent session state path"; exit 1; }
 grep -Fq "YNX_APP_GATEWAY_CHAIN_ID=6423" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing chain identity"; exit 1; }
 grep -Fq "YNX_APP_GATEWAY_CHALLENGE_TTL=5m" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing bounded challenge TTL"; exit 1; }
@@ -259,13 +270,19 @@ grep -Fxq "./systemd/ynx-squared.service" "$archive_listing" || { echo "release 
 grep -Fxq "./bin/ynx-app-gatewayd" "$archive_listing" || { echo "release tarball missing App Gateway binary"; exit 1; }
 grep -Fxq "./config/ynx-app-gatewayd.env" "$archive_listing" || { echo "release tarball missing App Gateway env"; exit 1; }
 grep -Fxq "./systemd/ynx-app-gatewayd.service" "$archive_listing" || { echo "release tarball missing App Gateway systemd unit"; exit 1; }
+grep -Fxq "./wallet-auth/scripts/ynx-wallet-gatewayd.mjs" "$archive_listing" || { echo "release tarball missing Wallet Gateway runtime"; exit 1; }
+grep -Fxq "./wallet-auth/node_modules/@noble/hashes/package.json" "$archive_listing" || { echo "release tarball missing Wallet Gateway runtime dependencies"; exit 1; }
+grep -Fxq "./config/ynx-wallet-gatewayd.env" "$archive_listing" || { echo "release tarball missing Wallet Gateway env"; exit 1; }
+grep -Fxq "./systemd/ynx-wallet-gatewayd.service" "$archive_listing" || { echo "release tarball missing Wallet Gateway systemd unit"; exit 1; }
+[[ "$(file_mode "$release_dir/wallet-auth/src/gateway-http.js")" == "644" ]] || { echo "Wallet Gateway runtime source is not world-readable"; exit 1; }
+[[ "$(file_mode "$release_dir/wallet-auth/scripts/ynx-wallet-gatewayd.mjs")" == "755" ]] || { echo "Wallet Gateway launcher is not executable"; exit 1; }
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
 grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
 grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Trust Gateway domain block"; exit 1; }
 grep -Fq "server_name resource.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Resource Gateway domain block"; exit 1; }
 grep -Fq "server_name rest.ynx.test api.ynx.test ide.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing REST/API domain server block"; exit 1; }
-grep -Fq "proxy_pass http://127.0.0.1:6437;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing App Gateway route"; exit 1; }
-grep -Fq "handle /app/*" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy config missing App Gateway route"; exit 1; }
+grep -Fq "proxy_pass http://127.0.0.1:6437/;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing prefix-stripping App Gateway route"; exit 1; }
+grep -Fq "handle /app/*" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy config missing path-preserving App Gateway route"; exit 1; }
 grep -Fq "server_name indexer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer domain server block"; exit 1; }
 grep -Fq "server_name explorer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer domain server block"; exit 1; }
 grep -Fq "server_name faucet.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing faucet domain server block"; exit 1; }
@@ -420,6 +437,9 @@ grep -Fq "EnvironmentFile=/etc/ynx/ynx-app-gatewayd.env" "$release_dir/systemd/y
 grep -Fq "ExecStart=/usr/local/bin/ynx-app-gatewayd" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing executable"; exit 1; }
 grep -Fq "ProtectSystem=strict" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing strict filesystem protection"; exit 1; }
 grep -Fq "ReadWritePaths=/var/lib/ynx-chain/app-gateway" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing bounded state path"; exit 1; }
+grep -Fq "Requires=ynx-wallet-gatewayd.service" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing Wallet Gateway dependency"; exit 1; }
+grep -Fq "EnvironmentFile=/etc/ynx/ynx-wallet-gatewayd.env" "$release_dir/systemd/ynx-wallet-gatewayd.service" || { echo "Wallet Gateway service missing env file"; exit 1; }
+grep -Fq "ReadWritePaths=/var/lib/ynx-chain/wallet-gateway" "$release_dir/systemd/ynx-wallet-gatewayd.service" || { echo "Wallet Gateway service missing bounded state path"; exit 1; }
 grep -Fq "scripts/install-caddy-ingress.sh" "$dry_run_out" || { echo "dry-run output missing Caddy managed install script command"; exit 1; }
 grep -Fq "caddy/ynx-chain.caddy" "$dry_run_out" || { echo "dry-run output missing Caddy ingress snippet command"; exit 1; }
 grep -Fq "scripts/check-local-services.sh" "$dry_run_out" || { echo "dry-run output missing local service check command"; exit 1; }

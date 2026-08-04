@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
+const source=await readFile(new URL("../src/i18n/catalog.ts",import.meta.url),"utf8");
+for(const locale of ["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"]) assert.ok(source.includes(locale),`missing ${locale}`);
+assert.match(source,/locale === "ar"/);
+assert.match(source,/Intl\.DateTimeFormat/);
+assert.match(source,/Intl\.NumberFormat/);
+assert.match(source,/Intl\.PluralRules/);
+for(const critical of ["providerUnavailable","rateLimited","offline","explicitApproval","privacy","confirmDelete","noAutoAction"]) assert.ok(source.includes(critical),`missing critical localized key ${critical}`);
+console.log(JSON.stringify({ok:true,locales:12,rtl:"ar",localizedFormats:["date-time","number","money","plural"],criticalStrings:true}));

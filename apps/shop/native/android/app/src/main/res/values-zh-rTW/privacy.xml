@@ -1,0 +1,14 @@
+<resources>
+    <string name="privacy_data_title">你的商城資料</string>
+    <string name="privacy_data_description">匯出你的資料、購物車、訂單、AI 紀錄與買家稽核歷史。刪除會移除資料、地址、購物車與 AI 紀錄，並對終態訂單去識別化；公開鏈上的結算地址與交易證據仍可驗證。</string>
+    <string name="privacy_export_button">匯出商城資料</string>
+    <string name="privacy_export_ready">商城資料匯出已準備完成。</string>
+    <string name="privacy_export_unavailable">商城資料匯出無法使用。</string>
+    <string name="privacy_share_label">儲存商城資料 JSON</string>
+    <string name="privacy_delete_button">刪除個人商城資料</string>
+    <string name="privacy_delete_warning">付款、履約、退貨、退款或爭議流程必須進入終態後才能刪除。終態訂單會去識別化；權威公開鏈結算證據繼續保留。</string>
+    <string name="privacy_delete_action">刪除</string>
+    <string name="privacy_exact_required">請輸入完全一致的刪除確認短語。</string>
+    <string name="privacy_deleted">個人商城資料已刪除。終態訂單已去識別化；公開鏈結算證據繼續保留。</string>
+    <string name="privacy_delete_failed">刪除未完成。可能仍有需要處理的進行中流程。</string>
+</resources>
