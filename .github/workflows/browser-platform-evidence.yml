@@ -51,27 +51,37 @@ jobs:
             mkdir -p apps/browser/evidence/platform/android
             adb install -r apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk | tee apps/browser/evidence/platform/android/install.txt
             adb shell am force-stop com.ynxweb4.browser
-            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 | tee apps/browser/evidence/platform/android/cold-launch.txt
+            adb shell am start -W -n com.ynxweb4.browser/.MainActivity | tee apps/browser/evidence/platform/android/cold-launch.txt
             sleep 4
             adb shell pidof com.ynxweb4.browser | tee apps/browser/evidence/platform/android/pid-cold.txt
             adb exec-out screencap -p > apps/browser/evidence/platform/android/cold-launch.png
             adb shell am force-stop com.ynxweb4.browser
-            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/restart.txt
+            adb shell am start -W -n com.ynxweb4.browser/.MainActivity > apps/browser/evidence/platform/android/restart.txt
             sleep 3
             adb shell am start -a android.intent.action.VIEW -d 'ynxbrowser://com.ynxweb4.browser/auth/callback?response=malformed' com.ynxweb4.browser | tee apps/browser/evidence/platform/android/deep-link.txt
-            adb shell am start -n com.ynxweb4.browser/.PrivateActivity | tee apps/browser/evidence/platform/android/private-launch.txt
+            adb shell uiautomator dump /sdcard/ynx-browser-window.xml
+            adb pull /sdcard/ynx-browser-window.xml apps/browser/evidence/platform/android/window.xml
+            PRIVATE_NODE=$(grep -o 'text="Private"[^>]*' apps/browser/evidence/platform/android/window.xml | head -n 1)
+            test -n "$PRIVATE_NODE"
+            read -r LEFT TOP RIGHT BOTTOM <<EOF
+            $(printf '%s' "$PRIVATE_NODE" | sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/')
+            EOF
+            X=$(( (LEFT + RIGHT) / 2 ))
+            Y=$(( (TOP + BOTTOM) / 2 ))
+            adb shell input tap "$X" "$Y"
+            echo "private_button_tap=$X,$Y" > apps/browser/evidence/platform/android/private-tap.txt
             sleep 3
             adb shell pidof com.ynxweb4.browser:private | tee apps/browser/evidence/platform/android/private-pid.txt
             test -s apps/browser/evidence/platform/android/private-pid.txt
             adb exec-out screencap -p > apps/browser/evidence/platform/android/private.png
             adb shell am force-stop com.ynxweb4.browser
             adb shell cmd locale set-app-locales com.ynxweb4.browser --user 0 ar
-            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/arabic-launch.txt
+            adb shell am start -W -n com.ynxweb4.browser/.MainActivity > apps/browser/evidence/platform/android/arabic-launch.txt
             sleep 3
             adb exec-out screencap -p > apps/browser/evidence/platform/android/arabic-rtl.png
             adb shell settings put system font_scale 1.5
             adb shell am force-stop com.ynxweb4.browser
-            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/large-text-launch.txt
+            adb shell am start -W -n com.ynxweb4.browser/.MainActivity > apps/browser/evidence/platform/android/large-text-launch.txt
             sleep 3
             adb exec-out screencap -p > apps/browser/evidence/platform/android/arabic-large-text.png
             adb shell dumpsys package com.ynxweb4.browser > apps/browser/evidence/platform/android/package.txt
