@@ -6,6 +6,7 @@
   },
   "allowedBuildEntrypoints": [
     "go build -trimpath -buildvcs=true ./apps/resource-market",
+    "node apps/resource-market/scripts/package-release.mjs release/resource-market-artifacts/<candidate-directory>",
     "go test ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market",
     "go test -race ./internal/resourcemarket ./internal/resourceproduct",
     "bash apps/resource-market/check.sh",
