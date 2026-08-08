@@ -2,9 +2,10 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { open, readFile } from "node:fs/promises";
 
-const [artifactId, expectedBytesText, expectedDigest, outputPath] = process.argv.slice(2);
+const [artifactId, expectedBytesText, expectedDigest, outputPath, concurrencyText = "4"] = process.argv.slice(2);
 const expectedBytes=Number(expectedBytesText);
-if(!/^\d+$/.test(artifactId||"")||!Number.isSafeInteger(expectedBytes)||expectedBytes<1||!/^sha256:[0-9a-f]{64}$/.test(expectedDigest||"")||!outputPath)throw new Error("Usage: artifactId expectedBytes sha256:digest outputPath");
+const concurrency=Number(concurrencyText);
+if(!/^\d+$/.test(artifactId||"")||!Number.isSafeInteger(expectedBytes)||expectedBytes<1||!/^sha256:[0-9a-f]{64}$/.test(expectedDigest||"")||!outputPath||!Number.isInteger(concurrency)||concurrency<1||concurrency>12)throw new Error("Usage: artifactId expectedBytes sha256:digest outputPath [concurrency 1-12]");
 const token=execFileSync("gh",["auth","token"],{encoding:"utf8",stdio:["ignore","pipe","ignore"]}).trim();
 if(token.length<20)throw new Error("GitHub CLI authentication is unavailable.");
 const chunkBytes=4*1024*1024;
@@ -22,7 +23,7 @@ async function worker(){
     if(lastError)throw lastError;
   }
 }
-try{await Promise.all(Array.from({length:Math.min(12,ranges.length)},()=>worker()));}finally{await file.close();}
+try{await Promise.all(Array.from({length:Math.min(concurrency,ranges.length)},()=>worker()));}finally{await file.close();}
 const contents=await readFile(outputPath);if(contents.byteLength!==expectedBytes)throw new Error(`artifact byte count mismatch: ${contents.byteLength}`);
 const digest=`sha256:${createHash("sha256").update(contents).digest("hex")}`;if(digest!==expectedDigest)throw new Error(`artifact digest mismatch: ${digest}`);
 console.log(JSON.stringify({ok:true,artifactId,bytes:contents.byteLength,digest,outputPath},null,2));
