@@ -5,6 +5,16 @@ the pinned compile action. Output is authoritative only when it contains the rea
 chain response. Tests/tasks show their command, directory, environment class and
 risk before an installed desktop executor can run them.
 
+The editor recognizes common source extensions through Monaco. Solidity uses the
+public pinned compiler. For other registered languages, Compile asks once and the
+desktop runtime detects an installed C, C++, JavaScript, Python, Java, Go, Rust,
+Ruby, PHP, Swift, Kotlin or Shell toolchain, then runs it without network access
+inside the bounded project workspace. Availability is reported per device; an
+editor language is never presented as a working compiler merely because it has
+syntax colors. Add language pack accepts declarative JSON for file extensions,
+keywords and completion only. It stores the pack locally and never executes pack
+code. Executable adapters remain reviewed and allowlisted.
+
 YNX AI Build starts with Preview plan. Select only the files the provider may
 see, review the estimate and provider status, approve one network request, then
 review any proposed diff. Applying a diff needs a separate one-time write grant

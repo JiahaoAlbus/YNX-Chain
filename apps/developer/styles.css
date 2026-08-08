@@ -80,6 +80,8 @@ pre { margin:0; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; 
 .empty,.muted { color:var(--muted); }.compact { font-size:11px; line-height:1.45; }
 .terminal-boundary { display:flex; gap:15px; padding:7px 9px; margin-bottom:8px; border-left:3px solid var(--blue); background:var(--blue-ghost); font-size:10px; }
 .terminal-boundary span:last-child { color:var(--danger); }
+.toolchain-actions { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:8px; }
+#toolchain-status { margin-bottom:10px; padding:8px; border:1px solid var(--line); border-radius:6px; background:var(--surface); max-height:120px; overflow:auto; }
 .rpc-row { display:grid; grid-template-columns:180px 1fr auto; gap:8px; margin-bottom:10px; }
 .rpc-row input { border:1px solid var(--line); border-radius:6px; padding:7px; font:11px ui-monospace,SFMono-Regular,Menlo,monospace; }
 .api-studio { padding-bottom:18px; }

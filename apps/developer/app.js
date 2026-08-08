@@ -28,15 +28,16 @@ const state = { project: null, path: null, artifact: null, aiPrepared: null, aiR
 let monacoAPI = null;
 let codeEditor = null;
 const editorModels = new Map();
-
-const languageForPath = (path = "") => ({
+const customLanguageExtensions = new Map();
+const BUILTIN_LANGUAGE_EXTENSIONS = Object.freeze({
   ".sol": "solidity", ".js": "javascript", ".mjs": "javascript", ".cjs": "javascript",
   ".ts": "typescript", ".tsx": "typescript", ".jsx": "javascript", ".json": "json",
   ".html": "html", ".css": "css", ".scss": "scss", ".md": "markdown",
   ".c": "c", ".h": "cpp", ".cc": "cpp", ".cpp": "cpp", ".cxx": "cpp", ".hpp": "cpp",
   ".py": "python", ".java": "java", ".cs": "csharp", ".go": "go", ".rs": "rust",
   ".sh": "shell", ".bash": "shell", ".sql": "sql", ".xml": "xml", ".yaml": "yaml", ".yml": "yaml"
-})[Object.keys({ ".sol":1,".js":1,".mjs":1,".cjs":1,".ts":1,".tsx":1,".jsx":1,".json":1,".html":1,".css":1,".scss":1,".md":1,".c":1,".h":1,".cc":1,".cpp":1,".cxx":1,".hpp":1,".py":1,".java":1,".cs":1,".go":1,".rs":1,".sh":1,".bash":1,".sql":1,".xml":1,".yaml":1,".yml":1 }).find((extension) => path.toLowerCase().endsWith(extension))] || "plaintext";
+});
+const languageForPath = (path = "") => { const lower=path.toLowerCase();const custom=[...customLanguageExtensions].find(([extension])=>lower.endsWith(extension));if(custom)return custom[1];const extension=Object.keys(BUILTIN_LANGUAGE_EXTENSIONS).find((item)=>lower.endsWith(item));return BUILTIN_LANGUAGE_EXTENSIONS[extension]||"plaintext"; };
 
 function editorText() { return codeEditor?.getValue() ?? $("#editor").dataset.editorValue ?? $("#editor").textContent ?? ""; }
 function modelKey(path) { return `${state.project?.id || "detached"}:${path}`; }
@@ -70,12 +71,26 @@ function registerCppCompletions(monaco) {
   monaco.languages.registerCompletionItemProvider("cpp", { provideCompletionItems(model, position) { const word=model.getWordUntilPosition(position); const range={startLineNumber:position.lineNumber,endLineNumber:position.lineNumber,startColumn:word.startColumn,endColumn:word.endColumn}; return { suggestions: words.map((label)=>({label,kind:monaco.languages.CompletionItemKind.Keyword,insertText:label,range})) }; } });
 }
 
+function validateLanguagePack(value) {
+  if(!value||typeof value!=="object"||!/^[-a-z0-9]{2,40}$/.test(value.id))throw new Error("Language pack id must contain 2-40 lowercase letters, numbers or hyphens.");
+  const extensions=Array.isArray(value.extensions)?value.extensions:[];if(!extensions.length||extensions.length>16||extensions.some((item)=>!/^\.[a-z0-9][a-z0-9+_-]{0,11}$/.test(item)))throw new Error("Language pack requires 1-16 safe file extensions.");
+  const keywords=Array.isArray(value.keywords)?value.keywords:[];if(keywords.length>512||keywords.some((item)=>typeof item!=="string"||item.length>64))throw new Error("Language pack keywords are invalid.");
+  return{id:value.id,aliases:Array.isArray(value.aliases)?value.aliases.filter((item)=>typeof item==="string").slice(0,8):[value.id],extensions:[...new Set(extensions)],keywords:[...new Set(keywords)],lineComment:typeof value.lineComment==="string"&&value.lineComment.length<=4?value.lineComment:"//"};
+}
+function registerLanguagePack(monaco, pack) {
+  if(!monaco.languages.getLanguages().some((item)=>item.id===pack.id))monaco.languages.register({id:pack.id,extensions:pack.extensions,aliases:pack.aliases});
+  monaco.languages.setMonarchTokensProvider(pack.id,{keywords:pack.keywords,tokenizer:{root:[[/[a-zA-Z_$][\w$]*/,{cases:{"@keywords":"keyword","@default":"identifier"}}],[/\d+(?:\.\d+)?/,"number"],[/"([^"\\]|\\.)*"/,"string"],[new RegExp(`${pack.lineComment.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}.*$`),"comment"],[/[{}()\[\]]/,"@brackets"]]}});
+  monaco.languages.registerCompletionItemProvider(pack.id,{provideCompletionItems(model,position){const word=model.getWordUntilPosition(position);const range={startLineNumber:position.lineNumber,endLineNumber:position.lineNumber,startColumn:word.startColumn,endColumn:word.endColumn};return{suggestions:pack.keywords.map((label)=>({label,kind:monaco.languages.CompletionItemKind.Keyword,insertText:label,range}))};}});
+  for(const extension of pack.extensions)customLanguageExtensions.set(extension,pack.id);
+}
+function loadLanguagePacks(monaco){let packs=[];try{packs=JSON.parse(localStorage.getItem("ynx.developer.language-packs.v1")||"[]");}catch{localStorage.removeItem("ynx.developer.language-packs.v1");}for(const value of Array.isArray(packs)?packs.slice(0,32):[])try{registerLanguagePack(monaco,validateLanguagePack(value));}catch{}}
+
 function initializeCodeEditor() {
   return new Promise((resolve, reject) => {
     if (!globalThis.require?.config) { reject(new Error("Monaco loader is unavailable.")); return; }
     globalThis.require.config({ paths: { vs: "/monaco/vs" } });
     globalThis.require(["vs/editor/editor.main"], (monaco) => {
-      monacoAPI = monaco; registerSolidityLanguage(monaco); registerCppCompletions(monaco);
+      monacoAPI = monaco; registerSolidityLanguage(monaco); registerCppCompletions(monaco); loadLanguagePacks(monaco);
       codeEditor = monaco.editor.create($("#editor"), { value: "", language: "plaintext", automaticLayout: true, ariaLabel: "Source editor", accessibilitySupport: "auto", fontSize: document.documentElement.dataset.textSize === "large" ? 16 : 13, lineHeight: document.documentElement.dataset.textSize === "large" ? 25 : 20, minimap: { enabled: true }, bracketPairColorization: { enabled: true }, guides: { bracketPairs: true, indentation: true }, stickyScroll: { enabled: true }, quickSuggestions: { other: true, comments: false, strings: true }, suggestOnTriggerCharacters: true, tabCompletion: "on", formatOnPaste: true, formatOnType: true, scrollBeyondLastLine: false, theme: document.documentElement.dataset.theme === "dark" ? "vs-dark" : "vs" });
       codeEditor.onDidChangeModelContent(() => { $("#editor").dataset.editorValue = codeEditor.getValue(); $("#editor").dispatchEvent(new Event("input")); });
       globalThis.ynxDeveloperEditor = { engine: "monaco", version: "0.55.1", getValue: () => codeEditor.getValue(), focus: () => codeEditor.focus(), supportedLanguageIds: () => monaco.languages.getLanguages().map((item) => item.id).sort() };
@@ -360,6 +375,7 @@ function bindActions() {
   $("#run-search").onclick = runSearch; $("#create-checkpoint").onclick = checkpoint; $("#revert-checkpoint").onclick = revert;
   $("#compile").onclick = compile; $("#run-tests").onclick = () => runTask("test"); $("#run-task").onclick = () => runTask("check"); $("#run-rpc").onclick = runRPC;
   $("#install-package").onclick = installPackage;
+  $("#refresh-toolchains").onclick=refreshToolchains;$("#import-language-pack").onclick=()=>$("#language-pack-file").click();$("#language-pack-file").onchange=importLanguagePack;
   $("#api-template").onchange = loadAPIConnectorTemplate; $("#api-load-template").onclick = loadAPIConnectorTemplate; $("#api-import").onclick = importAPISpec; $("#api-preview").onclick = previewAPIRequest; $("#api-send").onclick = sendAPISandboxRequest; $("#api-simulate").onclick = simulateAPIRequest; $("#api-generate-client").onclick = generateAPIClient; $("#api-generate-manifest").onclick = generateAPIAdapterManifest;
   $("#ask-ai").onclick = askAI; $("#cancel-ai").onclick = () => { try { ai.cancel(); } catch (error) { showError(error, $("#ai-output")); } }; $("#apply-ai").onclick = applyAI; $("#reject-ai").onclick = rejectAI;
   $("#clear-ai-history").onclick = clearAIHistory;
@@ -423,9 +439,17 @@ async function revert() {
 }
 
 async function compile() {
-  if (!state.project || !state.path?.endsWith(".sol")) return toast("Open a Solidity file to compile."); await saveEditor(); activatePanel("output"); const output = $("#command-output"); output.textContent = `Checking pinned compiler at ${config.chainURL}…`;
-  try { const source = state.project.files[state.path]; const name = source.match(/contract\s+([A-Za-z_]\w*)/u)?.[1] || state.path.split("/").pop().replace(/\.sol$/, ""); state.artifact = await chain.compile({ name, source }); output.textContent = JSON.stringify({ evidence: "real solc 0.8.24 standard-json compiler output", compiler: state.artifact.compiler, boundedExecution: true, artifact: state.artifact }, null, 2); $("#deployment-state").textContent = "Real ABI and EVM bytecode are compiled. Deployment still requires Wallet review, authorization, final approval and an authoritative receipt; unsupported chain execution remains blocked."; $("#deployment-state").className = "state-card success"; toast("Solidity compilation succeeded."); }
-  catch (error) { state.artifact = null; showError(error, output); }
+  if (!state.project || !state.path) return toast("Open a source file to compile."); await saveEditor(); activatePanel("output"); const output = $("#command-output");
+  if(state.path.endsWith(".sol")){
+    output.textContent = `Checking pinned compiler at ${config.chainURL}…`;
+    try { const source = state.project.files[state.path]; const name = source.match(/contract\s+([A-Za-z_]\w*)/u)?.[1] || state.path.split("/").pop().replace(/\.sol$/, ""); state.artifact = await chain.compile({ name, source }); output.textContent = JSON.stringify({ evidence: "real solc 0.8.24 standard-json compiler output", compiler: state.artifact.compiler, boundedExecution: true, artifact: state.artifact }, null, 2); $("#deployment-state").textContent = "Real ABI and EVM bytecode are compiled. Deployment still requires Wallet review, authorization, final approval and an authoritative receipt; unsupported chain execution remains blocked."; $("#deployment-state").className = "state-card success"; toast("Solidity compilation succeeded."); }
+    catch (error) { state.artifact = null; showError(error, output); } return;
+  }
+  const preview={task:"compile-active",activePath:state.path,cwd:`/projects/${state.project.id}`,command:"Resolve the registered desktop toolchain and compile/type-check the active file",environmentClass:"desktop-project-sandbox",risk:"write-build-artifacts",approval:"compile-once",network:false};
+  const content=node("div");content.append(node("pre","",JSON.stringify(preview,null,2)),node("p","muted compact","The desktop runtime resolves only a registered installed toolchain, disables network access, limits the workspace and execution time, and returns the real exit code and diagnostics. The Web Product cannot claim a local compiler."));
+  if(!await modal({title:`Compile ${state.path}`,content,confirm:"Compile once"}))return;
+  output.textContent="Resolving installed desktop toolchain…";
+  try{const result=await executeDesktopTask({...preview,projectId:state.project.id,files:state.project.files});output.textContent=JSON.stringify(result,null,2);toast(result.ok?`${result.language} compile passed.`:`${result.language} compiler returned errors.`);}catch(error){showError(error,output);}
 }
 
 async function runTask(task) {
@@ -443,6 +467,16 @@ async function installPackage() {
   const content=node("div");content.append(node("pre","",JSON.stringify(preview,null,2)),node("p","muted compact","The desktop runtime creates a project-isolated workspace, disables lifecycle scripts, applies package/time/size limits, and never installs globally."));
   if(!await modal({title:"Approve one package installation",content,confirm:"Install exact package"}))return;
   try{const result=await executeDesktopTask({...preview,projectId:state.project.id,files:state.project.files,packageSpec:spec});$("#terminal-preview").textContent=JSON.stringify(result,null,2);toast("Package installed in the isolated desktop workspace.");}catch(error){showError(error,$("#terminal-preview"));}
+}
+
+async function refreshToolchains(){
+  const output=$("#toolchain-status");output.textContent="Detecting installed desktop toolchains…";
+  try{const response=await fetch("/runtime/toolchains");const value=await response.json().catch(()=>({}));if(!response.ok)throw Object.assign(new Error("Installed desktop runtime is required for local toolchain detection."),{code:"desktop_runtime_required"});output.textContent=JSON.stringify({platform:value.platform,available:value.adapters?.filter((item)=>item.available).map((item)=>({language:item.id,extensions:item.extensions,command:item.command})),unavailable:value.adapters?.filter((item)=>!item.available).map((item)=>({language:item.id,extensions:item.extensions,installForCurrentUser:true})),extensionBoundary:"Declarative language packs may add editing support; executable adapters remain permissioned and allowlisted."},null,2);}catch(error){showError(error,output);}
+}
+
+async function importLanguagePack(event){
+  const file=event.target.files?.[0];event.target.value="";if(!file)return;if(file.size>128*1024)return showError(Object.assign(new Error("Language pack exceeds 128 KiB."),{code:"language_pack_too_large"}),$("#toolchain-status"));
+  try{const pack=validateLanguagePack(JSON.parse(await file.text()));if(!monacoAPI)throw new Error("Editor engine is not ready.");registerLanguagePack(monacoAPI,pack);let packs=[];try{packs=JSON.parse(localStorage.getItem("ynx.developer.language-packs.v1")||"[]");}catch{}packs=(Array.isArray(packs)?packs:[]).filter((item)=>item.id!==pack.id);packs.push(pack);if(packs.length>32)packs=packs.slice(-32);localStorage.setItem("ynx.developer.language-packs.v1",JSON.stringify(packs));if(state.path&&pack.extensions.some((extension)=>state.path.toLowerCase().endsWith(extension)))monacoAPI.editor.setModelLanguage(codeEditor.getModel(),pack.id);$("#toolchain-status").textContent=JSON.stringify({installed:true,id:pack.id,extensions:pack.extensions,editing:["highlighting","keyword completion"],execution:false,security:"declarative-only; no extension code executed"},null,2);toast(`Language pack ${pack.id} installed locally.`);}catch(error){showError(Object.assign(error,{code:"language_pack_invalid"}),$("#toolchain-status"));}
 }
 
 async function runRPC() {
