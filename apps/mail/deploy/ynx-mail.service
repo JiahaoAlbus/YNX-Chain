@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 User=ynx
 Group=ynx
-Environment=YNX_MAIL_ADDR=127.0.0.1:18095
+Environment=YNX_MAIL_ADDR=127.0.0.1:18195
 Environment=YNX_MAIL_DATA_DIR=/var/lib/ynx-chain/mail
 Environment=YNX_MAIL_MAX_IN_FLIGHT=128
 Environment=YNX_MAIL_MAX_QUEUED=256
