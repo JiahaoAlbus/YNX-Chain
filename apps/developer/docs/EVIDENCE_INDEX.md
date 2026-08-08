@@ -34,18 +34,18 @@ independent accessibility certification or installed-desktop recapture.
 
 - macOS build: `scripts/package-local-macos.sh`
 - macOS extracted install/cold start: `scripts/verify-local-macos-package.sh`
-- Current macOS source commit: `7f976c1e06292360160325b00fa0875e6a2567f6`
+- Current macOS source commit: `ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54`
 - Current macOS source tree: `0cf68963a1678e6611296684d522b471add4f652`
 - Current macOS runtime checkpoint: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
-- Current macOS ZIP: SHA-256 `ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7`, 38,450,128 bytes, `adhoc-no-team-id`, hosted by GitHub pre-release `developer-v0.2.0-testnet-preview.1`
+- Current macOS ZIP: SHA-256 `426153557fff6ed3c44e12978524ccee46375f8f134ee4d05fa105751a20d058`, 44,381,828 bytes, `adhoc-no-team-id`, hosted by `developer.ynxweb4.com`
 - Embedded SBOM SHA-256: `801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12`
 - Windows build: `scripts/package-windows.ps1`
 - Windows portable install/cold start: `scripts/verify-windows-package.ps1`
 - Windows host workflow: `.github/workflows/developer-windows.yml`
 - Successful current-source Windows host run:
-  `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30417693593`
-- Windows source `7f976c1e06292360160325b00fa0875e6a2567f6`, job `90467659180`, transient Artifact `8710756758`, inner ZIP SHA-256 `1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29`, outer digest `sha256:5c52a2f911525732fb8ded1e5f72ba79d8f8b48ff1907899870afa355c54c289`; the transient Actions artifact expires `2026-08-12T02:46:59Z`, while the exact inner ZIP is now hosted by the immutable GitHub pre-release.
-- Current macOS source `7f976c1e06292360160325b00fa0875e6a2567f6`, ZIP SHA-256 `ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7`, 38,450,128 bytes; extracted self-test/cold-launch/cleanup passed with ad-hoc/no-Team-ID classification.
+  `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31261305218`
+- Windows source `ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54`, job `93112418453`, transient Artifact `9022864163`, inner ZIP SHA-256 `43d4b321205a3c7712109d6b3451afd903612892a7809b2d249ee70d90f946b4`, outer digest `sha256:7dffbacefb932596feec73a18d6237fc083704fa94938a89a2ac5e354c4c55c5`; the transient Actions artifact expires `2026-08-22T14:11:51Z`, while the exact inner ZIP is hosted by the YNX download domain.
+- Current macOS source `ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54`, ZIP SHA-256 `426153557fff6ed3c44e12978524ccee46375f8f134ee4d05fa105751a20d058`, 44,381,828 bytes; extracted self-test/cold-launch/cleanup, public chain/compiler connection, dependency install, permission-bounded test and second runtime launch passed.
 
 ## Supply chain
 

@@ -5,7 +5,7 @@
   "productName": "YNX Developer / YNX AI Build",
   "version": "0.2.0",
   "branch": "codex/final-developer",
-  "sourceCommit": "70f7c3ca7540327aca3736b398c52a67b8e86f34",
+  "sourceCommit": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
   "officialDomain": "https://ynxweb4.com",
   "canonicalPath": "/developer",
   "canonicalUrl": "https://ynxweb4.com/developer",
@@ -43,20 +43,20 @@
       "independentCertification": false
     },
     "macosArm64": {
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "sha256": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
-      "bytes": 38450128,
+      "sourceCommit": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
+      "sha256": "426153557fff6ed3c44e12978524ccee46375f8f134ee4d05fa105751a20d058",
+      "bytes": 44381828,
       "signingClass": "adhoc-no-team-id",
       "hosted": true,
       "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-macos-arm64-unsigned.zip"
     },
     "windowsX64": {
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "runId": 30417693593,
-      "artifactId": 8710756758,
-      "artifactExpiresAt": "2026-08-12T02:46:59Z",
-      "sha256": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29",
-      "bytes": 106341644,
+      "sourceCommit": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
+      "runId": 31261305218,
+      "artifactId": 9022864163,
+      "artifactExpiresAt": "2026-08-22T14:11:51Z",
+      "sha256": "43d4b321205a3c7712109d6b3451afd903612892a7809b2d249ee70d90f946b4",
+      "bytes": 110949464,
       "signingClass": "unsigned-no-authenticode",
       "hosted": true,
       "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-windows-x64-unsigned.zip"
@@ -116,5 +116,5 @@
     "storeReleased": false,
     "mainnetReleased": false
   },
-  "generatedAt": "2026-08-03T07:20:00+08:00"
+  "generatedAt": "2026-08-08T22:20:00+08:00"
 }

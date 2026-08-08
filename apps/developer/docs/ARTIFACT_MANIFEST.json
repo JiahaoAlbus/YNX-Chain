@@ -2,32 +2,32 @@
   "schemaVersion": 1,
   "productId": "ynx-developer-v1",
   "version": "0.2.0",
-  "generatedAt": "2026-07-29T03:22:13Z",
+  "generatedAt": "2026-08-08T14:20:00Z",
   "artifacts": [
     {
       "name": "ynx-developer-testnet-preview-macos-unsigned.zip",
       "surface": "macOS arm64",
       "path": "apps/developer/.ynx-developer-local/ynx-developer-testnet-preview-macos-unsigned.zip",
-      "sha256": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
-      "bytes": 38450128,
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
+      "sha256": "426153557fff6ed3c44e12978524ccee46375f8f134ee4d05fa105751a20d058",
+      "bytes": 44381828,
+      "sourceCommit": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
+      "sourceTree": "de1e22b5c1d7d2257baeaf84b7e6f517c8a5c5a6",
       "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
       "provenanceEmbedded": true,
       "signingClass": "adhoc-no-team-id",
       "hosted": true,
       "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-macos-unsigned.zip",
-      "evidence": "Current-source package embedded exact source/tree/runtime/SBOM provenance; extracted resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed on macOS."
+      "evidence": "Current-source package embedded exact source/tree/runtime/SBOM provenance; extracted resource self-test, strict ad-hoc classification, real GUI cold launch, public chain/compiler connection, npm package installation, permission-bounded test, second runtime launch, dependency persistence and child cleanup passed on macOS."
     },
     {
       "name": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
       "surface": "Windows x64",
       "path": "apps/developer/.ynx-developer-windows/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
-      "sha256": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29",
-      "bytes": 106341644,
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
+      "sha256": "43d4b321205a3c7712109d6b3451afd903612892a7809b2d249ee70d90f946b4",
+      "bytes": 110949464,
+      "sourceCommit": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
+      "sourceTree": "de1e22b5c1d7d2257baeaf84b7e6f517c8a5c5a6",
       "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
       "provenanceEmbedded": true,
@@ -36,13 +36,13 @@
       "authenticodeStatus": "NotSigned",
       "hosted": true,
       "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/developer-v0.2.0-testnet-preview.1/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
-      "ciRunId": 30417693593,
-      "ciJobId": 90467659180,
-      "ciArtifactId": 8710756758,
-      "ciArtifactOuterSha256": "5c52a2f911525732fb8ded1e5f72ba79d8f8b48ff1907899870afa355c54c289",
-      "ciArtifactOuterBytes": 105947991,
-      "ciArtifactExpiresAt": "2026-08-12T02:46:59Z",
-      "evidence": "Current-source workflow run 30417693593 compiled and packaged the WPF/WebView2 App on Windows Server 2025, passed 22 client and 20 Web tests, verified embedded source/tree/runtime/SBOM provenance, extracted the portable ZIP, passed native resource self-test, classified the executable as Authenticode NotSigned, cold-launched the real App, observed bundled node.exe running server.mjs, closed the main window and verified child cleanup. The exact inner ZIP is now hosted by the immutable GitHub Testnet Preview pre-release; the separate Actions artifact remains transient."
+      "ciRunId": 31261305218,
+      "ciJobId": 93112418453,
+      "ciArtifactId": 9022864163,
+      "ciArtifactOuterSha256": "7dffbacefb932596feec73a18d6237fc083704fa94938a89a2ac5e354c4c55c5",
+      "ciArtifactOuterBytes": 109826905,
+      "ciArtifactExpiresAt": "2026-08-22T14:11:51Z",
+      "evidence": "Current-source workflow run 31261305218 compiled and packaged the WPF/WebView2 App on Windows Server 2025, passed 22 client and 21 Web tests, verified embedded source/tree/runtime/SBOM provenance, extracted the portable ZIP, passed native resource self-test, classified the executable as Authenticode NotSigned, cold-launched the real App, observed bundled node.exe running server.mjs, closed the main window and verified child cleanup. The exact inner ZIP is hosted by developer.ynxweb4.com; the separate Actions artifact remains transient."
     }
   ]
 }

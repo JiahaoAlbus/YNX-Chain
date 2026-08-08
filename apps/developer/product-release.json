@@ -2,9 +2,9 @@
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
   "branch": "codex/developer-hosted-preview-metadata",
-  "commit": "70f7c3ca7540327aca3736b398c52a67b8e86f34",
+  "commit": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
   "version": "0.2.0",
-  "sourceCheckpoint": "public-testnet-web-and-desktop-artifacts-2026-08-03",
+  "sourceCheckpoint": "hosted-open-ai-real-compiler-and-desktop-runtime-2026-08-08",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -63,8 +63,8 @@
         "sameOriginProxy": "passed",
         "placeholderGate": "passed with grep fallback because rg was unavailable",
         "credentialLeakGate": "passed with grep fallback because rg was unavailable",
-        "macosCurrentSourcePackage": "source 7f976c1e06292360160325b00fa0875e6a2567f6: embedded provenance, extracted self-test, ad-hoc classification, cold launch, bundled server observation and child cleanup passed",
-        "windowsCurrentSourcePackage": "GitHub Actions run 30417693593 for source 7f976c1e06292360160325b00fa0875e6a2567f6: 22 client tests, 20 Web tests, compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed",
+        "macosCurrentSourcePackage": "source ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54: embedded provenance, extracted self-test, ad-hoc classification, cold launch, public chain/compiler connection, package installation, permission-bounded tests, second runtime launch and dependency persistence passed",
+        "windowsCurrentSourcePackage": "GitHub Actions run 31261305218 for source ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54: 22 client tests, 21 Web tests, compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed",
         "browserAccessibilityAudit": "15/15 checks and six hashed screenshots passed on Chrome 150 from clean source f38aa95a9ec7ebff68b4d915f41b20ad8f903769"
       },
       "capabilities": [
@@ -114,16 +114,16 @@
     "publicBrowserVerification": "live chain height, twelve-language selector, IDE landmarks and bounded AI/provider state verified in the in-app browser on 2026-08-03"
   },
   "sha256": {
-    "macosArm64UnsignedZip": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
-    "windowsX64UnsignedZip": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29"
+    "macosArm64UnsignedZip": "426153557fff6ed3c44e12978524ccee46375f8f134ee4d05fa105751a20d058",
+    "windowsX64UnsignedZip": "43d4b321205a3c7712109d6b3451afd903612892a7809b2d249ee70d90f946b4"
   },
   "bytes": {
-    "macosArm64UnsignedZip": 38450128,
-    "windowsX64UnsignedZip": 106341644
+    "macosArm64UnsignedZip": 44381828,
+    "windowsX64UnsignedZip": 110949464
   },
   "artifactSourceCommits": {
-    "macosArm64UnsignedZip": "7f976c1e06292360160325b00fa0875e6a2567f6",
-    "windowsX64UnsignedZip": "7f976c1e06292360160325b00fa0875e6a2567f6"
+    "macosArm64UnsignedZip": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
+    "windowsX64UnsignedZip": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54"
   },
   "artifactRuntimeCheckpoints": {
     "macosArm64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
@@ -142,38 +142,38 @@
     {
       "surface": "macos-arm64-testnet-preview",
       "class": "local-extracted-zip",
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
+      "sourceCommit": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
+      "sourceTree": "de1e22b5c1d7d2257baeaf84b7e6f517c8a5c5a6",
       "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "artifactSha256": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
-      "artifactBytes": 38450128,
+      "artifactSha256": "426153557fff6ed3c44e12978524ccee46375f8f134ee4d05fa105751a20d058",
+      "artifactBytes": 44381828,
       "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
       "provenanceEmbedded": true,
-      "result": "embedded source/tree/runtime/SBOM provenance, resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed"
+      "result": "embedded source/tree/runtime/SBOM provenance, resource self-test, strict ad-hoc classification, real GUI cold launch, public chain/compiler connection, npm package installation, permission-bounded test, second runtime launch, dependency persistence and child cleanup passed"
     },
     {
       "surface": "windows-x64-testnet-preview",
       "class": "windows-ci-portable-extract",
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
+      "sourceCommit": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
+      "sourceTree": "de1e22b5c1d7d2257baeaf84b7e6f517c8a5c5a6",
       "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "artifactSha256": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29",
-      "artifactBytes": 106341644,
+      "artifactSha256": "43d4b321205a3c7712109d6b3451afd903612892a7809b2d249ee70d90f946b4",
+      "artifactBytes": 110949464,
       "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
       "provenanceEmbedded": true,
       "authenticodeStatus": "NotSigned",
-      "runId": 30417693593,
-      "jobId": 90467659180,
-      "artifactId": 8710756758,
-      "artifactOuterDigest": "sha256:5c52a2f911525732fb8ded1e5f72ba79d8f8b48ff1907899870afa355c54c289",
-      "artifactExpiresAt": "2026-08-12T02:46:59Z",
+      "runId": 31261305218,
+      "jobId": 93112418453,
+      "artifactId": 9022864163,
+      "artifactOuterDigest": "sha256:7dffbacefb932596feec73a18d6237fc083704fa94938a89a2ac5e354c4c55c5",
+      "artifactExpiresAt": "2026-08-22T14:11:51Z",
       "result": "compile, embedded provenance, native self-test, portable extraction, Authenticode NotSigned classification, WPF cold launch, bundled server observation, child cleanup and transient artifact upload passed"
     }
   ],
   "centralIntegration": {
     "status": "not-integrated",
     "walletRegistry": "exact ynx-developer-v1 binding is delivered in the handoff but is not merged/deployed centrally",
-    "aiGateway": "Public Web IDE uses a server-managed credential boundary, per-user rate limit and provider-backed YNX AI Gateway stream; browser JavaScript never receives the provider key",
+    "aiGateway": "Public Web IDE defaults to the YNX-hosted qwen3:4b open-model service with two active generations and a queue of 32; xAI/OpenAI bring-your-own keys are request-only and browser JavaScript never persists them",
     "walletDeploymentProvider": "not present; UI fails closed and never uses a local key or unsigned deploy bypass",
     "apiCredentialBroker": "host contract is implemented and tested, but no central broker or provider credential is connected"
   },
@@ -182,12 +182,12 @@
     "Immutable GitHub pre-release URLs exist for both unsigned Testnet Preview packages; the separate Windows Actions artifact still expires after 14 days and is not the public release source.",
     "No Developer ID, notarization, Authenticode, signed installer, signed updater or store release exists.",
     "No central Wallet registry/provider integration or real Wallet-signed deployment was performed.",
-    "Provider-backed AI is enabled for the public Testnet Web IDE through a bounded managed session; availability and output quality still depend on the upstream provider.",
+    "YNX-hosted qwen3:4b AI is enabled through a bounded managed session; it is a small Testnet coding model, can queue under load, and its output must be reviewed before any write.",
     "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
     "Current-source API Studio is installed and cold-launched in local macOS arm64 and Windows x64 unsigned Testnet Previews; neither is a public, notarized, Authenticode-signed or production release.",
     "The GitHub pre-release now hosts immutable unsigned Testnet Preview assets; the separate Windows Actions artifact remains transient and must not replace the release asset URL.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The Web IDE now executes pinned solc 0.8.24 in isolated workers and returns real ABI and EVM bytecode. Compilation does not imply that arbitrary EVM deployment is supported by YNX Testnet; deployment requires Wallet authorization and an authoritative receipt."
   ],
-  "generatedAt": "2026-08-03T07:20:00+08:00"
+  "generatedAt": "2026-08-08T22:20:00+08:00"
 }
