@@ -136,6 +136,12 @@ pre { margin:0; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; 
 .boundary span,.boundary small { color:var(--muted); }.boundary strong { color:var(--blue); }
 .state-card.error { border-color:#f2b8b5; color:var(--danger); }.state-card.success { border-color:#a6f4c5; color:var(--ok); }
 .docs-list { display:grid; gap:6px; }.docs-list button { padding:9px; border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--ink); text-align:left; font-size:11px; }.docs-list button:hover { color:var(--blue); border-color:#9cb0e8; }
+.extension-actions { display:grid; gap:6px; margin:8px 0; }
+.extension-summary { padding:8px; border-left:3px solid var(--blue); background:var(--blue-ghost); color:var(--muted); font-size:var(--micro-size); line-height:1.4; }
+.extension-list { display:grid; gap:5px; margin:10px 0; flex:1; align-content:start; }
+.extension-heading { margin:8px 0 2px; color:var(--muted); font-size:var(--micro-size); letter-spacing:.04em; text-transform:uppercase; }
+.extension-card { display:flex; align-items:center; justify-content:space-between; gap:7px; padding:7px; border:1px solid var(--line); border-radius:6px; background:var(--surface); }
+.extension-card>div { display:grid; min-width:0; gap:2px; }.extension-card strong { overflow:hidden; text-overflow:ellipsis; font-size:var(--small-size); }.extension-card small { overflow:hidden; text-overflow:ellipsis; color:var(--muted); font-size:9px; white-space:nowrap; }.extension-card.ready { border-inline-start:3px solid var(--ok); }
 dialog { width:min(520px,calc(100vw - 30px)); padding:0; border:0; border-radius:10px; background:var(--surface); color:var(--ink); box-shadow:var(--shadow); }
 #palette form { padding:16px; }
 .command-list { display:grid; gap:5px; margin-top:10px; }

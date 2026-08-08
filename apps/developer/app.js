@@ -84,6 +84,7 @@ function registerLanguagePack(monaco, pack) {
   for(const extension of pack.extensions)customLanguageExtensions.set(extension,pack.id);
 }
 function loadLanguagePacks(monaco){let packs=[];try{packs=JSON.parse(localStorage.getItem("ynx.developer.language-packs.v1")||"[]");}catch{localStorage.removeItem("ynx.developer.language-packs.v1");}for(const value of Array.isArray(packs)?packs.slice(0,32):[])try{registerLanguagePack(monaco,validateLanguagePack(value));}catch{}}
+function storedLanguagePacks(){try{const packs=JSON.parse(localStorage.getItem("ynx.developer.language-packs.v1")||"[]");return Array.isArray(packs)?packs:[];}catch{return[];}}
 
 function initializeCodeEditor() {
   return new Promise((resolve, reject) => {
@@ -130,6 +131,7 @@ async function bootstrap() {
   const projects = await workspace.list();
   if (projects.length) await loadProject(projects.sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0].id);
   renderAIBuild();
+  await refreshExtensionView();
   $("#artifact-output").textContent=JSON.stringify({integration:GROK_BUILD_ACP,truthfulStatus:"adapter-contract-tested-local; official binary not bundled"},null,2);
   await Promise.allSettled([refreshNetwork(), refreshProvider()]);
 }
@@ -350,6 +352,7 @@ function bindNavigation() {
     else { $(".agent").classList.remove("mobile-open"); $$(".side-view").forEach((view)=>view.classList.toggle("active",view.id===`view-${button.dataset.view}`)); if(mobile)setMobileSidebar(!(wasActive&&$(".sidebar").classList.contains("mobile-open"))); }
     $$(".activity-button").forEach((item)=>item.classList.toggle("active",item===button));
     if(button.dataset.view === "source")renderSourceControl();
+    if(button.dataset.view === "extensions")refreshExtensionView();
   });
   $("#close-agent").onclick = () => $("aside.agent").classList.remove("mobile-open");
   $(".workspace").addEventListener("pointerdown",()=>{if(matchMedia("(max-width:740px)").matches)setMobileSidebar(false);});
@@ -375,7 +378,7 @@ function bindActions() {
   $("#run-search").onclick = runSearch; $("#create-checkpoint").onclick = checkpoint; $("#revert-checkpoint").onclick = revert;
   $("#compile").onclick = compile; $("#run-tests").onclick = () => runTask("test"); $("#run-task").onclick = () => runTask("check"); $("#run-rpc").onclick = runRPC;
   $("#install-package").onclick = installPackage;
-  $("#refresh-toolchains").onclick=refreshToolchains;$("#import-language-pack").onclick=()=>$("#language-pack-file").click();$("#language-pack-file").onchange=importLanguagePack;$("#import-toolchain-adapter").onclick=()=>$("#toolchain-adapter-file").click();$("#toolchain-adapter-file").onchange=importToolchainAdapter;
+  $("#refresh-toolchains").onclick=refreshToolchains;$("#refresh-extensions").onclick=refreshExtensionView;$("#import-language-pack").onclick=()=>$("#language-pack-file").click();$("#sidebar-add-language").onclick=()=>$("#language-pack-file").click();$("#language-pack-file").onchange=importLanguagePack;$("#import-toolchain-adapter").onclick=()=>$("#toolchain-adapter-file").click();$("#sidebar-add-compiler").onclick=()=>$("#toolchain-adapter-file").click();$("#toolchain-adapter-file").onchange=importToolchainAdapter;
   $("#api-template").onchange = loadAPIConnectorTemplate; $("#api-load-template").onclick = loadAPIConnectorTemplate; $("#api-import").onclick = importAPISpec; $("#api-preview").onclick = previewAPIRequest; $("#api-send").onclick = sendAPISandboxRequest; $("#api-simulate").onclick = simulateAPIRequest; $("#api-generate-client").onclick = generateAPIClient; $("#api-generate-manifest").onclick = generateAPIAdapterManifest;
   $("#ask-ai").onclick = askAI; $("#cancel-ai").onclick = () => { try { ai.cancel(); } catch (error) { showError(error, $("#ai-output")); } }; $("#apply-ai").onclick = applyAI; $("#reject-ai").onclick = rejectAI;
   $("#clear-ai-history").onclick = clearAIHistory;
@@ -474,9 +477,29 @@ async function refreshToolchains(){
   try{const response=await fetch("/runtime/toolchains");const value=await response.json().catch(()=>({}));if(!response.ok)throw Object.assign(new Error("Installed desktop runtime is required for local toolchain detection."),{code:"desktop_runtime_required"});output.textContent=JSON.stringify({platform:value.platform,available:value.adapters?.filter((item)=>item.available).map((item)=>({language:item.id,extensions:item.extensions,command:item.command})),unavailable:value.adapters?.filter((item)=>!item.available).map((item)=>({language:item.id,extensions:item.extensions,installForCurrentUser:true})),extensionBoundary:"Declarative language packs may add editing support; executable adapters remain permissioned and allowlisted."},null,2);}catch(error){showError(error,output);}
 }
 
+async function refreshExtensionView(){
+  const list=$("#extension-list"),summary=$("#extension-summary");if(!list||!summary)return;list.replaceChildren();summary.textContent="Detecting languages and installed compilers…";
+  const languagePacks=storedLanguagePacks();let adapters=[];let runtime="Web editing only";
+  try{const response=await fetch("/runtime/toolchains");if(response.ok){const value=await response.json();adapters=value.adapters||[];runtime=`Desktop runtime · ${value.platform}`;}}catch{}
+  const builtInIds=monacoAPI?[...new Set(monacoAPI.languages.getLanguages().map((item)=>item.id))].sort():[];
+  const sections=[{title:`Built-in editing (${builtInIds.length})`,items:builtInIds.map((id)=>({id,detail:"Syntax/editing support",kind:"builtin"}))},{title:`Installed language packs (${languagePacks.length})`,items:languagePacks.map((pack)=>({id:pack.id,detail:(pack.extensions||[]).join(" · "),kind:"language"}))},{title:`Compiler adapters (${adapters.length})`,items:adapters.map((adapter)=>({id:adapter.id,detail:`${adapter.extensions.join(" · ")} · ${adapter.available?"ready":"toolchain missing"}`,kind:adapter.custom?"compiler":"builtin-compiler",ready:adapter.available}))}];
+  for(const section of sections){list.append(node("h3","extension-heading",section.title));if(!section.items.length){list.append(node("p","muted compact","None installed."));continue;}for(const item of section.items){const card=node("div",`extension-card ${item.ready?"ready":""}`);const copy=node("div");copy.append(node("strong","",item.id),node("small","",item.detail));card.append(copy);if(item.kind==="language"||item.kind==="compiler"){const remove=node("button","icon-button","×");remove.setAttribute("aria-label",`Remove ${item.id}`);remove.onclick=()=>item.kind==="language"?removeLanguagePack(item.id):removeCompilerAdapter(item.id);card.append(remove);}list.append(card);}}
+  summary.textContent=`${runtime}. Editing support never implies a compiler is installed.`;
+}
+
+async function removeLanguagePack(id){
+  if(!await modal({title:`Remove ${id}`,content:"Remove this declarative editing pack from the current browser profile?",confirm:"Remove pack",danger:true}))return;
+  const packs=storedLanguagePacks().filter((item)=>item.id!==id);localStorage.setItem("ynx.developer.language-packs.v1",JSON.stringify(packs));location.reload();
+}
+
+async function removeCompilerAdapter(id){
+  if(!await modal({title:`Remove ${id}`,content:"Remove this compiler adapter from the current desktop user? Built-in adapters cannot be removed.",confirm:"Remove adapter",danger:true}))return;
+  const response=await fetch("/runtime/toolchains/remove",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({approval:"remove-local-toolchain-once",id})});const value=await response.json().catch(()=>({}));if(!response.ok)return showError(Object.assign(new Error(value.error||"Adapter removal failed."),{code:value.code||"adapter_removal_failed"}),$("#toolchain-status"));toast(`Compiler adapter ${id} removed.`);await refreshExtensionView();
+}
+
 async function importLanguagePack(event){
   const file=event.target.files?.[0];event.target.value="";if(!file)return;if(file.size>128*1024)return showError(Object.assign(new Error("Language pack exceeds 128 KiB."),{code:"language_pack_too_large"}),$("#toolchain-status"));
-  try{const pack=validateLanguagePack(JSON.parse(await file.text()));if(!monacoAPI)throw new Error("Editor engine is not ready.");registerLanguagePack(monacoAPI,pack);let packs=[];try{packs=JSON.parse(localStorage.getItem("ynx.developer.language-packs.v1")||"[]");}catch{}packs=(Array.isArray(packs)?packs:[]).filter((item)=>item.id!==pack.id);packs.push(pack);if(packs.length>32)packs=packs.slice(-32);localStorage.setItem("ynx.developer.language-packs.v1",JSON.stringify(packs));if(state.path&&pack.extensions.some((extension)=>state.path.toLowerCase().endsWith(extension)))monacoAPI.editor.setModelLanguage(codeEditor.getModel(),pack.id);$("#toolchain-status").textContent=JSON.stringify({installed:true,id:pack.id,extensions:pack.extensions,editing:["highlighting","keyword completion"],execution:false,security:"declarative-only; no extension code executed"},null,2);toast(`Language pack ${pack.id} installed locally.`);}catch(error){showError(Object.assign(error,{code:"language_pack_invalid"}),$("#toolchain-status"));}
+  try{const pack=validateLanguagePack(JSON.parse(await file.text()));if(!monacoAPI)throw new Error("Editor engine is not ready.");registerLanguagePack(monacoAPI,pack);let packs=storedLanguagePacks().filter((item)=>item.id!==pack.id);packs.push(pack);if(packs.length>32)packs=packs.slice(-32);localStorage.setItem("ynx.developer.language-packs.v1",JSON.stringify(packs));if(state.path&&pack.extensions.some((extension)=>state.path.toLowerCase().endsWith(extension)))monacoAPI.editor.setModelLanguage(codeEditor.getModel(),pack.id);$("#toolchain-status").textContent=JSON.stringify({installed:true,id:pack.id,extensions:pack.extensions,editing:["highlighting","keyword completion"],execution:false,security:"declarative-only; no extension code executed"},null,2);toast(`Language pack ${pack.id} installed locally.`);await refreshExtensionView();}catch(error){showError(Object.assign(error,{code:"language_pack_invalid"}),$("#toolchain-status"));}
 }
 
 async function importToolchainAdapter(event){
@@ -486,7 +509,7 @@ async function importToolchainAdapter(event){
     const content=node("div");content.append(node("pre","",JSON.stringify(review,null,2)),node("p","muted compact","Registration stores this adapter for the current desktop user. It may invoke only the named installed executable with literal argument tokens plus ${file}/${build}; it cannot replace a built-in extension or use shell syntax."));
     if(!await modal({title:"Register local compiler adapter",content,confirm:"Register adapter"}))return;
     const response=await fetch("/runtime/toolchains/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({approval:"register-local-toolchain-once",adapter})});const value=await response.json().catch(()=>({}));if(!response.ok)throw Object.assign(new Error(value.error||"Compiler adapter registration failed."),{code:value.code||"adapter_registration_failed"});
-    $("#toolchain-status").textContent=JSON.stringify(value,null,2);toast(`Compiler adapter ${value.adapter.id} registered.`);
+    $("#toolchain-status").textContent=JSON.stringify(value,null,2);toast(`Compiler adapter ${value.adapter.id} registered.`);await refreshExtensionView();
   }catch(error){showError(Object.assign(error,{code:error.code||"adapter_invalid"}),$("#toolchain-status"));}
 }
 

@@ -14,6 +14,20 @@ editor language is never presented as a working compiler merely because it has
 syntax colors. Add language pack accepts declarative JSON for file extensions,
 keywords and completion only. It stores the pack locally and never executes pack
 code. Executable adapters remain reviewed and allowlisted.
+
+Open **Extensions** in the activity bar to see these layers separately. Built-in
+editing languages, current-profile language packs, built-in compiler adapters and
+current-user compiler adapters are listed independently. A ready compiler entry
+means the exact executable was detected on this device; a language entry alone
+never means Compile is available. Custom language packs and compiler adapters can
+be removed from this view. Built-in adapters cannot be replaced or removed.
+
+The editor can recognize an open-ended set of languages, while every executable
+language requires a real toolchain. YNX Developer does not claim that every
+compiler is preinstalled. To add another language, install its compiler for the
+current user, then import a reviewed adapter manifest that maps safe extensions
+to that executable.
+
 TypeScript is the first project-installable compiler adapter: install the exact
 reviewed `typescript@5.9.0` package through the package approval flow, then
 Compile uses that project-local compiler without adding a global executable.

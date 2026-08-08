@@ -26,6 +26,12 @@ test("Monaco editor is bundled with language models, completion and worker CSP",
   assert.match(build,/node_modules\/monaco-editor\/min\/vs/);for(const source of [server,desktop])assert.match(source,/worker-src 'self' blob:/);
 });
 
+test("extension workspace separates editing languages from real removable desktop compilers",async()=>{
+  const html=await read("index.html"),app=await read("app.js"),desktop=await read("desktop/server.mjs");
+  for(const value of ["Language and compiler extensions","Install language pack","Install compiler adapter","Installed language packs","Compiler adapters","Editing support never implies a compiler"])assert.match(html+app,new RegExp(value,"i"));
+  assert.match(desktop,/runtime\/toolchains\/remove/);assert.match(desktop,/remove-local-toolchain-once/);assert.match(desktop,/built-in adapters cannot be removed/i);
+});
+
 test("YNX AI Build exposes plan, permission, provider, checkpoint and audit controls", async () => {
   const html=await read("index.html"), app=await read("app.js");
   for(const evidence of ["Preview plan","Approved context","Official Grok Build ACP sidecar","YNX hosted open model","Session-only API key","PERMISSIONS","Allow one project write","exportAudit","checkpoint"]) assert.match(html+app,new RegExp(evidence,"i"));

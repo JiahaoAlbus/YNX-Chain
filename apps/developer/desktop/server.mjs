@@ -48,6 +48,9 @@ const server = createServer(async (request, response) => {
     try { const adapter=await registerCustomAdapter(body);json(response,201,{ok:true,adapter,security:{shell:false,network:false,approvalRequiredPerCompile:true,persistence:"current-user"}}); }
     catch(error){json(response,error.status||400,{error:error.message||"Toolchain adapter rejected.",code:error.code||"adapter_invalid"});}return;
   }
+  if (pathname === "/runtime/toolchains/remove" && request.method === "POST") {
+    let body;try{body=JSON.parse((await readBody(request,16*1024)).toString("utf8"));const removed=await removeCustomAdapter(body);json(response,200,{ok:true,removed});}catch(error){json(response,error.status||400,{error:error.message||"Toolchain adapter removal failed.",code:error.code||"adapter_removal_failed"});}return;
+  }
   if (pathname === "/runtime/task" && request.method === "POST") { let body; try { body = JSON.parse((await readBody(request, 3 * 1024 * 1024)).toString("utf8")); } catch (error) { json(response, error.status || 400, { error: error.message || "Invalid runtime task." }); return; } await scheduleTask(response, body); return; }
   const prefix = Object.keys(upstreams).find((value) => pathname === value || pathname.startsWith(`${value}/`));
   if (prefix) { await proxy(request, response, upstreams[prefix], request.url.slice(prefix.length) || "/"); return; }
@@ -160,6 +163,13 @@ async function registerCustomAdapter(body){
   const record=validateCustomAdapter(body.adapter);await loadCustomAdapters();const existing=[];const seen=new Set();for(const [extension,adapter] of customAdapters){if(seen.has(adapter.id))continue;seen.add(adapter.id);existing.push({schemaVersion:1,id:adapter.id,extensions:[...customAdapters.entries()].filter(([,item])=>item.id===adapter.id).map(([ext])=>ext),executable:adapter.executable,args:adapter.manifestArgs});}
   const next=[...existing.filter((item)=>item.id!==record.id),{schemaVersion:1,...record}].slice(-32);await mkdir(dirname(adapterStorePath),{recursive:true,mode:0o700});const temporary=`${adapterStorePath}.tmp`;await writeFile(temporary,`${JSON.stringify(next,null,2)}\n`,{mode:0o600});await rename(temporary,adapterStorePath);customAdapters.clear();customAdaptersLoaded=false;await loadCustomAdapters();
   const command=await resolveToolchain(record.executable);return{id:record.id,extensions:record.extensions,executable:record.executable,available:Boolean(command),command:command||null,custom:true};
+}
+async function removeCustomAdapter(body){
+  if(body.approval!=="remove-local-toolchain-once")throw Object.assign(new Error("Explicit one-time adapter removal approval is required."),{status:403,code:"adapter_removal_approval_required"});
+  const id=String(body.id||"");if(!/^[a-z][a-z0-9-]{1,31}$/.test(id))throw Object.assign(new Error("A valid custom adapter id is required."),{code:"adapter_identity_invalid"});await loadCustomAdapters();
+  const records=[];const seen=new Set();for(const [,adapter] of customAdapters){if(seen.has(adapter.id)||adapter.id===id)continue;seen.add(adapter.id);records.push({schemaVersion:1,id:adapter.id,extensions:[...customAdapters.entries()].filter(([,item])=>item.id===adapter.id).map(([extension])=>extension),executable:adapter.executable,args:adapter.manifestArgs});}
+  if(records.length===[...new Set([...customAdapters.values()].map((item)=>item.id))].length)throw Object.assign(new Error("Custom adapter was not found; built-in adapters cannot be removed."),{status:404,code:"adapter_not_found"});
+  await mkdir(dirname(adapterStorePath),{recursive:true,mode:0o700});const temporary=`${adapterStorePath}.tmp`;await writeFile(temporary,`${JSON.stringify(records,null,2)}\n`,{mode:0o600});await rename(temporary,adapterStorePath);customAdapters.clear();customAdaptersLoaded=false;await loadCustomAdapters();return{id};
 }
 function executeToolchainBounded(project,command,args){
   return new Promise((resolve,reject)=>{let finalCommand=command,finalArgs=args;

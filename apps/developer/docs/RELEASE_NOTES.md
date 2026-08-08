@@ -1,5 +1,17 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-09 extension workspace candidate
+
+- Added a dedicated Languages & Compilers view with a truthful inventory of
+  Monaco editing support, locally installed language packs, detected device
+  toolchains and custom compiler adapters.
+- Added reviewed current-user adapter removal. Registration, removal and each
+  compilation remain separate approvals; built-in extensions cannot be replaced
+  or removed, commands remain shell-free and compiler execution remains bounded.
+- Verified 24 Developer tests, including a real custom adapter compile and
+  register/compile/remove lifecycle, plus build, static workflow checks and
+  desktop network/workspace sandbox denial.
+
 ## 2026-07-29 browser accessibility evidence checkpoint
 
 - Added a deterministic Chrome DevTools Protocol audit harness with no Playwright, Puppeteer or production dependency.
