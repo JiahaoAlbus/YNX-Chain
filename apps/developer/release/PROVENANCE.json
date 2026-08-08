@@ -3,15 +3,15 @@
   "productId": "ynx-developer-v1",
   "version": "0.2.0",
   "releaseClass": "unsigned-testnet-preview",
-  "sourceCommit": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
-  "sourceTree": "de1e22b5c1d7d2257baeaf84b7e6f517c8a5c5a6",
+  "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
+  "sourceTree": "f62acf5089703c75f26675559162f3fe1c25b399",
   "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
   "artifacts": [
     {
       "name": "ynx-developer-testnet-preview-macos-unsigned.zip",
       "platform": "macos-arm64",
-      "sha256": "426153557fff6ed3c44e12978524ccee46375f8f134ee4d05fa105751a20d058",
-      "bytes": 44381828,
+      "sha256": "f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351",
+      "bytes": 48252013,
       "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
       "signingClass": "adhoc-no-team-id",
       "verification": [
@@ -26,18 +26,18 @@
     {
       "name": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
       "platform": "windows-x64",
-      "sha256": "43d4b321205a3c7712109d6b3451afd903612892a7809b2d249ee70d90f946b4",
-      "bytes": 110949464,
+      "sha256": "d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d",
+      "bytes": 114787990,
       "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
       "signingClass": "unsigned-no-authenticode",
       "authenticodeStatus": "NotSigned",
       "ci": {
-        "runId": 31261305218,
-        "jobId": 93112418453,
-        "artifactId": 9022864163,
-        "artifactOuterSha256": "7dffbacefb932596feec73a18d6237fc083704fa94938a89a2ac5e354c4c55c5",
-        "artifactOuterBytes": 109826905,
-        "artifactExpiresAt": "2026-08-22T14:11:51Z"
+        "runId": 31270548034,
+        "jobId": 93135599604,
+        "artifactId": 9025496664,
+        "artifactOuterSha256": "3baff8df6a53419caa6b8766d21249ff7d1a96512d14bad2ebda0e77cbfab8f4",
+        "artifactOuterBytes": 113645605,
+        "artifactExpiresAt": "2026-08-22T17:56:46Z"
       },
       "verification": [
         "22 Developer client tests",
@@ -53,11 +53,11 @@
     }
   ],
   "browserAccessibilityEvidence": {
-    "sourceCommit": "f38aa95a9ec7ebff68b4d915f41b20ad8f903769",
+    "sourceCommit": "98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5",
     "status": "passed",
     "checksPassed": 15,
     "screenshots": 6,
-    "manifestSha256": "adcac78fb58c5f0e191fa51252f9cd76192f2154d3974837e2763f397b7d6371"
+    "manifestSha256": "2791370844174a9838495cd73761f8ecce17ea8d249b070e97ba283b19672e9c"
   },
   "truthBoundaries": {
     "productionSigned": false,

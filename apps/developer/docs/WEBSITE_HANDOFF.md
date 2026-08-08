@@ -14,8 +14,8 @@ Website owner: `28-website`
 
 ## Source and release truth
 
-- Release-candidate source: `ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54`
-- Browser-evidence source: `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`
+- Release-candidate source: `63a678ac3c423b53c9628fa35c415d554827eccb`
+- Browser-evidence source: `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`
 - Product metadata: `apps/developer/public-product-metadata.json`
 - Product release truth: `apps/developer/product-release.json`
 - Release class: unsigned Testnet Preview
@@ -39,7 +39,7 @@ Recommended evidence cards:
 
 Exact hashes are authoritative in `evidence/ui/current-accessibility/accessibility-audit.json`.
 
-- `desktop-light-1440x900.png` — `e58ca52b973bb2a68b210b78d254b8b75a334104bd909b2f0471db23f5c2e6f6`
+- `desktop-light-1440x900.png` — `e6c3a3970e1abb5b1c9c3dbaf74028fe07778e89abe8c0b427fcafd5c0cad0c0`
 - `keyboard-focus-api-studio-1440x900.png` — `622c5ceba9746fcb98bdcf1e2af5c2965b9c88acb41117bc31ec9555eb0aa42a`
 - `desktop-dark-1440x900.png` — `30ec419a760c30cc228b19da8cf4af9af001142c50a15c8b167c9a80679aeb0b`
 - `mobile-light-390x844.png` — `596d3aeda5bc2ca49b6ce9bf187a9f886485a411983d3ad168995953134d958b`
@@ -48,7 +48,7 @@ Exact hashes are authoritative in `evidence/ui/current-accessibility/accessibili
 
 ## Download boundary
 
-Direct public URLs for the exact macOS and Windows ZIPs are served from `https://developer.ynxweb4.com/downloads/` so the official website can provide YNX-domain downloads. The Windows Actions artifact (`9022864163`) expires on 2026-08-22 and must not be used as the public download. Every CTA must say unsigned Testnet Preview; production signing remains unavailable.
+Direct public URLs for the exact macOS and Windows ZIPs are served from `https://developer.ynxweb4.com/downloads/` so the official website can provide YNX-domain downloads. The Windows Actions artifact (`9025496664`) expires on 2026-08-22 and must not be used as the public download. Every CTA must say unsigned Testnet Preview; production signing remains unavailable.
 
 ## Acceptance gates for Website owner
 

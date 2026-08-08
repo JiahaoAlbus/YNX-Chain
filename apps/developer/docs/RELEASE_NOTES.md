@@ -15,11 +15,11 @@
 ## 2026-07-29 browser accessibility evidence checkpoint
 
 - Added a deterministic Chrome DevTools Protocol audit harness with no Playwright, Puppeteer or production dependency.
-- Bound 15/15 current-source browser checks and six screenshot SHA-256 values to clean pushed commit `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`.
+- Bound 15/15 current-source browser checks and six screenshot SHA-256 values to clean pushed commit `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`.
 - Verified keyboard-first skip navigation, editor focus, roving panel tabs, Chromium accessibility-tree roles/names/live regions, a 3 px visible focus ring, Light/Dark, reduced motion, exact 390 px no-overflow, inert mobile drawers, single-column mobile API Studio, Arabic RTL with code/JSON LTR, large text and a 200% page scale.
 - Developer Web now passes 21/21 local tests, including release-manifest/provenance/metadata consistency; artifact-source Windows CI passed 20/20 before that release-record-only gate was added. Static claim/workflow check remains passed.
-- Rebuilt both current-source desktop Testnet Preview artifacts from `ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54`: macOS ZIP SHA-256 `426153557fff6ed3c44e12978524ccee46375f8f134ee4d05fa105751a20d058` (44,381,828 bytes) and Windows ZIP SHA-256 `43d4b321205a3c7712109d6b3451afd903612892a7809b2d249ee70d90f946b4` (110,949,464 bytes).
-- Windows run `31261305218` passed 22 client tests, 21 Web tests, compile, provenance, native self-test, Authenticode `NotSigned`, portable extraction, WPF cold launch, bundled server observation and cleanup. Artifact `9022864163` remains transient, while the exact inner ZIP is hosted at the YNX-domain download URL.
+- Rebuilt both current-source desktop Testnet Preview artifacts from `63a678ac3c423b53c9628fa35c415d554827eccb`: macOS ZIP SHA-256 `f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351` (48,252,013 bytes) and Windows ZIP SHA-256 `d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d` (114,787,990 bytes).
+- Windows run `31270548034` passed 22 client tests, 21 Web tests, compile, provenance, native self-test, Authenticode `NotSigned`, portable extraction, WPF cold launch, bundled server observation and cleanup. Artifact `9025496664` remains transient, while the exact inner ZIP is hosted at the YNX-domain download URL.
 - YNX AI Build now defaults to the server-hosted `qwen3:4b` open model with a two-active/32-queued concurrency boundary; xAI and OpenAI bring-your-own-key providers are allowlisted and request-only.
 - Desktop packages now include npm, persist isolated per-project dependencies across restarts, and run check/test tasks under Node permissions; macOS adds an outer operating-system sandbox.
 - The GitHub pre-release now provides immutable unsigned downloads. Central integration, staging/public Web deployment, production signing and store release remain false.

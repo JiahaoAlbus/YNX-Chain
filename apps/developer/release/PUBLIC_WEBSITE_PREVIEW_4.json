@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "releaseClass": "unsigned-testnet-preview",
+  "publicWeb": {
+    "url": "https://developer.ynxweb4.com/",
+    "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
+    "monacoLoader": "https://developer.ynxweb4.com/monaco/vs/loader.js",
+    "monacoPublicVerification": "HTTP 200, 39848 bytes",
+    "extensionWorkspace": true,
+    "languagePackInstallAndRemoval": true,
+    "desktopCompilerAdapterInstallAndRemoval": true
+  },
+  "compilerExtensionBoundary": {
+    "editing": "Open-ended declarative Monaco language packs; syntax support is not a compiler claim.",
+    "execution": "Built-in or current-user desktop adapters become ready only after the real executable is detected.",
+    "registrationApproval": "register-local-toolchain-once",
+    "removalApproval": "remove-local-toolchain-once",
+    "compileApproval": "compile-once",
+    "shell": false,
+    "network": false,
+    "timeoutSeconds": 30
+  },
+  "packages": {
+    "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
+    "sourceTree": "f62acf5089703c75f26675559162f3fe1c25b399",
+    "macosArm64": {
+      "url": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-63a678ac-macos-arm64-unsigned.zip",
+      "sha256": "f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351",
+      "bytes": 48252013,
+      "signingClass": "adhoc-no-team-id",
+      "verification": "Archive, embedded provenance, self-test, cold launch, real bounded C++ compile, second launch and child cleanup passed. Full public re-download SHA-256 passed."
+    },
+    "windowsX64": {
+      "url": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-63a678ac-windows-x64-unsigned.zip",
+      "sha256": "d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d",
+      "bytes": 114787990,
+      "signingClass": "unsigned-no-authenticode",
+      "workflowRun": 31270548034,
+      "workflowJob": 93135599604,
+      "verification": "Archive, embedded provenance, native self-test, portable extraction, Authenticode NotSigned classification, WPF cold launch, bundled server and cleanup passed. Full public re-download SHA-256 passed."
+    }
+  },
+  "truthBoundaries": {
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "allCompilersPreinstalled": false,
+    "arbitraryVSCodeExtensionExecution": false
+  },
+  "generatedAt": "2026-08-09T02:12:00+08:00"
+}

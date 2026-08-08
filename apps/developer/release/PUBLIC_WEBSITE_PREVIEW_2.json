@@ -5,7 +5,7 @@
   "websiteReleaseId": "developer-v0.2.0-testnet-preview.2",
   "packageSourceCommit": "9c4d75be3fb8e900e56000e384539be149c9a7b3",
   "packageSourceTree": "06f71dfe62c2e317643160eda31fdc3d48226ecb",
-  "runtimeCheckpoint": "ed81241ec11dcc9fdd59bbddeae6fae9ccb91f54",
+  "runtimeCheckpoint": "63a678ac3c423b53c9628fa35c415d554827eccb",
   "publicWebCommit": "ad2b43ec",
   "publicWebUpdatedByThisRelease": false,
   "capabilities": {
