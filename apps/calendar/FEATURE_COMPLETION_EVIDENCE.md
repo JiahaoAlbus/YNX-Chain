@@ -1,6 +1,6 @@
 # YNX Calendar feature completion evidence
 
-Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`  
+Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
 Overall status: **ACTIVE / FREEZE**
 
 ## Release-state truth
@@ -10,9 +10,9 @@ Overall status: **ACTIVE / FREEZE**
 | implementedLocal | true | Calendar service, Web client, native clients, recurrence mutation scopes and state operator are present. |
 | testedLocal | true | Calendar unit, Race, Vet, Web, browser, build and smoke gates pass. |
 | installedLocal | false | Current-source all-platform install/cold-start proof is incomplete. |
-| integratedCentral | false | Wallet/Auth, AI, Mail and Data Fabric acceptance is missing. |
+| integratedCentral | false | Canonical Wallet is accepted; AI, Mail, Data Fabric and shared Integration acceptance are missing. |
 | deployedStaging | false | No direct staging runtime proof. |
-| deployedPublic | false | No direct public Calendar runtime proof. |
+| deployedPublic | true | Exact-build public Web/API and health proof at `calendar-testnet.43.153.202.237.sslip.io`. |
 | downloadHosted | false | No immutable current-source artifact URLs. |
 | productionSigned | false | No production signing or notarization proof. |
 | storeReleased | false | No store listing or review proof. |
@@ -44,6 +44,8 @@ Overall status: **ACTIVE / FREEZE**
 | `npm run smoke` | pass |
 | `npm run browser:proof` | pass; desktop/mobile proof and zero console errors |
 
+The 390px proof renders all seven week headers at once with no horizontal overflow. Public build `fb98415c` serves the same CSS/JavaScript and health reports the exact commit.
+
 Recovery-specific tests:
 
 - `TestCalendarBackupRestoreIsAuthenticatedDeterministicAndIsolated`
@@ -66,10 +68,10 @@ Recovery-specific tests:
 
 1. Security/SRE encrypted offsite retention, independent key escrow and production-scale restore drill.
 2. Integration acceptance of Calendar contract and CAL-X-013.
-3. Central Wallet/Auth, AI, Mail and Data Fabric Testnet flows.
+3. AI, Mail and Data Fabric Testnet flows plus shared Integration acceptance; canonical Wallet already has direct public proof.
 4. Current-source Android, iOS and macOS install/cold-start evidence.
 5. Current-source SBOM, provenance, immutable hashes and hosted artifacts.
-6. Website deployment and public `/calendar` canonical/status probes on `ynxweb4.com`.
+6. Continue Website product/support/privacy/security/status route probes and keep the published registry synchronized.
 7. Representative performance, capacity, RTO/RPO and unit-economics measurement.
 
-No local test, historical preview artifact, handoff file, HTTP 200 response or source commit is represented as central integration, public deployment, production signing or store release.
+No local test, historical preview artifact, handoff file or bare HTTP 200 is represented as central integration, production signing or store release. Public deployment is true only because exact build identity, content, health, runtime URL and Website registry were checked together.

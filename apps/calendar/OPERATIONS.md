@@ -1,7 +1,7 @@
 # YNX Calendar operations
 
-Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`  
-Release boundary: local-tested, not centrally integrated, not publicly deployed, not production signed.
+Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
+Release boundary: public Testnet Web/API with canonical Wallet, not fully centrally integrated, not production scheduling and not production signed.
 
 ## Runtime
 
@@ -16,7 +16,7 @@ npm run smoke
 npm run browser:proof
 ```
 
-The health endpoint is `/v1/health`. A successful local health response does not prove staging, public deployment, production scheduling, Mail delivery, push delivery, or central Wallet/Auth acceptance.
+The health endpoint is `/v1/health`. Public deployment is proven only when the external runtime, exact build identity and served assets match the release record. Health alone does not prove production scheduling, Mail/push delivery, AI/Data Fabric acceptance or production readiness.
 
 ## Build the state operator
 
@@ -109,5 +109,5 @@ Calendar currently has local account export and delete flows, but no approved pu
 - HMAC mismatch, wrong product, future schema, or digest mismatch: integrity incident; do not retry by bypassing validation.
 - Missing state key: recovery-key incident; do not generate a replacement key for an existing state file.
 - Reminder replay or duplicate delivery: pause external delivery adapters and preserve audit/state evidence.
-- Public route or download mismatch: keep public release states false and notify Website/Integration owners.
+- Public route/build/asset mismatch: roll back to the retained exact binary, set the affected public state false and notify Website/Integration owners.
 - Central Wallet, Mail, AI, or Data Fabric outage: fail closed and retain local truthful state; do not substitute production mocks.

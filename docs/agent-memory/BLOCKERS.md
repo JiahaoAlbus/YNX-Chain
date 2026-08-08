@@ -25,23 +25,22 @@ These are not excuses for unfinished local work. Each blocker is outside Calenda
 
 ## CAL-BLOCK-DEPS-001 — central product dependencies
 
-- Owners: `02-wallet-auth`, `14-ai`, `20-cloud`, `25-mail`, `26-data-fabric`
-- Reason: deployed/accepted Wallet verification, AI streaming, attachment, Mail delivery and canonical event transport are missing.
+- Owners: `14-ai`, `20-cloud`, `25-mail`, `26-data-fabric`
+- Reason: AI streaming, attachment, Mail delivery and canonical event transport are missing. Canonical Wallet verification is accepted for the current public Calendar flow.
 - Raw evidence: `docs/integration/DEPENDENCY_ACCEPTANCE.md`.
 - Prepared: fail-closed adapters, proposed schemas, local negative tests and handoff requirements.
 - Minimum input: accepted source commit, health/version, exact endpoint/schema and direct failure/success evidence from each owner.
 - Recovery condition: dependency acceptance rows move from pending/not-started to accepted with central proof.
 - First action after recovery: rerun the corresponding cross-product vector without production mocks.
 
-## CAL-BLOCK-WEB-001 — `/calendar` route fallback
+## CAL-WEB-FOLLOWUP-001 — auxiliary route and canonical cleanup
 
 - Owner: `28-website`
-- Reason: `https://ynxweb4.com/calendar` redirects to `https://www.ynxweb4.com/dapp/calendar` and returns HTTP 200, but serves the generic YNX Chain homepage, has no Calendar-specific H1 and declares canonical `https://ynxweb4.com/`.
-- Raw evidence: public probe at 2026-08-01T14:52:31Z and `docs/integration/WEBSITE_INTEGRATION_HANDOFF.md`.
-- Prepared: current public metadata, FAQ, risks, structured-data proposal, asset list and exact publication gates.
-- Minimum input: Website deployment commit consuming current metadata.
-- Recovery condition: Calendar-specific visible content and canonical `https://ynxweb4.com/calendar`, plus Open Graph, JSON-LD, sitemap and required route probes.
-- First action after recovery: probe content and metadata; set `websitePublished`/`deployedPublic` true only if direct evidence matches.
+- Reason: `/dapp/calendar`, the release registry and direct Testnet runtime are public, but the preferred convenience canonical and every auxiliary support/privacy/security/status route still need exact independent probes.
+- Raw evidence: `docs/integration/WEBSITE_INTEGRATION_HANDOFF.md`, public release registry and build `fb98415c` health/assets.
+- Prepared: current public metadata, FAQ, risks, structured-data proposal and exact publication gates.
+- Recovery condition: preserve product-page truth and record Open Graph, JSON-LD, sitemap and required auxiliary-route probes.
+- First action: keep the Website registry synchronized with the owner release and verify auxiliary routes one by one.
 
 ## CAL-BLOCK-REL-001 — current-source release package
 

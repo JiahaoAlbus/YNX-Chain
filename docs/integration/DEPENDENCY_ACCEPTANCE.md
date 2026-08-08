@@ -1,20 +1,20 @@
 # YNX Calendar dependency acceptance
 
-Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
+Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
 Calendar status: **ACTIVE / FREEZE**
 
 | Dependency owner | Calendar requirement | Current evidence | Acceptance state | Recovery condition |
 |---|---|---|---|---|
-| 02 Wallet/Auth | Product registry, exact bundle/callback, device challenge, session verification/introspection, recovery, expiry, revoke | Local remote-verifier adapter and replay/tamper tests pass | Pending owner acceptance | Accepted central commit, deployed health/version, and shared vectors for wrong product/bundle/device/scope, expiry, recovery, and revoke |
+| 02 Wallet/Auth | Product registry, exact bundle/callback, device challenge, session verification/introspection, recovery, expiry, revoke | Public canonical verifier plus two-user lifecycle, restart persistence and 100/100 authenticated concurrent reads pass | Accepted for current public Calendar flow | Preserve exact registry/verifier binding and rerun negative/recovery vectors after any Wallet release change |
 | 14 AI | Authenticated JSON POST and bounded SSE, provider/model/cost, cancellation, no private query context | Local adapter and privacy/failure tests pass | Pending owner acceptance | Accepted endpoint and direct Testnet evidence for preview/approve/reject/cancel/provider outage |
 | 20 Cloud | Versioned attachment/notes object references and access revocation | No Calendar adapter yet | Not started | Accepted object-reference contract, access scopes, retention, delete, export, outage, and revoke semantics |
 | 25 Mail | Invitation, update, RSVP, cancellation, and reminder delivery envelope | Local Calendar invitation/reminder state only | Pending contract | Accepted schema, idempotency key, privacy class, delivery/audit IDs, bounce/failure/retry behavior |
 | 26 Data Fabric | Canonical Calendar events with replay protection and privacy-safe transport | Proposed event names in Calendar contract | Pending contract | Accepted owner/version, envelope, retention, billing boundary, replay and backward-compatibility vectors |
-| 28 Website | Consume `/calendar` metadata, status, downloads, FAQ and structured data | Calendar public metadata and Website handoff are updated for runtime `b00f32da`; public deployment remains unverified | Pending handoff | Website commit consuming exact metadata plus public route and canonical/status probes |
+| 28 Website | Consume Calendar metadata, status, downloads, FAQ and structured data | `/dapp/calendar`, release registry and direct runtime are public and source-bound to `fb98415c`; support/privacy/security/status route probes remain separate | Accepted for product publication | Keep registry synchronized and add direct auxiliary-route evidence before claiming those routes verified |
 | 29 Integration | Freeze unique Calendar contract and execute shared Testnet vectors | Local contract and vectors are proposed | Pending acceptance | Conflict review, accepted schema/version, shared Testnet report, and central owner sign-off |
 | 30 Security/SRE | Threat, secret/dependency/license scans, SBOM/provenance, artifact/install/public gates, encrypted backup retention and key escrow | Calendar local boundary/build gates and authenticated isolated restore drill pass; backup encryption, independent key escrow and release-grade package are missing | Pending acceptance | Current-source artifact set, scans, SBOM/provenance, immutable hashes, install proof, encrypted offsite retention, escrow recovery and production-scale restore evidence |
 | 12 Explorer | Public/auditable Calendar integration evidence where canonical events are appropriate | No canonical Data Fabric events accepted | Blocked by Data Fabric | Accepted event transport and privacy-safe index fields |
-| 13 Monitor | Health/ready/version, metrics, traces, SLO and alerts | Only local health and smoke proof exist | Not started | Structured telemetry, Monitor contract, alert tests, and status linkage |
+| 13 Monitor | Health/ready/version, metrics, traces, SLO and alerts | Public health and exact build identity exist; structured metrics/traces/alerts are not accepted | In progress | Structured telemetry, Monitor contract, alert tests and status linkage |
 | 15 Trust | Trust evidence for identity/session and release claims, without exposing private event data | No accepted Calendar Trust evidence | Not started | Privacy-safe evidence schema and accepted Wallet/Release proofs |
 
 ## Fail-closed policy

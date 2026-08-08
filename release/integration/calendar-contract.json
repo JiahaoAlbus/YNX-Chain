@@ -5,8 +5,8 @@
   "productId": "com.ynx.calendar",
   "productClientId": "ynx-calendar-v1",
   "bundleId": "com.ynxweb4.calendar",
-  "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
-  "generatedAt": "2026-08-08T12:18:00Z",
+  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "generatedAt": "2026-08-08T18:57:46Z",
   "authority": {
     "calendarState": "36-calendar",
     "walletIdentityAndSessions": "02-wallet-auth",

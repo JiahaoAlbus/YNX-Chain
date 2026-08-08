@@ -7,9 +7,9 @@
 - Product client: `ynx-calendar-v1`
 - Bundle ID: `com.ynxweb4.calendar`
 - Callback: `ynxcalendar://wallet-auth/callback`
-- Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
+- Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
 - Contract: `release/integration/calendar-contract.json`
-- Status: local-tested proposal; not centrally accepted or deployed
+- Status: public Testnet Web runtime with canonical Wallet accepted; wider central integration remains pending
 
 Calendar owns event, invitation, RSVP, recurrence, reminder, sharing, conflict, local audit, and Calendar-specific privacy state. It does not own Wallet identity/session truth, Mail delivery, AI provider execution, Data Fabric transport, central protocol freeze, release security, or public Website deployment.
 
@@ -25,14 +25,14 @@ State payload schema version 1 is explicit. The operator CLI creates determinist
 
 ## Wallet/Auth handoff
 
-Owner `02-wallet-auth` must accept and deploy:
+Owner `02-wallet-auth` has accepted and deployed the canonical Calendar tuple and verifier path for the public Testnet runtime:
 
 - Calendar registry tuple and exact callback;
 - `calendar:account` and `calendar:recover` scopes;
 - central verifier/introspection response binding;
 - expiry, revocation, recovery, device/session binding, and replay evidence.
 
-Calendar already has a fail-closed remote verifier adapter and local negative tests. `integratedCentral` remains false until direct deployed evidence is recorded.
+The public two-user invite → RSVP → update → cancel lifecycle, restart persistence and 100/100 authenticated concurrent reads passed against that verifier. `integratedCentral` remains false because this product-level state also requires Mail, AI, Data Fabric and shared Integration acceptance.
 
 ## Mail handoff
 
@@ -81,7 +81,7 @@ Acceptance must record exact source commits, central dependency commits, request
 | installedLocal | false | current source has not completed all-platform install/cold-start proof |
 | integratedCentral | false | Wallet/Mail/AI/Data Fabric acceptance is missing |
 | deployedStaging | false | no direct staging proof |
-| deployedPublic | false | no direct public runtime proof |
+| deployedPublic | true | direct runtime and health proof at `https://calendar-testnet.43.153.202.237.sslip.io/`; exact build `fb98415c` |
 | downloadHosted | false | no current-source immutable artifact is hosted |
 | productionSigned | false | only historical debug/unsigned evidence exists |
 | storeReleased | false | no store evidence |

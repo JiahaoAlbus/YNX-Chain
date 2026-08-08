@@ -43,3 +43,11 @@ Browser proof uses process-derived port ranges, a bounded 45-second health wait,
 ## 2026-08-01 — evidence checkpoint does not authorize a release
 
 Evidence checkpoint `06f8b2bce60780ca27cf71a0705bfdf060dc57f6` is pushed and remote-equal. GitHub returned no PR or workflow runs for that commit, and the release list contained no current-source Calendar release. This checkpoint freezes truthful evidence; it does not satisfy CI, artifact, SBOM, provenance, install or signing gates.
+
+## 2026-08-08 — exact-build Testnet publication supersedes the old route finding
+
+Website `/dapp/calendar`, the owner registry and the direct Testnet Web/API runtime are now public. External health and served-asset checks bind runtime `fb98415c90379f9819eaebcf30292fafda132ca3`; `websitePublished` and `deployedPublic` are therefore true. This does not authorize production scheduling, native package, signing, store, Mail, AI or Data Fabric claims.
+
+## 2026-08-08 — mobile week is seven days in one viewport
+
+The 390px week view no longer hides days behind horizontal scrolling. Browser proof requires seven rendered headers and rejects any timeline scroll width beyond the viewport; long event labels truncate visually but retain their accessible/event-detail names.

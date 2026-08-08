@@ -2,8 +2,8 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "branch": "codex/final-calendar",
-  "commit": "cf92caa3de1e4cba912813958523f41150f12c1a",
-  "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
+  "commit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
   "artifactSourceCommit": null,
   "version": "0.2.0-testnet-public",
   "releaseChannel": "public-testnet-preview",
@@ -68,7 +68,7 @@
   "publicProbe": {
     "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
     "finalUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
-    "observedAt": "2026-08-08T12:18:00Z",
+    "observedAt": "2026-08-08T18:57:46Z",
     "httpStatus": 200,
     "contentMatch": true,
     "observedTitle": "YNX Calendar",
@@ -163,6 +163,19 @@
       "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
       "gate": "go test -race ./internal/calendar ./apps/calendar",
       "result": "pass"
+    },
+    {
+      "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+      "gate": "390px compact week browser proof and public runtime deployment",
+      "result": "pass",
+      "details": {
+        "visibleDayHeaders": 7,
+        "horizontalOverflow": 0,
+        "consoleErrors": 0,
+        "runtime": "https://calendar-testnet.43.153.202.237.sslip.io/",
+        "binarySha256": "18d03deb535fd2df14ea755bdfa34bdd8604d51e9b16c485ad1cc990717ba0fe",
+        "rollbackBackup": "/var/backups/ynx-chain/calendar-before-fb98415c"
+      }
     }
   ],
   "historicalPreview": {
@@ -237,5 +250,5 @@
     "backup confidentiality encryption, offsite retention and independent key escrow remain pending Security/SRE acceptance",
     "repository-wide Go preflight has non-Calendar failures retained in dependency acceptance"
   ],
-  "generatedAt": "2026-08-08T12:18:00Z"
+  "generatedAt": "2026-08-08T18:57:46Z"
 }

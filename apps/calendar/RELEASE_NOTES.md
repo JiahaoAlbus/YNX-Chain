@@ -2,8 +2,8 @@
 
 ## Current source candidate
 
-Source commit: `b00f32da16218edb90fcc9f9b504607e374077ce`  
-Channel: local-tested, unreleased  
+Source commit: `fb98415c90379f9819eaebcf30292fafda132ca3`
+Channel: public Testnet Web preview
 Overall goal: ACTIVE / FREEZE
 
 ### Added
@@ -16,6 +16,8 @@ Overall goal: ACTIVE / FREEZE
 - Operator CLI for backup and isolated restore.
 - Recovery tests, runbook, migration/rollback evidence, SLO/capacity plan, observability plan and unit-economics model.
 - Integration test vector `CAL-X-013` for Security/SRE recovery acceptance.
+- Canonical Wallet public two-user lifecycle and bounded concurrent read proof.
+- Compact 390px day/week/month layouts; week view shows all seven days without horizontal scrolling.
 
 ### Verified
 
@@ -29,6 +31,7 @@ Overall goal: ACTIVE / FREEZE
 - `npm run smoke`
 - `npm run browser:proof`
 - Local operator backup and restore drill with matching state SHA-256 and live state unchanged.
+- Public health, served CSS/JavaScript and exact binary build identity for `fb98415c`; rollback backup retained.
 
 ### Compatibility
 
@@ -36,10 +39,10 @@ Existing authenticated state without an explicit payload version loads as schema
 
 ### Security and recovery boundary
 
-Backups are authenticated but not encrypted. Verification depends on retained Calendar HMAC key material. Encrypted offsite retention, independent key escrow, representative production RTO/RPO, release SBOM/provenance, central Testnet integration, current-source hosted artifacts and public deployment remain unproved.
+Backups are authenticated but not encrypted. Verification depends on retained Calendar HMAC key material. Encrypted offsite retention, independent key escrow, representative production RTO/RPO, release SBOM/provenance, full central Testnet integration and current-source native artifacts remain unproved. The Web/API runtime is public but explicitly not a production scheduling service.
 
 ### Release truth
 
-`implementedLocal` and `testedLocal` are true. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` and `storeReleased` remain false for the current source.
+`implementedLocal`, `testedLocal`, `websitePublished` and `deployedPublic` are true. `installedLocal`, `integratedCentral`, `deployedStaging`, `downloadHosted`, `productionSigned` and `storeReleased` remain false for the current source.
 
 Historical `e227c4f0505537b19f4588ea26478c54518f0a4c` preview artifacts remain test-only evidence and are not current-source release proof.

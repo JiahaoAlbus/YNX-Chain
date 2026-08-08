@@ -5,7 +5,7 @@
   "phase": "FREEZE",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar",
   "branch": "codex/final-calendar",
-  "runtimeSourceSha": "b00f32da16218edb90fcc9f9b504607e374077ce",
+  "runtimeSourceSha": "fb98415c90379f9819eaebcf30292fafda132ca3",
   "evidenceCheckpointSha": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
   "evidenceCheckpointLocalSha": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
   "evidenceCheckpointRemoteSha": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
@@ -44,15 +44,16 @@
   "artifacts": [],
   "publicRoutes": [
     {
-      "url": "https://ynxweb4.com/calendar",
-      "finalUrl": "https://www.ynxweb4.com/dapp/calendar",
-      "observedAt": "2026-08-01T14:52:31Z",
+      "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
+      "finalUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
+      "observedAt": "2026-08-08T18:57:46Z",
       "httpStatus": 200,
-      "contentMatch": false,
-      "calendarSpecificH1": false,
-      "observedTitle": "YNX Chain — Web4 Layer-1 Ecosystem",
-      "observedCanonical": "https://ynxweb4.com/",
-      "classification": "redirected generic homepage shell; not Calendar publication evidence"
+      "contentMatch": true,
+      "calendarSpecificH1": true,
+      "observedTitle": "YNX Calendar",
+      "observedCanonical": "https://calendar-testnet.43.153.202.237.sslip.io/",
+      "buildCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+      "classification": "direct public Testnet Calendar Web/API runtime"
     }
   ],
   "completed": [
@@ -74,16 +75,16 @@
     "central dependency acceptance and shared Testnet",
     "Security/SRE encrypted retention and independent key escrow",
     "current-source install, SBOM, provenance and immutable hosted artifacts",
-    "real Calendar Website page and public canonical probes",
+    "auxiliary Website support/privacy/security/status route probes",
     "representative capacity, RTO/RPO and unit economics"
   ],
   "blockers": [
     "CAL-BLOCK-SEC-001",
     "CAL-BLOCK-INT-001",
     "CAL-BLOCK-DEPS-001",
-    "CAL-BLOCK-WEB-001",
+    "CAL-WEB-FOLLOWUP-001",
     "CAL-BLOCK-REL-001"
   ],
-  "nextAction": "Submit the Calendar integration contract and CAL-X-013 to Integration and Security/SRE; keep public and release states false until central, artifact and canonical Website evidence exists.",
-  "updatedAt": "2026-08-01T15:13:07Z"
+  "nextAction": "Preserve exact-build public runtime and Website truth while completing Mail, AI, Data Fabric, Security/SRE and current-source native release gates.",
+  "updatedAt": "2026-08-08T18:57:46Z"
 }

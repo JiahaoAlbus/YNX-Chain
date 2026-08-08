@@ -1,16 +1,16 @@
 # YNX Calendar evidence index
 
-Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
+Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
 
 | Evidence area | Authoritative file or command | Status |
 |---|---|---|
 | Release truth | `apps/calendar/product-release.json`, `product-release.json` | current-source states recorded; public/release states remain false where unproved |
-| Public package | `public-product-metadata.json` | Website handoff-ready; deployment unverified |
+| Public metadata | `public-product-metadata.json` | Website and exact-build Testnet Web runtime verified; current-source native downloads absent |
 | Integration contract | `release/integration/calendar-contract.json` | local-tested proposal; central acceptance pending |
 | Cross-product vectors | `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json` | CAL-X-001 through CAL-X-013 |
 | Dependency acceptance | `docs/integration/DEPENDENCY_ACCEPTANCE.md` | central owners and recovery conditions recorded |
 | Integration handoff | `docs/integration/INTEGRATION_HANDOFF.md` | current runtime and recovery boundary recorded |
-| Website handoff | `docs/integration/WEBSITE_INTEGRATION_HANDOFF.md` | official `/calendar` handoff; public deploy pending |
+| Website handoff | `docs/integration/WEBSITE_INTEGRATION_HANDOFF.md` | `/dapp/calendar` and direct Calendar runtime public; auxiliary route probes continue |
 | Full-goal coverage | `.ai-bridge/full-goal-coverage.json` | machine-readable ACTIVE coverage |
 | Runtime implementation | `internal/calendar/`, `apps/calendar/` | implementedLocal true |
 | State operator | `apps/calendar/statectl/main.go` | local-tested backup/restore CLI |
@@ -41,6 +41,6 @@ npm --prefix apps/calendar run browser:proof
 
 ## Public evidence rule
 
-Only `ynxweb4.com` may be used for YNX Calendar product, docs, status, support, canonical, Open Graph, JSON-LD and public evidence. `huangjeo.com` is the Founder website. Valid `mcp36.huangjeo.com` references are MCP infrastructure only.
+`ynxweb4.com` remains the official product/docs/status/support authority. The temporary direct Testnet runtime at `calendar-testnet.43.153.202.237.sslip.io` is valid exact-build operational evidence and must be visibly classified as a Testnet preview, not a replacement brand or production domain. `huangjeo.com` is the Founder website; valid `mcp36.huangjeo.com` references are MCP infrastructure only.
 
 A Website handoff, local screenshot, successful build, historical release, or HTTP 200 is not proof of current public deployment. Current-source public proof requires the Website deployment commit, canonical page content, release-state truth, route probes and immutable current-source artifact links where applicable.

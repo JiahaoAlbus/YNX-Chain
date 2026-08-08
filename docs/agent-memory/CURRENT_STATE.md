@@ -1,18 +1,18 @@
 # YNX Calendar current state
 
-Updated: 2026-08-01T15:13:07Z
+Updated: 2026-08-08T18:57:46Z
 
 - Product: 36 — YNX Calendar
 - Product ID: `com.ynx.calendar`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar`
 - Branch: `codex/final-calendar`
-- Runtime source SHA: `b00f32da16218edb90fcc9f9b504607e374077ce`
+- Runtime source SHA: `fb98415c90379f9819eaebcf30292fafda132ca3`
 - Evidence checkpoint SHA: `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`
 - Evidence checkpoint local SHA: `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`
 - Evidence checkpoint remote SHA: `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`
 - `origin/main` SHA observed during recovery: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
 - Ahead / Behind at evidence checkpoint: `0 / 0`
-- The evidence checkpoint was committed and pushed; this file is the subsequent docs-only final-state update.
+- The exact runtime source and later evidence updates are committed and pushed on the owner branch.
 - Current phase: FREEZE
 - Long-term status: ACTIVE
 
@@ -31,6 +31,8 @@ Updated: 2026-08-01T15:13:07Z
 - `git diff --check`
 - `node --check tests/browser-proof.cjs`
 - operator backup and isolated restore drill
+- 390px compact week proof: seven visible day headers, zero horizontal overflow and zero console errors
+- external health and served-asset checks against exact public build `fb98415c`
 
 ## GitHub
 
@@ -53,10 +55,11 @@ Updated: 2026-08-01T15:13:07Z
 ## Public deployment
 
 - Official product domain: `ynxweb4.com`
-- Canonical candidate: `https://ynxweb4.com/calendar`
-- Probe on 2026-08-01: `https://ynxweb4.com/calendar` redirected to `https://www.ynxweb4.com/dapp/calendar` and returned HTTP 200, but the title remained the generic YNX Chain homepage, no Calendar-specific H1 was present, and canonical still pointed to `https://ynxweb4.com/`
-- `websitePublished`: false
-- `deployedPublic`: false
+- Product route: `https://www.ynxweb4.com/dapp/calendar`
+- Direct Testnet runtime: `https://calendar-testnet.43.153.202.237.sslip.io/`
+- Public runtime health reports exact build `fb98415c90379f9819eaebcf30292fafda132ca3`; public CSS/JavaScript match the seven-day compact mobile release
+- `websitePublished`: true
+- `deployedPublic`: true
 - `downloadHosted`: false for current source
 
 ## Completed
@@ -72,19 +75,21 @@ Updated: 2026-08-01T15:13:07Z
 - Release truth and public metadata refresh
 - Integration contract and CAL-X-013 recovery vector
 - Operations, migration, observability, SLO/capacity, unit-economics and evidence documents
+- Public canonical Wallet two-user lifecycle, restart persistence and 100/100 authenticated concurrent reads
+- Seven-day 390px week UI and exact-build public deployment with rollback backup
 
 ## Remaining
 
-- Central Wallet/Auth, AI, Mail and Data Fabric acceptance
+- AI, Mail and Data Fabric acceptance plus shared Integration sign-off; canonical Wallet is accepted for the current flow
 - Integration acceptance of the Calendar contract and CAL-X-013 plus shared Testnet execution
 - Security/SRE backup encryption, independent key escrow, artifact, SBOM and provenance acceptance
 - Current-source install/cold-start and immutable hosted artifacts
-- Real `/calendar` Website page and public content/canonical probes
+- Continue auxiliary support/privacy/security/status route probes and registry synchronization
 - Representative capacity, RTO/RPO and unit-economics measurements
 
 ## Current risks
 
-- HTTP 200 route fallback could be mistaken for Calendar publication
+- The temporary sslip.io runtime must not be mistaken for a production domain or production scheduling guarantee
 - Authenticated backups are not encrypted
 - Backup verification depends on retained Calendar HMAC key material
 - Current single-file state store is not multi-instance or large-scale evidence

@@ -1,10 +1,10 @@
 # YNX Calendar unit economics
 
-Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
+Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
 
 ## Current evidence boundary
 
-Calendar has no accepted staging or public workload, no provider invoices tied to active users, no production support load, and no revenue. Therefore no cost-per-user, gross margin, conversion, revenue or sustainable-scale claim is available.
+Calendar has a public Testnet runtime but no representative measured workload, provider invoices tied to active users, production support load or revenue. Therefore no cost-per-user, gross margin, conversion, revenue or sustainable-scale claim is available.
 
 ## Cost model
 
@@ -44,7 +44,7 @@ Calendar currently has no approved monetization. Any future subscription, team p
 
 ## Testnet budget gate
 
-Before public Testnet, define:
+Before expanding the public Testnet beyond the current bounded preview, define:
 
 - monthly user and event budget;
 - AI request and token caps;

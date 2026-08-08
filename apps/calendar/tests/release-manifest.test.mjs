@@ -43,7 +43,7 @@ test("Calendar release record exposes every acceptance state and evidence field"
 
 test("current source and historical preview artifacts remain separated", () => {
   assert.equal(release.branch, "codex/final-calendar");
-  assert.equal(release.commit, "cf92caa3de1e4cba912813958523f41150f12c1a");
+  assert.equal(release.commit, "fb98415c90379f9819eaebcf30292fafda132ca3");
   assert.equal(release.installedLocal, false);
   assert.equal(release.downloadHosted, false);
   assert.deepEqual(release.artifactUrls, []);
@@ -102,7 +102,7 @@ test("public metadata is publication-safe and keeps release claims evidence-boun
   const serialized = JSON.stringify(publicMetadata);
   for (const forbidden of ["/Users/", "Worktree", "localhost", "127.0.0.1", "example.com"])
     assert.equal(serialized.includes(forbidden), false, `public metadata leaks ${forbidden}`);
-  assert.equal(publicMetadata.canonicalRoute, "/calendar");
+  assert.equal(publicMetadata.canonicalRoute, "/dapp/calendar");
   assert.equal(publicMetadata.sourceCommit, release.commit);
   assert.equal(publicMetadata.websitePublished, true);
   assert.equal(publicMetadata.deployedPublic, true);

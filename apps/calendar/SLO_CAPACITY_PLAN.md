@@ -1,10 +1,10 @@
 # YNX Calendar SLO and capacity plan
 
-Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
+Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
 
 ## Evidence boundary
 
-No production workload, staging deployment or public runtime is available. The values below are either direct local measurements or pre-acceptance targets. Targets are not achieved SLOs until measured on accepted infrastructure with representative data and concurrency.
+A public Testnet Web/API runtime is available, but no production workload or separate staging deployment exists. The values below are direct local/public control checks or pre-acceptance targets. Targets are not achieved SLOs until measured on accepted infrastructure with representative data and sustained concurrency.
 
 ## Direct local measurements
 
@@ -16,6 +16,8 @@ No production workload, staging deployment or public runtime is available. The v
 | Local empty-state restore command | 61 ms | isolated local filesystem target |
 | Browser proof | zero console errors | one desktop and one mobile scenario |
 | Service smoke | pass | single local process and bounded scenario |
+| Public authenticated concurrent reads | 100/100 | two canonical Wallet users against exact public build `cf92caa3`; control-path concurrency only |
+| Current public exact-build probe | pass | build `fb98415c`, HTTP 200, rollback backup retained |
 
 These measurements are not representative p50/p95/p99 latency, throughput, concurrency or production RTO/RPO.
 
@@ -57,7 +59,7 @@ These measurements are not representative p50/p95/p99 latency, throughput, concu
 
 ## Scaling risks
 
-The current single authenticated state file serializes updates under one mutex and rewrites the state envelope for each committed mutation. This is appropriate only for the current local Testnet candidate. It is not evidence of multi-instance safety, horizontal scaling, high write throughput or large state efficiency.
+The current single authenticated state file serializes updates under one mutex and rewrites the state envelope for each committed mutation. The server bounds public in-flight requests, and the 100/100 read probe proves a limited concurrent control path, not multi-instance safety, horizontal scaling, high write throughput or large-state efficiency.
 
 Before staging acceptance, Calendar needs an explicit storage migration decision, transaction/locking semantics, backup consistency point, worker ownership, idempotent provider delivery, and rollback plan. A database or distributed store may only be adopted through a versioned migration with full compatibility and restore evidence.
 

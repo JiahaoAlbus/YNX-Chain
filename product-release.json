@@ -3,7 +3,7 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "owner": "36-calendar",
-  "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
+  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
   "releaseRecord": "apps/calendar/product-release.json",
   "integrationContract": "release/integration/calendar-contract.json",
   "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
@@ -46,6 +46,8 @@
     "canonicalWalletTwoUserLifecycle": "public-pass",
     "restartPersistence": "public-pass",
     "authenticatedConcurrentReads": "100/100",
+    "mobileWeekVisibleDays": "7/7 without horizontal overflow",
+    "publicBinarySha256": "18d03deb535fd2df14ea755bdfa34bdd8604d51e9b16c485ad1cc990717ba0fe",
     "currentSourceInstallProof": false,
     "currentSourceHostedArtifacts": false
   },
@@ -59,5 +61,5 @@
       "Trust signer-file permission test"
     ]
   },
-  "generatedAt": "2026-08-08T12:18:00Z"
+  "generatedAt": "2026-08-08T18:57:46Z"
 }

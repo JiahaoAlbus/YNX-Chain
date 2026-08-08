@@ -1,12 +1,12 @@
 # YNX Calendar UI design audit — 2026-07-18
 
-Status: local candidate, not release-complete. The current run used the checked-in browser proof against a real ephemeral Calendar service, approved a real event preview and opened every screenshot listed below.
+Status: public Testnet Web preview, not production release-complete. The current run used the checked-in browser proof against a real ephemeral Calendar service, approved a real event preview and inspected the public exact-build CSS/JavaScript.
 
 ## Information architecture and behavior
 
 - Desktop uses a time-boundary/sidebar plus timeline. Day, week and month are now real selectable views, not disabled decoration; month displays bounded recurrence instances.
 - Create/update/cancel all flow through preview → explicit approval. Event detail exposes RSVP, sharing, reminder, recurrence, conflict override, revert and AI suggestion boundaries.
-- Mobile keeps the timeline horizontally scrollable and preserves a visible event plus floating create action.
+- Mobile fits all seven week columns into 390px without horizontal scrolling, preserves hour labels, a visible event and the floating create action. Day and month views use the same bounded viewport.
 
 ## Tokens and platform behavior
 
@@ -34,10 +34,10 @@ Status: local candidate, not release-complete. The current run used the checked-
 2. Changed the success proof to scroll the real approved event into view; the earlier empty top-of-day grid did not prove success.
 3. Removed editorial serif typography and added dark/high-contrast/forced-colors coverage.
 4. Added account export, session revocation and exact-phrase deletion UI.
-5. Added mobile/tablet/RTL/large-text evidence and inspected event cropping/scroll behavior.
+5. Added mobile/tablet/RTL/large-text evidence and replaced the partially hidden horizontal week strip with a verified seven-day compact grid.
 
 ## Remaining visual/release limits
 
 - Native catalogs contain all 12 locales and Arabic RTL. The Web companion mirrors RTL geometry but its Chinese interface copy is not fully translated; localization acceptance remains incomplete.
-- Mobile week view intentionally scrolls horizontally; a dedicated compact multi-day mode remains a polish opportunity.
-- Immutable unsigned preview downloads now exist. No staging URL, public product URL, production signing or store release exists; iOS evidence is Simulator-only.
+- Compact mobile event cards intentionally truncate long titles; the full title remains available through the event detail control and accessible name.
+- A public Web/API preview exists. Current-source native downloads, production signing and store release do not; iOS evidence is Simulator-only.

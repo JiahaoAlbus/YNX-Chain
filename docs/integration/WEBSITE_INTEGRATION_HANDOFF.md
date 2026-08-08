@@ -3,26 +3,26 @@
 Consumer: `28-website`  
 Reviewers: `29-integration`, `30-security-platform`  
 Metadata source: `public-product-metadata.json`  
-Runtime source: `b00f32da16218edb90fcc9f9b504607e374077ce`
+Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
 
 ## Canonical package
 
-- Route: `/calendar`
+- Route: `/dapp/calendar`
 - Title: `YNX Calendar — Private scheduling with explicit approval`
 - H1: `Your time, clearly under your control`
 - Primary color: `#002FA7`
-- Current runtime status: local-tested, not publicly deployed
+- Current runtime status: public Testnet Web preview; not a production scheduling service
 - Current-source downloads: none
-- Website published: false
-- Public runtime deployed: false
+- Website published: true
+- Public runtime deployed: true
 
 Website must consume the exact feature, FAQ, risk, locale, screenshot and structured-data fields from `public-product-metadata.json`. It must not infer that a passing local build is a deployment or that an older preview package represents the current source.
 
-## Current public probe
+## Current public proof
 
-On 2026-08-01, `https://ynxweb4.com/calendar` redirected to `https://www.ynxweb4.com/dapp/calendar` and returned HTTP 200, but the HTML remained the generic YNX Chain homepage shell: title `YNX Chain — Web4 Layer-1 Ecosystem`, no Calendar-specific H1, and canonical `https://ynxweb4.com/`. This is a redirected route fallback, not a Calendar product page. `websitePublished` and `deployedPublic` therefore remain false.
+The Website now publishes the Calendar-specific product/status route at `https://www.ynxweb4.com/dapp/calendar`, and the direct public runtime is `https://calendar-testnet.43.153.202.237.sslip.io/`. On 2026-08-08T18:57:46Z the runtime returned HTTP 200 and health reported exact build `fb98415c90379f9819eaebcf30292fafda132ca3`. Its public CSS and JavaScript also matched the compact seven-day mobile release. This proves Website publication and the Testnet Web runtime; it does not prove native package hosting, production scheduling, Mail delivery, AI/Data Fabric acceptance, production signing or store release.
 
-Recovery condition: deploy Calendar-specific SSR/SSG content with the exact title, description, H1, risks, release-state truth and canonical `https://ynxweb4.com/calendar`, then probe visible content, Open Graph, JSON-LD, robots/sitemap and required support/privacy/security/status routes.
+The legacy `/calendar` convenience redirect may remain, but Website must keep `/dapp/calendar` content and release-state truth synchronized with the owner registry. A future canonical-route change still requires exact title, description, H1, Open Graph, JSON-LD, robots/sitemap and support/privacy/security/status probes.
 
 ## Asset handoff
 
@@ -56,7 +56,7 @@ The historical release `ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f` is a r
 - `/security/calendar`
 - `/status/calendar`
 
-These are proposed canonical routes, not proof that the pages exist. Website must publish and probe them before setting `websitePublished=true`.
+These routes are the continuing support/privacy/security/status contract. Website publication is true because the product route and release registry are public; each auxiliary route still requires its own probe before it is represented as independently verified.
 
 ## Structured data
 
@@ -72,4 +72,4 @@ Use `SoftwareApplication` with `applicationCategory=ProductivityApplication` and
 6. Desktop and 390px layouts pass keyboard, focus, contrast, reduced-motion and RTL checks.
 7. Website commit, public URL probes and Security/SRE acceptance are written back to Calendar evidence.
 
-Until all gates pass, Website must render Calendar as a locally tested product in active integration, not as an already deployed or production-signed service.
+Until all gates pass, Website must render Calendar as a public Testnet Web preview in active integration, never as a production-signed native release or production scheduling service.

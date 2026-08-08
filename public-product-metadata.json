@@ -3,8 +3,8 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
-  "canonicalRoute": "/calendar",
-  "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
+  "canonicalRoute": "/dapp/calendar",
+  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
   "title": "YNX Calendar — Private scheduling with explicit approval",
   "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
   "h1": "Your time, clearly under your control",
@@ -49,7 +49,8 @@
     "The current source supports occurrence-only, this-and-following and entire-series recurrence mutation with stable lineage and explicit approval.",
     "Calendar state payload schema version 1 now has deterministic authenticated backup and isolated restore verification.",
     "Restore rejects tampered, wrong-product, incompatible-version, stale, absolute, path-escaping and symbolic-link inputs.",
-    "Current source passes Calendar unit, Race, Vet, Web, browser, build and service smoke gates."
+    "Current source passes Calendar unit, Race, Vet, Web, browser, build and service smoke gates.",
+    "The 390px week view displays all seven days without horizontal scrolling; day and month views remain available."
   ],
   "risksAndLimitations": [
     "The public runtime is a Testnet preview, not a production scheduling service.",
@@ -85,14 +86,14 @@
       "id": "calendar-desktop",
       "publicPath": "/products/calendar/screenshots/calendar-desktop.png",
       "status": "local-proof-unhosted",
-      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
       "alt": "YNX Calendar desktop scheduling interface"
     },
     {
       "id": "calendar-mobile",
       "publicPath": "/products/calendar/screenshots/calendar-mobile.png",
       "status": "local-proof-unhosted",
-      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
       "alt": "YNX Calendar mobile scheduling interface"
     }
   ],
@@ -156,11 +157,11 @@
     "requiredReviewers": ["29-integration", "30-security-platform"],
     "publishConditions": [
       "host approved icon, logo and screenshots",
-      "preserve false runtime and release states until direct proof exists",
+      "preserve the verified public Web state and keep unproved native/production states false",
       "distinguish current source from historical preview downloads",
       "publish canonical, support, privacy, security and status routes",
       "record Website deployment commit and public probes"
     ]
   },
-  "generatedAt": "2026-08-08T12:18:00Z"
+  "generatedAt": "2026-08-08T18:57:46Z"
 }

@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "productId": "com.ynx.calendar",
   "contractVersion": "1.0.0-draft",
-  "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
-  "generatedAt": "2026-07-29T02:50:09Z",
+  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "generatedAt": "2026-08-08T18:57:46Z",
   "vectors": [
     {
       "id": "CAL-X-001",
       "name": "two-user invitation lifecycle",
       "owners": ["36-calendar", "25-mail", "02-wallet-auth", "29-integration"],
-      "status": "local-calendar-pass-central-pending",
+      "status": "public-calendar-wallet-pass-mail-pending",
       "preconditions": ["Alice and Bob have accepted Wallet/Auth Calendar sessions", "Mail delivery endpoint is accepted"],
       "steps": [
         "Alice previews and approves an event inviting @bob",
@@ -33,7 +33,7 @@
       "id": "CAL-X-002",
       "name": "wallet replay and binding rejection",
       "owners": ["36-calendar", "02-wallet-auth"],
-      "status": "local-pass-central-pending",
+      "status": "public-wallet-flow-pass-negative-suite-local-pass",
       "preconditions": ["accepted verifier contract"],
       "steps": [
         "submit a valid signed Calendar authorization tuple",
@@ -143,7 +143,7 @@
       "name": "current-source platform artifacts",
       "owners": ["36-calendar", "30-security-platform"],
       "status": "build-pass-install-and-host-pending",
-      "preconditions": ["source commit b00f32da16218edb90fcc9f9b504607e374077ce"],
+      "preconditions": ["source commit fb98415c90379f9819eaebcf30292fafda132ca3"],
       "steps": ["build Web/Go, Android debug, iOS simulator, and macOS test-only artifacts", "generate SBOM and provenance", "install and cold-start", "restart and resolve callback", "publish immutable hashes and bytes"],
       "expected": ["every artifact names exact source commit", "signing class is truthful", "no old e227c4f artifact is presented as current", "productionSigned remains false without production evidence"],
       "localEvidence": ["npm run build", "npm run build:android", "npm run check:ios", "npm run smoke", "npm run browser:proof"],
@@ -153,12 +153,12 @@
       "id": "CAL-X-012",
       "name": "public website truth",
       "owners": ["36-calendar", "28-website", "29-integration", "30-security-platform"],
-      "status": "handoff-pending",
+      "status": "public-product-pass-auxiliary-routes-pending",
       "preconditions": ["public metadata consumed by Website"],
-      "steps": ["publish /calendar page", "show current release states", "link only verified downloads", "probe canonical metadata, FAQ, structured data, support/privacy/security/status"],
+      "steps": ["publish /dapp/calendar page", "show current release states", "link only verified downloads", "probe canonical metadata, FAQ, structured data, support/privacy/security/status"],
       "expected": ["websitePublished and deployedPublic are separate", "no worktree, branch, local path, internal host, or unsupported production claim is exposed", "current source and historical preview artifacts are visibly distinguished"],
-      "localEvidence": [],
-      "centralEvidenceRequired": ["Website deployment commit", "public URL probes", "Security/SRE acceptance"]
+      "localEvidence": ["public-product-metadata.json", "apps/calendar/product-release.json"],
+      "centralEvidenceRequired": ["auxiliary support/privacy/security/status route probes", "Security/SRE native release acceptance"]
     },
     {
       "id": "CAL-X-013",
