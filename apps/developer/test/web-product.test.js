@@ -18,6 +18,14 @@ test("visual foundation is Klein blue and responsive without benchmark branding"
   assert.doesNotMatch((await read("index.html")).toLowerCase(), /visual studio code|vscode|remix logo/);
 });
 
+test("Monaco editor is bundled with language models, completion and worker CSP", async () => {
+  const html=await read("index.html"),app=await read("app.js"),build=await read("scripts/build.mjs"),server=await read("scripts/server.mjs"),desktop=await read("desktop/server.mjs");
+  assert.match(html,/monaco\/vs\/loader\.js/); assert.match(html,/data-editor-engine="monaco"/);
+  for(const value of ["solidity","cpp","typescript","javascript","python","java","csharp","go","rust","shell","sql","yaml"])assert.match(app,new RegExp(`\\b${value}\\b`));
+  assert.match(app,/registerCompletionItemProvider\("solidity"/);assert.match(app,/registerCompletionItemProvider\("cpp"/);assert.match(app,/bracketPairColorization/);assert.match(app,/quickSuggestions/);assert.match(app,/tabCompletion/);
+  assert.match(build,/node_modules\/monaco-editor\/min\/vs/);for(const source of [server,desktop])assert.match(source,/worker-src 'self' blob:/);
+});
+
 test("YNX AI Build exposes plan, permission, provider, checkpoint and audit controls", async () => {
   const html=await read("index.html"), app=await read("app.js");
   for(const evidence of ["Preview plan","Approved context","Official Grok Build ACP sidecar","YNX hosted open model","Session-only API key","PERMISSIONS","Allow one project write","exportAudit","checkpoint"]) assert.match(html+app,new RegExp(evidence,"i"));

@@ -25,6 +25,64 @@ const deployment = new WalletDeployment({ wallet: globalThis.ynxWallet, chainCli
 const apiStudio = new OpenAPIStudio({ defaultOrigin: location.origin, allowedOrigins: [location.origin], credentialBroker: globalThis.ynxCredentialBroker });
 const aiBuildPersistence = new AIBuildPersistence(localStorage);
 const state = { project: null, path: null, artifact: null, aiPrepared: null, aiResult: null, aiBuild: null, aiProposalId: null, deployReview: null, apiPreview: null, apiConnector: "oracle", saveTimer: null };
+let monacoAPI = null;
+let codeEditor = null;
+const editorModels = new Map();
+
+const languageForPath = (path = "") => ({
+  ".sol": "solidity", ".js": "javascript", ".mjs": "javascript", ".cjs": "javascript",
+  ".ts": "typescript", ".tsx": "typescript", ".jsx": "javascript", ".json": "json",
+  ".html": "html", ".css": "css", ".scss": "scss", ".md": "markdown",
+  ".c": "c", ".h": "cpp", ".cc": "cpp", ".cpp": "cpp", ".cxx": "cpp", ".hpp": "cpp",
+  ".py": "python", ".java": "java", ".cs": "csharp", ".go": "go", ".rs": "rust",
+  ".sh": "shell", ".bash": "shell", ".sql": "sql", ".xml": "xml", ".yaml": "yaml", ".yml": "yaml"
+})[Object.keys({ ".sol":1,".js":1,".mjs":1,".cjs":1,".ts":1,".tsx":1,".jsx":1,".json":1,".html":1,".css":1,".scss":1,".md":1,".c":1,".h":1,".cc":1,".cpp":1,".cxx":1,".hpp":1,".py":1,".java":1,".cs":1,".go":1,".rs":1,".sh":1,".bash":1,".sql":1,".xml":1,".yaml":1,".yml":1 }).find((extension) => path.toLowerCase().endsWith(extension))] || "plaintext";
+
+function editorText() { return codeEditor?.getValue() ?? $("#editor").dataset.editorValue ?? $("#editor").textContent ?? ""; }
+function modelKey(path) { return `${state.project?.id || "detached"}:${path}`; }
+function setEditorText(value, path) {
+  const host = $("#editor"); host.dataset.editorValue = value;
+  if (!codeEditor || !monacoAPI) { host.textContent = value; return; }
+  const key = modelKey(path); let model = editorModels.get(key);
+  if (!model) {
+    const uri = monacoAPI.Uri.from({ scheme: "ynx-project", authority: state.project?.id || "detached", path: `/${path}` });
+    model = monacoAPI.editor.getModel(uri) || monacoAPI.editor.createModel(value, languageForPath(path), uri);
+    editorModels.set(key, model);
+  } else if (model.getValue() !== value) model.setValue(value);
+  codeEditor.setModel(model);
+}
+
+function registerSolidityLanguage(monaco) {
+  if (monaco.languages.getLanguages().some((item) => item.id === "solidity")) return;
+  monaco.languages.register({ id: "solidity", extensions: [".sol"], aliases: ["Solidity", "sol"] });
+  monaco.languages.setMonarchTokensProvider("solidity", {
+    defaultToken: "", tokenPostfix: ".sol",
+    keywords: ["pragma","solidity","contract","interface","library","function","constructor","modifier","event","error","struct","enum","mapping","address","bool","string","bytes","uint","uint256","int","int256","public","private","internal","external","view","pure","payable","returns","return","if","else","for","while","emit","revert","require","assert","memory","storage","calldata","immutable","constant","override","virtual","is","new","delete","this","super"],
+    tokenizer: { root: [[/[a-zA-Z_$][\w$]*/, { cases: { "@keywords": "keyword", "@default": "identifier" } }], [/0x[0-9a-fA-F]+/, "number.hex"], [/\d+(?:\.\d+)?/, "number"], [/"([^"\\]|\\.)*$/, "string.invalid"], [/"/, { token: "string.quote", bracket: "@open", next: "@string" }], [/\/\//, "comment", "@lineComment"], [/\/\*/, "comment", "@comment"], [/[{}()\[\]]/, "@brackets"], [/[;,.]/, "delimiter"]], string: [[/[^\\"]+/, "string"], [/\\./, "string.escape"], [/"/, { token: "string.quote", bracket: "@close", next: "@pop" }]], comment: [[/[^/*]+/, "comment"], [/\*\//, "comment", "@pop"], [/[/*]/, "comment"]], lineComment: [[/.*$/, "comment", "@pop"]] }
+  });
+  monaco.languages.setLanguageConfiguration("solidity", { comments: { lineComment: "//", blockComment: ["/*", "*/"] }, brackets: [["{","}"],["[","]"],["(",")"]], autoClosingPairs: [{open:"{",close:"}"},{open:"[",close:"]"},{open:"(",close:")"},{open:'"',close:'"'}] });
+  const words = ["contract","function","constructor","modifier","event","mapping","address","uint256","bytes32","public","private","internal","external","view","pure","payable","returns","memory","storage","calldata","require","revert","emit"];
+  monaco.languages.registerCompletionItemProvider("solidity", { provideCompletionItems(model, position) { const word=model.getWordUntilPosition(position); const range={startLineNumber:position.lineNumber,endLineNumber:position.lineNumber,startColumn:word.startColumn,endColumn:word.endColumn}; return { suggestions: words.map((label)=>({label,kind:monaco.languages.CompletionItemKind.Keyword,insertText:label,range})) }; } });
+}
+
+function registerCppCompletions(monaco) {
+  const words = ["#include","namespace","using","class","struct","template","typename","auto","const","constexpr","public","private","protected","virtual","override","std::string","std::vector","std::cout","std::cin","nullptr","return"];
+  monaco.languages.registerCompletionItemProvider("cpp", { provideCompletionItems(model, position) { const word=model.getWordUntilPosition(position); const range={startLineNumber:position.lineNumber,endLineNumber:position.lineNumber,startColumn:word.startColumn,endColumn:word.endColumn}; return { suggestions: words.map((label)=>({label,kind:monaco.languages.CompletionItemKind.Keyword,insertText:label,range})) }; } });
+}
+
+function initializeCodeEditor() {
+  return new Promise((resolve, reject) => {
+    if (!globalThis.require?.config) { reject(new Error("Monaco loader is unavailable.")); return; }
+    globalThis.require.config({ paths: { vs: "/monaco/vs" } });
+    globalThis.require(["vs/editor/editor.main"], (monaco) => {
+      monacoAPI = monaco; registerSolidityLanguage(monaco); registerCppCompletions(monaco);
+      codeEditor = monaco.editor.create($("#editor"), { value: "", language: "plaintext", automaticLayout: true, ariaLabel: "Source editor", accessibilitySupport: "auto", fontSize: document.documentElement.dataset.textSize === "large" ? 16 : 13, lineHeight: document.documentElement.dataset.textSize === "large" ? 25 : 20, minimap: { enabled: true }, bracketPairColorization: { enabled: true }, guides: { bracketPairs: true, indentation: true }, stickyScroll: { enabled: true }, quickSuggestions: { other: true, comments: false, strings: true }, suggestOnTriggerCharacters: true, tabCompletion: "on", formatOnPaste: true, formatOnType: true, scrollBeyondLastLine: false, theme: document.documentElement.dataset.theme === "dark" ? "vs-dark" : "vs" });
+      codeEditor.onDidChangeModelContent(() => { $("#editor").dataset.editorValue = codeEditor.getValue(); $("#editor").dispatchEvent(new Event("input")); });
+      globalThis.ynxDeveloperEditor = { engine: "monaco", version: "0.55.1", getValue: () => codeEditor.getValue(), focus: () => codeEditor.focus(), supportedLanguageIds: () => monaco.languages.getLanguages().map((item) => item.id).sort() };
+      resolve();
+    }, reject);
+  });
+}
 
 function toast(message) { const item = $("#toast"); item.textContent = message; item.classList.add("show"); setTimeout(() => item.classList.remove("show"), 2500); }
 function localizedErrorMessage(error) { const key = apiMessageKeyForError(error?.code); return key ? i18n.t(key) : errorMessage(error); }
@@ -52,6 +110,8 @@ async function bootstrap() {
   document.documentElement.dataset.textSize=localStorage.getItem("ynx.developer.text-size")||"normal";
   try { state.aiBuild = aiBuildPersistence.load(); } catch { aiBuildPersistence.clear(); }
   configureLanguages(); configureAPIStudio(); bindNavigation(); bindActions(); syncResponsiveSurfaces(); addEventListener("resize",syncResponsiveSurfaces);
+  try { await initializeCodeEditor(); }
+  catch (error) { const host=$("#editor"); host.contentEditable="plaintext-only"; host.setAttribute("role","textbox"); host.addEventListener("input",()=>{host.dataset.editorValue=host.textContent||"";}); toast(`Code editor fallback: ${error.message}`); }
   const projects = await workspace.list();
   if (projects.length) await loadProject(projects.sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0].id);
   renderAIBuild();
@@ -169,9 +229,9 @@ function applyLocale() {
   const output=$("#api-output");
   if(output?.dataset.apiState === "empty") output.textContent=i18n.t("apiEmptyState");
 }
-function applyTheme(theme) { if (theme === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; localStorage.setItem("ynx.developer.theme", theme); $("#theme-toggle")?.setAttribute("data-mode", theme); }
+function applyTheme(theme) { if (theme === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; localStorage.setItem("ynx.developer.theme", theme); $("#theme-toggle")?.setAttribute("data-mode", theme); const dark=theme==="dark"||(theme==="system"&&matchMedia("(prefers-color-scheme: dark)").matches); monacoAPI?.editor.setTheme(dark?"vs-dark":"vs"); }
 function toggleTheme() { const current=localStorage.getItem("ynx.developer.theme")||"system"; applyTheme(current === "system" ? "light" : current === "light" ? "dark" : "system"); toast(`Appearance: ${localStorage.getItem("ynx.developer.theme")}`); }
-function toggleTextSize(){const large=document.documentElement.dataset.textSize!=="large";document.documentElement.dataset.textSize=large?"large":"normal";localStorage.setItem("ynx.developer.text-size",large?"large":"normal");toast(large?"Large interface text enabled":"Standard interface text enabled");}
+function toggleTextSize(){const large=document.documentElement.dataset.textSize!=="large";document.documentElement.dataset.textSize=large?"large":"normal";localStorage.setItem("ynx.developer.text-size",large?"large":"normal");codeEditor?.updateOptions({fontSize:large?16:13,lineHeight:large?25:20});codeEditor?.layout();toast(large?"Large interface text enabled":"Standard interface text enabled");}
 
 async function loadProject(id) {
   state.project = await workspace.get(id); state.path = Object.keys(state.project.files).find((path) => path.endsWith(".sol")) || Object.keys(state.project.files)[0];
@@ -193,13 +253,15 @@ function renderProject() {
 
 function openFile(path, line) {
   if (!state.project || !(path in state.project.files)) return;
-  state.path = path; $("#editor").value = state.project.files[path]; $("#active-tab").textContent = path; renderLines(); renderDiagnostics(); renderProject();
-  if (line) { const editor = $("#editor"); const position = editor.value.split("\n").slice(0, line - 1).join("\n").length + (line > 1 ? 1 : 0); editor.focus(); editor.setSelectionRange(position, position); }
+  state.path = path; setEditorText(state.project.files[path], path); $("#active-tab").textContent = path; renderLines(); renderDiagnostics(); renderProject();
+  if (line && codeEditor) { codeEditor.revealLineInCenter(line); codeEditor.setPosition({ lineNumber: line, column: 1 }); codeEditor.focus(); }
+  else if (line) $("#editor").focus();
 }
 
-function renderLines() { $("#line-numbers").textContent = Array.from({ length: Math.max(1, $("#editor").value.split("\n").length) }, (_, index) => index + 1).join("\n"); }
+function renderLines() { codeEditor?.layout(); }
 function renderDiagnostics() {
-  const list = state.path ? sourceDiagnostics(state.path, $("#editor").value) : []; const container = $("#diagnostics"); container.replaceChildren(); $("#problem-count").textContent = String(list.length);
+  const list = state.path ? sourceDiagnostics(state.path, editorText()) : []; const container = $("#diagnostics"); container.replaceChildren(); $("#problem-count").textContent = String(list.length);
+  if (monacoAPI && codeEditor?.getModel()) { const model=codeEditor.getModel(); monacoAPI.editor.setModelMarkers(model, "ynx-local", list.map((item)=>{const line=Math.max(1,Math.min(item.line,model.getLineCount()));return { startLineNumber:line,startColumn:1,endLineNumber:line,endColumn:Math.max(2,model.getLineMaxColumn(line)),severity:item.severity==="error"?monacoAPI.MarkerSeverity.Error:monacoAPI.MarkerSeverity.Warning,code:item.code,message:item.message };})); }
   if (!list.length) { container.className = "diagnostics empty"; container.textContent = "No local diagnostics. Compile output remains authoritative."; return; }
   container.className = "diagnostics";
   for (const item of list) { const row = node("button", "diagnostic"); row.append(node("span", `severity ${item.severity}`, item.severity), node("span", "", `${item.code} · ${item.message}`), node("span", "muted", `${item.path}:${item.line}`)); row.onclick = () => openFile(item.path, item.line); container.append(row); }
@@ -293,7 +355,6 @@ function bindNavigation() {
 
 function bindActions() {
   $("#editor").addEventListener("input", () => { renderLines(); renderDiagnostics(); $("#save-state").textContent = "Saving…"; clearTimeout(state.saveTimer); state.saveTimer = setTimeout(saveEditor, 350); });
-  $("#editor").addEventListener("scroll", () => { $("#line-numbers").scrollTop = $("#editor").scrollTop; });
   $("#ai-intent").addEventListener("input", updateEstimate);
   $("#create-project").onclick = createProject; $("#import-project").onclick = () => $("#file-import").click(); $("#file-import").onchange = importProject; $("#export-project").onclick = exportProject; $("#new-file").onclick = newFile;
   $("#run-search").onclick = runSearch; $("#create-checkpoint").onclick = checkpoint; $("#revert-checkpoint").onclick = revert;
@@ -331,7 +392,7 @@ async function newFile() {
 
 async function saveEditor() {
   if (!state.project || !state.path) return;
-  try { state.project = await workspace.write(state.project.id, state.path, $("#editor").value); $("#save-state").textContent = "Saved"; renderContext(); }
+  try { state.project = await workspace.write(state.project.id, state.path, editorText()); $("#save-state").textContent = "Saved"; renderContext(); }
   catch (error) { $("#save-state").textContent = "Save failed"; showError(error); }
 }
 

@@ -7,11 +7,12 @@ import { Worker } from "node:worker_threads";
 
 const root = fileURLToPath(new URL(process.env.NODE_ENV === "production" ? "../dist/" : "../", import.meta.url));
 const clientRoot = fileURLToPath(new URL("../../../packages/developer-client/src/", import.meta.url));
+const monacoRoot = fileURLToPath(new URL("../../../node_modules/monaco-editor/min/", import.meta.url));
 const port = Number(process.env.PORT || 4176);
 const releaseVersion = process.env.YNX_DEVELOPER_VERSION || "0.2.0-testnet-preview";
 const sourceCommit = process.env.YNX_DEVELOPER_COMMIT || "development";
 const upstreams = { "/chain": process.env.YNX_DEVELOPER_CHAIN_URL || "http://127.0.0.1:6420", "/ai-gateway": process.env.YNX_DEVELOPER_AI_URL || "http://127.0.0.1:6429", "/app-gateway": process.env.YNX_DEVELOPER_APP_GATEWAY_URL || "http://127.0.0.1:6432" };
-const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
+const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".ttf": "font/ttf", ".webmanifest": "application/manifest+json" };
 const compilerWorker = fileURLToPath(new URL("./compiler-worker.mjs", import.meta.url));
 const aiKey = process.env.YNX_DEVELOPER_AI_KEY || "";
 const localAIURL = (process.env.YNX_DEVELOPER_LOCAL_AI_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
@@ -107,13 +108,14 @@ createServer(async (request, response) => {
   }
   const prefix = Object.keys(upstreams).find((value) => pathname === value || pathname.startsWith(`${value}/`));
   if (prefix) { await proxy(request, response, upstreams[prefix], request.url.slice(prefix.length) || "/"); return; }
-  const base = pathname.startsWith("/client/") ? clientRoot : root;
-  const relative = pathname.startsWith("/client/") ? pathname.slice(8) : pathname === "/" ? "index.html" : pathname.slice(1);
+  const developmentMonaco = pathname.startsWith("/monaco/") && process.env.NODE_ENV !== "production";
+  const base = pathname.startsWith("/client/") ? clientRoot : developmentMonaco ? monacoRoot : root;
+  const relative = pathname.startsWith("/client/") ? pathname.slice(8) : developmentMonaco ? pathname.slice(8) : pathname === "/" ? "index.html" : pathname.slice(1);
   const target = normalize(join(base, relative));
   if (!target.startsWith(base)) { response.writeHead(403).end("Forbidden"); return; }
   try {
     if (!(await stat(target)).isFile()) throw new Error("not file");
-    response.writeHead(200, { "content-type": types[extname(target)] || "application/octet-stream", "cache-control": "no-store", "content-security-policy": "default-src 'self'; connect-src 'self' http://127.0.0.1:* https:; style-src 'self'; script-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'", "x-content-type-options": "nosniff" });
+    response.writeHead(200, { "content-type": types[extname(target)] || "application/octet-stream", "cache-control": pathname.startsWith("/monaco/") ? "public, max-age=31536000, immutable" : "no-store", "content-security-policy": "default-src 'self'; connect-src 'self' http://127.0.0.1:* https:; worker-src 'self' blob:; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'", "x-content-type-options": "nosniff" });
     response.end(await readFile(target));
   } catch { response.writeHead(404, { "content-type": "text/plain; charset=utf-8" }).end("Not found"); }
 }).listen(port, "127.0.0.1", () => console.log(`YNX Developer Web http://127.0.0.1:${port}`));

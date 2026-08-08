@@ -16,6 +16,7 @@
     "undici": "^6.28.0"
   },
   "dependencies": {
+    "monaco-editor": "^0.55.1",
     "solc": "0.8.24"
   },
   "overrides": {

@@ -85,8 +85,7 @@
         <div class="run-actions"><span id="save-state">Saved</span><button id="compile" class="button primary" data-i18n="compile">Compile</button><button id="run-tests" class="button" data-i18n="runTests">Run tests</button><button id="run-task" class="button"><span data-i18n="tasks">Tasks</span> ▾</button></div>
       </div>
       <section class="editor-area" aria-label="Editor">
-        <div class="gutter" id="line-numbers" aria-hidden="true">1</div>
-        <textarea id="editor" spellcheck="false" aria-label="Source editor" placeholder="Create or open a project to edit files."></textarea>
+        <div id="editor" role="code" aria-label="Source editor" tabindex="0" data-editor-engine="monaco" data-editor-value=""></div>
       </section>
       <section class="bottom-panel" aria-label="Output panel">
         <div class="panel-tabs" role="tablist">
@@ -174,6 +173,7 @@
   <dialog id="palette"><form method="dialog"><div class="modal-heading"><strong>Command Palette</strong><button value="cancel" class="icon-button" aria-label="Close">×</button></div><label class="field"><span>Find an action</span><input id="palette-query" autocomplete="off" placeholder="Compile, test, checkpoint, deploy review…"></label><div class="command-list"><button value="cancel" data-command="compile">Compile active Solidity file</button><button value="cancel" data-command="test">Run approved tests</button><button value="cancel" data-command="checkpoint">Create checkpoint</button><button value="cancel" data-command="ai">Open YNX AI Build</button><button value="cancel" data-command="deploy">Review Wallet-only deployment</button></div></form></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
   <input id="file-import" type="file" accept="application/json,.json" hidden>
-  <script type="module" src="/app.js?v=12"></script>
+  <script src="/monaco/vs/loader.js"></script>
+  <script type="module" src="/app.js?v=13"></script>
 </body>
 </html>

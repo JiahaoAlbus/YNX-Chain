@@ -10,7 +10,7 @@ import { spawn } from "node:child_process";
 const root = fileURLToPath(new URL("./web/", import.meta.url));
 const port = Number(process.env.PORT || 4177);
 const upstreams = { "/chain": process.env.YNX_DEVELOPER_CHAIN_URL || "https://developer.ynxweb4.com/chain", "/compiler": process.env.YNX_DEVELOPER_COMPILER_URL || "https://developer.ynxweb4.com/compiler", "/ai-build": process.env.YNX_DEVELOPER_AI_BUILD_URL || "https://developer.ynxweb4.com/ai-build", "/ai-gateway": process.env.YNX_DEVELOPER_AI_URL || "https://developer.ynxweb4.com/ai-gateway", "/app-gateway": process.env.YNX_DEVELOPER_APP_GATEWAY_URL || "https://developer.ynxweb4.com/app-gateway" };
-const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
+const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".ttf": "font/ttf", ".webmanifest": "application/manifest+json" };
 const workspaceRoot = join(homedir(), ".ynx-developer", "workspaces");
 const runtimeNode = process.execPath;
 const npmCLI = process.env.YNX_DEVELOPER_NPM_CLI || join(dirname(process.execPath), "npm", "node_modules", "npm", "bin", "npm-cli.js");
@@ -25,7 +25,7 @@ const server = createServer(async (request, response) => {
   if (!target.startsWith(root)) { response.writeHead(403).end("Forbidden"); return; }
   try {
     if (!(await stat(target)).isFile()) throw new Error("not file");
-    response.writeHead(200, { "content-type": types[extname(target)] || "application/octet-stream", "cache-control": "no-store", "content-security-policy": "default-src 'self'; connect-src 'self' http://127.0.0.1:* https:; style-src 'self'; script-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'", "x-content-type-options": "nosniff" });
+    response.writeHead(200, { "content-type": types[extname(target)] || "application/octet-stream", "cache-control": pathname.startsWith("/monaco/") ? "public, max-age=31536000, immutable" : "no-store", "content-security-policy": "default-src 'self'; connect-src 'self' http://127.0.0.1:* https:; worker-src 'self' blob:; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'", "x-content-type-options": "nosniff" });
     response.end(await readFile(target));
   } catch { response.writeHead(404).end("Not found"); }
 });
