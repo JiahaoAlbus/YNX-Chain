@@ -24,6 +24,7 @@ test("Monaco editor is bundled with language models, completion and worker CSP",
   for(const value of ["solidity","cpp","typescript","javascript","python","java","csharp","go","rust","shell","sql","yaml"])assert.match(app,new RegExp(`\\b${value}\\b`));
   assert.match(app,/registerCompletionItemProvider\("solidity"/);assert.match(app,/registerCompletionItemProvider\("cpp"/);assert.match(app,/bracketPairColorization/);assert.match(app,/quickSuggestions/);assert.match(app,/tabCompletion/);
   assert.match(build,/node_modules\/monaco-editor\/min\/vs/);for(const source of [server,desktop])assert.match(source,/worker-src 'self' blob:/);
+  assert.match(server,/const monacoAsset = pathname\.startsWith\("\/monaco\/"\)/);assert.doesNotMatch(server,/monaco.*NODE_ENV !== "production"/);
 });
 
 test("extension workspace separates editing languages from real removable desktop compilers",async()=>{

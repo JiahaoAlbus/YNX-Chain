@@ -108,9 +108,9 @@ createServer(async (request, response) => {
   }
   const prefix = Object.keys(upstreams).find((value) => pathname === value || pathname.startsWith(`${value}/`));
   if (prefix) { await proxy(request, response, upstreams[prefix], request.url.slice(prefix.length) || "/"); return; }
-  const developmentMonaco = pathname.startsWith("/monaco/") && process.env.NODE_ENV !== "production";
-  const base = pathname.startsWith("/client/") ? clientRoot : developmentMonaco ? monacoRoot : root;
-  const relative = pathname.startsWith("/client/") ? pathname.slice(8) : developmentMonaco ? pathname.slice(8) : pathname === "/" ? "index.html" : pathname.slice(1);
+  const monacoAsset = pathname.startsWith("/monaco/");
+  const base = pathname.startsWith("/client/") ? clientRoot : monacoAsset ? monacoRoot : root;
+  const relative = pathname.startsWith("/client/") ? pathname.slice(8) : monacoAsset ? pathname.slice(8) : pathname === "/" ? "index.html" : pathname.slice(1);
   const target = normalize(join(base, relative));
   if (!target.startsWith(base)) { response.writeHead(403).end("Forbidden"); return; }
   try {
