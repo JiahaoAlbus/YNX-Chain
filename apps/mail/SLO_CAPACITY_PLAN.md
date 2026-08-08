@@ -27,6 +27,14 @@ This is an in-process local baseline. It does not prove central Wallet,
 multi-instance, public-network, Internet-provider, complaint/bounce, or
 production capacity.
 
+The public Testnet process is configured with 128 active request slots and a
+bounded queue of 256. Health and metrics bypass the work queue so operators can
+observe overload. Requests beyond the queue fail with HTTP 429 and
+`Retry-After: 1`; they are never accepted into an unbounded in-memory backlog.
+This is a single-host safety boundary, not evidence of 128 simultaneously active
+mailbox users or horizontal scale. Public load evidence must be recorded after
+deployment.
+
 Backup/restore tests prove authenticated state backup, tamper rejection, restore
 and state equivalence locally. Deployed RTO/RPO remain unmeasured until a
 scheduled remote backup and isolated restore drill are timed.
@@ -40,4 +48,3 @@ scheduled remote backup and isolated restore drill are timed.
   retry latency against the approved sandbox.
 - Connect privacy-safe route/source metrics, traces and alerts to Monitor.
 - Run production-volume backup/restore and record exact RTO/RPO.
-
