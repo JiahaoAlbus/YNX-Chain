@@ -12,7 +12,8 @@
     "check": "npm test && npm run test:native && npm run smoke && npm run gate:source && npm run verify:macos-reproducible",
     "build:macos": "bash scripts/build-macos-app.sh",
     "verify:macos-reproducible": "bash scripts/verify-macos-reproducible.sh",
-    "verify:macos-install": "node scripts/install-macos-evidence.mjs"
+    "verify:macos-install": "node scripts/install-macos-evidence.mjs",
+    "verify:macos-window": "bash scripts/verify-macos-window-visual.sh"
   },
   "ynxEngine": "Apple WebKit via WKWebView; no custom web engine"
 }

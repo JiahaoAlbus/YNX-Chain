@@ -26,6 +26,10 @@ final class TabButton: NSButton { var tabID: UUID? }
     private var activeID: UUID?
     private var selectedLibrary = "history"
     private let defaults = UserDefaults.standard
+    private let defaultWindowSize = NSSize(width: 1440, height: 900)
+    private let minimumWindowSize = NSSize(width: 920, height: 620)
+    private var enforcingWindowFrame = false
+    private var launchFrameGuard: Timer?
     private let auditLogger = Logger(subsystem: "com.ynxweb4.browser.macos", category: "security-boundary")
     private let environment = ProcessInfo.processInfo.environment
     private lazy var searchURL = environment["YNX_SEARCH_URL"] ?? "https://search-staging.43.153.202.237.sslip.io"
@@ -33,27 +37,98 @@ final class TabButton: NSButton { var tabID: UUID? }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1440, height: 900), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
+        clearLegacyWindowFrames()
+        window = NSWindow(contentRect: NSRect(origin: .zero, size: defaultWindowSize), styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
         window.title = "YNX Browser"
-        window.identifier = NSUserInterfaceItemIdentifier("com.ynxweb4.browser.main-window.v3")
         window.isRestorable = false
+        window.setFrameAutosaveName("")
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
-        window.minSize = NSSize(width: 920, height: 620)
+        window.minSize = minimumWindowSize
+        window.contentMinSize = NSSize(width: minimumWindowSize.width, height: minimumWindowSize.height - 28)
         window.delegate = self
         if environment["YNX_BROWSER_APPEARANCE"] == "dark" { window.appearance = NSAppearance(named: .darkAqua) }
         if environment["YNX_BROWSER_APPEARANCE"] == "light" { window.appearance = NSAppearance(named: .aqua) }
-        window.setFrame(NSRect(x: 0, y: 120, width: 1440, height: 900), display: true)
-        window.center()
         buildChrome()
         buildMenu()
         window.makeKeyAndOrderFront(nil)
-        window.setFrame(NSRect(x: 0, y: 0, width: 1440, height: 900), display: true, animate: false)
-        window.center()
+        enforceUsableWindowFrame(useDefaultSize: true)
         NSApp.activate(ignoringOtherApps: true)
         restoreTabs()
         if tabs.isEmpty { openTab(url: startURL(), isPrivate: false) } else { activate(tabs.last!.id) }
         applyEvidenceState()
+        beginLaunchFrameGuard()
+    }
+
+    private func clearLegacyWindowFrames() {
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("NSWindow Frame com.ynxweb4.browser") {
+            defaults.removeObject(forKey: key)
+        }
+        defaults.synchronize()
+    }
+
+    private func beginLaunchFrameGuard() {
+        let startedAt = Date()
+        launchFrameGuard?.invalidate()
+        launchFrameGuard = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.enforceUsableWindowFrame(useDefaultSize: true)
+                if Date().timeIntervalSince(startedAt) >= 3 {
+                    self.launchFrameGuard?.invalidate()
+                    self.launchFrameGuard = nil
+                    self.writeWindowEvidenceIfRequested()
+                }
+            }
+        }
+    }
+
+    private func enforceUsableWindowFrame(useDefaultSize: Bool = false) {
+        guard !enforcingWindowFrame, let screen = window.screen ?? NSScreen.main else { return }
+        enforcingWindowFrame = true
+        defer { enforcingWindowFrame = false }
+        let visible = screen.visibleFrame
+        let requested = useDefaultSize ? defaultWindowSize : window.frame.size
+        let width = min(visible.width, max(minimumWindowSize.width, requested.width))
+        let height = min(visible.height, max(minimumWindowSize.height, requested.height))
+        let origin = NSPoint(
+            x: visible.midX - width / 2,
+            y: visible.midY - height / 2
+        )
+        window.setFrame(NSRect(origin: origin, size: NSSize(width: width, height: height)), display: true, animate: false)
+    }
+
+    private func writeWindowEvidenceIfRequested() {
+        guard let path = environment["YNX_BROWSER_WINDOW_EVIDENCE_FILE"] else { return }
+        let frame = window.frame
+        let payload: [String: Any] = [
+            "schemaVersion": "ynx-browser-window-evidence-v1",
+            "width": Int(frame.width.rounded()),
+            "height": Int(frame.height.rounded()),
+            "minimumWidth": Int(minimumWindowSize.width),
+            "minimumHeight": Int(minimumWindowSize.height),
+            "usable": frame.width >= minimumWindowSize.width && frame.height >= minimumWindowSize.height,
+            "appearance": environment["YNX_BROWSER_APPEARANCE"] ?? "system"
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]) else { return }
+        try? data.write(to: URL(fileURLWithPath: path), options: .atomic)
+    }
+
+    func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        NSSize(width: max(minimumWindowSize.width, frameSize.width), height: max(minimumWindowSize.height, frameSize.height))
+    }
+
+    func windowDidBecomeKey(_ notification: Notification) {
+        if window.frame.width < minimumWindowSize.width || window.frame.height < minimumWindowSize.height {
+            enforceUsableWindowFrame()
+        }
+    }
+
+    func windowDidResize(_ notification: Notification) {
+        guard !enforcingWindowFrame else { return }
+        if window.frame.width < minimumWindowSize.width || window.frame.height < minimumWindowSize.height {
+            DispatchQueue.main.async { [weak self] in self?.enforceUsableWindowFrame() }
+        }
     }
 
     private func startURL() -> URL {
@@ -86,12 +161,14 @@ final class TabButton: NSButton { var tabID: UUID? }
     }
 
     private func buildChrome() {
-        let root = NSView(frame: window.contentView?.bounds ?? .zero); root.autoresizingMask = [.width, .height]; root.translatesAutoresizingMaskIntoConstraints = true; window.contentView = root
+        guard let root = window.contentView else { return }
         let tabBackground = NSVisualEffectView(); tabBackground.material = .headerView; tabBackground.blendingMode = .withinWindow; tabBackground.translatesAutoresizingMaskIntoConstraints = false
         tabStrip.orientation = .horizontal; tabStrip.alignment = .centerY; tabStrip.spacing = 6; tabStrip.translatesAutoresizingMaskIntoConstraints = false
         let tabsScroll = NSScrollView(); tabsScroll.drawsBackground = false; tabsScroll.hasHorizontalScroller = false; tabsScroll.documentView = tabStrip; tabsScroll.translatesAutoresizingMaskIntoConstraints = false
         let addTab = symbolButton("plus", #selector(newTabAction), "New tab")
         let privateTab = symbolButton("eye.slash", #selector(privateTabAction), "New private tab")
+        addTab.translatesAutoresizingMaskIntoConstraints = false
+        privateTab.translatesAutoresizingMaskIntoConstraints = false
         tabBackground.addSubview(tabsScroll); tabBackground.addSubview(addTab); tabBackground.addSubview(privateTab)
 
         let back = symbolButton("chevron.left", #selector(goBack), "Go back")
@@ -114,11 +191,19 @@ final class TabButton: NSButton { var tabID: UUID? }
 
         root.addSubview(tabBackground); root.addSubview(bar); root.addSubview(security); root.addSubview(split)
         NSLayoutConstraint.activate([
-            tabBackground.leadingAnchor.constraint(equalTo: root.leadingAnchor), tabBackground.trailingAnchor.constraint(equalTo: root.trailingAnchor), tabBackground.topAnchor.constraint(equalTo: root.topAnchor), tabBackground.heightAnchor.constraint(equalToConstant: 50),
-            tabsScroll.leadingAnchor.constraint(equalTo: tabBackground.leadingAnchor, constant: 76), tabsScroll.trailingAnchor.constraint(equalTo: addTab.leadingAnchor, constant: -6), tabsScroll.topAnchor.constraint(equalTo: tabBackground.topAnchor, constant: 9), tabsScroll.bottomAnchor.constraint(equalTo: tabBackground.bottomAnchor, constant: -7),
-            addTab.trailingAnchor.constraint(equalTo: privateTab.leadingAnchor, constant: -5), addTab.centerYAnchor.constraint(equalTo: tabsScroll.centerYAnchor), privateTab.trailingAnchor.constraint(equalTo: tabBackground.trailingAnchor, constant: -12), privateTab.centerYAnchor.constraint(equalTo: tabsScroll.centerYAnchor),
+            tabBackground.leadingAnchor.constraint(equalTo: root.leadingAnchor), tabBackground.trailingAnchor.constraint(equalTo: root.trailingAnchor), tabBackground.topAnchor.constraint(equalTo: root.topAnchor), tabBackground.heightAnchor.constraint(equalToConstant: 50)
+        ])
+        NSLayoutConstraint.activate([
+            tabsScroll.leadingAnchor.constraint(equalTo: tabBackground.leadingAnchor, constant: 76), tabsScroll.trailingAnchor.constraint(equalTo: addTab.leadingAnchor, constant: -6), tabsScroll.topAnchor.constraint(equalTo: tabBackground.topAnchor, constant: 9), tabsScroll.bottomAnchor.constraint(equalTo: tabBackground.bottomAnchor, constant: -7)
+        ])
+        NSLayoutConstraint.activate([
+            addTab.trailingAnchor.constraint(equalTo: privateTab.leadingAnchor, constant: -5), addTab.centerYAnchor.constraint(equalTo: tabsScroll.centerYAnchor), privateTab.trailingAnchor.constraint(equalTo: tabBackground.trailingAnchor, constant: -12), privateTab.centerYAnchor.constraint(equalTo: tabsScroll.centerYAnchor)
+        ])
+        NSLayoutConstraint.activate([
             bar.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 12), bar.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -12), bar.topAnchor.constraint(equalTo: tabBackground.bottomAnchor, constant: 8), address.widthAnchor.constraint(greaterThanOrEqualToConstant: 420),
-            security.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 18), security.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -18), security.topAnchor.constraint(equalTo: bar.bottomAnchor, constant: 6),
+            security.leadingAnchor.constraint(equalTo: root.leadingAnchor, constant: 18), security.trailingAnchor.constraint(equalTo: root.trailingAnchor, constant: -18), security.topAnchor.constraint(equalTo: bar.bottomAnchor, constant: 6)
+        ])
+        NSLayoutConstraint.activate([
             split.leadingAnchor.constraint(equalTo: root.leadingAnchor), split.trailingAnchor.constraint(equalTo: root.trailingAnchor), split.topAnchor.constraint(equalTo: security.bottomAnchor, constant: 7), split.bottomAnchor.constraint(equalTo: root.bottomAnchor)
         ])
     }
