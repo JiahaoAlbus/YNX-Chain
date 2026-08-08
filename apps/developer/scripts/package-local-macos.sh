@@ -38,6 +38,13 @@ if [[ -z "$node_binary" || ! -x "$node_binary" ]]; then
 fi
 COPYFILE_DISABLE=1 cp -X "$node_binary" "$app/Contents/Resources/runtime/node"
 chmod 0755 "$app/Contents/Resources/runtime/node"
+npm_root=$(npm root -g)
+if [[ ! -f "$npm_root/npm/bin/npm-cli.js" ]]; then
+  echo "A complete npm CLI is required for isolated desktop package installation." >&2
+  exit 1
+fi
+mkdir -p "$app/Contents/Resources/runtime/npm/node_modules"
+COPYFILE_DISABLE=1 cp -XR "$npm_root/npm" "$app/Contents/Resources/runtime/npm/node_modules/npm"
 sbom_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/sbom.cdx.json" | awk '{print $1}')
 node -e '
 const fs = require("fs");

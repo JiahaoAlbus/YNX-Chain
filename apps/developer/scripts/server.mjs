@@ -14,12 +14,22 @@ const upstreams = { "/chain": process.env.YNX_DEVELOPER_CHAIN_URL || "http://127
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 const compilerWorker = fileURLToPath(new URL("./compiler-worker.mjs", import.meta.url));
 const aiKey = process.env.YNX_DEVELOPER_AI_KEY || "";
+const localAIURL = (process.env.YNX_DEVELOPER_LOCAL_AI_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
+const localAIModel = process.env.YNX_DEVELOPER_LOCAL_AI_MODEL || "qwen3:4b";
 const aiLimits = new Map();
 const managedAIState = { available: null, error: null, checkedAt: null };
 let activeCompilers = 0;
 const MAX_ACTIVE_COMPILERS = 4;
 const compilerQueue = [];
 const MAX_QUEUED_COMPILERS = 64;
+let activeLocalAI = 0;
+const localAIQueue = [];
+const MAX_ACTIVE_LOCAL_AI = Number(process.env.YNX_DEVELOPER_LOCAL_AI_CONCURRENCY || 2);
+const MAX_QUEUED_LOCAL_AI = Number(process.env.YNX_DEVELOPER_LOCAL_AI_QUEUE || 32);
+const BYO_PROVIDERS = Object.freeze({
+  openai: { url: "https://api.openai.com/v1/chat/completions", defaultModel: "gpt-4.1-mini" },
+  xai: { url: "https://api.x.ai/v1/chat/completions", defaultModel: "grok-code-fast-1" },
+});
 
 function json(response, status, value, headers = {}) {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", ...headers });
@@ -74,16 +84,26 @@ createServer(async (request, response) => {
   }
   if (pathname === "/ai-build/health" && request.method === "GET") {
     try {
-      const upstream = await fetch(`${upstreams["/ai-gateway"]}/health`, { headers: { accept: "application/json" } });
+      const upstream = await fetch(`${localAIURL}/api/tags`, { signal: AbortSignal.timeout(2_500) });
       const value = await upstream.json();
-      json(response, upstream.status, { ...value, available: managedAIState.available, error: managedAIState.error, managedSession: true, providerCheckedAt: managedAIState.checkedAt });
-    } catch { json(response, 502, { ok: false, available: false, error: "gateway_unavailable", managedSession: true }); }
+      const installed = Array.isArray(value.models) && value.models.some((item) => item.name === localAIModel || item.model === localAIModel);
+      json(response, installed ? 200 : 503, { ok: installed, available: installed, providerConfigured: installed, provider: "ynx-local-open-model", model: localAIModel, modelLicenseBoundary: "model-card-and-upstream-license-apply", managedSession: true, byoProviders: Object.keys(BYO_PROVIDERS), active: activeLocalAI, queued: localAIQueue.length, maxConcurrent: MAX_ACTIVE_LOCAL_AI, maxQueued: MAX_QUEUED_LOCAL_AI, truthfulStatus: installed ? "local-model-ready" : "local-model-missing" });
+    } catch { json(response, 502, { ok: false, available: false, providerConfigured: false, error: "local_model_unavailable", provider: "ynx-local-open-model", model: localAIModel, managedSession: true }); }
     return;
   }
   if (pathname === "/ai-build/ai/stream" && request.method === "POST") {
-    if (!aiKey) { json(response, 503, { error: "Managed AI session is not configured." }); return; }
     if (!allowAI(request)) { json(response, 429, { error: "Per-user AI limit reached. Retry in one minute." }, { "retry-after": "60" }); return; }
-    await proxy(request, response, upstreams["/ai-gateway"], "/ai/stream", { aiKey, onStatus(status) { managedAIState.available = status === 200; managedAIState.error = status === 429 ? "provider_rate_limited" : status === 200 ? null : "provider_unavailable"; managedAIState.checkedAt = new Date().toISOString(); } }); return;
+    const provider = String(request.headers["x-ynx-ai-provider"] || "ynx-local").toLowerCase();
+    if (provider === "ynx-cloud") {
+      if (!aiKey) { json(response, 503, { error: "Managed cloud AI session is not configured." }); return; }
+      await proxy(request, response, upstreams["/ai-gateway"], "/ai/stream", { aiKey, onStatus(status) { managedAIState.available = status === 200; managedAIState.error = status === 429 ? "provider_rate_limited" : status === 200 ? null : "provider_unavailable"; managedAIState.checkedAt = new Date().toISOString(); } }); return;
+    }
+    let body;
+    try { body = JSON.parse((await readBody(request, 128 * 1024)).toString("utf8")); }
+    catch (error) { json(response, error.status || 400, { error: error.message || "Invalid AI request." }); return; }
+    if (provider === "ynx-local") { await scheduleLocalAI(request, response, body); return; }
+    if (BYO_PROVIDERS[provider]) { await runBYOAI(request, response, body, provider); return; }
+    json(response, 400, { error: "AI provider is not allowlisted." }); return;
   }
   const prefix = Object.keys(upstreams).find((value) => pathname === value || pathname.startsWith(`${value}/`));
   if (prefix) { await proxy(request, response, upstreams[prefix], request.url.slice(prefix.length) || "/"); return; }
@@ -139,4 +159,61 @@ function pumpCompilerQueue() {
     const task = compilerQueue.shift(); activeCompilers += 1;
     runCompiler(task.payload).then(task.resolve, task.reject).finally(() => { activeCompilers -= 1; pumpCompilerQueue(); });
   }
+}
+
+function validatedAIPrompt(body) {
+  const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+  if (prompt.length < 4 || prompt.length > 12_000) throw Object.assign(new Error("AI prompt must be 4-12000 characters."), { status: 400 });
+  const attachments = Array.isArray(body.attachments) ? body.attachments : [];
+  if (attachments.length > 64) throw Object.assign(new Error("AI attachment limit exceeded."), { status: 400 });
+  let bytes = Buffer.byteLength(prompt); const parts = [prompt];
+  for (const item of attachments) {
+    const name = String(item?.name || "attachment").slice(0, 240);
+    const content = typeof item?.text === "string" ? item.text : "";
+    bytes += Buffer.byteLength(content); if (bytes > 96 * 1024) throw Object.assign(new Error("AI context exceeds 96 KiB."), { status: 413 });
+    parts.push(`\n--- ${name} ---\n${content}`);
+  }
+  const language = String(body.outputLanguage || "en").slice(0, 16);
+  return `Answer in ${language}. ${parts.join("\n")}`;
+}
+
+async function scheduleLocalAI(request, response, body) {
+  if (activeLocalAI >= MAX_ACTIVE_LOCAL_AI && localAIQueue.length >= MAX_QUEUED_LOCAL_AI) { json(response, 503, { error: "Local AI queue is full. Retry shortly." }, { "retry-after": "5" }); return; }
+  const controller = new AbortController(); const abort = () => controller.abort(); request.once("aborted", abort); response.once("close", abort);
+  await new Promise((resolve) => { localAIQueue.push({ request, response, body, controller, resolve }); pumpLocalAIQueue(); });
+}
+
+function pumpLocalAIQueue() {
+  while (activeLocalAI < MAX_ACTIVE_LOCAL_AI && localAIQueue.length) {
+    const task = localAIQueue.shift(); activeLocalAI += 1;
+    runLocalAI(task.response, task.body, task.controller.signal).catch((error) => { if (task.controller.signal.aborted) return; if (!task.response.headersSent) json(task.response, error.status || 502, { error: error.message || "Local model failed." }); else task.response.end(); }).finally(() => { activeLocalAI -= 1; task.resolve(); pumpLocalAIQueue(); });
+  }
+}
+
+async function runLocalAI(response, body, clientSignal) {
+  const prompt = validatedAIPrompt(body);
+  const upstream = await fetch(`${localAIURL}/api/chat`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ model: localAIModel, stream: true, think: false, keep_alive: "10m", messages: [{ role: "system", content: "You are YNX Developer AI Build. Produce concise, reviewable code changes. Never claim a command ran unless tool evidence is supplied. Use ```ynx-file path=... blocks for proposed files." }, { role: "user", content: prompt }], options: { temperature: 0.2, num_ctx: 16384 } }), signal: AbortSignal.any([clientSignal, AbortSignal.timeout(180_000)]) });
+  if (!upstream.ok || !upstream.body) throw Object.assign(new Error(`Local model returned HTTP ${upstream.status}.`), { status: 502 });
+  response.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", connection: "keep-alive", "x-ynx-ai-provider": "ynx-local-open-model", "x-ynx-ai-model": localAIModel });
+  const reader = upstream.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n"); buffer = lines.pop() || "";
+    for (const line of lines) if (line.trim()) { const event = JSON.parse(line); const token = event.message?.content; if (token) response.write(`data: ${JSON.stringify({ text: token })}\n\n`); }
+  }
+  response.end();
+}
+
+async function runBYOAI(request, response, body, provider) {
+  const apiKey = String(request.headers["x-ynx-ai-key"] || "");
+  if (apiKey.length < 12 || apiKey.length > 512) { json(response, 401, { error: "A session-only provider API key is required." }); return; }
+  let prompt; try { prompt = validatedAIPrompt(body); } catch (error) { json(response, error.status || 400, { error: error.message }); return; }
+  const spec = BYO_PROVIDERS[provider]; const requested = String(request.headers["x-ynx-ai-model"] || "").trim();
+  const model = /^[A-Za-z0-9._:-]{1,120}$/.test(requested) ? requested : spec.defaultModel;
+  try {
+    const upstream = await fetch(spec.url, { method: "POST", headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" }, body: JSON.stringify({ model, stream: false, temperature: 0.2, messages: [{ role: "system", content: "You are YNX Developer AI Build. Return reviewable code and use ```ynx-file path=... blocks for proposed files." }, { role: "user", content: prompt }] }), signal: AbortSignal.timeout(120_000) });
+    const value = await upstream.json().catch(() => ({})); if (!upstream.ok) { json(response, upstream.status === 429 ? 429 : 502, { error: upstream.status === 429 ? "Provider rate limit reached." : "Provider request failed.", provider }); return; }
+    const output = value.choices?.[0]?.message?.content; if (typeof output !== "string" || !output.trim()) { json(response, 502, { error: "Provider returned no coding result." }); return; }
+    response.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", "x-ynx-ai-provider": provider, "x-ynx-ai-model": model }); response.end(`data: ${JSON.stringify({ text: output })}\n\n`);
+  } catch { json(response, 502, { error: "Provider connection failed." }); }
 }

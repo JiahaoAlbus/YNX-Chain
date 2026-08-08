@@ -8,7 +8,7 @@ if (process.platform !== "darwin") {
 }
 const project = realpathSync(fileURLToPath(new URL("../test/fixtures/desktop-project/", import.meta.url)));
 const escape = (value) => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-const profile = `(version 1)\n(allow default)\n(deny network*)\n(deny file-write* (require-not (subpath "${escape(project)}")) (require-not (subpath "/private/tmp")) (require-not (subpath "/dev")))`;
+const profile = `(version 1)\n(allow default)\n(deny network*)\n(deny file-write*)\n(allow file-write* (subpath "${escape(project)}") (subpath "/private/tmp") (subpath "/dev"))`;
 const result = spawnSync("/usr/bin/sandbox-exec", ["-p", profile, "/usr/bin/env", "node", "--test", `${project}/test/boundaries.test.js`], { cwd: project, encoding: "utf8" });
 process.stdout.write(result.stdout); process.stderr.write(result.stderr);
 if (result.status !== 0) throw new Error(`desktop sandbox check failed with ${result.status}`);

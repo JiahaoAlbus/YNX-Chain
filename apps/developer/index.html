@@ -101,7 +101,7 @@
         </div>
         <div id="panel-problems" class="panel-body active"><div id="diagnostics" class="diagnostics empty">No diagnostics. Open a Solidity file to analyze.</div></div>
         <div id="panel-output" class="panel-body"><pre id="command-output">Command output is evidence-backed. Nothing has run.</pre></div>
-        <div id="panel-terminal" class="panel-body"><div class="terminal-boundary"><strong>Terminal availability</strong><span>Web Product: preview only</span><span>Unsigned local desktop package: allowlisted executor when installed</span><span>Signed production desktop release: not claimed</span></div><pre id="terminal-preview">Select a task to review command, cwd and environment class.</pre></div>
+        <div id="panel-terminal" class="panel-body"><div class="terminal-boundary"><strong>Terminal availability</strong><span>Web Product: compile and AI; native execution stays disabled</span><span>Desktop: isolated check, tests and package installation</span><span>Signed production desktop release: not claimed</span></div><div class="rpc-row"><input id="package-spec" placeholder="Package, for example ethers@6.17.0" aria-label="npm package to install"><button id="install-package" class="button">Review & install package</button></div><pre id="terminal-preview">Select a task to review command, cwd and environment class.</pre></div>
         <div id="panel-rpc" class="panel-body"><div class="rpc-row"><select id="rpc-method" class="select"><option>eth_chainId</option><option>eth_blockNumber</option><option>net_version</option><option>eth_getTransactionReceipt</option><option>eth_getLogs</option></select><input id="rpc-params" value="[]" aria-label="RPC parameters JSON"><button id="run-rpc" class="button primary">Run read-only RPC</button></div><pre id="rpc-output">RPC methods are allowlisted and read-only.</pre></div>
         <div id="panel-api-studio" class="panel-body api-studio">
           <div class="api-toolbar">
@@ -148,7 +148,12 @@
           <div class="agent-actions"><button id="create-ai-run" class="button primary" data-i18n="previewPlan">Preview plan</button><button id="resume-ai-run" class="button" data-i18n="resume" disabled>Resume</button><button id="export-ai-audit" class="button" data-i18n="exportAudit" disabled>Export audit</button></div>
         </div>
         <fieldset id="context-files" class="context"><legend data-i18n="approvedContext">Approved context</legend><p class="muted compact">Open a project to select files.</p></fieldset>
-        <label class="field"><span data-i18n="modelProvider">Model / provider</span><select id="model-select" class="select"><option value="ynx-gateway">YNX Gateway policy</option><option value="grok-build-acp">Approved Grok via ACP sidecar</option><option value="local-inference">Local inference (when configured)</option></select></label>
+        <label class="field"><span data-i18n="modelProvider">Model / provider</span><select id="model-select" class="select"><option value="ynx-local">YNX hosted open model</option><option value="ynx-cloud">YNX managed cloud fallback</option><option value="xai">Your xAI API</option><option value="openai">Your OpenAI API</option><option value="grok-build-acp">Official Grok Build ACP sidecar (desktop)</option></select></label>
+        <div id="byo-provider-fields" hidden>
+          <label class="field"><span>Session-only API key</span><input id="provider-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Never saved to project or browser storage"></label>
+          <label class="field"><span>Provider model</span><input id="provider-model" autocomplete="off" spellcheck="false" placeholder="Use the reviewed default, or enter a model ID"></label>
+          <div class="agent-note">The key remains only in this page's memory and is sent through the allowlisted YNX broker for this request. It is never written to IndexedDB, localStorage, project exports, or server audit logs.</div>
+        </div>
         <label class="field"><span data-i18n="aiLanguage">AI output language</span><select id="ai-language" class="select"></select></label>
         <div class="agent-note">Public Testnet AI session · the server keeps the provider credential private and applies per-user rate limits.</div>
         <label class="field"><span>Coding intent</span><textarea id="ai-intent" rows="5" placeholder="Explain a diagnostic, propose a diff, or generate tests…"></textarea></label>

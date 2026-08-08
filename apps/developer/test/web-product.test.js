@@ -20,7 +20,7 @@ test("visual foundation is Klein blue and responsive without benchmark branding"
 
 test("YNX AI Build exposes plan, permission, provider, checkpoint and audit controls", async () => {
   const html=await read("index.html"), app=await read("app.js");
-  for(const evidence of ["Preview plan","Approved context","Approved Grok via ACP sidecar","Local inference","PERMISSIONS","Allow one project write","exportAudit","checkpoint"]) assert.match(html+app,new RegExp(evidence,"i"));
+  for(const evidence of ["Preview plan","Approved context","Official Grok Build ACP sidecar","YNX hosted open model","Session-only API key","PERMISSIONS","Allow one project write","exportAudit","checkpoint"]) assert.match(html+app,new RegExp(evidence,"i"));
   assert.match(app,/AIBuildPersistence/); assert.match(app,/requestPermission\("network"/); assert.match(app,/requestPermission\("write"/);
 });
 

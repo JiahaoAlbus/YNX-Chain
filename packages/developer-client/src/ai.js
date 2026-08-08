@@ -22,9 +22,9 @@ export class AICodingAgent {
     invariant(prompt.length <= 7800 && contextBytes <= 7800, "ai_context_too_large", "Approved AI context exceeds the public Testnet coding-agent limit. Select fewer files or a smaller source excerpt.");
     return { intent, files, privacyPreview: files.map(({ path, content }) => ({ path, bytes: new TextEncoder().encode(content).byteLength })), estimate: estimate(files, intent), prompt };
   }
-  async stream(prepared, { accessToken, sessionId = crypto.randomUUID(), approved = false, outputLanguage = "en", model = "gateway-policy", onToken = () => {} } = {}) {
+  async stream(prepared, { accessToken, provider = "ynx-local", sessionId = crypto.randomUUID(), approved = false, outputLanguage = "en", model = "gateway-policy", onToken = () => {} } = {}) {
     invariant(approved, "ai_permission_required", "AI Gateway request requires explicit context and cost approval.");
-    if (!this.managedSession) invariant(typeof accessToken === "string" && accessToken.length >= 8, "gateway_token_required", "A session-only YNX AI Gateway access token is required.");
+    if (!this.managedSession || provider === "openai" || provider === "xai") invariant(typeof accessToken === "string" && accessToken.length >= 12, "gateway_token_required", "A session-only provider API key is required.");
     this.controller = new AbortController();
     invariant(/^[a-z]{2}(?:-[A-Z]{2})?$/.test(outputLanguage), "invalid_output_language", "AI output language is invalid.");
     const url = `${this.gatewayURL}/ai/stream`;
@@ -32,7 +32,7 @@ export class AICodingAgent {
     try {
       const response = await this.fetcher(url, {
         method: "POST",
-        headers: { ...(this.managedSession ? {} : { "X-YNX-AI-Key": accessToken }), accept: "text/event-stream", "content-type": "application/json" },
+        headers: { ...((!this.managedSession || provider === "openai" || provider === "xai") ? { "X-YNX-AI-Key": accessToken } : {}), "X-YNX-AI-Provider": provider, "X-YNX-AI-Model": model, accept: "text/event-stream", "content-type": "application/json" },
         body: JSON.stringify({
           session: sessionId,
           prompt: prepared.prompt,

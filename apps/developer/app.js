@@ -20,7 +20,7 @@ const chain = new YNXChainClient({ baseURL: config.chainURL, compilerURL: config
 const ai = new AICodingAgent({ gatewayURL: config.aiURL, managedSession: true });
 const i18n = new DeveloperI18n();
 const walletSession = new DeveloperWalletSession({ wallet: globalThis.ynxWallet, gatewayURL: "/app-gateway" });
-const commands = new CommandAudit({ executor: globalThis.ynxDesktop?.executeApprovedCommand });
+const commands = new CommandAudit({ executor: globalThis.ynxDesktop?.executeApprovedCommand || executeDesktopTask });
 const deployment = new WalletDeployment({ wallet: globalThis.ynxWallet, chainClient: chain });
 const apiStudio = new OpenAPIStudio({ defaultOrigin: location.origin, allowedOrigins: [location.origin], credentialBroker: globalThis.ynxCredentialBroker });
 const aiBuildPersistence = new AIBuildPersistence(localStorage);
@@ -40,6 +40,13 @@ function modal({ title, content, confirm = "Continue", danger = false }) {
 
 function field(label, input) { const wrap = node("label", "field"); wrap.append(node("span", "", label), input); return wrap; }
 
+async function executeDesktopTask(payload, { signal, onChunk } = {}) {
+  const response=await fetch("/runtime/task",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),signal});
+  const value=await response.json().catch(()=>({error:`Runtime returned HTTP ${response.status}.`}));
+  if(!response.ok)throw Object.assign(new Error(value.error||"Desktop runtime task failed."),{code:value.code||"desktop_runtime_unavailable"});
+  onChunk?.(value.output||""); return value;
+}
+
 async function bootstrap() {
   applyTheme(localStorage.getItem("ynx.developer.theme") || "system");
   document.documentElement.dataset.textSize=localStorage.getItem("ynx.developer.text-size")||"normal";
@@ -56,6 +63,13 @@ function configureLanguages() {
   const labels={en:"English","zh-CN":"简体中文","zh-TW":"繁體中文",ja:"日本語",ko:"한국어",es:"Español",fr:"Français",de:"Deutsch",pt:"Português",ru:"Русский",ar:"العربية",id:"Bahasa Indonesia"};
   for (const id of ["locale-select","ai-language"]) for (const locale of SUPPORTED_LOCALES) $(`#${id}`).append(new Option(labels[locale],locale));
   $("#locale-select").value=i18n.locale; $("#ai-language").value=localStorage.getItem("ynx.developer.ai-language")||i18n.locale; applyLocale();
+  $("#model-select").addEventListener("change", configureAIProviderFields); configureAIProviderFields();
+}
+
+function configureAIProviderFields() {
+  const provider=$("#model-select").value; const byo=provider==="xai"||provider==="openai";
+  $("#byo-provider-fields").hidden=!byo;
+  $("#provider-model").placeholder=provider==="xai"?"grok-code-fast-1":provider==="openai"?"gpt-4.1-mini":"Provider model";
 }
 
 function jsonField(id, label, { optional = false } = {}) {
@@ -284,6 +298,7 @@ function bindActions() {
   $("#create-project").onclick = createProject; $("#import-project").onclick = () => $("#file-import").click(); $("#file-import").onchange = importProject; $("#export-project").onclick = exportProject; $("#new-file").onclick = newFile;
   $("#run-search").onclick = runSearch; $("#create-checkpoint").onclick = checkpoint; $("#revert-checkpoint").onclick = revert;
   $("#compile").onclick = compile; $("#run-tests").onclick = () => runTask("test"); $("#run-task").onclick = () => runTask("check"); $("#run-rpc").onclick = runRPC;
+  $("#install-package").onclick = installPackage;
   $("#api-template").onchange = loadAPIConnectorTemplate; $("#api-load-template").onclick = loadAPIConnectorTemplate; $("#api-import").onclick = importAPISpec; $("#api-preview").onclick = previewAPIRequest; $("#api-send").onclick = sendAPISandboxRequest; $("#api-simulate").onclick = simulateAPIRequest; $("#api-generate-client").onclick = generateAPIClient; $("#api-generate-manifest").onclick = generateAPIAdapterManifest;
   $("#ask-ai").onclick = askAI; $("#cancel-ai").onclick = () => { try { ai.cancel(); } catch (error) { showError(error, $("#ai-output")); } }; $("#apply-ai").onclick = applyAI; $("#reject-ai").onclick = rejectAI;
   $("#clear-ai-history").onclick = clearAIHistory;
@@ -359,6 +374,16 @@ async function runTask(task) {
   try { const result = await commands.run(preview, { command: true, write: preview.risk !== "read" }, { projectId: state.project?.id, files: state.project?.files }); $("#terminal-preview").textContent = JSON.stringify(result, null, 2); } catch (error) { showError(error, $("#terminal-preview")); }
 }
 
+async function installPackage() {
+  if(!state.project)return toast("Open a project first."); const spec=$("#package-spec").value.trim();
+  if(!/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*(?:@[0-9]+(?:\.[0-9]+){0,2})?$/i.test(spec))return showError(Object.assign(new Error("Enter one npm package name with an optional exact numeric version."),{code:"package_spec_invalid"}),$("#terminal-preview"));
+  const preview={task:"install",cwd:`/projects/${state.project.id}`,command:`npm install --ignore-scripts --save-exact ${spec}`,environmentClass:"desktop-project-sandbox",risk:"network-and-write",approval:"package-install"};
+  activatePanel("terminal"); $("#terminal-preview").textContent=JSON.stringify(preview,null,2);
+  const content=node("div");content.append(node("pre","",JSON.stringify(preview,null,2)),node("p","muted compact","The desktop runtime creates a project-isolated workspace, disables lifecycle scripts, applies package/time/size limits, and never installs globally."));
+  if(!await modal({title:"Approve one package installation",content,confirm:"Install exact package"}))return;
+  try{const result=await executeDesktopTask({...preview,projectId:state.project.id,files:state.project.files,packageSpec:spec});$("#terminal-preview").textContent=JSON.stringify(result,null,2);toast("Package installed in the isolated desktop workspace.");}catch(error){showError(error,$("#terminal-preview"));}
+}
+
 async function runRPC() {
   activatePanel("rpc"); try { const params = JSON.parse($("#rpc-params").value); const result = await chain.rpc($("#rpc-method").value, params); $("#rpc-output").textContent = JSON.stringify({ source: config.chainURL, result }, null, 2); } catch (error) { showError(error, $("#rpc-output")); }
 }
@@ -369,7 +394,7 @@ async function refreshNetwork() {
 
 async function refreshProvider() {
   const status = await ai.status(); const pill = $("#provider-status"); const unavailableLabel=status.error === "provider_rate_limited" ? "Provider quota unavailable" : "Unavailable"; pill.textContent = status.available ? `${status.model} · ready` : unavailableLabel; pill.className = `provider ${status.available ? "available" : "unavailable"}`;
-  const select=$("#model-select"); select.options[0].textContent=status.available?`YNX Gateway · ${status.model}`:`YNX Gateway · ${unavailableLabel.toLowerCase()}`;
+  const select=$("#model-select"); select.options[0].textContent=status.available?`YNX hosted · ${status.model}`:`YNX hosted · ${unavailableLabel.toLowerCase()}`;
 }
 
 async function askAI() {
@@ -381,7 +406,10 @@ async function askAI() {
     if (!await modal({ title: "Approve AI context and estimated cost", content: review, confirm: "Stream from Gateway" })) return;
     const network=state.aiBuild.requestPermission("network",{reason:"Send only the approved context through the selected provider interface",scope:{provider:$("#model-select").value,paths:state.aiPrepared.files.map((file)=>file.path)}}); state.aiBuild.decidePermission(network.requestId,"allow-once"); saveAIBuild();
     $("#ask-ai").disabled = true; $("#cancel-ai").disabled = false; $("#ai-output").textContent = "";
-    state.aiResult = await ai.stream(state.aiPrepared, { model: $("#model-select").value, outputLanguage: $("#ai-language").value, approved: true, onToken: (token) => { $("#ai-output").textContent += token; } });
+    const provider=$("#model-select").value;
+    if(provider==="grok-build-acp")throw Object.assign(new Error("The Grok Build ACP sidecar is available only in the desktop runtime after its separately verified official binary is configured."),{code:"desktop_sidecar_required"});
+    const requestedModel=$("#provider-model").value.trim();
+    state.aiResult = await ai.stream(state.aiPrepared, { provider, accessToken: $("#provider-api-key").value, model: requestedModel || (provider==="xai"?"grok-code-fast-1":provider==="openai"?"gpt-4.1-mini":"gateway-policy"), outputLanguage: $("#ai-language").value, approved: true, onToken: (token) => { $("#ai-output").textContent += token; } });
     state.aiBuild.recordTool({name:"provider.stream",permission:"network",requestId:network.requestId,inputSummary:`${state.aiPrepared.files.length} approved files`,status:"passed",outputSummary:`${state.aiResult.output.length} output characters`});
     const providerProposals=proposedFiles(state.aiResult.output); if(providerProposals.length){const proposal=state.aiBuild.proposeDiff(providerProposals.map((file)=>({path:file.path,before:state.project.files[file.path]??"",after:file.content})),"Provider-proposed bounded file changes");state.aiProposalId=proposal.id;} saveAIBuild();
     state.project = await workspace.recordConversation(state.project.id, { intent: state.aiPrepared.intent, approvedPaths: state.aiPrepared.files.map((file) => file.path), model: $("#model-select").value, status: state.aiResult.status, output: state.aiResult.output }); renderAIHistory();
