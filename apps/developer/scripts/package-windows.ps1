@@ -54,8 +54,12 @@ Copy-Item (Join-Path $app "desktop/server.mjs") $resources
 Copy-Item (Join-Path $app "sbom.cdx.json") (Join-Path $resources "sbom.cdx.json")
 $node = (Get-Command node.exe -ErrorAction Stop).Source
 Copy-Item $node (Join-Path $resources "runtime/node.exe")
-$npmRoot = (& npm root -g).Trim()
-$npmSource = Join-Path $npmRoot "npm"
+$npmCommand = (Get-Command npm.cmd -ErrorAction Stop).Source
+$npmSource = Join-Path (Split-Path $npmCommand -Parent) "node_modules/npm"
+if (!(Test-Path (Join-Path $npmSource "bin/npm-cli.js"))) {
+  $npmRoot = (& npm root -g).Trim()
+  $npmSource = Join-Path $npmRoot "npm"
+}
 if (!(Test-Path (Join-Path $npmSource "bin/npm-cli.js"))) { throw "A complete npm CLI is required for isolated desktop package installation" }
 $npmTarget = Join-Path $resources "runtime/npm/node_modules/npm"
 New-Item (Split-Path $npmTarget -Parent) -ItemType Directory -Force | Out-Null
