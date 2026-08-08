@@ -375,7 +375,7 @@ function bindActions() {
   $("#run-search").onclick = runSearch; $("#create-checkpoint").onclick = checkpoint; $("#revert-checkpoint").onclick = revert;
   $("#compile").onclick = compile; $("#run-tests").onclick = () => runTask("test"); $("#run-task").onclick = () => runTask("check"); $("#run-rpc").onclick = runRPC;
   $("#install-package").onclick = installPackage;
-  $("#refresh-toolchains").onclick=refreshToolchains;$("#import-language-pack").onclick=()=>$("#language-pack-file").click();$("#language-pack-file").onchange=importLanguagePack;
+  $("#refresh-toolchains").onclick=refreshToolchains;$("#import-language-pack").onclick=()=>$("#language-pack-file").click();$("#language-pack-file").onchange=importLanguagePack;$("#import-toolchain-adapter").onclick=()=>$("#toolchain-adapter-file").click();$("#toolchain-adapter-file").onchange=importToolchainAdapter;
   $("#api-template").onchange = loadAPIConnectorTemplate; $("#api-load-template").onclick = loadAPIConnectorTemplate; $("#api-import").onclick = importAPISpec; $("#api-preview").onclick = previewAPIRequest; $("#api-send").onclick = sendAPISandboxRequest; $("#api-simulate").onclick = simulateAPIRequest; $("#api-generate-client").onclick = generateAPIClient; $("#api-generate-manifest").onclick = generateAPIAdapterManifest;
   $("#ask-ai").onclick = askAI; $("#cancel-ai").onclick = () => { try { ai.cancel(); } catch (error) { showError(error, $("#ai-output")); } }; $("#apply-ai").onclick = applyAI; $("#reject-ai").onclick = rejectAI;
   $("#clear-ai-history").onclick = clearAIHistory;
@@ -477,6 +477,17 @@ async function refreshToolchains(){
 async function importLanguagePack(event){
   const file=event.target.files?.[0];event.target.value="";if(!file)return;if(file.size>128*1024)return showError(Object.assign(new Error("Language pack exceeds 128 KiB."),{code:"language_pack_too_large"}),$("#toolchain-status"));
   try{const pack=validateLanguagePack(JSON.parse(await file.text()));if(!monacoAPI)throw new Error("Editor engine is not ready.");registerLanguagePack(monacoAPI,pack);let packs=[];try{packs=JSON.parse(localStorage.getItem("ynx.developer.language-packs.v1")||"[]");}catch{}packs=(Array.isArray(packs)?packs:[]).filter((item)=>item.id!==pack.id);packs.push(pack);if(packs.length>32)packs=packs.slice(-32);localStorage.setItem("ynx.developer.language-packs.v1",JSON.stringify(packs));if(state.path&&pack.extensions.some((extension)=>state.path.toLowerCase().endsWith(extension)))monacoAPI.editor.setModelLanguage(codeEditor.getModel(),pack.id);$("#toolchain-status").textContent=JSON.stringify({installed:true,id:pack.id,extensions:pack.extensions,editing:["highlighting","keyword completion"],execution:false,security:"declarative-only; no extension code executed"},null,2);toast(`Language pack ${pack.id} installed locally.`);}catch(error){showError(Object.assign(error,{code:"language_pack_invalid"}),$("#toolchain-status"));}
+}
+
+async function importToolchainAdapter(event){
+  const file=event.target.files?.[0];event.target.value="";if(!file)return;if(file.size>64*1024)return showError(Object.assign(new Error("Compiler adapter exceeds 64 KiB."),{code:"adapter_too_large"}),$("#toolchain-status"));
+  try{
+    const adapter=JSON.parse(await file.text());const review={schemaVersion:adapter.schemaVersion,id:adapter.id,extensions:adapter.extensions,executable:adapter.executable,args:adapter.args,execution:{surface:"installed desktop only",shell:false,network:false,workspace:"project isolated",timeoutSeconds:30,approval:"every compile"}};
+    const content=node("div");content.append(node("pre","",JSON.stringify(review,null,2)),node("p","muted compact","Registration stores this adapter for the current desktop user. It may invoke only the named installed executable with literal argument tokens plus ${file}/${build}; it cannot replace a built-in extension or use shell syntax."));
+    if(!await modal({title:"Register local compiler adapter",content,confirm:"Register adapter"}))return;
+    const response=await fetch("/runtime/toolchains/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({approval:"register-local-toolchain-once",adapter})});const value=await response.json().catch(()=>({}));if(!response.ok)throw Object.assign(new Error(value.error||"Compiler adapter registration failed."),{code:value.code||"adapter_registration_failed"});
+    $("#toolchain-status").textContent=JSON.stringify(value,null,2);toast(`Compiler adapter ${value.adapter.id} registered.`);
+  }catch(error){showError(Object.assign(error,{code:error.code||"adapter_invalid"}),$("#toolchain-status"));}
 }
 
 async function runRPC() {

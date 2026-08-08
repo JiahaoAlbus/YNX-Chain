@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { readFile, stat, lstat, mkdir, writeFile, readdir, access } from "node:fs/promises";
+import { readFile, stat, lstat, mkdir, writeFile, readdir, access, rename } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { extname, join, normalize, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +13,7 @@ const port = Number(process.env.PORT || 4177);
 const upstreams = { "/chain": process.env.YNX_DEVELOPER_CHAIN_URL || "https://developer.ynxweb4.com/chain", "/compiler": process.env.YNX_DEVELOPER_COMPILER_URL || "https://developer.ynxweb4.com/compiler", "/ai-build": process.env.YNX_DEVELOPER_AI_BUILD_URL || "https://developer.ynxweb4.com/ai-build", "/ai-gateway": process.env.YNX_DEVELOPER_AI_URL || "https://developer.ynxweb4.com/ai-gateway", "/app-gateway": process.env.YNX_DEVELOPER_APP_GATEWAY_URL || "https://developer.ynxweb4.com/app-gateway" };
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".svg": "image/svg+xml", ".png": "image/png", ".ttf": "font/ttf", ".webmanifest": "application/manifest+json" };
 const workspaceRoot = join(homedir(), ".ynx-developer", "workspaces");
+const adapterStorePath = join(homedir(), ".ynx-developer", "toolchain-adapters.json");
 const runtimeNode = process.execPath;
 const npmCLI = process.env.YNX_DEVELOPER_NPM_CLI || join(dirname(process.execPath), "npm", "node_modules", "npm", "bin", "npm-cli.js");
 let activeTasks = 0; const taskQueue = []; const MAX_ACTIVE_TASKS = 2; const MAX_QUEUED_TASKS = 16;
@@ -35,10 +36,18 @@ const TOOLCHAIN_ADAPTERS = Object.freeze({
   ".kt": { id:"kotlin", executable:"kotlinc", args:(file)=>[file,"-d",".ynx-build/ynx-kotlin-output.jar"] },
   ".sh": { id:"shell", executable:"bash", args:(file)=>["-n",file] }
 });
+let customAdaptersLoaded = false;
+const customAdapters = new Map();
 const server = createServer(async (request, response) => {
   const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
   if (pathname === "/runtime/health" && request.method === "GET") { json(response, 200, { ok: true, runtime: "desktop-project-sandbox", platform: process.platform, packageInstall: true, lifecycleScripts: false, maxConcurrent: MAX_ACTIVE_TASKS, maxQueued: MAX_QUEUED_TASKS, active: activeTasks, queued: taskQueue.length }); return; }
   if (pathname === "/runtime/toolchains" && request.method === "GET") { json(response, 200, { ok:true, platform:process.platform, extensible:true, installScope:"user-managed-or-project-local", adapters:await toolchainStatus() }); return; }
+  if (pathname === "/runtime/toolchains/register" && request.method === "POST") {
+    let body; try { body = JSON.parse((await readBody(request, 64 * 1024)).toString("utf8")); }
+    catch (error) { json(response, error.status || 400, { error:error.message || "Invalid toolchain adapter." }); return; }
+    try { const adapter=await registerCustomAdapter(body);json(response,201,{ok:true,adapter,security:{shell:false,network:false,approvalRequiredPerCompile:true,persistence:"current-user"}}); }
+    catch(error){json(response,error.status||400,{error:error.message||"Toolchain adapter rejected.",code:error.code||"adapter_invalid"});}return;
+  }
   if (pathname === "/runtime/task" && request.method === "POST") { let body; try { body = JSON.parse((await readBody(request, 3 * 1024 * 1024)).toString("utf8")); } catch (error) { json(response, error.status || 400, { error: error.message || "Invalid runtime task." }); return; } await scheduleTask(response, body); return; }
   const prefix = Object.keys(upstreams).find((value) => pathname === value || pathname.startsWith(`${value}/`));
   if (prefix) { await proxy(request, response, upstreams[prefix], request.url.slice(prefix.length) || "/"); return; }
@@ -96,7 +105,7 @@ async function runTask(body){
     const tests=(await collectFiles(join(project,"test"))).filter((path)=>path.endsWith(".test.js")||path.endsWith(".test.mjs"));if(!tests.length)throw Object.assign(new Error("No test/*.test.js or .mjs files were found."),{code:"tests_missing"});let output="";for(const file of tests){const result=await executeBounded(project,[file],false);output+=result.output;if(result.code!==0)return{...result,task:"test",workspace:keyFor(project)};}return{ok:true,code:0,task:"test",workspace:keyFor(project),output:output||`Ran ${tests.length} test files.\n`,persistence:"per-user-local-workspace",lifecycleScripts:false};
   }else if(body.task==="compile-active"){
     const file=String(body.activePath||"");if(!safeRelativePath(file)||!Object.hasOwn(body.files,file))throw Object.assign(new Error("Compile requires one active project file."),{code:"active_file_invalid"});
-    const adapter=TOOLCHAIN_ADAPTERS[extname(file).toLowerCase()];if(!adapter)throw Object.assign(new Error(`No installed compile adapter is registered for ${extname(file)||"this file"}.`),{code:"toolchain_adapter_missing"});
+    const adapter=await adapterForExtension(extname(file).toLowerCase());if(!adapter)throw Object.assign(new Error(`No installed compile adapter is registered for ${extname(file)||"this file"}.`),{code:"toolchain_adapter_missing"});
     let command=await resolveToolchain(adapter.executable),toolArgs=adapter.args(file);if(adapter.executable==="$project-typescript"){const compiler=join(project,"node_modules","typescript","bin","tsc");try{await access(compiler,fsConstants.R_OK);command=runtimeNode;toolArgs=[compiler,...toolArgs];}catch{command=null;}}
     if(!command)throw Object.assign(new Error(adapter.projectPackage?`${adapter.id} compiler is not installed in this project. Install exact package ${adapter.projectPackage}, then compile again.`:`${adapter.id} toolchain is not installed on this desktop. Install it for your user, then refresh toolchains.`),{status:503,code:"toolchain_unavailable"});
     await mkdir(join(project,".ynx-build"),{recursive:true,mode:0o700});const result=await executeToolchainBounded(project,command,toolArgs);return{ok:result.code===0,...result,task:"compile-active",language:adapter.id,activePath:file,toolchain:{command,verifiedInstalled:true,projectPackage:adapter.projectPackage||null},workspace:keyFor(project),network:false,bounded:true};
@@ -126,8 +135,31 @@ async function resolveToolchain(name){
   return null;
 }
 async function toolchainStatus(){
-  const grouped=new Map();for(const [extension,adapter] of Object.entries(TOOLCHAIN_ADAPTERS)){if(!grouped.has(adapter.id))grouped.set(adapter.id,{id:adapter.id,executable:adapter.executable,projectPackage:adapter.projectPackage||null,extensions:[]});grouped.get(adapter.id).extensions.push(extension);}
+  await loadCustomAdapters();const grouped=new Map();for(const [extension,adapter] of allAdapters()){if(!grouped.has(adapter.id))grouped.set(adapter.id,{id:adapter.id,executable:adapter.executable,projectPackage:adapter.projectPackage||null,custom:Boolean(adapter.custom),extensions:[]});grouped.get(adapter.id).extensions.push(extension);}
   return Promise.all([...grouped.values()].map(async(item)=>{const command=item.projectPackage?null:await resolveToolchain(item.executable);return{...item,available:Boolean(command),command:command||null,availabilityScope:item.projectPackage?"project":"device"};}));
+}
+
+function allAdapters(){return [...Object.entries(TOOLCHAIN_ADAPTERS),...customAdapters.entries()];}
+async function adapterForExtension(extension){await loadCustomAdapters();return TOOLCHAIN_ADAPTERS[extension]||customAdapters.get(extension)||null;}
+function validateCustomAdapter(value){
+  if(!value||value.schemaVersion!==1||!/^[a-z][a-z0-9-]{1,31}$/.test(value.id||""))throw Object.assign(new Error("Adapter requires schemaVersion 1 and a safe id."),{code:"adapter_identity_invalid"});
+  if(!Array.isArray(value.extensions)||value.extensions.length<1||value.extensions.length>12)throw Object.assign(new Error("Adapter requires 1-12 extensions."),{code:"adapter_extensions_invalid"});
+  const extensions=[...new Set(value.extensions.map((item)=>String(item).toLowerCase()))];if(extensions.some((item)=>!/^\.[a-z0-9][a-z0-9+_-]{0,15}$/.test(item)||Object.hasOwn(TOOLCHAIN_ADAPTERS,item)))throw Object.assign(new Error("Extensions must be safe and may not replace built-in adapters."),{code:"adapter_extensions_invalid"});
+  const executable=String(value.executable||"");if(!/^(?:\$node|[A-Za-z0-9_.+-]{1,80})$/.test(executable))throw Object.assign(new Error("Executable must be one installed command name without a path."),{code:"adapter_executable_invalid"});
+  if(!Array.isArray(value.args)||value.args.length<1||value.args.length>32)throw Object.assign(new Error("Adapter requires 1-32 argument tokens."),{code:"adapter_args_invalid"});
+  const args=value.args.map(String);if(args.some((item)=>item.length>160||!/^(?:\$\{file\}|\$\{build\}|[A-Za-z0-9_./:=+@%,-]+)$/.test(item)))throw Object.assign(new Error("Arguments may contain safe literal tokens plus ${file} or ${build}; shell syntax is rejected."),{code:"adapter_args_invalid"});
+  return{id:value.id,extensions,executable,args};
+}
+function hydrateCustomAdapter(record){return{id:record.id,executable:record.executable,custom:true,manifestArgs:[...record.args],args:(file)=>record.args.map((item)=>item==="${file}"?file:item==="${build}"?".ynx-build":item)};}
+async function loadCustomAdapters(){
+  if(customAdaptersLoaded)return;customAdaptersLoaded=true;let values=[];try{values=JSON.parse(await readFile(adapterStorePath,"utf8"));}catch{}
+  if(!Array.isArray(values))return;for(const value of values.slice(0,32))try{const record=validateCustomAdapter(value);for(const extension of record.extensions)customAdapters.set(extension,hydrateCustomAdapter(record));}catch{}
+}
+async function registerCustomAdapter(body){
+  if(body.approval!=="register-local-toolchain-once")throw Object.assign(new Error("Explicit one-time adapter registration approval is required."),{status:403,code:"adapter_approval_required"});
+  const record=validateCustomAdapter(body.adapter);await loadCustomAdapters();const existing=[];const seen=new Set();for(const [extension,adapter] of customAdapters){if(seen.has(adapter.id))continue;seen.add(adapter.id);existing.push({schemaVersion:1,id:adapter.id,extensions:[...customAdapters.entries()].filter(([,item])=>item.id===adapter.id).map(([ext])=>ext),executable:adapter.executable,args:adapter.manifestArgs});}
+  const next=[...existing.filter((item)=>item.id!==record.id),{schemaVersion:1,...record}].slice(-32);await mkdir(dirname(adapterStorePath),{recursive:true,mode:0o700});const temporary=`${adapterStorePath}.tmp`;await writeFile(temporary,`${JSON.stringify(next,null,2)}\n`,{mode:0o600});await rename(temporary,adapterStorePath);customAdapters.clear();customAdaptersLoaded=false;await loadCustomAdapters();
+  const command=await resolveToolchain(record.executable);return{id:record.id,extensions:record.extensions,executable:record.executable,available:Boolean(command),command:command||null,custom:true};
 }
 function executeToolchainBounded(project,command,args){
   return new Promise((resolve,reject)=>{let finalCommand=command,finalArgs=args;
