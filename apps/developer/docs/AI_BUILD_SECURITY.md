@@ -45,10 +45,11 @@ the per-project workspace. Package installation uses the bundled npm CLI,
 requires one package name plus an optional numeric version, disables lifecycle
 scripts and global installation, and keeps its cache and `node_modules` inside
 the user-local hashed project workspace. The workspace survives an application
-restart. Git push and deployment are not in that executor allowlist. Arbitrary
-project execution remains disabled in the unsigned Windows preview until a
-restricted-token sandbox is delivered; package installation itself still has
-lifecycle scripts disabled.
+restart. Test/check tasks also enable the bundled Node permission model, allow
+filesystem access only to that workspace, and do not grant network, child
+process, worker, native-addon, WASI, inspector, or FFI permissions. macOS adds
+an outer operating-system sandbox; Windows uses the Node permission boundary.
+Git push and deployment are not in that executor allowlist.
 
 YNX Developer never handles a private key. Deployment requires exact Wallet
 authorization and a separate final network approval. A submitted hash remains

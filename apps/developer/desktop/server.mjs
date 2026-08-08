@@ -72,7 +72,7 @@ async function runTask(body){
     try{await stat(npmCLI);}catch{throw Object.assign(new Error("Bundled npm runtime is unavailable."),{status:503,code:"npm_runtime_unavailable"});}
     args=[npmCLI,"install","--ignore-scripts","--save-exact","--no-audit","--no-fund",spec];allowNetwork=true;
   }else if(body.task==="test"){
-    const tests=(await collectFiles(join(project,"test"))).filter((path)=>path.endsWith(".test.js")||path.endsWith(".test.mjs"));if(!tests.length)throw Object.assign(new Error("No test/*.test.js or .mjs files were found."),{code:"tests_missing"});args=["--test",...tests];
+    const tests=(await collectFiles(join(project,"test"))).filter((path)=>path.endsWith(".test.js")||path.endsWith(".test.mjs"));if(!tests.length)throw Object.assign(new Error("No test/*.test.js or .mjs files were found."),{code:"tests_missing"});let output="";for(const file of tests){const result=await executeBounded(project,[file],false);output+=result.output;if(result.code!==0)return{...result,task:"test",workspace:keyFor(project)};}return{ok:true,code:0,task:"test",workspace:keyFor(project),output:output||`Ran ${tests.length} test files.\n`,persistence:"per-user-local-workspace",lifecycleScripts:false};
   }else if(body.task==="check"){
     const files=(await collectFiles(project)).filter((path)=>/\.(?:js|mjs|cjs)$/.test(path)&&!path.includes(`${join(project,"node_modules")}/`)).slice(0,128);if(!files.length)throw Object.assign(new Error("No JavaScript files were found to check."),{code:"check_files_missing"});let output="";for(const file of files){const result=await executeBounded(project,["--check",file],false);output+=result.output;if(result.code!==0)return{...result,task:"check",workspace:keyFor(project)};}return{ok:true,code:0,task:"check",workspace:keyFor(project),output:output||`Checked ${files.length} JavaScript files.\n`};
   }else throw Object.assign(new Error("Only install, test, and check tasks are allowlisted."),{code:"command_not_allowed"});
@@ -81,10 +81,10 @@ async function runTask(body){
 function keyFor(project){return project.split(/[\\/]/).pop();}
 async function collectFiles(root){let entries;try{entries=await readdir(root,{withFileTypes:true});}catch{return [];}const output=[];for(const entry of entries){if(entry.name==="node_modules"||entry.name.startsWith("."))continue;const path=join(root,entry.name);if(entry.isDirectory())output.push(...await collectFiles(path));else if(entry.isFile())output.push(path);}return output;}
 function executeBounded(project,args,allowNetwork){
-  return new Promise((resolve,reject)=>{let command=runtimeNode;let finalArgs=args;
+  return new Promise((resolve,reject)=>{let command=runtimeNode;let finalArgs=allowNetwork?args:["--permission","--allow-fs-read=.","--allow-fs-write=.",...args];
     if(process.platform==="darwin"){
-      const escape=(value)=>value.replaceAll("\\","\\\\").replaceAll('"','\\"');const network=allowNetwork?"":"(deny network*)";const profile=`(version 1)\n(allow default)\n${network}\n(deny file-write*)\n(allow file-write* (subpath \"${escape(project)}\") (subpath \"/private/tmp\") (subpath \"/dev\"))`;command="/usr/bin/sandbox-exec";finalArgs=["-p",profile,runtimeNode,...args];
-    }else if(process.platform==="win32"&&args[0]!==npmCLI){reject(Object.assign(new Error("Arbitrary project execution is disabled on the unsigned Windows preview until a restricted-token sandbox is shipped."),{status:501,code:"windows_execution_sandbox_pending"}));return;}
+      const escape=(value)=>value.replaceAll("\\","\\\\").replaceAll('"','\\"');const network=allowNetwork?"":"(deny network*)";const profile=`(version 1)\n(allow default)\n${network}\n(deny file-write*)\n(allow file-write* (subpath \"${escape(project)}\") (subpath \"/private/tmp\") (subpath \"/dev\"))`;command="/usr/bin/sandbox-exec";finalArgs=["-p",profile,runtimeNode,...finalArgs];
+    }
     const child=spawn(command,finalArgs,{cwd:project,env:{PATH:dirname(runtimeNode),HOME:project,TMPDIR:join(project,".tmp"),npm_config_cache:join(project,".npm-cache")},shell:false,stdio:["ignore","pipe","pipe"]});let output="";const append=(chunk)=>{if(output.length<1024*1024)output+=String(chunk).slice(0,1024*1024-output.length);};child.stdout.on("data",append);child.stderr.on("data",append);const timer=setTimeout(()=>child.kill("SIGKILL"),bodyTimeout(args));child.once("error",reject);child.once("close",(code,signal)=>{clearTimeout(timer);resolve({code:code??124,signal,output:output||"Task completed without output.\n"});});
   });
 }
