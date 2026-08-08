@@ -1,6 +1,6 @@
 # YNX Browser UI design audit
 
-Audited 2026-07-18 against the Task 13 Browser UI gates.
+Audited 2026-08-08 against the Task 13 Browser UI gates.
 
 ## Information architecture and platform behavior
 
@@ -47,6 +47,12 @@ artifacts are recorded in `evidence/EVIDENCE_INDEX.md`.
 
 - Replaced the minimal macOS shell with a real WKWebView browser window.
 - Removed window restoration/autosave behavior that produced a narrow window.
+- Fixed two toolbar buttons that used constraints while retaining autoresizing-mask
+  translation. That conflict collapsed the real WindowServer surface to 57 points
+  even though the app reported 1440 points internally.
+- Added a release gate that measures the external WindowServer surface and captures
+  standard light, minimum light, second-launch light, standard dark and fullscreen
+  dark screenshots. All five gates pass for source `d8c1ad24bc88`.
 - Replaced fake navigation glyphs with SF Symbols on Apple platforms and text
   controls on Android.
 - Moved Android private browsing from a shared CookieManager into a separate
@@ -56,9 +62,9 @@ artifacts are recorded in `evidence/EVIDENCE_INDEX.md`.
 
 ## Remaining boundaries
 
-The local Mac was able to build, package, ad-hoc sign, and install the app, but a
-separate OS network-extension prompt caused AppKit launches to block before a
-window appeared. No interaction with that unrelated prompt was attempted.
-macOS CI supplies independent cold/restart evidence. This preview is not Apple
-Developer signed/notarized; Android uses a published disposable preview key;
-iOS Simulator and Windows CI artifacts are not production/store packages.
+The exact macOS arm64 package built from `d8c1ad24bc88` passes external
+WindowServer-size and screenshot gates locally, including a second launch. This
+preview is ad-hoc signed and is not Apple Developer ID signed or notarized.
+Android uses a published disposable preview key; iOS Simulator and Windows CI
+artifacts are not production/store packages. No unverified platform is presented
+as a public download.

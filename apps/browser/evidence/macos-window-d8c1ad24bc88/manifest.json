@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "ynx-browser-macos-window-visual-v1",
+  "sourceCommit": "d8c1ad24bc88",
+  "passed": true,
+  "gates": [
+    "standard-light",
+    "minimum-light",
+    "second-launch-light",
+    "standard-dark",
+    "fullscreen-dark"
+  ],
+  "files": [
+    {
+      "name": "dark-self.json",
+      "bytes": 185,
+      "sha256": "26b3e69048d75ec142dfe90341f2e845066501b65cd4d7db993d1251e6efc678"
+    },
+    {
+      "name": "fullscreen-dark.json",
+      "bytes": 151,
+      "sha256": "70909a72e7ad361a97afcf127f4d3d71084bb7316311ece8b868fa0f9c8485a8"
+    },
+    {
+      "name": "fullscreen-dark.png",
+      "bytes": 361643,
+      "sha256": "d6b923827bde1d43a932e9e7dc64bc4847a0ded15771cb9e928adca4dfe7b746"
+    },
+    {
+      "name": "minimum-light.json",
+      "bytes": 149,
+      "sha256": "3d559402d4b1b8b4e1c94598cdeacd7ff43ad3c28ba1ac6bba71b5611cfb91c8"
+    },
+    {
+      "name": "minimum-light.png",
+      "bytes": 499221,
+      "sha256": "41131ac430f5646491802eeaa9085716dcacbbea78f900ba3a979a8c292e58f5"
+    },
+    {
+      "name": "relaunch-self.json",
+      "bytes": 186,
+      "sha256": "fb583dd1efd79453d85eccefd4e2638d8b7581d12c9c63305ccac4b31b416373"
+    },
+    {
+      "name": "second-launch-light.json",
+      "bytes": 150,
+      "sha256": "f37e9867b48185ccfc92d423fadae5e1780e04d055c0b2b5416e22c379cf753f"
+    },
+    {
+      "name": "second-launch-light.png",
+      "bytes": 734286,
+      "sha256": "390ca942fcc7018bc6dcb86891ab0302965b207caeb316bcdbe4488594734a43"
+    },
+    {
+      "name": "standard-dark.json",
+      "bytes": 150,
+      "sha256": "5905fe1a024e5422dde9b460f23aeac58d6c95fce34c1cd40869bc6290e76fde"
+    },
+    {
+      "name": "standard-dark.png",
+      "bytes": 743743,
+      "sha256": "870879d428a11bff4502e056562845f1e62883d0fb8469fd7ba4f9f0841a576f"
+    },
+    {
+      "name": "standard-light.json",
+      "bytes": 150,
+      "sha256": "9eceb8dfaa8cb9ee10fd158a33a7a50fe87fbb0fce60fd35eac955b8f57187c4"
+    },
+    {
+      "name": "standard-light.png",
+      "bytes": 698292,
+      "sha256": "605c4b98a342cc4a830027d750f7da8c19eac3682da50af7627a13ef30b08486"
+    },
+    {
+      "name": "standard-self.json",
+      "bytes": 186,
+      "sha256": "fb583dd1efd79453d85eccefd4e2638d8b7581d12c9c63305ccac4b31b416373"
+    }
+  ]
+}
