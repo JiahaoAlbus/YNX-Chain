@@ -2,10 +2,10 @@
   "schemaVersion": "1.0",
   "productNumber": "11",
   "productName": "YNX Developer / AI Build",
-  "sourceCommit": "761468b544ef26d933f37bd4097b3310f34bd31f",
+  "sourceCommit": "f77914f47f9f27d2e6e7f0567e0b4cb8b24adeea",
   "sourceDirtyAtStart": false,
-  "startedAt": "2026-08-08T15:33:57.244Z",
-  "completedAt": "2026-08-08T15:34:07.228Z",
+  "startedAt": "2026-08-08T16:32:04.390Z",
+  "completedAt": "2026-08-08T16:32:12.122Z",
   "browser": "Chrome/151.0.7922.76",
   "harness": "Chrome DevTools Protocol via Node.js built-in WebSocket",
   "status": "passed",
@@ -229,8 +229,8 @@
   "screenshots": [
     {
       "path": "apps/developer/evidence/ui/current-accessibility/desktop-light-1440x900.png",
-      "sha256": "6f25329493b62fbbcc0e2450e8b952ab968fe58481b869ef9984100ff0d1aac5",
-      "bytes": 112093,
+      "sha256": "672b46a5636d7ebd1112be0d76ca0f94bd420e06ed12666ff254ffaae5f4d97c",
+      "bytes": 112092,
       "viewport": {
         "width": 1440,
         "height": 900
@@ -240,8 +240,8 @@
     },
     {
       "path": "apps/developer/evidence/ui/current-accessibility/keyboard-focus-api-studio-1440x900.png",
-      "sha256": "54947cb40d63ed70aac4ae968a4940601ce7084fcdcc6d958d24e9fe27661dbe",
-      "bytes": 141203,
+      "sha256": "40a4e8ca342b34f52120e12006a1ee1d5553336a870223ad0738848a08f15e53",
+      "bytes": 141202,
       "viewport": {
         "width": 1440,
         "height": 900
@@ -252,8 +252,8 @@
     },
     {
       "path": "apps/developer/evidence/ui/current-accessibility/desktop-dark-1440x900.png",
-      "sha256": "c9900ab1e380f76f1cd3a6c9d7c3ecef9c6a5415b2d4877aa407ffc946e9409f",
-      "bytes": 146289,
+      "sha256": "faff75af795aabd9c7f212bd2f21dfa6389f71e9341d6232040aefa5d179831a",
+      "bytes": 146951,
       "viewport": {
         "width": 1440,
         "height": 900
@@ -285,8 +285,8 @@
     },
     {
       "path": "apps/developer/evidence/ui/current-accessibility/mobile-large-text-390x844.png",
-      "sha256": "5ffe576f4f4985aba38f2fb225492a76511df23f8e727c0589b98c7da89d1aa6",
-      "bytes": 45561,
+      "sha256": "0c423d763228de25b338ac302c2ecb0655bc095d36ab75f141385a394ede356f",
+      "bytes": 45250,
       "viewport": {
         "width": 390,
         "height": 844
