@@ -30,7 +30,6 @@ func (v RemoteWalletVerifier) Verify(ctx context.Context, proof WalletProof) err
 	body, e := json.Marshal(map[string]json.RawMessage{
 		"authorizationRequest": proof.Central.AuthorizationRequest,
 		"gatewayCompletion":    proof.Central.GatewayCompletion,
-		"registryEntry":        proof.Central.RegistryEntry,
 		"walletApproval":       proof.Central.WalletApproval,
 	})
 	if e != nil {

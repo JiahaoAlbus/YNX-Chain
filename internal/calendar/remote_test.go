@@ -18,7 +18,7 @@ func TestRemoteWalletVerifierUsesCentralContractAndRejectsTamper(t *testing.T) {
 			t.Fatalf("unexpected route")
 		}
 		var in CentralWalletProof
-		if json.NewDecoder(r.Body).Decode(&in) != nil || len(in.AuthorizationRequest) == 0 || len(in.WalletApproval) == 0 || len(in.GatewayCompletion) == 0 {
+		if json.NewDecoder(r.Body).Decode(&in) != nil || len(in.RegistryEntry) != 0 || len(in.AuthorizationRequest) == 0 || len(in.WalletApproval) == 0 || len(in.GatewayCompletion) == 0 {
 			t.Fatal("incomplete central verifier input")
 		}
 		session := VerifiedWalletSession{VerifierVersion: "wallet-auth-v1", SessionBinding: strings.Repeat("a", 64), ChainID: "ynx_6423-1", RequestingProduct: "calendar", ProductClientID: ProductClientID, BundleID: BundleID, Callback: CallbackURL, ProductDeviceAlgorithm: "p256-sha256", ProductDeviceKey: "calendar-device-key", DeviceBinding: strings.Repeat("b", 64), RequestDigest: strings.Repeat("c", 64), ApprovalDigest: strings.Repeat("d", 64), Account: "ynx1account", Scopes: []string{RequiredScope}, Nonce: "wallet-nonce", Purpose: "Calendar sign in", IssuedAt: issued, ExpiresAt: expires}

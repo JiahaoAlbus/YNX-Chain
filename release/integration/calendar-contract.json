@@ -30,11 +30,11 @@
     "centralVerifierMethod": "POST",
     "centralVerifierPath": "/v1/wallet/sessions/complete",
     "requiredRequestMembers": [
-      "registryEntry",
       "authorizationRequest",
       "walletApproval",
       "gatewayCompletion"
     ],
+    "registryAuthority": "server-selected immutable central registry; caller registryEntry is not forwarded",
     "requiredResponseMembers": [
       "verifierVersion",
       "sessionBinding",
