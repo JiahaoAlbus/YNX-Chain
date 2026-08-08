@@ -66,6 +66,15 @@ done
 [[ -n "$server_pid" ]] || { cat "$work/cold-launch.log" >&2; echo "Bundled local server did not start during cold launch." >&2; exit 1; }
 server_command=$(/bin/ps -o command= -p "$server_pid")
 [[ "$server_command" == *"Contents/Resources/runtime/node"* && "$server_command" == *"Contents/Resources/server.mjs"* ]] || { echo "Cold launch started an unexpected child process: $server_command" >&2; exit 1; }
+runtime_port=""
+for _ in {1..50}; do
+  runtime_port=$(/usr/sbin/lsof -Pan -p "$server_pid" -iTCP -sTCP:LISTEN 2>/dev/null | /usr/bin/awk 'NR>1 {sub(/^.*:/,"",$9); print $9; exit}' || true)
+  [[ "$runtime_port" =~ ^[0-9]+$ ]] && break
+  sleep 0.1
+done
+[[ "$runtime_port" =~ ^[0-9]+$ ]] || { echo "Bundled desktop runtime did not expose a local port." >&2; exit 1; }
+/usr/bin/curl -fsS "http://127.0.0.1:$runtime_port/runtime/toolchains" | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));for(const id of ["javascript","cpp"]){const item=v.adapters.find((entry)=>entry.id===id);if(!item?.available)throw new Error(`${id} toolchain unavailable`);}console.log("Bundled runtime detected JavaScript and C++ toolchains.");'
+/usr/bin/curl -fsS -X POST "http://127.0.0.1:$runtime_port/runtime/task" -H 'content-type: application/json' --data '{"task":"compile-active","activePath":"hello.cpp","projectId":"package-cpp-verification","files":{"hello.cpp":"#include <iostream>\nint main(){ std::cout << 1; return 0; }"}}' | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));if(!v.ok||v.code!==0||v.language!=="cpp"||v.network!==false||v.bounded!==true)throw new Error(`C++ package compile failed: ${JSON.stringify(v)}`);console.log("Bundled runtime completed a real bounded C++ compile.");'
 kill "$app_pid"
 wait "$app_pid" 2>/dev/null || true
 app_pid=""
@@ -78,4 +87,14 @@ if kill -0 "$server_pid" 2>/dev/null; then
   echo "Bundled local server survived App termination." >&2
   exit 1
 fi
-echo "Extracted macOS Testnet Preview resource self-test, cold launch and child cleanup passed: $app"
+"$app/Contents/MacOS/YNXDeveloper" >"$work/second-launch.log" 2>&1 &
+app_pid=$!
+second_server_pid=""
+for _ in {1..50}; do second_server_pid=$(/usr/bin/pgrep -P "$app_pid" 2>/dev/null || true); [[ -n "$second_server_pid" ]] && break; sleep 0.1; done
+[[ -n "$second_server_pid" ]] || { cat "$work/second-launch.log" >&2; echo "Bundled local server did not start during second launch." >&2; exit 1; }
+second_command=$(/bin/ps -o command= -p "$second_server_pid")
+[[ "$second_command" == *"Contents/Resources/runtime/node"* && "$second_command" == *"Contents/Resources/server.mjs"* ]] || { echo "Second launch started an unexpected child process: $second_command" >&2; exit 1; }
+kill "$app_pid"; wait "$app_pid" 2>/dev/null || true; app_pid=""
+for _ in {1..30}; do kill -0 "$second_server_pid" 2>/dev/null || break; sleep 0.1; done
+if kill -0 "$second_server_pid" 2>/dev/null; then kill "$second_server_pid" >/dev/null 2>&1 || true; echo "Bundled local server survived second App termination." >&2; exit 1; fi
+echo "Extracted macOS Testnet Preview self-test, cold launch, real C++ compile, second launch and child cleanup passed: $app"
