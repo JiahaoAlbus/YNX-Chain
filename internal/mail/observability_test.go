@@ -59,3 +59,21 @@ func TestMailObservabilityCorrelatesAndRedacts(t *testing.T) {
 		t.Fatalf("structured logs lack correlation/privacy contract: %s", logText)
 	}
 }
+
+func TestMailObservabilityPreservesStreaming(t *testing.T) {
+	observability := newMailObservability()
+	handler := observability.wrap(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			t.Fatal("observability wrapper removed http.Flusher")
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("event: state\ndata: ready\n\n"))
+		flusher.Flush()
+	}))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/ai/jobs/job/stream", nil))
+	if response.Code != http.StatusOK || response.Body.String() != "event: state\ndata: ready\n\n" {
+		t.Fatalf("streaming response changed: status=%d body=%q", response.Code, response.Body.String())
+	}
+}

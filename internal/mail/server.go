@@ -14,14 +14,23 @@ import (
 
 type Server struct{ service *Service }
 
+type HandlerOptions struct {
+	MaxInFlight int
+	MaxQueued   int
+}
+
 const sessionCookieName = "ynx_mail_session"
 
 func NewHandler(service *Service) http.Handler {
 	return NewHandlerWithBuild(service, buildinfo.Info{})
 }
 func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
+	return NewHandlerWithOptions(service, build, HandlerOptions{MaxInFlight: 128, MaxQueued: 256})
+}
+func NewHandlerWithOptions(service *Service, build buildinfo.Info, options HandlerOptions) http.Handler {
 	s := &Server{service: service}
 	build = buildinfo.Normalize(build)
+	capacity := newMailCapacity(options)
 	mux := http.NewServeMux()
 	observability := newMailObservability()
 	mux.HandleFunc("GET /v1/health", func(w http.ResponseWriter, _ *http.Request) {
@@ -31,6 +40,7 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 			"internet_delivery": false,
 			"internet_bridge":   service.InternetBridgeHealth(),
 			"delivery_truth":    "provider acceptance and mail-server delivery are distinct; user read is never inferred from provider engagement",
+			"capacity":          capacity.snapshot(),
 			"build":             build,
 		})
 	})
@@ -62,7 +72,7 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("GET /v1/account/export", s.exportAccount)
 	mux.HandleFunc("DELETE /v1/account", s.deleteAccount)
 	mux.HandleFunc("GET /v1/metrics", observability.metrics)
-	return observability.wrap(securityHeaders(mux))
+	return observability.wrap(capacity.wrap(securityHeaders(mux)))
 }
 
 func (s *Server) challenge(w http.ResponseWriter, _ *http.Request) {

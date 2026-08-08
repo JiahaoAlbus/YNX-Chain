@@ -28,6 +28,17 @@ type mailObservedWriter struct {
 	status int
 }
 
+func (w *mailObservedWriter) Flush() {
+	if w.status == 0 {
+		w.WriteHeader(http.StatusOK)
+	}
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+func (w *mailObservedWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
 func (w *mailObservedWriter) WriteHeader(status int) {
 	if w.status != 0 {
 		return
