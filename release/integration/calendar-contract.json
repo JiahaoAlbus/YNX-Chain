@@ -28,7 +28,7 @@
   },
   "signedIntent": {
     "centralVerifierMethod": "POST",
-    "centralVerifierPath": "/v1/wallet-auth/verify-session",
+    "centralVerifierPath": "/v1/wallet/sessions/complete",
     "requiredRequestMembers": [
       "registryEntry",
       "authorizationRequest",

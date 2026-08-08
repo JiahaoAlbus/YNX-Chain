@@ -25,8 +25,18 @@ func (v RemoteWalletVerifier) Verify(ctx context.Context, proof WalletProof) err
 	if proof.Central == nil {
 		return errors.New("central Wallet Auth v1 proof is required")
 	}
-	body, _ := json.Marshal(proof.Central)
-	req, e := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(v.BaseURL, "/")+"/v1/wallet-auth/verify-session", bytes.NewReader(body))
+	// The deployed Gateway requires canonical JSON. encoding/json sorts map
+	// keys; RawMessage preserves the already Wallet-approved nested values.
+	body, e := json.Marshal(map[string]json.RawMessage{
+		"authorizationRequest": proof.Central.AuthorizationRequest,
+		"gatewayCompletion":    proof.Central.GatewayCompletion,
+		"registryEntry":        proof.Central.RegistryEntry,
+		"walletApproval":       proof.Central.WalletApproval,
+	})
+	if e != nil {
+		return fmt.Errorf("encode canonical wallet completion: %w", e)
+	}
+	req, e := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(v.BaseURL, "/")+"/v1/wallet/sessions/complete", bytes.NewReader(body))
 	if e != nil {
 		return e
 	}
@@ -43,15 +53,27 @@ func (v RemoteWalletVerifier) Verify(ctx context.Context, proof WalletProof) err
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("wallet verification rejected with status %d", resp.StatusCode)
 	}
-	var session VerifiedWalletSession
+	var envelope struct {
+		OK            bool                  `json:"ok"`
+		Result        VerifiedWalletSession `json:"result"`
+		SchemaVersion int                   `json:"schemaVersion"`
+		StateDigest   string                `json:"stateDigest"`
+	}
 	responseBody, e := io.ReadAll(io.LimitReader(resp.Body, (64<<10)+1))
 	if e != nil || len(responseBody) > 64<<10 {
 		return errors.New("central wallet session response exceeds limit")
 	}
-	if e := decodeStrict(responseBody, &session); e != nil {
+	if e := decodeStrict(responseBody, &envelope); e != nil {
 		return fmt.Errorf("decode central wallet session: %w", e)
 	}
-	if session.VerifierVersion != "wallet-auth-v1" || session.SessionBinding == "" || session.RequestDigest == "" || session.ProductClientID != ProductClientID || session.BundleID != BundleID || session.Account != proof.Account || !sameScopes(session.Scopes, proof.Scopes) {
+	session := envelope.Result
+	if !envelope.OK || envelope.SchemaVersion != 1 || len(envelope.StateDigest) != 64 ||
+		session.VerifierVersion != "wallet-auth-v1" || len(session.SessionBinding) != 64 ||
+		session.ChainID != "ynx_6423-1" || session.RequestingProduct != "calendar" ||
+		session.ProductClientID != ProductClientID || session.BundleID != BundleID || session.Callback != CallbackURL ||
+		session.ProductDeviceAlgorithm != "p256-sha256" || session.ProductDeviceKey != proof.DeviceKey ||
+		len(session.DeviceBinding) != 64 || len(session.RequestDigest) != 64 || len(session.ApprovalDigest) != 64 ||
+		session.Account != proof.Account || session.Nonce == "" || session.Purpose == "" || !sameScopes(session.Scopes, proof.Scopes) {
 		return errors.New("central wallet session binding mismatch")
 	}
 	issued, e := time.Parse(time.RFC3339Nano, session.IssuedAt)

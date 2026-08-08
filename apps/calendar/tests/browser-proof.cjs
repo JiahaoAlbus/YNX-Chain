@@ -25,7 +25,7 @@ const wallet = http
       } catch {}
       const valid =
         req.method === "POST" &&
-        req.url === "/v1/wallet-auth/verify-session" &&
+        req.url === "/v1/wallet/sessions/complete" &&
         proof?.registryEntry &&
         proof?.authorizationRequest &&
         proof?.walletApproval &&

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -13,17 +14,18 @@ func TestRemoteWalletVerifierUsesCentralContractAndRejectsTamper(t *testing.T) {
 	issued := time.Now().UTC().Add(-time.Second).Format(time.RFC3339Nano)
 	expires := time.Now().UTC().Add(time.Minute).Format(time.RFC3339Nano)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" || r.URL.Path != "/v1/wallet-auth/verify-session" {
+		if r.Method != "POST" || r.URL.Path != "/v1/wallet/sessions/complete" {
 			t.Fatalf("unexpected route")
 		}
 		var in CentralWalletProof
 		if json.NewDecoder(r.Body).Decode(&in) != nil || len(in.AuthorizationRequest) == 0 || len(in.WalletApproval) == 0 || len(in.GatewayCompletion) == 0 {
 			t.Fatal("incomplete central verifier input")
 		}
-		_ = json.NewEncoder(w).Encode(VerifiedWalletSession{VerifierVersion: "wallet-auth-v1", SessionBinding: "binding", RequestDigest: "digest", ProductClientID: "ynx-calendar-v1", BundleID: "com.ynxweb4.calendar", Account: "ynx1account", Scopes: []string{RequiredScope}, IssuedAt: issued, ExpiresAt: expires})
+		session := VerifiedWalletSession{VerifierVersion: "wallet-auth-v1", SessionBinding: strings.Repeat("a", 64), ChainID: "ynx_6423-1", RequestingProduct: "calendar", ProductClientID: ProductClientID, BundleID: BundleID, Callback: CallbackURL, ProductDeviceAlgorithm: "p256-sha256", ProductDeviceKey: "calendar-device-key", DeviceBinding: strings.Repeat("b", 64), RequestDigest: strings.Repeat("c", 64), ApprovalDigest: strings.Repeat("d", 64), Account: "ynx1account", Scopes: []string{RequiredScope}, Nonce: "wallet-nonce", Purpose: "Calendar sign in", IssuedAt: issued, ExpiresAt: expires}
+		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": session, "schemaVersion": 1, "stateDigest": strings.Repeat("e", 64)})
 	}))
 	defer server.Close()
-	proof := WalletProof{Account: "ynx1account", Scopes: []string{RequiredScope}, Central: &CentralWalletProof{RegistryEntry: json.RawMessage(`{"schemaVersion":2}`), AuthorizationRequest: json.RawMessage(`{"version":"1"}`), WalletApproval: json.RawMessage(`{"version":"1"}`), GatewayCompletion: json.RawMessage(`{"deviceSignature":"proof"}`)}}
+	proof := WalletProof{Account: "ynx1account", DeviceKey: "calendar-device-key", Scopes: []string{RequiredScope}, Central: &CentralWalletProof{RegistryEntry: json.RawMessage(`{"schemaVersion":3}`), AuthorizationRequest: json.RawMessage(`{"version":"1"}`), WalletApproval: json.RawMessage(`{"version":"1"}`), GatewayCompletion: json.RawMessage(`{"deviceSignature":"proof"}`)}}
 	if e := (RemoteWalletVerifier{BaseURL: server.URL}).Verify(context.Background(), proof); e != nil {
 		t.Fatal(e)
 	}

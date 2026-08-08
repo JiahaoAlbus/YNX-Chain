@@ -33,15 +33,24 @@ type CentralWalletProof struct {
 	GatewayCompletion    json.RawMessage `json:"gatewayCompletion"`
 }
 type VerifiedWalletSession struct {
-	VerifierVersion string   `json:"verifierVersion"`
-	SessionBinding  string   `json:"sessionBinding"`
-	ProductClientID string   `json:"productClientId"`
-	BundleID        string   `json:"bundleId"`
-	RequestDigest   string   `json:"requestDigest"`
-	Account         string   `json:"account"`
-	Scopes          []string `json:"scopes"`
-	IssuedAt        string   `json:"issuedAt"`
-	ExpiresAt       string   `json:"expiresAt"`
+	VerifierVersion        string   `json:"verifierVersion"`
+	SessionBinding         string   `json:"sessionBinding"`
+	ChainID                string   `json:"chainId"`
+	RequestingProduct      string   `json:"requestingProduct"`
+	ProductClientID        string   `json:"productClientId"`
+	BundleID               string   `json:"bundleId"`
+	Callback               string   `json:"callback"`
+	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
+	ProductDeviceKey       string   `json:"productDeviceKey"`
+	DeviceBinding          string   `json:"deviceBinding"`
+	RequestDigest          string   `json:"requestDigest"`
+	ApprovalDigest         string   `json:"approvalDigest"`
+	Account                string   `json:"account"`
+	Scopes                 []string `json:"scopes"`
+	Nonce                  string   `json:"nonce"`
+	Purpose                string   `json:"purpose"`
+	IssuedAt               string   `json:"issuedAt"`
+	ExpiresAt              string   `json:"expiresAt"`
 }
 type User struct {
 	ID          string    `json:"id"`
