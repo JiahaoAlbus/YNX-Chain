@@ -195,16 +195,16 @@ async function runLocalAI(response, body, clientSignal) {
   const upstream = await fetch(`${localAIURL}/api/chat`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ model: localAIModel, stream: true, think: false, keep_alive: "10m", messages: [{ role: "system", content: "You are YNX Developer AI Build. Produce concise, reviewable code changes. Never claim a command ran unless tool evidence is supplied. Use ```ynx-file path=... blocks for proposed files." }, { role: "user", content: prompt }], options: { temperature: 0.2, num_ctx: 16384 } }), signal: AbortSignal.any([clientSignal, AbortSignal.timeout(180_000)]) });
   if (!upstream.ok || !upstream.body) throw Object.assign(new Error(`Local model returned HTTP ${upstream.status}.`), { status: 502 });
   response.writeHead(200, { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-store", connection: "keep-alive", "x-ynx-ai-provider": "ynx-local-open-model", "x-ynx-ai-model": localAIModel });
-  const reader = upstream.body.getReader(); const decoder = new TextDecoder(); let buffer = ""; let preamble = ""; let finalAnswerStarted = false;
+  const reader = upstream.body.getReader(); const decoder = new TextDecoder(); let buffer = ""; let preamble = ""; let finalAnswerStarted = false; let visibleOutputStarted = false;
   while (true) {
     const { done, value } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split("\n"); buffer = lines.pop() || "";
     for (const line of lines) if (line.trim()) {
       const event = JSON.parse(line); const token = event.message?.content; if (!token) continue;
-      if (finalAnswerStarted) { response.write(`data: ${JSON.stringify({ text: token })}\n\n`); continue; }
+      if (finalAnswerStarted) { const visible = visibleOutputStarted ? token : token.replace(/^\s+/, ""); if (visible) { visibleOutputStarted = true; response.write(`data: ${JSON.stringify({ text: visible })}\n\n`); } continue; }
       preamble += token; if (preamble.length > 2 * 1024 * 1024) throw Object.assign(new Error("Local model preamble exceeded the output limit."), { status: 502 });
       const marker = preamble.indexOf("</think>");
-      if (marker >= 0) { finalAnswerStarted = true; const visible = preamble.slice(marker + 8).replace(/^\s+/, ""); preamble = ""; if (visible) response.write(`data: ${JSON.stringify({ text: visible })}\n\n`); }
+      if (marker >= 0) { finalAnswerStarted = true; const visible = preamble.slice(marker + 8).replace(/^\s+/, ""); preamble = ""; if (visible) { visibleOutputStarted = true; response.write(`data: ${JSON.stringify({ text: visible })}\n\n`); } }
     }
   }
   if (!finalAnswerStarted && preamble.trim()) response.write(`data: ${JSON.stringify({ text: preamble })}\n\n`);
