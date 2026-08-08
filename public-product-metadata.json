@@ -4,7 +4,7 @@
   "name": "YNX Calendar",
   "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
   "canonicalRoute": "/calendar",
-  "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+  "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
   "title": "YNX Calendar — Private scheduling with explicit approval",
   "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
   "h1": "Your time, clearly under your control",
@@ -22,13 +22,14 @@
       "status": "proposed-unhosted"
     }
   },
-  "websitePublished": false,
-  "deployedPublic": false,
+  "websitePublished": true,
+  "deployedPublic": true,
   "deployedStaging": false,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
-  "runtimeStatus": "local-tested-not-publicly-deployed",
+  "runtimeStatus": "public-testnet-preview",
+  "publicRuntime": "https://calendar-testnet.43.153.202.237.sslip.io/",
   "features": [
     "Event preview, approval, edit, cancel and recovery",
     "Daily, weekly, monthly and yearly recurrence",
@@ -51,9 +52,9 @@
     "Current source passes Calendar unit, Race, Vet, Web, browser, build and service smoke gates."
   ],
   "risksAndLimitations": [
-    "Current source has no public runtime deployment.",
+    "The public runtime is a Testnet preview, not a production scheduling service.",
     "Current-source mobile and desktop packages are not yet hosted or install-proved.",
-    "Wallet/Auth, Mail, AI, Data Fabric and shared Testnet acceptance are pending.",
+    "Canonical Wallet/Auth is live; Mail delivery, AI provider execution, Data Fabric and shared integration acceptance are pending.",
     "Invitation and reminder delivery is currently local Calendar state, not accepted Mail or push delivery.",
     "Backup confidentiality encryption, offsite retention and independent key escrow are not yet accepted by Security/SRE.",
     "The measured restore result is a local empty-state drill and is not a production-scale RTO or RPO claim.",
@@ -65,7 +66,7 @@
     "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
-    "deployedPublic": false,
+    "deployedPublic": true,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
@@ -130,7 +131,7 @@
     },
     {
       "question": "Is YNX Calendar publicly deployed?",
-      "answer": "Not yet. The current source is locally tested, but no public runtime, current-source hosted download, production signature or store release is claimed."
+      "answer": "A current-source Testnet web preview is public. It is not a production scheduling service, and no current-source native download, production signature or store release is claimed."
     },
     {
       "question": "Are older preview downloads the current release?",
@@ -161,5 +162,5 @@
       "record Website deployment commit and public probes"
     ]
   },
-  "generatedAt": "2026-07-29T02:50:09Z"
+  "generatedAt": "2026-08-08T12:18:00Z"
 }

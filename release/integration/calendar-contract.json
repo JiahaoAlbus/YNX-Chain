@@ -1,12 +1,12 @@
 {
   "contractVersion": "1.0.0-draft",
-  "status": "local-tested-proposed-for-freeze",
+  "status": "public-testnet-preview-partially-integrated",
   "owner": "36-calendar",
   "productId": "com.ynx.calendar",
   "productClientId": "ynx-calendar-v1",
   "bundleId": "com.ynxweb4.calendar",
-  "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
-  "generatedAt": "2026-07-29T02:50:09Z",
+  "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
+  "generatedAt": "2026-08-08T12:18:00Z",
   "authority": {
     "calendarState": "36-calendar",
     "walletIdentityAndSessions": "02-wallet-auth",
@@ -184,12 +184,12 @@
   },
   "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "dependencies": [
-    {"owner": "02-wallet-auth", "requirement": "registry, verifier/introspection, recovery, expiry, revocation", "state": "pending-acceptance"},
+    {"owner": "02-wallet-auth", "requirement": "registry, verifier/introspection, recovery, expiry, revocation", "state": "accepted-and-publicly-verified"},
     {"owner": "14-ai", "requirement": "authenticated JSON POST/SSE route", "state": "pending-acceptance"},
     {"owner": "20-cloud", "requirement": "attachment and notes object contract", "state": "not-started"},
     {"owner": "25-mail", "requirement": "invitation/reminder delivery envelope", "state": "pending-contract"},
     {"owner": "26-data-fabric", "requirement": "canonical event transport", "state": "pending-contract"},
-    {"owner": "28-website", "requirement": "/calendar metadata and public page", "state": "pending-handoff"},
+    {"owner": "28-website", "requirement": "/calendar metadata and public page", "state": "published-public-catalog-entry"},
     {"owner": "29-integration", "requirement": "contract freeze and shared Testnet", "state": "pending-acceptance"},
     {"owner": "30-security-platform", "requirement": "artifact and public release gate", "state": "pending-acceptance"}
   ],
@@ -205,13 +205,13 @@
     "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
-    "deployedPublic": false,
+    "deployedPublic": true,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
   },
   "releaseStateNotes": {
-    "installedLocal": "Current source b00f32d has not completed install/cold-start proof on all target platforms. Historical e227c4f preview artifacts have separate install evidence.",
+    "installedLocal": "Current source cf92caa has not completed install/cold-start proof on all target platforms. Historical e227c4f preview artifacts have separate install evidence.",
     "downloadHosted": "No current-source artifact is hosted. Historical e227c4f preview downloads are tracked separately in product-release.json."
   }
 }

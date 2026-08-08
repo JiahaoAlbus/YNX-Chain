@@ -43,7 +43,7 @@ test("Calendar release record exposes every acceptance state and evidence field"
 
 test("current source and historical preview artifacts remain separated", () => {
   assert.equal(release.branch, "codex/final-calendar");
-  assert.equal(release.commit, "b00f32da16218edb90fcc9f9b504607e374077ce");
+  assert.equal(release.commit, "cf92caa3de1e4cba912813958523f41150f12c1a");
   assert.equal(release.installedLocal, false);
   assert.equal(release.downloadHosted, false);
   assert.deepEqual(release.artifactUrls, []);
@@ -68,7 +68,7 @@ test("integration contract freezes Calendar authority without claiming central a
   assert.equal(integrationContract.calendarSchemas.eventMutation.previewRequired, true);
   assert.equal(integrationContract.calendarSchemas.eventMutation.automaticReschedule, false);
   assert.equal(integrationContract.releaseStates.integratedCentral, false);
-  assert.equal(integrationContract.releaseStates.deployedPublic, false);
+  assert.equal(integrationContract.releaseStates.deployedPublic, true);
   assert.equal(integrationContract.releaseStates.productionSigned, false);
   assert.ok(testVectors.vectors.some((vector) => vector.id === "CAL-X-003" && vector.status === "local-pass"));
   assert.ok(testVectors.vectors.some((vector) => vector.id === "CAL-X-005" && vector.status === "local-pass"));
@@ -98,14 +98,14 @@ test("full goal coverage is machine-readable and uses only accepted states", () 
   }
 });
 
-test("public metadata is publication-safe and keeps public claims false", () => {
+test("public metadata is publication-safe and keeps release claims evidence-bound", () => {
   const serialized = JSON.stringify(publicMetadata);
   for (const forbidden of ["/Users/", "Worktree", "localhost", "127.0.0.1", "example.com"])
     assert.equal(serialized.includes(forbidden), false, `public metadata leaks ${forbidden}`);
   assert.equal(publicMetadata.canonicalRoute, "/calendar");
   assert.equal(publicMetadata.sourceCommit, release.commit);
-  assert.equal(publicMetadata.websitePublished, false);
-  assert.equal(publicMetadata.deployedPublic, false);
+  assert.equal(publicMetadata.websitePublished, true);
+  assert.equal(publicMetadata.deployedPublic, true);
   assert.equal(publicMetadata.downloadHosted, false);
   assert.equal(publicMetadata.productionSigned, false);
   assert.equal(publicMetadata.storeReleased, false);

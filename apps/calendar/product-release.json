@@ -2,11 +2,11 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "branch": "codex/final-calendar",
-  "commit": "b00f32da16218edb90fcc9f9b504607e374077ce",
-  "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+  "commit": "cf92caa3de1e4cba912813958523f41150f12c1a",
+  "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
   "artifactSourceCommit": null,
-  "version": "0.2.0-current-source",
-  "releaseChannel": "local-tested-unreleased",
+  "version": "0.2.0-testnet-public",
+  "releaseChannel": "public-testnet-preview",
   "surfaces": [
     "android-native",
     "ios-native",
@@ -19,13 +19,18 @@
   "installedLocal": false,
   "integratedCentral": false,
   "deployedStaging": false,
-  "deployedPublic": false,
+  "deployedPublic": true,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
-  "websitePublished": false,
-  "publicUrls": [],
-  "healthUrls": [],
+  "websitePublished": true,
+  "publicUrls": [
+    "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "https://www.ynxweb4.com/dapp/calendar"
+  ],
+  "healthUrls": [
+    "https://calendar-testnet.43.153.202.237.sslip.io/v1/health"
+  ],
   "artifactUrls": [],
   "sha256": {},
   "bytes": {},
@@ -61,14 +66,14 @@
     ]
   },
   "publicProbe": {
-    "url": "https://ynxweb4.com/calendar",
-    "finalUrl": "https://www.ynxweb4.com/dapp/calendar",
-    "observedAt": "2026-08-01T14:52:31Z",
+    "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "finalUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "observedAt": "2026-08-08T12:18:00Z",
     "httpStatus": 200,
-    "contentMatch": false,
-    "observedTitle": "YNX Chain — Web4 Layer-1 Ecosystem",
-    "observedCanonical": "https://ynxweb4.com/",
-    "classification": "redirected generic homepage shell; not Calendar publication evidence"
+    "contentMatch": true,
+    "observedTitle": "YNX Calendar",
+    "observedCanonical": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "classification": "direct public Testnet Calendar web runtime"
   },
   "installEvidence": [],
   "buildEvidence": [
@@ -141,6 +146,23 @@
       "gate": "operator backup and isolated restore drill",
       "result": "pass",
       "classification": "local empty-state drill only; no production-scale disaster-recovery claim"
+    },
+    {
+      "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
+      "gate": "public canonical Wallet two-user lifecycle and restart drill",
+      "result": "pass",
+      "details": {
+        "users": 2,
+        "flows": ["invite", "RSVP", "update", "cancel", "DST recurrence exception"],
+        "restartPersistence": true,
+        "authenticatedConcurrentReads": "100/100",
+        "runtime": "https://calendar-testnet.43.153.202.237.sslip.io/"
+      }
+    },
+    {
+      "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
+      "gate": "go test -race ./internal/calendar ./apps/calendar",
+      "result": "pass"
     }
   ],
   "historicalPreview": {
@@ -209,11 +231,11 @@
   "websiteIntegrationHandoff": "docs/integration/WEBSITE_INTEGRATION_HANDOFF.md",
   "knownLimitations": [
     "current-source invitation and reminder delivery is local Calendar state, not accepted Mail or push delivery",
-    "central Wallet/Auth, AI, Mail, Data Fabric and shared Testnet integration is not accepted or deployed",
+    "canonical Wallet/Auth is accepted by the deployed public Gateway; AI, Mail, Data Fabric and shared integration acceptance remain incomplete",
     "current-source Android/iOS/macOS artifacts are not install-proved or hosted",
-    "no staging runtime, public runtime, production signing, notarization, or store release",
+    "no distinct staging runtime, production signing, notarization, or store release",
     "backup confidentiality encryption, offsite retention and independent key escrow remain pending Security/SRE acceptance",
     "repository-wide Go preflight has non-Calendar failures retained in dependency acceptance"
   ],
-  "generatedAt": "2026-07-29T02:50:09Z"
+  "generatedAt": "2026-08-08T12:18:00Z"
 }
