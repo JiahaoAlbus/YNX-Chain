@@ -14,6 +14,9 @@ editor language is never presented as a working compiler merely because it has
 syntax colors. Add language pack accepts declarative JSON for file extensions,
 keywords and completion only. It stores the pack locally and never executes pack
 code. Executable adapters remain reviewed and allowlisted.
+TypeScript is the first project-installable compiler adapter: install the exact
+reviewed `typescript@5.9.0` package through the package approval flow, then
+Compile uses that project-local compiler without adding a global executable.
 
 YNX AI Build starts with Preview plan. Select only the files the provider may
 see, review the estimate and provider status, approve one network request, then

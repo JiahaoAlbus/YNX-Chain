@@ -24,6 +24,7 @@ const TOOLCHAIN_ADAPTERS = Object.freeze({
   ".js": { id:"javascript", executable:"$node", args:(file)=>["--check",file] },
   ".mjs": { id:"javascript", executable:"$node", args:(file)=>["--check",file] },
   ".cjs": { id:"javascript", executable:"$node", args:(file)=>["--check",file] },
+  ".ts": { id:"typescript", executable:"$project-typescript", projectPackage:"typescript@5.9.0", args:(file)=>["--noEmit","--pretty","false","--allowJs","false",file] },
   ".py": { id:"python", executable:"python3", args:(file)=>["-m","py_compile",file] },
   ".java": { id:"java", executable:"javac", args:(file)=>["-d",".ynx-build",file] },
   ".go": { id:"go", executable:"go", args:(file)=>["build","-o",".ynx-build/ynx-go-output",file] },
@@ -96,8 +97,9 @@ async function runTask(body){
   }else if(body.task==="compile-active"){
     const file=String(body.activePath||"");if(!safeRelativePath(file)||!Object.hasOwn(body.files,file))throw Object.assign(new Error("Compile requires one active project file."),{code:"active_file_invalid"});
     const adapter=TOOLCHAIN_ADAPTERS[extname(file).toLowerCase()];if(!adapter)throw Object.assign(new Error(`No installed compile adapter is registered for ${extname(file)||"this file"}.`),{code:"toolchain_adapter_missing"});
-    const command=await resolveToolchain(adapter.executable);if(!command)throw Object.assign(new Error(`${adapter.id} toolchain is not installed on this desktop. Install it for your user, then refresh toolchains.`),{status:503,code:"toolchain_unavailable"});
-    await mkdir(join(project,".ynx-build"),{recursive:true,mode:0o700});const result=await executeToolchainBounded(project,command,adapter.args(file));return{ok:result.code===0,...result,task:"compile-active",language:adapter.id,activePath:file,toolchain:{command,verifiedInstalled:true},workspace:keyFor(project),network:false,bounded:true};
+    let command=await resolveToolchain(adapter.executable),toolArgs=adapter.args(file);if(adapter.executable==="$project-typescript"){const compiler=join(project,"node_modules","typescript","bin","tsc");try{await access(compiler,fsConstants.R_OK);command=runtimeNode;toolArgs=[compiler,...toolArgs];}catch{command=null;}}
+    if(!command)throw Object.assign(new Error(adapter.projectPackage?`${adapter.id} compiler is not installed in this project. Install exact package ${adapter.projectPackage}, then compile again.`:`${adapter.id} toolchain is not installed on this desktop. Install it for your user, then refresh toolchains.`),{status:503,code:"toolchain_unavailable"});
+    await mkdir(join(project,".ynx-build"),{recursive:true,mode:0o700});const result=await executeToolchainBounded(project,command,toolArgs);return{ok:result.code===0,...result,task:"compile-active",language:adapter.id,activePath:file,toolchain:{command,verifiedInstalled:true,projectPackage:adapter.projectPackage||null},workspace:keyFor(project),network:false,bounded:true};
   }else if(body.task==="check"){
     const files=(await collectFiles(project)).filter((path)=>/\.(?:js|mjs|cjs)$/.test(path)&&!path.includes(`${join(project,"node_modules")}/`)).slice(0,128);if(!files.length)throw Object.assign(new Error("No JavaScript files were found to check."),{code:"check_files_missing"});let output="";for(const file of files){const result=await executeBounded(project,["--check",file],false);output+=result.output;if(result.code!==0)return{...result,task:"check",workspace:keyFor(project)};}return{ok:true,code:0,task:"check",workspace:keyFor(project),output:output||`Checked ${files.length} JavaScript files.\n`};
   }else throw Object.assign(new Error("Only install, compile-active, test, and check tasks are allowlisted."),{code:"command_not_allowed"});
@@ -124,8 +126,8 @@ async function resolveToolchain(name){
   return null;
 }
 async function toolchainStatus(){
-  const grouped=new Map();for(const [extension,adapter] of Object.entries(TOOLCHAIN_ADAPTERS)){if(!grouped.has(adapter.id))grouped.set(adapter.id,{id:adapter.id,executable:adapter.executable,extensions:[]});grouped.get(adapter.id).extensions.push(extension);}
-  return Promise.all([...grouped.values()].map(async(item)=>{const command=await resolveToolchain(item.executable);return{...item,available:Boolean(command),command:command||null};}));
+  const grouped=new Map();for(const [extension,adapter] of Object.entries(TOOLCHAIN_ADAPTERS)){if(!grouped.has(adapter.id))grouped.set(adapter.id,{id:adapter.id,executable:adapter.executable,projectPackage:adapter.projectPackage||null,extensions:[]});grouped.get(adapter.id).extensions.push(extension);}
+  return Promise.all([...grouped.values()].map(async(item)=>{const command=item.projectPackage?null:await resolveToolchain(item.executable);return{...item,available:Boolean(command),command:command||null,availabilityScope:item.projectPackage?"project":"device"};}));
 }
 function executeToolchainBounded(project,command,args){
   return new Promise((resolve,reject)=>{let finalCommand=command,finalArgs=args;
