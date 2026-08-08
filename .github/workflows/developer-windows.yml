@@ -28,6 +28,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+      - name: Install pinned workspace dependencies
+        run: npm ci --ignore-scripts
       - name: Client tests
         working-directory: packages/developer-client
         run: npm test
