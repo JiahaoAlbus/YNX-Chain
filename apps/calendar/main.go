@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -39,7 +40,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/v1/", calendarservice.NewHandlerWithBuild(service, buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}))
 	mux.Handle("/", spa(http.FS(webFS)))
-	server := &http.Server{Addr: env("YNX_CALENDAR_ADDR", ":8096"), Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 35 * time.Second, IdleTimeout: 60 * time.Second}
+	maxInFlight := envInt("YNX_CALENDAR_MAX_IN_FLIGHT", 128, 1, 4096)
+	server := &http.Server{Addr: env("YNX_CALENDAR_ADDR", ":8096"), Handler: withAdmission(mux, maxInFlight), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 35 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX Calendar listening on %s (production scheduling is not claimed)", server.Addr)
 	fatal(server.ListenAndServe())
 }
@@ -64,6 +66,31 @@ func env(name, fallback string) string {
 		return v
 	}
 	return fallback
+}
+func envInt(name string, fallback, minimum, maximum int) int {
+	value, err := strconv.Atoi(strings.TrimSpace(os.Getenv(name)))
+	if err != nil || value < minimum || value > maximum {
+		return fallback
+	}
+	return value
+}
+func withAdmission(next http.Handler, limit int) http.Handler {
+	if limit < 1 {
+		limit = 1
+	}
+	semaphore := make(chan struct{}, limit)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case semaphore <- struct{}{}:
+			defer func() { <-semaphore }()
+			next.ServeHTTP(w, r)
+		default:
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Set("Retry-After", "1")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"error":"CALENDAR_CAPACITY","detail":"Calendar is at its bounded concurrent request limit; retry safely."}`))
+		}
+	})
 }
 func fatal(err error) {
 	if err != nil {
