@@ -257,7 +257,7 @@ button {
   z-index: 3;
   margin-left: 64px;
   display: grid;
-  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  grid-template-columns: repeat(var(--visible-days, 7), minmax(120px, 1fr));
   height: 70px;
   background: rgba(255, 255, 255, 0.96);
   border-bottom: 1px solid var(--line);
@@ -750,10 +750,46 @@ dialog::backdrop {
   }
   .days {
     margin-left: 52px;
-    grid-template-columns: repeat(7, minmax(80px, 1fr));
+    grid-template-columns: repeat(var(--visible-days, 7), minmax(0, 1fr));
   }
   .time-grid {
-    grid-template-columns: 52px minmax(560px, 1fr);
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+  .timeline[data-view="day"] .days,
+  .timeline[data-view="day"] .time-grid,
+  .month-grid {
+    min-width: 0;
+  }
+  .month-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: repeat(6, minmax(88px, 1fr));
+  }
+  .day-head b {
+    font-size: 16px;
+  }
+  .day-head span {
+    font-size: 9px;
+  }
+  .event {
+    min-width: 0;
+    padding-inline: 3px;
+  }
+  .event b,
+  .event span,
+  .month-event {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .event span {
+    font-size: 9px;
+  }
+  .month-day {
+    padding: 4px 2px;
+  }
+  .month-event {
+    padding: 3px 2px;
+    font-size: 9px;
   }
   .form-grid {
     grid-template-columns: 1fr;

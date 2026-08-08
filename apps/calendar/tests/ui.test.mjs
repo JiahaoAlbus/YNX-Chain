@@ -27,6 +27,8 @@ test("Calendar visual and responsive contract is restrained Klein blue", async (
   assert.match(css, /forced-colors:\s*active/);
   assert.doesNotMatch(css, /linear-gradient\([^)]*(#|rgb)/i);
   assert.doesNotMatch(css, /neon|text-shadow/i);
+  assert.match(css, /repeat\(var\(--visible-days, 7\), minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.month-grid\s*\{[^}]*min-width:\s*0/s);
 });
 test("Calendar offline, explicit approval, conflict and AI boundaries are wired", async () => {
   const [js, sw] = await Promise.all([load("app.js"), load("sw.js")]);

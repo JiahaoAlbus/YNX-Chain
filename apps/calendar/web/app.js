@@ -117,7 +117,7 @@ function renderFrame() {
     $("#range").textContent =
       `${state.weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} — ${plusDays(state.weekStart, 6).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
   }
-  days.style.gridTemplateColumns = `repeat(${visibleDays}, minmax(120px, 1fr))`;
+  days.style.setProperty("--visible-days", visibleDays);
   $("#timeline").dataset.view = state.view;
   $$("[data-view]").forEach((button) =>
     button.classList.toggle("active", button.dataset.view === state.view),

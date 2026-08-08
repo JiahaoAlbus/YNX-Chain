@@ -262,6 +262,19 @@ function unnamedInteractive() {
         });
       await page.locator(".event").first().waitFor();
       await page.locator(".event").first().scrollIntoViewIfNeeded();
+      if (config.width <= 390) {
+        const compactWeek = await page.locator("#timeline").evaluate((timeline) => ({
+          clientWidth: timeline.clientWidth,
+          scrollWidth: timeline.scrollWidth,
+          visibleDays: timeline.querySelectorAll(".day-head").length,
+        }));
+        if (compactWeek.visibleDays !== 7)
+          throw Error(`mobile week rendered ${compactWeek.visibleDays} day headers`);
+        if (compactWeek.scrollWidth > compactWeek.clientWidth + 1)
+          throw Error(
+            `mobile week requires horizontal scrolling (${compactWeek.scrollWidth} > ${compactWeek.clientWidth})`,
+          );
+      }
       const unnamed = await page.evaluate(unnamedInteractive);
       if (unnamed.length) throw Error(`unnamed controls: ${unnamed.join(",")}`);
       if (errors.length) throw Error(`page errors: ${errors.join(",")}`);
