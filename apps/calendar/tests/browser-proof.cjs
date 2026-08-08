@@ -26,7 +26,6 @@ const wallet = http
       const valid =
         req.method === "POST" &&
         req.url === "/v1/wallet/sessions/complete" &&
-        proof?.registryEntry &&
         proof?.authorizationRequest &&
         proof?.walletApproval &&
         proof?.gatewayCompletion;
@@ -37,15 +36,29 @@ const wallet = http
       res.writeHead(200, { "content-type": "application/json" });
       res.end(
         JSON.stringify({
-          verifierVersion: "wallet-auth-v1",
-          sessionBinding: "calendar-browser-binding",
-          requestDigest: "calendar-browser-digest",
-          productClientId: "ynx-calendar-v1",
-          bundleId: "com.ynxweb4.calendar",
-          account: "ynx1browserproof",
-          scopes: ["calendar:account"],
-          issuedAt: new Date(Date.now() - 1000).toISOString(),
-          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+          ok: true,
+          schemaVersion: 1,
+          stateDigest: "s".repeat(64),
+          result: {
+            verifierVersion: "wallet-auth-v1",
+            sessionBinding: "a".repeat(64),
+            chainId: "ynx_6423-1",
+            requestingProduct: "calendar",
+            productClientId: "ynx-calendar-v1",
+            bundleId: "com.ynxweb4.calendar",
+            callback: "ynxcalendar://wallet-auth/callback",
+            productDeviceAlgorithm: "p256-sha256",
+            productDeviceKey: "browser-proof-device",
+            deviceBinding: "b".repeat(64),
+            requestDigest: "c".repeat(64),
+            approvalDigest: "d".repeat(64),
+            account: "ynx1browserproof",
+            scopes: ["calendar:account"],
+            nonce: proof.authorizationRequest.nonce,
+            purpose: "Calendar browser proof",
+            issuedAt: new Date(Date.now() - 1000).toISOString(),
+            expiresAt: new Date(Date.now() + 60_000).toISOString(),
+          },
         }),
       );
     });
