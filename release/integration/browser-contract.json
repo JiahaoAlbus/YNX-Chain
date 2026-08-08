@@ -145,8 +145,8 @@
   ],
   "releaseStates": {
     "implementedLocal": true,
-    "testedLocal": false,
-    "installedLocal": false,
+    "testedLocal": true,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,

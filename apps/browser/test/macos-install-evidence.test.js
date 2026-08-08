@@ -1,12 +1,20 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   classifyBundleRecord,
   immutableInstallName,
   redactHome,
 } from "../scripts/install-macos-evidence.mjs";
+
+const repositoryRoot = fileURLToPath(new URL("../../..", import.meta.url));
+
+function readJson(relativePath) {
+  return JSON.parse(fs.readFileSync(path.join(repositoryRoot, relativePath), "utf8"));
+}
 
 test("redactHome removes the evidence-host home prefix", () => {
   assert.equal(
@@ -72,4 +80,28 @@ test("classifyBundleRecord distinguishes source, reviewed install and collisions
   });
   assert.equal(collision.role, "collision");
   assert.equal(collision.matchesReviewedBinary, false);
+});
+
+test("published metadata binds the exact local macOS install evidence without widening release claims", () => {
+  const evidence = readJson("apps/browser/evidence/macos-install-2beece6.json");
+  const product = readJson("apps/browser/product-release.json");
+  const contract = readJson("release/integration/browser-contract.json");
+  const publicMetadata = readJson("release/browser/public-product-metadata.json");
+
+  assert.equal(evidence.sourceCommit, product.sourceCommit);
+  assert.equal(evidence.verifiedStates.installedLocalMacosEvidenceHost, true);
+  assert.equal(evidence.install.exactArtifactHash, true);
+  assert.equal(evidence.launchServices.exactReviewedBinaryHash, true);
+  assert.equal(product.releaseStates.installedLocal, true);
+  assert.equal(contract.releaseStates.installedLocal, true);
+  assert.equal(product.verifiedThisCheckpoint.macosInstall.binarySha256, evidence.reviewedArtifact.executableSha256);
+  assert.equal(product.verifiedThisCheckpoint.macosInstall.evidence, "apps/browser/evidence/macos-install-2beece6.json");
+
+  for (const state of [evidence.verifiedStates, product.releaseStates]) {
+    assert.equal(state.downloadHosted, false);
+    assert.equal(state.productionSigned, false);
+    assert.equal(state.storeReleased, false);
+  }
+  assert.equal(publicMetadata.status.publiclyAvailable, false);
+  assert.deepEqual(publicMetadata.downloads, []);
 });

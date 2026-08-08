@@ -3,15 +3,15 @@
   "productNumber": 22,
   "productName": "YNX Browser",
   "productSlug": "browser",
-  "version": "0.2.3-checkpoint",
+  "version": "0.2.6-testnet-preview",
   "goalStatus": "active",
   "phase": "FREEZE",
-  "sourceCommit": "d614a11a0eaf3661be9df70a4776e809e82687f5",
-  "asOf": "2026-07-27",
+  "sourceCommit": "d8c1ad24bc88c481fd9350456124f353c8c43e35",
+  "asOf": "2026-08-08",
   "releaseStates": {
     "implementedLocal": true,
-    "testedLocal": false,
-    "installedLocal": false,
+    "testedLocal": true,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -23,7 +23,7 @@
     "browserCheck": {
       "command": "cd apps/browser && npm run check",
       "result": "pass",
-      "nodeTests": 14,
+      "nodeTests": 18,
       "nativeSwiftTests": 20,
       "smoke": "pass",
       "productionSourceGate": "pass",
@@ -74,8 +74,8 @@
       "details": "Browser production source trees contain no deployment filler, TODO/FIXME/coming-soon markers, fake-success markers or common embedded-secret patterns; macOS security audit templates exclude URL, nonce, response, source and filename values."
     },
     "macosTestnetPreview": {
-      "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
-      "evidence": "apps/browser/evidence/macos-wallet-callback-bde6939.json",
+      "sourceCommit": "d8c1ad24bc88c481fd9350456124f353c8c43e35",
+      "evidence": "apps/browser/evidence/macos-window-d8c1ad24bc88/manifest.json",
       "releaseBuild": "pass",
       "package": "pass",
       "archiveIntegrity": "pass",
@@ -86,15 +86,36 @@
       "architecture": "arm64",
       "signingClass": "adhoc",
       "gatekeeper": "rejected",
-      "zipBytes": 138216,
-      "zipSha256": "fa22ac3924f68f25658257b42341f5af44274a5faa8ceceb57a2a76ef94bf2f7",
+      "zipBytes": 146068,
+      "zipSha256": "3d8544efea04132b53ce53e3227e7e96bc494f301d964da5d1d55911d030af45",
+      "binarySha256": "a0e54dec1e8f085e40792a66d7c91198cb80c61c3100e112413dab0c54e8db64",
+      "windowVisualQa": {
+        "result": "pass",
+        "gates": [
+          "standard-light",
+          "minimum-light",
+          "second-launch-light",
+          "standard-dark",
+          "fullscreen-dark"
+        ],
+        "measurement": "macOS WindowServer bounds plus screenshots"
+      },
+      "truthBoundary": "Exact ad-hoc-signed macOS arm64 Testnet Preview passed local WindowServer visual gates. Developer ID signing, notarization, public hosting, store release and cross-host reproducibility remain unproved at this checkpoint."
+    },
+    "macosInstall": {
+      "sourceCommit": "2beece6f66a330811f474f24189e53aacb5bb636",
+      "evidence": "apps/browser/evidence/macos-install-2beece6.json",
+      "result": "pass-local-evidence-host",
+      "installedPath": "~/Applications/YNX Browser Testnet Preview-2beece6f66a3-cae76c48e0ac.app",
       "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
-      "truthBoundary": "Local ad-hoc-signed Testnet Preview only; not current-source installed, notarized, production signed, hosted or store released. Reproducibility is verified only on the evidence host and toolchain."
+      "collisionPreservation": "pass",
+      "codesignVerify": "pass-adhoc",
+      "launchServicesExactBinary": "pass",
+      "truthBoundary": "The exact current-source ad-hoc Testnet Preview is installed and protocol-resolved on the local evidence host without overwriting a source-mismatched user copy. This is not Developer ID signing, notarization, public hosting, store release, cross-host proof or central Wallet/Auth acceptance."
     }
   },
   "notVerifiedThisCheckpoint": {
     "macosPositiveWalletCallback": "no accepted Gateway signature, device challenge or central Product Session was available for verification",
-    "macosInstall": "LaunchServices knew a different source-mismatched user Applications copy; current-source installedLocal remains false and controlled probes explicitly targeted the repository Dist app",
     "macosPrivateDownloadInteraction": "the exact native persistence policy is tested, but a completed WKWebView normal/Private network download pair through NSSavePanel is not yet recorded",
     "windowsBuild": {
       "result": "blocked",
@@ -104,7 +125,7 @@
     "androidFinalBranchInstallColdStart": "not rerun",
     "iosFullXcodeSimulator": "not rerun",
     "crossHostReproducibility": "not verified",
-    "publicEndpoints": "not verified",
+    "publicEndpoints": "not verified for the d8c1ad24 package until immutable hosting and live hash verification complete",
     "hostedArtifacts": "not verified",
     "notarization": "not performed",
     "developerIdSigning": "not performed",
@@ -117,5 +138,5 @@
     "boundary": "Previous evidence remains historical and is not automatically attributed to this checkpoint"
   },
   "externalInputs": [],
-  "nextAction": "Implement a non-destructive current-source macOS install and LaunchServices verification workflow that detects source-mismatched copies, preserves the existing user app, installs the reviewed artifact under an immutable evidence name, and proves the registered protocol resolves to the exact binary hash."
+  "nextAction": "Obtain Developer ID signing/notarization and immutable public hosting, then rerun cross-host install, shared-Testnet Wallet callback and platform evidence before offering a Browser download."
 }
