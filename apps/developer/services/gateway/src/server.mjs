@@ -10,6 +10,8 @@ import { createTerminalService } from "../../terminal-service/src/service.mjs";
 import { createDebugService } from "../../debug-service/src/service.mjs";
 import { createGitService } from "../../git-service/src/service.mjs";
 import { createExtensionRegistry } from "../../extension-registry/src/service.mjs";
+import { createModelRouter } from "../../model-router/src/router.mjs";
+import { createAgentOrchestrator } from "../../agent-orchestrator/src/service.mjs";
 
 if (
   process.env.NODE_ENV === "production" &&
@@ -39,11 +41,20 @@ const extensionRegistry = createExtensionRegistry({
   filename: join(stateDir, "extensions.sqlite"),
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });
+const modelRouter = createModelRouter({
+  ownerForRequest: (request) => runtime.ownerForRequest(request),
+});
+const agentOrchestrator = createAgentOrchestrator({
+  filename: join(stateDir, "agent.sqlite"),
+  ownerForRequest: (request) => runtime.ownerForRequest(request),
+  workspaceStore,
+  modelRouter,
+});
 const server = createServer(
   createGateway({
     staticRoot,
     runtime,
-    handlers: [gitService.handler, extensionRegistry.handler],
+    handlers: [gitService.handler, extensionRegistry.handler, modelRouter.handler, agentOrchestrator.handler],
   }),
 );
 const terminalService = createTerminalService({
@@ -74,6 +85,7 @@ for (const signal of ["SIGINT", "SIGTERM"])
       await terminalService.close();
       await debugService.close();
       extensionRegistry.close();
+      agentOrchestrator.close();
       workspaceStore.close();
       process.exit(0);
     }),

@@ -334,3 +334,10 @@ async function extensionFetch(
   }
   throw new Error("Workspace session could not be established.");
 }
+
+export type ModelCatalog={hosted:{model:string;available:boolean};bringYourOwnKey:Array<{id:string;label:string;defaultModel:string}>};
+export type AgentRun={runId:string;projectId:string;status:string;provider:string;model:string;workspaceRevision:number;plan:{summary:string;steps:Array<{title:string;acceptance:string}>;contextPaths:string[]}|null;approvedPaths:string[];proposal:{summary:string;files:Array<{path:string;content:string}>}|null;review:{approved:boolean;summary:string;findings:string[]}|null};
+export async function loadModelCatalog():Promise<ModelCatalog>{return agentFetch("/runtime/models")}
+export async function createAgentRun(body:Record<string,unknown>):Promise<AgentRun>{const value=await agentFetch("/runtime/agent/runs",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({protocolVersion:"ynx-code-agent/v1",...body})});return value.run}
+export async function agentAction(runId:string,body:Record<string,unknown>):Promise<AgentRun>{const value=await agentFetch(`/runtime/agent/runs/${encodeURIComponent(runId)}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({protocolVersion:"ynx-code-agent/v1",...body})});return value.run}
+async function agentFetch(path:string,init:RequestInit={}):Promise<any>{for(let attempt=0;attempt<2;attempt++){const response=await fetch(path,{credentials:"same-origin",...init});if(response.status===401&&attempt===0){await runtimeHealth();continue}const value=await response.json().catch(()=>({error:`Agent service returned HTTP ${response.status}`}));if(!response.ok)throw new Error(value.error||"Agent operation failed.");return value}throw new Error("Workspace session could not be established.")}

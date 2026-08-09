@@ -270,6 +270,16 @@ Roles are isolated executions over one shared run ledger:
 - Tester runs approved test/build actions and attaches raw evidence.
 - Deployment Agent prepares a release/deployment intent but cannot sign it.
 
+The first server-side Agent gate is implemented in
+`services/agent-orchestrator`. Planner output is schema-validated and must be
+approved before exact context paths are captured. Coder proposals contain full,
+bounded workspace-relative files; a separate Reviewer decision is required;
+and apply requires an explicit `write-once` approval plus the unchanged captured
+workspace revision. Runs and events persist in SQLite WAL with a SHA-256 hash
+chain. Execute, Tester evidence, package, Git, browser and deployment tools stay
+disabled until each permission adapter passes its own gate; the UI does not
+describe those stages as completed.
+
 Tools are versioned: `read_file`, `write_file`, `edit_file`, `delete_file`,
 `search_code`, `terminal`, `git`, `browser` and `deploy`. Each call binds run,
 tenant, workspace revision, arguments, permission class, preview, approval,
@@ -284,6 +294,15 @@ may select OpenAI, Anthropic, Google, xAI or reviewed local Qwen/Llama/DeepSeek
 models based on task capability, data policy, latency and cost. The UI shows the
 actual provider/model/cost state. BYO secrets stay in the secret broker and are
 never written to project files, browser storage, prompts or logs.
+
+`services/model-router` implements the first fixed-endpoint provider boundary:
+the existing loopback-hosted Qwen service plus request-only OpenAI Responses,
+Anthropic Messages, Google Gemini generateContent and xAI Chat Completions
+adapters. Provider/model identifiers, request/context/output sizes, timeouts,
+concurrency and queues are bounded. Arbitrary provider URLs are rejected and
+credentials are excluded from returned results and the Agent ledger. Llama and
+DeepSeek remain supported model families, not advertised hosted instances,
+until an operator configures and health-checks reviewed local deployments.
 
 Project memory contains a versioned symbol/reference graph, architecture facts,
 API schemas, decisions, test history and user-approved preferences. Embeddings

@@ -44,6 +44,7 @@ import {
 } from "../state/workspace";
 import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
+import { AgentPanel } from "../chat/AgentPanel";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
 type View = "files" | "search" | "source" | "run" | "extensions" | "agent";
@@ -599,10 +600,7 @@ export function Workbench() {
           />
         )}
         {view === "agent" && (
-          <SideStatus
-            title="AI SOFTWARE ENGINEER"
-            text="The legacy suggestion panel is not treated as an autonomous agent. The permissioned orchestrator must pass its separate tool/audit gate before activation."
-          />
+          <AgentPanel projectId={project.id} onApplied={refreshWorkspace} />
         )}
       </aside>
       <main className="main">
@@ -783,15 +781,5 @@ export function Workbench() {
         </Dialog.Portal>
       </Dialog.Root>
     </div>
-  );
-}
-function SideStatus({ title, text }: { title: string; text: string }) {
-  return (
-    <section className="side-section">
-      <header>
-        <strong>{title}</strong>
-      </header>
-      <div className="honest-boundary">{text}</div>
-    </section>
   );
 }
