@@ -12,6 +12,7 @@ import { createGitService } from "../../git-service/src/service.mjs";
 import { createExtensionRegistry } from "../../extension-registry/src/service.mjs";
 import { createModelRouter } from "../../model-router/src/router.mjs";
 import { createAgentOrchestrator } from "../../agent-orchestrator/src/service.mjs";
+import { createProjectMemory } from "../../project-memory/src/service.mjs";
 
 if (
   process.env.NODE_ENV === "production" &&
@@ -44,17 +45,19 @@ const extensionRegistry = createExtensionRegistry({
 const modelRouter = createModelRouter({
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });
+const projectMemory = createProjectMemory({ filename: join(stateDir,"memory.sqlite"), ownerForRequest:(request)=>runtime.ownerForRequest(request), workspaceStore });
 const agentOrchestrator = createAgentOrchestrator({
   filename: join(stateDir, "agent.sqlite"),
   ownerForRequest: (request) => runtime.ownerForRequest(request),
   workspaceStore,
   modelRouter,
+  projectMemory,
 });
 const server = createServer(
   createGateway({
     staticRoot,
     runtime,
-    handlers: [gitService.handler, extensionRegistry.handler, modelRouter.handler, agentOrchestrator.handler],
+    handlers: [gitService.handler, extensionRegistry.handler, modelRouter.handler, agentOrchestrator.handler, projectMemory.handler],
   }),
 );
 const terminalService = createTerminalService({
@@ -86,6 +89,7 @@ for (const signal of ["SIGINT", "SIGTERM"])
       await debugService.close();
       extensionRegistry.close();
       agentOrchestrator.close();
+      projectMemory.close();
       workspaceStore.close();
       process.exit(0);
     }),

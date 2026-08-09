@@ -1024,3 +1024,9 @@ html[data-theme="dark"] .tree-row.file.active {
 .agent-proposal code { overflow:hidden; text-overflow:ellipsis; color:var(--blue); }
 .agent-approved,.agent-rejected,.agent-error { margin:0 8px 8px; padding:7px; border-left:3px solid #2ea043; background:var(--panel2); font-size:10px; line-height:1.4; }
 .agent-rejected,.agent-error { border-left-color:#c42b35; color:#f47067; }
+.memory-box { margin:7px 8px 0; border:1px solid var(--border); background:var(--panel2); }
+.memory-box summary { padding:7px; cursor:pointer; font-size:10px; font-weight:700; }
+.memory-box>button { margin:0 7px 7px; width:calc(100% - 14px); }
+.memory-box>div { display:grid; grid-template-columns:1fr auto; gap:4px; padding:0 7px 7px; }
+.memory-box input { min-width:0; border:1px solid var(--border); background:var(--editor); color:var(--text); padding:5px; }
+.memory-box>code { display:block; margin:0 7px 5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--blue); font-size:9px; }

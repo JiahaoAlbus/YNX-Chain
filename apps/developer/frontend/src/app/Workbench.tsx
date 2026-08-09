@@ -600,7 +600,7 @@ export function Workbench() {
           />
         )}
         {view === "agent" && (
-          <AgentPanel projectId={project.id} onApplied={refreshWorkspace} />
+          <AgentPanel projectId={project.id} revision={project.remoteRevision} onApplied={refreshWorkspace} />
         )}
       </aside>
       <main className="main">

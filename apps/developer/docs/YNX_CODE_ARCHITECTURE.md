@@ -310,6 +310,16 @@ store chunks with tenant, repository, commit/revision, path and ACL. Retrieval
 must pass tenant and file authorization before scoring. Deletion removes source,
 derived chunks and vector entries; rebuild is deterministic from the project.
 
+The first real vector-memory gate is implemented in `services/project-memory`.
+It chunks only the signed owner's current workspace revision, obtains 768-axis
+embeddings from a fixed-loopback `nomic-embed-text` runtime, stores content,
+digest, vector, revision and ACL scope in SQLite WAL, and performs bounded cosine
+ranking after tenant/project filtering. Re-index replaces the previous revision,
+so deleted chunks cannot survive. The Coder may retrieve only paths explicitly
+approved in the Agent context step; cross-owner and non-approved retrieval are
+filtered before vector scoring. The UI exposes explicit index and semantic-search
+actions and reports the actual model, revision, dimensions and scores.
+
 ## 14. Collaboration
 
 Text collaboration uses a CRDT document per file with revision checkpoints.
