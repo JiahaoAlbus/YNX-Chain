@@ -230,6 +230,24 @@ user explicitly starts one. Docker and SSH are capabilities, not implicit host
 access: Docker targets a workspace runtime; Remote SSH requires a user-owned
 connection profile and host-key review.
 
+The Linux candidate adds a runtime-profile control plane backed by SQLite WAL.
+An owner may create only the reviewed `ubuntu:24.04` LXD profile after an
+explicit one-time approval. Each opaque lease receives a dedicated container,
+2 CPU, 2 GiB memory, a 10 GiB root volume and the `ynx-code-isolated` profile,
+which deliberately contains no network device. The exact base-image fingerprint
+is returned as creation evidence and stop deletes only the container resolved
+through the signed owner's lease record. The candidate host lifecycle smoke test
+created, entered and deleted a real Ubuntu 24.04 container with no IPv4/IPv6.
+
+Remote SSH profiles accept public targets only on the public tier. The service
+scans the host key, requires the user to approve that exact key, verifies the
+private key with `BatchMode`, `IdentitiesOnly` and strict host-key checking, then
+stores it as AES-256-GCM ciphertext under a server envelope key. List responses
+never return host-key material or credentials. Private/loopback/link-local
+targets, changed keys and unconfigured encryption fail closed. Profile creation
+does not implicitly authorize terminal input, network, packages, Agent tools or
+deployment; those remain separate approvals.
+
 ## 9. Debugging
 
 The Workspace Agent hosts Debug Adapter Protocol sessions. Initial adapters are

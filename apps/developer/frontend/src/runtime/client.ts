@@ -98,6 +98,14 @@ export async function runtimeHealth() {
   if (!response.ok) throw new Error("Workspace runtime unavailable");
   return response.json();
 }
+export type RuntimeProfiles={protocolVersion:string;container:{engine:string;installed:boolean;ready:boolean;storagePools:number;profile:boolean};leases:Array<{runtimeId:string;projectId:string;image:string;status:string;createdAt:string}>;sshProfiles:Array<{profileId:string;label:string;host:string;port:number;user:string;fingerprint:string;createdAt:string}>};
+async function profileFetch(path:string,options:RequestInit={}){for(let attempt=0;attempt<2;attempt++){const response=await fetch(path,{credentials:"same-origin",...options,headers:{...(options.body?{"content-type":"application/json"}:{}),...options.headers}});if(response.status===401&&attempt===0){await runtimeHealth();continue}const value=await response.json().catch(()=>({error:`Runtime profile returned HTTP ${response.status}`}));if(!response.ok)throw new Error(value.error||"Runtime profile operation failed.");return value}throw new Error("Workspace session could not be established.")}
+export function loadRuntimeProfiles():Promise<RuntimeProfiles>{return profileFetch("/runtime/profiles")}
+export function createContainerLease(projectId:string){return profileFetch("/runtime/profiles/lxd/leases",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",approval:"create-container-once",projectId,image:"ubuntu-24.04"})})}
+export function removeContainerLease(runtimeId:string){return profileFetch(`/runtime/profiles/lxd/leases/${encodeURIComponent(runtimeId)}`,{method:"DELETE"})}
+export function inspectSshTarget(host:string,port:number,user:string){return profileFetch("/runtime/profiles/ssh/inspect",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",host,port,user})})}
+export function saveSshProfile(value:{host:string;port:number;user:string;label:string;reviewedHostKey:string;privateKey:string}){return profileFetch("/runtime/profiles/ssh",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",approval:"connect-ssh-once",...value})})}
+export function removeSshProfile(profileId:string){return profileFetch(`/runtime/profiles/ssh/${encodeURIComponent(profileId)}`,{method:"DELETE"})}
 export async function loadWorkspace(
   projectId: string,
 ): Promise<WorkspaceSnapshot | null> {

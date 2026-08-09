@@ -3,6 +3,7 @@ import {
   Braces,
   Bug,
   ChevronDown,
+  Cloud,
   Files,
   GitBranch,
   Play,
@@ -51,7 +52,8 @@ import { AgentPanel } from "../chat/AgentPanel";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
 const CollaborationPanel = lazy(() => import("../collaboration/CollaborationPanel").then(module => ({ default: module.CollaborationPanel })));
-type View = "files" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration";
+const RuntimePanel = lazy(() => import("../runtime/RuntimePanel").then(module => ({ default: module.RuntimePanel })));
+type View = "files" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration" | "remote";
 const activity: [View, React.ReactNode, string][] = [
   ["files", <Files />, "Explorer"],
   ["search", <Search />, "Search"],
@@ -60,6 +62,7 @@ const activity: [View, React.ReactNode, string][] = [
   ["extensions", <Braces />, "Extensions"],
   ["agent", <Sparkles />, "AI Engineer"],
   ["collaboration", <Users />, "Collaboration"],
+  ["remote", <Cloud />, "Remote Explorer"],
 ];
 
 export function Workbench() {
@@ -630,6 +633,7 @@ export function Workbench() {
           <AgentPanel projectId={project.id} revision={project.remoteRevision} activePath={project.active} onApplied={refreshWorkspace} />
         )}
         {collaborationMounted&&<div hidden={view !== "collaboration"} className="collaboration-host"><Suspense fallback={<div className="editor-loading">Loading collaboration engine…</div>}><CollaborationPanel projectId={project.id} files={project.files} cursor={collaborationCursor} onRemoteFiles={applyCollaborativeFiles} onCheckpoint={refreshWorkspace} onAccessChange={setCollaborationRole} onSessionChange={setCollaborationSession} onLeave={leaveCollaboration} /></Suspense></div>}
+        {view==="remote"&&<Suspense fallback={<div className="editor-loading">Loading runtime control plane…</div>}><RuntimePanel projectId={project.id}/></Suspense>}
       </aside>
       <main className="main">
         <div className="editor-tabs">
