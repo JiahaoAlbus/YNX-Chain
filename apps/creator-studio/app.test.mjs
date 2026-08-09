@@ -69,9 +69,9 @@ test("studio exposes recovery, team, rights, revenue and bounded AI workflows", 
   for (const binding of [
     "ynx-creator-studio-web-v1",
     "com.ynxweb4.creator-studio.web",
-    "gateway_session",
+    "completeWalletCallback",
     "output_language",
-    "X-YNX-App-Session",
+    "X-YNX-Product-Session-Proof",
     "source_sha256",
     "evidence_sha256",
     "authorization version",
@@ -96,4 +96,15 @@ test("studio exposes recovery, team, rights, revenue and bounded AI workflows", 
   assert.match(js, /AI request cancelled and audited/);
 
   assert.doesNotMatch(js, /Math\.random|authorize\?client=/i);
+  assert.match(js, /Guest tour active/);
+  assert.match(js, /productSessionProof/);
+});
+
+test("Creator Studio completes the canonical Wallet callback and signs per-request Product Session proofs", async()=>{
+  const [wallet,server,html]=await Promise.all([load("creator-wallet-auth.js"),load("server.mjs"),load("index.html")]);
+  for(const term of ["ynx-creator-studio","ynx-creator-studio-web-v1","com.ynxweb4.creator-studio.web","https://web4.ynxweb4.com/video/studio/wallet-auth/callback","YNX_PRODUCT_SESSION_CHALLENGE_V1","YNX_PRODUCT_SESSION_HTTP_PROOF_V1","/v1/wallet/sessions/complete","indexedDB","requestDigest","sessionBinding"])assert.ok(wallet.includes(term),term);
+  assert.match(server,/wallet-auth\/callback/);
+  assert.match(server,/gateway\/v1\/wallet\/sessions\/complete/);
+  assert.match(html,/Wallet not installed\? Open the official install page/);
+  assert.doesNotMatch(wallet,/localStorage|accountSecret|recovery/i);
 });

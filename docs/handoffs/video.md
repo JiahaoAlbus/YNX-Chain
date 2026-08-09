@@ -106,14 +106,15 @@ Reviewed source: `codex/ecosystem-wallet-auth` worktree at `51cf0da` and
 `packages/wallet-auth` protocol v1.
 
 The production daemon no longer accepts operator-created `token=account`
-mappings. Central Gateway requests must attest all shared verifier v2 fields:
-`wallet-auth-v1`, `ynx_6423-1`, `p256-sha256`, exact product/client/bundle/
-callback, canonical YNX account, sorted exact scopes, device public key, session
-binding, bounded expiry, request timestamp, nonce, method/URI and request-body
-digest. The `YNX_VIDEO_GATEWAY_REQUEST_V2` HMAC attestation is checked
-server-side; nonce consumption is persisted. Tests cover changed body/product/
-bundle/callback/scope, stale or overlong session, cross-App use, exact replay,
-changed replay and replay after restart.
+mappings. Creator Studio completes the canonical Wallet approval with a
+non-exportable P-256 product-device key, receives a bounded Product Session and
+signs a fresh one-time introspection proof for each request. The Video service,
+not the browser, selects the required creator/read/AI/payout scope from the HTTP
+route and asks the central Gateway to verify the proof. It then checks the exact
+product/client/bundle/account/scope/expiry tuple. Tests cover route-selected
+scope, product substitution, callback tuple changes, expiry and missing proofs.
+Legacy HMAC gateway attestation is available only behind the explicit
+`YNX_VIDEO_LEGACY_GATEWAY_ATTESTATION=1` rollback switch.
 
 Product registrations expected at central integration:
 
@@ -122,10 +123,11 @@ Product registrations expected at central integration:
 - `ynx-creator-studio-web-v1` /
   `com.ynxweb4.creator-studio.web` / creator, AI proposal and Pay-intent scopes.
 
-Those entries are deliberately not written into central policy by this branch.
-Until the integration controller registers them and routes the Gateway, sign-in
-finishes as honest `unavailable`; a raw Wallet callback is never treated as a
-product session.
+The Creator Studio tuple is now present in the reviewed central registry and in
+Wallet's local reviewed list. The public deployment remains unavailable until
+that policy change, the callback-serving Web build and the introspecting Video
+service are reviewed and deployed together; a raw Wallet callback is never
+treated as a product session.
 
 ## AI, Trust and Pay boundaries
 

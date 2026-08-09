@@ -48,7 +48,16 @@ func main() {
 		"ynx-video-web-v1":          {Product: "ynx-video", BundleID: "com.ynxweb4.video.web", Callbacks: []string{"https://web4.ynxweb4.com/video/wallet-auth/callback"}, Scopes: []string{"video.comment", "video.history", "video.read", "video.report", "video.subscribe"}},
 		"ynx-creator-studio-web-v1": {Product: "ynx-creator-studio", BundleID: "com.ynxweb4.creator-studio.web", Callbacks: []string{"https://web4.ynxweb4.com/video/studio/wallet-auth/callback"}, Scopes: []string{"ai.video.propose", "pay.payout.intent", "video.creator", "video.read"}},
 	}
-	auth := video.GatewaySessionAuth{Service: svc, Key: []byte(required("YNX_VIDEO_GATEWAY_ATTESTATION_KEY")), Clients: clients, Moderators: moderators}
+	var auth video.Authenticator
+	if os.Getenv("YNX_VIDEO_LEGACY_GATEWAY_ATTESTATION") == "1" {
+		auth = video.GatewaySessionAuth{Service: svc, Key: []byte(required("YNX_VIDEO_GATEWAY_ATTESTATION_KEY")), Clients: clients, Moderators: moderators}
+	} else {
+		gatewayURL := strings.TrimSpace(os.Getenv("YNX_WALLET_GATEWAY_URL"))
+		if gatewayURL == "" {
+			gatewayURL = "https://wallet-auth.ynxweb4.com"
+		}
+		auth = video.CentralProductSessionAuth{GatewayURL: gatewayURL, Moderators: moderators}
+	}
 	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})
 	srv := &http.Server{Addr: addr, Handler: video.NewServerWithBuild(svc, auth, build).Handler(), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
 	log.Printf("YNX Video listening on %s", addr)
