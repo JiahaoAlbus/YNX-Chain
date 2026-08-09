@@ -1,0 +1,9 @@
+{
+  "name": "@ynx-code/language-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "dependencies": { "@ynx-code/workspace-agent": "0.1.0" },
+  "engines": { "node": ">=22" }
+}
