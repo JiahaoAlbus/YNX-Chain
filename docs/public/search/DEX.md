@@ -4,7 +4,7 @@
 | --- | --- |
 | Version | 1.1.0-candidate |
 | Effective date | 2026-08-09 |
-| Evidence source commit | pending final DEX commit |
+| Evidence source commit | `3553ae926e7f2144de7bd7f5a4d4919ebe6a25cf` |
 | Product release | YNX Testnet documentation candidate |
 | Last reviewed | 2026-07-22 |
 | Canonical | `https://ynxweb4.com/dex` |
