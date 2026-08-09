@@ -83,13 +83,14 @@ test("desktop Grok Build sidecar is pinned, shell-free and permission brokered",
 });
 
 test("Windows proof requires a real Windows build, portable install and cold launch",async()=>{
-  const packageScript=await read("scripts/package-windows.ps1"),verify=await read("scripts/verify-windows-package.ps1"),nativeSelfTest=await read("desktop/windows/App.xaml.cs");
+  const packageScript=await read("scripts/package-windows.ps1"),verify=await read("scripts/verify-windows-package.ps1"),nativeSelfTest=await read("desktop/windows/App.xaml.cs"),windowsHost=await read("desktop/windows/MainWindow.xaml.cs");
   const workflow=await readFile(new URL("../../../.github/workflows/developer-windows.yml",import.meta.url),"utf8");
-  assert.match(packageScript,/dotnet publish/);assert.match(packageScript,/node\.exe/);assert.match(packageScript,/Get-FileHash/);assert.match(packageScript,/Refusing to package tracked Developer changes/);
+  assert.match(packageScript,/dotnet publish/);assert.match(packageScript,/hosted-workspace-client/);assert.match(packageScript,/Get-FileHash/);assert.match(packageScript,/Refusing to package tracked Developer changes/);
   assert.match(packageScript,/build-provenance\.json/);assert.match(packageScript,/sbom\.cdx\.json/);assert.match(packageScript,/Get-AuthenticodeSignature/);assert.match(packageScript,/unsigned-no-authenticode/);
-  assert.match(verify,/--self-test/);assert.match(verify,/CloseMainWindow/);assert.match(verify,/child survived App shutdown/);assert.match(verify,/YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT/);
+  assert.match(verify,/--self-test/);assert.match(verify,/CloseMainWindow/);assert.match(verify,/realCppCompile/);assert.match(verify,/runtime\/tasks/);assert.match(verify,/second launch/);assert.match(verify,/YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT/);
   assert.match(verify,/provenance sourceCommit/);assert.match(verify,/artifactSha256/);assert.match(verify,/authenticodeStatus/);assert.match(nativeSelfTest,/build-provenance\.json/);assert.match(nativeSelfTest,/sbom\.cdx\.json/);
-  assert.match(workflow,/runs-on: windows-latest/);assert.match(workflow,/branches: \[codex\/final-developer\]/);assert.match(workflow,/developer-windows-\$\{\{ github\.ref \}\}/);
+  assert.match(nativeSelfTest,/hosted-workspace-client/);assert.match(nativeSelfTest,/MainWindow\.WorkspaceUrl/);assert.match(windowsHost,/https:\/\/developer\.ynxweb4\.com\//);assert.match(windowsHost,/healthz/);
+  assert.match(workflow,/runs-on: windows-latest/);assert.match(workflow,/codex\/ynx-code-platform-v1/);assert.match(workflow,/developer-windows-\$\{\{ github\.ref \}\}/);
   assert.match(workflow,/package-windows\.ps1/);assert.match(workflow,/verify-windows-package\.ps1/);assert.match(workflow,/upload-artifact@v4/);
 });
 

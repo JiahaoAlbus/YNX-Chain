@@ -3,7 +3,7 @@ name: Developer Windows package proof
 on:
   workflow_dispatch:
   push:
-    branches: [codex/final-developer]
+    branches: [codex/final-developer, codex/ynx-code-platform-v1]
     paths:
       - "apps/developer/**"
       - "packages/developer-client/**"

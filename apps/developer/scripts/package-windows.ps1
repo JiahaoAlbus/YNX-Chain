@@ -20,9 +20,9 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($sourceCommit) -or [str
 }
 
 $release = Get-Content (Join-Path $app "product-release.json") -Raw | ConvertFrom-Json
-$runtimeCheckpoint = [string]$release.featureStatus.apiStudio.sourceCommit
+$runtimeCheckpoint = [string]$release.featureStatus.ynxCodePlatform.sourceCommit
 if ([string]::IsNullOrWhiteSpace($runtimeCheckpoint)) {
-  throw "product-release.json does not expose featureStatus.apiStudio.sourceCommit"
+  throw "product-release.json does not expose featureStatus.ynxCodePlatform.sourceCommit"
 }
 
 $outRoot = Join-Path $app ".ynx-developer-windows"
@@ -33,14 +33,6 @@ $zip = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-unsigned.zi
 Remove-Item $outRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item $publish -ItemType Directory -Force | Out-Null
 
-Push-Location $app
-try {
-  npm run build
-  if ($LASTEXITCODE -ne 0) { throw "Web build failed with exit $LASTEXITCODE" }
-} finally {
-  Pop-Location
-}
-
 dotnet publish (Join-Path $app "desktop/windows/YNXDeveloper.TestnetPreview.csproj") `
   --configuration Release --runtime win-x64 --self-contained true `
   --output $publish /p:PublishSingleFile=false /p:DebugType=None /p:DebugSymbols=false
@@ -48,24 +40,49 @@ if ($LASTEXITCODE -ne 0) { throw "Windows publish failed with exit $LASTEXITCODE
 
 Copy-Item $publish $stage -Recurse
 $resources = Join-Path $stage "Resources"
-New-Item (Join-Path $resources "runtime") -ItemType Directory -Force | Out-Null
-Copy-Item (Join-Path $app "dist") (Join-Path $resources "web") -Recurse
-Copy-Item (Join-Path $app "desktop/server.mjs") $resources
-Copy-Item (Join-Path $app "sbom.cdx.json") (Join-Path $resources "sbom.cdx.json")
-$node = (Get-Command node.exe -ErrorAction Stop).Source
-Copy-Item $node (Join-Path $resources "runtime/node.exe")
-$npmCommand = (Get-Command npm.cmd -ErrorAction Stop).Source
-$npmSource = Join-Path (Split-Path $npmCommand -Parent) "node_modules/npm"
-if (!(Test-Path (Join-Path $npmSource "bin/npm-cli.js"))) {
-  $npmRoot = (& npm root -g).Trim()
-  $npmSource = Join-Path $npmRoot "npm"
-}
-if (!(Test-Path (Join-Path $npmSource "bin/npm-cli.js"))) { throw "A complete npm CLI is required for isolated desktop package installation" }
-$npmTarget = Join-Path $resources "runtime/npm/node_modules/npm"
-New-Item (Split-Path $npmTarget -Parent) -ItemType Directory -Force | Out-Null
-Copy-Item $npmSource $npmTarget -Recurse
+New-Item $resources -ItemType Directory -Force | Out-Null
 
+$deps = Get-Content (Join-Path $publish "YNXDeveloper.TestnetPreview.deps.json") -Raw | ConvertFrom-Json
+$libraryNames = @($deps.libraries.PSObject.Properties.Name)
+$dotnetRuntimeName = $libraryNames | Where-Object { $_ -like "Microsoft.NETCore.App.Runtime.win-x64/*" } | Select-Object -First 1
+$windowsDesktopRuntimeName = $libraryNames | Where-Object { $_ -like "Microsoft.WindowsDesktop.App.Runtime.win-x64/*" } | Select-Object -First 1
+if (!$dotnetRuntimeName -or !$windowsDesktopRuntimeName) { throw "Self-contained .NET runtime inventory is missing from the published dependency manifest" }
+$dotnetVersion = $dotnetRuntimeName.Split("/")[-1]
+$windowsDesktopVersion = $windowsDesktopRuntimeName.Split("/")[-1]
+$webViewLibraryName = $libraryNames | Where-Object { $_ -like "Microsoft.Web.WebView2/*" } | Select-Object -First 1
+if (!$webViewLibraryName) { throw "WebView2 inventory is missing from the published dependency manifest" }
+$webViewVersion = $webViewLibraryName.Split("/")[-1]
+$serialSeed = [System.BitConverter]::ToString(
+  [System.Security.Cryptography.SHA256]::HashData(
+    [System.Text.Encoding]::UTF8.GetBytes("$sourceCommit`n$dotnetVersion`n$windowsDesktopVersion`n$webViewVersion")
+  )
+).Replace("-", "").ToLowerInvariant()
+$sbom = [ordered]@{
+  bomFormat = "CycloneDX"
+  specVersion = "1.5"
+  serialNumber = "urn:uuid:$($serialSeed.Substring(0,8))-$($serialSeed.Substring(8,4))-4$($serialSeed.Substring(13,3))-a$($serialSeed.Substring(17,3))-$($serialSeed.Substring(20,12))"
+  version = 1
+  metadata = [ordered]@{
+    timestamp = [DateTimeOffset]::UtcNow
+    component = [ordered]@{ type = "application"; name = "YNX Code Windows Hosted Workspace Client"; version = "0.2.0"; "bom-ref" = "pkg:generic/ynx-code-windows@0.2.0" }
+    properties = @(
+      [ordered]@{ name = "ynx:sourceCommit"; value = $sourceCommit },
+      [ordered]@{ name = "ynx:artifactClass"; value = "unsigned-testnet-preview" },
+      [ordered]@{ name = "ynx:deliveryMode"; value = "hosted-workspace-client" },
+      [ordered]@{ name = "ynx:workspaceUrl"; value = "https://developer.ynxweb4.com/" }
+    )
+  }
+  components = @(
+    [ordered]@{ type = "framework"; name = ".NET Runtime win-x64"; version = $dotnetVersion; scope = "required"; "bom-ref" = "pkg:generic/dotnet-runtime-win-x64@$dotnetVersion" },
+    [ordered]@{ type = "framework"; name = ".NET Windows Desktop Runtime win-x64"; version = $windowsDesktopVersion; scope = "required"; "bom-ref" = "pkg:generic/dotnet-windows-desktop-runtime-win-x64@$windowsDesktopVersion" },
+    [ordered]@{ type = "library"; name = "Microsoft.Web.WebView2"; version = $webViewVersion; scope = "required"; purl = "pkg:nuget/Microsoft.Web.WebView2@$webViewVersion"; "bom-ref" = "pkg:nuget/Microsoft.Web.WebView2@$webViewVersion" },
+    [ordered]@{ type = "service"; name = "YNX Code Hosted Workspace"; version = "0.2.0-testnet-preview"; scope = "required"; "bom-ref" = "https://developer.ynxweb4.com/" }
+  )
+}
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 $sbomPath = Join-Path $resources "sbom.cdx.json"
+[System.IO.File]::WriteAllText($sbomPath, (($sbom | ConvertTo-Json -Depth 12) + [Environment]::NewLine), $utf8NoBom)
+
 $sbomHash = (Get-FileHash $sbomPath -Algorithm SHA256).Hash.ToLowerInvariant()
 $provenance = [ordered]@{
   schemaVersion = 1
@@ -74,6 +91,9 @@ $provenance = [ordered]@{
   artifactClass = "unsigned-testnet-preview"
   platform = "windows-x64"
   signingClass = "unsigned-no-authenticode"
+  deliveryMode = "hosted-workspace-client"
+  workspaceUrl = "https://developer.ynxweb4.com/"
+  workspaceHealthUrl = "https://developer.ynxweb4.com/healthz"
   sourceRepository = "https://github.com/JiahaoAlbus/YNX-Chain"
   sourceCommit = $sourceCommit
   sourceTree = $sourceTree
@@ -83,7 +103,6 @@ $provenance = [ordered]@{
   sbomPath = "Resources/sbom.cdx.json"
   sbomSha256 = $sbomHash
 }
-$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 $provenancePath = Join-Path $resources "build-provenance.json"
 [System.IO.File]::WriteAllText($provenancePath, (($provenance | ConvertTo-Json -Depth 8) + [Environment]::NewLine), $utf8NoBom)
 
@@ -106,6 +125,8 @@ $packageRecord = [ordered]@{
   authenticodeStatus = "NotSigned"
   architecture = "win-x64"
   installClass = "portable-extract"
+  deliveryMode = "hosted-workspace-client"
+  workspaceUrl = "https://developer.ynxweb4.com/"
   sourceCommit = $sourceCommit
   sourceTree = $sourceTree
   sourceCommitDate = $sourceDate
