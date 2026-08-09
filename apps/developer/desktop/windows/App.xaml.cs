@@ -36,7 +36,7 @@ public partial class App : Application
                 provenanceRoot.GetProperty("platform").GetString() != "windows-x64" ||
                 provenanceRoot.GetProperty("signingClass").GetString() != "unsigned-no-authenticode" ||
                 provenanceRoot.GetProperty("deliveryMode").GetString() != "hosted-workspace-client" ||
-                provenanceRoot.GetProperty("workspaceUrl").GetString() != MainWindow.WorkspaceUrl ||
+                provenanceRoot.GetProperty("workspaceUrl").GetString() != YNXDeveloper.MainWindow.WorkspaceUrl ||
                 provenanceRoot.GetProperty("sourceDirty").GetBoolean()) return 2;
             var sourceCommit = provenanceRoot.GetProperty("sourceCommit").GetString();
             var runtimeCheckpoint = provenanceRoot.GetProperty("runtimeCheckpoint").GetString();
@@ -46,7 +46,7 @@ public partial class App : Application
             {
                 product = "YNX Developer Testnet Preview",
                 runtime = ".NET 8 WPF + WebView2 hosted workspace client",
-                workspaceUrl = MainWindow.WorkspaceUrl,
+                workspaceUrl = YNXDeveloper.MainWindow.WorkspaceUrl,
                 resourcesVerified = true,
                 signingClass = "unsigned-no-authenticode",
                 sourceCommit,
