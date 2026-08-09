@@ -39,6 +39,7 @@ type PlaceOrderRequest struct {
 	PriceMicro      int64  `json:"priceMicro"`
 	AmountMicro     int64  `json:"amountMicro"`
 	IdempotencyKey  string `json:"idempotencyKey"`
+	WalletPublicKey string `json:"walletPublicKey"`
 	WalletSignature string `json:"walletSignature"`
 }
 
@@ -461,7 +462,14 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 	if req.Market != DefaultMarket || (req.Side != "buy" && req.Side != "sell") || req.Type != "limit" || req.PriceMicro <= 0 || req.AmountMicro <= 0 || req.PriceMicro > 1_000_000*AmountScale || req.AmountMicro > 1_000_000*AmountScale || !validKey(req.IdempotencyKey) {
 		return Order{}, ErrInvalid
 	}
-	if !verifyWalletSignature(session.Account, session.WalletPublicKey, OrderAuthorizationPayload(session.Account, req), req.WalletSignature) {
+	walletPublicKey := session.WalletPublicKey
+	if req.WalletPublicKey != "" {
+		if walletPublicKey != "" && walletPublicKey != req.WalletPublicKey {
+			return Order{}, ErrUnauthorized
+		}
+		walletPublicKey = req.WalletPublicKey
+	}
+	if !verifyWalletSignature(session.Account, walletPublicKey, OrderAuthorizationPayload(session.Account, req), req.WalletSignature) {
 		return Order{}, ErrUnauthorized
 	}
 	if mulDiv(req.AmountMicro, req.PriceMicro, AmountScale) > s.cfg.MaxOrderNotionalMicro {
