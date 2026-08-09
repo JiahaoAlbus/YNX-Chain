@@ -197,7 +197,7 @@ export default function CodeEditor({
         );
   }, [extensions]);
   useEffect(() => {
-    const serverLanguage=language==="cpp"?"cpp":language==="typescript"||language==="javascript"?"typescript":language==="python"?"python":language==="go"?"go":language==="rust"?"rust":null;
+    const serverLanguage=language==="cpp"?"cpp":language==="typescript"||language==="javascript"?"typescript":language==="python"?"python":language==="go"?"go":language==="rust"?"rust":language==="solidity"?"solidity":null;
     if (!serverLanguage || !activePath) return;
     const timer = setTimeout(() => {
       languageRequest(serverLanguage,files, activePath, "diagnostics")

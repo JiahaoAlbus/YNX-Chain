@@ -43,10 +43,12 @@ export function sandboxLaunch({
     throw Object.assign(new Error("Invalid sandbox memory limit."), { status: 500, code: "invalid_sandbox_limit" });
   if (addressSpaceBytes !== null && (!Number.isInteger(addressSpaceBytes) || addressSpaceBytes < 268435456 || addressSpaceBytes > 4294967296))
     throw Object.assign(new Error("Invalid sandbox address-space limit."), { status: 500, code: "invalid_sandbox_limit" });
-  if (Object.entries(environment).some(([key,value]) => !["GOMAXPROCS","RUST_SRC_PATH","RUSTUP_TOOLCHAIN"].includes(key) || typeof value !== "string" || value.length > 512))
+  if (Object.entries(environment).some(([key,value]) => !["GOMAXPROCS","NODE_OPTIONS","RUST_SRC_PATH","RUSTUP_TOOLCHAIN"].includes(key) || typeof value !== "string" || value.length > 512))
     throw Object.assign(new Error("Invalid sandbox environment override."), { status: 500, code: "invalid_sandbox_environment" });
   if (environment.GOMAXPROCS && !/^[1-8]$/.test(environment.GOMAXPROCS))
     throw Object.assign(new Error("Invalid Go processor limit."), { status: 500, code: "invalid_sandbox_environment" });
+  if (environment.NODE_OPTIONS && !/^--max-old-space-size=(256|384|512|768|1024)$/.test(environment.NODE_OPTIONS))
+    throw Object.assign(new Error("Invalid Node.js memory option."), { status: 500, code: "invalid_sandbox_environment" });
   if (
     [...writableBinds, ...readOnlyBinds].some(
       ({ host, guest }) =>

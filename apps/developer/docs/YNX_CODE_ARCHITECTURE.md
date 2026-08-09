@@ -178,7 +178,7 @@ network-disabled workspace sandbox. TypeScript is first transpiled by the
 installed `tsc`; its package and platform binary are mounted read-only while
 only `.ynx-build` remains writable. macOS verifies the same set except Rust,
 which is reported unavailable and skipped because no reviewed local `rustc` is
-installed. C/C++, JavaScript/TypeScript, Python, Go and Rust have passed the LSP
+installed. C/C++, JavaScript/TypeScript, Python, Go, Rust and Solidity have passed the LSP
 gate. JavaScript/TypeScript uses a pinned TypeScript 5.9 tsserver behind
 `typescript-language-server`, a
 read-only toolchain mount and a separate bounded 2 GiB LSP memory class; real
@@ -194,7 +194,16 @@ tenant requests and proves that excess work is queued rather than forked
 without bound. Rust analysis may write only its disposable workspace copy, uses an
 allowlisted standard-library source path, disables automatic flycheck/build
 scripts, remains network-isolated and has a bounded 4 GiB memory class. Solidity
-remains a candidate until its compiler, artifact and LSP gates pass.
+uses the pinned Nomic Foundation language server 0.8.25 for completion,
+definition, references, rename and formatting, while compiler diagnostics come
+from pinned `solcjs 0.8.36 --standard-json` in the same network-disabled
+sandbox. A successful compilation materializes ABI, bytecode and metadata with
+creation/deployed source maps, reports a SHA-256 and byte count for every
+artifact, and keeps only `.ynx-build` writable. The vulnerable `tmp 0.0.33`
+transitive dependency is overridden with patched 0.2.7; the production npm
+audit gate reports zero known vulnerabilities. Real LSP, compiler-diagnostic,
+artifact and source-map tests pass on macOS; the Linux gate is required before
+candidate publication.
 
 ## 8. Tasks, terminal and process supervision
 

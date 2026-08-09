@@ -11,6 +11,9 @@
   "overrides": {
     "monaco-editor": {
       "dompurify": "3.4.13"
+    },
+    "solc": {
+      "tmp": "0.2.7"
     }
   },
   "scripts": {

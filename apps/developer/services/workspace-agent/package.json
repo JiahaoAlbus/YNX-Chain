@@ -7,5 +7,10 @@
     "start": "node src/server.mjs",
     "test": "node --test test/*.test.mjs"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "solc": "0.8.36"
+  }
 }
