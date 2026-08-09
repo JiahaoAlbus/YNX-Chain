@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Version | 1.0.0-candidate |
-| Effective date | 2026-07-22 |
-| Evidence source commit | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
+| Version | 1.1.0-candidate |
+| Effective date | 2026-08-09 |
+| Evidence source commit | pending final DEX commit |
 | Product release | YNX Testnet documentation candidate |
 | Last reviewed | 2026-07-22 |
 | Canonical | `https://ynxweb4.com/dex` |
@@ -14,17 +14,19 @@
 
 ## Direct answer
 
-YNX DEX is a Testnet integration candidate, not a claim of funded public
-liquidity or production trading. DEX use requires verified contracts, exact
-on-chain state, Wallet review, price-impact/slippage controls and a committed
-receipt.
+YNX DEX now has a consensus-native Testnet implementation candidate. Assets,
+balances, constant-product pools, LP shares, exact-input and exact-output swaps,
+YNXT lot escrow and audit events are part of application state version 13. This
+is not yet a claim of a deployed public pool, funded liquidity or production
+trading.
 
 ## Contract and token gate
 
-Network metadata and development configurations exist. Public DEX submission
-requires real wrapped-YNXT, factory, router and multicall addresses, source/
-bytecode verification, index start block and public RPC/verifier evidence. The
-canonical token list must not list undeployed tokens.
+The native implementation uses canonical signed application actions rather than
+an unverified router address. Every mutation is bound to chain ID 6423, signer,
+nonce, fee and canonical payload; pool actions also bind pool, assets, amount,
+slippage limit and deadline. Public release still requires the matching chain
+and gateway build to be deployed and explorer-visible.
 
 ## Liquidity truth
 
@@ -42,9 +44,11 @@ route, contracts, finality, provider and recovery are approved.
 
 ## Current status
 
-DEX source candidates and local evidence exist separately from the accepted
-central baseline. Funded pools, central integration, public deployment,
-independent audit and production signing are not established by this page.
+Chain-core and gateway tests cover create, transfer, cross-block empty-pool
+commit, add/remove liquidity, exact-input/output swaps, expiry rejection,
+AppHash migration and total-supply/lot reconciliation. Funded pools, public
+deployment, independent audit and production signing are not established by
+this page.
 
 ## Related pages
 
@@ -56,5 +60,7 @@ independent audit and production signing are not established by this page.
 
 ## Change log
 
+- 1.1.0-candidate (2026-08-09): Added truthful consensus-native DEX and gateway
+  behavior, state invariants and remaining public-deployment gates.
 - 1.0.0-candidate (2026-07-22): Initial contract, token, liquidity, Wallet,
   Bridge, status and risk page.

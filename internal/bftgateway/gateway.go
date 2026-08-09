@@ -46,6 +46,7 @@ var implementedCapabilities = []string{
 	"evm-transaction-receipts-and-logs",
 	"ide-contract-state-transitions",
 	"quant-mandate-and-vault-state-transitions",
+	"dex-asset-pool-liquidity-and-swap-state-transitions",
 	"staking-delegation-and-exit-state-transitions",
 	"treasury-observation-snapshot",
 	"smart-account-and-sponsored-user-operation-state-transitions",
@@ -326,6 +327,20 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("POST /quant/vaults/{id}/withdraw", g.handleQuantMutation)
 	g.mux.HandleFunc("POST /quant/vaults/{id}/emergency-exit", g.handleQuantMutation)
 	g.mux.HandleFunc("GET /quant/audit", g.handleQuantAudit)
+	g.mux.HandleFunc("POST /dex/assets", g.handleDEXMutation)
+	g.mux.HandleFunc("GET /dex/assets", g.handleDEXAssets)
+	g.mux.HandleFunc("GET /dex/assets/{id}", g.handleDEXAsset)
+	g.mux.HandleFunc("POST /dex/assets/{id}/mint", g.handleDEXMutation)
+	g.mux.HandleFunc("POST /dex/assets/{id}/transfer", g.handleDEXMutation)
+	g.mux.HandleFunc("GET /dex/balances/{address}", g.handleDEXBalances)
+	g.mux.HandleFunc("POST /dex/pools", g.handleDEXMutation)
+	g.mux.HandleFunc("GET /dex/pools", g.handleDEXPools)
+	g.mux.HandleFunc("GET /dex/pools/{id}", g.handleDEXPool)
+	g.mux.HandleFunc("POST /dex/pools/{id}/liquidity/add", g.handleDEXMutation)
+	g.mux.HandleFunc("POST /dex/pools/{id}/liquidity/remove", g.handleDEXMutation)
+	g.mux.HandleFunc("POST /dex/pools/{id}/swaps/exact-input", g.handleDEXMutation)
+	g.mux.HandleFunc("POST /dex/pools/{id}/swaps/exact-output", g.handleDEXMutation)
+	g.mux.HandleFunc("GET /dex/events", g.handleDEXEvents)
 	g.mux.HandleFunc("POST /aa/accounts", g.handleAccountAbstractionMutation)
 	g.mux.HandleFunc("GET /aa/accounts", g.handleSmartAccounts)
 	g.mux.HandleFunc("GET /aa/accounts/{address}", g.handleSmartAccount)

@@ -19,7 +19,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 18
+	ApplicationVersion   = 19
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -87,6 +87,10 @@ type executionState struct {
 	ideIdempotency             []BFTIDEIdempotency
 	governanceExecutions       []BFTGovernanceExecution
 	governanceExecutionAudit   []BFTGovernanceExecutionAudit
+	dexAssets                  []BFTDexAsset
+	dexBalances                []BFTDexBalance
+	dexPools                   []BFTDexPool
+	dexEvents                  []BFTDexEvent
 }
 
 type transactionExecution struct {
@@ -245,6 +249,43 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/quant/vaults/"), a.committed.StrategyVaults, func(v assetauth.StrategyVault) string { return v.ID }, "Strategy vault")
 	case req.Path == "/quant/audit":
 		response.Value, _ = json.Marshal(a.committed.AssetAuditEvents)
+		return response, nil
+	case req.Path == "/dex/assets":
+		response.Value, _ = json.Marshal(a.committed.DexAssets)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/dex/assets/"):
+		id := normalizeDexAssetID(strings.TrimPrefix(req.Path, "/dex/assets/"))
+		if id == DexNativeAssetID {
+			response.Key = []byte(id)
+			response.Value, _ = json.Marshal(map[string]any{"id": DexNativeAssetID, "symbol": DexNativeAssetID, "name": "YNX Testnet", "native": true, "decimals": 0})
+			return response, nil
+		}
+		return queryPayRecord(response, id, a.committed.DexAssets, func(v BFTDexAsset) string { return v.ID }, "DEX asset")
+	case req.Path == "/dex/balances":
+		response.Value, _ = json.Marshal(a.committed.DexBalances)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/dex/balances/"):
+		address := strings.TrimSpace(strings.TrimPrefix(req.Path, "/dex/balances/"))
+		if !IsNativeAddress(address) {
+			response.Code, response.Log = 1, "canonical YNX address is required"
+			return response, nil
+		}
+		balances := make([]BFTDexBalance, 0)
+		for _, balance := range a.committed.DexBalances {
+			if balance.Account == address {
+				balances = append(balances, balance)
+			}
+		}
+		response.Key = []byte(address)
+		response.Value, _ = json.Marshal(balances)
+		return response, nil
+	case req.Path == "/dex/pools":
+		response.Value, _ = json.Marshal(a.committed.DexPools)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/dex/pools/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/dex/pools/"), a.committed.DexPools, func(v BFTDexPool) string { return v.ID }, "DEX pool")
+	case req.Path == "/dex/events":
+		response.Value, _ = json.Marshal(a.committed.DexEvents)
 		return response, nil
 	case req.Path == "/aa/accounts":
 		response.Value, _ = json.Marshal(a.committed.SmartAccounts)
@@ -475,7 +516,7 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	default:
 		response.Code = 1
-		response.Log = "supported query paths include migration, state, accounts, economics fees, Quant mandates/vaults/audit, account abstraction, staking, Treasury, solvency, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
+		response.Log = "supported query paths include migration, state, accounts, economics fees, Quant mandates/vaults/audit, DEX assets/balances/pools/events, account abstraction, staking, Treasury, solvency, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
 		return response, nil
 	}
 }
@@ -595,6 +636,7 @@ func (a *Application) cloneExecutionState() executionState {
 		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), trustLabels: cloneTrustLabels(a.committed.TrustLabels), trustEvidence: cloneTrustEvidence(a.committed.TrustEvidence), trackingReviews: cloneTrackingReviews(a.committed.TrackingReviews), transparency: cloneTransparencyEntries(a.committed.Transparency),
 		contracts: cloneBFTContracts(a.committed.Contracts), evmReceipts: cloneBFTEVMReceipts(a.committed.EVMReceipts), evmLogs: cloneBFTEVMLogs(a.committed.EVMLogs), ideIdempotency: append([]BFTIDEIdempotency(nil), a.committed.IDEIdempotency...),
 		governanceExecutions: append([]BFTGovernanceExecution(nil), a.committed.GovernanceExecutions...), governanceExecutionAudit: append([]BFTGovernanceExecutionAudit(nil), a.committed.GovernanceExecutionAudit...),
+		dexAssets: append([]BFTDexAsset(nil), a.committed.DexAssets...), dexBalances: append([]BFTDexBalance(nil), a.committed.DexBalances...), dexPools: cloneDexPools(a.committed.DexPools), dexEvents: append([]BFTDexEvent(nil), a.committed.DexEvents...),
 	}
 }
 
@@ -754,6 +796,7 @@ func cloneExecutionStateValue(state executionState) executionState {
 		governanceRequests: cloneGovernanceRequests(state.governanceRequests), trustAppeals: cloneTrustAppeals(state.trustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), state.trustCorrections...), trustLabels: cloneTrustLabels(state.trustLabels), trustEvidence: cloneTrustEvidence(state.trustEvidence), trackingReviews: cloneTrackingReviews(state.trackingReviews), transparency: cloneTransparencyEntries(state.transparency),
 		contracts: cloneBFTContracts(state.contracts), evmReceipts: cloneBFTEVMReceipts(state.evmReceipts), evmLogs: cloneBFTEVMLogs(state.evmLogs), ideIdempotency: append([]BFTIDEIdempotency(nil), state.ideIdempotency...),
 		governanceExecutions: append([]BFTGovernanceExecution(nil), state.governanceExecutions...), governanceExecutionAudit: append([]BFTGovernanceExecutionAudit(nil), state.governanceExecutionAudit...),
+		dexAssets: append([]BFTDexAsset(nil), state.dexAssets...), dexBalances: append([]BFTDexBalance(nil), state.dexBalances...), dexPools: cloneDexPools(state.dexPools), dexEvents: append([]BFTDexEvent(nil), state.dexEvents...),
 	}
 }
 
@@ -801,6 +844,9 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 	}
 	if isProtocolGovernanceAction(tx.Action) {
 		return a.applyProtocolGovernanceAction(state, payload, tx, height, blockTime, validationOnly)
+	}
+	if isDexAction(tx.Action) {
+		return a.applyDexAction(state, payload, tx, height, blockTime, validationOnly)
 	}
 	if err := a.chargeApplicationAction(&state, tx); err != nil {
 		return executionState{}, transactionExecution{}, err
