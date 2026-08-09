@@ -28,6 +28,9 @@
     "@emnapi/runtime": "2.0.0-alpha.3",
     "@emnapi/wasi-threads": "2.0.1"
   },
+  "overrides": {
+    "nanoid": "3.3.17"
+  },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   }
