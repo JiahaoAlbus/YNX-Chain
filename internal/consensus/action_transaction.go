@@ -63,6 +63,14 @@ const (
 	ActionSmartAccountCreate        = "smart_account_create"
 	ActionPaymasterCreate           = "paymaster_policy_create"
 	ActionUserOperationExecute      = "user_operation_execute"
+	ActionDexAssetCreate            = "dex_asset_create"
+	ActionDexAssetMint              = "dex_asset_mint"
+	ActionDexAssetTransfer          = "dex_asset_transfer"
+	ActionDexPoolCreate             = "dex_pool_create"
+	ActionDexLiquidityAdd           = "dex_liquidity_add"
+	ActionDexLiquidityRemove        = "dex_liquidity_remove"
+	ActionDexSwapExactInput         = "dex_swap_exact_input"
+	ActionDexSwapExactOutput        = "dex_swap_exact_output"
 )
 
 var supportedApplicationActions = map[string]struct{}{
@@ -108,6 +116,14 @@ var supportedApplicationActions = map[string]struct{}{
 	ActionSmartAccountCreate:        {},
 	ActionPaymasterCreate:           {},
 	ActionUserOperationExecute:      {},
+	ActionDexAssetCreate:            {},
+	ActionDexAssetMint:              {},
+	ActionDexAssetTransfer:          {},
+	ActionDexPoolCreate:             {},
+	ActionDexLiquidityAdd:           {},
+	ActionDexLiquidityRemove:        {},
+	ActionDexSwapExactInput:         {},
+	ActionDexSwapExactOutput:        {},
 }
 
 // SignedApplicationAction is the canonical transaction envelope for non-transfer
@@ -242,7 +258,7 @@ func NewSignedApplicationAction(privateKey *secp256k1.PrivateKey, chainID int64,
 	if isZeroFeeApplicationAction(action) {
 		tx.Fee = 0
 	}
-	if isResourceAction(action) || isIDEAction(action) || isAssetAuthorizationAction(action) || isStakingAction(action) || isAccountAbstractionAction(action) || isProtocolGovernanceAction(action) {
+	if isResourceAction(action) || isIDEAction(action) || isAssetAuthorizationAction(action) || isStakingAction(action) || isAccountAbstractionAction(action) || isProtocolGovernanceAction(action) || isDexAction(action) {
 		// Resource actions charge YNXT and bandwidth through the shared envelope,
 		// but do not consume AI, Pay, or Trust credits.
 	} else if isPayAction(action) {
@@ -300,9 +316,9 @@ func (tx SignedApplicationAction) ValidateBasic() error {
 	if tx.Fee != expectedFee {
 		return fmt.Errorf("application action fee must equal %d YNXT", expectedFee)
 	}
-	if isResourceAction(tx.Action) || isIDEAction(tx.Action) || isAssetAuthorizationAction(tx.Action) || isStakingAction(tx.Action) || isAccountAbstractionAction(tx.Action) || isProtocolGovernanceAction(tx.Action) {
+	if isResourceAction(tx.Action) || isIDEAction(tx.Action) || isAssetAuthorizationAction(tx.Action) || isStakingAction(tx.Action) || isAccountAbstractionAction(tx.Action) || isProtocolGovernanceAction(tx.Action) || isDexAction(tx.Action) {
 		if tx.AIUnits != 0 || tx.PayUnits != 0 || tx.TrustUnits != 0 {
-			return errors.New("Resource, IDE, asset authorization, staking, and account abstraction actions must not charge AI, Pay, or Trust units")
+			return errors.New("Resource, IDE, asset authorization, staking, account abstraction, governance, and DEX actions must not charge AI, Pay, or Trust units")
 		}
 	} else if isPayAction(tx.Action) {
 		if tx.PayUnits != 1 || tx.AIUnits != 0 || tx.TrustUnits != 0 {
@@ -513,6 +529,9 @@ func canonicalActionPayload(action string, value any) ([]byte, error) {
 		}
 		if isAccountAbstractionAction(action) {
 			return canonicalAccountAbstractionPayload(action, raw)
+		}
+		if isDexAction(action) {
+			return canonicalDexActionPayload(action, raw)
 		}
 		return nil, fmt.Errorf("unsupported application action %q", action)
 	}
