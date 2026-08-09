@@ -103,7 +103,7 @@ test("Node host exposes truthful version, readiness, metrics and redacted struct
     const ready=await (await fetch(`${base}/ready`)).json();
     assert.equal(ready.runtimeReady,true);assert.equal(ready.publicDeploymentReady,false);assert.equal(ready.remoteDeployed,false);
     const version=await (await fetch(`${base}/version`)).json();
-    assert.deepEqual(version.build,BUILD);assert.equal(version.gatewayHttpSchemaVersion,1);assert.equal(version.nodeStateSchemaVersion,1);assert.equal(version.observabilitySchemaVersion,1);
+    assert.deepEqual(version.build,BUILD);assert.equal(version.gatewayHttpSchemaVersion,1);assert.equal(version.nodeStateSchemaVersion,1);assert.equal(version.observabilitySchemaVersion,1);assert.match(version.registrySha256,/^[0-9a-f]{64}$/);assert.deepEqual(version.enabledProductClientIds,["ynx-calendar-v1","ynx-developer-v1","ynx-exchange-v1","ynx-finance-v1","ynx-quant-v1","ynx-shop-v1","ynx-social-v1","ynx-wallet-v1"]);
     const rejected=await fetch(`${base}/v1/wallet/sessions`,{method:"POST",headers:{"content-type":"application/json","x-ynx-product-session-proof":"not+base64"},body:"{}"});
     assert.equal(rejected.status,400);assert.match(rejected.headers.get("x-error-id"),/^[0-9a-f-]{36}$/);assert.equal((await rejected.json()).error.code,"INVALID_PROOF_HEADER");
     const metrics=await (await fetch(`${base}/metrics`)).text();

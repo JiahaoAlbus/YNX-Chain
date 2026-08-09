@@ -123,3 +123,9 @@ Browser SDK, JS SDK, loopback CLI, package, and Go evidence remains subject to
 its recorded source identity. Until central merge and direct Testnet/public
 evidence exist, truthful status remains `implemented-local` and `tested-local`,
 not `integrated-central` or `deployed-staging`.
+
+The Node host `/version` response now binds its exact validated canonical
+registry using `registrySha256` and the sorted `enabledProductClientIds`. Product
+gateways must require both values, not infer enablement from process health or a
+source commit. This attestation is runtime evidence for the loaded registry; it
+does not by itself prove ingress routing or an installed Wallet-to-product flow.
