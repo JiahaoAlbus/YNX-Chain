@@ -47,6 +47,16 @@ export declare function encodeRequestDeepLink(request:AuthorizationRequest):stri
 export declare function parseWalletDeepLink(url:string,platform:"android"|"ios",options:{now?:Date;registry:Record<string,ProductBinding>}):Readonly<{platform:string;request:AuthorizationRequest}>;
 export declare function createCallbackURL(response:Record<string,unknown>&{callback:string}):string;
 export declare function parseCallbackURL(url:string,expectedCallback:string):unknown;
+export type ExchangeOrderParameters=Readonly<{market:"YNXT-YUSD_TEST";side:"buy"|"sell";type:"limit";priceMicro:number;amountMicro:number;idempotencyKey:string}>;
+export type ExchangeOrderActionRequest=Readonly<{version:"1";chainId:"ynx_6423-1";productClientId:"ynx-exchange-v1";bundleId:"com.ynxweb4.exchange";callback:"ynxexchange://wallet-auth/callback";sessionBinding:string;account:string;action:"exchange.order.place";parameters:ExchangeOrderParameters;nonce:string;issuedAt:string;expiresAt:string}>;
+export type ExchangeOrderActionResponse=Readonly<ExchangeOrderActionRequest&{requestDigest:string;accountPublicKey:string;walletSignature:string}>;
+export declare function parseExchangeOrderActionRequest(input:string|unknown,at?:Date):ExchangeOrderActionRequest;
+export declare function exchangeOrderActionRequestDigest(input:ExchangeOrderActionRequest):string;
+export declare function exchangeOrderAuthorizationPayload(account:string,parameters:ExchangeOrderParameters):string;
+export declare function signExchangeOrderAction(request:ExchangeOrderActionRequest,input:{accountSecret:string;account:string;issuedAt:string}):ExchangeOrderActionResponse;
+export declare function verifyExchangeOrderActionResponse(input:unknown,expected:ExchangeOrderActionRequest,at?:Date):ExchangeOrderActionResponse;
+export declare function encodeExchangeOrderActionDeepLink(request:ExchangeOrderActionRequest):string;
+export declare function parseExchangeOrderActionDeepLink(url:string,at?:Date):ExchangeOrderActionRequest;
 export declare class OneTimeNonceStore {constructor(records?:readonly [string,string][]);consume(request:AuthorizationRequest,at?:Date):void;snapshot():readonly [string,string][]}
 export declare function createGatewayChallenge(approval:AuthorizationResponse,input:{challenge:string;expiresAt:string},at?:Date):GatewayChallenge;
 export declare function parseGatewayChallenge(input:unknown):GatewayChallenge;
