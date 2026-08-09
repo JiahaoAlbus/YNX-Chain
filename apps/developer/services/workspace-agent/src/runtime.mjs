@@ -46,7 +46,7 @@ export function createWorkspaceRuntime(options={}){
     return false;
   }
   function pump(){while(active<concurrency&&queue.length){const item=queue.shift();active++;if(item.streaming){item.response.writeHead(200,{"content-type":"application/x-ndjson; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff","x-accel-buffering":"no"});const send=value=>item.response.write(`${JSON.stringify(value)}\n`);execute(item.session,item.body,{root,sandbox,onEvent:send}).then(value=>send({type:"result",value}),error=>send({type:"error",error:error.publicMessage||error.message||"Workspace task failed.",code:error.code||"task_failed"})).finally(()=>item.response.end()).finally(()=>{active--;item.resolve();pump()})}else execute(item.session,item.body,{root,sandbox}).then(value=>json(item.response,200,value),error=>json(item.response,error.status||400,{error:error.publicMessage||error.message||"Workspace task failed.",code:error.code||"task_failed"})).finally(()=>{active--;item.resolve();pump()})}}
-  return{handler,status:()=>({active,queued:queue.length,sandbox:sandbox.kind,sandboxReady:sandbox.ready})};
+  return{handler,ownerForRequest(request){const session=readSession(request,sessionKey);return session?ownerId(session,sessionKey):null},status:()=>({active,queued:queue.length,sandbox:sandbox.kind,sandboxReady:sandbox.ready})};
 }
 
 function boundedNumber(value,fallback,min,max){const parsed=Number(value||fallback);return Number.isInteger(parsed)&&parsed>=min&&parsed<=max?parsed:fallback}

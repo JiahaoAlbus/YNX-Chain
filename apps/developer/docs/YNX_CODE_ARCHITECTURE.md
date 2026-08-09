@@ -180,6 +180,16 @@ disk/time limits and cancellation. Output is streamed with ordered sequence IDs,
 bounded replay and truncation markers. Browser disconnect does not orphan a
 process; the runtime policy decides continue, pause or cancel.
 
+The current foundation implements this boundary through
+`services/terminal-service`: a same-origin, signed-session WebSocket upgrades to
+an actual `node-pty` shell inside the existing macOS `sandbox-exec` or Linux
+Bubblewrap/prlimit workspace. It enforces per-owner/global session ceilings,
+input and resize bounds, idle/hard lifetime cleanup, default-deny network and
+revision-checked text snapshot synchronization. Task output remains a separate,
+non-interactive terminal surface. Shared terminal resume, object-store-backed
+runtime volumes and audited Docker/SSH profiles remain gated and are not
+represented as available.
+
 Tasks are declarative records (`command`, argument array, cwd, environment class,
 problem matcher, timeout, network policy and artifact outputs). Shell parsing is
 not used for generated tasks. Interactive terminals may use a shell after the
@@ -343,4 +353,3 @@ evidence are required.
 Each phase requires tests, performance evidence, threat-model delta, migration/
 rollback notes, operations update and machine-readable release truth. The legacy
 surface remains the rollback target until Foundation parity is proven.
-

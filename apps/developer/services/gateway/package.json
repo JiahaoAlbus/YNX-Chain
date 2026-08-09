@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@ynx-code/language-service": "0.1.0",
+    "@ynx-code/terminal-service": "0.1.0",
     "@ynx-code/workspace-agent": "0.1.0",
     "@ynx-code/workspace-manager": "0.1.0"
   },
@@ -12,5 +13,7 @@
     "start": "node src/server.mjs",
     "test": "node --test test/*.test.mjs"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }
