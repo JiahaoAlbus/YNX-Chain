@@ -500,6 +500,14 @@ runtime readiness alone cannot enable Developer: the authoritative version must
 also list `ynx-developer-v1` in `enabledProductClientIds` and expose a canonical
 64-hex `registrySha256`. Older healthy builds remain visibly closed.
 
+On the macOS desktop profile, the Developer product device is a non-extractable
+P-256 `CryptoKey` persisted in the WebKit origin's IndexedDB. The public half is
+exported only as canonical compressed SEC1 base64url for the authorization
+request. Native code validates and opens the exact `ynxwallet` route; the app is
+registered for `ynxdeveloper://wallet-auth/callback` and rejects callback route,
+fragment, and field widening before delivering the URL to the workbench. This
+transport does not yet convert the callback into a Product Session or deployment.
+
 Later blockchain slices add reviewed Rust contract profiles, Move and Cosmos SDK,
 pinned dependency/toolchain manifests, local tests, Testnet simulation, gas/fee
 estimates, contract artifacts, source maps and verified Explorer links.

@@ -21,6 +21,13 @@
   A running older Gateway is shown as online but cannot unlock the Developer
   review button. On the current host the Finance build `6b6cb8f5…` is healthy,
   while the Developer registry remains correctly closed.
+- The React desktop profile now creates one non-extractable WebCrypto P-256
+  private key in IndexedDB for `ynx-developer-v1`; only its compressed public
+  key enters the Wallet request. macOS registers the exact `ynxdeveloper`
+  callback scheme, opens only the strict `ynxwallet://authorize?request=...`
+  route through the operating system and forwards only the exact one-field
+  callback to the workbench. Ordinary Web and Windows portable profiles still
+  remain callback-disabled.
 - Added a same-origin, workspace-session-bound YNX Chain service with a fixed
   canonical Testnet upstream. It exposes bounded network status, block and
   transaction inspection, receipt joining, a read-only JSON-RPC allowlist and

@@ -58,10 +58,10 @@ test("local servers expose only bounded same-origin YNX proxy prefixes", async (
 });
 
 test("localized UI and native desktop sources preserve language, permission and release boundaries", async () => {
-  const html=await read("index.html"), app=await read("app.js"), mac=await read("desktop/macos/main.m"), windows=await read("desktop/windows/MainWindow.xaml.cs");
+  const html=await read("index.html"), app=await read("app.js"), mac=await read("desktop/macos/main.m"), plist=await read("desktop/macos/Info.plist"), windows=await read("desktop/windows/MainWindow.xaml.cs");
   assert.match(html,/locale-select/); assert.match(html,/ai-language/); assert.match(app,/DeveloperI18n/); assert.match(app,/DeveloperWalletSession/);
   for(const source of [mac,windows]) { assert.match(source,/Testnet Preview/); assert.match(source,/Check(?: for )?Updates/); assert.match(source,/window|Window/); }
-  assert.match(mac,/New Project/); assert.match(windows,/owner-signed manifest/); assert.doesNotMatch(mac+windows,/production release is signed/i);
+  assert.match(mac,/New Project/); assert.match(mac,/ynxDesktopWallet/); assert.match(mac,/open-authorization/); assert.match(mac,/ynx-wallet-callback/); assert.match(plist,/com\.ynxweb4\.developer\.testnetpreview\.wallet-auth/); assert.match(plist,/>ynxdeveloper</); assert.match(windows,/owner-signed manifest/); assert.doesNotMatch(mac+windows,/production release is signed/i);
 });
 
 test("macOS package gate verifies extracted cold launch and bundled runtime cleanup", async () => {
