@@ -1030,3 +1030,29 @@ html[data-theme="dark"] .tree-row.file.active {
 .memory-box>div { display:grid; grid-template-columns:1fr auto; gap:4px; padding:0 7px 7px; }
 .memory-box input { min-width:0; border:1px solid var(--border); background:var(--editor); color:var(--text); padding:5px; }
 .memory-box>code { display:block; margin:0 7px 5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--blue); font-size:9px; }
+.collaboration-host { height:100%; }
+.collaboration-panel { overflow:auto; gap:0; }
+.collaboration-panel>header span { color:var(--muted); font-size:9px; }
+.collaboration-panel>header span.collab-online { color:#2ea043; }
+.collab-start,.collab-invite,.collab-chat,.collab-people,.collab-summary { display:grid; gap:7px; padding:9px; border-bottom:1px solid var(--border); font-size:10px; }
+.collab-start p { margin:0; color:var(--muted); line-height:1.5; }
+.collaboration-panel label { display:grid; gap:4px; color:var(--muted); }
+.collaboration-panel input,.collaboration-panel select { min-width:0; width:100%; border:1px solid var(--border); border-radius:4px; background:var(--panel2); color:var(--text); padding:6px; font-size:10px; }
+.collab-summary { grid-template-columns:1fr auto; align-items:center; }
+.collab-summary strong { color:var(--blue); }
+.collab-summary code { grid-column:1/-1; overflow:hidden; text-overflow:ellipsis; color:var(--muted); font-size:8px; }
+.invite-token { display:grid; gap:5px; padding:7px; border:1px solid var(--border); background:var(--panel2); }
+.invite-token code { overflow-wrap:anywhere; color:var(--blue); font-size:9px; }
+.invite-token span { color:var(--muted); }
+.collab-people>strong,.collab-chat>strong { font-size:9px; letter-spacing:.04em; }
+.collab-people>div { display:grid; grid-template-columns:7px minmax(0,1fr) auto; gap:6px; align-items:center; }
+.collab-people i { width:7px; height:7px; border-radius:50%; background:#2ea043; }
+.collab-people span { overflow:hidden; text-overflow:ellipsis; }
+.collab-people em { color:var(--muted); font-style:normal; font-size:9px; }
+.collab-chat>div { max-height:150px; overflow:auto; padding:5px; border:1px solid var(--border); background:var(--panel2); }
+.collab-chat p { margin:0 0 6px; line-height:1.4; overflow-wrap:anywhere; }
+.collab-chat p:last-child { margin-bottom:0; }
+.collab-chat p b { color:var(--blue); text-transform:uppercase; font-size:8px; }
+.collab-chat form { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:5px; }
+.collaboration-panel>.btn { margin:8px; width:calc(100% - 16px); }
+.collab-error { margin:8px; padding:7px; border-left:3px solid #c42b35; background:var(--panel2); color:#f47067; font-size:10px; }

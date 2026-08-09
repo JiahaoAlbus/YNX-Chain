@@ -36,6 +36,8 @@ type Props = {
   extensions: InstalledExtension[];
   extensionTheme?: string;
   onChange: (value: string | undefined) => void;
+  onCursorChange?: (path: string, anchor: number, head: number) => void;
+  readOnly?: boolean;
   breakpoints: number[];
   debugLine?: number;
   onToggleBreakpoint: (line: number) => void;
@@ -54,6 +56,8 @@ export default function CodeEditor({
   extensions,
   extensionTheme,
   onChange,
+  onCursorChange,
+  readOnly = false,
   breakpoints,
   debugLine,
   onToggleBreakpoint,
@@ -80,9 +84,13 @@ export default function CodeEditor({
         ? "vs-dark"
         : "vs",
     editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null),
+    activePathRef = useRef(activePath),
+    cursorCallbackRef = useRef(onCursorChange),
     decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(
       null,
     );
+  activePathRef.current = activePath;
+  cursorCallbackRef.current = onCursorChange;
   useEffect(() => {
     const provider = monaco.languages.registerCompletionItemProvider("cpp", {
       triggerCharacters: [".", ">", ":"],
@@ -263,7 +271,7 @@ export default function CodeEditor({
         modified={activeContent}
         language={language}
         theme={editorTheme}
-        options={{ automaticLayout: true, readOnly: false }}
+        options={{ automaticLayout: true, readOnly }}
       />
     );
   return (
@@ -285,9 +293,19 @@ export default function CodeEditor({
             )
               onToggleBreakpoint(event.target.position.lineNumber);
           });
+          editor.onDidChangeCursorSelection((event) => {
+            const model = editor.getModel();
+            if (!model) return;
+            cursorCallbackRef.current?.(
+              activePathRef.current,
+              model.getOffsetAt(event.selection.getStartPosition()),
+              model.getOffsetAt(event.selection.getEndPosition()),
+            );
+          });
         }}
         options={{
           automaticLayout: true,
+          readOnly,
           fontSize: 13,
           lineHeight: 20,
           minimap: { enabled: true },
@@ -312,6 +330,7 @@ export default function CodeEditor({
           onChange={onSplitChange}
           options={{
             automaticLayout: true,
+            readOnly,
             fontSize: 13,
             minimap: { enabled: false },
             scrollBeyondLastLine: false,

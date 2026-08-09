@@ -18,6 +18,7 @@ import { createExtensionRegistry } from "../../extension-registry/src/service.mj
 import { createModelRouter } from "../../model-router/src/router.mjs";
 import { createAgentOrchestrator } from "../../agent-orchestrator/src/service.mjs";
 import { createProjectMemory } from "../../project-memory/src/service.mjs";
+import { createCollaborationService } from "../../collaboration-service/src/service.mjs";
 
 if (
   process.env.NODE_ENV === "production" &&
@@ -59,11 +60,16 @@ const agentOrchestrator = createAgentOrchestrator({
   projectMemory,
   workspaceRuntime: runtime,
 });
+const collaborationService = createCollaborationService({
+  filename: join(stateDir, "collaboration.sqlite"),
+  ownerForRequest: (request) => runtime.ownerForRequest(request),
+  workspaceStore,
+});
 const server = createServer(
   createGateway({
     staticRoot,
     runtime,
-    handlers: [gitService.handler, extensionRegistry.handler, modelRouter.handler, agentOrchestrator.handler, projectMemory.handler],
+    handlers: [collaborationService.handler, gitService.handler, extensionRegistry.handler, modelRouter.handler, agentOrchestrator.handler, projectMemory.handler],
   }),
 );
 const terminalService = createTerminalService({
@@ -76,6 +82,7 @@ const debugService = createDebugService({
 });
 server.on("upgrade", (request, socket, head) => {
   if (
+    collaborationService.handleUpgrade(request, socket, head) ||
     terminalService.handleUpgrade(request, socket, head) ||
     debugService.handleUpgrade(request, socket, head)
   )
@@ -93,6 +100,7 @@ for (const signal of ["SIGINT", "SIGTERM"])
     server.close(async () => {
       await terminalService.close();
       await debugService.close();
+      await collaborationService.close();
       extensionRegistry.close();
       agentOrchestrator.close();
       projectMemory.close();

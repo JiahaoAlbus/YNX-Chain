@@ -12,6 +12,7 @@ import {
   Sparkles,
   SplitSquareHorizontal,
   TerminalSquare,
+  Users,
   X,
 } from "lucide-react";
 import {
@@ -34,10 +35,12 @@ import {
   runActive,
   runtimeHealth,
   saveWorkspace,
+  type CollaborationRole,
   type InstalledExtension,
 } from "../runtime/client";
 import {
   loadProject,
+  foldersFromFiles,
   saveProject,
   validPath,
   type ProjectState,
@@ -47,7 +50,8 @@ import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
 import { AgentPanel } from "../chat/AgentPanel";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
-type View = "files" | "search" | "source" | "run" | "extensions" | "agent";
+const CollaborationPanel = lazy(() => import("../collaboration/CollaborationPanel").then(module => ({ default: module.CollaborationPanel })));
+type View = "files" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration";
 const activity: [View, React.ReactNode, string][] = [
   ["files", <Files />, "Explorer"],
   ["search", <Search />, "Search"],
@@ -55,6 +59,7 @@ const activity: [View, React.ReactNode, string][] = [
   ["run", <Bug />, "Run and Debug"],
   ["extensions", <Braces />, "Extensions"],
   ["agent", <Sparkles />, "AI Engineer"],
+  ["collaboration", <Users />, "Collaboration"],
 ];
 
 export function Workbench() {
@@ -81,7 +86,11 @@ export function Workbench() {
     [extensions, setExtensions] = useState<InstalledExtension[]>([]),
     [extensionTheme, setExtensionTheme] = useState(
       () => localStorage.getItem("ynx-extension-theme") || "",
-    );
+    ),
+    [collaborationRole, setCollaborationRole] = useState<CollaborationRole>(),
+    [collaborationSession, setCollaborationSession] = useState(() => Boolean(localStorage.getItem(`ynx-code-room:${project.id}`))),
+    [collaborationCursor, setCollaborationCursor] = useState({ path: project.active, anchor: 0, head: 0 });
+  const [collaborationMounted, setCollaborationMounted] = useState(() => Boolean(localStorage.getItem(`ynx-code-room:${project.id}`)));
   const lastSynced = useRef("");
   const workspace = useMemo(
       () => ({
@@ -214,7 +223,7 @@ export function Workbench() {
     };
   }, []);
   useEffect(() => {
-    if (!hydrated || workspaceKey === lastSynced.current) return;
+    if (!hydrated || collaborationSession || workspaceKey === lastSynced.current) return;
     const timer = setTimeout(() => {
       const expected = project.remoteRevision;
       saveWorkspace(project.id, expected, workspace)
@@ -234,7 +243,8 @@ export function Workbench() {
         );
     }, 700);
     return () => clearTimeout(timer);
-  }, [hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
+  }, [collaborationSession, hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
+  const collaborationReadOnly = Boolean(collaborationRole && !["owner", "editor"].includes(collaborationRole));
   const activeContent = project.files[project.active] ?? "";
   const second = project.open.find((path) => path !== project.active);
   const open = useCallback(
@@ -249,6 +259,7 @@ export function Workbench() {
     [],
   );
   const update = (value: string | undefined) => {
+    if (collaborationReadOnly) return;
     const content = value ?? "";
     setProject((current) => ({
       ...current,
@@ -266,6 +277,7 @@ export function Workbench() {
     });
   };
   const create = (path: string, kind: "file" | "folder") => {
+    if (collaborationReadOnly) return "Your collaboration role is read-only.";
     if (!validPath(path)) return "Use a safe workspace-relative path.";
     if (project.files[path] !== undefined || project.folders.includes(path))
       return "That path already exists.";
@@ -298,6 +310,7 @@ export function Workbench() {
     return null;
   };
   const rename = (from: string, to: string, kind: "file" | "folder") => {
+    if (collaborationReadOnly) return "Your collaboration role is read-only.";
     if (!validPath(to)) return "Use a safe workspace-relative path.";
     if (project.files[to] !== undefined || project.folders.includes(to))
       return "That path already exists.";
@@ -334,6 +347,7 @@ export function Workbench() {
     return null;
   };
   const remove = (path: string, kind: "file" | "folder") => {
+    if (collaborationReadOnly) return;
     if (!confirm(`Move ${path} ${kind} to workspace trash?`)) return;
     setProject((current) => {
       const removed = (item: string) =>
@@ -427,6 +441,19 @@ export function Workbench() {
     },
     [project.id],
   );
+  const applyCollaborativeFiles = useCallback((files: Record<string, string>) => {
+    setProject((current) => {
+      if (JSON.stringify(current.files) === JSON.stringify(files)) return current;
+      const paths = Object.keys(files), active = files[current.active] !== undefined ? current.active : paths[0] || "", open = current.open.filter(path => files[path] !== undefined);
+      return { ...current, files, folders: foldersFromFiles(paths), active, open: active && !open.includes(active) ? [...open, active] : open, revision: current.revision + 1 };
+    });
+  }, []);
+  const leaveCollaboration = useCallback(async () => {
+    const remote = await loadWorkspace(project.id);
+    if (!remote) return;
+    lastSynced.current = JSON.stringify({ name: remote.name, folders: remote.folders, files: remote.files, open: remote.open, active: remote.active });
+    setProject(current => ({ ...current, name: remote.name, folders: remote.folders, files: remote.files, open: remote.open, active: remote.active, remoteRevision: remote.revision, revision: current.revision + 1 }));
+  }, [project.id]);
   const results = useMemo(() => {
     const query = search.toLowerCase();
     if (!query) return [];
@@ -533,7 +560,7 @@ export function Workbench() {
           <button
             key={id}
             className={view === id ? "active" : ""}
-            onClick={() => setView(id)}
+            onClick={() => { setView(id); if (id === "collaboration") setCollaborationMounted(true); }}
             title={label}
             aria-label={label}
           >
@@ -602,6 +629,7 @@ export function Workbench() {
         {view === "agent" && (
           <AgentPanel projectId={project.id} revision={project.remoteRevision} activePath={project.active} onApplied={refreshWorkspace} />
         )}
+        {collaborationMounted&&<div hidden={view !== "collaboration"} className="collaboration-host"><Suspense fallback={<div className="editor-loading">Loading collaboration engine…</div>}><CollaborationPanel projectId={project.id} files={project.files} cursor={collaborationCursor} onRemoteFiles={applyCollaborativeFiles} onCheckpoint={refreshWorkspace} onAccessChange={setCollaborationRole} onSessionChange={setCollaborationSession} onLeave={leaveCollaboration} /></Suspense></div>}
       </aside>
       <main className="main">
         <div className="editor-tabs">
@@ -664,6 +692,8 @@ export function Workbench() {
               extensions={extensions}
               extensionTheme={extensionTheme}
               onChange={update}
+              onCursorChange={(path, anchor, head) => setCollaborationCursor({ path, anchor, head })}
+              readOnly={collaborationReadOnly}
               breakpoints={breakpoints[project.active] || []}
               debugLine={debugLine}
               onToggleBreakpoint={toggleBreakpoint}

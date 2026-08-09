@@ -382,6 +382,30 @@ off by default and transfers through an explicit floor/permission action. Chat
 and audit are separate from source text. Every collaborator still needs a
 canonical YNX Product Session; invite links alone grant no access.
 
+The candidate collaboration service now uses Yjs documents behind a bounded,
+same-origin WebSocket gateway. Workspace owners create opaque room IDs and
+single-use, expiring invitation tokens; redemption binds an authenticated
+subject to `editor`, `reviewer`, `viewer` or `terminal` ACL state in SQLite WAL.
+Editors and owners may merge existing-file edits and CRDT-backed file
+create/remove operations. Reviewers/viewers cannot mutate the document.
+Presence and cursors are ephemeral, room chat is a separate message channel,
+and a shared document changes the canonical workspace only through an explicit
+revision-checked checkpoint. CRDT state and workspace revisions survive service
+restart. Limits currently enforce 256 global sockets, 32 per room, 128 KiB
+updates, 256 files and 2 MiB text workspaces; cross-origin sockets, replayed
+invitations, unauthorized root types and stale checkpoints fail closed. The
+React workbench exposes share/join/invite, participants, chat and checkpoint
+controls, synchronizes Monaco file state through Yjs, and switches reviewer or
+viewer editors to read-only. Shared terminal input remains separately gated and
+off. The candidate still uses the existing signed workspace session; public
+release remains blocked until ingress uses the canonical YNX Product Session.
+
+Candidate dependency installation is fail-closed through
+`scripts/install-reviewed-dependencies.sh`: lockfile dependencies are installed
+with lifecycle scripts disabled, then only the exact, reviewed `node-pty`
+package is rebuilt for the host platform. This preserves the real PTY without
+allowing arbitrary transitive install hooks.
+
 ## 15. YNX Chain development
 
 The blockchain workbench provides reviewed templates for Solidity, Rust contract
