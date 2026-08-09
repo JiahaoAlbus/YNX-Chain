@@ -73,6 +73,16 @@ const record = {
 fs.writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);
 ' "$app/Contents/Resources/build-provenance.json" "$source_commit" "$source_tree" "$source_date" "$runtime_checkpoint" "$sbom_sha"
 /usr/bin/xattr -cr "$app"
+# The reviewed portable Node binary may retain its distributor signature while
+# native npm modules are locally ad-hoc signed. macOS library validation rejects
+# that mixed-Team process. This entire unsigned Preview must therefore use one
+# explicit no-Team-ID ad-hoc class for every bundled Mach-O before sealing the
+# outer app.
+while IFS= read -r bundled_binary; do
+  if /usr/bin/file "$bundled_binary" | /usr/bin/grep -q 'Mach-O'; then
+    /usr/bin/codesign --force --sign - "$bundled_binary"
+  fi
+done < <(/usr/bin/find "$app/Contents/Resources" -type f -print)
 /usr/bin/codesign --force --deep --sign - "$app"
 signature=$(/usr/bin/codesign -dv --verbose=4 "$app" 2>&1 || true)
 if ! grep -Fq 'Signature=adhoc' <<<"$signature" || ! grep -Fq 'TeamIdentifier=not set' <<<"$signature"; then

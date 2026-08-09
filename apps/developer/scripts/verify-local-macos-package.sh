@@ -49,6 +49,11 @@ if /usr/bin/xattr -p com.apple.quarantine "$app" >/dev/null 2>&1; then echo "Arc
 signature=$(/usr/bin/codesign -dv --verbose=4 "$app" 2>&1 || true)
 grep -Fq 'Signature=adhoc' <<<"$signature"
 grep -Fq 'TeamIdentifier=not set' <<<"$signature"
+for bundled_binary in "$app/Contents/Resources/runtime/node" "$app/Contents/Resources/code/apps/developer/node_modules/node-pty/prebuilds/darwin-arm64/pty.node"; do
+  bundled_signature=$(/usr/bin/codesign -dv --verbose=4 "$bundled_binary" 2>&1 || true)
+  grep -Fq 'Signature=adhoc' <<<"$bundled_signature"
+  grep -Fq 'TeamIdentifier=not set' <<<"$bundled_signature"
+done
 "$app/Contents/MacOS/YNXDeveloper" --self-test "$app/Contents/Resources"
 export YNX_CODE_DESKTOP_SUPPORT_DIR="$work/support"
 "$app/Contents/MacOS/YNXDeveloper" >"$work/cold-launch.log" 2>&1 &
