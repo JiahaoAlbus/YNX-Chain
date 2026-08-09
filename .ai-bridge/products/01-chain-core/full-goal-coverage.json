@@ -1,0 +1,571 @@
+{
+  "schema": "ynx-full-goal-coverage/v1",
+  "product": {
+    "number": "01",
+    "name": "YNX Chain Core / StreamBFT",
+    "slug": "chain-core",
+    "owner": "01-chain-core",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/01-chain-core",
+    "branch": "codex/final-chain-core"
+  },
+  "goalSource": {
+    "document": "YNX Chain — Founder-Grade Coordinated Final Goal Prompts",
+    "section": "01｜YNX Chain Core / StreamBFT",
+    "instructionDocument": "YNX 36 产品全量恢复与极致交付——通用长期执行指令"
+  },
+  "current": {
+    "phase": "TESTNET",
+    "goalStatus": "Active",
+    "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+    "releaseStatus": {
+      "implementedLocal": true,
+      "testedLocal": true,
+      "installedLocal": false,
+      "integratedCentral": false,
+      "deployedStaging": false,
+      "deployedPublic": false,
+      "downloadHosted": true,
+      "productionSigned": false,
+      "storeReleased": false
+    }
+  },
+  "allowedStatuses": [
+    "notStarted",
+    "inProgress",
+    "implementedLocal",
+    "testedLocal",
+    "integratedCentral",
+    "testnetVerified",
+    "publicVerified",
+    "externalBlocked",
+    "notApplicable",
+    "verifiedComplete"
+  ],
+  "rules": {
+    "directEvidenceOnly": true,
+    "fileExistenceAloneIsNotEvidence": true,
+    "testnetIsNotProduction": true,
+    "sandboxIsNotProduction": true,
+    "candidateIsNotActivated": true,
+    "externalBlockedOnlyForTrueExternalInputs": true
+  },
+  "summary": {
+    "entryCount": 12,
+    "byStatus": {
+      "notStarted": 0,
+      "inProgress": 0,
+      "implementedLocal": 0,
+      "testedLocal": 8,
+      "integratedCentral": 0,
+      "testnetVerified": 2,
+      "publicVerified": 0,
+      "externalBlocked": 1,
+      "notApplicable": 0,
+      "verifiedComplete": 1
+    }
+  },
+  "entries": [
+    {
+      "id": "CHAIN-GOV-001",
+      "category": "founder-delivery-constitution",
+      "requirement": "Preserve recovered work and enforce truthful, isolated, secure Founder-grade delivery.",
+      "subrequirements": [
+        "Recover rather than restart; scan worktree, branches, tags, reflog, actions, releases, artifacts, dirty changes, processes, servers and public endpoints.",
+        "Never reset --hard, clean, force-push, discard dirty changes, delete newer modules or replace the repository with a blank project.",
+        "Modify only 01-chain-core and coordinate cross-product changes through contract, schema, patch, handoff and test vectors.",
+        "Maintain nine independent release booleans and set them true only with direct evidence.",
+        "Reject TODO, FIXME, placeholders, fake balances, users, transactions, prices, revenue, APY, liquidity, providers, health, hard-coded success, no-op UI and production mocks.",
+        "Separate YNX authoritative state, third-party data, estimates, AI inference, cache and user input; carry source, asOf, version, confidence or coverage and failure state where applicable.",
+        "Use accepted Wallet/Auth, product registration, device challenge, approval, product session, introspection, expiry, revocation and App Gateway; fail closed for replay, tamper, wrong product, bundle or device, scope widening, expiry and revoke.",
+        "Keep user assets in user Wallet, Exchange subaccount, DEX Strategy Vault, approved custodian or protocol contract; prohibit service private keys, arbitrary withdrawal, owner change and mandate widening.",
+        "Prefer official standards, APIs, SDKs and Testnets; record terms, jurisdiction, auth, limits, retention, rights, version, health and fallback; fail honestly when unavailable.",
+        "AI may draft, explain, translate, summarize, research, preview, simulate and propose, but may not sign, pay, trade, withdraw, publish, delete, change permissions or risk, govern or upgrade consensus.",
+        "Use YNX Klein Blue, white and neutral black or gray while preserving independent products and truthful empty, loading, success, failure, offline, permission, expired and recovery states.",
+        "Support 12 languages, real Arabic RTL, keyboard, screen reader, focus, contrast, dynamic type, reduced motion, light and dark modes and 390px without overflow.",
+        "Deliver all applicable server, CLI, SDK, Docker and client artifacts and distinguish test, simulator, unsigned, production-signed and store states.",
+        "Measure p50, p95, p99, throughput, concurrency, queues, storage growth, provider latency and limits, cold start, error rate, RTO, RPO, availability and unit economics.",
+        "Version schemas, state, APIs, artifacts and config; complete migration, compatibility, rollback migration, backup, restore, export, delete, retention and shutdown exit paths.",
+        "Provide logs, metrics, traces, request, error and audit IDs, health, version, alerts, SLO dashboards, runbooks, status, support, disputes and recovery without leaking secrets or internal paths.",
+        "Maintain threat model, security boundaries, SBOM, notices, dependency and lockfile review, secret, SAST, DAST, container and artifact scans, provenance and reproducible-build evidence.",
+        "Keep fees, burn, treasury and risk transparent; prohibit hidden spread, unrealized-profit fees, reset fees, wash trading, fake volume, guaranteed returns, secret buybacks and hidden mint or burn; burn is not revenue.",
+        "Produce public metadata, canonical route, FAQ, screenshots, risk and status, artifact and support URLs and structured-data suggestions without internal names, paths or stale network facts.",
+        "Maintain completion, evidence, UI, migration, observability, release and operations records bound to exact source commits.",
+        "Define activation, retention, task completion, crash-free, support load, abuse, provider cost, margin, Testnet usage, conversion and kill or scale decisions without dark patterns.",
+        "Request only minimal true external inputs after autonomous engineering is exhausted and never request secrets in chat.",
+        "Run final test, build, smoke, security, migration, restore and public evidence; update handoff, commit, push, verify local equals remote and keep the goal Active or Blocked while evidence is incomplete."
+      ],
+      "applicability": "applicable",
+      "status": "testedLocal",
+      "evidence": [
+        "CURRENT_RECOVERY_AUDIT.md",
+        "SECURITY_BOUNDARIES.md",
+        "SLO_CAPACITY_PLAN.md",
+        "UNIT_ECONOMICS.md",
+        "MIGRATION_COMPATIBILITY.md",
+        "OBSERVABILITY.md",
+        "OPERATIONS.md",
+        "release/chain-core/product-release.json"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "make no-placeholder-check",
+        "make secret-scan",
+        "make static-check"
+      ],
+      "artifact": [
+        "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/chain-core-v0.2.0-source-candidate/ynx-chain-core-source-7c724e5f330a.tar.gz"
+      ],
+      "publicProof": [],
+      "blockedBy": [
+        "central Wallet/Auth acceptance",
+        "current-source public deployment",
+        "production-signed runtime artifact and independent public evidence"
+      ],
+      "owner": "01-chain-core",
+      "nextAction": "Preserve the passed local compliance and hosted-source baseline, then obtain central Wallet/Auth, production runtime signing, current-source public deployment and independent proof without changing public booleans prematurely.",
+      "lastUpdated": "2026-07-28T19:08:00Z"
+    },
+    {
+      "id": "CHAIN-GOV-002",
+      "category": "stages-and-cross-product-coordination",
+      "requirement": "Advance RECOVER → PROTECT → FREEZE → INTEGRATE → TESTNET → PUBLIC → EXPAND and preserve one authoritative owner per fact.",
+      "subrequirements": [
+        "Verify branch, status, local and remote SHA, ahead or behind, dirty changes, processes and CI before each round.",
+        "Push verified commits before new work or create a verifiable recovery bundle after bounded failure.",
+        "Maintain release/integration/chain-core-contract.json, docs/integration/CHAIN_CORE_INTEGRATION_HANDOFF.md, CROSS_PRODUCT_TEST_VECTORS.json and DEPENDENCY_ACCEPTANCE.md.",
+        "Record owner, source commit, schema, API, auth scope, wallet tuple, signed intent, canonical events, error codes, health and version, migration, vectors, dependencies, external inputs and release states.",
+        "Do not maintain conflicting long-term scopes, digests, events, errors, asset statuses, fees or release facts; submit conflicts and migration to 29-integration.",
+        "Prioritize real Wallet, Data Fabric, Oracle, Explorer, Monitor, Trust and execution-place end-to-end flows over feature count.",
+        "After two real dependency failures, preserve evidence, identify owner and recovery conditions, stay fail closed and continue adapters, migration, negative tests, backup, restore and evidence work.",
+        "Finish each slice with tests, review, evidence and release updates, commit, push, SHA verification and a precise next action."
+      ],
+      "applicability": "applicable",
+      "status": "testedLocal",
+      "evidence": [
+        "release/integration/chain-core-contract.json",
+        "docs/integration/CHAIN_CORE_INTEGRATION_HANDOFF.md",
+        "docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json",
+        "docs/integration/CHAIN_CORE_DEPENDENCY_ACCEPTANCE.md",
+        ".ai-bridge/execution-log.jsonl"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "git status clean and local or remote SHA matched after bf08b68 push"
+      ],
+      "artifact": [
+        "5c08b24462a28a9d768a18f8849f26548e2e4191"
+      ],
+      "publicProof": [],
+      "blockedBy": [
+        "02-wallet-auth accepted contract",
+        "19-oracle-market-data accepted contract",
+        "26-data-fabric canonical event contract",
+        "29-integration protocol freeze"
+      ],
+      "owner": "01-chain-core + central owners",
+      "nextAction": "Bind accepted Product Session introspection and canonical event ownership to Chain Core mutation routes.",
+      "lastUpdated": "2026-07-27T10:46:42Z"
+    },
+    {
+      "id": "CHAIN-NET-001",
+      "category": "network-identity",
+      "requirement": "Freeze and verify the unique YNX Testnet identity.",
+      "subrequirements": [
+        "Cosmos Chain ID is ynx_6423-1.",
+        "EVM Chain ID is 6423 or 0x1917.",
+        "Native asset is YNXT.",
+        "Native user addresses default to ynx1 and 0x is compatibility only.",
+        "6423 remains Testnet permanently and future Mainnet uses a new unique Chain ID.",
+        "Maintain verifiable metadata, add-chain parameters, RPC, Explorer, Faucet and logo evidence; Founder owns upstream ChainList submission."
+      ],
+      "applicability": "applicable",
+      "status": "testedLocal",
+      "evidence": [
+        "chain-metadata/ynx-testnet.json",
+        "configs/networks.json",
+        "release/integration/chain-core-contract.json"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "network identity tests",
+        "EVM eth_chainId and net_version tests"
+      ],
+      "artifact": [],
+      "publicProof": [],
+      "blockedBy": [
+        "current-source public endpoint deployment"
+      ],
+      "owner": "01-chain-core",
+      "nextAction": "Verify public RPC, Explorer, Faucet and wallet add-chain metadata against current source.",
+      "lastUpdated": "2026-07-27T10:46:42Z"
+    },
+    {
+      "id": "CHAIN-BFT-001",
+      "category": "four-validator-cometbft-baseline",
+      "requirement": "Prove the real four-validator CometBFT safety, finality and recovery baseline.",
+      "subrequirements": [
+        "Same genesis, validator set, binary and release manifest.",
+        "Fixed-height Block Hash and AppHash agreement with at least 3 of 4 precommits.",
+        "Continue producing blocks after one validator stops and catch up after recovery.",
+        "Double-sign protection and Byzantine evidence.",
+        "Snapshot, State Sync, backup, restore and rollback.",
+        "Broadcast once and query identical committed state from all nodes.",
+        "Signed YNXT transfer with nonce, fee, receipt, logs, account history and replay rejection."
+      ],
+      "applicability": "applicable",
+      "status": "testnetVerified",
+      "evidence": [
+        "tmp/consensus-quorum-evidence.json",
+        "release/recovery-evidence.json",
+        "FEATURE_COMPLETION_EVIDENCE.md"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "make consensus-quorum-check",
+        "make consensus-state-sync-check",
+        "make bft-evm-receipt-check"
+      ],
+      "artifact": [],
+      "publicProof": [],
+      "blockedBy": [
+        "remote current-source four-validator deployment"
+      ],
+      "owner": "01-chain-core",
+      "nextAction": "Repeat the full failure, recovery and transaction proof on remote current-source validators and publish independent evidence.",
+      "lastUpdated": "2026-07-27T10:46:42Z"
+    },
+    {
+      "id": "CHAIN-SBFT-001",
+      "category": "streambft-candidate",
+      "requirement": "Keep CometBFT as the baseline until StreamBFT wins the full formal, differential and adversarial bake-off.",
+      "subrequirements": [
+        "Multi-worker DAG transaction dissemination and data-availability or ordering separation.",
+        "Pipelined chained HotStuff or Jolteon-style candidate, adaptive pacemaker, deterministic rotation and asynchronous fallback.",
+        "Aggregate or threshold QC candidate with Ed25519 fallback and parallel signature verification.",
+        "Deterministic proposal construction, Block-STM-style parallel execution, sequential fallback and state-root determinism.",
+        "Semantic transaction lanes, per-lane congestion control and local fee markets.",
+        "Shadow mode, canary, feature flag and one-command rollback.",
+        "TLA+ or Apalache-equivalent model and CometBFT differential replay.",
+        "4, 7, 13 and 21 validators; multi-region WAN; Byzantine leader; equivocation; partition; packet loss; clock drift; DDoS; crash; state sync and long soak.",
+        "Retain CometBFT whenever the candidate cannot prove overall superiority."
+      ],
+      "applicability": "applicable",
+      "status": "testedLocal",
+      "evidence": [
+        "internal/streambft",
+        "docs/formal/streambft/StreamBFT.tla",
+        "docs/formal/streambft/StreamBFT.cfg",
+        "tmp/consensus-candidate-evidence"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "scripts/verify/streambft-candidate-check.sh",
+        "go test -race -count=1 ./internal/streambft",
+        "overflow-safe quorum, equivocation, locked-branch, deterministic parallel/sequential state-root, pacemaker, lane isolation, resource and canary fail-closed tests"
+      ],
+      "artifact": [],
+      "publicProof": [],
+      "blockedBy": [],
+      "owner": "01-chain-core",
+      "nextAction": "Retain CometBFT and keep canary/public promotion false until model-check, differential replay, WAN, Byzantine and long-soak evidence independently proves the composite win gate.",
+      "lastUpdated": "2026-07-29T03:35:00Z"
+    },
+    {
+      "id": "CHAIN-EXEC-001",
+      "category": "execution-lanes-and-fees",
+      "requirement": "Provide deterministic execution, resource metering and isolated fee markets.",
+      "subrequirements": [
+        "Nine lanes: Consensus or Governance; Oracle or Bridge or Risk; Liquidation; Cancel or Mass Cancel; Trading Orders; Pay or Stable Settlement; General EVM; Service Settlement; Bulk Data Commitment.",
+        "Explicit access or conflict hints, optimistic parallel execution, deterministic conflict commit and sequential fallback.",
+        "Multi-dimensional resource metering, state-growth pricing and end-of-block aggregation.",
+        "EIP-1559-style base-fee candidate and local markets for EVM, Trading, Pay, AI, Cloud and Bulk commitments.",
+        "Congestion in one business cannot block Wallet Recovery, Trust Appeal or unrelated lanes."
+      ],
+      "applicability": "applicable",
+      "status": "testedLocal",
+      "evidence": [
+        "chain/mempool",
+        "chain/execution",
+        "chain/fees",
+        "chain/resources",
+        "internal/streambft"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "TestProposalUsesCanonicalLanesAndIndependentLimits",
+        "TestLaneSaturationCannotDisplaceRecoveryOrPay",
+        "TestDeterministicParallelExecutionMatchesSequentialFallback",
+        "TestStateRootAndExecutionAreDeterministicAcrossInputOrder",
+        "TestLaneFeeMarketsAreIndependent",
+        "TestExecutionResourceAccountingRejectsOverflow",
+        "go test -race -count=1 ./internal/streambft"
+      ],
+      "artifact": [],
+      "publicProof": [],
+      "blockedBy": [],
+      "owner": "01-chain-core",
+      "nextAction": "Repeat the tested local execution/fee isolation matrix under staging workload and governed parameter changes before any public activation claim.",
+      "lastUpdated": "2026-07-29T03:35:00Z"
+    },
+    {
+      "id": "CHAIN-ASSET-001",
+      "category": "smart-account-mandate-vault",
+      "requirement": "Deliver noncustodial chain-level Smart Account, StrategyMandate and Vault primitives.",
+      "subrequirements": [
+        "Smart Account, UserOperation, Bundler, Paymaster, Session Key, Passkey, Guardian Recovery, Batch Call, Sponsored Gas and stablecoin gas.",
+        "StrategyMandate binds owner, engine identity, strategy hash and version, venue, assets, markets, methods, capital, position, leverage, slippage, daily loss, drawdown, expiry, nonce domain, revoke and kill switch.",
+        "Exchange API wallet is no-withdraw and subaccount-only.",
+        "DEX Strategy Vault permits owner-only withdrawal and emergency exit.",
+        "Emit strategy, vault, fee, risk and audit events.",
+        "Management and high-water-mark performance-fee invariants; performance fee only on realized net profit after all costs.",
+        "Quant, AI and product services cannot withdraw, change owner, widen permissions or bypass revoke."
+      ],
+      "applicability": "applicable",
+      "status": "testedLocal",
+      "evidence": [
+        "internal/assetauth",
+        "internal/bundler",
+        "internal/consensus",
+        "chain/governance/strategy-mandate.schema.json",
+        "release/integration/chain-core-contract.json"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "account-abstraction tests",
+        "mandate lifecycle and negative tests",
+        "vault lifecycle and emergency-exit tests",
+        "economic invariant tests"
+      ],
+      "artifact": [],
+      "publicProof": [],
+      "blockedBy": [
+        "accepted Wallet approval flow",
+        "real Exchange execution adapter",
+        "real DEX router and pool integration"
+      ],
+      "owner": "01-chain-core + 02-wallet-auth + execution owners",
+      "nextAction": "Run the locally tested passkey, guardian recovery, batched UserOperation, Paymaster and Vault primitives through accepted Wallet approval, stablecoin settlement, Exchange and DEX owner adapters.",
+      "lastUpdated": "2026-07-28T19:08:00Z"
+    },
+    {
+      "id": "CHAIN-SVC-001",
+      "category": "public-service-surface",
+      "requirement": "Deploy and verify the complete Chain Core service surface with truthful operations.",
+      "subrequirements": [
+        "RPC, EVM RPC, REST and gRPC.",
+        "Faucet, Indexer and Explorer backend.",
+        "App Gateway and Wallet/Auth Gateway.",
+        "Trading API and WebSocket, Oracle API and Economics or Solvency API.",
+        "Pay, Trust, Resource and AI gateways and Quant Mandate APIs.",
+        "Every service returns real health, version, commit, release, dependency status, startedAt and metrics and has systemd or container, least privilege, backup and rollback."
+      ],
+      "applicability": "applicable",
+      "status": "testedLocal",
+      "evidence": [
+        "cmd",
+        "internal",
+        "infra/systemd",
+        "infra/docker",
+        "release/integration/chain-core-contract.json"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "gateway test suites",
+        "make indexer-check",
+        "make bft-evm-receipt-check"
+      ],
+      "artifact": [],
+      "publicProof": [],
+      "blockedBy": [
+        "current-source public deployment",
+        "central Wallet, Oracle and Data Fabric acceptance"
+      ],
+      "owner": "01-chain-core + central owners",
+      "nextAction": "Bind the locally tested service and gRPC surfaces to accepted central owners, then run a current-source remote service audit.",
+      "lastUpdated": "2026-07-28T19:08:00Z"
+    },
+    {
+      "id": "CHAIN-EVM-IDX-001",
+      "category": "evm-and-indexer-evidence",
+      "requirement": "Maintain committed EVM compatibility and durable, tamper-rejecting Indexer persistence.",
+      "subrequirements": [
+        "EVM network, block, balance, nonce, code, call, estimate, signed broadcast, transaction, receipt and log methods.",
+        "Block transaction count by number or hash and transaction lookup by block number or hash plus canonical index.",
+        "Validate CometBFT AppHash, DataHash and raw-transaction evidence; return null for pending, missing and out-of-range lookups, -32602 for invalid parameters and -32603 for upstream or evidence failures.",
+        "Accept bounded chain-6423 EIP-155 legacy type-0 value transfers with recovered sender, zero-based nonce, exact 21000 gas, dual Ethereum or Comet transaction identity and audited committed receipt evidence.",
+        "Accept bounded EIP-2930 type-0x01 value transfers only with an empty access list, y-parity sender recovery, exact 21000 gas, dual identity and truthful type-0x1 transaction and receipt mapping.",
+        "Accept bounded EIP-1559 type-0x02 transfers only with chain ID 6423, zero compatibility base fee, 0 < maxPriorityFeePerGas <= maxFeePerGas, maximum-fee affordability, effective-fee debit, empty access list, exact 21000 gas and truthful type-0x2 mapping.",
+        "Expose eth_gasPrice and eth_maxPriorityFeePerGas as the protocol minimum 0x1 only; expose eth_feeHistory only from retained committed blocks, block_results gas and positive exact-height consensus max_gas, with zero base fees, no reward estimates, -32004 for unavailable truthful ratios and -32603 for inconsistent evidence.",
+        "Return a successful bounded Ethereum broadcast only after raw block membership, AppHash, DataHash, Comet gas, dual transaction identity and audited receipt evidence agree; classify duplicates as -32003 and evidence mismatches as -32603.",
+        "Provide a mode-0600 multi-envelope signer CLI and configurable positive-only local consensus fixture without exposing private key material or claiming production signing.",
+        "Reject wrong-chain, replayed, malformed, unsupported typed, non-empty-access-list, contract-creation, calldata and audit-tampered envelopes or evidence without claiming a dynamic base-fee market or general Ethereum execution.",
+        "Indexer validates the full incoming batch before journaling and requires exact height, parent and transaction invariants.",
+        "Checkpoint and WAL must be private 0600 regular files; reject unknown fields, trailing JSON, symlinks, tampering and conflicting duplicates.",
+        "WAL and checkpoint writes are fsync-bound; checkpoint uses atomic rename and directory fsync; checkpoint or WAL overlap crash recovery remains valid.",
+        "Returned databases, blocks, transactions, lot flows, logs and topics are deep-cloned so callers cannot mutate internal state."
+      ],
+      "applicability": "applicable",
+      "status": "testnetVerified",
+      "evidence": [
+        "internal/bftgateway",
+        "internal/indexer/indexer.go",
+        "internal/indexer/indexer_test.go",
+        "scripts/verify/consensus-eip1559-commit-check.sh",
+        "scripts/verify/bft-evm-fee-history-check.sh",
+        "tmp/consensus-eip1559-commit-evidence.json",
+        "tmp/consensus-quorum-evidence.json",
+        "release/integration/chain-core-contract.json"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "make integration-contract-check",
+        "make bft-evm-receipt-check",
+        "make bft-evm-fee-suggestion-check",
+        "make bft-evm-fee-history-check",
+        "make bft-evm-legacy-transfer-check",
+        "make bft-evm-access-list-transfer-check",
+        "make bft-evm-dynamic-fee-transfer-check",
+        "make consensus-eip1559-commit-check",
+        "make consensus-quorum-check",
+        "go test ./cmd/ynx-consensus-tx ./cmd/ynx-consensus-lab ./internal/bftgateway ./internal/consensus",
+        "go test -race ./internal/consensus ./internal/bftgateway",
+        "go test -race ./internal/indexer",
+        "make indexer-check"
+      ],
+      "artifact": [
+        "7b59af3 Add EVM block transaction lookups",
+        "bf08b68 fix(indexer): validate durable checkpoints",
+        "7935ced fix(gateway): classify EVM lookup failures",
+        "5469ed2 feat(evm): accept bounded EIP-155 transfers",
+        "328ba67 fix(evm): validate committed receipt evidence",
+        "6959df9 feat(evm): accept bounded EIP-2930 transfers",
+        "d6505fb feat(evm): accept bounded EIP-1559 transfers",
+        "acb8c47 feat(evm): expose zero-base-fee suggestions",
+        "c6c013c test(evm): gate fee suggestions",
+        "27c52eb feat(consensus): add bounded Ethereum signer tooling",
+        "3c5c0c8 test(consensus): validate fixture signer funding",
+        "57a13ba test(consensus): prove committed EIP-1559 evidence",
+        "fdb005c feat(evm): add committed fee history"
+      ],
+      "publicProof": [],
+      "blockedBy": [
+        "remote current-source Indexer and EVM deployment"
+      ],
+      "owner": "01-chain-core",
+      "nextAction": "Prove eth_feeHistory against a real local four-validator CometBFT network configured with positive max_gas, then run the bounded EVM and durable Indexer matrix remotely without widening public claims.",
+      "lastUpdated": "2026-07-27T12:50:00Z"
+    },
+    {
+      "id": "CHAIN-TESTNET-001",
+      "category": "final-testnet-evidence",
+      "requirement": "Complete every required final YNX Testnet proof.",
+      "subrequirements": [
+        "Four validators agree at a fixed height.",
+        "Public current-source RPC height grows continuously.",
+        "Faucet sends real Testnet YNXT to ynx1 and 0x addresses.",
+        "Sponsored Smart Account transaction commits with receipt and sponsor attribution.",
+        "StrategyMandate creation, overreach rejection, expiry and revoke are proven.",
+        "Exchange subaccount bounded-strategy test is complete.",
+        "DEX Vault deposit, bounded execution, withdrawal and emergency exit are complete.",
+        "Risk breach and kill switch are proven.",
+        "Backup and restore recover trusted committed state.",
+        "Cross-region public smoke passes.",
+        "Explorer and Monitor expose public evidence."
+      ],
+      "applicability": "applicable",
+      "status": "externalBlocked",
+      "evidence": [
+        "tmp/consensus-quorum-evidence.json",
+        "release/recovery-evidence.json",
+        "release/chain-core/product-release.json",
+        "FEATURE_COMPLETION_EVIDENCE.md"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "local four-validator proof",
+        "smart-account, mandate, vault, risk and recovery gates"
+      ],
+      "artifact": [],
+      "publicProof": [],
+      "blockedBy": [
+        "current-source public deployment",
+        "SSH or deployment authority",
+        "Faucet funding",
+        "12-explorer and 13-monitor public integration"
+      ],
+      "owner": "01-chain-core + execution and public-evidence owners",
+      "nextAction": "After deployment authority, funding and accepted owner surfaces exist, run Exchange/DEX flows, deploy follower-first and collect public cross-region evidence.",
+      "lastUpdated": "2026-07-29T03:35:00Z"
+    },
+    {
+      "id": "CHAIN-RELEASE-001",
+      "category": "overall-release",
+      "requirement": "Reach complete Founder-grade delivery without overclaiming.",
+      "subrequirements": [
+        "Every applicable coverage requirement is verifiedComplete or a true externalBlocked item.",
+        "All autonomous runtime, test, build, migration, recovery, security, UI, SDK, adapter, evidence and release work is complete.",
+        "Targeted checks and final preflight pass.",
+        "Integration Contract and Handoff are frozen.",
+        "Real Testnet and public, artifact, install, recovery and security evidence are complete where applicable.",
+        "Release Record is truthful.",
+        "Local SHA equals remote SHA, worktree is clean and no dirty change is unrecorded."
+      ],
+      "applicability": "applicable",
+      "status": "testedLocal",
+      "evidence": [
+        ".ai-bridge/products/01-chain-core/full-goal-coverage.json",
+        "release/chain-core/product-release.json",
+        "release/integration/chain-core-contract.json",
+        "docs/integration/CHAIN_CORE_INTEGRATION_HANDOFF.md"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [],
+      "artifact": [
+        "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/chain-core-v0.2.0-source-candidate/ynx-chain-core-source-7c724e5f330a.tar.gz"
+      ],
+      "publicProof": [],
+      "blockedBy": [
+        "current-source public deployment and proof",
+        "central owner acceptance",
+        "production-signed runtime artifact evidence"
+      ],
+      "owner": "01-chain-core",
+      "nextAction": "Submit the exact protected and hosted source candidate to central integration; public Testnet, production runtime signing and independent proof remain externally gated.",
+      "lastUpdated": "2026-07-28T19:08:00Z"
+    },
+    {
+      "id": "CHAIN-PROTECT-001",
+      "category": "current-checkpoint",
+      "requirement": "Protect the current verified EVM and Indexer slices on the specified branch.",
+      "subrequirements": [
+        "Preserve concurrent EVM work without overwriting it.",
+        "Push EVM commit 7b59af3.",
+        "Commit only internal/indexer/indexer.go and internal/indexer/indexer_test.go as bf08b68.",
+        "Push bf08b68 after bounded retries.",
+        "Verify local and remote SHA match and the worktree is clean before the metadata slice."
+      ],
+      "applicability": "applicable",
+      "status": "verifiedComplete",
+      "evidence": [
+        ".ai-bridge/execution-log.jsonl",
+        "internal/bftgateway",
+        "internal/indexer"
+      ],
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "tests": [
+        "go test -race ./internal/indexer",
+        "make indexer-check",
+        "git status clean and origin matched"
+      ],
+      "artifact": [
+        "7b59af3",
+        "bf08b68"
+      ],
+      "publicProof": [],
+      "blockedBy": [],
+      "owner": "01-chain-core",
+      "nextAction": "Re-evaluate protection state after this metadata and coverage-matrix slice.",
+      "lastUpdated": "2026-07-27T10:46:42Z"
+    }
+  ]
+}

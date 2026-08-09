@@ -15,9 +15,10 @@ import (
 )
 
 type Server struct {
-	service *Service
-	mux     *http.ServeMux
-	build   buildinfo.Info
+	service   *Service
+	mux       *http.ServeMux
+	build     buildinfo.Info
+	startedAt time.Time
 
 	streamMu      sync.Mutex
 	streamClients map[chan streamEvent]struct{}
@@ -39,6 +40,7 @@ func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
 		service:       service,
 		mux:           http.NewServeMux(),
 		build:         buildinfo.Normalize(build),
+		startedAt:     time.Now().UTC(),
 		streamClients: make(map[chan streamEvent]struct{}),
 	}
 	s.routes()
@@ -54,6 +56,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /assets/ynx-logo.png", s.handleLogo)
 	s.mux.HandleFunc("GET /assets/ynx-icon.png", s.handleIcon)
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /version", s.handleVersion)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/summary", s.handleSummary)
 	s.mux.HandleFunc("GET /api/stream", s.handleStream)
@@ -69,6 +72,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/resource-market/analytics", s.handleResourceAnalytics)
 	s.mux.HandleFunc("GET /api/fees/{hash}", s.handleFee)
 	s.mux.HandleFunc("GET /api/search", s.handleSearch)
+}
+
+func (s *Server) handleVersion(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service":   "ynx-explorerd",
+		"build":     s.build,
+		"startedAt": s.startedAt,
+	})
 }
 
 func (s *Server) handleLogo(w http.ResponseWriter, _ *http.Request) {
@@ -128,6 +139,7 @@ func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, erro
 		resources = map[string]any{}
 	}
 	summary.Build = s.build
+	summary.StartedAt = s.startedAt
 	return dashboardSnapshot{Summary: summary, Blocks: blocks, Transactions: transactions, Validators: validators, Resources: resources, Warnings: warnings}, nil
 }
 
@@ -243,6 +255,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	summary.Build = s.build
+	summary.StartedAt = s.startedAt
 	writeJSON(w, http.StatusOK, summary)
 }
 
@@ -253,6 +266,7 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	summary.Build = s.build
+	summary.StartedAt = s.startedAt
 	writeJSON(w, http.StatusOK, summary)
 }
 
