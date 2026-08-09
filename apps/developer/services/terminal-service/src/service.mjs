@@ -1,44 +1,291 @@
 import { randomUUID } from "node:crypto";
-import { chmod, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
 import { spawn as spawnPty } from "node-pty";
 import { WebSocketServer } from "ws";
-import { detectSandbox, resolveExecutable, sandboxLaunch } from "../../workspace-agent/src/sandbox.mjs";
+import {
+  detectSandbox,
+  resolveExecutable,
+  sandboxLaunch,
+} from "../../workspace-agent/src/sandbox.mjs";
+import {
+  materializeSnapshot,
+  readTextSnapshot,
+} from "../../workspace-agent/src/workspace-files.mjs";
 
-const PROTOCOL="ynx-code-terminal-v1",MAX_INPUT=64*1024,MAX_FILES=256,MAX_BYTES=2*1024*1024;
+const PROTOCOL = "ynx-code-terminal-v1",
+  MAX_INPUT = 64 * 1024,
+  MAX_FILES = 256,
+  MAX_BYTES = 2 * 1024 * 1024;
 
-export function createTerminalService(options){
-  const {workspaceStore,ownerForRequest}=options,sandbox=detectSandbox(options),root=options.root||join(tmpdir(),"ynx-code-terminals"),maxSessions=bounded(options.maxSessions,16,1,256),maxOwnerSessions=bounded(options.maxOwnerSessions,2,1,8),idleMs=bounded(options.idleMs,15*60_000,10_000,60*60_000),hardMs=bounded(options.hardMs,60*60_000,30_000,4*60*60_000),wss=new WebSocketServer({noServer:true,maxPayload:MAX_INPUT}),sessions=new Map();
-  function handleUpgrade(request,socket,head){
-    const url=new URL(request.url,`http://${request.headers.host||"127.0.0.1"}`),owner=ownerForRequest(request),projectId=url.searchParams.get("projectId");
-    if(url.pathname!=="/runtime/terminals"||!owner||!/^[A-Za-z0-9_-]{1,160}$/.test(projectId||"")||!sameOrigin(request)||request.headers["sec-websocket-protocol"]!==PROTOCOL||!sandbox.ready||sessions.size>=maxSessions||[...sessions.values()].filter(value=>value.owner===owner).length>=maxOwnerSessions){reject(socket);return}
-    wss.handleUpgrade(request,socket,head,websocket=>wss.emit("connection",websocket,request,{owner,projectId}));
+export function createTerminalService(options) {
+  const { workspaceStore, ownerForRequest } = options,
+    sandbox = detectSandbox(options),
+    root = options.root || join(tmpdir(), "ynx-code-terminals"),
+    maxSessions = bounded(options.maxSessions, 16, 1, 256),
+    maxOwnerSessions = bounded(options.maxOwnerSessions, 2, 1, 8),
+    idleMs = bounded(options.idleMs, 15 * 60_000, 10_000, 60 * 60_000),
+    hardMs = bounded(options.hardMs, 60 * 60_000, 30_000, 4 * 60 * 60_000),
+    wss = new WebSocketServer({ noServer: true, maxPayload: MAX_INPUT }),
+    sessions = new Map();
+  function handleUpgrade(request, socket, head) {
+    const url = new URL(
+      request.url,
+      `http://${request.headers.host || "127.0.0.1"}`,
+    );
+    if (url.pathname !== "/runtime/terminals") return false;
+    const owner = ownerForRequest(request),
+      projectId = url.searchParams.get("projectId");
+    if (
+      !owner ||
+      !/^[A-Za-z0-9_-]{1,160}$/.test(projectId || "") ||
+      !sameOrigin(request) ||
+      request.headers["sec-websocket-protocol"] !== PROTOCOL ||
+      !sandbox.ready ||
+      sessions.size >= maxSessions ||
+      [...sessions.values()].filter((value) => value.owner === owner).length >=
+        maxOwnerSessions
+    ) {
+      reject(socket);
+      return true;
+    }
+    wss.handleUpgrade(request, socket, head, (websocket) =>
+      wss.emit("connection", websocket, request, { owner, projectId }),
+    );
+    return true;
   }
-  wss.on("connection",(websocket,_request,identity)=>start(websocket,identity).catch(error=>{send(websocket,{type:"error",code:error.code||"terminal_start_failed",message:error.message||"Terminal could not start."});websocket.close(1011,"Terminal start failed")}));
-  async function start(websocket,{owner,projectId}){
-    const snapshot=workspaceStore.get(owner,projectId);if(!snapshot)throw fault("Workspace was not found.","workspace_not_found");
-    const sessionId=randomUUID(),sessionRoot=await mkdtemp(join(await ensureRoot(root),"terminal-")),workspace=await realpath(sessionRoot);await mkdir(join(workspace,".tmp"),{mode:0o700});await mkdir(join(workspace,".ynx-build"),{mode:0o700});await materialize(workspace,snapshot);
-    const shell=await resolveExecutable(process.platform==="darwin"?["zsh","bash","sh"]:["bash","sh"]);if(!shell)throw fault("No approved shell is installed.","shell_unavailable");await ensurePtyHelper();const launch=sandboxLaunch({sandbox,workspace,command:shell,args:["-l"],writeWorkspace:true}),terminal=spawnPty(launch.command,launch.args,{name:"xterm-256color",cols:100,rows:28,cwd:launch.cwd,env:{...launch.env,TERM:"xterm-256color",COLORTERM:"truecolor"}});
-    const state={owner,projectId,sessionId,workspace,snapshot,terminal,websocket,sequence:0,lastInput:Date.now(),closed:false};sessions.set(sessionId,state);send(websocket,{type:"ready",protocolVersion:PROTOCOL,sessionId,cwd:"/workspace",sandbox:{kind:sandbox.kind,network:false,writableRoot:"workspace"}});
-    terminal.onData(data=>send(websocket,{type:"output",sequence:++state.sequence,data}));terminal.onExit(({exitCode,signal})=>finish(state,{exitCode,signal}));
-    websocket.on("message",raw=>message(state,raw));websocket.on("close",()=>finish(state,{exitCode:130,signal:1}));websocket.on("error",()=>finish(state,{exitCode:130,signal:1}));
-    state.idle=setInterval(()=>{if(Date.now()-state.lastInput>idleMs)finish(state,{exitCode:124,signal:15,reason:"idle_timeout"})},Math.min(30_000,idleMs));state.hard=setTimeout(()=>finish(state,{exitCode:124,signal:15,reason:"lifetime_limit"}),hardMs);
+  wss.on("connection", (websocket, _request, identity) =>
+    start(websocket, identity).catch((error) => {
+      send(websocket, {
+        type: "error",
+        code: error.code || "terminal_start_failed",
+        message: error.message || "Terminal could not start.",
+      });
+      websocket.close(1011, "Terminal start failed");
+    }),
+  );
+  async function start(websocket, { owner, projectId }) {
+    const snapshot = workspaceStore.get(owner, projectId);
+    if (!snapshot)
+      throw fault("Workspace was not found.", "workspace_not_found");
+    const sessionId = randomUUID(),
+      sessionRoot = await mkdtemp(join(await ensureRoot(root), "terminal-")),
+      workspace = await realpath(sessionRoot);
+    await mkdir(join(workspace, ".tmp"), { mode: 0o700 });
+    await mkdir(join(workspace, ".ynx-build"), { mode: 0o700 });
+    await materializeSnapshot(workspace, snapshot);
+    const shell = await resolveExecutable(
+      process.platform === "darwin" ? ["zsh", "bash", "sh"] : ["bash", "sh"],
+    );
+    if (!shell)
+      throw fault("No approved shell is installed.", "shell_unavailable");
+    await ensurePtyHelper();
+    const launch = sandboxLaunch({
+        sandbox,
+        workspace,
+        command: shell,
+        args: ["-l"],
+        writeWorkspace: true,
+      }),
+      terminal = spawnPty(launch.command, launch.args, {
+        name: "xterm-256color",
+        cols: 100,
+        rows: 28,
+        cwd: launch.cwd,
+        env: { ...launch.env, TERM: "xterm-256color", COLORTERM: "truecolor" },
+      });
+    const state = {
+      owner,
+      projectId,
+      sessionId,
+      workspace,
+      snapshot,
+      terminal,
+      websocket,
+      sequence: 0,
+      lastInput: Date.now(),
+      closed: false,
+    };
+    sessions.set(sessionId, state);
+    send(websocket, {
+      type: "ready",
+      protocolVersion: PROTOCOL,
+      sessionId,
+      cwd: "/workspace",
+      sandbox: {
+        kind: sandbox.kind,
+        network: false,
+        writableRoot: "workspace",
+      },
+    });
+    terminal.onData((data) =>
+      send(websocket, { type: "output", sequence: ++state.sequence, data }),
+    );
+    terminal.onExit(({ exitCode, signal }) =>
+      finish(state, { exitCode, signal }),
+    );
+    websocket.on("message", (raw) => message(state, raw));
+    websocket.on("close", () => finish(state, { exitCode: 130, signal: 1 }));
+    websocket.on("error", () => finish(state, { exitCode: 130, signal: 1 }));
+    state.idle = setInterval(
+      () => {
+        if (Date.now() - state.lastInput > idleMs)
+          finish(state, { exitCode: 124, signal: 15, reason: "idle_timeout" });
+      },
+      Math.min(30_000, idleMs),
+    );
+    state.hard = setTimeout(
+      () =>
+        finish(state, { exitCode: 124, signal: 15, reason: "lifetime_limit" }),
+      hardMs,
+    );
   }
-  function message(state,raw){state.lastInput=Date.now();let value;try{value=JSON.parse(String(raw))}catch{return send(state.websocket,{type:"error",code:"invalid_terminal_message",message:"Terminal messages must be JSON."})}if(value.type==="input"&&typeof value.data==="string"&&Buffer.byteLength(value.data)<=MAX_INPUT)state.terminal.write(value.data);else if(value.type==="resize"&&Number.isInteger(value.cols)&&Number.isInteger(value.rows)&&value.cols>=20&&value.cols<=400&&value.rows>=5&&value.rows<=200)state.terminal.resize(value.cols,value.rows);else if(value.type==="close")finish(state,{exitCode:130,signal:15,reason:"client_close"});else send(state.websocket,{type:"error",code:"invalid_terminal_message",message:"Unsupported terminal operation."})}
-  async function finish(state,result){if(state.closed)return;state.closed=true;clearInterval(state.idle);clearTimeout(state.hard);sessions.delete(state.sessionId);try{state.terminal.kill()}catch{}try{const payload=await snapshotFiles(state.workspace,state.snapshot);const saved=workspaceStore.put(state.owner,state.projectId,{expectedRevision:state.snapshot.revision,idempotencyKey:`terminal-${state.sessionId}`,payload});send(state.websocket,{type:"workspace-synced",revision:saved.revision})}catch(error){send(state.websocket,{type:"workspace-sync-conflict",code:error.code||"workspace_sync_failed",message:error.message||"Terminal changes could not be synchronized."})}send(state.websocket,{type:"exit",code:result.exitCode,signal:result.signal,reason:result.reason});try{state.websocket.close(1000,"Terminal exited")}catch{}await rm(state.workspace,{recursive:true,force:true})}
-  async function close(){for(const state of sessions.values())await finish(state,{exitCode:130,signal:15,reason:"service_shutdown"});wss.close()}
-  return{handleUpgrade,close,status:()=>({active:sessions.size,maxSessions,sandbox:sandbox.kind,sandboxReady:sandbox.ready})};
+  function message(state, raw) {
+    state.lastInput = Date.now();
+    let value;
+    try {
+      value = JSON.parse(String(raw));
+    } catch {
+      return send(state.websocket, {
+        type: "error",
+        code: "invalid_terminal_message",
+        message: "Terminal messages must be JSON.",
+      });
+    }
+    if (
+      value.type === "input" &&
+      typeof value.data === "string" &&
+      Buffer.byteLength(value.data) <= MAX_INPUT
+    )
+      state.terminal.write(value.data);
+    else if (
+      value.type === "resize" &&
+      Number.isInteger(value.cols) &&
+      Number.isInteger(value.rows) &&
+      value.cols >= 20 &&
+      value.cols <= 400 &&
+      value.rows >= 5 &&
+      value.rows <= 200
+    )
+      state.terminal.resize(value.cols, value.rows);
+    else if (value.type === "close")
+      finish(state, { exitCode: 130, signal: 15, reason: "client_close" });
+    else
+      send(state.websocket, {
+        type: "error",
+        code: "invalid_terminal_message",
+        message: "Unsupported terminal operation.",
+      });
+  }
+  async function finish(state, result) {
+    if (state.closed) return;
+    state.closed = true;
+    clearInterval(state.idle);
+    clearTimeout(state.hard);
+    sessions.delete(state.sessionId);
+    try {
+      state.terminal.kill();
+    } catch {}
+    try {
+      const payload = await readTextSnapshot(state.workspace, state.snapshot);
+      const saved = workspaceStore.put(state.owner, state.projectId, {
+        expectedRevision: state.snapshot.revision,
+        idempotencyKey: `terminal-${state.sessionId}`,
+        payload,
+      });
+      send(state.websocket, {
+        type: "workspace-synced",
+        revision: saved.revision,
+      });
+    } catch (error) {
+      send(state.websocket, {
+        type: "workspace-sync-conflict",
+        code: error.code || "workspace_sync_failed",
+        message: error.message || "Terminal changes could not be synchronized.",
+      });
+    }
+    send(state.websocket, {
+      type: "exit",
+      code: result.exitCode,
+      signal: result.signal,
+      reason: result.reason,
+    });
+    try {
+      state.websocket.close(1000, "Terminal exited");
+    } catch {}
+    await rm(state.workspace, { recursive: true, force: true });
+  }
+  async function close() {
+    for (const state of sessions.values())
+      await finish(state, {
+        exitCode: 130,
+        signal: 15,
+        reason: "service_shutdown",
+      });
+    wss.close();
+  }
+  return {
+    handleUpgrade,
+    close,
+    status: () => ({
+      active: sessions.size,
+      maxSessions,
+      sandbox: sandbox.kind,
+      sandboxReady: sandbox.ready,
+    }),
+  };
 }
 
-async function ensureRoot(root){await mkdir(root,{recursive:true,mode:0o700});return root}
-async function materialize(root,snapshot){for(const folder of snapshot.folders||[])await mkdir(safeJoin(root,folder),{recursive:true,mode:0o700});for(const[path,content]of Object.entries(snapshot.files)){const target=safeJoin(root,path);await mkdir(dirname(target),{recursive:true,mode:0o700});await writeFile(target,content,{mode:0o600,flag:"wx"})}}
-async function snapshotFiles(root,previous){const files={},folders=[];let bytes=0;async function walk(directory){for(const entry of await readdir(directory,{withFileTypes:true})){if(entry.name===".tmp"||entry.name===".ynx-build")continue;const absolute=join(directory,entry.name),path=relative(root,absolute);if(entry.isDirectory()){folders.push(path);await walk(absolute)}else if(entry.isFile()){const value=await readFile(absolute);if(value.includes(0))continue;bytes+=value.length;if(Object.keys(files).length>=MAX_FILES||bytes>MAX_BYTES)throw fault("Terminal workspace exceeds the text snapshot boundary.","workspace_too_large");files[path]=value.toString("utf8")}}}await walk(root);const open=(previous.open||[]).filter(path=>Object.hasOwn(files,path)),active=Object.hasOwn(files,previous.active)?previous.active:(open[0]||Object.keys(files)[0]||"");return{name:previous.name,folders,files,open,active}}
-function safeJoin(root,path){const target=resolve(root,path);if(target!==root&&!target.startsWith(`${root}${sep}`))throw fault("Workspace path escaped its root.","workspace_escape");return target}
-function sameOrigin(request){try{const origin=new URL(String(request.headers.origin||"")),host=String(request.headers["x-forwarded-host"]||request.headers.host||"").split(",")[0].trim();return origin.host===host&&(request.headers["sec-fetch-site"]===undefined||request.headers["sec-fetch-site"]==="same-origin")}catch{return false}}
-function reject(socket){socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");socket.destroy()}
-function send(websocket,value){if(websocket.readyState===1)websocket.send(JSON.stringify(value))}
-function bounded(value,fallback,min,max){const number=Number(value||fallback);return Number.isInteger(number)&&number>=min&&number<=max?number:fallback}
-function fault(message,code){return Object.assign(new Error(message),{code})}
-async function ensurePtyHelper(){if(process.platform!=="darwin")return;const require=createRequire(import.meta.url),packageRoot=dirname(require.resolve("node-pty/package.json")),helper=join(packageRoot,"prebuilds",`darwin-${process.arch}`,"spawn-helper");await chmod(helper,0o755)}
+async function ensureRoot(root) {
+  await mkdir(root, { recursive: true, mode: 0o700 });
+  return root;
+}
+function sameOrigin(request) {
+  try {
+    const origin = new URL(String(request.headers.origin || "")),
+      host = String(
+        request.headers["x-forwarded-host"] || request.headers.host || "",
+      )
+        .split(",")[0]
+        .trim();
+    return (
+      origin.host === host &&
+      (request.headers["sec-fetch-site"] === undefined ||
+        request.headers["sec-fetch-site"] === "same-origin")
+    );
+  } catch {
+    return false;
+  }
+}
+function reject(socket) {
+  socket.write(
+    "HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n",
+  );
+  socket.destroy();
+}
+function send(websocket, value) {
+  if (websocket.readyState === 1) websocket.send(JSON.stringify(value));
+}
+function bounded(value, fallback, min, max) {
+  const number = Number(value || fallback);
+  return Number.isInteger(number) && number >= min && number <= max
+    ? number
+    : fallback;
+}
+function fault(message, code) {
+  return Object.assign(new Error(message), { code });
+}
+async function ensurePtyHelper() {
+  if (process.platform !== "darwin") return;
+  const require = createRequire(import.meta.url),
+    packageRoot = dirname(require.resolve("node-pty/package.json")),
+    helper = join(
+      packageRoot,
+      "prebuilds",
+      `darwin-${process.arch}`,
+      "spawn-helper",
+    );
+  await chmod(helper, 0o755);
+}

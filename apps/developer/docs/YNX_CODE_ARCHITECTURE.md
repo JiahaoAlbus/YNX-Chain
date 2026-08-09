@@ -206,6 +206,15 @@ bounded; adapter `runInTerminal` requests return to the permission broker.
 Variables, watches and evaluations are scoped to a paused session. Debugging a
 remote or chain transaction uses a separate read-only transaction debugger.
 
+The first actual adapter gate is now implemented for C/C++ in
+`services/debug-service`. It builds the selected source with debug symbols,
+launches LLDB DAP inside the same default-deny-network sandbox, rewrites source
+and program paths to the owned workspace, and allows only a bounded DAP request
+set. The workbench exposes gutter breakpoints, continue/step controls, call
+stack, variables and the current stopped line. Target-Ubuntu evidence must hit
+a real source breakpoint and return its stack frame; Node.js, Python and Rust
+remain gated until their separate adapters pass the same test.
+
 ## 10. Git and review
 
 Git runs through the Workspace Agent with exact repository root. Status, diff,

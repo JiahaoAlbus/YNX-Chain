@@ -10,11 +10,228 @@ import JsonWorker from "../workers/json.worker?worker";
 import CssWorker from "../workers/css.worker?worker";
 import HtmlWorker from "../workers/html.worker?worker";
 import TsWorker from "../workers/typescript.worker?worker";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { cppLanguageRequest } from "../runtime/client";
 
-self.MonacoEnvironment={getWorker(_:string,label:string){if(label==="json")return new JsonWorker();if(label==="css"||label==="scss"||label==="less")return new CssWorker();if(label==="html"||label==="handlebars"||label==="razor")return new HtmlWorker();if(label==="typescript"||label==="javascript")return new TsWorker();return new EditorWorker();}};
-loader.config({monaco});
+self.MonacoEnvironment = {
+  getWorker(_: string, label: string) {
+    if (label === "json") return new JsonWorker();
+    if (label === "css" || label === "scss" || label === "less")
+      return new CssWorker();
+    if (label === "html" || label === "handlebars" || label === "razor")
+      return new HtmlWorker();
+    if (label === "typescript" || label === "javascript") return new TsWorker();
+    return new EditorWorker();
+  },
+};
+loader.config({ monaco });
 
-type Props={files:Record<string,string>;activePath:string;activeContent:string;language:string;theme:"light"|"dark";onChange:(value:string|undefined)=>void;splitPath?:string;splitContent?:string;splitLanguage?:string;onSplitChange?:(value:string|undefined)=>void;diffBase?:string};
-export default function CodeEditor({files,activePath,activeContent,language,theme,onChange,splitPath,splitContent,splitLanguage,onSplitChange,diffBase}:Props){const editorTheme=theme==="dark"?"vs-dark":"vs";useEffect(()=>{const provider=monaco.languages.registerCompletionItemProvider("cpp",{triggerCharacters:[".",">",":"],provideCompletionItems:async(model,position)=>{const path=decodeURIComponent(model.uri.path).replace(/^\//,"");if(!Object.hasOwn(files,path))return{suggestions:[]};try{const value=await cppLanguageRequest(files,path,"completion",{line:position.lineNumber-1,character:position.column-1}),items=Array.isArray(value.result)?value.result:value.result?.items||[];return{suggestions:items.slice(0,200).map((item:any)=>({label:String(item.label).trim(),kind:Math.max(0,Math.min(27,Number(item.kind||1)-1)),insertText:item.textEdit?.newText||item.insertText||String(item.label).trim(),detail:item.detail,documentation:typeof item.documentation==="string"?item.documentation:item.documentation?.value,sortText:item.sortText,filterText:item.filterText,range:item.textEdit?.range?{startLineNumber:item.textEdit.range.start.line+1,startColumn:item.textEdit.range.start.character+1,endLineNumber:item.textEdit.range.end.line+1,endColumn:item.textEdit.range.end.character+1}:undefined}))}}catch{return{suggestions:[]}}}});return()=>provider.dispose()},[files]);useEffect(()=>{if(language!=="cpp"||!activePath)return;const timer=setTimeout(()=>{cppLanguageRequest(files,activePath,"diagnostics").then(value=>{const model=monaco.editor.getModel(monaco.Uri.parse(`file:///${activePath}`));if(!model)return;monaco.editor.setModelMarkers(model,"clangd",(value.result||[]).map((diagnostic:any)=>({startLineNumber:diagnostic.range.start.line+1,startColumn:diagnostic.range.start.character+1,endLineNumber:diagnostic.range.end.line+1,endColumn:diagnostic.range.end.character+1,message:diagnostic.message,severity:diagnostic.severity===1?monaco.MarkerSeverity.Error:diagnostic.severity===2?monaco.MarkerSeverity.Warning:monaco.MarkerSeverity.Info,source:diagnostic.source||"clangd",code:String(diagnostic.code??"")}))) }).catch(()=>{})},700);return()=>clearTimeout(timer)},[activePath,files,language]);if(diffBase!==undefined)return <DiffEditor original={diffBase} modified={activeContent} language={language} theme={editorTheme} options={{automaticLayout:true,readOnly:false}}/>;return <><Editor path={`file:///${activePath}`} value={activeContent} language={language} theme={editorTheme} onChange={onChange} options={{automaticLayout:true,fontSize:13,lineHeight:20,minimap:{enabled:true},stickyScroll:{enabled:true},bracketPairColorization:{enabled:true},guides:{bracketPairs:true,indentation:true},quickSuggestions:{other:true,comments:false,strings:true},tabCompletion:"on",formatOnPaste:true,formatOnType:true,glyphMargin:true,padding:{top:8},scrollBeyondLastLine:false}}/>{splitPath&&<Editor path={`file:///${splitPath}`} value={splitContent} language={splitLanguage} theme={editorTheme} onChange={onSplitChange} options={{automaticLayout:true,fontSize:13,minimap:{enabled:false},scrollBeyondLastLine:false}}/>}</>}
+type Props = {
+  files: Record<string, string>;
+  activePath: string;
+  activeContent: string;
+  language: string;
+  theme: "light" | "dark";
+  onChange: (value: string | undefined) => void;
+  breakpoints: number[];
+  debugLine?: number;
+  onToggleBreakpoint: (line: number) => void;
+  splitPath?: string;
+  splitContent?: string;
+  splitLanguage?: string;
+  onSplitChange?: (value: string | undefined) => void;
+  diffBase?: string;
+};
+export default function CodeEditor({
+  files,
+  activePath,
+  activeContent,
+  language,
+  theme,
+  onChange,
+  breakpoints,
+  debugLine,
+  onToggleBreakpoint,
+  splitPath,
+  splitContent,
+  splitLanguage,
+  onSplitChange,
+  diffBase,
+}: Props) {
+  const editorTheme = theme === "dark" ? "vs-dark" : "vs",
+    editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null),
+    decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(
+      null,
+    );
+  useEffect(() => {
+    const provider = monaco.languages.registerCompletionItemProvider("cpp", {
+      triggerCharacters: [".", ">", ":"],
+      provideCompletionItems: async (model, position) => {
+        const path = decodeURIComponent(model.uri.path).replace(/^\//, "");
+        if (!Object.hasOwn(files, path)) return { suggestions: [] };
+        try {
+          const value = await cppLanguageRequest(files, path, "completion", {
+              line: position.lineNumber - 1,
+              character: position.column - 1,
+            }),
+            items = Array.isArray(value.result)
+              ? value.result
+              : value.result?.items || [];
+          return {
+            suggestions: items
+              .slice(0, 200)
+              .map((item: any) => ({
+                label: String(item.label).trim(),
+                kind: Math.max(0, Math.min(27, Number(item.kind || 1) - 1)),
+                insertText:
+                  item.textEdit?.newText ||
+                  item.insertText ||
+                  String(item.label).trim(),
+                detail: item.detail,
+                documentation:
+                  typeof item.documentation === "string"
+                    ? item.documentation
+                    : item.documentation?.value,
+                sortText: item.sortText,
+                filterText: item.filterText,
+                range: item.textEdit?.range
+                  ? {
+                      startLineNumber: item.textEdit.range.start.line + 1,
+                      startColumn: item.textEdit.range.start.character + 1,
+                      endLineNumber: item.textEdit.range.end.line + 1,
+                      endColumn: item.textEdit.range.end.character + 1,
+                    }
+                  : undefined,
+              })),
+          };
+        } catch {
+          return { suggestions: [] };
+        }
+      },
+    });
+    return () => provider.dispose();
+  }, [files]);
+  useEffect(() => {
+    if (language !== "cpp" || !activePath) return;
+    const timer = setTimeout(() => {
+      cppLanguageRequest(files, activePath, "diagnostics")
+        .then((value) => {
+          const model = monaco.editor.getModel(
+            monaco.Uri.parse(`file:///${activePath}`),
+          );
+          if (!model) return;
+          monaco.editor.setModelMarkers(
+            model,
+            "clangd",
+            (value.result || []).map((diagnostic: any) => ({
+              startLineNumber: diagnostic.range.start.line + 1,
+              startColumn: diagnostic.range.start.character + 1,
+              endLineNumber: diagnostic.range.end.line + 1,
+              endColumn: diagnostic.range.end.character + 1,
+              message: diagnostic.message,
+              severity:
+                diagnostic.severity === 1
+                  ? monaco.MarkerSeverity.Error
+                  : diagnostic.severity === 2
+                    ? monaco.MarkerSeverity.Warning
+                    : monaco.MarkerSeverity.Info,
+              source: diagnostic.source || "clangd",
+              code: String(diagnostic.code ?? ""),
+            })),
+          );
+        })
+        .catch(() => {});
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [activePath, files, language]);
+  useEffect(() => {
+    decorations.current?.set([
+      ...breakpoints.map((line) => ({
+        range: new monaco.Range(line, 1, line, 1),
+        options: {
+          isWholeLine: false,
+          glyphMarginClassName: "ynx-breakpoint",
+          glyphMarginHoverMessage: {
+            value: `Breakpoint ${activePath}:${line}`,
+          },
+        },
+      })),
+      ...(debugLine
+        ? [
+            {
+              range: new monaco.Range(debugLine, 1, debugLine, 1),
+              options: {
+                isWholeLine: true,
+                className: "ynx-debug-line",
+                glyphMarginClassName: "ynx-debug-arrow",
+              },
+            },
+          ]
+        : []),
+    ]);
+  }, [activePath, breakpoints, debugLine]);
+  if (diffBase !== undefined)
+    return (
+      <DiffEditor
+        original={diffBase}
+        modified={activeContent}
+        language={language}
+        theme={editorTheme}
+        options={{ automaticLayout: true, readOnly: false }}
+      />
+    );
+  return (
+    <>
+      <Editor
+        path={`file:///${activePath}`}
+        value={activeContent}
+        language={language}
+        theme={editorTheme}
+        onChange={onChange}
+        onMount={(editor) => {
+          editorRef.current = editor;
+          decorations.current = editor.createDecorationsCollection();
+          editor.onMouseDown((event) => {
+            if (
+              event.target.type ===
+                monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN &&
+              event.target.position
+            )
+              onToggleBreakpoint(event.target.position.lineNumber);
+          });
+        }}
+        options={{
+          automaticLayout: true,
+          fontSize: 13,
+          lineHeight: 20,
+          minimap: { enabled: true },
+          stickyScroll: { enabled: true },
+          bracketPairColorization: { enabled: true },
+          guides: { bracketPairs: true, indentation: true },
+          quickSuggestions: { other: true, comments: false, strings: true },
+          tabCompletion: "on",
+          formatOnPaste: true,
+          formatOnType: true,
+          glyphMargin: true,
+          padding: { top: 8 },
+          scrollBeyondLastLine: false,
+        }}
+      />
+      {splitPath && (
+        <Editor
+          path={`file:///${splitPath}`}
+          value={splitContent}
+          language={splitLanguage}
+          theme={editorTheme}
+          onChange={onSplitChange}
+          options={{
+            automaticLayout: true,
+            fontSize: 13,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+          }}
+        />
+      )}
+    </>
+  );
+}

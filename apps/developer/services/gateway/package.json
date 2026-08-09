@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@ynx-code/debug-service": "0.1.0",
     "@ynx-code/language-service": "0.1.0",
     "@ynx-code/terminal-service": "0.1.0",
     "@ynx-code/workspace-agent": "0.1.0",
