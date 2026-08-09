@@ -14,6 +14,13 @@
   Wallet review, and even that remains `wallet-review-opened` until callback and
   central Gateway completion pass. Wallet/Auth 105/105 and Wallet 39/39 approve
   the same tuple on the Wallet-owned branch; central deployment remains false.
+- Added a signed-workspace and concurrency-bounded Wallet readiness service. It
+  reads only the fixed loopback canonical Gateway `health`, `ready` and
+  `version` surfaces, enforces response/time bounds and requires the version
+  response to attest both the exact Developer client ID and a registry SHA-256.
+  A running older Gateway is shown as online but cannot unlock the Developer
+  review button. On the current host the Finance build `6b6cb8f5…` is healthy,
+  while the Developer registry remains correctly closed.
 - Added a same-origin, workspace-session-bound YNX Chain service with a fixed
   canonical Testnet upstream. It exposes bounded network status, block and
   transaction inspection, receipt joining, a read-only JSON-RPC allowlist and

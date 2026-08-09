@@ -12,6 +12,7 @@
     "@ynx-code/language-service": "0.1.0",
     "@ynx-code/runtime-profile-service": "0.1.0",
     "@ynx-code/terminal-service": "0.1.0",
+    "@ynx-code/wallet-readiness": "0.1.0",
     "@ynx-code/workspace-agent": "0.1.0",
     "@ynx-code/workspace-manager": "0.1.0"
   },

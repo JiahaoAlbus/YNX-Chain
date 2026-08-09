@@ -21,6 +21,7 @@ import { createProjectMemory } from "../../project-memory/src/service.mjs";
 import { createCollaborationService } from "../../collaboration-service/src/service.mjs";
 import { createRuntimeProfileService } from "../../runtime-profile-service/src/service.mjs";
 import { createChainService } from "../../chain-service/src/service.mjs";
+import { createWalletReadinessService } from "../../wallet-readiness/src/service.mjs";
 
 if (
   process.env.NODE_ENV === "production" &&
@@ -88,11 +89,14 @@ runtimeProfileService = createRuntimeProfileService({
 const chainService = createChainService({
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });
+const walletReadinessService = createWalletReadinessService({
+  ownerForRequest: (request) => runtime.ownerForRequest(request),
+});
 const server = createServer(
   createGateway({
     staticRoot,
     runtime,
-    handlers: [collaborationService.handler, runtimeProfileService.handler, chainService.handler, gitService.handler, extensionRegistry.handler, modelRouter.handler, agentOrchestrator.handler, projectMemory.handler],
+    handlers: [collaborationService.handler, runtimeProfileService.handler, chainService.handler, walletReadinessService.handler, gitService.handler, extensionRegistry.handler, modelRouter.handler, agentOrchestrator.handler, projectMemory.handler],
   }),
 );
 const terminalService = createTerminalService({

@@ -258,6 +258,35 @@ export function debugChainBlock(id: string) {
 export async function loadChainCompiler() {
   return (await chainFetch("/compiler")).compiler;
 }
+export type WalletReadiness = {
+  protocolVersion: "ynx-code-wallet-readiness/v1";
+  gateway: {
+    reachable: boolean;
+    remoteDeployed: boolean;
+    runtimeReady: boolean;
+    publicDeploymentReady: boolean;
+    build: null | { sourceCommit: string; release: string; buildTime: string };
+  };
+  developerBinding: {
+    productClientId: "ynx-developer-v1";
+    bundleId: "com.ynxweb4.developer.testnetpreview";
+    callback: "ynxdeveloper://wallet-auth/callback";
+    scopes: ["account:read", "developer:deploy"];
+    attested: boolean;
+    registrySha256: string | null;
+    reason: string;
+  };
+};
+export async function loadWalletReadiness(): Promise<WalletReadiness> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch("/runtime/wallet/readiness", { credentials: "same-origin" });
+    if (response.status === 401 && attempt === 0) { await runtimeHealth(); continue; }
+    const value = await response.json().catch(() => ({ error: `Wallet readiness returned HTTP ${response.status}` }));
+    if (!response.ok) throw new Error(value.error || "Wallet readiness is unavailable.");
+    return value;
+  }
+  throw new Error("Workspace session could not be established.");
+}
 export async function loadWorkspace(projectId: string): Promise<WorkspaceSnapshot | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await fetch(`/runtime/workspaces/${encodeURIComponent(projectId)}`, { credentials: "same-origin" });

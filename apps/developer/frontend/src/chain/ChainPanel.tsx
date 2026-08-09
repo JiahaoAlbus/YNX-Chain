@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
-import { chainRpc, debugChainBlock, debugChainTransaction, loadChainCompiler, loadChainStatus, type ChainStatus } from "../runtime/client";
+import { chainRpc, debugChainBlock, debugChainTransaction, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
 import { desktopWalletBridge, openDeveloperWalletReview } from "../wallet/transport";
 
 const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
@@ -51,6 +51,7 @@ const PLATFORM_STARTERS = [
 export function ChainPanel({ files, onAddFile }: { files: Record<string, string>; onAddFile: (path: string, content: string) => void }) {
   const [status, setStatus] = useState<ChainStatus>(),
     [compiler, setCompiler] = useState<any>(),
+    [walletReadiness, setWalletReadiness] = useState<WalletReadiness>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [method, setMethod] = useState("eth_chainId"),
@@ -74,9 +75,10 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     setBusy(true);
     setError("");
     try {
-      const [live, toolchain] = await Promise.all([loadChainStatus(), loadChainCompiler()]);
+      const [live, toolchain, walletGate] = await Promise.all([loadChainStatus(), loadChainCompiler(), loadWalletReadiness().catch(() => undefined)]);
       setStatus(live);
       setCompiler(toolchain);
+      setWalletReadiness(walletGate);
     } catch (value) {
       setError(value instanceof Error ? value.message : "YNX Testnet is unavailable.");
     } finally {
@@ -139,7 +141,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     }
   };
   const openWallet = async () => {
-    if (!wallet) return;
+    if (!wallet || !walletReadiness?.developerBinding.attested) return;
     setBusy(true);
     setError("");
     setWalletState("Opening the exact five-minute request in YNX Wallet…");
@@ -264,16 +266,17 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       <details open>
         <summary>WALLET & DEPLOYMENT</summary>
         <div className="wallet-boundary">
-          <b>{wallet ? "Reviewed desktop Wallet transport detected" : "Web Wallet callback is unavailable"}</b>
+          <b>{walletReadiness?.developerBinding.attested ? (wallet ? "Developer Wallet gate ready" : "Developer binding attested · desktop required") : walletReadiness?.gateway.reachable ? "Wallet Gateway online · Developer binding not attested" : "Wallet Gateway unavailable"}</b>
           <p>Wallet must review, sign and submit. YNX Code never receives a private key. A submitted hash is not success until the authoritative receipt confirms it.</p>
           {wallet ? (
-            <Button disabled={busy || !artifact} onClick={openWallet}>Open exact Wallet review</Button>
+            <Button disabled={busy || !artifact || !walletReadiness?.developerBinding.attested} onClick={openWallet}>Open exact Wallet review</Button>
           ) : (
             <a href="https://ynxweb4.com/wallet" target="_blank" rel="noreferrer">
               Install YNX Wallet and desktop Developer ↗
             </a>
           )}
           {walletState && <p>{walletState}</p>}
+          {walletReadiness?.gateway.build && <p>Gateway {walletReadiness.gateway.build.release}<br /><code>{walletReadiness.gateway.build.sourceCommit.slice(0, 12)}</code> · registry {walletReadiness.developerBinding.attested ? `${walletReadiness.developerBinding.registrySha256?.slice(0, 12)}…` : "not attested"}</p>}
           {!wallet && <p>The browser cannot receive <code>ynxdeveloper://wallet-auth/callback</code>. Browser-injected signers and simulated sessions are rejected.</p>}
         </div>
       </details>

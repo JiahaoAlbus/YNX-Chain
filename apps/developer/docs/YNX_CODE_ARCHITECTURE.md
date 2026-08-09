@@ -493,6 +493,13 @@ broadcast, receipt and Explorer-source verification remain disabled until the
 callback and deployed central Gateway pass their exact gates. Browser-injected
 providers, private-key input and mnemonic input are rejected.
 
+The Gateway exposes `/runtime/wallet/readiness` only to a signed workspace
+session. A dedicated broker probes the fixed loopback canonical Wallet Gateway
+with per-owner/global concurrency, timeout and response-size limits. Health or
+runtime readiness alone cannot enable Developer: the authoritative version must
+also list `ynx-developer-v1` in `enabledProductClientIds` and expose a canonical
+64-hex `registrySha256`. Older healthy builds remain visibly closed.
+
 Later blockchain slices add reviewed Rust contract profiles, Move and Cosmos SDK,
 pinned dependency/toolchain manifests, local tests, Testnet simulation, gas/fee
 estimates, contract artifacts, source maps and verified Explorer links.
