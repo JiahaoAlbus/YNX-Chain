@@ -107,7 +107,7 @@
       "owners": ["YNX 15", "YNX 27", "YNX 30"],
       "preconditions": ["reviewed release candidate"],
       "input": { "proofs": ["source commit", "artifact hash", "test gates", "audit status", "deployment status", "known limitations"] },
-      "expected": ["unaudited and undeployed remain explicit", "local tests are not public proof", "no fake APY/TVL/volume", "Critical/High findings block release"],
+      "expected": ["unaudited and undeployed remain explicit", "local tests are not public proof", "no fabricated APY/TVL/volume", "Critical/High findings block release"],
       "negative": ["candidate described as production", "unsigned artifact described as signed", "website page described as runtime deployment"],
       "localEvidence": ["product-release.json", "public-product-metadata.json", "release/dex/artifact-manifest.json"],
       "centralStatus": "pending"
@@ -118,7 +118,7 @@
       "preconditions": ["confirmed swap/liquidity/Vault events"],
       "input": { "feeClasses": ["gas", "venue fee", "protocol fee", "provider cost", "management fee", "performance fee"] },
       "expected": ["principal is not revenue", "unrealized profit is not charged", "performance fee is zero in current Vault candidate", "realized pool fee is separated from incentives", "all amounts bind transaction/event identity"],
-      "negative": ["hidden spread", "duplicate billing", "fee without prior user approval", "fake revenue"],
+      "negative": ["hidden spread", "duplicate billing", "fee without prior user approval", "fabricated revenue"],
       "localEvidence": ["scripts/dex/vault-test.mjs", "scripts/dex/lp-protection-test.mjs"],
       "centralStatus": "pending"
     },

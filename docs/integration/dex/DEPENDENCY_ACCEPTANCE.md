@@ -12,7 +12,7 @@ No central dependency is accepted merely because a local adapter or fixture pass
 | Monitor | YNX 13 | Non-static health/ready/version, cursor/RPC/reorg/schema alerts, request/error/audit identifiers | Health/version surface exists locally; alert integration incomplete | Pending |
 | Trust Center | YNX 15 | Source, tests, artifact hashes, audit/deployment/signing status and known limitations | Truthful local release records exist | Pending |
 | Oracle | YNX 19 | Reviewed source-labelled price/peg facts with age, confidence/coverage, version, depeg policy and outage semantics | Typed stale/depeg boundaries tested locally | Pending |
-| Finance | YNX 24 | Principal/fee/incentive separation and transaction-bound attribution; no fake revenue or unrealized-profit fee | Local fee invariants exist | Pending |
+| Finance | YNX 24 | Principal/fee/incentive separation and transaction-bound attribution; no fabricated revenue or unrealized-profit fee | Local fee invariants exist | Pending |
 | Data Fabric & Billing Ledger | YNX 26 | Canonical event identity, idempotency, reorg semantics, schema version and fee class | Typed Indexer events implemented locally | Pending |
 | Website | YNX 28 | Consume `/dex` metadata; separate website publication from runtime deployment; no links before hosted evidence | Public metadata package prepared | Pending |
 | Integration | YNX 29 | Freeze one owner/version for scopes, events, errors, schemas and deployment addresses | Candidate contract and vectors prepared | Pending |
