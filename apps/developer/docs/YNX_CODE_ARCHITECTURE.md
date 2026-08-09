@@ -172,38 +172,34 @@ Move and Cosmos SDK are extension/toolchain profiles after the first-language
 gate. LSP capabilities are negotiated; the UI never enables a command the
 server did not advertise. Diagnostics include source, version and staleness.
 
-The execution gate is tracked separately from LSP. The Linux candidate now
-actually builds/runs C++, JavaScript, TypeScript, Python, Go and Rust inside the
-network-disabled workspace sandbox. TypeScript is first transpiled by the
-installed `tsc`; its package and platform binary are mounted read-only while
-only `.ynx-build` remains writable. macOS verifies the same set except Rust,
-which is reported unavailable and skipped because no reviewed local `rustc` is
-installed. C/C++, JavaScript/TypeScript, Python, Go, Rust and Solidity have passed the LSP
-gate. JavaScript/TypeScript uses a pinned TypeScript 5.9 tsserver behind
-`typescript-language-server`, a
-read-only toolchain mount and a separate bounded 2 GiB LSP memory class; real
-completion and definition tests pass on macOS and Linux. Python uses Pyright in
-the same isolated LSP class and passes real completion and type-diagnostic tests
-on both hosts. The Linux candidate runs `gopls v0.23.0` and the checksum-verified
-`rust-analyzer 0.3.2997-standalone`; both pass real completion and definition
-tests. Go analysis fixes `GOMAXPROCS=2` and deliberately avoids `RLIMIT_AS`,
-which is incompatible with the large virtual arenas reserved by Go 1.26; it
-remains bounded by the shared two-process LSP pool, 64-request queue, CPU,
-process, file and wall-clock limits. The same-process capacity test launches six
-tenant requests and proves that excess work is queued rather than forked
-without bound. Rust analysis may write only its disposable workspace copy, uses an
-allowlisted standard-library source path, disables automatic flycheck/build
-scripts, remains network-isolated and has a bounded 4 GiB memory class. Solidity
-uses the pinned Nomic Foundation language server 0.8.25 for completion,
-definition, references, rename and formatting, while compiler diagnostics come
-from pinned `solcjs 0.8.36 --standard-json` in the same network-disabled
-sandbox. A successful compilation materializes ABI, bytecode and metadata with
-creation/deployed source maps, reports a SHA-256 and byte count for every
-artifact, and keeps only `.ynx-build` writable. The vulnerable `tmp 0.0.33`
-transitive dependency is overridden with patched 0.2.7; the production npm
-audit gate reports zero known vulnerabilities. Real LSP, compiler-diagnostic,
-artifact and source-map tests pass on macOS; the Linux gate is required before
-candidate publication.
+The execution gate is tracked separately from LSP. The Linux candidate actually
+builds or runs C++, JavaScript, TypeScript, Python, Go, Rust and Solidity inside
+the network-disabled workspace container. TypeScript is first transpiled by the
+installed `tsc`; only the validated workspace and `.ynx-build` are writable.
+macOS verifies its locally installed subset and reports missing toolchains as
+unavailable instead of simulating success.
+
+The reviewed cloud image carries clangd 18.1.3, TypeScript 5.9.3 behind
+`typescript-language-server`, Pyright 1.1.411, gopls 0.16.2, the checksum-
+verified rust-analyzer 2026-07-27 release and Nomic Foundation Solidity Language
+Server 0.8.25. The image build runs an actual LSP `initialize` exchange against
+all six servers before publication. Monaco completion, go-to-definition,
+reference search, rename, formatting and diagnostics use the same protocol
+client; each request includes the signed project and selected runtime identity.
+The gateway accepts only allowlisted server binaries and environment keys,
+materializes a disposable project-scoped copy in the leased container, holds a
+lease lock for the LSP lifetime, disables network access and removes the copy on
+completion. The server process is never selected from user input.
+
+The 2026-08-10 live candidate gate created a fresh container from the immutable
+v2 image, compiled or ran all seven language paths, then obtained real
+completion results from clangd, TypeScript Language Server, Pyright, gopls,
+rust-analyzer and the Solidity Language Server in that same container. It also
+opened a PTY, wrote a file, synchronized the revisioned workspace and deleted
+the lease with no container left running. Compiler diagnostics for Solidity
+continue to use pinned `solcjs 0.8.36 --standard-json`; successful compilation
+materializes integrity-addressed ABI, bytecode, metadata and source maps. The
+vulnerable `tmp 0.0.33` transitive dependency is overridden with patched 0.2.7.
 
 ## 8. Tasks, terminal and process supervision
 
@@ -239,23 +235,25 @@ is returned as creation evidence and stop deletes only the container resolved
 through the signed owner's lease record. The candidate host lifecycle smoke test
 created, entered and deleted a real Ubuntu 24.04 container with no IPv4/IPv6.
 
-The current reviewed toolchain image is pinned by its immutable LXD fingerprint
-`f0a5a2012b5f9c69de88ce6addfe720d572996adc51dd8f6da8c80619a4bfbb2`.
+The current reviewed toolchain and language-intelligence image is pinned by its
+immutable LXD fingerprint
+`7662bcfc5ca87f56d6fe47107b10bcbfd36e08d4faad912d2ebfa48976050ae9`.
 It contains the verified first-stage C++, JavaScript, TypeScript, Python, Go,
-Rust and Solidity compilers/runtimes. Selecting a lease in Remote Explorer
+Rust and Solidity compilers/runtimes plus six initialized language servers.
+Selecting a lease in Remote Explorer
 routes the Workbench Run action through the runtime control plane, synchronizes
 only the validated text workspace, and compiles or executes the active file in
 that container without a shell or network device. A live server gate creates a
 fresh lease, runs all seven language paths, verifies compiler-version evidence,
-opens an interactive PTY inside that same container, writes a file, synchronizes
-the changed text snapshot back through the revisioned workspace store, deletes
-the lease and rejects any leaked runtime container. An active terminal holds a
-lease lock, so the backing container cannot be stopped while its PTY is running.
+exercises all six cloud LSP paths, opens an interactive PTY inside that same
+container, writes a file, synchronizes the changed text snapshot back through
+the revisioned workspace store, deletes the lease and rejects any leaked runtime
+container. Active terminal and LSP processes hold a lease lock, so their backing
+container cannot be stopped while work is running.
 
-This milestone does not yet route LSP processes or saved Remote SSH profiles
-into a remote workspace. Those surfaces remain separate work items and must not
-be described as cloud-connected until their own isolation and reconnect gates
-pass.
+This milestone does not yet open saved Remote SSH profiles as editable
+workspaces. That surface remains a separate work item and must not be described
+as connected until its isolation, reconnect and host-key gates pass.
 
 Remote SSH profiles accept public targets only on the public tier. The service
 scans the host key, requires the user to approve that exact key, verifies the

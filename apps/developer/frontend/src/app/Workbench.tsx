@@ -687,6 +687,8 @@ export function Workbench() {
             }
           >
             <CodeEditor
+              projectId={project.id}
+              runtimeId={selectedRuntime}
               files={project.files}
               activePath={project.active}
               activeContent={activeContent}

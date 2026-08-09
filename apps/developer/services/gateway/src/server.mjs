@@ -33,12 +33,26 @@ const port = Number(process.env.PORT || 4190),
     fileURLToPath(new URL("../../../frontend/dist", import.meta.url)),
   stateDir = process.env.YNX_CODE_STATE_DIR || join(process.cwd(), ".ynx-code");
 mkdirSync(stateDir, { recursive: true, mode: 0o700 });
+let runtimeProfileService;
+const routedLanguageRequest = (runner) => (request, context) =>
+  request.runtimeId
+    ? runner(request, {
+        processFactory: (value) =>
+          runtimeProfileService.openContainerLanguageProcess({
+            owner: context.owner,
+            runtimeId: request.runtimeId,
+            projectId: request.projectId,
+            files: value.files,
+            config: value.config,
+          }),
+      })
+    : runner(request);
 const workspaceStore = createWorkspaceStore({
     filename: join(stateDir, "workspaces.sqlite"),
   }),
   runtime = createWorkspaceRuntime({
     workspaceStore,
-    languageRequests: { cpp:runCppLanguageRequest, typescript:runTypescriptLanguageRequest, python:runPythonLanguageRequest, go:runGoLanguageRequest, rust:runRustLanguageRequest, solidity:runSolidityLanguageRequest },
+    languageRequests: { cpp:routedLanguageRequest(runCppLanguageRequest), typescript:routedLanguageRequest(runTypescriptLanguageRequest), python:routedLanguageRequest(runPythonLanguageRequest), go:routedLanguageRequest(runGoLanguageRequest), rust:routedLanguageRequest(runRustLanguageRequest), solidity:routedLanguageRequest(runSolidityLanguageRequest) },
   });
 const gitService = createGitService({
   workspaceStore,
@@ -66,7 +80,7 @@ const collaborationService = createCollaborationService({
   ownerForRequest: (request) => runtime.ownerForRequest(request),
   workspaceStore,
 });
-const runtimeProfileService = createRuntimeProfileService({
+runtimeProfileService = createRuntimeProfileService({
   filename: join(stateDir, "runtime-profiles.sqlite"),
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });

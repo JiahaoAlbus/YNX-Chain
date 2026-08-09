@@ -1,6 +1,6 @@
 import { runStdioLanguageRequest } from "./cpp-lsp.mjs";
 
-export async function runGoLanguageRequest(request) {
+export async function runGoLanguageRequest(request, options) {
   return runStdioLanguageRequest(request, {
     language: "go",
     label: "Go",
@@ -15,5 +15,5 @@ export async function runGoLanguageRequest(request) {
     // queue, process/thread limits, CPU timeout and GOMAXPROCS remain enforced.
     addressSpaceBytes: null,
     environment: { GOMAXPROCS: "2" },
-  });
+  }, options);
 }

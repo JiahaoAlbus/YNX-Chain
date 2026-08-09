@@ -1,5 +1,20 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-10 cloud language-intelligence candidate
+
+- Added project/owner-bound routing from Monaco through the gateway to six
+  allowlisted language servers inside the selected network-disabled LXD
+  workspace.
+- Added completion, definition, references, rename, formatting and diagnostics
+  providers for C++, JavaScript/TypeScript, Python, Go, Rust and Solidity.
+- Published a reproducible reviewed v2 image with pinned clangd, Pyright, gopls
+  and checksum-verified rust-analyzer additions. Its immutable fingerprint is
+  `7662bcfc5ca87f56d6fe47107b10bcbfd36e08d4faad912d2ebfa48976050ae9`.
+- The live candidate gate passed all seven compile/run paths, all six cloud LSP
+  completion paths and PTY workspace synchronization, then deleted the lease
+  with no runtime container left behind. This is candidate evidence, not a
+  claim that the public Developer surface has been replaced.
+
 ## 2026-08-09 extension workspace candidate
 
 - Added a dedicated Languages & Compilers view with a truthful inventory of

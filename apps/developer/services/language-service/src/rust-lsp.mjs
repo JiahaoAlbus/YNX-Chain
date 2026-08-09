@@ -1,6 +1,6 @@
 import { runStdioLanguageRequest } from "./cpp-lsp.mjs";
 
-export async function runRustLanguageRequest(request) {
+export async function runRustLanguageRequest(request, options) {
   return runStdioLanguageRequest(request, {
     language: "rust",
     label: "Rust",
@@ -16,5 +16,5 @@ export async function runRustLanguageRequest(request) {
     completionRetryMs: 500,
     initializationOptions: () => ({ checkOnSave: false, cargo: { buildScripts: { enable: false } } }),
     environment: process.platform === "linux" ? { RUST_SRC_PATH: "/usr/lib/rustlib/src/rust/library" } : {},
-  });
+  }, options);
 }

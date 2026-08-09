@@ -5,7 +5,7 @@ import { runStdioLanguageRequest } from "./cpp-lsp.mjs";
 const EXTENSIONS = new Set([".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts"]);
 const TSSERVER_PATH = createRequire(import.meta.url).resolve("typescript/lib/tsserver.js");
 
-export async function runTypescriptLanguageRequest(request) {
+export async function runTypescriptLanguageRequest(request, options) {
   return runStdioLanguageRequest(request, {
     language: [".ts", ".tsx", ".mts", ".cts"].includes(extname(request.activePath).toLowerCase()) ? "typescript" : "javascript",
     label: "JavaScript/TypeScript",
@@ -18,8 +18,8 @@ export async function runTypescriptLanguageRequest(request) {
     completionRetryMs: 300,
     languageId: (path) => [".ts", ".tsx", ".mts", ".cts"].includes(extname(path).toLowerCase()) ? "typescript" : "javascript",
     readOnlyBinds: toolBinds,
-    initializationOptions: (_executable, sandbox) => ({ tsserver: { path: sandbox.kind === "linux-bubblewrap-prlimit" ? "/ynx-lsp/node_modules/typescript/lib/tsserver.js" : TSSERVER_PATH } }),
-  });
+    initializationOptions: (_executable, sandbox) => ({ tsserver: { path: sandbox.kind === "linux-bubblewrap-prlimit" ? "/ynx-lsp/node_modules/typescript/lib/tsserver.js" : sandbox.kind === "lxd-container" ? "/opt/node-v22.23.1/lib/node_modules/typescript/lib/tsserver.js" : TSSERVER_PATH } }),
+  }, options);
 }
 
 async function toolBinds(executable) {

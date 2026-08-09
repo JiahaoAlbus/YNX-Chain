@@ -11,7 +11,7 @@ import CssWorker from "../workers/css.worker?worker";
 import HtmlWorker from "../workers/html.worker?worker";
 import TsWorker from "../workers/typescript.worker?worker";
 import { useEffect, useRef } from "react";
-import { cppLanguageRequest, languageRequest } from "../runtime/client";
+import { languageRequest } from "../runtime/client";
 import type { InstalledExtension } from "../runtime/client";
 
 self.MonacoEnvironment = {
@@ -28,6 +28,8 @@ self.MonacoEnvironment = {
 loader.config({ monaco });
 
 type Props = {
+  projectId: string;
+  runtimeId?: string;
   files: Record<string, string>;
   activePath: string;
   activeContent: string;
@@ -48,6 +50,8 @@ type Props = {
   diffBase?: string;
 };
 export default function CodeEditor({
+  projectId,
+  runtimeId,
   files,
   activePath,
   activeContent,
@@ -92,51 +96,17 @@ export default function CodeEditor({
   activePathRef.current = activePath;
   cursorCallbackRef.current = onCursorChange;
   useEffect(() => {
-    const provider = monaco.languages.registerCompletionItemProvider("cpp", {
-      triggerCharacters: [".", ">", ":"],
-      provideCompletionItems: async (model, position) => {
-        const path = decodeURIComponent(model.uri.path).replace(/^\//, "");
-        if (!Object.hasOwn(files, path)) return { suggestions: [] };
-        try {
-          const value = await cppLanguageRequest(files, path, "completion", {
-              line: position.lineNumber - 1,
-              character: position.column - 1,
-            }),
-            items = Array.isArray(value.result)
-              ? value.result
-              : value.result?.items || [];
-          return {
-            suggestions: items.slice(0, 200).map((item: any) => ({
-              label: String(item.label).trim(),
-              kind: Math.max(0, Math.min(27, Number(item.kind || 1) - 1)),
-              insertText:
-                item.textEdit?.newText ||
-                item.insertText ||
-                String(item.label).trim(),
-              detail: item.detail,
-              documentation:
-                typeof item.documentation === "string"
-                  ? item.documentation
-                  : item.documentation?.value,
-              sortText: item.sortText,
-              filterText: item.filterText,
-              range: item.textEdit?.range
-                ? {
-                    startLineNumber: item.textEdit.range.start.line + 1,
-                    startColumn: item.textEdit.range.start.character + 1,
-                    endLineNumber: item.textEdit.range.end.line + 1,
-                    endColumn: item.textEdit.range.end.character + 1,
-                  }
-                : undefined,
-            })),
-          };
-        } catch {
-          return { suggestions: [] };
-        }
-      },
-    });
-    return () => provider.dispose();
-  }, [files]);
+    const disposables: monaco.IDisposable[] = [], context={projectId,runtimeId};
+    for(const editorLanguage of ["cpp","typescript","javascript","python","go","rust","solidity"]){
+      const serverLanguage=editorLanguage==="javascript"?"typescript":editorLanguage as "cpp"|"typescript"|"python"|"go"|"rust"|"solidity";
+      disposables.push(monaco.languages.registerCompletionItemProvider(editorLanguage,{triggerCharacters:[".",">",":","/"],provideCompletionItems:async(model,position)=>{const path=modelPath(model.uri,files);if(!path)return{suggestions:[]};try{const value=await languageRequest(serverLanguage,files,path,"completion",lspPosition(position),undefined,context),items=Array.isArray(value.result)?value.result:value.result?.items||[];return{suggestions:items.slice(0,200).map((item:any)=>completionItem(item,position))}}catch{return{suggestions:[]}}}}));
+      disposables.push(monaco.languages.registerDefinitionProvider(editorLanguage,{provideDefinition:async(model,position)=>{const path=modelPath(model.uri,files);if(!path)return[];try{return locations((await languageRequest(serverLanguage,files,path,"definition",lspPosition(position),undefined,context)).result,files)}catch{return[]}}}));
+      disposables.push(monaco.languages.registerReferenceProvider(editorLanguage,{provideReferences:async(model,position)=>{const path=modelPath(model.uri,files);if(!path)return[];try{return locations((await languageRequest(serverLanguage,files,path,"references",lspPosition(position),undefined,context)).result,files)}catch{return[]}}}));
+      disposables.push(monaco.languages.registerRenameProvider(editorLanguage,{provideRenameEdits:async(model,position,newName)=>{const path=modelPath(model.uri,files);if(!path)return{edits:[]};try{return workspaceEdit((await languageRequest(serverLanguage,files,path,"rename",lspPosition(position),newName,context)).result,files)}catch(error){return{edits:[],rejectReason:error instanceof Error?error.message:"Rename failed."}}}}));
+      disposables.push(monaco.languages.registerDocumentFormattingEditProvider(editorLanguage,{provideDocumentFormattingEdits:async model=>{const path=modelPath(model.uri,files);if(!path)return[];try{return textEdits((await languageRequest(serverLanguage,files,path,"format",undefined,undefined,context)).result)}catch{return[]}}}));
+    }
+    return()=>disposables.forEach(value=>value.dispose());
+  },[files,projectId,runtimeId]);
   useEffect(() => {
     const disposables: monaco.IDisposable[] = [];
     for (const extension of extensions) {
@@ -208,7 +178,7 @@ export default function CodeEditor({
     const serverLanguage=language==="cpp"?"cpp":language==="typescript"||language==="javascript"?"typescript":language==="python"?"python":language==="go"?"go":language==="rust"?"rust":language==="solidity"?"solidity":null;
     if (!serverLanguage || !activePath) return;
     const timer = setTimeout(() => {
-      languageRequest(serverLanguage,files, activePath, "diagnostics")
+      languageRequest(serverLanguage,files, activePath, "diagnostics",undefined,undefined,{projectId,runtimeId})
         .then((value) => {
           const model = monaco.editor.getModel(
             monaco.Uri.parse(`file:///${activePath}`),
@@ -216,7 +186,7 @@ export default function CodeEditor({
           if (!model) return;
           monaco.editor.setModelMarkers(
             model,
-            serverLanguage==="cpp"?"clangd":serverLanguage==="python"?"pyright":serverLanguage==="go"?"gopls":serverLanguage==="rust"?"rust-analyzer":"typescript-language-server",
+            serverLanguage==="cpp"?"clangd":serverLanguage==="python"?"pyright":serverLanguage==="go"?"gopls":serverLanguage==="rust"?"rust-analyzer":serverLanguage==="solidity"?"solidity-language-server":"typescript-language-server",
             (value.result || []).map((diagnostic: any) => ({
               startLineNumber: diagnostic.range.start.line + 1,
               startColumn: diagnostic.range.start.character + 1,
@@ -237,7 +207,7 @@ export default function CodeEditor({
         .catch(() => {});
     }, 700);
     return () => clearTimeout(timer);
-  }, [activePath, files, language]);
+  }, [activePath, files, language, projectId, runtimeId]);
   useEffect(() => {
     decorations.current?.set([
       ...breakpoints.map((line) => ({
@@ -340,3 +310,12 @@ export default function CodeEditor({
     </>
   );
 }
+
+function lspPosition(value:monaco.Position){return{line:value.lineNumber-1,character:value.column-1}}
+function lspRange(value:any):monaco.IRange{return{startLineNumber:Number(value?.start?.line||0)+1,startColumn:Number(value?.start?.character||0)+1,endLineNumber:Number(value?.end?.line||0)+1,endColumn:Number(value?.end?.character||0)+1}}
+function modelPath(uri:monaco.Uri,files:Record<string,string>){const decoded=decodeURIComponent(uri.path).replace(/^\//,"");return Object.hasOwn(files,decoded)?decoded:Object.keys(files).find(path=>decoded.endsWith(`/${path}`))}
+function resource(uri:string,files:Record<string,string>){try{const decoded=decodeURIComponent(new URL(uri).pathname);const path=Object.keys(files).find(value=>decoded.endsWith(`/${value}`));return path?monaco.Uri.parse(`file:///${path}`):undefined}catch{return undefined}}
+function locations(value:any,files:Record<string,string>):monaco.languages.Location[]{const list=Array.isArray(value)?value:value?[value]:[];return list.map(item=>{const uri=item.uri||item.targetUri,range=item.range||item.targetSelectionRange||item.targetRange,target=resource(uri,files);return target&&range?{uri:target,range:lspRange(range)}:null}).filter(Boolean) as monaco.languages.Location[]}
+function textEdits(value:any):monaco.languages.TextEdit[]{return(Array.isArray(value)?value:[]).filter(item=>item?.range&&typeof item.newText==="string").map(item=>({range:lspRange(item.range),text:item.newText}))}
+function workspaceEdit(value:any,files:Record<string,string>):monaco.languages.WorkspaceEdit{const edits:monaco.languages.IWorkspaceTextEdit[]=[];for(const[uri,items]of Object.entries(value?.changes||{})){const target=resource(uri,files);if(target)for(const item of items as any[])edits.push({resource:target,textEdit:{range:lspRange(item.range),text:item.newText},versionId:undefined})}for(const change of value?.documentChanges||[]){const target=resource(change?.textDocument?.uri,files);if(target)for(const item of change?.edits||[])edits.push({resource:target,textEdit:{range:lspRange(item.range),text:item.newText},versionId:undefined})}return{edits}}
+function completionItem(item:any,position:monaco.Position):monaco.languages.CompletionItem{return{label:String(item.label).trim(),kind:Math.max(0,Math.min(27,Number(item.kind||1)-1)),insertText:item.textEdit?.newText||item.insertText||String(item.label).trim(),detail:item.detail,documentation:typeof item.documentation==="string"?item.documentation:item.documentation?.value,sortText:item.sortText,filterText:item.filterText,range:item.textEdit?.range?lspRange(item.textEdit.range):new monaco.Range(position.lineNumber,position.column,position.lineNumber,position.column)}}

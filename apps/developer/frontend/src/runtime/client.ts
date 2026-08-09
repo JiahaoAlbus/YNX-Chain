@@ -171,6 +171,7 @@ export async function languageRequest(
     | "diagnostics",
   position?: { line: number; character: number },
   newName?: string,
+  context?: { projectId: string; runtimeId?: string },
 ) {
   const body = JSON.stringify({
     protocolVersion: "ynx-code/v1",
@@ -179,6 +180,8 @@ export async function languageRequest(
     operation,
     position,
     newName,
+    projectId: context?.projectId,
+    runtimeId: context?.runtimeId,
   });
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await fetch(`/runtime/language/${language}`, {
@@ -200,7 +203,7 @@ export async function languageRequest(
   }
   throw new Error("Workspace session could not be established.");
 }
-export function cppLanguageRequest(files:Record<string,string>,activePath:string,operation:"completion"|"definition"|"references"|"rename"|"format"|"diagnostics",position?:{line:number;character:number},newName?:string){return languageRequest("cpp",files,activePath,operation,position,newName)}
+export function cppLanguageRequest(files:Record<string,string>,activePath:string,operation:"completion"|"definition"|"references"|"rename"|"format"|"diagnostics",position?:{line:number;character:number},newName?:string,context?:{projectId:string;runtimeId?:string}){return languageRequest("cpp",files,activePath,operation,position,newName,context)}
 
 export type GitChange = {
   path: string;

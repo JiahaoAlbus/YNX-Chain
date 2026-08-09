@@ -2,6 +2,14 @@
 
 ## Product behavior
 
+- Cloud toolchain image builder and pinned-server initialize probe:
+  `scripts/build-cloud-toolchain-image.sh` and `scripts/lsp-server-probe.mjs`
+- Candidate live container gate: `scripts/live-container-check.mjs`; on
+  2026-08-10 it passed seven real compile/run paths, six real cloud completion
+  paths and PTY-to-workspace synchronization against image fingerprint
+  `7662bcfc5ca87f56d6fe47107b10bcbfd36e08d4faad912d2ebfa48976050ae9`,
+  then left no runtime container behind.
+
 - Client unit/integration/security/recovery/locale tests:
   `packages/developer-client/test/developer-client.test.js`
 - Web/desktop boundary tests: `apps/developer/test`

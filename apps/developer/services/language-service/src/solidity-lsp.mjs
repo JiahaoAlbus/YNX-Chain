@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import { detectSandbox, resolveExecutable, sandboxLaunch } from "../../workspace-agent/src/sandbox.mjs";
 import { runStdioLanguageRequest } from "./cpp-lsp.mjs";
 
-export async function runSolidityLanguageRequest(request) {
-  if (request?.operation === "diagnostics")
+export async function runSolidityLanguageRequest(request, options) {
+  if (request?.operation === "diagnostics" && !options?.processFactory)
     return runCompilerDiagnostics(request);
   return runStdioLanguageRequest(request, {
     language: "solidity",
@@ -23,7 +23,7 @@ export async function runSolidityLanguageRequest(request) {
     completionAttempts: 4,
     completionRetryMs: 350,
     readOnlyBinds: solidityLanguageToolBinds,
-  });
+  }, options);
 }
 
 async function solidityLanguageToolBinds(executable) {

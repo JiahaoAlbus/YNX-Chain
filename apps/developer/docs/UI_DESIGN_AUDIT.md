@@ -90,10 +90,13 @@ zero page-width overflow. The captures were manually inspected after generation.
 ## Remaining limits
 
 The editor now embeds Monaco 0.55.1 with per-file models, line numbers, minimap,
-bracket guides, suggestions, native JavaScript/TypeScript language services,
-declarative Solidity/C++ completions and a fail-visible contenteditable fallback.
-It is not the complete VS Code desktop application: arbitrary VS Code extensions,
-debug adapters and language servers do not automatically run in Monaco.
+bracket guides, suggestions and a fail-visible contenteditable fallback. C++,
+JavaScript/TypeScript, Python, Go, Rust and Solidity actions are connected to
+reviewed language servers for completion, definition, references, rename,
+formatting and diagnostics; a selected cloud runtime routes those requests into
+that owner/project-scoped container. It is not the complete VS Code desktop
+application: arbitrary VS Code extensions and debug adapters do not
+automatically run in Monaco.
 Not every explanatory paragraph is translated; the audited critical controls and
 safety vocabulary are. Resizable split handles and tablet-specific evidence are
 not shipped because the current product contract names desktop and phone; desktop
