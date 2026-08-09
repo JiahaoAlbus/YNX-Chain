@@ -1,0 +1,54 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "YNX-Music-0.3.0-testnet-SBOM",
+  "documentNamespace": "https://ynxweb4.com/spdx/music/40bb1976f20ef4dfe913aa4a",
+  "creationInfo": {
+    "created": "2026-07-18T19:43:26Z",
+    "creators": [
+      "Tool: apps/music/scripts/generate-sbom.mjs"
+    ],
+    "licenseListVersion": "3.25"
+  },
+  "documentDescribes": [
+    "SPDXRef-YNX-Music"
+  ],
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-YNX-Music",
+      "name": "YNX Music daemon",
+      "versionInfo": "0.3.0-testnet",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "primaryPackagePurpose": "APPLICATION"
+    },
+    {
+      "SPDXID": "SPDXRef-GoModule-1",
+      "name": "golang.org/x/crypto",
+      "versionInfo": "v0.33.0",
+      "downloadLocation": "https://proxy.golang.org/golang.org/x/crypto/@v/v0.33.0.zip",
+      "filesAnalyzed": false,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:golang/golang.org/x/crypto@v0.33.0"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-YNX-Music",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-GoModule-1"
+    }
+  ]
+}

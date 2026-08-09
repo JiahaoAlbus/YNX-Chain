@@ -1,0 +1,21 @@
+[Unit]
+Description=YNX Shop testnet preview commerce API and web surfaces
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-shopd.env
+ExecStart=/opt/ynx-shop/current/bin/ynx-shopd -http 127.0.0.1:18095 -state /var/lib/ynx-shop/state.json -buyer-assets /opt/ynx-shop/current/web/shop -seller-assets /opt/ynx-shop/current/web/seller
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-shop
+
+[Install]
+WantedBy=multi-user.target

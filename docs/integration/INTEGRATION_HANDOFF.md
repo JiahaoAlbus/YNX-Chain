@@ -1,108 +1,56 @@
-# YNX DEX integration handoff
+# YNX Resource Market integration handoff
 
 ## Identity
 
-- Product owner: YNX 27
-- Packaged contract/SDK source base: `4d9f9c807efb2529836a1324b17c697e91a23421`
-- Indexer/recovery runtime source: `7d61369e02ab4d50a9fc36c927dc487e47ce9814`
-- Protected evidence checkpoint: `f933440d5cb791044476eb69c58c522d5c91d8a1`
-- Branch: `codex/final-dex`
-- Release: `0.1.0-testnet-preview.1`
-- Phase: FREEZE
-- Product status: ACTIVE
-- Network target: YNX Testnet, chain ID 6423
-- Deployment status: not deployed
+- Product owner: `16-resource-market`
+- Contract: `release/integration/resource-market-contract.json`
+- Contract version: `resource-market-integration-v1`
+- Implementation source: `a940d2efa824bd9f43522ed792c9a563b55e1e11`
+- Current phase: `FREEZE → INTEGRATE`
+- Current product status: local candidate; not centrally integrated, staged, public, production-signed or store-released.
 
-The machine-readable authority is `release/integration/ynx-dex-contract.json`. Cross-product acceptance vectors are in `CROSS_PRODUCT_TEST_VECTORS.json`.
+## Authority split
 
-## Delivered local surfaces
+Resource Market owns provider registration, verified capacity, offers, matching, auctions, reservation, service lifecycle, signed usage metering and local dispute evidence. It does not own Wallet identity, asset finality, billing-ledger authority, public Explorer proof, central monitoring, public Website entry or protocol freeze.
 
-- Constant-product Factory, Pool, Router and Quoter.
-- Separate two-asset StableSwap Factory and Pool family.
-- User-owned Strategy Vault with typed CPMM actions and direct StableSwap exact-input, exact-output, add-liquidity and remove-liquidity actions.
-- FairFlow intent/solver candidate.
-- LP protection and depeg circuit-breaker candidate.
-- Source-labelled Indexer API with state schema v5 and Factory-bound cursor schema v6.
-- Immutable HMAC-authenticated state/cursor point-in-time recovery bundle and isolated local restore drill; provisioned-Testnet operational RPO remains unproven.
-- JavaScript SDK main entry and `@ynx-chain/dex-sdk/stable-vault` subpath.
-- Independent Web/PWA preview and unsigned local artifacts.
+A quote, accepted intent, reservation, service start, meter, service completion, HTTP success or provider statement is never asset settlement. Reservations are bound to the exact Offer referenced by the accepted Quote; capacity from a sibling Offer cannot satisfy or release that reservation. Settlement is accepted only when an authorized settlement identity supplies a non-empty asset, transaction hash, evidence and source; amounts exactly reconcile to signed meters; the order is `settlement_pending`; and the normalized transaction hash has not already been consumed by another receipt.
 
-All listed components are local candidates. None is a verified public deployment, audited Mainnet protocol, hosted download or production-signed release.
+## Canonical integration inputs
 
-## Wallet and approval freeze candidate
+- Wallet registry: `apps/resource-market/integration/canonical-wallet-registry.json`
+- Wallet vectors: `apps/resource-market/integration/canonical-wallet-v1-test-vector.json`
+- Existing central manifest: `apps/resource-market/integration/central-integration-manifest.json`
+- Frozen product contract: `release/integration/resource-market-contract.json`
+- Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 
-- Product client: `ynx-dex-web-v1`
-- Bundle: `com.ynxweb4.dex.web`
-- Device algorithm: `p256-sha256`
-- Candidate scopes:
-  - `account:read`
-  - `dex:fairflow:intent`
-  - `dex:positions:read`
-  - `dex:transaction:request`
-  - `dex:vault:execute`
+## Required central behavior
 
-Vault execution requires the approval scope set to contain exactly `dex:vault:execute`. Approval identity binds chain ID, product client, Vault, engine, nonce domain, action nonce, request digest, issue time and expiry. Wrong product, bundle, device, scope, chain, Vault, engine, nonce, digest, expiry or revocation must fail before transport.
+1. Product 02 registers the exact client, bundle, callback, ordered scopes and P-256 product-device algorithm.
+2. Product 29 freezes the exact method/path/body product-session proof semantics and one-to-one proxy route mapping.
+3. Product 01 provides authoritative transaction finality and settlement evidence; product 16 does not infer finality.
+4. Product 26 accepts only signed-meter and confirmed-settlement events, preserving idempotency and lineage.
+5. Product 12 exposes public receipt evidence only after authoritative settlement.
+6. Product 13 alerts on stale providers, metering failures, settlement reconciliation failure and receipt replay rejection.
+7. Product 15 links provider failure and dispute/appeal evidence without gaining asset authority.
+8. Product 28 publishes only release states that have direct evidence.
 
-## StableSwap Vault boundary
+## Stable errors
 
-- Pool permission is owner-controlled and binds the exact `ynx-stableswap-v1` pool kind, factory code and token pair.
-- Each action addresses one direct pool. Multi-hop execution is decomposed into separately quoted and separately approved direct actions.
-- The Vault grants no standing pool approval. Exact token or LP balances are transferred and balance deltas are checked.
-- Fee-on-transfer tokens are rejected atomically at Vault ingress.
-- Output and LP positions remain in the user Vault.
-- Owner withdrawal, pause, revoke, kill and emergency exit remain available.
-- Engine actions remain bounded by nonce, deadline, capital, gas, frequency, slippage, impact, daily loss, drawdown, Oracle age and depeg limits.
+The product returns a stable `code` with `errorId`, `requestId` and `traceId`. Settlement integrations must preserve at least:
 
-## Owner actions required
+- `RESOURCE_SELF_DEALING_REJECTED`
+- `RESOURCE_AMOUNT_OUT_OF_RANGE`
+- `RESOURCE_CAPACITY_UNAVAILABLE`
+- `RESOURCE_METER_WINDOW_INVALID`
+- `RESOURCE_METER_LIMIT`
+- `RESOURCE_SETTLEMENT_STATE_INVALID`
+- `RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED`
+- `RESOURCE_SETTLEMENT_RECONCILIATION`
+- `RESOURCE_SETTLEMENT_REPLAY`
 
-### YNX 02 Wallet/Auth
+No consumer may translate these failures into success, paid, settled or refunded.
 
-Register the exact product tuple and scopes, then run all Wallet vectors. Return exact source/version and introspection/revoke evidence. Do not introduce a compatibility login or broad wildcard scope.
+## Acceptance gate
 
-### YNX 08 Quant Engine
-
-Consume only typed SDK requests. The Quant owner controls strategy templates, research, optimization and capital allocation. DEX owns execution and reconciliation only. No key custody, arbitrary recipient, owner mutation or unrestricted approval is permitted.
-
-### YNX 19 Oracle
-
-Freeze the Testnet Oracle contract and reviewed asset policy. Every fact must include source, asOf, version and failure; confidence/coverage apply where relevant. StableSwap deployment additionally needs reviewed peg/rate and depeg-pause policy.
-
-### YNX 26 Data Fabric
-
-Accept canonical event identity and reorg/idempotency semantics. Do not classify principal as revenue or infer fees absent confirmed event evidence.
-
-### YNX 12 / 13 / 15 / 24
-
-Explorer must reconcile exact receipts; Monitor must validate non-static health/ready/version and alerts; Trust must preserve unaudited/undeployed/unsigned status; Finance must separate principal, realized pool fee, incentives and user-approved charge classes.
-
-### YNX 29 Integration
-
-Freeze one version for scopes, events, errors, schema and deployment addresses. Execute the cross-product vectors in dependency order and record owner acceptance.
-
-### YNX 30 Security/SRE
-
-Run audit, secret, dependency, license, SAST/DAST and artifact/provenance gates. Approve secure signer, immutable hosting, signing classification, backup/restore and public status evidence.
-
-### YNX 28 Website
-
-Consume `public-product-metadata.json` for `/dex`. Keep Website publication independent from runtime public deployment. Do not expose internal paths or publish download/runtime links before immutable probes exist.
-
-## Release evidence
-
-- Aggregate manifest SHA-256: `80beb665aca3f49c55951e96acf63d2e1f1b10308e0c93f4208ae4f1c1934b5e`, 6162 bytes.
-- PWA bundle SHA-256: `dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669`, 331755 bytes, unsigned local build.
-- SDK package SHA-256: `fae8db1d106e7c82ddad2c030c207551155fe3075b4ccedabead23efd17603a5`, 21765 bytes, unsigned local package.
-- No immutable artifact URL, install/cold-start evidence or production signature exists.
-
-## Required acceptance order
-
-1. Wallet/Auth and Oracle contract freeze.
-2. Security review of source, artifacts, signer path and deployment inputs.
-3. Testnet deploy and source verification.
-4. Indexer ingestion, restart/reorg and restore drill.
-5. Quant execution vectors and Vault failure/recovery vectors.
-6. Explorer, Monitor, Trust, Finance and Data Fabric reconciliation.
-7. Public artifact/runtime probes.
-8. Website consumption and SEO deployment.
-
-The DEX remains fail closed at each missing dependency. A local pass, deployment transaction, Website page or artifact upload does not satisfy later gates.
+Central integration remains false until every applicable dependency row in `DEPENDENCY_ACCEPTANCE.md` has direct evidence and the vectors in `CROSS_PRODUCT_TEST_VECTORS.json` pass against deployed Testnet services. Local tests are not public or central proof.

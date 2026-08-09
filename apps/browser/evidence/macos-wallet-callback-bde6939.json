@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "ynx.browser.macos-wallet-callback-evidence.v1",
+  "product": "YNX Browser",
+  "platform": "macOS",
+  "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
+  "callbackRuntimeCommit": "d9580e6b9d09a9d2eec69fbcb6d35a9ddf6997ed",
+  "asOf": "2026-07-27",
+  "git": {
+    "branch": "codex/final-browser",
+    "upstream": "origin/codex/final-browser",
+    "localRemoteEqual": true,
+    "remoteCommit": "bde6939223693d5cdf5d05f309ac888c091ab815"
+  },
+  "verification": {
+    "browserCheck": {
+      "command": "cd apps/browser && npm run check",
+      "result": "pass",
+      "nodeTests": 14,
+      "nativeSwiftTests": 20,
+      "smoke": "pass",
+      "productionSourceGate": "pass",
+      "sameHostMacosReproducibility": "pass"
+    },
+    "walletPermissionContracts": {
+      "command": "cd packages/web4-permissions && npm test",
+      "result": "pass",
+      "tests": 15,
+      "failures": 0
+    },
+    "callbackPolicy": {
+      "implementation": "apps/browser/native/Sources/YNXBrowserCore/WalletCallbackPolicy.swift",
+      "tests": "apps/browser/native/Tests/YNXBrowserCoreTests/WalletCallbackPolicyTests.swift",
+      "result": "pass",
+      "verified": [
+        "exact scheme, host and path with no port, user information or fragment",
+        "exact single response query item with duplicate and unknown query rejection",
+        "strict top-level response and pending-state JSON fields with duplicate-key rejection",
+        "escaped duplicate response-key rejection",
+        "16 KiB encoded-response and persisted-state size limits",
+        "P-256-signed pending state bound to nonce, expiry, chain, product, client, bundle, callback, algorithm and ordered scopes",
+        "wrong-device-key and every signed-field tamper rejection",
+        "expiry, wrong nonce, wrong chain, wrong client and wrong bundle rejection",
+        "single-use consumption and replay rejection",
+        "legacy unsigned pending-key removal",
+        "no local Product Session creation"
+      ]
+    },
+    "runtimeProtocolNegativePaths": {
+      "result": "pass",
+      "launchMechanism": "macOS open targeted at the current repository Dist app and an explicit ynxbrowser URL",
+      "processId": 83759,
+      "processImageClass": "repository-dist-current-source",
+      "logging": {
+        "subsystem": "com.ynxweb4.browser.macos",
+        "category": "security-boundary",
+        "format": "wallet_callback_rejected code=%{public}s",
+        "privacyBoundary": "The event templates contain stable error codes only; URL, nonce, encoded response, source and filename are not logged."
+      },
+      "observedRejections": [
+        {
+          "timestamp": "2026-07-27T23:36:54.252829+08:00",
+          "code": "BR-WALLET-CALLBACK-MALFORMED"
+        },
+        {
+          "timestamp": "2026-07-27T23:37:47.168169+08:00",
+          "code": "BR-WALLET-CALLBACK-ROUTE"
+        },
+        {
+          "timestamp": "2026-07-27T23:38:05.086960+08:00",
+          "code": "BR-WALLET-CALLBACK-DUPLICATE"
+        },
+        {
+          "timestamp": "2026-07-27T23:38:20.129879+08:00",
+          "code": "BR-WALLET-CALLBACK-STATE-MISSING"
+        }
+      ],
+      "truthBoundary": "These are real current-binary LaunchServices/app-handler negative paths. A centrally signed and device-challenge-verified positive Wallet/Auth callback is not claimed."
+    }
+  },
+  "artifact": {
+    "app": "apps/browser/dist/macos/YNX Browser Testnet Preview.app",
+    "zip": "apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip",
+    "zipBytes": 138216,
+    "zipSha256": "fa22ac3924f68f25658257b42341f5af44274a5faa8ceceb57a2a76ef94bf2f7",
+    "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+    "archiveIntegrity": "pass",
+    "sameHostReproducibility": {
+      "result": "pass",
+      "buildsCompared": 2,
+      "firstSha256": "fa22ac3924f68f25658257b42341f5af44274a5faa8ceceb57a2a76ef94bf2f7",
+      "secondSha256": "fa22ac3924f68f25658257b42341f5af44274a5faa8ceceb57a2a76ef94bf2f7",
+      "scope": "same host, toolchain, source tree and ad-hoc signing class"
+    }
+  },
+  "signing": {
+    "codesignVerify": "pass",
+    "class": "adhoc",
+    "architecture": "arm64",
+    "teamIdentifier": null,
+    "cdHash": "4aa5efe33b02445eba1c0949c38daf8843827250",
+    "cdHashFullSha256": "4aa5efe33b02445eba1c0949c38daf88438272500449b79d753d0f9248e62d58",
+    "gatekeeper": {
+      "result": "rejected",
+      "exitCode": 3
+    },
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  },
+  "runtime": {
+    "coldStart": {
+      "result": "pass",
+      "observedPid": 86451,
+      "termination": "pass"
+    },
+    "restart": {
+      "result": "pass",
+      "observedPid": 87170,
+      "termination": "pass"
+    }
+  },
+  "installResolution": {
+    "installedLocal": false,
+    "finding": "LaunchServices also knew a source-mismatched copy under the user Applications directory with the same bundle identifier.",
+    "staleInstalledBinarySha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+    "currentDistBinarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+    "mitigationDuringEvidence": "All current-source protocol probes explicitly targeted the repository Dist app. Both ambiguous processes were terminated before the controlled run.",
+    "truthBoundary": "The existing installed copy is not evidence for the current source commit and was not overwritten or deleted."
+  },
+  "verifiedStates": {
+    "implementedLocal": true,
+    "builtLocal": true,
+    "packagedLocal": true,
+    "executedLocal": true,
+    "callbackNegativePathsVerified": true,
+    "reproducibleOnEvidenceHost": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "notVerified": [
+    "positive callback with accepted Gateway signature and product-device challenge",
+    "central Wallet/Auth Product Session creation",
+    "current-source installation and unambiguous LaunchServices ownership",
+    "full normal and Private network download interaction through WKWebView and NSSavePanel",
+    "native state-v2 export/delete/backup/restore UI",
+    "cross-host reproducibility",
+    "Developer ID signing and notarization",
+    "public hosting and immutable download URL",
+    "shared Testnet end-to-end flow"
+  ]
+}

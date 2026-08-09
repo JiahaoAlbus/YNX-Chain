@@ -1,0 +1,22 @@
+[Unit]
+Description=YNX Exchange public Testnet venue
+After=network-online.target ynx-indexerd.service ynx-wallet-gateway.service
+Wants=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+WorkingDirectory=/opt/ynx/exchange
+EnvironmentFile=/etc/ynx/exchange.env
+ExecStart=/usr/local/bin/ynx-exchanged
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-exchange
+
+[Install]
+WantedBy=multi-user.target

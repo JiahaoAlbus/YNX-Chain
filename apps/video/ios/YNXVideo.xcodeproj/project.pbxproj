@@ -1,0 +1,28 @@
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 56;
+ objects = {
+  A1 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600;}; buildConfigurationList = A2; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base,); mainGroup = A3; productRefGroup = A4; projectDirPath = ""; projectRoot = ""; targets = (A5,);};
+  A2 = {isa = XCConfigurationList; buildConfigurations = (B1,B2,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+  A3 = {isa = PBXGroup; children = (C1,C2,C3,C4,); sourceTree = "<group>";};
+  A4 = {isa = PBXGroup; children = (C5,); name = Products; sourceTree = "<group>";};
+  A5 = {isa = PBXNativeTarget; buildConfigurationList = A6; buildPhases = (D1,D2,D3,); buildRules = (); dependencies = (); name = YNXVideo; productName = YNXVideo; productReference = C5; productType = "com.apple.product-type.application";};
+  A6 = {isa = XCConfigurationList; buildConfigurations = (B3,B4,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+  B1 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0;}; name = Debug;};
+  B2 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0;}; name = Release;};
+  B3 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = YNXVideo/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.video; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2";}; name = Debug;};
+  B4 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = YNXVideo/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.video; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; VALIDATE_PRODUCT = YES;}; name = Release;};
+  C1 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXVideo/YNXVideoApp.swift; sourceTree = "<group>";};
+  C2 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXVideo/ContentView.swift; sourceTree = "<group>";};
+  C3 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = YNXVideo/Info.plist; sourceTree = "<group>";};
+  C4 = {isa = PBXFileReference; lastKnownFileType = text.json; name = catalog.json; path = ../i18n/catalog.json; sourceTree = "<group>";};
+  C5 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YNXVideo.app; sourceTree = BUILT_PRODUCTS_DIR;};
+  D1 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (E1,E2,); runOnlyForDeploymentPostprocessing = 0;};
+  D2 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+  D3 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (E3,); runOnlyForDeploymentPostprocessing = 0;};
+  E1 = {isa = PBXBuildFile; fileRef = C1;}; E2 = {isa = PBXBuildFile; fileRef = C2;}; E3 = {isa = PBXBuildFile; fileRef = C4;};
+ };
+ rootObject = A1;
+}

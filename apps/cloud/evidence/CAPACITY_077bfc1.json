@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "077bfc1423ae8b6be15b93b039e0ea3eb37abef3",
+  "measuredAt": "2026-07-22T14:57:47Z",
+  "command": "YNX_CAPACITY_PROFILE=1 go test ./internal/cloud -run '^TestMillionObjectCapacityProfile$' -v -count=1",
+  "environment": {
+    "cpu": "Apple M2",
+    "memoryBytes": 8589934592,
+    "goVersion": "go1.25.7",
+    "goos": "darwin",
+    "goarch": "arm64",
+    "gomaxprocs": 8
+  },
+  "workload": {
+    "objects": 1000000,
+    "pageSize": 200,
+    "samples": 100,
+    "authorization": "single owner; no grants",
+    "ordering": "updatedAt descending then object ID ascending"
+  },
+  "results": {
+    "minMilliseconds": 135.315583,
+    "p50Milliseconds": 140.197375,
+    "p95Milliseconds": 156.208334,
+    "p99Milliseconds": 163.719292,
+    "maxMilliseconds": 224.054833,
+    "pagesPerSecond": 6.96545872552131,
+    "totalAllocatedBytesAcrossSamples": 126228992,
+    "heapObjectDeltaAcrossSamples": 363884
+  },
+  "coverage": "Single-process in-memory metadata scan only; excludes persistence, network, provider latency, multi-user contention, sharding, replication and end-to-end HTTP.",
+  "claim": "Millions-of-objects metadata candidate benchmark; not a production capacity or SLO claim."
+}

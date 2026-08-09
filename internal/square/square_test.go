@@ -314,6 +314,47 @@ func TestSquareHTTPRoutesAndSignedMutations(t *testing.T) {
 	}
 }
 
+func TestSquareAccountExportDeleteAndRestart(t *testing.T) {
+	now := time.Date(2026, 7, 29, 4, 0, 0, 0, time.UTC)
+	statePath := filepath.Join(t.TempDir(), "square-privacy", "state.json")
+	service := newTestService(t, statePath, func() time.Time { return now })
+	alice := registerTestDevice(t, service, aliceAddress, "alice-privacy", "register-alice-privacy", 0x41)
+	bob := registerTestDevice(t, service, bobAddress, "bob-privacy", "register-bob-privacy", 0x42)
+	if _, err := service.SetProfile(alice.device, SetProfileRequest{IdempotencyKey: "privacy-profile", Handle: "privacy_alice", DisplayName: "Private Alice", Bio: "erase me"}); err != nil {
+		t.Fatal(err)
+	}
+	post, err := service.CreatePost(alice.device, CreatePostRequest{IdempotencyKey: "privacy-post", Content: "personal Square content", Tags: []string{"privacy"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.CreateComment(bob.device, post.Record.ID, CreateCommentRequest{IdempotencyKey: "privacy-comment", Content: "retained participant comment"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SetReaction(alice.device, post.Record.ID, SetReactionRequest{IdempotencyKey: "privacy-reaction", Kind: "support", Active: true}); err != nil {
+		t.Fatal(err)
+	}
+	exported := service.ExportAccount(alice.device)
+	if exported.Account != aliceAddress || exported.Profile == nil || len(exported.Devices) != 1 || len(exported.Posts) != 1 || len(exported.Reactions) != 1 {
+		t.Fatalf("incomplete Square export: %+v", exported)
+	}
+	if err := service.DeleteAccount(alice.device); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := service.state.Profiles[aliceAddress]; ok {
+		t.Fatal("deleted Square profile remains")
+	}
+	tombstone := service.state.Posts[post.Record.ID]
+	if tombstone.Status != "deleted" || tombstone.Content != "[deleted]" || tombstone.Author == aliceAddress || tombstone.ReactionCount != 0 {
+		t.Fatalf("Square post was not safely tombstoned: %+v", tombstone)
+	}
+	if len(service.state.Comments[post.Record.ID]) != 1 {
+		t.Fatal("other participant's comment was removed")
+	}
+	if _, err := New(testConfig(statePath, func() time.Time { return now })); err != nil {
+		t.Fatalf("restart after Square erasure: %v", err)
+	}
+}
+
 func testConfig(path string, now func() time.Time) Config {
 	return Config{StatePath: path, APIKey: squareAPIKey, MaxBodyBytes: 16 * 1024, RateLimitWindow: time.Minute, RateLimitMax: 120, Now: now}
 }

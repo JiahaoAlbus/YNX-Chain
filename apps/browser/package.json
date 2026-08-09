@@ -1,0 +1,18 @@
+{
+  "name": "@ynx/browser",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "swift run --package-path native YNXBrowserNative",
+    "test": "node --test",
+    "test:native": "swift test --package-path native --jobs 1",
+    "smoke": "node scripts/smoke.mjs",
+    "gate:source": "node scripts/source-gates.mjs",
+    "check": "npm test && npm run test:native && npm run smoke && npm run gate:source && npm run verify:macos-reproducible",
+    "build:macos": "bash scripts/build-macos-app.sh",
+    "verify:macos-reproducible": "bash scripts/verify-macos-reproducible.sh",
+    "verify:macos-install": "node scripts/install-macos-evidence.mjs"
+  },
+  "ynxEngine": "Apple WebKit via WKWebView; no custom web engine"
+}

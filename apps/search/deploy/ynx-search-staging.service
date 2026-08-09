@@ -1,0 +1,23 @@
+[Unit]
+Description=YNX Search staging (authorized-source index only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/ynx/search-staging-current/apps/search
+EnvironmentFile=/etc/ynx/search-staging.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-search-staging
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

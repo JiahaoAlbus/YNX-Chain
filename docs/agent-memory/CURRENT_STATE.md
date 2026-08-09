@@ -1,81 +1,75 @@
-# YNX 27 DEX current state
+# YNX Resource Market — Current State
 
-Updated: 2026-07-29T02:27:50Z
+- Product: `16` — YNX Resource Market
+- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market`
+- Branch: `codex/final-resource-market`
+- Verified candidate source SHA: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Remote candidate SHA: `d683c7d28ce129daad358c84680e5980cf8ad069`
+- Main SHA used for synchronization: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
+- Ahead / Behind against upstream at candidate verification: `0 / 0`
+- Dirty state at candidate verification: clean
+- Phase: `INTEGRATE`
+- Product status: local candidate; not a public, production-signed, or authoritative-settlement release
+- Updated: `2026-07-29T02:54:25Z`
 
-- Product: YNX 27 — YNX DEX
-- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex`
-- Branch: `codex/final-dex`
-- Repository: `https://github.com/JiahaoAlbus/YNX-Chain.git`
-- Protected checkpoint SHA: `f933440d5cb791044476eb69c58c522d5c91d8a1`
-- Remote checkpoint SHA: `f933440d5cb791044476eb69c58c522d5c91d8a1`
-- Main SHA: `0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc`
-- Ahead / Behind at recovery: `0 / 0`
-- Dirty state at recovery: clean
-- Phase: `FREEZE`
-- Long-term status: `ACTIVE`
+## Latest successful tests
 
-## Latest verified tests
+- `go test -count=1 ./...`
+- `go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct`
+- `go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market`
+- `bash apps/resource-market/check.sh`
+- `bash scripts/validate/no-placeholder-check.sh`
+- `npm audit --audit-level=high` in `apps/resource-market`
+- `npm run test:ui` in `apps/resource-market`
+- `npm sbom --sbom-format spdx` in `apps/resource-market`
 
-- `go test -race ./internal/dex ./cmd/ynx-dex-indexerd ./cmd/ynx-dex-recovery` — pass
-- `npm test --prefix sdk/dex` — 21 pass
-- `npm run check --prefix sdk/dex` — pass
-- `npm test --prefix apps/dex` — 17 pass
-- `npm run build --prefix apps/dex` — pass
-- `make secret-scan` — pass with fail-closed `grep` fallback because `rg` is unavailable
-- `make static-check` — pass
-- `npm run dex:release:test` — pass
-- `npm run dex:manifests:check` — pass
-- `npm run dex:artifacts:verify` — pass
+## GitHub
 
-## GitHub and release truth
+- Pull request: `#12` — open and mergeable
+- Resource Market Candidate Gates run: `30417957999` — success against `d683c7d28ce129daad358c84680e5980cf8ad069`
+- General CI run: `30417957996` — success
+- Docs compliance run: `30417958003` — success
+- Resource Market iOS Simulator build: run `30417957987` — success
+- Governance check run `30417957971` was still in progress at this checkpoint and is not counted as successful evidence.
+- Resource Market release: none published
 
-- Pull requests for `codex/final-dex`: none
-- GitHub Actions runs for `codex/final-dex`: none
-- DEX GitHub Release: none
-- DEX GitHub-hosted artifact: none verified
-- Local unsigned artifact manifest: `release/dex/artifact-manifest.json`
-- PWA SHA-256: `dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669`
-- SDK SHA-256: `fae8db1d106e7c82ddad2c030c207551155fe3075b4ccedabead23efd17603a5`
-- Public DEX runtime: not deployed
-- `ynxweb4.com/dex`: not directly verified as a deployed product page
+## Verified completed locally
 
-## Completed and protected
+- Distinct quote, intent, reservation, execution, metering, settlement, failure, refund and dispute state handling
+- Exact offer-scoped capacity reservations and release integrity
+- Provider self-dealing rejection
+- Checked non-negative signed-64-bit amount arithmetic with fail-before-mutation overflow handling
+- Bounded one-to-one failed-order retry lineage with migration coverage
+- Stable failure/error semantics and cross-product negative vectors
+- Twelve-locale browser boundary, Arabic RTL, responsive and accessibility contracts
+- Android debug install/cold-start evidence
+- iOS Simulator build evidence
+- Portable Linux/macOS DAST smoke harness
+- Candidate binary build metadata, SHA-256 generation, Go dependency inventory and SPDX npm SBOM generation in CI
 
-- Recovered the original DEX candidate without destructive Git operations.
-- Constant-product, StableSwap, Strategy Vault, FairFlow and LP Protection candidates are locally tested.
-- Direct StableSwap Vault swap/add/remove actions and canonical approval/reconciliation SDK surface are locally tested.
-- Confirmed Indexer state schema v5 and cursor schema v6 migration/reorg coverage are locally tested.
-- Authenticated immutable state/cursor recovery bundle and isolated restore drill are locally tested at runtime source commit `7d61369e02ab4d50a9fc36c927dc487e47ce9814`.
-- Integration Contract, test vectors, dependency handoff and unsigned artifact hashes exist.
+## Not completed or not proven
 
-## Remaining
+- Central Wallet/Auth and Gateway acceptance
+- Authoritative Chain and Data Fabric settlement
+- Explorer, Monitor and Trust central integration
+- Two independently operated public Testnet providers
+- Real funded Testnet workload, failure, retry, refund and authoritative receipt sequence
+- Public deployment, DNS, health and version endpoints
+- `https://ynxweb4.com/resource-market` deployment and indexability evidence
+- Immutable hosted download, production signing, store release, legal review and external security review
 
-- Clean-room concentrated-liquidity specification and invariant-tested runtime.
-- Weighted pool and liquidity bootstrapping candidates.
-- Down-schema rollback migration with representability guards.
-- Quiesced provisioned-Testnet recovery drill and operational RPO evidence.
-- Supply-chain scan closure, SLO/capacity evidence and unit economics.
-- Complete 12-language, RTL and accessibility evidence.
-- Canonical Wallet/Gateway, Oracle, Quant, Data Fabric, Explorer, Monitor, Trust and Finance acceptance.
-- Verified Testnet deployment, bytecode verification, real pools/liquidity/receipts and public consistency proof.
-- Independent audit, immutable hosting, production signing, GitHub Release and Website deployment.
+## Current risk
 
-## Current risks
-
-- No CI run exists for the protected branch.
-- No PR or merge evidence exists.
-- No public deployment or release evidence exists.
-- Repository-wide `go test ./...` fails in unchanged shared `internal/api` IDE selector metadata tests; see `docs/integration/CROSS_OWNER_ISSUES.md`. Focused DEX tests pass.
-- Stable assets, Oracle policy, signer/funding and central registry inputs are not accepted.
-- Local recovery RTO is tested, but operational RPO on a provisioned Testnet indexer is unproven.
+The local candidate is strongly tested, but central and public claims must remain false until authoritative deployed evidence exists. PR `#12` must not be described as merged until GitHub records the merge.
 
 ## Evidence
 
-- `FEATURE_COMPLETION_EVIDENCE.md`
+- `apps/resource-market/product-release.json`
+- `apps/resource-market/public-product-metadata.json`
+- `apps/resource-market/operator-inputs.request.json`
+- `apps/resource-market/FEATURE_COMPLETION_EVIDENCE.md`
+- `apps/resource-market/EVIDENCE_INDEX.md`
 - `.ai-bridge/full-goal-coverage.json`
-- `MIGRATION_COMPATIBILITY.md`
-- `docs/dex/EVIDENCE_INDEX.md`
-- `docs/integration/CROSS_OWNER_ISSUES.md`
-- `release/integration/ynx-dex-contract.json`
-- `product-release.json`
-- `public-product-metadata.json`
+- `docs/integration/INTEGRATION_HANDOFF.md`
+- `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`

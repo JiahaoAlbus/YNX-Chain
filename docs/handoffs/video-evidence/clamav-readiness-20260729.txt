@@ -1,0 +1,42 @@
+YNX Video ClamAV readiness audit
+Timestamp (UTC): 2026-07-29T02:56:17Z
+Workspace: /Users/huangjiahao/Desktop/YNX Final Worktrees/33-video
+Branch: codex/final-video
+Branch head before evidence checkpoint: 3c7ea829e31278d9728f75c155cceab152e3d16a
+
+READ-ONLY COMMANDS AND RESULTS
+
+$ command -v clamscan
+/opt/homebrew/bin/clamscan
+exit: 0
+
+$ clamscan --version
+ClamAV 1.5.3
+exit: 0
+
+$ command -v freshclam
+/opt/homebrew/bin/freshclam
+exit: 0
+
+$ freshclam --version
+ERROR: Can't open/parse the config file /opt/homebrew/etc/clamav/freshclam.conf
+exit: 2
+
+$ clamscan --no-summary internal/video/testdata/ynx-owned-test.mp4
+LibClamAV Error: cli_loaddbdir: No supported database files found in /opt/homebrew/var/lib/clamav
+ERROR: Can't open file or directory
+exit: 2
+
+CLASSIFICATION
+
+executionInfrastructureBlocked: true
+productExternalBlocked: false
+scannerExecutablePresent: true
+signatureDatabaseReady: false
+freshclamConfigurationReady: false
+currentSourceLoopbackE2EExecuted: false
+testnetVerified: false
+
+TRUTH BOUNDARY
+
+This audit proves only that the local ClamAV executable exists while its updater configuration and signature database are unusable. No source file or system configuration was changed. YNX Video must continue to report scanner readiness failure and must not claim malware scanning, loopback E2E or Testnet verification from this environment.

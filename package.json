@@ -1,11 +1,15 @@
 {
   "name": "ynx-chain-contract-tooling",
+  "version": "0.0.0-private",
   "private": true,
   "type": "module",
   "scripts": {
     "contracts:check": "bash ./scripts/verify/contract-tooling-check.sh",
     "contracts:selectors": "node ./scripts/contracts/generate-selector-metadata.mjs",
     "hardhat:build": "hardhat build",
+    "hardhat:test:wallet": "hardhat run ./scripts/contracts/test-smart-account-hardhat.js",
+    "hardhat:deploy:wallet-smart-account": "hardhat run ./scripts/contracts/deploy-wallet-smart-account.js --network ynxTestnet",
+    "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet",
     "dex:contracts:test": "hardhat run ./scripts/dex/contract-test.mjs --network dexTest",
     "dex:vault:test": "hardhat run ./scripts/dex/vault-test.mjs --network dexTest",
     "dex:fairflow:test": "hardhat run ./scripts/dex/fairflow-test.mjs --network dexTest",
@@ -18,14 +22,19 @@
     "dex:manifests:check": "node ./scripts/dex/check-manifests.mjs",
     "dex:testnet:probe": "node ./scripts/dex/probe-testnet.mjs",
     "dex:package:all": "npm run hardhat:build && npm run package:pwa --prefix apps/dex && node ./scripts/dex/package-all.mjs",
-    "dex:artifacts:verify": "node ./scripts/dex/verify-artifacts.mjs",
-    "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet"
+    "dex:artifacts:verify": "node ./scripts/dex/verify-artifacts.mjs"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-ethers": "^4.0.13",
+    "@account-abstraction/contracts": "0.8.0",
+    "@noble/curves": "1.4.2",
+    "@noble/hashes": "1.4.0",
+    "@nomicfoundation/hardhat-ethers": "^4.0.15",
     "ethers": "^6.17.0",
-    "hardhat": "^3.9.0",
+    "hardhat": "^3.11.1",
     "typescript": "^5.9.0",
     "undici": "^6.27.0"
+  },
+  "overrides": {
+    "adm-zip": "0.6.0"
   }
 }

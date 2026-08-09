@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "productId": "docs",
+  "version": "1.0.0-testnet-preview",
+  "sourceCommit": "fd90fa646079f6f57af0ca965091fc443b941857",
+  "runtimeSourceCommit": "fd90fa646079f6f57af0ca965091fc443b941857",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": true,
+    "deployedStaging": false,
+    "deployedPublic": true,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "stateNotes": {
+    "implementedLocal": "Versioned documents, autosave, offline draft recovery, explicit conflict handling, version-bound comments, bounded presence, export, reviewed AI revisions, 12 locales, Web/PWA and Android/iOS source are implemented on the product-isolated Cloud/Docs service.",
+    "testedLocal": "Docs client/static checks, shared Cloud race/vet/API/recovery gates, central security gates and the unsigned iOS Simulator Release build pass. The public UI and health routes returned 100/100 expected responses at concurrency 20; private objects returned 100/100 HTTP 401 without a Wallet session.",
+    "installedLocal": "False for this source commit. A historical debug-signed Android Testnet Preview was installed and is independently source-bound; iOS Simulator CI success is not device installation.",
+    "integratedCentral": "True: the shared Cloud/Docs service, canonical Docs Wallet registration and native clients were accepted into central main at cfcaa6accad6a66f86df0c96564dcddac69e86d6.",
+    "deployedStaging": "False: the product moved directly to a bounded public Testnet preview; no staging claim is made.",
+    "deployedPublic": "True: https://web4.ynxweb4.com/docs-app/ and same-origin API/liveness routes are public. Central Wallet verification is unavailable, so private workflows fail closed.",
+    "downloadHosted": "False: no immutable Docs application download is hosted.",
+    "productionSigned": "False: no production application signing evidence exists.",
+    "storeReleased": "False: no app-store release evidence exists."
+  },
+  "artifacts": ["evidence/ARTIFACT_MANIFEST.json"],
+  "evidenceIndex": "evidence/EVIDENCE_INDEX.md"
+}

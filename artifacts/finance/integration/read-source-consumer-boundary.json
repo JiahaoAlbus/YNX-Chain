@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Finance",
+  "evidenceClass": "local-read-source-consumer-boundary",
+  "sourceCommit": "592195a1a4c5bed434d984482a1e87202de213ce",
+  "verifiedAt": "2026-07-27T15:32:35Z",
+  "consumerEnvelope": {
+    "version": "finance-source-read-envelope-v1",
+    "schema": "release/integration/finance-source-read-envelope.schema.json",
+    "status": "consumer-proposal",
+    "integratedCentral": false,
+    "maximumBytes": 2097152,
+    "readOnly": true
+  },
+  "sources": {
+    "exchange": {"owner": "07-exchange", "ownerContractAccepted": false, "available": false, "syncStatus": "owner-contract-pending"},
+    "dex": {"owner": "27-dex", "ownerContractAccepted": false, "available": false, "syncStatus": "owner-contract-pending"},
+    "quant": {"owner": "08-quant-lab", "ownerContractAccepted": false, "available": false, "syncStatus": "owner-contract-pending"},
+    "economics": {"owner": "17-tokenomics", "ownerContractAccepted": false, "available": false, "syncStatus": "owner-contract-pending"}
+  },
+  "validatedBindings": [
+    "sourceId",
+    "owner",
+    "network ynx_6423-1",
+    "native asset YNXT",
+    "normalized Wallet-authorized account",
+    "owner contract version",
+    "payload schema"
+  ],
+  "negativeCoverage": [
+    "owner contract pending",
+    "wrong source owner",
+    "wrong account",
+    "wrong network",
+    "wrong native asset",
+    "wrong owner contract version",
+    "wrong payload schema",
+    "unknown field",
+    "future asOf",
+    "incomplete provenance",
+    "empty payload",
+    "duplicate capability",
+    "capability outside accepted allowlist",
+    "mutation capability disguised with read suffix",
+    "unsafe or credential-bearing action URL"
+  ],
+  "clientEvidence": {
+    "web": "Pending sources render as unavailable; only reviewed HTTPS navigation may be shown.",
+    "native": "Pending source cards and action-boundary copy are localized across 12 languages; Arabic uses the existing RTL runtime path."
+  },
+  "verification": [
+    {"command": "go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1", "result": "passed"},
+    {"command": "go test -race ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1", "result": "passed"},
+    {"command": "npm run smoke --prefix apps/finance", "result": "passed; 8/8 Node vectors and Go server/admin builds"},
+    {"command": "npm run typecheck --prefix apps/finance/mobile", "result": "passed"},
+    {"command": "npm test --prefix apps/finance/mobile", "result": "passed; 6/6"},
+    {"command": "bash scripts/validate/no-placeholder-check.sh", "result": "passed"},
+    {"command": "bash scripts/validate/secret-scan.sh", "result": "passed"}
+  ],
+  "notClaimed": {
+    "exchangePayloadAdapter": true,
+    "dexPayloadAdapter": true,
+    "quantPayloadAdapter": true,
+    "economicsPayloadAdapter": true,
+    "ownerContractAcceptance": true,
+    "integratedCentral": true,
+    "sharedTestnetEvidence": true,
+    "deployedStaging": true,
+    "deployedPublic": true
+  },
+  "nextAcceptance": "Integration freezes one exact owner payload contract and its vectors; Finance then adds an exact AcceptedReadSourceContract and source-specific payload adapter without expanding authority."
+}

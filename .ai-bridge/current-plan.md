@@ -1,15 +1,18 @@
-# YNX DEX current plan
+# YNX Wallet/Auth current plan
 
-Status: ACTIVE
-Phase: FREEZE
-Packaged contract/SDK source base: `4d9f9c807efb2529836a1324b17c697e91a23421`
-Runtime/recovery source: `7d61369e02ab4d50a9fc36c927dc487e47ce9814`
-Protected evidence checkpoint: `f933440d5cb791044476eb69c58c522d5c91d8a1`
+Status: Active. Current phase: INTEGRATE. The local encrypted Gateway backup/restore and version-compatibility slice is complete and source-bound.
 
-1. Preserve the recovery truth checkpoint, Agent Memory and machine-readable status without collapsing artifact, runtime and evidence SHAs.
-2. Freeze a clean-room concentrated-liquidity v1 specification covering ticks, ranges, fee growth, callbacks, rounding, overflow and malicious-token boundaries.
-3. Implement the first bounded pool slice with focused differential and stateful invariant tests.
-4. Review Diff, commit, push, verify Local SHA equals Remote SHA and update evidence.
-5. Continue rollback migration, provisioned-Testnet recovery/RPO, supply-chain, capacity, unit-economics and accessibility gates before public expansion.
+1. Preserve the canonical Wallet/Auth implementation source `c7a6bded387223429f0708f80b50f086d8ff944d`, its verified 100/100 package test checkpoint and the six-asset source-only prerelease.
+2. Preserve the local backup/restore evidence at `apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json`: 6/6 focused tests, exact non-empty restore, replay-state preservation, tamper/policy/permission rejection, validated legacy normalization, future-schema rejection and a 20-sample local drill.
+3. Submit the exact Registry, Gateway HTTP/Node host, backup, observability, StrategyMandate and shared-vector contract to the central App Gateway and `29-integration`; do not create a second compatibility protocol.
+4. After central acceptance, run installed Wallet→Social, Wallet→Pay, Wallet→Quant→Exchange and Wallet→Quant→DEX flows plus central durable-store restore, Explorer and Monitor evidence.
+5. Reattempt current-source Android/iOS installed evidence only when a real emulator/device or full Xcode runtime exists.
+6. Keep `integratedCentral`, runtime `deployedStaging`, runtime `deployedPublic`, Smart Account Testnet receipt, production KMS/RTO/RPO, production signing and store states false until direct owner/operator evidence exists.
 
-External gates are not product completion: canonical Wallet/Gateway registry acceptance, Oracle/Testnet addresses, secure signer/funding, central integration, independent audit, immutable artifact hosting and Website deployment remain unresolved.
+## Implementation contract
+
+- Work only in `02-wallet-auth` on `codex/final-wallet-auth`.
+- Preserve protected commits and concurrent work; do not reset, clean, force-push or overwrite sibling ownership.
+- Use small source-bound checkpoints and focused gates before broader preflight.
+- Update Integration Contract, Release Record, evidence index and agent status after each verified slice.
+- Never place a private key, seed, recovery material, signing asset or provider secret in Git, logs, evidence or chat.

@@ -50,6 +50,15 @@ func TestRESTAcceptsYNXAliasesAndPersistsCanonicalAccounts(t *testing.T) {
 	if account["account"].(map[string]any)["address"] != recipient {
 		t.Fatalf("account lookup did not resolve YNX alias: %v", account)
 	}
+	var ranking struct {
+		Accounts       []chain.Account `json:"accounts"`
+		Total          int             `json:"total"`
+		TruthfulStatus string          `json:"truthfulStatus"`
+	}
+	doJSON(t, http.MethodGet, server.URL+"/accounts?limit=100", nil, http.StatusOK, &ranking)
+	if ranking.Total < 2 || len(ranking.Accounts) < 2 || ranking.Accounts[0].Balance < ranking.Accounts[1].Balance || ranking.TruthfulStatus != "authoritative-public-ledger-account-ranking" {
+		t.Fatalf("unexpected authoritative account ranking: %+v", ranking)
+	}
 	var invalid map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/accounts/ynx1qqqqqq", nil, http.StatusBadRequest, &invalid)
 }
@@ -503,6 +512,54 @@ func TestEVMRPCSubset(t *testing.T) {
 	filteredLogs := out["result"].([]any)
 	if len(filteredLogs) != 1 || filteredLogs[0].(map[string]any)["transactionHash"] != transfer.Hash {
 		t.Fatalf("expected filtered EVM log, got %v", out)
+	}
+}
+
+func TestEVMRPCBatch(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	payload := `[{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]},{"jsonrpc":"2.0","id":"height","method":"eth_blockNumber","params":[]},{"jsonrpc":"2.0","id":3,"method":"missing_method","params":[]}]`
+	resp, err := http.Post(server.URL+"/evm", "application/json", strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected batch status 200, got %d", resp.StatusCode)
+	}
+	var out []map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if len(out) != 3 || out[0]["result"] != "0x1917" || out[1]["id"] != "height" {
+		t.Fatalf("unexpected batch response: %v", out)
+	}
+	if rpcErr, ok := out[2]["error"].(map[string]any); !ok || rpcErr["code"] != float64(-32601) {
+		t.Fatalf("expected per-request method error, got %v", out[2])
+	}
+
+	empty, err := http.Post(server.URL+"/evm", "application/json", strings.NewReader(`[]`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer empty.Body.Close()
+	if empty.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected empty batch rejection, got %d", empty.StatusCode)
+	}
+
+	items := make([]string, maxRPCBatchSize+1)
+	for i := range items {
+		items[i] = `{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}`
+	}
+	oversized, err := http.Post(server.URL+"/evm", "application/json", strings.NewReader("["+strings.Join(items, ",")+"]"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer oversized.Body.Close()
+	if oversized.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected oversized batch rejection, got %d", oversized.StatusCode)
 	}
 }
 

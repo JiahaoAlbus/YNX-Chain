@@ -1,36 +1,28 @@
-# YNX DEX dependency acceptance
+# YNX Resource Market dependency acceptance
 
-Source commit: `4d9f9c807efb2529836a1324b17c697e91a23421`
+No dependency is accepted from file existence, HTTP 200, local mocks or documentation alone. Each row requires direct Testnet or deployment evidence bound to an immutable source commit.
 
-No central dependency is accepted merely because a local adapter or fixture passes. Each owner must return an exact version, source commit, environment, health/version evidence and the relevant cross-product vector results.
-
-| Dependency | Owner | Required contract | Local adapter status | Acceptance status |
+| Owner | Required contract | Current status | Acceptance evidence required | Failure behavior |
 | --- | --- | --- | --- | --- |
-| Wallet/Auth/Gateway | YNX 02 | Client `ynx-dex-web-v1`, bundle `com.ynxweb4.dex.web`, P-256 device binding, exact scopes including `dex:vault:execute`, approval digest, introspection, expiry and revoke | Implemented and tested locally; PWA fails closed when unavailable | Pending |
-| Quant Engine | YNX 08 | Typed quote/execute/reconcile adapter only; no DEX backtest, optimization or capital allocation; no arbitrary recipient or owner mutation | CPMM and direct StableSwap Vault requests tested locally | Pending |
-| Explorer | YNX 12 | Exact transaction/block/log/method/nonce proof and reorg removal | Indexed reconciliation implemented locally | Blocked by Testnet deployment |
-| Monitor | YNX 13 | Non-static health/ready/version, cursor/RPC/reorg/schema alerts, request/error/audit identifiers | Health/version surface exists locally; alert integration incomplete | Pending |
-| Trust Center | YNX 15 | Source, tests, artifact hashes, audit/deployment/signing status and known limitations | Truthful local release records exist | Pending |
-| Oracle | YNX 19 | Reviewed source-labelled price/peg facts with age, confidence/coverage, version, depeg policy and outage semantics | Typed stale/depeg boundaries tested locally | Pending |
-| Finance | YNX 24 | Principal/fee/incentive separation and transaction-bound attribution; no fake revenue or unrealized-profit fee | Local fee invariants exist | Pending |
-| Data Fabric & Billing Ledger | YNX 26 | Canonical event identity, idempotency, reorg semantics, schema version and fee class | Typed Indexer events implemented locally | Pending |
-| Website | YNX 28 | Consume `/dex` metadata; separate website publication from runtime deployment; no links before hosted evidence | Public metadata package prepared | Pending |
-| Integration | YNX 29 | Freeze one owner/version for scopes, events, errors, schemas and deployment addresses | Candidate contract and vectors prepared | Pending |
-| Security/SRE | YNX 30 | Audit findings, secret/dependency/license/SAST/artifact gates, provenance, signer/hosting and public status policy | Local contract and artifact gates pass; audit/public release absent | Pending |
+| 01 Chain Core | Authoritative transaction finality, unique transaction identity and settlement receipt evidence | External blocked | Deployed Testnet endpoint; final transaction hash; asset, amount and finality proof; negative replay and mismatch vectors | Keep order `settlement_pending`; never create receipt or release capacity |
+| 02 Wallet/Auth | Exact Resource Market registry, challenge, completion, introspection, expiry and revocation | External blocked | Registry merge commit; deployed Gateway; wrong-product, wrong-device, scope-widening, expiry, revoke and replay results | Reject product session and perform no mutation |
+| 12 Explorer | Public transaction, receipt and source-commit proof | External blocked | Public HTTPS transaction/receipt URL linked to authoritative settlement | Do not claim public settlement evidence |
+| 13 Monitor | Provider health, stale capacity, meter failure, settlement mismatch/replay and incident alerts | External blocked | Deployed alert rules, triggered negative vectors, incident and recovery evidence | Product remains locally observable only |
+| 15 Trust Center | Provider failure, dispute, notice, appeal and correction linkage | Locally implemented, central acceptance pending | Cross-product case IDs and final decision evidence without asset authority | Keep dispute local and do not infer refund |
+| 26 Data Fabric | Canonical usage, billing, fee and settlement events with idempotent lineage | External blocked | Event schema freeze, replay-safe ingestion, meter/receipt reconciliation and ledger query evidence | Do not emit or claim authoritative billing ledger state |
+| 28 Website | `/resource-market` public entry, support/privacy/security/status routes, metadata and downloads | External blocked | Deployed canonical route, remote smoke, indexability and immutable artifact URLs | Keep all public and hosted release booleans false |
+| 29 Integration | Freeze contract version, owner, events, errors, vectors and shared Testnet order | External blocked | Signed acceptance record for `resource-market-integration-v1`; all cross-product vectors pass | Do not maintain a second compatibility protocol |
+| 30 Security/SRE/Release | Secrets, artifact provenance, backup/restore, deployment and release acceptance | External blocked | Source-bound SBOM, scans, immutable hashes, restore drill, deployment record and external review status | Keep production signing and release booleans false |
 
-## Acceptance procedure
+## Resource Market autonomous acceptance
 
-1. Validate the owner and exact source/version before exercising an adapter.
-2. Run the relevant entries in `CROSS_PRODUCT_TEST_VECTORS.json`, including all negative cases.
-3. Save raw request/response, transaction, event, health and version evidence without secrets.
-4. Record accepted schema/event/error/scope versions in the Integration owner repository.
-5. Keep DEX fail closed if owner identity, scope, source metadata, expiry, health or version is missing.
-6. Re-run affected migration, recovery, release and public gates after any accepted contract changes.
+The product-owned portion is accepted locally only when all of the following pass against the same source commit:
 
-## Explicit non-acceptance
+- Resource engine and HTTP product tests, including race detection.
+- Stable error-code contract tests.
+- Settlement transaction replay rejection and signed-meter reconciliation.
+- Product HTTP smoke, health/version truth boundaries and scoped state/export.
+- Contract and cross-product vector schema validation.
+- Backup/restore and migration compatibility checks.
 
-- A mock, fixture, local dev server or static green health response is not central acceptance.
-- A Testnet RPC probe without deployed DEX bytecode is not DEX Testnet acceptance.
-- A Website page is not runtime deployment.
-- A Wallet preview without exact approval/introspection/revoke evidence is not transaction authorization.
-- A price response without source, age and failure semantics is not an accepted Oracle fact.
+Local acceptance is not central integration, public Testnet proof or production release.

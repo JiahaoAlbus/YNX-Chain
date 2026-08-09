@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "ynx-product-release/v1",
+  "productId": "03",
+  "product": "YNX Social",
+  "slug": "social",
+  "owner": "03-social",
+  "version": "1.0.0-testnet-preview.1",
+  "branch": "codex/final-social",
+  "sourceCommit": "aa8524960d6efd9881598fb65832c6237e5af056",
+  "phase": "PUBLIC_TESTNET_PREVIEW",
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": true,
+    "downloadHosted": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "verifiedCapabilities": [
+    "device-bound Wallet authorization and session rotation",
+    "contact, privacy, group, messaging, report and appeal APIs",
+    "local E2EE and group-key lifecycle tests",
+    "12-language native product bundle",
+    "Social, Chat and Square account export, explicit deletion and restart-safe service exit",
+    "local Social capacity, Race, secret, module and called-code vulnerability gates",
+    "public Wallet-bound Social API at https://api.ynxweb4.com/social with 100/100 health requests at concurrency 10",
+    "Android API 24 Testnet Preview cold-launched in 1.328 seconds and opened the exact central Wallet review",
+    "official test-signed APK hosted at www.ynxweb4.com with SHA-256 ea596dafd4cf63be22aac29a4681d14f43baf40439ec9d725a5206ba899ddcba and 103546656 bytes"
+  ],
+  "knownGaps": [
+    "central main-branch owner acceptance for the new public deployment commits",
+    "deployed coordinated erasure and jurisdiction-specific retention approval",
+    "strong-biometric approval could not complete on the emulator because no strong biometric is enrolled",
+    "iOS installation and signing evidence",
+    "staging workload/restore/alert evidence and independent supply-chain review"
+  ]
+}

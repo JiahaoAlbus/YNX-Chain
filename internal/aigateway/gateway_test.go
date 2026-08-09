@@ -76,7 +76,8 @@ func TestGatewayHealthAuthProxyAndAudit(t *testing.T) {
 		t.Fatalf("health does not identify real gateway dependencies: %+v", health)
 	}
 
-	resp, err = http.Get(server.URL + "/ai/stream?session=unauthorized&q=status")
+	req := newGatewayStreamRequest(t, server.URL, "unauthorized", "status")
+	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +131,7 @@ func TestGatewayConcurrentSessionsAreIsolated(t *testing.T) {
 			defer wg.Done()
 			session := fmt.Sprintf("session-%02d", i)
 			query := fmt.Sprintf("query-%02d", i)
-			req, _ := http.NewRequest(http.MethodGet, server.URL+"/ai/stream?session="+session+"&q="+query, nil)
+			req := newGatewayStreamRequest(t, server.URL, session, query)
 			req.Header.Set("X-YNX-AI-Key", testAccessKey)
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -178,7 +179,7 @@ func TestGatewayRateLimit(t *testing.T) {
 	defer server.Close()
 
 	for i, expected := range []int{http.StatusOK, http.StatusTooManyRequests} {
-		req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/ai/stream?session=rate&q=query-%d", server.URL, i), nil)
+		req := newGatewayStreamRequest(t, server.URL, "rate", fmt.Sprintf("query-%d", i))
 		req.Header.Set("Authorization", "Bearer "+testAccessKey)
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {

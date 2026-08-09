@@ -69,6 +69,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /", s.handleEVM)
 	s.mux.HandleFunc("GET /blocks/latest", s.handleLatestBlock)
 	s.mux.HandleFunc("GET /blocks/{height}", s.handleBlockByHeight)
+	s.mux.HandleFunc("GET /accounts", s.handleAccounts)
 	s.mux.HandleFunc("GET /accounts/{address}", s.handleAccount)
 	s.mux.HandleFunc("GET /validators", s.handleValidators)
 	s.mux.HandleFunc("GET /validators/peers", s.handleValidatorPeers)
@@ -146,6 +147,25 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
 	s.mux.HandleFunc("GET /monitoring/health", s.handleMonitoring)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
+}
+
+func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
+	limit := 25
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid limit")
+			return
+		}
+		limit = parsed
+	}
+	accounts, total := s.devnet.AccountsByBalance(limit)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"accounts":       accounts,
+		"total":          total,
+		"ranking":        "liquid-ynxt-balance-descending",
+		"truthfulStatus": "authoritative-public-ledger-account-ranking",
+	})
 }
 
 func (s *Server) aiRoute(pattern string, handler http.HandlerFunc) {
@@ -1267,6 +1287,11 @@ type rpcResponse struct {
 	Error   any
 }
 
+const (
+	maxRPCBatchSize = 100
+	maxRPCBodyBytes = 1 << 20
+)
+
 func (r rpcResponse) MarshalJSON() ([]byte, error) {
 	if r.Error != nil {
 		return json.Marshal(struct {
@@ -1287,10 +1312,45 @@ func (s *Server) handleEVM(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "EVM JSON-RPC requires POST")
 		return
 	}
-	var req rpcRequest
-	if !decodeJSON(w, r, &req) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRPCBodyBytes)
+	defer r.Body.Close()
+	var payload json.RawMessage
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
 		return
 	}
+	trimmed := bytes.TrimSpace(payload)
+	if len(trimmed) == 0 {
+		writeError(w, http.StatusBadRequest, "invalid JSON-RPC request")
+		return
+	}
+	if trimmed[0] == '[' {
+		var requests []rpcRequest
+		if err := json.Unmarshal(trimmed, &requests); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid JSON-RPC batch: "+err.Error())
+			return
+		}
+		if len(requests) == 0 || len(requests) > maxRPCBatchSize {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("JSON-RPC batch must contain 1..%d requests", maxRPCBatchSize))
+			return
+		}
+		responses := make([]rpcResponse, 0, len(requests))
+		for _, req := range requests {
+			responses = append(responses, s.rpcResponse(req))
+		}
+		writeJSON(w, http.StatusOK, responses)
+		return
+	}
+	var req rpcRequest
+	if err := json.Unmarshal(trimmed, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON-RPC request: "+err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, s.rpcResponse(req))
+}
+
+func (s *Server) rpcResponse(req rpcRequest) rpcResponse {
 	result, err := s.evmResult(req.Method, req.Params)
 	resp := rpcResponse{JSONRPC: "2.0", ID: req.ID}
 	if err != nil {
@@ -1302,7 +1362,7 @@ func (s *Server) handleEVM(w http.ResponseWriter, r *http.Request) {
 	} else {
 		resp.Result = result
 	}
-	writeJSON(w, http.StatusOK, resp)
+	return resp
 }
 
 func (s *Server) evmResult(method string, params []any) (any, error) {

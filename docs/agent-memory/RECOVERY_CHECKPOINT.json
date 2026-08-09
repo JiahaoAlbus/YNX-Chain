@@ -1,84 +1,99 @@
 {
   "schemaVersion": "1.0",
-  "productNumber": "27",
-  "productName": "YNX DEX",
-  "phase": "FREEZE",
-  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex",
-  "branch": "codex/final-dex",
-  "localSha": "f933440d5cb791044476eb69c58c522d5c91d8a1",
-  "remoteSha": "f933440d5cb791044476eb69c58c522d5c91d8a1",
+  "productNumber": "16",
+  "productName": "YNX Resource Market",
+  "phase": "INTEGRATE",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/16-resource-market",
+  "branch": "codex/final-resource-market",
+  "localSha": "d683c7d28ce129daad358c84680e5980cf8ad069",
+  "remoteSha": "d683c7d28ce129daad358c84680e5980cf8ad069",
   "mainSha": "0ad0aaec7a96f1efcb871247cc9e0161ba6a01cc",
   "dirty": false,
   "ahead": 0,
   "behind": 0,
   "latestSuccessfulTests": [
-    "go test -race ./internal/dex ./cmd/ynx-dex-indexerd ./cmd/ynx-dex-recovery",
-    "npm test --prefix sdk/dex (21 pass)",
-    "npm run check --prefix sdk/dex",
-    "npm test --prefix apps/dex (17 pass)",
-    "npm run build --prefix apps/dex",
-    "make secret-scan",
-    "make static-check",
-    "npm run dex:release:test",
-    "npm run dex:manifests:check",
-    "npm run dex:artifacts:verify"
+    "go test -count=1 ./...",
+    "go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct",
+    "go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market",
+    "bash apps/resource-market/check.sh",
+    "bash scripts/validate/no-placeholder-check.sh",
+    "npm audit --audit-level=high (apps/resource-market)",
+    "npm run test:ui (apps/resource-market)",
+    "npm sbom --sbom-format spdx (apps/resource-market)"
   ],
-  "latestCiRuns": [],
-  "pullRequests": [],
-  "release": null,
-  "artifacts": [
+  "latestCiRuns": [
     {
-      "path": "release/dex/artifact-manifest.json",
-      "sha256": "80beb665aca3f49c55951e96acf63d2e1f1b10308e0c93f4208ae4f1c1934b5e",
-      "bytes": 6162,
-      "hosted": false,
-      "signed": false
+      "id": 30417957999,
+      "workflow": "Resource Market Candidate Gates",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
     },
     {
-      "path": "release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-      "sha256": "dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669",
-      "bytes": 331755,
-      "hosted": false,
-      "signed": false
+      "id": 30417957996,
+      "workflow": "ci",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
     },
     {
-      "path": "release/dex/ynx-chain-dex-sdk-0.1.0-testnet-preview.1.tgz",
-      "sha256": "fae8db1d106e7c82ddad2c030c207551155fe3075b4ccedabead23efd17603a5",
-      "bytes": 21765,
-      "hosted": false,
-      "signed": false
+      "id": 30417958003,
+      "workflow": "docs-compliance",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417957987,
+      "workflow": "Trust Resource Native Preview",
+      "status": "success",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    },
+    {
+      "id": 30417957971,
+      "workflow": "governance",
+      "status": "in_progress_at_checkpoint",
+      "sourceSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
     }
   ],
+  "pullRequests": [
+    {
+      "number": 12,
+      "state": "OPEN",
+      "mergeable": true,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/12",
+      "headSha": "d683c7d28ce129daad358c84680e5980cf8ad069"
+    }
+  ],
+  "release": null,
+  "artifacts": [],
   "publicRoutes": [],
   "completed": [
-    "repository recovery and remote protection",
-    "constant-product local candidate",
-    "StableSwap local candidate",
-    "Strategy Vault direct CPMM and StableSwap execution",
-    "FairFlow local candidate",
-    "LP Protection local candidate",
-    "typed Indexer state/cursor migration",
-    "authenticated immutable point-in-time recovery drill",
-    "integration contract and local artifact integrity"
+    "main-synchronized candidate",
+    "offer-scoped capacity reservation integrity",
+    "provider self-dealing rejection",
+    "checked amount arithmetic",
+    "bounded retry lineage",
+    "twelve-locale browser and accessibility boundary",
+    "portable local API and DAST smoke",
+    "candidate SHA-256 and dependency inventory generation",
+    "SPDX npm SBOM generation",
+    "Android debug install and cold start evidence",
+    "iOS Simulator build evidence"
   ],
   "remaining": [
-    "concentrated-liquidity invariant-tested runtime",
-    "weighted pool and liquidity bootstrapping candidates",
-    "down-schema rollback migration",
-    "provisioned Testnet operational RPO drill",
-    "central dependency acceptance",
-    "verified Testnet deployment and public receipts",
-    "independent audit and supply-chain closure",
-    "immutable hosting, production signing, GitHub Release and Website publication"
+    "merge PR 12",
+    "central integration acceptance",
+    "two independent Testnet providers",
+    "authoritative public settlement and refund evidence",
+    "restart recovery on deployed services",
+    "public deployment and ynxweb4.com resource-market route",
+    "immutable hosted artifact and production signing",
+    "legal and external security review"
   ],
   "blockers": [
-    "repository-wide internal/api Hardhat selector metadata tests fail outside YNX 27 ownership",
-    "canonical Wallet/Gateway registry acceptance",
-    "reviewed Oracle and stable-asset policy",
-    "canonical Testnet addresses and protected signer/funding",
-    "independent audit",
-    "immutable artifact host and Website deployment window"
+    "RM-BLOCK-001 central integration acceptance",
+    "RM-BLOCK-002 independent Testnet providers and funded settlement",
+    "RM-BLOCK-003 public deployment and website closure",
+    "RM-BLOCK-004 production signing and professional review"
   ],
-  "nextAction": "Freeze a clean-room concentrated-liquidity v1 specification and implement the first invariant-tested pool slice with exact tick, range, fee-growth, callback and malicious-token boundaries.",
-  "updatedAt": "2026-07-29T02:27:50Z"
+  "nextAction": "After PR 12 is merged, submit the frozen integration contract and vectors to Product 29, then execute the complete success and failure/recovery sequence with two independent Testnet providers and authoritative settlement.",
+  "updatedAt": "2026-07-29T02:54:25Z"
 }

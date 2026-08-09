@@ -1,23 +1,13 @@
-# YNX 27 DEX next action
+# Next Action
 
-Freeze a clean-room concentrated-liquidity v1 specification, then implement the first invariant-tested pool slice.
+After PR `#12` is merged, submit `release/integration/resource-market-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, and `docs/integration/DEPENDENCY_ACCEPTANCE.md` to Product `29` for central acceptance against Wallet/Auth, Chain settlement, Data Fabric billing, Explorer, Monitor, and Trust.
 
-The slice must define and test:
+The first executable verification after central acceptance is:
 
-- immutable token ordering and reviewed fee tier;
-- tick spacing and bounded initialized-tick transitions;
-- range-liquidity mint/burn ownership accounting;
-- exact fee-growth accounting with rounding direction stated;
-- callback payment verification and reentrancy rejection;
-- price-limit, overflow and zero-liquidity failure behavior;
-- malicious, fee-on-transfer and rebasing token boundaries;
-- explicit non-support for routing, Oracle claims and production deployment until later slices.
+1. deploy two independently operated Testnet providers;
+2. execute Quote → Intent → Reservation → Service → segmented Metering → authoritative Settlement;
+3. execute provider Failure → one bounded Retry → Refund/Bond/Appeal;
+4. restart services and verify state recovery;
+5. record authoritative transaction hashes, receipts, provider identities, health/version endpoints, and source SHA without embedding credentials.
 
-Required checkpoint before stopping:
-
-1. specification and source remain inside the YNX 27 worktree;
-2. focused unit, differential and stateful invariant tests pass;
-3. Diff is reviewed;
-4. commit is pushed to `origin/codex/final-dex`;
-5. Local SHA equals Remote SHA;
-6. feature evidence and recovery checkpoint are updated without claiming integration or deployment.
+Do not publish or mark `integratedCentral`, `testnetVerified`, `deployedPublic`, `releasePublished`, or `downloadHosted` before those direct checks succeed.

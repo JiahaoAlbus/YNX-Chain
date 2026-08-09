@@ -1,0 +1,40 @@
+{
+  "productId": "ynx-creator-studio",
+  "name": "YNX Creator Studio",
+  "branch": "codex/creator-central-20260804",
+  "commit": "3353bdfada4435f2acdbe09d82d2603a7af796ac",
+  "version": "0.3.0-testnet-preview.1",
+  "surfaces": ["web"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": true,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": ["https://web4.ynxweb4.com/video/studio/"],
+  "healthUrls": ["https://web4.ynxweb4.com/video/api/health"],
+  "artifactUrls": [],
+  "sha256": {},
+  "bytes": {},
+  "signingClass": "not applicable; unhosted Web source",
+  "minOS": {"browser": "current evergreen browser"},
+  "installEvidence": {
+    "web": "public Testnet route plus 100/100 concurrent API health, Viewer and Creator Studio requests",
+    "boundary": "single-host public Testnet preview; unauthenticated creator operations return 401 and central Wallet/Gateway registration remains pending"
+  },
+  "centralIntegration": {
+    "status": "integration-request-only",
+    "registryCandidate": "internal/video/integration/registry-v2.json",
+    "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
+  },
+  "knownLimitations": [
+    "Central Wallet/Gateway registration remains pending, so private creator operations fail closed",
+    "Public service is a single-host Testnet preview, not an HA production deployment",
+    "No live provider AI, Trust delegated appeal or Pay settlement",
+    "Analytics and revenue remain zero without authoritative persisted events"
+  ],
+  "generatedAt": "2026-08-04T02:38:00Z"
+}

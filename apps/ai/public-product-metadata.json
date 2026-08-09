@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "ynx-ai",
+  "name": "YNX AI",
+  "canonicalRoute": "/dapp/ai",
+  "publicUrl": "https://assistant.ynxweb4.com/",
+  "title": "YNX AI | Permissioned intelligence for YNX Testnet",
+  "metaDescription": "Use YNX AI through a permissioned, provider-neutral workspace with explicit context, tool review, data controls and truthful provider status.",
+  "h1": "Bring your Wallet. Keep your authority.",
+  "sourceCommit": "16d6d71e2f93418e37fe9d024f58c492ca1baad4",
+  "deployedPublic": true,
+  "generationLive": false,
+  "providerEvidence": "Gateway and model endpoint reachable; latest bounded generation run returned HTTP 429/provider_rate_limited with no substitute answer.",
+  "features": [
+    "Conversations, search, branches, retry, continue and SSE cancellation",
+    "Explicit context selection, bounded attachments and Product AI Registry",
+    "Tool and action preview, approve or reject, audit and approved-not-executed boundary",
+    "Encrypted retention, export, delete, backup and authenticated restore",
+    "Provider, model, quota and estimated-cost truth states"
+  ],
+  "risks": [
+    "Canonical Wallet product-session acceptance is pending",
+    "Current provider generation is rate-limited",
+    "No native production-signed or store release is available"
+  ],
+  "statusUrl": "https://assistant.ynxweb4.com/api/public-status",
+  "securityUrl": "https://ynxweb4.com/security",
+  "privacyUrl": "https://ynxweb4.com/privacy",
+  "supportUrl": "https://ynxweb4.com/support"
+}

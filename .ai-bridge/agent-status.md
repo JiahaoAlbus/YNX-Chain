@@ -1,44 +1,21 @@
-# YNX DEX agent status
+# YNX Wallet/Auth agent status
 
-- Product: YNX 27 — YNX DEX
-- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex`
-- Branch: `codex/final-dex`
-- Phase: `FREEZE`
-- Long-term status: `ACTIVE`
-- Packaged contract/SDK source base: `4d9f9c807efb2529836a1324b17c697e91a23421`
-- Runtime/recovery source: `7d61369e02ab4d50a9fc36c927dc487e47ce9814`
-- Protected evidence checkpoint: `f933440d5cb791044476eb69c58c522d5c91d8a1`
-- Recovery audit: Local SHA and Remote SHA matched at the protected checkpoint; ahead/behind `0/0`; worktree clean; no stash.
-- GitHub Actions: no runs for `codex/final-dex`.
-- Pull requests: none for `codex/final-dex`.
-- GitHub Release/Artifact: no DEX Release or branch artifact verified.
-
-## Completed and locally verified
-
-- Direct StableSwap exact-input, exact-output, add-liquidity and remove-liquidity Strategy Vault actions.
-- Exact Stable pool kind, token pair, factory, permission, nonce, deadline, Oracle, depeg, impact, capital, frequency, pause, revoke, kill and emergency-exit boundaries.
-- SDK stable-vault canonical approval, submission and indexed reconciliation.
-- Confirmed Indexer typed Stable/Vault/FairFlow/LP Protection ingestion, cursor v6 binding and reorg recovery.
-- Authenticated immutable point-in-time state/cursor recovery bundle and isolated restore drill with observed local timing.
-- Unsigned local PWA, SDK and contract source/build artifact verification.
-
-## Latest verified gates
-
-- `go test -race ./internal/dex ./cmd/ynx-dex-indexerd ./cmd/ynx-dex-recovery`
-- `npm test --prefix sdk/dex` — 21 pass
-- `npm run check --prefix sdk/dex`
-- `npm test --prefix apps/dex` — 17 pass
-- `npm run build --prefix apps/dex`
-- `make secret-scan`
-- `make static-check`
-- `npm run dex:release:test`
-- `npm run dex:manifests:check`
-- `npm run dex:artifacts:verify`
-
-## Shared repository gate
-
-`go test ./...` fails in unchanged shared `internal/api` Hardhat selector metadata tests. The exact cross-owner handoff is `docs/integration/CROSS_OWNER_ISSUES.md`; focused DEX gates pass.
-
-## Not complete
-
-No verified Testnet DEX deployment, canonical Wallet registry acceptance, central integration, independent audit, immutable hosting, production signature, public runtime, public Website proof, concentrated liquidity, weighted pool, liquidity bootstrapping, down-schema rollback, provisioned-Testnet operational RPO, full 12-language/a11y gate, capacity plan or unit economics exists.
+- Product: 02 | YNX Wallet / Auth
+- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/02-wallet-auth`
+- Branch: `codex/final-wallet-auth`
+- Goal: Active
+- Phase: INTEGRATE
+- Canonical source commit: `c7a6bded387223429f0708f80b50f086d8ff944d`
+- Protected observability source: `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6`
+- Protected observability evidence: `2d07dd49c6bc737c49d6a8e205b6f2db99ce6fec`
+- Completed slice: encrypted canonical Gateway backup/verify/restore, exact state and consumed-proof replay recovery, fail-closed tamper/permission/no-overwrite/rollback/age policy, and explicit state-version compatibility.
+- Version boundary: validated legacy timestamped state is atomically normalized before backup; unsupported future state schemas are rejected with `STATE_TAMPERED` and are never silently downgraded.
+- Verification: Wallet/Auth 100/100; focused Gateway backup 6/6; 20-sample source-bound local drill; restore-and-cold-start p95 42,441 microseconds; no secret/path emission.
+- Wallet App gate: exact `npm@11.5.1` toolchain, TypeScript, 39/39 tests, product/release/40-requirement/SBOM gates and Android/iOS Hermes exports passed.
+- SBOM: CycloneDX 1.6, 431 components, 504 dependency nodes, 431/431 license coverage, SHA-256 `4b1c905a01ce7fc9f923973c9a97a2de3662a515251d387ba3a7ecdcc087dd85`.
+- Source delivery: prerelease `wallet-auth-v1.0.0-source-candidate`, six assets, frozen source `c7a6bded387223429f0708f80b50f086d8ff944d`, source archive SHA-256 `e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db`; complete download backread matched.
+- Evidence: `apps/wallet/proof/gateway-backup-restore-local-2026-07-29.json` and `apps/wallet/proof/wallet-sbom-release-grade-2026-07-29.json`
+- Packaging boundary: backup and Node host remain Node-only subpaths; the universal package root stays React Native bundle-safe.
+- Truth boundary: central durable-store restore, production KMS/HSM, cross-region backup, production RTO/RPO, central integration, runtime staging/public deployment, production signing and stores remain false.
+- Current blocker: accepted central App Gateway deployment and shared Testnet dependency evidence from their owners.
+- Next action: central-owner acceptance followed by installed cross-product vectors, durable-store restore and Explorer/Monitor evidence.

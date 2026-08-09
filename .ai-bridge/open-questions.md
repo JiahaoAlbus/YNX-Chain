@@ -1,13 +1,34 @@
-# YNX DEX open questions and external inputs
+# YNX Wallet/Auth open questions
 
-These are unresolved owner or operator inputs. They are not requests for secrets in chat.
+No ordinary engineering decision requires Founder input.
 
-1. **Wallet/Auth owner:** accept client `ynx-dex-web-v1`, bundle `com.ynxweb4.dex.web`, exact scopes, approval digest and revoke/introspection vectors.
-2. **Oracle owner:** provide the frozen Testnet Oracle contract/version and reviewed stable-asset peg/rate policy, including stale/depeg thresholds and source metadata.
-3. **Integration owner:** schedule shared Testnet acceptance across Wallet, Quant, Data Fabric, Explorer, Monitor, Trust and Finance.
-4. **Operator:** provide an approved secure signer path, funded Testnet deployer identity and canonical token/treasury addresses through the protected deployment mechanism; never paste private keys or seed phrases.
-5. **Security/SRE:** define the accepted provenance/signing class, immutable artifact host, independent audit path and public status/security endpoints.
-6. **Website owner:** consume `/dex` metadata and screenshots, but keep `websitePublished=false` and `deployedPublic=false` until direct probes exist.
-7. **GitHub remote evidence:** `gh pr list` and `gh run list` returned no DEX PR or Actions run; `gh release list` returned Releases for other products only. DEX CI, merge, Release and hosted artifact status remain false.
+External acceptance items remain:
 
-Autonomous work remains: concentrated liquidity, weighted pool, liquidity bootstrapping, down-schema rollback, provisioned-Testnet operational RPO, supply-chain scans, SLO/capacity, unit economics and complete 12-language/a11y closure.
+- Which exact Registry v2/v3 tuples and central Gateway deployment target will 29 Integration accept?
+- Which exact central release/build identity, durable telemetry sink and Monitor dashboard/alert contract will App Gateway, Monitor and 29 Integration accept?
+- Which YNX Testnet EntryPoint mode/address and Bundler RPC will Chain Core expose?
+- Which owner-controlled public policy-signer and risk-officer addresses, funding budget and policy URL are approved for Paymaster deployment?
+- Which production Android/iOS signer paths, store accounts and public Wallet/support/privacy/security/status URLs are approved?
+- Which selective-disclosure issuer and capital-product providers pass legal, security and data-rights review?
+
+Secrets, keys, seed material, PEM files and complete provider credentials must never be supplied through chat or committed to this worktree.
+
+## Documentation owner evidence still required
+
+## Owner evidence still required
+
+- Which exact clean commits and focused tests will Wallet/Auth, Tokenomics, Oracle,
+  Bridge, Data Fabric and Security/SRE hand off for public fact integration?
+- When will Website/Operations provide approved canonical support, privacy, security
+  reporting and service-status routes?
+- Which independent network vantage will verify root site, Explorer, EVM RPC, Gateway
+  and Faucet without the current workstation proxy-path limitation?
+- Which exact artifact, digest, byte count and hosting record will define the first
+  immutable Docs/Compliance candidate package?
+- Who are the named legal, economic and independent-audit reviewers, and what scope,
+  jurisdiction, expiry and approval evidence will each own?
+- Which Chain Core release will establish any future public StreamBFT activation or
+  Mainnet transition, separately from Testnet Chain ID 6423?
+
+Until each owner answers with direct evidence, the corresponding release state or
+public claim remains false, blocked or candidate-only.

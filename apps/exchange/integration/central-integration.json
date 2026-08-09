@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "productId": "exchange",
+  "walletAuthSourceCommit": "ec2d2e6e2b16a877be71f5d8a02694b2454ac0a0",
+  "registryEntry": "wallet-registry-entry.json",
+  "requiredGatewayRoutes": [
+    "POST /v1/wallet/sessions/complete",
+    "POST /v1/wallet/sessions/introspect"
+  ],
+  "sessionFailClosed": true,
+  "actionFailClosed": true,
+  "sessionIntegratedCentral": true,
+  "actionIntegratedCentral": false,
+  "integratedCentral": false,
+  "reason": "The exact Exchange client is enabled by the deployed public Wallet Gateway and uses proof-bound completion and introspection. Trading, cancellation and withdrawal review remain fail-closed until the separate Wallet-reviewed product-action contract is implemented and publicly attested."
+}

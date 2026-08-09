@@ -1,0 +1,2395 @@
+package cloud
+
+import (
+	"archive/zip"
+	"bytes"
+	"container/heap"
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"path/filepath"
+	"reflect"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+)
+
+var (
+	ErrInvalid  = errors.New("invalid request")
+	ErrDenied   = errors.New("permission denied")
+	ErrNotFound = errors.New("object not found")
+)
+
+type Config struct {
+	StatePath      string
+	ObjectDir      string
+	QuotaBytes     int64
+	Scanner        Scanner
+	WalletVerifier WalletVerifier
+	AIProvider     AIProvider
+	ObjectStore    ObjectStore
+	TrustSink      TrustSink
+	ReleaseCommit  string
+	ReleaseVersion string
+	ExitMode       bool
+	TelemetryPath  string
+	Now            func() time.Time
+}
+
+type DeletionPendingError struct{ Count int }
+
+func (e DeletionPendingError) Error() string {
+	return fmt.Sprintf("logical deletion completed; %d physical blob deletion(s) pending provider recovery", e.Count)
+}
+
+type Service struct {
+	mu              sync.Mutex
+	cfg             Config
+	state           persistentState
+	cancels         map[string]context.CancelFunc
+	lifecycleActive map[string]bool
+}
+
+func New(cfg Config) (*Service, error) {
+	if strings.TrimSpace(cfg.StatePath) == "" {
+		return nil, errors.New("cloud state path is required")
+	}
+	if commit := strings.TrimSpace(cfg.ReleaseCommit); commit != "" {
+		decoded, err := hex.DecodeString(commit)
+		if err != nil || len(decoded) != 20 || commit != strings.ToLower(commit) {
+			return nil, errors.New("YNX_RELEASE_COMMIT must be an exact lowercase 40-hex Git SHA")
+		}
+	}
+	if cfg.ObjectDir == "" {
+		cfg.ObjectDir = filepath.Join(filepath.Dir(cfg.StatePath), "objects")
+	}
+	if cfg.TelemetryPath == "" {
+		cfg.TelemetryPath = filepath.Join(filepath.Dir(cfg.StatePath), "telemetry.json")
+	}
+	if cfg.QuotaBytes <= 0 {
+		cfg.QuotaBytes = 64 << 20
+	}
+	if cfg.Scanner == nil {
+		cfg.Scanner = BoundedScanner{}
+	}
+	if cfg.WalletVerifier == nil {
+		cfg.WalletVerifier = UnavailableWalletVerifier{}
+	}
+	if cfg.AIProvider == nil {
+		cfg.AIProvider = UnavailableAIProvider{}
+	}
+	if cfg.ObjectStore == nil {
+		cfg.ObjectStore = LocalObjectStore{Root: cfg.ObjectDir}
+	}
+	if cfg.TrustSink == nil {
+		cfg.TrustSink = LocalAuditTrustSink{}
+	}
+	if cfg.Now == nil {
+		cfg.Now = func() time.Time { return time.Now().UTC() }
+	}
+	state, err := loadState(cfg.StatePath)
+	if err != nil {
+		return nil, err
+	}
+	service := &Service{cfg: cfg, state: state, cancels: map[string]context.CancelFunc{}, lifecycleActive: map[string]bool{}}
+	if service.state.IntegrityHash == "" {
+		if err := saveState(cfg.StatePath, &service.state); err != nil {
+			return nil, err
+		}
+	}
+	recovered := false
+	for id, job := range service.state.AIJobs {
+		if job.Status == "queued" || job.Status == "running" {
+			job.Status = "failed"
+			job.Error = "AI job was interrupted by service restart; retry requires fresh context consent"
+			service.state.AIJobs[id] = job
+			recovered = true
+		}
+	}
+	if recovered {
+		if err := saveState(cfg.StatePath, &service.state); err != nil {
+			return nil, err
+		}
+	}
+	return service, nil
+}
+
+func newID(prefix string) string {
+	b := make([]byte, 12)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return prefix + "_" + hex.EncodeToString(b)
+}
+
+func hashBytes(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToString(h[:]) }
+
+func validAccount(v string) bool { return strings.HasPrefix(v, "ynx1") && len(v) >= 20 && len(v) <= 96 }
+
+func usageKey(owner, product string) string { return owner + "\x00" + product }
+
+func (s *Service) settleStorageLocked(owner, product string) UsageCounters {
+	key := usageKey(owner, product)
+	usage := s.state.Usage[key]
+	now := s.cfg.Now()
+	usage.Owner = owner
+	usage.Product = product
+	if usage.StorageMeteredAt.IsZero() {
+		usage.StorageMeteredAt = now
+		usage.StorageCoverageStarts = now
+	} else if elapsed := now.Sub(usage.StorageMeteredAt); elapsed >= time.Second {
+		seconds := int64(elapsed / time.Second)
+		bytes := s.usedLockedProduct(owner, product)
+		if bytes > 0 && seconds <= (int64(^uint64(0)>>1)-usage.StorageByteSeconds)/bytes {
+			usage.StorageByteSeconds += bytes * seconds
+		}
+		usage.StorageMeteredAt = usage.StorageMeteredAt.Add(time.Duration(seconds) * time.Second)
+	}
+	usage.UpdatedAt = now
+	s.state.Usage[key] = usage
+	return usage
+}
+
+func (s *Service) meterLocked(owner, product string, ingress, egress, scan, aiUnits, aiJobs int64) {
+	key := usageKey(owner, product)
+	usage := s.settleStorageLocked(owner, product)
+	usage.Owner = owner
+	usage.Product = product
+	usage.IngressBytes += ingress
+	usage.EgressBytes += egress
+	usage.ScanBytes += scan
+	usage.AIInputUnits += aiUnits
+	usage.AIJobs += aiJobs
+	usage.UpdatedAt = s.cfg.Now()
+	s.state.Usage[key] = usage
+}
+
+func (s *Service) persist(action, actor, objectID string, details map[string]any) error {
+	if details == nil {
+		details = map[string]any{}
+	}
+	if _, exists := details["product"]; !exists {
+		if object, ok := s.state.Objects[objectID]; ok {
+			details["product"] = object.Product
+		}
+	}
+	event := AuditEvent{ID: newID("audit"), Actor: actor, Action: action, ObjectID: objectID, At: s.cfg.Now(), Details: details}
+	s.state.Audit = append(s.state.Audit, event)
+	if len(s.state.Audit) > 5000 {
+		s.state.Audit = append([]AuditEvent(nil), s.state.Audit[len(s.state.Audit)-5000:]...)
+	}
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		return err
+	}
+	trust := TrustEvent{Actor: actor, Action: action, ObjectID: objectID, At: event.At, Details: details}
+	if object, ok := s.state.Objects[objectID]; ok {
+		trust.Hash = object.Hash
+	}
+	go func() { _ = s.cfg.TrustSink.Record(context.Background(), trust) }()
+	return nil
+}
+
+func objectStorageScope(actor, product string) string {
+	return hashBytes([]byte("YNX_CLOUD_OBJECT_SCOPE_V1\x00" + product + "\x00" + actor))
+}
+
+func (s *Service) putObjectBlob(ctx context.Context, actor, product, hash string, body []byte) (string, error) {
+	if scoped, ok := s.cfg.ObjectStore.(ScopedObjectStore); ok {
+		return scoped.PutScoped(ctx, objectStorageScope(actor, product), hash, body)
+	}
+	return s.cfg.ObjectStore.Put(ctx, hash, body)
+}
+
+func (s *Service) role(actor string, obj Object) string {
+	if actor == obj.Owner {
+		return "owner"
+	}
+	now := s.cfg.Now()
+	current := obj
+	for {
+		best := ""
+		for _, g := range s.state.Grants {
+			if g.ObjectID != current.ID || g.Principal != actor || g.RevokedAt != nil || (g.ExpiresAt != nil && !g.ExpiresAt.After(now)) {
+				continue
+			}
+			if rank(g.Role) > rank(best) {
+				best = g.Role
+			}
+		}
+		if best != "" {
+			return best
+		}
+		if current.ParentID == "" {
+			break
+		}
+		parent, ok := s.state.Objects[current.ParentID]
+		if !ok {
+			break
+		}
+		current = parent
+	}
+	return ""
+}
+
+func rank(role string) int {
+	switch role {
+	case "owner":
+		return 3
+	case "editor":
+		return 2
+	case "viewer":
+		return 1
+	}
+	return 0
+}
+
+func (s *Service) require(actor, id string, minimum int) (Object, error) {
+	obj, ok := s.state.Objects[id]
+	if !ok {
+		return Object{}, ErrNotFound
+	}
+	if rank(s.role(actor, obj)) < minimum {
+		return Object{}, ErrDenied
+	}
+	return obj, nil
+}
+
+func validateName(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" || len(name) > 180 || strings.ContainsAny(name, "\x00/\\") {
+		return ErrInvalid
+	}
+	return nil
+}
+
+func validateArtifact(a *Artifact, now time.Time) error {
+	if a == nil {
+		return nil
+	}
+	valid := map[string]bool{"dataset": true, "strategy": true, "model": true, "build": true, "backtest": true, "experiment": true, "checkpoint": true, "media-source": true, "document-export": true, "audit-archive": true}
+	if !valid[a.Type] || strings.TrimSpace(a.Product) == "" || len(a.Product) > 64 || (a.Retention != "standard" && a.Retention != "legal-hold" && a.Retention != "ephemeral") {
+		return ErrInvalid
+	}
+	if a.Retention == "legal-hold" && a.RetentionEnds != nil {
+		return errors.New("legal hold cannot declare an automatic expiry")
+	}
+	if a.Retention == "ephemeral" && a.RetentionEnds == nil {
+		return errors.New("ephemeral retention requires a future expiry")
+	}
+	if a.RetentionEnds != nil && !a.RetentionEnds.After(now) {
+		return errors.New("retention expiry must be in the future")
+	}
+	return nil
+}
+
+func normalizeObjectProduct(product string, kind ObjectKind) (string, error) {
+	if product == "" {
+		if kind == KindDoc {
+			return "docs", nil
+		}
+		return "cloud", nil
+	}
+	if product == "cloud" && (kind == KindFile || kind == KindFolder) {
+		return product, nil
+	}
+	if product == "docs" && kind == KindDoc {
+		return product, nil
+	}
+	return "", ErrInvalid
+}
+
+func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequest) (Object, error) {
+	if !validAccount(actor) || validateName(req.Name) != nil {
+		return Object{}, ErrInvalid
+	}
+	if err := validateArtifact(req.Artifact, s.cfg.Now()); err != nil {
+		return Object{}, err
+	}
+	if req.Kind != KindFolder && req.Kind != KindFile && req.Kind != KindDoc {
+		return Object{}, ErrInvalid
+	}
+	product, err := normalizeObjectProduct(req.Product, req.Kind)
+	if err != nil {
+		return Object{}, err
+	}
+	req.Product = product
+	if req.Kind == KindFolder && len(req.Content) != 0 {
+		return Object{}, ErrInvalid
+	}
+	if len(req.Content) > MaxUploadBytes {
+		return Object{}, ErrInvalid
+	}
+	if req.Encryption.ClientSide {
+		if req.Encryption.Algorithm != "AES-256-GCM" || req.Encryption.RecoveryPolicy == "" {
+			return Object{}, ErrInvalid
+		}
+	} else if req.Encryption.Algorithm != "" || req.Encryption.KeyHint != "" {
+		return Object{}, ErrInvalid
+	}
+	if req.Kind != KindFolder {
+		if req.MIME == "" {
+			req.MIME = "application/octet-stream"
+		}
+		if err := s.cfg.Scanner.Scan(ctx, req.Name, req.MIME, req.Content); err != nil {
+			return Object{}, err
+		}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if req.ParentID != "" {
+		parent, err := s.require(actor, req.ParentID, 2)
+		if err != nil || parent.Kind != KindFolder || parent.TrashedAt != nil {
+			return Object{}, ErrDenied
+		}
+	}
+	now := s.cfg.Now()
+	storageClass, storageClassVersion, storageReadMode := initialStorageState(req.Kind)
+	obj := Object{ID: newID("obj"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption, Artifact: req.Artifact, StorageClass: storageClass, StorageClassVersion: storageClassVersion, StorageReadMode: storageReadMode}
+	if req.Kind != KindFolder {
+		h := hashBytes(req.Content)
+		path, err := s.putObjectBlob(ctx, actor, req.Product, h, req.Content)
+		if err != nil {
+			return Object{}, err
+		}
+		obj.Hash = h
+		obj.Size = int64(len(req.Content))
+		obj.Version = 1
+		obj.ScanStatus = "accepted"
+		if s.usedLocked(actor)+s.additionalLocked(actor, obj.Product, h, obj.Size) > s.cfg.QuotaBytes {
+			return Object{}, errors.New("storage quota exceeded")
+		}
+		s.settleStorageLocked(actor, obj.Product)
+		s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate}}
+	}
+	s.state.Objects[obj.ID] = obj
+	if obj.Kind != KindFolder {
+		s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
+	}
+	if err := s.persist("object.create", actor, obj.ID, map[string]any{"product": obj.Product, "kind": obj.Kind, "hash": obj.Hash, "clientEncrypted": obj.Encryption.ClientSide, "artifact": obj.Artifact}); err != nil {
+		return Object{}, err
+	}
+	return obj, nil
+}
+
+func (s *Service) InitiateMultipart(actor string, req CreateObjectRequest, expectedSize int64, expectedHash string) (MultipartUpload, error) {
+	if !validAccount(actor) || validateName(req.Name) != nil || req.Kind != KindFile || expectedSize < 1 || expectedSize > MaxMultipartBytes || len(expectedHash) != 64 {
+		return MultipartUpload{}, ErrInvalid
+	}
+	if err := validateArtifact(req.Artifact, s.cfg.Now()); err != nil {
+		return MultipartUpload{}, err
+	}
+	if _, err := hex.DecodeString(expectedHash); err != nil || expectedHash != strings.ToLower(expectedHash) {
+		return MultipartUpload{}, ErrInvalid
+	}
+	product, err := normalizeObjectProduct(req.Product, KindFile)
+	if err != nil {
+		return MultipartUpload{}, err
+	}
+	req.Product = product
+	if req.Encryption.ClientSide {
+		if req.Encryption.Algorithm != "AES-256-GCM" || req.Encryption.RecoveryPolicy == "" {
+			return MultipartUpload{}, ErrInvalid
+		}
+	} else if req.Encryption.Algorithm != "" || req.Encryption.KeyHint != "" {
+		return MultipartUpload{}, ErrInvalid
+	}
+	if req.MIME == "" {
+		req.MIME = "application/octet-stream"
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if req.ParentID != "" {
+		p, err := s.require(actor, req.ParentID, 2)
+		if err != nil || p.Kind != KindFolder || p.TrashedAt != nil {
+			return MultipartUpload{}, ErrDenied
+		}
+	}
+	now := s.cfg.Now()
+	u := MultipartUpload{ID: newID("upload"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Name: strings.TrimSpace(req.Name), MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact, ExpectedSize: expectedSize, ExpectedHash: expectedHash, Status: "active", Parts: map[int]MultipartPart{}, CreatedAt: now, UpdatedAt: now}
+	s.state.MultipartUploads[u.ID] = u
+	if err := s.persist("multipart.initiate", actor, "", map[string]any{"product": u.Product, "uploadId": u.ID, "expectedSize": expectedSize, "expectedHash": expectedHash}); err != nil {
+		delete(s.state.MultipartUploads, u.ID)
+		return MultipartUpload{}, err
+	}
+	return u, nil
+}
+
+func (s *Service) PutMultipartPart(ctx context.Context, actor, id string, number int, body []byte, claimedHash string) (MultipartPart, error) {
+	if number < 1 || number > MaxMultipartParts || len(body) < 1 || len(body) > MaxUploadBytes || hashBytes(body) != claimedHash {
+		return MultipartPart{}, ErrInvalid
+	}
+	s.mu.Lock()
+	u, ok := s.state.MultipartUploads[id]
+	s.mu.Unlock()
+	if !ok {
+		return MultipartPart{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		return MultipartPart{}, ErrDenied
+	}
+	if u.Status != "active" {
+		return MultipartPart{}, ErrInvalid
+	}
+	ref, err := s.putObjectBlob(ctx, actor, u.Product, claimedHash, body)
+	if err != nil {
+		return MultipartPart{}, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u = s.state.MultipartUploads[id]
+	if u.Status != "active" {
+		return MultipartPart{}, ErrInvalid
+	}
+	p := MultipartPart{Number: number, Size: int64(len(body)), Hash: claimedHash, Ref: ref}
+	u.Parts[number] = p
+	u.UpdatedAt = s.cfg.Now()
+	s.state.MultipartUploads[id] = u
+	if err := s.persist("multipart.part", actor, "", map[string]any{"product": u.Product, "uploadId": id, "part": number, "size": len(body), "hash": claimedHash}); err != nil {
+		return MultipartPart{}, err
+	}
+	return p, nil
+}
+
+func (s *Service) GetMultipart(actor, id string) (MultipartUpload, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, ok := s.state.MultipartUploads[id]
+	if !ok {
+		return MultipartUpload{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		return MultipartUpload{}, ErrDenied
+	}
+	return u, nil
+}
+
+func (s *Service) CancelMultipart(actor, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, ok := s.state.MultipartUploads[id]
+	if !ok {
+		return ErrNotFound
+	}
+	if u.Owner != actor {
+		return ErrDenied
+	}
+	delete(s.state.MultipartUploads, id)
+	return s.persist("multipart.cancel", actor, "", map[string]any{"product": u.Product, "uploadId": id, "parts": len(u.Parts)})
+}
+
+func (s *Service) CompleteMultipart(ctx context.Context, actor, id string, ordered []int) (Object, error) {
+	s.mu.Lock()
+	u, ok := s.state.MultipartUploads[id]
+	if !ok {
+		s.mu.Unlock()
+		return Object{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		s.mu.Unlock()
+		return Object{}, ErrDenied
+	}
+	if u.Status != "active" || len(ordered) == 0 || len(ordered) != len(u.Parts) {
+		s.mu.Unlock()
+		return Object{}, ErrInvalid
+	}
+	u.Status = "completing"
+	s.state.MultipartUploads[id] = u
+	s.mu.Unlock()
+	failed := func() {
+		s.mu.Lock()
+		v, ok := s.state.MultipartUploads[id]
+		if ok {
+			v.Status = "active"
+			s.state.MultipartUploads[id] = v
+			_ = saveState(s.cfg.StatePath, &s.state)
+		}
+		s.mu.Unlock()
+	}
+	var all bytes.Buffer
+	last := 0
+	for _, n := range ordered {
+		if n <= last {
+			failed()
+			return Object{}, ErrInvalid
+		}
+		p, ok := u.Parts[n]
+		if !ok {
+			failed()
+			return Object{}, ErrInvalid
+		}
+		b, err := s.cfg.ObjectStore.Get(ctx, p.Ref, p.Hash)
+		if err != nil {
+			failed()
+			return Object{}, err
+		}
+		all.Write(b)
+		last = n
+	}
+	body := all.Bytes()
+	if int64(len(body)) != u.ExpectedSize || hashBytes(body) != u.ExpectedHash {
+		failed()
+		return Object{}, errors.New("multipart final integrity mismatch")
+	}
+	obj, err := s.Create(ctx, actor, CreateObjectRequest{Product: u.Product, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Content: body, Encryption: u.Encryption, Artifact: u.Artifact})
+	if err != nil {
+		failed()
+		return Object{}, err
+	}
+	s.mu.Lock()
+	delete(s.state.MultipartUploads, id)
+	err = s.persist("multipart.complete", actor, obj.ID, map[string]any{"uploadId": id, "parts": len(ordered), "hash": obj.Hash})
+	s.mu.Unlock()
+	if err != nil {
+		return Object{}, err
+	}
+	return obj, nil
+}
+
+func (s *Service) InitiateDirectUpload(ctx context.Context, actor string, req CreateObjectRequest, expectedSize int64, expectedHash string) (DirectUpload, DirectUploadPlan, error) {
+	provider, ok := s.cfg.ObjectStore.(DirectUploadStore)
+	if !ok {
+		return DirectUpload{}, DirectUploadPlan{}, errors.New("presigned direct upload unavailable for configured object store")
+	}
+	if !validAccount(actor) || validateName(req.Name) != nil || req.Kind != KindFile || expectedSize < 1 || expectedSize > MaxDirectUploadBytes || len(expectedHash) != 64 {
+		return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
+	}
+	if err := validateArtifact(req.Artifact, s.cfg.Now()); err != nil {
+		return DirectUpload{}, DirectUploadPlan{}, err
+	}
+	if _, err := hex.DecodeString(expectedHash); err != nil || expectedHash != strings.ToLower(expectedHash) {
+		return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
+	}
+	product, productErr := normalizeObjectProduct(req.Product, KindFile)
+	if productErr != nil {
+		return DirectUpload{}, DirectUploadPlan{}, productErr
+	}
+	req.Product = product
+	if req.MIME == "" {
+		req.MIME = "application/octet-stream"
+	}
+	if req.Encryption.ClientSide {
+		if req.Encryption.Algorithm != "AES-256-GCM" || req.Encryption.RecoveryPolicy == "" {
+			return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
+		}
+	} else if req.Encryption.Algorithm != "" || req.Encryption.KeyHint != "" {
+		return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
+	}
+	s.mu.Lock()
+	if req.ParentID != "" {
+		p, err := s.require(actor, req.ParentID, 2)
+		if err != nil || p.Kind != KindFolder || p.TrashedAt != nil {
+			s.mu.Unlock()
+			return DirectUpload{}, DirectUploadPlan{}, ErrDenied
+		}
+	}
+	s.mu.Unlock()
+	plan, err := provider.Presign(ctx, DirectUploadRequest{Scope: objectStorageScope(actor, req.Product), Hash: expectedHash, Size: expectedSize, MIME: req.MIME})
+	if err != nil {
+		return DirectUpload{}, DirectUploadPlan{}, err
+	}
+	now := s.cfg.Now()
+	u := DirectUpload{ID: newID("direct"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Name: strings.TrimSpace(req.Name), MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact, ExpectedSize: expectedSize, ExpectedHash: expectedHash, ProviderRef: plan.Ref, Status: "awaiting-upload", CreatedAt: now, UpdatedAt: now, ExpiresAt: plan.ExpiresAt}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.state.DirectUploads[u.ID] = u
+	if err := s.persist("direct.initiate", actor, "", map[string]any{"product": u.Product, "directUploadId": u.ID, "size": expectedSize, "hash": expectedHash, "expiresAt": plan.ExpiresAt}); err != nil {
+		delete(s.state.DirectUploads, u.ID)
+		return DirectUpload{}, DirectUploadPlan{}, err
+	}
+	public := u
+	public.ProviderRef = ""
+	publicPlan := plan
+	publicPlan.Ref = ""
+	return public, publicPlan, nil
+}
+
+func (s *Service) GetDirectUpload(actor, id string) (DirectUpload, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, ok := s.state.DirectUploads[id]
+	if !ok {
+		return DirectUpload{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		return DirectUpload{}, ErrDenied
+	}
+	u.ProviderRef = ""
+	return u, nil
+}
+
+func (s *Service) CompleteDirectUpload(ctx context.Context, actor, id string) (Object, error) {
+	provider, ok := s.cfg.ObjectStore.(DirectUploadStore)
+	if !ok {
+		return Object{}, errors.New("presigned direct upload unavailable for configured object store")
+	}
+	s.mu.Lock()
+	u, ok := s.state.DirectUploads[id]
+	if !ok {
+		s.mu.Unlock()
+		return Object{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		s.mu.Unlock()
+		return Object{}, ErrDenied
+	}
+	if u.Status != "awaiting-upload" || !u.ExpiresAt.After(s.cfg.Now()) {
+		s.mu.Unlock()
+		return Object{}, ErrInvalid
+	}
+	u.Status = "verifying"
+	u.UpdatedAt = s.cfg.Now()
+	s.state.DirectUploads[id] = u
+	s.mu.Unlock()
+	verified, err := provider.VerifyDirect(ctx, u.ProviderRef, u.ExpectedHash, u.ExpectedSize)
+	if err != nil {
+		s.mu.Lock()
+		u.Status = "awaiting-upload"
+		u.UpdatedAt = s.cfg.Now()
+		s.state.DirectUploads[id] = u
+		_ = saveState(s.cfg.StatePath, &s.state)
+		s.mu.Unlock()
+		return Object{}, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	reset := func() {
+		u.Status = "awaiting-upload"
+		u.UpdatedAt = s.cfg.Now()
+		s.state.DirectUploads[id] = u
+		_ = saveState(s.cfg.StatePath, &s.state)
+	}
+	if u.ParentID != "" {
+		p, err := s.require(actor, u.ParentID, 2)
+		if err != nil || p.Kind != KindFolder || p.TrashedAt != nil {
+			reset()
+			return Object{}, ErrDenied
+		}
+	}
+	if s.usedLocked(actor)+s.additionalLocked(actor, u.Product, u.ExpectedHash, u.ExpectedSize) > s.cfg.QuotaBytes {
+		reset()
+		return Object{}, errors.New("storage quota exceeded")
+	}
+	before, err := json.Marshal(s.state)
+	if err != nil {
+		reset()
+		return Object{}, err
+	}
+	now := s.cfg.Now()
+	obj := Object{ID: newID("obj"), Product: u.Product, Owner: actor, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Size: u.ExpectedSize, Hash: u.ExpectedHash, Version: 1, CreatedAt: now, UpdatedAt: now, Encryption: u.Encryption, Artifact: u.Artifact, ScanStatus: verified.ScanStatus, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate}
+	s.settleStorageLocked(actor, obj.Product)
+	s.state.Objects[obj.ID] = obj
+	s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: obj.Hash, Size: obj.Size, MIME: obj.MIME, BlobPath: u.ProviderRef, Author: actor, CreatedAt: now, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate}}
+	s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
+	u.Status = "completed"
+	u.UpdatedAt = now
+	s.state.DirectUploads[id] = u
+	if err := s.persist("direct.complete", actor, obj.ID, map[string]any{"directUploadId": id, "hash": obj.Hash, "size": obj.Size, "scanStatus": obj.ScanStatus}); err != nil {
+		var restored persistentState
+		if json.Unmarshal(before, &restored) == nil {
+			s.state = restored
+		}
+		return Object{}, err
+	}
+	return obj, nil
+}
+
+func (s *Service) CancelDirectUpload(ctx context.Context, actor, id string) (DirectUpload, error) {
+	s.mu.Lock()
+	u, ok := s.state.DirectUploads[id]
+	if !ok {
+		s.mu.Unlock()
+		return DirectUpload{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		s.mu.Unlock()
+		return DirectUpload{}, ErrDenied
+	}
+	if u.Status == "completed" {
+		s.mu.Unlock()
+		return DirectUpload{}, ErrInvalid
+	}
+	s.mu.Unlock()
+	err := s.cfg.ObjectStore.Delete(ctx, u.ProviderRef, u.ExpectedHash)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u.UpdatedAt = s.cfg.Now()
+	if err != nil {
+		u.Status = "cancel-pending-provider-delete"
+	} else {
+		u.Status = "canceled"
+	}
+	s.state.DirectUploads[id] = u
+	if persistErr := s.persist("direct.cancel", actor, "", map[string]any{"product": u.Product, "directUploadId": id, "status": u.Status}); persistErr != nil {
+		return DirectUpload{}, persistErr
+	}
+	if err != nil {
+		u.ProviderRef = ""
+		return u, errors.New("direct upload canceled; provider object deletion pending")
+	}
+	u.ProviderRef = ""
+	return u, nil
+}
+
+func (s *Service) SaveDocument(ctx context.Context, actor, id string, req SaveDocumentRequest) (Object, error) {
+	if len(req.Content) > MaxUploadBytes {
+		return Object{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 2)
+	if err != nil {
+		return Object{}, err
+	}
+	if obj.Kind != KindDoc || obj.TrashedAt != nil || obj.Encryption.ClientSide {
+		return Object{}, ErrInvalid
+	}
+	if req.BaseVersion != obj.Version {
+		return Object{}, ConflictError{Current: obj}
+	}
+	if err := s.cfg.Scanner.Scan(ctx, obj.Name, "text/plain", req.Content); err != nil {
+		return Object{}, err
+	}
+	h := hashBytes(req.Content)
+	path, err := s.putObjectBlob(ctx, actor, obj.Product, h, req.Content)
+	if err != nil {
+		return Object{}, err
+	}
+	if s.usedLocked(actor)+s.additionalLocked(actor, obj.Product, h, int64(len(req.Content))) > s.cfg.QuotaBytes {
+		return Object{}, errors.New("storage quota exceeded")
+	}
+	now := s.cfg.Now()
+	s.settleStorageLocked(actor, obj.Product)
+	obj.Version++
+	obj.Hash = h
+	obj.Size = int64(len(req.Content))
+	obj.MIME = "text/plain"
+	obj.UpdatedAt = now
+	obj.ScanStatus = "accepted"
+	obj.StorageClass = StorageClassHot
+	obj.StorageClassVersion = 1
+	obj.StorageReadMode = StorageReadImmediate
+	obj.StorageClassUpdatedAt = nil
+	s.state.Objects[id] = obj
+	s.state.Versions[id] = append(s.state.Versions[id], Version{ObjectID: id, Number: obj.Version, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate})
+	s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
+	if err := s.persist("document.save", actor, id, map[string]any{"version": obj.Version, "hash": h}); err != nil {
+		return Object{}, err
+	}
+	return obj, nil
+}
+
+func (s *Service) List(actor string, opt ListOptions) ([]Object, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	q := strings.ToLower(strings.TrimSpace(opt.Query))
+	out := []Object{}
+	for _, obj := range s.state.Objects {
+		if opt.Product != "" && obj.Product != opt.Product {
+			continue
+		}
+		if rank(s.role(actor, obj)) == 0 {
+			continue
+		}
+		switch opt.View {
+		case "trash":
+			if obj.TrashedAt == nil {
+				continue
+			}
+		case "starred":
+			if obj.TrashedAt != nil || !obj.Starred {
+				continue
+			}
+		case "recent":
+			if obj.TrashedAt != nil {
+				continue
+			}
+		default:
+			if obj.TrashedAt != nil || obj.ParentID != opt.ParentID {
+				continue
+			}
+		}
+		if q != "" && !strings.Contains(strings.ToLower(obj.Name), q) {
+			continue
+		}
+		out = append(out, obj)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
+	return out, nil
+}
+
+func (s *Service) ListPage(actor string, opt ListOptions) (ObjectPage, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if opt.Limit == 0 {
+		opt.Limit = 200
+	}
+	if opt.Limit < 1 || opt.Limit > 1000 {
+		return ObjectPage{}, ErrInvalid
+	}
+	q := strings.ToLower(strings.TrimSpace(opt.Query))
+	var cursor Object
+	if opt.Cursor != "" {
+		var ok bool
+		cursor, ok = s.state.Objects[opt.Cursor]
+		if !ok || rank(s.role(actor, cursor)) == 0 {
+			return ObjectPage{}, ErrInvalid
+		}
+	}
+	candidates := &objectPageHeap{}
+	heap.Init(candidates)
+	scanned := 0
+	for _, obj := range s.state.Objects {
+		scanned++
+		if opt.Product != "" && obj.Product != opt.Product {
+			continue
+		}
+		if rank(s.role(actor, obj)) == 0 {
+			continue
+		}
+		switch opt.View {
+		case "trash":
+			if obj.TrashedAt == nil {
+				continue
+			}
+		case "starred":
+			if obj.TrashedAt != nil || !obj.Starred {
+				continue
+			}
+		case "recent":
+			if obj.TrashedAt != nil {
+				continue
+			}
+		default:
+			if obj.TrashedAt != nil || obj.ParentID != opt.ParentID {
+				continue
+			}
+		}
+		if q != "" && !strings.Contains(strings.ToLower(obj.Name), q) {
+			continue
+		}
+		if opt.Cursor != "" && !objectBefore(cursor, obj) {
+			continue
+		}
+		if candidates.Len() < opt.Limit+1 {
+			heap.Push(candidates, obj)
+		} else if objectBefore(obj, (*candidates)[0]) {
+			heap.Pop(candidates)
+			heap.Push(candidates, obj)
+		}
+	}
+	items := append([]Object(nil), (*candidates)...)
+	sort.Slice(items, func(i, j int) bool { return objectBefore(items[i], items[j]) })
+	more := len(items) > opt.Limit
+	if more {
+		items = items[:opt.Limit]
+	}
+	next := ""
+	if more && len(items) > 0 {
+		next = items[len(items)-1].ID
+	}
+	return ObjectPage{Items: items, NextCursor: next, Limit: opt.Limit, Scanned: scanned}, nil
+}
+
+func (s *Service) CheckObjectProduct(actor, id, product string) error {
+	if product != "cloud" && product != "docs" {
+		return ErrDenied
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 1)
+	if err != nil {
+		return err
+	}
+	if obj.Product != product {
+		return ErrDenied
+	}
+	return nil
+}
+
+func objectBefore(a, b Object) bool {
+	if !a.UpdatedAt.Equal(b.UpdatedAt) {
+		return a.UpdatedAt.After(b.UpdatedAt)
+	}
+	return a.ID < b.ID
+}
+
+type objectPageHeap []Object
+
+func (h objectPageHeap) Len() int           { return len(h) }
+func (h objectPageHeap) Less(i, j int) bool { return objectBefore(h[j], h[i]) }
+func (h objectPageHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *objectPageHeap) Push(x any)        { *h = append(*h, x.(Object)) }
+func (h *objectPageHeap) Pop() any          { old := *h; n := len(old); x := old[n-1]; *h = old[:n-1]; return x }
+
+func (s *Service) Get(actor, id string) (Object, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.require(actor, id, 1)
+}
+
+func (s *Service) Content(actor, id string, version int) (Object, []byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 1)
+	if err != nil {
+		return Object{}, nil, err
+	}
+	if obj.Kind == KindFolder {
+		return Object{}, nil, ErrInvalid
+	}
+	versions := s.state.Versions[id]
+	if version == 0 {
+		version = obj.Version
+	}
+	for _, v := range versions {
+		if v.Number == version {
+			if normalizedVersionReadMode(v) == StorageReadRestoreRequired {
+				return obj, nil, ErrArchiveRestoreRequired
+			}
+			b, err := s.cfg.ObjectStore.Get(context.Background(), v.BlobPath, v.Hash)
+			return obj, b, err
+		}
+	}
+	return Object{}, nil, ErrNotFound
+}
+
+func (s *Service) Versions(actor, id string) ([]Version, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.require(actor, id, 1); err != nil {
+		return nil, err
+	}
+	v := append([]Version(nil), s.state.Versions[id]...)
+	sort.Slice(v, func(i, j int) bool { return v[i].Number > v[j].Number })
+	return v, nil
+}
+
+func (s *Service) RestoreVersion(actor, id string, number int) (Object, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 2)
+	if err != nil {
+		return Object{}, err
+	}
+	var source *Version
+	for i := range s.state.Versions[id] {
+		if s.state.Versions[id][i].Number == number {
+			v := s.state.Versions[id][i]
+			source = &v
+			break
+		}
+	}
+	if source == nil {
+		return Object{}, ErrNotFound
+	}
+	obj.Version++
+	obj.Hash = source.Hash
+	obj.Size = source.Size
+	obj.MIME = source.MIME
+	obj.UpdatedAt = s.cfg.Now()
+	obj.StorageClass = normalizedVersionStorageClass(*source)
+	obj.StorageClassVersion = normalizedVersionStorageClassVersion(*source)
+	obj.StorageReadMode = normalizedVersionReadMode(*source)
+	obj.StorageClassUpdatedAt = source.StorageClassUpdatedAt
+	s.state.Objects[id] = obj
+	s.state.Versions[id] = append(s.state.Versions[id], Version{ObjectID: id, Number: obj.Version, Hash: source.Hash, Size: source.Size, MIME: source.MIME, BlobPath: source.BlobPath, Author: actor, CreatedAt: obj.UpdatedAt, StorageClass: obj.StorageClass, StorageClassVersion: obj.StorageClassVersion, StorageReadMode: obj.StorageReadMode, StorageClassUpdatedAt: obj.StorageClassUpdatedAt})
+	if err := s.persist("version.restore", actor, id, map[string]any{"sourceVersion": number, "version": obj.Version}); err != nil {
+		return Object{}, err
+	}
+	return obj, nil
+}
+
+func (s *Service) SetStar(actor, id string, value bool) (Object, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 2)
+	if err != nil {
+		return Object{}, err
+	}
+	obj.Starred = value
+	obj.UpdatedAt = s.cfg.Now()
+	s.state.Objects[id] = obj
+	if err := s.persist("object.star", actor, id, map[string]any{"starred": value}); err != nil {
+		return Object{}, err
+	}
+	return obj, nil
+}
+func (s *Service) SetTrash(actor, id string, trash bool) (Object, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 2)
+	if err != nil {
+		return Object{}, err
+	}
+	now := s.cfg.Now()
+	if trash {
+		obj.TrashedAt = &now
+	} else {
+		obj.TrashedAt = nil
+	}
+	obj.UpdatedAt = now
+	s.state.Objects[id] = obj
+	action := "object.restore"
+	if trash {
+		action = "object.trash"
+	}
+	if err := s.persist(action, actor, id, nil); err != nil {
+		return Object{}, err
+	}
+	return obj, nil
+}
+
+func (s *Service) DeleteObject(actor, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 3)
+	if err != nil {
+		return err
+	}
+	if obj.Owner != actor || obj.TrashedAt == nil {
+		return ErrDenied
+	}
+	if s.storageTransitionUnresolvedLocked(id) {
+		return errors.New("storage lifecycle transition must finish or be retried before permanent deletion")
+	}
+	if obj.Artifact != nil && obj.Artifact.Retention == "legal-hold" {
+		return errors.New("legal hold prevents deletion")
+	}
+	if obj.Artifact != nil && obj.Artifact.RetentionEnds != nil && obj.Artifact.RetentionEnds.After(s.cfg.Now()) {
+		return fmt.Errorf("retention prevents deletion until %s", obj.Artifact.RetentionEnds.UTC().Format(time.RFC3339))
+	}
+	for _, child := range s.state.Objects {
+		if child.ParentID == id {
+			return errors.New("folder must be empty before permanent deletion")
+		}
+	}
+	before, err := json.Marshal(s.state)
+	if err != nil {
+		return err
+	}
+	for key, grant := range s.state.Grants {
+		if grant.ObjectID == id {
+			delete(s.state.Grants, key)
+		}
+	}
+	for key, link := range s.state.Links {
+		if link.ObjectID == id {
+			delete(s.state.Links, key)
+		}
+	}
+	for key, request := range s.state.AccessRequests {
+		if request.ObjectID == id {
+			delete(s.state.AccessRequests, key)
+		}
+	}
+	for key, presence := range s.state.Presence {
+		if presence.ObjectID == id {
+			delete(s.state.Presence, key)
+		}
+	}
+	for key, transition := range s.state.StorageTransitions {
+		if transition.ObjectID == id {
+			delete(s.state.StorageTransitions, key)
+		}
+	}
+	removedVersions := append([]Version(nil), s.state.Versions[id]...)
+	s.settleStorageLocked(actor, obj.Product)
+	delete(s.state.Comments, id)
+	delete(s.state.Versions, id)
+	delete(s.state.Objects, id)
+	if err := s.persist("object.delete", actor, id, map[string]any{"product": obj.Product, "kind": obj.Kind, "name": obj.Name, "lastHash": obj.Hash, "logicalDeletion": true, "physicalDeletion": "attempted only after final content reference"}); err != nil {
+		var restored persistentState
+		if json.Unmarshal(before, &restored) == nil {
+			s.state = restored
+		}
+		return err
+	}
+	remaining := map[string]bool{}
+	for _, versions := range s.state.Versions {
+		for _, v := range versions {
+			remaining[v.Hash+"\x00"+v.BlobPath] = true
+		}
+	}
+	unique := map[string]Version{}
+	for _, v := range removedVersions {
+		key := v.Hash + "\x00" + v.BlobPath
+		if !remaining[key] {
+			unique[key] = v
+		}
+	}
+	pending := 0
+	for _, v := range unique {
+		now := s.cfg.Now()
+		d := BlobDeletion{ID: newID("deletion"), Product: obj.Product, Owner: actor, Hash: v.Hash, Ref: v.BlobPath, Status: "completed", Attempts: 1, RequestedAt: now, UpdatedAt: now}
+		if err := s.cfg.ObjectStore.Delete(context.Background(), v.BlobPath, v.Hash); err != nil {
+			d.Status = "pending"
+			d.LastError = "provider deletion failed; operator retry required"
+			pending++
+		}
+		s.state.BlobDeletions[d.ID] = d
+	}
+	if len(unique) > 0 {
+		if err := s.persist("blob.delete", actor, id, map[string]any{"product": obj.Product, "eligible": len(unique), "pending": pending}); err != nil {
+			return err
+		}
+	}
+	if pending > 0 {
+		return DeletionPendingError{Count: pending}
+	}
+	return nil
+}
+
+func (s *Service) BlobDeletions(actor, product string) ([]BlobDeletion, error) {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") {
+		return nil, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := []BlobDeletion{}
+	for _, d := range s.state.BlobDeletions {
+		if d.Owner == actor && d.Product == product {
+			copy := d
+			copy.Ref = ""
+			copy.LastError = strings.TrimSpace(copy.LastError)
+			out = append(out, copy)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
+	return out, nil
+}
+
+func (s *Service) RetryBlobDeletion(ctx context.Context, actor, product, id string) (BlobDeletion, error) {
+	if product != "cloud" && product != "docs" {
+		return BlobDeletion{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, ok := s.state.BlobDeletions[id]
+	if !ok {
+		return BlobDeletion{}, ErrNotFound
+	}
+	if d.Owner != actor || d.Product != product {
+		return BlobDeletion{}, ErrDenied
+	}
+	if d.Status == "completed" {
+		d.Ref = ""
+		return d, nil
+	}
+	d.Attempts++
+	d.UpdatedAt = s.cfg.Now()
+	wasPending := d.Status == "pending"
+	if err := s.cfg.ObjectStore.Delete(ctx, d.Ref, d.Hash); err != nil {
+		d.Status = "pending"
+		d.LastError = "provider deletion failed; retry remains available"
+	} else {
+		d.Status = "completed"
+		d.LastError = ""
+	}
+	s.state.BlobDeletions[id] = d
+	if wasPending && d.Status == "completed" && d.ErasureID != "" {
+		if receipt, ok := s.state.DataErasures[d.ErasureID]; ok && receipt.PendingBlobs > 0 {
+			receipt.PendingBlobs--
+			receipt.CompletedBlobs++
+			receipt.UpdatedAt = d.UpdatedAt
+			if receipt.PendingBlobs == 0 {
+				receipt.Status = "logical-erasure-complete-known-provider-deletions-complete"
+			}
+			s.state.DataErasures[d.ErasureID] = receipt
+		}
+	}
+	if d.Status == "completed" && d.ErasureID != "" {
+		delete(s.state.BlobDeletions, id)
+	}
+	if d.ErasureID != "" {
+		if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+			return BlobDeletion{}, err
+		}
+		ownerHash := hashBytes([]byte(actor))
+		go func() {
+			_ = s.cfg.TrustSink.Record(context.Background(), TrustEvent{Actor: "sha256:" + ownerHash, Action: "account.product-data.provider-delete.retry", At: d.UpdatedAt, Details: map[string]any{"product": product, "receiptId": d.ErasureID, "status": d.Status, "attempts": d.Attempts}})
+		}()
+	} else if err := s.persist("blob.delete.retry", actor, "", map[string]any{"product": d.Product, "deletionId": id, "status": d.Status, "attempts": d.Attempts}); err != nil {
+		return BlobDeletion{}, err
+	}
+	d.Ref = ""
+	return d, nil
+}
+
+func (s *Service) ExportOwnedData(ctx context.Context, actor, product string) ([]byte, ExportManifest, error) {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") {
+		return nil, ExportManifest{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	manifest := ExportManifest{SchemaVersion: 1, Authority: "YNX Cloud owner metadata and verified object bytes", Source: "ynx-cloudd", AsOf: s.cfg.Now(), Owner: actor, Product: product, Objects: []Object{}, Versions: []Version{}, Grants: []Grant{}, StorageTransitions: []StorageTransition{}, Audit: []AuditEvent{}, Files: []ExportFile{}}
+	owned := map[string]bool{}
+	for _, obj := range s.state.Objects {
+		if obj.Owner == actor && obj.Product == product {
+			manifest.Objects = append(manifest.Objects, obj)
+			owned[obj.ID] = true
+		}
+	}
+	sort.Slice(manifest.Objects, func(i, j int) bool { return manifest.Objects[i].ID < manifest.Objects[j].ID })
+	for _, g := range s.state.Grants {
+		if owned[g.ObjectID] {
+			manifest.Grants = append(manifest.Grants, g)
+		}
+	}
+	for _, transition := range s.state.StorageTransitions {
+		if transition.Owner == actor && transition.Product == product && owned[transition.ObjectID] {
+			manifest.StorageTransitions = append(manifest.StorageTransitions, transition)
+		}
+	}
+	sort.Slice(manifest.StorageTransitions, func(i, j int) bool { return manifest.StorageTransitions[i].ID < manifest.StorageTransitions[j].ID })
+	for _, e := range s.state.Audit {
+		if auditProduct(e, s.state.Objects) == product && (e.Actor == actor || owned[e.ObjectID]) {
+			manifest.Audit = append(manifest.Audit, e)
+		}
+	}
+	var out bytes.Buffer
+	zw := zip.NewWriter(&out)
+	for _, obj := range manifest.Objects {
+		versions := append([]Version(nil), s.state.Versions[obj.ID]...)
+		sort.Slice(versions, func(i, j int) bool { return versions[i].Number < versions[j].Number })
+		for _, v := range versions {
+			body, err := s.cfg.ObjectStore.Get(ctx, v.BlobPath, v.Hash)
+			if err != nil {
+				_ = zw.Close()
+				return nil, ExportManifest{}, fmt.Errorf("export object %s version %d: %w", obj.ID, v.Number, err)
+			}
+			if int64(len(body)) != v.Size || hashBytes(body) != v.Hash {
+				_ = zw.Close()
+				return nil, ExportManifest{}, errors.New("export source integrity mismatch")
+			}
+			name := fmt.Sprintf("objects/%s/versions/%06d.bin", obj.ID, v.Number)
+			w, err := zw.Create(name)
+			if err != nil {
+				return nil, ExportManifest{}, err
+			}
+			if _, err = w.Write(body); err != nil {
+				return nil, ExportManifest{}, err
+			}
+			manifest.Versions = append(manifest.Versions, v)
+			manifest.Files = append(manifest.Files, ExportFile{ObjectID: obj.ID, Version: v.Number, Path: name, Hash: v.Hash, Bytes: v.Size})
+		}
+	}
+	metadata, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return nil, ExportManifest{}, err
+	}
+	w, err := zw.Create("manifest.json")
+	if err != nil {
+		return nil, ExportManifest{}, err
+	}
+	if _, err = w.Write(metadata); err != nil {
+		return nil, ExportManifest{}, err
+	}
+	if err = zw.Close(); err != nil {
+		return nil, ExportManifest{}, err
+	}
+	if err := s.persist("data.export", actor, "", map[string]any{"product": product, "objects": len(manifest.Objects), "versions": len(manifest.Versions), "bytes": out.Len()}); err != nil {
+		return nil, ExportManifest{}, err
+	}
+	return out.Bytes(), manifest, nil
+}
+
+func containsAccount(value any, account string) bool {
+	switch v := value.(type) {
+	case string:
+		return v == account
+	case []string:
+		for _, item := range v {
+			if item == account {
+				return true
+			}
+		}
+	case []any:
+		for _, item := range v {
+			if containsAccount(item, account) {
+				return true
+			}
+		}
+	case map[string]any:
+		for _, item := range v {
+			if containsAccount(item, account) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// EraseProductData atomically removes the control-plane data associated with one
+// Wallet account and product before attempting provider deletion. Provider
+// failures remain explicit, retryable BlobDeletion records and never turn the
+// receipt into a physical-erasure claim.
+func (s *Service) EraseProductData(ctx context.Context, actor, product string) (DataErasureReceipt, error) {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") {
+		return DataErasureReceipt{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := s.cfg.Now()
+	owned := map[string]bool{}
+	for id, obj := range s.state.Objects {
+		if obj.Owner != actor || obj.Product != product {
+			continue
+		}
+		if s.storageTransitionUnresolvedLocked(id) {
+			return DataErasureReceipt{}, errors.New("storage lifecycle transition must finish or be retried before product data erasure")
+		}
+		if obj.Artifact != nil && obj.Artifact.Retention == "legal-hold" {
+			return DataErasureReceipt{}, errors.New("legal hold prevents product data erasure")
+		}
+		if obj.Artifact != nil && obj.Artifact.RetentionEnds != nil && obj.Artifact.RetentionEnds.After(now) {
+			return DataErasureReceipt{}, fmt.Errorf("retention prevents product data erasure until %s", obj.Artifact.RetentionEnds.UTC().Format(time.RFC3339))
+		}
+		owned[id] = true
+	}
+	for _, upload := range s.state.MultipartUploads {
+		if upload.Owner == actor && upload.Product == product && upload.Artifact != nil && (upload.Artifact.Retention == "legal-hold" || (upload.Artifact.RetentionEnds != nil && upload.Artifact.RetentionEnds.After(now))) {
+			return DataErasureReceipt{}, errors.New("active multipart artifact retention prevents product data erasure")
+		}
+	}
+	for _, upload := range s.state.DirectUploads {
+		if upload.Owner == actor && upload.Product == product && upload.Artifact != nil && (upload.Artifact.Retention == "legal-hold" || (upload.Artifact.RetentionEnds != nil && upload.Artifact.RetentionEnds.After(now))) {
+			return DataErasureReceipt{}, errors.New("active direct-upload artifact retention prevents product data erasure")
+		}
+	}
+
+	before, err := json.Marshal(s.state)
+	if err != nil {
+		return DataErasureReceipt{}, err
+	}
+	deleted := map[string]int{}
+	cancelJobIDs := []string{}
+	type deletionTarget struct{ ref, hash string }
+	targets := map[string]deletionTarget{}
+	addTarget := func(ref, hash string) {
+		if ref != "" && len(hash) == 64 {
+			targets[ref+"\x00"+hash] = deletionTarget{ref: ref, hash: hash}
+		}
+	}
+	s.settleStorageLocked(actor, product)
+	for id := range owned {
+		deleted["objects"]++
+		for _, version := range s.state.Versions[id] {
+			deleted["versions"]++
+			addTarget(version.BlobPath, version.Hash)
+		}
+		delete(s.state.Objects, id)
+		delete(s.state.Versions, id)
+	}
+	pseudonym := "sha256:" + hashBytes([]byte(actor))
+	for objectID, versions := range s.state.Versions {
+		if objectProduct := s.state.Objects[objectID].Product; objectProduct == product {
+			for i := range versions {
+				if versions[i].Author == actor {
+					versions[i].Author = pseudonym
+					deleted["versionAuthorsPseudonymized"]++
+				}
+			}
+			s.state.Versions[objectID] = versions
+		}
+	}
+	objectProduct := func(id string) string {
+		if owned[id] {
+			return product
+		}
+		return s.state.Objects[id].Product
+	}
+	for id, grant := range s.state.Grants {
+		if owned[grant.ObjectID] || (objectProduct(grant.ObjectID) == product && (grant.Principal == actor || grant.CreatedBy == actor)) {
+			delete(s.state.Grants, id)
+			deleted["grants"]++
+		}
+	}
+	for id, link := range s.state.Links {
+		if owned[link.ObjectID] || (objectProduct(link.ObjectID) == product && link.CreatedBy == actor) {
+			delete(s.state.Links, id)
+			deleted["shareLinks"]++
+		}
+	}
+	for id, request := range s.state.AccessRequests {
+		if owned[request.ObjectID] || (objectProduct(request.ObjectID) == product && (request.Requester == actor || request.DecidedBy == actor)) {
+			delete(s.state.AccessRequests, id)
+			deleted["accessRequests"]++
+		}
+	}
+	for objectID, comments := range s.state.Comments {
+		if owned[objectID] {
+			deleted["comments"] += len(comments)
+			delete(s.state.Comments, objectID)
+			continue
+		}
+		if objectProduct(objectID) != product {
+			continue
+		}
+		kept := comments[:0]
+		for _, comment := range comments {
+			if comment.Author == actor {
+				deleted["comments"]++
+				continue
+			}
+			mentions := comment.Mentions[:0]
+			for _, mention := range comment.Mentions {
+				if mention == actor {
+					deleted["mentions"]++
+					continue
+				}
+				mentions = append(mentions, mention)
+			}
+			comment.Mentions = mentions
+			kept = append(kept, comment)
+		}
+		s.state.Comments[objectID] = kept
+	}
+	for key, presence := range s.state.Presence {
+		if owned[presence.ObjectID] || (objectProduct(presence.ObjectID) == product && presence.Actor == actor) {
+			delete(s.state.Presence, key)
+			deleted["presence"]++
+		}
+	}
+	for id, job := range s.state.AIJobs {
+		referencesErasedObject := false
+		for _, objectID := range job.ObjectIDs {
+			if owned[objectID] {
+				referencesErasedObject = true
+				break
+			}
+		}
+		if job.Product == product && (job.Actor == actor || referencesErasedObject) {
+			cancelJobIDs = append(cancelJobIDs, id)
+			delete(s.state.AIJobs, id)
+			deleted["aiJobs"]++
+		}
+	}
+	for token, session := range s.state.Sessions {
+		if session.Account == actor && session.Product == product {
+			delete(s.state.Sessions, token)
+			deleted["sessions"]++
+		}
+	}
+	for id, challenge := range s.state.WalletChallenges {
+		if challenge.Product == product && challenge.Challenge.Account == actor {
+			delete(s.state.WalletChallenges, id)
+			deleted["walletChallenges"]++
+		}
+	}
+	for id, upload := range s.state.MultipartUploads {
+		if upload.Owner == actor && upload.Product == product {
+			for _, part := range upload.Parts {
+				addTarget(part.Ref, part.Hash)
+			}
+			delete(s.state.MultipartUploads, id)
+			deleted["multipartUploads"]++
+		}
+	}
+	for id, upload := range s.state.DirectUploads {
+		if upload.Owner == actor && upload.Product == product {
+			addTarget(upload.ProviderRef, upload.ExpectedHash)
+			delete(s.state.DirectUploads, id)
+			deleted["directUploads"]++
+		}
+	}
+	for id, transition := range s.state.StorageTransitions {
+		if transition.Owner == actor && transition.Product == product {
+			delete(s.state.StorageTransitions, id)
+			deleted["storageTransitions"]++
+		}
+	}
+	for id, deletion := range s.state.BlobDeletions {
+		if deletion.Owner == actor && deletion.Product == product && deletion.Status == "completed" {
+			delete(s.state.BlobDeletions, id)
+			deleted["completedDeletionRecords"]++
+		}
+	}
+	keptAudit := s.state.Audit[:0]
+	for _, event := range s.state.Audit {
+		eventProduct := auditProduct(event, s.state.Objects)
+		if owned[event.ObjectID] || (eventProduct == product && (event.Actor == actor || containsAccount(event.Details, actor))) {
+			deleted["auditEvents"]++
+			continue
+		}
+		keptAudit = append(keptAudit, event)
+	}
+	s.state.Audit = keptAudit
+	delete(s.state.Usage, usageKey(actor, product))
+	deleted["usageLedgers"] = 1
+
+	remaining := map[string]bool{}
+	for _, versions := range s.state.Versions {
+		for _, version := range versions {
+			remaining[version.BlobPath+"\x00"+version.Hash] = true
+		}
+	}
+	for _, upload := range s.state.MultipartUploads {
+		for _, part := range upload.Parts {
+			remaining[part.Ref+"\x00"+part.Hash] = true
+		}
+	}
+	for _, upload := range s.state.DirectUploads {
+		if upload.ProviderRef != "" {
+			remaining[upload.ProviderRef+"\x00"+upload.ExpectedHash] = true
+		}
+	}
+	shared := 0
+	newDeletionIDs := []string{}
+	receiptID := newID("erasure")
+	for key, target := range targets {
+		if remaining[key] {
+			shared++
+			continue
+		}
+		deletion := BlobDeletion{ID: newID("deletion"), ErasureID: receiptID, Product: product, Owner: actor, Hash: target.hash, Ref: target.ref, Status: "pending", RequestedAt: now, UpdatedAt: now, LastError: "provider deletion queued by product data erasure"}
+		s.state.BlobDeletions[deletion.ID] = deletion
+		newDeletionIDs = append(newDeletionIDs, deletion.ID)
+	}
+	ownerHash := hashBytes([]byte(actor))
+	pendingBeforeAttempts := 0
+	for _, deletion := range s.state.BlobDeletions {
+		if deletion.Owner == actor && deletion.Product == product && deletion.Status == "pending" {
+			pendingBeforeAttempts++
+		}
+	}
+	receipt := DataErasureReceipt{SchemaVersion: 1, ID: receiptID, OwnerHash: ownerHash, Product: product, Status: "logical-erasure-complete-provider-deletion-pending", Source: "ynx-cloudd", Authority: "YNX control-plane logical erasure and observed provider deletion attempts", RequestedAt: now, UpdatedAt: now, Deleted: deleted, PendingBlobs: pendingBeforeAttempts, Retained: map[string]string{"erasureReceipt": "hashed owner identifier and aggregate counts retained for accountability", "securityNonces": "opaque replay-prevention digests expire independently", "pendingProviderDeletionRecords": "raw owner authorization is retained only while a known provider deletion is pending, then removed"}, Coverage: "product-scoped control-plane state and known provider references; provider-native replicas, backups, legal retention, and external systems require their own evidence"}
+	if shared > 0 {
+		receipt.Retained["sharedContentReferences"] = fmt.Sprintf("%d content reference(s) remain because another object still uses the exact provider ref and hash", shared)
+	}
+	s.state.DataErasures[receipt.ID] = receipt
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		var restored persistentState
+		if json.Unmarshal(before, &restored) == nil {
+			s.state = restored
+		}
+		return DataErasureReceipt{}, err
+	}
+	for _, id := range cancelJobIDs {
+		if cancel := s.cancels[id]; cancel != nil {
+			cancel()
+			delete(s.cancels, id)
+		}
+	}
+
+	for _, id := range newDeletionIDs {
+		deletion := s.state.BlobDeletions[id]
+		deletion.Attempts = 1
+		deletion.UpdatedAt = s.cfg.Now()
+		if err := s.cfg.ObjectStore.Delete(ctx, deletion.Ref, deletion.Hash); err != nil {
+			deletion.LastError = "provider deletion failed; retry remains available"
+		} else {
+			deletion.Status = "completed"
+			deletion.LastError = ""
+			receipt.CompletedBlobs++
+		}
+		if deletion.Status == "completed" {
+			delete(s.state.BlobDeletions, id)
+		} else {
+			s.state.BlobDeletions[id] = deletion
+		}
+	}
+	receipt.PendingBlobs = 0
+	for _, deletion := range s.state.BlobDeletions {
+		if deletion.Owner == actor && deletion.Product == product && deletion.Status == "pending" {
+			receipt.PendingBlobs++
+		}
+	}
+	if receipt.PendingBlobs == 0 {
+		receipt.Status = "logical-erasure-complete-known-provider-deletions-complete"
+	}
+	receipt.UpdatedAt = s.cfg.Now()
+	s.state.DataErasures[receipt.ID] = receipt
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		return DataErasureReceipt{}, err
+	}
+	go func() {
+		_ = s.cfg.TrustSink.Record(context.Background(), TrustEvent{Actor: "sha256:" + ownerHash, Action: "account.product-data.erase", At: receipt.UpdatedAt, Details: map[string]any{"product": product, "receiptId": receipt.ID, "status": receipt.Status, "pendingBlobs": receipt.PendingBlobs}})
+	}()
+	return receipt, nil
+}
+
+func (s *Service) DataErasureReceipts(actor, product string) ([]DataErasureReceipt, error) {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") {
+		return nil, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	want := hashBytes([]byte(actor))
+	out := []DataErasureReceipt{}
+	for _, receipt := range s.state.DataErasures {
+		if receipt.OwnerHash == want && receipt.Product == product {
+			out = append(out, receipt)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].RequestedAt.After(out[j].RequestedAt) })
+	return out, nil
+}
+
+func (s *Service) Grant(actor, id, principal, role string, expires *time.Time) (Grant, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 3)
+	if err != nil {
+		return Grant{}, err
+	}
+	if !validAccount(principal) || (role != "viewer" && role != "editor") || principal == obj.Owner || (expires != nil && !expires.After(s.cfg.Now())) {
+		return Grant{}, ErrInvalid
+	}
+	g := Grant{ID: newID("grant"), ObjectID: id, Principal: principal, Role: role, CreatedBy: actor, CreatedAt: s.cfg.Now(), ExpiresAt: expires}
+	s.state.Grants[g.ID] = g
+	if err := s.persist("permission.grant", actor, id, map[string]any{"principal": principal, "role": role, "expiresAt": expires}); err != nil {
+		return Grant{}, err
+	}
+	return g, nil
+}
+func (s *Service) RevokeGrant(actor, id, grantID string) (Grant, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.require(actor, id, 3); err != nil {
+		return Grant{}, err
+	}
+	g, ok := s.state.Grants[grantID]
+	if !ok || g.ObjectID != id {
+		return Grant{}, ErrNotFound
+	}
+	now := s.cfg.Now()
+	g.RevokedAt = &now
+	s.state.Grants[grantID] = g
+	if err := s.persist("permission.revoke", actor, id, map[string]any{"grantId": grantID}); err != nil {
+		return Grant{}, err
+	}
+	return g, nil
+}
+func (s *Service) Grants(actor, id string) ([]Grant, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.require(actor, id, 3); err != nil {
+		return nil, err
+	}
+	out := []Grant{}
+	for _, g := range s.state.Grants {
+		if g.ObjectID == id {
+			out = append(out, g)
+		}
+	}
+	return out, nil
+}
+
+func (s *Service) CreateLink(actor, id, role string, expires time.Time) (ShareLink, string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.require(actor, id, 3); err != nil {
+		return ShareLink{}, "", err
+	}
+	if role != "viewer" || !expires.After(s.cfg.Now()) || expires.After(s.cfg.Now().Add(30*24*time.Hour)) {
+		return ShareLink{}, "", ErrInvalid
+	}
+	token := newID("share")
+	l := ShareLink{ID: newID("link"), ObjectID: id, TokenHash: hashBytes([]byte(token)), Role: role, ExpiresAt: expires, CreatedBy: actor, CreatedAt: s.cfg.Now()}
+	s.state.Links[l.ID] = l
+	if err := s.persist("link.create", actor, id, map[string]any{"linkId": l.ID, "expiresAt": expires}); err != nil {
+		return ShareLink{}, "", err
+	}
+	return l, token, nil
+}
+func (s *Service) RevokeLink(actor, id, linkID string) (ShareLink, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.require(actor, id, 3); err != nil {
+		return ShareLink{}, err
+	}
+	l, ok := s.state.Links[linkID]
+	if !ok || l.ObjectID != id {
+		return ShareLink{}, ErrNotFound
+	}
+	now := s.cfg.Now()
+	l.RevokedAt = &now
+	s.state.Links[linkID] = l
+	if err := s.persist("link.revoke", actor, id, map[string]any{"linkId": linkID}); err != nil {
+		return ShareLink{}, err
+	}
+	return l, nil
+}
+
+func (s *Service) Links(actor, id string) ([]ShareLink, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.require(actor, id, 3); err != nil {
+		return nil, err
+	}
+	out := []ShareLink{}
+	for _, link := range s.state.Links {
+		if link.ObjectID == id {
+			out = append(out, link)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
+	return out, nil
+}
+func (s *Service) ResolveLink(token string) (Object, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	h := hashBytes([]byte(token))
+	for _, l := range s.state.Links {
+		if l.TokenHash == h && l.RevokedAt == nil && l.ExpiresAt.After(s.cfg.Now()) {
+			o, ok := s.state.Objects[l.ObjectID]
+			if ok && o.TrashedAt == nil {
+				return o, nil
+			}
+		}
+	}
+	return Object{}, ErrDenied
+}
+
+func (s *Service) ResolveLinkContent(token string) (Object, []byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	h := hashBytes([]byte(token))
+	for _, link := range s.state.Links {
+		if link.TokenHash != h || link.RevokedAt != nil || !link.ExpiresAt.After(s.cfg.Now()) {
+			continue
+		}
+		object, ok := s.state.Objects[link.ObjectID]
+		if !ok || object.TrashedAt != nil || object.Kind == KindFolder {
+			return Object{}, nil, ErrNotFound
+		}
+		for _, version := range s.state.Versions[object.ID] {
+			if version.Number == object.Version {
+				body, err := s.cfg.ObjectStore.Get(context.Background(), version.BlobPath, version.Hash)
+				return object, body, err
+			}
+		}
+	}
+	return Object{}, nil, ErrDenied
+}
+
+func (s *Service) RequestAccess(actor, id, role, message string) (AccessRequest, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !validAccount(actor) || (role != "viewer" && role != "editor") || len(message) > 500 {
+		return AccessRequest{}, ErrInvalid
+	}
+	if _, ok := s.state.Objects[id]; !ok {
+		return AccessRequest{}, ErrNotFound
+	}
+	r := AccessRequest{ID: newID("access"), ObjectID: id, Requester: actor, RequestedRole: role, Message: message, Status: "pending", CreatedAt: s.cfg.Now()}
+	s.state.AccessRequests[r.ID] = r
+	if err := s.persist("access.request", actor, id, map[string]any{"role": role}); err != nil {
+		return AccessRequest{}, err
+	}
+	return r, nil
+}
+func (s *Service) DecideAccess(actor, product, requestID, decision string) (AccessRequest, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	r, ok := s.state.AccessRequests[requestID]
+	if !ok {
+		return AccessRequest{}, ErrNotFound
+	}
+	if _, err := s.require(actor, r.ObjectID, 3); err != nil {
+		return AccessRequest{}, err
+	}
+	if obj := s.state.Objects[r.ObjectID]; obj.Product != product {
+		return AccessRequest{}, ErrDenied
+	}
+	if r.Status != "pending" || (decision != "approved" && decision != "denied") {
+		return AccessRequest{}, ErrInvalid
+	}
+	now := s.cfg.Now()
+	r.Status = decision
+	r.DecidedAt = &now
+	r.DecidedBy = actor
+	s.state.AccessRequests[r.ID] = r
+	if decision == "approved" {
+		g := Grant{ID: newID("grant"), ObjectID: r.ObjectID, Principal: r.Requester, Role: r.RequestedRole, CreatedBy: actor, CreatedAt: now}
+		s.state.Grants[g.ID] = g
+	}
+	if err := s.persist("access."+decision, actor, r.ObjectID, map[string]any{"requestId": r.ID}); err != nil {
+		return AccessRequest{}, err
+	}
+	return r, nil
+}
+
+func (s *Service) AccessRequests(actor, id string) ([]AccessRequest, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.require(actor, id, 3); err != nil {
+		return nil, err
+	}
+	out := []AccessRequest{}
+	for _, request := range s.state.AccessRequests {
+		if request.ObjectID == id {
+			out = append(out, request)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
+	return out, nil
+}
+
+func (s *Service) AddComment(actor, id string, version int, body string, mentions []string) (Comment, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 1)
+	if err != nil {
+		return Comment{}, err
+	}
+	if obj.Kind != KindDoc || version < 1 || version > obj.Version || strings.TrimSpace(body) == "" || len(body) > 2000 || len(mentions) > 20 {
+		return Comment{}, ErrInvalid
+	}
+	for _, m := range mentions {
+		if !validAccount(m) {
+			return Comment{}, ErrInvalid
+		}
+	}
+	c := Comment{ID: newID("comment"), ObjectID: id, Version: version, Author: actor, Body: strings.TrimSpace(body), Mentions: append([]string(nil), mentions...), CreatedAt: s.cfg.Now()}
+	s.state.Comments[id] = append(s.state.Comments[id], c)
+	if err := s.persist("comment.create", actor, id, map[string]any{"version": version, "mentions": len(mentions)}); err != nil {
+		return Comment{}, err
+	}
+	return c, nil
+}
+func (s *Service) Comments(actor, id string) ([]Comment, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.require(actor, id, 1); err != nil {
+		return nil, err
+	}
+	return append([]Comment(nil), s.state.Comments[id]...), nil
+}
+func (s *Service) Presence(actor, id, label string) ([]Presence, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.require(actor, id, 1); err != nil {
+		return nil, err
+	}
+	now := s.cfg.Now()
+	for k, p := range s.state.Presence {
+		if !p.ExpiresAt.After(now) {
+			delete(s.state.Presence, k)
+		}
+	}
+	key := id + ":" + actor
+	s.state.Presence[key] = Presence{ObjectID: id, Actor: actor, Label: strings.TrimSpace(label), ExpiresAt: now.Add(45 * time.Second)}
+	out := []Presence{}
+	for _, p := range s.state.Presence {
+		if p.ObjectID == id {
+			out = append(out, p)
+		}
+	}
+	if len(out) > 25 {
+		out = out[:25]
+	}
+	return out, nil
+}
+
+func auditProduct(event AuditEvent, objects map[string]Object) string {
+	if object, ok := objects[event.ObjectID]; ok {
+		return object.Product
+	}
+	if product, ok := event.Details["product"].(string); ok {
+		return product
+	}
+	return ""
+}
+
+func (s *Service) Audit(actor, product string) ([]AuditEvent, error) {
+	if product != "cloud" && product != "docs" {
+		return nil, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := []AuditEvent{}
+	for i := len(s.state.Audit) - 1; i >= 0 && len(out) < 200; i-- {
+		e := s.state.Audit[i]
+		if auditProduct(e, s.state.Objects) != product {
+			continue
+		}
+		if e.Actor == actor {
+			out = append(out, e)
+			continue
+		}
+		if e.ObjectID != "" {
+			if o, ok := s.state.Objects[e.ObjectID]; ok && rank(s.role(actor, o)) >= 3 {
+				out = append(out, e)
+			}
+		}
+	}
+	return out, nil
+}
+func (s *Service) usedLockedProduct(actor, product string) int64 {
+	var total int64
+	seen := map[string]bool{}
+	for _, o := range s.state.Objects {
+		if o.Owner != actor || o.Product != product || o.Kind == KindFolder {
+			continue
+		}
+		for _, version := range s.state.Versions[o.ID] {
+			if !seen[version.Hash] {
+				seen[version.Hash] = true
+				total += version.Size
+			}
+		}
+	}
+	return total
+}
+
+func (s *Service) usedLocked(actor string) int64 {
+	var total int64
+	seen := map[string]bool{}
+	for _, object := range s.state.Objects {
+		if object.Owner != actor || object.Kind == KindFolder {
+			continue
+		}
+		for _, version := range s.state.Versions[object.ID] {
+			key := object.Product + "\x00" + version.Hash
+			if !seen[key] {
+				seen[key] = true
+				total += version.Size
+			}
+		}
+	}
+	return total
+}
+
+func (s *Service) additionalLocked(actor, product, hash string, size int64) int64 {
+	for _, object := range s.state.Objects {
+		if object.Owner != actor || object.Product != product {
+			continue
+		}
+		for _, version := range s.state.Versions[object.ID] {
+			if version.Hash == hash {
+				return 0
+			}
+		}
+	}
+	return size
+}
+func (s *Service) Quota(actor, product string) (used, limit int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.usedLockedProduct(actor, product), s.cfg.QuotaBytes
+}
+
+func (s *Service) Usage(actor, product string) (UsageReport, error) {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") {
+		return UsageReport{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	usage := s.settleStorageLocked(actor, product)
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		return UsageReport{}, err
+	}
+	return UsageReport{
+		SchemaVersion:  2,
+		Source:         "ynx-cloudd-local-meter",
+		Authority:      "YNX control-plane observed usage; not a provider invoice",
+		AsOf:           s.cfg.Now(),
+		Owner:          actor,
+		Product:        product,
+		StorageBytes:   s.usedLockedProduct(actor, product),
+		FreeQuotaBytes: s.cfg.QuotaBytes,
+		Counters:       usage,
+		PricingStatus:  "not-configured-no-charge",
+		Coverage: map[string]string{
+			"storageBytes":       "exact current deduplicated immutable-version bytes recorded by this control plane",
+			"storageByteSeconds": "whole-second integral of exact current storage since storageCoverageStartsAt; pre-schema-v5 history is not estimated",
+			"ingressBytes":       "accepted object-version bytes, including provider-direct completions",
+			"egressBytes":        "HTTP response payload bytes observed after authenticated or share-link delivery",
+			"scanBytes":          "accepted object-version bytes submitted to the configured scanner boundary",
+			"aiInputUnits":       "provider-independent preflight estimate; not provider-billed tokens",
+			"backupBytes":        "not attributable per owner in the operator recovery archive; reported as zero",
+			"replicaBytes":       "no replicated provider configured; reported as zero",
+			"financials":         "no pricing provider configured; all monetary fields are zero and no charge is authorized",
+		},
+	}, nil
+}
+
+func (s *Service) RecordEgress(actor, product, objectID string, bytes int64, channel string) error {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") || bytes < 0 || (channel != "session" && channel != "share" && channel != "export") {
+		return ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.meterLocked(actor, product, 0, bytes, 0, 0, 0)
+	return s.persist("meter.egress", actor, objectID, map[string]any{"product": product, "bytes": bytes, "channel": channel})
+}
+
+func (s *Service) AIStatus(ctx context.Context) map[string]any {
+	provider, model, ok := s.cfg.AIProvider.Status(ctx)
+	return map[string]any{"provider": provider, "model": model, "available": ok, "boundary": "selected file versions only; encrypted content excluded"}
+}
+func (s *Service) CreateAIJob(ctx context.Context, actor, product, mode, instruction string, ids []string, versions []int, consent bool) (AIJob, error) {
+	if product != "cloud" && product != "docs" {
+		return AIJob{}, ErrInvalid
+	}
+	if !consent || len(ids) == 0 || len(ids) > 12 || len(ids) != len(versions) || len(instruction) > 4000 {
+		return AIJob{}, ErrInvalid
+	}
+	allowed := map[string]bool{"summarize": true, "answer": true, "draft": true, "revise": true, "organize": true}
+	if !allowed[mode] {
+		return AIJob{}, ErrInvalid
+	}
+	s.mu.Lock()
+	contexts := []AIContext{}
+	citations := []string{}
+	for i, id := range ids {
+		obj, err := s.require(actor, id, 1)
+		if err != nil {
+			s.mu.Unlock()
+			return AIJob{}, err
+		}
+		if obj.Product != product {
+			s.mu.Unlock()
+			return AIJob{}, ErrDenied
+		}
+		if obj.Encryption.ClientSide {
+			s.mu.Unlock()
+			return AIJob{}, errors.New("client-encrypted content cannot be sent to AI")
+		}
+		v := versions[i]
+		if v == 0 {
+			v = obj.Version
+		}
+		var selected *Version
+		for n := range s.state.Versions[id] {
+			if s.state.Versions[id][n].Number == v {
+				x := s.state.Versions[id][n]
+				selected = &x
+				break
+			}
+		}
+		if selected == nil {
+			s.mu.Unlock()
+			return AIJob{}, ErrNotFound
+		}
+		b, err := s.cfg.ObjectStore.Get(ctx, selected.BlobPath, selected.Hash)
+		if err != nil {
+			s.mu.Unlock()
+			return AIJob{}, err
+		}
+		contexts = append(contexts, AIContext{ObjectID: id, Version: v, Name: obj.Name, Content: string(b)})
+		citations = append(citations, fmt.Sprintf("%s@v%d", id, v))
+	}
+	provider, model, available := s.cfg.AIProvider.Status(ctx)
+	job := AIJob{ID: newID("ai"), Product: product, Actor: actor, Mode: mode, ObjectIDs: append([]string(nil), ids...), Versions: append([]int(nil), versions...), Instruction: instruction, Provider: provider, Model: model, Estimate: len(instruction) / 4, ConsentAt: s.cfg.Now(), Status: "queued", Citations: citations}
+	for _, c := range contexts {
+		job.Estimate += len(c.Content) / 4
+	}
+	s.state.AIJobs[job.ID] = job
+	s.meterLocked(actor, product, 0, 0, 0, int64(job.Estimate), 1)
+	_ = s.persist("ai.consent", actor, "", map[string]any{"product": product, "jobId": job.ID, "mode": mode, "contexts": citations, "estimatedUnits": job.Estimate})
+	jobCtx, cancel := context.WithCancel(context.Background())
+	s.cancels[job.ID] = cancel
+	s.mu.Unlock()
+	go s.runAIJob(jobCtx, job, instruction, contexts, available)
+	return job, nil
+}
+
+func (s *Service) runAIJob(ctx context.Context, job AIJob, instruction string, contexts []AIContext, available bool) {
+	s.mu.Lock()
+	if existing := s.state.AIJobs[job.ID]; existing.Status == "canceled" {
+		s.mu.Unlock()
+		return
+	}
+	job.Status = "running"
+	s.state.AIJobs[job.ID] = job
+	_ = s.persist("ai.started", job.Actor, "", map[string]any{"product": job.Product, "jobId": job.ID})
+	s.mu.Unlock()
+	if !available {
+		job.Status = "failed"
+		job.Error = "YNX AI Gateway provider is unavailable"
+	} else {
+		result, err := s.cfg.AIProvider.Complete(ctx, instruction, contexts)
+		if errors.Is(err, context.Canceled) || ctx.Err() != nil {
+			job.Status = "canceled"
+			job.Error = "canceled by user"
+		} else if err != nil {
+			job.Status = "failed"
+			job.Error = err.Error()
+		} else {
+			job.Status = "review"
+			job.Result = result
+		}
+	}
+	s.mu.Lock()
+	delete(s.cancels, job.ID)
+	if current := s.state.AIJobs[job.ID]; current.Status == "canceled" {
+		job.Status = "canceled"
+		job.Error = "canceled by user"
+	}
+	s.state.AIJobs[job.ID] = job
+	_ = s.persist("ai.result", job.Actor, "", map[string]any{"product": job.Product, "jobId": job.ID, "status": job.Status})
+	s.mu.Unlock()
+}
+
+func (s *Service) GetAIJob(actor, product, id string) (AIJob, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	job, ok := s.state.AIJobs[id]
+	if !ok {
+		return AIJob{}, ErrNotFound
+	}
+	if job.Actor != actor || job.Product != product {
+		return AIJob{}, ErrDenied
+	}
+	return job, nil
+}
+
+func (s *Service) CancelAIJob(actor, product, id string) (AIJob, error) {
+	s.mu.Lock()
+	job, ok := s.state.AIJobs[id]
+	if !ok {
+		s.mu.Unlock()
+		return AIJob{}, ErrNotFound
+	}
+	if job.Actor != actor || job.Product != product || (job.Status != "queued" && job.Status != "running") {
+		s.mu.Unlock()
+		return AIJob{}, ErrDenied
+	}
+	job.Status = "canceled"
+	job.Error = "canceled by user"
+	s.state.AIJobs[id] = job
+	cancel := s.cancels[id]
+	_ = s.persist("ai.canceled", actor, "", map[string]any{"product": product, "jobId": id})
+	s.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+	return job, nil
+}
+func (s *Service) ReviewAI(actor, product, id, decision string) (AIJob, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	j, ok := s.state.AIJobs[id]
+	if !ok {
+		return AIJob{}, ErrNotFound
+	}
+	if j.Actor != actor || j.Product != product || j.Status != "review" || (decision != "applied" && decision != "rejected") {
+		return AIJob{}, ErrDenied
+	}
+	now := s.cfg.Now()
+	j.Status = decision
+	if decision == "applied" {
+		j.AppliedAt = &now
+	} else {
+		j.RejectedAt = &now
+	}
+	s.state.AIJobs[id] = j
+	if err := s.persist("ai."+decision, actor, "", map[string]any{"product": product, "jobId": id}); err != nil {
+		return AIJob{}, err
+	}
+	return j, nil
+}
+
+func walletProductBinding(request WalletAuthorizationRequest) (string, error) {
+	type binding struct {
+		product, client, bundle, callback string
+		scopes                            []string
+	}
+	bindings := []binding{
+		{"cloud", "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
+		{"docs", "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
+		{"cloud", "ynx-cloud-web-v1", "web.ynx.cloud", "https://web4.ynxweb4.com/cloud/auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
+		{"docs", "ynx-docs-web-v1", "web.ynx.docs", "https://web4.ynxweb4.com/docs-app/auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
+	}
+	for _, b := range bindings {
+		if request.RequestingProduct != b.product || request.ProductClientID != b.client || request.BundleID != b.bundle || request.Callback != b.callback || len(request.Scopes) == 0 || len(request.Scopes) > len(b.scopes) {
+			continue
+		}
+		allowed, previous := map[string]bool{}, ""
+		for _, scope := range b.scopes {
+			allowed[scope] = true
+		}
+		valid := true
+		for _, scope := range request.Scopes {
+			if !allowed[scope] || scope <= previous {
+				valid = false
+				break
+			}
+			previous = scope
+		}
+		if valid {
+			return b.product, nil
+		}
+	}
+	return "", ErrInvalid
+}
+
+func authorizationDigest(request WalletAuthorizationRequest) (string, error) {
+	b, err := json.Marshal(request)
+	if err != nil {
+		return "", err
+	}
+	var value map[string]any
+	if err := json.Unmarshal(b, &value); err != nil {
+		return "", err
+	}
+	canonical, err := json.Marshal(value)
+	if err != nil {
+		return "", err
+	}
+	return hashBytes(canonical), nil
+}
+
+func validateWalletPair(request WalletAuthorizationRequest, approval WalletApproval, now time.Time) (string, time.Time, error) {
+	product, err := walletProductBinding(request)
+	if err != nil || request.Version != "1" || request.ChainID != ChainID || request.ProductDeviceAlgorithm != "p256-sha256" || len(request.Nonce) < 32 || len(request.Nonce) > 64 || len(request.ProductDeviceKey) != 44 || len(request.Purpose) < 8 || len(request.Purpose) > 280 {
+		return "", time.Time{}, ErrInvalid
+	}
+	issued, err1 := time.Parse(time.RFC3339Nano, request.IssuedAt)
+	expires, err2 := time.Parse(time.RFC3339Nano, request.ExpiresAt)
+	if err1 != nil || err2 != nil || issued.After(now.Add(30*time.Second)) || !expires.After(now) || expires.Sub(issued) > 5*time.Minute || !expires.After(issued) {
+		return "", time.Time{}, ErrInvalid
+	}
+	digest, err := authorizationDigest(request)
+	if err != nil {
+		return "", time.Time{}, ErrInvalid
+	}
+	approvalIssued, approvalErr := time.Parse(time.RFC3339Nano, approval.IssuedAt)
+	if approvalErr != nil || approval.Version != "1" || approval.RequestDigest != digest || approval.Nonce != request.Nonce || approval.ChainID != request.ChainID || approval.RequestingProduct != request.RequestingProduct || approval.ProductClientID != request.ProductClientID || approval.BundleID != request.BundleID || approval.ProductDeviceAlgorithm != request.ProductDeviceAlgorithm || approval.ProductDeviceKey != request.ProductDeviceKey || approval.Callback != request.Callback || approval.Purpose != request.Purpose || approval.ExpiresAt != request.ExpiresAt || strings.Join(approval.GrantedScopes, "\n") != strings.Join(request.Scopes, "\n") || !validAccount(approval.Account) || len(approval.AccountPublicKey) != 66 || len(approval.WalletSignature) != 128 || approvalIssued.Before(issued) || approvalIssued.After(now.Add(30*time.Second)) {
+		return "", time.Time{}, ErrInvalid
+	}
+	return product, expires, nil
+}
+
+func (s *Service) CreateWalletChallenge(request WalletAuthorizationRequest, approval WalletApproval) (GatewayChallenge, error) {
+	now := s.cfg.Now().UTC().Truncate(time.Millisecond)
+	product, approvalExpiry, err := validateWalletPair(request, approval, now)
+	if err != nil {
+		return GatewayChallenge{}, err
+	}
+	expires := now.Add(3 * time.Minute)
+	if approvalExpiry.Before(expires) {
+		expires = approvalExpiry
+	}
+	challenge := GatewayChallenge{Version: "1", Challenge: newID("gateway"), RequestDigest: approval.RequestDigest, ProductClientID: approval.ProductClientID, BundleID: approval.BundleID, ProductDeviceAlgorithm: approval.ProductDeviceAlgorithm, ProductDeviceKey: approval.ProductDeviceKey, Account: approval.Account, Scopes: append([]string(nil), approval.GrantedScopes...), IssuedAt: now.Format("2006-01-02T15:04:05.000Z"), ExpiresAt: expires.Format("2006-01-02T15:04:05.000Z")}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id, pending := range s.state.WalletChallenges {
+		if !pending.CreatedAt.Add(5 * time.Minute).After(now) {
+			delete(s.state.WalletChallenges, id)
+		}
+	}
+	s.state.WalletChallenges[challenge.Challenge] = PendingWalletChallenge{Challenge: challenge, Product: product, Callback: request.Callback, Nonce: request.Nonce, CreatedAt: now}
+	if err := s.persist("session.challenge", approval.Account, "", map[string]any{"product": product, "requestDigest": approval.RequestDigest}); err != nil {
+		return GatewayChallenge{}, err
+	}
+	return challenge, nil
+}
+
+func (s *Service) CreateSession(ctx context.Context, envelope WalletSessionEnvelope) (string, Session, error) {
+	now := s.cfg.Now().UTC()
+	product, expires, err := validateWalletPair(envelope.AuthorizationRequest, envelope.WalletApproval, now)
+	if err != nil {
+		return "", Session{}, err
+	}
+	challenge := envelope.GatewayCompletion.Challenge
+	s.mu.Lock()
+	pending, ok := s.state.WalletChallenges[challenge.Challenge]
+	s.mu.Unlock()
+	if !ok || pending.Product != product || pending.Callback != envelope.AuthorizationRequest.Callback || pending.Nonce != envelope.AuthorizationRequest.Nonce || !reflect.DeepEqual(pending.Challenge, challenge) {
+		return "", Session{}, errors.New("canonical Wallet challenge mismatch or replay")
+	}
+	challengeExpiry, err := time.Parse(time.RFC3339Nano, challenge.ExpiresAt)
+	if err != nil || !challengeExpiry.After(now) || len(envelope.GatewayCompletion.DeviceSignature) < 90 {
+		return "", Session{}, ErrInvalid
+	}
+	claims, err := s.cfg.WalletVerifier.Verify(ctx, envelope)
+	if err != nil {
+		return "", Session{}, err
+	}
+	issuedAt, err := time.Parse(time.RFC3339Nano, claims.IssuedAt)
+	if err != nil || claims.ExpiresAt != envelope.WalletApproval.ExpiresAt {
+		return "", Session{}, ErrInvalid
+	}
+	token := newID("session")
+	session := Session{TokenHash: hashBytes([]byte(token)), SessionBinding: claims.SessionBinding, RequestDigest: claims.RequestDigest, Account: claims.Account, Product: product, ClientID: claims.ProductClientID, BundleID: claims.BundleID, Callback: envelope.AuthorizationRequest.Callback, DeviceKey: envelope.AuthorizationRequest.ProductDeviceKey, Scopes: append([]string(nil), claims.Scopes...), IssuedAt: issuedAt, ExpiresAt: expires}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for nonce, expiry := range s.state.Nonces {
+		if !expiry.After(s.cfg.Now()) {
+			delete(s.state.Nonces, nonce)
+		}
+	}
+	nonceKey := product + ":" + envelope.AuthorizationRequest.ProductClientID + ":" + envelope.AuthorizationRequest.Nonce
+	if _, replayed := s.state.Nonces[nonceKey]; replayed {
+		return "", Session{}, errors.New("Wallet assertion nonce replay rejected")
+	}
+	if _, exists := s.state.WalletChallenges[challenge.Challenge]; !exists {
+		return "", Session{}, errors.New("canonical Wallet challenge replay rejected")
+	}
+	delete(s.state.WalletChallenges, challenge.Challenge)
+	s.state.Nonces[nonceKey] = expires
+	s.state.Sessions[session.TokenHash] = session
+	if err := s.persist("session.create", claims.Account, "", map[string]any{"product": product, "clientId": claims.ProductClientID, "requestDigest": claims.RequestDigest, "sessionBinding": claims.SessionBinding, "scopes": claims.Scopes}); err != nil {
+		return "", Session{}, err
+	}
+	return token, session, nil
+}
+func (s *Service) Authenticate(token string) (Session, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	session, ok := s.state.Sessions[hashBytes([]byte(token))]
+	if !ok || !session.ExpiresAt.After(s.cfg.Now()) {
+		return Session{}, ErrDenied
+	}
+	return session, nil
+}
+func (s *Service) RevokeSession(token string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	h := hashBytes([]byte(token))
+	session, ok := s.state.Sessions[h]
+	if !ok {
+		return ErrNotFound
+	}
+	delete(s.state.Sessions, h)
+	return s.persist("session.revoke", session.Account, "", map[string]any{"product": session.Product})
+}
+
+func (s *Service) Health() map[string]any {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	version := strings.TrimSpace(s.cfg.ReleaseVersion)
+	if version == "" {
+		version = "1.0.0"
+	}
+	_, direct := s.cfg.ObjectStore.(DirectUploadStore)
+	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "mode": s.serviceMode(), "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "activeMultipartUploads": len(s.state.MultipartUploads), "directUploads": len(s.state.DirectUploads), "presignedDirectUploadAvailable": direct, "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": s.cfg.ObjectStore.Boundary(), "trustBoundary": s.cfg.TrustSink.Boundary(), "maxUploadBytes": MaxUploadBytes, "maxMultipartBytes": MaxMultipartBytes, "maxMultipartParts": MaxMultipartParts, "maxDirectUploadBytes": MaxDirectUploadBytes, "multipartBoundary": "resumable bounded assembly; not provider-native streaming multipart", "quotaBytes": s.cfg.QuotaBytes}
+}
+
+func (s *Service) Readiness() (bool, map[string]bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	want, err := stateIntegrity(s.state)
+	stateOK := err == nil && want == s.state.IntegrityHash
+	_, walletUnavailable := s.cfg.WalletVerifier.(UnavailableWalletVerifier)
+	checks := map[string]bool{
+		"stateIntegrity":      stateOK,
+		"walletVerifierBound": !walletUnavailable,
+		"objectStoreBound":    s.cfg.ObjectStore != nil,
+		"scannerBound":        s.cfg.Scanner != nil,
+	}
+	return stateOK && !walletUnavailable && s.cfg.ObjectStore != nil && s.cfg.Scanner != nil, checks
+}
+
+func (s *Service) serviceMode() string {
+	if s.cfg.ExitMode {
+		return "user-exit"
+	}
+	return "normal"
+}
+
+func (s *Service) Liveness() map[string]any {
+	version := strings.TrimSpace(s.cfg.ReleaseVersion)
+	if version == "" {
+		version = "1.0.0"
+	}
+	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "mode": s.serviceMode(), "source": "YNX Cloud process liveness", "asOf": s.cfg.Now()}
+}

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 3,
+  "productId": "quant",
+  "displayName": "YNX Quant Lab",
+  "reviewState": "pending-review",
+  "enabled": false,
+  "productClientId": "ynx-quant-v1",
+  "requestingProduct": "quant",
+  "bundleId": "com.ynxweb4.quant",
+  "callbacks": [
+    "ynxquant://wallet-auth/callback"
+  ],
+  "scopes": [
+    "quant:account",
+    "quant:mandate:create",
+    "quant:mandate:execute",
+    "quant:mandate:revoke"
+  ],
+  "maxScopes": 4,
+  "productDeviceAlgorithms": [
+    "p256-sha256"
+  ],
+  "protocolVersions": {
+    "productSession": 1,
+    "productSessionHttpProof": 1,
+    "strategyMandate": 2,
+    "strategyAction": 1
+  },
+  "requestedSessionDurationSeconds": 300,
+  "mandateNonceDomainPattern": "ynx:strategy:<account>:<productClientId>:<mandateId>",
+  "requiredMandateBindings": [
+    "mandateId",
+    "account",
+    "productClientId",
+    "sessionBinding",
+    "strategyHash",
+    "strategyVersion",
+    "engineCommit",
+    "engineRelease",
+    "executionKind",
+    "executionAccount",
+    "nonceDomain",
+    "allowedVenues",
+    "allowedAssets",
+    "allowedMarkets",
+    "allowedMethods",
+    "allowedContracts",
+    "allowedTargets",
+    "maxCapital",
+    "maxPosition",
+    "maxLeverageBps",
+    "maxOrder",
+    "maxSlippageBps",
+    "maxGas",
+    "maxFrequencyPerHour",
+    "dailyLossLimit",
+    "drawdownLimit",
+    "noWithdraw",
+    "ownerChangeAllowed",
+    "arbitraryTransferAllowed",
+    "unlimitedApprovalAllowed",
+    "killSwitch",
+    "revoke",
+    "emergencyExit",
+    "testnetNoValue",
+    "issuedAt",
+    "expiresAt",
+    "source",
+    "asOf",
+    "version"
+  ],
+  "revocationPolicy": {
+    "session": true,
+    "approval": true,
+    "device": true,
+    "accountAllDevices": true,
+    "strategyMandateRevoke": true,
+    "strategyMandateKill": true,
+    "strategyMandateEmergencyExit": true
+  },
+  "ownerCandidate": {
+    "contractPath": "release/integration/wallet-auth-contract.json",
+    "contractSourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
+    "observedBranch": "codex/final-wallet-auth",
+    "observedBranchHead": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
+    "sourceCommitReachableFromObservedHead": true,
+    "exactHeadBound": false,
+    "centrallyAccepted": false,
+    "directTestnetMandateReceipt": false
+  }
+}

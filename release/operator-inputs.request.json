@@ -1,87 +1,100 @@
 {
-  "schemaVersion": 1,
-  "requestId": "ynx-dex-testnet-release-inputs-v1",
-  "productId": "ynx-dex",
-  "owner": "YNX 27",
-  "branch": "codex/final-dex",
-  "runtimeSourceCommit": "7d61369e02ab4d50a9fc36c927dc487e47ce9814",
-  "releaseVersion": "0.1.0-testnet-preview.1",
-  "network": {
-    "name": "YNX Testnet",
-    "chainId": 6423,
-    "mainnet": false
-  },
-  "status": "inputs-required-before-testnet-deployment",
-  "secretHandling": {
-    "acceptSecretsInChat": false,
-    "acceptPrivateKeysInRepository": false,
-    "requiredMechanism": "protected operator-controlled deployment environment"
-  },
-  "requests": [
+  "schemaVersion": "1.0.0",
+  "requestStatus": "required-before-production-signed-and-reviewed-release",
+  "generatedAt": "2026-07-27",
+  "sourceCommit": "601d13bd677729ff59819ea70076a7de461328f2",
+  "satisfiedByEvidence": [
     {
-      "id": "DEX-INPUT-001",
-      "owner": "YNX 02 / YNX 29",
-      "input": "accepted Wallet/Gateway registry tuple and executable introspection/revoke vector endpoint",
-      "requiredValues": [
-        "productClientId=ynx-dex-web-v1",
-        "bundleId=com.ynxweb4.dex.web",
-        "deviceAlgorithm=p256-sha256",
-        "exact accepted scopes and version"
-      ],
-      "unblocks": "central approval and replay/revoke acceptance"
+      "capability": "central integration, staging deployment, public deployment and immutable hosted download",
+      "evidence": "release/evidence/website-public-acceptance-2026-07-26.json"
     },
     {
-      "id": "DEX-INPUT-002",
-      "owner": "YNX 19",
-      "input": "reviewed Oracle contract and stable-asset peg/rate policy",
-      "requiredValues": [
-        "Testnet Oracle address and version",
-        "source/asOf/version semantics",
-        "heartbeat and stale threshold",
-        "depeg threshold and pause policy",
-        "reviewed asset identifiers"
-      ],
-      "unblocks": "StableSwap and LP-protection deployment gates"
-    },
-    {
-      "id": "DEX-INPUT-003",
-      "owner": "YNX 29 / authorized Testnet operator",
-      "input": "canonical Testnet deployment addresses and protected deployer path",
-      "requiredValues": [
-        "wrapped YNXT address",
-        "reviewed token addresses",
-        "treasury address",
-        "deployment start block policy",
-        "funded deployer identity through protected mechanism"
-      ],
-      "unblocks": "contract deployment, verification and Indexer configuration"
-    },
-    {
-      "id": "DEX-INPUT-004",
-      "owner": "YNX 30",
-      "input": "release security, signing and artifact-hosting acceptance",
-      "requiredValues": [
-        "accepted audit scope",
-        "provenance/signing class",
-        "immutable artifact host",
-        "public status and security URLs",
-        "backup/restore acceptance criteria"
-      ],
-      "unblocks": "audited Release and public artifact gates"
-    },
-    {
-      "id": "DEX-INPUT-005",
-      "owner": "YNX 28",
-      "input": "Website deployment receipt after integration freeze",
-      "requiredValues": [
-        "ynxweb4.com/dex deployment identifier",
-        "source commit",
-        "canonical and structured-data verification",
-        "direct public route probe"
-      ],
-      "unblocks": "websitePublished status only; it does not imply runtime deployment"
+      "capability": "canonical public routes, sitemap, robots and IndexNow submission",
+      "evidence": "https://ynxweb4.com/docs"
     }
   ],
-  "firstActionAfterInputs": "Run fail-closed preflight, deploy and verify exact Testnet bytecode, execute bounded Wallet/Vault/Indexer/restore vectors, then update source-bound evidence without inferring Mainnet or public completion.",
-  "generatedAt": "2026-07-29T02:27:50Z"
+  "notApplicableStates": {
+    "installedLocal": "This documentation package is consumed by the Website build and has no standalone installer.",
+    "storeReleased": "No product store distributes this documentation package."
+  },
+  "instructions": {
+    "responseChannel": "approved control plane or named owner handoff",
+    "neverProvideInChatOrRepository": [
+      "private key",
+      "seed phrase",
+      "validator key",
+      "PEM or keystore",
+      "CVV or full card data",
+      "complete API secret",
+      "raw identity document"
+    ],
+    "secretMethod": "Provide only a secret-manager reference/path and access owner after the receiving service account and rotation policy are approved."
+  },
+  "inputs": [
+    {
+      "id": "production-signing-approval",
+      "ownerClass": "security-custody-owner",
+      "requiredFor": [
+        "productionSigned"
+      ],
+      "provide": [
+        "approved secure signer reference/path",
+        "public signing certificate or public-key chain",
+        "artifact signing policy and signing-class decision",
+        "two-person approval record",
+        "rotation, revocation and offline recovery evidence"
+      ],
+      "prohibited": "Do not provide secret key material."
+    },
+    {
+      "id": "search-and-independent-public-proof",
+      "ownerClass": "website-domain-and-search-owner",
+      "requiredFor": [
+        "independentPublicProof",
+        "Search Console verification",
+        "Bing Webmaster Tools verification"
+      ],
+      "provide": [
+        "DNS/domain-control evidence reference",
+        "Search Console property and sitemap submission receipt",
+        "Bing property and sitemap submission receipt",
+        "independent monitor or search-engine fetch evidence with URL and observation time"
+      ],
+      "prohibited": "Do not provide complete provider credentials; provide an approved credential reference only if automation is authorized."
+    },
+    {
+      "id": "named-review-approvals",
+      "ownerClass": "qualified-legal-economic-security-and-audit-reviewers",
+      "requiredFor": [
+        "legalReview",
+        "securityReview",
+        "economicReview",
+        "independentAudit"
+      ],
+      "provide": [
+        "named reviewer and organization",
+        "scope, jurisdiction and reviewed artifact digests",
+        "approval, findings or explicit rejection",
+        "effective date and review expiry",
+        "required remediation and prohibited public claims"
+      ]
+    },
+    {
+      "id": "brand-media-rights-approval",
+      "ownerClass": "brand-and-legal-owner",
+      "requiredFor": [
+        "approved public logo variants",
+        "screenshots",
+        "press distribution"
+      ],
+      "provide": [
+        "asset source and rights record",
+        "approved hashes, bytes and dimensions",
+        "light, dark and icon variant approvals",
+        "screenshot route, state, privacy and release approval",
+        "named brand reviewer"
+      ]
+    }
+  ],
+  "releaseRule": "Missing input keeps only the affected review, proof, signing or media capability false or unavailable. It must never be replaced by fabricated configuration, provider health, approval, signature or rights evidence."
 }

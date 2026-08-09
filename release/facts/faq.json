@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Candidate",
+  "items": [
+    {"id": "FAQ-001", "question": "What is YNX Chain?", "answer": "YNX Chain is a Web4 Layer-1 ecosystem. Web4 is a YNX product term, not an adopted Internet standard.", "status": "Candidate", "evidence": ["CLM-001"]},
+    {"id": "FAQ-002", "question": "What is YNX Web4?", "answer": "YNX Web4 is the application ecosystem powered by YNX Chain, with independent product boundaries.", "status": "Candidate", "evidence": ["CLM-002"]},
+    {"id": "FAQ-003", "question": "What is YNXT?", "answer": "YNXT is the native Testnet asset. Testnet assets have no represented monetary value or guaranteed liquidity.", "status": "Candidate", "evidence": ["CLM-003"]},
+    {"id": "FAQ-004", "question": "Which Chain ID does YNX Testnet use?", "answer": "YNX Testnet uses EVM Chain ID 6423 (0x1917) and Cosmos Chain ID ynx_6423-1.", "status": "Candidate", "evidence": ["CLM-004"]},
+    {"id": "FAQ-005", "question": "Is YNX Mainnet live?", "answer": "No Mainnet launch is established by this documentation package. YNX Testnet and Mainnet status must remain separate.", "status": "Candidate", "evidence": ["CLM-009"]},
+    {"id": "FAQ-006", "question": "Does YNX guarantee returns or liquidity?", "answer": "No. YNX documentation makes no guarantee of returns, price, peg, reserves, solvency, backing, or liquidity.", "status": "Candidate", "evidence": ["CLM-008"]},
+    {"id": "FAQ-007", "question": "Is YNX audited, licensed, or regulator-approved?", "answer": "No portfolio-wide claim is approved. Drafts and engineering reviews are not independent audits, licenses, legal opinions, or regulatory approvals.", "status": "Candidate", "evidence": ["CLM-007"]},
+    {"id": "FAQ-008", "question": "Is YNX affiliated with Lynx-branded products?", "answer": "YNX Chain and YNX Web4 are not affiliated with unrelated Lynx-branded products.", "status": "Candidate", "evidence": ["CLM-005"]}
+  ]
+}

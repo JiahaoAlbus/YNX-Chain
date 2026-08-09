@@ -1,0 +1,71 @@
+name: Resource Market Candidate Gates
+
+on:
+  pull_request:
+    paths:
+      - 'apps/resource-market/**'
+      - 'internal/resourcemarket/**'
+      - 'internal/resourceproduct/**'
+      - 'internal/productstore/**'
+      - 'internal/canonicalwallet/**'
+      - 'scripts/validate/**'
+      - 'scripts/verify/resource-market*'
+      - '.github/workflows/resource-market-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install patched Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.25.12'
+          check-latest: false
+          cache: true
+      - name: Record toolchains
+        run: go version && node --version && npm --version
+      - name: Runtime filler and secret gates
+        run: |
+          bash scripts/validate/no-placeholder-check.sh
+          bash scripts/validate/secret-scan.sh
+      - name: Go correctness and race gates
+        run: |
+          go vet ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market
+          go test -count=1 ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market
+          go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct
+      - name: Go vulnerability gate
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market
+      - name: Locked browser dependencies and audit
+        working-directory: apps/resource-market
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=high
+          npx playwright install --with-deps chromium
+          npm run test:ui
+      - name: Local API and DAST smoke
+        run: bash apps/resource-market/check.sh
+      - name: Build and inspect candidate artifact
+        run: |
+          if node apps/resource-market/scripts/package-release.mjs /tmp/resource-market-unsafe-output; then
+            echo "unsafe output path was accepted" >&2
+            exit 1
+          fi
+          node apps/resource-market/scripts/package-release.mjs release/resource-market-artifacts/ci-a
+          node apps/resource-market/scripts/package-release.mjs release/resource-market-artifacts/ci-b
+          diff -qr release/resource-market-artifacts/ci-a release/resource-market-artifacts/ci-b
+          bash scripts/validate/secret-scan.sh
+      - name: Upload unsigned candidate artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: resource-market-candidate-${{ github.sha }}
+          path: release/resource-market-artifacts/ci-a
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "522b998077b5f150b86ab56f0a2f62a3a5005b82",
+  "recordedAt": "2026-07-22T23:10:00+08:00",
+  "environment": {
+    "runtime": "Node.js v24.5.0",
+    "os": "Darwin 25.0.0 arm64",
+    "chain": "Hardhat EDR in-process local chain",
+    "solc": "0.8.28",
+    "entryPointPackage": "@account-abstraction/contracts@0.8.0",
+    "coverageExclusions": ["external Bundler", "public RPC", "durable storage", "network latency", "YNX Testnet deployment"]
+  },
+  "command": "npm run hardhat:test:wallet",
+  "assertions": {
+    "ownerUserOperation": true,
+    "webAuthnUVUserOperation": true,
+    "boundedSessionUserOperation": true,
+    "overLimitRejection": true,
+    "wrongTargetRejection": true,
+    "missingUserVerificationRejection": true,
+    "delayedGuardianRecovery": true,
+    "recoveryRevokedSessions": true,
+    "counterfactualFactoryUserOperation": true
+  },
+  "soakBenchmark": {"samples":50,"failures":0,"throughputPerSecond":435.42,"p50Ms":2.173,"p95Ms":2.961,"p99Ms":4.47},
+  "artifacts": {
+    "YNXSmartAccount": {"creationBytes":12348,"runtimeBytes":11865,"runtimeSha256":"e473c01b1e5e074ad9e443dca08effaaec7d45afa6423c4e6aecf47274751311"},
+    "YNXSmartAccountFactory": {"creationBytes":13666,"runtimeBytes":13348,"runtimeSha256":"26ef956e408b8894746d397c039f6da7cd13c5f2fae8c5138609cc58a4c4c6d7"},
+    "YNXEntryPoint": {"creationBytes":18395,"runtimeBytes":16075,"runtimeSha256":"ec8996b0639d05c7810e0a3e7774bf8d261fcbb068555ce14ba0cc7594d684a2"}
+  },
+  "sourceSha256": {
+    "smartAccountSol": "a364f39f176c3f4cda86fc088f90563b91b8f03bd4a2dcab241f1603b1e9baaa",
+    "entryPointSol": "823ed77480ae5d62dfebbe69d3d0af729fa86b3a9031340ecf880c0116806e34",
+    "testScript": "e9c868f789aafa0c852e5abbe377e752ff1d4ceb184f71b1a8d7d19857f542ba"
+  },
+  "states": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false}
+}

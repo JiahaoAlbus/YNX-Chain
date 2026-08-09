@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "subject": {
+    "path": "apps/cloud/release/YNX-Cloud-1.0.0-testnet-preview.apk",
+    "sha256": "dd2a77ed0c2e3106ef15016016c6abfae37af8f34b241fb22ffaae029b638461",
+    "bytes": 69731693,
+    "signingClass": "Android debug certificate; Testnet Preview only"
+  },
+  "source": {
+    "repository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "commit": "db9bc224df52e05018264fc284fb23f18033424a",
+    "branch": "codex/final-cloud"
+  },
+  "build": {
+    "status": "pre-existing-local-artifact-verified",
+    "buildType": "Expo/Gradle Android Testnet Preview",
+    "reproducible": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "claimBoundary": "This record verifies the recovered local artifact and inputs. It is not SLSA provenance, a fresh rebuild, production signing, hosting, or store publication evidence."
+  },
+  "materials": [
+    {
+      "uri": "go.mod",
+      "digest": {
+        "sha256": "922a635f2ceb0f60a7e4c4ad2cf8c0bbe55b7ea609a02c1e6678e8f656e96fb8"
+      }
+    },
+    {
+      "uri": "go.sum",
+      "digest": {
+        "sha256": "8084743bd7e108d78d54edee6396f89a0f561da044d5eafe4b561e48e5370793"
+      }
+    },
+    {
+      "uri": "apps/cloud/mobile/pnpm-lock.yaml",
+      "digest": {
+        "sha256": "9834ab0fddd1fbf48f2a2091edae3cf4ffb169d8e378f214b10b0a981ae2e87b"
+      }
+    },
+    {
+      "uri": "apps/docs/mobile/pnpm-lock.yaml",
+      "digest": {
+        "sha256": "78af095e76c9f424bad62774727b173c0c3a6b2411024f3ac311ca9645ca3c92"
+      }
+    }
+  ]
+}
