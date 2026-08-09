@@ -5,16 +5,16 @@
   "aliases": ["YNX Decentralized Exchange", "YNX Pools", "YNX FairFlow"],
   "canonicalRoute": "/dex",
   "title": "YNX DEX — Non-custodial Pools and Verifiable Execution",
-  "metaDescription": "Explore YNX DEX pools, routes and user-owned strategy vault controls. The current release is an unaudited Testnet preview candidate and is not a public deployment.",
-  "h1": "Non-custodial liquidity, bounded by user approval",
-  "summary": "YNX DEX is an independent non-custodial exchange product with constant-product and StableSwap pool candidates, verifiable FairFlow intents, LP protection controls and user-owned Strategy Vault execution boundaries.",
+  "metaDescription": "Inspect consensus-committed YNX DEX assets, pools, swaps and liquidity state. Public execution remains gated until the v13 chain migration and Wallet registry entry are approved.",
+  "h1": "Consensus-native liquidity, bounded by Wallet approval",
+  "summary": "YNX DEX v13 stores Testnet assets, balances, constant-product pools, LP shares, swaps and audit events in deterministic consensus state. The Web/PWA reads only AppHash-bound gateway envelopes and never handles private keys.",
   "sourceCommit": "7d61369e02ab4d50a9fc36c927dc487e47ce9814",
   "artifactSourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
   "evidenceCheckpointCommit": "f933440d5cb791044476eb69c58c522d5c91d8a1",
   "version": "0.1.0-testnet-preview.1",
   "status": {
-    "implementedLocal": false,
-    "testedLocal": false,
+    "implementedLocal": true,
+    "testedLocal": true,
     "integratedCentral": false,
     "testnetVerified": false,
     "websitePublished": false,
@@ -25,6 +25,9 @@
     "mainnet": false
   },
   "componentStatus": {
+    "consensusStateV13": "implemented-tested-pr-85-review-required",
+    "consensusGateway": "implemented-tested-pr-85-review-required",
+    "consensusWebClient": "implemented-tested-local-public-cutover-pending",
     "constantProductPools": "tested-local",
     "stableSwapPools": "tested-local",
     "strategyVault": "tested-local",
@@ -38,6 +41,9 @@
     "liquidityBootstrapping": "not-started"
   },
   "features": [
+    "Consensus-native Testnet assets, balances, CPMM pools, LP shares, swaps and audit events",
+    "AppHash-bound v13 gateway reads with strict source and version verification",
+    "Deterministic integer exact-input quotes matching direct consensus pool math",
     "Non-custodial constant-product and two-asset StableSwap pool candidates",
     "Exact-input and exact-output route quoting",
     "User-owned Strategy Vault with bounded engine mandates",
@@ -49,6 +55,8 @@
     "Independent Web/PWA preview surface"
   ],
   "riskDisclosures": [
+    "The consensus DEX is pending protected-branch review, node migration and public cutover; the current public chain must not be represented as v13 until those gates complete.",
+    "Wallet transaction handoff remains fail-closed until the canonical registry entry and callback verification are approved.",
     "Unaudited software; no independent smart-contract audit is complete.",
     "No verified YNX Testnet deployment, reviewed liquidity or public transaction proof exists.",
     "No public runtime, hosted download or production-signed artifact exists.",

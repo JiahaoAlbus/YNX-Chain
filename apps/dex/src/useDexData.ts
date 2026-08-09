@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { dexApi } from "./api";
 import type { Analytics, ChainEvent, FeeSummary, Loadable, Pool, SpotPrice, Token, TWAP } from "./types";
+
+type DexData={pools:Pool[];tokens:Token[];events:ChainEvent[];analytics:Analytics;prices:SpotPrice[];twap:TWAP[];fees:FeeSummary[]};
 export function useDexData(){
- const [data,setData]=useState<Loadable<{pools:Pool[];tokens:Token[];events:ChainEvent[];analytics:Analytics;prices:SpotPrice[];twap:TWAP[];fees:FeeSummary[]}>>({state:"loading"});
- const load=useCallback(()=>{const controller=new AbortController();setData({state:"loading"});Promise.all([dexApi.pools(controller.signal),dexApi.tokens(controller.signal),dexApi.events(controller.signal),dexApi.analytics(controller.signal),dexApi.prices(controller.signal),dexApi.twap(controller.signal),dexApi.fees(controller.signal)]).then(([pools,tokens,events,analytics,prices,twap,fees])=>setData({state:"ready",data:{pools:pools.items,tokens:tokens.items,events:events.items,analytics,prices:prices.items,twap:twap.items,fees:fees.items},stale:false})).catch((error)=>{if(error.name!=="AbortError")setData({state:"error",message:error instanceof Error?error.message:"DEX service unavailable"})});return()=>controller.abort()},[]);
- useEffect(()=>load(),[load]);
+ const [data,setData]=useState<Loadable<DexData>>({state:"loading"});
+ const active=useRef<AbortController|null>(null);
+ const load=useCallback(()=>{active.current?.abort();const controller=new AbortController();active.current=controller;setData({state:"loading"});dexApi.snapshot(controller.signal).then(snapshot=>setData({state:"ready",data:snapshot,stale:false})).catch((error)=>{if(error?.name!=="AbortError")setData({state:"error",message:error instanceof Error?error.message:"DEX consensus gateway unavailable"})});},[]);
+ useEffect(()=>{load();return()=>active.current?.abort()},[load]);
  return {data,retry:load};
 }
