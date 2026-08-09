@@ -1,6 +1,6 @@
 # YNX Wallet and canonical Wallet Auth handoff
 
-Handoff updated: 2026-07-28. Owned branch: `codex/final-wallet-auth`. Recovery source: preserved `codex/ecosystem-wallet-auth` tip plus its six byte-for-byte verified dirty artifacts.
+Handoff updated: 2026-08-10. Owned branch: `codex/wallet-exchange-action-20260809`. Recovery source: preserved `codex/ecosystem-wallet-auth` tip plus its six byte-for-byte verified dirty artifacts.
 
 ## Git and ownership
 
@@ -66,7 +66,9 @@ Revocation boundaries are:
 
 `packages/wallet-auth/central-registry.json` contains exactly 26 sorted products, adding Quant to the prior 25-product set. Registry v1 migrates only from that exact prior set and deterministically adds Quant as disabled and `pending-review`.
 
-Every entry has an exact product ID, requesting product, client, bundle/package, callback list, sorted least-privilege scopes, `maxScopes`, permitted device algorithms, session duration and revocation policy. There are no wildcard values. All entries are `pending-review` and disabled; schema validation refuses enablement without `approved` review status. The Wallet locally tests exact Social, Pay, Card and Quant tuples while the central candidate remains disabled.
+Every entry has an exact product ID, requesting product, client, bundle/package, callback list, sorted least-privilege scopes, `maxScopes`, permitted device algorithms, session duration and revocation policy. There are no wildcard values. Schema validation refuses enablement without `approved` review status. Calendar, Developer, Exchange, Finance, Quant and Shop now have exact approved Testnet bindings; all other entries remain disabled. Approval records product-owned identity/scope review only and is not evidence of a deployed central Gateway or a working public/native round trip.
+
+The Developer binding is `ynx-developer-v1` / `com.ynxweb4.developer.testnetpreview` / `ynxdeveloper://wallet-auth/callback`, limited to `account:read` and `developer:deploy` for 180 seconds. Wallet tests the exact authorization deep link and scope explanations. It does not give the Web IDE a signer: the public Web surface cannot receive that native callback, and deployment must remain unavailable until an installed Developer client and the central lifecycle are remotely attested.
 
 The canonical Social tuple is now `ynx-social-v1` / `com.ynx.social` / `ynx-social://com.ynx.social`, matching the independent Social worktree. All executable fixtures, deterministic vectors and the Android proof harness use that tuple. `registry-conflict-evidence.json` is the only retained record of the deleted `com.ynxweb4.social` / `ynxsocial://wallet-auth/callback` fixture and the legacy central Ed25519/session contract. It is conflict evidence, not an accepted runtime alias or deployment claim. Exact migration, verification and rollout requirements are in `CENTRAL_INTEGRATION.md`.
 
@@ -92,7 +94,8 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 
 ## Verification performed
 
-- `packages/wallet-auth npm test`: 100/100 pass; `npm pack --dry-run` includes central docs, Registry v2, Gateway adapter/Node host, encrypted backup/restore, StrategyMandate runtime and deterministic vectors.
+- Focused 2026-08-10 approval verification: `packages/wallet-auth npm test` 105/105, `apps/wallet npm run typecheck` passed, and `apps/wallet npm test` 39/39. The new tests bind the exact Developer client, bundle, callback, scopes, algorithm and authorization deep-link round trip.
+- The previously recorded package dry-run includes central docs, Registry v2, Gateway adapter/Node host, encrypted backup/restore, StrategyMandate runtime and deterministic vectors.
 - `apps/wallet npm run check`: typecheck, 39/39 tests, product/release/coverage/SBOM gates and Android/iOS Hermes exports pass.
 - Offline production audits with `npm audit --offline --omit=dev --audit-level=high`: Wallet app and Wallet/Auth both report zero vulnerabilities; Browser/JS SDK tests remain green.
 - `npm run contracts:check` and `umask 0022; go test ./...`: pass. The MCP default `umask 0077` tightened two non-Wallet unsafe-permission fixtures to `0600`, so the standard fixture precondition is recorded rather than changing another product's source.

@@ -2,7 +2,7 @@
 
 The executable integration boundary is `src/gateway-http.js`, backed by `src/gateway-adapter.js`; `src/gateway-node-host.js` adds fail-closed local persistence and bounded observability. The merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection. Source commit `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6` is the current locally tested candidate.
 
-This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central review, central integration, staging deployment, or public deployment. The candidate registry therefore keeps every product disabled.
+This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central integration, staging deployment, or public deployment. Product approval in this file means only that the exact Testnet identity and least-privilege scope tuple has passed product-owned review; it does not mean that a central Gateway or an installed end-to-end flow is live.
 
 ## Canonical registry
 
@@ -35,14 +35,24 @@ Schema v2 remains the exact protocol projection consumed by the verifier: `schem
 
 `registry-conflict-evidence.json` records known identity and central implementation conflicts. It must be reviewed with the owning product worktrees before any product is marked approved.
 
-## Approved public-testnet products
+## Approved Testnet product bindings
 
-`shop` and `exchange` are approved for public-testnet Wallet sessions. Each approval
-is restricted to the exact client, bundle, callback, algorithms and least-privilege
-scopes listed in `central-registry.json`. Exchange action signing is a separate
-boundary: orders, cancellation and withdrawals remain fail-closed until the
-canonical action-verification route is deployed and attested. All other products
-remain disabled until equivalent product-owned evidence exists.
+`calendar`, `developer`, `exchange`, `finance`, `quant`, and `shop` have approved
+Testnet bindings. Each approval is restricted to the exact client, bundle,
+callback, algorithms, duration, and least-privilege scopes listed in
+`central-registry.json`. The Developer binding is specifically
+`ynx-developer-v1` / `com.ynxweb4.developer.testnetpreview` /
+`ynxdeveloper://wallet-auth/callback` with `account:read` and
+`developer:deploy`; the Wallet app tests that exact deep link and refuses tuple or
+scope substitution.
+
+Approval is not transaction authority. Exchange actions, Quant mandates,
+Calendar recovery, Developer deployment, and every other signed action remain
+separate human-review and Gateway boundaries. The public Web Developer cannot
+receive the native `ynxdeveloper://` callback, and the central Gateway lifecycle
+is not deployed or attested; those flows must remain unavailable instead of
+falling back to a bearer token, browser-injected signer, or simulated success.
+All other products remain disabled until equivalent product-owned evidence exists.
 
 ## Canonical envelope and verifier
 
@@ -107,4 +117,9 @@ The kernel freezes the parsed registry at construction, rejects alternate JSON e
 6. Deploy registry, kernel host and durable state migration atomically to staging; record registry hash, source commit, release, canonical build time, deployment ID and restore evidence, then run real Wallet↔product flows.
 7. Have Monitor accept the bounded metric/event contract, prove dashboard and alert behavior, and correlate request/error IDs to authoritative audit IDs without logging custody or proof material.
 
-Current local verification is Wallet/Auth 94/94, Node host 8/8, Browser SDK 7/7, JS SDK 5/5, loopback CLI smoke passed, package dry-run passed and `umask 0022; go test ./...` passed. Until central merge and direct Testnet/public evidence exist, truthful status remains `implemented-local` and `tested-local`, not `integrated-central` or `deployed-staging`.
+Current focused verification on 2026-08-10 is Wallet/Auth 105/105, Wallet app
+39/39, and Wallet app TypeScript typecheck, all passing. Earlier Node host,
+Browser SDK, JS SDK, loopback CLI, package, and Go evidence remains subject to
+its recorded source identity. Until central merge and direct Testnet/public
+evidence exist, truthful status remains `implemented-local` and `tested-local`,
+not `integrated-central` or `deployed-staging`.

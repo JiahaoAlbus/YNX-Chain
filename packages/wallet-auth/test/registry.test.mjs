@@ -5,11 +5,11 @@ import { centralRegistrationByProduct, migrateCentralRegistryDocumentV1, parseCe
 
 const source = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
 
-test("central registry contains 26 unique, least-privilege products with Calendar and accepted Testnet products approved", () => {
+test("central registry contains 26 unique, least-privilege products with Calendar, Developer and accepted Testnet products approved", () => {
   const registry = parseCentralRegistryDocument(source);
   assert.equal(registry.products.length, 26);
   const approved = registry.products.filter((product) => product.enabled);
-  assert.deepEqual(approved.map((product) => product.productId), ["calendar", "exchange", "finance", "quant", "shop"]);
+  assert.deepEqual(approved.map((product) => product.productId), ["calendar", "developer", "exchange", "finance", "quant", "shop"]);
   assert.equal(approved.every((product) => product.reviewState === "approved"), true);
   assert.equal(registry.products.filter((product) => !product.enabled).every((product) => product.reviewState === "pending-review"), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
@@ -22,6 +22,11 @@ test("central registry contains 26 unique, least-privilege products with Calenda
   assert.deepEqual(calendar.callbacks, ["ynxcalendar://wallet-auth/callback"]);
   assert.deepEqual(calendar.scopes, ["calendar:account", "calendar:recover"]);
   assert.deepEqual(calendar.productDeviceAlgorithms, ["p256-sha256"]);
+  const developer = centralRegistrationByProduct(registry, "developer");
+  assert.equal(developer.bundleId, "com.ynxweb4.developer.testnetpreview");
+  assert.deepEqual(developer.callbacks, ["ynxdeveloper://wallet-auth/callback"]);
+  assert.deepEqual(developer.scopes, ["account:read", "developer:deploy"]);
+  assert.equal(developer.sessionDurationSeconds, 180);
 });
 
 test("registry v1 migrates deterministically by adding disabled least-privilege Quant", () => {
