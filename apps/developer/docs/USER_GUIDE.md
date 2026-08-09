@@ -52,6 +52,12 @@ is necessary deployment input, not evidence that a transaction was submitted.
 read-only `eth_estimateGas` path and combines it with the current `eth_gasPrice`.
 It is an RPC estimate, not execution simulation, balance reservation or a fee
 guarantee; Wallet must show the final bounds again before signing.
+Rust, Move and Cosmos SDK starters are labelled by their exact capability. The
+Rust starter is dependency-free and becomes locally testable only with its
+reviewed target toolchain. Move remains editing-only until a YNX-compatible Move
+runtime is attested. The Cosmos starter contains a dependency-free message type;
+it is not a generated or running Cosmos SDK module. Template insertion never
+raises compiler, runtime or deployment status.
 The Chain panel's displayed 0.8.24 compiler value is
 the canonical Testnet compiler metadata and is not a production-compilation
 claim while that endpoint reports production compilation disabled. Wallet and

@@ -493,6 +493,13 @@ Later blockchain slices add reviewed Rust contract profiles, Move and Cosmos SDK
 pinned dependency/toolchain manifests, local tests, Testnet simulation, gas/fee
 estimates, contract artifacts, source maps and verified Explorer links.
 
+The current workbench now exposes dependency-free Rust, Move and Cosmos SDK
+project profiles with explicit capability labels. Rust is an editable profile
+that requires a separately reviewed target toolchain; Move is editing-only; the
+Cosmos profile is a compilable plain-Go message shape but is not a generated SDK
+module. These profiles cannot raise build, simulation or deployment state merely
+because their files were inserted.
+
 Deployment state is:
 
 `built -> tested -> simulated -> wallet_review -> signed -> broadcast -> receipt

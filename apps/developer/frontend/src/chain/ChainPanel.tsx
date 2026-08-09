@@ -20,6 +20,32 @@ const TEMPLATES = {
     source: '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract BatchPayment {\n    event Paid(address indexed sender, address indexed recipient, uint256 value);\n    function pay(address payable[] calldata recipients, uint256[] calldata values) external payable {\n        require(recipients.length == values.length && recipients.length <= 100, "invalid batch");\n        uint256 total;\n        for (uint256 i; i < recipients.length; i++) { total += values[i]; (bool ok,) = recipients[i].call{value: values[i]}(""); require(ok, "payment failed"); emit Paid(msg.sender, recipients[i], values[i]); }\n        require(total == msg.value, "value mismatch");\n    }\n}\n',
   },
 };
+const PLATFORM_STARTERS = [
+  {
+    label: "Rust contract profile · editable",
+    files: {
+      "contracts/rust/Cargo.toml": '[package]\nname = "ynx_counter"\nversion = "0.1.0"\nedition = "2021"\n\n[lib]\ncrate-type = ["cdylib", "rlib"]\n',
+      "contracts/rust/src/lib.rs": "#![no_std]\n\npub struct Counter { value: u64 }\nimpl Counter { pub const fn new() -> Self { Self { value: 0 } } pub fn increment(&mut self, amount: u64) { self.value = self.value.saturating_add(amount); } pub const fn value(&self) -> u64 { self.value } }\n",
+      "contracts/rust/README.md": "# Rust contract profile\n\nThis dependency-free profile is editable and locally testable after the reviewed Rust target/toolchain is installed. It is not a deployed YNX contract ABI.\n",
+    },
+  },
+  {
+    label: "Move module profile · editing only",
+    files: {
+      "contracts/move/Move.toml": '[package]\nname = "YNXCounter"\nversion = "0.0.1"\n\n[addresses]\nynx_counter = "0x0"\n',
+      "contracts/move/sources/counter.move": "module ynx_counter::counter {\n    public struct Counter has store, drop { value: u64 }\n    public fun increment(counter: &mut Counter, amount: u64) { counter.value = counter.value + amount; }\n}\n",
+      "contracts/move/README.md": "# Move module profile\n\nEditing and project structure only. Build/deploy remains unavailable until a reviewed YNX-compatible Move toolchain and runtime are attested.\n",
+    },
+  },
+  {
+    label: "Cosmos SDK module profile · editable",
+    files: {
+      "contracts/cosmos/go.mod": "module ynx.local/counter\n\ngo 1.24\n",
+      "contracts/cosmos/x/counter/types/msg.go": 'package types\n\ntype Increment struct {\n\tCreator string `json:"creator"`\n\tAmount uint64 `json:"amount"`\n}\n',
+      "contracts/cosmos/README.md": "# Cosmos SDK module profile\n\nThis starter exposes a dependency-free message type for editing. A real Cosmos SDK chain module requires reviewed dependencies, generated codecs and an attested target runtime.\n",
+    },
+  },
+] as const;
 
 export function ChainPanel({ files, onAddFile }: { files: Record<string, string>; onAddFile: (path: string, content: string) => void }) {
   const [status, setStatus] = useState<ChainStatus>(),
@@ -178,6 +204,12 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
             <button key={id} onClick={() => onAddFile(item.path, item.source)}>
               <b>{item.label}</b>
               <span>{item.path}</span>
+            </button>
+          ))}
+          {PLATFORM_STARTERS.map((item) => (
+            <button key={item.label} onClick={() => Object.entries(item.files).forEach(([path, content]) => onAddFile(path, content))}>
+              <b>{item.label}</b>
+              <span>{Object.keys(item.files).length} reviewed project files</span>
             </button>
           ))}
         </div>
