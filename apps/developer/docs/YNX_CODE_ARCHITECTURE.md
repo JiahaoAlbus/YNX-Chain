@@ -239,6 +239,21 @@ is returned as creation evidence and stop deletes only the container resolved
 through the signed owner's lease record. The candidate host lifecycle smoke test
 created, entered and deleted a real Ubuntu 24.04 container with no IPv4/IPv6.
 
+The current reviewed toolchain image is pinned by its immutable LXD fingerprint
+`f0a5a2012b5f9c69de88ce6addfe720d572996adc51dd8f6da8c80619a4bfbb2`.
+It contains the verified first-stage C++, JavaScript, TypeScript, Python, Go,
+Rust and Solidity compilers/runtimes. Selecting a lease in Remote Explorer
+routes the Workbench Run action through the runtime control plane, synchronizes
+only the validated text workspace, and compiles or executes the active file in
+that container without a shell or network device. A live server gate creates a
+fresh lease, runs all seven language paths, verifies compiler-version evidence,
+deletes the lease and rejects any leaked runtime container.
+
+This milestone does not yet route the interactive terminal, LSP processes or
+saved Remote SSH profiles into a remote workspace. Those surfaces remain
+separate work items and must not be described as cloud-connected until their
+own isolation and reconnect gates pass.
+
 Remote SSH profiles accept public targets only on the public tier. The service
 scans the host key, requires the user to approve that exact key, verifies the
 private key with `BatchMode`, `IdentitiesOnly` and strict host-key checking, then

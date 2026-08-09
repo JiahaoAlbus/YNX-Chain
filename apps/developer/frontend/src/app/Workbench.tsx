@@ -34,6 +34,7 @@ import {
   loadWorkspace,
   loadExtensions,
   runActive,
+  runContainerActive,
   runtimeHealth,
   saveWorkspace,
   type CollaborationRole,
@@ -93,6 +94,7 @@ export function Workbench() {
     [collaborationRole, setCollaborationRole] = useState<CollaborationRole>(),
     [collaborationSession, setCollaborationSession] = useState(() => Boolean(localStorage.getItem(`ynx-code-room:${project.id}`))),
     [collaborationCursor, setCollaborationCursor] = useState({ path: project.active, anchor: 0, head: 0 });
+  const [selectedRuntime, setSelectedRuntime] = useState<string|undefined>(() => localStorage.getItem(`ynx-code-runtime:${project.id}`)||undefined);
   const [collaborationMounted, setCollaborationMounted] = useState(() => Boolean(localStorage.getItem(`ynx-code-room:${project.id}`)));
   const lastSynced = useRef("");
   const workspace = useMemo(
@@ -130,6 +132,7 @@ export function Workbench() {
   useEffect(() => {
     saveProject(project);
   }, [project]);
+  useEffect(()=>{const key=`ynx-code-runtime:${project.id}`;if(selectedRuntime)localStorage.setItem(key,selectedRuntime);else localStorage.removeItem(key)},[project.id,selectedRuntime]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("ynx-code-theme", theme);
@@ -396,17 +399,13 @@ export function Workbench() {
     setBottom("task");
     setOutput((current) => `${current}\n$ ynx task run ${project.active}\n`);
     try {
-      const result = await runActive(
-        project.id,
-        project.active,
-        project.files,
-        (event) => {
-          if (event.type === "phase" && event.status === "started")
-            setOutput((current) => `${current}${event.phase}> `);
-          if (event.type === "output")
-            setOutput((current) => `${current}${event.data}`);
-        },
-      );
+      const result = selectedRuntime
+        ? await runContainerActive(selectedRuntime,project.id,project.active,project.files)
+        : await runActive(project.id,project.active,project.files,(event) => {
+            if (event.type === "phase" && event.status === "started") setOutput((current) => `${current}${event.phase}> `);
+            if (event.type === "output") setOutput((current) => `${current}${event.data}`);
+          });
+      if(selectedRuntime)setOutput(current=>`${current}${result.output}`);
       setOutput(
         (current) =>
           `${current}\n[exit ${result.code}] ${result.compiler.executable} · ${result.durationMs} ms · ${result.sandbox.kind}\n`,
@@ -633,7 +632,7 @@ export function Workbench() {
           <AgentPanel projectId={project.id} revision={project.remoteRevision} activePath={project.active} onApplied={refreshWorkspace} />
         )}
         {collaborationMounted&&<div hidden={view !== "collaboration"} className="collaboration-host"><Suspense fallback={<div className="editor-loading">Loading collaboration engine…</div>}><CollaborationPanel projectId={project.id} files={project.files} cursor={collaborationCursor} onRemoteFiles={applyCollaborativeFiles} onCheckpoint={refreshWorkspace} onAccessChange={setCollaborationRole} onSessionChange={setCollaborationSession} onLeave={leaveCollaboration} /></Suspense></div>}
-        {view==="remote"&&<Suspense fallback={<div className="editor-loading">Loading runtime control plane…</div>}><RuntimePanel projectId={project.id}/></Suspense>}
+        {view==="remote"&&<Suspense fallback={<div className="editor-loading">Loading runtime control plane…</div>}><RuntimePanel projectId={project.id} selected={selectedRuntime} onSelect={setSelectedRuntime}/></Suspense>}
       </aside>
       <main className="main">
         <div className="editor-tabs">
