@@ -522,7 +522,8 @@ does not follow automatically. Every deployment requires a fresh Wallet review.
 The callback is bound to the pending session, account, artifact and request. The
 server recomputes the payload hash, IDE request hash, artifact digest and
 transaction hash, rejects field widening, submits the unmodified Wallet byte
-sequence, and reports success only after an authoritative status `0x1` receipt
+sequence only to the BFT Gateway's dedicated `/ide/deploy` route,
+and reports success only after an authoritative status `0x1` receipt
 with a block number. A hash without that receipt stays pending.
 
 Later blockchain slices add reviewed Rust contract profiles, Move and Cosmos SDK,

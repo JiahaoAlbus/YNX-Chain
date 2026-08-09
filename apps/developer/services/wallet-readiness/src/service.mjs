@@ -175,7 +175,7 @@ async function broadcastDeployment(response, introspection, fetcher, chain) {
   if (!plainExact(transaction, envelopeFields) || !plainExact(payload, payloadFields) || canonicalJSON(transaction) !== canonicalJSON(response.signedTransaction) || transaction.version !== 1 || transaction.chainId !== 6423 || transaction.type !== "application_action" || !/^0x[0-9a-f]{40}$/.test(transaction.signer || "") || !Number.isSafeInteger(transaction.nonce) || transaction.nonce < 1 || transaction.action !== "ide_contract_deploy" || transaction.fee !== 1 || transaction.aiUnits !== 0 || transaction.payUnits !== 0 || !/^(02|03)[0-9a-f]{64}$/.test(transaction.publicKey || "") || !/^[0-9a-f]{136,144}$/.test(transaction.signature || "") || transaction.payloadHash !== sha256(JSON.stringify(payload)) || payload.requestHash !== requestHash || response.artifactDigest !== artifactDigest) {
     throw fault("Developer signed transaction was widened.", "deployment_transaction_mismatch", 403);
   }
-  await chainRead(fetcher, new URL("transactions/broadcast", chain), { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: raw });
+  await chainRead(fetcher, new URL("ide/deploy", chain), { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: raw });
   let receipt = null;
   for (let attempt = 0; attempt < 10 && !receipt; attempt++) {
     const rpc = await chainRead(fetcher, new URL("evm", chain), { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: `developer-receipt-${attempt}`, method: "eth_getTransactionReceipt", params: [response.transactionHash] }) });
