@@ -9,6 +9,12 @@
   paths and PTY-to-workspace synchronization against image fingerprint
   `7662bcfc5ca87f56d6fe47107b10bcbfd36e08d4faad912d2ebfa48976050ae9`,
   then left no runtime container behind.
+- Real Remote SSH gate: `scripts/live-ssh-workspace-check.mjs`; it requires an
+  explicit public host/user/key at invocation, verifies the reviewed host key,
+  opens the profile through the WebSocket terminal broker, writes and pulls a
+  remote file, requires revision 2, and removes the profile without exposing the
+  key. The 2026-08-10 candidate run passed with deterministic Ed25519 fingerprint
+  `SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8`.
 
 - Client unit/integration/security/recovery/locale tests:
   `packages/developer-client/test/developer-client.test.js`

@@ -251,10 +251,6 @@ the revisioned workspace store, deletes the lease and rejects any leaked runtime
 container. Active terminal and LSP processes hold a lease lock, so their backing
 container cannot be stopped while work is running.
 
-This milestone does not yet open saved Remote SSH profiles as editable
-workspaces. That surface remains a separate work item and must not be described
-as connected until its isolation, reconnect and host-key gates pass.
-
 Remote SSH profiles accept public targets only on the public tier. The service
 scans the host key, requires the user to approve that exact key, verifies the
 private key with `BatchMode`, `IdentitiesOnly` and strict host-key checking, then
@@ -263,6 +259,21 @@ never return host-key material or credentials. Private/loopback/link-local
 targets, changed keys and unconfigured encryption fail closed. Profile creation
 does not implicitly authorize terminal input, network, packages, Agent tools or
 deployment; those remain separate approvals.
+
+A saved profile can now be selected as an editable terminal workspace. The
+gateway decrypts the credential only for that owner and connection, recreates
+temporary `0600` identity/known-host files, synchronizes the validated text
+snapshot into `.ynx-code/workspaces/<project>`, opens an interactive PTY, pulls
+bounded text changes back through the revisioned workspace store and deletes the
+temporary credential files. Active profiles are locked against removal and can
+be opened again after exit. Host-key selection is deterministic (Ed25519,
+ECDSA, then RSA) so repeated review displays the same fingerprint. The real
+2026-08-10 SSH gate connected to the public candidate host, wrote a remote file,
+synchronized it, advanced the workspace from revision 1 to 2, released the
+profile lock and reverified the same Ed25519 fingerprint. One-click task/LSP
+routing on arbitrary SSH hosts is not yet enabled because their installed
+toolchains have not been attested; users must run those commands explicitly in
+the remote terminal.
 
 ## 9. Debugging
 

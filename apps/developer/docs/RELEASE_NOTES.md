@@ -14,6 +14,12 @@
   completion paths and PTY workspace synchronization, then deleted the lease
   with no runtime container left behind. This is candidate evidence, not a
   claim that the public Developer surface has been replaced.
+- Saved Remote SSH profiles can now open an owner-bound editable terminal
+  workspace with strict host-key checking, server-only credential decryption,
+  bounded text synchronization and reconnect. The real public-host gate wrote a
+  file remotely and advanced the authoritative workspace from revision 1 to 2.
+  Arbitrary remote one-click task/LSP execution remains disabled until the
+  target toolchain is separately attested.
 
 ## 2026-08-09 extension workspace candidate
 

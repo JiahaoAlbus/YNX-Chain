@@ -42,7 +42,7 @@ export function createTerminalService(options) {
     if (
       !owner ||
       !/^[A-Za-z0-9_-]{1,160}$/.test(projectId || "") ||
-      (runtimeId !== null && !/^[a-f0-9]{24}$/.test(runtimeId)) ||
+      (runtimeId !== null && !/^(?:ssh-)?[a-f0-9]{24}$/.test(runtimeId)) ||
       !sameOrigin(request) ||
       request.headers["sec-websocket-protocol"] !== PROTOCOL ||
       (runtimeId ? !containerTerminalBroker : !sandbox.ready) ||
@@ -80,7 +80,7 @@ export function createTerminalService(options) {
     let remote;
     try {
       if (runtimeId)
-        remote = await containerTerminalBroker.openContainerTerminal({ owner, runtimeId, projectId, snapshot });
+        remote = await containerTerminalBroker.openTerminal({ owner, runtimeId, projectId, snapshot });
       else {
         await materializeSnapshot(workspace, snapshot);
       }
@@ -199,10 +199,11 @@ export function createTerminalService(options) {
       state.terminal.kill();
     } catch {}
     try {
-      const remotePayload = state.remote ? await state.remote.collect() : null,
+      const { revision: _revision, updatedAt: _updatedAt, replayed: _replayed, ...baseSnapshot } = state.snapshot,
+        remotePayload = state.remote ? await state.remote.collect() : null,
         files = remotePayload?.files,
         open = files ? (state.snapshot.open || []).filter((path) => Object.hasOwn(files, path)) : undefined,
-        payload = remotePayload ? { ...state.snapshot, ...remotePayload, open, active: Object.hasOwn(files, state.snapshot.active) ? state.snapshot.active : open[0] || Object.keys(files)[0] || "" } : await readTextSnapshot(state.workspace, state.snapshot);
+        payload = remotePayload ? { ...baseSnapshot, ...remotePayload, open, active: Object.hasOwn(files, state.snapshot.active) ? state.snapshot.active : open[0] || Object.keys(files)[0] || "" } : await readTextSnapshot(state.workspace, baseSnapshot);
       const saved = workspaceStore.put(state.owner, state.projectId, {
         expectedRevision: state.snapshot.revision,
         idempotencyKey: `terminal-${state.sessionId}`,
@@ -219,6 +220,9 @@ export function createTerminalService(options) {
         message: error.message || "Terminal changes could not be synchronized.",
       });
     }
+    try {
+      await state.remote?.release();
+    } catch {}
     send(state.websocket, {
       type: "exit",
       code: result.exitCode,
@@ -228,7 +232,6 @@ export function createTerminalService(options) {
     try {
       state.websocket.close(1000, "Terminal exited");
     } catch {}
-    state.remote?.release();
     await rm(state.workspace, { recursive: true, force: true });
   }
   async function close() {

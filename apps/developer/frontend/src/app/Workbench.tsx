@@ -399,6 +399,7 @@ export function Workbench() {
     setBottom("task");
     setOutput((current) => `${current}\n$ ynx task run ${project.active}\n`);
     try {
+      if(selectedRuntime?.startsWith("ssh-"))throw new Error("Remote SSH is open as an editable terminal workspace. Start this task in the remote terminal; one-click remote task execution has not been approved yet.");
       const result = selectedRuntime
         ? await runContainerActive(selectedRuntime,project.id,project.active,project.files)
         : await runActive(project.id,project.active,project.files,(event) => {
@@ -688,7 +689,7 @@ export function Workbench() {
           >
             <CodeEditor
               projectId={project.id}
-              runtimeId={selectedRuntime}
+              runtimeId={selectedRuntime?.startsWith("ssh-")?undefined:selectedRuntime}
               files={project.files}
               activePath={project.active}
               activeContent={activeContent}
