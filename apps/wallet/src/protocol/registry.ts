@@ -52,6 +52,12 @@ const REVIEWED_ENTRIES = [
     productDeviceAlgorithms: ["p256-sha256"],
   },
   {
+    schemaVersion: 2, productClientId: "ynx-creator-studio-web-v1", requestingProduct: "ynx-creator-studio",
+    bundleId: "com.ynxweb4.creator-studio.web", callbacks: ["https://web4.ynxweb4.com/video/studio/wallet-auth/callback"],
+    scopes: ["ai.video.propose", "pay.payout.intent", "video.creator", "video.read"], maxScopes: 4,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
     schemaVersion: 2, productClientId: "ynx-docs-mobile-v1", requestingProduct: "docs",
     bundleId: "com.ynxweb4.docs", callbacks: ["ynxdocs://wallet-auth/callback"],
     scopes: ["ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"], maxScopes: 7,
@@ -140,6 +146,7 @@ const REVIEWED_ENTRIES = [
 export const PRODUCT_REGISTRY:Readonly<Record<string,ProductBinding>>=Object.freeze(Object.assign({},...REVIEWED_ENTRIES.map((entry)=>registryParserBinding(parseCentralRegistryEntry(entry)))));
 
 export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freeze({
+  "ai.video.propose": "Create reviewable Creator Studio AI proposals; AI cannot publish, claim rights, moderate accounts or move YNXT.",
   "account:read": "Share this account's public ynx1 address. No secret or recovery material leaves Wallet.",
   "browser:wallet-request": "Review one exact Browser-originated Wallet request. Browser cannot sign, move funds, widen scopes or create a Wallet session by itself.",
   "calendar:account": "Connect this account to Calendar events, invitations and settings without sharing keys or recovery material.",
@@ -174,6 +181,7 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "mail:recover": "Review recovery of this account's Mail access on a new device; it does not reveal Wallet recovery material.",
   "pay:case:create": "Create a Pay support case for this account without authorizing a transfer.",
   "pay:settlement:submit": "Submit a settlement request for separate Pay review; Wallet approval is not a payment signature.",
+  "pay.payout.intent": "Create a payout intent from audited Creator Studio revenue; a separate Wallet confirmation is still required.",
   "profile:link": "Allow this exact Social device to link the public account to its profile.",
   "quant:account": "Share this account's public address with Quant for account-bound research controls.",
   "quant:mandate:create": "Create a bounded Testnet Quant mandate for later review; it does not execute an order.",
@@ -183,4 +191,6 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "shop:orders:write": "Create and update this account's Testnet Shop orders; payment still requires a separate Wallet signature.",
   "shop:profile:write": "Manage only this account's Shop profile, addresses and privacy choices.",
   "shop:seller:operate": "Operate only this account's authorized Seller Console store records. Product-session approval cannot receive customer funds or sign payouts.",
+  "video.creator": "Manage this account's channels, uploads, rights evidence and reviewed publication workflow.",
+  "video.read": "Read this account's Creator Studio records and authoritative persisted analytics.",
 });

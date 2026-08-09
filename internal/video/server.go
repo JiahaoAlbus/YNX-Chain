@@ -71,7 +71,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	if origin == "http://127.0.0.1:4173" || origin == "http://127.0.0.1:4174" {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Vary", "Origin")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Idempotency-Key, X-YNX-App-Session")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Idempotency-Key, X-YNX-App-Session, X-YNX-Product-Session-Proof")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 	}
 	if r.Method == "OPTIONS" {

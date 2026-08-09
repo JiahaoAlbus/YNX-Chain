@@ -9,7 +9,7 @@ test("central registry contains 31 unique, least-privilege products with platfor
   const registry = parseCentralRegistryDocument(source);
   assert.equal(registry.products.length, 31);
   const approved = registry.products.filter((product) => product.enabled);
-  assert.deepEqual(approved.map((product) => product.productId), ["browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "cloud-mobile", "cloud-web", "developer", "dex", "docs-mobile", "docs-web", "exchange", "finance", "mail", "merchant-console", "quant", "search", "seller-console", "shop", "social"]);
+  assert.deepEqual(approved.map((product) => product.productId), ["browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "cloud-mobile", "cloud-web", "creator-studio", "developer", "dex", "docs-mobile", "docs-web", "exchange", "finance", "mail", "merchant-console", "quant", "search", "seller-console", "shop", "social"]);
   assert.equal(approved.every((product) => product.reviewState === "approved"), true);
   assert.equal(registry.products.filter((product) => !product.enabled).every((product) => product.reviewState === "pending-review"), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
@@ -54,6 +54,12 @@ test("central registry contains 31 unique, least-privilege products with platfor
   assert.deepEqual(social.callbacks, ["ynx-social://com.ynx.social"]);
   assert.deepEqual(social.scopes, ["account:read", "profile:link"]);
   assert.equal(social.sessionDurationSeconds, 240);
+  const creator = centralRegistrationByProduct(registry, "creator-studio");
+  assert.equal(creator.requestingProduct, "ynx-creator-studio");
+  assert.equal(creator.productClientId, "ynx-creator-studio-web-v1");
+  assert.equal(creator.bundleId, "com.ynxweb4.creator-studio.web");
+  assert.deepEqual(creator.callbacks, ["https://web4.ynxweb4.com/video/studio/wallet-auth/callback"]);
+  assert.deepEqual(creator.scopes, ["ai.video.propose", "pay.payout.intent", "video.creator", "video.read"]);
   assert.deepEqual(centralRegistrationByProduct(registry, "quant", { requireEnabled: false }).scopes, ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke"]);
   assert.equal(centralRegistrationByProduct(registry, "quant").enabled, true);
   const calendar = centralRegistrationByProduct(registry, "calendar");
