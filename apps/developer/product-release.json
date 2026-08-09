@@ -31,8 +31,8 @@
     "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1"
   ],
   "healthUrls": [
-    "https://developer.ynxweb4.com/health",
-    "https://developer.ynxweb4.com/chain/status"
+    "https://developer.ynxweb4.com/healthz",
+    "https://developer.ynxweb4.com/runtime/health"
   ],
   "artifactUrls": [
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-89286b8a-macos-arm64-unsigned.zip",
@@ -44,7 +44,7 @@
   "featureStatus": {
     "ynxCodePlatform": {
       "macosArm64Current": true,
-      "webCurrent": false,
+      "webCurrent": true,
       "windowsCurrent": false,
       "sourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
       "capabilities": [
@@ -54,7 +54,14 @@
         "YNX Chain inspection, Wallet-authenticated deployment review, contract templates and receipt-bound transaction debugging"
       ],
       "verification": "Extracted official ZIP passed embedded provenance, 267-component CycloneDX SBOM, strict ad-hoc signing, cold launch, JavaScript/C++ toolchain detection, real bounded C++ compilation, workspace save, child cleanup and persisted second launch.",
-      "publicBoundary": "The official macOS arm64 direct download is current. The public Web IDE and Windows package are older API Studio generation surfaces and must not be described as this full YNX Code build."
+      "publicBoundary": "The official macOS arm64 direct download and developer.ynxweb4.com Web IDE run the full YNX Code platform. The Windows package remains the older API Studio generation and must not be described as the current full build.",
+      "publicDeployment": {
+        "sourceCommit": "17ba15d6617ec83d7befe7cba4f064f0edecccf6",
+        "service": "ynx-code-candidate.service",
+        "upstream": "127.0.0.1:18113",
+        "rollbackService": "ynx-developer-web.service on 127.0.0.1:18111",
+        "verified": "7 runtimes, 6 LSPs, 12 concurrent tenants, tenant isolation, restart persistence, YNX Chain, hosted qwen3:4b Planner and fail-closed Wallet/BFT gate"
+      }
     },
     "apiStudio": {
       "implementedLocal": true,
@@ -125,7 +132,8 @@
     "installedDesktopRecapture": false,
     "publicDeploymentEvidence": true,
     "publicURL": "https://developer.ynxweb4.com/",
-    "publicBrowserVerification": "live chain height, twelve-language selector, IDE landmarks and bounded AI/provider state verified in the in-app browser on 2026-08-03"
+    "publicBrowserVerification": "historical API Studio browser evidence from 2026-08-03; a current full-platform ComputerControl recapture remains deferred until the final all-product acceptance pass",
+    "currentFullPlatformComputerControlRecapture": false
   },
   "sha256": {
     "macosArm64UnsignedZip": "14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448",
@@ -198,7 +206,7 @@
     "Exact Wallet registration, sign-in and receipt-bound deployment are implemented and jointly tested in current Developer and Wallet source, but public BFT IDE submission remains disabled pending identified custody approval and public cutover authorization.",
     "YNX-hosted qwen3:4b AI is enabled through a bounded managed session; it is a small Testnet coding model, can queue under load, and its output must be reviewed before any write.",
     "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
-    "The current full YNX Code build is installed and cold-launched on macOS arm64 only. Public Web and Windows downloads remain the older API Studio generation and are not evidence for the full current platform.",
+    "The current full YNX Code build is installed and cold-launched on macOS arm64 and deployed on the public Web IDE. The Windows download remains the older API Studio generation and is not evidence for the full current platform.",
     "The GitHub pre-release is historical release evidence; current public CTAs must use the immutable YNX-domain downloads, and the transient Windows Actions artifact must not replace them.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The Web IDE now executes pinned solc 0.8.24 in isolated workers and returns real ABI and EVM bytecode. Compilation does not imply that arbitrary EVM deployment is supported by YNX Testnet; deployment requires Wallet authorization and an authoritative receipt."

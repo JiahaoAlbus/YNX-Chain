@@ -2,6 +2,15 @@
 
 ## Product behavior
 
+- Public full-platform gate: `scripts/live-public-candidate-check.mjs`. Against
+  the deployed candidate it requires all seven real runtimes, six LSP routes,
+  twelve concurrent isolated tenant sessions, same-project-name isolation,
+  YNX Chain identity, a real hosted `qwen3:4b` Planner run, an attested
+  Developer Wallet binding and a closed public Wallet/BFT write gate.
+- Restart persistence was separately proven by saving revision 1 and its signed
+  session, restarting the systemd service, then reading the same revision with
+  the same cookie. The one-time probe secret was removed after verification.
+
 - Cloud toolchain image builder and pinned-server initialize probe:
   `scripts/build-cloud-toolchain-image.sh` and `scripts/lsp-server-probe.mjs`
 - Candidate live container gate: `scripts/live-container-check.mjs`; on

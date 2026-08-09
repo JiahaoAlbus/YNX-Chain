@@ -108,7 +108,13 @@ test("release manifests, provenance and website metadata agree on current unsign
   assert.equal(metadata.release.targetCommit, "fc7e9b5146d514aaae02bb01e4e20c62ff32867a");
   assert.equal(metadata.localEvidence.macosArm64.hosted, true);
   assert.equal(metadata.localEvidence.windowsX64.hosted, true);
-  assert.equal(metadata.routeStatus, "public-testnet-verified");
+  assert.equal(metadata.routeStatus, "public-full-platform-live");
+  assert.equal(metadata.fullPlatformPublicEvidence.sevenRuntimes, true);
+  assert.equal(metadata.fullPlatformPublicEvidence.sixLanguageServers, true);
+  assert.equal(metadata.fullPlatformPublicEvidence.concurrentTenantsVerified, 12);
+  assert.equal(metadata.fullPlatformPublicEvidence.restartPersistence, true);
+  assert.equal(metadata.fullPlatformPublicEvidence.walletPublicDeploymentReady, false);
+  assert.equal(metadata.fullPlatformPublicEvidence.bftIdeActionPublicReady, false);
   assert.equal(provenance.truthBoundaries.productionSigned, false);
   assert.equal(provenance.truthBoundaries.deployedPublic, false);
 });

@@ -9,7 +9,7 @@ Website owner: `28-website`
 
 - Official domain: `https://ynxweb4.com`
 - Canonical route: `https://ynxweb4.com/developer`
-- Route status: public Testnet route verified at `https://developer.ynxweb4.com/`; website DApp route integration is in review
+- Route status: full YNX Code platform is live at `https://developer.ynxweb4.com/`; main-website DApp route integration remains in review
 - Founder domain `huangjeo.com` is not a product, documentation, release, support or canonical URL for this handoff.
 
 ## Source and release truth
@@ -27,7 +27,7 @@ Website owner: `28-website`
 
 ## Page content package
 
-The page must separate available surfaces. The current macOS arm64 direct download is the full React/Monaco/service-based YNX Code Testnet Preview. The public Web IDE and Windows download are the earlier API Studio generation until separately rebuilt and verified. It must not present a local desktop capability as Web, claim arbitrary EVM compatibility, private-key custody, provider activation, public BFT deployment, central integration, a production release or production signing.
+The page must separate available surfaces. The current macOS arm64 direct download and public Web IDE are the full React/Monaco/service-based YNX Code Testnet Preview. The Windows download is the earlier API Studio generation until separately rebuilt and verified. It must not claim arbitrary EVM compatibility, private-key custody, public BFT deployment, central integration, a production release or production signing.
 
 Recommended evidence cards:
 

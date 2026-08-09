@@ -9,7 +9,7 @@
   "officialDomain": "https://ynxweb4.com",
   "canonicalPath": "/developer",
   "canonicalUrl": "https://ynxweb4.com/developer",
-  "routeStatus": "public-testnet-verified",
+  "routeStatus": "public-full-platform-live",
   "deployedPublic": true,
   "publicRouteVerified": true,
   "releaseClass": "unsigned-testnet-preview",
@@ -22,7 +22,7 @@
     "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
     "prerelease": true
   },
-  "summary": "The current macOS arm64 Testnet Preview packages the full React, Monaco and service-based YNX Code workbench. The public Web IDE and Windows download remain the earlier API Studio generation until their separately verified replacement.",
+  "summary": "The public Web IDE and current macOS arm64 Testnet Preview run the full React, Monaco and service-based YNX Code workbench. The Windows download remains the earlier API Studio generation until separately rebuilt and verified.",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -78,8 +78,8 @@
       "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json"
     ],
     "healthUrls": [
-      "https://developer.ynxweb4.com/health",
-      "https://developer.ynxweb4.com/chain/status"
+      "https://developer.ynxweb4.com/healthz",
+      "https://developer.ynxweb4.com/runtime/health"
     ],
     "verifiedUrls": [
       "https://developer.ynxweb4.com/",
@@ -119,6 +119,19 @@
     "productionSigned": false,
     "storeReleased": false,
     "mainnetReleased": false
+  },
+  "fullPlatformPublicEvidence": {
+    "sourceCommit": "17ba15d6617ec83d7befe7cba4f064f0edecccf6",
+    "deployedAt": "2026-08-10T07:25:37+08:00",
+    "sevenRuntimes": true,
+    "sixLanguageServers": true,
+    "concurrentTenantsVerified": 12,
+    "restartPersistence": true,
+    "hostedAiPlanner": "qwen3:4b",
+    "walletBindingAttested": true,
+    "walletPublicDeploymentReady": false,
+    "bftIdeActionPublicReady": false,
+    "rollbackUpstream": "127.0.0.1:18111"
   },
   "generatedAt": "2026-08-10T07:06:50+08:00"
 }

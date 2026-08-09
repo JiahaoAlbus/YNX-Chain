@@ -22,6 +22,21 @@
   is not notarized, Developer ID signed, production released or evidence that
   the public BFT deployment gate has opened.
 
+## 2026-08-10 public full-platform Web cutover
+
+- Built source `17ba15d6617ec83d7befe7cba4f064f0edecccf6` on the public Linux host with
+  npm reporting zero installed-package vulnerabilities and deployed it as an
+  isolated systemd candidate on loopback port 18113.
+- The live gate passed seven runtime builds, six language servers, twelve
+  concurrent tenants, tenant isolation, Chain identity and height, hosted
+  `qwen3:4b` health and a real Planner run. A separate restart gate recovered
+  the signed session and SQLite workspace.
+- Caddy moved `developer.ynxweb4.com` from the historical 18111 surface to the
+  verified 18113 service. The old service remains active only as the explicit
+  rollback upstream; official direct downloads remain under the same domain.
+- Wallet registration is attested, but Wallet public readiness and public BFT
+  IDE actions remain false. The cutover does not authorize chain writes.
+
 ## 2026-08-10 live YNX Chain tools candidate
 
 - Replaced the obsolete injected-provider `/wallet-auth/challenges` and
