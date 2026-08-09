@@ -6,8 +6,10 @@ import { tmpdir } from "node:os";
 import { detectSandbox, resolveExecutable, sandboxLaunch } from "../../workspace-agent/src/sandbox.mjs";
 
 const OPERATIONS=new Set(["completion","definition","references","rename","format","diagnostics"]),CPP_EXTENSIONS=new Set([".c",".cc",".cpp",".cxx",".h",".hh",".hpp",".hxx"]);
+const LSP_CONCURRENCY=bounded(process.env.YNX_CODE_LSP_CONCURRENCY,2,1,16),LSP_QUEUE_LIMIT=bounded(process.env.YNX_CODE_LSP_QUEUE,64,1,256);let activeLsp=0;const lspWaiters=[];
 export async function runCppLanguageRequest(request){return runStdioLanguageRequest(request,{language:"cpp",label:"C/C++",extensions:CPP_EXTENSIONS,serverCandidates:["clangd","clangd-18","clangd-17","clangd-16"],serverName:"clangd",serverArgs:["--background-index=false","--clang-tidy=false","--header-insertion=never","--log=error"],languageId:()=>"cpp"})}
-export async function runStdioLanguageRequest({files,activePath,operation,position,newName},config){
+export async function runStdioLanguageRequest(request,config){const release=await acquireLsp();try{return await runStdioLanguageRequestNow(request,config)}finally{release()}}
+async function runStdioLanguageRequestNow({files,activePath,operation,position,newName},config){
   validate(files,activePath,operation,position,newName,config);
   const root=await realpath(await mkdtemp(join(tmpdir(),"ynx-code-lsp-"))),sandbox=detectSandbox();
   if(!sandbox.ready)throw fault("No approved language-server sandbox is installed.","lsp_sandbox_unavailable",503);
@@ -16,14 +18,15 @@ export async function runStdioLanguageRequest({files,activePath,operation,positi
   try{
     await mkdir(join(root,".tmp"),{mode:0o700});await mkdir(join(root,".ynx-build"),{mode:0o700});
     for(const[path,content]of Object.entries(files)){const target=join(root,path);await mkdir(dirname(target),{recursive:true,mode:0o700});await writeFile(target,content,{mode:0o600,flag:"wx"})}
-    const readOnlyBinds=config.readOnlyBinds?await config.readOnlyBinds(executable):[],launch=sandboxLaunch({sandbox,workspace:root,command:executable,args:config.serverArgs||[],readOnlyBinds,memoryBytes:config.memoryBytes||1073741824}),child=spawn(launch.command,launch.args,{cwd:launch.cwd,env:launch.env,shell:false,stdio:["pipe","pipe","pipe"],detached:process.platform!=="win32"}),rpc=new LspRpc(child),visibleRoot=sandbox.kind==="linux-bubblewrap-prlimit"?"/workspace":root,rootUri=pathToFileURL(visibleRoot).href;
+    const readOnlyBinds=config.readOnlyBinds?await config.readOnlyBinds(executable):[],launch=sandboxLaunch({sandbox,workspace:root,command:executable,args:config.serverArgs||[],readOnlyBinds,memoryBytes:config.memoryBytes||1073741824,addressSpaceBytes:config.addressSpaceBytes===undefined?(config.memoryBytes||1073741824):config.addressSpaceBytes,writeWorkspace:Boolean(config.writeWorkspace),environment:config.environment||{}}),child=spawn(launch.command,launch.args,{cwd:launch.cwd,env:launch.env,shell:false,stdio:["pipe","pipe","pipe"],detached:process.platform!=="win32"}),rpc=new LspRpc(child),visibleRoot=sandbox.kind==="linux-bubblewrap-prlimit"?"/workspace":root,rootUri=pathToFileURL(visibleRoot).href;
     if(process.env.YNX_CODE_LSP_DEBUG==="1"){child.stderr.on("data",chunk=>process.stderr.write(chunk));child.once("exit",(code,signal)=>process.stderr.write(`LSP exit code=${code} signal=${signal}\n`))}
     try{
       const initializationOptions=config.initializationOptions?config.initializationOptions(executable,sandbox):undefined,initialized=await rpc.request("initialize",{processId:null,rootUri,workspaceFolders:[{uri:rootUri,name:"YNX Code Workspace"}],initializationOptions,capabilities:{textDocument:{completion:{completionItem:{snippetSupport:true}},definition:{},references:{},rename:{prepareSupport:true},formatting:{},publishDiagnostics:{relatedInformation:true}}}});rpc.notify("initialized",{});
       for(const[path,content]of Object.entries(files).filter(([path])=>config.extensions.has(extname(path).toLowerCase())))rpc.notify("textDocument/didOpen",{textDocument:{uri:pathToFileURL(join(visibleRoot,path)).href,languageId:config.languageId(path),version:1,text:content}});
+      if(config.openDelayMs)await new Promise(resolve=>setTimeout(resolve,config.openDelayMs));
       const textDocument={uri:pathToFileURL(join(visibleRoot,activePath)).href};let result;
       if(operation==="diagnostics")result=await rpc.waitFor("textDocument/publishDiagnostics",message=>message.params?.uri===textDocument.uri,3000).then(message=>message.params?.diagnostics||[]).catch(()=>[]);
-      else if(operation==="completion")result=await rpc.request("textDocument/completion",{textDocument,position});
+      else if(operation==="completion"){for(let attempt=0;attempt<(config.completionAttempts||1);attempt++){result=await rpc.request("textDocument/completion",{textDocument,position});const items=Array.isArray(result)?result:result?.items||[];if(items.length||attempt===(config.completionAttempts||1)-1)break;await new Promise(resolve=>setTimeout(resolve,config.completionRetryMs||250))}}
       else if(operation==="definition")result=await rpc.request("textDocument/definition",{textDocument,position});
       else if(operation==="references")result=await rpc.request("textDocument/references",{textDocument,position,context:{includeDeclaration:true}});
       else if(operation==="rename")result=await rpc.request("textDocument/rename",{textDocument,position,newName});
@@ -37,3 +40,6 @@ function validate(files,activePath,operation,position,newName,config){if(!files|
 function safePath(value){return typeof value==="string"&&value.length>0&&value.length<=240&&!value.startsWith("/")&&!value.includes("\\")&&!value.split("/").some(part=>!part||part==="."||part==="..")&&/^[A-Za-z0-9_./ +@-]+$/.test(value)}
 function killGroup(child){try{if(process.platform!=="win32"&&child.pid)process.kill(-child.pid,"SIGKILL");else child.kill("SIGKILL")}catch{}}
 function fault(message,code,status){return Object.assign(new Error(message),{code,status})}
+function bounded(value,fallback,min,max){const parsed=Number(value||fallback);return Number.isInteger(parsed)&&parsed>=min&&parsed<=max?parsed:fallback}
+function acquireLsp(){if(activeLsp<LSP_CONCURRENCY){activeLsp++;return Promise.resolve(releaseLsp)}if(lspWaiters.length>=LSP_QUEUE_LIMIT)throw fault("Language service queue is full.","language_service_overloaded",503);return new Promise(resolve=>lspWaiters.push(resolve))}
+function releaseLsp(){const next=lspWaiters.shift();if(next)next(releaseLsp);else activeLsp--}

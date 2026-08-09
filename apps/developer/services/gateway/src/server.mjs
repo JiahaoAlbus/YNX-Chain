@@ -8,6 +8,8 @@ import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
 import { runCppLanguageRequest } from "../../language-service/src/cpp-lsp.mjs";
 import { runTypescriptLanguageRequest } from "../../language-service/src/typescript-lsp.mjs";
 import { runPythonLanguageRequest } from "../../language-service/src/python-lsp.mjs";
+import { runGoLanguageRequest } from "../../language-service/src/go-lsp.mjs";
+import { runRustLanguageRequest } from "../../language-service/src/rust-lsp.mjs";
 import { createTerminalService } from "../../terminal-service/src/service.mjs";
 import { createDebugService } from "../../debug-service/src/service.mjs";
 import { createGitService } from "../../git-service/src/service.mjs";
@@ -33,7 +35,7 @@ const workspaceStore = createWorkspaceStore({
   }),
   runtime = createWorkspaceRuntime({
     workspaceStore,
-    languageRequests: { cpp:runCppLanguageRequest, typescript:runTypescriptLanguageRequest, python:runPythonLanguageRequest },
+    languageRequests: { cpp:runCppLanguageRequest, typescript:runTypescriptLanguageRequest, python:runPythonLanguageRequest, go:runGoLanguageRequest, rust:runRustLanguageRequest },
   });
 const gitService = createGitService({
   workspaceStore,

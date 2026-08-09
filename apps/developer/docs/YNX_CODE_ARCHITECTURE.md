@@ -178,13 +178,23 @@ network-disabled workspace sandbox. TypeScript is first transpiled by the
 installed `tsc`; its package and platform binary are mounted read-only while
 only `.ynx-build` remains writable. macOS verifies the same set except Rust,
 which is reported unavailable and skipped because no reviewed local `rustc` is
-installed. C/C++, JavaScript/TypeScript and Python have passed the LSP gate.
-JavaScript/TypeScript uses a pinned TypeScript 5.9 tsserver behind `typescript-language-server`, a
+installed. C/C++, JavaScript/TypeScript, Python, Go and Rust have passed the LSP
+gate. JavaScript/TypeScript uses a pinned TypeScript 5.9 tsserver behind
+`typescript-language-server`, a
 read-only toolchain mount and a separate bounded 2 GiB LSP memory class; real
 completion and definition tests pass on macOS and Linux. Python uses Pyright in
 the same isolated LSP class and passes real completion and type-diagnostic tests
-on both hosts. The other LSP rows above remain candidates until their server
-tests pass.
+on both hosts. The Linux candidate runs `gopls v0.23.0` and the checksum-verified
+`rust-analyzer 0.3.2997-standalone`; both pass real completion and definition
+tests. Go analysis fixes `GOMAXPROCS=2` and deliberately avoids `RLIMIT_AS`,
+which is incompatible with the large virtual arenas reserved by Go 1.26; it
+remains bounded by the shared two-process LSP pool, 64-request queue, CPU,
+process, file and wall-clock limits. The same-process capacity test launches six
+tenant requests and proves that excess work is queued rather than forked
+without bound. Rust analysis may write only its disposable workspace copy, uses an
+allowlisted standard-library source path, disables automatic flycheck/build
+scripts, remains network-isolated and has a bounded 4 GiB memory class. Solidity
+remains a candidate until its compiler, artifact and LSP gates pass.
 
 ## 8. Tasks, terminal and process supervision
 

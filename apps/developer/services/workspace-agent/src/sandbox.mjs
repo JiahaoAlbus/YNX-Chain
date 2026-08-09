@@ -36,9 +36,17 @@ export function sandboxLaunch({
   writableBinds = [],
   readOnlyBinds = [],
   memoryBytes = 1073741824,
+  addressSpaceBytes = memoryBytes,
+  environment = {},
 }) {
   if (!Number.isInteger(memoryBytes) || memoryBytes < 268435456 || memoryBytes > 4294967296)
     throw Object.assign(new Error("Invalid sandbox memory limit."), { status: 500, code: "invalid_sandbox_limit" });
+  if (addressSpaceBytes !== null && (!Number.isInteger(addressSpaceBytes) || addressSpaceBytes < 268435456 || addressSpaceBytes > 4294967296))
+    throw Object.assign(new Error("Invalid sandbox address-space limit."), { status: 500, code: "invalid_sandbox_limit" });
+  if (Object.entries(environment).some(([key,value]) => !["GOMAXPROCS","RUST_SRC_PATH","RUSTUP_TOOLCHAIN"].includes(key) || typeof value !== "string" || value.length > 512))
+    throw Object.assign(new Error("Invalid sandbox environment override."), { status: 500, code: "invalid_sandbox_environment" });
+  if (environment.GOMAXPROCS && !/^[1-8]$/.test(environment.GOMAXPROCS))
+    throw Object.assign(new Error("Invalid Go processor limit."), { status: 500, code: "invalid_sandbox_environment" });
   if (
     [...writableBinds, ...readOnlyBinds].some(
       ({ host, guest }) =>
@@ -79,7 +87,7 @@ export function sandboxLaunch({
       command: "/usr/bin/sandbox-exec",
       args: ["-p", `${profile}\n${toolMetadata}\n${toolReads}`, command, ...args],
       cwd: workspace,
-      env: runtimeEnvironment(workspace),
+      env: { ...runtimeEnvironment(workspace), ...environment },
     };
   }
   if (sandbox.kind === "linux-bubblewrap-prlimit") {
@@ -158,7 +166,7 @@ export function sandboxLaunch({
       command: "prlimit",
       args: [
         "--cpu=3600:3600",
-        `--as=${memoryBytes}:${memoryBytes}`,
+        ...(addressSpaceBytes === null ? [] : [`--as=${addressSpaceBytes}:${addressSpaceBytes}`]),
         "--nproc=256:256",
         "--nofile=256:256",
         "--fsize=67108864:67108864",
@@ -167,7 +175,7 @@ export function sandboxLaunch({
         ...bubblewrap,
       ],
       cwd: workspace,
-      env: runtimeEnvironment(workspace),
+      env: { ...runtimeEnvironment(workspace), ...environment },
     };
   }
   throw Object.assign(new Error("Approved sandbox is unavailable."), {

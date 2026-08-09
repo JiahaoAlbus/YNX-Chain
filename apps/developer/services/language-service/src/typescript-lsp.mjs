@@ -14,6 +14,8 @@ export async function runTypescriptLanguageRequest(request) {
     serverName: "typescript-language-server",
     serverArgs: ["--stdio"],
     memoryBytes: 2147483648,
+    completionAttempts: 4,
+    completionRetryMs: 300,
     languageId: (path) => [".ts", ".tsx", ".mts", ".cts"].includes(extname(path).toLowerCase()) ? "typescript" : "javascript",
     readOnlyBinds: toolBinds,
     initializationOptions: (_executable, sandbox) => ({ tsserver: { path: sandbox.kind === "linux-bubblewrap-prlimit" ? "/ynx-lsp/node_modules/typescript/lib/tsserver.js" : TSSERVER_PATH } }),
