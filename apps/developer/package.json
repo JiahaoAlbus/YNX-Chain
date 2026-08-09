@@ -3,6 +3,16 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "frontend",
+    "protocol",
+    "services/*"
+  ],
+  "overrides": {
+    "monaco-editor": {
+      "dompurify": "3.4.13"
+    }
+  },
   "scripts": {
     "start": "node scripts/server.mjs",
     "build": "node scripts/build.mjs",
@@ -12,7 +22,11 @@
     "accessibility:audit": "node scripts/browser-accessibility-audit.mjs",
     "live-check": "bash scripts/live-check.sh",
     "proxy-check": "bash scripts/proxy-check.sh",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "code:dev": "npm --workspace @ynx-code/frontend run dev",
+    "code:build": "npm --workspace @ynx-code/protocol run build && npm --workspace @ynx-code/frontend run build",
+    "code:check": "npm --workspace @ynx-code/protocol run check && npm --workspace @ynx-code/frontend run check && npm --workspace @ynx-code/workspace-agent test",
+    "code:runtime": "npm --workspace @ynx-code/workspace-agent start"
   },
   "engines": { "node": ">=20" }
 }
