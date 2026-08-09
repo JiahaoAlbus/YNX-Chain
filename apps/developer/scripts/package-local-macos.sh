@@ -28,7 +28,6 @@ cp -R protocol "$app/Contents/Resources/code/apps/developer/protocol"
 cp -R services "$app/Contents/Resources/code/apps/developer/services"
 cp package.json package-lock.json "$app/Contents/Resources/code/apps/developer/"
 COPYFILE_DISABLE=1 cp -XR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"
-cp sbom.cdx.json "$app/Contents/Resources/sbom.cdx.json"
 
 node_binary="${YNX_DEVELOPER_NODE_BINARY:-}"
 for candidate in "$node_binary" "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node" "$(command -v node 2>/dev/null || true)"; do
@@ -50,6 +49,7 @@ if [[ ! -f "$npm_root/npm/bin/npm-cli.js" ]]; then
 fi
 mkdir -p "$app/Contents/Resources/runtime/npm/node_modules"
 COPYFILE_DISABLE=1 cp -XR "$npm_root/npm" "$app/Contents/Resources/runtime/npm/node_modules/npm"
+node scripts/generate-code-sbom.mjs "$app/Contents/Resources/sbom.cdx.json" "$node_binary" "$npm_root/npm/package.json" "$source_commit"
 sbom_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/sbom.cdx.json" | awk '{print $1}')
 node -e '
 const fs = require("fs");

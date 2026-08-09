@@ -41,7 +41,9 @@ const expected = {
 for (const [key, value] of Object.entries(expected)) {
   if (provenance[key] !== value) throw new Error(`provenance ${key} mismatch: ${provenance[key]} != ${value}`);
 }
-JSON.parse(sbom.toString("utf8"));
+const parsedSbom = JSON.parse(sbom.toString("utf8"));
+if (parsedSbom.bomFormat !== "CycloneDX" || parsedSbom.specVersion !== "1.5" || !Array.isArray(parsedSbom.components) || parsedSbom.components.length < 100) throw new Error("full YNX Code CycloneDX component inventory is missing");
+for (const required of ["Node.js", "npm", "node-pty", "monaco-editor", "react", "yjs"]) if (!parsedSbom.components.some(component => component.name === required)) throw new Error(`SBOM component ${required} is missing`);
 console.log(`Embedded provenance verified for source ${provenance.sourceCommit} and SBOM ${sbomSha256}.`);
 ' "$app/Contents/Resources/build-provenance.json" "$app/Contents/Resources/sbom.cdx.json" "$expected_source_commit" "$expected_source_tree" "$expected_runtime_checkpoint"
 if /usr/bin/xattr -p com.apple.quarantine "$app" >/dev/null 2>&1; then echo "Archive unexpectedly restored quarantine metadata." >&2; exit 1; fi
