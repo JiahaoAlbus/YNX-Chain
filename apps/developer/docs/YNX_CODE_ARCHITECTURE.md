@@ -492,8 +492,13 @@ only `wallet-review-opened` until the callback passes. The current macOS source
 can complete the callback and product-device challenge, but the server still
 requires deployed central Gateway proof before it will return a Product Session.
 Intent, simulation, signing, broadcast, receipt and Explorer-source verification
-remain separate later gates. Browser-injected providers, private-key input and
-mnemonic input are rejected.
+remain separate gates. Browser-injected providers, private-key input and
+mnemonic input are rejected. The reviewed desktop source implements the first
+six gates: it creates an exact artifact-bound request, Wallet signs the canonical
+Go-compatible `application_action`, and the Developer service re-introspects the
+live `developer:deploy` Product Session before accepting the exact Wallet bytes.
+Public submission remains fail-closed behind the independent
+`YNX_CODE_IDE_ACTION_PUBLIC_READY` operations gate.
 
 The Gateway exposes `/runtime/wallet/readiness` only to a signed workspace
 session. A dedicated broker probes the fixed loopback canonical Wallet Gateway
@@ -513,7 +518,12 @@ and signs it with the non-extractable key. The signed-workspace server route aga
 checks `remoteDeployed`, `publicDeploymentReady` and the exact registry attestation
 before forwarding canonical completion JSON to the fixed loopback Gateway. Only
 the Gateway's verified session result changes the UI to authenticated; deployment
-does not follow automatically.
+does not follow automatically. Every deployment requires a fresh Wallet review.
+The callback is bound to the pending session, account, artifact and request. The
+server recomputes the payload hash, IDE request hash, artifact digest and
+transaction hash, rejects field widening, submits the unmodified Wallet byte
+sequence, and reports success only after an authoritative status `0x1` receipt
+with a block number. A hash without that receipt stays pending.
 
 Later blockchain slices add reviewed Rust contract profiles, Move and Cosmos SDK,
 pinned dependency/toolchain manifests, local tests, Testnet simulation, gas/fee

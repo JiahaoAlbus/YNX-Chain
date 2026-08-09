@@ -90,6 +90,57 @@ export async function createDeveloperWalletCompletion(callbackURL: string, now =
 
 export function consumeDeveloperWalletRequest() { sessionStorage.removeItem(PENDING_REQUEST); }
 
+const ACTIVE_SESSION = "ynx-code-wallet-session-v1";
+type DeveloperSession = { sessionBinding:string;productClientId:"ynx-developer-v1";bundleId:"com.ynxweb4.developer.testnetpreview";productDeviceKey:string;account:string;scopes:string[];issuedAt:string;expiresAt:string };
+
+export async function saveDeveloperWalletSession(input: DeveloperSession, now = new Date()) {
+  const expectedKey = await productDevicePublicKey();
+  if (input.productClientId !== binding.productClientId || input.bundleId !== binding.bundleId || input.productDeviceKey !== expectedKey || !/^[0-9a-f]{64}$/.test(input.sessionBinding) || !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(input.account) || !sameStrings(input.scopes, binding.scopes) || !validTime(input.issuedAt) || !validTime(input.expiresAt) || Date.parse(input.expiresAt) <= now.getTime()) throw new Error("Wallet Gateway session does not match this Developer device.");
+  sessionStorage.setItem(ACTIVE_SESSION, canonicalJSON(input));
+}
+
+export async function createDeveloperSessionIntrospection(now = new Date()) {
+  const session = activeDeveloperSession(now), body = canonicalJSON({ requiredScopes:["developer:deploy"] }), bodyDigest = await sha256Hex(new TextEncoder().encode(body));
+  const issuedAt = now.toISOString(), expiresAt = new Date(Math.min(Date.parse(session.expiresAt), now.getTime() + 60_000)).toISOString();
+  if (expiresAt <= issuedAt) throw new Error("Developer Wallet session expired.");
+  const unsigned = { version:"1",sessionBinding:session.sessionBinding,productClientId:session.productClientId,bundleId:session.bundleId,productDeviceKey:session.productDeviceKey,method:"POST",path:"/v1/wallet/sessions/introspect",bodyDigest,nonce:base64url(crypto.getRandomValues(new Uint8Array(32))),issuedAt,expiresAt };
+  const pair=await productDeviceKeyPair(),signed=new Uint8Array(await crypto.subtle.sign({name:"ECDSA",hash:"SHA-256"},pair.privateKey,new TextEncoder().encode(`YNX_PRODUCT_SESSION_HTTP_PROOF_V1\n${canonicalJSON(unsigned)}`))),proof={...unsigned,signature:base64url(derSignature(signed))};
+  return Object.freeze({body:canonicalJSON({proof}),session});
+}
+
+export type DeveloperDeploymentInput = { name:string;source:string;deployedBytecode:string;constructorArgs:string[];nonce:number;blockNumber:number;gasEstimate:string;gasPriceWei:string;maxFeeWei:string;compilerVersion:string };
+const PENDING_DEPLOYMENT = "ynx-code-deployment-pending-v1";
+
+export async function openDeveloperDeploymentReview(bridge: DeveloperWalletBridge, input: DeveloperDeploymentInput, now = new Date()) {
+  const session=activeDeveloperSession(now),source=input.source.trim(),deployedBytecode=input.deployedBytecode.toLowerCase().startsWith("0x")?input.deployedBytecode.toLowerCase():`0x${input.deployedBytecode.toLowerCase()}`;
+  if(!/^[A-Za-z][A-Za-z0-9_]{2,63}$/.test(input.name)||source.length<1||source.length>4096||!/^0x[0-9a-f]{2,12288}$/.test(deployedBytecode)||deployedBytecode.length%2||!Number.isSafeInteger(input.nonce)||input.nonce<1||!Number.isSafeInteger(input.blockNumber)||input.blockNumber<1||input.constructorArgs.length>16||input.constructorArgs.some(value=>typeof value!=="string"||value.trim()!==value||value.length>256))throw new Error("Deployment artifact, constructor, block or account nonce is outside the bounded YNX action profile.");
+  const idempotencyKey=`developer-${base64url(crypto.getRandomValues(new Uint8Array(24)))}`,base={name:input.name,source,deployedBytecode,constructorArgs:[...input.constructorArgs],idempotencyKey},requestHash=await sha256Hex(new TextEncoder().encode(JSON.stringify({domain:"YNX_IDE_REQUEST_V1",action:"ide_contract_deploy",value:base}))),payload={...base,requestHash},artifactDigest=await sha256Hex(new TextEncoder().encode(`YNX_DEVELOPER_ARTIFACT_V1\n${canonicalJSON(base)}`)),issuedAt=now.toISOString();
+  const request={version:"1",chainId:6423,productClientId:binding.productClientId,bundleId:binding.bundleId,callback:"ynxdeveloper://deployment/callback",sessionBinding:session.sessionBinding,account:session.account,nonce:input.nonce,action:"ide_contract_deploy",payload,artifactDigest,simulation:{chainId:6423,blockNumber:input.blockNumber,gasEstimate:decimal(input.gasEstimate,"gas estimate"),gasPriceWei:decimal(input.gasPriceWei,"gas price"),maxFeeWei:decimal(input.maxFeeWei,"maximum fee"),compilerVersion:input.compilerVersion,artifactDigest,source:"https://rpc.ynxweb4.com/",asOf:issuedAt},issuedAt,expiresAt:new Date(now.getTime()+5*60_000).toISOString()};
+  const encoded=canonicalJSON(request);sessionStorage.setItem(PENDING_DEPLOYMENT,encoded);const link=`ynxwallet://developer-deploy?request=${base64url(new TextEncoder().encode(encoded))}`;try{await bridge.openAuthorization(link)}catch(error){sessionStorage.removeItem(PENDING_DEPLOYMENT);throw error}return Object.freeze({status:"deployment-review-opened" as const,expiresAt:request.expiresAt,artifactDigest});
+}
+
+export function subscribeDeveloperDeploymentCallbacks(listener:(callbackURL:string)=>void){const handler=(event:Event)=>{const detail=(event as CustomEvent<unknown>).detail;if(typeof detail==="string")listener(detail)};window.addEventListener("ynx-deployment-callback",handler);return()=>window.removeEventListener("ynx-deployment-callback",handler)}
+
+export async function parseDeveloperDeploymentCallback(callbackURL:string,now=new Date()){
+  const encoded=sessionStorage.getItem(PENDING_DEPLOYMENT);if(!encoded)throw new Error("No pending Developer deployment exists on this device.");let request:Record<string,unknown>;try{request=plainRecord(JSON.parse(encoded),"Pending Developer deployment")}catch{throw new Error("Pending Developer deployment is corrupted.")}
+  let url:URL;try{url=new URL(callbackURL)}catch{throw new Error("Developer deployment callback is invalid.")}const keys=[...url.searchParams.keys()],response=keys.length===1&&keys[0]==="response"?url.searchParams.get("response"):null;if(url.protocol!=="ynxdeveloper:"||url.hostname!=="deployment"||url.pathname!=="/callback"||url.hash||url.username||url.password||!response)throw new Error("Developer deployment callback route was substituted.");
+  let value:Record<string,unknown>;try{value=plainRecord(JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(decodeBase64url(response))),"Developer deployment response")}catch{throw new Error("Developer deployment response is invalid.")}
+  const fields=["version","requestDigest","productClientId","bundleId","callback","sessionBinding","account","action","artifactDigest","signedTransaction","canonicalPayloadHex","transactionHash","issuedAt","expiresAt"];exactFields(value,fields,"Developer deployment response");for(const key of ["productClientId","bundleId","callback","sessionBinding","account","action","artifactDigest"])if(value[key]!==request[key])throw new Error(`Developer deployment ${key} binding changed.`);if(value.version!=="1"||typeof value.requestDigest!=="string"||!/^[0-9a-f]{64}$/.test(value.requestDigest)||!validTime(value.issuedAt)||!validTime(value.expiresAt)||Date.parse(value.expiresAt as string)<=now.getTime()||typeof value.transactionHash!=="string"||!/^0x[0-9a-f]{64}$/.test(value.transactionHash)||typeof value.canonicalPayloadHex!=="string"||!/^0x[0-9a-f]+$/.test(value.canonicalPayloadHex)||value.canonicalPayloadHex.length%2)throw new Error("Developer deployment response fields are invalid.");
+  const signed=plainRecord(value.signedTransaction,"Developer signed transaction"),payload=plainRecord(signed.payload,"Developer signed payload"),pendingPayload=plainRecord(request.payload,"Pending deployment payload");if(signed.version!==1||signed.chainId!==6423||signed.type!=="application_action"||signed.action!=="ide_contract_deploy"||signed.nonce!==request.nonce||signed.fee!==1||signed.aiUnits!==0||signed.payUnits!==0||payload.requestHash!==pendingPayload.requestHash||typeof signed.signature!=="string"||!/^30[0-9a-f]{134,142}$/.test(signed.signature))throw new Error("Developer signed transaction was widened or is malformed.");
+  const canonicalTransaction=JSON.stringify(signed),expectedHex=`0x${[...new TextEncoder().encode(canonicalTransaction)].map(byte=>byte.toString(16).padStart(2,"0")).join("")}`,expectedHash=`0x${await sha256Hex(new TextEncoder().encode(canonicalTransaction))}`;if(value.canonicalPayloadHex!==expectedHex||value.transactionHash!==expectedHash)throw new Error("Developer transaction bytes or hash do not match the signed envelope.");return Object.freeze({response:value,canonicalPayload:canonicalTransaction,transactionHash:value.transactionHash as string,sessionBinding:request.sessionBinding as string});
+}
+export function consumeDeveloperDeploymentRequest(){sessionStorage.removeItem(PENDING_DEPLOYMENT)}
+
+export function ynxAccountToEVM(account:string){const charset="qpzry9x8gf2tvdw0s3jn54khce6mua7l";if(!/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(account))throw new Error("Developer Wallet account is invalid.");const values=[...account.slice(4)].map(character=>charset.indexOf(character)),data=values.slice(0,-6);let accumulator=0,bits=0;const bytes:number[]=[];for(const value of data){if(value<0)throw new Error("Developer Wallet account is invalid.");accumulator=((accumulator<<5)|value)&4095;bits+=5;while(bits>=8){bits-=8;bytes.push((accumulator>>bits)&255)}}if(bytes.length!==20)throw new Error("Developer Wallet account payload is invalid.");return`0x${bytes.map(byte=>byte.toString(16).padStart(2,"0")).join("")}`}
+
+function activeDeveloperSession(now: Date): DeveloperSession {
+  const encoded=sessionStorage.getItem(ACTIVE_SESSION);if(!encoded)throw new Error("Sign in with YNX Wallet before deploying.");let value:unknown;try{value=JSON.parse(encoded)}catch{throw new Error("Stored Developer Wallet session is corrupted.")}
+  const session=plainRecord(value,"Stored Developer Wallet session") as DeveloperSession;if(session.productClientId!==binding.productClientId||session.bundleId!==binding.bundleId||!sameStrings(session.scopes,binding.scopes)||!validTime(session.expiresAt)||Date.parse(session.expiresAt)<=now.getTime())throw new Error("Developer Wallet session is inactive or expired.");return session;
+}
+
+async function sha256Hex(value: Uint8Array) { return [...new Uint8Array(await crypto.subtle.digest("SHA-256", Uint8Array.from(value).buffer))].map(byte=>byte.toString(16).padStart(2,"0")).join(""); }
+function decimal(value:string,label:string){if(!/^(0|[1-9][0-9]{0,77})$/.test(value))throw new Error(`Deployment ${label} is invalid.`);return value}
+
 function pendingAuthorizationRequest(now: Date) {
   const encoded = sessionStorage.getItem(PENDING_REQUEST);
   if (!encoded) throw new Error("No pending Developer Wallet request exists on this device.");

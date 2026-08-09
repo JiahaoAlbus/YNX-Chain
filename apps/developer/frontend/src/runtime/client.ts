@@ -292,9 +292,11 @@ export type DeveloperWalletSession = {
   productClientId: "ynx-developer-v1";
   bundleId: "com.ynxweb4.developer.testnetpreview";
   productDeviceAlgorithm: "p256-sha256";
+  productDeviceKey: string;
   account: string;
   scopes: ["account:read", "developer:deploy"];
   expiresAt: string;
+  issuedAt: string;
 };
 export async function completeDeveloperWalletSession(canonicalBody: string): Promise<DeveloperWalletSession> {
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -302,10 +304,21 @@ export async function completeDeveloperWalletSession(canonicalBody: string): Pro
     if (response.status === 401 && attempt === 0) { await runtimeHealth(); continue; }
     const value = await response.json().catch(() => ({ error: `Wallet completion returned HTTP ${response.status}` }));
     if (!response.ok) throw new Error(value.error || "Wallet session completion was rejected.");
-    if (value?.session?.productClientId !== "ynx-developer-v1" || value.session.bundleId !== "com.ynxweb4.developer.testnetpreview" || !/^[0-9a-f]{64}$/.test(value.session.sessionBinding || "")) throw new Error("Wallet Gateway returned an invalid Developer session binding.");
+    if (value?.session?.productClientId !== "ynx-developer-v1" || value.session.bundleId !== "com.ynxweb4.developer.testnetpreview" || !/^[0-9a-f]{64}$/.test(value.session.sessionBinding || "") || !/^[A-Za-z0-9_-]{44}$/.test(value.session.productDeviceKey || "") || typeof value.session.issuedAt !== "string" || typeof value.session.expiresAt !== "string") throw new Error("Wallet Gateway returned an invalid Developer session binding.");
     return value.session;
   }
   throw new Error("Workspace session could not be established.");
+}
+export async function introspectDeveloperWalletSession(canonicalProofBody: string): Promise<DeveloperWalletSession> {
+  const response = await fetch("/runtime/wallet/sessions/introspect", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: canonicalProofBody });
+  const value = await response.json().catch(() => ({ error: `Wallet introspection returned HTTP ${response.status}` }));
+  if (!response.ok) throw new Error(value.error || "Developer Wallet session is inactive.");
+  if (value?.introspection?.active !== true || value.introspection.session?.productClientId !== "ynx-developer-v1") throw new Error("Wallet Gateway did not return an active Developer session.");
+  return value.introspection.session;
+}
+export async function broadcastDeveloperDeployment(canonicalBody: string): Promise<{transactionHash:string;artifactDigest:string;account:string;confirmed:true;receipt:Record<string,unknown>}> {
+  const response=await fetch("/runtime/wallet/deployments/broadcast",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:canonicalBody}),value=await response.json().catch(()=>({error:`Deployment broadcast returned HTTP ${response.status}`}));
+  if(!response.ok)throw new Error(value.error||"YNX deployment was not confirmed.");if(value?.deployment?.confirmed!==true||!/^0x[0-9a-f]{64}$/.test(value.deployment.transactionHash||"")||value.deployment.receipt?.status!=="0x1")throw new Error("YNX Chain did not return a confirmed deployment receipt.");return value.deployment;
 }
 export async function loadWorkspace(projectId: string): Promise<WorkspaceSnapshot | null> {
   for (let attempt = 0; attempt < 2; attempt++) {

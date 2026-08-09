@@ -77,7 +77,10 @@ Deployment is Wallet-only. Compile first. In an installed, reviewed desktop
 Developer client, open the canonical Wallet request and complete the registered
 callback and central Product Session. Then review the exact deployment intent,
 authorize it in Wallet, and separately approve network submission. These later
-steps are currently unavailable, rather than simulated. A transaction hash is
-pending, not success. Inspect Receipts & logs for the authoritative receipt and
-source-match boundary. Never enter a private key, mnemonic or deployment signer
-in Developer.
+steps are implemented in reviewed desktop source but remain unavailable on the
+public surface until both the Wallet Gateway and IDE application-action gates
+pass. Wallet shows the exact contract, arguments, artifact, simulation, fixed
+one-YNXT fee, account, nonce and expiry before signing. A transaction hash is
+pending, not success; Developer confirms only a successful receipt with a block
+number. Inspect Receipts & logs for the authoritative receipt and source-match
+boundary. Never enter a private key, mnemonic or deployment signer in Developer.

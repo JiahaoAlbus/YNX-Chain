@@ -12,7 +12,7 @@
   `ynxdeveloper://wallet-auth/callback`; it links to installation and never
   creates an account session. Only a reviewed desktop bridge may open an exact
   Wallet review, and even that remains `wallet-review-opened` until callback and
-  central Gateway completion pass. Wallet/Auth 105/105 and Wallet 39/39 approve
+  central Gateway completion pass. Wallet/Auth 107/107 and Wallet 39/39 approve
   the same tuple on the Wallet-owned branch; central deployment remains false.
 - Added a signed-workspace and concurrency-bounded Wallet readiness service. It
   reads only the fixed loopback canonical Gateway `health`, `ready` and
@@ -37,6 +37,21 @@
   returns its 64-hex binding. The current private candidate deliberately reports
   the public gate closed, so this is implemented and tested current source, not
   a claim that the public desktop login has been released.
+- Added the separate exact deployment callback transport. A live
+  `developer:deploy` Product Session can prepare an artifact-bound request for
+  Wallet; Wallet displays the contract, constructor input, simulation, fixed
+  one-YNXT fee, compiler/source identity, session, nonce and expiry, then signs
+  the chain's canonical Go-compatible `application_action`. Developer never
+  receives a private key.
+- Added server-side Product Session introspection and receipt binding. The
+  service fixes the required scope, verifies the device proof, recomputes the
+  payload, request, artifact and transaction digests, rejects extra fields,
+  broadcasts the exact Wallet byte sequence and waits for a successful chain
+  receipt. A failed request is retained rather than presented as confirmed.
+- Public IDE action submission is independently gated by
+  `YNX_CODE_IDE_ACTION_PUBLIC_READY=false` by default. Current source and
+  isolated tests pass; this does not claim that public RPC accepts the new
+  action or that public Developer has been cut over.
 - Added a same-origin, workspace-session-bound YNX Chain service with a fixed
   canonical Testnet upstream. It exposes bounded network status, block and
   transaction inspection, receipt joining, a read-only JSON-RPC allowlist and
@@ -49,8 +64,10 @@
   `0x2d61e641fb6cafbf762beade5fd3dfe614cb360c35707a0827365992be8acab0`
   with a successful EVM receipt. It also proved that `eth_sendTransaction` is
   rejected by the Developer gateway.
-- Wallet signing, broadcast and deployment remain visibly unavailable in this
-  slice. Opening Wallet review is not a session, signature or deployment. The
+- Wallet signing and receipt binding are implemented in reviewed current source,
+  but remain visibly unavailable on the public surface while its independent
+  action and Gateway gates are closed. Opening Wallet review is not a session,
+  signature or deployment. The
   public compiler endpoint currently reports deterministic analysis
   metadata for Solidity 0.8.24 and explicitly does not claim production
   compilation. Neither limitation is converted into a successful UI state.

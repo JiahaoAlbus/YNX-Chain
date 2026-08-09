@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
-import { chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
-import { consumeDeveloperWalletRequest, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperWalletReview, subscribeDeveloperWalletCallbacks } from "../wallet/transport";
+import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, introspectDeveloperWalletSession, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
+import { canonicalJSON, consumeDeveloperDeploymentRequest, consumeDeveloperWalletRequest, createDeveloperSessionIntrospection, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperDeploymentReview, openDeveloperWalletReview, parseDeveloperDeploymentCallback, saveDeveloperWalletSession, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
 
 const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
 const TEMPLATES = {
@@ -19,6 +19,11 @@ const TEMPLATES = {
     label: "Batch payment",
     path: "contracts/BatchPayment.sol",
     source: '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\ncontract BatchPayment {\n    event Paid(address indexed sender, address indexed recipient, uint256 value);\n    function pay(address payable[] calldata recipients, uint256[] calldata values) external payable {\n        require(recipients.length == values.length && recipients.length <= 100, "invalid batch");\n        uint256 total;\n        for (uint256 i; i < recipients.length; i++) { total += values[i]; (bool ok,) = recipients[i].call{value: values[i]}(""); require(ok, "payment failed"); emit Paid(msg.sender, recipients[i], values[i]); }\n        require(total == msg.value, "value mismatch");\n    }\n}\n',
+  },
+  pinnedCounter: {
+    label: "Pinned YNX write counter",
+    path: "contracts/devtools/SampleEVMWriteCounter.sol",
+    source: '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\ncontract SampleEVMWriteCounter {\n    uint256 public count;\n\n    event CountChanged(address indexed caller, uint256 value);\n\n    constructor(uint256 initialCount) {\n        count = initialCount;\n    }\n\n    function increment(uint256 by) external returns (uint256) {\n        count += by;\n        emit CountChanged(msg.sender, count);\n        return count;\n    }\n}\n',
   },
 };
 const PLATFORM_STARTERS = [
@@ -60,14 +65,14 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     [lookup, setLookup] = useState(""),
     [debug, setDebug] = useState<any>(),
     [estimate, setEstimate] = useState<{ gas: string; gasPrice: string; maxFeeWei: string }>(),
+    [constructorArgs, setConstructorArgs] = useState('["7"]'),
     [walletState, setWalletState] = useState(""),
     wallet = useMemo(() => desktopWalletBridge(), []),
     walletGateReady = Boolean(walletReadiness?.developerBinding.attested && walletReadiness.gateway.remoteDeployed && walletReadiness.gateway.publicDeploymentReady),
     artifact = useMemo(() => {
       try {
-        const manifest = JSON.parse(files[".ynx-build/manifest.json"] || "null"),
-          bytecode = manifest?.artifacts?.find((item: any) => item.path?.endsWith(".bin"));
-        return manifest?.protocolVersion === "ynx-code-artifact/v1" && bytecode && files[bytecode.path] ? { manifest, bytecode } : null;
+        const manifest = JSON.parse(files[".ynx-build/manifest.json"] || "null"), bytecode = manifest?.artifacts?.find((item: any) => item.path?.endsWith(".bin")), metadataPath=bytecode?.path?.replace(/\.bin$/,".metadata.json"),metadata=metadataPath?JSON.parse(files[metadataPath]||"null"):null,source=metadata?.source?files[metadata.source]:null,deployedBytecode=metadata?.deployedBytecode?.object;
+        return manifest?.protocolVersion === "ynx-code-artifact/v1" && bytecode && files[bytecode.path] && metadata?.contract && source && typeof deployedBytecode==="string" ? { manifest, bytecode, metadata, source, deployedBytecode } : null;
       } catch {
         return null;
       }
@@ -91,10 +96,15 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
   }, []);
   useEffect(() => subscribeDeveloperWalletCallbacks((callbackURL) => {
     setBusy(true); setError(""); setWalletState("Verifying the exact Wallet callback and signing this device's short-lived challenge…");
-    void createDeveloperWalletCompletion(callbackURL).then(result => completeDeveloperWalletSession(result.body)).then(session => {
+    void createDeveloperWalletCompletion(callbackURL).then(result => completeDeveloperWalletSession(result.body)).then(async session => {
+      await saveDeveloperWalletSession(session);
       consumeDeveloperWalletRequest();
       setWalletState(`Canonical Product Session verified for ${session.account} · expires ${new Date(session.expiresAt).toLocaleTimeString()}. Deployment still requires a separate exact intent and Wallet signature.`);
     }).catch(value => { setWalletState(""); setError(value instanceof Error ? value.message : "YNX Wallet session completion failed closed."); }).finally(() => setBusy(false));
+  }), []);
+  useEffect(() => subscribeDeveloperDeploymentCallbacks((callbackURL) => {
+    setBusy(true);setError("");setWalletState("Verifying Wallet-signed transaction bytes, Product Session and authoritative chain receipt…");
+    void parseDeveloperDeploymentCallback(callbackURL).then(async parsed=>{const introspection=await createDeveloperSessionIntrospection(),proof=JSON.parse(introspection.body).proof,body=canonicalJSON({proof,response:parsed.response}),deployment=await broadcastDeveloperDeployment(body);consumeDeveloperDeploymentRequest();setWalletState(`Deployment confirmed · ${deployment.transactionHash} · block ${String(deployment.receipt.blockNumber)}. Explorer verification can now use this authoritative receipt.`)}).catch(value=>{setWalletState("");setError(value instanceof Error?value.message:"YNX deployment failed closed.")}).finally(()=>setBusy(false));
   }), []);
   const runRpc = async () => {
     setBusy(true);
@@ -163,6 +173,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       setBusy(false);
     }
   };
+  const reviewDeployment=async()=>{if(!wallet||!walletGateReady||!artifact||!estimate)return;setBusy(true);setError("");setWalletState("Revalidating the Product Session, nonce and exact artifact before Wallet review…");try{const proof=await createDeveloperSessionIntrospection(),session=await introspectDeveloperWalletSession(proof.body);if(session.sessionBinding!==proof.session.sessionBinding)throw new Error("Wallet Gateway returned another Product Session.");const nonceValue=await chainRpc("eth_getTransactionCount",[ynxAccountToEVM(session.account),"pending"]),nonce=Number(BigInt(nonceValue))+1,args=JSON.parse(constructorArgs);if(!Array.isArray(args)||args.some(value=>typeof value!=="string"))throw new Error("Constructor arguments must be a JSON array of strings.");const result=await openDeveloperDeploymentReview(wallet,{name:artifact.metadata.contract,source:artifact.source,deployedBytecode:artifact.deployedBytecode,constructorArgs:args,nonce,blockNumber:status?.height||0,gasEstimate:estimate.gas,gasPriceWei:estimate.gasPrice,maxFeeWei:estimate.maxFeeWei,compilerVersion:artifact.manifest.compiler?.version||"unknown"});setWalletState(`Exact deployment review opened · artifact ${result.artifactDigest.slice(0,16)}… · expires ${new Date(result.expiresAt).toLocaleTimeString()}. No broadcast occurs until Wallet returns signed bytes.`)}catch(value){setWalletState("");setError(value instanceof Error?value.message:"Deployment review could not be opened.")}finally{setBusy(false)}};
   return (
     <section className="side-section chain-panel">
       <header>
@@ -256,6 +267,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
               <Button disabled={busy} onClick={estimateDeployment}>
                 Estimate deployment gas
               </Button>
+              <label>Constructor args (JSON strings)<input value={constructorArgs} onChange={event=>setConstructorArgs(event.target.value)}/></label>
               {estimate && (
                 <p>
                   RPC estimate {estimate.gas} gas · gas price {estimate.gasPrice} wei
@@ -277,7 +289,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
           <b>{walletGateReady ? (wallet ? "Developer Wallet gate ready" : "Developer Wallet gate ready · desktop required") : walletReadiness?.developerBinding.attested ? "Developer registry attested · public route not ready" : walletReadiness?.gateway.reachable ? "Wallet Gateway online · Developer binding not attested" : "Wallet Gateway unavailable"}</b>
           <p>Wallet must review, sign and submit. YNX Code never receives a private key. A submitted hash is not success until the authoritative receipt confirms it.</p>
           {wallet ? (
-            <Button disabled={busy || !artifact || !walletGateReady} onClick={openWallet}>Open exact Wallet review</Button>
+            <><Button disabled={busy || !artifact || !walletGateReady} onClick={openWallet}>Sign in with YNX Wallet</Button><Button disabled={busy||!artifact||!estimate||!walletGateReady} onClick={reviewDeployment}>Review exact contract deployment</Button></>
           ) : (
             <a href="https://ynxweb4.com/wallet" target="_blank" rel="noreferrer">
               Install YNX Wallet and desktop Developer ↗
