@@ -1,6 +1,6 @@
 import { access, realpath } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 export function detectSandbox(options = {}) {
   if (options.sandbox) return options.sandbox;
@@ -34,14 +34,15 @@ export function sandboxLaunch({
   args = [],
   writeWorkspace = false,
   writableBinds = [],
+  readOnlyBinds = [],
 }) {
   if (
-    writableBinds.some(
+    [...writableBinds, ...readOnlyBinds].some(
       ({ host, guest }) =>
         typeof host !== "string" ||
         !host.startsWith("/") ||
         typeof guest !== "string" ||
-        !/^\/[A-Za-z0-9_-]+$/.test(guest),
+        !/^\/[A-Za-z0-9_@-]+(?:\/[A-Za-z0-9_@-]+)*$/.test(guest),
     )
   )
     throw Object.assign(new Error("Invalid sandbox bind."), {
@@ -59,10 +60,21 @@ export function sandboxLaunch({
       extraWrites = writableBinds
         .map(({ host }) => `(allow file-write* (subpath "${escape(host)}"))`)
         .join("\n"),
+      toolReads = readOnlyBinds
+        .map(({ host }) => `(allow file-read* (subpath "${escape(host)}"))`)
+        .join("\n"),
+      toolMetadata = [...new Set(readOnlyBinds.flatMap(({ host }) => {
+        const parents = [];
+        for (let path = dirname(host); path !== "/"; path = dirname(path))
+          parents.push(path);
+        return parents;
+      }))]
+        .map((path) => `(allow file-read-metadata (literal "${escape(path)}"))`)
+        .join("\n"),
       profile = `(version 1)\n(allow default)\n(deny network*)\n(deny file-read* (subpath "${escape(originalHome)}"))\n(allow file-read* (subpath "${escape(workspace)}"))\n${extraReads}\n(deny file-write*)\n(allow file-write* (subpath "${escape(workspace)}") (subpath "/private/tmp") (subpath "/dev"))\n${extraWrites}`;
     return {
       command: "/usr/bin/sandbox-exec",
-      args: ["-p", profile, command, ...args],
+      args: ["-p", `${profile}\n${toolMetadata}\n${toolReads}`, command, ...args],
       cwd: workspace,
       env: runtimeEnvironment(workspace),
     };
@@ -87,7 +99,7 @@ export function sandboxLaunch({
           return `/workspace${value.slice(workspace.length)}`;
         const binding = writableBinds.find(({ host }) =>
           value.startsWith(host),
-        );
+        ) || readOnlyBinds.find(({ host }) => value.startsWith(host));
         return binding
           ? `${binding.guest}${value.slice(binding.host.length)}`
           : value;
@@ -108,6 +120,11 @@ export function sandboxLaunch({
         host,
         guest,
       ]),
+      toolBinds = readOnlyBinds.flatMap(({ host, guest }) => [
+        "--ro-bind",
+        host,
+        guest,
+      ]),
       bubblewrap = [
         "bwrap",
         "--unshare-all",
@@ -121,6 +138,7 @@ export function sandboxLaunch({
         "/tmp",
         ...binds,
         ...extraBinds,
+        ...toolBinds,
         ...workspaceBind,
         "--chdir",
         "/workspace",

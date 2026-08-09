@@ -172,6 +172,15 @@ Move and Cosmos SDK are extension/toolchain profiles after the first-language
 gate. LSP capabilities are negotiated; the UI never enables a command the
 server did not advertise. Diagnostics include source, version and staleness.
 
+The execution gate is tracked separately from LSP. The Linux candidate now
+actually builds/runs C++, JavaScript, TypeScript, Python, Go and Rust inside the
+network-disabled workspace sandbox. TypeScript is first transpiled by the
+installed `tsc`; its package and platform binary are mounted read-only while
+only `.ynx-build` remains writable. macOS verifies the same set except Rust,
+which is reported unavailable and skipped because no reviewed local `rustc` is
+installed. Only C/C++ has passed the LSP gate so far; the other LSP rows above
+remain candidates until their server tests pass.
+
 ## 8. Tasks, terminal and process supervision
 
 Terminal transport uses a PTY only inside the selected runtime. The process
