@@ -66,13 +66,14 @@ test("localized UI and native desktop sources preserve language, permission and 
 });
 
 test("macOS package gate verifies extracted cold launch and bundled runtime cleanup", async () => {
-  const packageScript=await read("scripts/package-local-macos.sh"), verify=await read("scripts/verify-local-macos-package.sh"), source=await read("desktop/macos/main.m"), codeServer=await read("desktop/code-server.mjs");
+  const packageScript=await read("scripts/package-local-macos.sh"), verify=await read("scripts/verify-local-macos-package.sh"), source=await read("desktop/macos/main.m"), codeServer=await read("desktop/code-server.mjs"), gatewayServer=await read("services/gateway/src/server.mjs");
   assert.match(packageScript,/desktop\/macos\/main\.m/); assert.match(packageScript,/Resources\/runtime\/node/); assert.match(packageScript,/codesign --force --deep --sign -/);
   assert.match(packageScript,/npm run code:build/); assert.match(packageScript,/frontend\/dist/); assert.match(packageScript,/services/); assert.match(packageScript,/node_modules/); assert.doesNotMatch(packageScript,/npm run build\s/); assert.match(packageScript,/find .*Contents\/Resources.*type f/); assert.match(packageScript,/codesign --force --sign -.*bundled_binary/);
   assert.match(packageScript,/Refusing to package tracked Developer changes/); assert.match(packageScript,/build-provenance\.json/); assert.match(packageScript,/sbom\.cdx\.json/); assert.match(packageScript,/sourceDirty: false/);
   assert.match(verify,/cold launch/); assert.match(verify,/pgrep -P/); assert.match(verify,/server\.mjs/); assert.match(verify,/survived App termination/); assert.match(verify,/workspace survived second launch/); assert.match(verify,/runtime\/tasks/); assert.match(verify,/node-pty\/prebuilds\/darwin-arm64\/pty\.node/);
   assert.match(verify,/provenance sourceCommit mismatch|provenance \$\{key\} mismatch/); assert.match(verify,/sbomSha256/); assert.match(verify,/YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT/);
   assert.match(codeServer,/workspace-session\.key/); assert.match(codeServer,/YNX_CODE_WORKSPACE_SESSION_KEY/); assert.match(codeServer,/services.*gateway.*server\.mjs/s); assert.match(codeServer,/mode: 0o600/);
+  assert.match(gatewayServer,/closeIdleConnections/); assert.match(gatewayServer,/closeAllConnections/); assert.match(gatewayServer,/Promise\.allSettled/);
   assert.match(source,/\[_server waitUntilExit\]/);
 });
 

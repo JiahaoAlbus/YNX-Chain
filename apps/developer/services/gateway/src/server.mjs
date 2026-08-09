@@ -123,17 +123,27 @@ server.on("upgrade", (request, socket, head) => {
 server.listen(port, host, () =>
   console.log(`YNX Code Gateway http://${host}:${port}`),
 );
+let shuttingDown = false;
+async function shutdown() {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  const deadline = setTimeout(() => process.exit(1), 4_000);
+  deadline.unref();
+  server.close();
+  server.closeIdleConnections?.();
+  await Promise.allSettled([
+    terminalService.close(),
+    debugService.close(),
+    collaborationService.close(),
+  ]);
+  server.closeAllConnections?.();
+  runtimeProfileService.close();
+  extensionRegistry.close();
+  agentOrchestrator.close();
+  projectMemory.close();
+  workspaceStore.close();
+  clearTimeout(deadline);
+  process.exit(0);
+}
 for (const signal of ["SIGINT", "SIGTERM"])
-  process.once(signal, () =>
-    server.close(async () => {
-      await terminalService.close();
-      await debugService.close();
-      await collaborationService.close();
-      runtimeProfileService.close();
-      extensionRegistry.close();
-      agentOrchestrator.close();
-      projectMemory.close();
-      workspaceStore.close();
-      process.exit(0);
-    }),
-  );
+  process.once(signal, () => void shutdown());
