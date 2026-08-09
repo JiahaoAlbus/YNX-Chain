@@ -247,12 +247,15 @@ routes the Workbench Run action through the runtime control plane, synchronizes
 only the validated text workspace, and compiles or executes the active file in
 that container without a shell or network device. A live server gate creates a
 fresh lease, runs all seven language paths, verifies compiler-version evidence,
-deletes the lease and rejects any leaked runtime container.
+opens an interactive PTY inside that same container, writes a file, synchronizes
+the changed text snapshot back through the revisioned workspace store, deletes
+the lease and rejects any leaked runtime container. An active terminal holds a
+lease lock, so the backing container cannot be stopped while its PTY is running.
 
-This milestone does not yet route the interactive terminal, LSP processes or
-saved Remote SSH profiles into a remote workspace. Those surfaces remain
-separate work items and must not be described as cloud-connected until their
-own isolation and reconnect gates pass.
+This milestone does not yet route LSP processes or saved Remote SSH profiles
+into a remote workspace. Those surfaces remain separate work items and must not
+be described as cloud-connected until their own isolation and reconnect gates
+pass.
 
 Remote SSH profiles accept public targets only on the public tier. The service
 scans the host key, requires the user to approve that exact key, verifies the

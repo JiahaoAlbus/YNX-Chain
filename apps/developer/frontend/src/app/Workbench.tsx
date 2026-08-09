@@ -747,6 +747,7 @@ export function Workbench() {
             ) : bottom === "terminal" ? (
               <InteractiveTerminal
                 projectId={project.id}
+                runtimeId={selectedRuntime}
                 onWorkspaceSync={refreshWorkspace}
               />
             ) : (

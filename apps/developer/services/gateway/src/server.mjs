@@ -80,6 +80,7 @@ const server = createServer(
 const terminalService = createTerminalService({
   workspaceStore,
   ownerForRequest: (request) => runtime.ownerForRequest(request),
+  containerTerminalBroker: runtimeProfileService,
 });
 const debugService = createDebugService({
   workspaceStore,

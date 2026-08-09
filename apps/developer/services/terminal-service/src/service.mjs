@@ -21,7 +21,7 @@ const PROTOCOL = "ynx-code-terminal-v1",
   MAX_BYTES = 2 * 1024 * 1024;
 
 export function createTerminalService(options) {
-  const { workspaceStore, ownerForRequest } = options,
+  const { workspaceStore, ownerForRequest, containerTerminalBroker } = options,
     sandbox = detectSandbox(options),
     root = options.root || join(tmpdir(), "ynx-code-terminals"),
     maxSessions = bounded(options.maxSessions, 16, 1, 256),
@@ -37,13 +37,15 @@ export function createTerminalService(options) {
     );
     if (url.pathname !== "/runtime/terminals") return false;
     const owner = ownerForRequest(request),
-      projectId = url.searchParams.get("projectId");
+      projectId = url.searchParams.get("projectId"),
+      runtimeId = url.searchParams.get("runtimeId");
     if (
       !owner ||
       !/^[A-Za-z0-9_-]{1,160}$/.test(projectId || "") ||
+      (runtimeId !== null && !/^[a-f0-9]{24}$/.test(runtimeId)) ||
       !sameOrigin(request) ||
       request.headers["sec-websocket-protocol"] !== PROTOCOL ||
-      !sandbox.ready ||
+      (runtimeId ? !containerTerminalBroker : !sandbox.ready) ||
       sessions.size >= maxSessions ||
       [...sessions.values()].filter((value) => value.owner === owner).length >=
         maxOwnerSessions
@@ -52,7 +54,7 @@ export function createTerminalService(options) {
       return true;
     }
     wss.handleUpgrade(request, socket, head, (websocket) =>
-      wss.emit("connection", websocket, request, { owner, projectId }),
+      wss.emit("connection", websocket, request, { owner, projectId, runtimeId }),
     );
     return true;
   }
@@ -66,7 +68,7 @@ export function createTerminalService(options) {
       websocket.close(1011, "Terminal start failed");
     }),
   );
-  async function start(websocket, { owner, projectId }) {
+  async function start(websocket, { owner, projectId, runtimeId }) {
     const snapshot = workspaceStore.get(owner, projectId);
     if (!snapshot)
       throw fault("Workspace was not found.", "workspace_not_found");
@@ -75,72 +77,80 @@ export function createTerminalService(options) {
       workspace = await realpath(sessionRoot);
     await mkdir(join(workspace, ".tmp"), { mode: 0o700 });
     await mkdir(join(workspace, ".ynx-build"), { mode: 0o700 });
-    await materializeSnapshot(workspace, snapshot);
-    const shell = await resolveExecutable(
-      process.platform === "darwin" ? ["zsh", "bash", "sh"] : ["bash", "sh"],
-    );
-    if (!shell)
-      throw fault("No approved shell is installed.", "shell_unavailable");
-    await ensurePtyHelper();
-    const launch = sandboxLaunch({
-        sandbox,
-        workspace,
-        command: shell,
-        args: ["-l"],
-        writeWorkspace: true,
-      }),
-      terminal = spawnPty(launch.command, launch.args, {
+    let remote;
+    try {
+      if (runtimeId)
+        remote = await containerTerminalBroker.openContainerTerminal({ owner, runtimeId, projectId, snapshot });
+      else {
+        await materializeSnapshot(workspace, snapshot);
+      }
+      const shell = remote ? null : await resolveExecutable(
+        process.platform === "darwin" ? ["zsh", "bash", "sh"] : ["bash", "sh"],
+      );
+      if (!remote && !shell)
+        throw fault("No approved shell is installed.", "shell_unavailable");
+      await ensurePtyHelper();
+      const launch = remote?.launch || sandboxLaunch({
+          sandbox,
+          workspace,
+          command: shell,
+          args: ["-l"],
+          writeWorkspace: true,
+        }),
+        terminal = spawnPty(launch.command, launch.args, {
         name: "xterm-256color",
         cols: 100,
         rows: 28,
         cwd: launch.cwd,
         env: { ...launch.env, TERM: "xterm-256color", COLORTERM: "truecolor" },
       });
-    const state = {
+      const state = {
       owner,
       projectId,
       sessionId,
       workspace,
       snapshot,
+      remote,
       terminal,
       websocket,
       sequence: 0,
       lastInput: Date.now(),
       closed: false,
-    };
-    sessions.set(sessionId, state);
-    send(websocket, {
+      };
+      sessions.set(sessionId, state);
+      send(websocket, {
       type: "ready",
       protocolVersion: PROTOCOL,
       sessionId,
       cwd: "/workspace",
-      sandbox: {
-        kind: sandbox.kind,
-        network: false,
-        writableRoot: "workspace",
-      },
-    });
-    terminal.onData((data) =>
+      sandbox: remote?.launch.sandbox || { kind: sandbox.kind, network: false, writableRoot: "workspace" },
+      });
+      terminal.onData((data) =>
       send(websocket, { type: "output", sequence: ++state.sequence, data }),
-    );
-    terminal.onExit(({ exitCode, signal }) =>
+      );
+      terminal.onExit(({ exitCode, signal }) =>
       finish(state, { exitCode, signal }),
-    );
-    websocket.on("message", (raw) => message(state, raw));
-    websocket.on("close", () => finish(state, { exitCode: 130, signal: 1 }));
-    websocket.on("error", () => finish(state, { exitCode: 130, signal: 1 }));
-    state.idle = setInterval(
+      );
+      websocket.on("message", (raw) => message(state, raw));
+      websocket.on("close", () => finish(state, { exitCode: 130, signal: 1 }));
+      websocket.on("error", () => finish(state, { exitCode: 130, signal: 1 }));
+      state.idle = setInterval(
       () => {
         if (Date.now() - state.lastInput > idleMs)
           finish(state, { exitCode: 124, signal: 15, reason: "idle_timeout" });
       },
       Math.min(30_000, idleMs),
-    );
-    state.hard = setTimeout(
+      );
+      state.hard = setTimeout(
       () =>
         finish(state, { exitCode: 124, signal: 15, reason: "lifetime_limit" }),
-      hardMs,
-    );
+        hardMs,
+      );
+    } catch (error) {
+      remote?.release();
+      await rm(workspace, { recursive: true, force: true });
+      throw error;
+    }
   }
   function message(state, raw) {
     state.lastInput = Date.now();
@@ -189,7 +199,10 @@ export function createTerminalService(options) {
       state.terminal.kill();
     } catch {}
     try {
-      const payload = await readTextSnapshot(state.workspace, state.snapshot);
+      const remotePayload = state.remote ? await state.remote.collect() : null,
+        files = remotePayload?.files,
+        open = files ? (state.snapshot.open || []).filter((path) => Object.hasOwn(files, path)) : undefined,
+        payload = remotePayload ? { ...state.snapshot, ...remotePayload, open, active: Object.hasOwn(files, state.snapshot.active) ? state.snapshot.active : open[0] || Object.keys(files)[0] || "" } : await readTextSnapshot(state.workspace, state.snapshot);
       const saved = workspaceStore.put(state.owner, state.projectId, {
         expectedRevision: state.snapshot.revision,
         idempotencyKey: `terminal-${state.sessionId}`,
@@ -215,6 +228,7 @@ export function createTerminalService(options) {
     try {
       state.websocket.close(1000, "Terminal exited");
     } catch {}
+    state.remote?.release();
     await rm(state.workspace, { recursive: true, force: true });
   }
   async function close() {
