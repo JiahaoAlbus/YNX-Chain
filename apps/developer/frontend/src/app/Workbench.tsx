@@ -26,12 +26,15 @@ import {
 import { Button } from "../components/ui/button";
 import { DebugPanel } from "../debug/DebugPanel";
 import { languageForPath } from "../editor/languages";
+import { ExtensionPanel } from "../extensions/ExtensionPanel";
 import { FileExplorer } from "../explorer/FileExplorer";
 import {
   loadWorkspace,
+  loadExtensions,
   runActive,
   runtimeHealth,
   saveWorkspace,
+  type InstalledExtension,
 } from "../runtime/client";
 import {
   loadProject,
@@ -73,7 +76,11 @@ export function Workbench() {
     [search, setSearch] = useState(""),
     [hydrated, setHydrated] = useState(false),
     [breakpoints, setBreakpoints] = useState<Record<string, number[]>>({}),
-    [debugLine, setDebugLine] = useState<number>();
+    [debugLine, setDebugLine] = useState<number>(),
+    [extensions, setExtensions] = useState<InstalledExtension[]>([]),
+    [extensionTheme, setExtensionTheme] = useState(
+      () => localStorage.getItem("ynx-extension-theme") || "",
+    );
   const lastSynced = useRef("");
   const workspace = useMemo(
       () => ({
@@ -92,6 +99,21 @@ export function Workbench() {
       ],
     ),
     workspaceKey = useMemo(() => JSON.stringify(workspace), [workspace]);
+  const languageOf = useCallback(
+    (path: string) => {
+      const lower = path.toLowerCase();
+      for (const extension of extensions)
+        for (const contribution of extension.manifest.contributes.languages)
+          if (
+            contribution.extensions.some((suffix) =>
+              lower.endsWith(suffix.toLowerCase()),
+            )
+          )
+            return contribution.id;
+      return languageForPath(path);
+    },
+    [extensions],
+  );
   useEffect(() => {
     saveProject(project);
   }, [project]);
@@ -99,6 +121,46 @@ export function Workbench() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("ynx-code-theme", theme);
   }, [theme]);
+  useEffect(() => {
+    localStorage.setItem("ynx-extension-theme", extensionTheme);
+    const selected = extensions
+        .flatMap((extension) =>
+          extension.manifest.contributes.themes.map((value) => ({
+            extension,
+            value,
+          })),
+        )
+        .find(
+          ({ extension, value }) =>
+            `${extension.id}/${value.id}` === extensionTheme,
+        ),
+      style = document.documentElement.style,
+      mapping = {
+        background: "--bg",
+        panel: "--panel",
+        editor: "--editor",
+        text: "--text",
+        muted: "--muted",
+        border: "--border",
+        accent: "--blue",
+      };
+    for (const variable of Object.values(mapping))
+      style.removeProperty(variable);
+    if (selected)
+      for (const [key, value] of Object.entries(selected.value.colors)) {
+        const variable = mapping[key as keyof typeof mapping];
+        if (variable) style.setProperty(variable, value);
+      }
+    return () => {
+      for (const variable of Object.values(mapping))
+        style.removeProperty(variable);
+    };
+  }, [extensionTheme, extensions]);
+  useEffect(() => {
+    loadExtensions()
+      .then(setExtensions)
+      .catch(() => {});
+  }, []);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -530,9 +592,10 @@ export function Workbench() {
           />
         )}
         {view === "extensions" && (
-          <SideStatus
-            title="EXTENSIONS"
-            text="Extension host activation is disabled in this foundation build. Built-in Monaco languages remain available without filesystem or process authority."
+          <ExtensionPanel
+            extensions={extensions}
+            onChange={setExtensions}
+            onApplyTheme={setExtensionTheme}
           />
         )}
         {view === "agent" && (
@@ -598,15 +661,17 @@ export function Workbench() {
               files={project.files}
               activePath={project.active}
               activeContent={activeContent}
-              language={languageForPath(project.active)}
+              language={languageOf(project.active)}
               theme={theme}
+              extensions={extensions}
+              extensionTheme={extensionTheme}
               onChange={update}
               breakpoints={breakpoints[project.active] || []}
               debugLine={debugLine}
               onToggleBreakpoint={toggleBreakpoint}
               splitPath={split ? second : undefined}
               splitContent={second ? project.files[second] : undefined}
-              splitLanguage={second ? languageForPath(second) : undefined}
+              splitLanguage={second ? languageOf(second) : undefined}
               onSplitChange={(value) =>
                 second &&
                 setProject((current) => ({
@@ -665,7 +730,7 @@ export function Workbench() {
           <span>
             <GitBranch size={12} /> main*
           </span>
-          <span>{languageForPath(project.active)}</span>
+          <span>{languageOf(project.active)}</span>
           <span>UTF-8</span>
           <span>Spaces: 2</span>
           <span className="grow" />
@@ -699,7 +764,7 @@ export function Workbench() {
                 {
                   task: "build-run-active",
                   path: project.active,
-                  language: languageForPath(project.active),
+                  language: languageOf(project.active),
                   files: Object.keys(project.files).length,
                   approval: "execute-once",
                   network: false,

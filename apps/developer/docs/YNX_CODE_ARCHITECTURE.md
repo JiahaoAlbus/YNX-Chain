@@ -241,6 +241,14 @@ templates. Web extensions execute in a worker sandbox; runtime extensions run
 in a restricted extension-host process. No extension receives filesystem,
 process, network, secret or Wallet access by default.
 
+The implemented first gate is `declarative-web` only. The per-owner SQLite
+registry validates bounded language suffixes, Monaco snippets and theme tokens,
+stores a canonical manifest with SHA-256 identity, and supports install/update/
+uninstall. The workbench applies those contributions immediately. Executable
+Web Workers, runtime code, VSIX import, marketplace trust and privileged
+contributions remain disabled until their separate isolation/signature gates;
+the manifest installer states that boundary explicitly.
+
 Install records bind publisher, package digest, signature/provenance, permissions,
 compatibility and vulnerability result. Revocation disables an extension before
 its next activation. VS Code-compatible manifests may be imported only through

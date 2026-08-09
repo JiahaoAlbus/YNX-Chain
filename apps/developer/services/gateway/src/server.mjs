@@ -9,6 +9,7 @@ import { runCppLanguageRequest } from "../../language-service/src/cpp-lsp.mjs";
 import { createTerminalService } from "../../terminal-service/src/service.mjs";
 import { createDebugService } from "../../debug-service/src/service.mjs";
 import { createGitService } from "../../git-service/src/service.mjs";
+import { createExtensionRegistry } from "../../extension-registry/src/service.mjs";
 
 if (
   process.env.NODE_ENV === "production" &&
@@ -34,8 +35,16 @@ const gitService = createGitService({
   ownerForRequest: (request) => runtime.ownerForRequest(request),
   root: join(stateDir, "git"),
 });
+const extensionRegistry = createExtensionRegistry({
+  filename: join(stateDir, "extensions.sqlite"),
+  ownerForRequest: (request) => runtime.ownerForRequest(request),
+});
 const server = createServer(
-  createGateway({ staticRoot, runtime, handlers: [gitService.handler] }),
+  createGateway({
+    staticRoot,
+    runtime,
+    handlers: [gitService.handler, extensionRegistry.handler],
+  }),
 );
 const terminalService = createTerminalService({
   workspaceStore,
@@ -64,6 +73,7 @@ for (const signal of ["SIGINT", "SIGTERM"])
     server.close(async () => {
       await terminalService.close();
       await debugService.close();
+      extensionRegistry.close();
       workspaceStore.close();
       process.exit(0);
     }),

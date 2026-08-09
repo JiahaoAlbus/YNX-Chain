@@ -12,6 +12,7 @@ import HtmlWorker from "../workers/html.worker?worker";
 import TsWorker from "../workers/typescript.worker?worker";
 import { useEffect, useRef } from "react";
 import { cppLanguageRequest } from "../runtime/client";
+import type { InstalledExtension } from "../runtime/client";
 
 self.MonacoEnvironment = {
   getWorker(_: string, label: string) {
@@ -32,6 +33,8 @@ type Props = {
   activeContent: string;
   language: string;
   theme: "light" | "dark";
+  extensions: InstalledExtension[];
+  extensionTheme?: string;
   onChange: (value: string | undefined) => void;
   breakpoints: number[];
   debugLine?: number;
@@ -48,6 +51,8 @@ export default function CodeEditor({
   activeContent,
   language,
   theme,
+  extensions,
+  extensionTheme,
   onChange,
   breakpoints,
   debugLine,
@@ -58,7 +63,22 @@ export default function CodeEditor({
   onSplitChange,
   diffBase,
 }: Props) {
-  const editorTheme = theme === "dark" ? "vs-dark" : "vs",
+  const selectedTheme = extensions
+      .flatMap((extension) =>
+        extension.manifest.contributes.themes.map((value) => ({
+          extension,
+          value,
+        })),
+      )
+      .find(
+        ({ extension, value }) =>
+          `${extension.id}/${value.id}` === extensionTheme,
+      ),
+    editorTheme = selectedTheme
+      ? `ynx-extension-${selectedTheme.extension.id}-${selectedTheme.value.id}`
+      : theme === "dark"
+        ? "vs-dark"
+        : "vs",
     editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null),
     decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(
       null,
@@ -78,31 +98,29 @@ export default function CodeEditor({
               ? value.result
               : value.result?.items || [];
           return {
-            suggestions: items
-              .slice(0, 200)
-              .map((item: any) => ({
-                label: String(item.label).trim(),
-                kind: Math.max(0, Math.min(27, Number(item.kind || 1) - 1)),
-                insertText:
-                  item.textEdit?.newText ||
-                  item.insertText ||
-                  String(item.label).trim(),
-                detail: item.detail,
-                documentation:
-                  typeof item.documentation === "string"
-                    ? item.documentation
-                    : item.documentation?.value,
-                sortText: item.sortText,
-                filterText: item.filterText,
-                range: item.textEdit?.range
-                  ? {
-                      startLineNumber: item.textEdit.range.start.line + 1,
-                      startColumn: item.textEdit.range.start.character + 1,
-                      endLineNumber: item.textEdit.range.end.line + 1,
-                      endColumn: item.textEdit.range.end.character + 1,
-                    }
-                  : undefined,
-              })),
+            suggestions: items.slice(0, 200).map((item: any) => ({
+              label: String(item.label).trim(),
+              kind: Math.max(0, Math.min(27, Number(item.kind || 1) - 1)),
+              insertText:
+                item.textEdit?.newText ||
+                item.insertText ||
+                String(item.label).trim(),
+              detail: item.detail,
+              documentation:
+                typeof item.documentation === "string"
+                  ? item.documentation
+                  : item.documentation?.value,
+              sortText: item.sortText,
+              filterText: item.filterText,
+              range: item.textEdit?.range
+                ? {
+                    startLineNumber: item.textEdit.range.start.line + 1,
+                    startColumn: item.textEdit.range.start.character + 1,
+                    endLineNumber: item.textEdit.range.end.line + 1,
+                    endColumn: item.textEdit.range.end.character + 1,
+                  }
+                : undefined,
+            })),
           };
         } catch {
           return { suggestions: [] };
@@ -111,6 +129,73 @@ export default function CodeEditor({
     });
     return () => provider.dispose();
   }, [files]);
+  useEffect(() => {
+    const disposables: monaco.IDisposable[] = [];
+    for (const extension of extensions) {
+      for (const language of extension.manifest.contributes.languages) {
+        if (
+          !monaco.languages
+            .getLanguages()
+            .some((item) => item.id === language.id)
+        )
+          monaco.languages.register({
+            id: language.id,
+            extensions: language.extensions,
+            aliases: language.aliases,
+          });
+      }
+      const snippets = extension.manifest.contributes.snippets;
+      for (const language of new Set(snippets.map((item) => item.language))) {
+        disposables.push(
+          monaco.languages.registerCompletionItemProvider(language, {
+            provideCompletionItems: (model, position) => {
+              const word = model.getWordUntilPosition(position),
+                range = {
+                  startLineNumber: position.lineNumber,
+                  endLineNumber: position.lineNumber,
+                  startColumn: word.startColumn,
+                  endColumn: word.endColumn,
+                };
+              return {
+                suggestions: snippets
+                  .filter((item) => item.language === language)
+                  .map((item) => ({
+                    label: item.label,
+                    detail: `${extension.manifest.displayName} · ${item.description}`,
+                    kind: monaco.languages.CompletionItemKind.Snippet,
+                    insertText: item.body.join("\n"),
+                    insertTextRules:
+                      monaco.languages.CompletionItemInsertTextRule
+                        .InsertAsSnippet,
+                    range,
+                  })),
+              };
+            },
+          }),
+        );
+      }
+    }
+    return () => disposables.forEach((disposable) => disposable.dispose());
+  }, [extensions]);
+  useEffect(() => {
+    for (const extension of extensions)
+      for (const custom of extension.manifest.contributes.themes)
+        monaco.editor.defineTheme(
+          `ynx-extension-${extension.id}-${custom.id}`,
+          {
+            base: custom.type === "dark" ? "vs-dark" : "vs",
+            inherit: true,
+            rules: [],
+            colors: {
+              "editor.background":
+                custom.colors.editor || custom.colors.background,
+              "editor.foreground": custom.colors.text,
+              "editorLineNumber.foreground": custom.colors.muted,
+              "editor.selectionBackground": custom.colors.accent,
+            },
+          },
+        );
+  }, [extensions]);
   useEffect(() => {
     if (language !== "cpp" || !activePath) return;
     const timer = setTimeout(() => {

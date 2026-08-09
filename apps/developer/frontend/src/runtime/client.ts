@@ -257,3 +257,80 @@ async function gitFetch(
   }
   throw new Error("Workspace session could not be established.");
 }
+
+export type ExtensionManifest = {
+  apiVersion: "ynx-code-extension/v1";
+  kind: "declarative-web";
+  publisher: string;
+  name: string;
+  displayName: string;
+  version: string;
+  description?: string;
+  contributes: {
+    languages: Array<{ id: string; aliases: string[]; extensions: string[] }>;
+    snippets: Array<{
+      language: string;
+      label: string;
+      prefix: string;
+      body: string[];
+      description: string;
+    }>;
+    themes: Array<{
+      id: string;
+      label: string;
+      type: "light" | "dark";
+      colors: Record<string, string>;
+    }>;
+  };
+};
+export type InstalledExtension = {
+  id: string;
+  version: string;
+  digest: string;
+  manifest: ExtensionManifest;
+  installedAt: string;
+};
+export async function loadExtensions(): Promise<InstalledExtension[]> {
+  const value = await extensionFetch();
+  return value.extensions || [];
+}
+export async function installExtension(
+  manifest: unknown,
+): Promise<InstalledExtension> {
+  const value = await extensionFetch({
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-extension/v1",
+      manifest,
+    }),
+  });
+  return value.extension;
+}
+export async function uninstallExtension(id: string): Promise<void> {
+  await extensionFetch({ method: "DELETE" }, new URLSearchParams({ id }));
+}
+async function extensionFetch(
+  init: RequestInit = {},
+  query?: URLSearchParams,
+): Promise<any> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch(
+      `/runtime/extensions${query ? `?${query}` : ""}`,
+      { credentials: "same-origin", ...init },
+    );
+    if (response.status === 401 && attempt === 0) {
+      await runtimeHealth();
+      continue;
+    }
+    const value = await response
+      .json()
+      .catch(() => ({
+        error: `Extension registry returned HTTP ${response.status}`,
+      }));
+    if (!response.ok)
+      throw new Error(value.error || "Extension operation failed.");
+    return value;
+  }
+  throw new Error("Workspace session could not be established.");
+}
