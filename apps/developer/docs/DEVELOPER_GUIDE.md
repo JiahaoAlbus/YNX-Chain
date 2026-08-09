@@ -29,6 +29,10 @@ and runtime, and writes only inside the per-user project workspace. The public
 Web surface does not run these local adapters. Declarative language packs can add
 editing support but cannot add an executable command; expanding that boundary
 requires a reviewed adapter and tests for both a successful and a failing exit.
+The built-in catalog is intentionally broader than the bundled executables. Like
+VS Code, the product discovers user-installed compilers and supports additional
+languages through separate declarative editing packs and shell-free compiler
+adapter manifests; catalog presence alone is not a readiness claim.
 
 Do not add a direct deployment key or connect the UI to an unsigned local deploy
 endpoint. Do not upgrade local source evidence to remote verification. Keep

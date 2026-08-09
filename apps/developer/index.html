@@ -80,10 +80,10 @@
       </section>
       <section id="view-extensions" class="side-view">
         <div class="pane-heading"><div><span class="eyebrow">EXTENSIONS</span><strong>Languages & compilers</strong></div><button id="refresh-extensions" class="icon-button" aria-label="Refresh extensions">↻</button></div>
-        <p class="muted compact">Editing packs add file recognition, colors and completion. Compiler adapters use a real installed command and require approval for every run.</p>
+        <p class="muted compact">VS Code-style model: editing packs add file recognition, colors and completion; compiler adapters connect any real locally installed toolchain and require approval for every run. Editing support never implies a compiler is installed.</p>
         <div class="extension-actions"><button id="sidebar-add-language" class="button full">Install language pack</button><button id="sidebar-add-compiler" class="button full">Install compiler adapter</button></div>
         <div id="extension-summary" class="extension-summary" role="status">Loading extension inventory…</div>
-        <div id="extension-list" class="extension-list" aria-label="Installed language and compiler extensions"></div>
+        <div id="extension-list" class="extension-list" aria-label="Installed language and compiler extensions"></div><p class="muted compact">Need another language? Import its declarative editing pack and a reviewed compiler adapter JSON. Missing compilers are shown as missing, never as successful builds.</p>
         <div class="side-footer"><span>Execution</span><strong>Desktop · bounded</strong></div>
       </section>
     </aside>

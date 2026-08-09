@@ -18,14 +18,19 @@ const runtimeNode = process.execPath;
 const npmCLI = process.env.YNX_DEVELOPER_NPM_CLI || join(dirname(process.execPath), "npm", "node_modules", "npm", "bin", "npm-cli.js");
 let activeTasks = 0; const taskQueue = []; const MAX_ACTIVE_TASKS = 2; const MAX_QUEUED_TASKS = 16;
 const TOOLCHAIN_ADAPTERS = Object.freeze({
-  ".c": { id:"c", executable:"clang", args:(file)=>["-std=c17","-Wall","-Wextra","-fsyntax-only",file] },
+  ".c": { id:"c", executable:"clang", installHint:"Install LLVM/Clang", args:(file)=>["-std=c17","-Wall","-Wextra","-fsyntax-only",file] },
+  ".h": { id:"c", executable:"clang", installHint:"Install LLVM/Clang", args:(file)=>["-std=c17","-Wall","-Wextra","-fsyntax-only","-x","c-header",file] },
   ".cc": { id:"cpp", executable:"clang++", args:(file)=>["-std=c++20","-Wall","-Wextra","-fsyntax-only",file] },
   ".cpp": { id:"cpp", executable:"clang++", args:(file)=>["-std=c++20","-Wall","-Wextra","-fsyntax-only",file] },
   ".cxx": { id:"cpp", executable:"clang++", args:(file)=>["-std=c++20","-Wall","-Wextra","-fsyntax-only",file] },
+  ".hpp": { id:"cpp", executable:"clang++", installHint:"Install LLVM/Clang", args:(file)=>["-std=c++20","-Wall","-Wextra","-fsyntax-only","-x","c++-header",file] },
+  ".m": { id:"objective-c", executable:"clang", installHint:"Install LLVM/Clang with Objective-C support", args:(file)=>["-fsyntax-only","-x","objective-c",file] },
+  ".mm": { id:"objective-cpp", executable:"clang++", installHint:"Install LLVM/Clang with Objective-C++ support", args:(file)=>["-fsyntax-only","-x","objective-c++",file] },
   ".js": { id:"javascript", executable:"$node", args:(file)=>["--check",file] },
   ".mjs": { id:"javascript", executable:"$node", args:(file)=>["--check",file] },
   ".cjs": { id:"javascript", executable:"$node", args:(file)=>["--check",file] },
-  ".ts": { id:"typescript", executable:"$project-typescript", projectPackage:"typescript@5.9.0", args:(file)=>["--noEmit","--pretty","false","--allowJs","false",file] },
+  ".ts": { id:"typescript", executable:"$project-typescript", projectPackage:"typescript@5.9.0", installHint:"Install typescript@5.9.0 in this project", args:(file)=>["--noEmit","--pretty","false","--allowJs","false",file] },
+  ".tsx": { id:"typescript-react", executable:"$project-typescript", projectPackage:"typescript@5.9.0", installHint:"Install typescript@5.9.0 in this project", args:(file)=>["--noEmit","--pretty","false","--jsx","react-jsx",file] },
   ".py": { id:"python", executable:"python3", args:(file)=>["-m","py_compile",file] },
   ".java": { id:"java", executable:"javac", args:(file)=>["-d",".ynx-build",file] },
   ".go": { id:"go", executable:"go", args:(file)=>["build","-o",".ynx-build/ynx-go-output",file] },
@@ -34,14 +39,46 @@ const TOOLCHAIN_ADAPTERS = Object.freeze({
   ".php": { id:"php", executable:"php", args:(file)=>["-l",file] },
   ".swift": { id:"swift", executable:"swiftc", args:(file)=>["-typecheck",file] },
   ".kt": { id:"kotlin", executable:"kotlinc", args:(file)=>[file,"-d",".ynx-build/ynx-kotlin-output.jar"] },
-  ".sh": { id:"shell", executable:"bash", args:(file)=>["-n",file] }
+  ".kts": { id:"kotlin-script", executable:"kotlinc", installHint:"Install the Kotlin compiler", args:(file)=>["-script",file] },
+  ".cs": { id:"csharp", executable:"csc", installHint:"Install .NET SDK or Mono C# compiler", args:(file)=>["-nologo","-target:library","-out:.ynx-build/ynx-csharp-output.dll",file] },
+  ".fs": { id:"fsharp", executable:"fsharpc", installHint:"Install the F# compiler", args:(file)=>["--target:library","-o:.ynx-build/ynx-fsharp-output.dll",file] },
+  ".vb": { id:"visual-basic", executable:"vbc", installHint:"Install .NET Visual Basic compiler", args:(file)=>["-nologo","-target:library","-out:.ynx-build/ynx-vb-output.dll",file] },
+  ".dart": { id:"dart", executable:"dart", installHint:"Install the Dart SDK", args:(file)=>["analyze",file] },
+  ".scala": { id:"scala", executable:"scalac", installHint:"Install Scala", args:(file)=>["-d",".ynx-build",file] },
+  ".groovy": { id:"groovy", executable:"groovyc", installHint:"Install Groovy", args:(file)=>["-d",".ynx-build",file] },
+  ".lua": { id:"lua", executable:"luac", installHint:"Install Lua", args:(file)=>["-p",file] },
+  ".pl": { id:"perl", executable:"perl", installHint:"Install Perl", args:(file)=>["-c",file] },
+  ".r": { id:"r", executable:"Rscript", installHint:"Install R", args:(file)=>["--vanilla","-e",`parse(file=${JSON.stringify(file)})`] },
+  ".hs": { id:"haskell", executable:"ghc", installHint:"Install GHC", args:(file)=>["-fno-code","-outputdir",".ynx-build",file] },
+  ".ex": { id:"elixir", executable:"elixirc", installHint:"Install Elixir", args:(file)=>["-o",".ynx-build",file] },
+  ".exs": { id:"elixir", executable:"elixirc", installHint:"Install Elixir", args:(file)=>["-o",".ynx-build",file] },
+  ".erl": { id:"erlang", executable:"erlc", installHint:"Install Erlang/OTP", args:(file)=>["-o",".ynx-build",file] },
+  ".ml": { id:"ocaml", executable:"ocamlc", installHint:"Install OCaml", args:(file)=>["-c","-o",".ynx-build/ynx-ocaml-output.cmo",file] },
+  ".zig": { id:"zig", executable:"zig", installHint:"Install Zig", args:(file)=>["build-obj",file,"-femit-bin=.ynx-build/ynx-zig-output.o"] },
+  ".nim": { id:"nim", executable:"nim", installHint:"Install Nim", args:(file)=>["check","--hints:off",file] },
+  ".d": { id:"d", executable:"dmd", installHint:"Install a D compiler", args:(file)=>["-o-",file] },
+  ".f": { id:"fortran", executable:"gfortran", installHint:"Install GFortran", args:(file)=>["-fsyntax-only",file] },
+  ".f90": { id:"fortran", executable:"gfortran", installHint:"Install GFortran", args:(file)=>["-fsyntax-only",file] },
+  ".pas": { id:"pascal", executable:"fpc", installHint:"Install Free Pascal", args:(file)=>["-Cn","-FE.ynx-build",file] },
+  ".asm": { id:"assembly", executable:"nasm", installHint:"Install NASM", args:(file)=>["-f","elf64","-o",".ynx-build/ynx-assembly-output.o",file] },
+  ".cu": { id:"cuda", executable:"nvcc", installHint:"Install the NVIDIA CUDA Toolkit", args:(file)=>["-c","-o",".ynx-build/ynx-cuda-output.o",file] },
+  ".jl": { id:"julia", executable:"julia", installHint:"Install Julia", args:(file)=>["--startup-file=no","--history-file=no","-e",`Meta.parseall(read(${JSON.stringify(file)}, String))`] },
+  ".raku": { id:"raku", executable:"raku", installHint:"Install Rakudo", args:(file)=>["-c",file] },
+  ".cob": { id:"cobol", executable:"cobc", installHint:"Install GnuCOBOL", args:(file)=>["-fsyntax-only",file] },
+  ".adb": { id:"ada", executable:"gnatmake", installHint:"Install GNAT", args:(file)=>["-gnatc","-D",".ynx-build",file] },
+  ".cr": { id:"crystal", executable:"crystal", installHint:"Install Crystal", args:(file)=>["build","--no-codegen",file] },
+  ".vala": { id:"vala", executable:"valac", installHint:"Install Vala", args:(file)=>["-C","-d",".ynx-build",file] },
+  ".sh": { id:"shell", executable:"bash", args:(file)=>["-n",file] },
+  ".zsh": { id:"zsh", executable:"zsh", installHint:"Install Zsh", args:(file)=>["-n",file] },
+  ".fish": { id:"fish", executable:"fish", installHint:"Install Fish", args:(file)=>["-n",file] },
+  ".ps1": { id:"powershell", executable:"pwsh", installHint:"Install PowerShell", args:(file)=>["-NoLogo","-NoProfile","-NonInteractive","-Command",`[void][System.Management.Automation.Language.Parser]::ParseFile(${JSON.stringify(file)},[ref]$null,[ref]$null)`] }
 });
 let customAdaptersLoaded = false;
 const customAdapters = new Map();
 const server = createServer(async (request, response) => {
   const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
   if (pathname === "/runtime/health" && request.method === "GET") { json(response, 200, { ok: true, runtime: "desktop-project-sandbox", platform: process.platform, packageInstall: true, lifecycleScripts: false, maxConcurrent: MAX_ACTIVE_TASKS, maxQueued: MAX_QUEUED_TASKS, active: activeTasks, queued: taskQueue.length }); return; }
-  if (pathname === "/runtime/toolchains" && request.method === "GET") { json(response, 200, { ok:true, platform:process.platform, extensible:true, installScope:"user-managed-or-project-local", adapters:await toolchainStatus() }); return; }
+  if (pathname === "/runtime/toolchains" && request.method === "GET") { json(response, 200, { ok:true, platform:process.platform, model:"vscode-style-editing-extensions-plus-local-toolchain-adapters", extensible:true, installScope:"user-managed-or-project-local", compilationTruth:"ready only when the matching compiler or interpreter is installed", adapters:await toolchainStatus() }); return; }
   if (pathname === "/runtime/toolchains/register" && request.method === "POST") {
     let body; try { body = JSON.parse((await readBody(request, 64 * 1024)).toString("utf8")); }
     catch (error) { json(response, error.status || 400, { error:error.message || "Invalid toolchain adapter." }); return; }
@@ -110,7 +147,7 @@ async function runTask(body){
     const file=String(body.activePath||"");if(!safeRelativePath(file)||!Object.hasOwn(body.files,file))throw Object.assign(new Error("Compile requires one active project file."),{code:"active_file_invalid"});
     const adapter=await adapterForExtension(extname(file).toLowerCase());if(!adapter)throw Object.assign(new Error(`No installed compile adapter is registered for ${extname(file)||"this file"}.`),{code:"toolchain_adapter_missing"});
     let command=await resolveToolchain(adapter.executable),toolArgs=adapter.args(file);if(adapter.executable==="$project-typescript"){const compiler=join(project,"node_modules","typescript","bin","tsc");try{await access(compiler,fsConstants.R_OK);command=runtimeNode;toolArgs=[compiler,...toolArgs];}catch{command=null;}}
-    if(!command)throw Object.assign(new Error(adapter.projectPackage?`${adapter.id} compiler is not installed in this project. Install exact package ${adapter.projectPackage}, then compile again.`:`${adapter.id} toolchain is not installed on this desktop. Install it for your user, then refresh toolchains.`),{status:503,code:"toolchain_unavailable"});
+    if(!command)throw Object.assign(new Error(adapter.projectPackage?`${adapter.id} compiler is not installed in this project. Install exact package ${adapter.projectPackage}, then compile again.`:`${adapter.id} toolchain is not installed on this desktop. ${adapter.installHint || "Install the matching compiler for your user"}, then refresh toolchains.`),{status:503,code:"toolchain_unavailable"});
     await mkdir(join(project,".ynx-build"),{recursive:true,mode:0o700});const result=await executeToolchainBounded(project,command,toolArgs);return{ok:result.code===0,...result,task:"compile-active",language:adapter.id,activePath:file,toolchain:{command,verifiedInstalled:true,projectPackage:adapter.projectPackage||null},workspace:keyFor(project),network:false,bounded:true};
   }else if(body.task==="check"){
     const files=(await collectFiles(project)).filter((path)=>/\.(?:js|mjs|cjs)$/.test(path)&&!path.includes(`${join(project,"node_modules")}/`)).slice(0,128);if(!files.length)throw Object.assign(new Error("No JavaScript files were found to check."),{code:"check_files_missing"});let output="";for(const file of files){const result=await executeBounded(project,["--check",file],false);output+=result.output;if(result.code!==0)return{...result,task:"check",workspace:keyFor(project)};}return{ok:true,code:0,task:"check",workspace:keyFor(project),output:output||`Checked ${files.length} JavaScript files.\n`};
@@ -138,16 +175,17 @@ async function resolveToolchain(name){
   return null;
 }
 async function toolchainStatus(){
-  await loadCustomAdapters();const grouped=new Map();for(const [extension,adapter] of allAdapters()){if(!grouped.has(adapter.id))grouped.set(adapter.id,{id:adapter.id,executable:adapter.executable,projectPackage:adapter.projectPackage||null,custom:Boolean(adapter.custom),extensions:[]});grouped.get(adapter.id).extensions.push(extension);}
+  await loadCustomAdapters();const grouped=new Map();for(const [extension,adapter] of allAdapters()){if(!grouped.has(adapter.id))grouped.set(adapter.id,{id:adapter.id,executable:adapter.executable,projectPackage:adapter.projectPackage||null,installHint:adapter.installHint||null,custom:Boolean(adapter.custom),extensions:[]});grouped.get(adapter.id).extensions.push(extension);}
   return Promise.all([...grouped.values()].map(async(item)=>{const command=item.projectPackage?null:await resolveToolchain(item.executable);return{...item,available:Boolean(command),command:command||null,availabilityScope:item.projectPackage?"project":"device"};}));
 }
 
 function allAdapters(){return [...Object.entries(TOOLCHAIN_ADAPTERS),...customAdapters.entries()];}
-async function adapterForExtension(extension){await loadCustomAdapters();return TOOLCHAIN_ADAPTERS[extension]||customAdapters.get(extension)||null;}
+async function adapterForExtension(extension){await loadCustomAdapters();return customAdapters.get(extension)||TOOLCHAIN_ADAPTERS[extension]||null;}
 function validateCustomAdapter(value){
   if(!value||value.schemaVersion!==1||!/^[a-z][a-z0-9-]{1,31}$/.test(value.id||""))throw Object.assign(new Error("Adapter requires schemaVersion 1 and a safe id."),{code:"adapter_identity_invalid"});
+  if(new Set(Object.values(TOOLCHAIN_ADAPTERS).map((item)=>item.id)).has(value.id))throw Object.assign(new Error("A custom adapter id may not impersonate a built-in adapter."),{code:"adapter_identity_invalid"});
   if(!Array.isArray(value.extensions)||value.extensions.length<1||value.extensions.length>12)throw Object.assign(new Error("Adapter requires 1-12 extensions."),{code:"adapter_extensions_invalid"});
-  const extensions=[...new Set(value.extensions.map((item)=>String(item).toLowerCase()))];if(extensions.some((item)=>!/^\.[a-z0-9][a-z0-9+_-]{0,15}$/.test(item)||Object.hasOwn(TOOLCHAIN_ADAPTERS,item)))throw Object.assign(new Error("Extensions must be safe and may not replace built-in adapters."),{code:"adapter_extensions_invalid"});
+  const extensions=[...new Set(value.extensions.map((item)=>String(item).toLowerCase()))];if(extensions.some((item)=>!/^\.[a-z0-9][a-z0-9+_-]{0,15}$/.test(item)))throw Object.assign(new Error("Extensions must be safe."),{code:"adapter_extensions_invalid"});
   const executable=String(value.executable||"");if(!/^(?:\$node|[A-Za-z0-9_.+-]{1,80})$/.test(executable))throw Object.assign(new Error("Executable must be one installed command name without a path."),{code:"adapter_executable_invalid"});
   if(!Array.isArray(value.args)||value.args.length<1||value.args.length>32)throw Object.assign(new Error("Adapter requires 1-32 argument tokens."),{code:"adapter_args_invalid"});
   const args=value.args.map(String);if(args.some((item)=>item.length>160||!/^(?:\$\{file\}|\$\{build\}|[A-Za-z0-9_./:=+@%,-]+)$/.test(item)))throw Object.assign(new Error("Arguments may contain safe literal tokens plus ${file} or ${build}; shell syntax is rejected."),{code:"adapter_args_invalid"});

@@ -7,8 +7,10 @@ risk before an installed desktop executor can run them.
 
 The editor recognizes common source extensions through Monaco. Solidity uses the
 public pinned compiler. For other registered languages, Compile asks once and the
-desktop runtime detects an installed C, C++, JavaScript, Python, Java, Go, Rust,
-Ruby, PHP, Swift, Kotlin or Shell toolchain, then runs it without network access
+desktop runtime detects a broad catalog including C/C++, Objective-C, JavaScript,
+TypeScript, Python, Java, Go, Rust, .NET languages, Dart, JVM languages, Ruby,
+PHP, Swift, functional languages, systems languages and common shells, then runs
+the matching real locally installed toolchain without network access
 inside the bounded project workspace. Availability is reported per device; an
 editor language is never presented as a working compiler merely because it has
 syntax colors. Add language pack accepts declarative JSON for file extensions,
@@ -20,13 +22,16 @@ editing languages, current-profile language packs, built-in compiler adapters an
 current-user compiler adapters are listed independently. A ready compiler entry
 means the exact executable was detected on this device; a language entry alone
 never means Compile is available. Custom language packs and compiler adapters can
-be removed from this view. Built-in adapters cannot be replaced or removed.
+be removed from this view. A reviewed custom adapter may override the selected
+compiler for a built-in extension; removing it restores the built-in adapter.
 
 The editor can recognize an open-ended set of languages, while every executable
-language requires a real toolchain. YNX Developer does not claim that every
-compiler is preinstalled. To add another language, install its compiler for the
-current user, then import a reviewed adapter manifest that maps safe extensions
-to that executable.
+language requires a real toolchain. This follows the VS Code model: editing
+extensions and compiler/runtime installation are independent. YNX Developer does
+not claim that every compiler is preinstalled. To add another language, install
+its compiler for the current user, then import a reviewed adapter manifest that
+maps safe extensions to that executable. Missing tools remain visibly unavailable;
+they are never reported as successful compilation.
 
 TypeScript is the first project-installable compiler adapter: install the exact
 reviewed `typescript@5.9.0` package through the package approval flow, then
