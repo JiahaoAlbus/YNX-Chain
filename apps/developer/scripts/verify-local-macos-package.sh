@@ -50,6 +50,7 @@ signature=$(/usr/bin/codesign -dv --verbose=4 "$app" 2>&1 || true)
 grep -Fq 'Signature=adhoc' <<<"$signature"
 grep -Fq 'TeamIdentifier=not set' <<<"$signature"
 "$app/Contents/MacOS/YNXDeveloper" --self-test "$app/Contents/Resources"
+export YNX_CODE_DESKTOP_SUPPORT_DIR="$work/support"
 "$app/Contents/MacOS/YNXDeveloper" >"$work/cold-launch.log" 2>&1 &
 app_pid=$!
 server_pid=""
@@ -73,8 +74,9 @@ for _ in {1..50}; do
   sleep 0.1
 done
 [[ "$runtime_port" =~ ^[0-9]+$ ]] || { echo "Bundled desktop runtime did not expose a local port." >&2; exit 1; }
-/usr/bin/curl -fsS "http://127.0.0.1:$runtime_port/runtime/toolchains" | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));for(const id of ["javascript","cpp"]){const item=v.adapters.find((entry)=>entry.id===id);if(!item?.available)throw new Error(`${id} toolchain unavailable`);}console.log("Bundled runtime detected JavaScript and C++ toolchains.");'
-/usr/bin/curl -fsS -X POST "http://127.0.0.1:$runtime_port/runtime/task" -H 'content-type: application/json' --data '{"task":"compile-active","activePath":"hello.cpp","projectId":"package-cpp-verification","files":{"hello.cpp":"#include <iostream>\nint main(){ std::cout << 1; return 0; }"}}' | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));if(!v.ok||v.code!==0||v.language!=="cpp"||v.network!==false||v.bounded!==true)throw new Error(`C++ package compile failed: ${JSON.stringify(v)}`);console.log("Bundled runtime completed a real bounded C++ compile.");'
+/usr/bin/curl -fsS -c "$work/cookies" "http://127.0.0.1:$runtime_port/runtime/health" | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));for(const id of ["javascript","cpp"]){if(v.compilers?.[id]!==true)throw new Error(`${id} toolchain unavailable`);}if(!v.sandboxReady)throw new Error("desktop sandbox unavailable");console.log("Bundled YNX Code runtime detected JavaScript and C++ toolchains.");'
+/usr/bin/curl -fsS -b "$work/cookies" -X POST "http://127.0.0.1:$runtime_port/runtime/tasks" -H 'content-type: application/json' --data '{"protocolVersion":"ynx-code/v1","task":"build-run-active","approval":"execute-once","activePath":"hello.cpp","projectId":"package-cpp-verification","files":{"hello.cpp":"#include <iostream>\nint main(){ std::cout << 1; return 0; }"}}' | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));if(!v.ok||v.code!==0||v.language!=="cpp"||v.sandbox?.network!==false)throw new Error(`C++ package compile failed: ${JSON.stringify(v)}`);console.log("Bundled YNX Code runtime completed a real bounded C++ compile.");'
+/usr/bin/curl -fsS -b "$work/cookies" -X PUT "http://127.0.0.1:$runtime_port/runtime/workspaces/package-persist" -H 'content-type: application/json' --data '{"protocolVersion":"ynx-code/v1","expectedRevision":0,"idempotencyKey":"package-save-00000001","workspace":{"name":"Persistent package check","folders":[],"files":{"hello.cpp":"int main(){return 0;}"},"open":["hello.cpp"],"active":"hello.cpp"}}' | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));if(v.workspace?.revision!==1)throw new Error("workspace was not saved");'
 kill "$app_pid"
 wait "$app_pid" 2>/dev/null || true
 app_pid=""
@@ -94,7 +96,11 @@ for _ in {1..50}; do second_server_pid=$(/usr/bin/pgrep -P "$app_pid" 2>/dev/nul
 [[ -n "$second_server_pid" ]] || { cat "$work/second-launch.log" >&2; echo "Bundled local server did not start during second launch." >&2; exit 1; }
 second_command=$(/bin/ps -o command= -p "$second_server_pid")
 [[ "$second_command" == *"Contents/Resources/runtime/node"* && "$second_command" == *"Contents/Resources/server.mjs"* ]] || { echo "Second launch started an unexpected child process: $second_command" >&2; exit 1; }
+second_runtime_port=""
+for _ in {1..50}; do second_runtime_port=$(/usr/sbin/lsof -Pan -p "$second_server_pid" -iTCP -sTCP:LISTEN 2>/dev/null | /usr/bin/awk 'NR>1 {sub(/^.*:/,"",$9); print $9; exit}' || true); [[ "$second_runtime_port" =~ ^[0-9]+$ ]] && break; sleep 0.1; done
+[[ "$second_runtime_port" =~ ^[0-9]+$ ]] || { echo "Second YNX Code runtime did not expose a local port." >&2; exit 1; }
+/usr/bin/curl -fsS -b "$work/cookies" "http://127.0.0.1:$second_runtime_port/runtime/workspaces/package-persist" | "$app/Contents/Resources/runtime/node" -e 'const fs=require("fs");const v=JSON.parse(fs.readFileSync(0));if(v.workspace?.files?.["hello.cpp"]!=="int main(){return 0;}"||v.workspace?.revision!==1)throw new Error("workspace did not survive second launch");console.log("YNX Code session and workspace survived second launch.");'
 kill "$app_pid"; wait "$app_pid" 2>/dev/null || true; app_pid=""
 for _ in {1..30}; do kill -0 "$second_server_pid" 2>/dev/null || break; sleep 0.1; done
 if kill -0 "$second_server_pid" 2>/dev/null; then kill "$second_server_pid" >/dev/null 2>&1 || true; echo "Bundled local server survived second App termination." >&2; exit 1; fi
-echo "Extracted macOS Testnet Preview self-test, cold launch, real C++ compile, second launch and child cleanup passed: $app"
+echo "Extracted macOS YNX Code self-test, cold launch, real C++ compile, persistent second launch and child cleanup passed: $app"

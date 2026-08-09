@@ -14,15 +14,20 @@ source_tree=$(/usr/bin/git -C "$repo_root" rev-parse 'HEAD^{tree}')
 source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
 runtime_checkpoint=$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync("product-release.json","utf8")).commit)')
 
-npm run build
+npm run code:build
 root="$PWD/.ynx-developer-local"
 app="$root/YNX Developer Testnet Preview.app"
 rm -rf "$root"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/runtime"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/runtime" "$app/Contents/Resources/code/apps/developer/frontend"
 /usr/bin/clang -fobjc-arc -fmodules-cache-path="$root/module-cache" desktop/macos/main.m -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework WebKit
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
-cp desktop/server.mjs "$app/Contents/Resources/server.mjs"
-cp -R dist "$app/Contents/Resources/web"
+cp desktop/code-server.mjs "$app/Contents/Resources/server.mjs"
+cp -R frontend/dist "$app/Contents/Resources/code/apps/developer/frontend/dist"
+cp -R frontend/src "$app/Contents/Resources/code/apps/developer/frontend/src"
+cp -R protocol "$app/Contents/Resources/code/apps/developer/protocol"
+cp -R services "$app/Contents/Resources/code/apps/developer/services"
+cp package.json package-lock.json "$app/Contents/Resources/code/apps/developer/"
+COPYFILE_DISABLE=1 cp -XR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"
 cp sbom.cdx.json "$app/Contents/Resources/sbom.cdx.json"
 
 node_binary="${YNX_DEVELOPER_NODE_BINARY:-}"
