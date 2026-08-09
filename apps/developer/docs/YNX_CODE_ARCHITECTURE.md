@@ -178,11 +178,13 @@ network-disabled workspace sandbox. TypeScript is first transpiled by the
 installed `tsc`; its package and platform binary are mounted read-only while
 only `.ynx-build` remains writable. macOS verifies the same set except Rust,
 which is reported unavailable and skipped because no reviewed local `rustc` is
-installed. C/C++ and JavaScript/TypeScript have passed the LSP gate. The latter
-uses a pinned TypeScript 5.9 tsserver behind `typescript-language-server`, a
+installed. C/C++, JavaScript/TypeScript and Python have passed the LSP gate.
+JavaScript/TypeScript uses a pinned TypeScript 5.9 tsserver behind `typescript-language-server`, a
 read-only toolchain mount and a separate bounded 2 GiB LSP memory class; real
-completion and definition tests pass on macOS and Linux. The other LSP rows
-above remain candidates until their server tests pass.
+completion and definition tests pass on macOS and Linux. Python uses Pyright in
+the same isolated LSP class and passes real completion and type-diagnostic tests
+on both hosts. The other LSP rows above remain candidates until their server
+tests pass.
 
 ## 8. Tasks, terminal and process supervision
 

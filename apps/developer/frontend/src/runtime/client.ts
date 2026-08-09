@@ -150,7 +150,7 @@ export async function saveWorkspace(
   return value.workspace;
 }
 export async function languageRequest(
-  language: "cpp" | "typescript",
+  language: "cpp" | "typescript" | "python",
   files: Record<string, string>,
   activePath: string,
   operation:

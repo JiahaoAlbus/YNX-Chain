@@ -197,7 +197,7 @@ export default function CodeEditor({
         );
   }, [extensions]);
   useEffect(() => {
-    const serverLanguage=language==="cpp"?"cpp":language==="typescript"||language==="javascript"?"typescript":null;
+    const serverLanguage=language==="cpp"?"cpp":language==="typescript"||language==="javascript"?"typescript":language==="python"?"python":null;
     if (!serverLanguage || !activePath) return;
     const timer = setTimeout(() => {
       languageRequest(serverLanguage,files, activePath, "diagnostics")
@@ -208,7 +208,7 @@ export default function CodeEditor({
           if (!model) return;
           monaco.editor.setModelMarkers(
             model,
-            serverLanguage==="cpp"?"clangd":"typescript-language-server",
+            serverLanguage==="cpp"?"clangd":serverLanguage==="python"?"pyright":"typescript-language-server",
             (value.result || []).map((diagnostic: any) => ({
               startLineNumber: diagnostic.range.start.line + 1,
               startColumn: diagnostic.range.start.character + 1,
