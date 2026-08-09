@@ -1,4 +1,4 @@
-const PROTOCOL="ynx-code-chain/v1",MAX_BODY=512*1024,MAX_RESPONSE=2*1024*1024,RPC_METHODS=new Set(["eth_chainId","net_version","eth_blockNumber","eth_getBalance","eth_getCode","eth_getTransactionCount","eth_getTransactionByHash","eth_getTransactionReceipt","eth_call","eth_estimateGas","eth_getLogs","eth_getBlockByNumber","eth_getBlockByHash"]);
+const PROTOCOL="ynx-code-chain/v1",MAX_BODY=512*1024,MAX_RESPONSE=2*1024*1024,RPC_METHODS=new Set(["eth_chainId","net_version","eth_blockNumber","eth_gasPrice","eth_getBalance","eth_getCode","eth_getTransactionCount","eth_getTransactionByHash","eth_getTransactionReceipt","eth_call","eth_estimateGas","eth_getLogs","eth_getBlockByNumber","eth_getBlockByHash"]);
 
 export function createChainService({ownerForRequest,upstreamURL=process.env.YNX_CODE_CHAIN_URL||"https://rpc.ynxweb4.com",fetcher=fetch,maxOwnerRequests=4,maxGlobalRequests=64}={}){
   const upstream=approvedUpstream(upstreamURL),active=new Map();let globalActive=0;

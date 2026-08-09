@@ -208,6 +208,12 @@ Testnet analysis metadata and currently declares production compilation disabled
 it is never substituted for the actual 0.8.36 workspace compiler evidence. The
 vulnerable `tmp 0.0.33` transitive dependency is overridden with patched 0.2.7.
 
+For a verified creation bytecode artifact, the Chain panel may request
+`eth_estimateGas` and `eth_gasPrice` through the read-only RPC allowlist and show
+their bounded multiplication in wei. This is explicitly an RPC fee estimate,
+not bytecode execution proof or a transaction. Final fee bounds still belong in
+the later Wallet authorization intent.
+
 ## 8. Tasks, terminal and process supervision
 
 Terminal transport uses a PTY only inside the selected runtime. The process

@@ -23,6 +23,9 @@
   digest before saving ABI, bytecode, source-map metadata and a source/artifact
   manifest under `.ynx-build`; a compiler result cannot silently substitute an
   artifact after the task finishes.
+- Added a reviewed creation-bytecode fee estimate using only read-only
+  `eth_estimateGas` and `eth_gasPrice`. The UI labels the result as a mutable
+  network estimate, never as execution, reservation, signing or deployment.
 
 ## 2026-08-10 cloud language-intelligence candidate
 

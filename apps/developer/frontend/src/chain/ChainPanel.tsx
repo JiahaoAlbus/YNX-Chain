@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
 import { chainRpc, debugChainBlock, debugChainTransaction, loadChainCompiler, loadChainStatus, type ChainStatus } from "../runtime/client";
 
-const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
+const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
 const TEMPLATES = {
   counter: {
     label: "Counter + event",
@@ -31,6 +31,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     [rpcResult, setRpcResult] = useState(""),
     [lookup, setLookup] = useState(""),
     [debug, setDebug] = useState<any>(),
+    [estimate, setEstimate] = useState<{ gas: string; gasPrice: string; maxFeeWei: string }>(),
     wallet = useMemo(() => Boolean((globalThis as any).ynxWallet), []),
     artifact = useMemo(() => {
       try {
@@ -87,6 +88,24 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       );
     } catch (value) {
       setError(value instanceof Error ? value.message : "Lookup failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const estimateDeployment = async () => {
+    if (!artifact) return;
+    setBusy(true);
+    setError("");
+    setEstimate(undefined);
+    try {
+      const bytecode = files[artifact.bytecode.path]?.trim();
+      if (!bytecode || !/^[0-9a-f]+$/i.test(bytecode) || bytecode.length % 2) throw new Error("Verified artifact bytecode is invalid.");
+      const [gasValue, gasPriceValue] = await Promise.all([chainRpc("eth_estimateGas", [{ data: `0x${bytecode}` }]), chainRpc("eth_gasPrice")]);
+      const gas = BigInt(gasValue),
+        gasPrice = BigInt(gasPriceValue);
+      setEstimate({ gas: gas.toString(), gasPrice: gasPrice.toString(), maxFeeWei: (gas * gasPrice).toString() });
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "Deployment estimate failed.");
     } finally {
       setBusy(false);
     }
@@ -175,6 +194,15 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
                 {artifact.bytecode.bytes} bytes · {artifact.bytecode.sha256.slice(0, 16)}…<br />
                 {Object.keys(artifact.manifest.sourceDigests || {}).length} source digest(s) · {artifact.manifest.compiler?.version}
               </p>
+              <Button disabled={busy} onClick={estimateDeployment}>
+                Estimate deployment gas
+              </Button>
+              {estimate && (
+                <p>
+                  RPC estimate {estimate.gas} gas · gas price {estimate.gasPrice} wei
+                  <br />Maximum estimate {estimate.maxFeeWei} wei
+                </p>
+              )}
             </>
           ) : (
             <>

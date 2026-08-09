@@ -6,6 +6,7 @@ const request=async(path,options={})=>{const response=await fetch(`${base}${path
 const live=await request("/runtime/chain/status");assert.equal(live.status.chainId,6423);assert.equal(live.status.nativeCurrencySymbol,"YNXT");assert.equal(live.status.network,"YNX Testnet");assert.equal(live.status.publicNetwork,true);assert.equal(live.status.catchingUp,false);assert.ok(live.status.height>0);
 const rpc=async(method,params=[])=>(await request("/runtime/chain/rpc",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-chain/v1",method,params})})).result;
 assert.equal(await rpc("eth_chainId"),"0x1917");assert.ok(BigInt(await rpc("eth_blockNumber"))>0n);
+assert.ok(BigInt(await rpc("eth_gasPrice"))>=0n);
 const compiler=await request("/runtime/chain/compiler");assert.equal(String(compiler.compiler.version??compiler.compiler.compilerVersion),"0.8.24");
 const block=await request(`/runtime/chain/blocks/${live.status.height}`);assert.equal(Number(block.record?.height??BigInt(block.block.number)),live.status.height);
 const transaction=await request(`/runtime/chain/transactions/${hash}`);assert.equal(transaction.record.hash.toLowerCase(),hash.toLowerCase());assert.equal(transaction.transaction.hash.toLowerCase(),hash.toLowerCase());assert.equal(transaction.receipt.transactionHash.toLowerCase(),hash.toLowerCase());assert.equal(transaction.receipt.status,"0x1");assert.equal(transaction.confirmed,true);

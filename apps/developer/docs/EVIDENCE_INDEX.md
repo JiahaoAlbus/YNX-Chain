@@ -20,6 +20,8 @@
   6423 and a non-catching-up canonical status, read the current block, joined a
   known Explorer transaction to its EVM transaction and successful receipt,
   checked Solidity 0.8.24 metadata and required a mutating RPC rejection.
+  The current gate also requires a real non-negative `eth_gasPrice` result for
+  the artifact fee-estimate boundary.
 - Chain service unit evidence: `services/chain-service/test/service.test.mjs`
   covers canonical status normalization, the read-only RPC boundary and invalid
   chain-state rejection.

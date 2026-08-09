@@ -48,6 +48,10 @@ not compile, deploy or prove a contract. Run a Solidity source to create ABI,
 bytecode, source-map metadata and `.ynx-build/manifest.json`; the workbench
 recomputes every returned SHA-256 before saving these files. This build manifest
 is necessary deployment input, not evidence that a transaction was submitted.
+**Estimate deployment gas** sends only the verified creation bytecode to the
+read-only `eth_estimateGas` path and combines it with the current `eth_gasPrice`.
+It is an RPC estimate, not execution simulation, balance reservation or a fee
+guarantee; Wallet must show the final bounds again before signing.
 The Chain panel's displayed 0.8.24 compiler value is
 the canonical Testnet compiler metadata and is not a production-compilation
 claim while that endpoint reports production compilation disabled. Wallet and
