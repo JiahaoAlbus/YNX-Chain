@@ -42,16 +42,16 @@ Copy-Item $publish $stage -Recurse
 $resources = Join-Path $stage "Resources"
 New-Item $resources -ItemType Directory -Force | Out-Null
 
-$deps = Get-Content (Join-Path $publish "YNXDeveloper.TestnetPreview.deps.json") -Raw | ConvertFrom-Json
-$libraryNames = @($deps.libraries.PSObject.Properties.Name)
-$dotnetRuntimeName = $libraryNames | Where-Object { $_ -like "Microsoft.NETCore.App.Runtime.win-x64/*" } | Select-Object -First 1
-$windowsDesktopRuntimeName = $libraryNames | Where-Object { $_ -like "Microsoft.WindowsDesktop.App.Runtime.win-x64/*" } | Select-Object -First 1
-if (!$dotnetRuntimeName -or !$windowsDesktopRuntimeName) { throw "Self-contained .NET runtime inventory is missing from the published dependency manifest" }
-$dotnetVersion = $dotnetRuntimeName.Split("/")[-1]
-$windowsDesktopVersion = $windowsDesktopRuntimeName.Split("/")[-1]
-$webViewLibraryName = $libraryNames | Where-Object { $_ -like "Microsoft.Web.WebView2/*" } | Select-Object -First 1
-if (!$webViewLibraryName) { throw "WebView2 inventory is missing from the published dependency manifest" }
-$webViewVersion = $webViewLibraryName.Split("/")[-1]
+$coreRuntime = Get-Item (Join-Path $publish "coreclr.dll")
+$desktopRuntime = Get-Item (Join-Path $publish "PresentationFramework.dll")
+$dotnetVersion = ([string]$coreRuntime.VersionInfo.ProductVersion).Split("+")[0]
+$windowsDesktopVersion = ([string]$desktopRuntime.VersionInfo.ProductVersion).Split("+")[0]
+[xml]$windowsProject = Get-Content (Join-Path $app "desktop/windows/YNXDeveloper.TestnetPreview.csproj") -Raw
+$webViewReference = @($windowsProject.Project.ItemGroup.PackageReference) | Where-Object { $_.Include -eq "Microsoft.Web.WebView2" } | Select-Object -First 1
+$webViewVersion = [string]$webViewReference.Version
+if ([string]::IsNullOrWhiteSpace($dotnetVersion) -or [string]::IsNullOrWhiteSpace($windowsDesktopVersion) -or [string]::IsNullOrWhiteSpace($webViewVersion)) {
+  throw "Exact self-contained .NET, Windows Desktop or WebView2 inventory could not be resolved"
+}
 $serialSeed = [System.BitConverter]::ToString(
   [System.Security.Cryptography.SHA256]::HashData(
     [System.Text.Encoding]::UTF8.GetBytes("$sourceCommit`n$dotnetVersion`n$windowsDesktopVersion`n$webViewVersion")
