@@ -25,8 +25,9 @@
     "test": "node --test test/*.test.js",
     "code:dev": "npm --workspace @ynx-code/frontend run dev",
     "code:build": "npm --workspace @ynx-code/protocol run build && npm --workspace @ynx-code/frontend run build",
-    "code:check": "npm --workspace @ynx-code/protocol run check && npm --workspace @ynx-code/frontend run check && npm --workspace @ynx-code/workspace-agent test",
-    "code:runtime": "npm --workspace @ynx-code/workspace-agent start"
+    "code:check": "npm --workspace @ynx-code/protocol run check && npm --workspace @ynx-code/frontend run check && npm --workspace @ynx-code/workspace-agent test && npm --workspace @ynx-code/gateway test",
+    "code:runtime": "npm --workspace @ynx-code/workspace-agent start",
+    "code:serve": "npm --workspace @ynx-code/gateway start"
   },
   "engines": { "node": ">=20" }
 }
