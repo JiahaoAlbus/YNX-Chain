@@ -5,8 +5,8 @@ the pinned compile action. Output is authoritative only when it contains the rea
 chain response. Tests/tasks show their command, directory, environment class and
 risk before an installed desktop executor can run them.
 
-The editor recognizes common source extensions through Monaco. Solidity uses the
-public pinned compiler. For other registered languages, Compile asks once and the
+The editor recognizes common source extensions through Monaco. The isolated
+workspace uses its reviewed pinned Solidity 0.8.36 compiler. For other registered languages, Compile asks once and the
 desktop runtime detects a broad catalog including C/C++, Objective-C, JavaScript,
 TypeScript, Python, Java, Go, Rust, .NET languages, Dart, JVM languages, Ruby,
 PHP, Swift, functional languages, systems languages and common shells, then runs
@@ -44,7 +44,11 @@ Explorer transaction records with the authoritative EVM transaction and receipt
 when all are available. It cannot send a transaction through raw RPC.
 
 The Contract templates create editable project files; inserting a template does
-not compile, deploy or prove a contract. The displayed 0.8.24 compiler value is
+not compile, deploy or prove a contract. Run a Solidity source to create ABI,
+bytecode, source-map metadata and `.ynx-build/manifest.json`; the workbench
+recomputes every returned SHA-256 before saving these files. This build manifest
+is necessary deployment input, not evidence that a transaction was submitted.
+The Chain panel's displayed 0.8.24 compiler value is
 the canonical Testnet compiler metadata and is not a production-compilation
 claim while that endpoint reports production compilation disabled. Wallet and
 deployment controls stay unavailable until a real YNX Wallet provider and the

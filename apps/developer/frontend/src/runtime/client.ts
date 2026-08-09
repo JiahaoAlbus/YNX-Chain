@@ -6,7 +6,17 @@ export type TaskResult = {
   language: string;
   output: string;
   durationMs: number;
-  compiler: { executable: string; version: string };
+  compiler: {
+    executable: string;
+    version: string;
+    evidence?: Record<string, unknown>;
+  };
+  artifacts: {
+    path: string;
+    bytes: number;
+    sha256: string;
+    content?: string;
+  }[];
   sandbox: { kind: string; network: false; writableRoot: string };
   truncated: boolean;
 };
@@ -34,12 +44,7 @@ type StreamEvent =
     }
   | { type: "result"; value: TaskResult }
   | { type: "error"; error: string; code: string };
-export async function runActive(
-  projectId: string,
-  activePath: string,
-  files: Record<string, string>,
-  onEvent?: (event: StreamEvent) => void,
-): Promise<TaskResult> {
+export async function runActive(projectId: string, activePath: string, files: Record<string, string>, onEvent?: (event: StreamEvent) => void): Promise<TaskResult> {
   const body = JSON.stringify({
     protocolVersion: "ynx-code/v1",
     task: "build-run-active",
@@ -60,13 +65,10 @@ export async function runActive(
       continue;
     }
     if (!response.ok) {
-      const value = await response
-        .json()
-        .catch(() => ({ error: `Runtime returned HTTP ${response.status}` }));
+      const value = await response.json().catch(() => ({ error: `Runtime returned HTTP ${response.status}` }));
       throw new Error(value.error || "Workspace task failed.");
     }
-    if (!response.body)
-      throw new Error("Workspace runtime did not provide an output stream.");
+    if (!response.body) throw new Error("Workspace runtime did not provide an output stream.");
     const reader = response.body.getReader(),
       decoder = new TextDecoder();
     let pending = "",
@@ -85,8 +87,7 @@ export async function runActive(
       }
       if (done) break;
     }
-    if (!result)
-      throw new Error("Workspace task ended without a signed result envelope.");
+    if (!result) throw new Error("Workspace task ended without a signed result envelope.");
     return result;
   }
   throw new Error("Workspace session could not be established.");
@@ -98,88 +99,196 @@ export async function runtimeHealth() {
   if (!response.ok) throw new Error("Workspace runtime unavailable");
   return response.json();
 }
-export type RuntimeProfiles={protocolVersion:string;container:{engine:string;installed:boolean;ready:boolean;storagePools:number;profile:boolean};leases:Array<{runtimeId:string;projectId:string;image:string;status:string;createdAt:string}>;sshProfiles:Array<{profileId:string;label:string;host:string;port:number;user:string;fingerprint:string;createdAt:string}>};
-async function profileFetch(path:string,options:RequestInit={}){for(let attempt=0;attempt<2;attempt++){const response=await fetch(path,{credentials:"same-origin",...options,headers:{...(options.body?{"content-type":"application/json"}:{}),...options.headers}});if(response.status===401&&attempt===0){await runtimeHealth();continue}const value=await response.json().catch(()=>({error:`Runtime profile returned HTTP ${response.status}`}));if(!response.ok)throw new Error(value.error||"Runtime profile operation failed.");return value}throw new Error("Workspace session could not be established.")}
-export function loadRuntimeProfiles():Promise<RuntimeProfiles>{return profileFetch("/runtime/profiles")}
-export function createContainerLease(projectId:string){return profileFetch("/runtime/profiles/lxd/leases",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",approval:"create-container-once",projectId,image:"ubuntu-24.04"})})}
-export function removeContainerLease(runtimeId:string){return profileFetch(`/runtime/profiles/lxd/leases/${encodeURIComponent(runtimeId)}`,{method:"DELETE"})}
-export function runContainerActive(runtimeId:string,projectId:string,activePath:string,files:Record<string,string>):Promise<TaskResult>{return profileFetch(`/runtime/profiles/lxd/leases/${encodeURIComponent(runtimeId)}/tasks`,{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",approval:"execute-container-once",projectId,activePath,files})})}
-export function inspectSshTarget(host:string,port:number,user:string){return profileFetch("/runtime/profiles/ssh/inspect",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",host,port,user})})}
-export function saveSshProfile(value:{host:string;port:number;user:string;label:string;reviewedHostKey:string;privateKey:string}){return profileFetch("/runtime/profiles/ssh",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",approval:"connect-ssh-once",...value})})}
-export function removeSshProfile(profileId:string){return profileFetch(`/runtime/profiles/ssh/${encodeURIComponent(profileId)}`,{method:"DELETE"})}
-export type ChainStatus={chainId:number;network:string;nativeCurrencySymbol:string;height:number;latestBlockHash:string;latestBlockTime:string;catchingUp:boolean;validatorCount:number;readyValidatorCount:number;pendingTxCount:number;publicNetwork:boolean;build?:{commit:string;release:string;buildTime:string}};
-async function chainFetch(path:string,options:RequestInit={}){for(let attempt=0;attempt<2;attempt++){const response=await fetch(`/runtime/chain${path}`,{credentials:"same-origin",...options,headers:{...(options.body?{"content-type":"application/json"}:{}),...options.headers}});if(response.status===401&&attempt===0){await runtimeHealth();continue}const value=await response.json().catch(()=>({error:`Chain tools returned HTTP ${response.status}`}));if(!response.ok)throw new Error(value.error||"YNX Chain request failed.");return value}throw new Error("Workspace session could not be established.")}
-export async function loadChainStatus():Promise<ChainStatus>{return(await chainFetch("/status")).status}
-export async function chainRpc(method:string,params:unknown[]=[]){return(await chainFetch("/rpc",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-chain/v1",method,params})})).result}
-export function debugChainTransaction(hash:string){return chainFetch(`/transactions/${encodeURIComponent(hash)}`)}
-export function debugChainBlock(id:string){return chainFetch(`/blocks/${encodeURIComponent(id)}`)}
-export async function loadChainCompiler(){return(await chainFetch("/compiler")).compiler}
-export async function loadWorkspace(
-  projectId: string,
-): Promise<WorkspaceSnapshot | null> {
+export type RuntimeProfiles = {
+  protocolVersion: string;
+  container: {
+    engine: string;
+    installed: boolean;
+    ready: boolean;
+    storagePools: number;
+    profile: boolean;
+  };
+  leases: Array<{
+    runtimeId: string;
+    projectId: string;
+    image: string;
+    status: string;
+    createdAt: string;
+  }>;
+  sshProfiles: Array<{
+    profileId: string;
+    label: string;
+    host: string;
+    port: number;
+    user: string;
+    fingerprint: string;
+    createdAt: string;
+  }>;
+};
+async function profileFetch(path: string, options: RequestInit = {}) {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(
-      `/runtime/workspaces/${encodeURIComponent(projectId)}`,
-      { credentials: "same-origin" },
-    );
+    const response = await fetch(path, {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        ...(options.body ? { "content-type": "application/json" } : {}),
+        ...options.headers,
+      },
+    });
+    if (response.status === 401 && attempt === 0) {
+      await runtimeHealth();
+      continue;
+    }
+    const value = await response.json().catch(() => ({
+      error: `Runtime profile returned HTTP ${response.status}`,
+    }));
+    if (!response.ok) throw new Error(value.error || "Runtime profile operation failed.");
+    return value;
+  }
+  throw new Error("Workspace session could not be established.");
+}
+export function loadRuntimeProfiles(): Promise<RuntimeProfiles> {
+  return profileFetch("/runtime/profiles");
+}
+export function createContainerLease(projectId: string) {
+  return profileFetch("/runtime/profiles/lxd/leases", {
+    method: "POST",
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-runtime/v1",
+      approval: "create-container-once",
+      projectId,
+      image: "ubuntu-24.04",
+    }),
+  });
+}
+export function removeContainerLease(runtimeId: string) {
+  return profileFetch(`/runtime/profiles/lxd/leases/${encodeURIComponent(runtimeId)}`, { method: "DELETE" });
+}
+export function runContainerActive(runtimeId: string, projectId: string, activePath: string, files: Record<string, string>): Promise<TaskResult> {
+  return profileFetch(`/runtime/profiles/lxd/leases/${encodeURIComponent(runtimeId)}/tasks`, {
+    method: "POST",
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-runtime/v1",
+      approval: "execute-container-once",
+      projectId,
+      activePath,
+      files,
+    }),
+  });
+}
+export function inspectSshTarget(host: string, port: number, user: string) {
+  return profileFetch("/runtime/profiles/ssh/inspect", {
+    method: "POST",
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-runtime/v1",
+      host,
+      port,
+      user,
+    }),
+  });
+}
+export function saveSshProfile(value: { host: string; port: number; user: string; label: string; reviewedHostKey: string; privateKey: string }) {
+  return profileFetch("/runtime/profiles/ssh", {
+    method: "POST",
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-runtime/v1",
+      approval: "connect-ssh-once",
+      ...value,
+    }),
+  });
+}
+export function removeSshProfile(profileId: string) {
+  return profileFetch(`/runtime/profiles/ssh/${encodeURIComponent(profileId)}`, { method: "DELETE" });
+}
+export type ChainStatus = {
+  chainId: number;
+  network: string;
+  nativeCurrencySymbol: string;
+  height: number;
+  latestBlockHash: string;
+  latestBlockTime: string;
+  catchingUp: boolean;
+  validatorCount: number;
+  readyValidatorCount: number;
+  pendingTxCount: number;
+  publicNetwork: boolean;
+  build?: { commit: string; release: string; buildTime: string };
+};
+async function chainFetch(path: string, options: RequestInit = {}) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch(`/runtime/chain${path}`, {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        ...(options.body ? { "content-type": "application/json" } : {}),
+        ...options.headers,
+      },
+    });
+    if (response.status === 401 && attempt === 0) {
+      await runtimeHealth();
+      continue;
+    }
+    const value = await response.json().catch(() => ({ error: `Chain tools returned HTTP ${response.status}` }));
+    if (!response.ok) throw new Error(value.error || "YNX Chain request failed.");
+    return value;
+  }
+  throw new Error("Workspace session could not be established.");
+}
+export async function loadChainStatus(): Promise<ChainStatus> {
+  return (await chainFetch("/status")).status;
+}
+export async function chainRpc(method: string, params: unknown[] = []) {
+  return (
+    await chainFetch("/rpc", {
+      method: "POST",
+      body: JSON.stringify({
+        protocolVersion: "ynx-code-chain/v1",
+        method,
+        params,
+      }),
+    })
+  ).result;
+}
+export function debugChainTransaction(hash: string) {
+  return chainFetch(`/transactions/${encodeURIComponent(hash)}`);
+}
+export function debugChainBlock(id: string) {
+  return chainFetch(`/blocks/${encodeURIComponent(id)}`);
+}
+export async function loadChainCompiler() {
+  return (await chainFetch("/compiler")).compiler;
+}
+export async function loadWorkspace(projectId: string): Promise<WorkspaceSnapshot | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch(`/runtime/workspaces/${encodeURIComponent(projectId)}`, { credentials: "same-origin" });
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
     }
     if (response.status === 404) return null;
-    const value = await response
-      .json()
-      .catch(() => ({ error: `Workspace returned HTTP ${response.status}` }));
-    if (!response.ok)
-      throw new Error(value.error || "Workspace could not be loaded.");
+    const value = await response.json().catch(() => ({ error: `Workspace returned HTTP ${response.status}` }));
+    if (!response.ok) throw new Error(value.error || "Workspace could not be loaded.");
     return value.workspace;
   }
   throw new Error("Workspace session could not be established.");
 }
-export async function saveWorkspace(
-  projectId: string,
-  expectedRevision: number,
-  workspace: Omit<WorkspaceSnapshot, "revision" | "updatedAt">,
-): Promise<WorkspaceSnapshot> {
-  const response = await fetch(
-    `/runtime/workspaces/${encodeURIComponent(projectId)}`,
-    {
-      method: "PUT",
-      credentials: "same-origin",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        protocolVersion: "ynx-code/v1",
-        expectedRevision,
-        idempotencyKey: crypto.randomUUID(),
-        workspace,
-      }),
-    },
-  );
-  const value = await response
-    .json()
-    .catch(() => ({ error: `Workspace returned HTTP ${response.status}` }));
-  if (!response.ok)
-    throw Object.assign(
-      new Error(value.error || "Workspace could not be saved."),
-      { code: value.code, currentRevision: value.currentRevision },
-    );
+export async function saveWorkspace(projectId: string, expectedRevision: number, workspace: Omit<WorkspaceSnapshot, "revision" | "updatedAt">): Promise<WorkspaceSnapshot> {
+  const response = await fetch(`/runtime/workspaces/${encodeURIComponent(projectId)}`, {
+    method: "PUT",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      protocolVersion: "ynx-code/v1",
+      expectedRevision,
+      idempotencyKey: crypto.randomUUID(),
+      workspace,
+    }),
+  });
+  const value = await response.json().catch(() => ({ error: `Workspace returned HTTP ${response.status}` }));
+  if (!response.ok) throw Object.assign(new Error(value.error || "Workspace could not be saved."), { code: value.code, currentRevision: value.currentRevision });
   return value.workspace;
 }
-export async function languageRequest(
-  language: "cpp" | "typescript" | "python" | "go" | "rust" | "solidity",
-  files: Record<string, string>,
-  activePath: string,
-  operation:
-    | "completion"
-    | "definition"
-    | "references"
-    | "rename"
-    | "format"
-    | "diagnostics",
-  position?: { line: number; character: number },
-  newName?: string,
-  context?: { projectId: string; runtimeId?: string },
-) {
+export async function languageRequest(language: "cpp" | "typescript" | "python" | "go" | "rust" | "solidity", files: Record<string, string>, activePath: string, operation: "completion" | "definition" | "references" | "rename" | "format" | "diagnostics", position?: { line: number; character: number }, newName?: string, context?: { projectId: string; runtimeId?: string }) {
   const body = JSON.stringify({
     protocolVersion: "ynx-code/v1",
     files,
@@ -204,13 +313,14 @@ export async function languageRequest(
     const value = await response.json().catch(() => ({
       error: `Language service returned HTTP ${response.status}`,
     }));
-    if (!response.ok)
-      throw new Error(value.error || "Language request failed.");
+    if (!response.ok) throw new Error(value.error || "Language request failed.");
     return value;
   }
   throw new Error("Workspace session could not be established.");
 }
-export function cppLanguageRequest(files:Record<string,string>,activePath:string,operation:"completion"|"definition"|"references"|"rename"|"format"|"diagnostics",position?:{line:number;character:number},newName?:string,context?:{projectId:string;runtimeId?:string}){return languageRequest("cpp",files,activePath,operation,position,newName,context)}
+export function cppLanguageRequest(files: Record<string, string>, activePath: string, operation: "completion" | "definition" | "references" | "rename" | "format" | "diagnostics", position?: { line: number; character: number }, newName?: string, context?: { projectId: string; runtimeId?: string }) {
+  return languageRequest("cpp", files, activePath, operation, position, newName, context);
+}
 
 export type GitChange = {
   path: string;
@@ -237,42 +347,26 @@ export type GitStatus = {
 export async function gitStatus(projectId: string): Promise<GitStatus> {
   return gitFetch(projectId);
 }
-export async function gitMutation(
-  projectId: string,
-  body: Record<string, unknown>,
-): Promise<GitStatus> {
+export async function gitMutation(projectId: string, body: Record<string, unknown>): Promise<GitStatus> {
   return gitFetch(projectId, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ protocolVersion: "ynx-code-git-v1", ...body }),
   });
 }
-export async function gitDiff(
-  projectId: string,
-  path: string,
-  scope: "working" | "staged",
-) {
+export async function gitDiff(projectId: string, path: string, scope: "working" | "staged") {
   const query = new URLSearchParams({ view: "diff", path, scope }),
     value = await gitFetch(projectId, {}, query);
   return String(value.diff || "");
 }
-async function gitFetch(
-  projectId: string,
-  init: RequestInit = {},
-  query?: URLSearchParams,
-): Promise<any> {
+async function gitFetch(projectId: string, init: RequestInit = {}, query?: URLSearchParams): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(
-      `/runtime/git/${encodeURIComponent(projectId)}${query ? `?${query}` : ""}`,
-      { credentials: "same-origin", ...init },
-    );
+    const response = await fetch(`/runtime/git/${encodeURIComponent(projectId)}${query ? `?${query}` : ""}`, { credentials: "same-origin", ...init });
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
     }
-    const value = await response
-      .json()
-      .catch(() => ({ error: `Git service returned HTTP ${response.status}` }));
+    const value = await response.json().catch(() => ({ error: `Git service returned HTTP ${response.status}` }));
     if (!response.ok) throw new Error(value.error || "Git operation failed.");
     return value;
   }
@@ -315,9 +409,7 @@ export async function loadExtensions(): Promise<InstalledExtension[]> {
   const value = await extensionFetch();
   return value.extensions || [];
 }
-export async function installExtension(
-  manifest: unknown,
-): Promise<InstalledExtension> {
+export async function installExtension(manifest: unknown): Promise<InstalledExtension> {
   const value = await extensionFetch({
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -331,44 +423,145 @@ export async function installExtension(
 export async function uninstallExtension(id: string): Promise<void> {
   await extensionFetch({ method: "DELETE" }, new URLSearchParams({ id }));
 }
-async function extensionFetch(
-  init: RequestInit = {},
-  query?: URLSearchParams,
-): Promise<any> {
+async function extensionFetch(init: RequestInit = {}, query?: URLSearchParams): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(
-      `/runtime/extensions${query ? `?${query}` : ""}`,
-      { credentials: "same-origin", ...init },
-    );
+    const response = await fetch(`/runtime/extensions${query ? `?${query}` : ""}`, { credentials: "same-origin", ...init });
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
     }
-    const value = await response
-      .json()
-      .catch(() => ({
-        error: `Extension registry returned HTTP ${response.status}`,
-      }));
-    if (!response.ok)
-      throw new Error(value.error || "Extension operation failed.");
+    const value = await response.json().catch(() => ({
+      error: `Extension registry returned HTTP ${response.status}`,
+    }));
+    if (!response.ok) throw new Error(value.error || "Extension operation failed.");
     return value;
   }
   throw new Error("Workspace session could not be established.");
 }
 
-export type ModelCatalog={hosted:{model:string;available:boolean};bringYourOwnKey:Array<{id:string;label:string;defaultModel:string}>};
-export type AgentRun={runId:string;projectId:string;status:string;provider:string;model:string;workspaceRevision:number;plan:{summary:string;steps:Array<{title:string;acceptance:string}>;contextPaths:string[]}|null;approvedPaths:string[];proposal:{summary:string;files:Array<{path:string;content:string}>}|null;review:{approved:boolean;summary:string;findings:string[]}|null};
-export async function loadModelCatalog():Promise<ModelCatalog>{return agentFetch("/runtime/models")}
-export async function createAgentRun(body:Record<string,unknown>):Promise<AgentRun>{const value=await agentFetch("/runtime/agent/runs",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({protocolVersion:"ynx-code-agent/v1",...body})});return value.run}
-export async function agentAction(runId:string,body:Record<string,unknown>):Promise<AgentRun>{const value=await agentFetch(`/runtime/agent/runs/${encodeURIComponent(runId)}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({protocolVersion:"ynx-code-agent/v1",...body})});return value.run}
-async function agentFetch(path:string,init:RequestInit={}):Promise<any>{for(let attempt=0;attempt<2;attempt++){const response=await fetch(path,{credentials:"same-origin",...init});if(response.status===401&&attempt===0){await runtimeHealth();continue}const value=await response.json().catch(()=>({error:`Agent service returned HTTP ${response.status}`}));if(!response.ok)throw new Error(value.error||"Agent operation failed.");return value}throw new Error("Workspace session could not be established.")}
-export async function indexProjectMemory(projectId:string,expectedRevision:number){return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({protocolVersion:"ynx-code-memory/v1",expectedRevision})})}
-export async function searchProjectMemory(projectId:string,query:string){return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${new URLSearchParams({q:query,limit:"8"})}`)}
+export type ModelCatalog = {
+  hosted: { model: string; available: boolean };
+  bringYourOwnKey: Array<{ id: string; label: string; defaultModel: string }>;
+};
+export type AgentRun = {
+  runId: string;
+  projectId: string;
+  status: string;
+  provider: string;
+  model: string;
+  workspaceRevision: number;
+  plan: {
+    summary: string;
+    steps: Array<{ title: string; acceptance: string }>;
+    contextPaths: string[];
+  } | null;
+  approvedPaths: string[];
+  proposal: {
+    summary: string;
+    files: Array<{ path: string; content: string }>;
+  } | null;
+  review: { approved: boolean; summary: string; findings: string[] } | null;
+};
+export async function loadModelCatalog(): Promise<ModelCatalog> {
+  return agentFetch("/runtime/models");
+}
+export async function createAgentRun(body: Record<string, unknown>): Promise<AgentRun> {
+  const value = await agentFetch("/runtime/agent/runs", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ protocolVersion: "ynx-code-agent/v1", ...body }),
+  });
+  return value.run;
+}
+export async function agentAction(runId: string, body: Record<string, unknown>): Promise<AgentRun> {
+  const value = await agentFetch(`/runtime/agent/runs/${encodeURIComponent(runId)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ protocolVersion: "ynx-code-agent/v1", ...body }),
+  });
+  return value.run;
+}
+async function agentFetch(path: string, init: RequestInit = {}): Promise<any> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch(path, { credentials: "same-origin", ...init });
+    if (response.status === 401 && attempt === 0) {
+      await runtimeHealth();
+      continue;
+    }
+    const value = await response.json().catch(() => ({
+      error: `Agent service returned HTTP ${response.status}`,
+    }));
+    if (!response.ok) throw new Error(value.error || "Agent operation failed.");
+    return value;
+  }
+  throw new Error("Workspace session could not be established.");
+}
+export async function indexProjectMemory(projectId: string, expectedRevision: number) {
+  return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-memory/v1",
+      expectedRevision,
+    }),
+  });
+}
+export async function searchProjectMemory(projectId: string, query: string) {
+  return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${new URLSearchParams({ q: query, limit: "8" })}`);
+}
 
-export type CollaborationRole="owner"|"editor"|"reviewer"|"viewer"|"terminal";
-export type CollaborationAccess={protocolVersion:string;roomId:string;projectId:string;role:CollaborationRole};
-export async function createCollaborationRoom(projectId:string):Promise<CollaborationAccess>{return collaborationFetch("/runtime/collaboration/rooms",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({projectId})})}
-export async function collaborationAccess(roomId:string):Promise<CollaborationAccess>{return collaborationFetch(`/runtime/collaboration/rooms/${encodeURIComponent(roomId)}`)}
-export async function createCollaborationInvite(roomId:string,role:Exclude<CollaborationRole,"owner">,expiresMinutes=60):Promise<{token:string;role:CollaborationRole;expiresAt:string;singleUse:true}>{return collaborationFetch("/runtime/collaboration/invites",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({roomId,role,expiresMinutes})})}
-export async function redeemCollaborationInvite(token:string):Promise<CollaborationAccess>{return collaborationFetch("/runtime/collaboration/invites/redeem",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({token})})}
-async function collaborationFetch(path:string,init:RequestInit={}):Promise<any>{for(let attempt=0;attempt<2;attempt++){const response=await fetch(path,{credentials:"same-origin",...init});if(response.status===401&&attempt===0){await runtimeHealth();continue}const value=await response.json().catch(()=>({error:`Collaboration service returned HTTP ${response.status}`}));if(!response.ok)throw new Error(value.error||"Collaboration operation failed.");return value}throw new Error("Workspace session could not be established.")}
+export type CollaborationRole = "owner" | "editor" | "reviewer" | "viewer" | "terminal";
+export type CollaborationAccess = {
+  protocolVersion: string;
+  roomId: string;
+  projectId: string;
+  role: CollaborationRole;
+};
+export async function createCollaborationRoom(projectId: string): Promise<CollaborationAccess> {
+  return collaborationFetch("/runtime/collaboration/rooms", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId }),
+  });
+}
+export async function collaborationAccess(roomId: string): Promise<CollaborationAccess> {
+  return collaborationFetch(`/runtime/collaboration/rooms/${encodeURIComponent(roomId)}`);
+}
+export async function createCollaborationInvite(
+  roomId: string,
+  role: Exclude<CollaborationRole, "owner">,
+  expiresMinutes = 60,
+): Promise<{
+  token: string;
+  role: CollaborationRole;
+  expiresAt: string;
+  singleUse: true;
+}> {
+  return collaborationFetch("/runtime/collaboration/invites", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ roomId, role, expiresMinutes }),
+  });
+}
+export async function redeemCollaborationInvite(token: string): Promise<CollaborationAccess> {
+  return collaborationFetch("/runtime/collaboration/invites/redeem", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+}
+async function collaborationFetch(path: string, init: RequestInit = {}): Promise<any> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch(path, { credentials: "same-origin", ...init });
+    if (response.status === 401 && attempt === 0) {
+      await runtimeHealth();
+      continue;
+    }
+    const value = await response.json().catch(() => ({
+      error: `Collaboration service returned HTTP ${response.status}`,
+    }));
+    if (!response.ok) throw new Error(value.error || "Collaboration operation failed.");
+    return value;
+  }
+  throw new Error("Workspace session could not be established.");
+}

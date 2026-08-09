@@ -1,61 +1,33 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import {
-  Braces,
-  Bug,
-  ChevronDown,
-  Cloud,
-  Files,
-  GitBranch,
-  Link2,
-  Play,
-  Save,
-  Search,
-  Settings,
-  Sparkles,
-  SplitSquareHorizontal,
-  TerminalSquare,
-  Users,
-  X,
-} from "lucide-react";
-import {
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Braces, Bug, ChevronDown, Cloud, Files, GitBranch, Link2, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, Users, X } from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { DebugPanel } from "../debug/DebugPanel";
 import { languageForPath } from "../editor/languages";
 import { ExtensionPanel } from "../extensions/ExtensionPanel";
 import { FileExplorer } from "../explorer/FileExplorer";
-import {
-  loadWorkspace,
-  loadExtensions,
-  runActive,
-  runContainerActive,
-  runtimeHealth,
-  saveWorkspace,
-  type CollaborationRole,
-  type InstalledExtension,
-} from "../runtime/client";
-import {
-  loadProject,
-  foldersFromFiles,
-  saveProject,
-  validPath,
-  type ProjectState,
-} from "../state/workspace";
+import { loadWorkspace, loadExtensions, runActive, runContainerActive, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
+import { loadProject, foldersFromFiles, saveProject, validPath, type ProjectState } from "../state/workspace";
 import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
 import { AgentPanel } from "../chat/AgentPanel";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
-const CollaborationPanel = lazy(() => import("../collaboration/CollaborationPanel").then(module => ({ default: module.CollaborationPanel })));
-const RuntimePanel = lazy(() => import("../runtime/RuntimePanel").then(module => ({ default: module.RuntimePanel })));
-const ChainPanel = lazy(() => import("../chain/ChainPanel").then(module => ({ default: module.ChainPanel })));
+const CollaborationPanel = lazy(() =>
+  import("../collaboration/CollaborationPanel").then((module) => ({
+    default: module.CollaborationPanel,
+  })),
+);
+const RuntimePanel = lazy(() =>
+  import("../runtime/RuntimePanel").then((module) => ({
+    default: module.RuntimePanel,
+  })),
+);
+const ChainPanel = lazy(() =>
+  import("../chain/ChainPanel").then((module) => ({
+    default: module.ChainPanel,
+  })),
+);
 type View = "files" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration" | "remote" | "chain";
 const activity: [View, React.ReactNode, string][] = [
   ["files", <Files />, "Explorer"],
@@ -69,13 +41,39 @@ const activity: [View, React.ReactNode, string][] = [
   ["chain", <Link2 />, "YNX Chain"],
 ];
 
+async function sha256Text(content: string) {
+  const bytes = new TextEncoder().encode(content),
+    digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+async function verifiedBuildArtifacts(
+  artifacts: {
+    path: string;
+    bytes: number;
+    sha256: string;
+    content?: string;
+  }[],
+) {
+  const files: Record<string, string> = {};
+  let total = 0;
+  for (const artifact of artifacts) {
+    if (!artifact.path.startsWith(".ynx-build/") || !validPath(artifact.path) || typeof artifact.content !== "string" || !/^[a-f0-9]{64}$/.test(artifact.sha256)) throw new Error("Compiler returned an invalid build artifact envelope.");
+    const bytes = new TextEncoder().encode(artifact.content);
+    total += bytes.byteLength;
+    if (bytes.byteLength !== artifact.bytes || bytes.byteLength > 2 * 1024 * 1024 || total > 8 * 1024 * 1024) throw new Error("Compiler artifact size evidence does not match its bounded content.");
+    const digest = await sha256Text(artifact.content);
+    if (digest !== artifact.sha256) throw new Error(`Compiler artifact digest mismatch: ${artifact.path}`);
+    files[artifact.path] = artifact.content;
+  }
+  return files;
+}
+
 export function Workbench() {
   const [project, setProject] = useState<ProjectState>(() => loadProject()),
     [view, setView] = useState<View>("files"),
     [dirty, setDirty] = useState<Set<string>>(new Set()),
-    [bottom, setBottom] = useState<"task" | "terminal" | "problems">(
-      "terminal",
-    ),
+    [bottom, setBottom] = useState<"task" | "terminal" | "problems">("terminal"),
     [output, setOutput] = useState("YNX Code task output\n"),
     [running, setRunning] = useState(false),
     [runtime, setRuntime] = useState("checking"),
@@ -83,21 +81,21 @@ export function Workbench() {
     [diff] = useState<{ path: string; base: string } | null>(null),
     [palette, setPalette] = useState(false),
     [runReview, setRunReview] = useState(false),
-    [theme, setTheme] = useState<"light" | "dark">(() =>
-      localStorage.getItem("ynx-code-theme") === "light" ? "light" : "dark",
-    ),
+    [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("ynx-code-theme") === "light" ? "light" : "dark")),
     [search, setSearch] = useState(""),
     [hydrated, setHydrated] = useState(false),
     [breakpoints, setBreakpoints] = useState<Record<string, number[]>>({}),
     [debugLine, setDebugLine] = useState<number>(),
     [extensions, setExtensions] = useState<InstalledExtension[]>([]),
-    [extensionTheme, setExtensionTheme] = useState(
-      () => localStorage.getItem("ynx-extension-theme") || "",
-    ),
+    [extensionTheme, setExtensionTheme] = useState(() => localStorage.getItem("ynx-extension-theme") || ""),
     [collaborationRole, setCollaborationRole] = useState<CollaborationRole>(),
     [collaborationSession, setCollaborationSession] = useState(() => Boolean(localStorage.getItem(`ynx-code-room:${project.id}`))),
-    [collaborationCursor, setCollaborationCursor] = useState({ path: project.active, anchor: 0, head: 0 });
-  const [selectedRuntime, setSelectedRuntime] = useState<string|undefined>(() => localStorage.getItem(`ynx-code-runtime:${project.id}`)||undefined);
+    [collaborationCursor, setCollaborationCursor] = useState({
+      path: project.active,
+      anchor: 0,
+      head: 0,
+    });
+  const [selectedRuntime, setSelectedRuntime] = useState<string | undefined>(() => localStorage.getItem(`ynx-code-runtime:${project.id}`) || undefined);
   const [collaborationMounted, setCollaborationMounted] = useState(() => Boolean(localStorage.getItem(`ynx-code-room:${project.id}`)));
   const lastSynced = useRef("");
   const workspace = useMemo(
@@ -108,26 +106,13 @@ export function Workbench() {
         open: project.open,
         active: project.active,
       }),
-      [
-        project.name,
-        project.folders,
-        project.files,
-        project.open,
-        project.active,
-      ],
+      [project.name, project.folders, project.files, project.open, project.active],
     ),
     workspaceKey = useMemo(() => JSON.stringify(workspace), [workspace]);
   const languageOf = useCallback(
     (path: string) => {
       const lower = path.toLowerCase();
-      for (const extension of extensions)
-        for (const contribution of extension.manifest.contributes.languages)
-          if (
-            contribution.extensions.some((suffix) =>
-              lower.endsWith(suffix.toLowerCase()),
-            )
-          )
-            return contribution.id;
+      for (const extension of extensions) for (const contribution of extension.manifest.contributes.languages) if (contribution.extensions.some((suffix) => lower.endsWith(suffix.toLowerCase()))) return contribution.id;
       return languageForPath(path);
     },
     [extensions],
@@ -135,7 +120,11 @@ export function Workbench() {
   useEffect(() => {
     saveProject(project);
   }, [project]);
-  useEffect(()=>{const key=`ynx-code-runtime:${project.id}`;if(selectedRuntime)localStorage.setItem(key,selectedRuntime);else localStorage.removeItem(key)},[project.id,selectedRuntime]);
+  useEffect(() => {
+    const key = `ynx-code-runtime:${project.id}`;
+    if (selectedRuntime) localStorage.setItem(key, selectedRuntime);
+    else localStorage.removeItem(key);
+  }, [project.id, selectedRuntime]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("ynx-code-theme", theme);
@@ -149,10 +138,7 @@ export function Workbench() {
             value,
           })),
         )
-        .find(
-          ({ extension, value }) =>
-            `${extension.id}/${value.id}` === extensionTheme,
-        ),
+        .find(({ extension, value }) => `${extension.id}/${value.id}` === extensionTheme),
       style = document.documentElement.style,
       mapping = {
         background: "--bg",
@@ -163,16 +149,14 @@ export function Workbench() {
         border: "--border",
         accent: "--blue",
       };
-    for (const variable of Object.values(mapping))
-      style.removeProperty(variable);
+    for (const variable of Object.values(mapping)) style.removeProperty(variable);
     if (selected)
       for (const [key, value] of Object.entries(selected.value.colors)) {
         const variable = mapping[key as keyof typeof mapping];
         if (variable) style.setProperty(variable, value);
       }
     return () => {
-      for (const variable of Object.values(mapping))
-        style.removeProperty(variable);
+      for (const variable of Object.values(mapping)) style.removeProperty(variable);
     };
   }, [extensionTheme, extensions]);
   useEffect(() => {
@@ -186,9 +170,7 @@ export function Workbench() {
       try {
         const health = await runtimeHealth();
         if (cancelled) return;
-        setRuntime(
-          health.sandboxReady ? "sandbox ready" : "sandbox unavailable",
-        );
+        setRuntime(health.sandboxReady ? "sandbox ready" : "sandbox unavailable");
         const remote = await loadWorkspace(project.id);
         if (cancelled) return;
         if (remote) {
@@ -243,13 +225,7 @@ export function Workbench() {
             remoteRevision: saved.revision,
           }));
         })
-        .catch((error) =>
-          setRuntime(
-            error?.code === "revision_conflict"
-              ? "save conflict"
-              : "save unavailable",
-          ),
-        );
+        .catch((error) => setRuntime(error?.code === "revision_conflict" ? "save conflict" : "save unavailable"));
     }, 700);
     return () => clearTimeout(timer);
   }, [collaborationSession, hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
@@ -261,9 +237,7 @@ export function Workbench() {
       setProject((current) => ({
         ...current,
         active: path,
-        open: current.open.includes(path)
-          ? current.open
-          : [...current.open, path],
+        open: current.open.includes(path) ? current.open : [...current.open, path],
       })),
     [],
   );
@@ -288,8 +262,7 @@ export function Workbench() {
   const create = (path: string, kind: "file" | "folder") => {
     if (collaborationReadOnly) return "Your collaboration role is read-only.";
     if (!validPath(path)) return "Use a safe workspace-relative path.";
-    if (project.files[path] !== undefined || project.folders.includes(path))
-      return "That path already exists.";
+    if (project.files[path] !== undefined || project.folders.includes(path)) return "That path already exists.";
     setProject((current) =>
       kind === "folder"
         ? {
@@ -309,27 +282,39 @@ export function Workbench() {
                 ...path
                   .split("/")
                   .slice(0, -1)
-                  .map((_, index, parts) =>
-                    parts.slice(0, index + 1).join("/"),
-                  ),
+                  .map((_, index, parts) => parts.slice(0, index + 1).join("/")),
               ]),
             ].sort(),
           },
     );
     return null;
   };
-  const addGeneratedFile = (path:string,content:string) => {
-    if(collaborationReadOnly)return;
-    if(!validPath(path))return;
-    if(project.files[path]!==undefined&&!confirm(`Replace ${path} with the reviewed template?`))return;
-    setProject(current=>({...current,revision:current.revision+1,files:{...current.files,[path]:content},active:path,open:current.open.includes(path)?current.open:[...current.open,path],folders:[...new Set([...current.folders,...path.split("/").slice(0,-1).map((_,index,parts)=>parts.slice(0,index+1).join("/"))])].sort()}));
-    setDirty(current=>new Set(current).add(path));
+  const addGeneratedFile = (path: string, content: string) => {
+    if (collaborationReadOnly) return;
+    if (!validPath(path)) return;
+    if (project.files[path] !== undefined && !confirm(`Replace ${path} with the reviewed template?`)) return;
+    setProject((current) => ({
+      ...current,
+      revision: current.revision + 1,
+      files: { ...current.files, [path]: content },
+      active: path,
+      open: current.open.includes(path) ? current.open : [...current.open, path],
+      folders: [
+        ...new Set([
+          ...current.folders,
+          ...path
+            .split("/")
+            .slice(0, -1)
+            .map((_, index, parts) => parts.slice(0, index + 1).join("/")),
+        ]),
+      ].sort(),
+    }));
+    setDirty((current) => new Set(current).add(path));
   };
   const rename = (from: string, to: string, kind: "file" | "folder") => {
     if (collaborationReadOnly) return "Your collaboration role is read-only.";
     if (!validPath(to)) return "Use a safe workspace-relative path.";
-    if (project.files[to] !== undefined || project.folders.includes(to))
-      return "That path already exists.";
+    if (project.files[to] !== undefined || project.folders.includes(to)) return "That path already exists.";
     setProject((current) => {
       if (kind === "file") {
         const files = { ...current.files, [to]: current.files[from] };
@@ -342,20 +327,12 @@ export function Workbench() {
           open: current.open.map((path) => (path === from ? to : path)),
         };
       }
-      const rewrite = (path: string) =>
-        path === from || path.startsWith(`${from}/`)
-          ? `${to}${path.slice(from.length)}`
-          : path;
+      const rewrite = (path: string) => (path === from || path.startsWith(`${from}/`) ? `${to}${path.slice(from.length)}` : path);
       return {
         ...current,
         revision: current.revision + 1,
         folders: current.folders.map(rewrite),
-        files: Object.fromEntries(
-          Object.entries(current.files).map(([path, content]) => [
-            rewrite(path),
-            content,
-          ]),
-        ),
+        files: Object.fromEntries(Object.entries(current.files).map(([path, content]) => [rewrite(path), content])),
         active: rewrite(current.active),
         open: current.open.map(rewrite),
       };
@@ -366,16 +343,11 @@ export function Workbench() {
     if (collaborationReadOnly) return;
     if (!confirm(`Move ${path} ${kind} to workspace trash?`)) return;
     setProject((current) => {
-      const removed = (item: string) =>
-        item === path || (kind === "folder" && item.startsWith(`${path}/`));
-      const files = Object.fromEntries(
-        Object.entries(current.files).filter(([item]) => !removed(item)),
-      );
+      const removed = (item: string) => item === path || (kind === "folder" && item.startsWith(`${path}/`));
+      const files = Object.fromEntries(Object.entries(current.files).filter(([item]) => !removed(item)));
       const folders = current.folders.filter((item) => !removed(item));
       const open = current.open.filter((item) => !removed(item));
-      const active = removed(current.active)
-        ? open[0] || Object.keys(files)[0] || ""
-        : current.active;
+      const active = removed(current.active) ? open[0] || Object.keys(files)[0] || "" : current.active;
       return {
         ...current,
         revision: current.revision + 1,
@@ -398,9 +370,7 @@ export function Workbench() {
   const toggleBreakpoint = (line: number) =>
     setBreakpoints((current) => {
       const lines = current[project.active] || [],
-        next = lines.includes(line)
-          ? lines.filter((value) => value !== line)
-          : [...lines, line].sort((a, b) => a - b);
+        next = lines.includes(line) ? lines.filter((value) => value !== line) : [...lines, line].sort((a, b) => a - b);
       return { ...current, [project.active]: next };
     });
   const execute = async () => {
@@ -409,23 +379,39 @@ export function Workbench() {
     setBottom("task");
     setOutput((current) => `${current}\n$ ynx task run ${project.active}\n`);
     try {
-      if(selectedRuntime?.startsWith("ssh-"))throw new Error("Remote SSH is open as an editable terminal workspace. Start this task in the remote terminal; one-click remote task execution has not been approved yet.");
+      if (selectedRuntime?.startsWith("ssh-")) throw new Error("Remote SSH is open as an editable terminal workspace. Start this task in the remote terminal; one-click remote task execution has not been approved yet.");
       const result = selectedRuntime
-        ? await runContainerActive(selectedRuntime,project.id,project.active,project.files)
-        : await runActive(project.id,project.active,project.files,(event) => {
+        ? await runContainerActive(selectedRuntime, project.id, project.active, project.files)
+        : await runActive(project.id, project.active, project.files, (event) => {
             if (event.type === "phase" && event.status === "started") setOutput((current) => `${current}${event.phase}> `);
             if (event.type === "output") setOutput((current) => `${current}${event.data}`);
           });
-      if(selectedRuntime)setOutput(current=>`${current}${result.output}`);
-      setOutput(
-        (current) =>
-          `${current}\n[exit ${result.code}] ${result.compiler.executable} · ${result.durationMs} ms · ${result.sandbox.kind}\n`,
-      );
+      if (selectedRuntime) setOutput((current) => `${current}${result.output}`);
+      setOutput((current) => `${current}\n[exit ${result.code}] ${result.compiler.executable} · ${result.durationMs} ms · ${result.sandbox.kind}\n`);
+      if (result.ok && result.artifacts?.length) {
+        const materialized = await verifiedBuildArtifacts(result.artifacts);
+        const sourceDigests = Object.fromEntries(
+          await Promise.all(
+            Object.entries(project.files)
+              .filter(([path]) => path.endsWith(".sol"))
+              .map(async ([path, content]) => [path, await sha256Text(content)]),
+          ),
+        );
+        materialized[".ynx-build/manifest.json"] = `${JSON.stringify({ protocolVersion: "ynx-code-artifact/v1", taskId: result.taskId, language: result.language, compiler: result.compiler, sourceDigests, artifacts: result.artifacts.map(({ path, bytes, sha256 }) => ({ path, bytes, sha256 })) }, null, 2)}\n`;
+        const candidate = { ...project.files, ...materialized },
+          candidateBytes = Object.values(candidate).reduce((total, content) => total + new TextEncoder().encode(content).byteLength, 0);
+        if (Object.keys(candidate).length > 256 || candidateBytes > 2 * 1024 * 1024) throw new Error("Verified artifacts exceed the persistent workspace's 256-file or 2 MiB boundary. The build remains successful, but the artifacts were not saved.");
+        setProject((current) => {
+          const files = { ...current.files, ...materialized },
+            paths = Object.keys(materialized),
+            folders = [...new Set([...current.folders, ...foldersFromFiles(paths)])].sort();
+          return { ...current, revision: current.revision + 1, files, folders };
+        });
+        setDirty((current) => new Set([...current, ...Object.keys(materialized)]));
+        setOutput((current) => `${current}[artifacts] verified and saved ${Object.keys(materialized).length} file(s) under .ynx-build\n`);
+      }
     } catch (error) {
-      setOutput(
-        (current) =>
-          `${current}\x1b[31m${error instanceof Error ? error.message : String(error)}\x1b[0m\n`,
-      );
+      setOutput((current) => `${current}\x1b[31m${error instanceof Error ? error.message : String(error)}\x1b[0m\n`);
     } finally {
       setRunning(false);
     }
@@ -457,15 +443,39 @@ export function Workbench() {
   const applyCollaborativeFiles = useCallback((files: Record<string, string>) => {
     setProject((current) => {
       if (JSON.stringify(current.files) === JSON.stringify(files)) return current;
-      const paths = Object.keys(files), active = files[current.active] !== undefined ? current.active : paths[0] || "", open = current.open.filter(path => files[path] !== undefined);
-      return { ...current, files, folders: foldersFromFiles(paths), active, open: active && !open.includes(active) ? [...open, active] : open, revision: current.revision + 1 };
+      const paths = Object.keys(files),
+        active = files[current.active] !== undefined ? current.active : paths[0] || "",
+        open = current.open.filter((path) => files[path] !== undefined);
+      return {
+        ...current,
+        files,
+        folders: foldersFromFiles(paths),
+        active,
+        open: active && !open.includes(active) ? [...open, active] : open,
+        revision: current.revision + 1,
+      };
     });
   }, []);
   const leaveCollaboration = useCallback(async () => {
     const remote = await loadWorkspace(project.id);
     if (!remote) return;
-    lastSynced.current = JSON.stringify({ name: remote.name, folders: remote.folders, files: remote.files, open: remote.open, active: remote.active });
-    setProject(current => ({ ...current, name: remote.name, folders: remote.folders, files: remote.files, open: remote.open, active: remote.active, remoteRevision: remote.revision, revision: current.revision + 1 }));
+    lastSynced.current = JSON.stringify({
+      name: remote.name,
+      folders: remote.folders,
+      files: remote.files,
+      open: remote.open,
+      active: remote.active,
+    });
+    setProject((current) => ({
+      ...current,
+      name: remote.name,
+      folders: remote.folders,
+      files: remote.files,
+      open: remote.open,
+      active: remote.active,
+      remoteRevision: remote.revision,
+      revision: current.revision + 1,
+    }));
   }, [project.id]);
   const results = useMemo(() => {
     const query = search.toLowerCase();
@@ -481,11 +491,7 @@ export function Workbench() {
   }, [project.files, search]);
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (
-        (event.metaKey || event.ctrlKey) &&
-        event.shiftKey &&
-        event.key.toLowerCase() === "p"
-      ) {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "p") {
         event.preventDefault();
         setPalette(true);
       }
@@ -555,13 +561,7 @@ export function Workbench() {
         </div>
         <nav>
           <button onClick={() => setPalette(true)}>Commands</button>
-          <button
-            onClick={() =>
-              setTheme((value) => (value === "dark" ? "light" : "dark"))
-            }
-          >
-            {theme === "dark" ? "Light" : "Dark"} theme
-          </button>
+          <button onClick={() => setTheme((value) => (value === "dark" ? "light" : "dark"))}>{theme === "dark" ? "Light" : "Dark"} theme</button>
         </nav>
         <div className="runtime-state">
           <span className={runtime === "sandbox ready" ? "ready" : ""} />
@@ -573,7 +573,10 @@ export function Workbench() {
           <button
             key={id}
             className={view === id ? "active" : ""}
-            onClick={() => { setView(id); if (id === "collaboration") setCollaborationMounted(true); }}
+            onClick={() => {
+              setView(id);
+              if (id === "collaboration") setCollaborationMounted(true);
+            }}
             title={label}
             aria-label={label}
           >
@@ -585,35 +588,16 @@ export function Workbench() {
         </button>
       </aside>
       <aside className="sidebar">
-        {view === "files" && (
-          <FileExplorer
-            files={project.files}
-            folders={project.folders}
-            active={project.active}
-            onOpen={open}
-            onCreate={create}
-            onRename={rename}
-            onDelete={remove}
-          />
-        )}{" "}
+        {view === "files" && <FileExplorer files={project.files} folders={project.folders} active={project.active} onOpen={open} onCreate={create} onRename={rename} onDelete={remove} />}{" "}
         {view === "search" && (
           <section className="side-section">
             <header>
               <strong>SEARCH</strong>
             </header>
-            <input
-              autoFocus
-              className="search-input"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search files"
-            />
+            <input autoFocus className="search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search files" />
             <div className="search-results">
               {results.map((item) => (
-                <button
-                  key={`${item.path}:${item.index}`}
-                  onClick={() => open(item.path)}
-                >
+                <button key={`${item.path}:${item.index}`} onClick={() => open(item.path)}>
                   <strong>
                     {item.path}:{item.index}
                   </strong>
@@ -624,37 +608,32 @@ export function Workbench() {
           </section>
         )}
         {view === "source" && <SourceControlPanel projectId={project.id} />}
-        {view === "run" && (
-          <DebugPanel
-            projectId={project.id}
-            activePath={project.active}
-            breakpoints={breakpoints[project.active] || []}
-            onStoppedLine={setDebugLine}
-          />
+        {view === "run" && <DebugPanel projectId={project.id} activePath={project.active} breakpoints={breakpoints[project.active] || []} onStoppedLine={setDebugLine} />}
+        {view === "extensions" && <ExtensionPanel extensions={extensions} onChange={setExtensions} onApplyTheme={setExtensionTheme} />}
+        {view === "agent" && <AgentPanel projectId={project.id} revision={project.remoteRevision} activePath={project.active} onApplied={refreshWorkspace} />}
+        {collaborationMounted && (
+          <div hidden={view !== "collaboration"} className="collaboration-host">
+            <Suspense fallback={<div className="editor-loading">Loading collaboration engine…</div>}>
+              <CollaborationPanel projectId={project.id} files={project.files} cursor={collaborationCursor} onRemoteFiles={applyCollaborativeFiles} onCheckpoint={refreshWorkspace} onAccessChange={setCollaborationRole} onSessionChange={setCollaborationSession} onLeave={leaveCollaboration} />
+            </Suspense>
+          </div>
         )}
-        {view === "extensions" && (
-          <ExtensionPanel
-            extensions={extensions}
-            onChange={setExtensions}
-            onApplyTheme={setExtensionTheme}
-          />
+        {view === "remote" && (
+          <Suspense fallback={<div className="editor-loading">Loading runtime control plane…</div>}>
+            <RuntimePanel projectId={project.id} selected={selectedRuntime} onSelect={setSelectedRuntime} />
+          </Suspense>
         )}
-        {view === "agent" && (
-          <AgentPanel projectId={project.id} revision={project.remoteRevision} activePath={project.active} onApplied={refreshWorkspace} />
+        {view === "chain" && (
+          <Suspense fallback={<div className="editor-loading">Connecting to YNX Testnet…</div>}>
+            <ChainPanel files={project.files} onAddFile={addGeneratedFile} />
+          </Suspense>
         )}
-        {collaborationMounted&&<div hidden={view !== "collaboration"} className="collaboration-host"><Suspense fallback={<div className="editor-loading">Loading collaboration engine…</div>}><CollaborationPanel projectId={project.id} files={project.files} cursor={collaborationCursor} onRemoteFiles={applyCollaborativeFiles} onCheckpoint={refreshWorkspace} onAccessChange={setCollaborationRole} onSessionChange={setCollaborationSession} onLeave={leaveCollaboration} /></Suspense></div>}
-        {view==="remote"&&<Suspense fallback={<div className="editor-loading">Loading runtime control plane…</div>}><RuntimePanel projectId={project.id} selected={selectedRuntime} onSelect={setSelectedRuntime}/></Suspense>}
-        {view==="chain"&&<Suspense fallback={<div className="editor-loading">Connecting to YNX Testnet…</div>}><ChainPanel onAddFile={addGeneratedFile}/></Suspense>}
       </aside>
       <main className="main">
         <div className="editor-tabs">
           <div>
             {project.open.map((path) => (
-              <button
-                key={path}
-                className={path === project.active ? "active" : ""}
-                onClick={() => open(path)}
-              >
+              <button key={path} className={path === project.active ? "active" : ""} onClick={() => open(path)}>
                 <span>{path.split("/").pop()}</span>
                 {dirty.has(path) && <i />}
                 <X
@@ -671,18 +650,10 @@ export function Workbench() {
             <Button variant="ghost" title="Save" onClick={save}>
               <Save size={14} />
             </Button>
-            <Button
-              variant="ghost"
-              title="Toggle split editor"
-              onClick={() => setSplit((value) => !value)}
-            >
+            <Button variant="ghost" title="Toggle split editor" onClick={() => setSplit((value) => !value)}>
               <SplitSquareHorizontal size={14} />
             </Button>
-            <Button
-              variant="default"
-              onClick={() => setRunReview(true)}
-              disabled={!project.active || running}
-            >
+            <Button variant="default" onClick={() => setRunReview(true)} disabled={!project.active || running}>
               <Play size={13} /> Run
             </Button>
             <Button variant="ghost">
@@ -691,16 +662,10 @@ export function Workbench() {
           </div>
         </div>
         <section className={`editors ${split && second ? "split" : ""}`}>
-          <Suspense
-            fallback={
-              <div className="editor-loading">
-                Loading Monaco editor engine…
-              </div>
-            }
-          >
+          <Suspense fallback={<div className="editor-loading">Loading Monaco editor engine…</div>}>
             <CodeEditor
               projectId={project.id}
-              runtimeId={selectedRuntime?.startsWith("ssh-")?undefined:selectedRuntime}
+              runtimeId={selectedRuntime?.startsWith("ssh-") ? undefined : selectedRuntime}
               files={project.files}
               activePath={project.active}
               activeContent={activeContent}
@@ -730,47 +695,19 @@ export function Workbench() {
         </section>
         <section className="bottom">
           <div className="bottom-tabs">
-            <button
-              className={bottom === "problems" ? "active" : ""}
-              onClick={() => setBottom("problems")}
-            >
+            <button className={bottom === "problems" ? "active" : ""} onClick={() => setBottom("problems")}>
               PROBLEMS <span>0</span>
             </button>
-            <button
-              className={bottom === "task" ? "active" : ""}
-              onClick={() => setBottom("task")}
-            >
+            <button className={bottom === "task" ? "active" : ""} onClick={() => setBottom("task")}>
               TASK OUTPUT
             </button>
-            <button
-              className={bottom === "terminal" ? "active" : ""}
-              onClick={() => setBottom("terminal")}
-            >
+            <button className={bottom === "terminal" ? "active" : ""} onClick={() => setBottom("terminal")}>
               <TerminalSquare size={13} /> TERMINAL
             </button>
             <span className="spacer" />
-            {bottom === "task" && (
-              <button onClick={() => setOutput("YNX Code task output\n")}>
-                Clear
-              </button>
-            )}
+            {bottom === "task" && <button onClick={() => setOutput("YNX Code task output\n")}>Clear</button>}
           </div>
-          <div className="bottom-body">
-            {bottom === "task" ? (
-              <TerminalPanel output={output} running={running} />
-            ) : bottom === "terminal" ? (
-              <InteractiveTerminal
-                projectId={project.id}
-                runtimeId={selectedRuntime}
-                onWorkspaceSync={refreshWorkspace}
-              />
-            ) : (
-              <div className="empty-state">
-                Diagnostics are provided by the active language server and shown
-                inline in the editor.
-              </div>
-            )}
-          </div>
+          <div className="bottom-body">{bottom === "task" ? <TerminalPanel output={output} running={running} /> : bottom === "terminal" ? <InteractiveTerminal projectId={project.id} runtimeId={selectedRuntime} onWorkspaceSync={refreshWorkspace} /> : <div className="empty-state">Diagnostics are provided by the active language server and shown inline in the editor.</div>}</div>
         </section>
         <footer className="statusbar">
           <span>
@@ -801,10 +738,7 @@ export function Workbench() {
           <Dialog.Overlay className="dialog-overlay" />
           <Dialog.Content className="run-dialog">
             <Dialog.Title>Build and run active file</Dialog.Title>
-            <Dialog.Description>
-              Review the exact one-time execution request. Network stays
-              disabled and only this workspace is writable.
-            </Dialog.Description>
+            <Dialog.Description>Review the exact one-time execution request. Network stays disabled and only this workspace is writable. Successful compiler artifacts are digest-verified before being saved under .ynx-build.</Dialog.Description>
             <pre>
               {JSON.stringify(
                 {

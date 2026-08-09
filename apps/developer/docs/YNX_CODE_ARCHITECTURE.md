@@ -198,7 +198,14 @@ rust-analyzer and the Solidity Language Server in that same container. It also
 opened a PTY, wrote a file, synchronized the revisioned workspace and deleted
 the lease with no container left running. Compiler diagnostics for Solidity
 continue to use pinned `solcjs 0.8.36 --standard-json`; successful compilation
-materializes integrity-addressed ABI, bytecode, metadata and source maps. The
+materializes bounded integrity-addressed ABI, bytecode, metadata and source maps.
+The task envelope carries each exact UTF-8 artifact with its byte count and
+SHA-256 value. Before project persistence, the browser recomputes every digest,
+enforces the existing 256-file/2 MiB persistent-workspace limits and writes a
+`.ynx-build/manifest.json` binding compiler evidence, Solidity source digests and
+artifact digests. The public `/ide/compiler` value 0.8.24 remains separate
+Testnet analysis metadata and currently declares production compilation disabled;
+it is never substituted for the actual 0.8.36 workspace compiler evidence. The
 vulnerable `tmp 0.0.33` transitive dependency is overridden with patched 0.2.7.
 
 ## 8. Tasks, terminal and process supervision

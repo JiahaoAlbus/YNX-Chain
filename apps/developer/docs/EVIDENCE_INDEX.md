@@ -23,6 +23,10 @@
 - Chain service unit evidence: `services/chain-service/test/service.test.mjs`
   covers canonical status normalization, the read-only RPC boundary and invalid
   chain-state rejection.
+- Workspace-agent Solidity evidence proves that the 0.8.36 standard-JSON build
+  returns ABI, bytecode and source-map metadata whose UTF-8 byte counts and
+  SHA-256 values match their exact bounded contents. The React workbench then
+  verifies these digests with Web Crypto before persistent project insertion.
 
 - Client unit/integration/security/recovery/locale tests:
   `packages/developer-client/test/developer-client.test.js`

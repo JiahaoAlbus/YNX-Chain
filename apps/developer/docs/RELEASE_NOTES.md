@@ -18,6 +18,11 @@
   slice. The public compiler endpoint currently reports deterministic analysis
   metadata for Solidity 0.8.24 and explicitly does not claim production
   compilation. Neither limitation is converted into a successful UI state.
+- Successful isolated Solidity 0.8.36 builds now return bounded artifact
+  contents as well as byte counts and SHA-256 values. The browser verifies every
+  digest before saving ABI, bytecode, source-map metadata and a source/artifact
+  manifest under `.ynx-build`; a compiler result cannot silently substitute an
+  artifact after the task finishes.
 
 ## 2026-08-10 cloud language-intelligence candidate
 
