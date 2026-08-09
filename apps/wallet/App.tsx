@@ -9,7 +9,7 @@ import { ArrowUpRight, Check, ChevronDown, Copy, Fingerprint, History, KeyRound,
 import QRCodeView from "react-native-qrcode-svg";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
-  createCallbackURL, createSignedNativeTransfer, evmAddressFromYNX, parseWalletDeepLink, signAuthorization, type AuthorizationRequest,
+  createCallbackURL, createSignedNativeTransfer, evmAddressFromYNX, parseExchangeOrderActionDeepLink, parseWalletDeepLink, signAuthorization, signExchangeOrderAction, type AuthorizationRequest, type ExchangeOrderActionRequest,
 } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
 import { NativeChainClient, type ChainAccount, type ChainActivity } from "./src/chain/nativeTransfer";
@@ -58,6 +58,7 @@ function WalletApp(){
   const [setup,setSetup]=useState<"closed"|"create"|"import"|"recover">("closed");
   const [pendingRecovery,setPendingRecovery]=useState<{secretHex:string;label:string}|null>(null);
   const [authorization,setAuthorization]=useState<AuthorizationRequest|null>(null);
+  const [exchangeAction,setExchangeAction]=useState<ExchangeOrderActionRequest|null>(null);
   const [authorizationError,setAuthorizationError]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
   const [locale,setLocale]=useState<WalletLocale>("en");
@@ -74,8 +75,8 @@ function WalletApp(){
   },[locale]);
 
   const handleLink=useCallback((url:string)=>{
-    try{const parsed=parseWalletDeepLink(url,Platform.OS==="ios"?"ios":"android",{now:new Date(),registry:PRODUCT_REGISTRY});setAuthorization(parsed.request);setAuthorizationError(null);}
-    catch(caught){setAuthorization(null);setAuthorizationError(localizeError(locale,caught));}
+    try{const parsedURL=new URL(url);if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="action"){setExchangeAction(parseExchangeOrderActionDeepLink(url,new Date()));setAuthorization(null)}else{const parsed=parseWalletDeepLink(url,Platform.OS==="ios"?"ios":"android",{now:new Date(),registry:PRODUCT_REGISTRY});setAuthorization(parsed.request);setExchangeAction(null)}setAuthorizationError(null);}
+    catch(caught){setAuthorization(null);setExchangeAction(null);setAuthorizationError(localizeError(locale,caught));}
   },[locale]);
 
   useEffect(()=>{void load();void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)});const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink,load]);
@@ -104,6 +105,7 @@ function WalletApp(){
     {!manifest?.accounts.length?<EmptyWallet locale={locale} create={()=>void create()} importAccount={()=>setSetup("import")} recover={()=>setSetup("recover")}/>:lockState.locked?<Locked locale={locale} account={selected!} busy={busy} unlock={()=>void unlock()} recovery={()=>setSetup("recover")}/>:<Dashboard locale={locale} manifest={manifest} selected={selected!} select={(account)=>void select(account)} add={()=>setSetup("import")} create={()=>void create()} lock={()=>dispatchLock({type:"lock",reason:"user"})} onManifest={setManifest}/>}
     <SetupModal mode={setup} pending={pendingRecovery} close={()=>{if(!busy){setSetup("closed");setPendingRecovery(null)}}} saved={saved} busy={busy} setBusy={setBusy} setError={setError}/>
     {authorization&&manifest&&selected?<AuthorizationModal locale={locale} key={authorization.nonce} request={authorization} selected={selected} close={()=>setAuthorization(null)} onApproved={()=>setAuthorization(null)}/>:null}
+    {exchangeAction&&manifest&&selected?<ExchangeOrderActionModal key={exchangeAction.nonce} request={exchangeAction} selected={selected} close={()=>setExchangeAction(null)} onApproved={()=>setExchangeAction(null)}/>:null}
     <LocaleSettings visible={settings} locale={locale} close={()=>setSettings(false)} select={(next)=>void saveLocale(platformSecureStorage,next).then(()=>setLocale(next))}/>
   </SafeAreaView>;
 }
@@ -201,6 +203,12 @@ function AuthorizationModal({locale,request,selected,close,onApproved}:{locale:W
   const approve=async()=>{setBusy(true);setError(null);try{await authorizeLocalKeyUse("wallet-authorization");if(!selected.backupConfirmed)throw new Error("Confirm the selected account backup before authorizing products");const now=new Date();await authorizationAudit.append(request,{action:"intent-approved",account:selected.account,at:now.toISOString()});const secret=await repository.accountSecret(selected.account);await nonces.consume(request,now);const response=signAuthorization(request,{accountSecret:secret,account:selected.account,issuedAt:now.toISOString()});await Linking.openURL(createCallbackURL(response as any));await authorizationAudit.append(request,{action:"approval-returned",account:selected.account,at:new Date().toISOString()});onApproved()}catch(caught){setError(localizeError(locale,caught))}finally{setBusy(false)}};
   const reject=async()=>{setBusy(true);try{await authorizationAudit.append(request,{action:"request-rejected",account:selected.account,at:new Date().toISOString()});close()}catch(caught){setError(localizeError(locale,caught))}finally{setBusy(false)}};
   return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={close}><Sheet title={translate(locale,"signInTitle")} close={close}><Text style={styles.authorizationLead}>{translate(locale,"authorizationLead")}</Text><ReviewRow label={translate(locale,"requestingApp")} value={request.requestingProduct}/><ReviewRow label={translate(locale,"appIdentity")} value={`${request.productClientId}\n${request.bundleId}`}/><ReviewRow label={translate(locale,"network")} value={`${request.chainId}\nEVM compatibility: 6423`}/><ReviewRow label={translate(locale,"account")} value={`${selected.label}\n${short(selected.account)}`}/><ReviewRow label={translate(locale,"permissions")} value={request.scopes.join("\n")}/><ReviewRow label={translate(locale,"purpose")} value={request.purpose}/><ReviewRow label={translate(locale,"expires")} value={formatDateTime(locale,request.expiresAt)}/>{request.scopes.map((scope)=><Text key={scope} style={styles.scopeExplain}>{scope}: {SCOPE_EXPLANATIONS[scope]??"No local explanation available; reject this request."}</Text>)}<SecondaryButton label={translate(locale,"aiSecurity")} icon={<Sparkles color={ACTIVE_COLORS.blue}/>} onPress={()=>setAI(true)}/>{error?<Text style={styles.error}>{error}</Text>:null}<View style={styles.approvalButtons}><SecondaryButton label={translate(locale,"reject")} disabled={busy} onPress={()=>void reject()}/><Button label={translate(locale,"approve")} disabled={busy} onPress={()=>void approve()}/></View><Text style={styles.footnote}>{translate(locale,"privacy")} {translate(locale,"aiCannotApprove")}</Text><AIReviewModal visible={ai} locale={locale} request={request} close={()=>setAI(false)}/></Sheet></Modal>
+}
+
+function ExchangeOrderActionModal({request,selected,close,onApproved}:{request:ExchangeOrderActionRequest;selected:WalletAccount;close:()=>void;onApproved:()=>void}){
+  const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
+  const approve=async()=>{setBusy(true);setError(null);try{if(selected.account!==request.account)throw new Error("Select the Wallet account bound to this Exchange session before approving");if(!selected.backupConfirmed)throw new Error("Confirm the selected account backup before authorizing an order");await authorizeLocalKeyUse("exchange-order");const secret=await repository.accountSecret(selected.account);const response=signExchangeOrderAction(request,{accountSecret:secret,account:selected.account,issuedAt:new Date().toISOString()});await Linking.openURL(createCallbackURL(response as any));onApproved()}catch(caught){setError(message(caught))}finally{setBusy(false)}};
+  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={close}><Sheet title="Review Exchange order" close={close}><Text style={styles.authorizationLead}>Wallet will sign only this exact Testnet limit order. It cannot change the market, side, price, amount or session.</Text><ReviewRow label="App identity" value={`${request.productClientId}\n${request.bundleId}`}/><ReviewRow label="Network" value="YNX Testnet · ynx_6423-1"/><ReviewRow label="Account" value={`${selected.label}\n${short(selected.account)}`}/><ReviewRow label="Market" value={request.parameters.market}/><ReviewRow label="Side / type" value={`${request.parameters.side.toUpperCase()} · ${request.parameters.type}`}/><ReviewRow label="Price" value={`${(request.parameters.priceMicro/1_000_000).toFixed(6)} YUSD_TEST`}/><ReviewRow label="Amount" value={`${(request.parameters.amountMicro/1_000_000).toFixed(6)} YNXT`}/><ReviewRow label="Order ID" value={request.parameters.idempotencyKey}/><ReviewRow label="Session" value={short(request.sessionBinding)}/><ReviewRow label="Valid until" value={request.expiresAt}/>{selected.account!==request.account?<Text style={styles.error}>The selected Wallet account does not match the signed-in Exchange account.</Text>:null}{error?<Text style={styles.error}>{error}</Text>:null}<SecondaryButton label="Reject order" disabled={busy} onPress={close}/><Button label={busy?"Signing exact order…":"Approve and return to Exchange"} disabled={busy||selected.account!==request.account} onPress={()=>void approve()}/><Text style={styles.footnote}>No withdrawal, transfer, market order, reusable mandate or unlimited approval is included.</Text></Sheet></Modal>
 }
 
 function AIReviewModal({visible,locale,request,close}:{visible:boolean;locale:WalletLocale;request:AuthorizationRequest;close:()=>void}){
