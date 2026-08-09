@@ -89,8 +89,8 @@ test("release manifests, provenance and website metadata agree on current unsign
   assert.equal(windowsManifest.sha256, release.sha256.windowsX64UnsignedZip);
   assert.equal(macManifest.sha256, metadata.localEvidence.macosArm64.sha256);
   assert.equal(windowsManifest.sha256, metadata.localEvidence.windowsX64.sha256);
-  assert.equal(macManifest.sourceCommit, provenance.sourceCommit);
-  assert.equal(windowsManifest.sourceCommit, provenance.sourceCommit);
+  assert.equal(macManifest.sourceCommit, macProvenance.sourceCommit);
+  assert.equal(windowsManifest.sourceCommit, windowsProvenance.sourceCommit);
   assert.equal(windowsManifest.ciRunId, windowsProvenance.ci.runId);
   assert.equal(windowsManifest.ciArtifactId, windowsProvenance.ci.artifactId);
   assert.equal(contract.source.releaseCandidateCommit, provenance.sourceCommit);

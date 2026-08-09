@@ -1,5 +1,27 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-10 full YNX Code macOS package
+
+- Replaced the legacy single-page desktop payload with the complete React,
+  Monaco and service-based YNX Code workbench and its gateway, terminal,
+  compiler, language, debug, Git, extension, model, memory, agent,
+  collaboration, Wallet and Chain services.
+- Bundled Node 24.14.0, npm 11.17.0 and the complete production dependency
+  closure. The deterministic CycloneDX manifest records 267 components; its
+  SHA-256 is `26c03adeea1121319cf73b1eea402fdba0a718dd31c2e188d6168610c7146bff`.
+- The extracted official ZIP passed provenance and nested ad-hoc signature
+  verification, cold launch, JavaScript/C++ toolchain discovery, a real bounded
+  C++ compilation, workspace save, process cleanup and a second launch that
+  recovered the saved workspace.
+- Published the current unsigned macOS arm64 Testnet Preview at the immutable
+  YNX-domain URL ending in `89286b8a-macos-arm64-unsigned.zip`: SHA-256
+  `14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448`,
+  177,937,024 bytes. The earlier `472c9bac` candidate was removed because its
+  SBOM did not inventory the complete desktop dependency closure.
+- Public Web and Windows remain the older API Studio generation. This package
+  is not notarized, Developer ID signed, production released or evidence that
+  the public BFT deployment gate has opened.
+
 ## 2026-08-10 live YNX Chain tools candidate
 
 - Replaced the obsolete injected-provider `/wallet-auth/challenges` and
@@ -121,7 +143,7 @@
 - Bound 15/15 current-source browser checks and six screenshot SHA-256 values to clean pushed commit `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`.
 - Verified keyboard-first skip navigation, editor focus, roving panel tabs, Chromium accessibility-tree roles/names/live regions, a 3 px visible focus ring, Light/Dark, reduced motion, exact 390 px no-overflow, inert mobile drawers, single-column mobile API Studio, Arabic RTL with code/JSON LTR, large text and a 200% page scale.
 - Developer Web now passes 24/24 locally and on current-source Windows CI, including release-manifest/provenance/metadata consistency and the extensible toolchain lifecycle. Static claim/workflow check remains passed.
-- Rebuilt both current-source desktop Testnet Preview artifacts from `f179654dd6e1361711ee480e2c6f3f614ad38002`: macOS ZIP SHA-256 `172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a` (48,253,431 bytes) and Windows ZIP SHA-256 `5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822` (114,789,406 bytes).
+- Rebuilt the then-current API Studio-generation desktop Testnet Preview artifacts from `f179654dd6e1361711ee480e2c6f3f614ad38002`: macOS ZIP SHA-256 `172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a` (48,253,431 bytes) and Windows ZIP SHA-256 `5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822` (114,789,406 bytes). The macOS package was superseded by the full YNX Code build above.
 - Windows run `31288684378` passed 22 client tests, 24 Web tests, compile, provenance, native self-test, Authenticode `NotSigned`, portable extraction, WPF cold launch, bundled server observation and cleanup. Artifact `9030699361` remains transient, while the exact inner ZIP is hosted at the YNX-domain download URL.
 - YNX AI Build now defaults to the server-hosted `qwen3:4b` open model with a two-active/32-queued concurrency boundary; xAI and OpenAI bring-your-own-key providers are allowlisted and request-only.
 - Desktop packages now include npm, persist isolated per-project dependencies across restarts, and run check/test tasks under Node permissions; macOS adds an outer operating-system sandbox.

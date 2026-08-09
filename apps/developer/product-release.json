@@ -1,10 +1,10 @@
 {
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
-  "branch": "codex/developer-hosted-preview-metadata",
-  "commit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+  "branch": "codex/ynx-code-platform-v1",
+  "commit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
   "version": "0.2.0",
-  "sourceCheckpoint": "extension-workspace-production-monaco-and-current-desktop-packages-2026-08-09",
+  "sourceCheckpoint": "full-ynx-code-macos-package-with-complete-sbom-2026-08-10",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -35,13 +35,27 @@
     "https://developer.ynxweb4.com/chain/status"
   ],
   "artifactUrls": [
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-macos-arm64-unsigned.zip",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-89286b8a-macos-arm64-unsigned.zip",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-windows-x64-unsigned.zip",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json"
   ],
   "featureStatus": {
+    "ynxCodePlatform": {
+      "macosArm64Current": true,
+      "webCurrent": false,
+      "windowsCurrent": false,
+      "sourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+      "capabilities": [
+        "React, TypeScript and Monaco multi-file workbench with tabs, split and diff views, search, replace, command palette, shortcuts and themes",
+        "JavaScript, TypeScript, Python, Rust, Go, C++ and Solidity compile or test runtimes with bounded process execution",
+        "PTY terminal, Git, extensions, debugging, project memory, model routing, permissioned engineering agents and collaboration services",
+        "YNX Chain inspection, Wallet-authenticated deployment review, contract templates and receipt-bound transaction debugging"
+      ],
+      "verification": "Extracted official ZIP passed embedded provenance, 267-component CycloneDX SBOM, strict ad-hoc signing, cold launch, JavaScript/C++ toolchain detection, real bounded C++ compilation, workspace save, child cleanup and persisted second launch.",
+      "publicBoundary": "The official macOS arm64 direct download is current. The public Web IDE and Windows package are older API Studio generation surfaces and must not be described as this full YNX Code build."
+    },
     "apiStudio": {
       "implementedLocal": true,
       "testedLocal": true,
@@ -63,7 +77,7 @@
         "sameOriginProxy": "passed",
         "placeholderGate": "passed with grep fallback because rg was unavailable",
         "credentialLeakGate": "passed with grep fallback because rg was unavailable",
-        "macosCurrentSourcePackage": "source f179654dd6e1361711ee480e2c6f3f614ad38002: embedded provenance, extracted self-test, ad-hoc classification, cold launch, public chain/compiler connection, package installation, permission-bounded tests, second runtime launch and dependency persistence passed",
+        "macosCurrentSourcePackage": "source 89286b8a6e302c75bd398dd9bf8f2f26160248a6: full YNX Code resources, 267-component SBOM, extracted self-test, ad-hoc classification, cold launch, JavaScript/C++ toolchains, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed",
         "windowsCurrentSourcePackage": "GitHub Actions run 31288684378 for source f179654dd6e1361711ee480e2c6f3f614ad38002: 22 client tests, 24 Web tests, compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed",
         "browserAccessibilityAudit": "15/15 checks and six hashed screenshots passed on Chrome 151 from clean source 98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5"
       },
@@ -114,19 +128,19 @@
     "publicBrowserVerification": "live chain height, twelve-language selector, IDE landmarks and bounded AI/provider state verified in the in-app browser on 2026-08-03"
   },
   "sha256": {
-    "macosArm64UnsignedZip": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
+    "macosArm64UnsignedZip": "14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448",
     "windowsX64UnsignedZip": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822"
   },
   "bytes": {
-    "macosArm64UnsignedZip": 48253431,
+    "macosArm64UnsignedZip": 177937024,
     "windowsX64UnsignedZip": 114789406
   },
   "artifactSourceCommits": {
-    "macosArm64UnsignedZip": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+    "macosArm64UnsignedZip": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
     "windowsX64UnsignedZip": "f179654dd6e1361711ee480e2c6f3f614ad38002"
   },
   "artifactRuntimeCheckpoints": {
-    "macosArm64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+    "macosArm64UnsignedZip": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
     "windowsX64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551"
   },
   "signingClass": {
@@ -142,14 +156,14 @@
     {
       "surface": "macos-arm64-testnet-preview",
       "class": "local-extracted-zip",
-      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
-      "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
-      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "artifactSha256": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
-      "artifactBytes": 48253431,
-      "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
+      "sourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+      "sourceTree": "c6d83999d4da084784e3990bd23b3b320ed0c567",
+      "runtimeCheckpoint": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+      "artifactSha256": "14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448",
+      "artifactBytes": 177937024,
+      "sbomSha256": "26c03adeea1121319cf73b1eea402fdba0a718dd31c2e188d6168610c7146bff",
       "provenanceEmbedded": true,
-      "result": "embedded source/tree/runtime/SBOM provenance, resource self-test, strict ad-hoc classification, real GUI cold launch, public chain/compiler connection, npm package installation, permission-bounded test, second runtime launch, dependency persistence and child cleanup passed"
+      "result": "full YNX Code resources, embedded source/tree/runtime/SBOM provenance, 267-component SBOM, resource self-test, strict ad-hoc classification, real GUI cold launch, JavaScript/C++ toolchain discovery, real bounded C++ compilation, workspace save, second runtime launch, workspace persistence and child cleanup passed"
     },
     {
       "surface": "windows-x64-testnet-preview",
@@ -172,22 +186,22 @@
   ],
   "centralIntegration": {
     "status": "not-integrated",
-    "walletRegistry": "exact ynx-developer-v1 binding is delivered in the handoff but is not merged/deployed centrally",
+    "walletRegistry": "exact ynx-developer-v1 Wallet binding, callback and session/deployment proofs are implemented and jointly tested; the remote candidate advertises the registration but public readiness and public BFT submission remain independently closed",
     "aiGateway": "Public Web IDE defaults to the YNX-hosted qwen3:4b open-model service with two active generations and a queue of 32; xAI/OpenAI bring-your-own keys are request-only and browser JavaScript never persists them",
     "walletDeploymentProvider": "not present; UI fails closed and never uses a local key or unsigned deploy bypass",
     "apiCredentialBroker": "host contract is implemented and tested, but no central broker or provider credential is connected"
   },
   "knownLimitations": [
     "The Web IDE is a public Testnet preview; it is not a production or Mainnet development service.",
-    "Immutable GitHub pre-release URLs exist for both unsigned Testnet Preview packages; the separate Windows Actions artifact still expires after 14 days and is not the public release source.",
+    "Immutable YNX-domain direct URLs exist for both unsigned Testnet Preview packages; the separate Windows Actions artifact expires and is not the public download source.",
     "No Developer ID, notarization, Authenticode, signed installer, signed updater or store release exists.",
-    "No central Wallet registry/provider integration or real Wallet-signed deployment was performed.",
+    "Exact Wallet registration, sign-in and receipt-bound deployment are implemented and jointly tested in current Developer and Wallet source, but public BFT IDE submission remains disabled pending identified custody approval and public cutover authorization.",
     "YNX-hosted qwen3:4b AI is enabled through a bounded managed session; it is a small Testnet coding model, can queue under load, and its output must be reviewed before any write.",
     "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
-    "Current-source API Studio is installed and cold-launched in local macOS arm64 and Windows x64 unsigned Testnet Previews; neither is a public, notarized, Authenticode-signed or production release.",
-    "The GitHub pre-release now hosts immutable unsigned Testnet Preview assets; the separate Windows Actions artifact remains transient and must not replace the release asset URL.",
+    "The current full YNX Code build is installed and cold-launched on macOS arm64 only. Public Web and Windows downloads remain the older API Studio generation and are not evidence for the full current platform.",
+    "The GitHub pre-release is historical release evidence; current public CTAs must use the immutable YNX-domain downloads, and the transient Windows Actions artifact must not replace them.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The Web IDE now executes pinned solc 0.8.24 in isolated workers and returns real ABI and EVM bytecode. Compilation does not imply that arbitrary EVM deployment is supported by YNX Testnet; deployment requires Wallet authorization and an authoritative receipt."
   ],
-  "generatedAt": "2026-08-09T10:00:00+08:00"
+  "generatedAt": "2026-08-10T07:06:50+08:00"
 }

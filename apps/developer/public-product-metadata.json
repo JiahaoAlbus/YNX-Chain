@@ -4,8 +4,8 @@
   "productId": "ynx-developer-v1",
   "productName": "YNX Developer / YNX AI Build",
   "version": "0.2.0",
-  "branch": "codex/developer-hosted-preview-metadata",
-  "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+  "branch": "codex/ynx-code-platform-v1",
+  "sourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
   "officialDomain": "https://ynxweb4.com",
   "canonicalPath": "/developer",
   "canonicalUrl": "https://ynxweb4.com/developer",
@@ -22,7 +22,7 @@
     "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
     "prerelease": true
   },
-  "summary": "A bounded Web IDE and native Testnet Preview for YNX Chain projects, API Studio workflows, permissioned AI Build and Wallet-only deployment review.",
+  "summary": "The current macOS arm64 Testnet Preview packages the full React, Monaco and service-based YNX Code workbench. The public Web IDE and Windows download remain the earlier API Studio generation until their separately verified replacement.",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -43,12 +43,15 @@
       "independentCertification": false
     },
     "macosArm64": {
-      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
-      "sha256": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
-      "bytes": 48253431,
+      "sourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+      "sha256": "14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448",
+      "bytes": 177937024,
+      "sbomSha256": "26c03adeea1121319cf73b1eea402fdba0a718dd31c2e188d6168610c7146bff",
+      "sbomComponents": 267,
       "signingClass": "adhoc-no-team-id",
       "hosted": true,
-      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-macos-arm64-unsigned.zip"
+      "currentFullPlatform": true,
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-89286b8a-macos-arm64-unsigned.zip"
     },
     "windowsX64": {
       "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
@@ -59,6 +62,7 @@
       "bytes": 114789406,
       "signingClass": "unsigned-no-authenticode",
       "hosted": true,
+      "currentFullPlatform": false,
       "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-windows-x64-unsigned.zip"
     }
   },
@@ -67,7 +71,7 @@
     "production": false,
     "downloadHosted": true,
     "immutableArtifactUrls": [
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-macos-arm64-unsigned.zip",
+      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-89286b8a-macos-arm64-unsigned.zip",
       "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-windows-x64-unsigned.zip",
       "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
       "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
@@ -116,5 +120,5 @@
     "storeReleased": false,
     "mainnetReleased": false
   },
-  "generatedAt": "2026-08-09T10:00:00+08:00"
+  "generatedAt": "2026-08-10T07:06:50+08:00"
 }

@@ -3,29 +3,38 @@
   "productId": "ynx-developer-v1",
   "version": "0.2.0",
   "releaseClass": "unsigned-testnet-preview",
-  "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
-  "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
-  "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+  "sourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+  "sourceTree": "c6d83999d4da084784e3990bd23b3b320ed0c567",
+  "runtimeCheckpoint": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
   "artifacts": [
     {
       "name": "ynx-developer-testnet-preview-macos-unsigned.zip",
       "platform": "macos-arm64",
-      "sha256": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
-      "bytes": 48253431,
-      "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
+      "sourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+      "sourceTree": "c6d83999d4da084784e3990bd23b3b320ed0c567",
+      "runtimeCheckpoint": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+      "sha256": "14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448",
+      "bytes": 177937024,
+      "sbomSha256": "26c03adeea1121319cf73b1eea402fdba0a718dd31c2e188d6168610c7146bff",
       "signingClass": "adhoc-no-team-id",
       "verification": [
         "embedded source/tree/runtime/SBOM provenance",
         "extracted resource self-test",
         "strict ad-hoc and no-Team-ID classification",
+        "267-component CycloneDX inventory",
         "real GUI cold launch",
-        "bundled server observation",
-        "child cleanup"
+        "JavaScript and C++ toolchain discovery",
+        "real bounded C++ compilation",
+        "workspace save and persisted second launch",
+        "bundled server observation and child cleanup"
       ]
     },
     {
       "name": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
       "platform": "windows-x64",
+      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+      "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
+      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "sha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
       "bytes": 114789406,
       "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
@@ -67,5 +76,5 @@
     "deployedPublic": false,
     "mainnetReleased": false
   },
-  "generatedAt": "2026-08-09T02:00:00Z"
+  "generatedAt": "2026-08-09T23:06:50Z"
 }

@@ -9,10 +9,10 @@
     "owner": "11-developer"
   },
   "source": {
-    "branch": "codex/final-developer",
-    "commit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-    "releaseCandidateCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
-    "generatedAt": "2026-08-09T02:00:00Z"
+    "branch": "codex/ynx-code-platform-v1",
+    "commit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+    "releaseCandidateCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+    "generatedAt": "2026-08-09T23:06:50Z"
   },
   "walletBinding": {
     "productClientId": "ynx-developer-v1",
@@ -45,10 +45,12 @@
       "macosArm64": true,
       "windowsX64": true
     },
-    "macosArtifactSourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
-    "macosArtifactSourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
-    "macosArtifactSha256": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
-    "macosArtifactBytes": 48253431,
+    "macosArtifactSourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+    "macosArtifactSourceTree": "c6d83999d4da084784e3990bd23b3b320ed0c567",
+    "macosArtifactRuntimeCheckpoint": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+    "macosArtifactSha256": "14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448",
+    "macosArtifactBytes": 177937024,
+    "macosArtifactSbomSha256": "26c03adeea1121319cf73b1eea402fdba0a718dd31c2e188d6168610c7146bff",
     "windowsArtifactSourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
     "windowsArtifactSourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
     "windowsArtifactRuntimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",

@@ -40,7 +40,7 @@
   failure simulation and generation: `API_STUDIO.md`
 - API Studio core tests: `packages/developer-client/test/api-studio.test.js`
 - API Studio Web boundary tests: `apps/developer/test/api-studio-ui.test.js`
-- Current runtime source checkpoint: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
+- Current full YNX Code macOS source checkpoint: `89286b8a6e302c75bd398dd9bf8f2f26160248a6`
 - Current browser-evidence harness source: `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`
 - Current targeted verification: Developer client 22/22 and Developer Web 24/24 both locally and on current-source Windows CI, browser syntax, static claim/workflow, standalone Web build, live compile, same-origin proxy, desktop sandbox 2/2, Windows source boundary and current-source Chrome accessibility audit 15/15.
 - Validation-gate evidence: `scripts/validate/no-placeholder-check.sh` and `scripts/validate/secret-scan.sh` execute a verified fallback when `rg` is unavailable; scanner execution errors fail closed.
@@ -62,18 +62,17 @@ independent accessibility certification or installed-desktop recapture.
 
 - macOS build: `scripts/package-local-macos.sh`
 - macOS extracted install/cold start: `scripts/verify-local-macos-package.sh`
-- Current macOS source commit: `f179654dd6e1361711ee480e2c6f3f614ad38002`
-- Current macOS source tree: `35b05e1a86d39083cc6aa6393be436df3d4f8aca`
-- Current macOS runtime checkpoint: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
-- Current macOS ZIP: SHA-256 `172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a`, 48,253,431 bytes, `adhoc-no-team-id`, hosted by `developer.ynxweb4.com`
-- Embedded SBOM SHA-256: `801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12`
+- Current macOS source commit/runtime checkpoint: `89286b8a6e302c75bd398dd9bf8f2f26160248a6`
+- Current macOS source tree: `c6d83999d4da084784e3990bd23b3b320ed0c567`
+- Current full YNX Code macOS ZIP: SHA-256 `14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448`, 177,937,024 bytes, `adhoc-no-team-id`, hosted at the immutable `89286b8a` YNX-domain URL.
+- Embedded 267-component SBOM SHA-256: `26c03adeea1121319cf73b1eea402fdba0a718dd31c2e188d6168610c7146bff`
 - Windows build: `scripts/package-windows.ps1`
 - Windows portable install/cold start: `scripts/verify-windows-package.ps1`
 - Windows host workflow: `.github/workflows/developer-windows.yml`
-- Successful current-source Windows host run:
+- Successful historical API Studio-generation Windows host run:
   `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31288684378`
 - Windows source `f179654dd6e1361711ee480e2c6f3f614ad38002`, job `93182036170`, transient Artifact `9030699361`, inner ZIP SHA-256 `5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822`, outer digest `sha256:803db91ca14d594c9665181a49cc80488f2c51f0ff0776d0eead714f4ccb076a`; the transient Actions artifact expires `2026-08-23T01:39:57Z`, while the exact inner ZIP is hosted by the YNX download domain.
-- Current macOS source `f179654dd6e1361711ee480e2c6f3f614ad38002`, ZIP SHA-256 `172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a`, 48,253,431 bytes; extracted self-test/cold-launch/cleanup, public chain/compiler connection, dependency install, permission-bounded test and second runtime launch passed.
+- Current macOS source `89286b8a6e302c75bd398dd9bf8f2f26160248a6`, ZIP SHA-256 `14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448`, 177,937,024 bytes; extracted provenance/SBOM/signing checks, cold launch, JavaScript/C++ toolchain discovery, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed. The Windows artifact above is not the current full YNX Code build.
 
 ## Supply chain
 

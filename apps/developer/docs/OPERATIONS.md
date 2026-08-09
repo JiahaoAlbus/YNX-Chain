@@ -11,6 +11,11 @@ packager refuses tracked uncommitted Developer changes and embeds source commit,
 Git tree, runtime checkpoint, platform/signing class and SBOM SHA-256. Record the
 final ZIP SHA-256 and bytes externally because a package cannot embed its own
 non-circular final digest.
+The verifier must launch the extracted App twice, require a real bounded C++
+compile, prove workspace persistence, verify child cleanup and require a
+complete CycloneDX inventory containing the bundled Node/npm runtime and native
+dependencies. A package that only passes static resource inspection is not
+eligible for the official direct-download URL.
 Windows packaging and cold launch run on a real Windows host through
 `developer-windows.yml`; use its JSON evidence and artifact checksum, never the
 macOS structural source check, for Windows claims.
