@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-09T04:22:49Z",
+  "network": "ynx_6423-1",
+  "runtime": {
+    "url": "https://finance.ynxweb4.com/health",
+    "method": "GET",
+    "httpStatus": 200,
+    "contentType": "application/json; charset=utf-8",
+    "response": {
+      "chainId": "ynx_6423-1",
+      "custody": "none",
+      "nativeSymbol": "YNXT",
+      "observabilityVersion": "finance-observability-v1",
+      "ok": true,
+      "portfolio": "read-only",
+      "service": "ynx-finance",
+      "truthfulStatus": "runtime-upstream-backed",
+      "version": "1.2.0"
+    }
+  },
+  "androidArtifact": {
+    "url": "https://www.ynxweb4.com/downloads/ynx-finance-1.2.0-testnet-preview-307273b9-test-signed.apk",
+    "method": "HEAD",
+    "httpStatus": 200,
+    "contentType": "application/vnd.android.package-archive",
+    "bytes": 77516038,
+    "etag": "01b8c69e4b6462aec5d0deddc732138d-10",
+    "sha256FromInstalledReleaseEvidence": "c795f8b5e94ca51b40844f9c736b281a407a709bfc384e0dc7c5cdd215e60dc1",
+    "signingClass": "android-test-signed-testnet-preview"
+  },
+  "truthBoundary": "The runtime and hosted Testnet Preview are publicly reachable. This probe is not production signing, store release, iOS installation, final Wallet approval, complete portfolio-source integration, or a production availability claim."
+}
