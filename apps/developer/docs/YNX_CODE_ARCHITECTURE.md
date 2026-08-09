@@ -272,13 +272,24 @@ Roles are isolated executions over one shared run ledger:
 
 The first server-side Agent gate is implemented in
 `services/agent-orchestrator`. Planner output is schema-validated and must be
-approved before exact context paths are captured. Coder proposals contain full,
-bounded workspace-relative files; a separate Reviewer decision is required;
+approved before exact context paths are captured. Coder output uses compact,
+structured find/replace operations bound to the approved file's SHA-256 digest;
+the server requires each source fragment to match exactly once before it
+materializes the full reviewable file. A separate Reviewer decision is required,
 and apply requires an explicit `write-once` approval plus the unchanged captured
 workspace revision. Runs and events persist in SQLite WAL with a SHA-256 hash
-chain. Execute, Tester evidence, package, Git, browser and deployment tools stay
-disabled until each permission adapter passes its own gate; the UI does not
-describe those stages as completed.
+chain. After apply, the Tester can run one explicitly selected supported entry
+file through the same bounded runtime with an `execute-once` approval; its raw
+compiler/runtime result and sandbox metadata are appended to the audit chain.
+Reviewer-blocked proposals can be regenerated against the exact findings
+without widening the approved file set. Failed Tester evidence can likewise
+produce a new digest-bound fix, but every revision is reviewed and needs a new
+write approval. Role responses use JSON mode, role-specific output ceilings and
+strict schema validation; harmless model formatting is normalized only when it
+resolves to one unique already-approved path.
+Package, Agent Git, browser and deployment tools stay disabled until each
+permission adapter passes its own gate; the UI does not describe those stages
+as completed.
 
 Tools are versioned: `read_file`, `write_file`, `edit_file`, `delete_file`,
 `search_code`, `terminal`, `git`, `browser` and `deploy`. Each call binds run,
@@ -303,6 +314,15 @@ concurrency and queues are bounded. Arbitrary provider URLs are rejected and
 credentials are excluded from returned results and the Agent ledger. Llama and
 DeepSeek remain supported model families, not advertised hosted instances,
 until an operator configures and health-checks reviewed local deployments.
+
+The current Linux candidate gate uses hosted `qwen3:8b` for structured coding
+roles. On 2026-08-09 a fresh C++ workspace completed Planner, Coder and Reviewer,
+then applied one approved patch and compiled/executed it with
+`x86_64-linux-gnu-g++-13` inside the `linux-bubblewrap-prlimit` network-disabled
+sandbox. The program emitted `2` and the run persisted seven hash-linked audit
+events. `qwen2.5:1.5b` failed the coding-quality gate and is not a coding default;
+`qwen3:14b` exceeded the acceptable CPU-only interactive latency and is reserved
+for an explicitly selected deep task until accelerated capacity exists.
 
 Project memory contains a versioned symbol/reference graph, architecture facts,
 API schemas, decisions, test history and user-approved preferences. Embeddings

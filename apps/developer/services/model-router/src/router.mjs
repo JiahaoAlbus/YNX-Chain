@@ -151,6 +151,8 @@ export function createModelRouter({
         prompt: `${input.system}\n\n${input.prompt}`,
         outputLanguage: input.outputLanguage,
         attachments: [],
+        maxOutputTokens: input.maxOutputTokens,
+        responseFormat: input.responseFormat,
       }),
       signal: AbortSignal.timeout(timeoutMs),
     });
@@ -230,7 +232,8 @@ function validateRequest(value) {
     outputLanguage: /^[a-z]{2}(?:-[A-Z]{2})?$/.test(value.outputLanguage || "")
       ? value.outputLanguage
       : "en",
-    maxOutputTokens: Math.max(128, Math.min(Number(value.maxOutputTokens || 4096), 8192)),
+    maxOutputTokens: Math.max(128, Math.min(Number(value.maxOutputTokens || 2048), 8192)),
+    responseFormat: value.responseFormat === "json" ? "json" : undefined,
   };
 }
 

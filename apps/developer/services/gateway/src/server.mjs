@@ -52,6 +52,7 @@ const agentOrchestrator = createAgentOrchestrator({
   workspaceStore,
   modelRouter,
   projectMemory,
+  workspaceRuntime: runtime,
 });
 const server = createServer(
   createGateway({
