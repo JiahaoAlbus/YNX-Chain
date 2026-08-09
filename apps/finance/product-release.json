@@ -13,7 +13,7 @@
     "android": true,
     "ios": false
   },
-  "integratedCentral": true,
+  "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": true,
   "downloadHosted": true,
@@ -23,7 +23,7 @@
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": true,
-    "integratedCentral": true,
+    "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": true,
     "downloadHosted": true,
@@ -101,7 +101,12 @@
     "envelopeVersion": "finance-source-read-envelope-v1",
     "schema": "release/integration/finance-source-read-envelope.schema.json",
     "contractStatus": "consumer-proposal",
-    "ownerContractsAccepted": {"exchange": false, "dex": false, "quant": false, "economics": false},
+    "ownerContractsAccepted": {
+      "exchange": false,
+      "dex": false,
+      "quant": false,
+      "economics": false
+    },
     "integratedCentral": false,
     "readOnly": true,
     "wrongBindingRejected": true,
