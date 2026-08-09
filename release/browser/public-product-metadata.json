@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "ynx-public-product-metadata/v1",
+  "productId": "22",
+  "product": "YNX Browser",
+  "slug": "browser",
+  "owner": "22-browser",
+  "sourceCommit": "96dfc528ddd62cb3ec3a574d7f1a5ae37e99ad44",
+  "canonicalRoute": "/browser",
+  "title": "YNX Browser — Private browsing with explicit Wallet review",
+  "metaDescription": "Browse with platform-native engines, isolated private state and exact Wallet review boundaries.",
+  "h1": "Browsing that keeps signing authority in Wallet",
+  "features": [
+    "Platform-native browser engines",
+    "Isolated normal and private state",
+    "Exact Wallet review and callback binding",
+    "Permission and download mediation",
+    "Crash recovery and selective data deletion"
+  ],
+  "risks": [
+    "The current macOS preview is ad-hoc signed and not notarized.",
+    "Windows and positive shared-Testnet Wallet callback evidence remain incomplete; the central-candidate macOS build is arm64 only.",
+    "Older copies with the same Bundle ID can retain the ynxbrowser protocol registration and must be removed or unregistered before callback use.",
+    "No hosted artifact, public deployment or store release is claimed."
+  ],
+  "status": {
+    "channel": "integration-candidate",
+    "publiclyAvailable": false,
+    "productionSigned": false
+  },
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "faq": [
+    {
+      "question": "Can YNX Browser sign transactions?",
+      "answer": "No. It constructs bounded requests and hands the exact review to Wallet."
+    },
+    {
+      "question": "Is the macOS build production signed?",
+      "answer": "No. The current arm64 Testnet Preview is ad-hoc signed, rejected by Gatekeeper and not notarized."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "type": "SoftwareApplication",
+    "applicationCategory": "BrowserApplication",
+    "operatingSystem": "macOS, Windows, Android, iOS"
+  }
+}

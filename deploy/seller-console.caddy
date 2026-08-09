@@ -1,0 +1,4 @@
+seller.ynxweb4.com {
+  redir / /seller/ 302
+  reverse_proxy 127.0.0.1:18095
+}

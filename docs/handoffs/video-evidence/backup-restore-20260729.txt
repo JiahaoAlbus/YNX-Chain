@@ -1,0 +1,72 @@
+YNX Video current-source backup and restore drill
+Timestamp (UTC): 2026-07-29
+Workspace: /Users/huangjiahao/Desktop/YNX Final Worktrees/33-video
+Branch: codex/final-video
+Source commit: 3c7ea829e31278d9728f75c155cceab152e3d16a
+Scope: initialized local state store with no production traffic or durable remote object store
+Ephemeral test integrity key: used locally and intentionally omitted from evidence
+
+BUILD
+
+$ go build -o /tmp/ynx-video-server-33 ./internal/video/cmd
+exit: 0
+
+$ go build -o /tmp/ynx-video-recover-33 ./internal/video/cmd/video-recover
+exit: 0
+
+INITIALIZATION
+
+The current-source server opened a new local store and reached:
+2026/07/29 11:07:28 YNX Video listening on 127.0.0.1:0
+The process was terminated by the bounded verification timeout after initialization.
+
+BACKUP
+
+$ /usr/bin/time -p ... video-recover backup
+verified backup created
+real 0.47
+user 0.00
+sys 0.01
+exit: 0
+
+RESTORE
+
+$ /usr/bin/time -p ... video-recover restore
+verified backup restored
+real 1.15
+user 0.00
+sys 0.01
+exit: 0
+
+HASH AND SIZE VERIFICATION
+
+source state.json:
+  bytes: 418
+  sha256: d10b2e736c2e0ae632bd44853d1bfee71a2699dce1dca07e8677c0e98abf1774
+
+restored state.json:
+  bytes: 418
+  sha256: d10b2e736c2e0ae632bd44853d1bfee71a2699dce1dca07e8677c0e98abf1774
+
+backup archive:
+  bytes: 467
+  sha256: 88fc291cc41a7a5499b0c2132b02d4b3e524556b92e0917a3bbe3e5e4faf4f50
+
+REOPEN VERIFICATION
+
+The current-source server reopened the restored directory with the same ephemeral test integrity key and reached:
+2026/07/29 11:09:09 YNX Video listening on 127.0.0.1:0
+The process was terminated by the bounded verification timeout after successful open and integrity validation.
+
+MEASURED LOCAL BOUNDARY
+
+backupDurationSeconds: 0.47
+restoreDurationSeconds: 1.15
+localMeasuredRPO: zero state-file divergence for this completed snapshot
+localMeasuredRTOSeconds: 1.15 for CLI restore plus process startup overhead not included
+restoreVerifiedLocal: true
+productionRestoreVerified: false
+
+TRUTH BOUNDARY
+
+This is direct current-source evidence for the release-owned CLI against a minimal initialized local store. It is not a production backup, populated media-object recovery, remote durable object-store restore, HA failover, large-data capacity result or operator-approved disaster-recovery exercise. No production RTO/RPO claim is made.

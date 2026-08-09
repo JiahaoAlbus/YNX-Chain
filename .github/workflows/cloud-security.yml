@@ -1,0 +1,109 @@
+name: Cloud security and recovery gates
+
+on:
+  push:
+    branches: [codex/final-cloud]
+    paths:
+      - 'apps/cloud/**'
+      - 'apps/docs/**'
+      - 'internal/cloud/**'
+      - 'infra/docker/cloud-compose.yml'
+      - 'infra/docker/ynx-cloudd.Dockerfile'
+      - 'infra/docker/ynx-cloudd.Dockerfile.dockerignore'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/cloud-security.yml'
+  pull_request:
+    paths:
+      - 'apps/cloud/**'
+      - 'apps/docs/**'
+      - 'internal/cloud/**'
+      - 'infra/docker/cloud-compose.yml'
+      - 'infra/docker/ynx-cloudd.Dockerfile'
+      - 'infra/docker/ynx-cloudd.Dockerfile.dockerignore'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/cloud-security.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  security-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Static security, dependency, SBOM, script, and artifact gate
+        run: node apps/cloud/scripts/security-gate.mjs
+      - name: Cloud control-plane tests
+        run: go test ./internal/cloud ./apps/cloud/cmd/ynx-cloudd
+      - name: Cloud Web, SDK, accessibility, and product-boundary gates
+        run: |
+          npm --prefix apps/cloud test
+          npm --prefix apps/cloud run check
+      - name: Build and cold-start least-privilege Cloud container
+        run: |
+          set -eu
+          cleanup() {
+            docker rm -f ynx-cloudd-ci >/dev/null 2>&1 || true
+            docker volume rm ynx-cloud-ci >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker build -f infra/docker/ynx-cloudd.Dockerfile -t ynx-cloudd:ci .
+          docker run -d --name ynx-cloudd-ci \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=16m \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            -v ynx-cloud-ci:/var/lib/ynx-cloud \
+            -p 127.0.0.1:18092:8092 \
+            -e YNX_RELEASE_COMMIT="$GITHUB_SHA" \
+            -e YNX_RELEASE_VERSION=ci-test \
+            ynx-cloudd:ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18092/health/live >/tmp/ynx-cloud-health.json; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs ynx-cloudd-ci
+              exit 1
+            fi
+            sleep 1
+          done
+          test "$(docker inspect --format '{{.Config.User}}' ynx-cloudd-ci)" = "10001:10001"
+          grep -q '"service":"ynx-cloudd"' /tmp/ynx-cloud-health.json
+      - name: Scan exact Cloud image for Critical and High vulnerabilities
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          image-ref: ynx-cloudd:ci
+          scan-type: image
+          scanners: vuln
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          format: json
+          output: trivy-ynx-cloud.json
+          exit-code: '1'
+          version: v0.70.0
+      - name: Preserve Cloud image vulnerability report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ynx-cloud-trivy-${{ github.sha }}
+          path: trivy-ynx-cloud.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Canonical auth, API, migration, backup, and restore DAST smoke
+        run: bash apps/cloud/scripts/smoke.sh

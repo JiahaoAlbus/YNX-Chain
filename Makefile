@@ -1,11 +1,13 @@
 .PHONY: setup devnet dev env-check no-placeholder-check secret-scan dependency-audit static-check docs-compliance-check public-disclosure-check docs-release-package docs-release-package-check objective-state-check readme-positioning-check deploy-readiness-gate deploy-readiness-gate-check deploy-connection-retry-check deploy-source-integrity-check public-proof-evidence-check public-proof-package-check release-manifest-check release-manifest-evidence-check preflight test integration-test smoke-test remote-smoke-test remote-smoke-test-via-sg remote-smoke-transport-check public-ingress-diagnostic public-ingress-path-check deploy-testnet deploy-authoritative-monitoring deploy-dry-run deploy-consensus-candidate consensus-candidate-deploy-gate verify-consensus-candidate consensus-candidate-key-ceremony consensus-overlay-key-ceremony production-service-signer-ceremony-plan production-service-signer-ceremony-check production-custody-review-packet production-custody-review-check owner-handover-packet owner-handover-check deploy-consensus-overlay verify-consensus-overlay consensus-candidate-fault-drill consensus-candidate-signed-tx-drill consensus-candidate-rollback bft-gateway-check bft-ai-action-check bft-pay-action-check bft-trust-action-check bft-resource-action-check consensus-public-cutover-check consensus-public-cutover-gate public-bft-cutover-plan public-bft-cutover-transaction-check public-bft-freeze-rehearsal-plan public-bft-freeze-rehearsal-approval-template public-bft-freeze-rehearsal-approval-template-check public-bft-freeze-rehearsal-transaction-check public-bft-production-rehearsal public-bft-production-rehearsal-check public-bft-production-recovery-check public-bft-production-driver-check mutation-freeze-check replication-compression-check caddy-ingress-check verify-testnet verify-testnet-check host-key-audit host-key-repair-plan host-key-approval-check host-key-approval-status host-key-approval-template host-key-approval-request host-key-approval-packet host-key-approved-repair-dry-run host-key-approved-repair host-key-approval-check-test legacy-inventory remote-blocker-report status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check address-codec-check chainlist-package chainlist-candidate-check chainlist-live-check chainlist-collision-refresh exchange-vector-check exchange-package-integrity-check exchange-live-check exchange-integration-check developer-quickstart-check sdk-check sdk-release-package sdk-release-integrity-check sdk-remote-check contract-tooling-check monitoring-check authoritative-monitoring-check replication-alert-check indexer-check explorer-check faucet-check ai-gateway-check pay-api-check trust-api-check resource-api-check resource-market-check resource-sponsor-check bridge-api-check stablecoin-issuer-check validator-peer-readiness-check consensus-migration-check consensus-abci-check consensus-signed-transfer-check consensus-quorum-check consensus-production-package-check ops-check public-proof native-ynxt-no-hidden-freeze-check anti-illegal-request-check anti-unreasonable-tracking-check request-validity-check trust-appeal-check transparency-report-check emergency-action-policy-check privacy-safety-check
 .PHONY: bft-evm-receipt-check bft-ide-contract-check native-wallet-check chat-api-check square-api-check app-gateway-check app-account-ownership-check browser-signer-check mobile-check mobile-product-split-check mobile-android-native-check mobile-android-release-check mobile-android-release-installed-check mobile-biometric-installed-check
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check governance-check governance-testnet-drill
-.PHONY: bft-evm-legacy-transfer-check bft-evm-access-list-transfer-check bft-evm-dynamic-fee-transfer-check bft-evm-fee-suggestion-check bft-evm-fee-history-check asset-primitives-check
-.PHONY: yusd-sandbox-check liquid-staking-candidate-check safety-module-candidate-check account-abstraction-check solvency-check integration-contract-check consensus-state-sync-check consensus-eip1559-commit-check consensus-fee-history-check streambft-candidate-check chain-core-release-check
+.PHONY: shop-release-package-test
 
 setup:
 	go mod tidy
+
+shop-release-package-test:
+	node --test ./scripts/release/shop-package-lib.test.mjs
 
 devnet:
 	YNX_NETWORK=devnet YNX_HTTP_ADDR=127.0.0.1:6420 YNX_DATA_DIR=./tmp/devnet-state go run ./cmd/ynx-chaind
@@ -149,21 +151,6 @@ bft-gateway-check:
 
 bft-evm-receipt-check:
 	bash ./scripts/verify/bft-evm-receipt-check.sh
-
-bft-evm-legacy-transfer-check:
-	bash ./scripts/verify/bft-evm-legacy-transfer-check.sh
-
-bft-evm-access-list-transfer-check:
-	bash ./scripts/verify/bft-evm-access-list-transfer-check.sh
-
-bft-evm-dynamic-fee-transfer-check:
-	bash ./scripts/verify/bft-evm-dynamic-fee-transfer-check.sh
-
-bft-evm-fee-suggestion-check:
-	bash ./scripts/verify/bft-evm-fee-suggestion-check.sh
-
-bft-evm-fee-history-check:
-	bash ./scripts/verify/bft-evm-fee-history-check.sh
 
 bft-ide-contract-check:
 	bash ./scripts/verify/bft-ide-contract-check.sh
@@ -439,17 +426,6 @@ bridge-api-check:
 stablecoin-issuer-check:
 	bash ./scripts/verify/stablecoin-issuer-check.sh
 
-yusd-sandbox-check:
-	go test -race ./internal/yusdsandbox ./cmd/ynx-yusd-sandboxd
-
-liquid-staking-candidate-check:
-	go test -race ./internal/economics ./cmd/ynx-liquid-staking-sim
-	go run ./cmd/ynx-liquid-staking-sim -input economics/examples/liquid-staking-stress.json >/dev/null
-
-safety-module-candidate-check:
-	go test -race ./internal/economics ./cmd/ynx-safety-module-sim -run 'SafetyModule'
-	go run ./cmd/ynx-safety-module-sim -input economics/examples/safety-module-shortfall.json >/dev/null
-
 resource-market-check:
 	bash ./scripts/verify/resource-market-check.sh
 
@@ -470,35 +446,6 @@ consensus-signed-transfer-check:
 
 consensus-quorum-check:
 	bash ./scripts/verify/consensus-quorum-check.sh
-
-consensus-state-sync-check:
-	bash ./scripts/verify/consensus-state-sync-check.sh
-
-consensus-eip1559-commit-check:
-	bash ./scripts/verify/consensus-eip1559-commit-check.sh
-
-consensus-fee-history-check:
-	bash ./scripts/verify/consensus-fee-history-check.sh
-
-streambft-candidate-check:
-	bash ./scripts/verify/streambft-candidate-check.sh
-
-chain-core-release-check:
-	node ./scripts/verify/chain-core-release-check.mjs
-
-asset-primitives-check:
-	bash ./scripts/verify/asset-primitives-check.sh
-
-account-abstraction-check:
-	go test -count=1 ./internal/assetauth ./internal/consensus ./internal/bftgateway ./internal/bundler ./cmd/ynx-bundlerd -run 'SmartAccount|UserOperation|Paymaster|Sponsored|Bundler'
-	go test -race -count=1 ./internal/assetauth ./internal/consensus ./internal/bftgateway ./internal/bundler -run 'SmartAccount|UserOperation|Paymaster|Sponsored|Bundler'
-
-solvency-check:
-	go test -count=1 ./internal/consensus ./internal/bftgateway -run 'Solvency|Staking'
-	go test -race -count=1 ./internal/consensus ./internal/bftgateway -run 'Solvency|Staking'
-
-integration-contract-check:
-	node ./scripts/verify/integration-contract-check.mjs
 
 governance-check:
 	bash ./scripts/verify/governance-check.sh

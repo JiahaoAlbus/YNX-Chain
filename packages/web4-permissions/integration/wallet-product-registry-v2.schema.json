@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ynxweb4.com/schemas/wallet-product-registry-v2.schema.json",
+  "title": "YNX Wallet product registry v2 integration entries",
+  "type": "array",
+  "minItems": 1,
+  "uniqueItems": true,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["schemaVersion", "productClientId", "requestingProduct", "bundleId", "callbacks", "scopes", "maxScopes", "productDeviceAlgorithms"],
+    "properties": {
+      "schemaVersion": { "const": 2 },
+      "productClientId": { "type": "string", "pattern": "^[a-z][a-z0-9._-]{2,63}$" },
+      "requestingProduct": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$" },
+      "bundleId": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9.-]{2,127}$" },
+      "callbacks": { "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9+.-]*://[^\\s#]+$" } },
+      "scopes": { "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z][a-z0-9._:-]{1,63}$" } },
+      "maxScopes": { "type": "integer", "minimum": 1, "maximum": 8 },
+      "productDeviceAlgorithms": { "const": ["p256-sha256"] }
+    }
+  }
+}

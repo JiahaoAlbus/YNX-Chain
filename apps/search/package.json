@@ -1,0 +1,19 @@
+{
+  "name": "@ynx/search",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js",
+    "smoke": "node scripts/smoke.mjs",
+    "test:e2e": "playwright test",
+    "check": "npm test && npm run smoke"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}

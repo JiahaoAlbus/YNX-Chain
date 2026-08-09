@@ -1,0 +1,27 @@
+[Unit]
+Description=YNX Social wallet-bound application service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-sociald.env
+ExecStart=/usr/local/bin/ynx-sociald
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/ynx-chain/social
+
+[Install]
+WantedBy=multi-user.target

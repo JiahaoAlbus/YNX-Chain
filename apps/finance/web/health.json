@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "service": "ynx-finance-web-companion",
+  "version": "1.2.0",
+  "surface": "signed-out-companion-only",
+  "financeAPI": false,
+  "walletAuth": false,
+  "implementationCommit": "54c076dae6282e4edb5a6435858a974fda325c23",
+  "truthfulStatus": "web-feasibility-only"
+}

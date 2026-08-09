@@ -2,71 +2,56 @@
 set -euo pipefail
 
 pattern='-----BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY-----|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-'
-scan_targets=(.ai-bridge .github Makefile README.md package.json configs internal cmd contracts chain-metadata scripts docs release apps)
-found=1
+scanner_path='scripts/validate/secret-scan.sh'
+scaffold_path='tools/scaffold-ynx-chain.mjs'
 
-if command -v rg >/dev/null 2>&1; then
-  if rg -n --hidden --no-messages \
-    -g '!.git/**' \
-    -g '!**/node_modules/**' \
-    -g '!**/vendor/**' \
-    -g '!**/dist/**' \
-    -g '!**/build/**' \
-    -g '!**/.next/**' \
-    -g '!**/.gradle/**' \
-    -g '!**/Pods/**' \
-    -g '!**/DerivedData/**' \
-    -g '!**/coverage/**' \
-    -g '!**/.expo/**' \
-    -g '!*.lock' \
-    -g '!*.map' \
-    -g '!*.min.js' \
-    -g '!*.wasm' \
-    -g '!tools/scaffold-ynx-chain.mjs' \
-    -g '!scripts/validate/secret-scan.sh' \
-    -e "$pattern" "${scan_targets[@]}"; then
-    found=0
-  else
-    scan_status=$?
-    if [[ "$scan_status" -ne 1 ]]; then
-      echo "credential-pattern scan failed with exit code $scan_status" >&2
-      exit "$scan_status"
-    fi
+collect_files() {
+  git ls-files --cached --others --exclude-standard -z -- . \
+    | while IFS= read -r -d '' path; do
+        case "$path" in
+          "$scanner_path"|"$scaffold_path") continue ;;
+        esac
+        printf '%s\0' "$path"
+      done
+}
+
+scan_file() {
+  local path=$1
+  if command -v rg >/dev/null 2>&1; then
+    rg -n --with-filename --no-messages -e "$pattern" -- "$path"
+    return
   fi
-else
-  echo "ripgrep unavailable; using bounded recursive grep fallback" >&2
-  if grep -RInE --binary-files=without-match \
-    --exclude='*.lock' \
-    --exclude='*.map' \
-    --exclude='*.min.js' \
-    --exclude='*.wasm' \
-    --exclude='scaffold-ynx-chain.mjs' \
-    --exclude='secret-scan.sh' \
-    --exclude-dir='.git' \
-    --exclude-dir='node_modules' \
-    --exclude-dir='vendor' \
-    --exclude-dir='dist' \
-    --exclude-dir='build' \
-    --exclude-dir='.next' \
-    --exclude-dir='.gradle' \
-    --exclude-dir='Pods' \
-    --exclude-dir='DerivedData' \
-    --exclude-dir='coverage' \
-    --exclude-dir='.expo' \
-    -- "$pattern" "${scan_targets[@]}"; then
-    found=0
-  else
-    scan_status=$?
-    if [[ "$scan_status" -ne 1 ]]; then
-      echo "credential-pattern scan failed with exit code $scan_status" >&2
-      exit "$scan_status"
-    fi
-  fi
-fi
+  grep -HInE --binary-files=without-match -e "$pattern" -- "$path"
+}
 
-if [[ "$found" -eq 0 ]]; then
-  echo "possible secret found"
-  exit 1
-fi
+scan() {
+  local path status found=1
+  while IFS= read -r -d '' path; do
+    scan_file "$path"
+    status=$?
+    case "$status" in
+      0) found=0 ;;
+      1) ;;
+      *) return "$status" ;;
+    esac
+  done < <(collect_files)
+  return "$found"
+}
 
-echo "secret scan passed"
+set +e
+scan
+status=$?
+set -e
+case "$status" in
+  0)
+    echo "possible secret found"
+    exit 1
+    ;;
+  1)
+    echo "secret scan passed"
+    ;;
+  *)
+    echo "secret scan could not complete" >&2
+    exit "$status"
+    ;;
+esac

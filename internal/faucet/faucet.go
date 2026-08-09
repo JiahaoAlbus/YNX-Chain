@@ -266,10 +266,7 @@ func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (
 
 func (s *Service) resolveRecipient(address string) (resolvedRecipient, error) {
 	address = strings.TrimSpace(address)
-	if s.cfg.UpstreamMode != UpstreamBFT {
-		if !ValidAddress(address) {
-			return resolvedRecipient{}, errors.New("invalid address")
-		}
+	if s.cfg.UpstreamMode != UpstreamBFT && ynxAddressPattern.MatchString(address) {
 		return resolvedRecipient{Requested: address, Chain: address, Native: address}, nil
 	}
 	evm, err := accountaddress.Normalize(address)
@@ -280,10 +277,14 @@ func (s *Service) resolveRecipient(address string) (resolvedRecipient, error) {
 	if err != nil {
 		return resolvedRecipient{}, err
 	}
-	if evm == s.signerAddr {
+	if s.cfg.UpstreamMode == UpstreamBFT && evm == s.signerAddr {
 		return resolvedRecipient{}, errors.New("faucet cannot fund itself")
 	}
-	return resolvedRecipient{Requested: address, Chain: evm, Native: native, EVM: evm}, nil
+	requested := evm
+	if s.cfg.UpstreamMode == UpstreamBFT {
+		requested = address
+	}
+	return resolvedRecipient{Requested: requested, Chain: evm, Native: native, EVM: evm}, nil
 }
 
 func (s *Service) truthfulStatus() string {
@@ -295,7 +296,11 @@ func (s *Service) truthfulStatus() string {
 
 func ValidAddress(address string) bool {
 	address = strings.TrimSpace(address)
-	return ynxAddressPattern.MatchString(address) || evmAddressPattern.MatchString(address)
+	if ynxAddressPattern.MatchString(address) || evmAddressPattern.MatchString(address) {
+		return true
+	}
+	_, err := accountaddress.Normalize(address)
+	return err == nil
 }
 
 func (s *Service) allow(ip, address string, now time.Time) bool {

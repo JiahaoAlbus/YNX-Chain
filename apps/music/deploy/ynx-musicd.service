@@ -1,0 +1,24 @@
+[Unit]
+Description=YNX Music Testnet Preview
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ynx-music
+Group=ynx-music
+EnvironmentFile=-/etc/ynx/music.env
+ExecStart=/opt/ynx/music/ynx-musicd -http 127.0.0.1:6440 -data /var/lib/ynx-music -origin https://web4.ynxweb4.com/music/
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-music
+CapabilityBoundingSet=
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+[Install]
+WantedBy=multi-user.target

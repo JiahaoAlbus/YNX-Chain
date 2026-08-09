@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "ynx.browser.macos-evidence.v1",
+  "product": "YNX Browser",
+  "platform": "macOS",
+  "sourceCommit": "88bf8dddf06411ea26749abdd5ea52173b7cd10a",
+  "runtimeCommits": [
+    "06fb7ee7e321743288348feefa3fb76e9f096463",
+    "91685b728cefefabec9414317f2663d659062edc",
+    "0515ff50b22547840c6554b29c4af3cd17484800"
+  ],
+  "asOf": "2026-07-27",
+  "environment": {
+    "swift": "Apple Swift 6.1",
+    "target": "arm64-apple-macosx16.0",
+    "minimumOsDeclared": "14.0",
+    "bundleId": "com.ynxweb4.browser.macos"
+  },
+  "build": {
+    "clean": {
+      "command": "swift package clean --package-path native",
+      "result": "pass"
+    },
+    "release": {
+      "command": "swift build -c release --package-path native --jobs 1",
+      "result": "pass",
+      "durationSeconds": 41.70,
+      "binary": "apps/browser/native/.build/release/YNXBrowserNative"
+    },
+    "package": {
+      "command": "npm run build:macos",
+      "result": "pass",
+      "app": "apps/browser/dist/macos/YNX Browser Testnet Preview.app",
+      "zip": "apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip",
+      "zipBytes": 103039,
+      "zipSha256": "d41826d277f10a96ef3c5621a3c514689d9a450f094da36c8c87fce8c1efc506",
+      "binarySha256": "279cac226dab8fe06b9f394984a53a900d560008a44ce87a99894804b090eb56"
+    }
+  },
+  "signing": {
+    "codesignVerify": "pass",
+    "class": "adhoc",
+    "architecture": "arm64",
+    "teamIdentifier": null,
+    "cdHash": "4739f7313e71ef64eb016ff36eca86fa42725f24",
+    "cdHashFullSha256": "4739f7313e71ef64eb016ff36eca86fa42725f24494f0ba1d8fbf088e5f52017",
+    "gatekeeperAssessment": {
+      "command": "spctl --assess --type execute --verbose=4 <app>",
+      "result": "rejected",
+      "exitCode": 3
+    },
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "truthBoundary": "The artifact is an ad-hoc-signed local Testnet Preview. Gatekeeper rejection is expected evidence that it is not a notarized or production-signed distribution."
+  },
+  "runtime": {
+    "coldStart": {
+      "command": "open -n <app>",
+      "result": "pass",
+      "observedPid": 8653,
+      "process": "YNXBrowserNative"
+    },
+    "gracefulQuit": {
+      "command": "osascript -e 'tell application id com.ynxweb4.browser.macos to quit'",
+      "result": "pass",
+      "processGone": true
+    },
+    "restart": {
+      "command": "open -n <app>",
+      "result": "pass",
+      "observedPid": 9588,
+      "gracefulQuitAfterRestart": "pass"
+    }
+  },
+  "verifiedStates": {
+    "implementedLocal": true,
+    "builtLocal": true,
+    "packagedLocal": true,
+    "executedLocal": true,
+    "coldStartVerified": true,
+    "restartVerified": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "notVerified": [
+    "copy/install into a user application location",
+    "notarization or Developer ID signing",
+    "private-download interactive persistence proof",
+    "native state-v2 export/delete/backup/restore UI",
+    "public hosting and immutable download URL",
+    "central Wallet/Auth acceptance",
+    "shared Testnet end-to-end flow"
+  ]
+}
