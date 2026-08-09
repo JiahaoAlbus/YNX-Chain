@@ -19,7 +19,7 @@ const workspace = new ProjectWorkspace({ persistence: new IndexedDBPersistence()
 const chain = new YNXChainClient({ baseURL: config.chainURL, compilerURL: config.compilerURL });
 const ai = new AICodingAgent({ gatewayURL: config.aiURL, managedSession: true });
 const i18n = new DeveloperI18n();
-const walletSession = new DeveloperWalletSession({ wallet: globalThis.ynxWallet, gatewayURL: "/app-gateway" });
+const walletSession = new DeveloperWalletSession({ transport: globalThis.ynxDesktopWallet });
 const commands = new CommandAudit({ executor: globalThis.ynxDesktop?.executeApprovedCommand || executeDesktopTask });
 const deployment = new WalletDeployment({ wallet: globalThis.ynxWallet, chainClient: chain });
 const apiStudio = new OpenAPIStudio({ defaultOrigin: location.origin, allowedOrigins: [location.origin], credentialBroker: globalThis.ynxCredentialBroker });
@@ -586,8 +586,8 @@ async function clearAIHistory() {
 async function signInWallet() {
   const stateBox=$("#wallet-state");
   if (!await modal({title:i18n.t("walletSignIn"),content:"Developer requests only public account access and deployment-review scope. The Wallet private key never leaves Wallet; this product device must complete a separate central Gateway challenge.",confirm:i18n.t("continue")})) return;
-  stateBox.textContent="Waiting for Wallet authorization and central verifier…";
-  try { const session=await walletSession.signIn({approved:true}); $("#deploy-account").value=session.account; stateBox.textContent=`${session.account} · ${i18n.date(session.expiresAt)}`; stateBox.className="state-card success"; }
+  stateBox.textContent="Opening the exact reviewed request in YNX Wallet…";
+  try { const result=await walletSession.open({approved:true}); stateBox.textContent=`Wallet review opened · expires ${i18n.date(result.expiresAt)}. No Developer session exists until the registered desktop callback and central Gateway completion both pass.`; stateBox.className="state-card"; }
   catch(error){ stateBox.textContent=`${errorMessage(error)} ${i18n.t("retry")}`; stateBox.className="state-card"; toast(errorMessage(error)); }
 }
 

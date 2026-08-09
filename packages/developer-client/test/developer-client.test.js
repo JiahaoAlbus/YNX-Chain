@@ -98,28 +98,32 @@ test("source match never promotes local evidence to remote proof", async () => {
   assert.equal(result.status, "source-matched-local-evidence"); assert.equal(result.remotePublicProof, false);
 });
 
-test("Wallet Auth uses exact Developer binding, POST Gateway completion and memory-only session", async () => {
-  let request; const calls = []; const now = Date.parse("2026-07-16T00:00:00.000Z");
-  const wallet = {
-    getProductDevicePublicKey: async () => `A${"a".repeat(43)}`,
-    authorize: async (value) => { request = value; return { version:"1",requestDigest:"a".repeat(64),nonce:value.nonce,chainId:value.chainId,requestingProduct:value.requestingProduct,productClientId:value.productClientId,bundleId:value.bundleId,productDeviceAlgorithm:value.productDeviceAlgorithm,productDeviceKey:value.productDeviceKey,callback:value.callback,account:`ynx1${"q".repeat(38)}`,accountPublicKey:`02${"a".repeat(64)}`,grantedScopes:[...value.scopes],purpose:value.purpose,issuedAt:value.issuedAt,expiresAt:value.expiresAt,walletSignature:"b".repeat(128) }; },
-    signProductChallenge: async (challenge) => ({ challenge, deviceSignature: "device-proof" }),
-  };
-  const fetcher = async (url, options) => { calls.push([url, options]); if (url.endsWith("/challenges")) return json({ challenge: "server-bound" }); return json({ account:`ynx1${"q".repeat(38)}`,expiresAt:request.expiresAt,productClientId:"ynx-developer-v1",sessionToken:"memory-only-token",scopes:["account:read","developer:deploy"] }); };
-  const session = new DeveloperWalletSession({ wallet, gatewayURL:"https://gateway.invalid/app", fetcher, clock:()=>now, ledger:new LocalNonceLedger({ getItem:()=>null, setItem(){} }) });
-  await assert.rejects(() => session.signIn(), (error) => error.code === "wallet_permission_required");
-  const result = await session.signIn({ approved:true });
-  assert.equal(result.productClientId, "ynx-developer-v1"); assert.equal(request.bundleId, "com.ynxweb4.developer.testnetpreview");
-  assert.deepEqual(calls.map((call) => call[1].method), ["POST","POST"]); assert.equal(JSON.stringify(calls).includes("memory-only-token"), false);
+test("Wallet Auth opens the exact canonical Developer deep link without inventing a session", async () => {
+  let deepLink; const now = Date.parse("2026-08-10T00:00:00.000Z");
+  const transport = { getProductDevicePublicKey: async () => `A${"a".repeat(43)}`, openAuthorization: async (value) => { deepLink=value; } };
+  const session = new DeveloperWalletSession({ transport, clock:()=>now, ledger:new LocalNonceLedger({ getItem:()=>null, setItem(){} }) });
+  await assert.rejects(() => session.open(), (error) => error.code === "wallet_permission_required");
+  const result = await session.open({ approved:true });
+  assert.equal(result.status, "wallet-review-opened"); assert.match(deepLink, /^ynxwallet:\/\/authorize\?request=/);
+  const encoded=new URL(deepLink).searchParams.get("request");
+  const request=JSON.parse(Buffer.from(encoded.replaceAll("-","+").replaceAll("_","/"),"base64").toString("utf8"));
+  assert.equal(request.productClientId, "ynx-developer-v1"); assert.equal(request.bundleId, "com.ynxweb4.developer.testnetpreview");
+  assert.deepEqual(request.scopes,["account:read","developer:deploy"]); assert.equal(session.session,null);
+  const approval={version:"1",requestDigest:"a".repeat(64),nonce:request.nonce,chainId:request.chainId,requestingProduct:request.requestingProduct,productClientId:request.productClientId,bundleId:request.bundleId,productDeviceAlgorithm:request.productDeviceAlgorithm,productDeviceKey:request.productDeviceKey,callback:request.callback,account:`ynx1${"q".repeat(38)}`,accountPublicKey:`02${"a".repeat(64)}`,grantedScopes:[...request.scopes],purpose:request.purpose,issuedAt:request.issuedAt,expiresAt:request.expiresAt,walletSignature:"b".repeat(128)};
+  const response=Buffer.from(JSON.stringify(approval)).toString("base64url");
+  const accepted=session.acceptCallback(`ynxdeveloper://wallet-auth/callback?response=${response}`);
+  assert.equal(accepted.status,"wallet-approved-gateway-required"); assert.equal(session.session,null);
 });
 
 test("Wallet nonce ledger persists replay rejection and altered approval fails before Gateway", async () => {
   const data = new Map(); const storage = { getItem:(key)=>data.get(key) ?? null, setItem:(key,value)=>data.set(key,value) }; const ledger = new LocalNonceLedger(storage);
   ledger.consume("nonce"); assert.throws(() => ledger.consume("nonce"), (error) => error.code === "wallet_replay_rejected");
-  let network = false; const now = Date.parse("2026-07-16T00:00:00.000Z");
-  const wallet = { getProductDevicePublicKey:async()=>`A${"a".repeat(43)}`, authorize:async(value)=>({ version:"1",requestDigest:"a".repeat(64),nonce:value.nonce,chainId:value.chainId,requestingProduct:value.requestingProduct,productClientId:"substituted",bundleId:value.bundleId,productDeviceAlgorithm:value.productDeviceAlgorithm,productDeviceKey:value.productDeviceKey,callback:value.callback,account:`ynx1${"q".repeat(38)}`,accountPublicKey:`02${"a".repeat(64)}`,grantedScopes:[...value.scopes],purpose:value.purpose,issuedAt:value.issuedAt,expiresAt:value.expiresAt,walletSignature:"b".repeat(128)}), signProductChallenge:async()=>({}) };
-  const session = new DeveloperWalletSession({ wallet, fetcher:async()=>{ network=true; return json({}); }, clock:()=>now, ledger:new LocalNonceLedger(storage,"second") });
-  await assert.rejects(() => session.signIn({ approved:true }), (error) => error.code === "wallet_tamper_rejected"); assert.equal(network,false);
+  let deepLink; const now = Date.parse("2026-08-10T00:00:00.000Z"); const transport={getProductDevicePublicKey:async()=>`A${"a".repeat(43)}`,openAuthorization:async(value)=>{deepLink=value;}};
+  const session = new DeveloperWalletSession({ transport, clock:()=>now, ledger:new LocalNonceLedger(storage,"second") }); await session.open({approved:true});
+  const request=JSON.parse(Buffer.from(new URL(deepLink).searchParams.get("request"),"base64url").toString("utf8"));
+  const altered={version:"1",requestDigest:"a".repeat(64),nonce:request.nonce,chainId:request.chainId,requestingProduct:request.requestingProduct,productClientId:"substituted",bundleId:request.bundleId,productDeviceAlgorithm:request.productDeviceAlgorithm,productDeviceKey:request.productDeviceKey,callback:request.callback,account:`ynx1${"q".repeat(38)}`,accountPublicKey:`02${"a".repeat(64)}`,grantedScopes:[...request.scopes],purpose:request.purpose,issuedAt:request.issuedAt,expiresAt:request.expiresAt,walletSignature:"b".repeat(128)};
+  const response=Buffer.from(JSON.stringify(altered)).toString("base64url");
+  assert.throws(()=>session.acceptCallback(`ynxdeveloper://wallet-auth/callback?response=${response}`),(error)=>error.code==="wallet_tamper_rejected"); assert.equal(session.session,null);
 });
 
 test("AI context is least privilege, cost is labeled estimate, permission is mandatory", async () => {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
 import { chainRpc, debugChainBlock, debugChainTransaction, loadChainCompiler, loadChainStatus, type ChainStatus } from "../runtime/client";
+import { desktopWalletBridge, openDeveloperWalletReview } from "../wallet/transport";
 
 const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
 const TEMPLATES = {
@@ -58,7 +59,8 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     [lookup, setLookup] = useState(""),
     [debug, setDebug] = useState<any>(),
     [estimate, setEstimate] = useState<{ gas: string; gasPrice: string; maxFeeWei: string }>(),
-    wallet = useMemo(() => Boolean((globalThis as any).ynxWallet), []),
+    [walletState, setWalletState] = useState(""),
+    wallet = useMemo(() => desktopWalletBridge(), []),
     artifact = useMemo(() => {
       try {
         const manifest = JSON.parse(files[".ynx-build/manifest.json"] || "null"),
@@ -132,6 +134,21 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       setEstimate({ gas: gas.toString(), gasPrice: gasPrice.toString(), maxFeeWei: (gas * gasPrice).toString() });
     } catch (value) {
       setError(value instanceof Error ? value.message : "Deployment estimate failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const openWallet = async () => {
+    if (!wallet) return;
+    setBusy(true);
+    setError("");
+    setWalletState("Opening the exact five-minute request in YNX Wallet…");
+    try {
+      const result = await openDeveloperWalletReview(wallet);
+      setWalletState(`Wallet review opened · expires ${new Date(result.expiresAt).toLocaleTimeString()}. No Developer session exists until callback and central Gateway completion both pass.`);
+    } catch (value) {
+      setWalletState("");
+      setError(value instanceof Error ? value.message : "YNX Wallet could not be opened.");
     } finally {
       setBusy(false);
     }
@@ -247,15 +264,17 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       <details open>
         <summary>WALLET & DEPLOYMENT</summary>
         <div className="wallet-boundary">
-          <b>{wallet ? "YNX Wallet provider detected" : "YNX Wallet is not installed"}</b>
+          <b>{wallet ? "Reviewed desktop Wallet transport detected" : "Web Wallet callback is unavailable"}</b>
           <p>Wallet must review, sign and submit. YNX Code never receives a private key. A submitted hash is not success until the authoritative receipt confirms it.</p>
           {wallet ? (
-            <Button disabled>Deployment review requires the canonical Wallet gate</Button>
+            <Button disabled={busy || !artifact} onClick={openWallet}>Open exact Wallet review</Button>
           ) : (
             <a href="https://ynxweb4.com/wallet" target="_blank" rel="noreferrer">
-              Install or open YNX Wallet ↗
+              Install YNX Wallet and desktop Developer ↗
             </a>
           )}
+          {walletState && <p>{walletState}</p>}
+          {!wallet && <p>The browser cannot receive <code>ynxdeveloper://wallet-auth/callback</code>. Browser-injected signers and simulated sessions are rejected.</p>}
         </div>
       </details>
       {error && <div className="collab-error">{error}</div>}

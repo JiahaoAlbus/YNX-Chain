@@ -2,6 +2,18 @@
 
 ## 2026-08-10 live YNX Chain tools candidate
 
+- Replaced the obsolete injected-provider `/wallet-auth/challenges` and
+  `/wallet-auth/sessions` login with the reviewed Developer binding and exact
+  `ynxwallet://authorize?request=<base64url(canonical JSON)>` transport. The
+  request binds `ynx-developer-v1`, the desktop preview bundle, registered
+  callback, compressed P-256 product-device key, sorted least-privilege scopes,
+  nonce and five-minute expiry.
+- The Web workbench now states that it cannot receive the registered
+  `ynxdeveloper://wallet-auth/callback`; it links to installation and never
+  creates an account session. Only a reviewed desktop bridge may open an exact
+  Wallet review, and even that remains `wallet-review-opened` until callback and
+  central Gateway completion pass. Wallet/Auth 105/105 and Wallet 39/39 approve
+  the same tuple on the Wallet-owned branch; central deployment remains false.
 - Added a same-origin, workspace-session-bound YNX Chain service with a fixed
   canonical Testnet upstream. It exposes bounded network status, block and
   transaction inspection, receipt joining, a read-only JSON-RPC allowlist and
@@ -15,7 +27,8 @@
   with a successful EVM receipt. It also proved that `eth_sendTransaction` is
   rejected by the Developer gateway.
 - Wallet signing, broadcast and deployment remain visibly unavailable in this
-  slice. The public compiler endpoint currently reports deterministic analysis
+  slice. Opening Wallet review is not a session, signature or deployment. The
+  public compiler endpoint currently reports deterministic analysis
   metadata for Solidity 0.8.24 and explicitly does not claim production
   compilation. Neither limitation is converted into a successful UI state.
 - Successful isolated Solidity 0.8.36 builds now return bounded artifact

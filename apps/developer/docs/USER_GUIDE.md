@@ -60,17 +60,24 @@ it is not a generated or running Cosmos SDK module. Template insertion never
 raises compiler, runtime or deployment status.
 The Chain panel's displayed 0.8.24 compiler value is
 the canonical Testnet compiler metadata and is not a production-compilation
-claim while that endpoint reports production compilation disabled. Wallet and
-deployment controls stay unavailable until a real YNX Wallet provider and the
-complete signed receipt flow pass their release gates.
+claim while that endpoint reports production compilation disabled. The Web
+surface cannot receive the registered native Developer callback. Its Wallet
+link is an installation handoff, not login. A reviewed desktop transport may
+open the exact five-minute Wallet request, but no session exists until callback
+verification and central Gateway completion both pass. Signing and deployment
+stay unavailable until the complete signed receipt flow passes its release
+gates.
 
 YNX AI Build starts with Preview plan. Select only the files the provider may
 see, review the estimate and provider status, approve one network request, then
 review any proposed diff. Applying a diff needs a separate one-time write grant
 and creates a recoverable checkpoint. Use Audit to export the run record.
 
-Deployment is Wallet-only. Compile first, sign in through canonical YNX Wallet,
-review the exact intent, authorize in Wallet, and separately approve the network
-submission. A transaction hash is pending, not success. Inspect Receipts & logs
-for the authoritative receipt and source-match boundary. Never enter a private
-key, mnemonic or deployment signer in Developer.
+Deployment is Wallet-only. Compile first. In an installed, reviewed desktop
+Developer client, open the canonical Wallet request and complete the registered
+callback and central Product Session. Then review the exact deployment intent,
+authorize it in Wallet, and separately approve network submission. These later
+steps are currently unavailable, rather than simulated. A transaction hash is
+pending, not success. Inspect Receipts & logs for the authoritative receipt and
+source-match boundary. Never enter a private key, mnemonic or deployment signer
+in Developer.

@@ -482,12 +482,16 @@ identifies Solidity 0.8.24 but declares production compilation disabled, so the
 workbench does not describe that metadata endpoint as an authoritative
 production compiler.
 
-Wallet detection is only a product boundary in this slice. If no YNX Wallet
-provider exists, the workbench sends the user to the canonical Wallet product;
-if a provider exists, deployment still remains disabled until exact provider
-method, Product Session, intent, simulation, signing, broadcast, receipt and
-Explorer-source verification gates are implemented and tested. No browser
-private-key or mnemonic input is accepted.
+Wallet integration is an exact transport boundary in this slice. The ordinary
+Web workbench cannot receive the registered
+`ynxdeveloper://wallet-auth/callback`, so it sends the user to the canonical
+Wallet/install surface and never creates a browser session. A reviewed desktop
+bridge may generate the canonical five-minute `ynxwallet://authorize` request
+using its compressed P-256 product-device key and open Wallet, but the result is
+only `wallet-review-opened`. Product Session, intent, simulation, signing,
+broadcast, receipt and Explorer-source verification remain disabled until the
+callback and deployed central Gateway pass their exact gates. Browser-injected
+providers, private-key input and mnemonic input are rejected.
 
 Later blockchain slices add reviewed Rust contract profiles, Move and Cosmos SDK,
 pinned dependency/toolchain manifests, local tests, Testnet simulation, gas/fee
