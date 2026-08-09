@@ -684,3 +684,194 @@ html[data-theme="dark"] .tree-row.file.active {
     monospace;
   white-space: pre-wrap;
 }
+.scm-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  font-size: 11px;
+}
+.scm-panel > header {
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  flex: 0 0 auto;
+}
+.scm-panel > header button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.scm-panel > header svg {
+  width: 13px;
+}
+.scm-onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 14px;
+  text-align: center;
+  color: var(--muted);
+}
+.scm-onboarding > svg {
+  width: 30px;
+}
+.scm-onboarding p {
+  margin: 0;
+  line-height: 1.45;
+}
+.scm-onboarding button,
+.scm-commit {
+  border: 0;
+  border-radius: 4px;
+  background: var(--blue);
+  color: #fff;
+  padding: 7px 10px;
+  font-weight: 650;
+}
+.scm-branch {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+}
+.scm-branch strong {
+  color: var(--text);
+}
+.scm-panel > textarea {
+  min-height: 56px;
+  margin: 7px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--panel2);
+  color: var(--text);
+  padding: 6px;
+  resize: vertical;
+}
+.scm-panel details {
+  border-top: 1px solid var(--border);
+}
+.scm-panel summary {
+  display: flex;
+  gap: 5px;
+  padding: 6px 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.scm-panel summary span {
+  margin-left: auto;
+  color: var(--muted);
+}
+.scm-change {
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+}
+.scm-change > button:first-child {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 5px 0;
+  text-align: left;
+}
+.scm-change > button:first-child span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scm-change b {
+  margin-left: auto;
+  color: var(--muted);
+}
+.scm-change > button:last-child {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.scm-change svg {
+  width: 12px;
+}
+.scm-identity {
+  display: grid;
+  gap: 4px;
+  padding: 7px;
+}
+.scm-identity input {
+  min-width: 0;
+  height: 25px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--panel2);
+  color: var(--text);
+  padding: 0 5px;
+}
+.scm-commit {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin: 0 7px 7px;
+}
+.scm-commit:disabled {
+  opacity: 0.45;
+}
+.scm-commit svg {
+  width: 13px;
+}
+.scm-error {
+  margin: 0 8px 7px;
+  color: #c42b35;
+  white-space: pre-wrap;
+}
+.scm-diff {
+  margin: 0 7px 7px;
+  border: 1px solid var(--border);
+  background: var(--panel2);
+}
+.scm-diff header {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px;
+  border-bottom: 1px solid var(--border);
+}
+.scm-diff header button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.scm-diff pre {
+  max-height: 160px;
+  overflow: auto;
+  margin: 0;
+  padding: 6px;
+  font:
+    9px/1.4 "SFMono-Regular",
+    monospace;
+  white-space: pre;
+}
+.scm-commit-row {
+  display: flex;
+  flex-direction: column;
+  padding: 5px 8px;
+  border-top: 1px solid var(--border);
+}
+.scm-commit-row span {
+  color: var(--muted);
+  font-size: 9px;
+}

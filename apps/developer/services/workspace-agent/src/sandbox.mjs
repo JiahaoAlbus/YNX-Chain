@@ -2,8 +2,183 @@ import { access, realpath } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { join, resolve } from "node:path";
 
-export function detectSandbox(options={}){if(options.sandbox)return options.sandbox;if(process.platform==="darwin")return{kind:"macos-sandbox-exec",ready:true};if(process.platform==="linux")return{kind:"linux-bubblewrap-prlimit",ready:commandExists("bwrap")&&commandExists("prlimit")};return{kind:`unsupported-${process.platform}`,ready:false}}
-export async function resolveExecutable(candidates){for(const command of candidates){for(const directory of String(process.env.PATH||"").split(process.platform==="win32"?";":":").filter(Boolean)){const path=join(directory,command);try{await access(path,fsConstants.X_OK);return await realpath(path)}catch{}}}return null}
-export function sandboxLaunch({sandbox,workspace,command,args=[],writeWorkspace=false}){if(sandbox.kind==="macos-sandbox-exec"){const originalHome=process.env.HOME?resolve(process.env.HOME):"/Users",escape=value=>value.replaceAll("\\","\\\\").replaceAll('"','\\"'),profile=`(version 1)\n(allow default)\n(deny network*)\n(deny file-read* (subpath "${escape(originalHome)}"))\n(allow file-read* (subpath "${escape(workspace)}"))\n(deny file-write*)\n(allow file-write* (subpath "${escape(workspace)}") (subpath "/private/tmp") (subpath "/dev"))`;return{command:"/usr/bin/sandbox-exec",args:["-p",profile,command,...args],cwd:workspace,env:runtimeEnvironment(workspace)}}if(sandbox.kind==="linux-bubblewrap-prlimit"){const binds=[];for(const path of ["/usr","/bin","/lib","/lib64","/etc/alternatives","/etc/ld.so.cache"]){try{if(process.getBuiltinModule("fs").existsSync(path))binds.push("--ro-bind",path,path)}catch{}}const translate=value=>value.startsWith(workspace)?`/workspace${value.slice(workspace.length)}`:value,innerCommand=translate(command),workspaceBind=writeWorkspace?["--bind",workspace,"/workspace"]:["--ro-bind",workspace,"/workspace","--bind",join(workspace,".ynx-build"),"/workspace/.ynx-build"],bubblewrap=["bwrap","--unshare-all","--die-with-parent","--new-session","--proc","/proc","--dev","/dev","--tmpfs","/tmp",...binds,...workspaceBind,"--chdir","/workspace","--setenv","HOME","/workspace","--setenv","TMPDIR","/tmp",innerCommand,...args.map(translate)];return{command:"prlimit",args:["--cpu=3600:3600","--as=1073741824:1073741824","--nproc=256:256","--nofile=256:256","--fsize=67108864:67108864","--core=0:0","--",...bubblewrap],cwd:workspace,env:runtimeEnvironment(workspace)}}throw Object.assign(new Error("Approved sandbox is unavailable."),{status:503,code:"sandbox_unavailable"})}
-export function runtimeEnvironment(workspace){return{PATH:process.env.PATH||"/usr/local/bin:/usr/bin:/bin",HOME:workspace,TMPDIR:join(workspace,".tmp"),LANG:"C.UTF-8",LC_ALL:"C.UTF-8",GOCACHE:join(workspace,".ynx-build","go-cache"),GOMODCACHE:join(workspace,".ynx-build","go-mod-cache"),CARGO_HOME:join(workspace,".ynx-build","cargo-home"),RUSTUP_HOME:join(workspace,".ynx-build","rustup-home")}}
-function commandExists(command){return String(process.env.PATH||"").split(":").some(path=>{try{return Boolean(process.getBuiltinModule("fs").accessSync(join(path,command),fsConstants.X_OK)===undefined)}catch{return false}})}
+export function detectSandbox(options = {}) {
+  if (options.sandbox) return options.sandbox;
+  if (process.platform === "darwin")
+    return { kind: "macos-sandbox-exec", ready: true };
+  if (process.platform === "linux")
+    return {
+      kind: "linux-bubblewrap-prlimit",
+      ready: commandExists("bwrap") && commandExists("prlimit"),
+    };
+  return { kind: `unsupported-${process.platform}`, ready: false };
+}
+export async function resolveExecutable(candidates) {
+  for (const command of candidates) {
+    for (const directory of String(process.env.PATH || "")
+      .split(process.platform === "win32" ? ";" : ":")
+      .filter(Boolean)) {
+      const path = join(directory, command);
+      try {
+        await access(path, fsConstants.X_OK);
+        return await realpath(path);
+      } catch {}
+    }
+  }
+  return null;
+}
+export function sandboxLaunch({
+  sandbox,
+  workspace,
+  command,
+  args = [],
+  writeWorkspace = false,
+  writableBinds = [],
+}) {
+  if (
+    writableBinds.some(
+      ({ host, guest }) =>
+        typeof host !== "string" ||
+        !host.startsWith("/") ||
+        typeof guest !== "string" ||
+        !/^\/[A-Za-z0-9_-]+$/.test(guest),
+    )
+  )
+    throw Object.assign(new Error("Invalid sandbox bind."), {
+      status: 500,
+      code: "invalid_sandbox_bind",
+    });
+  if (sandbox.kind === "macos-sandbox-exec") {
+    const originalHome = process.env.HOME
+        ? resolve(process.env.HOME)
+        : "/Users",
+      escape = (value) => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"'),
+      extraReads = writableBinds
+        .map(({ host }) => `(allow file-read* (subpath "${escape(host)}"))`)
+        .join("\n"),
+      extraWrites = writableBinds
+        .map(({ host }) => `(allow file-write* (subpath "${escape(host)}"))`)
+        .join("\n"),
+      profile = `(version 1)\n(allow default)\n(deny network*)\n(deny file-read* (subpath "${escape(originalHome)}"))\n(allow file-read* (subpath "${escape(workspace)}"))\n${extraReads}\n(deny file-write*)\n(allow file-write* (subpath "${escape(workspace)}") (subpath "/private/tmp") (subpath "/dev"))\n${extraWrites}`;
+    return {
+      command: "/usr/bin/sandbox-exec",
+      args: ["-p", profile, command, ...args],
+      cwd: workspace,
+      env: runtimeEnvironment(workspace),
+    };
+  }
+  if (sandbox.kind === "linux-bubblewrap-prlimit") {
+    const binds = [];
+    for (const path of [
+      "/usr",
+      "/bin",
+      "/lib",
+      "/lib64",
+      "/etc/alternatives",
+      "/etc/ld.so.cache",
+    ]) {
+      try {
+        if (process.getBuiltinModule("fs").existsSync(path))
+          binds.push("--ro-bind", path, path);
+      } catch {}
+    }
+    const translate = (value) => {
+        if (value.startsWith(workspace))
+          return `/workspace${value.slice(workspace.length)}`;
+        const binding = writableBinds.find(({ host }) =>
+          value.startsWith(host),
+        );
+        return binding
+          ? `${binding.guest}${value.slice(binding.host.length)}`
+          : value;
+      },
+      innerCommand = translate(command),
+      workspaceBind = writeWorkspace
+        ? ["--bind", workspace, "/workspace"]
+        : [
+            "--ro-bind",
+            workspace,
+            "/workspace",
+            "--bind",
+            join(workspace, ".ynx-build"),
+            "/workspace/.ynx-build",
+          ],
+      extraBinds = writableBinds.flatMap(({ host, guest }) => [
+        "--bind",
+        host,
+        guest,
+      ]),
+      bubblewrap = [
+        "bwrap",
+        "--unshare-all",
+        "--die-with-parent",
+        "--new-session",
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
+        "--tmpfs",
+        "/tmp",
+        ...binds,
+        ...extraBinds,
+        ...workspaceBind,
+        "--chdir",
+        "/workspace",
+        "--setenv",
+        "HOME",
+        "/workspace",
+        "--setenv",
+        "TMPDIR",
+        "/tmp",
+        innerCommand,
+        ...args.map(translate),
+      ];
+    return {
+      command: "prlimit",
+      args: [
+        "--cpu=3600:3600",
+        "--as=1073741824:1073741824",
+        "--nproc=256:256",
+        "--nofile=256:256",
+        "--fsize=67108864:67108864",
+        "--core=0:0",
+        "--",
+        ...bubblewrap,
+      ],
+      cwd: workspace,
+      env: runtimeEnvironment(workspace),
+    };
+  }
+  throw Object.assign(new Error("Approved sandbox is unavailable."), {
+    status: 503,
+    code: "sandbox_unavailable",
+  });
+}
+export function runtimeEnvironment(workspace) {
+  return {
+    PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
+    HOME: workspace,
+    TMPDIR: join(workspace, ".tmp"),
+    LANG: "C.UTF-8",
+    LC_ALL: "C.UTF-8",
+    GOCACHE: join(workspace, ".ynx-build", "go-cache"),
+    GOMODCACHE: join(workspace, ".ynx-build", "go-mod-cache"),
+    CARGO_HOME: join(workspace, ".ynx-build", "cargo-home"),
+    RUSTUP_HOME: join(workspace, ".ynx-build", "rustup-home"),
+  };
+}
+function commandExists(command) {
+  return String(process.env.PATH || "")
+    .split(":")
+    .some((path) => {
+      try {
+        return Boolean(
+          process
+            .getBuiltinModule("fs")
+            .accessSync(join(path, command), fsConstants.X_OK) === undefined,
+        );
+      } catch {
+        return false;
+      }
+    });
+}

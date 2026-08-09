@@ -39,6 +39,7 @@ import {
   validPath,
   type ProjectState,
 } from "../state/workspace";
+import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
@@ -519,12 +520,7 @@ export function Workbench() {
             </div>
           </section>
         )}
-        {view === "source" && (
-          <SideStatus
-            title="SOURCE CONTROL"
-            text="Git provider is not connected to this local recovery workspace. No remote status is fabricated."
-          />
-        )}
+        {view === "source" && <SourceControlPanel projectId={project.id} />}
         {view === "run" && (
           <DebugPanel
             projectId={project.id}

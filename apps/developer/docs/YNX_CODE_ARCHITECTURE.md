@@ -224,6 +224,14 @@ creation is a provider adapter action with preview and explicit approval.
 Destructive Git operations are separately classified and never issued by an AI
 agent without an exact user approval.
 
+The current first Git gate persists a bare object database per signed owner and
+project in `services/git-service`. Status, working/staged diff, stage, unstage,
+commit history and identity-explicit commits are real Git operations executed
+inside the default-deny-network sandbox. Hooks, global/system configuration,
+external diffs, interactive credential prompts and GPG signing are disabled.
+Branch creation/switch/merge, remotes and pull-request providers remain gated;
+the UI does not claim them yet.
+
 ## 11. Extension system
 
 Extensions use versioned manifests, declared contributions and capability
