@@ -48,6 +48,14 @@ const (
 	ActionIDEContractCall           = "ide_contract_call"
 	ActionGovernanceExecutionBegin  = "governance_execution_begin"
 	ActionGovernanceExecutionVerify = "governance_execution_verify"
+	ActionDexAssetCreate            = "dex_asset_create"
+	ActionDexAssetMint              = "dex_asset_mint"
+	ActionDexAssetTransfer          = "dex_asset_transfer"
+	ActionDexPoolCreate             = "dex_pool_create"
+	ActionDexLiquidityAdd           = "dex_liquidity_add"
+	ActionDexLiquidityRemove        = "dex_liquidity_remove"
+	ActionDexSwapExactInput         = "dex_swap_exact_input"
+	ActionDexSwapExactOutput        = "dex_swap_exact_output"
 )
 
 var supportedApplicationActions = map[string]struct{}{
@@ -78,6 +86,14 @@ var supportedApplicationActions = map[string]struct{}{
 	ActionIDEContractCall:           {},
 	ActionGovernanceExecutionBegin:  {},
 	ActionGovernanceExecutionVerify: {},
+	ActionDexAssetCreate:            {},
+	ActionDexAssetMint:              {},
+	ActionDexAssetTransfer:          {},
+	ActionDexPoolCreate:             {},
+	ActionDexLiquidityAdd:           {},
+	ActionDexLiquidityRemove:        {},
+	ActionDexSwapExactInput:         {},
+	ActionDexSwapExactOutput:        {},
 }
 
 // SignedApplicationAction is the canonical transaction envelope for non-transfer
@@ -212,7 +228,7 @@ func NewSignedApplicationAction(privateKey *secp256k1.PrivateKey, chainID int64,
 	if isResourceSponsorAction(action) {
 		tx.Fee = 0
 	}
-	if isResourceAction(action) || isIDEAction(action) || isProtocolGovernanceAction(action) {
+	if isResourceAction(action) || isIDEAction(action) || isProtocolGovernanceAction(action) || isDexAction(action) {
 		// Resource actions charge YNXT and bandwidth through the shared envelope,
 		// but do not consume AI, Pay, or Trust credits.
 	} else if isPayAction(action) {
@@ -270,9 +286,9 @@ func (tx SignedApplicationAction) ValidateBasic() error {
 	if tx.Fee != expectedFee {
 		return fmt.Errorf("application action fee must equal %d YNXT", expectedFee)
 	}
-	if isResourceAction(tx.Action) || isIDEAction(tx.Action) || isProtocolGovernanceAction(tx.Action) {
+	if isResourceAction(tx.Action) || isIDEAction(tx.Action) || isProtocolGovernanceAction(tx.Action) || isDexAction(tx.Action) {
 		if tx.AIUnits != 0 || tx.PayUnits != 0 || tx.TrustUnits != 0 {
-			return errors.New("Resource, IDE, and protocol governance actions must not charge AI, Pay, or Trust units")
+			return errors.New("Resource, IDE, protocol governance, and DEX actions must not charge AI, Pay, or Trust units")
 		}
 	} else if isPayAction(tx.Action) {
 		if tx.PayUnits != 1 || tx.AIUnits != 0 || tx.TrustUnits != 0 {
@@ -462,6 +478,9 @@ func canonicalActionPayload(action string, value any) ([]byte, error) {
 		}
 		if isProtocolGovernanceAction(action) {
 			return canonicalProtocolGovernancePayload(action, raw)
+		}
+		if isDexAction(action) {
+			return canonicalDexActionPayload(action, raw)
 		}
 		return nil, fmt.Errorf("unsupported application action %q", action)
 	}
