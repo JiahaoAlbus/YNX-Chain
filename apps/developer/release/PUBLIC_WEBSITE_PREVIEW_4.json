@@ -4,7 +4,7 @@
   "releaseClass": "unsigned-testnet-preview",
   "publicWeb": {
     "url": "https://developer.ynxweb4.com/",
-    "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
+    "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
     "monacoLoader": "https://developer.ynxweb4.com/monaco/vs/loader.js",
     "monacoPublicVerification": "HTTP 200, 39848 bytes",
     "extensionWorkspace": true,
@@ -22,22 +22,22 @@
     "timeoutSeconds": 30
   },
   "packages": {
-    "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-    "sourceTree": "f62acf5089703c75f26675559162f3fe1c25b399",
+    "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+    "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
     "macosArm64": {
-      "url": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-63a678ac-macos-arm64-unsigned.zip",
-      "sha256": "f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351",
-      "bytes": 48252013,
+      "url": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-macos-arm64-unsigned.zip",
+      "sha256": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
+      "bytes": 48253431,
       "signingClass": "adhoc-no-team-id",
       "verification": "Archive, embedded provenance, self-test, cold launch, real bounded C++ compile, second launch and child cleanup passed. Full public re-download SHA-256 passed."
     },
     "windowsX64": {
-      "url": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-63a678ac-windows-x64-unsigned.zip",
-      "sha256": "d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d",
-      "bytes": 114787990,
+      "url": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-windows-x64-unsigned.zip",
+      "sha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
+      "bytes": 114789406,
       "signingClass": "unsigned-no-authenticode",
-      "workflowRun": 31270548034,
-      "workflowJob": 93135599604,
+      "workflowRun": 31288684378,
+      "workflowJob": 93182036170,
       "verification": "Archive, embedded provenance, native self-test, portable extraction, Authenticode NotSigned classification, WPF cold launch, bundled server and cleanup passed. Full public re-download SHA-256 passed."
     }
   },

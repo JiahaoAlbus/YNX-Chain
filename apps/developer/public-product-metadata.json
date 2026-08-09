@@ -5,7 +5,7 @@
   "productName": "YNX Developer / YNX AI Build",
   "version": "0.2.0",
   "branch": "codex/developer-hosted-preview-metadata",
-  "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
+  "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
   "officialDomain": "https://ynxweb4.com",
   "canonicalPath": "/developer",
   "canonicalUrl": "https://ynxweb4.com/developer",
@@ -43,23 +43,23 @@
       "independentCertification": false
     },
     "macosArm64": {
-      "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-      "sha256": "f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351",
-      "bytes": 48252013,
+      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+      "sha256": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
+      "bytes": 48253431,
       "signingClass": "adhoc-no-team-id",
       "hosted": true,
-      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-63a678ac-macos-arm64-unsigned.zip"
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-macos-arm64-unsigned.zip"
     },
     "windowsX64": {
-      "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-      "runId": 31270548034,
-      "artifactId": 9025496664,
-      "artifactExpiresAt": "2026-08-22T17:56:46Z",
-      "sha256": "d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d",
-      "bytes": 114787990,
+      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+      "runId": 31288684378,
+      "artifactId": 9030699361,
+      "artifactExpiresAt": "2026-08-23T01:39:57Z",
+      "sha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
+      "bytes": 114789406,
       "signingClass": "unsigned-no-authenticode",
       "hosted": true,
-      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-63a678ac-windows-x64-unsigned.zip"
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-windows-x64-unsigned.zip"
     }
   },
   "publicEvidence": {
@@ -67,8 +67,8 @@
     "production": false,
     "downloadHosted": true,
     "immutableArtifactUrls": [
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-63a678ac-macos-arm64-unsigned.zip",
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-63a678ac-windows-x64-unsigned.zip",
+      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-macos-arm64-unsigned.zip",
+      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-windows-x64-unsigned.zip",
       "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
       "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
       "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json"
@@ -116,5 +116,5 @@
     "storeReleased": false,
     "mainnetReleased": false
   },
-  "generatedAt": "2026-08-08T22:20:00+08:00"
+  "generatedAt": "2026-08-09T10:00:00+08:00"
 }

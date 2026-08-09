@@ -14,7 +14,7 @@ Website owner: `28-website`
 
 ## Source and release truth
 
-- Release-candidate source: `63a678ac3c423b53c9628fa35c415d554827eccb`
+- Release-candidate source: `f179654dd6e1361711ee480e2c6f3f614ad38002`
 - Browser-evidence source: `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`
 - Product metadata: `apps/developer/public-product-metadata.json`
 - Product release truth: `apps/developer/product-release.json`
@@ -48,7 +48,7 @@ Exact hashes are authoritative in `evidence/ui/current-accessibility/accessibili
 
 ## Download boundary
 
-Direct public URLs for the exact macOS and Windows ZIPs are served from `https://developer.ynxweb4.com/downloads/` so the official website can provide YNX-domain downloads. The Windows Actions artifact (`9025496664`) expires on 2026-08-22 and must not be used as the public download. Every CTA must say unsigned Testnet Preview; production signing remains unavailable.
+Direct public URLs for the exact macOS and Windows ZIPs are served from `https://developer.ynxweb4.com/downloads/` so the official website can provide YNX-domain downloads. The Windows Actions artifact (`9030699361`) expires on 2026-08-22 and must not be used as the public download. Every CTA must say unsigned Testnet Preview; production signing remains unavailable.
 
 ## Acceptance gates for Website owner
 

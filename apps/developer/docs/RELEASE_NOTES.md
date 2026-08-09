@@ -5,10 +5,12 @@
 - Added a dedicated Languages & Compilers view with a truthful inventory of
   Monaco editing support, locally installed language packs, detected device
   toolchains and custom compiler adapters.
-- Added reviewed current-user adapter removal. Registration, removal and each
-  compilation remain separate approvals; built-in extensions cannot be replaced
-  or removed, commands remain shell-free and compiler execution remains bounded.
-- Verified 24 Developer tests, including a real custom adapter compile and
+- Expanded the executable catalog to more than 35 language families and added
+  per-device installation guidance. Registration, removal and each compilation
+  remain separate approvals; a reviewed custom adapter may override a built-in
+  file-extension compiler choice, commands remain shell-free, and removing the
+  override restores the built-in adapter.
+- Verified 24 Developer Web tests and 22 client tests, including a real custom adapter compile and
   register/compile/remove lifecycle, plus build, static workflow checks and
   desktop network/workspace sandbox denial.
 
@@ -17,9 +19,9 @@
 - Added a deterministic Chrome DevTools Protocol audit harness with no Playwright, Puppeteer or production dependency.
 - Bound 15/15 current-source browser checks and six screenshot SHA-256 values to clean pushed commit `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`.
 - Verified keyboard-first skip navigation, editor focus, roving panel tabs, Chromium accessibility-tree roles/names/live regions, a 3 px visible focus ring, Light/Dark, reduced motion, exact 390 px no-overflow, inert mobile drawers, single-column mobile API Studio, Arabic RTL with code/JSON LTR, large text and a 200% page scale.
-- Developer Web now passes 21/21 local tests, including release-manifest/provenance/metadata consistency; artifact-source Windows CI passed 20/20 before that release-record-only gate was added. Static claim/workflow check remains passed.
-- Rebuilt both current-source desktop Testnet Preview artifacts from `63a678ac3c423b53c9628fa35c415d554827eccb`: macOS ZIP SHA-256 `f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351` (48,252,013 bytes) and Windows ZIP SHA-256 `d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d` (114,787,990 bytes).
-- Windows run `31270548034` passed 22 client tests, 21 Web tests, compile, provenance, native self-test, Authenticode `NotSigned`, portable extraction, WPF cold launch, bundled server observation and cleanup. Artifact `9025496664` remains transient, while the exact inner ZIP is hosted at the YNX-domain download URL.
+- Developer Web now passes 24/24 locally and on current-source Windows CI, including release-manifest/provenance/metadata consistency and the extensible toolchain lifecycle. Static claim/workflow check remains passed.
+- Rebuilt both current-source desktop Testnet Preview artifacts from `f179654dd6e1361711ee480e2c6f3f614ad38002`: macOS ZIP SHA-256 `172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a` (48,253,431 bytes) and Windows ZIP SHA-256 `5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822` (114,789,406 bytes).
+- Windows run `31288684378` passed 22 client tests, 24 Web tests, compile, provenance, native self-test, Authenticode `NotSigned`, portable extraction, WPF cold launch, bundled server observation and cleanup. Artifact `9030699361` remains transient, while the exact inner ZIP is hosted at the YNX-domain download URL.
 - YNX AI Build now defaults to the server-hosted `qwen3:4b` open model with a two-active/32-queued concurrency boundary; xAI and OpenAI bring-your-own-key providers are allowlisted and request-only.
 - Desktop packages now include npm, persist isolated per-project dependencies across restarts, and run check/test tasks under Node permissions; macOS adds an outer operating-system sandbox.
 - The GitHub pre-release now provides immutable unsigned downloads. Central integration, staging/public Web deployment, production signing and store release remain false.

@@ -2,7 +2,7 @@
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
   "branch": "codex/developer-hosted-preview-metadata",
-  "commit": "63a678ac3c423b53c9628fa35c415d554827eccb",
+  "commit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
   "version": "0.2.0",
   "sourceCheckpoint": "extension-workspace-production-monaco-and-current-desktop-packages-2026-08-09",
   "surfaces": [
@@ -35,8 +35,8 @@
     "https://developer.ynxweb4.com/chain/status"
   ],
   "artifactUrls": [
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-63a678ac-macos-arm64-unsigned.zip",
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-63a678ac-windows-x64-unsigned.zip",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-macos-arm64-unsigned.zip",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-windows-x64-unsigned.zip",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json"
@@ -56,15 +56,15 @@
       "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "tests": {
         "developerClient": "22 passed",
-        "developerWeb": "21 passed locally; artifact-source Windows CI passed 20 before release-record consistency test",
+        "developerWeb": "24 passed locally and on current-source Windows CI",
         "staticCheck": "passed",
         "webBuild": "passed",
         "liveCheck": "passed",
         "sameOriginProxy": "passed",
         "placeholderGate": "passed with grep fallback because rg was unavailable",
         "credentialLeakGate": "passed with grep fallback because rg was unavailable",
-        "macosCurrentSourcePackage": "source 63a678ac3c423b53c9628fa35c415d554827eccb: embedded provenance, extracted self-test, ad-hoc classification, cold launch, public chain/compiler connection, package installation, permission-bounded tests, second runtime launch and dependency persistence passed",
-        "windowsCurrentSourcePackage": "GitHub Actions run 31270548034 for source 63a678ac3c423b53c9628fa35c415d554827eccb: 22 client tests, 21 Web tests, compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed",
+        "macosCurrentSourcePackage": "source f179654dd6e1361711ee480e2c6f3f614ad38002: embedded provenance, extracted self-test, ad-hoc classification, cold launch, public chain/compiler connection, package installation, permission-bounded tests, second runtime launch and dependency persistence passed",
+        "windowsCurrentSourcePackage": "GitHub Actions run 31288684378 for source f179654dd6e1361711ee480e2c6f3f614ad38002: 22 client tests, 24 Web tests, compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed",
         "browserAccessibilityAudit": "15/15 checks and six hashed screenshots passed on Chrome 151 from clean source 98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5"
       },
       "capabilities": [
@@ -114,16 +114,16 @@
     "publicBrowserVerification": "live chain height, twelve-language selector, IDE landmarks and bounded AI/provider state verified in the in-app browser on 2026-08-03"
   },
   "sha256": {
-    "macosArm64UnsignedZip": "f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351",
-    "windowsX64UnsignedZip": "d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d"
+    "macosArm64UnsignedZip": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
+    "windowsX64UnsignedZip": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822"
   },
   "bytes": {
-    "macosArm64UnsignedZip": 48252013,
-    "windowsX64UnsignedZip": 114787990
+    "macosArm64UnsignedZip": 48253431,
+    "windowsX64UnsignedZip": 114789406
   },
   "artifactSourceCommits": {
-    "macosArm64UnsignedZip": "63a678ac3c423b53c9628fa35c415d554827eccb",
-    "windowsX64UnsignedZip": "63a678ac3c423b53c9628fa35c415d554827eccb"
+    "macosArm64UnsignedZip": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+    "windowsX64UnsignedZip": "f179654dd6e1361711ee480e2c6f3f614ad38002"
   },
   "artifactRuntimeCheckpoints": {
     "macosArm64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
@@ -142,11 +142,11 @@
     {
       "surface": "macos-arm64-testnet-preview",
       "class": "local-extracted-zip",
-      "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-      "sourceTree": "f62acf5089703c75f26675559162f3fe1c25b399",
+      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+      "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
       "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "artifactSha256": "f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351",
-      "artifactBytes": 48252013,
+      "artifactSha256": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
+      "artifactBytes": 48253431,
       "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
       "provenanceEmbedded": true,
       "result": "embedded source/tree/runtime/SBOM provenance, resource self-test, strict ad-hoc classification, real GUI cold launch, public chain/compiler connection, npm package installation, permission-bounded test, second runtime launch, dependency persistence and child cleanup passed"
@@ -154,19 +154,19 @@
     {
       "surface": "windows-x64-testnet-preview",
       "class": "windows-ci-portable-extract",
-      "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-      "sourceTree": "f62acf5089703c75f26675559162f3fe1c25b399",
+      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+      "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
       "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "artifactSha256": "d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d",
-      "artifactBytes": 114787990,
+      "artifactSha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
+      "artifactBytes": 114789406,
       "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
       "provenanceEmbedded": true,
       "authenticodeStatus": "NotSigned",
-      "runId": 31270548034,
-      "jobId": 93135599604,
-      "artifactId": 9025496664,
-      "artifactOuterDigest": "sha256:3baff8df6a53419caa6b8766d21249ff7d1a96512d14bad2ebda0e77cbfab8f4",
-      "artifactExpiresAt": "2026-08-22T17:56:46Z",
+      "runId": 31288684378,
+      "jobId": 93182036170,
+      "artifactId": 9030699361,
+      "artifactOuterDigest": "sha256:803db91ca14d594c9665181a49cc80488f2c51f0ff0776d0eead714f4ccb076a",
+      "artifactExpiresAt": "2026-08-23T01:39:57Z",
       "result": "compile, embedded provenance, native self-test, portable extraction, Authenticode NotSigned classification, WPF cold launch, bundled server observation, child cleanup and transient artifact upload passed"
     }
   ],
@@ -189,5 +189,5 @@
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The Web IDE now executes pinned solc 0.8.24 in isolated workers and returns real ABI and EVM bytecode. Compilation does not imply that arbitrary EVM deployment is supported by YNX Testnet; deployment requires Wallet authorization and an authoritative receipt."
   ],
-  "generatedAt": "2026-08-08T22:20:00+08:00"
+  "generatedAt": "2026-08-09T10:00:00+08:00"
 }

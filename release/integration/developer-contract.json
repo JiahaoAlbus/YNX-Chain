@@ -11,8 +11,8 @@
   "source": {
     "branch": "codex/final-developer",
     "commit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-    "releaseCandidateCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-    "generatedAt": "2026-08-08T14:20:00Z"
+    "releaseCandidateCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+    "generatedAt": "2026-08-09T02:00:00Z"
   },
   "walletBinding": {
     "productClientId": "ynx-developer-v1",
@@ -45,23 +45,23 @@
       "macosArm64": true,
       "windowsX64": true
     },
-    "macosArtifactSourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-    "macosArtifactSourceTree": "f62acf5089703c75f26675559162f3fe1c25b399",
-    "macosArtifactSha256": "f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351",
-    "macosArtifactBytes": 48252013,
-    "windowsArtifactSourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-    "windowsArtifactSourceTree": "f62acf5089703c75f26675559162f3fe1c25b399",
+    "macosArtifactSourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+    "macosArtifactSourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
+    "macosArtifactSha256": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
+    "macosArtifactBytes": 48253431,
+    "windowsArtifactSourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+    "windowsArtifactSourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
     "windowsArtifactRuntimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-    "windowsArtifactSha256": "d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d",
-    "windowsArtifactBytes": 114787990,
+    "windowsArtifactSha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
+    "windowsArtifactBytes": 114789406,
     "windowsArtifactSbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
     "windowsSigningClass": "unsigned-no-authenticode",
     "windowsAuthenticodeStatus": "NotSigned",
-    "windowsWorkflowRunId": 31270548034,
-    "windowsWorkflowJobId": 93135599604,
-    "windowsWorkflowArtifactId": 9025496664,
-    "windowsWorkflowArtifactOuterDigest": "sha256:3baff8df6a53419caa6b8766d21249ff7d1a96512d14bad2ebda0e77cbfab8f4",
-    "windowsWorkflowArtifactExpiresAt": "2026-08-22T17:56:46Z",
+    "windowsWorkflowRunId": 31288684378,
+    "windowsWorkflowJobId": 93182036170,
+    "windowsWorkflowArtifactId": 9030699361,
+    "windowsWorkflowArtifactOuterDigest": "sha256:803db91ca14d594c9665181a49cc80488f2c51f0ff0776d0eead714f4ccb076a",
+    "windowsWorkflowArtifactExpiresAt": "2026-08-23T01:39:57Z",
     "requestFlow": [
       "import",
       "validate",
@@ -222,7 +222,7 @@
     },
     "developerWeb": {
       "command": "cd apps/developer && npm test",
-      "result": "21 passed locally and on artifact-source Windows CI"
+      "result": "24 passed locally and on current-source Windows CI"
     },
     "staticCheck": {
       "command": "cd apps/developer && npm run check",
@@ -249,21 +249,21 @@
       "result": "passed through verified grep fallback because rg was unavailable"
     },
     "macosCurrentSourcePackage": {
-      "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-      "sourceTree": "f62acf5089703c75f26675559162f3fe1c25b399",
-      "sha256": "f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351",
-      "bytes": 48252013,
+      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+      "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
+      "sha256": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
+      "bytes": 48253431,
       "signingClass": "adhoc-no-team-id",
       "result": "embedded provenance, extracted resource self-test, GUI cold launch, chain/compiler connection, npm install, permission-bounded test, second runtime launch and child cleanup passed"
     },
     "windowsCurrentSourcePackage": {
-      "runId": 31270548034,
-      "jobId": 93135599604,
-      "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-      "sourceTree": "f62acf5089703c75f26675559162f3fe1c25b399",
+      "runId": 31288684378,
+      "jobId": 93182036170,
+      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+      "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
       "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "sha256": "d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d",
-      "bytes": 114787990,
+      "sha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
+      "bytes": 114789406,
       "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
       "signingClass": "unsigned-no-authenticode",
       "authenticodeStatus": "NotSigned",

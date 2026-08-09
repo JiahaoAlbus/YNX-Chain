@@ -3,15 +3,15 @@
   "productId": "ynx-developer-v1",
   "version": "0.2.0",
   "releaseClass": "unsigned-testnet-preview",
-  "sourceCommit": "63a678ac3c423b53c9628fa35c415d554827eccb",
-  "sourceTree": "f62acf5089703c75f26675559162f3fe1c25b399",
+  "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+  "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
   "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
   "artifacts": [
     {
       "name": "ynx-developer-testnet-preview-macos-unsigned.zip",
       "platform": "macos-arm64",
-      "sha256": "f8988f011cf5f722fcffcf389cc98d678c6ead909177be6211c954c007a45351",
-      "bytes": 48252013,
+      "sha256": "172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a",
+      "bytes": 48253431,
       "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
       "signingClass": "adhoc-no-team-id",
       "verification": [
@@ -26,22 +26,22 @@
     {
       "name": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
       "platform": "windows-x64",
-      "sha256": "d07163e6d44ddf6363c92429856bd9eaeeed57d1b939c2cf5ea0797146d88c7d",
-      "bytes": 114787990,
+      "sha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
+      "bytes": 114789406,
       "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
       "signingClass": "unsigned-no-authenticode",
       "authenticodeStatus": "NotSigned",
       "ci": {
-        "runId": 31270548034,
-        "jobId": 93135599604,
-        "artifactId": 9025496664,
-        "artifactOuterSha256": "3baff8df6a53419caa6b8766d21249ff7d1a96512d14bad2ebda0e77cbfab8f4",
-        "artifactOuterBytes": 113645605,
-        "artifactExpiresAt": "2026-08-22T17:56:46Z"
+        "runId": 31288684378,
+        "jobId": 93182036170,
+        "artifactId": 9030699361,
+        "artifactOuterSha256": "803db91ca14d594c9665181a49cc80488f2c51f0ff0776d0eead714f4ccb076a",
+        "artifactOuterBytes": 113647250,
+        "artifactExpiresAt": "2026-08-23T01:39:57Z"
       },
       "verification": [
         "22 Developer client tests",
-        "21 Developer Web tests",
+        "24 Developer Web tests",
         "embedded source/tree/runtime/SBOM provenance",
         "portable extraction",
         "native resource self-test",
@@ -67,5 +67,5 @@
     "deployedPublic": false,
     "mainnetReleased": false
   },
-  "generatedAt": "2026-08-08T14:20:00Z"
+  "generatedAt": "2026-08-09T02:00:00Z"
 }
