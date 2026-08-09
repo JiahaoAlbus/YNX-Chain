@@ -11,6 +11,7 @@ const SAFE_PATH=/^[A-Za-z0-9_./ +@-]+$/;
 export function createWorkspaceRuntime(options={}){
   const sessionKey=Buffer.from(options.sessionKey||process.env.YNX_CODE_WORKSPACE_SESSION_KEY||randomBytes(32));
   const root=options.root||join(tmpdir(),"ynx-code-runtime");
+  const workspaceStore=options.workspaceStore||null;
   const concurrency=boundedNumber(options.concurrency||process.env.YNX_CODE_RUNTIME_CONCURRENCY,4,1,64);
   const queueLimit=boundedNumber(options.queueLimit||process.env.YNX_CODE_RUNTIME_QUEUE,64,1,512);
   let active=0;const queue=[];
@@ -19,8 +20,15 @@ export function createWorkspaceRuntime(options={}){
     const url=new URL(request.url,`http://${request.headers.host||"127.0.0.1"}`);
     if(url.pathname==="/runtime/health"&&request.method==="GET"){
       const session=readSession(request,sessionKey)||newSession();
-      json(response,200,{ok:true,protocolVersion:PROTOCOL,service:"ynx-code-workspace-agent",sandboxReady:sandbox.ready,sandbox:sandbox.kind,compilers:await compilerInventory(),active,queued:queue.length,maxConcurrent:concurrency,maxQueued:queueLimit,sessionClass:"ephemeral-guest",durability:"runtime-local; restart invalidates guest session"},{"set-cookie":cookie(session,sessionKey,request)});
+      json(response,200,{ok:true,protocolVersion:PROTOCOL,service:"ynx-code-workspace-agent",sandboxReady:sandbox.ready,sandbox:sandbox.kind,compilers:await compilerInventory(),active,queued:queue.length,maxConcurrent:concurrency,maxQueued:queueLimit,sessionClass:"ephemeral-guest",workspacePersistence:workspaceStore?"sqlite-wal":"disabled",durability:workspaceStore?"server-local recovery; production object-store migration required":"runtime-local; restart invalidates guest session"},{"set-cookie":cookie(session,sessionKey,request)});
       return true;
+    }
+    const workspaceMatch=url.pathname.match(/^\/runtime\/workspaces\/([-A-Za-z0-9_]{1,160})$/);
+    if(workspaceMatch&&(request.method==="GET"||request.method==="PUT")){
+      const session=readSession(request,sessionKey);if(!session){const next=newSession();json(response,401,{error:"Workspace session was established. Retry the request.",code:"workspace_session_required"},{"set-cookie":cookie(next,sessionKey,request)});return true}
+      if(!workspaceStore){json(response,503,{error:"Durable workspace storage is not configured.",code:"workspace_store_unavailable"});return true}
+      const owner=ownerId(session,sessionKey),projectId=workspaceMatch[1];
+      try{if(request.method==="GET"){const value=workspaceStore.get(owner,projectId);if(!value)json(response,404,{error:"Workspace was not found.",code:"workspace_not_found"});else json(response,200,{protocolVersion:PROTOCOL,workspace:value});return true}const body=JSON.parse((await readBody(request,3*1024*1024)).toString("utf8"));if(body.protocolVersion!==PROTOCOL)throw Object.assign(new Error("Workspace protocol version is required."),{status:400,code:"protocol_mismatch"});const value=workspaceStore.put(owner,projectId,{expectedRevision:body.expectedRevision,idempotencyKey:body.idempotencyKey,payload:body.workspace});json(response,200,{protocolVersion:PROTOCOL,workspace:value});return true}catch(error){json(response,error.status||400,{error:error.message||"Workspace mutation failed.",code:error.code||"workspace_mutation_failed",...(Number.isInteger(error.currentRevision)?{currentRevision:error.currentRevision}:{})});return true}
     }
     const streaming=url.pathname==="/runtime/tasks/stream";
     if((url.pathname==="/runtime/tasks"||streaming)&&request.method==="POST"){
@@ -40,6 +48,7 @@ export function createWorkspaceRuntime(options={}){
 function boundedNumber(value,fallback,min,max){const parsed=Number(value||fallback);return Number.isInteger(parsed)&&parsed>=min&&parsed<=max?parsed:fallback}
 function newSession(){return randomBytes(24).toString("base64url")}
 function signature(value,key){return createHmac("sha256",key).update(value).digest("base64url")}
+function ownerId(session,key){return createHmac("sha256",key).update(`workspace-owner:${session}`).digest("hex")}
 function cookie(value,key,request){const secure=request?.socket?.encrypted||String(request?.headers?.["x-forwarded-proto"]||"").split(",")[0].trim()==="https";return`${COOKIE}=${value}.${signature(value,key)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=14400${secure?"; Secure":""}`}
 function readSession(request,key){const header=String(request.headers.cookie||"");const value=header.split(";").map(part=>part.trim()).find(part=>part.startsWith(`${COOKIE}=`))?.slice(COOKIE.length+1);if(!value)return null;const split=value.lastIndexOf(".");if(split<1)return null;const id=value.slice(0,split),given=value.slice(split+1),expected=signature(id,key);if(!/^[A-Za-z0-9_-]{32}$/.test(id)||given.length!==expected.length||!timingSafeEqual(Buffer.from(given),Buffer.from(expected)))return null;return id}
 async function readBody(request,limit){const chunks=[];let size=0;for await(const chunk of request){size+=chunk.length;if(size>limit)throw Object.assign(new Error("Request exceeds the workspace task limit."),{status:413,code:"task_too_large"});chunks.push(chunk)}return Buffer.concat(chunks)}
