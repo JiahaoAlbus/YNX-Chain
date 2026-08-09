@@ -62,6 +62,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     [estimate, setEstimate] = useState<{ gas: string; gasPrice: string; maxFeeWei: string }>(),
     [walletState, setWalletState] = useState(""),
     wallet = useMemo(() => desktopWalletBridge(), []),
+    walletGateReady = Boolean(walletReadiness?.developerBinding.attested && walletReadiness.gateway.remoteDeployed && walletReadiness.gateway.publicDeploymentReady),
     artifact = useMemo(() => {
       try {
         const manifest = JSON.parse(files[".ynx-build/manifest.json"] || "null"),
@@ -141,7 +142,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     }
   };
   const openWallet = async () => {
-    if (!wallet || !walletReadiness?.developerBinding.attested) return;
+    if (!wallet || !walletGateReady) return;
     setBusy(true);
     setError("");
     setWalletState("Opening the exact five-minute request in YNX Wallet…");
@@ -266,10 +267,10 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       <details open>
         <summary>WALLET & DEPLOYMENT</summary>
         <div className="wallet-boundary">
-          <b>{walletReadiness?.developerBinding.attested ? (wallet ? "Developer Wallet gate ready" : "Developer binding attested · desktop required") : walletReadiness?.gateway.reachable ? "Wallet Gateway online · Developer binding not attested" : "Wallet Gateway unavailable"}</b>
+          <b>{walletGateReady ? (wallet ? "Developer Wallet gate ready" : "Developer Wallet gate ready · desktop required") : walletReadiness?.developerBinding.attested ? "Developer registry attested · public route not ready" : walletReadiness?.gateway.reachable ? "Wallet Gateway online · Developer binding not attested" : "Wallet Gateway unavailable"}</b>
           <p>Wallet must review, sign and submit. YNX Code never receives a private key. A submitted hash is not success until the authoritative receipt confirms it.</p>
           {wallet ? (
-            <Button disabled={busy || !artifact || !walletReadiness?.developerBinding.attested} onClick={openWallet}>Open exact Wallet review</Button>
+            <Button disabled={busy || !artifact || !walletGateReady} onClick={openWallet}>Open exact Wallet review</Button>
           ) : (
             <a href="https://ynxweb4.com/wallet" target="_blank" rel="noreferrer">
               Install YNX Wallet and desktop Developer ↗
