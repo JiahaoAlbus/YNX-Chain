@@ -4,6 +4,9 @@ export type AuthorizationRequest = Readonly<{version:"1";nonce:string;chainId:"y
 export type AuthorizationResponse = Readonly<{version:"1";requestDigest:string;nonce:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;callback:string;account:string;accountPublicKey:string;grantedScopes:readonly string[];purpose:string;issuedAt:string;expiresAt:string;walletSignature:string}>;
 export type GatewayChallenge = Readonly<{version:"1";challenge:string;requestDigest:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;account:string;scopes:readonly string[];issuedAt:string;expiresAt:string}>;
 export type GatewayCompletion = Readonly<{challenge:GatewayChallenge;deviceSignature:string}>;
+export type DeveloperDeploymentPayload=Readonly<{name:string;source:string;deployedBytecode:string;constructorArgs:readonly string[];idempotencyKey:string;requestHash:string}>;
+export type DeveloperDeploymentRequest=Readonly<{version:"1";chainId:6423;productClientId:"ynx-developer-v1";bundleId:"com.ynxweb4.developer.testnetpreview";callback:"ynxdeveloper://deployment/callback";sessionBinding:string;account:string;nonce:number;action:"ide_contract_deploy";payload:DeveloperDeploymentPayload;artifactDigest:string;simulation:Readonly<{chainId:6423;blockNumber:number;gasEstimate:string;gasPriceWei:string;maxFeeWei:string;compilerVersion:string;artifactDigest:string;source:string;asOf:string}>;issuedAt:string;expiresAt:string}>;
+export type DeveloperDeploymentResponse=Readonly<{version:"1";requestDigest:string;productClientId:"ynx-developer-v1";bundleId:"com.ynxweb4.developer.testnetpreview";callback:"ynxdeveloper://deployment/callback";sessionBinding:string;account:string;action:"ide_contract_deploy";artifactDigest:string;signedTransaction:Readonly<Record<string,unknown>>;canonicalPayloadHex:string;transactionHash:string;issuedAt:string;expiresAt:string}>;
 export type CentralRegistryEntryV1 = Readonly<{schemaVersion:1;productClientId:string;requestingProduct:string;bundleId:string;callback:string;scopes:readonly string[];maxScopes:number}>;
 export type CentralRegistryEntry = Readonly<{schemaVersion:2;productClientId:string;requestingProduct:string;bundleId:string;callbacks:readonly string[];scopes:readonly string[];maxScopes:number;productDeviceAlgorithms:readonly ProductDeviceAlgorithm[]}>;
 export type CentralReviewState = "approved"|"pending-review"|"disabled";
@@ -127,6 +130,15 @@ export declare function parseSignedIntent(input:unknown):Readonly<Record<string,
 export declare function signedIntentDigest(input:unknown):string;
 export declare function exportSignedIntent(input:unknown):string;
 export declare function assertSignedIntentActive(input:unknown,context:Readonly<Record<string,unknown>>,at?:Date):Readonly<Record<string,unknown>>;
+export declare function createDeveloperDeploymentDeepLink(input:unknown,at?:Date):string;
+export declare function parseDeveloperDeploymentDeepLink(value:string,at?:Date):DeveloperDeploymentRequest;
+export declare function parseDeveloperDeploymentRequest(input:unknown,at?:Date):DeveloperDeploymentRequest;
+export declare function developerDeploymentRequestHash(payload:unknown):string;
+export declare function developerArtifactDigest(payload:unknown):string;
+export declare function developerDeploymentDigest(request:unknown):string;
+export declare function signDeveloperDeployment(request:unknown,input:{accountSecret:string;account?:string},at?:Date):DeveloperDeploymentResponse;
+export declare function parseDeveloperDeploymentResponse(input:unknown,expectedRequest:unknown,at?:Date):DeveloperDeploymentResponse;
+export declare function createDeveloperDeploymentCallback(response:unknown,expectedRequest:unknown,at?:Date):string;
 export declare function createProductSessionProof(session:CentralWalletSession,input:Readonly<{method:string;path:string;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string}>,productDeviceSecret:string):Readonly<Record<string,unknown>>;
 export declare function parseProductSessionProof(input:unknown):Readonly<Record<string,unknown>>;
 export declare function productSessionProofSignBytes(input:unknown):string;
