@@ -35,7 +35,10 @@ export function sandboxLaunch({
   writeWorkspace = false,
   writableBinds = [],
   readOnlyBinds = [],
+  memoryBytes = 1073741824,
 }) {
+  if (!Number.isInteger(memoryBytes) || memoryBytes < 268435456 || memoryBytes > 4294967296)
+    throw Object.assign(new Error("Invalid sandbox memory limit."), { status: 500, code: "invalid_sandbox_limit" });
   if (
     [...writableBinds, ...readOnlyBinds].some(
       ({ host, guest }) =>
@@ -155,7 +158,7 @@ export function sandboxLaunch({
       command: "prlimit",
       args: [
         "--cpu=3600:3600",
-        "--as=1073741824:1073741824",
+        `--as=${memoryBytes}:${memoryBytes}`,
         "--nproc=256:256",
         "--nofile=256:256",
         "--fsize=67108864:67108864",

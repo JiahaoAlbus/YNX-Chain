@@ -12,7 +12,7 @@ export function createWorkspaceRuntime(options={}){
   const sessionKey=Buffer.from(options.sessionKey||process.env.YNX_CODE_WORKSPACE_SESSION_KEY||randomBytes(32));
   const root=options.root||join(tmpdir(),"ynx-code-runtime");
   const workspaceStore=options.workspaceStore||null;
-  const languageRequest=options.languageRequest||null;
+  const languageRequests=options.languageRequests||(options.languageRequest?{cpp:options.languageRequest}:{});
   const concurrency=boundedNumber(options.concurrency||process.env.YNX_CODE_RUNTIME_CONCURRENCY,4,1,64);
   const queueLimit=boundedNumber(options.queueLimit||process.env.YNX_CODE_RUNTIME_QUEUE,64,1,512);
   let active=0;const queue=[];
@@ -21,11 +21,12 @@ export function createWorkspaceRuntime(options={}){
     const url=new URL(request.url,`http://${request.headers.host||"127.0.0.1"}`);
     if(url.pathname==="/runtime/health"&&request.method==="GET"){
       const session=readSession(request,sessionKey)||newSession();
-      json(response,200,{ok:true,protocolVersion:PROTOCOL,service:"ynx-code-workspace-agent",sandboxReady:sandbox.ready,sandbox:sandbox.kind,compilers:await compilerInventory(),languageServers:{cpp:Boolean(languageRequest)},active,queued:queue.length,maxConcurrent:concurrency,maxQueued:queueLimit,sessionClass:"ephemeral-guest",workspacePersistence:workspaceStore?"sqlite-wal":"disabled",durability:workspaceStore?"server-local recovery; production object-store migration required":"runtime-local; restart invalidates guest session"},{"set-cookie":cookie(session,sessionKey,request)});
+      json(response,200,{ok:true,protocolVersion:PROTOCOL,service:"ynx-code-workspace-agent",sandboxReady:sandbox.ready,sandbox:sandbox.kind,compilers:await compilerInventory(),languageServers:Object.fromEntries(Object.keys(languageRequests).map(id=>[id,true])),active,queued:queue.length,maxConcurrent:concurrency,maxQueued:queueLimit,sessionClass:"ephemeral-guest",workspacePersistence:workspaceStore?"sqlite-wal":"disabled",durability:workspaceStore?"server-local recovery; production object-store migration required":"runtime-local; restart invalidates guest session"},{"set-cookie":cookie(session,sessionKey,request)});
       return true;
     }
-    if(url.pathname==="/runtime/language/cpp"&&request.method==="POST"){
-      const session=readSession(request,sessionKey);if(!session){const next=newSession();json(response,401,{error:"Workspace session was established. Retry the language request.",code:"workspace_session_required"},{"set-cookie":cookie(next,sessionKey,request)});return true}if(!languageRequest){json(response,503,{error:"C++ language service is not configured.",code:"language_server_unavailable"});return true}try{const body=JSON.parse((await readBody(request,3*1024*1024)).toString("utf8"));if(body.protocolVersion!==PROTOCOL)throw Object.assign(new Error("Language protocol version is required."),{status:400,code:"protocol_mismatch"});const value=await languageRequest(body);json(response,200,value)}catch(error){json(response,error.status||400,{error:error.message||"Language request failed.",code:error.code||"language_request_failed"})}return true
+    const languageMatch=url.pathname.match(/^\/runtime\/language\/([a-z][a-z0-9-]{0,31})$/);
+    if(languageMatch&&request.method==="POST"){
+      const session=readSession(request,sessionKey),languageRequest=languageRequests[languageMatch[1]];if(!session){const next=newSession();json(response,401,{error:"Workspace session was established. Retry the language request.",code:"workspace_session_required"},{"set-cookie":cookie(next,sessionKey,request)});return true}if(!languageRequest){json(response,503,{error:"The requested language service is not configured.",code:"language_server_unavailable"});return true}try{const body=JSON.parse((await readBody(request,3*1024*1024)).toString("utf8"));if(body.protocolVersion!==PROTOCOL)throw Object.assign(new Error("Language protocol version is required."),{status:400,code:"protocol_mismatch"});const value=await languageRequest(body);json(response,200,value)}catch(error){json(response,error.status||400,{error:error.message||"Language request failed.",code:error.code||"language_request_failed"})}return true
     }
     const workspaceMatch=url.pathname.match(/^\/runtime\/workspaces\/([-A-Za-z0-9_]{1,160})$/);
     if(workspaceMatch&&(request.method==="GET"||request.method==="PUT")){

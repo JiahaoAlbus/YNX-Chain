@@ -149,7 +149,8 @@ export async function saveWorkspace(
     );
   return value.workspace;
 }
-export async function cppLanguageRequest(
+export async function languageRequest(
+  language: "cpp" | "typescript",
   files: Record<string, string>,
   activePath: string,
   operation:
@@ -171,7 +172,7 @@ export async function cppLanguageRequest(
     newName,
   });
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch("/runtime/language/cpp", {
+    const response = await fetch(`/runtime/language/${language}`, {
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
@@ -190,6 +191,7 @@ export async function cppLanguageRequest(
   }
   throw new Error("Workspace session could not be established.");
 }
+export function cppLanguageRequest(files:Record<string,string>,activePath:string,operation:"completion"|"definition"|"references"|"rename"|"format"|"diagnostics",position?:{line:number;character:number},newName?:string){return languageRequest("cpp",files,activePath,operation,position,newName)}
 
 export type GitChange = {
   path: string;

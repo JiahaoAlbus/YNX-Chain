@@ -11,7 +11,7 @@ import CssWorker from "../workers/css.worker?worker";
 import HtmlWorker from "../workers/html.worker?worker";
 import TsWorker from "../workers/typescript.worker?worker";
 import { useEffect, useRef } from "react";
-import { cppLanguageRequest } from "../runtime/client";
+import { cppLanguageRequest, languageRequest } from "../runtime/client";
 import type { InstalledExtension } from "../runtime/client";
 
 self.MonacoEnvironment = {
@@ -197,9 +197,10 @@ export default function CodeEditor({
         );
   }, [extensions]);
   useEffect(() => {
-    if (language !== "cpp" || !activePath) return;
+    const serverLanguage=language==="cpp"?"cpp":language==="typescript"||language==="javascript"?"typescript":null;
+    if (!serverLanguage || !activePath) return;
     const timer = setTimeout(() => {
-      cppLanguageRequest(files, activePath, "diagnostics")
+      languageRequest(serverLanguage,files, activePath, "diagnostics")
         .then((value) => {
           const model = monaco.editor.getModel(
             monaco.Uri.parse(`file:///${activePath}`),
@@ -207,7 +208,7 @@ export default function CodeEditor({
           if (!model) return;
           monaco.editor.setModelMarkers(
             model,
-            "clangd",
+            serverLanguage==="cpp"?"clangd":"typescript-language-server",
             (value.result || []).map((diagnostic: any) => ({
               startLineNumber: diagnostic.range.start.line + 1,
               startColumn: diagnostic.range.start.character + 1,

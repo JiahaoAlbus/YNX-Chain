@@ -6,6 +6,7 @@ import { createGateway } from "./gateway.mjs";
 import { createWorkspaceRuntime } from "../../workspace-agent/src/runtime.mjs";
 import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
 import { runCppLanguageRequest } from "../../language-service/src/cpp-lsp.mjs";
+import { runTypescriptLanguageRequest } from "../../language-service/src/typescript-lsp.mjs";
 import { createTerminalService } from "../../terminal-service/src/service.mjs";
 import { createDebugService } from "../../debug-service/src/service.mjs";
 import { createGitService } from "../../git-service/src/service.mjs";
@@ -31,7 +32,7 @@ const workspaceStore = createWorkspaceStore({
   }),
   runtime = createWorkspaceRuntime({
     workspaceStore,
-    languageRequest: runCppLanguageRequest,
+    languageRequests: { cpp:runCppLanguageRequest, typescript:runTypescriptLanguageRequest },
   });
 const gitService = createGitService({
   workspaceStore,
