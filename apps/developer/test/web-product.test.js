@@ -72,7 +72,7 @@ test("macOS package gate verifies extracted cold launch and bundled runtime clea
   assert.match(packageScript,/Refusing to package tracked Developer changes/); assert.match(packageScript,/build-provenance\.json/); assert.match(packageScript,/sbom\.cdx\.json/); assert.match(packageScript,/sourceDirty: false/);
   assert.match(verify,/cold launch/); assert.match(verify,/pgrep -P/); assert.match(verify,/server\.mjs/); assert.match(verify,/survived App termination/); assert.match(verify,/workspace survived second launch/); assert.match(verify,/runtime\/tasks/); assert.match(verify,/node-pty\/prebuilds\/darwin-arm64\/pty\.node/);
   assert.match(verify,/provenance sourceCommit mismatch|provenance \$\{key\} mismatch/); assert.match(verify,/sbomSha256/); assert.match(verify,/YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT/);
-  assert.match(codeServer,/workspace-session\.key/); assert.match(codeServer,/YNX_CODE_WORKSPACE_SESSION_KEY/); assert.match(codeServer,/services.*gateway.*server\.mjs/s); assert.match(codeServer,/mode: 0o600/);
+  assert.match(codeServer,/workspace-session\.key/); assert.match(codeServer,/YNX_CODE_WORKSPACE_SESSION_KEY/); assert.match(codeServer,/services.*gateway.*server\.mjs/s); assert.match(codeServer,/mode: 0o600/); assert.match(codeServer,/process\.ppid !== desktopParent/); assert.match(codeServer,/SIGTERM/);
   assert.match(gatewayServer,/closeIdleConnections/); assert.match(gatewayServer,/closeAllConnections/); assert.match(gatewayServer,/Promise\.allSettled/);
   assert.match(source,/\[_server waitUntilExit\]/);
 });

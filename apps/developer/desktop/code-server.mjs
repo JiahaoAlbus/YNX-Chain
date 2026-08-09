@@ -32,3 +32,12 @@ process.env.YNX_CODE_STATIC_ROOT = join(applicationRoot, "frontend", "dist");
 process.chdir(applicationRoot);
 
 await import(pathToFileURL(join(applicationRoot, "services", "gateway", "src", "server.mjs")).href);
+
+// Cocoa may be terminated by the operating system without delivering the
+// application delegate's graceful callback. Never leave a re-parented IDE
+// runtime behind after its only trusted native host disappears.
+const desktopParent = process.ppid;
+const parentMonitor = setInterval(() => {
+  if (process.ppid !== desktopParent) process.kill(process.pid, "SIGTERM");
+}, 250);
+parentMonitor.unref();
