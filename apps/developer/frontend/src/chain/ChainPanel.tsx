@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
-import { chainRpc, debugChainBlock, debugChainTransaction, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
-import { desktopWalletBridge, openDeveloperWalletReview } from "../wallet/transport";
+import { chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
+import { consumeDeveloperWalletRequest, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperWalletReview, subscribeDeveloperWalletCallbacks } from "../wallet/transport";
 
 const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
 const TEMPLATES = {
@@ -89,6 +89,13 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
   useEffect(() => {
     void refresh();
   }, []);
+  useEffect(() => subscribeDeveloperWalletCallbacks((callbackURL) => {
+    setBusy(true); setError(""); setWalletState("Verifying the exact Wallet callback and signing this device's short-lived challenge…");
+    void createDeveloperWalletCompletion(callbackURL).then(result => completeDeveloperWalletSession(result.body)).then(session => {
+      consumeDeveloperWalletRequest();
+      setWalletState(`Canonical Product Session verified for ${session.account} · expires ${new Date(session.expiresAt).toLocaleTimeString()}. Deployment still requires a separate exact intent and Wallet signature.`);
+    }).catch(value => { setWalletState(""); setError(value instanceof Error ? value.message : "YNX Wallet session completion failed closed."); }).finally(() => setBusy(false));
+  }), []);
   const runRpc = async () => {
     setBusy(true);
     setError("");

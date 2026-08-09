@@ -488,10 +488,12 @@ Web workbench cannot receive the registered
 Wallet/install surface and never creates a browser session. A reviewed desktop
 bridge may generate the canonical five-minute `ynxwallet://authorize` request
 using its compressed P-256 product-device key and open Wallet, but the result is
-only `wallet-review-opened`. Product Session, intent, simulation, signing,
-broadcast, receipt and Explorer-source verification remain disabled until the
-callback and deployed central Gateway pass their exact gates. Browser-injected
-providers, private-key input and mnemonic input are rejected.
+only `wallet-review-opened` until the callback passes. The current macOS source
+can complete the callback and product-device challenge, but the server still
+requires deployed central Gateway proof before it will return a Product Session.
+Intent, simulation, signing, broadcast, receipt and Explorer-source verification
+remain separate later gates. Browser-injected providers, private-key input and
+mnemonic input are rejected.
 
 The Gateway exposes `/runtime/wallet/readiness` only to a signed workspace
 session. A dedicated broker probes the fixed loopback canonical Wallet Gateway
@@ -506,7 +508,12 @@ exported only as canonical compressed SEC1 base64url for the authorization
 request. Native code validates and opens the exact `ynxwallet` route; the app is
 registered for `ynxdeveloper://wallet-auth/callback` and rejects callback route,
 fragment, and field widening before delivering the URL to the workbench. This
-transport does not yet convert the callback into a Product Session or deployment.
+transport binds the response to the pending request, creates a 90-second challenge
+and signs it with the non-extractable key. The signed-workspace server route again
+checks `remoteDeployed`, `publicDeploymentReady` and the exact registry attestation
+before forwarding canonical completion JSON to the fixed loopback Gateway. Only
+the Gateway's verified session result changes the UI to authenticated; deployment
+does not follow automatically.
 
 Later blockchain slices add reviewed Rust contract profiles, Move and Cosmos SDK,
 pinned dependency/toolchain manifests, local tests, Testnet simulation, gas/fee

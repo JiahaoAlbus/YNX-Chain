@@ -287,6 +287,26 @@ export async function loadWalletReadiness(): Promise<WalletReadiness> {
   }
   throw new Error("Workspace session could not be established.");
 }
+export type DeveloperWalletSession = {
+  sessionBinding: string;
+  productClientId: "ynx-developer-v1";
+  bundleId: "com.ynxweb4.developer.testnetpreview";
+  productDeviceAlgorithm: "p256-sha256";
+  account: string;
+  scopes: ["account:read", "developer:deploy"];
+  expiresAt: string;
+};
+export async function completeDeveloperWalletSession(canonicalBody: string): Promise<DeveloperWalletSession> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await fetch("/runtime/wallet/sessions/complete", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: canonicalBody });
+    if (response.status === 401 && attempt === 0) { await runtimeHealth(); continue; }
+    const value = await response.json().catch(() => ({ error: `Wallet completion returned HTTP ${response.status}` }));
+    if (!response.ok) throw new Error(value.error || "Wallet session completion was rejected.");
+    if (value?.session?.productClientId !== "ynx-developer-v1" || value.session.bundleId !== "com.ynxweb4.developer.testnetpreview" || !/^[0-9a-f]{64}$/.test(value.session.sessionBinding || "")) throw new Error("Wallet Gateway returned an invalid Developer session binding.");
+    return value.session;
+  }
+  throw new Error("Workspace session could not be established.");
+}
 export async function loadWorkspace(projectId: string): Promise<WorkspaceSnapshot | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await fetch(`/runtime/workspaces/${encodeURIComponent(projectId)}`, { credentials: "same-origin" });

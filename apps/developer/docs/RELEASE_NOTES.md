@@ -28,6 +28,15 @@
   route through the operating system and forwards only the exact one-field
   callback to the workbench. Ordinary Web and Windows portable profiles still
   remain callback-disabled.
+- The macOS callback now resumes only its exact pending request, rejects route,
+  field, scope, device, lifetime and encoding substitution, signs a 90-second
+  product-device challenge and submits canonical JSON through the signed
+  workspace route. The server rechecks remote deployment, public readiness and
+  the exact registry digest before it will forward completion to the fixed
+  loopback Gateway; a Product Session is shown only after the canonical Gateway
+  returns its 64-hex binding. The current private candidate deliberately reports
+  the public gate closed, so this is implemented and tested current source, not
+  a claim that the public desktop login has been released.
 - Added a same-origin, workspace-session-bound YNX Chain service with a fixed
   canonical Testnet upstream. It exposes bounded network status, block and
   transaction inspection, receipt joining, a read-only JSON-RPC allowlist and

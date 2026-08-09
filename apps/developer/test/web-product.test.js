@@ -62,6 +62,7 @@ test("localized UI and native desktop sources preserve language, permission and 
   assert.match(html,/locale-select/); assert.match(html,/ai-language/); assert.match(app,/DeveloperI18n/); assert.match(app,/DeveloperWalletSession/);
   for(const source of [mac,windows]) { assert.match(source,/Testnet Preview/); assert.match(source,/Check(?: for )?Updates/); assert.match(source,/window|Window/); }
   assert.match(mac,/New Project/); assert.match(mac,/ynxDesktopWallet/); assert.match(mac,/open-authorization/); assert.match(mac,/ynx-wallet-callback/); assert.match(plist,/com\.ynxweb4\.developer\.testnetpreview\.wallet-auth/); assert.match(plist,/>ynxdeveloper</); assert.match(windows,/owner-signed manifest/); assert.doesNotMatch(mac+windows,/production release is signed/i);
+  const transport=await read("frontend/src/wallet/transport.ts"),broker=await read("services/wallet-readiness/src/service.mjs");assert.match(transport,/non-extractable|false, \["sign", "verify"\]/);assert.match(transport,/YNX_PRODUCT_SESSION_CHALLENGE_V1/);assert.match(transport,/derSignature/);assert.match(broker,/remoteDeployed/);assert.match(broker,/publicDeploymentReady/);assert.match(broker,/wallet\/sessions\/complete/);
 });
 
 test("macOS package gate verifies extracted cold launch and bundled runtime cleanup", async () => {
