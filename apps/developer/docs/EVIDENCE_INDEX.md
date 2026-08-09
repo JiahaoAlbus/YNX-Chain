@@ -15,6 +15,14 @@
   remote file, requires revision 2, and removes the profile without exposing the
   key. The 2026-08-10 candidate run passed with deterministic Ed25519 fingerprint
   `SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8`.
+- Live YNX Chain tools gate: `scripts/live-chain-tools-check.mjs`; on 2026-08-10
+  it authenticated through the same-origin workspace gateway, required chain ID
+  6423 and a non-catching-up canonical status, read the current block, joined a
+  known Explorer transaction to its EVM transaction and successful receipt,
+  checked Solidity 0.8.24 metadata and required a mutating RPC rejection.
+- Chain service unit evidence: `services/chain-service/test/service.test.mjs`
+  covers canonical status normalization, the read-only RPC boundary and invalid
+  chain-state rejection.
 
 - Client unit/integration/security/recovery/locale tests:
   `packages/developer-client/test/developer-client.test.js`

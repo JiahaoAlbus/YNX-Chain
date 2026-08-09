@@ -20,6 +20,7 @@ import { createAgentOrchestrator } from "../../agent-orchestrator/src/service.mj
 import { createProjectMemory } from "../../project-memory/src/service.mjs";
 import { createCollaborationService } from "../../collaboration-service/src/service.mjs";
 import { createRuntimeProfileService } from "../../runtime-profile-service/src/service.mjs";
+import { createChainService } from "../../chain-service/src/service.mjs";
 
 if (
   process.env.NODE_ENV === "production" &&
@@ -84,11 +85,14 @@ runtimeProfileService = createRuntimeProfileService({
   filename: join(stateDir, "runtime-profiles.sqlite"),
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });
+const chainService = createChainService({
+  ownerForRequest: (request) => runtime.ownerForRequest(request),
+});
 const server = createServer(
   createGateway({
     staticRoot,
     runtime,
-    handlers: [collaborationService.handler, runtimeProfileService.handler, gitService.handler, extensionRegistry.handler, modelRouter.handler, agentOrchestrator.handler, projectMemory.handler],
+    handlers: [collaborationService.handler, runtimeProfileService.handler, chainService.handler, gitService.handler, extensionRegistry.handler, modelRouter.handler, agentOrchestrator.handler, projectMemory.handler],
   }),
 );
 const terminalService = createTerminalService({

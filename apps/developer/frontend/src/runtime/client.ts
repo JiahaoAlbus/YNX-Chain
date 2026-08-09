@@ -107,6 +107,13 @@ export function runContainerActive(runtimeId:string,projectId:string,activePath:
 export function inspectSshTarget(host:string,port:number,user:string){return profileFetch("/runtime/profiles/ssh/inspect",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",host,port,user})})}
 export function saveSshProfile(value:{host:string;port:number;user:string;label:string;reviewedHostKey:string;privateKey:string}){return profileFetch("/runtime/profiles/ssh",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",approval:"connect-ssh-once",...value})})}
 export function removeSshProfile(profileId:string){return profileFetch(`/runtime/profiles/ssh/${encodeURIComponent(profileId)}`,{method:"DELETE"})}
+export type ChainStatus={chainId:number;network:string;nativeCurrencySymbol:string;height:number;latestBlockHash:string;latestBlockTime:string;catchingUp:boolean;validatorCount:number;readyValidatorCount:number;pendingTxCount:number;publicNetwork:boolean;build?:{commit:string;release:string;buildTime:string}};
+async function chainFetch(path:string,options:RequestInit={}){for(let attempt=0;attempt<2;attempt++){const response=await fetch(`/runtime/chain${path}`,{credentials:"same-origin",...options,headers:{...(options.body?{"content-type":"application/json"}:{}),...options.headers}});if(response.status===401&&attempt===0){await runtimeHealth();continue}const value=await response.json().catch(()=>({error:`Chain tools returned HTTP ${response.status}`}));if(!response.ok)throw new Error(value.error||"YNX Chain request failed.");return value}throw new Error("Workspace session could not be established.")}
+export async function loadChainStatus():Promise<ChainStatus>{return(await chainFetch("/status")).status}
+export async function chainRpc(method:string,params:unknown[]=[]){return(await chainFetch("/rpc",{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-chain/v1",method,params})})).result}
+export function debugChainTransaction(hash:string){return chainFetch(`/transactions/${encodeURIComponent(hash)}`)}
+export function debugChainBlock(id:string){return chainFetch(`/blocks/${encodeURIComponent(id)}`)}
+export async function loadChainCompiler(){return(await chainFetch("/compiler")).compiler}
 export async function loadWorkspace(
   projectId: string,
 ): Promise<WorkspaceSnapshot | null> {

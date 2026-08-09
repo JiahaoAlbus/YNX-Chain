@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@ynx-code/chain-service": "0.1.0",
     "@ynx-code/collaboration-service": "0.1.0",
     "@ynx-code/debug-service": "0.1.0",
     "@ynx-code/extension-registry": "0.1.0",

@@ -6,6 +6,7 @@ import {
   Cloud,
   Files,
   GitBranch,
+  Link2,
   Play,
   Save,
   Search,
@@ -54,7 +55,8 @@ import { AgentPanel } from "../chat/AgentPanel";
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
 const CollaborationPanel = lazy(() => import("../collaboration/CollaborationPanel").then(module => ({ default: module.CollaborationPanel })));
 const RuntimePanel = lazy(() => import("../runtime/RuntimePanel").then(module => ({ default: module.RuntimePanel })));
-type View = "files" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration" | "remote";
+const ChainPanel = lazy(() => import("../chain/ChainPanel").then(module => ({ default: module.ChainPanel })));
+type View = "files" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration" | "remote" | "chain";
 const activity: [View, React.ReactNode, string][] = [
   ["files", <Files />, "Explorer"],
   ["search", <Search />, "Search"],
@@ -64,6 +66,7 @@ const activity: [View, React.ReactNode, string][] = [
   ["agent", <Sparkles />, "AI Engineer"],
   ["collaboration", <Users />, "Collaboration"],
   ["remote", <Cloud />, "Remote Explorer"],
+  ["chain", <Link2 />, "YNX Chain"],
 ];
 
 export function Workbench() {
@@ -314,6 +317,13 @@ export function Workbench() {
           },
     );
     return null;
+  };
+  const addGeneratedFile = (path:string,content:string) => {
+    if(collaborationReadOnly)return;
+    if(!validPath(path))return;
+    if(project.files[path]!==undefined&&!confirm(`Replace ${path} with the reviewed template?`))return;
+    setProject(current=>({...current,revision:current.revision+1,files:{...current.files,[path]:content},active:path,open:current.open.includes(path)?current.open:[...current.open,path],folders:[...new Set([...current.folders,...path.split("/").slice(0,-1).map((_,index,parts)=>parts.slice(0,index+1).join("/"))])].sort()}));
+    setDirty(current=>new Set(current).add(path));
   };
   const rename = (from: string, to: string, kind: "file" | "folder") => {
     if (collaborationReadOnly) return "Your collaboration role is read-only.";
@@ -634,6 +644,7 @@ export function Workbench() {
         )}
         {collaborationMounted&&<div hidden={view !== "collaboration"} className="collaboration-host"><Suspense fallback={<div className="editor-loading">Loading collaboration engine…</div>}><CollaborationPanel projectId={project.id} files={project.files} cursor={collaborationCursor} onRemoteFiles={applyCollaborativeFiles} onCheckpoint={refreshWorkspace} onAccessChange={setCollaborationRole} onSessionChange={setCollaborationSession} onLeave={leaveCollaboration} /></Suspense></div>}
         {view==="remote"&&<Suspense fallback={<div className="editor-loading">Loading runtime control plane…</div>}><RuntimePanel projectId={project.id} selected={selectedRuntime} onSelect={setSelectedRuntime}/></Suspense>}
+        {view==="chain"&&<Suspense fallback={<div className="editor-loading">Connecting to YNX Testnet…</div>}><ChainPanel onAddFile={addGeneratedFile}/></Suspense>}
       </aside>
       <main className="main">
         <div className="editor-tabs">

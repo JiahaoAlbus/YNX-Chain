@@ -37,6 +37,19 @@ TypeScript is the first project-installable compiler adapter: install the exact
 reviewed `typescript@5.9.0` package through the package approval flow, then
 Compile uses that project-local compiler without adding a global executable.
 
+Open **YNX Chain** in the activity bar to inspect the live Testnet without
+leaving the workspace. Refresh network status, find a transaction hash or block
+height/hash, or run one of the listed read-only JSON-RPC methods. The panel joins
+Explorer transaction records with the authoritative EVM transaction and receipt
+when all are available. It cannot send a transaction through raw RPC.
+
+The Contract templates create editable project files; inserting a template does
+not compile, deploy or prove a contract. The displayed 0.8.24 compiler value is
+the canonical Testnet compiler metadata and is not a production-compilation
+claim while that endpoint reports production compilation disabled. Wallet and
+deployment controls stay unavailable until a real YNX Wallet provider and the
+complete signed receipt flow pass their release gates.
+
 YNX AI Build starts with Preview plan. Select only the files the provider may
 see, review the estimate and provider status, approve one network request, then
 review any proposed diff. Applying a diff needs a separate one-time write grant

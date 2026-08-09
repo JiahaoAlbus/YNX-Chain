@@ -1,5 +1,24 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-10 live YNX Chain tools candidate
+
+- Added a same-origin, workspace-session-bound YNX Chain service with a fixed
+  canonical Testnet upstream. It exposes bounded network status, block and
+  transaction inspection, receipt joining, a read-only JSON-RPC allowlist and
+  compiler metadata; mutating RPC methods fail closed.
+- Added a dedicated Chain workbench for live height and validator state,
+  transaction/block debugging, reviewed read-only RPC calls and three editable
+  Solidity starting points: Counter, DataAnchor and BatchPayment.
+- The live gate resolved chain ID 6423, an advancing block, the canonical pinned
+  compiler metadata and confirmed transaction
+  `0x2d61e641fb6cafbf762beade5fd3dfe614cb360c35707a0827365992be8acab0`
+  with a successful EVM receipt. It also proved that `eth_sendTransaction` is
+  rejected by the Developer gateway.
+- Wallet signing, broadcast and deployment remain visibly unavailable in this
+  slice. The public compiler endpoint currently reports deterministic analysis
+  metadata for Solidity 0.8.24 and explicitly does not claim production
+  compilation. Neither limitation is converted into a successful UI state.
+
 ## 2026-08-10 cloud language-intelligence candidate
 
 - Added project/owner-bound routing from Monaco through the gateway to six

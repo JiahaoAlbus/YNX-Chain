@@ -453,10 +453,32 @@ allowing arbitrary transitive install hooks.
 
 ## 15. YNX Chain development
 
-The blockchain workbench provides reviewed templates for Solidity, Rust contract
-profiles, Move and Cosmos SDK, pinned dependency/toolchain manifests, local
-tests, Testnet simulation, gas/fee estimates, contract artifacts, source maps,
-Explorer links and transaction debugging.
+The first live blockchain slice routes a signed workspace session through the
+same-origin gateway to a dedicated Chain service. The service has a fixed
+canonical HTTPS Testnet upstream, strict response/time/concurrency bounds and no
+caller-controlled upstream URL. It normalizes network status, joins Explorer
+records to EVM transactions and receipts, resolves blocks, exposes compiler
+metadata and permits only reviewed read-only JSON-RPC methods. Signing and
+mutating RPC methods are rejected.
+
+The React Chain workbench shows the live chain identity, height, validator and
+pending state; provides block/transaction debugging and reviewed JSON-RPC
+inspection; and can insert Counter, DataAnchor or BatchPayment Solidity
+templates into the current project. The canonical compiler endpoint currently
+identifies Solidity 0.8.24 but declares production compilation disabled, so the
+workbench does not describe that metadata endpoint as an authoritative
+production compiler.
+
+Wallet detection is only a product boundary in this slice. If no YNX Wallet
+provider exists, the workbench sends the user to the canonical Wallet product;
+if a provider exists, deployment still remains disabled until exact provider
+method, Product Session, intent, simulation, signing, broadcast, receipt and
+Explorer-source verification gates are implemented and tested. No browser
+private-key or mnemonic input is accepted.
+
+Later blockchain slices add reviewed Rust contract profiles, Move and Cosmos SDK,
+pinned dependency/toolchain manifests, local tests, Testnet simulation, gas/fee
+estimates, contract artifacts, source maps and verified Explorer links.
 
 Deployment state is:
 
