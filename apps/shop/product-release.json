@@ -1,14 +1,14 @@
 {
   "productId": "ynx-shop",
   "name": "YNX Shop",
-  "branch": "codex/shop-0.3-android",
-  "commit": "6fa2d6c5",
+  "branch": "codex/integrate-finance-suite",
+  "commit": "944d2131f72e7f5071b9bc07614ddc2260ab53ff",
   "version": "0.3.0-testnet-preview",
   "surfaces": ["web", "pwa", "android", "ios"],
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": true,
-  "integratedCentral": false,
+  "integratedCentral": true,
   "deployedStaging": true,
   "deployedPublic": true,
   "downloadHosted": true,
@@ -59,7 +59,13 @@
   "centralIntegration": {
     "walletRegistryPullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/54",
     "walletRegisteredDeployed": true,
-    "walletRegistryMerged": false,
+    "walletRegistryMerged": true,
+    "requestingProduct": "shop",
+    "productClientId": "ynx-shop-v1",
+    "publicGatewayVersionUrl": "https://wallet-auth.ynxweb4.com/version",
+    "publicGatewayEnabledProductVerified": true,
+    "publicCommerceServiceCommit": "88c0f3a546b463fb270c4bea5d944178865660a5",
+    "publicCommerceServiceContainsSourceCommit": true,
     "payBoundaryImplemented": true,
     "payMerchantConfiguredForShop": true,
     "trustBoundaryImplemented": true,
@@ -67,10 +73,10 @@
     "aiProviderConfigured": true
   },
   "knownLimitations": [
-    "The Shop Wallet registry approval is deployed and tested but its source pull request still requires independent review before merge.",
+    "The public Shop Wallet tuple is merged, enabled and visible in the deployed canonical Gateway inventory; asset movement still requires separate Wallet and Pay authority.",
     "The Android artifact is debug-signed for Testnet Preview testing; it is not production signed or store released.",
     "Tax and carrier providers are unavailable; seller shipment entries remain manual and unverified.",
     "The demo catalog is not a claim of physical fulfillment or production retail availability."
   ],
-  "generatedAt": "2026-08-03T05:21:30+08:00"
+  "generatedAt": "2026-08-11T07:05:00+08:00"
 }

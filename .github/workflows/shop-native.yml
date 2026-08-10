@@ -6,7 +6,7 @@ on:
       - "apps/shop/native/**"
       - ".github/workflows/shop-native.yml"
   push:
-    branches: [main, codex/ecosystem-shop]
+    branches: [main, codex/ecosystem-shop, codex/integrate-finance-suite]
     paths:
       - "apps/shop/native/**"
       - ".github/workflows/shop-native.yml"
