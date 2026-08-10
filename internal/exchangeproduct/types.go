@@ -76,6 +76,21 @@ type ChainReader interface {
 	Transfer(hash string) (ChainTransfer, error)
 }
 
+// ChainBalanceReader is an optional extension implemented by chain readers
+// that can prove the committed native balance of the configured custody
+// account. Solvency reporting fails closed when this capability is absent.
+type ChainBalanceReader interface {
+	AccountBalance(address string) (ChainBalance, error)
+}
+
+type ChainBalance struct {
+	Address         string `json:"address"`
+	Asset           string `json:"asset"`
+	AmountMicro     int64  `json:"amountMicro"`
+	CommittedHeight uint64 `json:"committedHeight"`
+	Source          string `json:"source"`
+}
+
 type Market struct {
 	Symbol        string `json:"symbol"`
 	BaseAsset     string `json:"baseAsset"`
@@ -432,4 +447,51 @@ type OrderBook struct {
 	Market string  `json:"market"`
 	Bids   []Order `json:"bids"`
 	Asks   []Order `json:"asks"`
+}
+
+type SolvencyAsset struct {
+	Asset                     string `json:"asset"`
+	LiabilitiesMicro          int64  `json:"liabilitiesMicro"`
+	AvailableLiabilitiesMicro int64  `json:"availableLiabilitiesMicro"`
+	ReservedLiabilitiesMicro  int64  `json:"reservedLiabilitiesMicro"`
+	AssetsMicro               *int64 `json:"assetsMicro,omitempty"`
+	EncumberedAssetsMicro     *int64 `json:"encumberedAssetsMicro,omitempty"`
+	ReserveRatioBPS           *int64 `json:"reserveRatioBps,omitempty"`
+	WithdrawalCapacityMicro   *int64 `json:"withdrawalCapacityMicro,omitempty"`
+	AssetProofStatus          string `json:"assetProofStatus"`
+	AssetProofSource          string `json:"assetProofSource,omitempty"`
+	UnavailableReason         string `json:"unavailableReason,omitempty"`
+}
+
+type SolvencySnapshot struct {
+	Version             string          `json:"version"`
+	AsOf                time.Time       `json:"asOf"`
+	StateSchemaVersion  int             `json:"stateSchemaVersion"`
+	StateIntegrityHash  string          `json:"stateIntegrityHash"`
+	LiabilityMerkleRoot string          `json:"liabilityMerkleRoot"`
+	LiabilityLeafCount  int             `json:"liabilityLeafCount"`
+	CustodyAddress      string          `json:"custodyAddress,omitempty"`
+	CommittedHeight     uint64          `json:"committedHeight,omitempty"`
+	Assets              []SolvencyAsset `json:"assets"`
+	InsuranceFundStatus string          `json:"insuranceFundStatus"`
+	Status              string          `json:"status"`
+	Disclosure          string          `json:"disclosure"`
+}
+
+type MerkleStep struct {
+	Hash     string `json:"hash"`
+	Position string `json:"position"`
+}
+
+type LiabilityProof struct {
+	Version      string       `json:"version"`
+	Account      string       `json:"account"`
+	Balance      Balance      `json:"balance"`
+	LeafHash     string       `json:"leafHash"`
+	LeafIndex    int          `json:"leafIndex"`
+	LeafCount    int          `json:"leafCount"`
+	MerkleRoot   string       `json:"merkleRoot"`
+	Proof        []MerkleStep `json:"proof"`
+	Verified     bool         `json:"verified"`
+	SnapshotAsOf time.Time    `json:"snapshotAsOf"`
 }
