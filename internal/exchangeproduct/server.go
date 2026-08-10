@@ -90,6 +90,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("POST /v1/quant-adapter/scale/{id}/cancel", s.quantCancelScale)
 	s.mux.HandleFunc("POST /v1/quant-adapter/orders/{id}/cancel", s.quantCancel)
 	s.mux.HandleFunc("POST /v1/quant-adapter/mass-cancel", s.quantMassCancel)
+	s.mux.HandleFunc("POST /v1/quant-adapter/control", s.quantControl)
 	s.mux.HandleFunc("POST /v1/quant-adapter/kill", s.quantKill)
 	s.mux.HandleFunc("POST /v1/quant-adapter/reconcile", s.quantReconcile)
 	s.mux.HandleFunc("PUT /v1/security", s.security)
@@ -805,6 +806,24 @@ func (s *Server) quantMassCancel(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) quantKill(w http.ResponseWriter, r *http.Request) {
 	s.quantMassCancelAction(w, r, true)
+}
+
+func (s *Server) quantControl(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:trade")
+	if !ok {
+		return
+	}
+	var q struct {
+		Mandate         QuantMandate `json:"mandate"`
+		Action          string       `json:"action"`
+		IdempotencyKey  string       `json:"idempotencyKey"`
+		WalletSignature string       `json:"walletSignature"`
+	}
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.quant.Control(session, q.Mandate, q.Action, q.IdempotencyKey, q.WalletSignature)
+	respond(w, v, err, 200)
 }
 
 func (s *Server) quantMassCancelAction(w http.ResponseWriter, r *http.Request, kill bool) {
