@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0-testnet",
   "product": "ynx-exchange",
   "owner": "07-exchange",
-  "sourceCommit": "fe6fad3c723f36b3f7bb4ba7aa3944a1e7ff511d",
+  "sourceCommit": "e8a70cbfbb07a5467d17251c3680dc01801c63b2",
   "stateSchemaVersion": 10,
   "authority": {
     "exchangeOwned": [
@@ -74,6 +74,7 @@
     ,"ynx-exchange-margin-transfer-v1"
     ,"ynx-exchange-perpetual-order-v1"
     ,"ynx-exchange-perpetual-cancel-v1"
+    ,"ynx-ultraliquidity-execution-v1"
   ],
   "httpApi": {
     "health": ["GET /health", "GET /ready", "GET /metrics", "GET /version"],
@@ -99,6 +100,7 @@
       "POST /v1/withdrawals/review"
       ,"GET /v1/margin/account"
       ,"POST /v1/margin/transfer"
+      ,"POST /v1/liquidity/execute"
     ],
     "orders": [
       "POST /v1/orders",

@@ -3,7 +3,7 @@
   "productId": "ynx-exchange",
   "name": "YNX Exchange",
   "aliases": ["YNX Exchange Pro", "YNX Exchange Mobile"],
-  "sourceCommit": "fe6fad3c723f36b3f7bb4ba7aa3944a1e7ff511d",
+  "sourceCommit": "e8a70cbfbb07a5467d17251c3680dc01801c63b2",
   "canonicalRoute": "/products/exchange",
   "seo": {
     "title": "YNX Exchange — Deterministic Testnet Trading",
@@ -18,7 +18,7 @@
     "Limit, protected Market IOC, Post-only, IOC, FOK, amend, stop, take-profit, trailing, OCO, TWAP, iceberg and scale execution",
     "Persistent Market, User and Drop Copy event streams",
     "Merkle-committed account liabilities with Wallet-scoped inclusion proofs and fail-closed committed custody evidence",
-    "UltraLiquidity quote comparison across complete Native CLOB fills and attested committed consensus-DEX CPMM pools",
+    "UltraLiquidity quote comparison plus Wallet-signed protected FOK execution on the Native CLOB; committed DEX execution remains fail-closed until its adapter is accepted",
     "Isolated YUSD_TEST margin with Wallet-signed transfers, Oracle-gated perpetual CLOB, positions, zero-sum funding and liquidation waterfall",
     "Wallet-signed dead-man switch, persistent Quant pause/resume and irreversible strategy kill",
     "Quant mandates with exact subaccount, market, methods, aggregate capital, expiry and nonce domain",
