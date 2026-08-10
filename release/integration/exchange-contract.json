@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0-testnet",
   "product": "ynx-exchange",
   "owner": "07-exchange",
-  "sourceCommit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744",
+  "sourceCommit": "08308a8c1fa74dae5b25647ff5a6936e34bd57c6",
   "stateSchemaVersion": 9,
   "authority": {
     "exchangeOwned": [
@@ -12,6 +12,7 @@
       "fills and maker/taker fees",
       "execution event sequence and hash chain",
       "quant mandate enforcement and strategy kill state"
+      ,"liability Merkle commitment and account-scoped inclusion proofs"
     ],
     "externalOwners": {
       "walletIdentityAndSession": "02-wallet-auth",
@@ -78,10 +79,12 @@
       "GET /v1/orderbook",
       "GET /v1/market-data/trades",
       "GET /v1/streams/market/snapshot",
-      "GET /v1/ws/market"
+      "GET /v1/ws/market",
+      "GET /v1/solvency"
     ],
     "account": [
       "GET /v1/account",
+      "GET /v1/solvency/liability-proof?asset=YNXT",
       "POST /v1/deposit-intents",
       "POST /v1/deposits",
       "POST /v1/deposits/{id}/refresh",

@@ -3,7 +3,7 @@
   "productId": "ynx-exchange",
   "name": "YNX Exchange",
   "aliases": ["YNX Exchange Pro", "YNX Exchange Mobile"],
-  "sourceCommit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744",
+  "sourceCommit": "08308a8c1fa74dae5b25647ff5a6936e34bd57c6",
   "canonicalRoute": "/products/exchange",
   "seo": {
     "title": "YNX Exchange — Deterministic Testnet Trading",
@@ -17,6 +17,7 @@
     "Deterministic fixed-point Spot CLOB with price-time priority",
     "Limit, protected Market IOC, Post-only, IOC, FOK, amend, stop, take-profit, trailing, OCO, TWAP, iceberg and scale execution",
     "Persistent Market, User and Drop Copy event streams",
+    "Merkle-committed account liabilities with Wallet-scoped inclusion proofs and fail-closed committed custody evidence",
     "Wallet-signed dead-man switch, persistent Quant pause/resume and irreversible strategy kill",
     "Quant mandates with exact subaccount, market, methods, aggregate capital, expiry and nonce domain",
     "Responsive Web Pro terminal and separate Android/iOS mobile product"
@@ -27,22 +28,24 @@
     "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
-    "deployedPublic": true,
+    "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false,
-    "websitePublished": true
+    "websitePublished": false
   },
   "risks": [
     "Testnet venue only; YUSD_TEST is internal venue credit",
     "Public Testnet runtime is live; no hosted desktop download, production signature or store release is attested",
     "Central Wallet/Gateway, custody and authoritative Indexer acceptance remain pending",
-    "Margin, perpetual, portfolio margin, UltraLiquidity and solvency proof are not implemented",
+    "Margin, perpetual, portfolio margin, UltraLiquidity and insurance fund are not implemented",
+    "The current liability-proof source is locally tested but not yet deployed; the public URL serves the previous runtime commit",
     "No guaranteed liquidity, price, execution, profit or return",
     "Historical schema v2-v7 compatibility lacks immutable byte fixtures"
   ],
   "availability": {
     "runtimePublicUrl": "https://exchange.ynxweb4.com/",
+    "runtimeSourceCommit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744",
     "healthUrls": ["https://exchange.ynxweb4.com/api/health", "https://exchange.ynxweb4.com/api/ready", "https://exchange.ynxweb4.com/api/version"],
     "downloadUrls": [],
     "artifactManifest": "apps/exchange/product-release.json",
