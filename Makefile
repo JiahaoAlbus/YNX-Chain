@@ -629,3 +629,31 @@ emergency-action-policy-check:
 
 privacy-safety-check:
 	bash ./scripts/verify/anti-unreasonable-tracking-check.sh
+.PHONY: oracle-test oracle-web-test oracle-container oracle-dast oracle-testnet-package oracle-testnet-smoke oracle-release-package oracle-release-evidence oracle-release-integrity-check
+oracle-test:
+	go test ./internal/oracle/... ./sdk/oracle/go ./cmd/ynx-oracled ./cmd/ynx-oracle-provider ./cmd/ynx-oracle-cli -race -count=1
+
+oracle-web-test:
+	npm --prefix apps/oracle run lint
+	npm --prefix apps/oracle test
+
+oracle-container:
+	docker build --build-arg SOURCE_COMMIT=$$(git rev-parse HEAD) --file Dockerfile.oracle --tag ynx-oracle:testnet .
+
+oracle-dast: oracle-container
+	bash ./scripts/verify/oracle-dast.sh
+
+oracle-testnet-package:
+	PACKAGE_ONLY=1 bash ./scripts/deploy/deploy-oracle-testnet.sh
+
+oracle-testnet-smoke:
+	bash ./scripts/verify/oracle-testnet-smoke.sh
+
+oracle-release-package:
+	node ./scripts/package/oracle-release.mjs --output tmp/oracle-release
+
+oracle-release-evidence:
+	node ./scripts/package/oracle-release.mjs --output tmp/oracle-release --evidence-dir release/evidence
+
+oracle-release-integrity-check:
+	node ./scripts/verify/oracle-release-integrity-check.mjs

@@ -4,6 +4,7 @@ import zlib from "node:zlib";
 export const SDK_RELEASE_SCHEMA = "ynx-sdk-release/v1";
 export const SDK_RELEASE_STATUS = "local-package-ready; not registry-published";
 const MAX_ARCHIVE_OUTPUT_BYTES = 16 * 1024 * 1024;
+const MAX_CONFIGURED_ARCHIVE_OUTPUT_BYTES = 256 * 1024 * 1024;
 export const SDK_CHAIN = Object.freeze({
   addressFormats: ["0x", "ynx1"],
   cosmosChainId: "ynx_6423-1",
@@ -52,8 +53,11 @@ export function createDeterministicTarGz(entries) {
   return compressed;
 }
 
-export function readDeterministicTarGz(compressed) {
-  const tar = zlib.gunzipSync(compressed, {maxOutputLength: MAX_ARCHIVE_OUTPUT_BYTES});
+export function readDeterministicTarGz(compressed, {maxOutputLength = MAX_ARCHIVE_OUTPUT_BYTES} = {}) {
+	if (!Number.isSafeInteger(maxOutputLength) || maxOutputLength <= 0 || maxOutputLength > MAX_CONFIGURED_ARCHIVE_OUTPUT_BYTES) {
+		throw new Error("tar verification size limit is invalid");
+	}
+	const tar = zlib.gunzipSync(compressed, {maxOutputLength});
   if (tar.length % 512 !== 0) throw new Error("tar payload is not block aligned");
   const entries = [];
   const seen = new Set();
