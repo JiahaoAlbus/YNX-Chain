@@ -3,7 +3,7 @@
   "productId": "ynx-dex",
   "artifactType": "web-pwa-upload-bundle",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
+  "sourceBaseCommit": "01ade4fe07dc36d002098b345a4a305a8db3a36f",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
@@ -14,8 +14,8 @@
   "productionSigned": false,
   "storeReleased": false,
   "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-  "sha256": "dbe1e72ecb68bddf53b5770f495d96ffb615bd7f81e2370fe63ecf42fb676b07",
-  "sizeBytes": 318536,
+  "sha256": "be5abb43cc2675f8bc12dc8c52e367951efa4985e2754e58e6bf8dfa980c3111",
+  "sizeBytes": 457996,
   "contentFileCount": 9,
   "content": [
     {
@@ -24,19 +24,19 @@
       "sizeBytes": 1079
     },
     {
+      "path": "assets/index-BCpmSRBt.js",
+      "sha256": "9aa632be429e5595c172e8df6b443d540f41d168a36fde2d7d3984cade63e877",
+      "sizeBytes": 305365
+    },
+    {
+      "path": "assets/index-BCpmSRBt.js.map",
+      "sha256": "99f8bebbe097e8b25c9124758aefca4a91bc17170a4640eebdc769153459e4d1",
+      "sizeBytes": 1435456
+    },
+    {
       "path": "assets/index-CfR1lRyV.css",
       "sha256": "b648e7d4de070ca774978dbd7b4dc85b7c982643ff3c678a414645e92cab9282",
       "sizeBytes": 21736
-    },
-    {
-      "path": "assets/index-DoXwOYUV.js",
-      "sha256": "b580ca75e8efde71980a99ffe294bc6a902d1e511e58dfd2d860e538ad7c64d2",
-      "sizeBytes": 240301
-    },
-    {
-      "path": "assets/index-DoXwOYUV.js.map",
-      "sha256": "382d0031ae40a777658940b638f61af75b495cce0642995128541d3fd2a66a1f",
-      "sizeBytes": 1024558
     },
     {
       "path": "icon-maskable.svg",
@@ -50,7 +50,7 @@
     },
     {
       "path": "index.html",
-      "sha256": "11e3a57120d71d40bd65e6bf22a0b3d6a82a6c901674b64a60476da5f792e363",
+      "sha256": "bb4b7cf083c1bb3ff530b9503d797497d1e1467270c61e6556e345204553ed6f",
       "sizeBytes": 931
     },
     {
@@ -66,6 +66,6 @@
   ],
   "verification": {
     "command": "shasum -a 256 release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-    "expectedSha256": "dbe1e72ecb68bddf53b5770f495d96ffb615bd7f81e2370fe63ecf42fb676b07"
+    "expectedSha256": "be5abb43cc2675f8bc12dc8c52e367951efa4985e2754e58e6bf8dfa980c3111"
   }
 }

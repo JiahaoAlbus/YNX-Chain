@@ -1,0 +1,13 @@
+{
+  "schemaVersion":1,
+  "productId":"ynx-dex",
+  "vectors":[
+    {"id":"dex-wallet-exact-tuple","input":{"productClientId":"ynx-dex-web-v1","bundleId":"com.ynxweb4.dex.web","callback":"https://dex.ynxweb4.com/wallet-auth/callback","scopes":["account:read","dex:positions:read","dex:transaction:request"]},"expected":"accepted by local central registry"},
+    {"id":"dex-wallet-legacy-tuple","input":{"productClientId":"ynx-dex-v1","bundleId":"com.ynxweb4.dex"},"expected":"rejected; no dual identity"},
+    {"id":"dex-position-device-proof","input":{"method":"POST","path":"/v1/wallet/sessions/introspect","requiredScopes":["account:read","dex:positions:read"]},"expected":"Gateway account is authoritative; browser account headers are ignored"},
+    {"id":"dex-position-proof-replay","mutation":"reuse the same Product Session proof","expectedError":"REPLAY"},
+    {"id":"dex-position-cross-app","mutation":"replace productClientId or bundleId with Exchange","expectedError":"CROSS_APP_REUSE"},
+    {"id":"dex-action-payload-widening","mutation":"change pool, asset, amount, deadline, session, quote or signed payload","expected":"Wallet action verification rejects"},
+    {"id":"dex-public-trial","input":"no Wallet session","expected":"public indexed pools, tokens, transactions and deterministic quotes remain usable; account positions and signing remain unavailable"}
+  ]
+}
