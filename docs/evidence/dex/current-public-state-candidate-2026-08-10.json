@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "source": "current-public-state-copy-four-application-candidate",
+  "migrationSha256": "17aa598d488e5cb9d0666f1efc8d3b016c2b1b6b094a4b6c3f2e0c736c9fa579",
+  "migrationHeight": 931436,
+  "migrationStateHash": "148403c5f1ccd68557e26a2a3591341b5b35b1cef9cd2f5fa1c3ce8b67754b03",
+  "signer": "0x91b299544caad84f06922a3d218f2aa65f9157cb",
+  "initialBalanceYnxt": 100,
+  "initialNonce": 0,
+  "candidateHeight": 931437,
+  "transactionHashes": [
+    "0x79ef4703c8cabdd52c51ce35054db779223530618e45fa7b3a5423df117fdcf9",
+    "0x8a3941533724f75df2eef9bfd4c2ae40228ba496eb6a739ab4c03fd995eecea8",
+    "0xfcb57a2a12e08103f6b8c2f4a430c4d2314559fc38b6a160cebc419a2b746c2a",
+    "0xeb0a589d12cd35d889c58f4a4e732b4aebabbcc590a1d4a5f59a5077e3c4434d",
+    "0x5d4f33b7530c734f579a601822d8023fbe641b41d4e260eb81f4c703b9810d2f",
+    "0xca53e3afaaaddd7ff5e24ef375338e14370aab97a59a4e9dd9a8fa4277e2b963"
+  ],
+  "assetId": "ynx-dex-drill",
+  "poolId": "dex_ynxt_drill",
+  "eventCount": 6,
+  "fourRoleDeterminism": true,
+  "expiredSwapRejected": true,
+  "concurrentReadClass": "local-one-process-current-public-state-copy-not-public-slo",
+  "concurrentReadUsers": 25,
+  "concurrentReadTotal": 400,
+  "concurrentReadOk": 400,
+  "concurrentReadDurationMs": 88,
+  "roles": [
+    {"role":"primary","stateSha256":"2647950416737dacf4c4d387b11061ce9dccf3bd9ccb0c95a19d015705daceab","appHash":"5ccbd62a9742ec8754f090f9f1ee851f81eb67de3ac1fa4a17adc69746cfb575","restartPassed":true},
+    {"role":"singapore","stateSha256":"2647950416737dacf4c4d387b11061ce9dccf3bd9ccb0c95a19d015705daceab","appHash":"5ccbd62a9742ec8754f090f9f1ee851f81eb67de3ac1fa4a17adc69746cfb575","restartPassed":true},
+    {"role":"silicon-valley","stateSha256":"2647950416737dacf4c4d387b11061ce9dccf3bd9ccb0c95a19d015705daceab","appHash":"5ccbd62a9742ec8754f090f9f1ee851f81eb67de3ac1fa4a17adc69746cfb575","restartPassed":true},
+    {"role":"seoul","stateSha256":"2647950416737dacf4c4d387b11061ce9dccf3bd9ccb0c95a19d015705daceab","appHash":"5ccbd62a9742ec8754f090f9f1ee851f81eb67de3ac1fa4a17adc69746cfb575","restartPassed":true}
+  ],
+  "recordedAt": "2026-08-10T08:24:23.654332Z"
+}

@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -44,6 +46,11 @@ type evidence struct {
 	EventCount          int            `json:"eventCount"`
 	FourRoleDeterminism bool           `json:"fourRoleDeterminism"`
 	ExpiredSwapRejected bool           `json:"expiredSwapRejected"`
+	ConcurrentReadClass string         `json:"concurrentReadClass"`
+	ConcurrentReadUsers int            `json:"concurrentReadUsers"`
+	ConcurrentReadTotal int            `json:"concurrentReadTotal"`
+	ConcurrentReadOK    int64          `json:"concurrentReadOk"`
+	ConcurrentReadMs    int64          `json:"concurrentReadDurationMs"`
 	Roles               []roleEvidence `json:"roles"`
 	RecordedAt          time.Time      `json:"recordedAt"`
 }
@@ -135,7 +142,8 @@ func run(migrationPath, keyPath, outputDir string) error {
 	ctx := context.Background()
 	height := int64(migration.Height) + 1
 	var canonical []byte
-	result := evidence{SchemaVersion: 1, Source: "current-public-state-copy-four-application-candidate", MigrationSHA256: sum(migrationRaw), MigrationHeight: migration.Height, MigrationStateHash: migration.StateHash, Signer: signer, InitialBalanceYNXT: owner.Balance, InitialNonce: owner.Nonce, CandidateHeight: height, TransactionHashes: txHashes, AssetID: assetID, PoolID: poolID, FourRoleDeterminism: true, ExpiredSwapRejected: true, RecordedAt: time.Now().UTC()}
+	result := evidence{SchemaVersion: 1, Source: "current-public-state-copy-four-application-candidate", MigrationSHA256: sum(migrationRaw), MigrationHeight: migration.Height, MigrationStateHash: migration.StateHash, Signer: signer, InitialBalanceYNXT: owner.Balance, InitialNonce: owner.Nonce, CandidateHeight: height, TransactionHashes: txHashes, AssetID: assetID, PoolID: poolID, FourRoleDeterminism: true, ExpiredSwapRejected: true, ConcurrentReadClass: "local-one-process-current-public-state-copy-not-public-slo", ConcurrentReadUsers: 25, ConcurrentReadTotal: len(roles) * 100, RecordedAt: time.Now().UTC()}
+	capacityStarted := time.Now()
 	for _, role := range roles {
 		roleDir := filepath.Join(outputDir, "roles", role)
 		if err := os.MkdirAll(roleDir, 0o700); err != nil {
@@ -200,11 +208,20 @@ func run(migrationPath, keyPath, outputDir string) error {
 		if err != nil || !bytes.Equal(snapshot, restartedSnapshot) {
 			return fmt.Errorf("%s restart changed committed state", role)
 		}
+		completed, err := concurrentReadProbe(restarted, signer, result.ConcurrentReadUsers, 100)
+		if err != nil {
+			return fmt.Errorf("%s concurrent read probe: %w", role, err)
+		}
+		result.ConcurrentReadOK += int64(completed)
 		stateRaw, err := os.ReadFile(statePath)
 		if err != nil {
 			return err
 		}
 		result.Roles = append(result.Roles, roleEvidence{Role: role, StateSHA256: sum(stateRaw), AppHash: state.AppHash, RestartPassed: true})
+	}
+	result.ConcurrentReadMs = time.Since(capacityStarted).Milliseconds()
+	if result.ConcurrentReadOK != int64(result.ConcurrentReadTotal) {
+		return errors.New("current-state concurrent reads were incomplete")
 	}
 	for _, role := range result.Roles[1:] {
 		if role.AppHash != result.Roles[0].AppHash || role.StateSHA256 != result.Roles[0].StateSHA256 {
@@ -220,6 +237,50 @@ func run(migrationPath, keyPath, outputDir string) error {
 	}
 	fmt.Printf("DEX candidate drill passed: height=%d roles=4 transactions=%d events=%d appHash=%s\n", height, len(txs), result.EventCount, result.Roles[0].AppHash)
 	return nil
+}
+
+func concurrentReadProbe(app *consensus.Application, signer string, users, total int) (int, error) {
+	paths := []string{"/dex/assets", "/dex/pools", "/dex/events", "/accounts/" + signer}
+	expected := make(map[string][]byte, len(paths))
+	for _, path := range paths {
+		value, err := query(app, path)
+		if err != nil {
+			return 0, err
+		}
+		expected[path] = value
+	}
+	jobs := make(chan int)
+	errs := make(chan error, total)
+	var completed atomic.Int64
+	var group sync.WaitGroup
+	for worker := 0; worker < users; worker++ {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			for index := range jobs {
+				path := paths[index%len(paths)]
+				value, err := query(app, path)
+				if err != nil || !bytes.Equal(value, expected[path]) {
+					if err == nil {
+						err = errors.New("concurrent query returned divergent committed state")
+					}
+					errs <- err
+					continue
+				}
+				completed.Add(1)
+			}
+		}()
+	}
+	for index := 0; index < total; index++ {
+		jobs <- index
+	}
+	close(jobs)
+	group.Wait()
+	close(errs)
+	for err := range errs {
+		return int(completed.Load()), err
+	}
+	return int(completed.Load()), nil
 }
 
 func readPrivateKey(path string) ([]byte, error) {
