@@ -36,16 +36,17 @@
   ],
   "artifactUrls": [
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-89286b8a-macos-arm64-unsigned.zip",
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-f179654d-windows-x64-unsigned.zip",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-90da333d-windows-x64-unsigned.zip",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json"
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-90da333d-windows-x64-sbom.cdx.json"
   ],
   "featureStatus": {
     "ynxCodePlatform": {
       "macosArm64Current": true,
       "webCurrent": true,
-      "windowsCurrent": false,
+      "windowsCurrent": true,
       "sourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
       "capabilities": [
         "React, TypeScript and Monaco multi-file workbench with tabs, split and diff views, search, replace, command palette, shortcuts and themes",
@@ -54,7 +55,7 @@
         "YNX Chain inspection, Wallet-authenticated deployment review, contract templates and receipt-bound transaction debugging"
       ],
       "verification": "Extracted official ZIP passed embedded provenance, 267-component CycloneDX SBOM, strict ad-hoc signing, cold launch, JavaScript/C++ toolchain detection, real bounded C++ compilation, workspace save, child cleanup and persisted second launch.",
-      "publicBoundary": "The official macOS arm64 direct download and developer.ynxweb4.com Web IDE run the full YNX Code platform. The Windows package remains the older API Studio generation and must not be described as the current full build.",
+      "publicBoundary": "The public Web IDE and macOS arm64 package run the full YNX Code workbench. The Windows x64 package is the current WebView2 hosted-workspace client: it opens the same public YNX Code service and passed a real remote C++ compile, but it does not claim a local Windows compiler sandbox.",
       "publicDeployment": {
         "sourceCommit": "17ba15d6617ec83d7befe7cba4f064f0edecccf6",
         "service": "ynx-code-candidate.service",
@@ -85,7 +86,7 @@
         "placeholderGate": "passed with grep fallback because rg was unavailable",
         "credentialLeakGate": "passed with grep fallback because rg was unavailable",
         "macosCurrentSourcePackage": "source 89286b8a6e302c75bd398dd9bf8f2f26160248a6: full YNX Code resources, 267-component SBOM, extracted self-test, ad-hoc classification, cold launch, JavaScript/C++ toolchains, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed",
-        "windowsCurrentSourcePackage": "GitHub Actions run 31288684378 for source f179654dd6e1361711ee480e2c6f3f614ad38002: 22 client tests, 24 Web tests, compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed",
+        "windowsCurrentSourcePackage": "GitHub Actions run 31342901937 for source 90da333dc98ccb9b98d49d17187d4ea5c47c5050: client and Web tests, build, precise runtime inventory, portable extraction, Authenticode NotSigned classification, WPF cold launch, public workspace connection, real remote C++ compile, second GUI launch and artifact upload passed",
         "browserAccessibilityAudit": "15/15 checks and six hashed screenshots passed on Chrome 151 from clean source 98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5"
       },
       "capabilities": [
@@ -137,19 +138,19 @@
   },
   "sha256": {
     "macosArm64UnsignedZip": "14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448",
-    "windowsX64UnsignedZip": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822"
+    "windowsX64UnsignedZip": "890f4e4bb331934a81fb9269aec552b3f55e147cd7cc7c04bcef4166e9c61886"
   },
   "bytes": {
     "macosArm64UnsignedZip": 177937024,
-    "windowsX64UnsignedZip": 114789406
+    "windowsX64UnsignedZip": 72538896
   },
   "artifactSourceCommits": {
     "macosArm64UnsignedZip": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
-    "windowsX64UnsignedZip": "f179654dd6e1361711ee480e2c6f3f614ad38002"
+    "windowsX64UnsignedZip": "90da333dc98ccb9b98d49d17187d4ea5c47c5050"
   },
   "artifactRuntimeCheckpoints": {
     "macosArm64UnsignedZip": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
-    "windowsX64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551"
+    "windowsX64UnsignedZip": "89286b8a6e302c75bd398dd9bf8f2f26160248a6"
   },
   "signingClass": {
     "macos": "adhoc-no-team-id",
@@ -176,20 +177,21 @@
     {
       "surface": "windows-x64-testnet-preview",
       "class": "windows-ci-portable-extract",
-      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
-      "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
-      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "artifactSha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
-      "artifactBytes": 114789406,
-      "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+      "sourceCommit": "90da333dc98ccb9b98d49d17187d4ea5c47c5050",
+      "sourceTree": "f0fc50ac0ce1f94120f66bf811a4b9579c815027",
+      "runtimeCheckpoint": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+      "artifactSha256": "890f4e4bb331934a81fb9269aec552b3f55e147cd7cc7c04bcef4166e9c61886",
+      "artifactBytes": 72538896,
+      "sbomSha256": "d47f774c89c5097aff5c50ca8b14983463726eca5d29d60376634a4aaf8925e2",
       "provenanceEmbedded": true,
       "authenticodeStatus": "NotSigned",
-      "runId": 31288684378,
-      "jobId": 93182036170,
-      "artifactId": 9030699361,
-      "artifactOuterDigest": "sha256:803db91ca14d594c9665181a49cc80488f2c51f0ff0776d0eead714f4ccb076a",
-      "artifactExpiresAt": "2026-08-23T01:39:57Z",
-      "result": "compile, embedded provenance, native self-test, portable extraction, Authenticode NotSigned classification, WPF cold launch, bundled server observation, child cleanup and transient artifact upload passed"
+      "runId": 31342901937,
+      "jobId": 93319490655,
+      "artifactId": 9046377906,
+      "artifactOuterDigest": "sha256:3ba7a4307897a239fc2ebec4081676bc9022c5d70c763ecc4bbae55842d9115d",
+      "artifactExpiresAt": "2026-08-23T23:52:14Z",
+      "deliveryMode": "hosted-workspace-client",
+      "result": "portable extraction, exact resource inventory, Authenticode NotSigned classification, WPF cold launch, public workspace connection, real remote C++ compile, second GUI launch and transient artifact upload passed"
     }
   ],
   "centralIntegration": {
@@ -206,7 +208,7 @@
     "Exact Wallet registration, sign-in and receipt-bound deployment are implemented and jointly tested in current Developer and Wallet source, but public BFT IDE submission remains disabled pending identified custody approval and public cutover authorization.",
     "YNX-hosted qwen3:4b AI is enabled through a bounded managed session; it is a small Testnet coding model, can queue under load, and its output must be reviewed before any write.",
     "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
-    "The current full YNX Code build is installed and cold-launched on macOS arm64 and deployed on the public Web IDE. The Windows download remains the older API Studio generation and is not evidence for the full current platform.",
+    "The Windows x64 download is a current hosted-workspace client for the public full YNX Code service; compiler and terminal execution occur in the bounded public workspace, not in a bundled local Windows runtime.",
     "The GitHub pre-release is historical release evidence; current public CTAs must use the immutable YNX-domain downloads, and the transient Windows Actions artifact must not replace them.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The Web IDE now executes pinned solc 0.8.24 in isolated workers and returns real ABI and EVM bytecode. Compilation does not imply that arbitrary EVM deployment is supported by YNX Testnet; deployment requires Wallet authorization and an authoritative receipt."

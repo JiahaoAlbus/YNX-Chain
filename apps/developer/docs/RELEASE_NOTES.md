@@ -18,7 +18,8 @@
   `14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448`,
   177,937,024 bytes. The earlier `472c9bac` candidate was removed because its
   SBOM did not inventory the complete desktop dependency closure.
-- Public Web and Windows remain the older API Studio generation. This package
+- Public Web runs the full YNX Code platform. Windows is delivered as a current
+  hosted-workspace WebView2 client rather than a bundled local compiler runtime. This package
   is not notarized, Developer ID signed, production released or evidence that
   the public BFT deployment gate has opened.
 
@@ -159,7 +160,7 @@
 - Verified keyboard-first skip navigation, editor focus, roving panel tabs, Chromium accessibility-tree roles/names/live regions, a 3 px visible focus ring, Light/Dark, reduced motion, exact 390 px no-overflow, inert mobile drawers, single-column mobile API Studio, Arabic RTL with code/JSON LTR, large text and a 200% page scale.
 - Developer Web now passes 24/24 locally and on current-source Windows CI, including release-manifest/provenance/metadata consistency and the extensible toolchain lifecycle. Static claim/workflow check remains passed.
 - Rebuilt the then-current API Studio-generation desktop Testnet Preview artifacts from `f179654dd6e1361711ee480e2c6f3f614ad38002`: macOS ZIP SHA-256 `172c0c5b8f94e74dee650b4d2dd172c4faef90330a05b1eeb1c0a269c032b52a` (48,253,431 bytes) and Windows ZIP SHA-256 `5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822` (114,789,406 bytes). The macOS package was superseded by the full YNX Code build above.
-- Windows run `31288684378` passed 22 client tests, 24 Web tests, compile, provenance, native self-test, Authenticode `NotSigned`, portable extraction, WPF cold launch, bundled server observation and cleanup. Artifact `9030699361` remains transient, while the exact inner ZIP is hosted at the YNX-domain download URL.
+- Current Windows run `31342901937` passed client and Web tests, build, precise runtime inventory, Authenticode `NotSigned`, portable extraction, WPF cold launch, public workspace connection, a real remote C++ compile and a second GUI launch. Artifact `9046377906` remains transient, while the exact 72,538,896-byte inner ZIP is hosted at the immutable YNX-domain download URL.
 - YNX AI Build now defaults to the server-hosted `qwen3:4b` open model with a two-active/32-queued concurrency boundary; xAI and OpenAI bring-your-own-key providers are allowlisted and request-only.
 - Desktop packages now include npm, persist isolated per-project dependencies across restarts, and run check/test tasks under Node permissions; macOS adds an outer operating-system sandbox.
 - The GitHub pre-release now provides immutable unsigned downloads. Central integration, staging/public Web deployment, production signing and store release remain false.
@@ -175,7 +176,7 @@
 - Repaired placeholder and credential-leak gates so a missing `rg` binary cannot produce false success; the verified fallback now distinguishes findings, clean results and scanner execution failure.
 - Verified 22 Developer client tests, 17 Developer Web tests, static claim/workflow checks, standalone Web build, browser module syntax, live compile, same-origin proxy and desktop sandbox boundaries.
 - Built the current-source macOS arm64 unsigned Testnet Preview from `9bcb984d475a39cc9fcd7e46fbb00adaee0421ca`; embedded source tree, runtime checkpoint and SBOM provenance; verified extraction, resource self-test, strict ad-hoc/no-Team-ID classification, GUI cold launch, bundled server observation and child cleanup. ZIP SHA-256: `55ec683a9ec59db89331bb4ae45c2666ae4e26921b59ac6ec8284efe268281f9`, 38,450,127 bytes.
-- Current-source API Studio is installed locally on macOS arm64 only. The Windows artifact remains historical. Central integration, staging/public deployment, hosted downloads and production signing remain false.
+- Current YNX Code is available through the public Web IDE, a full macOS arm64 package and a Windows x64 hosted-workspace client. Production signing and the owner-gated public BFT deployment action remain unavailable.
 
 ## 2026-07-18 package checkpoint
 

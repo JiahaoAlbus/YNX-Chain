@@ -57,7 +57,7 @@ test("committed accessibility evidence and public metadata preserve exact hashes
   assert.equal(metadata.canonicalUrl, "https://ynxweb4.com/developer");
   assert.equal(metadata.deployedPublic, true);
   assert.equal(metadata.publicRouteVerified, true);
-  assert.equal(metadata.publicEvidence.immutableArtifactUrls.length, 5);
+  assert.equal(metadata.publicEvidence.immutableArtifactUrls.length, 6);
   assert.ok(metadata.publicEvidence.immutableArtifactUrls.every((url) => url.startsWith("https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-")));
   assert.equal(release.browserAccessibilityEvidence.status, "passed");
   assert.equal(release.browserAccessibilityEvidence.independentCertification, false);

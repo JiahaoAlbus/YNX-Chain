@@ -1,2 +1,2 @@
 14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448  ynx-developer-testnet-preview-macos-unsigned.zip
-5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822  ynx-developer-testnet-preview-windows-x64-unsigned.zip
+890f4e4bb331934a81fb9269aec552b3f55e147cd7cc7c04bcef4166e9c61886  ynx-developer-testnet-preview-windows-x64-unsigned.zip

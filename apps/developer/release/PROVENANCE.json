@@ -32,32 +32,33 @@
     {
       "name": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
       "platform": "windows-x64",
-      "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
-      "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
-      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "sha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
-      "bytes": 114789406,
-      "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+      "sourceCommit": "90da333dc98ccb9b98d49d17187d4ea5c47c5050",
+      "sourceTree": "f0fc50ac0ce1f94120f66bf811a4b9579c815027",
+      "runtimeCheckpoint": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+      "sha256": "890f4e4bb331934a81fb9269aec552b3f55e147cd7cc7c04bcef4166e9c61886",
+      "bytes": 72538896,
+      "sbomSha256": "d47f774c89c5097aff5c50ca8b14983463726eca5d29d60376634a4aaf8925e2",
+      "deliveryMode": "hosted-workspace-client",
       "signingClass": "unsigned-no-authenticode",
       "authenticodeStatus": "NotSigned",
       "ci": {
-        "runId": 31288684378,
-        "jobId": 93182036170,
-        "artifactId": 9030699361,
-        "artifactOuterSha256": "803db91ca14d594c9665181a49cc80488f2c51f0ff0776d0eead714f4ccb076a",
-        "artifactOuterBytes": 113647250,
-        "artifactExpiresAt": "2026-08-23T01:39:57Z"
+        "runId": 31342901937,
+        "jobId": 93319490655,
+        "artifactId": 9046377906,
+        "artifactOuterSha256": "3ba7a4307897a239fc2ebec4081676bc9022c5d70c763ecc4bbae55842d9115d",
+        "artifactOuterBytes": 72291116,
+        "artifactExpiresAt": "2026-08-23T23:52:14Z"
       },
       "verification": [
-        "22 Developer client tests",
-        "24 Developer Web tests",
+        "Developer client and Web tests",
         "embedded source/tree/runtime/SBOM provenance",
         "portable extraction",
-        "native resource self-test",
+        "precise runtime resource inventory",
         "Authenticode NotSigned classification",
         "real WPF cold launch",
-        "bundled server observation",
-        "child cleanup"
+        "public hosted-workspace connection",
+        "real remote C++ compile",
+        "second GUI launch"
       ]
     }
   ],
@@ -73,7 +74,7 @@
     "notarized": false,
     "storeReleased": false,
     "integratedCentral": false,
-    "deployedPublic": false,
+    "deployedPublic": true,
     "mainnetReleased": false
   },
   "generatedAt": "2026-08-09T23:06:50Z"

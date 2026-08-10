@@ -108,5 +108,5 @@ test("product release truth separates local proof from central, deployment and s
   for(const key of ["integratedCentral","productionSigned","storeReleased"])assert.equal(release[key],false,key);
   for(const key of ["deployedStaging","deployedPublic"])assert.equal(release[key],true,key);
   assert.equal(release.downloadHosted,true);assert.equal(release.releasePublished,true);
-  assert.equal(release.publicUrls.length,2);assert.equal(release.healthUrls.length,2);assert.equal(release.artifactUrls.length,5);
+  assert.equal(release.publicUrls.length,2);assert.equal(release.healthUrls.length,2);assert.equal(release.artifactUrls.length,6);
 });

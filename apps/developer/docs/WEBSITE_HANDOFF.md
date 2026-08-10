@@ -15,7 +15,7 @@ Website owner: `28-website`
 ## Source and release truth
 
 - Current full YNX Code macOS source: `89286b8a6e302c75bd398dd9bf8f2f26160248a6`
-- Historical Web/Windows API Studio source: `f179654dd6e1361711ee480e2c6f3f614ad38002`
+- Current Windows hosted-workspace client source: `90da333dc98ccb9b98d49d17187d4ea5c47c5050`
 - Browser-evidence source: `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`
 - Product metadata: `apps/developer/public-product-metadata.json`
 - Product release truth: `apps/developer/product-release.json`
@@ -27,13 +27,13 @@ Website owner: `28-website`
 
 ## Page content package
 
-The page must separate available surfaces. The current macOS arm64 direct download and public Web IDE are the full React/Monaco/service-based YNX Code Testnet Preview. The Windows download is the earlier API Studio generation until separately rebuilt and verified. It must not claim arbitrary EVM compatibility, private-key custody, public BFT deployment, central integration, a production release or production signing.
+The page must separate available surfaces. The macOS arm64 direct download and public Web IDE are the full React/Monaco/service-based YNX Code Testnet Preview. The current Windows x64 download is a WebView2 hosted-workspace client for that same public service; it passed a real remote C++ compile but must not be described as a bundled local Windows compiler sandbox. No surface may claim arbitrary EVM compatibility, private-key custody, public BFT deployment, central integration, a production release or production signing.
 
 Recommended evidence cards:
 
 1. Web IDE and API Studio — OpenAPI validation, reviewed previews, explicit approval, host-broker credential references, bounded response inspection and generated client/adapter artifacts.
 2. Accessibility and responsive evidence — 15/15 Chrome checks and six current-source screenshots from a clean pushed source.
-3. Desktop Testnet Preview — current full YNX Code on macOS arm64; historical API Studio-generation Windows x64; both unsigned and directly hosted by the YNX domain.
+3. Desktop Testnet Preview — full local YNX Code bundle on macOS arm64; current hosted-workspace YNX Code client on Windows x64; both unsigned and directly hosted by the YNX domain.
 4. Wallet-only boundary — Developer never stores a private key and cannot claim deployment success without an authoritative Wallet-signed receipt.
 
 ## Current-source visual assets
@@ -49,7 +49,7 @@ Exact hashes are authoritative in `evidence/ui/current-accessibility/accessibili
 
 ## Download boundary
 
-Direct public URLs for exact ZIPs are served from `https://developer.ynxweb4.com/downloads/`. The current full macOS package is `ynx-developer-0.2.0-testnet-preview-89286b8a-macos-arm64-unsigned.zip`. The Windows Actions artifact (`9030699361`) expires and must not be used as the public download. Every CTA must state platform, generation and unsigned Testnet Preview status; production signing remains unavailable.
+Direct public URLs for exact ZIPs are served from `https://developer.ynxweb4.com/downloads/`. The current full macOS package is `ynx-developer-0.2.0-testnet-preview-89286b8a-macos-arm64-unsigned.zip`. The current Windows hosted-workspace client is `ynx-developer-0.2.0-testnet-preview-90da333d-windows-x64-unsigned.zip`; its Actions artifact (`9046377906`) expires and must not be used as the public download. Every CTA must state platform, delivery mode and unsigned Testnet Preview status; production signing remains unavailable.
 
 ## Acceptance gates for Website owner
 
@@ -59,7 +59,7 @@ Before setting `deployedPublic=true`, owner 28 must verify:
 2. Canonical, Open Graph, JSON-LD, sitemap and robots all use `https://ynxweb4.com/developer`.
 3. Page copy preserves every release and signing boundary above.
 4. Screenshot bytes match the supplied SHA-256 values.
-5. Download controls use immutable YNX-domain URLs, label both packages unsigned Testnet Preview, and identify Windows as the earlier API Studio generation until rebuilt.
+5. Download controls use immutable YNX-domain URLs, label both packages unsigned Testnet Preview, and identify Windows as a hosted-workspace client rather than a local compiler runtime.
 6. Public HTTP 200 content visibly identifies YNX Developer rather than a placeholder or generic product page.
 7. The deployed commit and deployment URL are recorded in owner 28 evidence and accepted by owner 29.
 

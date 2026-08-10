@@ -78,10 +78,10 @@ independent accessibility certification or installed-desktop recapture.
 - Windows build: `scripts/package-windows.ps1`
 - Windows portable install/cold start: `scripts/verify-windows-package.ps1`
 - Windows host workflow: `.github/workflows/developer-windows.yml`
-- Successful historical API Studio-generation Windows host run:
-  `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31288684378`
-- Windows source `f179654dd6e1361711ee480e2c6f3f614ad38002`, job `93182036170`, transient Artifact `9030699361`, inner ZIP SHA-256 `5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822`, outer digest `sha256:803db91ca14d594c9665181a49cc80488f2c51f0ff0776d0eead714f4ccb076a`; the transient Actions artifact expires `2026-08-23T01:39:57Z`, while the exact inner ZIP is hosted by the YNX download domain.
-- Current macOS source `89286b8a6e302c75bd398dd9bf8f2f26160248a6`, ZIP SHA-256 `14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448`, 177,937,024 bytes; extracted provenance/SBOM/signing checks, cold launch, JavaScript/C++ toolchain discovery, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed. The Windows artifact above is not the current full YNX Code build.
+- Successful current hosted-workspace Windows host run:
+  `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31342901937`
+- Windows source `90da333dc98ccb9b98d49d17187d4ea5c47c5050`, run `31342901937`, job `93319490655`, transient Artifact `9046377906`, inner ZIP SHA-256 `890f4e4bb331934a81fb9269aec552b3f55e147cd7cc7c04bcef4166e9c61886`, SBOM SHA-256 `d47f774c89c5097aff5c50ca8b14983463726eca5d29d60376634a4aaf8925e2`, outer digest `sha256:3ba7a4307897a239fc2ebec4081676bc9022c5d70c763ecc4bbae55842d9115d`; the transient Actions artifact expires `2026-08-23T23:52:14Z`, while the exact inner ZIP is hosted by the YNX download domain. It cold-launched twice and completed a real remote C++ compile through the public YNX Code workspace.
+- Current macOS source `89286b8a6e302c75bd398dd9bf8f2f26160248a6`, ZIP SHA-256 `14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448`, 177,937,024 bytes; extracted provenance/SBOM/signing checks, cold launch, JavaScript/C++ toolchain discovery, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed.
 
 ## Supply chain
 
