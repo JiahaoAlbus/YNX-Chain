@@ -32,7 +32,7 @@
 - macOS arm64 desktop: bundle built twice reproducibly, ad-hoc signature verified,
   then cold-launched from a fresh Applications-layout extraction with API/version,
   health, metrics, frontend and clean shutdown checks; machine-readable evidence:
-  `apps/quant-lab/evidence/local-macos-desktop-cold-start-20260810.json`; this is
+  `apps/quant-lab/evidence/local-macos-desktop-cold-start-20260810-70382c37.json`; this is
   test signing, not production signing or notarization
 - Windows x64 desktop: cross-compiled and archived only; not launched or installed
 - hostile Origin, oversized JSON and cross-origin WebSocket DAST probes: pass
@@ -40,14 +40,14 @@
   CVE, malware or container vulnerability scanner was available, so external
   scan and production-artifact states remain false
 
-Reproducible candidates built from source commit
-`909031e510272e9f92a11d9e9dc8553a1934692f`:
+Current candidates built from source commit
+`70382c37ccb8c601c88e72c4cbe189fa072dc5db`:
 
-- macOS arm64 ZIP: 7,378,056 bytes; SHA-256
-  `5edff1d728ef8430b2a8ea983696e7ce756cb46f20593e56eae7e98ce415c395`;
+- macOS arm64 ZIP: 7,395,201 bytes; SHA-256
+  `b7f0013ab789f36d8013ee35131b19d92b09d201daac9560c4f989a568cd60d3`;
   ad-hoc test signature; fresh extracted cold-start verified
-- Windows x64 ZIP: 8,094,216 bytes; SHA-256
-  `491816aa6101fa544af4f2da4459b364bb71245a82a0a06ad889c206a1ae90e7`;
+- Windows x64 ZIP: 8,110,427 bytes; SHA-256
+  `a8a2e25e6bdc6a244ca09f491671951a2e0ae210c32b9f17758a31569d4eb1ab`;
   unsigned cross-compile; no Windows execution evidence
 - Linux arm64 local OCI image: 41,667,295 bytes; local image ID
   `sha256:70e32c90601dc50c4770d04d40bd684a8bde52848e969afb9e8ddfbbaceb3f35`;

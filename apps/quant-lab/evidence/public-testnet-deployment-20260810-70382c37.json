@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-quant-lab",
+  "verifiedAt": "2026-08-10T05:25:56Z",
+  "publicUrl": "https://quant.ynxweb4.com/",
+  "sourceCommit": "70382c37ccb8c601c88e72c4cbe189fa072dc5db",
+  "sourceTree": "b245cd5dc8d1617473e52525e64fe11fea4565c9",
+  "binary": {
+    "sha256": "ac0cb295e1e239ecbcc96842d7d0388d42d254a3497f813f7e56955f37bec834",
+    "bytes": 6873272,
+    "platform": "linux-amd64"
+  },
+  "webIndexSha256": "d368ca9132b81a7ddf0c2c1aefc5aeff36bf536bba94c324fe95fe80004c9ddc",
+  "deployment": {
+    "activeRelease": "/opt/ynx-quant/releases/70382c37",
+    "rollbackRelease": "/opt/ynx-quant/releases/9596d94f",
+    "atomicSymlinkSwitch": true,
+    "stateSha256BeforeAndAfter": "cbe3948ec8cbf93ccd07224dac779dd9ccacd8c9a596fcfe0ba917ebc3b3cb60",
+    "serviceActive": true
+  },
+  "downloads": [
+    {
+      "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-70382c37-macos-arm64-adhoc.zip",
+      "bytes": 7395201,
+      "sha256": "b7f0013ab789f36d8013ee35131b19d92b09d201daac9560c4f989a568cd60d3",
+      "httpStatus": 200,
+      "rangeStatus": 206,
+      "zipHeaderVerified": true,
+      "coldStartVerified": true
+    },
+    {
+      "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-70382c37-windows-x64-unsigned.zip",
+      "bytes": 8110427,
+      "sha256": "a8a2e25e6bdc6a244ca09f491671951a2e0ae210c32b9f17758a31569d4eb1ab",
+      "httpStatus": 200,
+      "rangeStatus": 206,
+      "zipHeaderVerified": true,
+      "coldStartVerified": false
+    }
+  ],
+  "health": {
+    "status": "ok",
+    "ready": true,
+    "commit": "70382c37ccb8c601c88e72c4cbe189fa072dc5db",
+    "mode": "simulated_testnet_only",
+    "liveFundsEnabled": false
+  },
+  "verification": {
+    "candidatePortBeforeCutover": true,
+    "exchangeMarketAdapterConfigured": true,
+    "testnetSigningWorkbenchVisible": true,
+    "requestScopedExchangeSessionCodeVisible": true,
+    "directAppConcurrentSnapshotReads": 100,
+    "caddyTlsConcurrentSnapshotReads": 100,
+    "concurrentSnapshotFailures": 0,
+    "vantage": "deployment-host using the public DNS name and TLS ingress",
+    "publicUiHttpStatus": 200
+  },
+  "boundaries": {
+    "sharedPublicResearchWorkspace": true,
+    "canonicalWalletIdentity": false,
+    "walletProductRegistrationEnabled": false,
+    "authenticatedPublicExchangeReceipt": false,
+    "dexOwnerTransport": false,
+    "perUserTenancy": false,
+    "liveFundsEnabled": false,
+    "downloadHosted": true,
+    "productionSigned": false
+  }
+}

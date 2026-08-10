@@ -19,8 +19,8 @@
   "logo": "/assets/brand/ynx-logo.png",
   "icon": "/assets/brand/ynx-logo.png",
   "downloads": [
-    {"platform": "macOS arm64", "releaseClass": "ad-hoc signed Testnet candidate", "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-909031e5-macos-arm64-adhoc.zip", "bytes": 7378056, "sha256": "5edff1d728ef8430b2a8ea983696e7ce756cb46f20593e56eae7e98ce415c395", "coldStartVerified": true, "productionSigned": false},
-    {"platform": "Windows x64", "releaseClass": "unsigned cross-compiled Testnet candidate", "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-909031e5-windows-x64-unsigned.zip", "bytes": 8094216, "sha256": "491816aa6101fa544af4f2da4459b364bb71245a82a0a06ad889c206a1ae90e7", "coldStartVerified": false, "productionSigned": false}
+    {"platform": "macOS arm64", "releaseClass": "ad-hoc signed Testnet candidate", "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-70382c37-macos-arm64-adhoc.zip", "bytes": 7395201, "sha256": "b7f0013ab789f36d8013ee35131b19d92b09d201daac9560c4f989a568cd60d3", "coldStartVerified": true, "productionSigned": false},
+    {"platform": "Windows x64", "releaseClass": "unsigned cross-compiled Testnet candidate", "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-70382c37-windows-x64-unsigned.zip", "bytes": 8110427, "sha256": "a8a2e25e6bdc6a244ca09f491671951a2e0ae210c32b9f17758a31569d4eb1ab", "coldStartVerified": false, "productionSigned": false}
   ],
   "supportUrl": "https://discord.gg/t8KpAF2KE",
   "privacyUrl": null,

@@ -29,7 +29,7 @@ Evidence date: 2026-08-10. Evidence is local unless explicitly stated.
 | Windows desktop | built local candidate | x64 binaries and archive cross-compiled; no Windows host launch/install evidence |
 | canonical Gateway/Wallet integration | not achieved | the Exchange session is request scoped and Wallet signatures are forwarded, but the Quant product registration remains pending/disabled and no canonical public Product Session receipt is evidenced |
 | real Exchange/DEX Testnet | partially implemented, not accepted | Exchange owner transport and signing payloads are locally tested against the owner contract; the public Exchange exposes the adapter, but no authenticated user mandate/order receipt has been captured; DEX owner transport, vault receipt, revoke propagation and emergency-exit receipt remain absent |
-| public web/download | deployed public candidate | `https://quant.ynxweb4.com/` and commit-addressed macOS/Windows candidate archives were verified from source `9596d94fb3fa315fa32cdbb5ec8e0849a87397db`; this does not prove the new Exchange execution path until its separate public deployment evidence is recorded |
+| public web/download | deployed public candidate | `https://quant.ynxweb4.com/`, the fail-closed Exchange execution workbench, and commit-addressed macOS/Windows candidate archives were verified from source `70382c37ccb8c601c88e72c4cbe189fa072dc5db`; this proves deployment, not enabled Wallet registration or a real authenticated order receipt |
 
 Passing local tests cannot promote any final-column item to deployed, installed,
 integrated, signed, hosted, or released.
