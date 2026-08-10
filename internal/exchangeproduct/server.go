@@ -65,6 +65,9 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/account", s.account)
 	s.mux.HandleFunc("GET /v1/margin/account", s.marginAccount)
 	s.mux.HandleFunc("POST /v1/margin/transfer", s.marginTransfer)
+	s.mux.HandleFunc("GET /v1/perpetual/orderbook", s.perpetualBook)
+	s.mux.HandleFunc("POST /v1/perpetual/orders", s.perpetualOrder)
+	s.mux.HandleFunc("POST /v1/perpetual/orders/{id}/cancel", s.cancelPerpetualOrder)
 	s.mux.HandleFunc("POST /v1/deposit-intents", s.depositIntent)
 	s.mux.HandleFunc("POST /v1/deposits", s.deposit)
 	s.mux.HandleFunc("POST /v1/deposits/{id}/refresh", s.refreshDeposit)
@@ -106,6 +109,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("POST /v1/ai/drafts/{id}/actions", s.aiAction)
 	s.mux.HandleFunc("POST /v1/admin/test-credits", s.testCredits)
 	s.mux.HandleFunc("POST /v1/admin/risk/oracle/refresh", s.refreshRiskOracle)
+	s.mux.HandleFunc("POST /v1/admin/perpetual/funding/settle", s.settlePerpetualFunding)
 	return s
 }
 
@@ -430,6 +434,33 @@ func (s *Server) marginTransfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, err := s.service.TransferMarginCollateral(session, q)
+	respond(w, v, err, http.StatusOK)
+}
+func (s *Server) perpetualBook(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.PerpetualBook())
+}
+func (s *Server) perpetualOrder(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:trade")
+	if !ok {
+		return
+	}
+	var q PlacePerpetualOrderRequest
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.service.PlacePerpetualOrder(session, q)
+	respond(w, v, err, http.StatusCreated)
+}
+func (s *Server) cancelPerpetualOrder(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:trade")
+	if !ok {
+		return
+	}
+	var q CancelPerpetualOrderRequest
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.service.CancelPerpetualOrder(session, r.PathValue("id"), q)
 	respond(w, v, err, http.StatusOK)
 }
 func (s *Server) depositIntent(w http.ResponseWriter, r *http.Request) {
@@ -1003,6 +1034,14 @@ func (s *Server) testCredits(w http.ResponseWriter, r *http.Request) {
 	}
 	v, err := s.service.CreditTestQuote(r.Header.Get("Authorization"), q.Account, q.AmountMicro, q.IdempotencyKey)
 	respond(w, v, err, 201)
+}
+func (s *Server) settlePerpetualFunding(w http.ResponseWriter, r *http.Request) {
+	if !s.service.Authorized(r.Header.Get("Authorization")) {
+		respond(w, nil, ErrUnauthorized, http.StatusOK)
+		return
+	}
+	v, err := s.service.SettlePerpetualFunding()
+	respond(w, v, err, http.StatusOK)
 }
 func (s *Server) auth(w http.ResponseWriter, r *http.Request, scope string) (WalletSession, bool) {
 	v, err := s.service.Authenticate(r.Header.Get("X-YNX-Product-Session-Proof"), scope)

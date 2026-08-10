@@ -150,6 +150,7 @@ func (s *Service) RefreshRiskOracle() (RiskPublicSnapshot, error) {
 	before := cloneState(s.state)
 	s.state.RiskOracle[policy.Market] = snapshot
 	s.state.RiskMarkets[policy.Market] = riskMarketFromOracle(snapshot, now, policy, s.state.RiskMarkets[policy.Market])
+	s.revalueAllPerpetualPositionsLocked(policy.Market, snapshot)
 	s.auditLocked("system", "risk_oracle_refreshed", "risk_oracle", policy.Market, snapshot.SourceDigest)
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return RiskPublicSnapshot{}, err

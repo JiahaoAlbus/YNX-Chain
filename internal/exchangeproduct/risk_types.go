@@ -178,6 +178,31 @@ type MarginTransferRequest struct {
 	WalletSignature string `json:"walletSignature"`
 }
 
+type PlacePerpetualOrderRequest struct {
+	Market          string `json:"market"`
+	Side            string `json:"side"`
+	Type            string `json:"type"`
+	TimeInForce     string `json:"timeInForce"`
+	PriceMicro      int64  `json:"priceMicro"`
+	AmountMicro     int64  `json:"amountMicro"`
+	Leverage        int64  `json:"leverage"`
+	ReduceOnly      bool   `json:"reduceOnly"`
+	IdempotencyKey  string `json:"idempotencyKey"`
+	WalletSignature string `json:"walletSignature"`
+}
+
+type CancelPerpetualOrderRequest struct {
+	IdempotencyKey  string `json:"idempotencyKey"`
+	WalletSignature string `json:"walletSignature"`
+}
+
+type PerpetualOrderBook struct {
+	Market string           `json:"market"`
+	Bids   []PerpetualOrder `json:"bids"`
+	Asks   []PerpetualOrder `json:"asks"`
+	AsOf   time.Time        `json:"asOf"`
+}
+
 type MarginAccountSnapshot struct {
 	Account             MarginAccount       `json:"account"`
 	Positions           []PerpetualPosition `json:"positions"`
