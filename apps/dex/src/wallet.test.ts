@@ -1,10 +1,15 @@
-import {describe,expect,it} from "vitest";
-import {acceptWalletCallback,assertWalletRequest,buildWalletRequest,walletDeepLink,WalletRequestError} from "./wallet";
-const key="A".repeat(44);const now=new Date("2026-07-18T08:00:00.000Z");
-const digest="a".repeat(64);const build=()=>buildWalletRequest({nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",requestDigest:digest,productDeviceKey:key,now});
-describe("canonical Wallet request adapter",()=>{
- it("binds exact DEX product, callback, device key, digest, scopes and five-minute expiry",()=>{const value=build();expect(value.chainId).toBe("ynx_6423-1");expect(value.requestDigest).toBe(digest);expect(value.bundleId).toBe("com.ynxweb4.dex.web");expect(value.scopes).toEqual(["account:read","dex:positions:read","dex:transaction:request"]);expect(value.expiresAt).toBe("2026-07-18T08:05:00.000Z");expect(walletDeepLink(value)).toMatch(/^ynxwallet:\/\/authorize\?request=[A-Za-z0-9_-]+$/)});
- it("rejects callback, scope, digest, product and unknown-field substitution",()=>{const value=build();for(const changed of [{...value,callback:"https://attacker.invalid/callback"},{...value,scopes:["admin:all"]},{...value,requestDigest:"b".repeat(64)},{...value,productClientId:"ynx-exchange-v1"},{...value,unknown:true}])expect(()=>assertWalletRequest(changed as never,digest)).toThrow(WalletRequestError)});
- it("rejects malformed nonce, digest and product device key",()=>{expect(()=>buildWalletRequest({nonce:"short",requestDigest:digest,productDeviceKey:key,now})).toThrow(/nonce/);expect(()=>buildWalletRequest({nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",requestDigest:"bad",productDeviceKey:key,now})).toThrow(/digest/);expect(()=>buildWalletRequest({nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",requestDigest:digest,productDeviceKey:"opaque",now})).toThrow(/P-256/)})
- it("accepts one fully bound callback and rejects replay, expiry, scope and cross-app substitution",()=>{const request=build();const callback={version:"1" as const,nonce:request.nonce,requestDigest:request.requestDigest,chainId:request.chainId,productClientId:request.productClientId,bundleId:request.bundleId,callback:request.callback,account:"ynx1abcdefghijklmnopqrstuv",scopes:request.scopes,issuedAt:"2026-07-18T08:01:00.000Z",expiresAt:"2026-07-18T08:10:00.000Z",sessionBinding:"B".repeat(64)};const used=new Set<string>();expect(acceptWalletCallback(callback,request,used,new Date("2026-07-18T08:02:00.000Z")).account).toBe(callback.account);expect(()=>acceptWalletCallback(callback,request,used,new Date("2026-07-18T08:02:00.000Z"))).toThrow(/consumed/);for(const changed of [{...callback,nonce:"nonce_differentabcdefghijklmnop"},{...callback,bundleId:"com.ynxweb4.exchange.web"},{...callback,scopes:["admin:all"]},{...callback,expiresAt:"2026-07-18T08:01:30.000Z"}])expect(()=>acceptWalletCallback(changed as never,request,new Set(),new Date("2026-07-18T08:02:00.000Z"))).toThrow(WalletRequestError)})
+import { describe, expect, it, vi } from "vitest";
+import { buildWalletRequest, DEX_WALLET, WALLET_INSTALL_URL } from "./wallet";
+
+describe("canonical DEX Wallet binding",()=>{
+  it("binds the reviewed product, callback, least-privilege scopes and five-minute lifetime",()=>{
+    vi.spyOn(globalThis.crypto,"getRandomValues").mockImplementation(array=>{new Uint8Array(array.buffer).fill(7);return array});
+    const request=buildWalletRequest({productDeviceKey:"A".repeat(44),productDeviceSecret:"B".repeat(43)},new Date("2026-08-10T00:00:00.000Z"));
+    expect(request).toMatchObject({chainId:"ynx_6423-1",requestingProduct:"dex",productClientId:"ynx-dex-web-v1",bundleId:"com.ynxweb4.dex.web",callback:"https://dex.ynxweb4.com/wallet-auth/callback"});
+    expect(request.scopes).toEqual(["account:read","dex:positions:read","dex:transaction:request"]);
+    expect(request.expiresAt).toBe("2026-08-10T00:05:00.000Z");
+    expect(request.purpose).toMatch(/cannot sign or move assets/i);
+    expect(DEX_WALLET.scopes).not.toContain("dex:withdraw");
+    expect(WALLET_INSTALL_URL).toMatch(/^https:\/\/ynxweb4\.com\/ecosystem\?product=wallet$/);
+  });
 });

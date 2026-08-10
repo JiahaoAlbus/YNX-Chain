@@ -24,10 +24,6 @@ export default defineConfig({
     cache: "./cache/hardhat"
   },
   networks: {
-    dexTest: {
-      type: "edr-simulated",
-      chainType: "l1"
-    },
     ynxTestnet: {
       type: "http",
       chainType: "l1",

@@ -16,6 +16,12 @@ const REVIEWED_ENTRIES = [
     productDeviceAlgorithms: ["p256-sha256"],
   },
   {
+    schemaVersion: 2, productClientId: "ynx-dex-web-v1", requestingProduct: "dex",
+    bundleId: "com.ynxweb4.dex.web", callbacks: ["https://dex.ynxweb4.com/wallet-auth/callback"],
+    scopes: ["account:read", "dex:positions:read", "dex:transaction:request"], maxScopes: 3,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
     schemaVersion: 2, productClientId: "ynx-exchange-v1", requestingProduct: "exchange",
     bundleId: "com.ynxweb4.exchange", callbacks: ["https://exchange.ynxweb4.com/wallet-auth/callback", "ynxexchange://wallet-auth/callback"],
     scopes: ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"], maxScopes: 5,
@@ -61,6 +67,8 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "card:controls:write": "Manage only this account's Card controls after a separate review.",
   "card:dispute:write": "Create and update this account's Card disputes; it cannot move funds.",
   "developer:deploy": "Allow Developer to prepare an exact Testnet deployment for a separate Wallet review. This session cannot sign, broadcast or bypass the final transaction approval.",
+  "dex:positions:read": "Read only this account's indexed DEX liquidity positions after a live central session check.",
+  "dex:transaction:request": "Prepare an exact swap or liquidity action for a separate Wallet review. DEX cannot sign or broaden the action.",
   "exchange:ai": "Allow Exchange to create reviewable AI drafts; AI cannot sign, trade, deposit or withdraw.",
   "exchange:deposit": "Read and reconcile this account's Testnet deposit evidence; this approval is not a transfer signature.",
   "exchange:read": "Read this account's Exchange balances, orders, trades and audit evidence.",

@@ -14,5 +14,5 @@ export const dexApi = {
   prices:(signal?:AbortSignal)=>request<{items:SpotPrice[];source:string}>("/v1/prices",signal),
   twap:(signal?:AbortSignal)=>request<{items:TWAP[];source:string}>("/v1/twap",signal),
   fees:(signal?:AbortSignal)=>request<{items:FeeSummary[];source:string}>("/v1/fees",signal),
-  positions:(account:string,sessionBinding:string,signal?:AbortSignal)=>request<{items:Position[]}>("/v1/account/positions",signal,{"X-YNX-Account":account,"X-YNX-Session-Binding":sessionBinding}),
+  positions:(productSessionProof:string,signal?:AbortSignal)=>request<{items:Position[];account:string}>("/v1/account/positions",signal,{"X-YNX-Product-Session-Proof":productSessionProof}),
 };

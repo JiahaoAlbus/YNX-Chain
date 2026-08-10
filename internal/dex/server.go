@@ -17,13 +17,13 @@ import (
 )
 
 type SessionAuthorizer interface {
-	Authorize(ctx context.Context, sessionBinding, account string, scopes []string) error
+	Authorize(ctx context.Context, productSessionProof string, scopes []string) (string, error)
 }
 
 type UnavailableAuthorizer struct{}
 
-func (UnavailableAuthorizer) Authorize(context.Context, string, string, []string) error {
-	return errors.New("central Wallet session introspection unavailable")
+func (UnavailableAuthorizer) Authorize(context.Context, string, []string) (string, error) {
+	return "", errors.New("central Wallet session introspection unavailable")
 }
 
 type RemoteAuthorizer struct {
@@ -31,46 +31,65 @@ type RemoteAuthorizer struct {
 	Client *http.Client
 }
 
-func (authorizer RemoteAuthorizer) Authorize(ctx context.Context, binding, account string, scopes []string) error {
+func (authorizer RemoteAuthorizer) Authorize(ctx context.Context, proof string, scopes []string) (string, error) {
 	if authorizer.URL == "" {
-		return errors.New("central Wallet session introspection unavailable")
+		return "", errors.New("central Wallet session introspection unavailable")
 	}
-	body, _ := json.Marshal(map[string]any{"sessionBinding": binding, "account": account, "productClientId": "ynx-dex-web-v1", "bundleId": "com.ynxweb4.dex.web", "requiredScopes": scopes})
+	body, _ := json.Marshal(map[string]any{"requiredScopes": scopes})
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, authorizer.URL, bytes.NewReader(body))
 	if err != nil {
-		return err
+		return "", err
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "application/json")
+	request.Header.Set("X-YNX-Product-Session-Proof", proof)
 	client := authorizer.Client
 	if client == nil {
 		client = &http.Client{Timeout: 3 * time.Second}
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return errors.New("central Wallet session rejected")
+		return "", errors.New("central Wallet session rejected")
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, 8<<10))
 	if err != nil {
-		return err
+		return "", err
 	}
 	var result struct {
-		Authorized      bool      `json:"authorized"`
-		SessionBinding  string    `json:"sessionBinding"`
-		Account         string    `json:"account"`
-		ProductClientID string    `json:"productClientId"`
-		BundleID        string    `json:"bundleId"`
-		Scopes          []string  `json:"scopes"`
-		ExpiresAt       time.Time `json:"expiresAt"`
+		OK     bool `json:"ok"`
+		Result struct {
+			Active  bool `json:"active"`
+			Session struct {
+				VerifierVersion        string    `json:"verifierVersion"`
+				SessionBinding         string    `json:"sessionBinding"`
+				ChainID                string    `json:"chainId"`
+				RequestingProduct      string    `json:"requestingProduct"`
+				Account                string    `json:"account"`
+				ProductClientID        string    `json:"productClientId"`
+				BundleID               string    `json:"bundleId"`
+				Callback               string    `json:"callback"`
+				ProductDeviceAlgorithm string    `json:"productDeviceAlgorithm"`
+				ProductDeviceKey       string    `json:"productDeviceKey"`
+				DeviceBinding          string    `json:"deviceBinding"`
+				Scopes                 []string  `json:"scopes"`
+				Nonce                  string    `json:"nonce"`
+				AccountPublicKey       string    `json:"accountPublicKey"`
+				Purpose                string    `json:"purpose"`
+				RequestDigest          string    `json:"requestDigest"`
+				ApprovalDigest         string    `json:"approvalDigest"`
+				IssuedAt               time.Time `json:"issuedAt"`
+				ExpiresAt              time.Time `json:"expiresAt"`
+			} `json:"session"`
+		} `json:"result"`
 	}
-	if err := decodeExact(data, &result); err != nil || !result.Authorized || result.SessionBinding != binding || result.Account != account || result.ProductClientID != "ynx-dex-web-v1" || result.BundleID != "com.ynxweb4.dex.web" || !equalStrings(result.Scopes, scopes) || !result.ExpiresAt.After(time.Now()) {
-		return errors.New("central Wallet session binding mismatch")
+	if err := decodeExact(data, &result); err != nil || !result.OK || !result.Result.Active || result.Result.Session.VerifierVersion != "wallet-auth-v1" || result.Result.Session.ChainID != "ynx_6423-1" || result.Result.Session.RequestingProduct != "dex" || !nativePattern.MatchString(result.Result.Session.Account) || result.Result.Session.ProductClientID != "ynx-dex-web-v1" || result.Result.Session.BundleID != "com.ynxweb4.dex.web" || result.Result.Session.Callback != "https://dex.ynxweb4.com/wallet-auth/callback" || result.Result.Session.ProductDeviceAlgorithm != "p256-sha256" || !containsStrings(result.Result.Session.Scopes, scopes) || !result.Result.Session.ExpiresAt.After(time.Now()) {
+		return "", errors.New("central Wallet session binding mismatch")
 	}
-	return nil
+	return result.Result.Session.Account, nil
 }
 
 type Server struct {
@@ -177,13 +196,13 @@ func (server *Server) events(types ...string) http.HandlerFunc {
 }
 
 func (server *Server) positions(response http.ResponseWriter, request *http.Request) {
-	account := request.Header.Get("X-YNX-Account")
-	binding := request.Header.Get("X-YNX-Session-Binding")
-	if !nativePattern.MatchString(account) || !sessionBindingPattern.MatchString(binding) {
+	proof := strings.TrimSpace(request.Header.Get("X-YNX-Product-Session-Proof"))
+	if len(proof) < 90 || len(proof) > 16<<10 {
 		writeError(response, http.StatusUnauthorized, "canonical Wallet session required")
 		return
 	}
-	if err := server.authorizer.Authorize(request.Context(), binding, account, []string{"account:read", "dex:positions:read"}); err != nil {
+	account, err := server.authorizer.Authorize(request.Context(), proof, []string{"account:read", "dex:positions:read"})
+	if err != nil {
 		writeError(response, http.StatusForbidden, "Wallet session rejected or unavailable")
 		return
 	}
@@ -245,12 +264,13 @@ func writeJSON(response http.ResponseWriter, status int, value any) {
 	response.WriteHeader(status)
 	_ = json.NewEncoder(response).Encode(value)
 }
-func equalStrings(left, right []string) bool {
-	if len(left) != len(right) {
-		return false
+func containsStrings(granted, required []string) bool {
+	set := make(map[string]struct{}, len(granted))
+	for _, scope := range granted {
+		set[scope] = struct{}{}
 	}
-	for index := range left {
-		if left[index] != right[index] {
+	for _, scope := range required {
+		if _, ok := set[scope]; !ok {
 			return false
 		}
 	}

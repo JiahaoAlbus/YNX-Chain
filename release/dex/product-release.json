@@ -1,14 +1,16 @@
 {
   "productId": "ynx-dex",
   "name": "YNX DEX",
-  "branch": "codex/ecosystem-dex",
-  "commit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
+  "sourceBranch": "codex/ecosystem-dex",
+  "sourceCommit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
+  "recoveryTipCommit": "1614ffb7fa4983a182405fe3fa118fa448f87b4b",
+  "integrationBranch": "codex/integrate-finance-suite",
   "version": "0.1.0-testnet-preview.1",
   "surfaces": ["web", "pwa", "indexer-api", "solidity-contracts", "javascript-sdk"],
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
-  "integratedCentral": false,
+  "integratedCentral": true,
   "deployedStaging": false,
   "deployedPublic": false,
   "downloadHosted": false,
@@ -36,16 +38,16 @@
   "centralIntegration": {
     "walletClient": "ynx-dex-web-v1",
     "bundleId": "com.ynxweb4.dex.web",
-    "status": "candidate-not-in-central-registry",
+    "status": "accepted-and-tested-in-local-central-registry-not-publicly-deployed",
     "registryManifest": "apps/dex/wallet-client.json",
     "gatewayIntrospection": "required-and-fail-closed"
   },
   "knownLimitations": [
     "No YNX Testnet protocol deployment, verified bytecode, pools, swaps, or LP proofs exist yet.",
-    "Canonical Wallet verifier and DEX registry entry are not integrated into main.",
+    "The canonical Wallet tuple and device-bound proof path are accepted and tested locally, but this registry revision is not yet deployed to the public Gateway.",
     "No independent third-party smart-contract audit has been completed.",
     "Staging, public deployment, hosted download, production signing, and store release are absent.",
-    "The Web/PWA prepares deterministic swap and LP reviews, but all transaction authorization remains unavailable until canonical Wallet registry integration and verified Testnet contract addresses exist."
+    "The Web/PWA prepares deterministic swap and LP reviews, but transaction authorization remains unavailable until the accepted registry is public and verified Testnet contract addresses exist."
   ],
-  "generatedAt": "2026-07-18T20:07:56.000Z"
+  "generatedAt": "2026-08-10T00:00:00.000Z"
 }

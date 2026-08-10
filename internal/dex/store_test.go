@@ -128,11 +128,11 @@ func TestStorePricesFeesAndTWAPUseOnlyRawIndexedAmounts(t *testing.T) {
 
 type allowSession struct{}
 
-func (allowSession) Authorize(_ context.Context, binding, account string, scopes []string) error {
-	if binding == strings.Repeat("a", 64) && len(scopes) == 2 {
-		return nil
+func (allowSession) Authorize(_ context.Context, proof string, scopes []string) (string, error) {
+	if proof == strings.Repeat("p", 120) && len(scopes) == 2 {
+		return "ynx1abcdefghijklmnopqrstuv", nil
 	}
-	return errors.New("rejected")
+	return "", errors.New("rejected")
 }
 
 func TestServerStrictSchemaAuthAndTruthfulSources(t *testing.T) {
@@ -170,8 +170,7 @@ func TestServerStrictSchemaAuthAndTruthfulSources(t *testing.T) {
 		t.Fatalf("missing wallet session %d", response.Code)
 	}
 	request = httptest.NewRequest(http.MethodGet, "/v1/account/positions", nil)
-	request.Header.Set("X-YNX-Account", event.Account)
-	request.Header.Set("X-YNX-Session-Binding", strings.Repeat("a", 64))
+	request.Header.Set("X-YNX-Product-Session-Proof", strings.Repeat("p", 120))
 	response = httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), "netLpAmount") {
@@ -215,9 +214,9 @@ func TestServerRejectsUnreviewedAndDuplicateTokenMetadata(t *testing.T) {
 }
 
 func TestRemoteAuthorizerRequiresExactCentralBindingResponse(t *testing.T) {
-	binding := strings.Repeat("A", 64)
 	account := "ynx1abcdefghijklmnopqrstuv"
 	scopes := []string{"account:read", "dex:positions:read"}
+	proof := strings.Repeat("A", 120)
 	var mode atomic.Value
 	mode.Store("valid")
 	upstream := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
@@ -225,12 +224,23 @@ func TestRemoteAuthorizerRequiresExactCentralBindingResponse(t *testing.T) {
 		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
 			t.Error(err)
 		}
-		if body["sessionBinding"] != binding || body["account"] != account {
-			t.Error("request binding missing")
+		if values, ok := body["requiredScopes"].([]any); !ok || len(values) != 2 {
+			t.Error("required scopes missing")
 		}
-		value := map[string]any{"authorized": true, "sessionBinding": binding, "account": account, "productClientId": "ynx-dex-web-v1", "bundleId": "com.ynxweb4.dex.web", "scopes": scopes, "expiresAt": time.Now().Add(time.Minute).UTC()}
+		if request.Header.Get("X-YNX-Product-Session-Proof") != proof {
+			t.Error("product-session proof was not forwarded")
+		}
+		session := map[string]any{
+			"verifierVersion": "wallet-auth-v1", "sessionBinding": strings.Repeat("a", 64), "chainId": "ynx_6423-1", "requestingProduct": "dex",
+			"productClientId": "ynx-dex-web-v1", "bundleId": "com.ynxweb4.dex.web", "callback": "https://dex.ynxweb4.com/wallet-auth/callback",
+			"productDeviceAlgorithm": "p256-sha256", "productDeviceKey": strings.Repeat("d", 44), "deviceBinding": strings.Repeat("e", 64),
+			"account": account, "scopes": scopes, "nonce": strings.Repeat("n", 32), "accountPublicKey": "02" + strings.Repeat("1", 64),
+			"purpose": "Read exact DEX positions", "requestDigest": strings.Repeat("f", 64), "approvalDigest": strings.Repeat("b", 64),
+			"issuedAt": time.Now().Add(-time.Minute).UTC(), "expiresAt": time.Now().Add(time.Minute).UTC(),
+		}
+		value := map[string]any{"ok": true, "result": map[string]any{"active": true, "session": session}}
 		if mode.Load().(string) == "substitute" {
-			value["bundleId"] = "com.ynxweb4.exchange.web"
+			session["bundleId"] = "com.ynxweb4.exchange.web"
 		}
 		if mode.Load().(string) == "unknown" {
 			value["extra"] = true
@@ -239,12 +249,12 @@ func TestRemoteAuthorizerRequiresExactCentralBindingResponse(t *testing.T) {
 	}))
 	defer upstream.Close()
 	authorizer := RemoteAuthorizer{URL: upstream.URL}
-	if err := authorizer.Authorize(context.Background(), binding, account, scopes); err != nil {
+	if authorizedAccount, err := authorizer.Authorize(context.Background(), proof, scopes); err != nil || authorizedAccount != account {
 		t.Fatalf("valid binding rejected: %v", err)
 	}
 	for _, next := range []string{"substitute", "unknown"} {
 		mode.Store(next)
-		if err := authorizer.Authorize(context.Background(), binding, account, scopes); err == nil {
+		if _, err := authorizer.Authorize(context.Background(), proof, scopes); err == nil {
 			t.Fatalf("%s response accepted", next)
 		}
 	}
