@@ -1,5 +1,12 @@
 # YNX Exchange 0.1.0-testnet
 
+Public Testnet checkpoint (2026-08-10):
+
+- Added the domain-separated `ynx-quant-strategy-control-v1` contract. Pause atomically cancels open execution, persists across restart and blocks new exposure; resume requires a distinct Wallet signature; a killed nonce domain cannot be resumed.
+- Added byte-stable schema-v1 integrity verification so the historical public venue state migrates to schema 9 without discarding or rewriting unverified data.
+- Published source `3cf00aeea07b23c9a5e7aa6aad168db502dc4744` at `https://exchange.ynxweb4.com/`; public health, readiness and version checks report schema 9 integrity and `ready_public_testnet`. A second service launch retained the exact state-file SHA-256.
+- Public deployment does not imply central Wallet registry acceptance, production custody, external liquidity, Mainnet, production signing or store release.
+
 Final-worktree additions:
 
 - Recovered the most complete local Exchange commit and previously untracked product truth records into `codex/final-exchange`.
