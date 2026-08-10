@@ -1365,6 +1365,17 @@ func TestDepositIntentLedgerAuditChainAndRiskControls(t *testing.T) {
 	if status.Gateway != "unavailable" || status.WalletRegistry != "pending_registration" || status.CrossChain != "unavailable" {
 		t.Fatalf("integration truth=%+v", status)
 	}
+	s.cfg.GatewayURL = "https://wallet-auth.test.invalid"
+	s.cfg.GatewayClientID = ProductID
+	status = s.Integrations()
+	if status.Gateway != "configured_not_attested" || status.WalletRegistry != "pending_registration" {
+		t.Fatalf("unattested integration truth=%+v", status)
+	}
+	s.cfg.WalletSessionAttested = true
+	status = s.Integrations()
+	if status.Gateway != "canonical_product_session_proof" || status.WalletRegistry != "approved_enabled" {
+		t.Fatalf("attested integration truth=%+v", status)
+	}
 }
 func placeNoTest(s *Service, a testAccount, side string, price, amount int64, key string) (Order, error) {
 	req := PlaceOrderRequest{Market: DefaultMarket, Side: side, Type: "limit", PriceMicro: price, AmountMicro: amount, IdempotencyKey: key}

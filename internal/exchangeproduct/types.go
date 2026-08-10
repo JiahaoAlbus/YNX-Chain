@@ -44,6 +44,7 @@ type Config struct {
 	GatewayURL                     string
 	GatewayClientID                string
 	Gateway                        GatewayAuthorizer
+	WalletSessionAttested          bool
 	IndexerURL                     string
 	MaxOrderNotionalMicro          int64
 	MaxWithdrawalMicro             int64
