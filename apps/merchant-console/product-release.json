@@ -1,14 +1,14 @@
 {
   "productId": "pay-merchant",
   "name": "YNX Merchant Console",
-  "branch": "codex/ecosystem-pay",
-  "commit": "WORKTREE_PENDING_COMMIT",
-  "version": "1.0.0",
+  "branch": "codex/integrate-finance-suite",
+  "commit": "f80a724742a70e5ddccca67eabad7ec5ba04b72d",
+  "version": "1.0.0-testnet-candidate.1",
   "surfaces": ["web"],
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
-  "integratedCentral": false,
+  "integratedCentral": true,
   "deployedStaging": false,
   "deployedPublic": false,
   "downloadHosted": false,
@@ -17,12 +17,47 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
-  "sha256": {},
-  "bytes": {},
-  "signingClass": {"web": "unsigned static production bundle"},
+  "sha256": {
+    "dist/index.html": "87a3162cb3f16e77e1e57e2c4657dd0f66cac318c97ce340b641c4aaa58c5d87",
+    "dist/app.js": "5a233f8c1428abe9f47e84916494cb268423bd65105ecd03164de2cefe904ef3",
+    "dist/styles.css": "61aa804580352a32c848f9294f1e200367ea95980255359bf59a4c165dc6e881",
+    "dist/a11y.css": "5ce379ece02d4e12a6dae5d0576dc50d21ab2633d1d4f4de97ae2d36c8c83faf",
+    "dist/brand.css": "ca19bb3df20ee6da0d0c7be40393ac6b4641777fe2cd49fedf1f1d127519b4bb",
+    "dist/manifest.webmanifest": "7cdab34fc2558a2651f7c7444a502f0fedd56dbfca180642dbc98186af99d7ed",
+    "dist/runtime-config.js": "d0545fc13aea930bcc73d66fde5830f186d51a969b099323da26aae0e5a3a2b6",
+    "dist/ynx-logo.png": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+    "artifacts/sbom/frontend.cdx.json": "14681393bd0afa46d5d1b9649f54493cfdd2b98f784ec974db284f47e8858180",
+    "artifacts/sbom/backend.cdx.json": "c3d46e8d4982e6dc247476310ec43f80c437e705b5ee345bcf746062ac17e9a3",
+    "artifacts/vendor/wallet-auth-verification.json": "5a29a97fb3a3af5e29802a95bdee1f4640420ec0e67ea8c54309e31fadea9b12"
+  },
+  "bytes": {
+    "dist/index.html": 854,
+    "dist/app.js": 127374,
+    "dist/styles.css": 5918,
+    "dist/a11y.css": 328,
+    "dist/brand.css": 277,
+    "dist/manifest.webmanifest": 228,
+    "dist/runtime-config.js": 215,
+    "dist/ynx-logo.png": 104171,
+    "artifacts/sbom/frontend.cdx.json": 7276,
+    "artifacts/sbom/backend.cdx.json": 268299,
+    "artifacts/vendor/wallet-auth-verification.json": 2863
+  },
+  "signingClass": {"web": "unsigned static Testnet candidate"},
   "minOS": {"web": "current evergreen browsers"},
   "installEvidence": [],
-  "centralIntegration": "Canonical pay-merchant Wallet entry and same-origin /app/pay-merchant proxy are requested but not deployed.",
-  "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Existing proof screenshots predate canonical Wallet integration.", "Browser visual check was blocked by local URL policy; static production build and tests pass."],
-  "generatedAt": "2026-07-19T04:00:00+08:00"
+  "centralIntegration": "Exact pay-merchant Wallet tuple is approved in the central registry and Wallet allow-list; public Gateway proxy and product hosting remain undeployed.",
+  "testEvidence": [
+    "Go payproduct suite including lifecycle, operations, provider, refund, recovery, SSRF, capacity and fuzz seeds",
+    "Merchant Console 12/12 Node tests and deterministic build",
+    "Wallet Auth registry and Node host integration tests"
+  ],
+  "knownLimitations": [
+    "No staging or public URL and no current browser screenshot matrix.",
+    "No public Gateway /app/pay-merchant proxy or remotely accepted provider credentials.",
+    "Authenticated business views retain partial English copy; full 12-language operational-view acceptance remains incomplete.",
+    "Capacity evidence is local and does not prove public multi-region or million-user scale.",
+    "No production audit, hosted artifact, signed release or shared-Testnet settlement receipt is claimed."
+  ],
+  "generatedAt": "2026-08-11T00:00:00+08:00"
 }

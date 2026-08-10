@@ -7,8 +7,8 @@
     "slug": "merchant-console",
     "name": "YNX Merchant Console",
     "owner": "05-merchant-console",
-    "sourceCommit": "1111aee53654b3d3fba7d74f12107a3e98edd93b",
-    "branch": "codex/final-merchant-console"
+    "sourceCommit": "f80a724742a70e5ddccca67eabad7ec5ba04b72d",
+    "branch": "codex/integrate-finance-suite"
   },
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -137,7 +137,7 @@
     "Unknown economic values remain unavailable and are never inferred from frontend or manager assertions."
   ],
   "dependencies": [
-    {"owner": "02-wallet-auth", "contract": "canonical product registry, authorization, challenge, completion, introspection and revoke", "state": "notAcceptedRemote"},
+    {"owner": "02-wallet-auth", "contract": "canonical product registry, authorization, challenge, completion, introspection and revoke", "state": "acceptedCentralSource"},
     {"owner": "04-pay", "contract": "authoritative invoice, settlement, receipt and refund execution", "state": "localAdapterTested"},
     {"owner": "08-quant-lab", "contract": "strategy identity, realized net PnL and high-water-mark evidence", "state": "notAcceptedRemote"},
     {"owner": "13-monitor", "contract": "metrics, alerts, incident and status ingestion", "state": "localMetricsOnly"},
@@ -157,14 +157,14 @@
     "snapshotV3Migration": "testedLocal",
     "snapshotV4Migration": "testedLocal",
     "futureSchemaPolicy": "reject",
-    "reconciliationSchema": 1,
+    "reconciliationSchema": 2,
     "rollbackEvidence": "local-only"
   },
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,
@@ -172,11 +172,11 @@
     "storeReleased": false
   },
   "externalInputs": [
-    "accepted canonical Gateway registration and endpoint",
+    "deployed public canonical Gateway endpoint and same-origin proxy",
     "shared Testnet deployment and funded secure signer path",
     "approved provider secret-manager references where official sandboxes require credentials",
     "deployment authority and DNS",
     "public Support, Privacy, Security and Status URLs"
   ],
-  "status": "active"
+  "status": "integrated-central-local"
 }
