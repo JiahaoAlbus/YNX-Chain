@@ -1,6 +1,7 @@
 package exchangeproduct
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -64,6 +65,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/ws/user", s.userWebSocket)
 	s.mux.HandleFunc("GET /v1/ws/drop-copy", s.dropCopyWebSocket)
 	s.mux.HandleFunc("GET /v1/account", s.account)
+	s.mux.HandleFunc("POST /v1/wallet/sessions/complete", s.completeWalletSession)
 	s.mux.HandleFunc("GET /v1/margin/account", s.marginAccount)
 	s.mux.HandleFunc("POST /v1/margin/transfer", s.marginTransfer)
 	s.mux.HandleFunc("GET /v1/perpetual/orderbook", s.perpetualBook)
@@ -128,7 +130,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Request-ID", requestID)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
-	if !s.allowPeer(r.RemoteAddr, time.Now().UTC()) {
+	if !s.allowPeer(clientPeer(r), time.Now().UTC()) {
 		w.Header().Set("Retry-After", "60")
 		writeError(w, http.StatusTooManyRequests, "rate_limited", "request rate limit exceeded")
 		s.requests.Add(1)
@@ -192,6 +194,23 @@ func (s *Server) allowPeer(remoteAddr string, now time.Time) bool {
 	window.count++
 	s.rateByPeer[peer] = window
 	return window.count <= 300
+}
+
+func clientPeer(r *http.Request) string {
+	peer := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		peer = host
+	}
+	parsed := net.ParseIP(peer)
+	if parsed == nil || !parsed.IsLoopback() {
+		return peer
+	}
+	forwarded := strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0]
+	forwarded = strings.TrimSpace(forwarded)
+	if candidate := net.ParseIP(forwarded); candidate != nil {
+		return candidate.String()
+	}
+	return peer
 }
 
 type statusRecorder struct {
@@ -1067,12 +1086,29 @@ func (s *Server) runPerpetualLiquidations(w http.ResponseWriter, r *http.Request
 	respond(w, v, err, http.StatusOK)
 }
 func (s *Server) auth(w http.ResponseWriter, r *http.Request, scope string) (WalletSession, bool) {
-	v, err := s.service.Authenticate(r.Header.Get("Authorization"), scope)
+	v, err := s.service.Authenticate(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
 	if err != nil {
 		respond(w, nil, err, 200)
 		return WalletSession{}, false
 	}
 	return v, true
+}
+
+func (s *Server) completeWalletSession(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 256<<10)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_body", "Wallet session completion body is invalid")
+		return
+	}
+	payload, status, err := s.service.CompleteCentralSession(body)
+	if err != nil {
+		respond(w, nil, err, http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = w.Write(payload)
 }
 
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
@@ -1153,27 +1189,29 @@ type HTTPGatewayAuthorizer struct {
 	Client  *http.Client
 }
 
-func (g HTTPGatewayAuthorizer) Authorize(token, scope, clientID string) (WalletSession, error) {
-	if token == "" || scope == "" || clientID == "" {
+func (g HTTPGatewayAuthorizer) Authorize(proof, scope, clientID string) (WalletSession, error) {
+	if proof == "" || scope == "" || clientID == "" {
 		return WalletSession{}, ErrUnauthorized
 	}
 	client := g.Client
 	if client == nil {
 		client = http.DefaultClient
 	}
-	body, _ := json.Marshal(map[string]string{"productClientId": clientID, "scope": scope})
-	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(g.BaseURL, "/")+"/v1/sessions/introspect", strings.NewReader(string(body)))
+	body, _ := json.Marshal(struct {
+		RequiredScopes []string `json:"requiredScopes"`
+	}{RequiredScopes: []string{scope}})
+	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(g.BaseURL, "/")+"/v1/wallet/sessions/introspect", bytes.NewReader(body))
 	if err != nil {
 		return WalletSession{}, ErrUnavailable
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-YNX-Product-Session-Proof", proof)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
 		return WalletSession{}, ErrUnavailable
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusUnauthorized {
+	if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusConflict {
 		return WalletSession{}, ErrUnauthorized
 	}
 	if resp.StatusCode == http.StatusForbidden {
@@ -1182,18 +1220,25 @@ func (g HTTPGatewayAuthorizer) Authorize(token, scope, clientID string) (WalletS
 	if resp.StatusCode != http.StatusOK {
 		return WalletSession{}, ErrUnavailable
 	}
-	var v struct {
-		VerifierVersion  string   `json:"verifierVersion"`
-		ProductClientID  string   `json:"productClientId"`
-		BundleID         string   `json:"bundleId"`
-		Account          string   `json:"account"`
-		AccountPublicKey string   `json:"accountPublicKey"`
-		ExpiresAt        string   `json:"expiresAt"`
-		Scopes           []string `json:"scopes"`
+	var envelope struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			Active  bool `json:"active"`
+			Session struct {
+				VerifierVersion  string   `json:"verifierVersion"`
+				ProductClientID  string   `json:"productClientId"`
+				BundleID         string   `json:"bundleId"`
+				Account          string   `json:"account"`
+				AccountPublicKey string   `json:"accountPublicKey"`
+				ExpiresAt        string   `json:"expiresAt"`
+				Scopes           []string `json:"scopes"`
+			} `json:"session"`
+		} `json:"result"`
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&v); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&envelope); err != nil || !envelope.OK || !envelope.Result.Active {
 		return WalletSession{}, ErrUnavailable
 	}
+	v := envelope.Result.Session
 	account, err := nativewallet.NormalizeNativeAddress(v.Account)
 	derived, keyErr := walletAccount(v.AccountPublicKey)
 	if err != nil || keyErr != nil || derived != account || v.VerifierVersion != "wallet-auth-v1" || v.ProductClientID != clientID || v.BundleID != "com.ynxweb4.exchange" {
@@ -1214,6 +1259,28 @@ func (g HTTPGatewayAuthorizer) Authorize(token, scope, clientID string) (WalletS
 		return WalletSession{}, ErrForbidden
 	}
 	return WalletSession{Account: account, WalletPublicKey: v.AccountPublicKey, Scopes: append([]string(nil), v.Scopes...), ExpiresAt: expires}, nil
+}
+
+func (g HTTPGatewayAuthorizer) CompleteSession(body []byte) ([]byte, int, error) {
+	client := g.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(g.BaseURL, "/")+"/v1/wallet/sessions/complete", bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, ErrUnavailable
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, 0, ErrUnavailable
+	}
+	defer resp.Body.Close()
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, 256<<10))
+	if err != nil || len(payload) == 0 || !json.Valid(payload) {
+		return nil, 0, ErrUnavailable
+	}
+	return payload, resp.StatusCode, nil
 }
 
 func walletAccount(publicKeyHex string) (string, error) {

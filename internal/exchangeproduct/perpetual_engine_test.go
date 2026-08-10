@@ -122,7 +122,7 @@ func TestMarginTransferConcurrentReplayAndHTTPAuthorization(t *testing.T) {
 	}
 	body, _ := json.Marshal(signedMarginTransfer(a, "withdraw", AmountScale, "margin-http-withdraw"))
 	httpReq, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/margin/transfer", bytes.NewReader(body))
-	httpReq.Header.Set("Authorization", "Bearer central-ws-token")
+	httpReq.Header.Set("X-YNX-Product-Session-Proof", "central-ws-token")
 	httpReq.Header.Set("Content-Type", "application/json")
 	response, err = http.DefaultClient.Do(httpReq)
 	if err != nil {

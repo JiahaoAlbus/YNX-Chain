@@ -1047,7 +1047,7 @@ func TestMarketWebSocketSnapshotLiveSequenceAndUserQueryTokenRejection(t *testin
 	s.cfg.Gateway = fixtureGateway{session: a.session}
 	s.cfg.GatewayClientID = "ynx-exchange-v1"
 	userURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/v1/ws/user"
-	header := http.Header{"Authorization": []string{"Bearer central-ws-token"}}
+	header := http.Header{"X-YNX-Product-Session-Proof": []string{"central-ws-token"}}
 	user, response, err := websocket.DefaultDialer.Dial(userURL, header)
 	if err != nil {
 		t.Fatalf("user websocket response=%v err=%v", response, err)
@@ -1618,16 +1618,16 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var gotPath, gotAuth string
+	var gotPath, gotProof string
 	allowTrade := false
 	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
-		gotAuth = r.Header.Get("Authorization")
+		gotProof = r.Header.Get("X-YNX-Product-Session-Proof")
 		scopes := []string{"exchange:read"}
 		if allowTrade {
 			scopes = append(scopes, "exchange:trade")
 		}
-		writeJSON(w, 200, map[string]any{"verifierVersion": "wallet-auth-v1", "productClientId": "ynx-exchange-v1", "bundleId": "com.ynxweb4.exchange", "account": account, "accountPublicKey": publicKey, "scopes": scopes, "expiresAt": expires})
+		writeJSON(w, 200, map[string]any{"ok": true, "result": map[string]any{"active": true, "session": map[string]any{"verifierVersion": "wallet-auth-v1", "productClientId": "ynx-exchange-v1", "bundleId": "com.ynxweb4.exchange", "account": account, "accountPublicKey": publicKey, "scopes": scopes, "expiresAt": expires}}})
 	}))
 	defer gateway.Close()
 	authorizer := HTTPGatewayAuthorizer{BaseURL: gateway.URL, Client: gateway.Client()}
@@ -1635,8 +1635,8 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	if err != nil || session.Account != account {
 		t.Fatalf("account=%s public=%s session=%+v err=%v", account, publicKey, session, err)
 	}
-	if gotPath != "/v1/sessions/introspect" || gotAuth != "Bearer central-token" {
-		t.Fatalf("gateway request path=%s auth=%s", gotPath, gotAuth)
+	if gotPath != "/v1/wallet/sessions/introspect" || gotProof != "central-token" {
+		t.Fatalf("gateway request path=%s proof=%s", gotPath, gotProof)
 	}
 	if _, err := authorizer.Authorize("central-token", "exchange:trade", "ynx-exchange-v1"); err != ErrForbidden {
 		t.Fatalf("scope err=%v", err)
@@ -1655,6 +1655,24 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	order, err := s.PlaceOrder(centralSession, req)
 	if err != nil || order.Status != "open" || !order.WalletAuthorized {
 		t.Fatalf("central Wallet action order=%+v err=%v", order, err)
+	}
+}
+
+func TestClientPeerUsesOnlyFirstValidForwardedIPFromLoopbackProxy(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/health", nil)
+	request.RemoteAddr = "127.0.0.1:43100"
+	request.Header.Set("X-Forwarded-For", "203.0.113.9, 127.0.0.1")
+	if peer := clientPeer(request); peer != "203.0.113.9" {
+		t.Fatalf("peer=%q", peer)
+	}
+	request.Header.Set("X-Forwarded-For", "invalid\nvalue")
+	if peer := clientPeer(request); peer != "127.0.0.1" {
+		t.Fatalf("invalid forwarded peer=%q", peer)
+	}
+	request.RemoteAddr = "198.51.100.4:43100"
+	request.Header.Set("X-Forwarded-For", "203.0.113.9")
+	if peer := clientPeer(request); peer != "198.51.100.4" {
+		t.Fatalf("untrusted forwarded peer=%q", peer)
 	}
 }
 
@@ -1776,7 +1794,7 @@ func TestSolvencyFailsClosedWithoutCustodyAssetEvidenceAndHTTPProofNeedsWallet(t
 	s.cfg.Gateway = fixtureGateway{session: a.session}
 	s.cfg.GatewayClientID = "ynx-exchange-v1"
 	req, _ := http.NewRequest(http.MethodGet, server.URL+"/v1/solvency/liability-proof?asset=YNXT", nil)
-	req.Header.Set("Authorization", "Bearer central-ws-token")
+	req.Header.Set("X-YNX-Product-Session-Proof", "central-ws-token")
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Fatalf("authenticated proof err=%v status=%v", err, resp.StatusCode)

@@ -43,7 +43,7 @@ func TestHTTPQuantKillRequiresKillSignatureAndPersistsReconciliation(t *testing.
 		if err != nil {
 			t.Fatal(err)
 		}
-		req.Header.Set("Authorization", "Bearer central-ws-token")
+		req.Header.Set("X-YNX-Product-Session-Proof", "central-ws-token")
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -78,7 +78,7 @@ func TestHTTPQuantKillRequiresKillSignatureAndPersistsReconciliation(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("Authorization", "Bearer central-ws-token")
+	req.Header.Set("X-YNX-Product-Session-Proof", "central-ws-token")
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {

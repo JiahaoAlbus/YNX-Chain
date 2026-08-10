@@ -59,7 +59,11 @@ type Config struct {
 }
 
 type GatewayAuthorizer interface {
-	Authorize(token, scope, clientID string) (WalletSession, error)
+	Authorize(proof, scope, clientID string) (WalletSession, error)
+}
+
+type GatewaySessionCompleter interface {
+	CompleteSession(body []byte) ([]byte, int, error)
 }
 
 type IntegrationStatus struct {

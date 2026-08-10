@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+import { randomBytes } from "node:crypto";
+import { canonicalJSON, createGatewayChallenge, createProductDeviceIdentity, createProductSessionProof, encodeProductSessionProofHeader, httpBodyDigest, signAuthorization, signExchangeOrderAction, signGatewayChallenge, walletIdentity } from "../mobile/vendor/wallet-auth/src/index.js";
+
+const base=(process.env.YNX_EXCHANGE_E2E_URL??"http://127.0.0.1:6442/api").replace(/\/$/,"");
+const admin=process.env.YNX_EXCHANGE_ADMIN_API_KEY;
+if(!admin||admin.length<16)throw new Error("YNX_EXCHANGE_ADMIN_API_KEY is required for the isolated Testnet credit fixture");
+const device=createProductDeviceIdentity(),accountSecret=validAccountSecret(),identity=walletIdentity(accountSecret),now=new Date();
+const authorizationRequest={version:"1",nonce:nonce(),chainId:"ynx_6423-1",requestingProduct:"exchange",productClientId:"ynx-exchange-v1",bundleId:"com.ynxweb4.exchange",productDeviceAlgorithm:"p256-sha256",productDeviceKey:device.productDeviceKey,callback:"https://exchange.ynxweb4.com/wallet-auth/callback",scopes:["exchange:ai","exchange:deposit","exchange:read","exchange:trade","exchange:withdrawal-review"],purpose:"Automated canonical Wallet and Exchange Testnet integration verification",issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+300_000).toISOString()};
+const walletApproval=signAuthorization(authorizationRequest,{accountSecret,account:identity.account,issuedAt:now.toISOString()});
+const challenge=createGatewayChallenge(walletApproval,{challenge:nonce(),expiresAt:new Date(now.getTime()+60_000).toISOString()},now),gatewayCompletion=signGatewayChallenge(challenge,device.productDeviceSecret);
+let response=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{"content-type":"application/json"},body:canonicalJSON({authorizationRequest,walletApproval,gatewayCompletion})}),envelope=await response.json();
+if(!response.ok||!envelope.ok||!envelope.result)throw new Error(`Wallet completion failed closed (${response.status})`);
+const session=envelope.result,proof=scope=>{const body=canonicalJSON({requiredScopes:[scope]}),issuedAt=new Date();return encodeProductSessionProofHeader(createProductSessionProof(session,{method:"POST",path:"/v1/wallet/sessions/introspect",bodyDigest:httpBodyDigest(body),nonce:nonce(),issuedAt:issuedAt.toISOString(),expiresAt:new Date(issuedAt.getTime()+30_000).toISOString()},device.productDeviceSecret))};
+response=await fetch(`${base}/v1/account`,{headers:{"X-YNX-Product-Session-Proof":proof("exchange:read")}});if(response.status!==200)throw new Error(`Wallet-authenticated account read failed closed (${response.status})`);
+const key=`e2e-${Date.now()}-${randomBytes(6).toString("hex")}`;
+response=await fetch(`${base}/v1/admin/test-credits`,{method:"POST",headers:{authorization:`Bearer ${admin}`,"content-type":"application/json"},body:JSON.stringify({account:identity.account,amountMicro:10_000_000,idempotencyKey:`${key}-credit`})});if(response.status!==201)throw new Error(`Testnet fixture credit failed closed (${response.status})`);
+const actionTime=new Date(),parameters={market:"YNXT-YUSD_TEST",side:"buy",type:"limit",priceMicro:1_000_000,amountMicro:1_000_000,idempotencyKey:`${key}-order`},action={version:"1",chainId:"ynx_6423-1",productClientId:"ynx-exchange-v1",bundleId:"com.ynxweb4.exchange",callback:"https://exchange.ynxweb4.com/wallet-action/callback",sessionBinding:session.sessionBinding,account:session.account,action:"exchange.order.place",parameters,nonce:nonce(),issuedAt:actionTime.toISOString(),expiresAt:new Date(actionTime.getTime()+300_000).toISOString()},signed=signExchangeOrderAction(action,{accountSecret,account:identity.account,issuedAt:actionTime.toISOString()}),tradeProof=proof("exchange:trade");
+response=await fetch(`${base}/v1/orders`,{method:"POST",headers:{"content-type":"application/json","X-YNX-Product-Session-Proof":tradeProof},body:JSON.stringify({...parameters,walletSignature:signed.walletSignature})});const order=await response.json();if(response.status!==201||order.status!=="open")throw new Error(`Wallet-authorized order failed closed (${response.status})`);
+const replay=await fetch(`${base}/v1/orders`,{method:"POST",headers:{"content-type":"application/json","X-YNX-Product-Session-Proof":tradeProof},body:JSON.stringify({...parameters,walletSignature:signed.walletSignature})});if(replay.ok)throw new Error("one-time Product Session proof replay was accepted");
+process.stdout.write(`${canonicalJSON({account:session.account,accountPublicKeyBound:session.accountPublicKey===identity.accountPublicKey,ok:true,orderId:order.id,orderStatus:order.status,replayStatus:replay.status})}\n`);
+
+function nonce(){return randomBytes(24).toString("base64url")}
+function validAccountSecret(){for(;;){const value=randomBytes(32).toString("hex");try{walletIdentity(value);return value}catch{}}}

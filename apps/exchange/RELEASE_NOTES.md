@@ -2,6 +2,7 @@
 
 Public Testnet checkpoint (2026-08-10):
 
+- Replaced the nonexistent legacy bearer introspection route with canonical one-time P-256 Product Session proofs, preserved the Wallet-approved secp256k1 account public key in central sessions, and added real Web/native Wallet completion, second-open restoration, install fallback and exact Wallet-reviewed Web order placement.
 - Added the domain-separated `ynx-quant-strategy-control-v1` contract. Pause atomically cancels open execution, persists across restart and blocks new exposure; resume requires a distinct Wallet signature; a killed nonce domain cannot be resumed.
 - Added byte-stable schema-v1 integrity verification so the historical public venue state migrates to schema 9 without discarding or rewriting unverified data.
 - Published source `3cf00aeea07b23c9a5e7aa6aad168db502dc4744` at `https://exchange.ynxweb4.com/`; public health, readiness and version checks report schema 9 integrity and `ready_public_testnet`. A second service launch retained the exact state-file SHA-256.

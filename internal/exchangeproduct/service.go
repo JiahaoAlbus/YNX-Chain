@@ -330,12 +330,20 @@ func (s *Service) CompleteSession(req CompleteSessionRequest) (WalletSession, st
 	return session, token, nil
 }
 
-func (s *Service) Authenticate(token, scope string) (WalletSession, error) {
-	raw := strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
+func (s *Service) Authenticate(proof, scope string) (WalletSession, error) {
+	raw := strings.TrimSpace(proof)
 	if raw == "" || s.cfg.Gateway == nil || s.cfg.GatewayClientID == "" {
 		return WalletSession{}, ErrUnauthorized
 	}
 	return s.cfg.Gateway.Authorize(raw, scope, s.cfg.GatewayClientID)
+}
+
+func (s *Service) CompleteCentralSession(body []byte) ([]byte, int, error) {
+	completer, ok := s.cfg.Gateway.(GatewaySessionCompleter)
+	if !ok || len(body) < 2 || len(body) > 256<<10 {
+		return nil, 0, ErrUnavailable
+	}
+	return completer.CompleteSession(body)
 }
 
 func OrderAuthorizationPayload(account string, req PlaceOrderRequest) []byte {
