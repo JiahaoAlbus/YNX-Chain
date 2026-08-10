@@ -170,6 +170,9 @@ func New(cfg Config) (*Service, error) {
 	}
 	cfg.GatewayURL = strings.TrimRight(strings.TrimSpace(cfg.GatewayURL), "/")
 	cfg.GatewayClientID = strings.TrimSpace(cfg.GatewayClientID)
+	cfg.GatewayBundleID = strings.TrimSpace(cfg.GatewayBundleID)
+	cfg.QuantGatewayClientID = strings.TrimSpace(cfg.QuantGatewayClientID)
+	cfg.QuantGatewayBundleID = strings.TrimSpace(cfg.QuantGatewayBundleID)
 	cfg.IndexerURL = strings.TrimRight(strings.TrimSpace(cfg.IndexerURL), "/")
 	cfg.DEXGatewayURL = strings.TrimRight(strings.TrimSpace(cfg.DEXGatewayURL), "/")
 	cfg.DEXQuoteAssetID = strings.TrimSpace(cfg.DEXQuoteAssetID)
@@ -215,7 +218,7 @@ func New(cfg Config) (*Service, error) {
 }
 
 func (s *Service) Integrations() IntegrationStatus {
-	status := IntegrationStatus{Gateway: "unavailable", GatewayReason: "Central Gateway route and Exchange scope registration are not configured", WalletRegistry: "pending_registration", Custody: "unavailable", Indexer: "unavailable", CrossChain: "unavailable"}
+	status := IntegrationStatus{Gateway: "unavailable", GatewayReason: "Central Gateway route and Exchange scope registration are not configured", WalletRegistry: "pending_registration", QuantRegistry: "pending_registration", Custody: "unavailable", Indexer: "unavailable", CrossChain: "unavailable"}
 	if s.cfg.GatewayURL != "" && s.cfg.GatewayClientID != "" {
 		status.Gateway = "configured_not_attested"
 		status.GatewayReason = "Configuration is not evidence of central route acceptance"
@@ -223,6 +226,9 @@ func (s *Service) Integrations() IntegrationStatus {
 			status.Gateway = "canonical_product_session_proof"
 			status.GatewayReason = "Canonical Product Session proof path passed the Wallet-to-Exchange release attestation"
 			status.WalletRegistry = "approved_enabled"
+			if s.cfg.QuantGatewayClientID != "" {
+				status.QuantRegistry = "approved_enabled"
+			}
 		}
 	}
 	if s.state.CustodyAddress != "" {
@@ -335,12 +341,22 @@ func (s *Service) CompleteSession(req CompleteSessionRequest) (WalletSession, st
 	return session, token, nil
 }
 
-func (s *Service) Authenticate(productSessionProof, scope string) (WalletSession, error) {
-	raw := strings.TrimSpace(productSessionProof)
-	if raw == "" || s.cfg.Gateway == nil || s.cfg.GatewayClientID == "" {
+func (s *Service) Authenticate(proof, scope string) (WalletSession, error) {
+	return s.AuthenticateClient(proof, scope, s.cfg.GatewayClientID, s.cfg.GatewayBundleID)
+}
+
+func (s *Service) AuthenticateQuant(proof, scope string) (WalletSession, error) {
+	return s.AuthenticateClient(proof, scope, s.cfg.QuantGatewayClientID, s.cfg.QuantGatewayBundleID)
+}
+
+func (s *Service) AuthenticateClient(proof, scope, clientID, bundleID string) (WalletSession, error) {
+	raw := strings.TrimSpace(proof)
+	clientID = strings.TrimSpace(clientID)
+	bundleID = strings.TrimSpace(bundleID)
+	if raw == "" || s.cfg.Gateway == nil || clientID == "" || bundleID == "" || (clientID != s.cfg.GatewayClientID && clientID != s.cfg.QuantGatewayClientID) {
 		return WalletSession{}, ErrUnauthorized
 	}
-	return s.cfg.Gateway.Authorize(raw, scope, s.cfg.GatewayClientID)
+	return s.cfg.Gateway.Authorize(raw, scope, clientID, bundleID)
 }
 
 func OrderAuthorizationPayload(account string, req PlaceOrderRequest) []byte {

@@ -110,6 +110,7 @@ func TestMarginTransferConcurrentReplayAndHTTPAuthorization(t *testing.T) {
 
 	s.cfg.Gateway = fixtureGateway{session: a.session}
 	s.cfg.GatewayClientID = "ynx-exchange-v1"
+	s.cfg.GatewayBundleID = "com.ynxweb4.exchange"
 	server := httptest.NewServer(NewServer(s))
 	defer server.Close()
 	response, err := http.Get(server.URL + "/v1/margin/account")
@@ -122,7 +123,7 @@ func TestMarginTransferConcurrentReplayAndHTTPAuthorization(t *testing.T) {
 	}
 	body, _ := json.Marshal(signedMarginTransfer(a, "withdraw", AmountScale, "margin-http-withdraw"))
 	httpReq, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/margin/transfer", bytes.NewReader(body))
-	httpReq.Header.Set("Authorization", "Bearer central-ws-token")
+	httpReq.Header.Set("X-YNX-Product-Session-Proof", "central-ws-token")
 	httpReq.Header.Set("Content-Type", "application/json")
 	response, err = http.DefaultClient.Do(httpReq)
 	if err != nil {

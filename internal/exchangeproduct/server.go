@@ -707,7 +707,7 @@ func (s *Server) quantCapabilities(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantAccount(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:read")
+	session, ok := s.authQuant(w, r, "quant:mandate:create")
 	if !ok {
 		return
 	}
@@ -722,7 +722,7 @@ func (s *Server) quantAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantBook(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:read")
+	session, ok := s.authQuant(w, r, "quant:account")
 	if !ok {
 		return
 	}
@@ -737,7 +737,7 @@ func (s *Server) quantBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantSubmit(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -753,7 +753,7 @@ func (s *Server) quantSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantCancel(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -770,7 +770,7 @@ func (s *Server) quantCancel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantAmend(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -786,7 +786,7 @@ func (s *Server) quantAmend(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantConditional(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -802,7 +802,7 @@ func (s *Server) quantConditional(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantCancelConditional(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -819,7 +819,7 @@ func (s *Server) quantCancelConditional(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) quantOCO(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -835,7 +835,7 @@ func (s *Server) quantOCO(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantTWAP(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -851,7 +851,7 @@ func (s *Server) quantTWAP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantCancelTWAP(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -868,7 +868,7 @@ func (s *Server) quantCancelTWAP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantIceberg(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -884,7 +884,7 @@ func (s *Server) quantIceberg(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantScale(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -900,7 +900,7 @@ func (s *Server) quantScale(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantCancelScale(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -925,7 +925,7 @@ func (s *Server) quantKill(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantControl(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -943,7 +943,7 @@ func (s *Server) quantControl(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantMassCancelAction(w http.ResponseWriter, r *http.Request, kill bool) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -966,7 +966,7 @@ func (s *Server) quantMassCancelAction(w http.ResponseWriter, r *http.Request, k
 }
 
 func (s *Server) quantReconcile(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:read")
+	session, ok := s.authQuant(w, r, "quant:account")
 	if !ok {
 		return
 	}
@@ -1075,6 +1075,14 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request, scope string) (Wal
 	return v, true
 }
 
+func (s *Server) authQuant(w http.ResponseWriter, r *http.Request, scope string) (WalletSession, bool) {
+	v, err := s.service.AuthenticateQuant(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
+	if err != nil {
+		respond(w, nil, err, 200)
+		return WalletSession{}, false
+	}
+	return v, true
+}
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
 	d := json.NewDecoder(r.Body)
@@ -1153,8 +1161,8 @@ type HTTPGatewayAuthorizer struct {
 	Client  *http.Client
 }
 
-func (g HTTPGatewayAuthorizer) Authorize(productSessionProof, scope, clientID string) (WalletSession, error) {
-	if productSessionProof == "" || scope == "" || clientID == "" {
+func (g HTTPGatewayAuthorizer) Authorize(proof, scope, clientID, bundleID string) (WalletSession, error) {
+	if proof == "" || scope == "" || clientID == "" || bundleID == "" {
 		return WalletSession{}, ErrUnauthorized
 	}
 	client := g.Client
@@ -1166,7 +1174,7 @@ func (g HTTPGatewayAuthorizer) Authorize(productSessionProof, scope, clientID st
 	if err != nil {
 		return WalletSession{}, ErrUnavailable
 	}
-	req.Header.Set("X-YNX-Product-Session-Proof", productSessionProof)
+	req.Header.Set("X-YNX-Product-Session-Proof", proof)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
@@ -1203,7 +1211,7 @@ func (g HTTPGatewayAuthorizer) Authorize(productSessionProof, scope, clientID st
 	}
 	v := envelope.Result.Session
 	account, err := nativewallet.NormalizeNativeAddress(v.Account)
-	if err != nil || v.VerifierVersion != "wallet-auth-v1" || v.ProductClientID != clientID || v.BundleID != "com.ynxweb4.exchange" || len(v.ProductDeviceKey) != 44 || len(v.SessionBinding) != 64 {
+	if err != nil || v.VerifierVersion != "wallet-auth-v1" || v.ProductClientID != clientID || v.BundleID != bundleID || len(v.ProductDeviceKey) != 44 || len(v.SessionBinding) != 64 {
 		return WalletSession{}, ErrUnauthorized
 	}
 	expires, err := time.Parse(time.RFC3339Nano, v.ExpiresAt)

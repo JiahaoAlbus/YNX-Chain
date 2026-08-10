@@ -91,10 +91,16 @@ type testAccount struct {
 	account string
 }
 
-type fixtureGateway struct{ session WalletSession }
+type fixtureGateway struct {
+	session  WalletSession
+	clientID string
+}
 
-func (f fixtureGateway) Authorize(token, scope, clientID string) (WalletSession, error) {
-	if token != "central-ws-token" || clientID != "ynx-exchange-v1" {
+func (f fixtureGateway) Authorize(token, scope, clientID, bundleID string) (WalletSession, error) {
+	if token != "central-ws-token" || (f.clientID != "" && clientID != f.clientID) || (clientID != "ynx-exchange-v1" && clientID != "ynx-quant-v1") {
+		return WalletSession{}, ErrUnauthorized
+	}
+	if (clientID == "ynx-exchange-v1" && bundleID != "com.ynxweb4.exchange") || (clientID == "ynx-quant-v1" && bundleID != "com.ynxweb4.quant") {
 		return WalletSession{}, ErrUnauthorized
 	}
 	for _, candidate := range f.session.Scopes {
@@ -1046,8 +1052,9 @@ func TestMarketWebSocketSnapshotLiveSequenceAndUserQueryTokenRejection(t *testin
 	}
 	s.cfg.Gateway = fixtureGateway{session: a.session}
 	s.cfg.GatewayClientID = "ynx-exchange-v1"
+	s.cfg.GatewayBundleID = "com.ynxweb4.exchange"
 	userURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/v1/ws/user"
-	header := http.Header{"Authorization": []string{"Bearer central-ws-token"}}
+	header := http.Header{"X-YNX-Product-Session-Proof": []string{"central-ws-token"}}
 	user, response, err := websocket.DefaultDialer.Dial(userURL, header)
 	if err != nil {
 		t.Fatalf("user websocket response=%v err=%v", response, err)
@@ -1372,8 +1379,9 @@ func TestDepositIntentLedgerAuditChainAndRiskControls(t *testing.T) {
 		t.Fatalf("unattested integration truth=%+v", status)
 	}
 	s.cfg.WalletSessionAttested = true
+	s.cfg.QuantGatewayClientID = "ynx-quant-v1"
 	status = s.Integrations()
-	if status.Gateway != "canonical_product_session_proof" || status.WalletRegistry != "approved_enabled" {
+	if status.Gateway != "canonical_product_session_proof" || status.WalletRegistry != "approved_enabled" || status.QuantRegistry != "approved_enabled" {
 		t.Fatalf("attested integration truth=%+v", status)
 	}
 }
@@ -1642,18 +1650,18 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	}))
 	defer gateway.Close()
 	authorizer := HTTPGatewayAuthorizer{BaseURL: gateway.URL, Client: gateway.Client()}
-	session, err := authorizer.Authorize(`{"version":"1"}`, "exchange:read", "ynx-exchange-v1")
+	session, err := authorizer.Authorize(`{"version":"1"}`, "exchange:read", "ynx-exchange-v1", "com.ynxweb4.exchange")
 	if err != nil || session.Account != account {
 		t.Fatalf("account=%s public=%s session=%+v err=%v", account, publicKey, session, err)
 	}
 	if gotPath != "/v1/wallet/sessions/introspect" || gotProof != `{"version":"1"}` {
 		t.Fatalf("gateway request path=%s proof=%s", gotPath, gotProof)
 	}
-	if _, err := authorizer.Authorize(`{"version":"1"}`, "exchange:trade", "ynx-exchange-v1"); err != ErrForbidden {
+	if _, err := authorizer.Authorize(`{"version":"1"}`, "exchange:trade", "ynx-exchange-v1", "com.ynxweb4.exchange"); err != ErrForbidden {
 		t.Fatalf("scope err=%v", err)
 	}
 	allowTrade = true
-	centralSession, err := authorizer.Authorize(`{"version":"1"}`, "exchange:trade", "ynx-exchange-v1")
+	centralSession, err := authorizer.Authorize(`{"version":"1"}`, "exchange:trade", "ynx-exchange-v1", "com.ynxweb4.exchange")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1787,8 +1795,9 @@ func TestSolvencyFailsClosedWithoutCustodyAssetEvidenceAndHTTPProofNeedsWallet(t
 	resp.Body.Close()
 	s.cfg.Gateway = fixtureGateway{session: a.session}
 	s.cfg.GatewayClientID = "ynx-exchange-v1"
+	s.cfg.GatewayBundleID = "com.ynxweb4.exchange"
 	req, _ := http.NewRequest(http.MethodGet, server.URL+"/v1/solvency/liability-proof?asset=YNXT", nil)
-	req.Header.Set("Authorization", "Bearer central-ws-token")
+	req.Header.Set("X-YNX-Product-Session-Proof", "central-ws-token")
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Fatalf("authenticated proof err=%v status=%v", err, resp.StatusCode)
