@@ -1,11 +1,12 @@
 import * as LocalAuthentication from "expo-local-authentication";
 
-export type AuthorizationPurpose = "unlock" | "wallet-authorization" | "exchange-order" | "developer-contract-deployment" | "transaction-sign" | "recovery-view" | "account-import" | "account-delete";
+export type AuthorizationPurpose = "unlock" | "wallet-authorization" | "exchange-order" | "dex-transaction" | "developer-contract-deployment" | "transaction-sign" | "recovery-view" | "account-import" | "account-delete";
 
 const prompts: Record<AuthorizationPurpose, string> = {
   unlock: "Unlock YNX Wallet",
   "wallet-authorization": "Approve exact Sign in with YNX Wallet request",
   "exchange-order": "Approve this exact YNX Exchange Testnet order",
+  "dex-transaction": "Approve this exact YNX DEX Testnet transaction",
   "developer-contract-deployment": "Approve this exact YNX Developer contract deployment",
   "transaction-sign": "Sign this reviewed YNXT transfer",
   "recovery-view": "View YNX Wallet recovery key",
