@@ -44,7 +44,7 @@ jobs:
       - name: Reject runtime placeholders and credential material
         run: >-
           ! grep -REin
-          'TODO|FIXME|coming soon|example\.com|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|sk_live_[A-Za-z0-9]+'
+          '(^|[^[:alpha:]])(TODO|FIXME)([^[:alpha:]]|$)|coming soon|example\.com|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|sk_live_[A-Za-z0-9]+'
           src
 
   backend:
