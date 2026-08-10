@@ -3,8 +3,8 @@
   "productId": "ynx-exchange-pro",
   "name": "YNX Exchange Pro",
   "branch": "codex/exchange-brace-expansion-5-0-8",
-  "sourceCommit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744",
-  "commit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744",
+  "sourceCommit": "08308a8c1fa74dae5b25647ff5a6936e34bd57c6",
+  "commit": "08308a8c1fa74dae5b25647ff5a6936e34bd57c6",
   "version": "0.1.0-testnet",
   "stateSchemaVersion": 9,
   "surfaces": [
@@ -21,7 +21,7 @@
   "installedLocal": false,
   "integratedCentral": false,
   "deployedStaging": false,
-  "deployedPublic": true,
+  "deployedPublic": false,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
@@ -67,14 +67,15 @@
     "margin": "notImplemented",
     "perpetual": "notImplemented",
     "ultraLiquidity": "notImplemented",
-    "solvencyProof": "notImplemented"
+    "solvencyProof": "liability-Merkle-and-conditional-committed-custody-proof-testedLocal"
   },
   "knownLimitations": [
     "Central Wallet registry, Gateway action verification, custody, Indexer and approved AI provider remain external",
     "No hosted download, production signature, notarization or store release",
     "Pause and resume require separate Wallet control signatures; kill remains irreversible for the exact nonce domain",
     "Real historical schema v2-v7 byte fixtures are absent and compatibility is not claimed",
-    "Margin, perpetual, portfolio margin, UltraLiquidity and solvency proof are not implemented",
+    "Margin, perpetual, portfolio margin, UltraLiquidity and insurance fund are not implemented",
+    "The liability-proof source commit is tested locally but not deployed; the public URL still serves the prior source commit",
     "Repository-wide tests are blocked outside Exchange ownership by missing generated contract artifacts and key-permission assumptions"
   ],
   "publicRuntimeEvidence": {
