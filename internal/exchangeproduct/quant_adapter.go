@@ -62,7 +62,18 @@ type QuantStrategyKill struct {
 	NonceDomain         string    `json:"nonceDomain"`
 	Status              string    `json:"status"`
 	AuthorizationDigest string    `json:"authorizationDigest"`
-	KilledAt            time.Time `json:"killedAt"`
+	KilledAt            time.Time `json:"killedAt,omitempty"`
+	PausedAt            time.Time `json:"pausedAt,omitempty"`
+	ResumedAt           time.Time `json:"resumedAt,omitempty"`
+}
+
+type QuantControlResult struct {
+	Subaccount  string       `json:"subaccount"`
+	Market      string       `json:"market"`
+	NonceDomain string       `json:"nonceDomain"`
+	Status      string       `json:"status"`
+	Cancelled   CancelResult `json:"cancelled"`
+	Source      QuantSource  `json:"source"`
 }
 
 type QuantExecutionAdapter struct {
@@ -87,7 +98,8 @@ func QuantCapabilities() []QuantCapability {
 		{Name: "submit", Allowed: true, Reason: "separate Wallet action signature and mandate limits required"},
 		{Name: "cancel", Allowed: true, Reason: "separate Wallet action signature required"},
 		{Name: "mass_cancel", Allowed: true, Reason: "separate Wallet action signature required"},
-		{Name: "pause_strategy", Allowed: false, Reason: "resume semantics require a separate signed control contract"},
+		{Name: "pause_strategy", Allowed: true, Reason: "wallet-signed persistent pause atomically cancels open execution and blocks new exposure"},
+		{Name: "resume_strategy", Allowed: true, Reason: "separate wallet-signed resume; killed nonce domains remain permanently revoked"},
 		{Name: "kill_strategy", Allowed: true, Reason: "wallet-signed persistent nonce-domain revocation plus atomic subaccount mass cancel"},
 		{Name: "reconcile", Allowed: true, Reason: "sequenced authoritative snapshot"},
 		{Name: "amend", Allowed: true, Reason: "atomic repricing/resizing with lost time priority and a separate Wallet signature"},
@@ -118,13 +130,27 @@ func QuantKillAuthorizationPayload(account, market, nonceDomain, key string) []b
 	return []byte(fmt.Sprintf("ynx-quant-strategy-kill-v1\n%s\n%s\n%s\n%s", account, strings.ToUpper(strings.TrimSpace(market)), strings.TrimSpace(nonceDomain), key))
 }
 
+func QuantControlAuthorizationPayload(account, market, nonceDomain, action, key string) []byte {
+	return []byte(fmt.Sprintf("ynx-quant-strategy-control-v1\n%s\n%s\n%s\n%s\n%s", account, strings.ToUpper(strings.TrimSpace(market)), strings.TrimSpace(nonceDomain), strings.ToLower(strings.TrimSpace(action)), key))
+}
+
 func quantStrategyKey(account, nonceDomain string) string {
 	return account + "\x00" + strings.TrimSpace(nonceDomain)
 }
 
 func (s *Service) quantStrategyKilledLocked(account, nonceDomain string) bool {
+	return s.quantStrategyStatusLocked(account, nonceDomain) == "killed"
+}
+
+func (s *Service) quantStrategyStatusLocked(account, nonceDomain string) string {
+	if strings.TrimSpace(nonceDomain) == "" {
+		return "active"
+	}
 	state, ok := s.state.QuantStrategyKills[quantStrategyKey(account, nonceDomain)]
-	return strings.TrimSpace(nonceDomain) != "" && ok && state.Status == "killed"
+	if !ok || (state.Status != "paused" && state.Status != "killed") {
+		return "active"
+	}
+	return state.Status
 }
 
 func (s *Service) quantCapitalAllowsLocked(account, nonceDomain string, capitalMicro, proposedMicro int64, excludeOrderID string) bool {
@@ -235,9 +261,9 @@ func (a *QuantExecutionAdapter) validate(session WalletSession, mandate QuantMan
 	}
 	if quantMethodCreatesExposure(method) {
 		a.service.mu.Lock()
-		killed := a.service.quantStrategyKilledLocked(session.Account, mandate.NonceDomain)
+		status := a.service.quantStrategyStatusLocked(session.Account, mandate.NonceDomain)
 		a.service.mu.Unlock()
-		if killed {
+		if status != "active" {
 			return ErrForbidden
 		}
 	}
@@ -250,7 +276,7 @@ func quantMethodCreatesExposure(method string) bool {
 
 func quantMethodAllowed(method string) bool {
 	switch method {
-	case "read", "submit", "amend", "tp_sl", "twap", "iceberg", "scale", "cancel", "mass_cancel", "kill", "reconcile":
+	case "read", "submit", "amend", "tp_sl", "twap", "iceberg", "scale", "cancel", "mass_cancel", "control", "kill", "reconcile":
 		return true
 	default:
 		return false
@@ -442,6 +468,74 @@ func (a *QuantExecutionAdapter) Kill(session WalletSession, mandate QuantMandate
 	return a.service.massCancelLocked(session, market, key, "quant_strategy_kill", d, postMutation)
 }
 
+func (a *QuantExecutionAdapter) Control(session WalletSession, mandate QuantMandate, action, key, walletSignature string) (QuantControlResult, error) {
+	if err := a.validate(session, mandate, "control"); err != nil {
+		return QuantControlResult{}, err
+	}
+	action = strings.ToLower(strings.TrimSpace(action))
+	market := strings.ToUpper(strings.TrimSpace(mandate.Market))
+	if (action != "pause" && action != "resume") || market != DefaultMarket || !validKey(key) {
+		return QuantControlResult{}, ErrInvalid
+	}
+	payload := QuantControlAuthorizationPayload(session.Account, market, mandate.NonceDomain, action, key)
+	if !verifyWalletSignature(session.Account, session.WalletPublicKey, payload, walletSignature) {
+		return QuantControlResult{}, ErrUnauthorized
+	}
+	d := digest(payload)
+	if action == "pause" {
+		a.service.mu.Lock()
+		defer a.service.mu.Unlock()
+		if prior, ok := a.service.state.Idempotency[key]; ok {
+			if prior.Action != "quant_strategy_pause" || prior.Digest != d {
+				return QuantControlResult{}, ErrConflict
+			}
+			cancelled, err := a.service.massCancelLocked(session, market, key, "quant_strategy_pause", d, nil)
+			if err != nil {
+				return QuantControlResult{}, err
+			}
+			return QuantControlResult{Subaccount: session.Account, Market: market, NonceDomain: mandate.NonceDomain, Status: "paused", Cancelled: cancelled, Source: a.source("authoritative persisted strategy control", "available")}, nil
+		}
+		if a.service.quantStrategyStatusLocked(session.Account, mandate.NonceDomain) != "active" {
+			return QuantControlResult{}, ErrConflict
+		}
+		cancelled, err := a.service.massCancelLocked(session, market, key, "quant_strategy_pause", d, func() {
+			state := QuantStrategyKill{Subaccount: session.Account, Market: market, NonceDomain: mandate.NonceDomain, Status: "paused", AuthorizationDigest: d, PausedAt: a.service.cfg.Now().UTC()}
+			a.service.state.QuantStrategyKills[quantStrategyKey(session.Account, mandate.NonceDomain)] = state
+			a.service.emitExecutionLocked("user", "quant_strategy_paused", session.Account, "quant_strategy", mandate.NonceDomain, state)
+			a.service.auditLocked(session.Account, "quant_strategy_paused", "quant_strategy", mandate.NonceDomain, d)
+		})
+		if err != nil {
+			return QuantControlResult{}, err
+		}
+		return QuantControlResult{Subaccount: session.Account, Market: market, NonceDomain: mandate.NonceDomain, Status: "paused", Cancelled: cancelled, Source: a.source("authoritative persisted strategy control", "available")}, nil
+	}
+
+	a.service.mu.Lock()
+	defer a.service.mu.Unlock()
+	if prior, ok := a.service.state.Idempotency[key]; ok {
+		if prior.Action != "quant_strategy_resume" || prior.Digest != d || prior.ObjectID != mandate.NonceDomain {
+			return QuantControlResult{}, ErrConflict
+		}
+		return QuantControlResult{Subaccount: session.Account, Market: market, NonceDomain: mandate.NonceDomain, Status: "active", Source: a.source("authoritative persisted strategy control", "available")}, nil
+	}
+	current, ok := a.service.state.QuantStrategyKills[quantStrategyKey(session.Account, mandate.NonceDomain)]
+	if !ok || current.Status != "paused" {
+		return QuantControlResult{}, ErrConflict
+	}
+	before := cloneState(a.service.state)
+	current.Status = "active"
+	current.AuthorizationDigest = d
+	current.ResumedAt = a.service.cfg.Now().UTC()
+	a.service.state.QuantStrategyKills[quantStrategyKey(session.Account, mandate.NonceDomain)] = current
+	a.service.state.Idempotency[key] = idempotencyRecord{Action: "quant_strategy_resume", Digest: d, ObjectID: mandate.NonceDomain}
+	a.service.emitExecutionLocked("user", "quant_strategy_resumed", session.Account, "quant_strategy", mandate.NonceDomain, current)
+	a.service.auditLocked(session.Account, "quant_strategy_resumed", "quant_strategy", mandate.NonceDomain, d)
+	if err := a.service.saveOrRollbackLocked(before); err != nil {
+		return QuantControlResult{}, err
+	}
+	return QuantControlResult{Subaccount: session.Account, Market: market, NonceDomain: mandate.NonceDomain, Status: "active", Source: a.source("authoritative persisted strategy control", "available")}, nil
+}
+
 func (a *QuantExecutionAdapter) Reconcile(session WalletSession, mandate QuantMandate) (QuantReconciliation, error) {
 	if err := a.validate(session, mandate, "reconcile"); err != nil {
 		return QuantReconciliation{}, err
@@ -461,10 +555,7 @@ func (a *QuantExecutionAdapter) Reconcile(session WalletSession, mandate QuantMa
 			lastTrade = trade.ID
 		}
 	}
-	strategyStatus := "active"
-	if a.service.quantStrategyKilledLocked(session.Account, mandate.NonceDomain) {
-		strategyStatus = "killed"
-	}
+	strategyStatus := a.service.quantStrategyStatusLocked(session.Account, mandate.NonceDomain)
 	exposure := a.service.quantExposureMicroLocked(session.Account, mandate.NonceDomain, "")
 	payload := struct {
 		Subaccount     string
