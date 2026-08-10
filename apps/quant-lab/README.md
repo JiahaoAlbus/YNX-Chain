@@ -18,4 +18,6 @@ Configuration:
 - `YNX_QUANT_STATE_PATH` — integrity-protected persistent state.
 - `YNX_QUANT_EXCHANGE_URL` — Exchange API base for actual matched trades.
 
-Testnet order submission additionally requires injected `MandateVerifier` and `TestnetBroker` implementations. The shipped server injects neither and therefore fails closed. Real-money execution has no adapter or route.
+When `YNX_QUANT_EXCHANGE_URL` is configured, the shipped server also injects the stateless Exchange execution adapter. Each mandate registration and order submission must carry that user's own short-lived, Wallet-authenticated Exchange session in `X-YNX-Exchange-Session`; tokens are never accepted as persisted mandate/order fields, persisted, or shared between users. The mandate uses the exact `ynx-quant-execution-adapter-v1` payload and binds the strategy through `quant:<strategyHash>`. Every order requires a separate signature over the exact Exchange order payload. Missing Exchange configuration, session authorization, signatures, or authoritative response fails closed.
+
+The Testnet page previews both exact signing payloads and accepts the resulting Wallet signatures. The current central product registry still marks Quant Lab pending/disabled, so this is locally verified source capability—not a claim that the public deployment or central Wallet handoff is enabled. Real-money execution has no adapter or route.

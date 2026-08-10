@@ -4,14 +4,15 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
 
 type allowMandate struct{}
 
-func (allowMandate) VerifyMandate(m Mandate) error {
-	if m.WalletSignature != "wallet-proof" {
+func (allowMandate) VerifyMandate(m Mandate, sessionToken string) error {
+	if m.WalletSignature != "wallet-proof" || sessionToken != "user-session" {
 		return ErrForbidden
 	}
 	return nil
@@ -19,8 +20,24 @@ func (allowMandate) VerifyMandate(m Mandate) error {
 
 type testBroker struct{}
 
-func (testBroker) SubmitTestnet(o TestnetOrder) (string, error) {
+func (testBroker) SubmitTestnet(m Mandate, o TestnetOrder, sessionToken string) (string, error) {
+	if m.Digest == "" || o.WalletSignature != "order-wallet-proof" || sessionToken != "user-session" {
+		return "", ErrForbidden
+	}
 	return "committed-ynx-testnet-proof", nil
+}
+
+type concurrentBroker struct {
+	entered chan struct{}
+	release chan struct{}
+	count   atomic.Int32
+}
+
+func (b *concurrentBroker) SubmitTestnet(m Mandate, o TestnetOrder, sessionToken string) (string, error) {
+	b.count.Add(1)
+	b.entered <- struct{}{}
+	<-b.release
+	return hash(o), nil
 }
 
 func bars() []Bar {
@@ -95,31 +112,36 @@ func TestTamperAndRestartReject(t *testing.T) {
 
 func TestBoundedWalletMandateReplayExpiryLimitAndBrokerProof(t *testing.T) {
 	now := time.Date(2026, 7, 18, 0, 0, 0, 0, time.UTC)
-	s, e := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json"), Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}})
+	statePath := filepath.Join(t.TempDir(), "s.json")
+	s, e := New(Config{StatePath: statePath, Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}})
 	if e != nil {
 		t.Fatal(e)
 	}
-	m := Mandate{Account: "ynx1test", StrategyHash: strings.Repeat("a", 64), Market: "YNXT-YUSD_TEST", MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
-	m, e = s.RegisterMandate(m)
+	m := Mandate{Account: "ynx1test", StrategyHash: strings.Repeat("a", 64), Market: "YNXT-YUSD_TEST", Methods: []string{"read", "submit", "reconcile"}, CapitalMicro: 2_000_000, Leverage: 1, NonceDomain: "quant:" + strings.Repeat("a", 64), MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
+	m, e = s.RegisterMandate(m, "user-session")
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = s.RegisterMandate(m); e != ErrConflict {
+	if _, e = s.RegisterMandate(m, "user-session"); e != ErrConflict {
 		t.Fatalf("replay=%v", e)
 	}
-	o, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1")
+	o, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1", "order-wallet-proof", "user-session")
 	if e != nil || o.Status != "submitted_testnet" || o.BrokerProof == "" {
 		t.Fatalf("%+v %v", o, e)
 	}
-	again, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1")
+	stored, err := os.ReadFile(statePath)
+	if err != nil || strings.Contains(string(stored), "user-session") {
+		t.Fatal("ephemeral Exchange session was persisted")
+	}
+	again, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1", "order-wallet-proof", "user-session")
 	if e != nil || again.ID != o.ID {
 		t.Fatal("idempotent replay changed result")
 	}
-	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 3_000_000, "bounded-order-2"); e != ErrForbidden {
+	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 3_000_000, "bounded-order-2", "order-wallet-proof", "user-session"); e != ErrForbidden {
 		t.Fatalf("limit=%v", e)
 	}
 	now = now.Add(2 * time.Hour)
-	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "bounded-order-3"); e != ErrForbidden {
+	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "bounded-order-3", "order-wallet-proof", "user-session"); e != ErrForbidden {
 		t.Fatalf("expiry=%v", e)
 	}
 }
@@ -127,11 +149,48 @@ func TestBoundedWalletMandateReplayExpiryLimitAndBrokerProof(t *testing.T) {
 func TestMandateAndBrokerUnavailableFailClosed(t *testing.T) {
 	now := time.Now().UTC()
 	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
-	m := Mandate{Account: "ynx1test", StrategyHash: strings.Repeat("a", 64), Market: "YNXT-YUSD_TEST", MaxNotional: 1, MaxPosition: 1, MaxDailyLoss: 1, ExpiresAt: now.Add(time.Hour), WalletSignature: "proof", TestnetOnly: true}
-	if _, e := s.RegisterMandate(m); e != ErrUnavailable {
+	m := Mandate{Account: "ynx1test", StrategyHash: strings.Repeat("a", 64), Market: "YNXT-YUSD_TEST", Methods: []string{"read", "submit"}, CapitalMicro: 1, Leverage: 1, NonceDomain: "quant:" + strings.Repeat("a", 64), MaxNotional: 1, MaxPosition: 1, MaxDailyLoss: 1, ExpiresAt: now.Add(time.Hour), WalletSignature: "proof", TestnetOnly: true}
+	if _, e := s.RegisterMandate(m, "user-session"); e != ErrUnavailable {
 		t.Fatalf("verifier=%v", e)
 	}
-	if _, e := s.SubmitTestnet(strings.Repeat("b", 64), "buy", 1, 1, "unavailable-1"); e != ErrUnavailable {
+	if _, e := s.SubmitTestnet(strings.Repeat("b", 64), "buy", 1, 1, "unavailable-1", "order-proof", "user-session"); e != ErrUnavailable {
 		t.Fatalf("broker=%v", e)
+	}
+}
+
+func TestDifferentUsersCanSubmitWithoutGlobalNetworkSerialization(t *testing.T) {
+	now := time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC)
+	broker := &concurrentBroker{entered: make(chan struct{}, 2), release: make(chan struct{})}
+	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json"), Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: broker})
+	if err != nil {
+		t.Fatal(err)
+	}
+	strategy := strings.Repeat("a", 64)
+	m, err := s.RegisterMandate(Mandate{Account: "ynx1test", StrategyHash: strategy, Market: "YNXT-YUSD_TEST", Methods: []string{"read", "submit"}, CapitalMicro: 4_000_000, Leverage: 1, NonceDomain: "quant:" + strategy, MaxNotional: 4_000_000, MaxPosition: 4_000_000, MaxDailyLoss: 1_000_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}, "user-session")
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 2)
+	for _, key := range []string{"parallel-order-1", "parallel-order-2"} {
+		go func(key string) {
+			_, err := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, key, "order-wallet-proof", "user-session")
+			done <- err
+		}(key)
+	}
+	for range 2 {
+		select {
+		case <-broker.entered:
+		case <-time.After(time.Second):
+			t.Fatal("broker calls were serialized behind the service state lock")
+		}
+	}
+	close(broker.release)
+	for range 2 {
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if broker.count.Load() != 2 || len(s.Snapshot()["testnetOrders"].(map[string]TestnetOrder)) != 2 {
+		t.Fatal("concurrent submissions were not independently committed")
 	}
 }

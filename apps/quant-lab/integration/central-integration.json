@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "productId": "quant-lab",
   "walletAuthSourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
   "registryEntry": "wallet-registry-entry.json",
@@ -7,10 +7,15 @@
     "POST /v1/wallet/session-challenges",
     "POST /v1/wallet/sessions",
     "POST /v1/sessions/introspect",
-    "POST /v1/wallet/mandates/verify"
+    "POST /v1/wallet/mandates/verify",
+    "POST /v1/quant-adapter/account",
+    "POST /v1/quant-adapter/orders"
   ],
+  "localExchangeAdapterImplemented": true,
+  "perUserSessionEphemeral": true,
+  "independentOrderWalletSignature": true,
   "integratedCentral": false,
   "testnetExecutionEnabled": false,
   "liveFundsEnabled": false,
-  "reason": "Central registry, bounded mandate verifier and deployed route are not attested."
+  "reason": "Source adapter and UI are locally verified, but the central registry remains disabled and no public Quant deployment has been attested."
 }
