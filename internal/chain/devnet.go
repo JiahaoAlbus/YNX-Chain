@@ -3264,17 +3264,58 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err != nil {
 		return fmt.Errorf("seal devnet snapshot: %w", err)
 	}
-	payload, err := json.MarshalIndent(snapshot, "", "  ")
-	if err != nil {
-		return fmt.Errorf("encode devnet snapshot: %w", err)
-	}
-	if err := writeDurableSnapshot(path, payload); err != nil {
+	if err := writeDurableSnapshotJSON(path, snapshot); err != nil {
 		return err
 	}
 	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte("2\n")); err != nil {
 		return fmt.Errorf("persist devnet snapshot integrity marker: %w", err)
 	}
 	d.peerCheckpointAt = time.Now().UTC()
+	return nil
+}
+
+func writeDurableSnapshotJSON(path string, value any) (err error) {
+	tmpPath := path + ".tmp"
+	file, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return fmt.Errorf("open devnet snapshot temp file: %w", err)
+	}
+	defer func() {
+		if file != nil {
+			_ = file.Close()
+		}
+		if err != nil {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+	stream := jsonBodyWriter{target: file}
+	encoder := json.NewEncoder(&stream)
+	encoder.SetIndent("", "  ")
+	if err = encoder.Encode(value); err != nil {
+		return fmt.Errorf("encode devnet snapshot: %w", err)
+	}
+	if err = stream.Finish(); err != nil {
+		return fmt.Errorf("finish devnet snapshot: %w", err)
+	}
+	if err = file.Sync(); err != nil {
+		return fmt.Errorf("sync devnet snapshot: %w", err)
+	}
+	if err = file.Close(); err != nil {
+		file = nil
+		return fmt.Errorf("close devnet snapshot: %w", err)
+	}
+	file = nil
+	if err = os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("replace devnet snapshot: %w", err)
+	}
+	directory, openErr := os.Open(filepath.Dir(path))
+	if openErr != nil {
+		return fmt.Errorf("open devnet snapshot directory: %w", openErr)
+	}
+	defer directory.Close()
+	if err = directory.Sync(); err != nil {
+		return fmt.Errorf("sync devnet snapshot directory: %w", err)
+	}
 	return nil
 }
 
