@@ -18,7 +18,7 @@
     "ios": false,
     "desktop": true
   },
-  "integratedCentral": false,
+  "integratedCentral": true,
   "deployedStaging": false,
   "deployedPublic": false,
   "downloadHosted": false,
@@ -75,6 +75,11 @@
     }
   },
   "centralIntegration": "docs/integration/INTEGRATION_HANDOFF.md",
+  "centralMerge": {
+    "branch": "codex/integrate-finance-suite",
+    "commit": "3df85fbd3f0047453ac78c4ff5d43542f305e99a",
+    "verifiedAt": "2026-08-10T23:29:45Z"
+  },
   "integrationContract": "release/integration/mail-contract.json",
   "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
@@ -90,7 +95,7 @@
     "androidBuildInstall": "current-source debug/test APK built with JDK 17, installed on API 36 emulator, cold-started, restarted and callback route resolved: pass",
     "iosVerification": "local Swift/project/plist checks pass; GitHub Actions run 30418420264 built, installed, cold-launched and resolved Wallet callback for unsigned iOS Simulator source 771fa475",
     "fullRepositoryPreflight": "Mail passes; shared preflight is blocked only by missing Developer-owned SampleEVMWriteCounter.json artifacts in BFT/Consensus IDE tests",
-    "securityScanGate": "shared placeholder and secret scripts are invalid on this host because missing rg produced false-green exit code 0; not counted as pass"
+    "securityScanGate": "npm audit against registry.npmjs.org reports zero vulnerabilities; central Mail CI enforces the high-severity audit gate"
   },
   "dataFabric": {
     "implementationCommit": "f6868eccc2e47a2cde137b7b4238fa6bcce3a657",

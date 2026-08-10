@@ -9,7 +9,7 @@ test("central registry contains 26 unique, least-privilege products with Calenda
   const registry = parseCentralRegistryDocument(source);
   assert.equal(registry.products.length, 26);
   const approved = registry.products.filter((product) => product.enabled);
-  assert.deepEqual(approved.map((product) => product.productId), ["calendar", "developer", "dex", "exchange", "finance", "merchant-console", "quant", "seller-console", "shop", "social"]);
+  assert.deepEqual(approved.map((product) => product.productId), ["calendar", "developer", "dex", "exchange", "finance", "mail", "merchant-console", "quant", "seller-console", "shop", "social"]);
   assert.equal(approved.every((product) => product.reviewState === "approved"), true);
   assert.equal(registry.products.filter((product) => !product.enabled).every((product) => product.reviewState === "pending-review"), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
@@ -26,6 +26,12 @@ test("central registry contains 26 unique, least-privilege products with Calenda
   assert.deepEqual(calendar.callbacks, ["ynxcalendar://wallet-auth/callback"]);
   assert.deepEqual(calendar.scopes, ["calendar:account", "calendar:recover"]);
   assert.deepEqual(calendar.productDeviceAlgorithms, ["p256-sha256"]);
+  const mail = centralRegistrationByProduct(registry, "mail");
+  assert.equal(mail.productClientId, "ynx-mail-v1");
+  assert.equal(mail.bundleId, "com.ynxweb4.mail");
+  assert.deepEqual(mail.callbacks, ["ynxmail://wallet-auth/callback"]);
+  assert.deepEqual(mail.scopes, ["mail:account", "mail:recover"]);
+  assert.equal(mail.sessionDurationSeconds, 240);
   const developer = centralRegistrationByProduct(registry, "developer");
   assert.equal(developer.bundleId, "com.ynxweb4.developer.testnetpreview");
   assert.deepEqual(developer.callbacks, ["ynxdeveloper://wallet-auth/callback"]);

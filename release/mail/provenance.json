@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "classification": "local-unsigned-build-input-provenance",
   "product": "YNX Mail",
-  "sourceCommit": "efafbe810a821f13ad0ec17c2ff8a0f75e3fca9f",
-  "generatedAt": "2026-07-29T03:54:44.016Z",
+  "sourceCommit": "3df85fbd3f0047453ac78c4ff5d43542f305e99a",
+  "generatedAt": "2026-08-10T23:30:58.317Z",
   "inputs": {
     "apps/mail/package-lock.json": {
       "sha256": "05d324126bd410a6d153a623d7d745f0fa78471302027be68f40cf814668eaae",
@@ -12,7 +12,7 @@
   },
   "outputs": {
     "release/mail/bom.cdx.json": {
-      "sha256": "3367ecd4b09af9bd77fbf4a434164e63edd968ddc8ae8f46095fd2b9730ffc9f",
+      "sha256": "82adacb4e18fd1d121f2f2cb532334e385928775127cf2aa6d03cbbd47752c13",
       "bytes": 1577,
       "components": 5
     }

@@ -5,6 +5,7 @@
   "productName": "YNX Mail",
   "owner": "25-mail",
   "sourceCommit": "f6868eccc2e47a2cde137b7b4238fa6bcce3a657",
+  "centralMergeCommit": "3df85fbd3f0047453ac78c4ff5d43542f305e99a",
   "branch": "codex/final-mail",
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -20,7 +21,7 @@
     "recoveryScope": "mail:recover",
     "deviceCrypto": "p256-sha256",
     "verifierVersion": "wallet-auth-v1",
-    "status": "proposed-central-registration"
+    "status": "accepted-central-registration"
   },
   "api": {
     "basePath": "/v1",
@@ -149,13 +150,13 @@
     "rollback": "prior strict-decoder binaries reject current outbox fields; a versioned rollback export and exact old-binary drill are required before public deployment"
   },
   "dependencies": [
-    {"owner": "02-wallet-auth", "need": "registry entry and live verifier", "status": "blocked-central"},
+    {"owner": "02-wallet-auth", "need": "registry entry and live verifier", "status": "central-accepted-public-deployment-pending"},
     {"owner": "14-ai", "need": "product-session POST streaming route", "status": "blocked-central"},
     {"owner": "15-trust-center", "need": "abuse and appeal handoff", "status": "local-adapter-present"},
     {"owner": "20-cloud", "need": "large attachment object references and malware scan", "status": "not-integrated"},
     {"owner": "26-data-fabric", "need": "authenticated ingestion transport and central schema acceptance for canonical delivery and billing events", "status": "mail-owned-transactional-outbox-present"},
     {"owner": "28-website", "need": "public /mail route and metadata", "status": "not-integrated"},
-    {"owner": "29-integration", "need": "freeze contract and merge order", "status": "pending-acceptance"},
+    {"owner": "29-integration", "need": "freeze contract and merge order", "status": "central-integrated"},
     {"owner": "30-security-sre", "need": "deployment secrets, public webhook, scans, backup and release", "status": "pending-acceptance"}
   ],
   "externalInputs": [
@@ -170,7 +171,7 @@
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,

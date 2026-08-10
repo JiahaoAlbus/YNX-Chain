@@ -11,7 +11,7 @@
     "properties": [
       {
         "name": "ynx:sourceCommit",
-        "value": "efafbe810a821f13ad0ec17c2ff8a0f75e3fca9f"
+        "value": "3df85fbd3f0047453ac78c4ff5d43542f305e99a"
       },
       {
         "name": "ynx:scope",
@@ -29,8 +29,8 @@
     {
       "type": "library",
       "name": "golang.org/x/crypto",
-      "version": "v0.33.0",
-      "purl": "pkg:golang/golang.org/x/crypto@v0.33.0"
+      "version": "v0.50.0",
+      "purl": "pkg:golang/golang.org/x/crypto@v0.50.0"
     },
     {
       "type": "library",
