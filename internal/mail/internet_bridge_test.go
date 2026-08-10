@@ -92,6 +92,9 @@ func TestResendBridgeSubmissionWebhookReplayAndTruthStates(t *testing.T) {
 	if delivery.Channel != "internet_provider" || delivery.Provider != resendProviderName || delivery.ProviderMessageID != "provider-message-1" || delivery.State != DeliveryProviderAccepted || delivery.Attempt != 1 {
 		t.Fatalf("provider acceptance truth mismatch: %+v", delivery)
 	}
+	if !delivery.ProviderEventAt.IsZero() {
+		t.Fatalf("local API acceptance was incorrectly recorded as an authoritative provider event: %+v", delivery)
+	}
 	requestMu.Lock()
 	if idempotencyKey == "" || !strings.HasSuffix(idempotencyKey, "/1") {
 		t.Fatalf("missing stable first-attempt idempotency key: %q", idempotencyKey)

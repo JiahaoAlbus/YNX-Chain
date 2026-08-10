@@ -50,7 +50,7 @@ jobs:
           npm test
           npm run build
           npm run build:statectl
-          npm run check:ios
+          npm run check:ios:portable
       - name: Verify canonical Wallet contract
         working-directory: packages/wallet-auth
         run: |

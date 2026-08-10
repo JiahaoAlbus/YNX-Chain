@@ -13,7 +13,8 @@
     "proof:desktop": "sh tests/desktop-install-proof.sh",
     "build:android": "sh scripts/build-android.sh",
     "browser:proof": "node tests/browser-proof.cjs",
-    "check:ios": "swiftc -frontend -parse native/ios/YNXCalendar/YNXCalendarApp.swift && plutil -lint native/ios/YNXCalendar/Info.plist native/ios/YNXCalendar.xcodeproj/project.pbxproj",
+    "check:ios:portable": "swiftc -frontend -parse native/ios/YNXCalendar/YNXCalendarApp.swift",
+    "check:ios": "npm run check:ios:portable && plutil -lint native/ios/YNXCalendar/Info.plist native/ios/YNXCalendar.xcodeproj/project.pbxproj",
     "smoke": "sh tests/smoke.sh"
   },
   "ynx": {

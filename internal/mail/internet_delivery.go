@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func (s *Service) submitInternetDelivery(ctx context.Context, message Message, recipient string) (Message, error) {
@@ -76,7 +77,11 @@ func (s *Service) updateInternetSubmission(messageID, recipient string, submissi
 			delivery.Reason = ""
 			delivery.Provider = submission.Provider
 			delivery.ProviderMessageID = submission.ProviderMessageID
-			delivery.ProviderEventAt = acceptedAt
+			// API acceptance is observed by this service, not a provider event.
+			// Keep ProviderEventAt empty until a signed webhook arrives so coarse
+			// provider timestamps cannot make the first authoritative event appear
+			// older than the local HTTP response clock.
+			delivery.ProviderEventAt = time.Time{}
 			delivery.LastProviderEvent = "api.accepted"
 			delivery.UpdatedAt = now
 			recordProviderSubmission(st, submission.Provider, "", true, now)
