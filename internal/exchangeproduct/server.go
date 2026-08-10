@@ -55,6 +55,8 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/solvency", s.solvency)
 	s.mux.HandleFunc("GET /v1/solvency/liability-proof", s.liabilityProof)
 	s.mux.HandleFunc("GET /v1/liquidity/quote", s.liquidityQuote)
+	s.mux.HandleFunc("GET /v1/risk", s.risk)
+	s.mux.HandleFunc("GET /v1/risk/policy", s.riskPolicy)
 	s.mux.HandleFunc("GET /v1/streams/market/snapshot", s.marketStreamSnapshot)
 	s.mux.HandleFunc("GET /v1/streams/user/snapshot", s.userStreamSnapshot)
 	s.mux.HandleFunc("GET /v1/ws/market", s.marketWebSocket)
@@ -101,6 +103,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("POST /v1/ai/drafts", s.ai)
 	s.mux.HandleFunc("POST /v1/ai/drafts/{id}/actions", s.aiAction)
 	s.mux.HandleFunc("POST /v1/admin/test-credits", s.testCredits)
+	s.mux.HandleFunc("POST /v1/admin/risk/oracle/refresh", s.refreshRiskOracle)
 	return s
 }
 
@@ -265,6 +268,23 @@ func (s *Server) liabilityProof(w http.ResponseWriter, r *http.Request) {
 func (s *Server) liquidityQuote(w http.ResponseWriter, r *http.Request) {
 	quote, err := s.service.LiquidityQuote(liquidityRequestFromQuery(r.URL.Query()))
 	respond(w, quote, err, http.StatusOK)
+}
+
+func (s *Server) risk(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.RiskSnapshot())
+}
+
+func (s *Server) riskPolicy(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, PerpetualPolicy())
+}
+
+func (s *Server) refreshRiskOracle(w http.ResponseWriter, r *http.Request) {
+	if !s.service.Authorized(r.Header.Get("Authorization")) {
+		respond(w, nil, ErrUnauthorized, http.StatusOK)
+		return
+	}
+	snapshot, err := s.service.RefreshRiskOracle()
+	respond(w, snapshot, err, http.StatusOK)
 }
 func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "externalPrice": false, "trades": s.service.PublicTrades(1000)})

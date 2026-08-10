@@ -174,6 +174,7 @@ func New(cfg Config) (*Service, error) {
 	cfg.DEXGatewayURL = strings.TrimRight(strings.TrimSpace(cfg.DEXGatewayURL), "/")
 	cfg.DEXQuoteAssetID = strings.TrimSpace(cfg.DEXQuoteAssetID)
 	cfg.DEXQuoteAssetAttestationDigest = strings.ToLower(strings.TrimSpace(cfg.DEXQuoteAssetAttestationDigest))
+	cfg.OracleURL = strings.TrimRight(strings.TrimSpace(cfg.OracleURL), "/")
 	dexConfigured := cfg.DEXGatewayURL != "" || cfg.DEXQuoteAssetID != "" || cfg.DEXQuoteAssetAttestationDigest != ""
 	attestationBytes, attestationErr := hex.DecodeString(cfg.DEXQuoteAssetAttestationDigest)
 	if cfg.StatePath == "" || len(cfg.APIKey) < 16 || cfg.WalletCallback == "" || cfg.RequiredConfirmations < 1 || cfg.MakerFeeBPS < 0 || cfg.TakerFeeBPS < cfg.MakerFeeBPS || cfg.TakerFeeBPS > 1000 || cfg.WithdrawalFeeMicroYNXT < 0 || cfg.DEXGasMicro < 0 || cfg.DEXLatencyMillis < 0 || cfg.DEXFinalitySeconds < 0 || (dexConfigured && (cfg.DEXGatewayURL == "" || cfg.DEXQuoteAssetID == "" || attestationErr != nil || len(attestationBytes) != 32)) {

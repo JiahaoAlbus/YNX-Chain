@@ -54,6 +54,8 @@ type Config struct {
 	DEXGasMicro                    int64
 	DEXLatencyMillis               int64
 	DEXFinalitySeconds             int64
+	OracleURL                      string
+	Oracle                         RiskOracle
 }
 
 type GatewayAuthorizer interface {
