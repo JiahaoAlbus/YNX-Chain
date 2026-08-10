@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
+	if err := run(); err != nil && !errors.Is(err, context.Canceled) {
 		fmt.Fprintln(os.Stderr, "YNX Quant Desktop could not start:", err)
 		os.Exit(1)
 	}
