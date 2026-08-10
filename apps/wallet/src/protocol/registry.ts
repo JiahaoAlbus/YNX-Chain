@@ -17,7 +17,7 @@ const REVIEWED_ENTRIES = [
   },
   {
     schemaVersion: 2, productClientId: "ynx-exchange-v1", requestingProduct: "exchange",
-    bundleId: "com.ynxweb4.exchange", callbacks: ["ynxexchange://wallet-auth/callback"],
+    bundleId: "com.ynxweb4.exchange", callbacks: ["https://exchange.ynxweb4.com/wallet-auth/callback", "ynxexchange://wallet-auth/callback"],
     scopes: ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"], maxScopes: 5,
     productDeviceAlgorithms: ["p256-sha256"],
   },
