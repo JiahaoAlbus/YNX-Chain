@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 2,
+  "product": "YNX Bridge",
+  "releaseClass": "remote-testnet-coordinator-and-unsigned-artifact-candidate",
+  "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+  "latestVerifiedSourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+  "sourceCommitRequiredBeforeRelease": false,
+  "runtimeSchemaVersion": 7,
+  "stateMachineVersion": "ynx.bridge.lifecycle.v1",
+  "sdkVersion": "0.3.1",
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": true,
+  "integratedCentral": true,
+  "deployedStaging": true,
+  "deployedPublic": false,
+  "downloadHosted": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "externalSubmissionEnabled": false,
+  "officialStablecoinRouteAvailable": false,
+  "providerConnected": false,
+  "contractsVerified": false,
+  "quoteRuntime": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "providerQuoteConnected": false,
+    "executable": false
+  },
+  "walletReviewRuntime": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "appGatewayPatchImplementedLocal": true,
+    "integratedCentral": true,
+    "walletSignatureVerified": false,
+    "sourceSubmissionEnabled": false
+  },
+  "providerRuntime": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "provider": "Circle CCTP V2",
+    "officialSandboxAPIConnected": true,
+    "providerAPIConnectedRemote": true,
+    "deployedStaging": true,
+    "publicReadObserved": true,
+    "connectivityProbeIntervalSeconds": 60,
+    "connectivityStaleAfterSeconds": 120,
+    "periodicRefreshVerified": true,
+    "outageRecoveryDrillVerified": true,
+    "outageFailsClosed": true,
+    "automaticRecoveryVerified": true,
+    "incidentPersistenceDeployed": true,
+    "incidentCountObserved": 8,
+    "providerOutageMetricAvailable": true,
+    "providerIncidentMetricAvailable": true,
+    "monitorDefinitionsImplementedLocal": true,
+    "monitorDeliveryDeployed": false,
+    "appGatewayWalletCompatibilityIntegrated": true,
+    "appGatewayWalletFailureIsolationConfigured": true,
+    "remoteSupportedDomainProbe": "ethereum-sepolia-domain-0-to-base-sepolia-domain-6",
+    "routeApprovalComplete": false,
+    "ynxRouteSupported": false,
+    "ynxRouteExecutable": false,
+    "externalSubmissionEnabled": false
+  },
+  "testnetDeployment": {
+    "evidence": "docs/bridge/testnet-deployment-evidence.json",
+    "release": "ynx-bridge-857371f9b194",
+    "coordinatorInstalled": true,
+    "appGatewayIntegrated": true,
+    "deployedStaging": true,
+    "deployedPublic": false,
+    "executableRouteAvailable": false,
+    "externalSubmissionEnabled": false
+  },
+  "publicReadDeployment": {
+    "evidence": "docs/bridge/public-read-evidence.json",
+    "baseUrl": "https://rest.ynxweb4.com/app/bridge",
+    "deployedPublic": true,
+    "tlsVerified": true,
+    "mutationRoutesExposed": false
+  },
+  "publicTestnetDepositVerified": false,
+  "publicTestnetWithdrawalVerified": false,
+  "proofVerification": {
+    "implementedType": "threshold-relayer-attestation",
+    "testedLocal": true,
+    "lightClientProofVerified": false,
+    "canonicalBridgeClaim": false
+  },
+  "artifacts": [
+    {
+      "type": "github-prerelease",
+      "tag": "ynx-bridge-v0.3.1-testnet-candidate",
+      "releaseId": "RE_kwDOTJguhM4Vmcyk",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynx-bridge-v0.3.1-testnet-candidate",
+      "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+      "signingClass": "unsigned-testnet-candidate",
+      "productionSigned": false,
+      "assetCount": 10,
+      "downloadedAndVerified": true,
+      "sdkInstalledAndImported": true,
+      "binaryColdStartVerified": true
+    },
+    {
+      "type": "linux-amd64-binary",
+      "name": "ynx-bridged-40b99be92a9f-linux-amd64",
+      "bytes": 7274644,
+      "sha256": "0836bc034dfd5b8d3e6e58947ab7e42751d84bc6a2cee26df654aead55ce34b4"
+    },
+    {
+      "type": "darwin-arm64-binary",
+      "name": "ynx-bridged-40b99be92a9f-darwin-arm64",
+      "bytes": 6917570,
+      "sha256": "2e0756979ae693292dd2e1eb281253f866baad53e204b165817f083195e0b164"
+    },
+    {
+      "type": "javascript-sdk",
+      "name": "ynx-bridge-sdk-0.3.1.tgz",
+      "bytes": 7659,
+      "sha256": "dbbdd2a27a2131b43800d732791ec832a6daf0ae2fb584cddd7efff51581f47c"
+    }
+  ],
+  "dependencyAudit": {
+    "source": "https://registry.npmjs.org/-/npm/v1/security/advisories/bulk",
+    "auditedPackages": 86,
+    "advisoryCount": 0,
+    "observedAt": "2026-07-29T02:24:08Z"
+  },
+  "ciVerification": {
+    "workflow": "bridge",
+    "runId": 30419513969,
+    "jobId": 90473200772,
+    "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+    "conclusion": "success",
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30419513969",
+    "verificationArtifact": {
+      "id": 8711399511,
+      "name": "ynx-bridge-verification-40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+      "bytes": 6024857,
+      "digest": "sha256:bb1185235fd22cdfae5b98efdb723b1b70f48f32aea7c4dd0d42fae6c506e54f",
+      "expiresAt": "2026-08-28T03:26:24Z",
+      "releaseArtifact": false,
+      "archiveContentsIndependentlyVerified": false,
+      "archiveVerificationBlocker": "The Actions artifact is expiring verification evidence and has not been promoted to an immutable release package."
+    }
+  },
+  "publicUrls": [
+    {
+      "type": "testnet-read-only",
+      "url": "https://rest.ynxweb4.com/app/bridge",
+      "evidence": "docs/bridge/public-read-evidence.json"
+    }
+  ],
+  "website": {
+    "canonicalRoute": "https://ynxweb4.com/bridge",
+    "httpStatusObserved": 200,
+    "observedAt": "2026-07-29T02:35:33Z",
+    "productSpecificMetadataVerified": false,
+    "handoff": "docs/bridge/website-handoff.json"
+  },
+  "transactionEvidence": [],
+  "localEvidence": [
+    {
+      "type": "source-commit",
+      "value": "857371f9b19422861c0675ca6cbd89a7750744ad"
+    },
+    {
+      "type": "latest-verified-source-commit",
+      "value": "96a64792a6343ec379763bc7e382c1d0a4a75f3d"
+    },
+    {
+      "type": "remote-testnet-evidence",
+      "value": "docs/bridge/testnet-deployment-evidence.json"
+    },
+    {
+      "type": "public-read-evidence",
+      "value": "docs/bridge/public-read-evidence.json"
+    },
+    {
+      "type": "test-command",
+      "value": "go test -race ./internal/bridgegateway ./cmd/ynx-bridged ./internal/appgateway ./cmd/ynx-app-gatewayd"
+    }
+  ],
+  "knownAutonomousGaps": [
+    "redeploy and re-probe the latest verified source commit",
+    "obtain central consumer acceptance receipts",
+    "complete product-specific Website canonical and structured metadata"
+  ],
+  "remainingReleaseInputs": [
+    "approved Provider or proof-based route",
+    "verified source and destination contracts",
+    "secure signer path and threshold ceremony",
+    "funded Testnet assets and gas",
+    "independent security review",
+    "governance authority for public mutation and asset movement"
+  ]
+}

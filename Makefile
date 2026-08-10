@@ -111,6 +111,13 @@ public-ingress-path-check:
 deploy-testnet:
 	bash ./scripts/deploy/deploy-testnet.sh
 
+.PHONY: deploy-bridge-testnet deploy-bridge-testnet-dry-run
+deploy-bridge-testnet:
+	bash ./scripts/deploy/deploy-bridge-testnet.sh
+
+deploy-bridge-testnet-dry-run:
+	YNX_BRIDGE_TESTNET_DRY_RUN=1 bash ./scripts/deploy/deploy-bridge-testnet.sh
+
 deploy-authoritative-monitoring:
 	bash ./scripts/deploy/deploy-authoritative-monitoring.sh
 
@@ -423,6 +430,47 @@ resource-api-check:
 
 bridge-api-check:
 	bash ./scripts/verify/bridge-api-check.sh
+
+.PHONY: bridge-integration-check bridge-supply-chain-check bridge-release-candidate-check bridge-observability-check bridge-dependency-audit-check bridge-sdk-check bridge-route-adapter-check bridge-provider-check bridge-data-lifecycle-check bridge-capacity-check bridge-migration-check bridge-restore-check bridge-evidence-check
+bridge-integration-check:
+	node ./scripts/verify/bridge-integration-check.mjs
+
+bridge-supply-chain-check:
+	bash ./scripts/verify/bridge-supply-chain-check.sh
+
+bridge-release-candidate-check:
+	node ./scripts/package/bridge-release-candidate.mjs --output tmp/bridge-release-candidate
+	node ./scripts/verify/bridge-release-candidate.mjs --candidate tmp/bridge-release-candidate --source-root .
+
+bridge-observability-check:
+	node ./scripts/verify/bridge-observability-check.mjs
+
+bridge-dependency-audit-check:
+	node ./scripts/verify/bridge-dependency-audit.mjs
+
+bridge-sdk-check:
+	bash ./scripts/verify/bridge-sdk-check.sh
+
+bridge-route-adapter-check:
+	node ./scripts/verify/bridge-route-adapter-check.mjs
+
+bridge-provider-check:
+	bash ./scripts/verify/bridge-provider-check.sh
+
+bridge-data-lifecycle-check:
+	bash ./scripts/verify/bridge-data-lifecycle-check.sh
+
+bridge-capacity-check:
+	bash ./scripts/verify/bridge-capacity-check.sh
+
+bridge-migration-check:
+	bash ./scripts/verify/bridge-migration-check.sh
+
+bridge-restore-check:
+	bash ./scripts/verify/bridge-restore-check.sh
+
+bridge-evidence-check:
+	node ./scripts/verify/bridge-evidence-check.mjs
 
 stablecoin-issuer-check:
 	bash ./scripts/verify/stablecoin-issuer-check.sh

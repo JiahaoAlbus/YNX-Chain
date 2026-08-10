@@ -32,6 +32,7 @@ type Health struct {
 	Service         string                    `json:"service"`
 	BrowserBoundary string                    `json:"browserBoundary"`
 	NativeBoundary  string                    `json:"nativeBoundary"`
+	NativeProducts  []string                  `json:"nativeProducts"`
 	WalletBoundary  string                    `json:"walletBoundary"`
 	OwnershipProof  string                    `json:"ownershipProof"`
 	SessionStorage  string                    `json:"sessionStorage"`
@@ -78,7 +79,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	}
 	upstreams := map[string]upstreamHealth{}
 	ok := true
-	for _, service := range []string{"chat", "square", "pay", "social", "wallet"} {
+	for _, service := range []string{"chat", "square", "pay", "social", "bridge", "wallet"} {
 		base, _, _, _ := s.gateway.upstream(service)
 		if base == nil {
 			ok = false
@@ -111,7 +112,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	if s.gateway.cfg.RemoteDeployed {
 		status = "remote-first-party-app-gateway"
 	}
-	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "exact-https-origin", NativeBoundary: nativeMobileClient, WalletBoundary: "p256-product-session-proof", OwnershipProof: "ynx1-secp256k1-plus-ed25519-device", SessionStorage: "integrity-checked-atomic-mode-0600-token-hashes-only", ActiveSessions: s.gateway.ActiveSessionCount(), RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
+	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "exact-https-origin", NativeBoundary: "explicit-product-client-bindings", NativeProducts: []string{nativeMobileClient, nativeSocialClient, nativeWalletClient}, WalletBoundary: "p256-product-session-proof", OwnershipProof: "ynx1-secp256k1-plus-ed25519-device", SessionStorage: "integrity-checked-atomic-mode-0600-token-hashes-only", ActiveSessions: s.gateway.ActiveSessionCount(), RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
 	code := http.StatusOK
 	if !ok {
 		code = http.StatusServiceUnavailable
@@ -225,6 +226,10 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "app route not found")
 		return
 	}
+	if protected && service == "bridge" && upstreamPath == "/bridge/wallet-reviews" && !s.gateway.WalletReviewBindingAllowed(binding) {
+		writeError(w, http.StatusNotFound, "Wallet review route not available to this product")
+		return
+	}
 	var body []byte
 	var err error
 	if r.Body != nil {
@@ -268,7 +273,7 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	upstreamURL := *base
-	upstreamURL.Path = upstreamPath
+	upstreamURL.Path = appUpstreamPath(service, upstreamPath)
 	upstreamURL.RawPath = ""
 	upstreamURL.RawQuery = r.URL.RawQuery
 	request, err := http.NewRequestWithContext(r.Context(), r.Method, upstreamURL.String(), bytes.NewReader(body))
@@ -283,6 +288,14 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	}
 	request.Header.Set(keyHeader, key)
 	request.Header.Set("X-YNX-App-Gateway", "1")
+	if protected && service == "bridge" {
+		request.Header.Set("X-YNX-App-Session-ID", authenticatedSession.ID)
+		request.Header.Set("X-YNX-App-Session-Account", authenticatedSession.Account)
+		request.Header.Set("X-YNX-App-Session-Device", authenticatedSession.DeviceID)
+		request.Header.Set("X-YNX-App-Session-Expires-At", authenticatedSession.ExpiresAt.UTC().Format(time.RFC3339Nano))
+		request.Header.Set("X-YNX-App-Product", productForBinding(binding))
+		request.Header.Set("X-YNX-App-Scope", bridgeScope(r.Method, upstreamPath))
+	}
 	response, err := s.client.Do(request)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "upstream service unavailable")
@@ -300,6 +313,13 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(response.StatusCode)
 	_, _ = w.Write(responseBody)
+}
+
+func appUpstreamPath(service, path string) string {
+	if service == "bridge" && (path == "/bridge/health" || path == "/bridge/version") {
+		return strings.TrimPrefix(path, "/bridge")
+	}
+	return path
 }
 
 func (s *Server) session(w http.ResponseWriter, r *http.Request, binding string) {
@@ -400,7 +420,7 @@ func resolveAppPath(escapedPath string) (string, string, bool) {
 		return "", "", false
 	}
 	pieces := strings.SplitN(strings.TrimPrefix(escapedPath, "/app/"), "/", 2)
-	if len(pieces) != 2 || (pieces[0] != "chat" && pieces[0] != "square" && pieces[0] != "pay" && pieces[0] != "social") {
+	if len(pieces) != 2 || (pieces[0] != "chat" && pieces[0] != "square" && pieces[0] != "pay" && pieces[0] != "social" && pieces[0] != "bridge") {
 		return "", "", false
 	}
 	return pieces[0], "/" + pieces[0] + "/" + pieces[1], true

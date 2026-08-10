@@ -218,6 +218,52 @@ func TestNativeMobileOwnershipSessionIsBoundSeparatelyFromBrowserOrigin(t *testi
 	}
 }
 
+func TestNativeWalletSessionForwardsBoundBridgeReviewContextOnly(t *testing.T) {
+	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
+	_, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
+	bridge, bridgeServer := startUpstream(t, "bridge", "X-YNX-Bridge-Gateway-Key", testBridgeKey)
+	now := time.Date(2026, 7, 26, 12, 0, 0, 0, time.UTC)
+	cfg := testConfig(t, chatServer.URL, squareServer.URL, 100)
+	cfg.BridgeURL = bridgeServer.URL
+	cfg.Now = func() time.Time { return now }
+	gateway, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(gateway).Handler())
+	defer server.Close()
+	fixture := newOwnershipFixture(t, 0x91, 0x92, "wallet-device-primary")
+
+	challenge := createNativeHTTPChallengeForClient(t, server.URL, fixture, nativeWalletClient, http.StatusCreated)
+	if challenge.SignDoc.Origin != nativeWalletBinding {
+		t.Fatalf("Wallet challenge binding %q", challenge.SignDoc.Origin)
+	}
+	session := verifyNativeHTTPChallengeForClient(t, server.URL, challenge, fixture, nativeWalletClient, http.StatusCreated)
+	quoteRequest := map[string]any{
+		"sourceChain": "ethereum-sepolia", "sourceAsset": "sepolia-usdc",
+		"destinationChain": "ynx_6423-1", "destinationAsset": "ynx-usdc", "amount": "100",
+		"sender": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "recipient": fixture.account,
+	}
+	response := protectedNativeRequestForClient(t, server.URL, http.MethodPost, "/app/bridge/quotes", quoteRequest, fixture.deviceID, session.Token, nativeWalletClient)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("Wallet Bridge quote status=%d body=%s", response.Code, response.Body.String())
+	}
+	requests := bridge.snapshot()
+	if len(requests) != 1 {
+		t.Fatalf("Wallet Bridge requests: %+v", requests)
+	}
+	got := requests[0]
+	if got.ServiceKey != testBridgeKey || got.Injected != "1" || got.DeviceID != fixture.deviceID || got.SessionID == "" || got.Account != fixture.account || got.Product != "ynx-wallet" || got.Scope != "bridge:quote:read" || got.ExpiresAt != session.ExpiresAt.UTC().Format(time.RFC3339Nano) {
+		t.Fatalf("Wallet Bridge session forwarding is invalid: %+v", got)
+	}
+	if blocked := protectedNativeRequestForClient(t, server.URL, http.MethodPost, "/app/square/posts", map[string]any{}, fixture.deviceID, session.Token, nativeWalletClient); blocked.Code != http.StatusNotFound {
+		t.Fatalf("Wallet reached non-Bridge product route: %d %s", blocked.Code, blocked.Body.String())
+	}
+	if wrongDevice := protectedNativeRequestForClient(t, server.URL, http.MethodPost, "/app/bridge/wallet-reviews", map[string]any{}, "other-device", session.Token, nativeWalletClient); wrongDevice.Code != http.StatusUnauthorized {
+		t.Fatalf("Wallet session replayed on another device: %d", wrongDevice.Code)
+	}
+}
+
 func TestOwnershipStateTamperFailsClosed(t *testing.T) {
 	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
 	_, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
@@ -348,10 +394,14 @@ func protectedRequest(t *testing.T, baseURL, method, path string, value any, dev
 }
 
 func createNativeHTTPChallenge(t *testing.T, baseURL string, fixture ownershipFixture, want int) ChallengeResponse {
+	return createNativeHTTPChallengeForClient(t, baseURL, fixture, nativeMobileClient, want)
+}
+
+func createNativeHTTPChallengeForClient(t *testing.T, baseURL string, fixture ownershipFixture, client string, want int) ChallengeResponse {
 	t.Helper()
 	body, _ := json.Marshal(ChallengeRequest{Account: fixture.account, DeviceID: fixture.deviceID, DeviceSigningPublicKey: fixture.devicePublic})
 	request := mustRequest(t, http.MethodPost, baseURL+"/app/session/challenges", body, "")
-	request.Header.Set("X-YNX-Client", nativeMobileClient)
+	request.Header.Set("X-YNX-Client", client)
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -370,6 +420,10 @@ func createNativeHTTPChallenge(t *testing.T, baseURL string, fixture ownershipFi
 }
 
 func verifyNativeHTTPChallenge(t *testing.T, baseURL string, challenge ChallengeResponse, fixture ownershipFixture, want int) SessionResponse {
+	return verifyNativeHTTPChallengeForClient(t, baseURL, challenge, fixture, nativeMobileClient, want)
+}
+
+func verifyNativeHTTPChallengeForClient(t *testing.T, baseURL string, challenge ChallengeResponse, fixture ownershipFixture, client string, want int) SessionResponse {
 	t.Helper()
 	signBytes, err := base64.RawStdEncoding.DecodeString(challenge.SignBytes)
 	if err != nil {
@@ -382,7 +436,7 @@ func verifyNativeHTTPChallenge(t *testing.T, baseURL string, challenge Challenge
 		DeviceSignature:  nativewallet.Sign(fixture.devicePrivate, signBytes),
 	})
 	request := mustRequest(t, http.MethodPost, baseURL+"/app/session/challenges/"+challenge.ChallengeID+"/verify", body, "")
-	request.Header.Set("X-YNX-Client", nativeMobileClient)
+	request.Header.Set("X-YNX-Client", client)
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)
@@ -401,13 +455,17 @@ func verifyNativeHTTPChallenge(t *testing.T, baseURL string, challenge Challenge
 }
 
 func protectedNativeRequest(t *testing.T, baseURL, method, path string, value any, deviceID, token string) *httptest.ResponseRecorder {
+	return protectedNativeRequestForClient(t, baseURL, method, path, value, deviceID, token, nativeMobileClient)
+}
+
+func protectedNativeRequestForClient(t *testing.T, baseURL, method, path string, value any, deviceID, token, client string) *httptest.ResponseRecorder {
 	t.Helper()
 	var body []byte
 	if value != nil {
 		body, _ = json.Marshal(value)
 	}
 	request := mustProtectedRequest(t, method, baseURL+path, body, deviceID, token, "")
-	request.Header.Set("X-YNX-Client", nativeMobileClient)
+	request.Header.Set("X-YNX-Client", client)
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal(err)

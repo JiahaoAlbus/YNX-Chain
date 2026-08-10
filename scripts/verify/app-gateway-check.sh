@@ -22,6 +22,7 @@ chat_key="chat-app-gateway-check-key"
 square_key="square-app-gateway-check-key"
 pay_key="pay-app-gateway-check-key"
 social_key="social-app-gateway-check-key"
+bridge_key="bridge-app-gateway-check-key"
 common_gateway_env=(
   YNX_APP_GATEWAY_CHAT_URL=http://127.0.0.1:17435
   YNX_APP_GATEWAY_CHAT_API_KEY="$chat_key"
@@ -31,6 +32,8 @@ common_gateway_env=(
   YNX_APP_GATEWAY_PAY_API_KEY="$pay_key"
   YNX_APP_GATEWAY_SOCIAL_URL=http://127.0.0.1:17438
   YNX_APP_GATEWAY_SOCIAL_API_KEY="$social_key"
+  YNX_APP_GATEWAY_BRIDGE_URL=http://127.0.0.1:17433
+  YNX_APP_GATEWAY_BRIDGE_API_KEY="$bridge_key"
   YNX_APP_GATEWAY_WALLET_URL=http://127.0.0.1:17439
   YNX_APP_GATEWAY_ALLOWED_ORIGINS=https://www.ynxweb4.com,https://ynxweb4.com
   YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
@@ -52,6 +55,8 @@ node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","
 pids+=("$!")
 node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({ok:true,service:"ynx-social",remoteDeployed:false,truthfulStatus:"local-test"}))}).listen(17438,"127.0.0.1")' >"$tmp/social.log" 2>&1 &
 pids+=("$!")
+node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({ok:true,service:"ynx-bridged",remoteDeployed:false,truthfulStatus:"local-test"}))}).listen(17433,"127.0.0.1")' >"$tmp/bridge.log" 2>&1 &
+pids+=("$!")
 mkdir -p "$tmp/wallet-gateway"
 chmod 0700 "$tmp/wallet-gateway"
 env YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1 YNX_WALLET_GATEWAY_HTTP_PORT=17439 YNX_WALLET_GATEWAY_STATE_PATH="$tmp/wallet-gateway/state.json" node packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs >"$tmp/wallet.log" 2>&1 &
@@ -67,7 +72,7 @@ done
 node - "$tmp/health.json" <<'NODE'
 const fs = require("fs");
 const health = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-if (!health.ok || health.service !== "ynx-app-gatewayd" || health.remoteDeployed !== false || health.browserBoundary !== "exact-https-origin" || health.nativeBoundary !== "ynx-mobile-v1" || health.ownershipProof !== "ynx1-secp256k1-plus-ed25519-device" || !health.sessionStorage?.includes("token-hashes-only") || health.truthfulStatus !== "local-first-party-app-gateway-not-remote-deployed" || !health.upstreams?.chat?.ok || !health.upstreams?.square?.ok || !health.upstreams?.pay?.ok) {
+if (!health.ok || health.service !== "ynx-app-gatewayd" || health.remoteDeployed !== false || health.browserBoundary !== "exact-https-origin" || health.nativeBoundary !== "explicit-product-client-bindings" || health.nativeProducts?.join(",") !== "ynx-mobile-v1,ynx-social-v1,ynx-wallet-v1" || health.ownershipProof !== "ynx1-secp256k1-plus-ed25519-device" || !health.sessionStorage?.includes("token-hashes-only") || health.truthfulStatus !== "local-first-party-app-gateway-not-remote-deployed" || !health.upstreams?.chat?.ok || !health.upstreams?.square?.ok || !health.upstreams?.pay?.ok || !health.upstreams?.social?.ok || !health.upstreams?.bridge?.ok || !health.upstreams?.wallet?.ok) {
   throw new Error(`bad app gateway health: ${JSON.stringify(health)}`);
 }
 NODE
@@ -92,8 +97,9 @@ status="$(curl -sS -H 'Origin: https://www.ynxweb4.com' -H 'X-YNX-Square-Key: at
 ! grep -R -F "$chat_key" "$tmp" --exclude='ynx-*' >/dev/null
 ! grep -R -F "$square_key" "$tmp" --exclude='ynx-*' >/dev/null
 ! grep -R -F "$pay_key" "$tmp" --exclude='ynx-*' >/dev/null
+! grep -R -F "$bridge_key" "$tmp" --exclude='ynx-*' >/dev/null
 
 go run ./scripts/verify/app-gateway-session-smoke.go -url http://127.0.0.1:17437 -origin https://www.ynxweb4.com -signed-post
 [[ "$(stat -f '%Lp' "$tmp/app-gateway/state.json" 2>/dev/null || stat -c '%a' "$tmp/app-gateway/state.json")" == "600" ]] || { echo "App Gateway state mode is not 0600"; exit 1; }
 
-echo "app-gateway-check passed: ynx1 ownership proof, browser/native binding separation, persistent hashed sessions, replay/revocation controls, protected Chat/Square profile/notification/Pay routes, public Square profile/feed and Pay reads, exact origins, CORS, bounds, and direct-service denial"
+echo "app-gateway-check passed: ynx1 ownership proof, browser/native product binding separation, persistent hashed sessions, replay/revocation controls, protected Chat/Square/Pay/Bridge routes, public Square/Pay/Bridge reads, exact origins, CORS, bounds, and direct-service denial"
