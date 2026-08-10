@@ -95,7 +95,6 @@ function trackedEngineeringFiles(repoRoot) {
   const exactFiles = new Set([
     "go.mod",
     "go.sum",
-    "package.json",
     "package-lock.json",
     "configs/data-fabric.env.example",
     "configs/data-fabric-event-keys.example.json",
@@ -145,6 +144,32 @@ export function findExpectedSourceCommit(repoRoot) {
       stdio: "ignore",
       maxBuffer: 16 * 1024 * 1024,
     });
+
+    // The root package is shared by independently integrated products. New
+    // product scripts do not alter the frozen Data Fabric toolchain, while a
+    // dependency or required build-script change does. Compare that relevant
+    // subset semantically instead of binding to unrelated root scripts.
+    const currentPackage = readJSON(repoRoot, "package.json");
+    const frozenPackage = JSON.parse(execFileSync("git", ["show", `${commit}:package.json`], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      maxBuffer: 4 * 1024 * 1024,
+    }));
+    const packageContract = (value) => ({
+      packageManager: value.packageManager ?? null,
+      engines: value.engines ?? null,
+      dependencies: value.dependencies ?? {},
+      devDependencies: value.devDependencies ?? {},
+      optionalDependencies: value.optionalDependencies ?? {},
+      peerDependencies: value.peerDependencies ?? {},
+      scripts: {
+        "hardhat:build": value.scripts?.["hardhat:build"] ?? null,
+        "contracts:selectors": value.scripts?.["contracts:selectors"] ?? null,
+      },
+    });
+    if (!sameJSON(packageContract(currentPackage), packageContract(frozenPackage))) {
+      throw new Error("shared package contract changed");
+    }
   } catch {
     fail("engineering source differs from the declared frozen sourceCommit");
   }
