@@ -1,6 +1,7 @@
 package exchangeproduct
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -268,6 +269,33 @@ func legacyStateIntegrityV1(s legacyPersistentStateV1) (string, error) {
 	return hex.EncodeToString(h[:]), nil
 }
 
+// legacyRawIntegrity verifies the exact serialized shape emitted by a previous
+// schema implementation. Historical nested record types can gain fields over
+// time, so re-marshalling them through current Go structs is not a byte-stable
+// compatibility check. The original writer always stored the top-level
+// integrityHash last; compacting the original JSON after blanking only that
+// final field recreates the exact byte sequence that was hashed.
+func legacyRawIntegrity(raw []byte, stored string) (string, error) {
+	if len(stored) != 64 {
+		return "", errors.New("legacy integrity hash invalid")
+	}
+	marker := []byte(`"integrityHash": "` + stored + `"`)
+	index := bytes.LastIndex(raw, marker)
+	if index < 0 {
+		return "", errors.New("legacy integrity field unavailable")
+	}
+	rewritten := make([]byte, 0, len(raw)-len(stored))
+	rewritten = append(rewritten, raw[:index]...)
+	rewritten = append(rewritten, []byte(`"integrityHash": ""`)...)
+	rewritten = append(rewritten, raw[index+len(marker):]...)
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, rewritten); err != nil {
+		return "", errors.New("legacy state JSON invalid")
+	}
+	h := sha256.Sum256(compact.Bytes())
+	return hex.EncodeToString(h[:]), nil
+}
+
 func legacyStateV8(s persistentState) legacyPersistentStateV8 {
 	return legacyPersistentStateV8{
 		SchemaVersion:     s.SchemaVersion,
@@ -336,6 +364,9 @@ func loadState(path string) (persistentState, bool, error) {
 				return persistentState{}, false, errors.New("exchange state integrity verification failed")
 			}
 			legacyExpected, legacyErr := legacyStateIntegrityV1(legacy)
+			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
+				legacyExpected, legacyErr = legacyRawIntegrity(b, legacy.IntegrityHash)
+			}
 			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
 				return persistentState{}, false, errors.New("exchange state integrity verification failed")
 			}
