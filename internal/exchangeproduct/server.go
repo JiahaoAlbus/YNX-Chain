@@ -110,6 +110,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("POST /v1/admin/test-credits", s.testCredits)
 	s.mux.HandleFunc("POST /v1/admin/risk/oracle/refresh", s.refreshRiskOracle)
 	s.mux.HandleFunc("POST /v1/admin/perpetual/funding/settle", s.settlePerpetualFunding)
+	s.mux.HandleFunc("POST /v1/admin/perpetual/liquidations/run", s.runPerpetualLiquidations)
 	return s
 }
 
@@ -1041,6 +1042,14 @@ func (s *Server) settlePerpetualFunding(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	v, err := s.service.SettlePerpetualFunding()
+	respond(w, v, err, http.StatusOK)
+}
+func (s *Server) runPerpetualLiquidations(w http.ResponseWriter, r *http.Request) {
+	if !s.service.Authorized(r.Header.Get("Authorization")) {
+		respond(w, nil, ErrUnauthorized, http.StatusOK)
+		return
+	}
+	v, err := s.service.RunPerpetualLiquidations()
 	respond(w, v, err, http.StatusOK)
 }
 func (s *Server) auth(w http.ResponseWriter, r *http.Request, scope string) (WalletSession, bool) {
