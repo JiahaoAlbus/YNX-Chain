@@ -8,7 +8,7 @@
   "contractOwner": "08-quant-lab",
   "contractState": "owner-proposal-integration-pending",
   "integrationFreezeOwner": "29-integration",
-  "sourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
+  "sourceCommit": "909031e510272e9f92a11d9e9dc8553a1934692f",
   "evidenceCommit": "3bff013d86ed5682950a38b114884ce6f17c423d",
   "generatedAt": "2026-07-29T03:02:39Z",
   "ownerContractSnapshot": "apps/quant-lab/integration/owner-contract-snapshot.json",
@@ -328,8 +328,8 @@
     "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
-    "deployedPublic": false,
-    "downloadHosted": false,
+    "deployedPublic": true,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   },
@@ -340,9 +340,9 @@
       "safeSubmission": "authorized release operator/HSM or platform signing workflow; never chat"
     },
     {
-      "input": "public deployment and DNS authority",
+      "input": "production desktop signing and platform distribution authority",
       "requiredNow": false,
-      "safeSubmission": "shared release/deployment control plane"
+      "safeSubmission": "authorized release signing and store workflow; direct Testnet candidate downloads are already hosted"
     },
     {
       "input": "real provider credentials if an accepted dependency requires them",
