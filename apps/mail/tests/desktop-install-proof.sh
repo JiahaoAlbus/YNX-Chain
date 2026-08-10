@@ -9,6 +9,8 @@ INSTALL=$(mktemp -d "${TMPDIR:-/tmp}/ynx-mail-installed.XXXXXX")
 DATA="$INSTALL/data"
 LOG="$INSTALL/mail.log"
 EXPECTED=$(git -C "$ROOT" rev-parse HEAD)
+VERSION=$(node -p "require('$ROOT/apps/mail/package.json').version + '-testnet-preview-source'")
+EXPECTED_RELEASE="ynx-mail-$VERSION"
 cleanup() {
   status=$?
   trap - EXIT INT TERM
@@ -33,7 +35,7 @@ launch() {
   done
   END=$(perl -MTime::HiRes=time -e 'print time')
   ELAPSED=$(awk -v start="$START" -v end="$END" 'BEGIN { printf "%.3f", end - start }')
-  printf '%s' "$HEALTH" | jq -e --arg commit "$EXPECTED" '.ok == true and .build.commit == $commit and .internet_delivery == false' >/dev/null
+  printf '%s' "$HEALTH" | jq -e --arg commit "$EXPECTED" --arg release "$EXPECTED_RELEASE" '.ok == true and .build.commit == $commit and .build.release == $release and .internet_delivery == false' >/dev/null
   curl -fsS "http://127.0.0.1:$PORT/" | grep -q 'YNX Mail'
 }
 
@@ -51,14 +53,15 @@ PID=
 
 SHA=$(shasum -a 256 "$ARCHIVE" | awk '{print $1}')
 BYTES=$(stat -f %z "$ARCHIVE" 2>/dev/null || stat -c %s "$ARCHIVE")
-EVIDENCE="$OUT/ynx-mail-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json"
+EVIDENCE="$OUT/ynx-mail-${VERSION}-darwin-arm64-desktop-install-evidence.json"
 jq -n \
   --arg product 'YNX Mail' \
   --arg commit "$EXPECTED" \
+  --arg release "$EXPECTED_RELEASE" \
   --arg archive "$(basename "$ARCHIVE")" \
   --arg sha256 "$SHA" \
   --argjson bytes "$BYTES" \
   --argjson coldStartSeconds "$FIRST_SECONDS" \
   --argjson restartSeconds "$RESTART_SECONDS" \
-  '{product:$product,commit:$commit,platform:"darwin-arm64",install:"extracted-and-executable",coldStartSeconds:$coldStartSeconds,restartSeconds:$restartSeconds,healthBoundary:"internet_delivery=false",signingClass:"unsigned-local",archive:$archive,sha256:$sha256,bytes:$bytes}' > "$EVIDENCE"
+  '{product:$product,commit:$commit,release:$release,platform:"darwin-arm64",install:"extracted-and-executable",coldStartSeconds:$coldStartSeconds,restartSeconds:$restartSeconds,healthBoundary:"internet_delivery=false",signingClass:"unsigned-local",archive:$archive,sha256:$sha256,bytes:$bytes}' > "$EVIDENCE"
 jq . "$EVIDENCE"

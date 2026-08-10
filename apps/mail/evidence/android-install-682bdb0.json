@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "YNX Mail",
+  "sourceCommit": "682bdb075803a77c9591fc59b83708944ea76fdf",
+  "release": "0.3.0-testnet-preview-source",
+  "platform": "android",
+  "build": {
+    "command": "env JAVA_HOME=<jdk17> ANDROID_HOME=<android-sdk> ./gradlew --no-daemon :app:assembleDebug",
+    "result": "pass",
+    "compileSdk": 36,
+    "minSdk": 26,
+    "targetSdk": 36,
+    "versionCode": 2,
+    "versionName": "0.3.0-test"
+  },
+  "artifact": {
+    "name": "app-debug.apk",
+    "locationClass": "local-only-ignored-build-output",
+    "sha256": "92214dd2f1a086ef586a834be7a8c2e2cd611d758788d734e41d1f9c3bf81448",
+    "bytes": 6393187,
+    "signingClass": "debug-test-signed",
+    "apkSigningVersion": 2,
+    "hosted": false
+  },
+  "install": {
+    "result": "pass",
+    "avd": "YNX_MAIL_API_36",
+    "deviceModel": "sdk_gphone64_arm64",
+    "bootCompleted": true,
+    "applicationId": "com.ynxweb4.mail",
+    "installedVersionCode": 2,
+    "installedVersionName": "0.3.0-test",
+    "coldStartMilliseconds": 11616,
+    "restartAfterForceStopMilliseconds": 11331,
+    "walletCallbackRouteResolved": true,
+    "invalidCallbackProcessRemainedAlive": true,
+    "callbackWarmStartMilliseconds": 1471
+  },
+  "limitations": [
+    "The timings are emulator observations and are not production performance claims.",
+    "The invalid callback drill proves route resolution and no crash; it does not independently attest the rendered fail-closed status text.",
+    "This APK is debug/test signed, not production signed or store released."
+  ],
+  "productionSigned": false,
+  "storeReleased": false,
+  "recordedAt": "2026-07-27T15:34:04Z"
+}

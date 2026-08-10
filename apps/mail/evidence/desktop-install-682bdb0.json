@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "YNX Mail",
+  "sourceCommit": "682bdb075803a77c9591fc59b83708944ea76fdf",
+  "release": "ynx-mail-0.3.0-testnet-preview-source",
+  "platform": "darwin-arm64",
+  "artifact": {
+    "name": "ynx-mail-0.3.0-testnet-preview-source-darwin-arm64.tar.gz",
+    "locationClass": "local-only-ignored-build-output",
+    "sha256": "42c8cde2f71ab967adaa2116493830586a1b241bb2f60240dd91b2b8a0ebaf73",
+    "bytes": 2782558,
+    "signingClass": "unsigned-local",
+    "hosted": false
+  },
+  "verification": {
+    "packageCommand": "npm run proof:desktop --prefix apps/mail",
+    "installClass": "extracted-and-executable",
+    "coldStartSeconds": 0.612,
+    "restartSeconds": 0.014,
+    "healthOk": true,
+    "internetDelivery": false,
+    "embeddedCommitMatched": true,
+    "embeddedReleaseMatched": true
+  },
+  "productionSigned": false,
+  "storeReleased": false,
+  "recordedAt": "2026-07-27T15:34:04Z"
+}

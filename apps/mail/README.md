@@ -2,9 +2,11 @@
 
 YNX Mail is an independent native-first Android/iOS product with an optional
 Web/PWA companion and a Go service for signed, handle-based communication inside
-the YNX product boundary. It is not an SMTP service and does not claim
-internet-wide email delivery. Native setup and identity details are in
-`native/README.md`.
+the YNX product boundary. It does not operate its own SMTP/MX infrastructure or
+claim internet-wide delivery. An optional server-side Internet Bridge can submit
+outbound messages through an explicitly configured provider while preserving
+provider acceptance, mail-server delivery, bounce, complaint and user-read as
+distinct facts. Native setup and identity details are in `native/README.md`.
 
 ## Run
 
@@ -19,6 +21,15 @@ go run ./apps/mail
 The service listens on `:8095` by default. The first start creates a Mail sender
 attestation key at `$YNX_MAIL_DATA_DIR/sender.ed25519` with mode `0600`. Back up
 that key with the state file; replacing it changes the Mail service identity.
+
+The optional Internet Bridge reads four server-only environment references:
+`YNX_MAIL_RESEND_API_URL`, `YNX_MAIL_RESEND_API_KEY`,
+`YNX_MAIL_RESEND_FROM` and `YNX_MAIL_RESEND_WEBHOOK_SECRET`. The API URL may be
+omitted to use the provider default. Submission remains disabled unless both the
+credential reference and sender identity are present; signed webhook processing
+remains disabled unless its independent verification reference is present. Keep
+all values in the deployment secret manager and out of Git, client bundles,
+screenshots, support tickets and chat.
 
 `YNX_WALLET_VERIFY_URL` is mandatory for sign-in and recovery. Without it the
 UI and health endpoint start, but Wallet authorization fails honestly. The
@@ -41,9 +52,14 @@ Native sign-in uses the canonical Wallet request envelope and remains
   a versioned HMAC-authenticated envelope. Unknown fields, a missing key for an
   existing state file or any tamper fail closed; the key and state use mode
   `0600`.
-- Mail delivery is limited to existing local `@handle` identities. Domain-style
-  or protocol recipients receive `internet_mail_delivery_not_supported`; they
-  are never silently treated as delivered.
+- Native delivery remains limited to existing local `@handle` identities.
+  Internet addresses use the optional server-side provider bridge. Without an
+  approved provider configuration they fail as `internet_provider_not_configured`;
+  they are never silently treated as delivered. Provider API acceptance becomes
+  `provider_accepted`, not `delivered`. Only a verified, replay-protected provider
+  event may establish mail-server delivery, bounce or complaint. Open/click
+  telemetry is retained only as an ignored provider event and never becomes a
+  YNX user-read receipt.
 - A message carries a service-side Ed25519 sender attestation. This proves the
   accepted Mail session and message metadata; it is not a personal Wallet
   transaction signature and the UI labels it as a Mail-signed identity.
@@ -63,7 +79,12 @@ Native sign-in uses the canonical Wallet request envelope and remains
 
 ## Main states
 
-Mail delivery: `queued` (reserved) -> `delivered | failed` -> explicit retry.
+Native Mail delivery: `delivered | failed` -> explicit retry.
+
+Internet Bridge delivery: `queued` -> `provider_accepted | failed` ->
+`provider_delayed | delivered | bounced | complained | failed`. API acceptance
+is not delivery, delivery is not a user-read receipt, and terminal failures may
+be retried only as a new numbered idempotent attempt.
 
 AI: `preview` -> `running` -> `review | failed | cancelled` ->
 `applied | rejected`. A cancelled job cannot be revived by a late provider
@@ -71,6 +92,22 @@ response.
 
 Trust: `submitted` -> `appealed`; cases are visible only to the reporter and
 the message sender.
+
+## Internet Bridge operations
+
+The provider webhook target is `POST /v1/providers/resend/webhook`. It accepts a
+bounded raw body only after timestamp-tolerant HMAC verification. Provider event
+IDs are persisted inside the authenticated Mail state, so replay remains
+idempotent across restart. Older out-of-order events cannot downgrade a newer
+fact. The public health response reports configuration capability only; it does
+not claim sender-domain verification, delivery reputation, mailbox placement or
+internet-wide availability.
+
+Before enabling outbound Internet Mail, an operator must independently verify
+the sender domain, DNS records, webhook endpoint, abuse desk, bounce/complaint
+handling, suppression policy, retention rights, rate limits, regional/legal
+requirements and provider terms. These are external release gates, not facts
+created by setting environment variables.
 
 ## Verify
 

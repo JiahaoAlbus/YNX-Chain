@@ -1,0 +1,180 @@
+{
+  "schemaVersion": "1.1.0",
+  "productNumber": 25,
+  "productSlug": "mail",
+  "productName": "YNX Mail",
+  "owner": "25-mail",
+  "sourceCommit": "f6868eccc2e47a2cde137b7b4238fa6bcce3a657",
+  "branch": "codex/final-mail",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "environment": "testnet-preview"
+  },
+  "wallet": {
+    "productId": "com.ynx.mail",
+    "productClientId": "ynx-mail-v1",
+    "bundleId": "com.ynxweb4.mail",
+    "callback": "ynxmail://wallet-auth/callback",
+    "signInScope": "mail:account",
+    "recoveryScope": "mail:recover",
+    "deviceCrypto": "p256-sha256",
+    "verifierVersion": "wallet-auth-v1",
+    "status": "proposed-central-registration"
+  },
+  "api": {
+    "basePath": "/v1",
+    "health": "GET /v1/health",
+    "versionSource": "health.build",
+    "send": "POST /v1/drafts/{id}/send",
+    "retry": "POST /v1/messages/{id}/retry",
+    "deadLetters": "GET /v1/dead-letters",
+    "providerWebhook": "POST /v1/providers/resend/webhook",
+    "accountExport": "GET /v1/account/export",
+    "accountDelete": "DELETE /v1/account"
+  },
+  "deliveryChannels": {
+    "ynxNative": {
+      "recipient": "existing @handle",
+      "states": ["delivered", "failed"],
+      "authority": "YNX Mail state"
+    },
+    "internetProvider": {
+      "recipient": "validated Internet mailbox",
+      "states": [
+        "queued",
+        "provider_accepted",
+        "provider_delayed",
+        "delivered",
+        "bounced",
+        "complained",
+        "failed"
+      ],
+      "authority": "verified provider event after local provider submission",
+      "providerAdapter": "resend",
+      "truthRules": [
+        "HTTP success is provider acceptance only",
+        "provider delivered means receiving mail server accepted the message",
+        "opened or clicked never becomes YNX user-read state",
+        "webhook event IDs are persistent replay keys",
+        "older events cannot downgrade newer delivery facts"
+      ]
+    }
+  },
+  "canonicalEvents": [
+    "mail.send.approved",
+    "mail.native.delivered",
+    "mail.internet.submission_failed",
+    "mail.internet.provider_accepted",
+    "mail.internet.provider_delayed",
+    "mail.internet.delivered",
+    "mail.internet.bounced",
+    "mail.internet.complained",
+    "mail.internet.failed",
+    "mail.internet.provider_event_ignored"
+  ],
+  "dataFabricOutbox": {
+    "schemaVersion": "1.0.0",
+    "implementation": "transactional Mail-state outbox with monotonic sequence and persistent acknowledgement",
+    "delivery": "bounded pull/ack adapter; no unauthenticated public HTTP route",
+    "maximumPendingEvents": 10000,
+    "maximumBatchEvents": 1000,
+    "sourceBinding": "build commit embedded by apps/mail main",
+    "privacyClass": "operational_metadata",
+    "requiredFields": [
+      "id",
+      "schema_version",
+      "type",
+      "product",
+      "owner",
+      "source_commit",
+      "sequence",
+      "authority",
+      "source",
+      "coverage",
+      "privacy_class",
+      "occurred_at",
+      "as_of",
+      "recorded_at",
+      "user_read_claimed"
+    ],
+    "forbiddenFields": [
+      "message_body",
+      "message_subject",
+      "mailbox_address",
+      "attachment_name",
+      "attachment_content",
+      "account",
+      "provider_credential",
+      "raw_webhook"
+    ],
+    "recipientIdentity": "SHA-256 hash only",
+    "providerEventIdentity": "SHA-256 hash only",
+    "overflowPolicy": "fail closed before Mail state mutation; never drop delivery evidence",
+    "centralAcceptance": "pending 26-data-fabric and 29-integration transport/schema acceptance"
+  },
+  "errorCodes": [
+    "internet_provider_not_configured",
+    "provider_submission_cancelled",
+    "provider_submission_timeout",
+    "provider_rate_limited",
+    "provider_authorization_failed",
+    "provider_submission_failed",
+    "recipient_suppressed",
+    "provider_delivery_delayed",
+    "provider_bounced",
+    "recipient_complained",
+    "provider_suppressed",
+    "invalid_webhook"
+  ],
+  "security": {
+    "providerCredentials": "server-side secret manager reference only",
+    "webhookAuthentication": "timestamp-bounded HMAC-SHA256 with constant-time comparison",
+    "replayProtection": "persistent provider event ID",
+    "suppressionRegistry": "persistent recipient-hash key; complaint, permanent bounce and provider suppression fail closed",
+    "deadLetterQueue": "bounded to 1000 records; sender-scoped response omits internal sender identity",
+    "requestBounds": {
+      "webhookBytes": 262144,
+      "messageBytes": 262144,
+      "attachmentBytes": 10485760,
+      "recipientCount": 20,
+      "deadLetters": 1000
+    },
+    "stateIntegrity": "versioned HMAC-authenticated atomic envelope",
+    "userReadInference": "forbidden"
+  },
+  "migration": {
+    "stateSchema": 1,
+    "compatibility": "provider recovery and Data Fabric outbox fields are additive for the current runtime; older records normalize empty maps, events, acknowledgement and sequence",
+    "rollback": "prior strict-decoder binaries reject current outbox fields; a versioned rollback export and exact old-binary drill are required before public deployment"
+  },
+  "dependencies": [
+    {"owner": "02-wallet-auth", "need": "registry entry and live verifier", "status": "blocked-central"},
+    {"owner": "14-ai", "need": "product-session POST streaming route", "status": "blocked-central"},
+    {"owner": "15-trust-center", "need": "abuse and appeal handoff", "status": "local-adapter-present"},
+    {"owner": "20-cloud", "need": "large attachment object references and malware scan", "status": "not-integrated"},
+    {"owner": "26-data-fabric", "need": "authenticated ingestion transport and central schema acceptance for canonical delivery and billing events", "status": "mail-owned-transactional-outbox-present"},
+    {"owner": "28-website", "need": "public /mail route and metadata", "status": "not-integrated"},
+    {"owner": "29-integration", "need": "freeze contract and merge order", "status": "pending-acceptance"},
+    {"owner": "30-security-sre", "need": "deployment secrets, public webhook, scans, backup and release", "status": "pending-acceptance"}
+  ],
+  "externalInputs": [
+    "provider account and approved credential reference",
+    "verified sender domain",
+    "DNS SPF DKIM and DMARC evidence",
+    "public HTTPS webhook URL",
+    "provider terms and regional legal approval",
+    "abuse desk and complaint escalation owner"
+  ],
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,12 +33,21 @@ func main() {
 	fatal(err)
 	verifier := mailservice.RemoteWalletVerifier{BaseURL: os.Getenv("YNX_WALLET_VERIFY_URL")}
 	ai := mailservice.RemoteAI{BaseURL: os.Getenv("YNX_AI_GATEWAY_URL"), Token: os.Getenv("YNX_AI_GATEWAY_TOKEN")}
-	service, err := mailservice.NewService(store, verifier, ai, signer)
+	internetBridge := mailservice.ResendBridge{
+		BaseURL:       os.Getenv("YNX_MAIL_RESEND_API_URL"),
+		APIKey:        os.Getenv("YNX_MAIL_RESEND_API_KEY"),
+		From:          os.Getenv("YNX_MAIL_RESEND_FROM"),
+		WebhookSecret: os.Getenv("YNX_MAIL_RESEND_WEBHOOK_SECRET"),
+	}
+	service, err := mailservice.NewServiceWithOptions(store, verifier, ai, signer, mailservice.ServiceOptions{InternetBridge: internetBridge, SourceCommit: buildCommit})
 	fatal(err)
 	webFS, err := fs.Sub(assets, "web")
 	fatal(err)
 	mux := http.NewServeMux()
-	mux.Handle("/v1/", mailservice.NewHandlerWithBuild(service, buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}))
+	mux.Handle("/v1/", mailservice.NewHandlerWithOptions(service, buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}, mailservice.HandlerOptions{
+		MaxInFlight: positiveIntEnv("YNX_MAIL_MAX_IN_FLIGHT", 128),
+		MaxQueued:   positiveIntEnv("YNX_MAIL_MAX_QUEUED", 256),
+	}))
 	mux.Handle("/", spa(http.FS(webFS)))
 	server := &http.Server{Addr: env("YNX_MAIL_ADDR", ":8095"), Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 35 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX Mail listening on %s (internet-wide delivery is not enabled)", server.Addr)
@@ -84,6 +94,13 @@ func env(name, fallback string) string {
 		return v
 	}
 	return fallback
+}
+func positiveIntEnv(name string, fallback int) int {
+	value, err := strconv.Atoi(strings.TrimSpace(os.Getenv(name)))
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
 }
 func fatal(err error) {
 	if err != nil {

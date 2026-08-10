@@ -5,6 +5,32 @@ import test from "node:test";
 const release = JSON.parse(
   readFileSync(new URL("../product-release.json", import.meta.url), "utf8"),
 );
+const publicMetadata = JSON.parse(
+  readFileSync(new URL("../public-product-metadata.json", import.meta.url), "utf8"),
+);
+const packageManifest = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+);
+const androidBuild = readFileSync(
+  new URL("../native/android/app/build.gradle", import.meta.url),
+  "utf8",
+);
+const iosProject = readFileSync(
+  new URL("../native/ios/YNXMail.xcodeproj/project.pbxproj", import.meta.url),
+  "utf8",
+);
+const androidEvidence = JSON.parse(
+  readFileSync(new URL("../evidence/android-install-682bdb0.json", import.meta.url), "utf8"),
+);
+const desktopEvidence = JSON.parse(
+  readFileSync(new URL("../evidence/desktop-install-682bdb0.json", import.meta.url), "utf8"),
+);
+const iosEvidence = JSON.parse(
+  readFileSync(new URL("../evidence/ios-verification-682bdb0.json", import.meta.url), "utf8"),
+);
+const iosCloudEvidence = JSON.parse(
+  readFileSync(new URL("../evidence/ios-cloud-simulator-771fa47.json", import.meta.url), "utf8"),
+);
 
 test("Mail release record exposes every acceptance state and evidence field", () => {
   for (const key of [
@@ -34,4 +60,69 @@ test("Mail release record exposes every acceptance state and evidence field", ()
   }
   if (!release.deployedStaging && !release.deployedPublic)
     assert.deepEqual(release.healthUrls, []);
+});
+
+test("Mail release identity stays aligned across every build surface", () => {
+  const expectedVersion = `${packageManifest.version}-testnet-preview-source`;
+  assert.equal(release.version, expectedVersion);
+  assert.match(
+    packageManifest.scripts.build,
+    /main\.buildRelease=ynx-mail-\$\{npm_package_version\}-testnet-preview-source/,
+  );
+  assert.match(androidBuild, /versionCode 2/);
+  assert.match(androidBuild, /versionName '0\.3\.0-test'/);
+  assert.equal((iosProject.match(/CURRENT_PROJECT_VERSION = 2;/g) ?? []).length, 2);
+  assert.equal((iosProject.match(/MARKETING_VERSION = 0\.3\.0;/g) ?? []).length, 2);
+});
+
+test("Mail platform evidence matches the release source", () => {
+  for (const evidence of [androidEvidence, desktopEvidence, iosEvidence])
+    assert.equal(evidence.sourceCommit, release.commit);
+  assert.equal(release.installedLocal.android, true);
+  assert.equal(release.installedLocal.desktop, true);
+  assert.equal(release.installedLocal.ios, false);
+  assert.equal(release.sha256[androidEvidence.artifact.name], androidEvidence.artifact.sha256);
+  assert.equal(release.bytes[androidEvidence.artifact.name], androidEvidence.artifact.bytes);
+  assert.equal(release.signingClass.android, androidEvidence.artifact.signingClass);
+  assert.equal(release.sha256[desktopEvidence.artifact.name], desktopEvidence.artifact.sha256);
+  assert.equal(release.bytes[desktopEvidence.artifact.name], desktopEvidence.artifact.bytes);
+  assert.equal(release.signingClass.desktop, desktopEvidence.artifact.signingClass);
+  assert.equal(androidEvidence.install.result, "pass");
+  assert.equal(desktopEvidence.verification.embeddedCommitMatched, true);
+  assert.equal(iosEvidence.build.result, "blocked");
+  assert.equal(iosEvidence.installedLocal, false);
+  assert.equal(iosCloudEvidence.sourceCommit, release.currentSourcePlatformEvidence.ios.sourceCommit);
+  assert.equal(iosCloudEvidence.workflow.result, "success");
+  assert.equal(iosCloudEvidence.verification.install, "pass");
+  assert.equal(iosCloudEvidence.verification.coldLaunch, "pass");
+  assert.equal(iosCloudEvidence.verification.callbackResolution, "success");
+  assert.equal(iosCloudEvidence.appArtifact.sha256, release.currentSourcePlatformEvidence.ios.sha256);
+  assert.equal(iosCloudEvidence.appArtifact.bytes, release.currentSourcePlatformEvidence.ios.bytes);
+  assert.equal(iosCloudEvidence.appArtifact.signingClass, "unsigned-simulator");
+  assert.equal(iosCloudEvidence.truthBoundary.productionSigned, false);
+  assert.equal(iosCloudEvidence.truthBoundary.publicImmutableDownload, false);
+  assert.equal(release.currentSourcePlatformEvidence.ios.installedSimulator, true);
+  assert.equal(release.currentSourcePlatformEvidence.ios.installedPhysicalDevice, false);
+  assert.equal(release.downloadHosted, false);
+  assert.deepEqual(release.artifactUrls, []);
+});
+
+test("Mail public metadata is complete without overstating release status", () => {
+  assert.equal(publicMetadata.productId, release.productId);
+  assert.equal(publicMetadata.runtimeSourceCommit, release.commit);
+  assert.equal(publicMetadata.canonicalRoute, "/mail");
+  assert.equal(publicMetadata.canonicalUrl, null);
+  assert.equal(publicMetadata.publicStatus.implementedLocal, true);
+  assert.equal(publicMetadata.publicStatus.testedLocal, true);
+  for (const key of ["websitePublished", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"])
+    assert.equal(publicMetadata.publicStatus[key], false, `${key} must remain false without direct evidence`);
+  assert.deepEqual(publicMetadata.assets.screenshots, []);
+  assert.deepEqual(publicMetadata.assets.artifactManifest, []);
+  for (const key of ["supportUrl", "privacyUrl", "securityUrl", "statusUrl"])
+    assert.equal(publicMetadata.links[key], null, `${key} must remain null without a public URL`);
+  assert.ok(publicMetadata.faq.length >= 4);
+  const serialized = JSON.stringify(publicMetadata);
+  assert.doesNotMatch(serialized, /\/Users\//);
+  assert.doesNotMatch(serialized, /codex\//);
+  assert.doesNotMatch(serialized, /example\.com/i);
 });

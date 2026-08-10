@@ -14,17 +14,35 @@ import (
 
 type Server struct{ service *Service }
 
+type HandlerOptions struct {
+	MaxInFlight int
+	MaxQueued   int
+}
+
 const sessionCookieName = "ynx_mail_session"
 
 func NewHandler(service *Service) http.Handler {
 	return NewHandlerWithBuild(service, buildinfo.Info{})
 }
 func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
+	return NewHandlerWithOptions(service, build, HandlerOptions{MaxInFlight: 128, MaxQueued: 256})
+}
+func NewHandlerWithOptions(service *Service, build buildinfo.Info, options HandlerOptions) http.Handler {
 	s := &Server{service: service}
 	build = buildinfo.Normalize(build)
+	capacity := newMailCapacity(options)
 	mux := http.NewServeMux()
+	observability := newMailObservability()
 	mux.HandleFunc("GET /v1/health", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "product": ProductID, "internet_delivery": false, "build": build})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"ok":                true,
+			"product":           ProductID,
+			"internet_delivery": false,
+			"internet_bridge":   service.InternetBridgeHealth(),
+			"delivery_truth":    "provider acceptance and mail-server delivery are distinct; user read is never inferred from provider engagement",
+			"capacity":          capacity.snapshot(),
+			"build":             build,
+		})
 	})
 	mux.HandleFunc("POST /v1/auth/challenges", s.challenge)
 	mux.HandleFunc("POST /v1/auth/sessions", s.signIn)
@@ -43,6 +61,8 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("POST /v1/reports", s.report)
 	mux.HandleFunc("GET /v1/reports", s.cases)
 	mux.HandleFunc("POST /v1/messages/{id}/retry", s.retry)
+	mux.HandleFunc("GET /v1/dead-letters", s.deadLetters)
+	mux.HandleFunc("POST /v1/providers/resend/webhook", s.resendWebhook)
 	mux.HandleFunc("POST /v1/reports/{id}/appeal", s.appeal)
 	mux.HandleFunc("POST /v1/ai/jobs", s.beginAI)
 	mux.HandleFunc("POST /v1/ai/jobs/{id}/approve", s.approveAI)
@@ -51,7 +71,8 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("GET /v1/audit", s.audit)
 	mux.HandleFunc("GET /v1/account/export", s.exportAccount)
 	mux.HandleFunc("DELETE /v1/account", s.deleteAccount)
-	return securityHeaders(mux)
+	mux.HandleFunc("GET /v1/metrics", observability.metrics)
+	return observability.wrap(capacity.wrap(securityHeaders(mux)))
 }
 
 func (s *Server) challenge(w http.ResponseWriter, _ *http.Request) {
@@ -120,7 +141,7 @@ func (s *Server) deleteDraft(w http.ResponseWriter, r *http.Request) {
 	respond(w, map[string]bool{"deleted": err == nil}, err)
 }
 func (s *Server) send(w http.ResponseWriter, r *http.Request) {
-	out, err := s.service.SendDraft(bearer(r), r.PathValue("id"))
+	out, err := s.service.SendDraftContext(r.Context(), bearer(r), r.PathValue("id"))
 	respond(w, out, err)
 }
 func (s *Server) move(w http.ResponseWriter, r *http.Request) {
@@ -154,8 +175,32 @@ func (s *Server) retry(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &v, 1024) {
 		return
 	}
-	out, err := s.service.RetryDelivery(bearer(r), r.PathValue("id"), v.Recipient)
+	out, err := s.service.RetryDeliveryContext(r.Context(), bearer(r), r.PathValue("id"), v.Recipient)
 	respond(w, out, err)
+}
+func (s *Server) deadLetters(w http.ResponseWriter, r *http.Request) {
+	out, err := s.service.DeadLetters(bearer(r))
+	respond(w, out, err)
+}
+func (s *Server) resendWebhook(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 256<<10)
+	raw, err := io.ReadAll(r.Body)
+	if err != nil || len(raw) == 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_webhook", "detail": "bounded raw webhook payload is required"})
+		return
+	}
+	duplicate, matched, event, err := s.service.HandleInternetWebhook(r.Header, raw)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid_webhook", "detail": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"accepted":   true,
+		"duplicate":  duplicate,
+		"matched":    matched,
+		"provider":   event.Provider,
+		"event_type": event.Type,
+	})
 }
 func (s *Server) report(w http.ResponseWriter, r *http.Request) {
 	var v struct{ MessageID, Reason string }
@@ -309,8 +354,27 @@ func respond(w http.ResponseWriter, value any, err error) {
 }
 func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
+	if status >= http.StatusBadRequest && w.Header().Get("X-Error-ID") == "" {
+		w.Header().Set("X-Error-ID", mailErrorID(status))
+	}
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(value)
+}
+
+func mailErrorID(status int) string {
+	switch status {
+	case http.StatusUnauthorized:
+		return "YNX-MAIL-SESSION-REJECTED"
+	case http.StatusForbidden:
+		return "YNX-MAIL-PERMISSION-REJECTED"
+	case http.StatusNotFound:
+		return "YNX-MAIL-NOT-FOUND"
+	default:
+		if status >= http.StatusInternalServerError {
+			return "YNX-MAIL-INTERNAL-ERROR"
+		}
+		return "YNX-MAIL-REQUEST-REJECTED"
+	}
 }
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "YNX Mail",
+  "productId": "com.ynx.mail",
+  "bundleId": "com.ynxweb4.mail",
+  "sourceCommit": "771fa4751e01d264e6e995a16fc5d458ba1021e5",
+  "workflow": {
+    "name": "Mail Calendar iOS proof",
+    "runId": 30418420264,
+    "jobId": 90469841717,
+    "result": "success",
+    "runner": "macos-15",
+    "xcode": "16.4",
+    "sdk": "iphonesimulator18.5"
+  },
+  "verification": {
+    "build": "pass",
+    "install": "pass",
+    "coldLaunch": "pass",
+    "launchProcess": "com.ynxweb4.mail: 10280",
+    "coldLaunchWallSeconds": 1.982,
+    "callback": "ynxmail://wallet-auth/callback",
+    "callbackResolution": "success"
+  },
+  "appArtifact": {
+    "name": "YNXMail-unsigned-simulator.app.zip",
+    "sha256": "09d2c2fc4f2f94f8b23d9aa279e7cf61da5a35daa7f676205b1c9d5ec3cacfe2",
+    "bytes": 387434,
+    "signingClass": "unsigned-simulator"
+  },
+  "actionsArtifact": {
+    "id": 8711049496,
+    "name": "YNXMail-ios-simulator-proof",
+    "archiveBytes": 545473,
+    "archiveDigest": "sha256:82ee4eeedee72e9a4339097d776031bf4c4d097c6ad16378865df75122db6d84",
+    "expired": false,
+    "expiresAt": "2026-10-27T03:01:43Z",
+    "hostingClass": "ephemeral-github-actions-artifact"
+  },
+  "truthBoundary": {
+    "installedOnPhysicalDevice": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "publicImmutableDownload": false,
+    "downloadHosted": false
+  },
+  "recordedAt": "2026-07-29T03:07:50Z"
+}

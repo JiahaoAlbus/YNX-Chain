@@ -1,0 +1,32 @@
+[Unit]
+Description=YNX Mail public Testnet preview
+After=network-online.target ynx-wallet-gatewayd.service ynx-ai-gatewayd.service
+Wants=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+Environment=YNX_MAIL_ADDR=127.0.0.1:18195
+Environment=YNX_MAIL_DATA_DIR=/var/lib/ynx-chain/mail
+Environment=YNX_MAIL_MAX_IN_FLIGHT=128
+Environment=YNX_MAIL_MAX_QUEUED=256
+Environment=YNX_WALLET_VERIFY_URL=http://127.0.0.1:18445
+Environment=YNX_AI_GATEWAY_URL=http://127.0.0.1:6429
+ExecStart=/usr/local/bin/ynx-maild
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/ynx-chain/mail
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

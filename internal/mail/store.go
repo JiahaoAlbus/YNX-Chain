@@ -70,7 +70,7 @@ func NewStore(path string) (*Store, error) {
 }
 
 func emptyState() State {
-	return State{Users: map[string]User{}, Challenges: map[string]Challenge{}, Sessions: map[string]Session{}, WalletRequests: map[string]bool{}, Drafts: map[string]Draft{}, Messages: map[string]Message{}, Blocks: map[string]map[string]bool{}, Reports: map[string]AbuseReport{}, AIJobs: map[string]AIJob{}, Rate: map[string][]time.Time{}}
+	return State{Users: map[string]User{}, Challenges: map[string]Challenge{}, Sessions: map[string]Session{}, WalletRequests: map[string]bool{}, Drafts: map[string]Draft{}, Messages: map[string]Message{}, Blocks: map[string]map[string]bool{}, Reports: map[string]AbuseReport{}, AIJobs: map[string]AIJob{}, ProviderEvents: map[string]ProviderEvent{}, Suppressions: map[string]Suppression{}, DeadLetters: map[string]DeadLetter{}, ProviderHealth: map[string]ProviderHealth{}, Rate: map[string][]time.Time{}, DataFabricEvents: []CanonicalMailEvent{}, NextDataFabricSequence: 1}
 }
 
 func (s *Store) normalize() {
@@ -101,8 +101,35 @@ func (s *Store) normalize() {
 	if s.data.AIJobs == nil {
 		s.data.AIJobs = map[string]AIJob{}
 	}
+	if s.data.ProviderEvents == nil {
+		s.data.ProviderEvents = map[string]ProviderEvent{}
+	}
+	if s.data.Suppressions == nil {
+		s.data.Suppressions = map[string]Suppression{}
+	}
+	if s.data.DeadLetters == nil {
+		s.data.DeadLetters = map[string]DeadLetter{}
+	}
+	if s.data.ProviderHealth == nil {
+		s.data.ProviderHealth = map[string]ProviderHealth{}
+	}
 	if s.data.Rate == nil {
 		s.data.Rate = map[string][]time.Time{}
+	}
+	if s.data.DataFabricEvents == nil {
+		s.data.DataFabricEvents = []CanonicalMailEvent{}
+	}
+	if s.data.NextDataFabricSequence == 0 {
+		var highest uint64
+		for _, event := range s.data.DataFabricEvents {
+			if event.Sequence > highest {
+				highest = event.Sequence
+			}
+		}
+		s.data.NextDataFabricSequence = highest + 1
+		if s.data.NextDataFabricSequence == 0 {
+			s.data.NextDataFabricSequence = 1
+		}
 	}
 }
 

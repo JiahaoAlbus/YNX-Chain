@@ -35,24 +35,53 @@ type AIGateway interface {
 }
 
 type Service struct {
-	store    *Store
-	verifier WalletVerifier
-	ai       AIGateway
-	signer   ed25519.PrivateKey
-	now      func() time.Time
-	random   io.Reader
-	cancelMu sync.Mutex
-	cancels  map[string]context.CancelFunc
+	store        *Store
+	verifier     WalletVerifier
+	ai           AIGateway
+	bridge       InternetBridge
+	signer       ed25519.PrivateKey
+	sourceCommit string
+	now          func() time.Time
+	random       io.Reader
+	cancelMu     sync.Mutex
+	cancels      map[string]context.CancelFunc
+}
+
+type ServiceOptions struct {
+	InternetBridge InternetBridge
+	SourceCommit   string
 }
 
 func NewService(store *Store, verifier WalletVerifier, ai AIGateway, signer ed25519.PrivateKey) (*Service, error) {
+	return NewServiceWithOptions(store, verifier, ai, signer, ServiceOptions{})
+}
+
+func NewServiceWithInternetBridge(store *Store, verifier WalletVerifier, ai AIGateway, bridge InternetBridge, signer ed25519.PrivateKey) (*Service, error) {
+	return NewServiceWithOptions(store, verifier, ai, signer, ServiceOptions{InternetBridge: bridge})
+}
+
+func NewServiceWithOptions(store *Store, verifier WalletVerifier, ai AIGateway, signer ed25519.PrivateKey, options ServiceOptions) (*Service, error) {
 	if store == nil || verifier == nil {
 		return nil, errors.New("mail store and wallet verifier are required")
 	}
 	if len(signer) != ed25519.PrivateKeySize {
 		return nil, errors.New("mail sender identity key is required")
 	}
-	return &Service{store: store, verifier: verifier, ai: ai, signer: signer, now: time.Now, random: rand.Reader, cancels: map[string]context.CancelFunc{}}, nil
+	sourceCommit := strings.TrimSpace(options.SourceCommit)
+	if sourceCommit == "" {
+		sourceCommit = "local-unbound"
+	}
+	if len(sourceCommit) > 128 {
+		return nil, errors.New("mail source commit identifier is too long")
+	}
+	return &Service{store: store, verifier: verifier, ai: ai, bridge: options.InternetBridge, signer: signer, sourceCommit: sourceCommit, now: time.Now, random: rand.Reader, cancels: map[string]context.CancelFunc{}}, nil
+}
+
+func (s *Service) InternetBridgeStatus() InternetBridgeStatus {
+	if s.bridge == nil {
+		return InternetBridgeStatus{Provider: "none"}
+	}
+	return s.bridge.Status()
 }
 
 func (s *Service) SenderPublicKey() string {
@@ -384,8 +413,13 @@ func (s *Service) SaveDraft(token string, draft Draft) (Draft, error) {
 }
 
 func (s *Service) SendDraft(token, draftID string) (Message, error) {
+	return s.SendDraftContext(context.Background(), token, draftID)
+}
+
+func (s *Service) SendDraftContext(ctx context.Context, token, draftID string) (Message, error) {
 	now := s.now().UTC()
 	var out Message
+	var internetRecipients []string
 	err := s.store.update(func(st *State) error {
 		sess, err := s.session(st, token)
 		if err != nil {
@@ -406,10 +440,26 @@ func (s *Service) SendDraft(token, draftID string) (Message, error) {
 			return ErrUnauthorized
 		}
 		message := Message{ID: s.id("message"), ThreadID: threadID, SenderID: sender.ID, SenderHandle: sender.Handle, To: append([]string{}, draft.To...), Subject: draft.Subject, Body: draft.Body, Attachments: draft.Attachments, CreatedAt: now}
+		bridgeStatus := s.InternetBridgeStatus()
 		for _, recipient := range draft.To {
-			delivery := Delivery{Recipient: recipient, State: DeliveryFailed, UpdatedAt: now}
-			if strings.Contains(strings.TrimPrefix(recipient, "@"), "@") || strings.Contains(recipient, ":") {
-				delivery.Reason = "internet_mail_delivery_not_supported"
+			delivery := Delivery{Recipient: recipient, Channel: "ynx_native", State: DeliveryFailed, UpdatedAt: now}
+			if isInternetAddress(recipient) {
+				delivery.Channel = "internet_provider"
+				delivery.Provider = bridgeStatus.Provider
+				delivery.Attempt = 1
+				if suppression, suppressed := activeSuppression(st, recipient); suppressed {
+					delivery.Reason = "recipient_suppressed"
+					upsertDeadLetter(st, message, delivery, "blocked", now)
+					s.audit(st, sess.UserID, "internet_recipient_suppressed", message.ID, map[string]any{"recipient_hash": suppression.RecipientHash, "reason": suppression.Reason})
+				} else if bridgeStatus.SubmissionConfigured {
+					delivery.State = DeliveryQueued
+					internetRecipients = append(internetRecipients, recipient)
+				} else {
+					delivery.Reason = "internet_provider_not_configured"
+					upsertDeadLetter(st, message, delivery, "blocked", now)
+				}
+			} else if !handlePattern.MatchString(recipient) {
+				delivery.Reason = "invalid_recipient"
 			} else if recipientUser, found := userByHandle(st, recipient); !found {
 				delivery.Reason = "unknown_ynx_recipient"
 			} else if st.Blocks[recipientUser.ID][sess.UserID] {
@@ -433,11 +483,35 @@ func (s *Service) SendDraft(token, draftID string) (Message, error) {
 		st.Messages[message.ID] = message
 		st.Mailboxes = append(st.Mailboxes, MailboxItem{MessageID: message.ID, OwnerID: sess.UserID, Folder: "sent", Read: true, CreatedAt: now})
 		delete(st.Drafts, draftID)
+		if err := s.emitSendApprovedEvent(st, message, now); err != nil {
+			return err
+		}
+		for _, delivery := range message.Deliveries {
+			switch {
+			case delivery.Channel == "ynx_native" && delivery.State == DeliveryDelivered:
+				if err := s.emitDeliveryEvent(st, EventMailNativeDelivered, message, delivery, "ynx_mail_state", now, "", "", true); err != nil {
+					return err
+				}
+			case delivery.Channel == "internet_provider" && delivery.State == DeliveryFailed:
+				if err := s.emitDeliveryEvent(st, EventMailInternetFailed, message, delivery, "ynx_mail_state", now, "", "", true); err != nil {
+					return err
+				}
+			}
+		}
 		s.audit(st, sess.UserID, "mail_send_approved", message.ID, map[string]any{"delivery_states": message.Deliveries})
 		out = message
 		return nil
 	})
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	for _, recipient := range internetRecipients {
+		out, err = s.submitInternetDelivery(ctx, out, recipient)
+		if err != nil {
+			return out, err
+		}
+	}
+	return out, nil
 }
 
 func (s *Service) VerifySender(message Message) bool {
@@ -557,7 +631,12 @@ func (s *Service) Unblock(token, handle string) error {
 }
 
 func (s *Service) RetryDelivery(token, messageID, recipient string) (Message, error) {
+	return s.RetryDeliveryContext(context.Background(), token, messageID, recipient)
+}
+
+func (s *Service) RetryDeliveryContext(ctx context.Context, token, messageID, recipient string) (Message, error) {
 	var out Message
+	var retryInternet bool
 	now := s.now().UTC()
 	err := s.store.update(func(st *State) error {
 		sess, e := s.session(st, token)
@@ -573,22 +652,48 @@ func (s *Service) RetryDelivery(token, messageID, recipient string) (Message, er
 		}
 		index := -1
 		for i, d := range message.Deliveries {
-			if d.Recipient == recipient && d.State == DeliveryFailed {
+			if d.Recipient == recipient && (d.State == DeliveryFailed || d.State == DeliveryBounced) {
 				index = i
 				break
 			}
 		}
 		if index < 0 {
-			return errors.New("failed delivery not found")
+			return errors.New("retryable delivery not found")
 		}
 		delivery := message.Deliveries[index]
-		if strings.Contains(strings.TrimPrefix(recipient, "@"), "@") || strings.Contains(recipient, ":") {
-			delivery.Reason = "internet_mail_delivery_not_supported"
+		if isInternetAddress(recipient) {
+			status := s.InternetBridgeStatus()
+			delivery.Channel = "internet_provider"
+			delivery.Provider = status.Provider
+			delivery.ProviderMessageID = ""
+			delivery.ProviderEventAt = time.Time{}
+			delivery.LastProviderEvent = ""
+			delivery.Attempt++
+			if delivery.Attempt < 1 {
+				delivery.Attempt = 1
+			}
+			if suppression, suppressed := activeSuppression(st, recipient); suppressed {
+				delivery.State = DeliveryFailed
+				delivery.Reason = "recipient_suppressed"
+				upsertDeadLetter(st, message, delivery, "blocked", now)
+				s.audit(st, sess.UserID, "internet_recipient_suppressed", message.ID, map[string]any{"recipient_hash": suppression.RecipientHash, "reason": suppression.Reason})
+			} else if status.SubmissionConfigured {
+				delivery.State = DeliveryQueued
+				delivery.Reason = ""
+				retryInternet = true
+			} else {
+				delivery.State = DeliveryFailed
+				delivery.Reason = "internet_provider_not_configured"
+				upsertDeadLetter(st, message, delivery, "blocked", now)
+			}
+		} else if !handlePattern.MatchString(recipient) {
+			delivery.Reason = "invalid_recipient"
 		} else if target, found := userByHandle(st, recipient); !found {
 			delivery.Reason = "unknown_ynx_recipient"
 		} else if st.Blocks[target.ID][sess.UserID] {
 			delivery.Reason = "recipient_blocked_sender"
 		} else {
+			delivery.Channel = "ynx_native"
 			delivery.State = DeliveryDelivered
 			delivery.Reason = ""
 			st.Mailboxes = append(st.Mailboxes, MailboxItem{MessageID: message.ID, OwnerID: target.ID, Folder: "inbox", CreatedAt: now})
@@ -596,11 +701,23 @@ func (s *Service) RetryDelivery(token, messageID, recipient string) (Message, er
 		delivery.UpdatedAt = now
 		message.Deliveries[index] = delivery
 		st.Messages[message.ID] = message
+		if delivery.Channel == "ynx_native" && delivery.State == DeliveryDelivered {
+			if err := s.emitDeliveryEvent(st, EventMailNativeDelivered, message, delivery, "ynx_mail_state", now, "", "", true); err != nil {
+				return err
+			}
+		} else if delivery.Channel == "internet_provider" && delivery.State == DeliveryFailed {
+			if err := s.emitDeliveryEvent(st, EventMailInternetFailed, message, delivery, "ynx_mail_state", now, "", "", true); err != nil {
+				return err
+			}
+		}
 		s.audit(st, sess.UserID, "delivery_retry", message.ID, map[string]any{"recipient": recipient, "state": delivery.State, "reason": delivery.Reason})
 		out = message
 		return nil
 	})
-	return out, err
+	if err != nil || !retryInternet {
+		return out, err
+	}
+	return s.submitInternetDelivery(ctx, out, recipient)
 }
 
 func (s *Service) Report(token, messageID, reason string) (AbuseReport, error) {

@@ -3,7 +3,7 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd)
 OUT=${1:-"$ROOT/dist"}
-VERSION=0.2.0-testnet-preview
+VERSION=$(node -p "require('$ROOT/apps/mail/package.json').version + '-testnet-preview-source'")
 COMMIT=$(git -C "$ROOT" rev-parse HEAD)
 BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 GOOS_VALUE=${GOOS:-$(go env GOOS)}
@@ -28,7 +28,7 @@ printf '%s\n' \
   'Run: YNX_MAIL_DATA_DIR=/secure/path ./bin/ynx-maild' \
   'Default local URL: http://127.0.0.1:8095' \
   'Wallet sign-in requires YNX_WALLET_VERIFY_URL.' \
-  'This package is unsigned and supports known YNX handles only; it is not internet email.' \
+  'This package is unsigned. Internet delivery remains disabled unless an approved provider and verified sender configuration are supplied; provider acceptance is not delivery.' \
   "Commit: $COMMIT" \
   "Build time: $BUILD_TIME" > "$STAGE/INSTALL.txt"
 
