@@ -1,0 +1,254 @@
+{
+  "productId": "com.ynx.calendar",
+  "name": "YNX Calendar",
+  "branch": "codex/final-calendar",
+  "commit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "artifactSourceCommit": null,
+  "version": "0.2.0-testnet-public",
+  "releaseChannel": "public-testnet-preview",
+  "surfaces": [
+    "android-native",
+    "ios-native",
+    "web-pwa-companion",
+    "go-api",
+    "macos-cli-web-companion"
+  ],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": true,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "websitePublished": true,
+  "publicUrls": [
+    "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "https://www.ynxweb4.com/dapp/calendar"
+  ],
+  "healthUrls": [
+    "https://calendar-testnet.43.153.202.237.sslip.io/v1/health"
+  ],
+  "artifactUrls": [],
+  "sha256": {},
+  "bytes": {},
+  "signingClass": {
+    "android": "debug-local-build-unhosted",
+    "ios": "source-parse-only",
+    "desktop": "unsigned-local-build-unhosted",
+    "web": "local-browser-proof-unhosted"
+  },
+  "minOS": {
+    "android": 26,
+    "ios": "17.0",
+    "macOS": "13.0"
+  },
+  "stateSchemaVersion": 1,
+  "backupRestore": {
+    "implementedLocal": true,
+    "restoreVerified": true,
+    "backupEnvelopeVersion": 1,
+    "integrity": "HMAC-SHA-256 plus SHA-256 state digest",
+    "restoreMode": "isolated-target-only",
+    "defaultMaximumBackupAge": "720h",
+    "localEmptyStateDrill": {
+      "backupBytes": 522,
+      "restoreCommandDurationMs": 61,
+      "rpo": "backup creation point",
+      "stateSha256": "58f20ddf9650f8f3ca038d343694789ee8192273cd80d65bd947a7452ee4b8f4"
+    },
+    "limitations": [
+      "backup confidentiality encryption and offsite retention are not implemented",
+      "restore authentication requires retained Calendar state HMAC key material",
+      "no production-scale RTO or RPO claim is made from the local empty-state drill"
+    ]
+  },
+  "publicProbe": {
+    "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "finalUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "observedAt": "2026-08-08T18:57:46Z",
+    "httpStatus": 200,
+    "contentMatch": true,
+    "observedTitle": "YNX Calendar",
+    "observedCanonical": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "classification": "direct public Testnet Calendar web runtime"
+  },
+  "installEvidence": [],
+  "buildEvidence": [
+    {
+      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "gate": "go test ./internal/calendar",
+      "result": "pass"
+    },
+    {
+      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "gate": "go test -race ./internal/calendar",
+      "result": "pass"
+    },
+    {
+      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "gate": "npm test",
+      "result": "pass"
+    },
+    {
+      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "gate": "npm run build",
+      "result": "pass"
+    },
+    {
+      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "gate": "npm run build:android",
+      "result": "pass",
+      "classification": "debug APK build only; not current-source install proof"
+    },
+    {
+      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "gate": "npm run check:ios",
+      "result": "pass",
+      "classification": "Swift parse and project/plist lint only; not current-source simulator install proof"
+    },
+    {
+      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "gate": "npm run smoke",
+      "result": "pass"
+    },
+    {
+      "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
+      "gate": "npm run browser:proof",
+      "result": "pass",
+      "details": {
+        "desktop": "apps/calendar/tests/artifacts/calendar-desktop.png",
+        "mobile": "apps/calendar/tests/artifacts/calendar-mobile.png",
+        "accessibility": "interactive controls named",
+        "consoleErrors": 0
+      }
+    },
+    {
+      "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+      "gate": "go test ./internal/calendar ./apps/calendar/statectl",
+      "result": "pass",
+      "classification": "state schema, deterministic backup, authenticated isolated restore and rejection matrix"
+    },
+    {
+      "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+      "gate": "go test -race ./internal/calendar",
+      "result": "pass"
+    },
+    {
+      "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+      "gate": "go vet ./internal/calendar ./apps/calendar/statectl",
+      "result": "pass"
+    },
+    {
+      "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+      "gate": "operator backup and isolated restore drill",
+      "result": "pass",
+      "classification": "local empty-state drill only; no production-scale disaster-recovery claim"
+    },
+    {
+      "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
+      "gate": "public canonical Wallet two-user lifecycle and restart drill",
+      "result": "pass",
+      "details": {
+        "users": 2,
+        "flows": ["invite", "RSVP", "update", "cancel", "DST recurrence exception"],
+        "restartPersistence": true,
+        "authenticatedConcurrentReads": "100/100",
+        "runtime": "https://calendar-testnet.43.153.202.237.sslip.io/"
+      }
+    },
+    {
+      "sourceCommit": "cf92caa3de1e4cba912813958523f41150f12c1a",
+      "gate": "go test -race ./internal/calendar ./apps/calendar",
+      "result": "pass"
+    },
+    {
+      "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+      "gate": "390px compact week browser proof and public runtime deployment",
+      "result": "pass",
+      "details": {
+        "visibleDayHeaders": 7,
+        "horizontalOverflow": 0,
+        "consoleErrors": 0,
+        "runtime": "https://calendar-testnet.43.153.202.237.sslip.io/",
+        "binarySha256": "18d03deb535fd2df14ea755bdfa34bdd8604d51e9b16c485ad1cc990717ba0fe",
+        "rollbackBackup": "/var/backups/ynx-chain/calendar-before-fb98415c"
+      }
+    }
+  ],
+  "historicalPreview": {
+    "tag": "ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f",
+    "sourceCommit": "e227c4f0505537b19f4588ea26478c54518f0a4c",
+    "classification": "historical-testnet-preview-not-current-source",
+    "downloadHosted": true,
+    "installedLocal": {
+      "android": true,
+      "iosSimulator": true,
+      "desktop": true
+    },
+    "artifactUrls": [
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-calendar-0.2.0-testnet-preview-android-debug.apk",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-calendar-android-e227-evidence.json",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-calendar-android-cold-e227.png",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/YNXCalendar-unsigned-simulator.app.zip",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/YNXCalendar-evidence.txt",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/YNXCalendar-cold-launch.png",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/SHA256SUMS.txt"
+    ],
+    "sha256": {
+      "ynx-calendar-0.2.0-testnet-preview-android-debug.apk": "f233c3b8c68ca06e9776e1b231fabd8d21db2fb71455649306f621eb2b8fa030",
+      "ynx-calendar-android-e227-evidence.json": "a0d58b6d6fad9ba7d17c3ad3f17865dff99c4c97985e3366a6078e1f76b3ea90",
+      "ynx-calendar-android-cold-e227.png": "df221bcb720a3243e803a97ced02099e357643c45e230d656b1b7bc24195c2e9",
+      "YNXCalendar-unsigned-simulator.app.zip": "8fdff73f0ceead7db2f4901c75bd0b9bc95aec05c99347d289a506bdd9fbc00b",
+      "YNXCalendar-evidence.txt": "f05a3d0ee13b9fa08a84cce31b492fff698dbd65bbc394516b8b5e4eaf6c4bce",
+      "YNXCalendar-cold-launch.png": "ca377afa7a78a93579d255fe1cd53bd8a695aae6addf71f6c34bb061956d1a71",
+      "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": "b7a978558fba392bc61f821d9a7dd40001e54a2d75b3835da4cd23f6868cd854",
+      "ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": "d3f4daa41a2290b6235e0d6961457e62ef7ec7dd4701c48f915d31b01909d0ce",
+      "SHA256SUMS.txt": "3c86750f13d73ed9aa55e1e373af1eda5942aafb3450101a177439ce067d4c6d"
+    },
+    "bytes": {
+      "ynx-calendar-0.2.0-testnet-preview-android-debug.apk": 6404458,
+      "ynx-calendar-android-e227-evidence.json": 731,
+      "ynx-calendar-android-cold-e227.png": 125092,
+      "YNXCalendar-unsigned-simulator.app.zip": 328099,
+      "YNXCalendar-evidence.txt": 348,
+      "YNXCalendar-cold-launch.png": 180373,
+      "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": 2743299,
+      "ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": 473,
+      "SHA256SUMS.txt": 1730
+    },
+    "signingClass": {
+      "android": "debug-test-only",
+      "ios": "unsigned-simulator-ci",
+      "desktop": "unsigned-local"
+    },
+    "installEvidence": [
+      "Android API 36 emulator-5560: both package IDs installed together; Calendar install Success, COLD 7477 ms, restart COLD 2851 ms, exact callback resolved in 811 ms",
+      "GitHub Actions 29652770138: unsigned iOS Simulator build/install/cold launch success; PID 67181; 2.36 s; exact callback resolution success",
+      "macOS arm64 archive extracted into a clean install directory; packaged service COLD 3.534 s, stop/restart 0.035 s, embedded Web and exact health commit verified"
+    ],
+    "limitations": [
+      "does not include recurrence schema version 1 from current source",
+      "does not prove current-source install, cold start, restart, callback, SBOM, or provenance",
+      "debug/unsigned evidence is not production signing or store release"
+    ]
+  },
+  "centralIntegration": "release/integration/calendar-contract.json",
+  "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
+  "crossProductTestVectors": "release/calendar/cross-product-test-vectors.json",
+  "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+  "websiteIntegrationHandoff": "docs/integration/WEBSITE_INTEGRATION_HANDOFF.md",
+  "knownLimitations": [
+    "current-source invitation and reminder delivery is local Calendar state, not accepted Mail or push delivery",
+    "canonical Wallet/Auth is accepted by the deployed public Gateway; AI, Mail, Data Fabric and shared integration acceptance remain incomplete",
+    "current-source Android/iOS/macOS artifacts are not install-proved or hosted",
+    "no distinct staging runtime, production signing, notarization, or store release",
+    "backup confidentiality encryption, offsite retention and independent key escrow remain pending Security/SRE acceptance",
+    "repository-wide Go preflight has non-Calendar failures retained in dependency acceptance"
+  ],
+  "generatedAt": "2026-08-08T18:57:46Z"
+}

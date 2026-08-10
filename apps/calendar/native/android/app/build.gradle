@@ -1,0 +1,7 @@
+plugins { id 'com.android.application' }
+android { namespace 'com.ynxweb4.calendar'; compileSdk 36
+ defaultConfig { applicationId 'com.ynxweb4.calendar'; minSdk 26; targetSdk 36; versionCode 1; versionName '0.2.0-test' }
+ buildTypes { debug { debuggable true }; release { minifyEnabled false } }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies { implementation 'androidx.appcompat:appcompat:1.7.1'; implementation 'androidx.core:core:1.17.0'; implementation 'com.google.android.material:material:1.13.0' }

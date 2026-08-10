@@ -1,0 +1,99 @@
+package main
+
+import (
+	"embed"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	calendarservice "github.com/JiahaoAlbus/YNX-Chain/internal/calendar"
+	"io/fs"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+)
+
+//go:embed web/*
+var assets embed.FS
+var buildCommit = "unknown"
+var buildRelease = "local"
+var buildTime = "unknown"
+
+func main() {
+	dataDir := env("YNX_CALENDAR_DATA_DIR", "./var/calendar")
+	store, err := calendarservice.NewStore(filepath.Join(dataDir, "state.json"))
+	fatal(err)
+	service, err := calendarservice.NewService(store, calendarservice.RemoteWalletVerifier{BaseURL: os.Getenv("YNX_WALLET_VERIFY_URL")}, calendarservice.RemoteAI{BaseURL: os.Getenv("YNX_AI_GATEWAY_URL"), Token: os.Getenv("YNX_AI_GATEWAY_TOKEN")})
+	fatal(err)
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for now := range ticker.C {
+			if _, e := service.ProcessReminders(now); e != nil {
+				log.Printf("calendar reminder processing failed: %v", e)
+			}
+		}
+	}()
+	webFS, err := fs.Sub(assets, "web")
+	fatal(err)
+	mux := http.NewServeMux()
+	mux.Handle("/v1/", calendarservice.NewHandlerWithBuild(service, buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}))
+	mux.Handle("/", spa(http.FS(webFS)))
+	maxInFlight := envInt("YNX_CALENDAR_MAX_IN_FLIGHT", 128, 1, 4096)
+	server := &http.Server{Addr: env("YNX_CALENDAR_ADDR", ":8096"), Handler: withAdmission(mux, maxInFlight), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 35 * time.Second, IdleTimeout: 60 * time.Second}
+	log.Printf("YNX Calendar listening on %s (production scheduling is not claimed)", server.Addr)
+	fatal(server.ListenAndServe())
+}
+func spa(root http.FileSystem) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/")
+		if path == "" {
+			path = "index.html"
+		}
+		if f, e := root.Open(path); e == nil {
+			_ = f.Close()
+			http.FileServer(root).ServeHTTP(w, r)
+			return
+		}
+		r2 := r.Clone(r.Context())
+		r2.URL.Path = "/index.html"
+		http.FileServer(root).ServeHTTP(w, r2)
+	})
+}
+func env(name, fallback string) string {
+	if v := strings.TrimSpace(os.Getenv(name)); v != "" {
+		return v
+	}
+	return fallback
+}
+func envInt(name string, fallback, minimum, maximum int) int {
+	value, err := strconv.Atoi(strings.TrimSpace(os.Getenv(name)))
+	if err != nil || value < minimum || value > maximum {
+		return fallback
+	}
+	return value
+}
+func withAdmission(next http.Handler, limit int) http.Handler {
+	if limit < 1 {
+		limit = 1
+	}
+	semaphore := make(chan struct{}, limit)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case semaphore <- struct{}{}:
+			defer func() { <-semaphore }()
+			next.ServeHTTP(w, r)
+		default:
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Header().Set("Retry-After", "1")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"error":"CALENDAR_CAPACITY","detail":"Calendar is at its bounded concurrent request limit; retry safely."}`))
+		}
+	})
+}
+func fatal(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}

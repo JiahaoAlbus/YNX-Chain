@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Calendar</string>
+  <string name="sign_in">Iniciar sesi&#xF3;n con YNX Wallet</string>
+  <string name="today">Hoy</string>
+  <string name="create">Crear evento</string>
+  <string name="empty">No hay eventos en este intervalo</string>
+  <string name="offline">Sin conexi&#xF3;n: los cambios quedan en cola en este dispositivo</string>
+  <string name="invite">Invitar contactos por identificador</string>
+  <string name="timezone">Zona horaria</string>
+  <string name="repeat">Repetici&#xF3;n</string>
+  <string name="reminder">Recordatorio</string>
+  <string name="conflict">Comprobar conflictos</string>
+  <string name="review">Revisar cambios</string>
+  <string name="approve">Aprobar cambio</string>
+  <string name="recover">Recuperar con YNX Wallet</string>
+  <string name="privacy">Solo los detalles seleccionados se env&#xED;an a la IA tras la aprobaci&#xF3;n.</string>
+  <string name="ai">Asistente de horarios</string>
+  <string name="ai_language">Idioma de salida de IA</string>
+  <string name="unavailable">Gateway no disponible</string>
+  <string name="security">La aprobaci&#xF3;n de Wallet nunca comparte material de recuperaci&#xF3;n.</string>
+  <string name="a11y_timeline">Cronolog&#xED;a del calendario</string>
+  <string name="rsvp">Responder invitación</string>
+  <string name="update">Actualizar evento</string>
+  <string name="cancel_event">Cancelar reunión</string>
+  <string name="share">Compartir calendario</string>
+  <string name="meeting_link">Enlace de reunión</string>
+</resources>

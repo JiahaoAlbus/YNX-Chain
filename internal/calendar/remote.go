@@ -1,0 +1,213 @@
+package calendar
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"time"
+)
+
+type RemoteWalletVerifier struct {
+	BaseURL string
+	Client  *http.Client
+}
+
+func (v RemoteWalletVerifier) Verify(ctx context.Context, proof WalletProof) error {
+	if strings.TrimSpace(v.BaseURL) == "" {
+		return errors.New("YNX Wallet verification endpoint is not configured")
+	}
+	if proof.Central == nil {
+		return errors.New("central Wallet Auth v1 proof is required")
+	}
+	// The deployed Gateway requires canonical JSON. encoding/json sorts map
+	// keys; RawMessage preserves the already Wallet-approved nested values.
+	body, e := json.Marshal(map[string]json.RawMessage{
+		"authorizationRequest": proof.Central.AuthorizationRequest,
+		"gatewayCompletion":    proof.Central.GatewayCompletion,
+		"walletApproval":       proof.Central.WalletApproval,
+	})
+	if e != nil {
+		return fmt.Errorf("encode canonical wallet completion: %w", e)
+	}
+	req, e := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(v.BaseURL, "/")+"/v1/wallet/sessions/complete", bytes.NewReader(body))
+	if e != nil {
+		return e
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := v.Client
+	if client == nil {
+		client = &http.Client{Timeout: 5 * time.Second}
+	}
+	resp, e := client.Do(req)
+	if e != nil {
+		return e
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("wallet verification rejected with status %d", resp.StatusCode)
+	}
+	var envelope struct {
+		OK            bool                  `json:"ok"`
+		Result        VerifiedWalletSession `json:"result"`
+		SchemaVersion int                   `json:"schemaVersion"`
+		StateDigest   string                `json:"stateDigest"`
+	}
+	responseBody, e := io.ReadAll(io.LimitReader(resp.Body, (64<<10)+1))
+	if e != nil || len(responseBody) > 64<<10 {
+		return errors.New("central wallet session response exceeds limit")
+	}
+	if e := decodeStrict(responseBody, &envelope); e != nil {
+		return fmt.Errorf("decode central wallet session: %w", e)
+	}
+	session := envelope.Result
+	if !envelope.OK || envelope.SchemaVersion != 1 || len(envelope.StateDigest) != 64 ||
+		session.VerifierVersion != "wallet-auth-v1" || len(session.SessionBinding) != 64 ||
+		session.ChainID != "ynx_6423-1" || session.RequestingProduct != "calendar" ||
+		session.ProductClientID != ProductClientID || session.BundleID != BundleID || session.Callback != CallbackURL ||
+		session.ProductDeviceAlgorithm != "p256-sha256" || session.ProductDeviceKey != proof.DeviceKey ||
+		len(session.DeviceBinding) != 64 || len(session.RequestDigest) != 64 || len(session.ApprovalDigest) != 64 ||
+		session.Account != proof.Account || session.Nonce == "" || session.Purpose == "" || !sameScopes(session.Scopes, proof.Scopes) {
+		return errors.New("central wallet session binding mismatch")
+	}
+	issued, e := time.Parse(time.RFC3339Nano, session.IssuedAt)
+	if e != nil || issued.After(time.Now().UTC().Add(30*time.Second)) {
+		return errors.New("central wallet session issue time is invalid")
+	}
+	expires, e := time.Parse(time.RFC3339Nano, session.ExpiresAt)
+	if e != nil || !expires.After(time.Now().UTC()) {
+		return errors.New("central wallet session expired")
+	}
+	return nil
+}
+func sameScopes(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+type RemoteAI struct {
+	BaseURL, Token string
+	Client         *http.Client
+}
+
+func (a RemoteAI) Status(ctx context.Context) (string, string, string, error) {
+	if a.BaseURL == "" {
+		return "", "", "", errors.New("YNX AI Gateway endpoint is not configured")
+	}
+	var out struct {
+		ProviderConfigured bool   `json:"providerConfigured"`
+		Model              string `json:"model"`
+	}
+	if e := a.get(ctx, "/health", &out); e != nil {
+		return "", "", "", e
+	}
+	if !out.ProviderConfigured || out.Model == "" {
+		return "", "", "", errors.New("AI provider reports no active model")
+	}
+	return "ynx-ai-gateway", out.Model, "authoritative estimate unavailable", nil
+}
+func (a RemoteAI) Generate(ctx context.Context, kind string, events []Event) (string, error) {
+	selected := make([]map[string]any, 0, len(events))
+	for _, e := range events {
+		selected = append(selected, map[string]any{"id": e.ID, "title": e.Title, "start_utc": e.StartUTC, "end_utc": e.EndUTC, "time_zone": e.TimeZone})
+	}
+	prompt, _ := json.Marshal(map[string]any{"session": "calendar-approved-context", "product": ProductID, "workflow": kind, "selected_events": selected})
+	u := strings.TrimRight(a.BaseURL, "/") + "/ai/stream"
+	req, e := http.NewRequestWithContext(ctx, http.MethodPost, u, bytes.NewReader(prompt))
+	if e != nil {
+		return "", e
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-YNX-AI-Key", a.Token)
+	client := a.Client
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
+	resp, e := client.Do(req)
+	if e != nil {
+		return "", e
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("AI Gateway returned status %d", resp.StatusCode)
+	}
+	var result strings.Builder
+	scan := bufio.NewScanner(io.LimitReader(resp.Body, 1<<20))
+	for scan.Scan() {
+		line := scan.Text()
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		var token struct {
+			Text string `json:"text"`
+		}
+		if json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &token) == nil {
+			result.WriteString(token.Text)
+		}
+	}
+	if e := scan.Err(); e != nil {
+		return "", e
+	}
+	if strings.TrimSpace(result.String()) == "" {
+		return "", errors.New("AI Gateway returned an empty result")
+	}
+	return result.String(), nil
+}
+func (a RemoteAI) get(ctx context.Context, path string, out any) error {
+	req, e := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(a.BaseURL, "/")+path, nil)
+	if e != nil {
+		return e
+	}
+	if a.Token != "" {
+		req.Header.Set("X-YNX-AI-Key", a.Token)
+	}
+	client := a.Client
+	if client == nil {
+		client = &http.Client{Timeout: 5 * time.Second}
+	}
+	resp, e := client.Do(req)
+	if e != nil {
+		return e
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("AI Gateway returned status %d", resp.StatusCode)
+	}
+	return json.NewDecoder(resp.Body).Decode(out)
+}
+func (a RemoteAI) do(ctx context.Context, path string, in, out any) error {
+	body, _ := json.Marshal(in)
+	req, e := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(a.BaseURL, "/")+path, bytes.NewReader(body))
+	if e != nil {
+		return e
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if a.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+a.Token)
+	}
+	client := a.Client
+	if client == nil {
+		client = &http.Client{Timeout: 30 * time.Second}
+	}
+	resp, e := client.Do(req)
+	if e != nil {
+		return e
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("AI Gateway returned status %d", resp.StatusCode)
+	}
+	return json.NewDecoder(resp.Body).Decode(out)
+}

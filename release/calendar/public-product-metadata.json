@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "productId": "com.ynx.calendar",
+  "name": "YNX Calendar",
+  "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
+  "canonicalRoute": "/dapp/calendar",
+  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "title": "YNX Calendar — Private scheduling with explicit approval",
+  "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
+  "h1": "Your time, clearly under your control",
+  "summary": "YNX Calendar is an independent scheduling product for events, recurring plans, invitations, RSVP, reminders, sharing, conflict review and offline recovery. Calendar changes and AI drafts remain previews until the user approves them.",
+  "brand": {
+    "primaryColor": "#002FA7",
+    "backgroundColor": "#FFFFFF",
+    "style": "clear, restrained, task-focused",
+    "icon": {
+      "publicPath": "/products/calendar/icon.svg",
+      "status": "proposed-unhosted"
+    },
+    "logo": {
+      "publicPath": "/products/calendar/logo.svg",
+      "status": "proposed-unhosted"
+    }
+  },
+  "websitePublished": true,
+  "deployedPublic": true,
+  "deployedStaging": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "runtimeStatus": "public-testnet-preview",
+  "publicRuntime": "https://calendar-testnet.43.153.202.237.sslip.io/",
+  "features": [
+    "Event preview, approval, edit, cancel and recovery",
+    "Daily, weekly, monthly and yearly recurrence",
+    "Timezone-aware scheduling with DST-safe local time",
+    "Single-occurrence cancellation and modification schema",
+    "YNX-handle invitations and RSVP",
+    "Owner, editor and viewer sharing",
+    "Recurring conflict detection with explicit override",
+    "Local reminders, audit, export and account deletion",
+    "Offline mutation recovery",
+    "Versioned authenticated backup with isolated restore verification",
+    "AI drafts with provider, model, cost and approval boundaries",
+    "12-language localization with Arabic RTL",
+    "Web, Android, iOS and macOS-oriented delivery surfaces"
+  ],
+  "releaseNotes": [
+    "The current source supports occurrence-only, this-and-following and entire-series recurrence mutation with stable lineage and explicit approval.",
+    "Calendar state payload schema version 1 now has deterministic authenticated backup and isolated restore verification.",
+    "Restore rejects tampered, wrong-product, incompatible-version, stale, absolute, path-escaping and symbolic-link inputs.",
+    "Current source passes Calendar unit, Race, Vet, Web, browser, build and service smoke gates.",
+    "The 390px week view displays all seven days without horizontal scrolling; day and month views remain available."
+  ],
+  "risksAndLimitations": [
+    "The public runtime is a Testnet preview, not a production scheduling service.",
+    "Current-source mobile and desktop packages are not yet hosted or install-proved.",
+    "Canonical Wallet/Auth is live; Mail delivery, AI provider execution, Data Fabric and shared integration acceptance are pending.",
+    "Invitation and reminder delivery is currently local Calendar state, not accepted Mail or push delivery.",
+    "Backup confidentiality encryption, offsite retention and independent key escrow are not yet accepted by Security/SRE.",
+    "The measured restore result is a local empty-state drill and is not a production-scale RTO or RPO claim.",
+    "No production signing, notarization or store release is claimed."
+  ],
+  "statusLabels": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": true,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "downloads": {
+    "currentSource": [],
+    "historicalPreview": {
+      "available": true,
+      "classification": "older test-only preview; not proof of current source",
+      "sourceCommit": "e227c4f0505537b19f4588ea26478c54518f0a4c",
+      "tag": "ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f"
+    }
+  },
+  "screenshots": [
+    {
+      "id": "calendar-desktop",
+      "publicPath": "/products/calendar/screenshots/calendar-desktop.png",
+      "status": "local-proof-unhosted",
+      "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+      "alt": "YNX Calendar desktop scheduling interface"
+    },
+    {
+      "id": "calendar-mobile",
+      "publicPath": "/products/calendar/screenshots/calendar-mobile.png",
+      "status": "local-proof-unhosted",
+      "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+      "alt": "YNX Calendar mobile scheduling interface"
+    }
+  ],
+  "routes": {
+    "support": "/support/calendar",
+    "privacy": "/privacy/calendar",
+    "security": "/security/calendar",
+    "status": "/status/calendar"
+  },
+  "locales": [
+    "en",
+    "zh-CN",
+    "zh-TW",
+    "ja",
+    "ko",
+    "es",
+    "fr",
+    "de",
+    "pt",
+    "ru",
+    "ar",
+    "id"
+  ],
+  "faq": [
+    {
+      "question": "Does YNX Calendar change events automatically?",
+      "answer": "No. Event changes and conflict overrides require explicit user approval. AI can draft or explain, but it cannot invite, RSVP, cancel or reschedule on its own."
+    },
+    {
+      "question": "How does recurring scheduling handle timezones?",
+      "answer": "Recurring events use IANA timezones and preserve local wall time across daylight-saving transitions. Invalid month dates are skipped rather than silently moved."
+    },
+    {
+      "question": "Can I invite other people?",
+      "answer": "Local Calendar state supports approved YNX-handle invitations and accept, tentative or decline responses. Accepted Mail delivery integration is still pending."
+    },
+    {
+      "question": "Is YNX Calendar publicly deployed?",
+      "answer": "A current-source Testnet web preview is public. It is not a production scheduling service, and no current-source native download, production signature or store release is claimed."
+    },
+    {
+      "question": "Are older preview downloads the current release?",
+      "answer": "No. Historical test-only preview packages were built from an older source commit and do not include the current recurrence implementation."
+    },
+    {
+      "question": "Can I export or delete my Calendar data?",
+      "answer": "Local account export and deletion flows exist. State schema version 1 has authenticated backup and isolated restore verification; encrypted offsite retention and production-scale recovery evidence remain pending."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "type": "SoftwareApplication",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "Web, Android, iOS, macOS",
+    "offers": null,
+    "releaseStatus": "DevelopmentRelease",
+    "featureListSource": "features",
+    "faqSource": "faq"
+  },
+  "websiteHandoff": {
+    "consumer": "28-website",
+    "requiredReviewers": ["29-integration", "30-security-platform"],
+    "publishConditions": [
+      "host approved icon, logo and screenshots",
+      "preserve the verified public Web state and keep unproved native/production states false",
+      "distinguish current source from historical preview downloads",
+      "publish canonical, support, privacy, security and status routes",
+      "record Website deployment commit and public probes"
+    ]
+  },
+  "generatedAt": "2026-08-08T18:57:46Z"
+}

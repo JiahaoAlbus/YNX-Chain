@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Calendar</string>
+  <string name="sign_in">Se connecter avec YNX Wallet</string>
+  <string name="today">Aujourd&#x2019;hui</string>
+  <string name="create">Cr&#xE9;er un &#xE9;v&#xE9;nement</string>
+  <string name="empty">Aucun &#xE9;v&#xE9;nement dans cette p&#xE9;riode</string>
+  <string name="offline">Hors ligne &#x2014; les modifications sont en attente sur cet appareil</string>
+  <string name="invite">Inviter des contacts par identifiant</string>
+  <string name="timezone">Fuseau horaire</string>
+  <string name="repeat">R&#xE9;currence</string>
+  <string name="reminder">Rappel</string>
+  <string name="conflict">V&#xE9;rifier les conflits</string>
+  <string name="review">V&#xE9;rifier les modifications</string>
+  <string name="approve">Approuver la modification</string>
+  <string name="recover">R&#xE9;cup&#xE9;rer avec YNX Wallet</string>
+  <string name="privacy">Seuls les d&#xE9;tails s&#xE9;lectionn&#xE9;s sont envoy&#xE9;s &#xE0; l&#x2019;IA apr&#xE8;s approbation.</string>
+  <string name="ai">Assistant de planification</string>
+  <string name="ai_language">Langue de sortie de l&#x2019;IA</string>
+  <string name="unavailable">Passerelle indisponible</string>
+  <string name="security">L&#x2019;approbation Wallet ne partage jamais les donn&#xE9;es de r&#xE9;cup&#xE9;ration.</string>
+  <string name="a11y_timeline">Chronologie du calendrier</string>
+  <string name="rsvp">Répondre à l’invitation</string>
+  <string name="update">Modifier l’événement</string>
+  <string name="cancel_event">Annuler la réunion</string>
+  <string name="share">Partager le calendrier</string>
+  <string name="meeting_link">Lien de réunion</string>
+</resources>

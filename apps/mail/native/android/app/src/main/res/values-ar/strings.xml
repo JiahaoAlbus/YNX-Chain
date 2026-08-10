@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Mail</string>
+  <string name="sign_in">&#x62A;&#x633;&#x62C;&#x64A;&#x644; &#x627;&#x644;&#x62F;&#x62E;&#x648;&#x644; &#x628;&#x627;&#x633;&#x62A;&#x62E;&#x62F;&#x627;&#x645; YNX Wallet</string>
+  <string name="inbox">&#x627;&#x644;&#x628;&#x631;&#x64A;&#x62F; &#x627;&#x644;&#x648;&#x627;&#x631;&#x62F;</string>
+  <string name="search">&#x627;&#x644;&#x628;&#x62D;&#x62B; &#x641;&#x64A; &#x627;&#x644;&#x628;&#x631;&#x64A;&#x62F;</string>
+  <string name="compose">&#x625;&#x646;&#x634;&#x627;&#x621; &#x631;&#x633;&#x627;&#x644;&#x629;</string>
+  <string name="drafts">&#x627;&#x644;&#x645;&#x633;&#x648;&#x62F;&#x627;&#x62A;</string>
+  <string name="archive">&#x627;&#x644;&#x623;&#x631;&#x634;&#x64A;&#x641;</string>
+  <string name="spam">&#x627;&#x644;&#x628;&#x631;&#x64A;&#x62F; &#x627;&#x644;&#x645;&#x632;&#x639;&#x62C;</string>
+  <string name="offline">&#x63A;&#x64A;&#x631; &#x645;&#x62A;&#x635;&#x644; &#x2014; &#x62A;&#x628;&#x642;&#x649; &#x627;&#x644;&#x62A;&#x63A;&#x64A;&#x64A;&#x631;&#x627;&#x62A; &#x639;&#x644;&#x649; &#x647;&#x630;&#x627; &#x627;&#x644;&#x62C;&#x647;&#x627;&#x632;</string>
+  <string name="empty">&#x644;&#x627; &#x62A;&#x648;&#x62C;&#x62F; &#x631;&#x633;&#x627;&#x626;&#x644;</string>
+  <string name="retry">&#x625;&#x639;&#x627;&#x62F;&#x629; &#x627;&#x644;&#x645;&#x62D;&#x627;&#x648;&#x644;&#x629;</string>
+  <string name="privacy">&#x644;&#x627; &#x62A;&#x64F;&#x631;&#x633;&#x644; &#x625;&#x644;&#x649; &#x627;&#x644;&#x630;&#x643;&#x627;&#x621; &#x627;&#x644;&#x627;&#x635;&#x637;&#x646;&#x627;&#x639;&#x64A; &#x625;&#x644;&#x627; &#x627;&#x644;&#x645;&#x62D;&#x627;&#x62F;&#x62B;&#x627;&#x62A; &#x627;&#x644;&#x645;&#x62D;&#x62F;&#x62F;&#x629; &#x648;&#x628;&#x639;&#x62F; &#x627;&#x644;&#x645;&#x648;&#x627;&#x641;&#x642;&#x629;.</string>
+  <string name="ai">&#x645;&#x633;&#x627;&#x62D;&#x629; &#x639;&#x645;&#x644; &#x627;&#x644;&#x630;&#x643;&#x627;&#x621; &#x627;&#x644;&#x627;&#x635;&#x637;&#x646;&#x627;&#x639;&#x64A;</string>
+  <string name="ai_language">&#x644;&#x63A;&#x629; &#x645;&#x62E;&#x631;&#x62C;&#x627;&#x62A; &#x627;&#x644;&#x630;&#x643;&#x627;&#x621; &#x627;&#x644;&#x627;&#x635;&#x637;&#x646;&#x627;&#x639;&#x64A;</string>
+  <string name="approve">&#x627;&#x644;&#x645;&#x648;&#x627;&#x641;&#x642;&#x629; &#x639;&#x644;&#x649; &#x627;&#x644;&#x633;&#x64A;&#x627;&#x642; &#x627;&#x644;&#x645;&#x62D;&#x62F;&#x62F;</string>
+  <string name="recover">&#x627;&#x644;&#x627;&#x633;&#x62A;&#x631;&#x62F;&#x627;&#x62F; &#x628;&#x627;&#x633;&#x62A;&#x62E;&#x62F;&#x627;&#x645; YNX Wallet</string>
+  <string name="unavailable">&#x627;&#x644;&#x628;&#x648;&#x627;&#x628;&#x629; &#x63A;&#x64A;&#x631; &#x645;&#x62A;&#x627;&#x62D;&#x629;</string>
+  <string name="security">&#x645;&#x648;&#x627;&#x641;&#x642;&#x629; &#x627;&#x644;&#x645;&#x62D;&#x641;&#x638;&#x629; &#x644;&#x627; &#x62A;&#x634;&#x627;&#x631;&#x643; &#x645;&#x648;&#x627;&#x62F; &#x627;&#x644;&#x627;&#x633;&#x62A;&#x631;&#x62F;&#x627;&#x62F; &#x645;&#x637;&#x644;&#x642;&#x64B;&#x627;.</string>
+  <string name="attachment">&#x625;&#x636;&#x627;&#x641;&#x629; &#x645;&#x631;&#x641;&#x642; (&#x62D;&#x62F; 10 &#x645;.&#x628;)</string>
+  <string name="send_preview">&#x627;&#x644;&#x645;&#x631;&#x627;&#x62C;&#x639;&#x629; &#x648;&#x627;&#x644;&#x625;&#x631;&#x633;&#x627;&#x644;</string>
+  <string name="a11y_nav">&#x627;&#x644;&#x62A;&#x646;&#x642;&#x644; &#x641;&#x64A; &#x627;&#x644;&#x628;&#x631;&#x64A;&#x62F;</string>
+  <string name="thread">المحادثة</string>
+  <string name="delivery_failure">فشل التسليم — تم الاحتفاظ بالمسودة</string>
+  <string name="block_sender">حظر المرسل</string>
+  <string name="report_trust">الإبلاغ إلى Trust</string>
+  <string name="appeal">استئناف البلاغ</string>
+</resources>

@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "productId": "com.ynx.calendar",
+  "contractVersion": "1.0.0-draft",
+  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "generatedAt": "2026-08-08T18:57:46Z",
+  "vectors": [
+    {
+      "id": "CAL-X-001",
+      "name": "two-user invitation lifecycle",
+      "owners": ["36-calendar", "25-mail", "02-wallet-auth", "29-integration"],
+      "status": "public-calendar-wallet-pass-mail-pending",
+      "preconditions": ["Alice and Bob have accepted Wallet/Auth Calendar sessions", "Mail delivery endpoint is accepted"],
+      "steps": [
+        "Alice previews and approves an event inviting @bob",
+        "Calendar emits one idempotent invitation envelope",
+        "Bob accepts",
+        "Calendar emits one RSVP envelope",
+        "Alice previews and approves an update",
+        "Alice previews and approves cancellation"
+      ],
+      "expected": [
+        "organizer and attendee roles remain distinct",
+        "each state transition increments event version",
+        "duplicate mutation or delivery keys do not duplicate state or Mail",
+        "Bob cannot edit unless separately granted editor permission",
+        "cancellation is visible to both users"
+      ],
+      "localEvidence": ["TestInviteRSVPShareUpdateCancelRevertAndAuthorization"],
+      "centralEvidenceRequired": ["Wallet transaction/session proof", "Mail delivery IDs", "shared Testnet request/audit IDs"]
+    },
+    {
+      "id": "CAL-X-002",
+      "name": "wallet replay and binding rejection",
+      "owners": ["36-calendar", "02-wallet-auth"],
+      "status": "public-wallet-flow-pass-negative-suite-local-pass",
+      "preconditions": ["accepted verifier contract"],
+      "steps": [
+        "submit a valid signed Calendar authorization tuple",
+        "restart Calendar",
+        "reuse the same central authorization request with a new local challenge",
+        "repeat with wrong productClientId, bundleId, account, scope, device/session binding, expired session, and revoked session"
+      ],
+      "expected": ["first valid request succeeds", "all replay, tamper, wrong-binding, expiry, and revoke cases fail closed", "no browser-visible long-lived bearer token is returned"],
+      "localEvidence": ["TestRemoteWalletVerifierUsesCentralContractAndRejectsTamper", "TestCentralWalletRequestReplayPersistsAcrossRestart", "TestHTTPLoginUsesHttpOnlyCookieWithoutTokenBody"],
+      "centralEvidenceRequired": ["accepted verifier version", "central audit IDs", "expiry and revoke receipts"]
+    },
+    {
+      "id": "CAL-X-003",
+      "name": "weekly recurrence across DST with exceptions",
+      "owners": ["36-calendar", "29-integration"],
+      "status": "local-pass",
+      "preconditions": ["recurrence schema version 1"],
+      "steps": [
+        "create a weekly America/New_York series at 09:00 on Monday and Wednesday",
+        "cancel the first Wednesday occurrence",
+        "move the following Monday to 11:00",
+        "expand across the March DST transition"
+      ],
+      "expected": ["09:00 local wall time is preserved for unchanged occurrences", "the cancelled occurrence is absent", "the moved occurrence appears once at 11:00", "UTC offsets change at DST without local drift"],
+      "localEvidence": ["TestVersionedRecurrenceRulesAndSingleOccurrenceExceptions"],
+      "centralEvidenceRequired": []
+    },
+    {
+      "id": "CAL-X-004",
+      "name": "month-end and leap-day recurrence",
+      "owners": ["36-calendar"],
+      "status": "local-pass",
+      "preconditions": ["recurrence schema version 1"],
+      "steps": ["expand monthly day 31 from January", "expand yearly February 29 from 2024"],
+      "expected": ["invalid month days are skipped instead of rolling", "leap-day occurrences are 2024, 2028, and 2032 for count three"],
+      "localEvidence": ["TestVersionedRecurrenceRulesAndSingleOccurrenceExceptions"],
+      "centralEvidenceRequired": []
+    },
+    {
+      "id": "CAL-X-005",
+      "name": "recurrence mutation scopes",
+      "owners": ["36-calendar"],
+      "status": "local-pass",
+      "preconditions": ["recurrence schema version 1 and the recurrence-preview endpoint"],
+      "steps": ["modify one occurrence", "cancel one occurrence", "split and update this-and-following for Count and Until series", "update the entire series", "replay each mutation", "restart and revert each applied change", "collide the derived future event ID", "submit a stale base version"],
+      "expected": ["stable series linkage", "no duplicate occurrence", "prior occurrences remain unchanged for future-scope update", "cancellation does not require override for unrelated conflicts", "derived-event collision and stale versions fail atomically", "rollback restores deterministic state after restart"],
+      "localEvidence": ["TestRecurrenceMutationScopesAreAtomicReplayableAndRecoverable", "TestRecurrenceMutationPermissionBoundaries", "TestThisAndFollowingTruncatesUntilAtPreviousDSTOccurrence", "TestOccurrenceCancellationDoesNotRequireUnrelatedConflictOverride", "TestLegacyRecurrenceLineageNormalizesOnRestart", "go test -race ./internal/calendar"],
+      "centralEvidenceRequired": []
+    },
+    {
+      "id": "CAL-X-006",
+      "name": "shared permission lifecycle",
+      "owners": ["36-calendar", "26-data-fabric"],
+      "status": "local-event-sharing-pass-calendar-container-pending",
+      "preconditions": ["Alice, Bob, and Charlie have Calendar accounts"],
+      "steps": ["Alice grants Charlie viewer", "Charlie attempts update", "Alice changes Charlie to editor", "Charlie previews an update", "Alice revokes Charlie", "Charlie retries view and update"],
+      "expected": ["viewer cannot edit", "editor may preview authorized edits", "revoke takes effect immediately", "permission transitions emit auditable canonical events"],
+      "localEvidence": ["TestInviteRSVPShareUpdateCancelRevertAndAuthorization"],
+      "centralEvidenceRequired": ["Data Fabric event IDs and replay proof"]
+    },
+    {
+      "id": "CAL-X-007",
+      "name": "private free-busy disclosure",
+      "owners": ["36-calendar", "29-integration"],
+      "status": "implementation-pending",
+      "preconditions": ["privacy class and availability-only response schema"],
+      "steps": ["create a private event", "authorize Bob for availability only", "query free/busy as Bob and as an unauthorized user"],
+      "expected": ["Bob sees only busy interval plus source/asOf/version", "unauthorized user receives no event fact", "title, attendees, links, notes, and attachments never leak"],
+      "localEvidence": [],
+      "centralEvidenceRequired": []
+    },
+    {
+      "id": "CAL-X-008",
+      "name": "conflict explicit override",
+      "owners": ["36-calendar"],
+      "status": "local-pass",
+      "preconditions": ["one approved event exists"],
+      "steps": ["preview an overlapping event", "approve without override", "approve with explicit override"],
+      "expected": ["preview contains the conflict", "first approval fails", "second approval succeeds and audit records explicit override", "Calendar does not move either event"],
+      "localEvidence": ["TestPersistenceEventStateConflictIdempotencyAndRestart"],
+      "centralEvidenceRequired": []
+    },
+    {
+      "id": "CAL-X-009",
+      "name": "offline mutation replay and recovery",
+      "owners": ["36-calendar"],
+      "status": "local-pass-browser-proof-partial",
+      "preconditions": ["Web client queues a bounded mutation while offline"],
+      "steps": ["queue create/update offline", "reconnect and submit twice", "restart service", "refresh events"],
+      "expected": ["one change preview is created", "one event state is applied", "restart preserves mutation identity and event version", "UI exposes honest offline/recovery state"],
+      "localEvidence": ["TestPersistenceEventStateConflictIdempotencyAndRestart", "npm run browser:proof"],
+      "centralEvidenceRequired": []
+    },
+    {
+      "id": "CAL-X-010",
+      "name": "AI preview approve reject cancel",
+      "owners": ["36-calendar", "14-ai"],
+      "status": "local-pass-central-pending",
+      "preconditions": ["accepted authenticated AI POST/SSE endpoint"],
+      "steps": ["begin an agenda draft", "inspect provider/model/cost and context preview", "approve one job", "reject another", "cancel a running request", "simulate provider outage"],
+      "expected": ["AI never changes event state or sends invitations", "all decisions are audited", "private context is absent from URL/query", "provider outage is reported as failure rather than synthetic success"],
+      "localEvidence": ["TestRemoteAIUsesPrivatePostBodyAndParsesSSE", "TestAIProviderFailureIsHonest", "TestReminderRestartRecoveryAndAICancel"],
+      "centralEvidenceRequired": ["AI Gateway request IDs", "provider/model/cost response", "cancellation evidence"]
+    },
+    {
+      "id": "CAL-X-011",
+      "name": "current-source platform artifacts",
+      "owners": ["36-calendar", "30-security-platform"],
+      "status": "build-pass-install-and-host-pending",
+      "preconditions": ["source commit fb98415c90379f9819eaebcf30292fafda132ca3"],
+      "steps": ["build Web/Go, Android debug, iOS simulator, and macOS test-only artifacts", "generate SBOM and provenance", "install and cold-start", "restart and resolve callback", "publish immutable hashes and bytes"],
+      "expected": ["every artifact names exact source commit", "signing class is truthful", "no old e227c4f artifact is presented as current", "productionSigned remains false without production evidence"],
+      "localEvidence": ["npm run build", "npm run build:android", "npm run check:ios", "npm run smoke", "npm run browser:proof"],
+      "centralEvidenceRequired": ["Security/SRE release acceptance", "hosted immutable URLs"]
+    },
+    {
+      "id": "CAL-X-012",
+      "name": "public website truth",
+      "owners": ["36-calendar", "28-website", "29-integration", "30-security-platform"],
+      "status": "public-product-pass-auxiliary-routes-pending",
+      "preconditions": ["public metadata consumed by Website"],
+      "steps": ["publish /dapp/calendar page", "show current release states", "link only verified downloads", "probe canonical metadata, FAQ, structured data, support/privacy/security/status"],
+      "expected": ["websitePublished and deployedPublic are separate", "no worktree, branch, local path, internal host, or unsupported production claim is exposed", "current source and historical preview artifacts are visibly distinguished"],
+      "localEvidence": ["public-product-metadata.json", "apps/calendar/product-release.json"],
+      "centralEvidenceRequired": ["auxiliary support/privacy/security/status route probes", "Security/SRE native release acceptance"]
+    },
+    {
+      "id": "CAL-X-013",
+      "name": "authenticated backup and isolated restore",
+      "owners": ["36-calendar", "30-security-platform"],
+      "status": "local-pass-security-retention-pending",
+      "preconditions": ["persistent Calendar store with retained HMAC key", "existing isolated restore root"],
+      "steps": ["create two backups at the same state and timestamp", "verify byte-for-byte determinism", "restore to a new relative target", "reopen and compare state SHA-256", "repeat with tampered, wrong-product, incompatible-version, stale, absolute, path-escaping, symbolic-link and existing targets"],
+      "expected": ["valid backup restores without modifying live state", "restored state digest equals backup digest", "all invalid inputs fail closed", "operator output exposes only the relative target", "production encryption and offsite retention remain unclaimed"],
+      "localEvidence": ["TestCalendarBackupRestoreIsAuthenticatedDeterministicAndIsolated", "TestCalendarRestoreRejectsInvalidInputs", "TestCalendarLegacyStateSchemaNormalizesAndFutureSchemaFailsClosed", "operator backup and restore drill"],
+      "centralEvidenceRequired": ["Security/SRE encrypted retention policy", "independent key escrow proof", "production-scale restore drill"]
+    }
+  ]
+}
