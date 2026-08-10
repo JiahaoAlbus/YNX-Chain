@@ -219,6 +219,11 @@ func (s *Service) Integrations() IntegrationStatus {
 	if s.cfg.GatewayURL != "" && s.cfg.GatewayClientID != "" {
 		status.Gateway = "configured_not_attested"
 		status.GatewayReason = "Configuration is not evidence of central route acceptance"
+		if s.cfg.WalletSessionAttested {
+			status.Gateway = "canonical_product_session_proof"
+			status.GatewayReason = "Canonical Product Session proof path passed the Wallet-to-Exchange release attestation"
+			status.WalletRegistry = "approved_enabled"
+		}
 	}
 	if s.state.CustodyAddress != "" {
 		status.Custody = "review_only"
