@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0-testnet",
   "product": "ynx-exchange",
   "owner": "07-exchange",
-  "sourceCommit": "08308a8c1fa74dae5b25647ff5a6936e34bd57c6",
+  "sourceCommit": "6408dc838057db7fb86bccaa93e42f566792c92c",
   "stateSchemaVersion": 9,
   "authority": {
     "exchangeOwned": [
@@ -80,7 +80,8 @@
       "GET /v1/market-data/trades",
       "GET /v1/streams/market/snapshot",
       "GET /v1/ws/market",
-      "GET /v1/solvency"
+      "GET /v1/solvency",
+      "GET /v1/liquidity/quote"
     ],
     "account": [
       "GET /v1/account",

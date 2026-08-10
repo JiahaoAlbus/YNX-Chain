@@ -3,8 +3,8 @@
   "productId": "ynx-exchange-pro",
   "name": "YNX Exchange Pro",
   "branch": "codex/exchange-brace-expansion-5-0-8",
-  "sourceCommit": "08308a8c1fa74dae5b25647ff5a6936e34bd57c6",
-  "commit": "08308a8c1fa74dae5b25647ff5a6936e34bd57c6",
+  "sourceCommit": "6408dc838057db7fb86bccaa93e42f566792c92c",
+  "commit": "6408dc838057db7fb86bccaa93e42f566792c92c",
   "version": "0.1.0-testnet",
   "stateSchemaVersion": 9,
   "surfaces": [
@@ -66,7 +66,7 @@
     "quantAggregateCapital": "restart-persistent-testedLocal",
     "margin": "notImplemented",
     "perpetual": "notImplemented",
-    "ultraLiquidity": "notImplemented",
+    "ultraLiquidity": "native-CLOB-plus-consensus-DEX-executable-quote-routing-testedLocal; signed-cross-venue-execution-pending",
     "solvencyProof": "liability-Merkle-and-conditional-committed-custody-proof-testedLocal"
   },
   "knownLimitations": [
@@ -74,8 +74,8 @@
     "No hosted download, production signature, notarization or store release",
     "Pause and resume require separate Wallet control signatures; kill remains irreversible for the exact nonce domain",
     "Real historical schema v2-v7 byte fixtures are absent and compatibility is not claimed",
-    "Margin, perpetual, portfolio margin, UltraLiquidity and insurance fund are not implemented",
-    "The liability-proof source commit is tested locally but not deployed; the public URL still serves the prior source commit",
+    "Margin, perpetual, portfolio margin, signed cross-venue execution, non-CLOB/CPMM venue adapters and insurance fund are not implemented",
+    "The liability-proof and UltraLiquidity quote-router source commit is tested locally but not deployed; the public URL still serves the prior source commit",
     "Repository-wide tests are blocked outside Exchange ownership by missing generated contract artifacts and key-permission assumptions"
   ],
   "publicRuntimeEvidence": {
