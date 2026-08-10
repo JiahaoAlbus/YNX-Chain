@@ -62,9 +62,7 @@ type QuantStrategyKill struct {
 	NonceDomain         string    `json:"nonceDomain"`
 	Status              string    `json:"status"`
 	AuthorizationDigest string    `json:"authorizationDigest"`
-	KilledAt            time.Time `json:"killedAt,omitempty"`
-	PausedAt            time.Time `json:"pausedAt,omitempty"`
-	ResumedAt           time.Time `json:"resumedAt,omitempty"`
+	KilledAt            time.Time `json:"killedAt"`
 }
 
 type QuantControlResult struct {
@@ -499,7 +497,7 @@ func (a *QuantExecutionAdapter) Control(session WalletSession, mandate QuantMand
 			return QuantControlResult{}, ErrConflict
 		}
 		cancelled, err := a.service.massCancelLocked(session, market, key, "quant_strategy_pause", d, func() {
-			state := QuantStrategyKill{Subaccount: session.Account, Market: market, NonceDomain: mandate.NonceDomain, Status: "paused", AuthorizationDigest: d, PausedAt: a.service.cfg.Now().UTC()}
+			state := QuantStrategyKill{Subaccount: session.Account, Market: market, NonceDomain: mandate.NonceDomain, Status: "paused", AuthorizationDigest: d, KilledAt: a.service.cfg.Now().UTC()}
 			a.service.state.QuantStrategyKills[quantStrategyKey(session.Account, mandate.NonceDomain)] = state
 			a.service.emitExecutionLocked("user", "quant_strategy_paused", session.Account, "quant_strategy", mandate.NonceDomain, state)
 			a.service.auditLocked(session.Account, "quant_strategy_paused", "quant_strategy", mandate.NonceDomain, d)
@@ -525,7 +523,7 @@ func (a *QuantExecutionAdapter) Control(session WalletSession, mandate QuantMand
 	before := cloneState(a.service.state)
 	current.Status = "active"
 	current.AuthorizationDigest = d
-	current.ResumedAt = a.service.cfg.Now().UTC()
+	current.KilledAt = a.service.cfg.Now().UTC()
 	a.service.state.QuantStrategyKills[quantStrategyKey(session.Account, mandate.NonceDomain)] = current
 	a.service.state.Idempotency[key] = idempotencyRecord{Action: "quant_strategy_resume", Digest: d, ObjectID: mandate.NonceDomain}
 	a.service.emitExecutionLocked("user", "quant_strategy_resumed", session.Account, "quant_strategy", mandate.NonceDomain, current)
