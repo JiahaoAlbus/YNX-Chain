@@ -55,7 +55,10 @@ func (h HTTPExchangeMarketData) tape() (tradeTape, error) {
 	}
 	var tape tradeTape
 	d := json.NewDecoder(io.LimitReader(resp.Body, 4<<20))
-	d.DisallowUnknownFields()
+	// Exchange trade records carry settlement/audit fields in addition to the
+	// three market-data fields consumed here. Keep the adapter forward
+	// compatible with additive fields while still fail-closing on the owned
+	// market, source marker, external-price flag, and every consumed value.
 	if d.Decode(&tape) != nil || tape.Market != "YNXT-YUSD_TEST" || tape.ExternalPrice || tape.Source != "YNX-owned deterministic matched trades only" {
 		return tradeTape{}, ErrUnavailable
 	}

@@ -24,7 +24,10 @@ func TestHTTPMarketDataUsesOnlyOwnedActualTradeTape(t *testing.T) {
 	start := time.Date(2026, 7, 18, 0, 0, 0, 0, time.UTC)
 	trades := make([]map[string]any, 20)
 	for i := range trades {
-		trades[i] = map[string]any{"priceMicro": int64(1_000_000 + i), "amountMicro": int64(10_000 + i), "createdAt": start.Add(time.Duration(i) * time.Second)}
+		trades[i] = map[string]any{
+			"priceMicro": int64(1_000_000 + i), "amountMicro": int64(10_000 + i), "createdAt": start.Add(time.Duration(i) * time.Second),
+			"id": "trade-audit-field", "buyOrderId": "buy-audit-field", "buyerFeeMicro": 10,
+		}
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/market-data/trades" {
