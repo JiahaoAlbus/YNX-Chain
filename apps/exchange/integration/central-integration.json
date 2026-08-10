@@ -1,7 +1,9 @@
 {
   "schemaVersion": 1,
   "productId": "exchange",
-  "walletAuthSourceCommit": "ec2d2e6e2b16a877be71f5d8a02694b2454ac0a0",
+  "walletAuthSourceCommit": "f1fd7b37d214b15eee7c80028841487281798a96",
+  "currentPublicWalletSourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+  "currentPublicExchangeSourceCommit": "cbfbd893af7384703b51e20cf8d75c9762d4485a",
   "registryEntry": "wallet-registry-entry.json",
   "requiredGatewayRoutes": [
     "POST /v1/wallet/sessions/complete",
@@ -10,7 +12,8 @@
   "sessionFailClosed": true,
   "actionFailClosed": true,
   "sessionIntegratedCentral": true,
-  "actionIntegratedCentral": false,
-  "integratedCentral": false,
-  "reason": "The exact Exchange client is enabled by the deployed public Wallet Gateway and uses proof-bound completion and introspection. Trading, cancellation and withdrawal review remain fail-closed until the separate Wallet-reviewed product-action contract is implemented and publicly attested."
+  "actionIntegratedCentral": true,
+  "integratedCentral": true,
+  "evidence": "evidence/capacity/exchange-wallet-public-2026-08-10.txt",
+  "reason": "Canonical Wallet completion, one-time Product Session proofs and exact Wallet-signed order execution passed public Testnet end-to-end verification; proof replay was rejected and the current public Wallet and Exchange runtimes report the exact approved clients."
 }

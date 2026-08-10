@@ -1,0 +1,36 @@
+YNX Wallet + Exchange public Testnet release evidence
+Verified at: 2026-08-10T06:26:37Z
+
+Wallet source commit: f1fd7b37d214b15eee7c80028841487281798a96
+Exchange source commit: 00972cf25d583d975b9c9dd9c1df1ddba8491df9
+Exchange Linux AMD64 binary SHA-256: a61990c4058c2f5d0458fd131dd0f4c2c34eecd7d64dfd1a82a0f4741260b243
+Public Exchange URL: https://exchange.ynxweb4.com/
+
+Production Wallet migration:
+- 40 legacy Product Sessions invalidated after all had expired.
+- Latest legacy expiry: 2026-08-08T12:18:14.280Z.
+- Migrated state digest: d1819e631863d1bb20e91a63e4fc4239b0a9bac053bba005a10b6045bcd11b09.
+
+Production end-to-end result:
+- accountPublicKeyBound: true
+- signed order ID: order_000000000466
+- signed order status: open
+- one-time proof replay status: HTTP 401
+- readiness: ready_public_testnet
+- Wallet registry: approved_enabled
+- Gateway protocol: canonical_product_session_proof
+
+Concurrent public TLS health verification:
+- Singapore: Wallet 100/100 HTTP 200; Exchange 100/100 HTTP 200
+- Silicon Valley: Wallet 100/100 HTTP 200; Exchange 100/100 HTTP 200
+- Seoul: Wallet 100/100 HTTP 200; Exchange 100/100 HTTP 200
+- Total: 600/600 HTTP 200
+
+Persistence and preservation:
+- Exact Wallet and Exchange state-file SHA-256 values were unchanged after a production restart.
+- Existing Exchange history was preserved. After the release E2E, the state held 61 orders, 30 trades and 129 audit events at schema 10.
+- Rollback backups remain under the production Wallet and Exchange backup directories; candidate services were stopped after acceptance.
+
+Boundary:
+- This evidence covers public Testnet Wallet authentication, signed spot-order placement, replay rejection, persistence and concurrent health availability.
+- It does not claim production custody, Mainnet funds, external liquidity, committed cross-chain execution, production signing or store release.
