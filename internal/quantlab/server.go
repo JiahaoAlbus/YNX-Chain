@@ -43,6 +43,7 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	v.mux.HandleFunc("GET /v1/snapshot", v.snapshot)
 	v.mux.HandleFunc("GET /v1/stream", v.stream)
 	v.mux.HandleFunc("GET /metrics", v.metricsHandler)
+	v.mux.HandleFunc("POST /v1/wallet/sessions/complete", v.completeWalletSession)
 	if role == "all" || role == "research" {
 		v.mux.HandleFunc("POST /v1/public/research/backtests/from-market", v.publicBacktestFromMarket)
 		v.mux.HandleFunc("POST /v1/datasets", v.dataset)
@@ -65,7 +66,6 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	v.mux.HandleFunc("/", v.notFound)
 	return v
 }
-
 func publicResearchRequest(r *http.Request) bool {
 	return r.Method == http.MethodPost && r.URL.Path == "/v1/public/research/backtests/from-market"
 }
@@ -116,6 +116,23 @@ func (s *Server) publicBacktestFromMarket(w http.ResponseWriter, r *http.Request
 	}
 	result, runErr := isolated.RunBacktestFromMarket(q.Strategy, q.Assumptions)
 	respond(w, r, result, runErr, http.StatusCreated)
+}
+
+func (s *Server) completeWalletSession(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 256<<10)
+	body, err := io.ReadAll(r.Body)
+	if err != nil || s.service.cfg.SessionCompleter == nil {
+		writeProblem(w, r, http.StatusServiceUnavailable, "wallet_session_unavailable")
+		return
+	}
+	payload, status, err := s.service.cfg.SessionCompleter.CompleteWalletSession(r.Context(), body)
+	if err != nil {
+		writeProblem(w, r, http.StatusServiceUnavailable, "wallet_session_unavailable")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = w.Write(payload)
 }
 func (s *Server) dataset(w http.ResponseWriter, r *http.Request) {
 	var q DatasetRecord
@@ -338,7 +355,7 @@ func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
 }
 
 func exchangeSession(r *http.Request) string {
-	return strings.TrimSpace(r.Header.Get("X-YNX-Exchange-Session"))
+	return strings.TrimSpace(r.Header.Get("X-YNX-Quant-Product-Session-Proof"))
 }
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 8<<20)

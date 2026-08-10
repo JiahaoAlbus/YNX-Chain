@@ -3,6 +3,7 @@ package quantlab
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -36,7 +37,7 @@ func TestHTTPExchangeAdapterUsesExactMandateAndIndependentOrderSignature(t *test
 	var calls atomic.Int64
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
-		if r.Header.Get("Authorization") != "Bearer short-lived-user-session" || r.Header.Get("Content-Type") != "application/json" {
+		if r.Header.Get("X-YNX-Product-Session-Proof") != "one-time-product-session-proof" || r.Header.Get("Authorization") != "" || r.Header.Get("Content-Type") != "application/json" {
 			t.Errorf("request authorization boundary missing: %v", r.Header)
 		}
 		var envelope struct {
@@ -65,12 +66,33 @@ func TestHTTPExchangeAdapterUsesExactMandateAndIndependentOrderSignature(t *test
 	defer server.Close()
 
 	adapter := HTTPExchangeAdapter{BaseURL: server.URL, Client: server.Client()}
-	if err := adapter.VerifyMandate(context.Background(), mandate, "short-lived-user-session"); err != nil {
+	if err := adapter.VerifyMandate(context.Background(), mandate, "one-time-product-session-proof"); err != nil {
 		t.Fatal(err)
 	}
-	proof, err := adapter.SubmitTestnet(context.Background(), mandate, order, "short-lived-user-session")
+	proof, err := adapter.SubmitTestnet(context.Background(), mandate, order, "one-time-product-session-proof")
 	if err != nil || len(proof) != 64 || calls.Load() != 2 {
 		t.Fatalf("proof=%q calls=%d err=%v", proof, calls.Load(), err)
+	}
+}
+
+func TestHTTPExchangeAdapterProxiesCanonicalWalletCompletionWithoutCredentials(t *testing.T) {
+	body := []byte(`{"authorizationRequest":{},"walletApproval":{},"gatewayCompletion":{}}`)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/wallet/sessions/complete" || r.Header.Get("Authorization") != "" || r.Header.Get("Content-Type") != "application/json" {
+			t.Fatalf("unexpected completion request: %s %s %v", r.Method, r.URL.Path, r.Header)
+		}
+		got, err := io.ReadAll(r.Body)
+		if err != nil || string(got) != string(body) {
+			t.Fatalf("completion body=%q err=%v", got, err)
+		}
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"ok":true,"result":{"sessionBinding":"fixture"}}`))
+	}))
+	defer server.Close()
+	adapter := HTTPExchangeAdapter{BaseURL: server.URL, Client: server.Client()}
+	result, status, err := adapter.CompleteWalletSession(context.Background(), body)
+	if err != nil || status != http.StatusCreated || string(result) != `{"ok":true,"result":{"sessionBinding":"fixture"}}` {
+		t.Fatalf("status=%d result=%q err=%v", status, result, err)
 	}
 }
 

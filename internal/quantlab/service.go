@@ -45,11 +45,12 @@ const (
 var BuildCommit = "development"
 
 type Config struct {
-	StatePath       string
-	Now             func() time.Time
-	MandateVerifier MandateVerifier
-	TestnetBroker   TestnetBroker
-	MarketData      MarketData
+	StatePath        string
+	Now              func() time.Time
+	MandateVerifier  MandateVerifier
+	TestnetBroker    TestnetBroker
+	SessionCompleter WalletSessionCompleter
+	MarketData       MarketData
 }
 
 type MandateVerifier interface {
@@ -57,6 +58,9 @@ type MandateVerifier interface {
 }
 type TestnetBroker interface {
 	SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (string, error)
+}
+type WalletSessionCompleter interface {
+	CompleteWalletSession(context.Context, []byte) ([]byte, int, error)
 }
 type Bar struct {
 	Time   time.Time `json:"time"`

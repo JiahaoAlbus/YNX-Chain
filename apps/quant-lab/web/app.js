@@ -4,6 +4,12 @@ let snapshot = { paper: {}, strategies: {}, experiments: {}, audit: [] };
 const publicMode = !["127.0.0.1", "localhost", "::1"].includes(location.hostname);
 let publicStatus = null;
 let pendingMandate = null;
+const tenantKey = "ynx.quant.tenant.v1";
+let tenantId = localStorage.getItem(tenantKey);
+if (!/^[0-9a-f]{64}$/.test(tenantId || "")) {
+  tenantId = [...crypto.getRandomValues(new Uint8Array(32))].map((value) => value.toString(16).padStart(2, "0")).join("");
+  localStorage.setItem(tenantKey, tenantId);
+}
 const supportedLocales = QuantI18n.locales;
 let locale = localStorage.getItem("ynx.quant.locale") || navigator.languages.find((value) => supportedLocales.includes(value)) || navigator.language.split("-")[0];
 if (!supportedLocales.includes(locale)) locale = "en";
@@ -22,6 +28,7 @@ const api = async (path, opt = {}) => {
     headers: {
       "content-type": "application/json",
       "x-ynx-preview-mode": "local-paper",
+      "x-ynx-tenant-id": tenantId,
       ...(opt.headers || {}),
     },
   });
@@ -202,7 +209,7 @@ function mandateDraft() {
     TestnetOnly: true,
   };
 }
-$$('#mandate-form input:not(#mandate-signature):not(#exchange-session)').forEach((input) => {
+$$('#mandate-form input:not(#mandate-signature)').forEach((input) => {
   input.addEventListener("input", () => {
     pendingMandate = null;
     $("#mandate-payload").hidden = true;
@@ -222,9 +229,10 @@ $("#mandate-form").onsubmit = async (e) => {
   e.preventDefault();
   if (!pendingMandate) return toast("Preview the exact mandate payload before signing");
   try {
+    const productProof = await window.YNXQuantWallet.requireProof("quant:mandate:create");
     const result = await api("/v1/testnet/mandates", {
       method: "POST",
-      headers: { "x-ynx-exchange-session": $("#exchange-session").value.trim() },
+      headers: { "x-ynx-quant-product-session-proof": productProof },
       body: JSON.stringify({ ...pendingMandate, WalletSignature: $("#mandate-signature").value.trim() }),
     });
     $("#order-mandate").value = result.Digest;
@@ -257,9 +265,10 @@ $("#testnet-order-form").onsubmit = async (e) => {
   e.preventDefault();
   const draft = orderDraft();
   try {
+    const productProof = await window.YNXQuantWallet.requireProof("quant:mandate:execute");
     await api("/v1/testnet/orders", {
       method: "POST",
-      headers: { "x-ynx-exchange-session": $("#exchange-session").value.trim() },
+      headers: { "x-ynx-quant-product-session-proof": productProof },
       body: JSON.stringify({
         MandateDigest: $("#order-mandate").value.trim(),
         Side: draft.Side,

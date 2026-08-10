@@ -15,18 +15,21 @@ func main() {
 	var marketData quantlab.MarketData
 	var mandateVerifier quantlab.MandateVerifier
 	var testnetBroker quantlab.TestnetBroker
+	var sessionCompleter quantlab.WalletSessionCompleter
 	if endpoint := strings.TrimSpace(os.Getenv("YNX_QUANT_EXCHANGE_URL")); endpoint != "" {
 		marketData = quantlab.HTTPExchangeMarketData{BaseURL: endpoint, Client: &http.Client{Timeout: 5 * time.Second}}
 		adapter := quantlab.HTTPExchangeAdapter{BaseURL: endpoint, Client: &http.Client{Timeout: 8 * time.Second}}
 		mandateVerifier = adapter
 		testnetBroker = adapter
+		sessionCompleter = adapter
 	}
-	s, e := quantlab.New(quantlab.Config{StatePath: state, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker})
+	s, e := quantlab.NewTenantServer(quantlab.Config{StatePath: state, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker, SessionCompleter: sessionCompleter}, "all")
 	if e != nil {
 		log.Fatal(e)
 	}
 	mux := http.NewServeMux()
-	mux.Handle("/api/", http.StripPrefix("/api", quantlab.NewServer(s)))
+	mux.Handle("/api/", http.StripPrefix("/api", s))
+	mux.HandleFunc("/wallet-auth/callback", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "apps/quant-lab/web/index.html") })
 	mux.Handle("/", http.FileServer(http.Dir("apps/quant-lab/web")))
 	srv := http.Server{Addr: addr, Handler: headers(mux), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 20 * time.Second}
 	log.Printf("YNX Quant Lab simulated/testnet preview on %s", addr)

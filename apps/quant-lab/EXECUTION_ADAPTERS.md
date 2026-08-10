@@ -57,9 +57,9 @@ Quant kill switch.
 
 The shipped `HTTPExchangeAdapter` now implements the Exchange owner transport
 against `/v1/quant-adapter/account` and `/v1/quant-adapter/orders`. Each call
-requires the user's own short-lived Wallet-authenticated Exchange session; the
-session is supplied by the HTTP request, never stored in adapter configuration,
-Quant state, orders, mandates or audit events. The mandate uses the exact
+requires a fresh one-time proof from the user's canonical Wallet-authenticated
+Quant Product Session. The proof is supplied by the HTTP request, never stored
+in adapter configuration, Quant state, orders, mandates or audit events. The mandate uses the exact
 `ynx-quant-execution-adapter-v1` signing payload, binds the strategy in the
 `quant:<strategyHash>` nonce domain, fixes spot leverage to 1x, and grants only
 read, submit, reconcile and kill. Every order has an independent
@@ -71,7 +71,9 @@ marks the order `submitted_testnet` after a fully bound authoritative response.
 Concurrent users therefore do not serialize behind a slow venue request, while
 same-key retries cannot create a duplicate order.
 
-No DEX-owner transport is shipped yet, and no real Wallet mandate/order receipt,
-DEX vault transaction, emergency-exit receipt or central integration is claimed.
-The public Exchange owner currently exposes the adapter, but its public Wallet
-registration still reports pending; missing or invalid user sessions fail closed.
+No DEX-owner transport is shipped yet, and no public DEX vault transaction or
+emergency-exit receipt is claimed. The Wallet → Quant → Exchange path is tested
+locally with an ephemeral canonical Product Session, exact mandate and order
+signatures, and replay rejection. Public deployment evidence is recorded only
+after the same flow succeeds against the released origins; missing, expired,
+wrong-product or replayed proofs fail closed.
