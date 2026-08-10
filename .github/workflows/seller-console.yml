@@ -1,0 +1,59 @@
+name: Seller Console
+
+on:
+  push:
+    branches: [codex/integrate-finance-suite]
+    paths:
+      - "apps/seller-console/**"
+      - "apps/wallet/src/protocol/registry.ts"
+      - "apps/wallet/src/protocol/registry.test.ts"
+      - "internal/commerce/**"
+      - "packages/wallet-auth/**"
+      - "deploy/shop/**"
+      - "deploy/seller-console.caddy"
+      - ".github/workflows/seller-console.yml"
+  pull_request:
+    paths:
+      - "apps/seller-console/**"
+      - "apps/wallet/src/protocol/registry.ts"
+      - "apps/wallet/src/protocol/registry.test.ts"
+      - "internal/commerce/**"
+      - "packages/wallet-auth/**"
+      - "deploy/shop/**"
+      - "deploy/seller-console.caddy"
+      - ".github/workflows/seller-console.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  commerce:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go test -race ./internal/commerce/...
+      - run: go vet ./internal/commerce/...
+      - run: go test ./internal/commerce -run '^TestShopConcurrentReadLoadBaseline$' -count=1
+
+  web-and-wallet:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: packages/wallet-auth/package-lock.json
+      - run: npm test --prefix apps/seller-console
+      - run: npm run build --prefix apps/seller-console
+      - run: npm ci --prefix packages/wallet-auth
+      - run: node --test packages/wallet-auth/test/registry.test.mjs packages/wallet-auth/test/gateway-node-host.test.mjs
+      - name: Reject placeholders and credential material
+        run: >-
+          ! grep -REin
+          '(^|[^[:alpha:]])(TODO|FIXME)([^[:alpha:]]|$)|coming soon|example\.com|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|sk_live_[A-Za-z0-9]+'
+          apps/seller-console

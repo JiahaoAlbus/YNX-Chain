@@ -9,7 +9,7 @@ test("central registry contains 26 unique, least-privilege products with Calenda
   const registry = parseCentralRegistryDocument(source);
   assert.equal(registry.products.length, 26);
   const approved = registry.products.filter((product) => product.enabled);
-  assert.deepEqual(approved.map((product) => product.productId), ["calendar", "developer", "dex", "exchange", "finance", "merchant-console", "quant", "shop"]);
+  assert.deepEqual(approved.map((product) => product.productId), ["calendar", "developer", "dex", "exchange", "finance", "merchant-console", "quant", "seller-console", "shop"]);
   assert.equal(approved.every((product) => product.reviewState === "approved"), true);
   assert.equal(registry.products.filter((product) => !product.enabled).every((product) => product.reviewState === "pending-review"), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
@@ -37,6 +37,12 @@ test("central registry contains 26 unique, least-privilege products with Calenda
   assert.deepEqual(merchant.callbacks, ["https://pay.ynxweb4.com/merchant/wallet-auth/callback"]);
   assert.deepEqual(merchant.scopes, ["account:read", "merchant:session:create"]);
   assert.equal(merchant.sessionDurationSeconds, 300);
+  const seller = centralRegistrationByProduct(registry, "seller-console");
+  assert.equal(seller.requestingProduct, "seller-console");
+  assert.equal(seller.productClientId, "ynx-seller-v1");
+  assert.deepEqual(seller.callbacks, ["ynxseller://wallet-auth/callback"]);
+  assert.deepEqual(seller.scopes, ["account:read", "shop:seller:operate"]);
+  assert.equal(seller.sessionDurationSeconds, 180);
 });
 
 test("registry v1 migrates deterministically by adding disabled least-privilege Quant", () => {

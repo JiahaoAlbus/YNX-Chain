@@ -71,9 +71,9 @@ export function clearWalletSession() { bearer = ''; }
 
 function exactConfig(config, surface) {
   const expected = surface === 'seller'
-    ? { client: 'ynx-seller-v1', bundle: 'com.ynxweb4.seller-console', callback: 'ynxseller://wallet-auth/callback', scopes: ['account:read', 'shop:seller:operate'] }
-    : { client: 'ynx-shop-v1', bundle: 'com.ynxweb4.shop', callback: 'ynxshop://wallet-auth/callback', scopes: ['account:read', 'shop:orders:write', 'shop:profile:write'] };
-  if (config.version !== '1' || config.chainId !== 'ynx_6423-1' || config.productDeviceAlgorithm !== 'p256-sha256' || config.productClientId !== expected.client || config.bundleId !== expected.bundle || config.callback !== expected.callback || canonicalJSON(config.scopes) !== canonicalJSON(expected.scopes)) {
+    ? { product: 'seller-console', client: 'ynx-seller-v1', bundle: 'com.ynxweb4.seller-console', callback: 'ynxseller://wallet-auth/callback', scopes: ['account:read', 'shop:seller:operate'] }
+    : { product: 'shop', client: 'ynx-shop-v1', bundle: 'com.ynxweb4.shop', callback: 'ynxshop://wallet-auth/callback', scopes: ['account:read', 'shop:orders:write', 'shop:profile:write'] };
+  if (config.version !== '1' || config.chainId !== 'ynx_6423-1' || config.productDeviceAlgorithm !== 'p256-sha256' || config.requestingProduct !== expected.product || config.productClientId !== expected.client || config.bundleId !== expected.bundle || config.callback !== expected.callback || canonicalJSON(config.scopes) !== canonicalJSON(expected.scopes)) {
     throw new Error('Unsafe Wallet product registry binding.');
   }
 }

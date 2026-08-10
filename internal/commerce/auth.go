@@ -43,7 +43,7 @@ func ShopBinding() ProductBinding {
 	return ProductBinding{"shop", ShopClientID, ShopBundleID, ShopCallback, "buyer", append([]string(nil), ShopScopes...)}
 }
 func SellerBinding() ProductBinding {
-	return ProductBinding{"shop-seller", SellerClientID, SellerBundleID, SellerCallback, "seller", append([]string(nil), SellerScopes...)}
+	return ProductBinding{"seller-console", SellerClientID, SellerBundleID, SellerCallback, "seller", append([]string(nil), SellerScopes...)}
 }
 
 type Principal struct {
