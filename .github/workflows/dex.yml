@@ -1,0 +1,91 @@
+name: dex
+
+on:
+  push:
+    branches: [codex/integrate-finance-suite]
+    paths:
+      - ".github/workflows/dex.yml"
+      - "apps/dex/**"
+      - "cmd/ynx-dex-indexerd/**"
+      - "contracts/dex/**"
+      - "dex/**"
+      - "docs/dex/**"
+      - "hardhat.dex.config.ts"
+      - "internal/dex/**"
+      - "packages/wallet-auth/**"
+      - "release/dex/**"
+      - "release/integration/dex-contract.json"
+      - "scripts/dex/**"
+      - "sdk/dex/**"
+      - "token-lists/dex-testnet.json"
+      - "package.json"
+      - "package-lock.json"
+  pull_request:
+    paths:
+      - ".github/workflows/dex.yml"
+      - "apps/dex/**"
+      - "cmd/ynx-dex-indexerd/**"
+      - "contracts/dex/**"
+      - "dex/**"
+      - "docs/dex/**"
+      - "hardhat.dex.config.ts"
+      - "internal/dex/**"
+      - "packages/wallet-auth/**"
+      - "release/dex/**"
+      - "release/integration/dex-contract.json"
+      - "scripts/dex/**"
+      - "sdk/dex/**"
+      - "token-lists/dex-testnet.json"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+      - name: Install Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: "1.25.12"
+          cache: true
+      - name: Install Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: "24.5.0"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/dex/package-lock.json
+      - name: Install locked dependencies without lifecycle scripts
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix apps/dex
+      - name: Test isolated DEX contracts
+        run: npm run dex:contracts:test
+      - name: Test and race-check DEX indexer
+        run: |
+          go test ./internal/dex ./cmd/ynx-dex-indexerd -count=1
+          go test -race ./internal/dex ./cmd/ynx-dex-indexerd -count=1
+      - name: Test DEX SDK and Web/PWA
+        run: |
+          npm test --prefix sdk/dex
+          npm test --prefix apps/dex
+          npm run build --prefix apps/dex
+      - name: Test central Wallet tuple, proof and exact actions
+        run: node --test packages/wallet-auth/test/registry.test.mjs packages/wallet-auth/test/gateway-node-host.test.mjs packages/wallet-auth/test/dex-action.test.mjs
+      - name: Verify scoped release truth and immutable artifacts
+        run: |
+          npm run dex:manifests:check
+          npm run dex:artifacts:verify
+          jq empty release/dex/*.json release/integration/dex-contract.json docs/dex/integration/CROSS_PRODUCT_TEST_VECTORS.json
+          test -f artifacts/finance/EVIDENCE_INDEX.md
+      - name: Run repository secret gate
+        run: make secret-scan
+      - name: Check patch hygiene
+        run: git diff --check
