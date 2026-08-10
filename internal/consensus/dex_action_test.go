@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -95,7 +96,11 @@ func TestDEXAssetPoolSwapAndLiquidityLifecycleCommitsRealState(t *testing.T) {
 func TestCommittedStateMigratesVersion12WithoutInventingDEXRecords(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	owner := mustNativeAddress(t, deterministicPrivateKey(223))
+	recipient := mustNativeAddress(t, deterministicPrivateKey(224))
 	if _, err := devnet.Faucet(owner, 100); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet(recipient, 1); err != nil {
 		t.Fatal(err)
 	}
 	devnet.ProduceBlock()
@@ -108,6 +113,15 @@ func TestCommittedStateMigratesVersion12WithoutInventingDEXRecords(t *testing.T)
 	legacy.DexAssets, legacy.DexBalances, legacy.DexPools, legacy.DexEvents = nil, nil, nil, nil
 	legacy.Initialized = true
 	legacy.Height = int64(migration.Height) + 1
+	legacy.NativeTransfers = []BFTNativeTransfer{{
+		TransactionHash: "0x" + strings.Repeat("1", 64),
+		From:            owner,
+		To:              recipient,
+		Amount:          7,
+		Fee:             1,
+		BlockHeight:     legacy.Height,
+		CommittedAt:     time.Unix(11, 0).UTC(),
+	}}
 	legacy.FeeEvents = []BFTFeeEvent{newCurrentFeeEvent("0xv12", "transfer", owner, migration.Validators[0].Address, 1, legacy.Height, time.Unix(12, 0).UTC())}
 	legacy.AppHash, err = legacy.calculateHashFor("YNX_ABCI_STATE_V12", 12)
 	if err != nil {
@@ -122,7 +136,7 @@ func TestCommittedStateMigratesVersion12WithoutInventingDEXRecords(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if migrated.Version != CommittedStateVersion || len(migrated.FeeEvents) != 1 || len(migrated.DexAssets)+len(migrated.DexBalances)+len(migrated.DexPools)+len(migrated.DexEvents) != 0 {
+	if migrated.Version != CommittedStateVersion || len(migrated.NativeTransfers) != 1 || migrated.NativeTransfers[0] != legacy.NativeTransfers[0] || len(migrated.FeeEvents) != 1 || len(migrated.DexAssets)+len(migrated.DexBalances)+len(migrated.DexPools)+len(migrated.DexEvents) != 0 {
 		t.Fatalf("v12 migration changed history or invented DEX state: %+v", migrated)
 	}
 }
