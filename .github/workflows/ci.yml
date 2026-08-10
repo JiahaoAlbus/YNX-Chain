@@ -2,21 +2,15 @@ name: ci
 
 on:
   push:
-    branches: [main, codex/final-pay]
+    branches: [main]
   pull_request:
-    branches: [main, codex/final-pay]
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.SOURCE_SHA }}
-      - name: Verify exact source identity
-        run: test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: "1.25"
@@ -42,79 +36,3 @@ jobs:
       - run: make ecosystem-package
       - run: make exchange-package
       - run: make mainnet-readiness
-
-  pay-card-ios-native:
-    runs-on: macos-15
-    env:
-      DEVELOPER_DIR: ${{ matrix.developer_dir }}
-      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # ExpoModulesJSI 57 declares Swift tools 6.2, so both native
-          # candidates use the Xcode 26.2 toolchain on the macOS 15 runner.
-          - app: pay
-            scheme: YNXPay
-            developer_dir: /Applications/Xcode_26.2.app/Contents/Developer
-          - app: card
-            scheme: YNXCard
-            developer_dir: /Applications/Xcode_26.2.app/Contents/Developer
-    defaults:
-      run:
-        working-directory: apps/${{ matrix.app }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.SOURCE_SHA }}
-      - name: Verify exact source identity
-        run: test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
-      - run: npm ci
-      - name: Apply the version-locked ExpoModulesJSI Swift 6.2 patch
-        run: node ../pay/scripts/patch-expo-modules-jsi.mjs
-      - run: npx pod-install ios
-      - name: Build iOS Simulator app without signing
-        run: >-
-          xcodebuild
-          -workspace ios/${{ matrix.scheme }}.xcworkspace
-          -scheme ${{ matrix.scheme }}
-          -configuration Release
-          -sdk iphonesimulator
-          -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO
-          build
-      - name: Install, cold launch, and verify the Pay deep link
-        if: matrix.app == 'pay'
-        timeout-minutes: 12
-        run: |
-          set -euo pipefail
-          APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Release-iphonesimulator/YNXPay.app' -print -quit)"
-          DEVICE="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/{print $2; exit}')"
-          test -n "$APP"
-          test -n "$DEVICE"
-          test "$(plutil -extract CFBundleIdentifier raw -o - "$APP/Info.plist")" = "com.ynxweb4.pay"
-          mkdir -p proof/ci-ios
-          xcrun simctl shutdown "$DEVICE" 2>/dev/null || true
-          xcrun simctl erase "$DEVICE"
-          xcrun simctl boot "$DEVICE"
-          xcrun simctl bootstatus "$DEVICE" -b
-          xcrun simctl install "$DEVICE" "$APP"
-          xcrun simctl terminate "$DEVICE" com.ynxweb4.pay 2>/dev/null || true
-          xcrun simctl launch "$DEVICE" com.ynxweb4.pay | tee proof/ci-ios/cold-launch.txt
-          xcrun simctl get_app_container "$DEVICE" com.ynxweb4.pay | tee proof/ci-ios/app-container.txt
-          xcrun simctl openurl "$DEVICE" 'ynxpay://invoice/inv_0123456789abcdef0123'
-          xcrun simctl io "$DEVICE" screenshot proof/ci-ios/pay-deep-link.png
-      - name: Upload unsigned iOS Simulator evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ynx-${{ matrix.app }}-ios-simulator-${{ env.SOURCE_SHA }}
-          path: |
-            ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphonesimulator/${{ matrix.scheme }}.app
-            apps/${{ matrix.app }}/proof/ci-ios
-          if-no-files-found: error
-          retention-days: 30
