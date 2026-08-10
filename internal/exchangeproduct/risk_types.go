@@ -170,3 +170,23 @@ type RiskPublicSnapshot struct {
 	UnavailableReason string                `json:"unavailableReason,omitempty"`
 	AsOf              time.Time             `json:"asOf"`
 }
+
+type MarginTransferRequest struct {
+	Direction       string `json:"direction"`
+	AmountMicro     int64  `json:"amountMicro"`
+	IdempotencyKey  string `json:"idempotencyKey"`
+	WalletSignature string `json:"walletSignature"`
+}
+
+type MarginAccountSnapshot struct {
+	Account             MarginAccount       `json:"account"`
+	Positions           []PerpetualPosition `json:"positions"`
+	Orders              []PerpetualOrder    `json:"orders"`
+	Trades              []PerpetualTrade    `json:"trades"`
+	Funding             []FundingSettlement `json:"funding"`
+	Liquidations        []LiquidationEvent  `json:"liquidations"`
+	EquityMicro         int64               `json:"equityMicro"`
+	FreeCollateralMicro int64               `json:"freeCollateralMicro"`
+	OracleStatus        string              `json:"oracleStatus"`
+	AsOf                time.Time           `json:"asOf"`
+}
