@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "ynx-dex",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "sourceBaseCommit": "dec1ba994c7c9d48fb4708f37765cb3fe90e2e0f",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
@@ -21,8 +21,8 @@
     {
       "type": "web-pwa-upload-bundle",
       "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-      "sha256": "dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669",
-      "sizeBytes": 331755
+      "sha256": "9f6bdf1fe226099aa316de788b9d15335d45f11faabdab4260da8af63c8a5571",
+      "sizeBytes": 549715
     },
     {
       "type": "javascript-sdk-npm-package",
@@ -101,53 +101,53 @@
         },
         {
           "path": "artifacts/contracts/dex/YNXDexFactory.sol/YNXDexFactory.json",
-          "sha256": "07131478c81da09e30e8c3a937d666abcb67976533cce32a6b9f084e24f2202a",
-          "sizeBytes": 69020
+          "sha256": "7beae7544c629d679ee8872c75aa9dad08c8e482574dd512db564c5c211cb081",
+          "sizeBytes": 68656
         },
         {
           "path": "artifacts/contracts/dex/YNXProtectedDexFactory.sol/YNXProtectedDexFactory.json",
-          "sha256": "6a2f2013977672e30cd677fc7f4fb3bc04efe48c73bc4db28ee479d923b40c87",
-          "sizeBytes": 94641
+          "sha256": "f6f9d5c9dd3a95fd9f575c97739a358c00863d42cada18365eed4e4d86f6ddfe",
+          "sizeBytes": 94018
         },
         {
           "path": "artifacts/contracts/dex/YNXDexPool.sol/YNXDexPool.json",
-          "sha256": "afb132a4f0b25da5046669925dbcb6b6ca84362ae5111c9b21ba97fd31f0127f",
-          "sizeBytes": 64977
+          "sha256": "c5aa921c4522f3a237c98b97eee9f2a1b0606a77c479313d8968084f78a60486",
+          "sizeBytes": 64823
         },
         {
           "path": "artifacts/contracts/dex/YNXLPProtection.sol/YNXLPProtection.json",
-          "sha256": "21cb77a7720026f83f279a1ad4d272cc2f0bc53e1a0009b9c0eaf9524d3c8050",
-          "sizeBytes": 61408
+          "sha256": "0131648440633614f12999f605f01eb54a7e9fb02a5226d9aa72a4337d71639c",
+          "sizeBytes": 61272
         },
         {
           "path": "artifacts/contracts/dex/YNXStableFactory.sol/YNXStableFactory.json",
-          "sha256": "2e847af8716eacc9a1dc6665588b31e3033df4c3fd9b140d2fce1c9301a5ba95",
-          "sizeBytes": 79466
+          "sha256": "815ac14defe037219ea1077b023f03d50f397dbef401881e6c2499ff7cf1bd13",
+          "sizeBytes": 78172
         },
         {
           "path": "artifacts/contracts/dex/YNXStablePool.sol/YNXStablePool.json",
-          "sha256": "edba28052b82f4afae0c01191a30a5369b19591a950ac2095d70ea1002c88c8d",
-          "sizeBytes": 67501
+          "sha256": "9087a924222e0b2640573f593b666c428bf532c433635e77ee67ccaca7e6eee7",
+          "sizeBytes": 67283
         },
         {
           "path": "artifacts/contracts/dex/YNXDexRouter.sol/YNXDexRouter.json",
-          "sha256": "972301aed0990fccf60a30e4bd758ac55330e2f7f0fae34ff40df8aa1499c149",
-          "sizeBytes": 26527
+          "sha256": "b2245159dedd79545308a18d4665f4255f41bf281d204d56010fd42d9b022b17",
+          "sizeBytes": 26440
         },
         {
           "path": "artifacts/contracts/dex/YNXDexQuoter.sol/YNXDexQuoter.json",
-          "sha256": "7e55d8b4a900f146d5542423412814b1e827b3340e8ddd58211a3550f668efef",
-          "sizeBytes": 6408
+          "sha256": "35a0c2a21d06c5b993feefdadee34537dbab5ad59a2afbce21a3fb5df3908b27",
+          "sizeBytes": 6417
         },
         {
           "path": "artifacts/contracts/dex/YNXStrategyVault.sol/YNXStrategyVault.json",
-          "sha256": "50fb81e4db0593a83831914f70e7163e2a5be6d08cba7e19a26aa884c68b7add",
-          "sizeBytes": 113922
+          "sha256": "0d446d8c959804e15e39c3a56f824b79ddaf73288dac4487892890a94045b54f",
+          "sizeBytes": 113994
         },
         {
           "path": "artifacts/contracts/dex/YNXFairFlow.sol/YNXFairFlow.json",
-          "sha256": "38dbda94903904904be6aba78e93bfe15e9489c5f35c948dd0cbf07592600cbf",
-          "sizeBytes": 101709
+          "sha256": "86cdefccdafff8fcc7666c7367ce785ac7fbbf6a6ecfb9b4a576409f22557a30",
+          "sizeBytes": 101622
         }
       ]
     }

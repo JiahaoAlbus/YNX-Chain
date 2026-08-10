@@ -3,7 +3,7 @@
   "productId": "ynx-dex",
   "artifactType": "web-pwa-upload-bundle",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "sourceBaseCommit": "dec1ba994c7c9d48fb4708f37765cb3fe90e2e0f",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
@@ -14,9 +14,9 @@
   "productionSigned": false,
   "storeReleased": false,
   "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-  "sha256": "dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669",
-  "sizeBytes": 331755,
-  "contentFileCount": 9,
+  "sha256": "9f6bdf1fe226099aa316de788b9d15335d45f11faabdab4260da8af63c8a5571",
+  "sizeBytes": 549715,
+  "contentFileCount": 10,
   "content": [
     {
       "path": "LICENSE.txt",
@@ -24,19 +24,19 @@
       "sizeBytes": 1079
     },
     {
-      "path": "assets/index-CfR1lRyV.css",
-      "sha256": "b648e7d4de070ca774978dbd7b4dc85b7c982643ff3c678a414645e92cab9282",
-      "sizeBytes": 21736
+      "path": "assets/index-Ba0rlSS4.js",
+      "sha256": "b57f0f7073f9b2b44e727c82e096d521a83809c1632fbc076c807d364800a184",
+      "sizeBytes": 295159
     },
     {
-      "path": "assets/index-DTR2Y1ma.js",
-      "sha256": "98e3c79cf8473d866b1c058c4d004ef85c6051bf3cb3eb85db64fc46ac0f3716",
-      "sizeBytes": 241099
+      "path": "assets/index-Ba0rlSS4.js.map",
+      "sha256": "fd46edfb04b3b3eb283bc98a0242b954c4d0a0c2f42ae8afb4ff293739cce4d7",
+      "sizeBytes": 1379657
     },
     {
-      "path": "assets/index-DTR2Y1ma.js.map",
-      "sha256": "5422bdc25290cddf65f4b93e35865838dad1bde59f91970fb8377d97c952d4ac",
-      "sizeBytes": 1083209
+      "path": "assets/index-D9dgW4aD.css",
+      "sha256": "47563c070ce3a09176f1a755901756e7d007b1bc6c217f5af73f652250aaa287",
+      "sizeBytes": 22633
     },
     {
       "path": "icon-maskable.svg",
@@ -50,7 +50,7 @@
     },
     {
       "path": "index.html",
-      "sha256": "88843176bfdb1667a44897542183a6b51be3443aab55ad1b40ed9b1f1511afda",
+      "sha256": "15a0244301defcda141a490243aa24333a0099187ec3cf6dfa00b0702b3c8a52",
       "sizeBytes": 931
     },
     {
@@ -62,10 +62,15 @@
       "path": "sw.js",
       "sha256": "f7f91c296092d226859a248e017e160c6cd0cfb05e9001f65f3d5443df273024",
       "sizeBytes": 1124
+    },
+    {
+      "path": "ynx-logo.png",
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "sizeBytes": 104171
     }
   ],
   "verification": {
     "command": "shasum -a 256 release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-    "expectedSha256": "dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669"
+    "expectedSha256": "9f6bdf1fe226099aa316de788b9d15335d45f11faabdab4260da8af63c8a5571"
   }
 }

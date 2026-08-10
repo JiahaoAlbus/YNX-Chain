@@ -3,7 +3,7 @@
   "contractId": "ynx-dex-integration-v1",
   "productId": "ynx-dex",
   "owner": "YNX 27",
-  "sourceCommit": "7d61369e02ab4d50a9fc36c927dc487e47ce9814",
+  "sourceCommit": "dec1ba994c7c9d48fb4708f37765cb3fe90e2e0f",
   "releaseVersion": "0.1.0-testnet-preview.1",
   "network": {
     "name": "YNX Testnet",
@@ -29,19 +29,18 @@
     "requestingProduct": "dex",
     "bundleId": "com.ynxweb4.dex.web",
     "deviceAlgorithm": "p256-sha256",
-    "integrationStatus": "candidate-not-in-central-registry"
+    "integrationStatus": "approved-in-source-registry-and-wallet-client; public-release-validation-pending"
   },
   "authScopes": [
     "account:read",
-    "dex:fairflow:intent",
     "dex:positions:read",
-    "dex:transaction:request",
-    "dex:vault:execute"
+    "dex:transaction:request"
   ],
   "scopeRules": {
-    "vaultExecution": "An approval must contain exactly dex:vault:execute and bind chain, product client, vault, engine, nonce domain, action nonce, request digest, asOf and expiry.",
+    "accountRead": "Shares only the selected public ynx1 account after exact Wallet signature verification.",
+    "positionsRead": "Requires an active sender-constrained Product Session before reading account-bound balances or positions.",
     "transactionRequest": "The PWA may request a reviewed transaction but cannot sign or submit without canonical Wallet approval.",
-    "fairFlowIntent": "Intent creation requires an exact signed intent preview and canonical Wallet approval; solver execution cannot widen user limits."
+    "vaultAndFairFlow": "Vault execution and FairFlow intent scopes are not granted to the public web client; they require a separately reviewed future product contract."
   },
   "signedIntent": {
     "requiredFields": [
@@ -59,6 +58,12 @@
     "automaticExecution": false
   },
   "runtimeApis": [
+    {
+      "surface": "consensus-gateway-api",
+      "version": "abci-state-v13",
+      "capabilities": ["native DEX assets and balances", "constant-product pools", "exact-input and exact-output swaps", "add and remove liquidity", "committed event and AppHash evidence"],
+      "status": "tested-local-not-deployed"
+    },
     {
       "surface": "javascript-sdk",
       "module": "@ynx-chain/dex-sdk",
@@ -177,7 +182,7 @@
     "monitorAcceptance": "pending"
   },
   "migration": {
-    "stateSchemaVersion": 5,
+    "stateSchemaVersion": 13,
     "cursorSchemaVersion": 6,
     "forwardMigration": "tested-local",
     "rollbackMigration": "incomplete",
@@ -218,8 +223,8 @@
   "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
   "handoff": "docs/integration/INTEGRATION_HANDOFF.md",
   "externalInputs": [
-    "canonical Wallet registry acceptance",
-    "canonical Gateway introspection endpoint",
+    "updated production-signed Wallet artifact containing the approved DEX tuple",
+    "public Product Session Gateway and consensus v13 cutover",
     "reviewed Oracle contract and policy",
     "canonical Testnet token and treasury addresses",
     "secure signer and funded Testnet deployer",
@@ -228,5 +233,5 @@
     "immutable artifact host and signing policy",
     "public support, privacy, security and status URLs"
   ],
-  "generatedAt": "2026-07-27T14:58:32.000Z"
+  "generatedAt": "2026-08-10T02:31:00.000Z"
 }

@@ -1,100 +1,21 @@
 {
-  "schemaVersion": "1.0.0",
-  "requestStatus": "required-before-production-signed-and-reviewed-release",
-  "generatedAt": "2026-07-27",
-  "sourceCommit": "601d13bd677729ff59819ea70076a7de461328f2",
-  "satisfiedByEvidence": [
-    {
-      "capability": "central integration, staging deployment, public deployment and immutable hosted download",
-      "evidence": "release/evidence/website-public-acceptance-2026-07-26.json"
-    },
-    {
-      "capability": "canonical public routes, sitemap, robots and IndexNow submission",
-      "evidence": "https://ynxweb4.com/docs"
-    }
-  ],
-  "notApplicableStates": {
-    "installedLocal": "This documentation package is consumed by the Website build and has no standalone installer.",
-    "storeReleased": "No product store distributes this documentation package."
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "requestStatus": "required-after-all-autonomous-local-work",
+  "generatedAt": "2026-08-10T02:31:00.000Z",
+  "runtimeSourceCommit": "dec1ba994c7c9d48fb4708f37765cb3fe90e2e0f",
+  "network": {"name": "YNX Testnet", "chainId": 6423, "mainnet": false},
+  "secretHandling": {
+    "acceptSecretsInChat": false,
+    "acceptPrivateKeysInRepository": false,
+    "method": "Provide only an approved secret-manager reference and owner through the control plane."
   },
-  "instructions": {
-    "responseChannel": "approved control plane or named owner handoff",
-    "neverProvideInChatOrRepository": [
-      "private key",
-      "seed phrase",
-      "validator key",
-      "PEM or keystore",
-      "CVV or full card data",
-      "complete API secret",
-      "raw identity document"
-    ],
-    "secretMethod": "Provide only a secret-manager reference/path and access owner after the receiving service account and rotation policy are approved."
-  },
-  "inputs": [
-    {
-      "id": "production-signing-approval",
-      "ownerClass": "security-custody-owner",
-      "requiredFor": [
-        "productionSigned"
-      ],
-      "provide": [
-        "approved secure signer reference/path",
-        "public signing certificate or public-key chain",
-        "artifact signing policy and signing-class decision",
-        "two-person approval record",
-        "rotation, revocation and offline recovery evidence"
-      ],
-      "prohibited": "Do not provide secret key material."
-    },
-    {
-      "id": "search-and-independent-public-proof",
-      "ownerClass": "website-domain-and-search-owner",
-      "requiredFor": [
-        "independentPublicProof",
-        "Search Console verification",
-        "Bing Webmaster Tools verification"
-      ],
-      "provide": [
-        "DNS/domain-control evidence reference",
-        "Search Console property and sitemap submission receipt",
-        "Bing property and sitemap submission receipt",
-        "independent monitor or search-engine fetch evidence with URL and observation time"
-      ],
-      "prohibited": "Do not provide complete provider credentials; provide an approved credential reference only if automation is authorized."
-    },
-    {
-      "id": "named-review-approvals",
-      "ownerClass": "qualified-legal-economic-security-and-audit-reviewers",
-      "requiredFor": [
-        "legalReview",
-        "securityReview",
-        "economicReview",
-        "independentAudit"
-      ],
-      "provide": [
-        "named reviewer and organization",
-        "scope, jurisdiction and reviewed artifact digests",
-        "approval, findings or explicit rejection",
-        "effective date and review expiry",
-        "required remediation and prohibited public claims"
-      ]
-    },
-    {
-      "id": "brand-media-rights-approval",
-      "ownerClass": "brand-and-legal-owner",
-      "requiredFor": [
-        "approved public logo variants",
-        "screenshots",
-        "press distribution"
-      ],
-      "provide": [
-        "asset source and rights record",
-        "approved hashes, bytes and dimensions",
-        "light, dark and icon variant approvals",
-        "screenshot route, state, privacy and release approval",
-        "named brand reviewer"
-      ]
-    }
-  ],
-  "releaseRule": "Missing input keeps only the affected review, proof, signing or media capability false or unavailable. It must never be replaced by fabricated configuration, provider health, approval, signature or rights evidence."
+  "requests": [
+    {"id": "public-v13-cutover", "owner": "chain-core-and-integration", "requiredFor": ["testnetVerified", "deployedPublic"], "provide": ["approved cutover transaction record", "migration height and block hash", "rollback authority and observation window"], "neverProvide": ["validator private key", "seed", "PEM"]},
+    {"id": "wallet-release", "owner": "wallet-and-security-release", "requiredFor": ["integratedCentral", "public Wallet handoff"], "provide": ["signed Wallet artifact containing ynx-dex-web-v1", "install and cold-start evidence", "Product Session Gateway release identity"], "neverProvide": ["account secret", "signing private key"]},
+    {"id": "reviewed-test-assets", "owner": "token-and-treasury-governance", "requiredFor": ["public pools", "public liquidity"], "provide": ["reviewed Testnet asset IDs", "public treasury addresses", "bounded liquidity budget and exit policy"], "neverProvide": ["funded deployer key"]},
+    {"id": "oracle-policy", "owner": "oracle", "requiredFor": ["stable pools", "LP protection", "vault execution"], "provide": ["reviewed source contract", "freshness and divergence policy", "outage and depeg behavior"], "neverProvide": ["complete provider credential"]},
+    {"id": "independent-audit", "owner": "security-and-economic-reviewers", "requiredFor": ["audited", "production liquidity"], "provide": ["named scope and commit digest", "findings and remediation status", "expiry and residual risks"], "neverProvide": ["unredacted secret scan findings"]},
+    {"id": "artifact-signing-and-hosting", "owner": "security-release-and-website", "requiredFor": ["downloadHosted", "productionSigned"], "provide": ["immutable artifact URL", "public signing certificate", "two-person approval and revocation policy"], "neverProvide": ["artifact signing private key"]}
+  ]
 }
