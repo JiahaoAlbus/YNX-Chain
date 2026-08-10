@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "feedName": "public-releases",
+  "version": "1.0.0",
+  "asOf": "2026-07-29T00:00:00.000Z",
+  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
+  "coverage": "YNX Search release record only",
+  "items": [
+    {
+      "id": "e15c970629c26b36329e6527",
+      "product": "YNX Search",
+      "version": "0.5.0-observability-preview",
+      "releaseClass": "Testnet Preview",
+      "status": "active",
+      "canonicalUrl": "https://ynxweb4.com/search",
+      "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
+      "deployedPublic": false,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "source": "ynx-search-release-record"
+    }
+  ]
+}

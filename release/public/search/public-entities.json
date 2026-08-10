@@ -1,0 +1,598 @@
+{
+  "schemaVersion": 1,
+  "feedName": "public-entities",
+  "version": "1.0.0",
+  "asOf": "2026-07-29T00:00:00.000Z",
+  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
+  "coverage": "versioned YNX canonical entity registry",
+  "items": [
+    {
+      "id": "product-ai",
+      "type": "product",
+      "canonicalName": "YNX AI",
+      "aliases": [
+        "ynx ai"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/ai",
+      "description": "YNX AI is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-bridge",
+      "type": "product",
+      "canonicalName": "YNX Bridge",
+      "aliases": [
+        "ynx bridge",
+        "ynx interoperability"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/bridge",
+      "description": "YNX Bridge is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-browser",
+      "type": "product",
+      "canonicalName": "YNX Browser",
+      "aliases": [
+        "ynx browser"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/browser",
+      "description": "YNX Browser is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-calendar",
+      "type": "product",
+      "canonicalName": "YNX Calendar",
+      "aliases": [
+        "ynx calendar"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/calendar",
+      "description": "YNX Calendar is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-card",
+      "type": "product",
+      "canonicalName": "YNX Card",
+      "aliases": [
+        "ynx card"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/card",
+      "description": "YNX Card is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-cloud",
+      "type": "product",
+      "canonicalName": "YNX Cloud",
+      "aliases": [
+        "ynx cloud"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/cloud",
+      "description": "YNX Cloud is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-creator-studio",
+      "type": "product",
+      "canonicalName": "YNX Creator Studio",
+      "aliases": [
+        "creator studio",
+        "ynx creator studio"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/creator-studio",
+      "description": "YNX Creator Studio is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-data-fabric",
+      "type": "product",
+      "canonicalName": "YNX Data Fabric",
+      "aliases": [
+        "ynx billing ledger",
+        "ynx data fabric"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/data-fabric",
+      "description": "YNX Data Fabric is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-developer",
+      "type": "product",
+      "canonicalName": "YNX Developer",
+      "aliases": [
+        "ynx ai build",
+        "ynx developer"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/developer",
+      "description": "YNX Developer is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-dex",
+      "type": "product",
+      "canonicalName": "YNX DEX",
+      "aliases": [
+        "ynx dex"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/dex",
+      "description": "YNX DEX is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-docs",
+      "type": "product",
+      "canonicalName": "YNX Docs",
+      "aliases": [
+        "ynx docs"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/docs",
+      "description": "YNX Docs is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-docs-compliance",
+      "type": "product",
+      "canonicalName": "YNX Docs and Compliance",
+      "aliases": [
+        "ynx compliance",
+        "ynx docs and compliance",
+        "ynx whitepaper"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/docs-compliance",
+      "description": "YNX Docs and Compliance is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-economics",
+      "type": "product",
+      "canonicalName": "YNX Economics",
+      "aliases": [
+        "ynx economics",
+        "ynx tokenomics",
+        "ynxt economics"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/economics",
+      "description": "YNX Economics is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-exchange",
+      "type": "product",
+      "canonicalName": "YNX Exchange",
+      "aliases": [
+        "ynx exchange"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/exchange",
+      "description": "YNX Exchange is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-explorer",
+      "type": "product",
+      "canonicalName": "YNX Explorer",
+      "aliases": [
+        "ynx explorer"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/explorer",
+      "description": "YNX Explorer is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-finance",
+      "type": "product",
+      "canonicalName": "YNX Finance",
+      "aliases": [
+        "ynx finance"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/finance",
+      "description": "YNX Finance is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-governance",
+      "type": "product",
+      "canonicalName": "YNX Governance",
+      "aliases": [
+        "ynx governance",
+        "ynx protocol control"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/governance",
+      "description": "YNX Governance is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-integration",
+      "type": "product",
+      "canonicalName": "YNX Integration",
+      "aliases": [
+        "ynx integration"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/integration",
+      "description": "YNX Integration is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-mail",
+      "type": "product",
+      "canonicalName": "YNX Mail",
+      "aliases": [
+        "ynx mail"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/mail",
+      "description": "YNX Mail is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-merchant-console",
+      "type": "product",
+      "canonicalName": "YNX Merchant Console",
+      "aliases": [
+        "merchant console",
+        "ynx merchant console"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/merchant-console",
+      "description": "YNX Merchant Console is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-monitor",
+      "type": "product",
+      "canonicalName": "YNX Monitor",
+      "aliases": [
+        "ynx monitor"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/monitor",
+      "description": "YNX Monitor is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-music",
+      "type": "product",
+      "canonicalName": "YNX Music",
+      "aliases": [
+        "ynx music"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/music",
+      "description": "YNX Music is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-oracle",
+      "type": "product",
+      "canonicalName": "YNX Oracle",
+      "aliases": [
+        "ynx market data",
+        "ynx oracle"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/oracle",
+      "description": "YNX Oracle is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-pay",
+      "type": "product",
+      "canonicalName": "YNX Pay",
+      "aliases": [
+        "ynx pay"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/pay",
+      "description": "YNX Pay is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-quant",
+      "type": "product",
+      "canonicalName": "YNX Quant Lab",
+      "aliases": [
+        "quant lab",
+        "ynx quant",
+        "ynx quant lab"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/quant",
+      "description": "YNX Quant Lab is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-resource-market",
+      "type": "product",
+      "canonicalName": "YNX Resource Market",
+      "aliases": [
+        "resource market",
+        "ynx resource market"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/resource-market",
+      "description": "YNX Resource Market is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-search",
+      "type": "product",
+      "canonicalName": "YNX Search",
+      "aliases": [
+        "ynx search"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/search",
+      "description": "YNX Search is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-security",
+      "type": "product",
+      "canonicalName": "YNX Security",
+      "aliases": [
+        "ynx release platform",
+        "ynx security",
+        "ynx sre"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/security",
+      "description": "YNX Security is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-seller-console",
+      "type": "product",
+      "canonicalName": "YNX Seller Console",
+      "aliases": [
+        "seller console",
+        "ynx seller console"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/seller-console",
+      "description": "YNX Seller Console is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-shop",
+      "type": "product",
+      "canonicalName": "YNX Shop",
+      "aliases": [
+        "ynx shop"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/shop",
+      "description": "YNX Shop is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-social",
+      "type": "product",
+      "canonicalName": "YNX Social",
+      "aliases": [
+        "ynx social"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/social",
+      "description": "YNX Social is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-trust-center",
+      "type": "product",
+      "canonicalName": "YNX Trust Center",
+      "aliases": [
+        "trust center",
+        "ynx trust center"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/trust-center",
+      "description": "YNX Trust Center is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-video",
+      "type": "product",
+      "canonicalName": "YNX Video",
+      "aliases": [
+        "ynx video"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/video",
+      "description": "YNX Video is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-wallet",
+      "type": "product",
+      "canonicalName": "YNX Wallet",
+      "aliases": [
+        "wallet auth",
+        "ynx wallet",
+        "ynx wallet auth"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/wallet",
+      "description": "YNX Wallet is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "product-website",
+      "type": "product",
+      "canonicalName": "YNX Website",
+      "aliases": [
+        "ynx website",
+        "ynxweb4.com"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/website",
+      "description": "YNX Website is an independent product in the YNX Web4 ecosystem.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "ynx-chain",
+      "type": "organization",
+      "canonicalName": "YNX Chain",
+      "aliases": [
+        "streambft",
+        "ynx",
+        "ynx chain",
+        "ynx chain core"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/",
+      "description": "The YNX Web4 Layer-1 ecosystem.",
+      "facts": {
+        "network": "YNX Testnet",
+        "evmChainId": 6423,
+        "cosmosChainId": "ynx_6423-1",
+        "nativeAsset": "YNXT"
+      },
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "ynx-testnet",
+      "type": "network",
+      "canonicalName": "YNX Testnet",
+      "aliases": [
+        "0x1917",
+        "6423",
+        "ynx testnet",
+        "ynx_6423-1"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/testnet",
+      "description": "YNX Testnet uses EVM chain ID 6423 and Cosmos chain ID ynx_6423-1.",
+      "facts": {
+        "evmChainId": 6423,
+        "evmChainIdHex": "0x1917",
+        "cosmosChainId": "ynx_6423-1",
+        "nativeAsset": "YNXT"
+      },
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "ynx-web4",
+      "type": "ecosystem",
+      "canonicalName": "YNX Web4",
+      "aliases": [
+        "ynx web4",
+        "ynxweb4"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/products",
+      "description": "The independent product ecosystem powered by YNX Chain.",
+      "facts": null,
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    },
+    {
+      "id": "ynxt",
+      "type": "testnet-asset",
+      "canonicalName": "YNXT",
+      "aliases": [
+        "ynx token",
+        "ynxt"
+      ],
+      "canonicalUrl": "https://ynxweb4.com/economics",
+      "description": "The native YNX Testnet asset; it is not a Mainnet or fiat asset.",
+      "facts": {
+        "network": "YNX Testnet",
+        "valueBoundary": "testnet asset"
+      },
+      "registryVersion": "1.0.0",
+      "registryEffectiveAt": "2026-07-27",
+      "source": "ynx-entity-registry"
+    }
+  ]
+}

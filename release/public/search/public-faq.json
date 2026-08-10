@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "feedName": "public-faq",
+  "version": "1.0.0",
+  "asOf": "2026-07-29T00:00:00.000Z",
+  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
+  "coverage": "YNX Search public FAQ",
+  "items": [
+    {
+      "id": "0c82aa9dd9d49e45382765d0",
+      "question": "Does YNX Search control Google or Bing ranking?",
+      "answer": "No. It is an independent YNX product for ecosystem and authorized-source search. Website and documentation owners control external SEO submissions.",
+      "canonicalUrl": "https://ynxweb4.com/search#faq-b75c77f63ff3",
+      "source": "ynx-search-public-product-metadata"
+    },
+    {
+      "id": "39e44c8a6b7f12ac8c8a48ce",
+      "question": "How can a result be corrected or removed?",
+      "answer": "The product provides auditable correction, removal and appeal requests. Central Trust integration is still pending.",
+      "canonicalUrl": "https://ynxweb4.com/search#faq-17d48ca48597",
+      "source": "ynx-search-public-product-metadata"
+    },
+    {
+      "id": "ba5bb0c6411fda3825fe965b",
+      "question": "Can the AI answer without sources?",
+      "answer": "No. Search AI is limited to the current retrieved set, requires explicit consent and rejects citations outside that set.",
+      "canonicalUrl": "https://ynxweb4.com/search#faq-dc7a989786fb",
+      "source": "ynx-search-public-product-metadata"
+    },
+    {
+      "id": "e911979391db1c9e054d01ed",
+      "question": "What does YNX Search index?",
+      "answer": "Only sources registered with an owner, authorization, permitted scope, terms, data rights, explicit reviewed public data classes, retention and correction paths. Private messages, mail, files, Wallet sessions, secrets, internal engineering data and operator logs are rejected.",
+      "canonicalUrl": "https://ynxweb4.com/search#faq-430037ac6087",
+      "source": "ynx-search-public-product-metadata"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "YNX Search",
+  "benchmark": "loopback-http-lexical-search",
+  "performedAt": "2026-07-29T02:38:12.768Z",
+  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
+  "scope": "local single-process Node.js service on loopback; not staging, public, or production capacity",
+  "environment": {
+    "node": "v22.13.1",
+    "platform": "darwin",
+    "architecture": "arm64"
+  },
+  "dataset": {
+    "sources": 1,
+    "documents": 40,
+    "query": "YNX Search capacity",
+    "pageSize": 10
+  },
+  "load": {
+    "requests": 80,
+    "concurrency": 8,
+    "durationMs": 112.05,
+    "throughputRequestsPerSecond": 713.98
+  },
+  "latencyMs": {
+    "p50": 8.82,
+    "p95": 22.57,
+    "p99": 34.03,
+    "max": 34.03
+  },
+  "responses": {
+    "statusCounts": {
+      "200": 80
+    },
+    "successful": 80,
+    "errors": 0
+  },
+  "result": "pass"
+}

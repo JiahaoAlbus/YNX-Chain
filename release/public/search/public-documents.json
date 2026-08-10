@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "feedName": "public-documents",
+  "version": "1.0.0",
+  "asOf": "2026-07-29T00:00:00.000Z",
+  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
+  "coverage": "no approved public document inventory supplied",
+  "items": []
+}
