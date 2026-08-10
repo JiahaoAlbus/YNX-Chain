@@ -3,13 +3,13 @@
 ## Release truth
 
 - Owner: `07-exchange`
-- Runtime source commit: `42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d`
+- Public runtime source commit: `3cf00aeea07b23c9a5e7aa6aad168db502dc4744`
 - Contract: `release/integration/exchange-contract.json`
 - State schema: `9`
 - Current stage: `FREEZE` in progress
 - Central integration: not accepted
 - Shared Testnet: not verified
-- Public runtime/download: not deployed or hosted
+- Public runtime: `https://exchange.ynxweb4.com/` deployed and restart-verified; desktop download remains unhosted
 
 The runtime commit is pushed to `codex/final-exchange` and was verified equal to its upstream at the time of this handoff. This document does not turn local evidence into central, public, signed or store status.
 
@@ -25,7 +25,7 @@ Exchange owns deterministic Spot order state, available/reserved subaccount acco
 - Action authorization: domain-separated Wallet signatures plus idempotency keys; protected HTTP calls also require the matching Gateway scope.
 - Quant kill: `ynx-quant-strategy-kill-v1`; persistent nonce-domain revocation plus atomic subaccount-market mass cancel. A mass-cancel signature is not interchangeable.
 - Quant aggregate capital: sum of open execution notional for the exact subaccount and nonce domain; persisted across restart.
-- Quant pause/resume: unavailable and fail closed. Resumption after kill requires a newly signed mandate with a new nonce domain.
+- Quant pause/resume: separate Wallet-signed control domain; pause atomically cancels execution and blocks new exposure across restart, resume is separately signed, and kill remains irreversible for the exact nonce domain.
 - Health/version: `/health`, `/ready`, `/metrics`, `/version`.
 - Streams: persisted Market/User/Drop Copy sequence with public/private redaction boundaries.
 

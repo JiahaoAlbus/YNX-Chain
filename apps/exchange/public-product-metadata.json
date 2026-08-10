@@ -3,7 +3,7 @@
   "productId": "ynx-exchange",
   "name": "YNX Exchange",
   "aliases": ["YNX Exchange Pro", "YNX Exchange Mobile"],
-  "sourceCommit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+  "sourceCommit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744",
   "canonicalRoute": "/products/exchange",
   "seo": {
     "title": "YNX Exchange — Deterministic Testnet Trading",
@@ -17,7 +17,7 @@
     "Deterministic fixed-point Spot CLOB with price-time priority",
     "Limit, protected Market IOC, Post-only, IOC, FOK, amend, stop, take-profit, trailing, OCO, TWAP, iceberg and scale execution",
     "Persistent Market, User and Drop Copy event streams",
-    "Wallet-signed dead-man switch and persistent Quant strategy kill",
+    "Wallet-signed dead-man switch, persistent Quant pause/resume and irreversible strategy kill",
     "Quant mandates with exact subaccount, market, methods, aggregate capital, expiry and nonce domain",
     "Responsive Web Pro terminal and separate Android/iOS mobile product"
   ],
@@ -27,22 +27,23 @@
     "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
-    "deployedPublic": false,
+    "deployedPublic": true,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false,
-    "websitePublished": false
+    "websitePublished": true
   },
   "risks": [
     "Testnet venue only; YUSD_TEST is internal venue credit",
-    "No public runtime, hosted download, production signature or store release is attested",
+    "Public Testnet runtime is live; no hosted desktop download, production signature or store release is attested",
     "Central Wallet/Gateway, custody and authoritative Indexer acceptance remain pending",
     "Margin, perpetual, portfolio margin, UltraLiquidity and solvency proof are not implemented",
     "No guaranteed liquidity, price, execution, profit or return",
     "Historical schema v2-v7 compatibility lacks immutable byte fixtures"
   ],
   "availability": {
-    "runtimePublicUrl": null,
+    "runtimePublicUrl": "https://exchange.ynxweb4.com/",
+    "healthUrls": ["https://exchange.ynxweb4.com/api/health", "https://exchange.ynxweb4.com/api/ready", "https://exchange.ynxweb4.com/api/version"],
     "downloadUrls": [],
     "artifactManifest": "apps/exchange/product-release.json",
     "localArtifactEvidence": "evidence/artifacts/exchange-darwin-arm64-42f2f48.txt"
@@ -62,7 +63,7 @@
   "faq": [
     {
       "question": "Is YNX Exchange live with real funds?",
-      "answer": "No. The current release is a locally tested testnet venue. Public deployment, production custody and live-funds operation are not claimed."
+      "answer": "No. The current release is a public YNX Testnet venue. Production custody, Mainnet and live-funds operation are not claimed."
     },
     {
       "question": "Does YNX Exchange provide real market liquidity?",
@@ -87,5 +88,5 @@
     "securityVerifier": "30-security-sre",
     "publishCondition": "Consume this metadata, preserve status booleans, attach accepted brand assets and verify public URLs against the same source commit"
   },
-  "generatedAt": "2026-07-27T15:28:52Z"
+  "generatedAt": "2026-08-10T00:30:00Z"
 }

@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0-testnet",
   "product": "ynx-exchange",
   "owner": "07-exchange",
-  "sourceCommit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+  "sourceCommit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744",
   "stateSchemaVersion": 9,
   "authority": {
     "exchangeOwned": [
@@ -67,7 +67,8 @@
     "ynx-exchange-dead-man-v1",
     "ynx-exchange-withdrawal-review-v1",
     "ynx-quant-execution-adapter-v1",
-    "ynx-quant-strategy-kill-v1"
+    "ynx-quant-strategy-kill-v1",
+    "ynx-quant-strategy-control-v1"
   ],
   "httpApi": {
     "health": ["GET /health", "GET /ready", "GET /metrics", "GET /version"],
@@ -127,6 +128,7 @@
       "scale",
       "cancel",
       "mass cancel",
+      "persistent signed pause and resume",
       "persistent kill",
       "reconcile"
     ],
@@ -148,7 +150,7 @@
       "nonce domain",
       "wallet signature"
     ],
-    "pauseResume": "unavailable-fail-closed",
+    "pauseResume": "separately wallet-signed; pause atomically cancels open execution and blocks exposure; resume never overrides kill",
     "kill": "persistent nonce-domain revocation plus atomic subaccount-market mass cancel"
   },
   "canonicalEvents": {
@@ -173,6 +175,8 @@
       "dead_man_armed",
       "dead_man_expired",
       "quant_strategy_killed"
+      ,"quant_strategy_paused"
+      ,"quant_strategy_resumed"
     ]
   },
   "errorCodes": [
@@ -194,7 +198,9 @@
     "readiness": "GET /ready; verifies local state integrity and reports integrations",
     "version": "GET /version; product/version/build commit",
     "metrics": "GET /metrics; local process counters",
-    "publicDeployment": false
+    "publicDeployment": true,
+    "publicUrl": "https://exchange.ynxweb4.com/",
+    "publicRuntimeCommit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744"
   },
   "migration": {
     "current": 9,
@@ -236,10 +242,10 @@
     "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
-    "deployedPublic": false,
+    "deployedPublic": true,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
   },
-  "generatedAt": "2026-07-27T15:28:52Z"
+  "generatedAt": "2026-08-10T00:30:00Z"
 }
