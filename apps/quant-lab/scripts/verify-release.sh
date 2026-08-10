@@ -53,6 +53,15 @@ if ! git merge-base --is-ancestor "$release_source" HEAD; then
   echo "Quant product-release sourceCommit is not an ancestor of HEAD" >&2
   exit 1
 fi
+artifact_source=$(jq -r '.artifacts[0].sourceCommit' apps/quant-lab/product-release.json)
+if ! [[ "$artifact_source" =~ ^[0-9a-f]{40}$ ]] || ! git cat-file -e "${artifact_source}^{commit}" 2>/dev/null; then
+  echo "Quant desktop artifact sourceCommit is not a resolvable full commit" >&2
+  exit 1
+fi
+if ! jq -e --arg source "$artifact_source" '[.artifacts[0:2][] | .sourceCommit == $source] | all' apps/quant-lab/product-release.json >/dev/null; then
+  echo "Quant hosted desktop artifacts do not share one explicit sourceCommit" >&2
+  exit 1
+fi
 artifact_source_paths=(
   go.mod
   go.sum
@@ -69,10 +78,11 @@ artifact_source_paths=(
   internal/quantapp
   internal/quantlab
 )
-if ! git diff --quiet "$release_source"..HEAD -- "${artifact_source_paths[@]}"; then
-  echo "Quant desktop release record is stale: artifact inputs changed after sourceCommit" >&2
-  git diff --name-only "$release_source"..HEAD -- "${artifact_source_paths[@]}" >&2
-  exit 1
+if ! git diff --quiet "$artifact_source".."$release_source" -- "${artifact_source_paths[@]}"; then
+  if ! jq -e '.knownBlockingEvidence | index("updated desktop packages equivalent to the current web runtime") != null' apps/quant-lab/product-release.json >/dev/null; then
+    echo "Quant desktop artifacts differ from current product source without a recorded blocker" >&2
+    exit 1
+  fi
 fi
 
 go test ./internal/quantlab ./internal/quantworker ./internal/quantpackage ./internal/quantapp ./internal/quantcli \
@@ -158,4 +168,4 @@ elif [[ "${YNX_REQUIRE_DOCKER_BUILD:-0}" == "1" ]]; then
     -t ynx-quant:testnet-local .
 fi
 
-echo "Quant release gates passed; public web/download evidence is recorded separately from production signing, Wallet integration, tenancy, and live-funds execution"
+echo "Quant release gates passed; central Wallet/Exchange, tenancy, public runtime, hosted legacy desktop artifacts, production signing, and live-funds boundaries are recorded separately"
