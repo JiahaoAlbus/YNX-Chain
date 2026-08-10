@@ -40,7 +40,7 @@ if git grep -n -I -i -E -e "$forbidden" -- \
   exit 1
 fi
 
-jq -e '.productId == "ynx-quant-lab" and .implementedLocal == true and .deployedPublic == false' apps/quant-lab/product-release.json >/dev/null
+jq -e '.productId == "ynx-quant-lab" and .implementedLocal == true and .deployedPublic == true and .downloadHosted == true and .publicRuntime.mode == "simulated_testnet_only" and .publicRuntime.liveFundsEnabled == false and (.publicUrls | index("https://quant.ynxweb4.com/")) != null and ([.artifacts[] | select(.hosted == true and (.url | startswith("https://quant.ynxweb4.com/downloads/")))] | length) == 2' apps/quant-lab/product-release.json >/dev/null
 jq -e '.productId == "ynx-quant-lab" and (.downloads | type == "array")' apps/quant-lab/public-product-metadata.json >/dev/null
 jq -e '.productId == "ynx-quant-lab" and .artifactChecks.scanner == "ynx-archive-safety-v1" and .containerScanPassed == false and .externalVulnerabilityScanPassed == false' apps/quant-lab/security-verification.json >/dev/null
 
@@ -158,4 +158,4 @@ elif [[ "${YNX_REQUIRE_DOCKER_BUILD:-0}" == "1" ]]; then
     -t ynx-quant:testnet-local .
 fi
 
-echo "Quant local release gates passed; remote, signed, installed, and public evidence remain separate gates"
+echo "Quant release gates passed; public web/download evidence is recorded separately from production signing, Wallet integration, tenancy, and live-funds execution"

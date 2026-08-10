@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-quant-lab",
-  "evidenceDate": "2026-07-29",
-  "artifactSourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
-  "desktopColdStartEvidence": "apps/quant-lab/evidence/local-macos-desktop-cold-start-20260729.json",
+  "evidenceDate": "2026-08-10",
+  "artifactSourceCommit": "909031e510272e9f92a11d9e9dc8553a1934692f",
+  "desktopColdStartEvidence": "apps/quant-lab/evidence/local-macos-desktop-cold-start-20260810.json",
   "buildToolchain": "go1.25.7-darwin-arm64",
   "sourceChecks": {
     "goVetPassed": true,
@@ -23,16 +23,16 @@
     "artifacts": [
       {
         "name": "YNX-Quant-Lab-0.2.0-testnet-macos-arm64.zip",
-        "bytes": 7377983,
-        "sha256": "7df2bb3fd2f59ef3594a770004866feb8dff3495c3836bfeadec03d98dae2739",
+        "bytes": 7378056,
+        "sha256": "5edff1d728ef8430b2a8ea983696e7ce756cb46f20593e56eae7e98ce415c395",
         "entries": 15,
         "uncompressedBytes": 17820849,
         "passed": true
       },
       {
         "name": "YNX-Quant-Lab-0.2.0-testnet-windows-x64.zip",
-        "bytes": 8094598,
-        "sha256": "4cdacd903aee1ab7aeafc9943258f42cf8522b19a8eda3e4f618b963c0a2f392",
+        "bytes": 8094216,
+        "sha256": "491816aa6101fa544af4f2da4459b364bb71245a82a0a06ad889c206a1ae90e7",
         "entries": 9,
         "uncompressedBytes": 19266485,
         "passed": true

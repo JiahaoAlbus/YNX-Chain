@@ -3,14 +3,35 @@
 Run locally:
 
 ```sh
-YNX_QUANT_EXCHANGE_URL=http://127.0.0.1:6442 \
+YNX_QUANT_EXCHANGE_URL=http://127.0.0.1:6442/api \
 YNX_QUANT_STATE_PATH=.ynx/quant-lab/state.json \
 go run ./apps/quant-lab/server
 ```
 
 The configured Exchange must expose `/api/v1/market-data/trades` when the Exchange server is used with its `/api` prefix, so set `YNX_QUANT_EXCHANGE_URL=http://127.0.0.1:6442/api` for the combined Exchange Web server. The tape contains actual YNX-owned venue matches only. Fewer than 20 actual trades makes backtest unavailable; no prices are synthesized.
 
-Writes are loopback-only in this local preview and require the UI's `X-YNX-Preview-Mode: local-paper` boundary. A public staging deployment must replace this local boundary with canonical Central Gateway session authorization; it must not expose the local write mode remotely.
+Writes require the UI's same-origin `X-YNX-Preview-Mode: local-paper` boundary.
+The public Testnet research preview is a shared simulated workspace: it accepts
+same-origin research and Paper mutations, never enables live funds, and does not
+yet provide canonical Wallet identity or per-user tenancy. Do not submit private
+datasets, secrets, API keys, personal data, or proprietary strategy source. A
+multi-user release must replace this boundary with Central Gateway sessions and
+tenant-scoped storage before it can claim private workspaces.
+
+Public research preview:
+
+- UI: `https://quant.ynxweb4.com/`
+- health: `https://quant.ynxweb4.com/api/health`
+- version: `https://quant.ynxweb4.com/api/version`
+- runtime source: `9596d94fb3fa315fa32cdbb5ec8e0849a87397db`
+- execution truth: actual owned Exchange matches feed deterministic simulation;
+  live-funds execution remains disabled
+- macOS arm64 candidate: `https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-909031e5-macos-arm64-adhoc.zip`
+- Windows x64 candidate: `https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-909031e5-windows-x64-unsigned.zip`
+
+The macOS candidate is ad-hoc signed and cold-start verified. The Windows
+candidate is unsigned and has not been launched on a Windows host. Neither is a
+production-signed or store-distributed release.
 
 Configuration:
 

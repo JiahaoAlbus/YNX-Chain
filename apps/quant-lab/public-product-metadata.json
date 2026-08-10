@@ -8,7 +8,7 @@
   "title": "YNX Quant Lab — Research, Paper and Bounded Testnet",
   "metaDescription": "Research, backtest and inspect strategies with explicit data, risk and Wallet authorization boundaries. Historical and simulated results do not predict returns.",
   "h1": "Research strategies with evidence before execution",
-  "status": "local-testnet-candidate",
+  "status": "public-testnet-research-preview",
   "features": ["deterministic backtesting", "walk-forward evidence", "paper execution", "independent risk controls", "Wallet-bounded Testnet contracts"],
   "risks": ["strategies can lose assets", "historical and simulated results do not predict returns", "provider and network failures can delay or prevent execution"],
   "faq": [
@@ -18,12 +18,15 @@
   ],
   "logo": "/assets/brand/ynx-logo.png",
   "icon": "/assets/brand/ynx-logo.png",
-  "downloads": [],
-  "supportUrl": null,
+  "downloads": [
+    {"platform": "macOS arm64", "releaseClass": "ad-hoc signed Testnet candidate", "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-909031e5-macos-arm64-adhoc.zip", "bytes": 7378056, "sha256": "5edff1d728ef8430b2a8ea983696e7ce756cb46f20593e56eae7e98ce415c395", "coldStartVerified": true, "productionSigned": false},
+    {"platform": "Windows x64", "releaseClass": "unsigned cross-compiled Testnet candidate", "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-909031e5-windows-x64-unsigned.zip", "bytes": 8094216, "sha256": "491816aa6101fa544af4f2da4459b364bb71245a82a0a06ad889c206a1ae90e7", "coldStartVerified": false, "productionSigned": false}
+  ],
+  "supportUrl": "https://discord.gg/t8KpAF2KE",
   "privacyUrl": null,
   "securityUrl": null,
-  "statusUrl": null,
+  "statusUrl": "https://quant.ynxweb4.com/api/health",
   "screenshots": [],
   "structuredDataRecommendation": {"type": "SoftwareApplication", "applicationCategory": "FinanceApplication", "operatingSystem": "Web, macOS candidate, Windows candidate"},
-  "websiteHandoffState": "metadata-ready-publication-pending"
+  "websiteHandoffState": "public-web-and-direct-downloads-live"
 }

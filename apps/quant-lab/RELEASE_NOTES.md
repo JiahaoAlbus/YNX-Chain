@@ -38,6 +38,15 @@ This release introduces an independent research, Paper and bounded Testnet Previ
   metrics. No trace backend, dashboard, monitor ingestion or alert delivery is
   claimed.
 
-Historical and simulated results do not predict returns. This candidate is not
-a real-money trading product. It is not centrally integrated, deployed, hosted,
-production signed, or store released.
+The web research preview is deployed at `https://quant.ynxweb4.com/` from source
+`9596d94fb3fa315fa32cdbb5ec8e0849a87397db`. Its market-backed verification used
+30 persisted, YNX-owned Exchange matches, completed an out-of-sample backtest,
+survived service restart, and passed 20 concurrent public snapshot reads.
+
+Commit-addressed macOS arm64 and Windows x64 Testnet candidate archives are
+directly hosted on the Quant domain. The macOS archive is ad-hoc signed and
+cold-start verified; the Windows archive remains unsigned and host-unverified.
+
+Historical and simulated results do not predict returns. This preview is not a
+real-money trading product. It is not centrally Wallet-integrated, tenant
+isolated, production signed, or store released.

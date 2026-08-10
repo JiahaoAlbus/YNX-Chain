@@ -2,7 +2,7 @@
   "schemaVersion": "ynx.cross-product-test-vectors.v1",
   "productId": "ynx-quant-lab",
   "contractId": "ynx-quant-lab-contract-v1",
-  "sourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
+  "sourceCommit": "909031e510272e9f92a11d9e9dc8553a1934692f",
   "state": "owner-proposal-not-yet-executed-on-shared-testnet",
   "generatedAt": "2026-07-29T03:02:39Z",
   "ownerContractSnapshot": "apps/quant-lab/integration/owner-contract-snapshot.json",

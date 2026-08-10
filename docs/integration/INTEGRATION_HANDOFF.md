@@ -3,7 +3,7 @@
 **Product:** 08 — YNX Quant Lab  
 **Owner:** `08-quant-lab`  
 **Contract:** `release/integration/ynx-quant-lab-contract.json`  
-**Runtime source:** `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`  
+**Public web runtime source:** `9596d94fb3fa315fa32cdbb5ec8e0849a87397db`
 **Evidence checkpoint:** `3bff013d86ed5682950a38b114884ce6f17c423d`
 **Owner candidate snapshot:** `apps/quant-lab/integration/owner-contract-snapshot.json`
 **State:** Owner proposal aligned to observed candidates; central acceptance and shared Testnet verification pending

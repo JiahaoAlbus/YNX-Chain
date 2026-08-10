@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-quant-lab",
+  "verifiedAt": "2026-08-10T00:55:00Z",
+  "publicUrl": "https://quant.ynxweb4.com/",
+  "sourceCommit": "9596d94fb3fa315fa32cdbb5ec8e0849a87397db",
+  "sourceTree": "514d52bef884bae65851d59e1e66cafdb1cde225",
+  "binary": {
+    "sha256": "5937de74673b64353a81488b15b8caf3776f7e0dae5e5cb879543f61610ed862",
+    "bytes": 6840504
+  },
+  "webIndexSha256": "8a497efcbc03a8ab295f7489114e2114ecb25c47dfbc6abe0ce86ac07b3604ea",
+  "downloads": [
+    {
+      "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-909031e5-macos-arm64-adhoc.zip",
+      "bytes": 7378056,
+      "sha256": "5edff1d728ef8430b2a8ea983696e7ce756cb46f20593e56eae7e98ce415c395",
+      "httpStatus": 200,
+      "rangeStatus": 206,
+      "zipHeaderVerified": true,
+      "coldStartVerified": true
+    },
+    {
+      "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-909031e5-windows-x64-unsigned.zip",
+      "bytes": 8094216,
+      "sha256": "491816aa6101fa544af4f2da4459b364bb71245a82a0a06ad889c206a1ae90e7",
+      "httpStatus": 200,
+      "rangeStatus": 206,
+      "zipHeaderVerified": true,
+      "coldStartVerified": false
+    }
+  ],
+  "health": {
+    "status": "ok",
+    "ready": true,
+    "mode": "simulated_testnet_only",
+    "liveFundsEnabled": false
+  },
+  "verification": {
+    "actualOwnedExchangeTradeCount": 30,
+    "marketBacktestHttpStatus": 201,
+    "experimentId": "experiment-000001",
+    "experimentStatus": "completed_oos",
+    "walkForwardWindows": 3,
+    "restartPersistence": true,
+    "concurrentPublicSnapshotReads": 20,
+    "concurrentPublicSnapshotFailures": 0,
+    "publicUiHttpStatus": 200
+  },
+  "state": {
+    "sha256AfterRestart": "cbe3948ec8cbf93ccd07224dac779dd9ccacd8c9a596fcfe0ba917ebc3b3cb60",
+    "bytes": 7159,
+    "mode": "0600",
+    "owner": "ynx:ynx"
+  },
+  "boundaries": {
+    "sharedPublicResearchWorkspace": true,
+    "canonicalWalletIdentity": false,
+    "perUserTenancy": false,
+    "liveFundsEnabled": false,
+    "downloadHosted": true,
+    "productionSigned": false
+  }
+}
