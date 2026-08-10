@@ -8,7 +8,7 @@
   "contractOwner": "08-quant-lab",
   "contractState": "owner-proposal-integration-pending",
   "integrationFreezeOwner": "29-integration",
-  "sourceCommit": "909031e510272e9f92a11d9e9dc8553a1934692f",
+  "sourceCommit": "70382c37ccb8c601c88e72c4cbe189fa072dc5db",
   "evidenceCommit": "3bff013d86ed5682950a38b114884ce6f17c423d",
   "generatedAt": "2026-08-10T00:00:00Z",
   "ownerContractSnapshot": "apps/quant-lab/integration/owner-contract-snapshot.json",

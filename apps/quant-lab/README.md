@@ -31,11 +31,11 @@ Public research preview:
 - UI: `https://quant.ynxweb4.com/`
 - health: `https://quant.ynxweb4.com/api/health`
 - version: `https://quant.ynxweb4.com/api/version`
-- runtime source: `9596d94fb3fa315fa32cdbb5ec8e0849a87397db`
+- runtime source: `70382c37ccb8c601c88e72c4cbe189fa072dc5db`
 - execution truth: actual owned Exchange matches feed deterministic simulation;
   live-funds execution remains disabled
-- macOS arm64 candidate: `https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-909031e5-macos-arm64-adhoc.zip`
-- Windows x64 candidate: `https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-909031e5-windows-x64-unsigned.zip`
+- macOS arm64 candidate: `https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-70382c37-macos-arm64-adhoc.zip`
+- Windows x64 candidate: `https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-70382c37-windows-x64-unsigned.zip`
 
 The macOS candidate is ad-hoc signed and cold-start verified. The Windows
 candidate is unsigned and has not been launched on a Windows host. Neither is a

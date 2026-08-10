@@ -15,13 +15,13 @@ Signing class is `adhoc-test-only`. Apple Developer ID, notarization,
 hardened-runtime entitlement review, immutable hosting, and store release are
 false.
 
-The reproducible local macOS archive built twice from source commit
-`909031e510272e9f92a11d9e9dc8553a1934692f` is 7,378,056 bytes with SHA-256
-`5edff1d728ef8430b2a8ea983696e7ce756cb46f20593e56eae7e98ce415c395`.
+The current local macOS archive built from source commit
+`70382c37ccb8c601c88e72c4cbe189fa072dc5db` is 7,395,201 bytes with SHA-256
+`b7f0013ab789f36d8013ee35131b19d92b09d201daac9560c4f989a568cd60d3`.
 The fresh cold start returned this exact commit from `/version`, a ready health
 response with live funds disabled, Prometheus build/risk signals and the YNX
 Quant Lab frontend title. The machine-readable record is
-`apps/quant-lab/evidence/local-macos-desktop-cold-start-20260810.json`.
+`apps/quant-lab/evidence/local-macos-desktop-cold-start-20260810-70382c37.json`.
 
 ## Windows
 
@@ -30,15 +30,14 @@ cross-compiled into an archive. It is `unsigned-cross-compiled`. There is no
 Windows host launch, installation, antivirus/SmartScreen, minimum-version, or
 uninstall evidence, so `installedLocal` applies only to macOS.
 
-The reproducible local Windows archive built twice from the same source commit is
-8,094,216 bytes with SHA-256
-`491816aa6101fa544af4f2da4459b364bb71245a82a0a06ad889c206a1ae90e7`.
+The local Windows archive built from the same source commit is 8,110,427 bytes
+with SHA-256
+`a8a2e25e6bdc6a244ca09f491671951a2e0ae210c32b9f17758a31569d4eb1ab`.
 
-The 2026-08-10 refresh used Go 1.25.7 on Darwin arm64. The hashes changed
-from the earlier local evidence while the source inputs and archive byte counts
-remained unchanged, so the release record now binds the build toolchain as well
-as the source commit. Both archives reproduced byte-for-byte across two fresh
-builds in the recorded environment.
+The 2026-08-10 refresh used Go 1.25.7 on Darwin arm64. The release record binds
+the toolchain and source commit. The macOS package passed strict ad-hoc signature,
+fresh extraction, exact version/commit, ready health, frontend identity and clean
+shutdown checks; Windows remains host-unverified.
 
 Desktop currently opens the product in the user's default browser while owning
 the local service lifecycle; it is not represented as an embedded native WebView.

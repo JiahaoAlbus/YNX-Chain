@@ -44,7 +44,7 @@ This release introduces an independent research, Paper and bounded Testnet Previ
   claimed.
 
 The web research preview is deployed at `https://quant.ynxweb4.com/` from source
-`9596d94fb3fa315fa32cdbb5ec8e0849a87397db`. Its market-backed verification used
+`70382c37ccb8c601c88e72c4cbe189fa072dc5db`. Its market-backed verification used
 30 persisted, YNX-owned Exchange matches, completed an out-of-sample backtest,
 survived service restart, and passed 20 concurrent public snapshot reads.
 
@@ -55,5 +55,5 @@ cold-start verified; the Windows archive remains unsigned and host-unverified.
 Historical and simulated results do not predict returns. This preview is not a
 real-money trading product. It is not centrally Wallet-integrated, tenant
 isolated, production signed, or store released. The Exchange execution
-workbench described above is not claimed public until a new runtime commit and
-deployment evidence supersede the currently attested commit.
+workbench is public, but an authenticated user execution is still not claimed
+until enabled Wallet registration and an owner-bound receipt are evidenced.
