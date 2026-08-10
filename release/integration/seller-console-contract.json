@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "ynx.integration.seller-console.v1",
+  "product": {
+    "id": "seller-console",
+    "name": "YNX Seller Console",
+    "sourceCommit": "27af7bb447f84fe5855f9ae57b19d54da663bc1c",
+    "branch": "codex/integrate-finance-suite"
+  },
+  "walletTuple": {
+    "requestingProduct": "seller-console",
+    "productClientId": "ynx-seller-v1",
+    "bundleId": "com.ynxweb4.seller-console",
+    "callback": "ynxseller://wallet-auth/callback",
+    "orderedScopes": ["account:read", "shop:seller:operate"],
+    "productDeviceAlgorithm": "p256-sha256",
+    "sessionDurationSeconds": 180,
+    "reviewState": "approved",
+    "enabled": true,
+    "failClosed": true
+  },
+  "authority": {
+    "sellerRecords": "internal/commerce",
+    "identityAndProductSession": "packages/wallet-auth",
+    "assetSettlement": "YNX Pay and Wallet; Seller Console cannot sign or move funds",
+    "disputes": "YNX Trust",
+    "ai": "draft-only; cannot publish, price, fulfill, refund, change roles or change providers"
+  },
+  "acceptedSourceChecks": [
+    "Go commerce test and race suites",
+    "Seller web tests and deterministic static build",
+    "central Wallet registry and Node host tests",
+    "Wallet application allow-list and scope explanation tests",
+    "local concurrent read baseline"
+  ],
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": true,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "externalInputs": [
+    "deployment of the accepted central Wallet registry and Gateway",
+    "deployment of the current Seller service and web bundle",
+    "public exact-tuple authorization and revocation acceptance receipt",
+    "governed tax and carrier provider configuration"
+  ],
+  "status": "integrated-central-source"
+}
