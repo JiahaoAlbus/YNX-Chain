@@ -3,12 +3,36 @@
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check governance-check governance-testnet-drill
 .PHONY: shop-release-package-test
 .PHONY: stable-reserve-attestation-check economics-explorer-deploy-check economics-monitor-check economics-monitor-lifecycle-check yusd-sandbox-check yusd-restore-drill yusd-testnet-deploy-check economics-runtime-check staking-risk-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check economics-shared-testnet-acceptance-check economics-testnet-cli-artifact-check economics-testnet-cli-artifact-evidence liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check economics-local-candidate-check safety-module-runtime-check safety-module-candidate-check
+.PHONY: data-fabric-test data-fabric-race-check data-fabric-smoke data-fabric-package-check data-fabric-deployment-check data-fabric-promotion-boundary-check data-fabric-quality-check
 
 setup:
 	go mod tidy
 
 shop-release-package-test:
 	node --test ./scripts/release/shop-package-lib.test.mjs
+
+data-fabric-test:
+	go test ./internal/datafabric... ./sdk/datafabric
+
+data-fabric-race-check:
+	go test -race ./internal/datafabric... ./sdk/datafabric
+
+data-fabric-smoke:
+	bash ./scripts/data-fabric/local-smoke.sh
+
+data-fabric-package-check:
+	bash ./scripts/data-fabric/testnet-release-check.sh
+	bash ./scripts/data-fabric/public-testnet-release-check.sh
+
+data-fabric-deployment-check:
+	bash ./scripts/data-fabric/testnet-deployment-check.sh
+	bash ./scripts/data-fabric/testnet-remote-deploy-check.sh
+
+data-fabric-promotion-boundary-check:
+	bash ./scripts/data-fabric/public-release-promotion-check.sh
+	YNX_DATA_FABRIC_TEST_SIGNING_ALGORITHM=rsa bash ./scripts/data-fabric/public-release-promotion-check.sh
+
+data-fabric-quality-check: data-fabric-test data-fabric-smoke data-fabric-package-check data-fabric-deployment-check data-fabric-promotion-boundary-check
 
 devnet:
 	YNX_NETWORK=devnet YNX_HTTP_ADDR=127.0.0.1:6420 YNX_DATA_DIR=./tmp/devnet-state go run ./cmd/ynx-chaind
