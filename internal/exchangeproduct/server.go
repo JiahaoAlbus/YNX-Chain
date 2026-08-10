@@ -63,6 +63,8 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/ws/user", s.userWebSocket)
 	s.mux.HandleFunc("GET /v1/ws/drop-copy", s.dropCopyWebSocket)
 	s.mux.HandleFunc("GET /v1/account", s.account)
+	s.mux.HandleFunc("GET /v1/margin/account", s.marginAccount)
+	s.mux.HandleFunc("POST /v1/margin/transfer", s.marginTransfer)
 	s.mux.HandleFunc("POST /v1/deposit-intents", s.depositIntent)
 	s.mux.HandleFunc("POST /v1/deposits", s.deposit)
 	s.mux.HandleFunc("POST /v1/deposits/{id}/refresh", s.refreshDeposit)
@@ -410,6 +412,25 @@ func (s *Server) account(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, s.service.Snapshot(session.Account))
+}
+func (s *Server) marginAccount(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:read")
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, s.service.MarginSnapshot(session.Account))
+}
+func (s *Server) marginTransfer(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:trade")
+	if !ok {
+		return
+	}
+	var q MarginTransferRequest
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.service.TransferMarginCollateral(session, q)
+	respond(w, v, err, http.StatusOK)
 }
 func (s *Server) depositIntent(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.auth(w, r, "exchange:deposit")

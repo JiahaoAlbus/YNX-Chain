@@ -2442,29 +2442,31 @@ func bookPriority(left, right Order, bid bool) bool {
 }
 
 type AccountSnapshot struct {
-	Balances          []Balance          `json:"balances"`
-	Ledger            []LedgerEntry      `json:"ledger"`
-	DepositIntents    []DepositIntent    `json:"depositIntents"`
-	Orders            []Order            `json:"orders"`
-	ConditionalOrders []ConditionalOrder `json:"conditionalOrders"`
-	OCOGroups         []OCOGroup         `json:"ocoGroups"`
-	TWAPOrders        []TWAPOrder        `json:"twapOrders"`
-	ScaleOrders       []ScaleOrder       `json:"scaleOrders"`
-	Trades            []Trade            `json:"trades"`
-	Fees              []FeeRecord        `json:"fees"`
-	Deposits          []Deposit          `json:"deposits"`
-	Withdrawals       []Withdrawal       `json:"withdrawals"`
-	Security          SecuritySettings   `json:"security"`
-	Support           []SupportCase      `json:"support"`
-	AI                []AIRecord         `json:"ai"`
-	Audit             []AuditEvent       `json:"audit"`
-	DeadMan           DeadManSwitch      `json:"deadMan"`
+	Balances          []Balance             `json:"balances"`
+	Ledger            []LedgerEntry         `json:"ledger"`
+	DepositIntents    []DepositIntent       `json:"depositIntents"`
+	Orders            []Order               `json:"orders"`
+	ConditionalOrders []ConditionalOrder    `json:"conditionalOrders"`
+	OCOGroups         []OCOGroup            `json:"ocoGroups"`
+	TWAPOrders        []TWAPOrder           `json:"twapOrders"`
+	ScaleOrders       []ScaleOrder          `json:"scaleOrders"`
+	Trades            []Trade               `json:"trades"`
+	Fees              []FeeRecord           `json:"fees"`
+	Deposits          []Deposit             `json:"deposits"`
+	Withdrawals       []Withdrawal          `json:"withdrawals"`
+	Security          SecuritySettings      `json:"security"`
+	Support           []SupportCase         `json:"support"`
+	AI                []AIRecord            `json:"ai"`
+	Audit             []AuditEvent          `json:"audit"`
+	DeadMan           DeadManSwitch         `json:"deadMan"`
+	Margin            MarginAccountSnapshot `json:"margin"`
 }
 
 func (s *Service) Snapshot(account string) AccountSnapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	r := AccountSnapshot{Balances: []Balance{s.balanceLocked(account, NativeAsset), s.balanceLocked(account, QuoteAsset)}, Ledger: []LedgerEntry{}, DepositIntents: []DepositIntent{}, Orders: []Order{}, ConditionalOrders: []ConditionalOrder{}, OCOGroups: []OCOGroup{}, TWAPOrders: []TWAPOrder{}, ScaleOrders: []ScaleOrder{}, Trades: []Trade{}, Fees: []FeeRecord{}, Deposits: []Deposit{}, Withdrawals: []Withdrawal{}, Security: s.securityLocked(account), Support: []SupportCase{}, AI: []AIRecord{}, Audit: []AuditEvent{}, DeadMan: s.state.DeadMan[account]}
+	r.Margin = s.marginSnapshotLocked(account)
 	for _, v := range s.state.Ledger {
 		if v.Account == account {
 			r.Ledger = append(r.Ledger, v)
