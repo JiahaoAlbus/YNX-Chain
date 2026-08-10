@@ -19,6 +19,11 @@ export type CentralWalletApprovalInventoryItem=Readonly<{approvalDigest:string;r
 export type CentralWalletDeviceInventoryItem=Readonly<{deviceBinding:string;requestingProduct:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;sessionBindings:readonly string[];activeSessionBindings:readonly string[];revoked:boolean}>;
 export type CentralWalletSessionInventory=Readonly<{schemaVersion:1;account:string;asOf:string;connectedApps:readonly CentralWalletConnectedApp[];approvals:readonly CentralWalletApprovalInventoryItem[];devices:readonly CentralWalletDeviceInventoryItem[];sessions:readonly CentralWalletSessionInventoryItem[]}>;
 export type SignedNativeTransfer=Readonly<{version:1;chainId:6423;type:"transfer";from:string;to:string;amount:number;fee:1;nonce:number;publicKey:string;signature:string}>;
+export type DexActionName="dex_swap_exact_input"|"dex_swap_exact_output"|"dex_liquidity_add"|"dex_liquidity_remove";
+export type DexActionPayload=Readonly<Record<string,number|string>&{poolId:string;deadlineUnix:number}>;
+export type DexQuote=Readonly<{poolId:string;poolBlockHeight:number;poolUpdatedAt:string;asset0:string;asset1:string;reserve0:number;reserve1:number;feeBps:number;expectedAmount:number}>;
+export type DexActionRequest=Readonly<{version:"1";chainId:6423;productClientId:"ynx-dex-web-v1";bundleId:"com.ynxweb4.dex.web";callback:"https://dex.ynxweb4.com/wallet-action/callback";sessionBinding:string;account:string;nonce:number;action:DexActionName;payload:DexActionPayload;quote:DexQuote;issuedAt:string;expiresAt:string}>;
+export type DexActionResponse=Readonly<{version:"1";requestDigest:string;productClientId:"ynx-dex-web-v1";bundleId:"com.ynxweb4.dex.web";callback:"https://dex.ynxweb4.com/wallet-action/callback";sessionBinding:string;account:string;action:DexActionName;payloadHash:string;signedTransaction:Readonly<Record<string,unknown>>;canonicalPayloadHex:string;transactionHash:string;issuedAt:string;expiresAt:string}>;
 export declare const WALLET_AUTH_VERSION:"1";
 export declare const YNX_NATIVE_CHAIN_ID:"ynx_6423-1";
 export declare const YNX_EVM_CHAIN_ID:6423;
@@ -35,6 +40,8 @@ export declare const NATIVE_TRANSACTION_FEE_YNXT:1;
 export declare class WalletAuthError extends Error {readonly code:string}
 export declare function canonicalJSON(value:unknown):string;
 export declare function digestHex(domain:string,value:unknown):string;
+export declare function encodeBase64url(bytes:Uint8Array):string;
+export declare function decodeBase64url(value:string,label?:string):Uint8Array;
 export declare function parseAuthorizationRequest(input:string|unknown,options:{now?:Date;registry:Record<string,ProductBinding>}):AuthorizationRequest;
 export declare function requestDigest(request:AuthorizationRequest):string;
 export declare function walletIdentity(secretHex:string):Readonly<{account:string;accountPublicKey:string}>;
@@ -47,6 +54,13 @@ export declare function encodeRequestDeepLink(request:AuthorizationRequest):stri
 export declare function parseWalletDeepLink(url:string,platform:"android"|"ios",options:{now?:Date;registry:Record<string,ProductBinding>}):Readonly<{platform:string;request:AuthorizationRequest}>;
 export declare function createCallbackURL(response:Record<string,unknown>&{callback:string}):string;
 export declare function parseCallbackURL(url:string,expectedCallback:string):unknown;
+export declare function createDexActionDeepLink(input:unknown,at?:Date):string;
+export declare function parseDexActionDeepLink(value:string,at?:Date):DexActionRequest;
+export declare function parseDexActionRequest(input:unknown,at?:Date):DexActionRequest;
+export declare function dexActionRequestDigest(input:DexActionRequest):string;
+export declare function signDexAction(request:unknown,input:{accountSecret:string;account?:string},at?:Date):DexActionResponse;
+export declare function parseDexActionResponse(input:unknown,expectedRequest:unknown,at?:Date):DexActionResponse;
+export declare function createDexActionCallback(response:unknown,expectedRequest:unknown,at?:Date):string;
 export declare class OneTimeNonceStore {constructor(records?:readonly [string,string][]);consume(request:AuthorizationRequest,at?:Date):void;snapshot():readonly [string,string][]}
 export declare function createGatewayChallenge(approval:AuthorizationResponse,input:{challenge:string;expiresAt:string},at?:Date):GatewayChallenge;
 export declare function parseGatewayChallenge(input:unknown):GatewayChallenge;
@@ -118,6 +132,8 @@ export declare function signedIntentDigest(input:unknown):string;
 export declare function exportSignedIntent(input:unknown):string;
 export declare function assertSignedIntentActive(input:unknown,context:Readonly<Record<string,unknown>>,at?:Date):Readonly<Record<string,unknown>>;
 export declare function createProductSessionProof(session:CentralWalletSession,input:Readonly<{method:string;path:string;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string}>,productDeviceSecret:string):Readonly<Record<string,unknown>>;
+export declare function createProductDeviceIdentity(secretInput?:string):Readonly<{productDeviceSecret:string;productDeviceKey:string}>;
+export declare function encodeProductSessionProofHeader(proofInput:unknown):string;
 export declare function parseProductSessionProof(input:unknown):Readonly<Record<string,unknown>>;
 export declare function productSessionProofSignBytes(input:unknown):string;
 export declare function productSessionProofDigest(input:unknown):string;

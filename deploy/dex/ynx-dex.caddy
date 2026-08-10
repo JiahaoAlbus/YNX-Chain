@@ -6,6 +6,15 @@ dex.ynxweb4.com, dex-testnet.43.153.202.237.sslip.io {
 	handle /version {
 		reverse_proxy 127.0.0.1:6482
 	}
+	handle_path /api/* {
+		reverse_proxy 127.0.0.1:18445
+	}
+	handle /accounts/* {
+		reverse_proxy {$YNX_DEX_CONSENSUS_GATEWAY:127.0.0.1:27626}
+	}
+	handle /dex/* {
+		reverse_proxy {$YNX_DEX_CONSENSUS_GATEWAY:127.0.0.1:27626}
+	}
 	handle /v1/* {
 		reverse_proxy 127.0.0.1:6482
 	}
