@@ -55,6 +55,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/solvency", s.solvency)
 	s.mux.HandleFunc("GET /v1/solvency/liability-proof", s.liabilityProof)
 	s.mux.HandleFunc("GET /v1/liquidity/quote", s.liquidityQuote)
+	s.mux.HandleFunc("POST /v1/liquidity/execute", s.liquidityExecute)
 	s.mux.HandleFunc("GET /v1/risk", s.risk)
 	s.mux.HandleFunc("GET /v1/risk/policy", s.riskPolicy)
 	s.mux.HandleFunc("GET /v1/streams/market/snapshot", s.marketStreamSnapshot)
@@ -275,6 +276,19 @@ func (s *Server) liabilityProof(w http.ResponseWriter, r *http.Request) {
 func (s *Server) liquidityQuote(w http.ResponseWriter, r *http.Request) {
 	quote, err := s.service.LiquidityQuote(liquidityRequestFromQuery(r.URL.Query()))
 	respond(w, quote, err, http.StatusOK)
+}
+
+func (s *Server) liquidityExecute(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:trade")
+	if !ok {
+		return
+	}
+	var q LiquidityExecutionRequest
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.service.ExecuteLiquidityRoute(session, q)
+	respond(w, v, err, http.StatusOK)
 }
 
 func (s *Server) risk(w http.ResponseWriter, _ *http.Request) {
