@@ -43,6 +43,9 @@ type Config struct {
 	CustodyAddress                 string
 	GatewayURL                     string
 	GatewayClientID                string
+	GatewayBundleID                string
+	QuantGatewayClientID           string
+	QuantGatewayBundleID           string
 	Gateway                        GatewayAuthorizer
 	WalletSessionAttested          bool
 	IndexerURL                     string
@@ -60,7 +63,7 @@ type Config struct {
 }
 
 type GatewayAuthorizer interface {
-	Authorize(proof, scope, clientID string) (WalletSession, error)
+	Authorize(proof, scope, clientID, bundleID string) (WalletSession, error)
 }
 
 type GatewaySessionCompleter interface {
@@ -71,6 +74,7 @@ type IntegrationStatus struct {
 	Gateway        string `json:"gateway"`
 	GatewayReason  string `json:"gatewayReason,omitempty"`
 	WalletRegistry string `json:"walletRegistry"`
+	QuantRegistry  string `json:"quantRegistry"`
 	Custody        string `json:"custody"`
 	Indexer        string `json:"indexer"`
 	CrossChain     string `json:"crossChain"`

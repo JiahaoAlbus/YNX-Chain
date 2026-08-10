@@ -23,8 +23,13 @@ func TestHTTPQuantKillRequiresKillSignatureAndPersistsReconciliation(t *testing.
 		t.Fatalf("open order=%+v err=%v", order, err)
 	}
 
-	s.cfg.Gateway = fixtureGateway{session: owner.session}
+	quantSession := owner.session
+	quantSession.Scopes = append(quantSession.Scopes, "quant:account", "quant:mandate:create", "quant:mandate:execute")
+	s.cfg.Gateway = fixtureGateway{session: quantSession, clientID: "ynx-quant-v1"}
 	s.cfg.GatewayClientID = "ynx-exchange-v1"
+	s.cfg.GatewayBundleID = "com.ynxweb4.exchange"
+	s.cfg.QuantGatewayClientID = "ynx-quant-v1"
+	s.cfg.QuantGatewayBundleID = "com.ynxweb4.quant"
 	server := httptest.NewServer(NewServer(s))
 	defer server.Close()
 
