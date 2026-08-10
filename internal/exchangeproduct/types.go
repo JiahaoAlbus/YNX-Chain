@@ -557,3 +557,23 @@ type LiquidityRouteQuote struct {
 	Disclosure    string                `json:"disclosure"`
 	ObservedAt    time.Time             `json:"observedAt"`
 }
+
+type LiquidityExecutionRequest struct {
+	Quote             LiquidityQuoteRequest `json:"quote"`
+	SelectedVenueType string                `json:"selectedVenueType"`
+	MaxSpendMicro     int64                 `json:"maxSpendMicro,omitempty"`
+	MinReceiveMicro   int64                 `json:"minReceiveMicro,omitempty"`
+	ExpiresAt         time.Time             `json:"expiresAt"`
+	NativeOrder       PlaceOrderRequest     `json:"nativeOrder"`
+	IdempotencyKey    string                `json:"idempotencyKey"`
+	WalletSignature   string                `json:"walletSignature"`
+}
+
+type LiquidityExecutionResult struct {
+	Version       string              `json:"version"`
+	VenueType     string              `json:"venueType"`
+	Status        string              `json:"status"`
+	Quote         LiquidityVenueQuote `json:"quote"`
+	NativeOrder   *Order              `json:"nativeOrder,omitempty"`
+	ExecutionTime time.Time           `json:"executionTime"`
+}

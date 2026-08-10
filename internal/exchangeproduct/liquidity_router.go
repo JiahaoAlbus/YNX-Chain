@@ -14,6 +14,11 @@ import (
 )
 
 const liquidityRouterVersion = "ynx-ultraliquidity-router-v1"
+const liquidityExecutionVersion = "ynx-ultraliquidity-execution-v1"
+
+func LiquidityExecutionAuthorizationPayload(account string, req LiquidityExecutionRequest) []byte {
+	return []byte(fmt.Sprintf("ynx-ultraliquidity-execution-v1\n%s\n%s\n%s\n%d\n%s\n%d\n%d\n%s\n%s\n%s", account, strings.ToUpper(strings.TrimSpace(req.Quote.Market)), strings.ToLower(strings.TrimSpace(req.Quote.Side)), req.Quote.AmountMicro, strings.ToLower(strings.TrimSpace(req.SelectedVenueType)), req.MaxSpendMicro, req.MinReceiveMicro, req.ExpiresAt.UTC().Format(time.RFC3339Nano), req.IdempotencyKey, digest(OrderAuthorizationPayload(account, req.NativeOrder))))
+}
 
 type dexPoolEnvelope struct {
 	Source  string `json:"source"`
@@ -121,7 +126,7 @@ func (s *Service) nativeCLOBQuote(req LiquidityQuoteRequest, at time.Time) Liqui
 	if req.Side == "buy" {
 		net, allIn = gross+tradingFee, gross+tradingFee
 	}
-	return LiquidityVenueQuote{Venue: "YNX Native CLOB", VenueType: "native_clob", Status: "available", Market: req.Market, Side: req.Side, BaseAmountMicro: req.AmountMicro, GrossQuoteMicro: gross, NetQuoteMicro: net, AllInQuoteMicro: allIn, AveragePriceMicro: mulDiv(gross, AmountScale, req.AmountMicro), Executable: true, ExecutionMethod: "protected market IOC against current persistent price-time book", SourceVersion: "exchange-execution-state-v9", SourceSequence: sequence, ObservedAt: at, Cost: LiquidityCostFactors{TradingFeeMicro: tradingFee, PriceImpactMicro: &impact, GasMicro: &zero, BridgeRiskBPS: &bridge, UnavailableFactors: []string{"measured latency", "measured fill probability", "measured failure risk", "external oracle confidence", "chain finality (venue-ledger execution)"}}}
+	return LiquidityVenueQuote{Venue: "YNX Native CLOB", VenueType: "native_clob", Status: "available", Market: req.Market, Side: req.Side, BaseAmountMicro: req.AmountMicro, GrossQuoteMicro: gross, NetQuoteMicro: net, AllInQuoteMicro: allIn, AveragePriceMicro: mulDiv(gross, AmountScale, req.AmountMicro), Executable: true, ExecutionMethod: "protected market IOC against current persistent price-time book", SourceVersion: "exchange-execution-state-v10", SourceSequence: sequence, ObservedAt: at, Cost: LiquidityCostFactors{TradingFeeMicro: tradingFee, PriceImpactMicro: &impact, GasMicro: &zero, BridgeRiskBPS: &bridge, UnavailableFactors: []string{"measured latency", "measured fill probability", "measured failure risk", "external oracle confidence", "chain finality (venue-ledger execution)"}}}
 }
 
 func getBoundedJSON(client *http.Client, endpoint string, out any) error {
@@ -338,6 +343,75 @@ func (s *Service) LiquidityQuote(input LiquidityQuoteRequest) (LiquidityRouteQuo
 	selected := available[0]
 	result.SelectedVenue, result.Selected, result.Status = selected.Venue, &selected, "quoted_not_signed"
 	return result, nil
+}
+
+func (s *Service) ExecuteLiquidityRoute(session WalletSession, req LiquidityExecutionRequest) (LiquidityExecutionResult, error) {
+	req.SelectedVenueType = strings.ToLower(strings.TrimSpace(req.SelectedVenueType))
+	req.ExpiresAt = req.ExpiresAt.UTC()
+	normalized, err := normalizeLiquidityRequest(req.Quote)
+	if err != nil || (req.SelectedVenueType != "native_clob" && req.SelectedVenueType != "consensus_cpmm") || !validKey(req.IdempotencyKey) || req.ExpiresAt.IsZero() || !s.cfg.Now().UTC().Before(req.ExpiresAt) || req.ExpiresAt.After(s.cfg.Now().UTC().Add(5*time.Minute)) {
+		return LiquidityExecutionResult{}, ErrInvalid
+	}
+	req.Quote = normalized
+	if !verifyWalletSignature(session.Account, session.WalletPublicKey, LiquidityExecutionAuthorizationPayload(session.Account, req), req.WalletSignature) {
+		return LiquidityExecutionResult{}, ErrUnauthorized
+	}
+	if req.SelectedVenueType == "native_clob" {
+		s.mu.Lock()
+		previous, exists := s.state.Idempotency[req.IdempotencyKey]
+		order := s.state.Orders[previous.ObjectID]
+		if exists && previous.Action == "order_place" && previous.Digest == digest(req.NativeOrder) && order.Account == session.Account && order.Status == "filled" && order.FilledMicro == req.Quote.AmountMicro {
+			var gross, fees int64
+			for _, trade := range s.state.Trades {
+				if trade.BuyOrderID == order.ID || trade.SellOrderID == order.ID {
+					gross += mulDiv(trade.AmountMicro, trade.PriceMicro, AmountScale)
+					if trade.Buyer == session.Account {
+						fees += trade.BuyerFeeMicro
+					} else if trade.Seller == session.Account {
+						fees += trade.SellerFeeMicro
+					}
+				}
+			}
+			net := gross - fees
+			if req.Quote.Side == "buy" {
+				net = gross + fees
+			}
+			quote := LiquidityVenueQuote{Venue: "YNX Native CLOB", VenueType: "native_clob", Status: "available", Market: req.Quote.Market, Side: req.Quote.Side, BaseAmountMicro: req.Quote.AmountMicro, GrossQuoteMicro: gross, NetQuoteMicro: net, AllInQuoteMicro: net, AveragePriceMicro: mulDiv(gross, AmountScale, req.Quote.AmountMicro), Executable: true, ExecutionMethod: "protected FOK replay from persistent fills", SourceVersion: "exchange-execution-state-v10", SourceSequence: s.state.EventSequence, ObservedAt: order.UpdatedAt, Cost: LiquidityCostFactors{TradingFeeMicro: fees, UnavailableFactors: []string{}}}
+			s.mu.Unlock()
+			return LiquidityExecutionResult{Version: liquidityExecutionVersion, VenueType: "native_clob", Status: "filled", Quote: quote, NativeOrder: &order, ExecutionTime: order.UpdatedAt}, nil
+		}
+		s.mu.Unlock()
+	}
+	route, err := s.LiquidityQuote(req.Quote)
+	if err != nil || route.Selected == nil || route.Selected.VenueType != req.SelectedVenueType {
+		return LiquidityExecutionResult{}, ErrUnavailable
+	}
+	selected := *route.Selected
+	if (req.Quote.Side == "buy" && (req.MaxSpendMicro <= 0 || selected.AllInQuoteMicro > req.MaxSpendMicro)) || (req.Quote.Side == "sell" && (req.MinReceiveMicro <= 0 || selected.AllInQuoteMicro < req.MinReceiveMicro)) {
+		return LiquidityExecutionResult{}, ErrForbidden
+	}
+	if req.SelectedVenueType == "consensus_cpmm" {
+		return LiquidityExecutionResult{}, fmt.Errorf("%w: committed DEX execution adapter is not configured", ErrUnavailable)
+	}
+	order := req.NativeOrder
+	order.Market = strings.ToUpper(strings.TrimSpace(order.Market))
+	order.Side = strings.ToLower(strings.TrimSpace(order.Side))
+	order.Type = strings.ToLower(strings.TrimSpace(order.Type))
+	order.TimeInForce = strings.ToLower(strings.TrimSpace(order.TimeInForce))
+	if order.Market != req.Quote.Market || order.Side != req.Quote.Side || order.Type != "limit" || order.TimeInForce != "fok" || order.PostOnly || order.AmountMicro != req.Quote.AmountMicro || order.IdempotencyKey != req.IdempotencyKey {
+		return LiquidityExecutionResult{}, ErrInvalid
+	}
+	if req.Quote.Side == "buy" && order.PriceMicro < selected.AveragePriceMicro || req.Quote.Side == "sell" && order.PriceMicro > selected.AveragePriceMicro {
+		return LiquidityExecutionResult{}, ErrForbidden
+	}
+	executed, err := s.PlaceOrder(session, order)
+	if err != nil {
+		return LiquidityExecutionResult{}, err
+	}
+	if executed.Status != "filled" || executed.FilledMicro != req.Quote.AmountMicro {
+		return LiquidityExecutionResult{}, ErrConflict
+	}
+	return LiquidityExecutionResult{Version: liquidityExecutionVersion, VenueType: "native_clob", Status: "filled", Quote: selected, NativeOrder: &executed, ExecutionTime: s.cfg.Now().UTC()}, nil
 }
 
 func liquidityRequestFromQuery(values url.Values) LiquidityQuoteRequest {

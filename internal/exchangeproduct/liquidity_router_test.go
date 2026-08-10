@@ -133,3 +133,48 @@ func TestUltraLiquidityConfigurationRequiresQuoteAssetSettlementAttestation(t *t
 		t.Fatalf("complete DEX router configuration rejected: %v", err)
 	}
 }
+
+func TestUltraLiquidityWalletSignedNativeFOKExecutionIsAtomicAndReplaySafe(t *testing.T) {
+	s, chain, _ := newTestService(t)
+	seller := accountSession(t, s, alice, "route-execute-seller", "exchange:read", "exchange:trade", "exchange:deposit")
+	buyer := accountSession(t, s, bob, "route-execute-buyer", "exchange:read", "exchange:trade")
+	confirmDeposit(t, s, chain, seller, "cafe000000000004", 2*AmountScale)
+	if _, err := place(t, s, seller, "sell", 2*AmountScale, 2*AmountScale, "route-execute-ask"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CreditTestQuote(adminKey, bob, 10*AmountScale, "route-execute-credit"); err != nil {
+		t.Fatal(err)
+	}
+	native := PlaceOrderRequest{Market: DefaultMarket, Side: "buy", Type: "limit", TimeInForce: "fok", PriceMicro: 2 * AmountScale, AmountMicro: 2 * AmountScale, IdempotencyKey: "route-execute-native"}
+	native.WalletSignature = signAction(buyer.private, OrderAuthorizationPayload(buyer.account, native))
+	req := LiquidityExecutionRequest{Quote: LiquidityQuoteRequest{Market: DefaultMarket, Side: "buy", AmountMicro: 2 * AmountScale}, SelectedVenueType: "native_clob", MaxSpendMicro: 5 * AmountScale, ExpiresAt: s.cfg.Now().UTC().Add(time.Minute), NativeOrder: native, IdempotencyKey: native.IdempotencyKey}
+	req.WalletSignature = signAction(buyer.private, LiquidityExecutionAuthorizationPayload(buyer.account, req))
+	result, err := s.ExecuteLiquidityRoute(buyer.session, req)
+	if err != nil || result.Status != "filled" || result.NativeOrder == nil || result.NativeOrder.FilledMicro != 2*AmountScale {
+		t.Fatalf("execution=%+v err=%v", result, err)
+	}
+	replay, err := s.ExecuteLiquidityRoute(buyer.session, req)
+	if err != nil || replay.NativeOrder == nil || replay.NativeOrder.ID != result.NativeOrder.ID || len(s.Snapshot(bob).Trades) != 1 {
+		t.Fatalf("replay=%+v err=%v", replay, err)
+	}
+}
+
+func TestUltraLiquidityExecutionRejectsRouteMutationAndUnavailableDEXAdapter(t *testing.T) {
+	now := time.Date(2026, 8, 10, 8, 0, 0, 0, time.UTC)
+	dex := dexQuoteServer(t, now, "abci-state-v13")
+	defer dex.Close()
+	s, _, _ := newTestService(t)
+	s.cfg.Now = func() time.Time { return now }
+	s.cfg.DEXGatewayURL, s.cfg.DEXQuoteAssetID, s.cfg.DEXQuoteAssetAttestationDigest = dex.URL, "yusd-route", strings.Repeat("b", 64)
+	buyer := accountSession(t, s, bob, "route-execute-dex", "exchange:read", "exchange:trade")
+	req := LiquidityExecutionRequest{Quote: LiquidityQuoteRequest{Market: DefaultMarket, Side: "buy", AmountMicro: AmountScale}, SelectedVenueType: "consensus_cpmm", MaxSpendMicro: 3 * AmountScale, ExpiresAt: now.Add(time.Minute), IdempotencyKey: "route-execute-dex"}
+	req.WalletSignature = signAction(buyer.private, LiquidityExecutionAuthorizationPayload(buyer.account, req))
+	if _, err := s.ExecuteLiquidityRoute(buyer.session, req); err == nil || !strings.Contains(err.Error(), "adapter") {
+		t.Fatalf("DEX execution without adapter err=%v", err)
+	}
+	mutated := req
+	mutated.MaxSpendMicro++
+	if _, err := s.ExecuteLiquidityRoute(buyer.session, mutated); err != ErrUnauthorized {
+		t.Fatalf("mutated signed route err=%v", err)
+	}
+}
