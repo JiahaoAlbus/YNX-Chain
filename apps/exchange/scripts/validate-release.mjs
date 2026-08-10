@@ -15,6 +15,7 @@ const runtimeRoots = [
   path.join(root, 'apps', 'exchange'),
   path.join(root, 'internal', 'exchangeproduct'),
 ];
+const productDocsRoot = path.join(root, 'apps', 'exchange', 'docs');
 const productFiles = [
   'EVIDENCE_INDEX.md',
   'FEATURE_COMPLETION_EVIDENCE.md',
@@ -24,10 +25,10 @@ const productFiles = [
   'QUANT_EXECUTION_ADAPTER.md',
   'RECOVERY_AUDIT.md',
   'SLO_CAPACITY_PLAN.md',
-  'THIRD_PARTY_NOTICES.md',
   'THREAT_MODEL.md',
   'UNIT_ECONOMICS.md',
-].map((name) => path.join(root, name));
+].map((name) => path.join(productDocsRoot, name));
+productFiles.push(path.join(root, 'THIRD_PARTY_NOTICES.md'));
 const runtimeFillers = [
   /\bTODO\b/i,
   /\bFIXME\b/i,
