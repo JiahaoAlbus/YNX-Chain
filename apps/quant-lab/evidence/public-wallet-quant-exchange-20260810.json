@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "ynx.quant.public-wallet-exchange-evidence.v1",
+  "observedAt": "2026-08-10T07:17:21Z",
+  "publicOrigins": {
+    "wallet": "https://wallet-auth.ynxweb4.com",
+    "exchange": "https://exchange.ynxweb4.com",
+    "quant": "https://quant.ynxweb4.com"
+  },
+  "sources": {
+    "wallet": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+    "exchange": "cbfbd893af7384703b51e20cf8d75c9762d4485a",
+    "quant": "5fb7a35e658594719bd1b687ecbd3d28076a17e5"
+  },
+  "runtime": {
+    "walletRelease": "/opt/ynx/wallet-auth-6ed04310",
+    "walletRegistrySha256": "77880fc25bccf4df99a63b0ac4c8f81b675d180a37570bafd63bd629d21319e1",
+    "exchangeRelease": "/opt/ynx/exchange-cbfbd893",
+    "exchangeBinarySha256": "09dd00bc91c905eb67d69a221c470261db025923fec2bf56cf47ca9a8a6bb279",
+    "quantRelease": "/opt/ynx-quant/releases/5fb7a35e",
+    "quantBinarySha256": "7cb3357c0680d7673c2f58f9bee23ec95ee4fcc82e4a024acc40313e362874b5",
+    "walletAuthWebSha256": "5491031a0c794f5067444519d44bfa6db25934a657cdc72c3fb7cc74f33ef38a",
+    "exchangeStateSchema": 10,
+    "liveFundsEnabled": false
+  },
+  "publicEndToEnd": {
+    "result": "pass",
+    "account": "ynx1460p24qv00hqpw6f0ts6nlastxkcjgmqc48hrk",
+    "accountPublicKeyBound": true,
+    "mandateDigest": "0fdd2fd76ce0beaa1a1e712c39238f1fdb066135ea78aa4e3a6a3763556c2764",
+    "orderStatus": "submitted_testnet",
+    "productProofReplayStatus": 401,
+    "exchangeReadiness": "ready_public_testnet",
+    "quantRegistry": "approved_enabled"
+  },
+  "multiUser": {
+    "candidateConcurrentPersistentTenantWrites": {"passed": 100, "attempted": 100},
+    "candidateTenantStateFiles": 101,
+    "candidateTenantRestartSamples": {"passed": 3, "attempted": 3},
+    "publicSingapore": {"wallet": "100/100", "exchange": "100/100", "quantDistinctTenants": "100/100"},
+    "publicSeoul": {"wallet": "100/100", "exchange": "100/100", "quantDistinctTenants": "100/100"},
+    "siliconValley": "not claimed: the private SSH path closed before the current release sample completed"
+  },
+  "persistence": {
+    "candidateCompositeRestartSha256": "f1235b7764fe9503c90e6e759510234e4045dcf315c0b56170eb89907c4e315c",
+    "candidateTenantRestartSha256": "b9b3622a9cf0e8c8228becdd96997520e61e3cc0ed1945d6c91051db9b474fb7",
+    "publicCompositeRestartSha256": "469d972e7565f7542a347870ac622555bfad4e2f907a69f5b71b280c284da54f",
+    "publicServicesHealthyAfterRestart": "3/3"
+  },
+  "backup": "/var/backups/ynx-finance/quant-wallet-exchange-20260810T070708Z",
+  "cutoverNote": "A non-canonical Wallet build timestamp caused three failed auto-restart attempts during metadata correction; the timestamp was corrected to canonical millisecond UTC, the service recovered, and the complete public E2E passed again afterward."
+}

@@ -7,7 +7,7 @@
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": true,
-  "integratedCentral": false,
+  "integratedCentral": true,
   "deployedStaging": false,
   "deployedPublic": true,
   "downloadHosted": true,
@@ -21,16 +21,19 @@
     {"name": "ynx-quant:testnet-verify-8b211d08a67a", "platform": "Linux arm64 OCI image", "minimumOS": "Docker Engine compatible runtime", "bytes": 41667295, "imageId": "sha256:70e32c90601dc50c4770d04d40bd684a8bde52848e969afb9e8ddfbbaceb3f35", "digestClass": "local-image-id-not-registry-manifest", "signingClass": "local-unsigned-container-candidate", "builtLocal": true, "installedLocal": true, "coldStartVerified": true, "restartVerified": true, "restoreVerified": true, "hosted": false}
   ],
   "publicRuntime": {
-    "deployedAt": "2026-08-10T05:25:56Z",
-    "sourceCommit": "70382c37ccb8c601c88e72c4cbe189fa072dc5db",
-    "binarySha256": "ac0cb295e1e239ecbcc96842d7d0388d42d254a3497f813f7e56955f37bec834",
-    "sourceTree": "b245cd5dc8d1617473e52525e64fe11fea4565c9",
+    "deployedAt": "2026-08-10T07:17:21Z",
+    "sourceCommit": "5fb7a35e658594719bd1b687ecbd3d28076a17e5",
+    "binarySha256": "7cb3357c0680d7673c2f58f9bee23ec95ee4fcc82e4a024acc40313e362874b5",
+    "walletAuthWebSha256": "5491031a0c794f5067444519d44bfa6db25934a657cdc72c3fb7cc74f33ef38a",
     "stateSchema": 1,
     "mode": "simulated_testnet_only",
     "liveFundsEnabled": false,
     "actualExchangeTradesAtVerification": 30,
     "restartPersistenceVerified": true,
-    "concurrentReadVerification": 100
+    "concurrentReadVerification": 200,
+    "isolatedTenantConcurrentWriteVerification": 100,
+    "canonicalWalletExchangeE2E": true,
+    "productProofReplayStatus": 401
   },
-  "knownBlockingEvidence": ["canonical Gateway acceptance, enabled Wallet product registration, and per-user tenancy integration", "authenticated public Exchange mandate/order receipt and real DEX Testnet execution receipts", "registry manifest digest, image signing, and external container vulnerability scan", "Windows host launch and installation", "production desktop signing and notarization"]
+  "knownBlockingEvidence": ["real DEX Testnet execution, vault and emergency-exit receipts", "authenticated cross-device workspace recovery and database replica failover", "registry manifest digest, image signing, and external container vulnerability scan", "updated desktop packages equivalent to the current web runtime", "Windows host launch and installation", "production desktop signing and notarization"]
 }

@@ -34,11 +34,15 @@ Public research preview:
 - UI: `https://quant.ynxweb4.com/`
 - health: `https://quant.ynxweb4.com/api/health`
 - version: `https://quant.ynxweb4.com/api/version`
-- runtime source: `70382c37ccb8c601c88e72c4cbe189fa072dc5db`
+- runtime source: `5fb7a35e658594719bd1b687ecbd3d28076a17e5`
 - execution truth: actual owned Exchange matches feed deterministic simulation;
   live-funds execution remains disabled
 - macOS arm64 candidate: `https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-70382c37-macos-arm64-adhoc.zip`
 - Windows x64 candidate: `https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-70382c37-windows-x64-unsigned.zip`
+
+The public web runtime is newer than the desktop archives. Those archives remain
+downloadable, but they do not contain the `5fb7a35e` tenant and Wallet web flow
+and are not represented as equivalent to the current hosted runtime.
 
 The macOS candidate is ad-hoc signed and cold-start verified. The Windows
 candidate is unsigned and has not been launched on a Windows host. Neither is a
