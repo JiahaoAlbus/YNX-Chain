@@ -312,6 +312,9 @@ func (s *Service) matchPerpetualLocked(takerID string, oracle RiskOracleSnapshot
 			break
 		}
 		maker := s.state.PerpetualOrders[candidate.ID]
+		if taker.Type == "liquidation" && !maker.ReduceOnly {
+			continue
+		}
 		if maker.Account == taker.Account {
 			continue
 		}
@@ -621,4 +624,155 @@ func (s *Service) SettlePerpetualFunding() ([]FundingSettlement, error) {
 		return nil, err
 	}
 	return settlements, nil
+}
+
+func positionRealizedAt(position PerpetualPosition, signedDelta, price int64) int64 {
+	closed := min64(absolute64(position.SizeMicro), absolute64(signedDelta))
+	if position.SizeMicro > 0 {
+		return mulDiv(closed, price-position.EntryPriceMicro, AmountScale)
+	}
+	return mulDiv(closed, position.EntryPriceMicro-price, AmountScale)
+}
+
+func (s *Service) maintenanceForAccountLocked(account string) int64 {
+	var maintenance int64
+	for _, position := range s.state.PerpetualPositions {
+		if position.Account == account && position.Status == "open" {
+			maintenance += position.MaintenanceMarginMicro
+		}
+	}
+	return maintenance
+}
+
+func (s *Service) RunPerpetualLiquidations() ([]LiquidationEvent, error) {
+	policy := PerpetualPolicy()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := s.cfg.Now().UTC()
+	risk := s.riskSnapshotLocked(now)
+	if risk.Oracle == nil || risk.Status == "paused" {
+		return nil, ErrUnavailable
+	}
+	oracle := *risk.Oracle
+	before := cloneState(s.state)
+	events := make([]LiquidationEvent, 0)
+	positions := make([]PerpetualPosition, 0)
+	for _, position := range s.state.PerpetualPositions {
+		if position.Market == policy.Market && position.Status == "open" {
+			positions = append(positions, position)
+		}
+	}
+	sort.Slice(positions, func(i, j int) bool { return positions[i].Account < positions[j].Account })
+	for _, stale := range positions {
+		position := s.state.PerpetualPositions[perpetualPositionKey(stale.Account, stale.Market)]
+		equity, _ := s.marginEquityLocked(position.Account)
+		maintenance := s.maintenanceForAccountLocked(position.Account)
+		if equity >= maintenance {
+			continue
+		}
+		closeAmount := absolute64(position.SizeMicro)
+		kind := "full"
+		if equity > 0 && closeAmount > 1 {
+			closeAmount = ceilDiv(closeAmount, 2)
+			kind = "partial"
+		}
+		side, delta := "sell", -closeAmount
+		if position.SizeMicro < 0 {
+			side, delta = "buy", closeAmount
+		}
+		makers := s.perpetualMakersLocked(side, oracle.MarkPriceMicro)
+		var maker PerpetualOrder
+		for _, candidate := range makers {
+			if candidate.ReduceOnly && candidate.Account != position.Account && candidate.AmountMicro-candidate.FilledMicro >= closeAmount {
+				maker = candidate
+				break
+			}
+		}
+		if maker.ID == "" {
+			s.state = before
+			return nil, fmt.Errorf("%w: no wallet-authorized reduce-only liquidation liquidity", ErrUnavailable)
+		}
+		realized := positionRealizedAt(position, delta, oracle.MarkPriceMicro)
+		closeNotional := mulDiv(closeAmount, oracle.MarkPriceMicro, AmountScale)
+		liquidationFee := fee(closeNotional, policy.LiquidationFeeBPS)
+		executionFee := fee(closeNotional, s.cfg.TakerFeeBPS)
+		margin := s.marginAccountLocked(position.Account)
+		needed := -(margin.CollateralMicro + realized - liquidationFee - executionFee)
+		if needed < 0 {
+			needed = 0
+		}
+		insuranceUse := min64(needed, s.state.InsuranceFund.BalanceMicro)
+		adl := needed - insuranceUse
+		if adl > 0 {
+			makerMargin := s.marginAccountLocked(maker.Account)
+			makerBalance := s.balanceLocked(maker.Account, QuoteAsset)
+			if makerMargin.CollateralMicro < adl || makerBalance.ReservedMicro < adl {
+				s.state = before
+				return nil, ErrInsufficient
+			}
+			makerMargin.CollateralMicro -= adl
+			makerMargin.UpdatedAt = now
+			makerBalance.ReservedMicro -= adl
+			s.state.MarginAccounts[maker.Account] = makerMargin
+			s.state.Balances[balanceKey(maker.Account, QuoteAsset)] = makerBalance
+			s.ledgerLocked(maker.Account, QuoteAsset, 0, -adl, "perpetual_adl", position.Account, oracle.SourceDigest)
+		}
+		if needed > 0 {
+			margin.CollateralMicro += needed
+			margin.UpdatedAt = now
+			balance := s.balanceLocked(position.Account, QuoteAsset)
+			balance.ReservedMicro += needed
+			s.state.MarginAccounts[position.Account] = margin
+			s.state.Balances[balanceKey(position.Account, QuoteAsset)] = balance
+			s.ledgerLocked(position.Account, QuoteAsset, 0, needed, "perpetual_default_waterfall", position.Account, oracle.SourceDigest)
+			s.state.InsuranceFund.BalanceMicro -= insuranceUse
+			s.state.InsuranceFund.UpdatedAt = now
+		}
+		id := s.nextIDLocked("perpetual_order")
+		forced := PerpetualOrder{ID: id, Account: position.Account, Market: position.Market, Side: side, Type: "liquidation", TimeInForce: "ioc", PriceMicro: oracle.MarkPriceMicro, AmountMicro: closeAmount, Leverage: position.Leverage, ReduceOnly: true, Status: "open", PrioritySequence: s.state.Sequence, AuthorizationDigest: oracle.SourceDigest, CreatedAt: now, UpdatedAt: now}
+		s.state.PerpetualOrders[id] = forced
+		if err := s.matchPerpetualLocked(id, oracle); err != nil {
+			s.state = before
+			return nil, err
+		}
+		forced = s.state.PerpetualOrders[id]
+		if forced.FilledMicro != closeAmount {
+			s.state = before
+			return nil, ErrUnavailable
+		}
+		margin = s.marginAccountLocked(position.Account)
+		balance := s.balanceLocked(position.Account, QuoteAsset)
+		if margin.CollateralMicro < liquidationFee || balance.ReservedMicro < liquidationFee {
+			s.state = before
+			return nil, ErrInsufficient
+		}
+		margin.CollateralMicro -= liquidationFee
+		margin.LiquidationFeesMicro += liquidationFee
+		margin.UpdatedAt = now
+		balance.ReservedMicro -= liquidationFee
+		s.state.MarginAccounts[position.Account] = margin
+		s.state.Balances[balanceKey(position.Account, QuoteAsset)] = balance
+		s.state.InsuranceFund.BalanceMicro += liquidationFee
+		s.state.InsuranceFund.Status = "funded"
+		s.state.InsuranceFund.UpdatedAt = now
+		stage := "customer_margin"
+		if insuranceUse > 0 {
+			stage = "insurance_fund"
+		}
+		if adl > 0 {
+			stage = "adl_after_insurance"
+		}
+		event := LiquidationEvent{ID: s.nextIDLocked("liquidation"), Account: position.Account, Market: position.Market, Kind: kind, SizeBeforeMicro: absolute64(position.SizeMicro), SizeClosedMicro: closeAmount, ExecutionPriceMicro: oracle.MarkPriceMicro, EquityBeforeMicro: equity, MaintenanceMarginMicro: maintenance, LiquidationFeeMicro: liquidationFee, InsuranceDeltaMicro: liquidationFee - insuranceUse, DeficitMicro: needed, DefaultWaterfallStage: stage, OracleDigest: oracle.SourceDigest, CreatedAt: now}
+		s.state.Liquidations = append(s.state.Liquidations, event)
+		s.ledgerLocked(position.Account, QuoteAsset, 0, -liquidationFee, "perpetual_liquidation_fee", event.ID, oracle.SourceDigest)
+		s.auditLocked(position.Account, "perpetual_"+kind+"_liquidation", "liquidation", event.ID, digest(event))
+		events = append(events, event)
+	}
+	if len(events) == 0 {
+		return []LiquidationEvent{}, nil
+	}
+	if err := s.saveOrRollbackLocked(before); err != nil {
+		return nil, err
+	}
+	return events, nil
 }

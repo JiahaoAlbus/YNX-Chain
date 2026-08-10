@@ -234,3 +234,79 @@ func TestPerpetualRejectsStaleOraclePriceBandSelfTradeAndBadAuthorization(t *tes
 		t.Fatalf("stale oracle err=%v", err)
 	}
 }
+
+func setupLiquidationPair(t *testing.T, mark int64) (*Service, testAccount, testAccount, *fakeRiskOracle, time.Time) {
+	t.Helper()
+	s, _, _ := newTestService(t)
+	now := time.Date(2026, 8, 10, 7, 0, 0, 0, time.UTC)
+	oracle := activatePerpetualOracle(t, s, now, 1, 2*AmountScale)
+	long := accountSession(t, s, alice, "liquidation-long", "exchange:read", "exchange:trade")
+	short := accountSession(t, s, bob, "liquidation-short", "exchange:read", "exchange:trade")
+	for _, entry := range []struct {
+		owner  testAccount
+		credit int64
+		key    string
+	}{{long, AmountScale, "liquidation-long"}, {short, 20 * AmountScale, "liquidation-short"}} {
+		if _, err := s.CreditTestQuote("Bearer "+adminKey, entry.owner.account, entry.credit, entry.key+"-credit"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.TransferMarginCollateral(entry.owner.session, signedMarginTransfer(entry.owner, "deposit", entry.credit, entry.key+"-margin")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := s.PlacePerpetualOrder(long.session, signedPerpetualOrder(long, "buy", 2*AmountScale, 5*AmountScale, 10, false, "liquidation-open-long")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.PlacePerpetualOrder(short.session, signedPerpetualOrder(short, "sell", 2*AmountScale, 5*AmountScale, 10, false, "liquidation-open-short")); err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(time.Second)
+	oracle.snapshot = signedRiskSnapshot(now, 2, mark, mark, 0, 10_000)
+	if _, err := s.RefreshRiskOracle(); err != nil {
+		t.Fatal(err)
+	}
+	return s, long, short, oracle, now
+}
+
+func TestPerpetualPartialLiquidationUsesAuthorizedLiquidity(t *testing.T) {
+	s, long, short, _, _ := setupLiquidationPair(t, 1_880_000)
+	if _, err := s.PlacePerpetualOrder(short.session, signedPerpetualOrder(short, "buy", 1_880_000, 2_500_000, 10, true, "liquidation-partial-liquidity")); err != nil {
+		t.Fatal(err)
+	}
+	events, err := s.RunPerpetualLiquidations()
+	if err != nil || len(events) != 1 || events[0].Account != long.account || events[0].Kind != "partial" || events[0].DefaultWaterfallStage != "customer_margin" {
+		t.Fatalf("partial liquidations=%+v err=%v", events, err)
+	}
+	snapshot := s.MarginSnapshot(long.account)
+	if snapshot.Positions[0].SizeMicro != 2_500_000 || snapshot.EquityMicro < snapshot.Positions[0].MaintenanceMarginMicro || snapshot.Account.LiquidationFeesMicro <= 0 {
+		t.Fatalf("post partial liquidation snapshot=%+v", snapshot)
+	}
+}
+
+func TestPerpetualFullLiquidationExhaustsInsuranceBeforeADL(t *testing.T) {
+	s, long, short, _, _ := setupLiquidationPair(t, 1_800_000)
+	insuranceBefore := s.RiskSnapshot().InsuranceFund.BalanceMicro
+	if _, err := s.PlacePerpetualOrder(short.session, signedPerpetualOrder(short, "buy", 1_800_000, 5*AmountScale, 10, true, "liquidation-full-liquidity")); err != nil {
+		t.Fatal(err)
+	}
+	events, err := s.RunPerpetualLiquidations()
+	if err != nil || len(events) != 1 || events[0].Account != long.account || events[0].Kind != "full" || events[0].DefaultWaterfallStage != "adl_after_insurance" || events[0].DeficitMicro <= insuranceBefore {
+		t.Fatalf("full liquidations=%+v err=%v", events, err)
+	}
+	snapshot := s.MarginSnapshot(long.account)
+	if snapshot.Positions[0].Status != "closed" || snapshot.Account.CollateralMicro != 0 {
+		t.Fatalf("post full liquidation snapshot=%+v insurance before=%d after=%d", snapshot, insuranceBefore, s.RiskSnapshot().InsuranceFund.BalanceMicro)
+	}
+}
+
+func TestPerpetualLiquidationFailsClosedWithoutAuthorizedCounterparty(t *testing.T) {
+	s, long, _, _, _ := setupLiquidationPair(t, 1_880_000)
+	before := s.MarginSnapshot(long.account)
+	if _, err := s.RunPerpetualLiquidations(); err == nil {
+		t.Fatal("liquidation without wallet-authorized reduce-only liquidity succeeded")
+	}
+	after := s.MarginSnapshot(long.account)
+	if !reflect.DeepEqual(before, after) {
+		t.Fatalf("failed liquidation mutated account state: before=%+v after=%+v", before, after)
+	}
+}

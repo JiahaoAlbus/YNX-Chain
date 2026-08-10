@@ -235,7 +235,10 @@ func (s *Service) Authorized(value string) bool {
 }
 
 func Markets() []Market {
-	return []Market{{Symbol: DefaultMarket, BaseAsset: NativeAsset, QuoteAsset: QuoteAsset, Venue: "YNX-owned testnet venue", Engine: "deterministic persistent price-time matching", ExternalPrice: false, PublicVolume: false, PriceScale: AmountScale, AmountScale: AmountScale, Status: "testnet_only"}}
+	return []Market{
+		{Symbol: DefaultMarket, BaseAsset: NativeAsset, QuoteAsset: QuoteAsset, Venue: "YNX-owned testnet venue", Engine: "deterministic persistent price-time matching", ExternalPrice: false, PublicVolume: false, PriceScale: AmountScale, AmountScale: AmountScale, Status: "testnet_only"},
+		{Symbol: DefaultPerpetualMarket, BaseAsset: NativeAsset, QuoteAsset: QuoteAsset, Venue: "YNX perpetual testnet venue", Engine: "persistent price-time CLOB with margin, funding and liquidation risk engine", ExternalPrice: true, PublicVolume: false, PriceScale: AmountScale, AmountScale: AmountScale, Status: "oracle_required_testnet"},
+	}
 }
 
 func (s *Service) Networks() []AssetNetwork {
@@ -2661,6 +2664,7 @@ func (s *Service) SolvencySnapshot() SolvencySnapshot {
 	}
 	stateHash := s.state.IntegrityHash
 	custodyAddress := s.state.CustodyAddress
+	insuranceBalance := s.state.InsuranceFund.BalanceMicro
 	withdrawals := make([]Withdrawal, 0, len(s.state.Withdrawals))
 	for _, withdrawal := range s.state.Withdrawals {
 		withdrawals = append(withdrawals, withdrawal)
@@ -2729,6 +2733,10 @@ func (s *Service) SolvencySnapshot() SolvencySnapshot {
 		assets = append(assets, *item)
 	}
 	sort.Slice(assets, func(i, j int) bool { return assets[i].Asset < assets[j].Asset })
+	insuranceStatus := "unfunded_testnet_internal_ledger"
+	if insuranceBalance > 0 {
+		insuranceStatus = "funded_testnet_internal_ledger"
+	}
 	return SolvencySnapshot{
 		Version:             "ynx-exchange-solvency-v1",
 		AsOf:                s.cfg.Now().UTC(),
@@ -2739,7 +2747,7 @@ func (s *Service) SolvencySnapshot() SolvencySnapshot {
 		CustodyAddress:      custodyAddress,
 		CommittedHeight:     committedHeight,
 		Assets:              assets,
-		InsuranceFundStatus: "not_implemented",
+		InsuranceFundStatus: insuranceStatus,
 		Status:              status,
 		Disclosure:          "Testnet evidence only. The Merkle root commits venue liabilities; custody assets are included only from a committed chain account query. This is not a Mainnet audit or production assurance.",
 	}
