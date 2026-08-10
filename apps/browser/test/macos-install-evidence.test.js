@@ -90,13 +90,20 @@ test("published metadata binds the exact local macOS install evidence without wi
   const publicMetadata = readJson("release/browser/public-product-metadata.json");
 
   assert.equal(evidence.sourceCommit, product.verifiedThisCheckpoint.macosInstall.sourceCommit);
-  assert.equal(windowEvidence.sourceCommit, product.sourceCommit.slice(0, 12));
+  assert.equal(windowEvidence.sourceCommit, product.verifiedThisCheckpoint.macosTestnetPreview.windowVisualQa.sourceCommit.slice(0, 12));
   assert.equal(windowEvidence.passed, true);
+  assert.equal(product.sourceCommit, contract.sourceCommit);
+  assert.equal(product.sourceCommit, publicMetadata.sourceCommit);
+  assert.equal(product.sourceCommit, product.verifiedThisCheckpoint.macosTestnetPreview.sourceCommit);
+  assert.match(product.verifiedThisCheckpoint.macosTestnetPreview.zipSha256, /^[0-9a-f]{64}$/);
+  assert.match(product.verifiedThisCheckpoint.macosTestnetPreview.binarySha256, /^[0-9a-f]{64}$/);
   assert.equal(evidence.verifiedStates.installedLocalMacosEvidenceHost, true);
   assert.equal(evidence.install.exactArtifactHash, true);
   assert.equal(evidence.launchServices.exactReviewedBinaryHash, true);
   assert.equal(product.releaseStates.installedLocal, false);
   assert.equal(contract.releaseStates.installedLocal, false);
+  assert.equal(product.releaseStates.integratedCentral, true);
+  assert.equal(contract.releaseStates.integratedCentral, true);
   assert.equal(product.verifiedThisCheckpoint.macosInstall.binarySha256, evidence.reviewedArtifact.executableSha256);
   assert.equal(product.verifiedThisCheckpoint.macosInstall.evidence, "apps/browser/evidence/macos-install-2beece6.json");
 

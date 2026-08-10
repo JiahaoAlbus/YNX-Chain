@@ -3,16 +3,16 @@
   "productNumber": 22,
   "productName": "YNX Browser",
   "productSlug": "browser",
-  "version": "0.2.6-testnet-preview",
+  "version": "0.2.7-central-testnet-candidate",
   "goalStatus": "active",
   "phase": "FREEZE",
-  "sourceCommit": "d8c1ad24bc88c481fd9350456124f353c8c43e35",
-  "asOf": "2026-08-08",
+  "sourceCommit": "bfbcc89c4b37f1fe8ba018fc575e619c0de7e209",
+  "asOf": "2026-08-10",
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,
@@ -34,7 +34,7 @@
       "result": "pass",
       "tests": 15,
       "failures": 0,
-      "boundary": "All four Browser platform request builders bind the reviewed registry tuples; central Wallet/Auth acceptance remains pending."
+      "boundary": "All four Browser platform request builders bind the accepted central registry tuples. Positive public Product Session callback evidence remains pending."
     },
     "privateDownloadIsolation": {
       "sourceCommit": "668cb44dab95374ba9e5342d754b6ec568564f2b",
@@ -74,8 +74,8 @@
       "details": "Browser production source trees contain no deployment filler, TODO/FIXME/coming-soon markers, fake-success markers or common embedded-secret patterns; macOS security audit templates exclude URL, nonce, response, source and filename values."
     },
     "macosTestnetPreview": {
-      "sourceCommit": "d8c1ad24bc88c481fd9350456124f353c8c43e35",
-      "evidence": "apps/browser/evidence/macos-window-d8c1ad24bc88/manifest.json",
+      "sourceCommit": "bfbcc89c4b37f1fe8ba018fc575e619c0de7e209",
+      "evidence": null,
       "releaseBuild": "pass",
       "package": "pass",
       "archiveIntegrity": "pass",
@@ -86,11 +86,13 @@
       "architecture": "arm64",
       "signingClass": "adhoc",
       "gatekeeper": "rejected",
-      "zipBytes": 146068,
-      "zipSha256": "3d8544efea04132b53ce53e3227e7e96bc494f301d964da5d1d55911d030af45",
-      "binarySha256": "a0e54dec1e8f085e40792a66d7c91198cb80c61c3100e112413dab0c54e8db64",
+      "zipBytes": 146682,
+      "zipSha256": "63f43554ccfb40804eeaaca0e52eba03c05076374df2554b6c7a21f9684c72d9",
+      "binarySha256": "0265b6bd61f3386aaa59d01ccdd289d450df6405d500b8f4fc411326837749cd",
       "windowVisualQa": {
         "result": "pass",
+        "sourceCommit": "d8c1ad24bc88c481fd9350456124f353c8c43e35",
+        "evidence": "apps/browser/evidence/macos-window-d8c1ad24bc88/manifest.json",
         "gates": [
           "standard-light",
           "minimum-light",
@@ -100,7 +102,7 @@
         ],
         "measurement": "macOS WindowServer bounds plus screenshots"
       },
-      "truthBoundary": "Exact ad-hoc-signed macOS arm64 Testnet Preview passed local WindowServer visual gates. Developer ID signing, notarization, public hosting, store release and cross-host reproducibility remain unproved at this checkpoint."
+      "truthBoundary": "The current central source produced two byte-identical ad-hoc-signed macOS arm64 archives. The window-collapse fix has prior local WindowServer visual evidence; a new exact-current-source install and visual capture remain unproved. Developer ID signing, notarization, public hosting, store release and cross-host reproducibility are not claimed."
     },
     "macosInstall": {
       "sourceCommit": "2beece6f66a330811f474f24189e53aacb5bb636",
@@ -111,8 +113,13 @@
       "collisionPreservation": "pass",
       "codesignVerify": "pass-adhoc",
       "launchServicesExactBinary": "pass",
-      "truthBoundary": "The older 2beece6f ad-hoc Testnet Preview was installed and protocol-resolved on the local evidence host without overwriting a source-mismatched user copy. The current d8c1ad24 window-fix source has build, launch, relaunch and visual evidence but no separate current-source install record. This is not Developer ID signing, notarization, public hosting, store release, cross-host proof or central Wallet/Auth acceptance."
+      "truthBoundary": "The older 2beece6f ad-hoc Testnet Preview was installed and protocol-resolved on the local evidence host without overwriting a source-mismatched user copy. The d8c1ad24 window-fix source has launch and visual evidence, while the current bfbcc89c central source has reproducible-build evidence but no separate install or visual record. This is not Developer ID signing, notarization, public hosting, store release, cross-host proof or positive public Wallet callback acceptance."
     }
+  },
+  "centralMerge": {
+    "branch": "codex/integrate-finance-suite",
+    "commit": "bfbcc89c4b37f1fe8ba018fc575e619c0de7e209",
+    "verifiedAt": "2026-08-10T23:46:52Z"
   },
   "notVerifiedThisCheckpoint": {
     "macosPositiveWalletCallback": "no accepted Gateway signature, device challenge or central Product Session was available for verification",
@@ -125,7 +132,7 @@
     "androidFinalBranchInstallColdStart": "not rerun",
     "iosFullXcodeSimulator": "not rerun",
     "crossHostReproducibility": "not verified",
-    "publicEndpoints": "not verified for the d8c1ad24 package until immutable hosting and live hash verification complete",
+    "publicEndpoints": "not verified for the bfbcc89c package until immutable hosting and live hash verification complete",
     "hostedArtifacts": "not verified",
     "notarization": "not performed",
     "developerIdSigning": "not performed",

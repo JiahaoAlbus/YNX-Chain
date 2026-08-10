@@ -3,14 +3,15 @@
   "productId": "22",
   "product": "YNX Browser",
   "slug": "browser",
-  "contractVersion": "0.2.3-candidate",
-  "status": "candidate-not-centrally-frozen",
+  "contractVersion": "0.2.7-central-candidate",
+  "status": "central-registry-accepted-public-callback-pending",
   "owner": {
     "productNumber": 22,
     "productSlug": "browser",
     "responsibility": "Browser runtime, platform clients, local privacy/security mediation, and exact Wallet review handoff"
   },
-  "sourceCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
+  "sourceCommit": "bfbcc89c4b37f1fe8ba018fc575e619c0de7e209",
+  "centralMergeCommit": "bfbcc89c4b37f1fe8ba018fc575e619c0de7e209",
   "implementationCommits": {
     "downloadPrivacy": "668cb44dab95374ba9e5342d754b6ec568564f2b",
     "reproducibleMacosPreview": "f2f9aaed8d3e4231d37c94de352077008a338572",
@@ -19,7 +20,7 @@
     "stateLifecycle": "91685b728cefefabec9414317f2663d659062edc",
     "windowsWalletBuilder": "0515ff50b22547840c6554b29c4af3cd17484800"
   },
-  "asOf": "2026-07-27",
+  "asOf": "2026-08-10",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -135,19 +136,19 @@
     "canonicalErrorOwner": "29-integration"
   },
   "dependencies": [
-    {"owner": "02-wallet-auth", "contract": "Product registry, Device Challenge, Wallet Approval, Product Session, introspection, expiry and revoke", "acceptance": "pending"},
+    {"owner": "02-wallet-auth", "contract": "Product registry, Device Challenge, Wallet Approval, Product Session, introspection, expiry and revoke", "acceptance": "platform-registrations-central-accepted; positive public callbacks pending"},
     {"owner": "14-ai", "contract": "Provider-neutral Browser assist gateway, streaming/cancel, model/cost/status and audit", "acceptance": "pending"},
     {"owner": "23-search", "contract": "Reviewed Search deployment, authorized source inventory, suggestion provenance and outage semantics", "acceptance": "pending"},
     {"owner": "26-data-fabric", "contract": "Canonical privacy-safe Browser audit event mapping", "acceptance": "pending"},
     {"owner": "28-website", "contract": "/browser public route, metadata, downloads and public status links", "acceptance": "pending"},
-    {"owner": "29-integration", "contract": "Protocol freeze, shared Testnet endpoints and cross-product acceptance", "acceptance": "pending"},
+    {"owner": "29-integration", "contract": "Protocol freeze, shared Testnet endpoints and cross-product acceptance", "acceptance": "central-source-integrated; public callbacks pending"},
     {"owner": "30-security-sre-release", "contract": "Threat policy, signing, SBOM/provenance, hosted artifact and release controls", "acceptance": "pending"}
   ],
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,
