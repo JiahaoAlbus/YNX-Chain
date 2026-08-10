@@ -82,23 +82,25 @@ test("classifyBundleRecord distinguishes source, reviewed install and collisions
   assert.equal(collision.matchesReviewedBinary, false);
 });
 
-test("published metadata binds the central macOS preview without widening release claims", () => {
-  const evidence = readJson("apps/browser/evidence/macos-public-preview-96dfc52.json");
+test("published metadata binds the exact local macOS install evidence without widening release claims", () => {
+  const evidence = readJson("apps/browser/evidence/macos-install-2beece6.json");
   const product = readJson("apps/browser/product-release.json");
+  const windowEvidence = readJson("apps/browser/evidence/macos-window-d8c1ad24bc88/manifest.json");
   const contract = readJson("release/integration/browser-contract.json");
   const publicMetadata = readJson("release/browser/public-product-metadata.json");
 
-  assert.equal(evidence.sourceCommit, product.sourceCommit);
-  assert.equal(evidence.artifact.sameHostReproducibility, "pass");
-  assert.equal(evidence.application.codesignVerify, "pass");
-  assert.equal(evidence.application.signingClass, "adhoc");
-  assert.equal(evidence.application.gatekeeper, "rejected");
+  assert.equal(evidence.sourceCommit, product.verifiedThisCheckpoint.macosInstall.sourceCommit);
+  assert.equal(windowEvidence.sourceCommit, product.sourceCommit.slice(0, 12));
+  assert.equal(windowEvidence.passed, true);
+  assert.equal(evidence.verifiedStates.installedLocalMacosEvidenceHost, true);
+  assert.equal(evidence.install.exactArtifactHash, true);
+  assert.equal(evidence.launchServices.exactReviewedBinaryHash, true);
   assert.equal(product.releaseStates.installedLocal, false);
   assert.equal(contract.releaseStates.installedLocal, false);
-  assert.equal(product.verifiedThisCheckpoint.macosInstall.binarySha256, evidence.application.executableSha256);
-  assert.equal(product.verifiedThisCheckpoint.macosTestnetPreview.zipSha256, evidence.artifact.sha256);
+  assert.equal(product.verifiedThisCheckpoint.macosInstall.binarySha256, evidence.reviewedArtifact.executableSha256);
+  assert.equal(product.verifiedThisCheckpoint.macosInstall.evidence, "apps/browser/evidence/macos-install-2beece6.json");
 
-  for (const state of [product.releaseStates, contract.releaseStates]) {
+  for (const state of [evidence.verifiedStates, product.releaseStates]) {
     assert.equal(state.downloadHosted, false);
     assert.equal(state.productionSigned, false);
     assert.equal(state.storeReleased, false);

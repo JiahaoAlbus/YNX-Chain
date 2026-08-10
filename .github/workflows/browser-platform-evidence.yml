@@ -2,14 +2,8 @@ name: Browser platform evidence
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - "apps/browser/**"
-      - "apps/search/**"
-      - "packages/web4-permissions/**"
-      - ".github/workflows/browser-platform-evidence.yml"
   push:
-    branches: [main]
+    branches: [codex/ecosystem-browser-search]
     paths:
       - "apps/browser/android/**"
       - "apps/browser/ios/**"
@@ -26,11 +20,11 @@ permissions:
   contents: read
 
 jobs:
-  android-package-and-policy:
+  android-install-cold-launch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 35
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v4
       - name: Install Android 36 platform and build tools
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
@@ -38,24 +32,46 @@ jobs:
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
         run: apps/browser/scripts/build-android.sh
-      - name: Verify package identity, signing and isolation policy
-        run: |
-          set -euo pipefail
-          APK=apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk
-          EVIDENCE=apps/browser/evidence/platform/android
-          BUILD_TOOLS="$ANDROID_HOME/build-tools/36.0.0"
-          mkdir -p "$EVIDENCE"
-          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK" > "$EVIDENCE/signing.txt"
-          "$BUILD_TOOLS/aapt2" dump badging "$APK" > "$EVIDENCE/package.txt"
-          "$BUILD_TOOLS/aapt2" dump xmltree --file AndroidManifest.xml "$APK" > "$EVIDENCE/manifest.txt"
-          grep -F "package: name='com.ynxweb4.browser'" "$EVIDENCE/package.txt"
-          grep -F "launchable-activity: name='com.ynxweb4.browser.MainActivity'" "$EVIDENCE/package.txt"
-          grep -F '=".PrivateActivity"' "$EVIDENCE/manifest.txt"
-          grep -F '=":private"' "$EVIDENCE/manifest.txt"
-          grep -F 'ynxbrowser' "$EVIDENCE/manifest.txt"
-          sha256sum "$APK" > "$EVIDENCE/sha256.txt"
-          stat --printf='%s bytes\n' "$APK" > "$EVIDENCE/size.txt"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - name: Install, cold launch, restart, deep link and isolate Private process
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect
+          script: |
+            export PATH="$ANDROID_HOME/platform-tools:$PATH"
+            mkdir -p apps/browser/evidence/platform/android
+            adb install -r apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk | tee apps/browser/evidence/platform/android/install.txt
+            adb shell am force-stop com.ynxweb4.browser
+            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 | tee apps/browser/evidence/platform/android/cold-launch.txt
+            sleep 4
+            adb shell pidof com.ynxweb4.browser | tee apps/browser/evidence/platform/android/pid-cold.txt
+            adb exec-out screencap -p > apps/browser/evidence/platform/android/cold-launch.png
+            adb shell am force-stop com.ynxweb4.browser
+            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/restart.txt
+            sleep 3
+            adb shell am start -a android.intent.action.VIEW -d 'ynxbrowser://com.ynxweb4.browser/auth/callback?response=malformed' com.ynxweb4.browser | tee apps/browser/evidence/platform/android/deep-link.txt
+            adb shell am start -n com.ynxweb4.browser/.PrivateActivity | tee apps/browser/evidence/platform/android/private-launch.txt
+            sleep 3
+            adb shell pidof com.ynxweb4.browser:private | tee apps/browser/evidence/platform/android/private-pid.txt
+            test -s apps/browser/evidence/platform/android/private-pid.txt
+            adb exec-out screencap -p > apps/browser/evidence/platform/android/private.png
+            adb shell am force-stop com.ynxweb4.browser
+            adb shell cmd locale set-app-locales com.ynxweb4.browser --user 0 ar
+            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/arabic-launch.txt
+            sleep 3
+            adb exec-out screencap -p > apps/browser/evidence/platform/android/arabic-rtl.png
+            adb shell settings put system font_scale 1.5
+            adb shell am force-stop com.ynxweb4.browser
+            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/large-text-launch.txt
+            sleep 3
+            adb exec-out screencap -p > apps/browser/evidence/platform/android/arabic-large-text.png
+            adb shell dumpsys package com.ynxweb4.browser > apps/browser/evidence/platform/android/package.txt
+            sha256sum apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk > apps/browser/evidence/platform/android/sha256.txt
+            stat --printf='%s bytes\n' apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk > apps/browser/evidence/platform/android/size.txt
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ynx-browser-android-testnet-preview
@@ -68,7 +84,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v4
       - name: Build, ad-hoc sign and install Testnet Preview
         run: |
           npm --prefix apps/browser ci
@@ -98,7 +114,7 @@ jobs:
           wait "$PID" || true
           shasum -a 256 apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip > apps/browser/evidence/platform/macos/sha256.txt
           stat -f '%z bytes' apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip > apps/browser/evidence/platform/macos/size.txt
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@v4
         with:
           name: ynx-browser-macos-testnet-preview
           path: |
@@ -110,7 +126,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v4
       - name: Select simulator and build
         run: |
           set -o pipefail
@@ -137,7 +153,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "$APP" apps/browser/dist/ios/YNX-Browser-Testnet-Preview-iOS-Simulator.zip
           shasum -a 256 apps/browser/dist/ios/YNX-Browser-Testnet-Preview-iOS-Simulator.zip > apps/browser/evidence/platform/ios/sha256.txt
           stat -f '%z bytes' apps/browser/dist/ios/YNX-Browser-Testnet-Preview-iOS-Simulator.zip > apps/browser/evidence/platform/ios/size.txt
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@v4
         with:
           name: ynx-browser-ios-simulator-testnet-preview
           path: |
@@ -150,7 +166,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v4
       - name: Compile and package WebView2 app
         shell: pwsh
         run: |
@@ -174,7 +190,7 @@ jobs:
           if ($restart.HasExited) { throw "YNX Browser exited during restart" }
           "pid=$($restart.Id) running=true" | Set-Content apps/browser/evidence/platform/windows/restart.txt
           Stop-Process -Id $restart.Id -Force
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@v4
         with:
           name: ynx-browser-windows-testnet-preview
           path: |

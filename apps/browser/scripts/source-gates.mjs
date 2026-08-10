@@ -15,16 +15,15 @@ const sourceExtensions = new Set([
   ".cs", ".css", ".html", ".java", ".js", ".json", ".kt", ".mjs",
   ".swift", ".ts", ".tsx", ".xaml", ".xml"
 ]);
-const syntheticPrefix = ["fa", "ke"].join("");
 const forbidden = [
-  { label: "sample-domain deployment filler", pattern: new RegExp("https?://example" + "\\.com", "i") },
+  { label: "example.com deployment filler", pattern: /https?:\/\/example\.com/i },
   { label: "TODO marker", pattern: /\bTODO\b/ },
   { label: "FIXME marker", pattern: /\bFIXME\b/ },
   { label: "placeholder marker", pattern: /(?:^|[\s"'`>])placeholder(?:[\s"'`<]|$)/i },
-  { label: "future-state marker", pattern: new RegExp("\\bcoming" + " soon\\b", "i") },
-  { label: "credential filler", pattern: new RegExp("\\b(?:" + ["your", "key", "here"].join("_") + "|" + ["change", "me"].join("") + ")\\b", "i") },
-  { label: "synthetic runtime claim", pattern: new RegExp("\\b" + syntheticPrefix + " (?:balance|user|transaction|price|revenue|apy|liquidity|provider|health|success)\\b", "i") },
-  { label: "precomputed success", pattern: new RegExp("\\bhard[- ]coded" + " success\\b", "i") },
+  { label: "coming-soon marker", pattern: /\bcoming soon\b/i },
+  { label: "credential filler", pattern: /\b(?:your_key_here|changeme)\b/i },
+  { label: "fake runtime claim", pattern: /\bfake (?:balance|user|transaction|price|revenue|apy|liquidity|provider|health|success)\b/i },
+  { label: "hard-coded success", pattern: /\bhard[- ]coded success\b/i },
   { label: "no-op control", pattern: /\bno[- ]op (?:button|route|handler)\b/i },
   { label: "private key material", pattern: /-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----/ },
   { label: "OpenAI-style secret", pattern: /\bsk-[A-Za-z0-9]{20,}\b/ },

@@ -223,7 +223,7 @@ internal static class WalletRequestBuilder
     private static byte[] DecodeBase64Url(string value)
     {
         var normalized = value.Replace('-', '+').Replace('_', '/');
-        normalized += (normalized.Length % 4) switch { 2 => "==", 3 => "=", 0 => "", _ => throw new FormatException("Invalid base64url length") };
+        normalized += normalized.Length % 4 switch { 2 => "==", 3 => "=", 0 => "", _ => throw new FormatException("Invalid base64url length") };
         return Convert.FromBase64String(normalized);
     }
 
