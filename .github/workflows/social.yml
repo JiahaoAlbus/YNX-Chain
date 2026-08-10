@@ -1,0 +1,52 @@
+name: Social
+
+on:
+  push:
+    branches: [codex/integrate-finance-suite]
+    paths:
+      - "apps/social/**"
+      - "internal/social/**"
+      - "packages/wallet-auth/**"
+      - "apps/wallet/src/protocol/registry.ts"
+      - "release/social/**"
+      - ".github/workflows/social.yml"
+  pull_request:
+    paths:
+      - "apps/social/**"
+      - "internal/social/**"
+      - "packages/wallet-auth/**"
+      - "apps/wallet/src/protocol/registry.ts"
+      - "release/social/**"
+      - ".github/workflows/social.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  service:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go test -race ./internal/social -count=1
+      - run: go vet ./internal/social
+
+  app-and-wallet:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            apps/social/package-lock.json
+            packages/wallet-auth/package-lock.json
+      - run: npm ci --prefix apps/social
+      - run: npm run typecheck --prefix apps/social
+      - run: npm test --prefix apps/social
+      - run: npm ci --prefix packages/wallet-auth
+      - run: node --test packages/wallet-auth/test/registry.test.mjs packages/wallet-auth/test/gateway-node-host.test.mjs
