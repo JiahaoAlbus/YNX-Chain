@@ -18,4 +18,4 @@ No KPI value is reported until an authoritative source, complete window, denomin
 
 ## Measurement record
 
-`release/kpi-definitions.json` is the machine-readable contract. Every produced KPI record must include `windowStart`, `windowEnd`, `asOf`, `sourceVersion`, `numerator`, `denominator`, `value`, `coverage`, `status`, `failure`, and exact release/source commit. Scale and kill thresholds are hypotheses until the minimum cohort and complete windows above exist.
+`release/data-fabric/kpi-definitions.json` is the machine-readable contract. Every produced KPI record must include `windowStart`, `windowEnd`, `asOf`, `sourceVersion`, `numerator`, `denominator`, `value`, `coverage`, `status`, `failure`, and exact release/source commit. Scale and kill thresholds are hypotheses until the minimum cohort and complete windows above exist.

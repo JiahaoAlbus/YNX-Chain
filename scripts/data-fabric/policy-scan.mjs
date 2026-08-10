@@ -48,8 +48,8 @@ const runtimePaths = [
   "scripts/data-fabric/write-testnet-provenance.mjs",
   "scripts/data-fabric/verify-testnet-release.mjs",
   "docs/data-fabric",
-  "public-product-metadata.json",
-  "product-release.json",
+  "release/data-fabric/public-product-metadata.json",
+  "release/data-fabric/product-release.json",
 ];
 
 const secretPaths = [
@@ -57,13 +57,13 @@ const secretPaths = [
   "schemas/data-fabric",
   "integration",
   "release/integration",
-  "docs/integration",
-  ".ai-bridge",
-  "public-product-metadata.json",
-  "product-release.json",
+  "docs/data-fabric/integration",
+  "docs/data-fabric/coordination",
+  "release/data-fabric/public-product-metadata.json",
+  "release/data-fabric/product-release.json",
 ];
 
-const publicPaths = ["public-product-metadata.json", "product-release.json"];
+const publicPaths = ["release/data-fabric/public-product-metadata.json", "release/data-fabric/product-release.json"];
 const textExtensions = new Set([
   ".c",
   ".css",

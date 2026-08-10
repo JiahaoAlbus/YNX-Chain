@@ -5,10 +5,10 @@ import path from "node:path";
 
 const root = process.cwd();
 const manifests = [
-  ".ai-bridge/full-goal-coverage.json",
-  "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-  "release/release-record.json",
-  "product-release.json",
+  "release/data-fabric/full-goal-coverage.json",
+  "docs/data-fabric/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "release/data-fabric/release-record.json",
+  "release/data-fabric/product-release.json",
 ];
 
 const pathFields = new Set([

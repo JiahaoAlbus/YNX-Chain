@@ -10,14 +10,12 @@ jq empty \
   schemas/data-fabric/*.json \
   integration/product-event-contracts.json \
   release/*.json \
+  release/data-fabric/*.json \
   release/integration/*.json \
-  docs/integration/*.json \
-  .ai-bridge/full-goal-coverage.json \
+  docs/data-fabric/integration/*.json \
   evidence/capacity/*.json \
   evidence/postgres/*.json \
   evidence/ui/*.json \
-  public-product-metadata.json \
-  product-release.json \
   infra/data-fabric/grafana-dashboard.json
 
 node scripts/data-fabric/evidence-path-check.mjs

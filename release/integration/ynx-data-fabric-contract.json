@@ -6,8 +6,8 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-84872ff9042e",
-  "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+  "release": "ynx-data-fabric-ff649befd439",
+  "sourceCommit": "ff649befd4399f742b5b6b3e64d3566fa9fa809e",
   "generatedAt": "2026-07-29T20:25:09Z",
   "phase": "INTEGRATE",
   "protocol": {
@@ -113,7 +113,7 @@
     "oldClientCompatibility": "v1 accepted during migration window"
   },
   "testVectors": {
-    "machineReadable": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+    "machineReadable": "docs/data-fabric/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "producerVectors": "integration/PRODUCER_TEST_VECTORS.md",
     "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "out-of-order", "tamper", "wrong-product", "wrong-device", "scope-widening", "expiry", "revoke", "broker-outage", "consumer-crash", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease"]
   },

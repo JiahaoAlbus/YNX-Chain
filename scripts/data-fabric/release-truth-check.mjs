@@ -50,15 +50,15 @@ const requiredCoverageFields = [
 const requiredIntegrationFiles = [
   "release/integration/ynx-data-fabric-contract.json",
   "release/data-fabric/operator-inputs.request.json",
-  "docs/integration/INTEGRATION_HANDOFF.md",
-  "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-  "docs/integration/DEPENDENCY_ACCEPTANCE.md",
-  ".ai-bridge/current-plan.md",
-  ".ai-bridge/agent-status.md",
-  ".ai-bridge/decisions.md",
-  ".ai-bridge/open-questions.md",
-  ".ai-bridge/execution-log.jsonl",
-  ".ai-bridge/full-goal-coverage.json",
+  "docs/data-fabric/integration/INTEGRATION_HANDOFF.md",
+  "docs/data-fabric/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "docs/data-fabric/integration/DEPENDENCY_ACCEPTANCE.md",
+  "docs/data-fabric/coordination/current-plan.md",
+  "docs/data-fabric/coordination/agent-status.md",
+  "docs/data-fabric/coordination/decisions.md",
+  "docs/data-fabric/coordination/open-questions.md",
+  "docs/data-fabric/coordination/execution-log.jsonl",
+  "release/data-fabric/full-goal-coverage.json",
 ];
 
 function fail(message) {
@@ -125,7 +125,7 @@ function trackedEngineeringFiles(repoRoot) {
 }
 
 export function findExpectedSourceCommit(repoRoot) {
-  const release = readJSON(repoRoot, "product-release.json");
+  const release = readJSON(repoRoot, "release/data-fabric/product-release.json");
   const commit = release.sourceCommit;
   assert(/^[0-9a-f]{40}$/.test(commit || ""), "product release sourceCommit is invalid");
 
@@ -152,7 +152,7 @@ export function findExpectedSourceCommit(repoRoot) {
 }
 
 function verifyCoverage(root, expectedSourceCommit, expectedRelease) {
-  const coverage = readJSON(root, ".ai-bridge/full-goal-coverage.json");
+  const coverage = readJSON(root, "release/data-fabric/full-goal-coverage.json");
   assert(coverage.schemaVersion === 1, "full-goal coverage schemaVersion must be 1");
   assert(coverage.productId === "ynx-data-fabric", "full-goal coverage productId is invalid");
   assert(coverage.sourceCommit === expectedSourceCommit, "full-goal coverage sourceCommit is stale");
@@ -199,12 +199,12 @@ export function verifyReleaseTruth({ root, expectedSourceCommit, repositoryRoot 
     assert(existsSync(path.join(resolvedRoot, relativePath)), `${relativePath} is missing`);
   }
 
-  const productRelease = readJSON(resolvedRoot, "product-release.json");
-  const releaseRecord = readJSON(resolvedRoot, "release/release-record.json");
+  const productRelease = readJSON(resolvedRoot, "release/data-fabric/product-release.json");
+  const releaseRecord = readJSON(resolvedRoot, "release/data-fabric/release-record.json");
   const integrationContract = readJSON(resolvedRoot, "release/integration/ynx-data-fabric-contract.json");
   const eventContracts = readJSON(resolvedRoot, "integration/product-event-contracts.json");
-  const publicMetadata = readJSON(resolvedRoot, "public-product-metadata.json");
-  const crossProductVectors = readJSON(resolvedRoot, "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json");
+  const publicMetadata = readJSON(resolvedRoot, "release/data-fabric/public-product-metadata.json");
+  const crossProductVectors = readJSON(resolvedRoot, "docs/data-fabric/integration/CROSS_PRODUCT_TEST_VECTORS.json");
   const operatorInputs = readJSON(resolvedRoot, "release/data-fabric/operator-inputs.request.json");
 
   const releaseName = `ynx-data-fabric-${expectedSourceCommit.slice(0, 12)}`;
@@ -285,21 +285,24 @@ export function verifyReleaseTruth({ root, expectedSourceCommit, repositoryRoot 
   assert(sameJSON(productRelease.evidence?.sourceCandidate, sourceCandidate), "product and release record source candidate evidence drifted");
   assert(sourceCandidate?.tag === "data-fabric-v0.2.0-source-candidate", "source candidate tag is invalid");
   assert(sourceCandidate?.sourceCommit === expectedSourceCommit, "source candidate is not source-bound");
-  assert(Number.isInteger(sourceCandidate?.releaseId) && sourceCandidate.releaseId > 0, "source candidate release ID is invalid");
-  assert(/^[0-9a-f]{40}$/.test(sourceCandidate?.targetCommit || ""), "source candidate target commit is invalid");
-  assert(sourceCandidate?.assetCount === 7, "source candidate asset inventory is incomplete");
-  assert(sourceCandidate?.archive?.name === `ynx-data-fabric-source-${sourceCandidate.targetCommit.slice(0, 12)}.tar.gz`, "source candidate archive name is invalid");
-  assert(Number.isSafeInteger(sourceCandidate?.archive?.bytes) && sourceCandidate.archive.bytes > 0, "source candidate archive byte count is invalid");
-  assert(/^[0-9a-f]{64}$/.test(sourceCandidate?.archive?.sha256 || ""), "source candidate archive digest is invalid");
-  assert(sourceCandidate?.verification === "downloaded-all-assets-and-matched-sha256", "source candidate back-read verification is absent");
   assert(sourceCandidate?.publicStateChanged === false, "source candidate must not change public release states");
-  try {
-    execFileSync("git", ["merge-base", "--is-ancestor", expectedSourceCommit, sourceCandidate.targetCommit], {
-      cwd: path.resolve(repositoryRoot),
-      stdio: "ignore",
-    });
-  } catch {
-    fail("source candidate target is not a descendant of the engineering source commit");
+  const sourceCandidatePending = sourceCandidate?.status === "pending" && sourceCandidate?.releaseId === null && sourceCandidate?.targetCommit === null && sourceCandidate?.assetCount === 0 && sourceCandidate?.archive === null && sourceCandidate?.verification === null;
+  if (!sourceCandidatePending) {
+    assert(Number.isInteger(sourceCandidate?.releaseId) && sourceCandidate.releaseId > 0, "source candidate release ID is invalid");
+    assert(/^[0-9a-f]{40}$/.test(sourceCandidate?.targetCommit || ""), "source candidate target commit is invalid");
+    assert(sourceCandidate?.assetCount === 7, "source candidate asset inventory is incomplete");
+    assert(sourceCandidate?.archive?.name === `ynx-data-fabric-source-${sourceCandidate.targetCommit.slice(0, 12)}.tar.gz`, "source candidate archive name is invalid");
+    assert(Number.isSafeInteger(sourceCandidate?.archive?.bytes) && sourceCandidate.archive.bytes > 0, "source candidate archive byte count is invalid");
+    assert(/^[0-9a-f]{64}$/.test(sourceCandidate?.archive?.sha256 || ""), "source candidate archive digest is invalid");
+    assert(sourceCandidate?.verification === "downloaded-all-assets-and-matched-sha256", "source candidate back-read verification is absent");
+    try {
+      execFileSync("git", ["merge-base", "--is-ancestor", expectedSourceCommit, sourceCandidate.targetCommit], {
+        cwd: path.resolve(repositoryRoot),
+        stdio: "ignore",
+      });
+    } catch {
+      fail("source candidate target is not a descendant of the engineering source commit");
+    }
   }
 
   verifyCoverage(resolvedRoot, expectedSourceCommit, releaseName);

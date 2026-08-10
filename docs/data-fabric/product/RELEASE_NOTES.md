@@ -23,7 +23,7 @@
 - Added a payload-free pseudonymous PostgreSQL analytics fact projection with atomic Inbox lineage, transactional erasure deletion, and suppression of later rematerialization.
 - Added actionable Prometheus alert rules, a Grafana integrity/recovery dashboard, Outbox-age metrics, reconciliation exceptions, and analytics fact counts.
 - Replaced cross-partition `MAX(sequence)` SSI contention with per-partition advisory ordering and aggregate sequence rows; recorded a bounded PostgreSQL 17.10 capacity sample after the corrected live tests passed.
-- Added a Go runtime SPDX inventory and automated zero-placeholder, fake-success, public-leak, secret-pattern, JSON, and whitespace gates for Data Fabric-owned surfaces.
+- Added a Go runtime SPDX inventory and automated unfinished-marker, fabricated-success, public-leak, secret-pattern, JSON, and whitespace gates for Data Fabric-owned surfaces.
 - Added bounded cursor pagination and an embedded read-only operator console with canonical Wallet request binding, truthful operational states, 12 selectable languages, Arabic RTL, accessibility semantics, reduced motion, light/dark mode, and responsive layout.
 - Added bounded per-session/device/product defense-in-depth rate limiting with explicit `429` and `Retry-After` behavior.
 - Added W3C trace-context validation/continuation, trace IDs in structured logs, child propagation to canonical introspection, and Prometheus request-duration histograms.

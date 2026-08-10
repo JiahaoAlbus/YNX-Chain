@@ -24,7 +24,7 @@ Status: `ACTIVE`
 - Schema Registry runtime and artifact: `internal/datafabric/schema_registry.go`, `schemas/data-fabric/schema-registry-v2.json`
 - Product ownership and protocol policy: `integration/product-event-contracts.json`
 - Machine integration contract: `release/integration/ynx-data-fabric-contract.json`
-- Handoff and vectors: `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- Handoff and vectors: `docs/data-fabric/integration/INTEGRATION_HANDOFF.md`, `docs/data-fabric/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/data-fabric/integration/DEPENDENCY_ACCEPTANCE.md`
 
 ## Reliable transport, Saga and Ledger
 
@@ -56,14 +56,14 @@ Status: `ACTIVE`
 
 ## Release truth and coverage
 
-- Product release: `product-release.json`
-- Machine release record: `release/release-record.json`
-- Full goal coverage: `.ai-bridge/full-goal-coverage.json`
+- Product release: `release/data-fabric/product-release.json`
+- Machine release record: `release/data-fabric/release-record.json`
+- Full goal coverage: `release/data-fabric/full-goal-coverage.json`
 - Release truth implementation: `scripts/data-fabric/release-truth-check.mjs`
 - Release truth positive and negative vectors: `scripts/data-fabric/release-truth-check-check.mjs`
 - Quality gate entrypoint: `scripts/data-fabric/quality-gates.sh`
 - Release signing boundary: production promotion requires `ed25519-over-sha256`; `rsa-pkcs1-sha256-over-sha256` is accepted only for loopback contract-test portability and is rejected for production promotion.
-- Public metadata handoff: `public-product-metadata.json`
+- Public metadata handoff: `release/data-fabric/public-product-metadata.json`
 
 The release truth gate derives the latest Engineering Source Commit from tracked Data Fabric runtime, schema, integration ownership, packaging and deployment files. It rejects stale release records, inconsistent states, missing coverage fields, invalid coverage statuses, source-unbound evidence and public URLs or downloads without direct receipts. Negative vectors mutate the Source Commit, public URL, public deployment state and coverage status and must all fail.
 

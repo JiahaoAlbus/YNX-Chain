@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "productId": "ynx-data-fabric",
+  "productName": "YNX Data Fabric & Billing Ledger",
+  "release": "ynx-data-fabric-ff649befd439",
+  "channel": "testnet-preview",
+  "sourceCommit": "ff649befd4399f742b5b6b3e64d3566fa9fa809e",
+  "sourceRelease": "ynx-data-fabric-84872ff9042e",
+  "generatedAt": "2026-07-29T20:40:02Z",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "compatibility": {
+    "eventEnvelope": "2.0",
+    "acceptedEventEnvelopes": [
+      "1.0",
+      "2.0"
+    ],
+    "schemaRegistry": "2.0",
+    "fileStoreSchema": 1,
+    "backupManifestSchema": 1,
+    "postgresMigration": 6,
+    "minimumOS": "Linux x86_64 for packaged runtime; source builds remain platform-dependent"
+  },
+  "delivery": {
+    "productClass": "headless-data-plane-with-responsive-operator-console",
+    "runtimePlatforms": [
+      "Linux server",
+      "command line",
+      "Go SDK",
+      "systemd package"
+    ],
+    "nativeStoreApps": "notApplicable",
+    "candidateArtifactClass": "ephemeral-unsigned-testnet-package-installed-and-cold-started-in-linux-ci",
+    "containerPublished": false
+  },
+  "publicHealthURL": null,
+  "artifacts": [],
+  "evidence": {
+    "localVerification": {
+      "sourceCommit": "ff649befd4399f742b5b6b3e64d3566fa9fa809e",
+      "status": "passed",
+      "environment": "macOS development environment with standard umask for cross-repository permission vectors",
+      "commands": [
+        "go test ./internal/datafabric -count=1",
+        "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1",
+        "go test -race ./internal/datafabric -count=1",
+        "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json",
+        "bash -lc 'umask 022; exec go test ./... -count=1'",
+        "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1",
+        "bash scripts/data-fabric/quality-gates.sh"
+      ]
+    },
+    "remoteCI": {
+      "runId": null,
+      "workflow": "data-fabric",
+      "sourceCommit": "ff649befd4399f742b5b6b3e64d3566fa9fa809e",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
+      "artifactsPublished": false,
+      "url": null
+    },
+    "sourceCandidate": {
+      "tag": "data-fabric-v0.2.0-source-candidate",
+      "sourceCommit": "ff649befd4399f742b5b6b3e64d3566fa9fa809e",
+      "status": "pending",
+      "releaseId": null,
+      "targetCommit": null,
+      "publishedAt": null,
+      "url": null,
+      "assetCount": 0,
+      "archive": null,
+      "verification": null,
+      "publicStateChanged": false
+    }
+  },
+  "limitations": [
+    "No central product-owner acceptance receipt exists for the full producer set.",
+    "No shared Testnet, staging or public runtime receipt is recorded for this source.",
+    "No immutable public download, production signature or public health endpoint is recorded.",
+    "The successful Linux CI package and cold-start path is a Testnet candidate class, not a public production release."
+  ],
+  "nextAction": "Continue central producer acceptance and shared-Testnet integration while keeping all public and production states false until direct receipts exist."
+}

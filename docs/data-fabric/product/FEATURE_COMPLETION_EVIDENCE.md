@@ -56,4 +56,4 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 
 ## Completion boundary
 
-The product is not complete. `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` and `storeReleased` remain false. `.ai-bridge/full-goal-coverage.json` is the authoritative exhaustive matrix and contains the exact next action for every open requirement.
+The product is not complete. `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` and `storeReleased` remain false. `release/data-fabric/full-goal-coverage.json` is the authoritative exhaustive matrix and contains the exact next action for every open requirement.

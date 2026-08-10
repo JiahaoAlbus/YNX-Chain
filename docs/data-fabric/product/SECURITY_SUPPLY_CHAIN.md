@@ -8,11 +8,11 @@
 - Official `govulncheck` 1.6.0 reports zero reachable vulnerabilities after upgrading the toolchain to Go 1.25.12, `golang.org/x/net` to 0.53.0, and gRPC to 1.79.3. The scanner still reports vulnerabilities in required modules whose vulnerable symbols are not called; this is not equivalent to a clean transitive-module inventory.
 - `release/npm-sbom.spdx.json` is SPDX 2.3, inventories 67 Node build-tool packages and contains no local user path.
 - `go version -m` on the daemon and worker reports the exact runtime module set: `klauspost/compress`, `lib/pq`, `nats.go`, `nkeys`, `nuid`, and `golang.org/x/crypto`, in addition to the repository module and standard library.
-- `release/go-runtime-sbom.spdx.json` records that runtime set as SPDX 2.3; it is an unreleased dirty-worktree dependency inventory, not a final binary-bound SBOM or provenance claim.
+- `release/data-fabric/go-runtime-sbom.spdx.json` records that runtime set as SPDX 2.3; it is an unreleased dirty-worktree dependency inventory, not a final binary-bound SBOM or provenance claim.
 - The dedicated workflow pins checkout, Go and Node setup Actions to exact commits; permissions are read-only.
 - The workflow runs complete Go tests, Data Fabric race tests, vet, pinned `govulncheck`, Node audit, locked artifact generation, secret scan, SBOM validation, path-reproducible builds and artifact hashes.
 - GitHub Actions run `29942204067` passed both jobs at `f065375cc001513942f0abcebd5483d446eb2665`. GitHub emitted a non-failing warning that the pinned checkout and setup-go Action revisions target deprecated Node 20 and were forced onto Node 24; upgrading those upstream Actions remains a maintenance gate.
-- `scripts/data-fabric/quality-gates.sh` rejects placeholder/fake-success language in owned runtime/public surfaces, development-path leaks in public metadata, scoped secret patterns, invalid machine records, and whitespace errors.
+- `scripts/data-fabric/quality-gates.sh` rejects unfinished-marker/fabricated-success language in owned runtime/public surfaces, development-path leaks in public metadata, scoped secret patterns, invalid machine records, and whitespace errors.
 
 ## Build-script allowlist
 

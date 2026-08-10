@@ -11,21 +11,21 @@ const expectedSourceCommit = findExpectedSourceCommit(root);
 const fixture = mkdtempSync(path.join(os.tmpdir(), "ynx-data-fabric-release-truth-"));
 
 const files = [
-  "product-release.json",
-  "release/release-record.json",
+  "release/data-fabric/product-release.json",
+  "release/data-fabric/release-record.json",
   "release/integration/ynx-data-fabric-contract.json",
   "release/data-fabric/operator-inputs.request.json",
   "integration/product-event-contracts.json",
-  "public-product-metadata.json",
-  ".ai-bridge/current-plan.md",
-  ".ai-bridge/agent-status.md",
-  ".ai-bridge/decisions.md",
-  ".ai-bridge/open-questions.md",
-  ".ai-bridge/execution-log.jsonl",
-  ".ai-bridge/full-goal-coverage.json",
-  "docs/integration/INTEGRATION_HANDOFF.md",
-  "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-  "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+  "release/data-fabric/public-product-metadata.json",
+  "docs/data-fabric/coordination/current-plan.md",
+  "docs/data-fabric/coordination/agent-status.md",
+  "docs/data-fabric/coordination/decisions.md",
+  "docs/data-fabric/coordination/open-questions.md",
+  "docs/data-fabric/coordination/execution-log.jsonl",
+  "release/data-fabric/full-goal-coverage.json",
+  "docs/data-fabric/integration/INTEGRATION_HANDOFF.md",
+  "docs/data-fabric/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "docs/data-fabric/integration/DEPENDENCY_ACCEPTANCE.md",
 ];
 
 function copyFixture() {
@@ -61,33 +61,33 @@ try {
   verifyReleaseTruth({ root: fixture, expectedSourceCommit, repositoryRoot: root });
 
   expectFailure("stale source commit", () => {
-    const release = readJSON("product-release.json");
+    const release = readJSON("release/data-fabric/product-release.json");
     release.sourceCommit = "0000000000000000000000000000000000000000";
-    writeJSON("product-release.json", release);
+    writeJSON("release/data-fabric/product-release.json", release);
   });
 
   expectFailure("public URL without deployment evidence", () => {
-    const metadata = readJSON("public-product-metadata.json");
+    const metadata = readJSON("release/data-fabric/public-product-metadata.json");
     metadata.publicURLs.status = "https://status.invalid/ynx-data-fabric";
-    writeJSON("public-product-metadata.json", metadata);
+    writeJSON("release/data-fabric/public-product-metadata.json", metadata);
   });
 
   expectFailure("public state without deployment evidence", () => {
-    const metadata = readJSON("public-product-metadata.json");
+    const metadata = readJSON("release/data-fabric/public-product-metadata.json");
     metadata.releaseStatus.deployedPublic = true;
-    writeJSON("public-product-metadata.json", metadata);
+    writeJSON("release/data-fabric/public-product-metadata.json", metadata);
   });
 
   expectFailure("invalid coverage status", () => {
-    const coverage = readJSON(".ai-bridge/full-goal-coverage.json");
+    const coverage = readJSON("release/data-fabric/full-goal-coverage.json");
     coverage.items[0].status = "looksComplete";
-    writeJSON(".ai-bridge/full-goal-coverage.json", coverage);
+    writeJSON("release/data-fabric/full-goal-coverage.json", coverage);
   });
 
   expectFailure("invalid remote CI ancestry", () => {
-    const release = readJSON("release/release-record.json");
+    const release = readJSON("release/data-fabric/release-record.json");
     release.evidence.remoteCI.headCommit = "0000000000000000000000000000000000000000";
-    writeJSON("release/release-record.json", release);
+    writeJSON("release/data-fabric/release-record.json", release);
   });
 
   process.stdout.write(`${JSON.stringify({ status: "verified", negativeVectors: 5, sourceCommit: expectedSourceCommit })}\n`);

@@ -6,8 +6,8 @@ cd "$root"
 work="$(mktemp -d "${TMPDIR:-/tmp}/ynx-data-fabric-service-stop.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 
-source_commit="$(jq -er '.sourceCommit | select(test("^[0-9a-f]{40}$"))' product-release.json)"
-source_release="$(jq -er '.release' product-release.json)"
+source_commit="$(jq -er '.sourceCommit | select(test("^[0-9a-f]{40}$"))' release/data-fabric/product-release.json)"
+source_release="$(jq -er '.release' release/data-fabric/product-release.json)"
 receipt="$work/graceful-stop-receipt.json"
 
 YNX_DATA_FABRIC_SMOKE_SOURCE_COMMIT="$source_commit" \
