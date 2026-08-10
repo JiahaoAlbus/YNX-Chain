@@ -34,6 +34,12 @@ const REVIEWED_ENTRIES = [
     productDeviceAlgorithms: ["p256-sha256"],
   },
   {
+    schemaVersion: 2, productClientId: "ynx-merchant-console-v1", requestingProduct: "pay-merchant",
+    bundleId: "com.ynxweb4.merchant-console", callbacks: ["https://pay.ynxweb4.com/merchant/wallet-auth/callback"],
+    scopes: ["account:read", "merchant:session:create"], maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
     schemaVersion: 2, productClientId: "ynx-pay-v1", requestingProduct: "pay",
     bundleId: "com.ynxweb4.pay", callbacks: ["ynxpay://wallet-auth/callback"],
     scopes: ["account:read", "pay:case:create", "pay:settlement:submit"], maxScopes: 3,
@@ -78,6 +84,7 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "finance.pay.read": "Read this account's verified Pay receipt evidence without creating or signing a payment.",
   "finance.portfolio.read": "Read this account's public YNXT balance and indexed activity from approved sources.",
   "finance.profile.write": "Manage only this account's private Finance categories, budgets, notes and reminders.",
+  "merchant:session:create": "Create a short-lived, device-bound session for one authorized merchant role. This cannot sign payments, refunds or settlements.",
   "pay:case:create": "Create a Pay support case for this account without authorizing a transfer.",
   "pay:settlement:submit": "Submit a settlement request for separate Pay review; Wallet approval is not a payment signature.",
   "profile:link": "Allow this exact Social device to link the public account to its profile.",
