@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "ynx.quant.public-financial-health-evidence.v1",
+  "observedAt": "2026-08-10T09:13:27Z",
+  "scope": "Public HTTPS health and hosted Quant desktop artifact availability only",
+  "services": {
+    "quant": {
+      "url": "https://quant.ynxweb4.com/api/health",
+      "sourceCommit": "5fb7a35e658594719bd1b687ecbd3d28076a17e5",
+      "version": "0.2.0-testnet",
+      "mode": "simulated_testnet_only",
+      "liveFundsEnabled": false
+    },
+    "exchange": {
+      "url": "https://exchange.ynxweb4.com/api/health",
+      "sourceCommit": "cbfbd893af7384703b51e20cf8d75c9762d4485a",
+      "version": "0.1.0-testnet",
+      "productionCustody": false
+    },
+    "finance": {
+      "url": "https://finance.ynxweb4.com/health",
+      "version": "1.2.0",
+      "portfolio": "read-only",
+      "custody": "none"
+    }
+  },
+  "originLoopback": {
+    "requestsPerService": 50,
+    "concurrencyPerService": 25,
+    "results": {
+      "quant": {"http200": 50, "averageSeconds": 0.1368, "maximumSeconds": 0.2573},
+      "exchange": {"http200": 50, "averageSeconds": 0.1460, "maximumSeconds": 0.2430},
+      "finance": {"http200": 50, "averageSeconds": 0.1258, "maximumSeconds": 0.2195}
+    }
+  },
+  "publicRegions": {
+    "singapore": {
+      "requestsPerService": 20,
+      "concurrencyPerService": 10,
+      "quant": {"http200": 20, "averageSeconds": 0.073, "maximumSeconds": 0.099},
+      "exchange": {"http200": 20, "averageSeconds": 0.074, "maximumSeconds": 0.097},
+      "finance": {"http200": 20, "averageSeconds": 0.074, "maximumSeconds": 0.108}
+    },
+    "siliconValley": {
+      "requestsPerService": 20,
+      "concurrencyPerService": 10,
+      "quant": {"http200": 20, "averageSeconds": 0.659, "maximumSeconds": 0.726},
+      "exchange": {"http200": 20, "averageSeconds": 0.656, "maximumSeconds": 0.719},
+      "finance": {"http200": 20, "averageSeconds": 0.623, "maximumSeconds": 0.685}
+    },
+    "seoul": {
+      "requestsPerService": 20,
+      "concurrencyPerService": 10,
+      "quant": {"http200": 20, "averageSeconds": 0.286, "maximumSeconds": 0.355},
+      "exchange": {"http200": 20, "averageSeconds": 0.287, "maximumSeconds": 0.353},
+      "finance": {"http200": 20, "averageSeconds": 0.319, "maximumSeconds": 0.458}
+    }
+  },
+  "hostedQuantArtifacts": [
+    {
+      "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-70382c37-macos-arm64-adhoc.zip",
+      "bytes": 7395201,
+      "sha256": "b7f0013ab789f36d8013ee35131b19d92b09d201daac9560c4f989a568cd60d3",
+      "signingClass": "adhoc-test-only"
+    },
+    {
+      "url": "https://quant.ynxweb4.com/downloads/ynx-quant-lab-0.2.0-testnet-70382c37-windows-x64-unsigned.zip",
+      "bytes": 8110427,
+      "sha256": "a8a2e25e6bdc6a244ca09f491671951a2e0ae210c32b9f17758a31569d4eb1ab",
+      "signingClass": "unsigned-cross-compiled"
+    }
+  ],
+  "measurementBoundary": {
+    "claim": "The sampled public health routes accepted all 180 regional requests and the origin accepted all 150 loopback requests at the stated concurrency.",
+    "notProven": [
+      "business-action concurrency",
+      "sustained availability or an SLO",
+      "million-user capacity",
+      "production custody",
+      "mainnet readiness"
+    ],
+    "localDesktopObservation": "The operator Mac proxy/TUN path produced intermittent TLS connection timeouts at concurrency 10 while the same direct public samples passed from Singapore, Silicon Valley and Seoul. Those local-path failures are not attributed to the origin service."
+  }
+}

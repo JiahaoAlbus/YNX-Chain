@@ -54,6 +54,22 @@ Current candidates built from source commit
   unsigned and unhosted; runtime/restart/restore verified locally, but this image ID
   is not a registry manifest digest
 
+## Public Testnet evidence collected 2026-08-10
+
+- canonical Wallet -> Quant -> Exchange session, mandate and submitted Testnet
+  order flow, replay rejection, restart persistence and tenant-isolation evidence:
+  `apps/quant-lab/evidence/public-wallet-quant-exchange-20260810.json`
+- Quant, Exchange and Finance public HTTPS health sampled from Singapore,
+  Silicon Valley and Seoul: 20/20 HTTP 200 for each service in each region at
+  concurrency 10; origin loopback additionally returned 50/50 HTTP 200 for each
+  service at concurrency 25. Exact latency samples, runtime source versions and
+  the non-SLO measurement boundary are recorded in
+  `apps/quant-lab/evidence/public-financial-health-multiregion-20260810.json`.
+- the two Quant desktop URLs were downloaded from the Singapore verifier and
+  their byte counts and SHA-256 values matched `product-release.json`. The
+  macOS archive remains ad-hoc test signed; the Windows archive remains an
+  unsigned cross-compile without Windows launch evidence.
+
 Browser screenshots are generated under ignored `tmp/quant-lab-evidence` and are
 not immutable release evidence. A final release must copy selected evidence into
 a commit-addressed artifact, hash it, and attach a hosted immutable URL.
@@ -65,9 +81,9 @@ and the macOS archive was re-verified from a fresh extraction.
 
 ## Missing remote evidence
 
-CI run URL, staging/public health response, canonical Gateway session, Wallet
-mandate approval/revoke receipt, Exchange order/fill, DEX vault actions,
+CI run URL, Wallet mandate revoke receipt, an authoritative Exchange fill (the
+current public flow proves only `submitted_testnet`), DEX vault actions,
 Explorer/Finance/Monitor/Trust correlation, registry manifest digest, container
-signing/external vulnerability scan/immutable hosting, hosted SDK/download URLs,
-production desktop signing/notarization, Windows host launch, and public uptime
-evidence.
+signing/external vulnerability scan and immutable container/SDK hosting,
+production desktop signing/notarization, Windows host launch, sustained public
+uptime and business-action capacity evidence.
