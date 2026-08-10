@@ -11,6 +11,10 @@ collect_files() {
         case "$path" in
           "$scanner_path"|"$scaffold_path") continue ;;
         esac
+        # Build tools may replace tracked artifact directories before this
+        # gate runs. A path removed by that build is not available to scan;
+        # the source tree remains covered and git diff gates report deletion.
+        [[ -f "$path" ]] || continue
         printf '%s\0' "$path"
       done
 }
