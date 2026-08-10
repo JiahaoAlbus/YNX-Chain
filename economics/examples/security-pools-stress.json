@@ -1,0 +1,25 @@
+{
+  "asOf": "2026-07-22T00:00:00Z",
+  "initialPools": {
+    "safety_module": { "stakeYnxt": 1000000, "insuranceYnxt": 200000, "paused": false },
+    "oracle": { "stakeYnxt": 500000, "insuranceYnxt": 100000, "paused": false },
+    "bridge": { "stakeYnxt": 600000, "insuranceYnxt": 100000, "paused": false },
+    "storage": { "stakeYnxt": 400000, "insuranceYnxt": 50000, "paused": false },
+    "ai": { "stakeYnxt": 400000, "insuranceYnxt": 50000, "paused": false },
+    "indexer": { "stakeYnxt": 400000, "insuranceYnxt": 50000, "paused": false }
+  },
+  "governanceActive": false,
+  "contractsAudited": false,
+  "contractsDeployed": false,
+  "actions": [
+    { "epoch": 1, "type": "stake", "pool": "oracle", "amount": 100000, "fundingSource": "external_unencumbered" },
+    { "epoch": 1, "type": "stake", "pool": "bridge", "amount": 100000, "fundingSource": "oracle_pool_receipt" },
+    { "epoch": 2, "type": "request_exit", "pool": "oracle", "amount": 200000 },
+    { "epoch": 10, "type": "incident", "pool": "oracle", "amount": 300000, "condition": "bridge_failure", "governanceApproved": true, "decisionEpoch": 0, "evidenceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    { "epoch": 10, "type": "incident", "pool": "oracle", "amount": 300000, "condition": "oracle_failure", "governanceApproved": true, "decisionEpoch": 0, "evidenceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    { "epoch": 15, "type": "fulfill_exit", "pool": "oracle", "queueId": "oracle-exit-000001" },
+    { "epoch": 23, "type": "fulfill_exit", "pool": "oracle", "queueId": "oracle-exit-000001" },
+    { "epoch": 30, "type": "incident", "pool": "bridge", "amount": 500000, "condition": "bridge_failure", "governanceApproved": true, "decisionEpoch": 20, "evidenceHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+    { "epoch": 40, "type": "incident", "pool": "safety_module", "amount": 900000, "condition": "protocol_shortfall", "governanceApproved": true, "decisionEpoch": 30, "evidenceHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" }
+  ]
+}

@@ -28,6 +28,7 @@ YNX_PEER_RPC_URLS="${YNX_PEER_RPC_URLS:-ynx_validator_singapore|http://${SG_NODE
 YNX_PEER_SYNC_INTERVAL="${YNX_PEER_SYNC_INTERVAL:-5s}"
 YNX_BRIDGE_DEPLOY_ENABLED="${YNX_BRIDGE_DEPLOY_ENABLED:-false}"
 YNX_STABLECOIN_DEPLOY_ENABLED="${YNX_STABLECOIN_DEPLOY_ENABLED:-false}"
+YNX_STABLE_RESERVE_DEPLOY_ENABLED="${YNX_STABLE_RESERVE_DEPLOY_ENABLED:-false}"
 YNX_CHAT_DEPLOY_ENABLED="${YNX_CHAT_DEPLOY_ENABLED:-false}"
 YNX_SQUARE_DEPLOY_ENABLED="${YNX_SQUARE_DEPLOY_ENABLED:-false}"
 YNX_SOCIAL_DEPLOY_ENABLED="${YNX_SOCIAL_DEPLOY_ENABLED:-false}"
@@ -79,6 +80,15 @@ if [[ "$YNX_STABLECOIN_DEPLOY_ENABLED" == "true" ]]; then
   ynx_require_env "${stablecoin_required[@]}"
   ynx_reject_unsafe_env_values "${stablecoin_required[@]}"
 fi
+case "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" in
+  true | false) ;;
+  *) echo "YNX_STABLE_RESERVE_DEPLOY_ENABLED must be true or false"; exit 1 ;;
+esac
+if [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" ]]; then
+  stable_reserve_required=(YNX_STABLE_RESERVE_ATTESTATION_PATH YNX_STABLE_RESERVE_PUBLIC_KEY YNX_STABLE_RESERVE_KEY_ID YNX_STABLE_RESERVE_ASSET YNX_STABLE_RESERVE_NETWORK)
+  ynx_require_env "${stable_reserve_required[@]}"
+  ynx_reject_unsafe_env_values "${stable_reserve_required[@]}"
+fi
 case "$YNX_CHAT_DEPLOY_ENABLED" in
   true | false) ;;
   *) echo "YNX_CHAT_DEPLOY_ENABLED must be true or false"; exit 1 ;;
@@ -126,6 +136,7 @@ if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
 fi
 
 commit="$(git rev-parse --short=12 HEAD)"
+source_commit="$(git rev-parse HEAD)"
 release="ynx-chain-${commit}"
 build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 chaind_ldflags="-s -w -X main.buildCommit=${commit} -X main.buildRelease=${release} -X main.buildTime=${build_time}"
@@ -138,6 +149,8 @@ echo "building YNX Chain binary for linux/amd64"
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$chaind_ldflags" -o "$work/bin/ynx-chaind" ./cmd/ynx-chaind
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-indexerd" ./cmd/ynx-indexerd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-explorerd" ./cmd/ynx-explorerd
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-economics-monitord" ./cmd/ynx-economics-monitord
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-yusd-sandboxd" ./cmd/ynx-yusd-sandboxd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-faucetd" ./cmd/ynx-faucetd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-ai-gatewayd" ./cmd/ynx-ai-gatewayd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-payd" ./cmd/ynx-payd
@@ -201,6 +214,35 @@ cat >> "$work/config/ynx-stablecoind.env" <<EOF
 YNX_STABLECOIN_STATE_PATH=/var/lib/ynx-chain/stablecoin/state.json
 YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
 EOF
+cat > "$work/config/ynx-yusd-sandboxd.env" <<'EOF'
+YNX_YUSD_SANDBOX_ADDR=127.0.0.1:6490
+YNX_YUSD_SANDBOX_STATE_PATH=/var/lib/ynx-chain/yusd-sandbox/state.json
+YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
+EOF
+chmod 0600 "$work/config/ynx-yusd-sandboxd.env"
+cat > "$work/config/ynx-explorerd.env" <<EOF
+YNX_STABLE_RESERVE_DEPLOY_ENABLED=${YNX_STABLE_RESERVE_DEPLOY_ENABLED}
+YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=public_testnet
+YNX_YUSD_SANDBOX_URL=http://127.0.0.1:6490
+EOF
+if [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" ]]; then
+  install -m 0600 "$YNX_STABLE_RESERVE_ATTESTATION_PATH" "$work/config/stable-reserve-attestation.json"
+  printf 'YNX_STABLE_RESERVE_ATTESTATION_PATH=%q\n' "/etc/ynx/stable-reserve-attestation.json" >> "$work/config/ynx-explorerd.env"
+  printf 'YNX_STABLE_RESERVE_PUBLIC_KEY=%q\n' "$YNX_STABLE_RESERVE_PUBLIC_KEY" >> "$work/config/ynx-explorerd.env"
+  printf 'YNX_STABLE_RESERVE_KEY_ID=%q\n' "$YNX_STABLE_RESERVE_KEY_ID" >> "$work/config/ynx-explorerd.env"
+  printf 'YNX_STABLE_RESERVE_ASSET=%q\n' "$YNX_STABLE_RESERVE_ASSET" >> "$work/config/ynx-explorerd.env"
+  printf 'YNX_STABLE_RESERVE_NETWORK=%q\n' "$YNX_STABLE_RESERVE_NETWORK" >> "$work/config/ynx-explorerd.env"
+  printf 'YNX_STABLE_RESERVE_SOURCE_COMMIT=%q\n' "$source_commit" >> "$work/config/ynx-explorerd.env"
+fi
+chmod 0600 "$work/config/ynx-explorerd.env"
+cat > "$work/config/ynx-economics-monitord.env" <<EOF
+YNX_ECONOMICS_MONITOR_HTTP_ADDR=127.0.0.1:6438
+YNX_PUBLIC_STABLE_RESERVE_URL=https://${EXPLORER_DOMAIN}/api/stable/reserve
+YNX_PUBLIC_YUSD_SANDBOX_URL=https://${EXPLORER_DOMAIN}/api/stable/yusd-sandbox
+YNX_ECONOMICS_MONITOR_INTERVAL=15s
+YNX_ECONOMICS_MONITOR_TIMEOUT=10s
+EOF
+chmod 0600 "$work/config/ynx-economics-monitord.env"
 ynx_write_kv_env "$work/config/ynx-chatd.env" \
   YNX_CHAT_DEPLOY_ENABLED YNX_CHAT_API_KEY YNX_CHAT_HTTP_ADDR
 cat >> "$work/config/ynx-chatd.env" <<EOF
@@ -380,13 +422,14 @@ EOF
 cat > "$work/systemd/ynx-explorerd.service" <<'EOF'
 [Unit]
 Description=YNX Chain testnet explorer
-After=network-online.target ynx-chaind.service ynx-indexerd.service
-Wants=network-online.target ynx-chaind.service ynx-indexerd.service
+After=network-online.target ynx-chaind.service ynx-indexerd.service ynx-yusd-sandboxd.service
+Wants=network-online.target ynx-chaind.service ynx-indexerd.service ynx-yusd-sandboxd.service
 
 [Service]
 User=ynx
 Group=ynx
 EnvironmentFile=/etc/ynx/ynx-chaind.env
+EnvironmentFile=/etc/ynx/ynx-explorerd.env
 ExecStart=/usr/local/bin/ynx-explorerd
 Restart=always
 RestartSec=3
@@ -400,6 +443,11 @@ ReadWritePaths=/var/lib/ynx-chain /var/log/ynx-chain
 [Install]
 WantedBy=multi-user.target
 EOF
+
+cp infra/monitoring/systemd/ynx-economics-monitord.service "$work/systemd/ynx-economics-monitord.service"
+cp infra/monitoring/systemd/ynx-yusd-sandboxd.service "$work/systemd/ynx-yusd-sandboxd.service"
+cp scripts/deploy/remote/install-yusd-env.sh "$work/scripts/install-yusd-env.sh"
+chmod 0755 "$work/scripts/install-yusd-env.sh"
 
 cat > "$work/systemd/ynx-faucetd.service" <<'EOF'
 [Unit]
@@ -1079,7 +1127,7 @@ ynx_precheck_node_access() {
 ynx_prepare_release_on_node() {
   local role="$1" user="$2" host="$3" key="$4"
   ynx_node_ssh "$role" "$user" "$host" "$key" "id -u ynx >/dev/null 2>&1 || sudo useradd --system --home /var/lib/ynx-chain --shell /usr/sbin/nologin ynx"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin && sudo install -d -o ynx -g ynx /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/chat /var/lib/ynx-chain/square /var/lib/ynx-chain/wallet-gateway /var/log/ynx-chain && sudo chmod 0700 /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/chat /var/lib/ynx-chain/square /var/lib/ynx-chain/wallet-gateway"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin && sudo install -d -o ynx -g ynx /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/yusd-sandbox /var/lib/ynx-chain/chat /var/lib/ynx-chain/square /var/lib/ynx-chain/wallet-gateway /var/log/ynx-chain && sudo chmod 0700 /var/lib/ynx-chain/bridge /var/lib/ynx-chain/stablecoin /var/lib/ynx-chain/yusd-sandbox /var/lib/ynx-chain/chat /var/lib/ynx-chain/square /var/lib/ynx-chain/wallet-gateway"
   ynx_capture_predeploy_state "$role" "$user" "$host" "$key"
   ynx_backup_node "$role" "$user" "$host" "$key"
   ynx_node_scp "$role" "$user" "$host" "$key" "$tarball" "$remote_release"
@@ -1097,12 +1145,19 @@ ynx_install_primary_node() {
   local role="$1" user="$2" host="$3" key="$4"
   local expected_services=""
   ynx_prepare_release_on_node "$role" "$user" "$host" "$key"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-indexerd' /usr/local/bin/ynx-indexerd && sudo install -m 0755 '$remote_dir/bin/ynx-explorerd' /usr/local/bin/ynx-explorerd && sudo install -m 0755 '$remote_dir/bin/ynx-faucetd' /usr/local/bin/ynx-faucetd && sudo install -m 0755 '$remote_dir/bin/ynx-ai-gatewayd' /usr/local/bin/ynx-ai-gatewayd && sudo install -m 0755 '$remote_dir/bin/ynx-payd' /usr/local/bin/ynx-payd && sudo install -m 0755 '$remote_dir/bin/ynx-trustd' /usr/local/bin/ynx-trustd && sudo install -m 0755 '$remote_dir/bin/ynx-resourced' /usr/local/bin/ynx-resourced"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0644 '$remote_dir/systemd/ynx-indexerd.service' /etc/systemd/system/ynx-indexerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-explorerd.service' /etc/systemd/system/ynx-explorerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-faucetd.service' /etc/systemd/system/ynx-faucetd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-ai-gatewayd.service' /etc/systemd/system/ynx-ai-gatewayd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-payd.service' /etc/systemd/system/ynx-payd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-trustd.service' /etc/systemd/system/ynx-trustd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-resourced.service' /etc/systemd/system/ynx-resourced.service"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0600 '$remote_dir/config/ynx-faucetd.env' /etc/ynx/ynx-faucetd.env && sudo install -m 0600 '$remote_dir/config/ynx-ai-gatewayd.env' /etc/ynx/ynx-ai-gatewayd.env && sudo install -m 0600 '$remote_dir/config/ynx-payd.env' /etc/ynx/ynx-payd.env && sudo install -m 0600 '$remote_dir/config/ynx-trustd.env' /etc/ynx/ynx-trustd.env && sudo install -m 0600 '$remote_dir/config/ynx-resourced.env' /etc/ynx/ynx-resourced.env"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-indexerd' /usr/local/bin/ynx-indexerd && sudo install -m 0755 '$remote_dir/bin/ynx-yusd-sandboxd' /usr/local/bin/ynx-yusd-sandboxd && sudo install -m 0755 '$remote_dir/bin/ynx-explorerd' /usr/local/bin/ynx-explorerd && sudo install -m 0755 '$remote_dir/bin/ynx-economics-monitord' /usr/local/bin/ynx-economics-monitord && sudo install -m 0755 '$remote_dir/bin/ynx-faucetd' /usr/local/bin/ynx-faucetd && sudo install -m 0755 '$remote_dir/bin/ynx-ai-gatewayd' /usr/local/bin/ynx-ai-gatewayd && sudo install -m 0755 '$remote_dir/bin/ynx-payd' /usr/local/bin/ynx-payd && sudo install -m 0755 '$remote_dir/bin/ynx-trustd' /usr/local/bin/ynx-trustd && sudo install -m 0755 '$remote_dir/bin/ynx-resourced' /usr/local/bin/ynx-resourced"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0644 '$remote_dir/systemd/ynx-indexerd.service' /etc/systemd/system/ynx-indexerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-yusd-sandboxd.service' /etc/systemd/system/ynx-yusd-sandboxd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-explorerd.service' /etc/systemd/system/ynx-explorerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-economics-monitord.service' /etc/systemd/system/ynx-economics-monitord.service && sudo install -m 0644 '$remote_dir/systemd/ynx-faucetd.service' /etc/systemd/system/ynx-faucetd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-ai-gatewayd.service' /etc/systemd/system/ynx-ai-gatewayd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-payd.service' /etc/systemd/system/ynx-payd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-trustd.service' /etc/systemd/system/ynx-trustd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-resourced.service' /etc/systemd/system/ynx-resourced.service"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0600 '$remote_dir/config/ynx-explorerd.env' /etc/ynx/ynx-explorerd.env && sudo install -m 0640 -o root -g ynx '$remote_dir/config/ynx-economics-monitord.env' /etc/ynx/ynx-economics-monitord.env && sudo install -m 0600 '$remote_dir/config/ynx-faucetd.env' /etc/ynx/ynx-faucetd.env && sudo install -m 0600 '$remote_dir/config/ynx-ai-gatewayd.env' /etc/ynx/ynx-ai-gatewayd.env && sudo install -m 0600 '$remote_dir/config/ynx-payd.env' /etc/ynx/ynx-payd.env && sudo install -m 0600 '$remote_dir/config/ynx-trustd.env' /etc/ynx/ynx-trustd.env && sudo install -m 0600 '$remote_dir/config/ynx-resourced.env' /etc/ynx/ynx-resourced.env"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/scripts/install-yusd-env.sh' '$remote_dir/config/ynx-yusd-sandboxd.env'"
+  if [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" ]]; then
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0640 -o root -g ynx '$remote_dir/config/stable-reserve-attestation.json' /etc/ynx/stable-reserve-attestation.json"
+  fi
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-chaind.env; source /etc/ynx/ynx-explorerd.env; set +a; /usr/local/bin/ynx-explorerd --check-config >/dev/null'"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-economics-monitord.env; set +a; /usr/local/bin/ynx-economics-monitord --check-config >/dev/null'"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-yusd-sandboxd.env; set +a; /usr/local/bin/ynx-yusd-sandboxd --check-config >/dev/null'"
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v nginx >/dev/null 2>&1; then sudo install -m 0644 '$remote_dir/nginx/ynx-chain.conf' /etc/nginx/conf.d/ynx-chain.conf && sudo nginx -t && sudo systemctl reload nginx; fi"
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v caddy >/dev/null 2>&1; then sudo bash '$remote_dir/scripts/install-caddy-ingress.sh' '$remote_dir/caddy/ynx-chain.caddy' /etc/caddy/Caddyfile /etc/caddy/ynx-chain.caddy '$release' /etc/caddy/conf.d/ynx-v2-gateway.caddy; fi"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-faucetd && sudo systemctl restart ynx-ai-gatewayd && sudo systemctl restart ynx-payd && sudo systemctl restart ynx-trustd && sudo systemctl restart ynx-resourced && sudo systemctl --no-pager --full status ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd ynx-yusd-sandboxd ynx-explorerd ynx-economics-monitord ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-yusd-sandboxd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-economics-monitord && sudo systemctl restart ynx-faucetd && sudo systemctl restart ynx-ai-gatewayd && sudo systemctl restart ynx-payd && sudo systemctl restart ynx-trustd && sudo systemctl restart ynx-resourced && sudo systemctl --no-pager --full status ynx-chaind ynx-indexerd ynx-yusd-sandboxd ynx-explorerd ynx-economics-monitord ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced"
   if [[ "$YNX_BRIDGE_DEPLOY_ENABLED" == "true" ]]; then
     ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-bridged' /usr/local/bin/ynx-bridged && sudo install -m 0644 '$remote_dir/systemd/ynx-bridged.service' /etc/systemd/system/ynx-bridged.service && sudo install -m 0600 '$remote_dir/config/ynx-bridged.env' /etc/ynx/ynx-bridged.env"
     ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-bridged.env; set +a; /usr/local/bin/ynx-bridged --check-config >/dev/null'"

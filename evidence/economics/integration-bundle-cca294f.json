@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "ynx-economics-local-integration-bundle-cca294f",
+  "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
+  "capturedAt": "2026-07-25T06:00:00Z",
+  "classification": "local-deterministic-integration-evidence",
+  "contractId": "ynx.economics.integration.v1",
+  "command": "go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit cca294f36e84e1c63b3722d705172bed1ad17bd5 -summary",
+  "economicStateHash": "sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09",
+  "stakingStateHash": "sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764",
+  "bundleHash": "sha256:ff6b3a48ef34bb4648ed079ba9204865360960b9457e0ec3199ca2cc2b497a71",
+  "counts": {
+    "canonicalEnvelopes": 5,
+    "billingLedgerEntries": 18,
+    "explorerProjections": 5,
+    "monitorChecks": 15
+  },
+  "verifiedBoundaries": {
+    "burnRevenueSeparation": true,
+    "canonicalSourcePayload": true,
+    "ledgerReconciliation": true,
+    "explorerProjectionMapping": true,
+    "monitorSourceMapping": true,
+    "rehashedTamperRejection": true,
+    "releaseTruthEnforcement": true
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "directEvidenceMissing": {
+    "sharedTestnetTransactions": true,
+    "sharedTestnetBlocksAndReceipts": true,
+    "dataFabricAcceptance": true,
+    "explorerAcceptance": true,
+    "monitorAcceptance": true,
+    "publicUrls": true
+  }
+}

@@ -24,6 +24,8 @@ const binaries = [
   "bin/ynx-chaind",
   "bin/ynx-indexerd",
   "bin/ynx-explorerd",
+  "bin/ynx-economics-monitord",
+  "bin/ynx-yusd-sandboxd",
   "bin/ynx-faucetd",
   "bin/ynx-ai-gatewayd",
   "bin/ynx-payd",
@@ -44,6 +46,9 @@ const roleEnvs = [
 ].map((file) => fileEntry(file, "role-env"));
 
 const serviceFiles = [
+  "config/ynx-explorerd.env",
+  "config/ynx-economics-monitord.env",
+  "config/ynx-yusd-sandboxd.env",
   "config/ynx-ai-gatewayd.env",
   "config/ynx-payd.env",
   "config/ynx-trustd.env",
@@ -56,6 +61,9 @@ const serviceFiles = [
   "systemd/ynx-chaind.service",
   "systemd/ynx-indexerd.service",
   "systemd/ynx-explorerd.service",
+  "systemd/ynx-economics-monitord.service",
+  "systemd/ynx-yusd-sandboxd.service",
+  "scripts/install-yusd-env.sh",
   "systemd/ynx-faucetd.service",
   "systemd/ynx-ai-gatewayd.service",
   "systemd/ynx-payd.service",

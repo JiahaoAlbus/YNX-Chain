@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:economics:shared-testnet-evidence:v1",
+  "title": "YNXT Economics Shared Testnet Evidence",
+  "description": "Evidence accepted only after Chain Core, Explorer, Monitor, Data Fabric and Integration independently attest the same canonical payload. This schema does not itself prove that any owner has accepted a release.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractId",
+    "environment",
+    "cosmosChainId",
+    "evmChainId",
+    "sourceCommit",
+    "generatedAt",
+    "store",
+    "chain",
+    "dataFabric",
+    "explorer",
+    "monitor",
+    "integration",
+    "releaseStates",
+    "sharedTestnet",
+    "publicDeployment",
+    "production",
+    "payloadHash",
+    "attestations",
+    "evidenceHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "ynx.economics.integration.v1" },
+    "environment": { "const": "ynx-shared-testnet" },
+    "cosmosChainId": { "const": "ynx_6423-1" },
+    "evmChainId": { "const": 6423 },
+    "sourceCommit": { "$ref": "#/$defs/sourceCommit" },
+    "generatedAt": { "$ref": "#/$defs/timestamp" },
+    "store": { "$ref": "#/$defs/store" },
+    "chain": { "$ref": "#/$defs/chain" },
+    "dataFabric": { "$ref": "#/$defs/dataFabric" },
+    "explorer": { "$ref": "#/$defs/explorer" },
+    "monitor": { "$ref": "#/$defs/monitor" },
+    "integration": { "$ref": "#/$defs/integration" },
+    "releaseStates": { "$ref": "#/$defs/releaseStates" },
+    "sharedTestnet": { "const": true },
+    "publicDeployment": { "const": false },
+    "production": { "const": false },
+    "payloadHash": { "$ref": "#/$defs/sha256" },
+    "attestations": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "prefixItems": [
+        { "$ref": "#/$defs/chainCoreAttestation" },
+        { "$ref": "#/$defs/explorerAttestation" },
+        { "$ref": "#/$defs/monitorAttestation" },
+        { "$ref": "#/$defs/dataFabricAttestation" },
+        { "$ref": "#/$defs/integrationAttestation" }
+      ],
+      "items": false
+    },
+    "evidenceHash": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "transactionHash": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recordCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["envelopes", "billingLedger", "explorer", "monitor"],
+      "properties": {
+        "envelopes": { "type": "integer", "minimum": 1 },
+        "billingLedger": { "type": "integer", "minimum": 1 },
+        "explorer": { "type": "integer", "minimum": 1 },
+        "monitor": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "store": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stateHash", "acceptedBundleId", "bundleHash", "recordCounts"],
+      "properties": {
+        "stateHash": { "$ref": "#/$defs/sha256" },
+        "acceptedBundleId": { "type": "string", "minLength": 1 },
+        "bundleHash": { "$ref": "#/$defs/sha256" },
+        "recordCounts": { "$ref": "#/$defs/recordCounts" }
+      }
+    },
+    "chain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceCommit", "transactionHash", "blockHeight", "blockHash", "appHash", "quorumProofHash", "finality", "observedAt"],
+      "properties": {
+        "sourceCommit": { "$ref": "#/$defs/sourceCommit" },
+        "transactionHash": { "$ref": "#/$defs/transactionHash" },
+        "blockHeight": { "type": "integer", "minimum": 1 },
+        "blockHash": { "$ref": "#/$defs/sha256" },
+        "appHash": { "$ref": "#/$defs/sha256" },
+        "quorumProofHash": { "$ref": "#/$defs/sha256" },
+        "finality": { "const": "bft-committed" },
+        "observedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "dataFabric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceCommit", "accepted", "ingestReceiptHash", "recordCounts", "observedAt"],
+      "properties": {
+        "sourceCommit": { "$ref": "#/$defs/sourceCommit" },
+        "accepted": { "const": true },
+        "ingestReceiptHash": { "$ref": "#/$defs/sha256" },
+        "recordCounts": { "$ref": "#/$defs/recordCounts" },
+        "observedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "explorer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceCommit", "accepted", "endpoint", "projectionCount", "responseHash", "observedAt"],
+      "properties": {
+        "sourceCommit": { "$ref": "#/$defs/sourceCommit" },
+        "accepted": { "const": true },
+        "endpoint": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "projectionCount": { "type": "integer", "minimum": 1 },
+        "responseHash": { "$ref": "#/$defs/sha256" },
+        "observedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "monitor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceCommit", "accepted", "endpoint", "checkCount", "alertState", "responseHash", "observedAt"],
+      "properties": {
+        "sourceCommit": { "$ref": "#/$defs/sourceCommit" },
+        "accepted": { "const": true },
+        "endpoint": { "type": "string", "format": "uri", "pattern": "^https://" },
+        "checkCount": { "type": "integer", "minimum": 1 },
+        "alertState": { "const": "clear" },
+        "responseHash": { "$ref": "#/$defs/sha256" },
+        "observedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceCommit", "accepted", "contractVersion", "receiptHash", "sharedTestnet", "publicDeployment", "production", "observedAt"],
+      "properties": {
+        "sourceCommit": { "$ref": "#/$defs/sourceCommit" },
+        "accepted": { "const": true },
+        "contractVersion": { "const": 1 },
+        "receiptHash": { "$ref": "#/$defs/sha256" },
+        "sharedTestnet": { "const": true },
+        "publicDeployment": { "const": false },
+        "production": { "const": false },
+        "observedAt": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "releaseStates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["implementedLocal", "testedLocal", "installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"],
+      "properties": {
+        "implementedLocal": { "const": true },
+        "testedLocal": { "const": true },
+        "installedLocal": { "const": true },
+        "integratedCentral": { "const": true },
+        "deployedStaging": { "const": true },
+        "deployedPublic": { "const": false },
+        "downloadHosted": { "const": false },
+        "productionSigned": { "const": false },
+        "storeReleased": { "const": false }
+      }
+    },
+    "attestationBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "keyId", "algorithm", "signedPayloadHash", "signature"],
+      "properties": {
+        "owner": { "type": "string" },
+        "keyId": { "type": "string", "minLength": 1 },
+        "algorithm": { "const": "ed25519" },
+        "signedPayloadHash": { "$ref": "#/$defs/sha256" },
+        "signature": { "type": "string", "pattern": "^[A-Za-z0-9+/]{86}$" }
+      }
+    },
+    "chainCoreAttestation": {
+      "allOf": [
+        { "$ref": "#/$defs/attestationBase" },
+        { "properties": { "owner": { "const": "01 Chain Core" } } }
+      ]
+    },
+    "explorerAttestation": {
+      "allOf": [
+        { "$ref": "#/$defs/attestationBase" },
+        { "properties": { "owner": { "const": "12 Explorer" } } }
+      ]
+    },
+    "monitorAttestation": {
+      "allOf": [
+        { "$ref": "#/$defs/attestationBase" },
+        { "properties": { "owner": { "const": "13 Monitor" } } }
+      ]
+    },
+    "dataFabricAttestation": {
+      "allOf": [
+        { "$ref": "#/$defs/attestationBase" },
+        { "properties": { "owner": { "const": "26 Data Fabric" } } }
+      ]
+    },
+    "integrationAttestation": {
+      "allOf": [
+        { "$ref": "#/$defs/attestationBase" },
+        { "properties": { "owner": { "const": "29 Integration" } } }
+      ]
+    }
+  }
+}

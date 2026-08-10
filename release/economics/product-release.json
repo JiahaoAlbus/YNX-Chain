@@ -149,12 +149,13 @@
     },
     {
       "kind": "cyclonedx_sbom",
-      "path": "release/sbom.cdx.json",
+      "path": "release/economics/sbom.cdx.json",
       "sha256": "a33dbcebc9c638aa4a4a5e0e0def5c527d391d9a46ad4985ecc493a47916d9ea",
       "bytes": 154696,
       "signingClass": "unsigned_repository_evidence",
       "downloadURL": null,
-      "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68"
+      "sourceCommit": "a377bef61a7082b5b1ae0ebd35d4b97846649b68",
+      "bindingCommit": "2fb61e12cf452a307ef40c43c722cc584dd869a2"
     }
   ],
   "artifactCandidate": {

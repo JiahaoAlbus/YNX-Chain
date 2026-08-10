@@ -1,0 +1,30 @@
+[Unit]
+Description=YNX Testnet YUSD 1:1 reserve sandbox
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-yusd-sandboxd.env
+ExecStart=/usr/local/bin/ynx-yusd-sandboxd
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6
+ReadWritePaths=/var/lib/ynx-chain/yusd-sandbox
+
+[Install]
+WantedBy=multi-user.target

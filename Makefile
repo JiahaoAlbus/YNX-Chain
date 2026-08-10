@@ -2,6 +2,7 @@
 .PHONY: bft-evm-receipt-check bft-ide-contract-check native-wallet-check chat-api-check square-api-check app-gateway-check app-account-ownership-check browser-signer-check mobile-check mobile-product-split-check mobile-android-native-check mobile-android-release-check mobile-android-release-installed-check mobile-biometric-installed-check
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check governance-check governance-testnet-drill
 .PHONY: shop-release-package-test
+.PHONY: stable-reserve-attestation-check economics-explorer-deploy-check economics-monitor-check economics-monitor-lifecycle-check yusd-sandbox-check yusd-restore-drill yusd-testnet-deploy-check economics-runtime-check staking-risk-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check economics-shared-testnet-acceptance-check economics-testnet-cli-artifact-check economics-testnet-cli-artifact-evidence liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check economics-local-candidate-check safety-module-runtime-check safety-module-candidate-check
 
 setup:
 	go mod tidy
@@ -426,9 +427,100 @@ bridge-api-check:
 stablecoin-issuer-check:
 	bash ./scripts/verify/stablecoin-issuer-check.sh
 
+stable-reserve-attestation-check:
+	go test -race ./internal/stablereserve ./internal/economics ./internal/explorer ./cmd/ynx-stable-reserve-verify ./cmd/ynx-explorerd
+
+economics-explorer-deploy-check:
+	bash -n ./scripts/deploy/deploy-economics-explorer.sh ./scripts/deploy/remote/install-economics-explorer.sh
+	node ./scripts/verify/economics-explorer-deploy-check.mjs
+	DEPLOY_DRY_RUN=1 bash ./scripts/deploy/deploy-economics-explorer.sh
+
+economics-monitor-check:
+	bash ./scripts/verify/economics-monitor-check.sh
+
+economics-monitor-lifecycle-check:
+	bash ./scripts/verify/economics-monitor-lifecycle-check.sh
+
+yusd-sandbox-check:
+	go test -race ./internal/yusdsandbox ./cmd/ynx-yusd-sandboxd
+
+yusd-restore-drill:
+	go test ./internal/yusdsandbox -run BackupRestoreDrill -count=1
+
+yusd-testnet-deploy-check:
+	bash ./scripts/verify/yusd-testnet-deploy-check.sh
+
+economics-runtime-check:
+	go test -race ./internal/economics ./cmd/ynx-economics-runtime
+	go run ./cmd/ynx-economics-runtime -input economics/examples/runtime-replay.json >/dev/null
+
+staking-risk-runtime-check:
+	go test -race ./internal/economics ./cmd/ynx-staking-risk-runtime
+	go run ./cmd/ynx-staking-risk-runtime -input economics/examples/staking-risk-runtime-replay.json >/dev/null
+
+economics-integration-adapter-check:
+	go test -race ./internal/economics ./cmd/ynx-economics-integration
+	go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -safety-input economics/examples/safety-module-runtime-replay.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -summary >/dev/null
+
+economics-integration-store-check:
+	go test -race ./internal/economics ./cmd/ynx-economics-integration-store
+	node ./scripts/verify/economics-integration-store-check.mjs
+
+economics-local-testnet-evidence-check:
+	go test -race ./internal/economics ./cmd/ynx-economics-local-testnet-evidence
+	node ./scripts/verify/economics-local-testnet-evidence-check.mjs
+
+economics-shared-testnet-acceptance-check:
+	go test -race ./internal/economics -run SharedTestnet -count=1
+	go test -race ./cmd/ynx-economics-shared-testnet-acceptance -count=1
+
+economics-testnet-cli-artifact-check:
+	node ./scripts/verify/economics-testnet-cli-artifact-check.mjs
+
+economics-testnet-cli-artifact-evidence:
+	node ./scripts/verify/economics-testnet-cli-artifact-check.mjs --out-dir dist/ynxt-economics-testnet-cli-darwin-arm64 --evidence release/economics-testnet-cli-artifact.json
+
+liquid-staking-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-liquid-staking-sim
+	go run ./cmd/ynx-liquid-staking-sim -input economics/examples/liquid-staking-stress.json >/dev/null
+
+security-pools-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-security-pools-sim
+	go run ./cmd/ynx-security-pools-sim -input economics/examples/security-pools-stress.json >/dev/null
+
+fee-market-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-fee-market-sim
+	go run ./cmd/ynx-fee-market-sim -input economics/examples/fee-market-stress.json >/dev/null
+
+macro-stress-check:
+	go test -race ./internal/economics ./cmd/ynx-macro-stress-sim
+	go run ./cmd/ynx-macro-stress-sim -input economics/examples/macro-stress.json >/dev/null
+
+economics-public-ui-check:
+	go test -race ./internal/explorer -run 'Economics' -count=1
+
+economics-public-package-check:
+	node ./scripts/verify/economics-public-package-check.mjs
+
+economics-supply-chain-check:
+	node ./scripts/verify/economics-supply-chain-check.mjs
+
+economics-release-boundary-check:
+	node ./scripts/verify/economics-release-boundary-check.mjs
+
+economics-integration-contract-check:
+	node ./scripts/verify/economics-integration-contract-check.mjs
+
+economics-local-candidate-check: yusd-sandbox-check yusd-restore-drill economics-runtime-check staking-risk-runtime-check safety-module-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check
+	@echo "economics local candidate checks passed; deployment and unresolved security states remain governed by release evidence"
+
 safety-module-runtime-check:
 	go test -race ./internal/economics ./cmd/ynx-safety-module-runtime -run 'Safety(Runtime|Module)'
 	go run ./cmd/ynx-safety-module-runtime -input economics/examples/safety-module-runtime-replay.json >/dev/null
+
+safety-module-candidate-check:
+	go test -race ./internal/economics ./cmd/ynx-safety-module-sim -run 'SafetyModule'
+	go run ./cmd/ynx-safety-module-sim -input economics/examples/safety-module-shortfall.json >/dev/null
 
 resource-market-check:
 	bash ./scripts/verify/resource-market-check.sh

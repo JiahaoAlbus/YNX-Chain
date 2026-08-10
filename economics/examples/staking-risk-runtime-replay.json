@@ -1,0 +1,88 @@
+{
+  "genesisAsOf": "2026-07-25T00:00:00Z",
+  "policy": {
+    "version": 1,
+    "downtimeMaximumSlashBps": 100,
+    "doubleSignMaximumSlashBps": 5000,
+    "invalidStateMaximumSlashBps": 2000,
+    "globalMaximumSlashBps": 5000,
+    "jailSeconds": 604800,
+    "governanceTimelockSeconds": 172800
+  },
+  "committee": {
+    "version": 1,
+    "publicKeys": [
+      "163b5b426abac0c4fcda79fc55e75394f4a44565253cba3781853b49ff3e9385",
+      "a7b1d9ef424217076d8510427b2703f86517d0723bcb09e6a50a5ca29f49ba08",
+      "c06342d5e1d0a994b67bedd2c9ec8205711f2731a89a3fcce99d0f085e9c476e"
+    ],
+    "threshold": 2
+  },
+  "validators": [
+    {
+      "validator": "ynx-validator-alpha",
+      "operatorStakeYnxt": 1000000,
+      "delegatedStakeYnxt": 8000000,
+      "queuedUnbondingYnxt": 1000000,
+      "status": "active",
+      "cumulativeSlashYnxt": 0
+    }
+  ],
+  "actions": [
+    {
+      "type": "penalty",
+      "executedAt": "2026-07-27T02:00:00Z",
+      "penalty": {
+        "version": 1,
+        "proposalId": "ynx-testnet-slash-vector-001",
+        "validator": "ynx-validator-alpha",
+        "infraction": "double_sign",
+        "slashBps": 1000,
+        "evidenceHash": "sha256:22995c4d62921177948dbd366bc9100fe07d15313a0e04da711c823ce2ca06e2",
+        "observedAt": "2026-07-25T01:00:00Z",
+        "proposedAt": "2026-07-25T02:00:00Z",
+        "executeAfter": "2026-07-27T02:00:00Z",
+        "reason": "testnet-only governed double-sign fault drill"
+      },
+      "authorization": {
+        "actionHash": "sha256:bb75568b79570c7d028bc5aa9c0660dfaccc6bc612d870ef389e954cfebaee83",
+        "signatures": [
+          {
+            "publicKey": "163b5b426abac0c4fcda79fc55e75394f4a44565253cba3781853b49ff3e9385",
+            "signature": "2e8e6ac7c27979b34f9eb399746a2eebb477a5bdad352ae1a3b70240d7ff7eeecf7cbb785a985f7eb53315c580f47b7504932db0ba2c576c27712436ee899103"
+          },
+          {
+            "publicKey": "a7b1d9ef424217076d8510427b2703f86517d0723bcb09e6a50a5ca29f49ba08",
+            "signature": "bc38b7f4cbd08f6d2908312496f0cf5f8aa96d6a494df180a64c616ffae94426727314d5068f3cdc0faf2f846ce28610e4f404009c54fd6fb99b742c036a6103"
+          }
+        ]
+      }
+    },
+    {
+      "type": "recovery",
+      "executedAt": "2026-08-03T02:00:01Z",
+      "recovery": {
+        "version": 1,
+        "proposalId": "ynx-testnet-recovery-vector-001",
+        "validator": "ynx-validator-alpha",
+        "evidenceHash": "sha256:a9298badd713b15a65497995b711ed3e8d39247c038f90119da45e9e1b49e61e",
+        "proposedAt": "2026-07-27T03:00:00Z",
+        "executeAfter": "2026-07-29T03:00:00Z",
+        "reason": "testnet-only validator remediation and replay evidence accepted"
+      },
+      "authorization": {
+        "actionHash": "sha256:d705f701bde1224f64aef11efb677d7aca4010188b330b4b46a740b02c07c0a1",
+        "signatures": [
+          {
+            "publicKey": "163b5b426abac0c4fcda79fc55e75394f4a44565253cba3781853b49ff3e9385",
+            "signature": "cfa8f223414889ea93b5a568aadddc4983cf427652561e975eb81dd914ad0a194efd06c5e1254ca65425d2f516f6cc2bebe851dde7563e3dd551d488044b7702"
+          },
+          {
+            "publicKey": "a7b1d9ef424217076d8510427b2703f86517d0723bcb09e6a50a5ca29f49ba08",
+            "signature": "55bd574de0759ca1f5b684fc622995684351a41b6f35200b71d9b0f41a10c65a639286a21c9e62b935cadd45ce181c02a385de106320547a5c32af1103b0a30d"
+          }
+        ]
+      }
+    }
+  ]
+}
