@@ -242,6 +242,42 @@ th {
 .notice p {
   color: var(--muted);
 }
+.testnet-workspace {
+  align-items: start;
+  margin-top: 22px;
+}
+.testnet-workspace form {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px;
+  background: var(--surface);
+}
+.testnet-workspace .wide {
+  grid-column: 1 / -1;
+}
+.testnet-workspace .actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.testnet-workspace .actions button {
+  margin: 0;
+}
+.payload {
+  max-height: 220px;
+  overflow: auto;
+  margin: 16px 0 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--canvas);
+  color: var(--text);
+}
 .danger {
   color: var(--red);
   font-weight: 700;

@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -51,9 +52,11 @@ type Config struct {
 	MarketData      MarketData
 }
 
-type MandateVerifier interface{ VerifyMandate(Mandate) error }
+type MandateVerifier interface {
+	VerifyMandate(context.Context, Mandate, string) error
+}
 type TestnetBroker interface {
-	SubmitTestnet(TestnetOrder) (string, error)
+	SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (string, error)
 }
 type Bar struct {
 	Time   time.Time `json:"time"`
@@ -209,17 +212,18 @@ type TestnetRiskObservation struct {
 }
 
 type TestnetOrder struct {
-	ID             string    `json:"id"`
-	MandateDigest  string    `json:"mandateDigest"`
-	StrategyHash   string    `json:"strategyHash"`
-	Market         string    `json:"market"`
-	Side           string    `json:"side"`
-	Price          int64     `json:"price"`
-	Amount         int64     `json:"amount"`
-	IdempotencyKey string    `json:"idempotencyKey"`
-	BrokerProof    string    `json:"brokerProof"`
-	Status         string    `json:"status"`
-	CreatedAt      time.Time `json:"createdAt"`
+	ID              string    `json:"id"`
+	MandateDigest   string    `json:"mandateDigest"`
+	StrategyHash    string    `json:"strategyHash"`
+	Market          string    `json:"market"`
+	Side            string    `json:"side"`
+	Price           int64     `json:"price"`
+	Amount          int64     `json:"amount"`
+	IdempotencyKey  string    `json:"idempotencyKey"`
+	WalletSignature string    `json:"walletSignature,omitempty"`
+	BrokerProof     string    `json:"brokerProof"`
+	Status          string    `json:"status"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 type PaperOrder struct {
 	ID, StrategyHash, Side, Status, Source string
@@ -377,13 +381,17 @@ func (s *Service) RegisterDataset(record DatasetRecord) (DatasetRecord, error) {
 }
 
 func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
+	return s.RegisterMandateWithSession(context.Background(), m, "")
+}
+
+func (s *Service) RegisterMandateWithSession(ctx context.Context, m Mandate, exchangeSession string) (Mandate, error) {
 	now := s.cfg.Now()
 	m.Account = strings.TrimSpace(m.Account)
 	m.StrategyHash = strings.ToLower(strings.TrimSpace(m.StrategyHash))
 	m.Market = strings.TrimSpace(m.Market)
 	if !m.TestnetOnly || len(m.StrategyHash) != 64 || m.Market != "YNXT-YUSD_TEST" ||
 		m.ProductID != ProductID || len(strings.TrimSpace(m.BundleID)) < 3 || len(strings.TrimSpace(m.DeviceID)) < 3 ||
-		m.NonceDomain != "ynx-quant-testnet-v1" || m.Scope != "quant:testnet-execute" || m.Nonce == 0 ||
+		m.NonceDomain != "quant:"+m.StrategyHash || m.Scope != "quant:testnet-execute" || m.Nonce == 0 ||
 		m.MaxNotional <= 0 || m.MaxPosition <= 0 || m.MaxDailyLoss <= 0 || m.MaxSlippageBPS <= 0 || m.MaxSlippageBPS > 10_000 ||
 		m.MaxGas <= 0 || m.MaxOrdersPerMinute <= 0 || m.MaxOrdersPerMinute > 60 || !m.ExpiresAt.After(now) ||
 		m.MaxLeverageBPS <= 0 || m.MaxDrawdown <= 0 || m.MinLiquidity <= 0 || m.MaxVaR <= 0 || m.MaxExpectedShortfall <= 0 ||
@@ -410,7 +418,10 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 	if s.cfg.MandateVerifier == nil {
 		return Mandate{}, ErrUnavailable
 	}
-	if err := s.cfg.MandateVerifier.VerifyMandate(m); err != nil {
+	if err := s.cfg.MandateVerifier.VerifyMandate(ctx, m, exchangeSession); err != nil {
+		if errors.Is(err, ErrUnavailable) {
+			return Mandate{}, ErrUnavailable
+		}
 		return Mandate{}, ErrForbidden
 	}
 	s.mu.Lock()
@@ -429,6 +440,10 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 }
 
 func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64, key string, risk TestnetRiskObservation) (TestnetOrder, error) {
+	return s.SubmitTestnetWithSession(context.Background(), mandateDigest, side, price, amount, key, "", "", risk)
+}
+
+func (s *Service) SubmitTestnetWithSession(ctx context.Context, mandateDigest, side string, price, amount int64, key, walletSignature, exchangeSession string, risk TestnetRiskObservation) (TestnetOrder, error) {
 	if (side != "buy" && side != "sell") || price <= 0 || amount <= 0 || len(key) < 8 || len(key) > 128 {
 		return TestnetOrder{}, ErrInvalid
 	}
@@ -436,17 +451,19 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		return TestnetOrder{}, ErrUnavailable
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	release, lockErr := s.lockAndReload()
 	if lockErr != nil {
+		s.mu.Unlock()
 		return TestnetOrder{}, lockErr
 	}
-	defer release()
+	unlock := func() { release(); s.mu.Unlock() }
 	if s.state.Paper.KillSwitch {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	m, ok := s.state.Mandates[mandateDigest]
 	if !ok || m.Revoked || !s.cfg.Now().Before(m.ExpiresAt) {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	now := s.cfg.Now()
@@ -455,21 +472,26 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		risk.AvailableLiquidity < 0 || risk.DepegBPS < 0 || risk.ConcentrationBPS < 0 || risk.OrdersObserved < 0 ||
 		risk.CancelsObserved < 0 || risk.CancelsObserved > risk.OrdersObserved || risk.ConsecutiveAPIFailures < 0 || risk.VaR < 0 || risk.ExpectedShortfall < 0 ||
 		risk.OracleAsOf.IsZero() || risk.OracleAsOf.After(now) || now.Sub(risk.OracleAsOf) > 30*time.Second {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	slippageBPS, safe := basisPoints(abs(price-risk.ReferencePrice), risk.ReferencePrice)
 	if !safe {
+		unlock()
 		return TestnetOrder{}, ErrInvalid
 	}
 	notional, safe := microNotional(price, amount)
 	if !safe {
+		unlock()
 		return TestnetOrder{}, ErrInvalid
 	}
 	if risk.GrossExposure > math.MaxInt64-notional {
+		unlock()
 		return TestnetOrder{}, ErrInvalid
 	}
 	projectedLeverageBPS, safe := basisPoints(risk.GrossExposure+notional, risk.Equity)
 	if !safe {
+		unlock()
 		return TestnetOrder{}, ErrInvalid
 	}
 	drawdown := risk.PeakEquity - risk.CurrentEquity
@@ -477,6 +499,7 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	if risk.OrdersObserved > 0 {
 		cancelRateBPS, safe = basisPoints(risk.CancelsObserved, risk.OrdersObserved)
 		if !safe {
+			unlock()
 			return TestnetOrder{}, ErrInvalid
 		}
 	}
@@ -484,6 +507,7 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		projectedLeverageBPS > m.MaxLeverageBPS || drawdown >= m.MaxDrawdown || risk.AvailableLiquidity < m.MinLiquidity || risk.AvailableLiquidity < notional ||
 		risk.DepegBPS > m.MaxDepegBPS || risk.ConcentrationBPS > m.MaxConcentrationBPS || cancelRateBPS > m.MaxCancelRateBPS ||
 		risk.ConsecutiveAPIFailures >= m.MaxConsecutiveAPIFailures || risk.VaR > m.MaxVaR || risk.ExpectedShortfall > m.MaxExpectedShortfall {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	position := int64(0)
@@ -502,6 +526,7 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		}
 	}
 	if recentOrders >= m.MaxOrdersPerMinute {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	signedAmount := amount
@@ -509,6 +534,7 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		signedAmount = -amount
 	}
 	if notional > m.MaxNotional || abs(position+signedAmount) > m.MaxPosition {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	d := hash(struct {
@@ -517,17 +543,31 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	}{mandateDigest, side, price, amount})
 	if prior, ok := s.state.Idempotency[key]; ok {
 		if prior != d {
+			unlock()
 			return TestnetOrder{}, ErrConflict
 		}
 		for _, o := range s.state.TestnetOrders {
 			if o.IdempotencyKey == key {
-				return o, nil
+				unlock()
+				if o.Status == "submitted_testnet" {
+					return o, nil
+				}
+				return TestnetOrder{}, ErrUnavailable
 			}
 		}
 	}
 	s.state.Sequence++
-	o := TestnetOrder{ID: fmt.Sprintf("testnet-%06d", s.state.Sequence), MandateDigest: mandateDigest, StrategyHash: m.StrategyHash, Market: m.Market, Side: side, Price: price, Amount: amount, IdempotencyKey: key, Status: "submitting", CreatedAt: s.cfg.Now()}
-	proof, err := s.cfg.TestnetBroker.SubmitTestnet(o)
+	o := TestnetOrder{ID: fmt.Sprintf("testnet-%06d", s.state.Sequence), MandateDigest: mandateDigest, StrategyHash: m.StrategyHash, Market: m.Market, Side: side, Price: price, Amount: amount, IdempotencyKey: key, WalletSignature: strings.TrimSpace(walletSignature), Status: "reserved_outcome_unknown", CreatedAt: s.cfg.Now()}
+	s.state.TestnetOrders[o.ID] = o
+	s.state.Idempotency[key] = d
+	s.audit("testnet_order_reserved", o.ID, hash(o))
+	if err := s.save(); err != nil {
+		unlock()
+		return TestnetOrder{}, err
+	}
+	unlock()
+
+	proof, err := s.cfg.TestnetBroker.SubmitTestnet(ctx, m, o, exchangeSession)
 	if err != nil {
 		return TestnetOrder{}, ErrUnavailable
 	}
@@ -535,9 +575,20 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	if o.BrokerProof == "" {
 		return TestnetOrder{}, ErrUnavailable
 	}
+	s.mu.Lock()
+	release, lockErr = s.lockAndReload()
+	if lockErr != nil {
+		s.mu.Unlock()
+		return TestnetOrder{}, lockErr
+	}
+	defer release()
+	defer s.mu.Unlock()
+	reserved, ok := s.state.TestnetOrders[o.ID]
+	if !ok || reserved.Status != "reserved_outcome_unknown" || reserved.IdempotencyKey != key || s.state.Idempotency[key] != d {
+		return TestnetOrder{}, ErrConflict
+	}
 	o.Status = "submitted_testnet"
 	s.state.TestnetOrders[o.ID] = o
-	s.state.Idempotency[key] = d
 	s.audit("testnet_order_submitted", o.ID, hash(o))
 	return o, s.save()
 }
@@ -970,6 +1021,11 @@ func (s *Service) Snapshot() map[string]any {
 	if refreshErr != nil {
 		failure = map[string]string{"code": "state_refresh_failed", "message": "authoritative state is temporarily unavailable"}
 	}
+	publicOrders := make(map[string]TestnetOrder, len(s.state.TestnetOrders))
+	for id, order := range s.state.TestnetOrders {
+		order.WalletSignature = ""
+		publicOrders[id] = order
+	}
 	return map[string]any{
 		"productId":        ProductID,
 		"mode":             "SIMULATED / YNX TESTNET ONLY",
@@ -983,7 +1039,7 @@ func (s *Service) Snapshot() map[string]any {
 		"datasets":         s.state.Datasets,
 		"strategies":       s.state.Strategies,
 		"experiments":      s.state.Experiments,
-		"testnetOrders":    s.state.TestnetOrders,
+		"testnetOrders":    publicOrders,
 		"executionLedger":  s.state.ExecutionLedger,
 		"adapterSequences": s.state.AdapterSequences,
 		"audit":            s.state.Audit,

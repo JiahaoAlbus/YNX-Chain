@@ -56,6 +56,8 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 		v.mux.HandleFunc("POST /v1/testnet/mandates", v.mandate)
 		v.mux.HandleFunc("POST /v1/testnet/mandates/{digest}/revoke", v.revokeMandate)
 		v.mux.HandleFunc("POST /v1/testnet/orders", v.testnet)
+		v.mux.HandleFunc("POST /v1/testnet/signing-payloads/mandate", v.mandateSigningPayload)
+		v.mux.HandleFunc("POST /v1/testnet/signing-payloads/order", v.orderSigningPayload)
 	}
 	v.mux.HandleFunc("/", v.notFound)
 	return v
@@ -231,23 +233,54 @@ func (s *Server) mandate(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.RegisterMandate(q)
+	v, e := s.service.RegisterMandateWithSession(r.Context(), q, exchangeSession(r))
 	respond(w, r, v, e, 201)
 }
-func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
+
+func (s *Server) mandateSigningPayload(w http.ResponseWriter, r *http.Request) {
+	var q Mandate
+	if !decode(w, r, &q) {
+		return
+	}
+	payload := ExchangeMandateSigningPayload(q)
+	write(w, http.StatusOK, map[string]string{"domain": ExchangeQuantAdapterVersion, "payload": string(payload), "digest": hashBytes(payload)})
+}
+
+func (s *Server) orderSigningPayload(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		MandateDigest  string                 `json:"mandateDigest"`
-		Side           string                 `json:"side"`
-		Price          int64                  `json:"price"`
-		Amount         int64                  `json:"amount"`
-		IdempotencyKey string                 `json:"idempotencyKey"`
-		Risk           TestnetRiskObservation `json:"risk"`
+		Account        string `json:"account"`
+		Market         string `json:"market"`
+		Side           string `json:"side"`
+		Price          int64  `json:"price"`
+		Amount         int64  `json:"amount"`
+		IdempotencyKey string `json:"idempotencyKey"`
 	}
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.SubmitTestnet(q.MandateDigest, q.Side, q.Price, q.Amount, q.IdempotencyKey, q.Risk)
+	order := TestnetOrder{Market: q.Market, Side: q.Side, Price: q.Price, Amount: q.Amount, IdempotencyKey: q.IdempotencyKey}
+	payload := ExchangeOrderSigningPayload(q.Account, order)
+	write(w, http.StatusOK, map[string]string{"domain": "ynx-exchange-order-v1", "payload": string(payload), "digest": hashBytes(payload)})
+}
+func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		MandateDigest   string                 `json:"mandateDigest"`
+		Side            string                 `json:"side"`
+		Price           int64                  `json:"price"`
+		Amount          int64                  `json:"amount"`
+		IdempotencyKey  string                 `json:"idempotencyKey"`
+		Risk            TestnetRiskObservation `json:"risk"`
+		WalletSignature string                 `json:"walletSignature"`
+	}
+	if !decode(w, r, &q) {
+		return
+	}
+	v, e := s.service.SubmitTestnetWithSession(r.Context(), q.MandateDigest, q.Side, q.Price, q.Amount, q.IdempotencyKey, q.WalletSignature, exchangeSession(r), q.Risk)
 	respond(w, r, v, e, 201)
+}
+
+func exchangeSession(r *http.Request) string {
+	return strings.TrimSpace(r.Header.Get("X-YNX-Exchange-Session"))
 }
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 8<<20)

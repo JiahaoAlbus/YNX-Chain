@@ -9,13 +9,18 @@ This release introduces an independent research, Paper and bounded Testnet Previ
   Shadow adapters, idempotent replay, sequence-gap rejection and explicit
   source/as-of/coverage/confidence evidence. Adapter reservation/result evidence
   survives restart, while interrupted unknown outcomes refuse duplicate
-  execution. Exchange and DEX implementations are not shipped.
+  execution. A stateless Exchange owner transport with request-scoped user
+  sessions, exact Wallet signing payloads and independent order signatures is
+  implemented and locally tested; the DEX transport is not shipped.
 - Wallet-signed bounded Testnet mandate boundary with expiry, notional,
   position, daily-loss, slippage, gas and order-frequency limits; fresh oracle
   and venue-health observations; projected leverage, drawdown, liquidity, depeg,
   concentration, cancel/API reliability and supplied VaR/ES limits; overflow
   rejection; replay rejection; and idempotent broker proof.
-  Default verifier, authoritative risk feed and broker are unavailable; live
+  The shipped server can inject the Exchange mandate verifier and Testnet
+  broker when `YNX_QUANT_EXCHANGE_URL` is configured. Public product
+  registration remains pending/disabled, and there is no authenticated public
+  user execution receipt or authoritative production risk-feed claim; live
   funds remain disabled.
 - Market data comes only from the Exchange owned actual-match tape. No synthetic product prices, fake liquidity, fake volume or fake fills.
 - 12 locale catalogs, Arabic RTL, light/dark, responsive workbench and reduced motion.
@@ -49,4 +54,6 @@ cold-start verified; the Windows archive remains unsigned and host-unverified.
 
 Historical and simulated results do not predict returns. This preview is not a
 real-money trading product. It is not centrally Wallet-integrated, tenant
-isolated, production signed, or store released.
+isolated, production signed, or store released. The Exchange execution
+workbench described above is not claimed public until a new runtime commit and
+deployment evidence supersede the currently attested commit.

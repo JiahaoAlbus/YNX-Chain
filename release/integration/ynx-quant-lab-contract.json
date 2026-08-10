@@ -10,7 +10,7 @@
   "integrationFreezeOwner": "29-integration",
   "sourceCommit": "909031e510272e9f92a11d9e9dc8553a1934692f",
   "evidenceCommit": "3bff013d86ed5682950a38b114884ce6f17c423d",
-  "generatedAt": "2026-07-29T03:02:39Z",
+  "generatedAt": "2026-08-10T00:00:00Z",
   "ownerContractSnapshot": "apps/quant-lab/integration/owner-contract-snapshot.json",
   "network": {
     "environment": "YNX Testnet only",
@@ -181,6 +181,8 @@
     ],
     "riskAndTestnetRoutes": [
       "POST /v1/risk/kill",
+      "POST /v1/testnet/signing-payloads/mandate",
+      "POST /v1/testnet/signing-payloads/order",
       "POST /v1/testnet/mandates",
       "POST /v1/testnet/mandates/{digest}/revoke",
       "POST /v1/testnet/orders"
@@ -198,7 +200,7 @@
     "adapters": {
       "paper": "implemented and tested local simulation",
       "shadow": "implemented and tested no-submit observation",
-      "exchange": "Quant boundary implemented and tested; 07-exchange transport absent",
+      "exchange": "stateless owner transport implemented and tested with request-scoped user session, exact mandate/order payloads and terminal binding; public authenticated user receipt and central acceptance absent",
       "dex": "Quant boundary implemented and tested; 27-dex transport absent"
     },
     "requiredTransportOperations": [
@@ -301,7 +303,7 @@
       "replace loopback preview mutation with canonical Product Session introspection",
       "replace local mandate registration trust with Wallet attestation verification",
       "map local audit records to accepted Data Fabric canonical events",
-      "bind Exchange and DEX owner transports without widening strategy capability"
+      "accept the Exchange owner transport centrally and bind the DEX owner transport without widening strategy capability"
     ]
   },
   "testVectors": {
@@ -311,7 +313,7 @@
   "dependencies": [
     {"product": "01-chain-core", "need": "YNX Testnet finality, receipts, Faucet, account and transaction proof", "acceptance": "pending"},
     {"product": "02-wallet-auth", "need": "Product Session, mandate verification, expiry and revoke propagation", "candidateContract": "wallet-auth-contract.json@61df5559c647d880cc1d435bece9d89ff66a07e1", "candidateState": "reachable-not-head-bound-pending-review-disabled", "acceptance": "pending"},
-    {"product": "07-exchange", "need": "no-withdraw subaccount transport, terminal order/fill receipts and authoritative reconciliation", "candidateContract": "exchange-contract.json@42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d", "candidateState": "reachable-not-head-bound-terminal-receipt-schema-pending", "acceptance": "pending"},
+    {"product": "07-exchange", "need": "no-withdraw subaccount transport, terminal order/fill receipts and authoritative reconciliation", "candidateContract": "exchange-contract.json@42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d", "candidateState": "public-owner-adapter-observed-quant-transport-tested-wallet-registration-pending", "acceptance": "pending"},
     {"product": "12-explorer", "need": "public transaction, order/fill, mandate/risk and release proof", "acceptance": "pending"},
     {"product": "13-monitor", "need": "risk, kill switch, pending-unknown, reconciliation and incident integration", "acceptance": "pending"},
     {"product": "15-trust-center", "need": "mandate-overreach, incorrect fee/PnL and appeal evidence path", "acceptance": "pending"},

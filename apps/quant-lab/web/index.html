@@ -215,10 +215,69 @@
             <strong data-i18n="failClosed">Fail closed</strong>
             <p data-i18n="mandateBoundary">
               Requires a canonical Wallet-signed mandate binding strategy hash,
-              market, notional, position, daily loss and expiry. No central
-              registration is present, so testnet execution is unavailable.
-              Real-money auto-trading is structurally disabled.
+              market, notional, position, daily loss and expiry. Every order
+              requires a separate Wallet signature and the user's short-lived
+              Exchange session. Real-money auto-trading is structurally disabled.
             </p>
+          </div>
+          <div class="split testnet-workspace">
+            <form id="mandate-form">
+              <h3>1 · Authorize a bounded strategy</h3>
+              <p class="lead">Preview the exact Exchange mandate, sign it in YNX Wallet, then register it with your own short-lived Exchange session. The session is request-scoped and is never saved.</p>
+              <div class="fields">
+                <label>YNX account<input id="mandate-account" autocomplete="off" required /></label>
+                <label>Strategy SHA-256<input id="mandate-strategy" minlength="64" maxlength="64" autocomplete="off" required /></label>
+                <label>Max order notional<input id="mandate-notional" type="number" value="2000000" min="1" required /></label>
+                <label>Aggregate capital / position<input id="mandate-position" type="number" value="2000000" min="1" required /></label>
+                <label>Max daily loss<input id="mandate-loss" type="number" value="500000" min="1" required /></label>
+                <label>Expiry (minutes)<input id="mandate-expiry" type="number" value="60" min="1" max="1440" required /></label>
+                <label>Max slippage (bps)<input id="mandate-slippage" type="number" value="50" min="1" max="10000" required /></label>
+                <label>Max gas<input id="mandate-gas" type="number" value="10000" min="1" required /></label>
+                <label>Orders / minute<input id="mandate-frequency" type="number" value="10" min="1" max="60" required /></label>
+                <label>Max leverage (bps)<input id="mandate-leverage" type="number" value="20000" min="1" required /></label>
+                <label>Max drawdown<input id="mandate-drawdown" type="number" value="500000" min="1" required /></label>
+                <label>Minimum liquidity<input id="mandate-liquidity" type="number" value="2000000" min="1" required /></label>
+                <label>Max VaR<input id="mandate-var" type="number" value="300000" min="1" required /></label>
+                <label>Max expected shortfall<input id="mandate-es" type="number" value="400000" min="1" required /></label>
+                <label>Max depeg (bps)<input id="mandate-depeg" type="number" value="100" min="1" max="10000" required /></label>
+                <label>Max concentration (bps)<input id="mandate-concentration" type="number" value="5000" min="1" max="10000" required /></label>
+                <label>Max cancel rate (bps)<input id="mandate-cancel-rate" type="number" value="5000" min="1" max="10000" required /></label>
+                <label>Max consecutive API failures<input id="mandate-api-failures" type="number" value="3" min="1" required /></label>
+                <label class="wide">Exchange session (not saved)<input id="exchange-session" type="password" autocomplete="off" required /></label>
+                <label class="wide">Wallet mandate signature<input id="mandate-signature" type="password" autocomplete="off" required /></label>
+              </div>
+              <div class="actions"><button id="preview-mandate" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Register mandate</button></div>
+              <pre id="mandate-payload" class="payload" hidden></pre>
+            </form>
+            <form id="testnet-order-form">
+              <h3>2 · Submit an independently signed order</h3>
+              <p class="lead">The risk snapshot is checked before the remote call. The Exchange then rechecks the mandate, Wallet session, order signature, capital and idempotency key.</p>
+              <div class="fields">
+                <label class="wide">Mandate digest<input id="order-mandate" minlength="64" maxlength="64" required /></label>
+                <label>Side<select id="order-side"><option>buy</option><option>sell</option></select></label>
+                <label>Limit price<input id="order-price" type="number" value="1000000" min="1" required /></label>
+                <label>Amount<input id="order-amount" type="number" value="1000000" min="1" required /></label>
+                <label>Reference price<input id="risk-reference" type="number" value="1000000" min="1" required /></label>
+                <label>Estimated gas<input id="risk-gas" type="number" value="100" min="0" required /></label>
+                <label>Observed daily loss<input id="risk-loss" type="number" value="0" min="0" required /></label>
+                <label>Equity<input id="risk-equity" type="number" value="10000000" min="1" required /></label>
+                <label>Gross exposure<input id="risk-exposure" type="number" value="1000000" min="0" required /></label>
+                <label>Peak equity<input id="risk-peak" type="number" value="10000000" min="1" required /></label>
+                <label>Current equity<input id="risk-current" type="number" value="9900000" min="0" required /></label>
+                <label>Available liquidity<input id="risk-liquidity" type="number" value="10000000" min="0" required /></label>
+                <label>Depeg (bps)<input id="risk-depeg" type="number" value="5" min="0" required /></label>
+                <label>Concentration (bps)<input id="risk-concentration" type="number" value="2000" min="0" required /></label>
+                <label>Orders observed<input id="risk-orders" type="number" value="10" min="0" required /></label>
+                <label>Cancels observed<input id="risk-cancels" type="number" value="1" min="0" required /></label>
+                <label>Consecutive API failures<input id="risk-api-failures" type="number" value="0" min="0" required /></label>
+                <label>VaR<input id="risk-var" type="number" value="100000" min="0" required /></label>
+                <label>Expected shortfall<input id="risk-es" type="number" value="150000" min="0" required /></label>
+                <label class="wide">Idempotency key<input id="order-key" minlength="8" maxlength="128" autocomplete="off" required /></label>
+                <label class="wide">Wallet order signature<input id="order-signature" type="password" autocomplete="off" required /></label>
+              </div>
+              <div class="actions"><button id="preview-order" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Submit to YNX Testnet</button></div>
+              <pre id="order-payload" class="payload" hidden></pre>
+            </form>
           </div>
         </section>
         <section id="risk" class="view">
