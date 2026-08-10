@@ -3,6 +3,30 @@ name: data-fabric
 on:
   push:
     branches: [codex/integrate-finance-suite]
+    paths:
+      - ".github/workflows/data-fabric.yml"
+      - "cmd/ynx-data-fabricctl/**"
+      - "cmd/ynx-data-fabricd/**"
+      - "cmd/ynx-data-fabric-worker/**"
+      - "cmd/ynx-pay-data-fabric-bridge/**"
+      - "internal/datafabric/**"
+      - "internal/datafabricapi/**"
+      - "internal/datafabricbackup/**"
+      - "internal/datafabricconfig/**"
+      - "internal/datafabricconsole/**"
+      - "internal/datafabricnats/**"
+      - "internal/datafabricpay/**"
+      - "internal/datafabricpayledger/**"
+      - "internal/datafabricpgbackup/**"
+      - "internal/datafabricpostgres/**"
+      - "sdk/datafabric/**"
+      - "schemas/data-fabric/**"
+      - "integration/**"
+      - "infra/data-fabric/**"
+      - "release/data-fabric/**"
+      - "scripts/data-fabric/**"
+      - "package.json"
+      - "package-lock.json"
   pull_request:
     paths:
       - ".github/workflows/data-fabric.yml"
@@ -25,7 +49,7 @@ on:
       - "schemas/data-fabric/**"
       - "integration/**"
       - "infra/data-fabric/**"
-      - "release/**"
+      - "release/data-fabric/**"
       - "scripts/data-fabric/**"
       - "package.json"
       - "package-lock.json"
