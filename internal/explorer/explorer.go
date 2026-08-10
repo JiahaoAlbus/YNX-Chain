@@ -137,6 +137,7 @@ type Summary struct {
 	IndexerError      string              `json:"indexerError,omitempty"`
 	Wallet            WalletConfig        `json:"wallet"`
 	Build             buildinfo.Info      `json:"build"`
+	StartedAt         time.Time           `json:"startedAt"`
 	ResourceStatus    string              `json:"resourceStatus"`
 	FeeStatus         string              `json:"feeStatus"`
 	TruthfulStatus    string              `json:"truthfulStatus"`
@@ -161,6 +162,12 @@ func (s *Service) Summary(ctx context.Context) (Summary, error) {
 	health, err := s.IndexerHealth(ctx)
 	if err != nil {
 		return Summary{}, err
+	}
+	if status.ChainID != 6423 || health.ChainID != status.ChainID || health.Network != status.Network {
+		return Summary{}, fmt.Errorf("chain identity mismatch: rpc=%s/%d indexer=%s/%d", status.Network, status.ChainID, health.Network, health.ChainID)
+	}
+	if health.Service != "ynx-indexerd" {
+		return Summary{}, fmt.Errorf("indexer dependency identity mismatch: got %q", health.Service)
 	}
 	if status.NativeCurrencySymbol != "YNXT" || health.NativeSymbol != "YNXT" {
 		return Summary{}, fmt.Errorf("native symbol mismatch: rpc=%s indexer=%s", status.NativeCurrencySymbol, health.NativeSymbol)
