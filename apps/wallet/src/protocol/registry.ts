@@ -4,6 +4,12 @@ import { parseCentralRegistryEntry, registryParserBinding, type ProductBinding }
 // gate: this exact local allow-list only decides which requests Wallet may show.
 const REVIEWED_ENTRIES = [
   {
+    schemaVersion: 2, productClientId: "ynx-dex-web-v1", requestingProduct: "dex",
+    bundleId: "com.ynxweb4.dex.web", callbacks: ["https://dex.ynxweb4.com/wallet-auth/callback"],
+    scopes: ["account:read", "dex:positions:read", "dex:transaction:request"], maxScopes: 3,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
     schemaVersion: 2, productClientId: "ynx-card-v1", requestingProduct: "ynx-card",
     bundleId: "com.ynxweb4.card", callbacks: ["ynxcard://wallet-auth/callback"],
     scopes: ["account:read", "card:application:write", "card:controls:write", "card:dispute:write"], maxScopes: 4,
@@ -51,6 +57,8 @@ export const PRODUCT_REGISTRY:Readonly<Record<string,ProductBinding>>=Object.fre
 
 export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freeze({
   "account:read": "Share this account's public ynx1 address. No secret or recovery material leaves Wallet.",
+  "dex:positions:read": "Read only this account's committed DEX balances and liquidity positions after a separately verified Product Session.",
+  "dex:transaction:request": "Prepare an exact Testnet DEX action for a separate Wallet review; this permission cannot sign or broadcast it.",
   "card:application:write": "Create or update only this account's sandbox Card application.",
   "card:controls:write": "Manage only this account's Card controls after a separate review.",
   "card:dispute:write": "Create and update this account's Card disputes; it cannot move funds.",

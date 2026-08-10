@@ -1,18 +1,95 @@
-const exactKeys=["version","nonce","requestDigest","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","scopes","purpose","issuedAt","expiresAt"].sort().join("|");
-const callbackKeys=["version","nonce","requestDigest","chainId","productClientId","bundleId","callback","account","scopes","issuedAt","expiresAt","sessionBinding"].sort().join("|");
-const scopes=["account:read","dex:positions:read","dex:transaction:request"] as const;
-export type WalletRequest={version:"1";nonce:string;requestDigest:string;chainId:"ynx_6423-1";requestingProduct:"dex";productClientId:"ynx-dex-web-v1";bundleId:"com.ynxweb4.dex.web";productDeviceAlgorithm:"p256-sha256";productDeviceKey:string;callback:"https://dex.ynxweb4.com/wallet-auth/callback";scopes:typeof scopes;purpose:string;issuedAt:string;expiresAt:string};
-export type WalletSessionCandidate={version:"1";nonce:string;requestDigest:string;chainId:"ynx_6423-1";productClientId:"ynx-dex-web-v1";bundleId:"com.ynxweb4.dex.web";callback:"https://dex.ynxweb4.com/wallet-auth/callback";account:string;scopes:typeof scopes;issuedAt:string;expiresAt:string;sessionBinding:string};
+import {
+  encodeRequestDeepLink,
+  parseAuthorizationRequest,
+  parseCallbackURL,
+  requestDigest,
+  verifyAuthorization,
+  type AuthorizationRequest,
+  type AuthorizationResponse,
+  type ProductBinding,
+} from "@ynx-chain/wallet-auth";
+
+export const DEX_WALLET_CALLBACK="https://dex.ynxweb4.com/wallet-auth/callback";
+export const DEX_WALLET_CLIENT="ynx-dex-web-v1";
+export const DEX_WALLET_BUNDLE="com.ynxweb4.dex.web";
+export const DEX_WALLET_SCOPES=["account:read","dex:positions:read","dex:transaction:request"] as const;
+const PENDING="ynx-dex-wallet-pending-v1";
+const DB="ynx-dex-device-v1",STORE="keys",KEY="p256";
+
+export const DEX_WALLET_REGISTRY:Readonly<Record<string,ProductBinding>>=Object.freeze({
+  [DEX_WALLET_CLIENT]:Object.freeze({
+    requestingProduct:"dex",
+    bundleId:DEX_WALLET_BUNDLE,
+    callbacks:Object.freeze([DEX_WALLET_CALLBACK]),
+    scopes:Object.freeze([...DEX_WALLET_SCOPES]),
+    maxScopes:DEX_WALLET_SCOPES.length,
+  }),
+});
+
 export class WalletRequestError extends Error{constructor(public code:string,message:string){super(message)}}
-export function buildWalletRequest(input:{nonce:string;requestDigest:string;productDeviceKey:string;now?:Date}):WalletRequest{
- const now=input.now||new Date();if(!/^nonce_[A-Za-z0-9_-]{24,96}$/.test(input.nonce))throw new WalletRequestError("INVALID_NONCE","nonce is invalid");
- if(!/^[0-9a-f]{64}$/.test(input.requestDigest))throw new WalletRequestError("INVALID_DIGEST","request digest is invalid");
- if(!/^[A-Za-z0-9_-]{44}$/.test(input.productDeviceKey))throw new WalletRequestError("INVALID_DEVICE_KEY","compressed P-256 key is invalid");
- const issuedAt=now.toISOString();const expiresAt=new Date(now.valueOf()+5*60_000).toISOString();
- return Object.freeze({version:"1",nonce:input.nonce,requestDigest:input.requestDigest,chainId:"ynx_6423-1",requestingProduct:"dex",productClientId:"ynx-dex-web-v1",bundleId:"com.ynxweb4.dex.web",productDeviceAlgorithm:"p256-sha256",productDeviceKey:input.productDeviceKey,callback:"https://dex.ynxweb4.com/wallet-auth/callback",scopes,purpose:"Connect this YNX account to YNX DEX on this device to read positions and request transaction reviews. YNX DEX cannot sign transactions.",issuedAt,expiresAt});
+
+export function buildWalletRequest(input:{nonce:string;productDeviceKey:string;now?:Date}):AuthorizationRequest{
+  const now=input.now??new Date();
+  const request={
+    version:"1" as const,
+    nonce:input.nonce,
+    chainId:"ynx_6423-1" as const,
+    requestingProduct:"dex",
+    productClientId:DEX_WALLET_CLIENT,
+    bundleId:DEX_WALLET_BUNDLE,
+    productDeviceAlgorithm:"p256-sha256" as const,
+    productDeviceKey:input.productDeviceKey,
+    callback:DEX_WALLET_CALLBACK,
+    scopes:[...DEX_WALLET_SCOPES],
+    purpose:"Connect this account to YNX DEX to read its positions and request separately reviewed Testnet transactions. DEX cannot sign or move assets.",
+    issuedAt:now.toISOString(),
+    expiresAt:new Date(now.valueOf()+5*60_000).toISOString(),
+  };
+  try{return parseAuthorizationRequest(request,{now,registry:DEX_WALLET_REGISTRY})}
+  catch(reason){throw new WalletRequestError(code(reason),message(reason))}
 }
-export function walletDeepLink(request:WalletRequest){assertWalletRequest(request);const json=canonicalJSON(request);const encoded=base64url(new TextEncoder().encode(json));return `ynxwallet://authorize?request=${encoded}`}
-export function assertWalletRequest(value:WalletRequest,expectedDigest=value?.requestDigest){if(!value||typeof value!=="object"||Object.keys(value).sort().join("|")!==exactKeys)throw new WalletRequestError("UNKNOWN_OR_MISSING_FIELD","request schema mismatch");if(value.requestDigest!==expectedDigest)throw new WalletRequestError("BINDING_MISMATCH","requestDigest does not match the prepared request");const expected=buildWalletRequest({nonce:value.nonce,requestDigest:value.requestDigest,productDeviceKey:value.productDeviceKey,now:new Date(value.issuedAt)});for(const key of exactKeys.split("|")){if(JSON.stringify(value[key as keyof WalletRequest])!==JSON.stringify(expected[key as keyof WalletRequest]))throw new WalletRequestError("BINDING_MISMATCH",`${key} does not match DEX registry`)}return value}
-export function acceptWalletCallback(value:WalletSessionCandidate,request:WalletRequest,usedNonces:Set<string>,now=new Date()){if(!value||typeof value!=="object"||Object.keys(value).sort().join("|")!==callbackKeys)throw new WalletRequestError("CALLBACK_SCHEMA","callback schema mismatch");if(usedNonces.has(value.nonce))throw new WalletRequestError("REPLAY_REJECTED","Wallet callback nonce was already consumed");for(const key of ["version","nonce","requestDigest","chainId","productClientId","bundleId","callback","scopes"] as const)if(JSON.stringify(value[key])!==JSON.stringify(request[key]))throw new WalletRequestError("CALLBACK_BINDING_MISMATCH",`${key} callback binding mismatch`);if(!/^ynx1[0-9a-z]{20,80}$/.test(value.account)||!/^[A-Za-z0-9_-]{64}$/.test(value.sessionBinding))throw new WalletRequestError("CALLBACK_IDENTITY","callback account or session binding is invalid");const issued=Date.parse(value.issuedAt),expires=Date.parse(value.expiresAt);if(!Number.isFinite(issued)||!Number.isFinite(expires)||issued<Date.parse(request.issuedAt)||issued>Date.parse(request.expiresAt)||expires<=now.valueOf()||expires-issued>15*60_000)throw new WalletRequestError("CALLBACK_EXPIRED","callback timing is invalid or expired");usedNonces.add(value.nonce);return Object.freeze({...value})}
-function canonicalJSON(value:unknown):string{if(value===null||typeof value!=="object")return JSON.stringify(value);if(Array.isArray(value))return `[${value.map(canonicalJSON).join(",")}]`;return `{${Object.keys(value as object).sort().map(key=>`${JSON.stringify(key)}:${canonicalJSON((value as Record<string,unknown>)[key])}`).join(",")}}`}
-function base64url(bytes:Uint8Array){let binary="";for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replaceAll("+","-").replaceAll("/","_").replace(/=+$/g,"")}
+
+export function walletDeepLink(request:AuthorizationRequest){
+  try{return encodeRequestDeepLink(parseAuthorizationRequest(request,{now:new Date(request.issuedAt),registry:DEX_WALLET_REGISTRY}))}
+  catch(reason){throw new WalletRequestError(code(reason),message(reason))}
+}
+
+export async function beginWalletAuthorization(storage:Storage=sessionStorage,now=new Date()){
+  const productDeviceKey=await browserDevicePublicKey();
+  const request=buildWalletRequest({nonce:randomNonce(),productDeviceKey,now});
+  storage.setItem(PENDING,JSON.stringify(request));
+  return {request,url:walletDeepLink(request)};
+}
+
+export function consumeWalletCallback(url:string,storage:Storage=sessionStorage,now=new Date()):AuthorizationResponse|null{
+  const parsed=new URL(url);
+  if(parsed.origin+parsed.pathname!==DEX_WALLET_CALLBACK||!parsed.searchParams.has("response"))return null;
+  const raw=storage.getItem(PENDING);
+  if(!raw)throw new WalletRequestError("MISSING_PENDING_REQUEST","This Wallet return has no pending DEX request on this browser tab.");
+  try{
+    const request=parseAuthorizationRequest(JSON.parse(raw),{now:new Date(JSON.parse(raw).issuedAt),registry:DEX_WALLET_REGISTRY});
+    const response=parseCallbackURL(url,DEX_WALLET_CALLBACK);
+    const verified=verifyAuthorization(response,{...request,requestDigest:requestDigest(request),now});
+    storage.removeItem(PENDING);
+    return verified;
+  }catch(reason){throw new WalletRequestError(code(reason),message(reason))}
+}
+
+async function browserDevicePublicKey(){
+  if(!globalThis.crypto?.subtle||typeof indexedDB==="undefined")throw new WalletRequestError("DEVICE_CRYPTO_UNAVAILABLE","This browser cannot create a protected DEX device identity.");
+  const existing=await readDevice();
+  const pair=existing??await crypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},false,["sign","verify"]);
+  if(!existing)await writeDevice(pair);
+  const raw=new Uint8Array(await crypto.subtle.exportKey("raw",pair.publicKey));
+  if(raw.length!==65||raw[0]!==4)throw new WalletRequestError("INVALID_DEVICE_KEY","Browser returned a non-canonical P-256 public key.");
+  const compressed=new Uint8Array(33);compressed[0]=2+(raw[64]&1);compressed.set(raw.slice(1,33),1);
+  return bytesBase64url(compressed);
+}
+
+function openDB():Promise<IDBDatabase>{return new Promise((resolve,reject)=>{const request=indexedDB.open(DB,1);request.onupgradeneeded=()=>request.result.createObjectStore(STORE);request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)})}
+async function readDevice():Promise<CryptoKeyPair|null>{const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,"readonly"),request=tx.objectStore(STORE).get(KEY);request.onsuccess=()=>resolve(request.result??null);request.onerror=()=>reject(request.error);tx.oncomplete=()=>db.close()})}
+async function writeDevice(pair:CryptoKeyPair){const db=await openDB();await new Promise<void>((resolve,reject)=>{const tx=db.transaction(STORE,"readwrite");tx.objectStore(STORE).put(pair,KEY);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)});db.close()}
+function randomNonce(){const value=new Uint8Array(24);crypto.getRandomValues(value);return bytesBase64url(value)}
+function bytesBase64url(bytes:Uint8Array){let binary="";for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replaceAll("+","-").replaceAll("/","_").replace(/=+$/g,"")}
+function code(value:unknown){return value&&typeof value==="object"&&"code" in value?String(value.code):"WALLET_AUTH_FAILED"}
+function message(value:unknown){return value instanceof Error?value.message:"Wallet authorization failed."}

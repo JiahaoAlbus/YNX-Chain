@@ -28,7 +28,8 @@ func TestDEXAssetPoolSwapAndLiquidityLifecycleCommitsRealState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app, err := NewPersistentApplication(migration, filepath.Join(t.TempDir(), "state.json"))
+	statePath := filepath.Join(t.TempDir(), "state.json")
+	app, err := NewPersistentApplication(migration, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,6 +81,25 @@ func TestDEXAssetPoolSwapAndLiquidityLifecycleCommitsRealState(t *testing.T) {
 	}
 	if err := app.committed.Validate(migration); err != nil {
 		t.Fatalf("DEX committed state failed supply, lot, or hash validation: %v", err)
+	}
+
+	// A DEX is not usable if its assets, balances, pool reserves, and event tape
+	// disappear when a validator process restarts. Re-open the exact persisted
+	// ABCI state and prove that every owner-visible record is still queryable.
+	restarted, err := NewPersistentApplication(migration, statePath)
+	if err != nil {
+		t.Fatalf("restart persistent DEX application: %v", err)
+	}
+	var restartedAssets []BFTDexAsset
+	queryJSON(t, restarted, "/dex/assets", &restartedAssets)
+	var restartedPool BFTDexPool
+	queryJSON(t, restarted, "/dex/pools/dex_ynxt_yusdt", &restartedPool)
+	var restartedBalances []BFTDexBalance
+	queryJSON(t, restarted, "/dex/balances/"+trader, &restartedBalances)
+	var restartedEvents []BFTDexEvent
+	queryJSON(t, restarted, "/dex/events", &restartedEvents)
+	if len(restartedAssets) != len(assets) || restartedPool.AuditHash != pool.AuditHash || len(restartedBalances) != len(balances) || len(restartedEvents) != len(events) || restarted.committed.AppHash != app.committed.AppHash {
+		t.Fatalf("DEX restart changed committed owner state: assets=%d/%d balances=%d/%d events=%d/%d pool=%s/%s appHash=%s/%s", len(restartedAssets), len(assets), len(restartedBalances), len(balances), len(restartedEvents), len(events), restartedPool.AuditHash, pool.AuditHash, restarted.committed.AppHash, app.committed.AppHash)
 	}
 
 	expired := signedAssetAction(t, traderKey, ActionDexSwapExactInput, DexSwapExactInputPayload{PoolID: pool.ID, AssetIn: "ynx-usd-test", AmountIn: 100, MinAmountOut: 1, DeadlineUnix: blockTime.Unix()}, 3)
