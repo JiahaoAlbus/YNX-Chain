@@ -1,0 +1,211 @@
+package datafabric
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"testing"
+	"time"
+)
+
+func TestReconciliationMatchesWhenAllSourcesAgree(t *testing.T) {
+	store, entry := setupReconciliationFixture(t)
+	now := time.Date(2026, 7, 22, 14, 0, 0, 0, time.UTC)
+	chainHash := sha256.Sum256([]byte("chain-tx-proof-data"))
+	exchangeHash := sha256.Sum256([]byte("exchange-settlement-proof"))
+	observations := []SettlementObservation{
+		{Source: "chain", ReferenceID: "tx.chain.0001", Asset: "YNX", Currency: "YNX", AmountMinor: 1000, ObservedAt: now, EvidenceHash: hex.EncodeToString(chainHash[:]), Metadata: authoritativeSource("ynx-chain-observer", now)},
+		{Source: "exchange", ReferenceID: "settlement.exchange.0001", Asset: "YNX", Currency: "YNX", AmountMinor: 1000, ObservedAt: now, EvidenceHash: hex.EncodeToString(exchangeHash[:]), Metadata: authoritativeSource("ynx-exchange-ledger", now)},
+	}
+	run, err := store.ReconcileJournal("reconcile.test.0001", entry.EntryID, "audit.reconcile.0001", "719e101", "testnet-v0", []string{"chain", "exchange"}, observations, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if run.Status != "matched" || run.Coverage != 1.0 {
+		t.Fatalf("expected matched with full coverage, got %s %.2f", run.Status, run.Coverage)
+	}
+	if len(run.Findings) != 2 {
+		t.Fatalf("expected 2 findings, got %d", len(run.Findings))
+	}
+	for _, finding := range run.Findings {
+		if finding.Status != "matched" || finding.Difference != 0 {
+			t.Fatalf("finding not matched: %+v", finding)
+		}
+	}
+}
+
+func TestReconciliationDetectsMismatch(t *testing.T) {
+	store, entry := setupReconciliationFixture(t)
+	now := time.Date(2026, 7, 22, 14, 0, 0, 0, time.UTC)
+	chainHash := sha256.Sum256([]byte("chain-tx-proof-data"))
+	observations := []SettlementObservation{
+		{Source: "chain", ReferenceID: "tx.chain.0001", Asset: "YNX", Currency: "YNX", AmountMinor: 950, ObservedAt: now, EvidenceHash: hex.EncodeToString(chainHash[:]), Metadata: authoritativeSource("ynx-chain-observer", now)},
+	}
+	run, err := store.ReconcileJournal("reconcile.test.0002", entry.EntryID, "audit.reconcile.0002", "719e101", "testnet-v0", []string{"chain"}, observations, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if run.Status != "mismatch" {
+		t.Fatalf("expected mismatch status, got %s", run.Status)
+	}
+	if len(run.Findings) != 1 || run.Findings[0].Difference != -50 {
+		t.Fatalf("expected -50 difference, got %+v", run.Findings)
+	}
+}
+
+func TestReconciliationIncompleteWhenSourceUnavailable(t *testing.T) {
+	store, entry := setupReconciliationFixture(t)
+	now := time.Date(2026, 7, 22, 14, 0, 0, 0, time.UTC)
+	chainHash := sha256.Sum256([]byte("chain-tx-proof-data"))
+	observations := []SettlementObservation{
+		{Source: "chain", ReferenceID: "tx.chain.0001", Asset: "YNX", Currency: "YNX", AmountMinor: 1000, ObservedAt: now, EvidenceHash: hex.EncodeToString(chainHash[:]), Metadata: authoritativeSource("ynx-chain-observer", now)},
+		{Source: "exchange", ReferenceID: "settlement.exchange.0001", Asset: "YNX", Currency: "YNX", AmountMinor: 0, ObservedAt: now, EvidenceHash: hex.EncodeToString(chainHash[:]), Metadata: unavailableSource("exchange API timeout")},
+	}
+	run, err := store.ReconcileJournal("reconcile.test.0003", entry.EntryID, "audit.reconcile.0003", "719e101", "testnet-v0", []string{"chain", "exchange"}, observations, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if run.Status != "incomplete" {
+		t.Fatalf("expected incomplete status, got %s", run.Status)
+	}
+	if run.Coverage != 0.5 {
+		t.Fatalf("expected 50%% coverage (1/2 sources), got %.2f", run.Coverage)
+	}
+	unavailableFound := false
+	for _, finding := range run.Findings {
+		if finding.Source == "exchange" && finding.Status == "unavailable" && finding.Failure != "" {
+			unavailableFound = true
+		}
+	}
+	if !unavailableFound {
+		t.Fatal("expected unavailable finding with failure reason")
+	}
+}
+
+func TestReconciliationRejectsMissingRequiredSource(t *testing.T) {
+	store, entry := setupReconciliationFixture(t)
+	now := time.Date(2026, 7, 22, 14, 0, 0, 0, time.UTC)
+	chainHash := sha256.Sum256([]byte("chain-tx-proof-data"))
+	observations := []SettlementObservation{
+		{Source: "chain", ReferenceID: "tx.chain.0001", Asset: "YNX", Currency: "YNX", AmountMinor: 1000, ObservedAt: now, EvidenceHash: hex.EncodeToString(chainHash[:]), Metadata: authoritativeSource("ynx-chain-observer", now)},
+	}
+	run, err := store.ReconcileJournal("reconcile.test.0004", entry.EntryID, "audit.reconcile.0004", "719e101", "testnet-v0", []string{"chain", "pay"}, observations, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if run.Status != "incomplete" {
+		t.Fatalf("expected incomplete when required source missing, got %s", run.Status)
+	}
+	payUnavailable := false
+	for _, finding := range run.Findings {
+		if finding.Source == "pay" && finding.Status == "unavailable" {
+			payUnavailable = true
+		}
+	}
+	if !payUnavailable {
+		t.Fatal("expected pay source to be unavailable when no observation provided")
+	}
+}
+
+func TestReconciliationRejectsInvalidEvidenceHash(t *testing.T) {
+	store, entry := setupReconciliationFixture(t)
+	now := time.Date(2026, 7, 22, 14, 0, 0, 0, time.UTC)
+	observations := []SettlementObservation{
+		{Source: "chain", ReferenceID: "tx.chain.0001", Asset: "YNX", Currency: "YNX", AmountMinor: 1000, ObservedAt: now, EvidenceHash: "not-a-valid-sha256", Metadata: authoritativeSource("ynx-chain-observer", now)},
+	}
+	_, err := store.ReconcileJournal("reconcile.test.0005", entry.EntryID, "audit.reconcile.0005", "719e101", "testnet-v0", []string{"chain"}, observations, now)
+	if err == nil {
+		t.Fatal("expected invalid evidence hash to be rejected")
+	}
+}
+
+func TestReconciliationRejectsDuplicateObservations(t *testing.T) {
+	store, entry := setupReconciliationFixture(t)
+	now := time.Date(2026, 7, 22, 14, 0, 0, 0, time.UTC)
+	chainHash := sha256.Sum256([]byte("chain-tx-proof-data"))
+	observations := []SettlementObservation{
+		{Source: "chain", ReferenceID: "tx.chain.0001", Asset: "YNX", Currency: "YNX", AmountMinor: 1000, ObservedAt: now, EvidenceHash: hex.EncodeToString(chainHash[:]), Metadata: authoritativeSource("ynx-chain-observer", now)},
+		{Source: "chain", ReferenceID: "tx.chain.0001", Asset: "YNX", Currency: "YNX", AmountMinor: 1000, ObservedAt: now, EvidenceHash: hex.EncodeToString(chainHash[:]), Metadata: authoritativeSource("ynx-chain-observer", now)},
+	}
+	_, err := store.ReconcileJournal("reconcile.test.0006", entry.EntryID, "audit.reconcile.0006", "719e101", "testnet-v0", []string{"chain"}, observations, now)
+	if err == nil {
+		t.Fatal("expected duplicate observation to be rejected")
+	}
+}
+
+func TestReconciliationPersistsAndRestores(t *testing.T) {
+	path := t.TempDir() + "/store.json"
+	store, entry := setupReconciliationFixtureAt(t, path)
+	now := time.Date(2026, 7, 22, 14, 0, 0, 0, time.UTC)
+	chainHash := sha256.Sum256([]byte("chain-tx-proof-data"))
+	observations := []SettlementObservation{
+		{Source: "chain", ReferenceID: "tx.chain.0001", Asset: "YNX", Currency: "YNX", AmountMinor: 1000, ObservedAt: now, EvidenceHash: hex.EncodeToString(chainHash[:]), Metadata: authoritativeSource("ynx-chain-observer", now)},
+	}
+	run, err := store.ReconcileJournal("reconcile.persist.0001", entry.EntryID, "audit.reconcile.0001", "719e101", "testnet-v0", []string{"chain"}, observations, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runs := restored.Reconciliations()
+	if len(runs) != 1 || runs[0].RunID != run.RunID || runs[0].Status != "matched" {
+		t.Fatalf("reconciliation state not persisted: %+v", runs)
+	}
+}
+
+func setupReconciliationFixture(t *testing.T) (*Store, JournalEntry) {
+	return setupReconciliationFixtureAt(t, t.TempDir()+"/store.json")
+}
+
+func setupReconciliationFixtureAt(t *testing.T, path string) (*Store, JournalEntry) {
+	t.Helper()
+	store, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 7, 22, 13, 0, 0, 0, time.UTC)
+	event := EventEnvelope{
+		EventID: "event.exchange.settlement.0001", EventType: "exchange.settlement.completed", SchemaVersion: EnvelopeSchemaVersion,
+		Product: "exchange", Service: "settlement", AggregateID: "settlement.exchange.0001",
+		Actor:         Actor{ActorID: "actor.exchange.0001", AccountID: "account.user.0001"},
+		CorrelationID: "correlation.settlement.0001", Sequence: 1,
+		Timestamp: now, EffectiveAt: now, SourceCommit: "719e101", SourceRelease: "exchange-testnet-v0",
+		PrivacyClassification: "confidential", RetentionClass: "financial-7y", AuditID: "audit.settlement.0001",
+		Source:  authoritativeSource("ynx-exchange", now),
+		Payload: []byte(`{"amount":1000,"asset":"YNX"}`),
+	}
+	key := []byte("abcdef0123456789abcdef0123456789")
+	if err := event.Sign("key.exchange.testnet.0001", key); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Append(event, key); err != nil {
+		t.Fatal(err)
+	}
+	consentTime := now.Add(-time.Hour)
+	entry := JournalEntry{
+		EntryID: "journal.exchange.0001", CorrelationID: event.CorrelationID, EventID: event.EventID,
+		EffectiveAt: now, RecordedAt: now, Description: "Exchange settlement", RevenueBoundary: "exchange-transaction-complete",
+		Postings: []Posting{
+			{AccountID: "account.user.0001", Asset: "YNX", Currency: "YNX", Side: Debit, Amount: 1000, Category: "venue-fee"},
+			{AccountID: "account.protocol.revenue", Asset: "YNX", Currency: "YNX", Side: Credit, Amount: 1000, Category: "protocol-revenue"},
+		},
+		FeeConsent: &FeeConsent{
+			ConsentID: "consent.user.0001", FeeScheduleVersion: "v1.0", AcceptedAt: consentTime,
+			MaximumAmountMinor: 2000, Basis: "per-transaction",
+		},
+		SourceCommit: "719e101", SourceRelease: "exchange-testnet-v0", AuditID: "audit.settlement.0001",
+	}
+	if err := store.PostJournal(entry); err != nil {
+		t.Fatal(err)
+	}
+	return store, entry
+}
+
+func authoritativeSource(source string, asOf time.Time) SourceMetadata {
+	return SourceMetadata{Source: source, AsOf: asOf, Version: "v1", Status: "authoritative"}
+}
+
+func unavailableSource(failure string) SourceMetadata {
+	return SourceMetadata{Source: "unavailable", AsOf: time.Now().UTC(), Version: "v1", Status: "unavailable", Failure: failure}
+}
