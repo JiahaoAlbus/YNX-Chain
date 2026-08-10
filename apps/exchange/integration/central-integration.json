@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "exchange",
-  "walletAuthSourceCommit": "f1fd7b37910e5bfacfab5e2edc11c4dc8225bd7f",
+  "walletAuthSourceCommit": "f1fd7b37d214b15eee7c80028841487281798a96",
   "registryEntry": "wallet-registry-entry.json",
   "requiredGatewayRoutes": [
     "POST /v1/wallet/sessions/complete",
@@ -9,6 +9,6 @@
   ],
   "sessionFailClosed": true,
   "actionFailClosed": true,
-  "integratedCentral": false,
-  "reason": "Canonical Wallet completion, one-time Product Session proofs and exact Wallet-signed order execution passed local end-to-end verification; public cutover evidence is still required."
+  "integratedCentral": true,
+  "reason": "Canonical Wallet completion, one-time Product Session proofs and exact Wallet-signed order execution passed production end-to-end verification; proof replay was rejected and the public runtime reports approved_enabled."
 }

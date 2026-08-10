@@ -3,7 +3,7 @@
   "productId": "ynx-exchange",
   "name": "YNX Exchange",
   "aliases": ["YNX Exchange Pro", "YNX Exchange Mobile"],
-  "sourceCommit": "e8a70cbfbb07a5467d17251c3680dc01801c63b2",
+  "sourceCommit": "00972cf25d583d975b9c9dd9c1df1ddba8491df9",
   "canonicalRoute": "/products/exchange",
   "seo": {
     "title": "YNX Exchange — Deterministic Testnet Trading",
@@ -28,9 +28,9 @@
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
-    "deployedPublic": false,
+    "deployedPublic": true,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false,
@@ -39,15 +39,15 @@
   "risks": [
     "Testnet venue only; YUSD_TEST is internal venue credit",
     "Public Testnet runtime is live; no hosted desktop download, production signature or store release is attested",
-    "Central Wallet/Gateway, custody and authoritative Indexer acceptance remain pending",
+    "Production custody, withdrawal broadcasting and cross-chain execution remain unavailable",
     "Portfolio margin, signed cross-venue execution and non-CLOB/CPMM venue adapters are not implemented",
-    "The current liability-proof, UltraLiquidity quote-router and Margin/Perpetual source is locally tested but not yet deployed; the public URL serves the previous runtime commit",
+    "Committed DEX execution remains fail-closed; UltraLiquidity currently executes only the native CLOB route",
     "No guaranteed liquidity, price, execution, profit or return",
     "Historical schema v2-v7 compatibility lacks immutable byte fixtures"
   ],
   "availability": {
     "runtimePublicUrl": "https://exchange.ynxweb4.com/",
-    "runtimeSourceCommit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744",
+    "runtimeSourceCommit": "00972cf25d583d975b9c9dd9c1df1ddba8491df9",
     "healthUrls": ["https://exchange.ynxweb4.com/api/health", "https://exchange.ynxweb4.com/api/ready", "https://exchange.ynxweb4.com/api/version"],
     "downloadUrls": [],
     "artifactManifest": "apps/exchange/product-release.json",
@@ -84,7 +84,7 @@
     },
     {
       "question": "Are margin and perpetual products available?",
-      "answer": "The source contains a locally tested Testnet isolated-margin and perpetual engine with Oracle policy, funding and liquidation. It is not yet deployed at the public runtime commit, and portfolio margin is not available."
+      "answer": "Yes on the public Testnet runtime: isolated YUSD_TEST margin and Oracle-gated perpetual execution are deployed with funding and liquidation controls. Portfolio margin and production funds are not available."
     }
   ],
   "websiteIntegration": {
@@ -93,5 +93,5 @@
     "securityVerifier": "30-security-sre",
     "publishCondition": "Consume this metadata, preserve status booleans, attach accepted brand assets and verify public URLs against the same source commit"
   },
-  "generatedAt": "2026-08-10T00:30:00Z"
+  "generatedAt": "2026-08-10T06:26:37Z"
 }
