@@ -1,16 +1,16 @@
 # Feature completion evidence
 
-Evidence date: 2026-07-27. Evidence is local unless explicitly stated.
+Evidence date: 2026-08-10. Evidence is local unless explicitly stated.
 
 | Requirement | State | Direct evidence |
 | --- | --- | --- |
 | deterministic event/OOS backtest | tested local | `internal/quantlab/service_test.go` determinism, split, walk-forward, sensitivity, regime tests |
 | actual YNX market tape boundary | tested local | market adapter tests reject malformed/non-authoritative or insufficient history |
 | paper partial fills/reconciliation | tested local | paper service tests and browser evidence |
-| venue-neutral execution adapters | Paper, Shadow, Exchange boundary and DEX boundary tested local | versioned intent schema; Paper partial-fill translation; Shadow zero-fill/no-submit; concrete owner-transport Exchange/DEX adapters; terminal receipt binding; limit, freshness, sequence, idempotency and replay checks; durable reservation/completion ledger; pending-unknown fail closure; authoritative reconciliation delta and persistent kill-switch tests; no owner transport or real venue receipt |
+| venue-neutral execution adapters | Paper, Shadow and Exchange owner transport tested local; DEX boundary tested local | versioned intent schema; Paper partial-fill translation; Shadow zero-fill/no-submit; stateless Exchange mandate/order transport with request-scoped user session and exact signing payloads; DEX boundary only; terminal receipt binding; limit, freshness, sequence, idempotency and replay checks; durable reservation/completion ledger; pending-unknown fail closure; authoritative reconciliation delta and persistent kill-switch tests; no authenticated public user receipt or DEX owner transport |
 | risk kill switch | tested local | mismatch, persistence, browser, and multi-daemon smoke tests |
 | lifecycle | tested local | sequential transition, risk evidence, and Wallet-mandate tests |
-| bounded Testnet adapter contract | implemented/tested with injected test doubles | expiry, notional, position, daily loss, slippage, gas, frequency, projected leverage, drawdown, liquidity, depeg, concentration, cancel/API reliability, supplied VaR/ES, oracle freshness, venue health, overflow, replay, idempotency, and broker-proof tests; no authoritative risk feed or deployed broker claim |
+| bounded Testnet adapter contract | implemented/tested with injected doubles and HTTP Exchange adapter | expiry, notional, position, daily loss, slippage, gas, frequency, projected leverage, drawdown, liquidity, depeg, concentration, cancel/API reliability, supplied VaR/ES, oracle freshness, venue health, overflow, replay, idempotency and broker-proof tests; concurrent remote calls do not hold the state mutex; sessions and order signatures are not persisted or exposed; no authenticated public user receipt or authoritative production risk-feed claim |
 | mandate revoke | tested local | immediate, idempotent, restart-persistent revoke tests |
 | REST and WebSocket | tested local | HTTP strict-schema/role tests and metadata-bearing WebSocket test |
 | local observability | tested local | request/trace/error IDs, WebSocket correlation, redacted JSON route logs, Prometheus request/risk/reconciliation/kill/pending/build metrics, readiness signals; no trace backend or delivered alerts |
@@ -27,9 +27,9 @@ Evidence date: 2026-07-27. Evidence is local unless explicitly stated.
 | Kubernetes | candidate YAML parsed only | no cluster apply, rollout, persistence, or recovery evidence |
 | macOS desktop | installed/tested local candidate | arm64 app bundle built, ad-hoc signed, installed in user Applications, version/API/frontend cold-launch smoke passed |
 | Windows desktop | built local candidate | x64 binaries and archive cross-compiled; no Windows host launch/install evidence |
-| canonical Gateway/Wallet integration | not achieved | handoff records only; local writes remain loopback preview |
-| real Exchange/DEX Testnet | not achieved | Quant-side fail-closed venue adapters are tested, but no owner transport, canonical Wallet mandate, transaction hash, order/fill, vault receipt, revoke propagation, or emergency-exit receipt exists |
-| public web/download | not achieved | no verified public endpoint or immutable hosted artifact |
+| canonical Gateway/Wallet integration | not achieved | the Exchange session is request scoped and Wallet signatures are forwarded, but the Quant product registration remains pending/disabled and no canonical public Product Session receipt is evidenced |
+| real Exchange/DEX Testnet | partially implemented, not accepted | Exchange owner transport and signing payloads are locally tested against the owner contract; the public Exchange exposes the adapter, but no authenticated user mandate/order receipt has been captured; DEX owner transport, vault receipt, revoke propagation and emergency-exit receipt remain absent |
+| public web/download | deployed public candidate | `https://quant.ynxweb4.com/` and commit-addressed macOS/Windows candidate archives were verified from source `9596d94fb3fa315fa32cdbb5ec8e0849a87397db`; this does not prove the new Exchange execution path until its separate public deployment evidence is recorded |
 
 Passing local tests cannot promote any final-column item to deployed, installed,
 integrated, signed, hosted, or released.

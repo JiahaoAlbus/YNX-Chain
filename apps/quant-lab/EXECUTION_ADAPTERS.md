@@ -55,6 +55,23 @@ Accepted/open/partial, stale, future, tampered or malformed responses remain
 Authoritative reconciliation deltas must be exact and activate the persistent
 Quant kill switch.
 
-No Exchange- or DEX-owner transport is shipped in this worktree, and no real
-Wallet mandate, order/fill, vault transaction, emergency-exit receipt or central
-integration is claimed. Those remain cross-product Testnet gates.
+The shipped `HTTPExchangeAdapter` now implements the Exchange owner transport
+against `/v1/quant-adapter/account` and `/v1/quant-adapter/orders`. Each call
+requires the user's own short-lived Wallet-authenticated Exchange session; the
+session is supplied by the HTTP request, never stored in adapter configuration,
+Quant state, orders, mandates or audit events. The mandate uses the exact
+`ynx-quant-execution-adapter-v1` signing payload, binds the strategy in the
+`quant:<strategyHash>` nonce domain, fixes spot leverage to 1x, and grants only
+read, submit, reconcile and kill. Every order has an independent
+`ynx-exchange-order-v1` Wallet signature.
+
+Remote broker calls run outside the persistent state lock. Quant first commits
+an idempotent `reserved_outcome_unknown` record, then calls Exchange, and only
+marks the order `submitted_testnet` after a fully bound authoritative response.
+Concurrent users therefore do not serialize behind a slow venue request, while
+same-key retries cannot create a duplicate order.
+
+No DEX-owner transport is shipped yet, and no real Wallet mandate/order receipt,
+DEX vault transaction, emergency-exit receipt or central integration is claimed.
+The public Exchange owner currently exposes the adapter, but its public Wallet
+registration still reports pending; missing or invalid user sessions fail closed.

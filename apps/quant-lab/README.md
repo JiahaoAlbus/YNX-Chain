@@ -10,6 +10,14 @@ go run ./apps/quant-lab/server
 
 The configured Exchange must expose `/api/v1/market-data/trades` when the Exchange server is used with its `/api` prefix, so set `YNX_QUANT_EXCHANGE_URL=http://127.0.0.1:6442/api` for the combined Exchange Web server. The tape contains actual YNX-owned venue matches only. Fewer than 20 actual trades makes backtest unavailable; no prices are synthesized.
 
+The same configured Exchange origin enables the stateless execution adapter.
+Mandate registration and order submission require the caller's own short-lived
+session in `X-YNX-Exchange-Session`; this credential is request-scoped and is
+never persisted or shared. The Testnet workspace exposes the exact mandate and
+order signing payloads for review in YNX Wallet. A remote timeout leaves a
+durable unknown-outcome reservation and blocks duplicate submission until
+reconciliation.
+
 Writes require the UI's same-origin `X-YNX-Preview-Mode: local-paper` boundary.
 The public Testnet research preview is a shared simulated workspace: it accepts
 same-origin research and Paper mutations, never enables live funds, and does not
@@ -66,8 +74,9 @@ not a venue SDK. The local `PaperExecutionAdapter` translates authoritative
 matched-trade ticks into simulated fills; `ShadowExecutionAdapter` observes the
 same feed and always returns zero fill with no order ID. The versioned intent
 schema is `apps/quant-lab/integration/execution-adapter.schema.json`.
-Exchange and DEX implementations are intentionally absent until canonical
-subaccount and Strategy Vault integration is available.
+The Exchange transport is implemented with exact Wallet signatures, mandate
+limits, per-request user sessions and durable idempotency. The DEX transport is
+still absent until the public v13 Strategy Vault runtime is available.
 
 Dataset governance records are registered through `POST /v1/datasets` and
 returned in snapshots. The API rejects incomplete provider rights, lineage,
@@ -103,7 +112,7 @@ state volume. Kubernetes manifests in `apps/quant-lab/k8s` are candidates, not
 deployment evidence. Neither packaging format implies staging, public
 deployment, canonical Gateway integration, or production signing.
 
-Testnet order submission additionally requires injected `MandateVerifier` and `TestnetBroker` implementations. The shipped server injects neither and therefore fails closed. Real-money execution has no adapter or route.
+Testnet order submission requires `MandateVerifier` and `TestnetBroker` implementations. When `YNX_QUANT_EXCHANGE_URL` is configured, the shipped server injects the stateless Exchange implementation. Without the exact URL, user session, mandate signature or independent order signature it fails closed. Live-funds and Mainnet execution remain disabled.
 
 Strategy lifecycle changes are sequential and fail closed:
 

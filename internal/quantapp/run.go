@@ -24,10 +24,15 @@ func Run(cfg Config) error {
 	addr := env("YNX_QUANT_HTTP_ADDR", cfg.DefaultAddr)
 	statePath := env("YNX_QUANT_STATE_PATH", ".ynx/quant-lab/state.json")
 	var marketData quantlab.MarketData
+	var mandateVerifier quantlab.MandateVerifier
+	var testnetBroker quantlab.TestnetBroker
 	if endpoint := strings.TrimSpace(os.Getenv("YNX_QUANT_EXCHANGE_URL")); endpoint != "" {
 		marketData = quantlab.HTTPExchangeMarketData{BaseURL: endpoint, Client: &http.Client{Timeout: 5 * time.Second}}
+		adapter := quantlab.HTTPExchangeAdapter{BaseURL: endpoint, Client: &http.Client{Timeout: 8 * time.Second}}
+		mandateVerifier = adapter
+		testnetBroker = adapter
 	}
-	service, err := quantlab.New(quantlab.Config{StatePath: statePath, MarketData: marketData})
+	service, err := quantlab.New(quantlab.Config{StatePath: statePath, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker})
 	if err != nil {
 		return err
 	}

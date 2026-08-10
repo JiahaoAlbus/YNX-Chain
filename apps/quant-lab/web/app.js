@@ -3,6 +3,7 @@ const $ = (s) => document.querySelector(s),
 let snapshot = { paper: {}, strategies: {}, experiments: {}, audit: [] };
 const publicMode = !["127.0.0.1", "localhost", "::1"].includes(location.hostname);
 let publicStatus = null;
+let pendingMandate = null;
 const supportedLocales = QuantI18n.locales;
 let locale = localStorage.getItem("ynx.quant.locale") || navigator.languages.find((value) => supportedLocales.includes(value)) || navigator.language.split("-")[0];
 if (!supportedLocales.includes(locale)) locale = "en";
@@ -21,6 +22,7 @@ const api = async (path, opt = {}) => {
     headers: {
       "content-type": "application/json",
       "x-ynx-preview-mode": "local-paper",
+      ...(opt.headers || {}),
     },
   });
   const b = await r.json();
@@ -74,6 +76,9 @@ function render() {
           `<li><time>${localDate(a.CreatedAt)}</time><strong>${safe(a.Action)} · ${safe(a.ObjectID)}</strong><code>${safe(a.Hash.slice(0, 16))}…</code></li>`,
       )
       .join("") || "<li>No audited actions yet.</li>";
+  if (!$("#mandate-strategy").value && strategies.length) {
+    $("#mandate-strategy").value = strategies[0].StrategyHash || "";
+  }
 }
 function safe(v) {
   const e = document.createElement("span");
@@ -152,6 +157,139 @@ $("#paper-order").onsubmit = async (e) => {
       }),
     });
     toast("Simulated order recorded");
+    await refresh();
+  } catch (e) {
+    toast(e.message);
+  }
+};
+function quantDeviceId() {
+  const key = "ynx.quant.public-device-id";
+  let value = localStorage.getItem(key);
+  if (!value) {
+    value = `quant-web-${crypto.randomUUID()}`;
+    localStorage.setItem(key, value);
+  }
+  return value;
+}
+function mandateDraft() {
+  const strategyHash = $("#mandate-strategy").value.trim().toLowerCase();
+  return {
+    Account: $("#mandate-account").value.trim(),
+    StrategyHash: strategyHash,
+    Market: "YNXT-YUSD_TEST",
+    ProductID: "ynx-quant-lab",
+    BundleID: "com.ynxweb4.quant.web",
+    DeviceID: quantDeviceId(),
+    NonceDomain: "quant:" + strategyHash,
+    Scope: "quant:testnet-execute",
+    Nonce: Date.now(),
+    MaxNotional: +$("#mandate-notional").value,
+    MaxPosition: +$("#mandate-position").value,
+    MaxDailyLoss: +$("#mandate-loss").value,
+    MaxSlippageBPS: +$("#mandate-slippage").value,
+    MaxGas: +$("#mandate-gas").value,
+    MaxOrdersPerMinute: +$("#mandate-frequency").value,
+    MaxLeverageBPS: +$("#mandate-leverage").value,
+    MaxDrawdown: +$("#mandate-drawdown").value,
+    MinLiquidity: +$("#mandate-liquidity").value,
+    MaxVaR: +$("#mandate-var").value,
+    MaxExpectedShortfall: +$("#mandate-es").value,
+    MaxDepegBPS: +$("#mandate-depeg").value,
+    MaxConcentrationBPS: +$("#mandate-concentration").value,
+    MaxCancelRateBPS: +$("#mandate-cancel-rate").value,
+    MaxConsecutiveAPIFailures: +$("#mandate-api-failures").value,
+    ExpiresAt: new Date(Date.now() + +$("#mandate-expiry").value * 60000).toISOString(),
+    TestnetOnly: true,
+  };
+}
+$$('#mandate-form input:not(#mandate-signature):not(#exchange-session)').forEach((input) => {
+  input.addEventListener("input", () => {
+    pendingMandate = null;
+    $("#mandate-payload").hidden = true;
+  });
+});
+$("#preview-mandate").onclick = async () => {
+  try {
+    pendingMandate = mandateDraft();
+    const result = await api("/v1/testnet/signing-payloads/mandate", { method: "POST", body: JSON.stringify(pendingMandate) });
+    $("#mandate-payload").textContent = `${result.payload}\n\nSHA-256 ${result.digest}`;
+    $("#mandate-payload").hidden = false;
+  } catch (e) {
+    toast(e.message);
+  }
+};
+$("#mandate-form").onsubmit = async (e) => {
+  e.preventDefault();
+  if (!pendingMandate) return toast("Preview the exact mandate payload before signing");
+  try {
+    const result = await api("/v1/testnet/mandates", {
+      method: "POST",
+      headers: { "x-ynx-exchange-session": $("#exchange-session").value.trim() },
+      body: JSON.stringify({ ...pendingMandate, WalletSignature: $("#mandate-signature").value.trim() }),
+    });
+    $("#order-mandate").value = result.Digest;
+    toast("Wallet mandate verified by Exchange and registered");
+    await refresh();
+  } catch (e) {
+    toast(e.message);
+  }
+};
+function orderDraft() {
+  return {
+    Account: $("#mandate-account").value.trim(),
+    Market: "YNXT-YUSD_TEST",
+    Side: $("#order-side").value,
+    Price: +$("#order-price").value,
+    Amount: +$("#order-amount").value,
+    IdempotencyKey: $("#order-key").value.trim(),
+  };
+}
+$("#preview-order").onclick = async () => {
+  try {
+    const result = await api("/v1/testnet/signing-payloads/order", { method: "POST", body: JSON.stringify(orderDraft()) });
+    $("#order-payload").textContent = `${result.payload}\n\nSHA-256 ${result.digest}`;
+    $("#order-payload").hidden = false;
+  } catch (e) {
+    toast(e.message);
+  }
+};
+$("#testnet-order-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const draft = orderDraft();
+  try {
+    await api("/v1/testnet/orders", {
+      method: "POST",
+      headers: { "x-ynx-exchange-session": $("#exchange-session").value.trim() },
+      body: JSON.stringify({
+        MandateDigest: $("#order-mandate").value.trim(),
+        Side: draft.Side,
+        Price: draft.Price,
+        Amount: draft.Amount,
+        IdempotencyKey: draft.IdempotencyKey,
+        WalletSignature: $("#order-signature").value.trim(),
+        Risk: {
+          referencePrice: +$("#risk-reference").value,
+          estimatedGas: +$("#risk-gas").value,
+          observedDailyLoss: +$("#risk-loss").value,
+          equity: +$("#risk-equity").value,
+          grossExposure: +$("#risk-exposure").value,
+          peakEquity: +$("#risk-peak").value,
+          currentEquity: +$("#risk-current").value,
+          availableLiquidity: +$("#risk-liquidity").value,
+          depegBps: +$("#risk-depeg").value,
+          concentrationBps: +$("#risk-concentration").value,
+          ordersObserved: +$("#risk-orders").value,
+          cancelsObserved: +$("#risk-cancels").value,
+          consecutiveApiFailures: +$("#risk-api-failures").value,
+          var: +$("#risk-var").value,
+          expectedShortfall: +$("#risk-es").value,
+          oracleAsOf: new Date().toISOString(),
+          venueHealthy: true,
+        },
+      }),
+    });
+    toast("Wallet-authorized order submitted to YNX Testnet");
+    $("#order-signature").value = "";
     await refresh();
   } catch (e) {
     toast(e.message);

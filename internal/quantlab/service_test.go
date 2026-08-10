@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -13,7 +14,7 @@ import (
 
 type allowMandate struct{}
 
-func (allowMandate) VerifyMandate(m Mandate) error {
+func (allowMandate) VerifyMandate(_ context.Context, m Mandate, _ string) error {
 	if m.WalletSignature != "wallet-proof" {
 		return ErrForbidden
 	}
@@ -22,12 +23,12 @@ func (allowMandate) VerifyMandate(m Mandate) error {
 
 type testBroker struct{}
 
-func (testBroker) SubmitTestnet(o TestnetOrder) (string, error) {
+func (testBroker) SubmitTestnet(_ context.Context, _ Mandate, o TestnetOrder, _ string) (string, error) {
 	return "committed-ynx-testnet-proof", nil
 }
 
 func validMandate(now time.Time, strategyHash string) Mandate {
-	return Mandate{Account: "ynx1test", StrategyHash: strategyHash, Market: "YNXT-YUSD_TEST", ProductID: ProductID, BundleID: "com.ynx.quantlab.test", DeviceID: "device-test-001", NonceDomain: "ynx-quant-testnet-v1", Scope: "quant:testnet-execute", Nonce: 1, MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, MaxSlippageBPS: 50, MaxGas: 10_000, MaxOrdersPerMinute: 10, MaxLeverageBPS: 20_000, MaxDrawdown: 500_000, MinLiquidity: 2_000_000, MaxVaR: 300_000, MaxExpectedShortfall: 400_000, MaxDepegBPS: 100, MaxConcentrationBPS: 5000, MaxCancelRateBPS: 5000, MaxConsecutiveAPIFailures: 3, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
+	return Mandate{Account: "ynx1test", StrategyHash: strategyHash, Market: "YNXT-YUSD_TEST", ProductID: ProductID, BundleID: "com.ynx.quantlab.test", DeviceID: "device-test-001", NonceDomain: "quant:" + strategyHash, Scope: "quant:testnet-execute", Nonce: 1, MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, MaxSlippageBPS: 50, MaxGas: 10_000, MaxOrdersPerMinute: 10, MaxLeverageBPS: 20_000, MaxDrawdown: 500_000, MinLiquidity: 2_000_000, MaxVaR: 300_000, MaxExpectedShortfall: 400_000, MaxDepegBPS: 100, MaxConcentrationBPS: 5000, MaxCancelRateBPS: 5000, MaxConsecutiveAPIFailures: 3, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
 }
 
 func validRisk(now time.Time) TestnetRiskObservation {

@@ -13,10 +13,15 @@ func main() {
 	addr := env("YNX_QUANT_HTTP_ADDR", "127.0.0.1:6444")
 	state := env("YNX_QUANT_STATE_PATH", ".ynx/quant-lab/state.json")
 	var marketData quantlab.MarketData
+	var mandateVerifier quantlab.MandateVerifier
+	var testnetBroker quantlab.TestnetBroker
 	if endpoint := strings.TrimSpace(os.Getenv("YNX_QUANT_EXCHANGE_URL")); endpoint != "" {
 		marketData = quantlab.HTTPExchangeMarketData{BaseURL: endpoint, Client: &http.Client{Timeout: 5 * time.Second}}
+		adapter := quantlab.HTTPExchangeAdapter{BaseURL: endpoint, Client: &http.Client{Timeout: 8 * time.Second}}
+		mandateVerifier = adapter
+		testnetBroker = adapter
 	}
-	s, e := quantlab.New(quantlab.Config{StatePath: state, MarketData: marketData})
+	s, e := quantlab.New(quantlab.Config{StatePath: state, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker})
 	if e != nil {
 		log.Fatal(e)
 	}
