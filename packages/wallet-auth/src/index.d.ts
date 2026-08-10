@@ -12,7 +12,7 @@ export type CentralRegistryEntry = Readonly<{schemaVersion:2;productClientId:str
 export type CentralReviewState = "approved"|"pending-review"|"disabled";
 export type CentralProductRegistration = Readonly<Omit<CentralRegistryEntry,"schemaVersion"> & {schemaVersion:3;productId:string;displayName:string;reviewState:CentralReviewState;enabled:boolean;sessionDurationSeconds:number;revocationPolicy:Readonly<{session:true;approval:true;device:true;accountAllDevices:true}>}>;
 export type CentralRegistryDocument = Readonly<{registryVersion:2;chainId:"ynx_6423-1";products:readonly CentralProductRegistration[]}>;
-export type CentralWalletSession = Readonly<{verifierVersion:"wallet-auth-v1";sessionBinding:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;callback:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;deviceBinding:string;account:string;scopes:readonly string[];nonce:string;purpose:string;requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string}>;
+export type CentralWalletSession = Readonly<{verifierVersion:"wallet-auth-v1";sessionBinding:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;callback:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;deviceBinding:string;account:string;accountPublicKey:string;scopes:readonly string[];nonce:string;purpose:string;requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string}>;
 export type CentralRevocationState = Readonly<{revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[];accountLogoutRecords:readonly Readonly<{account:string;before:string}>[]}>;
 export type CentralWalletStoreSnapshot = Readonly<{schemaVersion:1;consumedNonces:readonly string[];consumedRequestDigests:readonly string[];consumedChallenges:readonly string[];sessions:readonly CentralWalletSession[];revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[];accountLogoutRecords:readonly Readonly<{account:string;before:string}>[];audit:readonly Readonly<{sequence:number;type:string;subject:string;at:string;previousHash:string|null;hash:string}>[]}>;
 export type CentralWalletSessionInactiveReason="issued-in-future"|"expired"|"session-revoked"|"approval-revoked"|"device-revoked"|"account-logout";
@@ -51,7 +51,7 @@ export declare function parseWalletDeepLink(url:string,platform:"android"|"ios",
 export declare function createCallbackURL(response:Record<string,unknown>&{callback:string}):string;
 export declare function parseCallbackURL(url:string,expectedCallback:string):unknown;
 export type ExchangeOrderParameters=Readonly<{market:"YNXT-YUSD_TEST";side:"buy"|"sell";type:"limit";priceMicro:number;amountMicro:number;idempotencyKey:string}>;
-export type ExchangeOrderActionRequest=Readonly<{version:"1";chainId:"ynx_6423-1";productClientId:"ynx-exchange-v1";bundleId:"com.ynxweb4.exchange";callback:"ynxexchange://wallet-auth/callback";sessionBinding:string;account:string;action:"exchange.order.place";parameters:ExchangeOrderParameters;nonce:string;issuedAt:string;expiresAt:string}>;
+export type ExchangeOrderActionRequest=Readonly<{version:"1";chainId:"ynx_6423-1";productClientId:"ynx-exchange-v1";bundleId:"com.ynxweb4.exchange";callback:"https://exchange.ynxweb4.com/wallet-action/callback"|"ynxexchange://wallet-auth/callback";sessionBinding:string;account:string;action:"exchange.order.place";parameters:ExchangeOrderParameters;nonce:string;issuedAt:string;expiresAt:string}>;
 export type ExchangeOrderActionResponse=Readonly<ExchangeOrderActionRequest&{requestDigest:string;accountPublicKey:string;walletSignature:string}>;
 export declare function parseExchangeOrderActionRequest(input:string|unknown,at?:Date):ExchangeOrderActionRequest;
 export declare function exchangeOrderActionRequestDigest(input:ExchangeOrderActionRequest):string;
@@ -140,6 +140,8 @@ export declare function signDeveloperDeployment(request:unknown,input:{accountSe
 export declare function parseDeveloperDeploymentResponse(input:unknown,expectedRequest:unknown,at?:Date):DeveloperDeploymentResponse;
 export declare function createDeveloperDeploymentCallback(response:unknown,expectedRequest:unknown,at?:Date):string;
 export declare function createProductSessionProof(session:CentralWalletSession,input:Readonly<{method:string;path:string;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string}>,productDeviceSecret:string):Readonly<Record<string,unknown>>;
+export declare function createProductDeviceIdentity(secretInput?:string):Readonly<{productDeviceSecret:string;productDeviceKey:string}>;
+export declare function encodeProductSessionProofHeader(proofInput:unknown):string;
 export declare function parseProductSessionProof(input:unknown):Readonly<Record<string,unknown>>;
 export declare function productSessionProofSignBytes(input:unknown):string;
 export declare function productSessionProofDigest(input:unknown):string;

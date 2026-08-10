@@ -8,7 +8,7 @@ import { walletIdentity, walletIdentityFromPublicKey } from "./crypto.js";
 const REQUEST_FIELDS=["version","chainId","productClientId","bundleId","callback","sessionBinding","account","action","parameters","nonce","issuedAt","expiresAt"];
 const PARAMETER_FIELDS=["market","side","type","priceMicro","amountMicro","idempotencyKey"];
 const RESPONSE_FIELDS=[...REQUEST_FIELDS,"requestDigest","accountPublicKey","walletSignature"];
-const CALLBACK="ynxexchange://wallet-auth/callback";
+const CALLBACKS=new Set(["https://exchange.ynxweb4.com/wallet-action/callback","ynxexchange://wallet-auth/callback"]);
 
 export function parseExchangeOrderActionRequest(input,at=new Date()){
   const value=typeof input==="string"?parseJSON(input):input;
@@ -17,7 +17,7 @@ export function parseExchangeOrderActionRequest(input,at=new Date()){
   const request=Object.freeze({
     version:exactText(value.version,"1","version"),chainId:exactText(value.chainId,"ynx_6423-1","chainId"),
     productClientId:exactText(value.productClientId,"ynx-exchange-v1","productClientId"),bundleId:exactText(value.bundleId,"com.ynxweb4.exchange","bundleId"),
-    callback:exactText(value.callback,CALLBACK,"callback"),sessionBinding:pattern(value.sessionBinding,/^[0-9a-f]{64}$/,"sessionBinding"),
+    callback:allowedText(value.callback,CALLBACKS,"callback"),sessionBinding:pattern(value.sessionBinding,/^[0-9a-f]{64}$/,"sessionBinding"),
     account:pattern(value.account,/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/,"account"),action:exactText(value.action,"exchange.order.place","action"),
     parameters:Object.freeze({market:exactText(value.parameters.market,"YNXT-YUSD_TEST","market"),side:oneOf(value.parameters.side,["buy","sell"],"side"),type:exactText(value.parameters.type,"limit","type"),priceMicro:positive(value.parameters.priceMicro,"priceMicro"),amountMicro:positive(value.parameters.amountMicro,"amountMicro"),idempotencyKey:pattern(value.parameters.idempotencyKey,/^[A-Za-z0-9._:-]{8,128}$/,"idempotencyKey")}),
     nonce:pattern(value.nonce,/^[A-Za-z0-9_-]{32,64}$/,"nonce"),issuedAt:time(value.issuedAt,"issuedAt"),expiresAt:time(value.expiresAt,"expiresAt")
@@ -59,6 +59,7 @@ export function parseExchangeOrderActionDeepLink(url,at=new Date()){
 function parseParameters(value){exactFields(value,PARAMETER_FIELDS,"Exchange order parameters");return {market:exactText(value.market,"YNXT-YUSD_TEST","market"),side:oneOf(value.side,["buy","sell"],"side"),type:exactText(value.type,"limit","type"),priceMicro:positive(value.priceMicro,"priceMicro"),amountMicro:positive(value.amountMicro,"amountMicro"),idempotencyKey:pattern(value.idempotencyKey,/^[A-Za-z0-9._:-]{8,128}$/,"idempotencyKey")}}
 function parseJSON(value){try{return JSON.parse(value)}catch{fail("INVALID_JSON","Exchange order request is not valid JSON")}}
 function exactText(value,expected,label){if(value!==expected)fail("INVALID_FIELD",`${label} is unsupported`);return value}
+function allowedText(value,allowed,label){if(!allowed.has(value))fail("INVALID_FIELD",`${label} is unsupported`);return value}
 function oneOf(value,allowed,label){if(!allowed.includes(value))fail("INVALID_FIELD",`${label} is unsupported`);return value}
 function pattern(value,regex,label){if(typeof value!=="string"||!regex.test(value))fail("INVALID_FIELD",`${label} is invalid`);return value}
 function positive(value,label){if(!Number.isSafeInteger(value)||value<=0)fail("INVALID_NUMBER",`${label} must be a positive safe integer`);return value}
