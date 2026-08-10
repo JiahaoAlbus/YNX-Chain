@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -167,15 +168,53 @@ func validateDevnetSnapshotIntegrity(snapshot devnetSnapshot) error {
 
 func devnetSnapshotIntegrity(snapshot devnetSnapshot) (string, error) {
 	snapshot.StateIntegrity = ""
-	payload, err := json.Marshal(snapshot)
-	if err != nil {
-		return "", fmt.Errorf("encode devnet snapshot integrity document: %w", err)
-	}
 	digest := sha256.New()
 	_, _ = digest.Write([]byte(devnetSnapshotHashDomain))
 	_, _ = digest.Write([]byte{0})
-	_, _ = digest.Write(payload)
+	stream := jsonBodyWriter{target: digest}
+	if err := json.NewEncoder(&stream).Encode(snapshot); err != nil {
+		return "", fmt.Errorf("encode devnet snapshot integrity document: %w", err)
+	}
+	if err := stream.Finish(); err != nil {
+		return "", fmt.Errorf("finish devnet snapshot integrity document: %w", err)
+	}
 	return hex.EncodeToString(digest.Sum(nil)), nil
+}
+
+// jsonBodyWriter lets json.Encoder stream the exact bytes emitted by
+// json.Marshal/MarshalIndent without retaining the encoder's final newline.
+// Large public-history snapshots therefore do not require a second complete
+// in-memory JSON buffer solely for integrity hashing or durable persistence.
+type jsonBodyWriter struct {
+	target  io.Writer
+	tail    byte
+	hasTail bool
+}
+
+func (w *jsonBodyWriter) Write(payload []byte) (int, error) {
+	if len(payload) == 0 {
+		return 0, nil
+	}
+	if w.hasTail {
+		if _, err := w.target.Write([]byte{w.tail}); err != nil {
+			return 0, err
+		}
+	}
+	if len(payload) > 1 {
+		if _, err := w.target.Write(payload[:len(payload)-1]); err != nil {
+			return 0, err
+		}
+	}
+	w.tail, w.hasTail = payload[len(payload)-1], true
+	return len(payload), nil
+}
+
+func (w *jsonBodyWriter) Finish() error {
+	if !w.hasTail || w.tail != '\n' {
+		return errors.New("streamed JSON document has no canonical final newline")
+	}
+	w.hasTail = false
+	return nil
 }
 
 func (d *Devnet) snapshotLocked() devnetSnapshot {
