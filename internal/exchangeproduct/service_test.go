@@ -1471,6 +1471,20 @@ func TestHTTPStrictParsingScopeAndSmoke(t *testing.T) {
 		t.Fatalf("readiness=%+v", readiness)
 	}
 	resp.Body.Close()
+	s.cfg.DeployedPublic = true
+	resp, err = http.Get(server.URL + "/ready")
+	if err != nil || resp.StatusCode != 200 {
+		t.Fatalf("public ready err=%v status=%v", err, resp.StatusCode)
+	}
+	readiness = struct {
+		Status         string `json:"status"`
+		StateIntegrity bool   `json:"stateIntegrity"`
+		DeployedPublic bool   `json:"deployedPublic"`
+	}{}
+	if json.NewDecoder(resp.Body).Decode(&readiness) != nil || readiness.Status != "ready_public_testnet" || !readiness.StateIntegrity || !readiness.DeployedPublic {
+		t.Fatalf("public readiness=%+v", readiness)
+	}
+	resp.Body.Close()
 	resp, err = http.Get(server.URL + "/metrics")
 	if err != nil || resp.StatusCode != 200 {
 		t.Fatalf("metrics err=%v status=%v", err, resp.StatusCode)
