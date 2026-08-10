@@ -5,15 +5,28 @@ import { centralRegistrationByProduct, migrateCentralRegistryDocumentV1, parseCe
 
 const source = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
 
-test("central registry contains 26 unique, least-privilege products with Calendar, Developer and accepted Testnet products approved", () => {
+test("central registry contains 29 unique, least-privilege products with platform-bound Browser and accepted Testnet products approved", () => {
   const registry = parseCentralRegistryDocument(source);
-  assert.equal(registry.products.length, 26);
+  assert.equal(registry.products.length, 29);
   const approved = registry.products.filter((product) => product.enabled);
-  assert.deepEqual(approved.map((product) => product.productId), ["calendar", "developer", "dex", "exchange", "finance", "mail", "merchant-console", "quant", "seller-console", "shop", "social"]);
+  assert.deepEqual(approved.map((product) => product.productId), ["browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "developer", "dex", "exchange", "finance", "mail", "merchant-console", "quant", "seller-console", "shop", "social"]);
   assert.equal(approved.every((product) => product.reviewState === "approved"), true);
   assert.equal(registry.products.filter((product) => !product.enabled).every((product) => product.reviewState === "pending-review"), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
   assert.throws(() => centralRegistrationByProduct(registry, "ai"), code("REGISTRY_DISABLED"));
+  for (const [productId, clientId, bundleId, callback] of [
+    ["browser-android", "ynx-browser-android", "com.ynxweb4.browser", "ynxbrowser://com.ynxweb4.browser/auth/callback"],
+    ["browser-ios", "ynx-browser-ios", "com.ynxweb4.browser.ios", "ynxbrowser://com.ynxweb4.browser.ios/auth/callback"],
+    ["browser-macos", "ynx-browser-macos", "com.ynxweb4.browser.macos", "ynxbrowser://com.ynxweb4.browser.macos/auth/callback"],
+    ["browser-windows", "ynx-browser-windows", "com.ynxweb4.browser.windows", "ynxbrowser://com.ynxweb4.browser.windows/auth/callback"],
+  ]) {
+    const browser = centralRegistrationByProduct(registry, productId);
+    assert.equal(browser.productClientId, clientId);
+    assert.equal(browser.requestingProduct, "browser");
+    assert.equal(browser.bundleId, bundleId);
+    assert.deepEqual(browser.callbacks, [callback]);
+    assert.deepEqual(browser.scopes, ["account:read", "browser:wallet-request"]);
+  }
   const social = centralRegistrationByProduct(registry, "social");
   assert.equal(social.bundleId, "com.ynx.social");
   assert.deepEqual(social.callbacks, ["ynx-social://com.ynx.social"]);
@@ -58,7 +71,9 @@ test("central registry contains 26 unique, least-privilege products with Calenda
 test("registry v1 migrates deterministically by adding disabled least-privilege Quant", () => {
   const legacy = structuredClone(source);
   legacy.registryVersion = 1;
-  legacy.products = legacy.products.filter(product => product.productId !== "quant");
+  legacy.products = legacy.products.filter(product => product.productId !== "quant" && !product.productId.startsWith("browser-"));
+  legacy.products.push({schemaVersion:3,productId:"browser",displayName:"YNX Browser",reviewState:"pending-review",enabled:false,productClientId:"ynx-browser-v1",requestingProduct:"browser",bundleId:"com.ynxweb4.browser",callbacks:["ynxbrowser://wallet-auth/callback"],scopes:["browser:account","browser:sync"],maxScopes:2,productDeviceAlgorithms:["p256-sha256"],sessionDurationSeconds:240,revocationPolicy:{session:true,approval:true,device:true,accountAllDevices:true}});
+  legacy.products.sort((left, right) => left.productId.localeCompare(right.productId));
   const migrated = migrateCentralRegistryDocumentV1(legacy);
   assert.deepEqual(migrated.products.map(product => product.productId), parseCentralRegistryDocument(source).products.map(product => product.productId));
   assert.equal(centralRegistrationByProduct(migrated, "quant", { requireEnabled: false }).enabled, false);

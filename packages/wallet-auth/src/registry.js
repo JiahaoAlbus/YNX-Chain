@@ -17,7 +17,7 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
 ]);
 
 export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
-export const CENTRAL_REGISTRY_PRODUCT_COUNT = 26;
+export const CENTRAL_REGISTRY_PRODUCT_COUNT = 29;
 export const CENTRAL_PRODUCT_SCHEMA_VERSION = 3;
 
 export function parseCentralRegistryDocument(input) {
@@ -43,7 +43,11 @@ export function migrateCentralRegistryDocumentV1(input) {
   if (ids.join("\n") !== REGISTRY_V1_PRODUCT_IDS.join("\n")) {
     throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet registry v1 product set is not the accepted migration source");
   }
-  const migratedProducts = [...input.products.map(product => structuredClone(product)), canonicalQuantRegistration()]
+  const migratedProducts = [
+    ...input.products.filter(product => product.productId !== "browser").map(product => structuredClone(product)),
+    ...canonicalBrowserRegistrations(),
+    canonicalQuantRegistration(),
+  ]
     .sort((left, right) => left.productId.localeCompare(right.productId));
   return parseCentralRegistryDocument({
     registryVersion: CENTRAL_REGISTRY_DOCUMENT_VERSION,
@@ -136,6 +140,30 @@ function canonicalQuantRegistration() {
     sessionDurationSeconds: 180,
     revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
   };
+}
+
+function canonicalBrowserRegistrations() {
+  return [
+    ["browser-android", "YNX Browser for Android", "ynx-browser-android", "com.ynxweb4.browser", "ynxbrowser://com.ynxweb4.browser/auth/callback"],
+    ["browser-ios", "YNX Browser for iOS", "ynx-browser-ios", "com.ynxweb4.browser.ios", "ynxbrowser://com.ynxweb4.browser.ios/auth/callback"],
+    ["browser-macos", "YNX Browser for macOS", "ynx-browser-macos", "com.ynxweb4.browser.macos", "ynxbrowser://com.ynxweb4.browser.macos/auth/callback"],
+    ["browser-windows", "YNX Browser for Windows", "ynx-browser-windows", "com.ynxweb4.browser.windows", "ynxbrowser://com.ynxweb4.browser.windows/auth/callback"],
+  ].map(([productId, displayName, productClientId, bundleId, callback]) => ({
+    schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    productId,
+    displayName,
+    reviewState: "pending-review",
+    enabled: false,
+    productClientId,
+    requestingProduct: "browser",
+    bundleId,
+    callbacks: [callback],
+    scopes: ["account:read", "browser:wallet-request"],
+    maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+    sessionDurationSeconds: 240,
+    revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
+  }));
 }
 
 function assertUnique(products, field) {

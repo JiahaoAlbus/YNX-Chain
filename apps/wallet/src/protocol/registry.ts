@@ -4,6 +4,36 @@ import { parseCentralRegistryEntry, registryParserBinding, type ProductBinding }
 // gate: this exact local allow-list only decides which requests Wallet may show.
 const REVIEWED_ENTRIES = [
   {
+    schemaVersion: 2, productClientId: "ynx-browser-android", requestingProduct: "browser",
+    bundleId: "com.ynxweb4.browser", callbacks: ["ynxbrowser://com.ynxweb4.browser/auth/callback"],
+    scopes: ["account:read", "browser:wallet-request"], maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
+    schemaVersion: 2, productClientId: "ynx-browser-ios", requestingProduct: "browser",
+    bundleId: "com.ynxweb4.browser.ios", callbacks: ["ynxbrowser://com.ynxweb4.browser.ios/auth/callback"],
+    scopes: ["account:read", "browser:wallet-request"], maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
+    schemaVersion: 2, productClientId: "ynx-browser-macos", requestingProduct: "browser",
+    bundleId: "com.ynxweb4.browser.macos", callbacks: ["ynxbrowser://com.ynxweb4.browser.macos/auth/callback"],
+    scopes: ["account:read", "browser:wallet-request"], maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
+    schemaVersion: 2, productClientId: "ynx-browser-windows", requestingProduct: "browser",
+    bundleId: "com.ynxweb4.browser.windows", callbacks: ["ynxbrowser://com.ynxweb4.browser.windows/auth/callback"],
+    scopes: ["account:read", "browser:wallet-request"], maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
+    schemaVersion: 2, productClientId: "ynx-calendar-v1", requestingProduct: "calendar",
+    bundleId: "com.ynxweb4.calendar", callbacks: ["ynxcalendar://wallet-auth/callback"],
+    scopes: ["calendar:account", "calendar:recover"], maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
     schemaVersion: 2, productClientId: "ynx-card-v1", requestingProduct: "ynx-card",
     bundleId: "com.ynxweb4.card", callbacks: ["ynxcard://wallet-auth/callback"],
     scopes: ["account:read", "card:application:write", "card:controls:write", "card:dispute:write"], maxScopes: 4,
@@ -37,6 +67,12 @@ const REVIEWED_ENTRIES = [
     schemaVersion: 2, productClientId: "ynx-merchant-console-v1", requestingProduct: "pay-merchant",
     bundleId: "com.ynxweb4.merchant-console", callbacks: ["https://pay.ynxweb4.com/merchant/wallet-auth/callback"],
     scopes: ["account:read", "merchant:session:create"], maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
+    schemaVersion: 2, productClientId: "ynx-mail-v1", requestingProduct: "mail",
+    bundleId: "com.ynxweb4.mail", callbacks: ["ynxmail://wallet-auth/callback"],
+    scopes: ["mail:account", "mail:recover"], maxScopes: 2,
     productDeviceAlgorithms: ["p256-sha256"],
   },
   {
@@ -75,6 +111,9 @@ export const PRODUCT_REGISTRY:Readonly<Record<string,ProductBinding>>=Object.fre
 
 export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freeze({
   "account:read": "Share this account's public ynx1 address. No secret or recovery material leaves Wallet.",
+  "browser:wallet-request": "Review one exact Browser-originated Wallet request. Browser cannot sign, move funds, widen scopes or create a Wallet session by itself.",
+  "calendar:account": "Connect this account to Calendar events, invitations and settings without sharing keys or recovery material.",
+  "calendar:recover": "Review recovery of this account's Calendar access on a new device; it does not reveal Wallet recovery material.",
   "card:application:write": "Create or update only this account's sandbox Card application.",
   "card:controls:write": "Manage only this account's Card controls after a separate review.",
   "card:dispute:write": "Create and update this account's Card disputes; it cannot move funds.",
@@ -91,6 +130,8 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "finance.portfolio.read": "Read this account's public YNXT balance and indexed activity from approved sources.",
   "finance.profile.write": "Manage only this account's private Finance categories, budgets, notes and reminders.",
   "merchant:session:create": "Create a short-lived, device-bound session for one authorized merchant role. This cannot sign payments, refunds or settlements.",
+  "mail:account": "Connect this account to signed YNX Mail messages and mailbox settings without sharing keys or recovery material.",
+  "mail:recover": "Review recovery of this account's Mail access on a new device; it does not reveal Wallet recovery material.",
   "pay:case:create": "Create a Pay support case for this account without authorizing a transfer.",
   "pay:settlement:submit": "Submit a settlement request for separate Pay review; Wallet approval is not a payment signature.",
   "profile:link": "Allow this exact Social device to link the public account to its profile.",

@@ -343,7 +343,9 @@ final class TabButton: NSButton { var tabID: UUID? }
             if !NSWorkspace.shared.open(link) {
                 BrowserWalletCallbackPolicy.clearPending(defaults: defaults)
                 auditLogger.error("wallet_request_open_failed code=BR-WALLET-REQUEST-APP-UNAVAILABLE")
-                security.stringValue = "YNX Wallet is unavailable. No session was created."
+                let installURL = URL(string: "https://ynxweb4.com/ecosystem?product=wallet")!
+                _ = NSWorkspace.shared.open(installURL)
+                security.stringValue = "YNX Wallet is unavailable. The verified Wallet install page was opened; no session was created."
             }
         } catch {
             BrowserWalletCallbackPolicy.clearPending(defaults: defaults)

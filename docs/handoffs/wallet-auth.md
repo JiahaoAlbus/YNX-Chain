@@ -64,7 +64,7 @@ Revocation boundaries are:
 
 ## Central Registry document v2 / product schema v3 candidate
 
-`packages/wallet-auth/central-registry.json` contains exactly 26 sorted products, adding Quant to the prior 25-product set. Registry v1 migrates only from that exact prior set and deterministically adds Quant as disabled and `pending-review`.
+`packages/wallet-auth/central-registry.json` contains exactly 29 sorted registrations. The four Browser platforms use separate exact client, bundle and callback bindings instead of one incompatible generic Browser tuple. Registry v1 migrates only from the exact prior 25-product set, replaces its generic Browser entry with four disabled platform-bound registrations, and adds Quant as disabled and `pending-review`.
 
 Every entry has an exact product ID, requesting product, client, bundle/package, callback list, sorted least-privilege scopes, `maxScopes`, permitted device algorithms, session duration and revocation policy. There are no wildcard values. Schema validation refuses enablement without `approved` review status. Calendar, Developer, Exchange, Finance, Quant and Shop now have exact approved Testnet bindings; all other entries remain disabled. Approval records product-owned identity/scope review only and is not evidence of a deployed central Gateway or a working public/native round trip.
 

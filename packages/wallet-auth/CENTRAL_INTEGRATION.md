@@ -6,7 +6,7 @@ This is the merge-ready central protocol candidate implemented and tested by `@y
 
 ## Canonical registry
 
-`central-registry.json` is the only 26-product candidate inventory. The top-level schema is exact: `registryVersion`, `chainId`, `products`. It requires version `2`, chain `ynx_6423-1`, exactly 26 alphabetically sorted products, and globally unique client IDs, bundle IDs, and callbacks. Registry v1 migrates only through the exact deterministic migration that adds disabled, pending-review Quant.
+`central-registry.json` is the only 29-registration candidate inventory. The top-level schema is exact: `registryVersion`, `chainId`, `products`. It requires version `2`, chain `ynx_6423-1`, exactly 29 alphabetically sorted registrations, and globally unique product IDs, client IDs, bundle IDs, and callbacks. Registry v1 migrates only through the exact deterministic migration that replaces the obsolete generic Browser tuple with four disabled platform-bound Browser registrations and adds disabled, pending-review Quant.
 
 Each product registration uses exact schema v3 fields:
 
