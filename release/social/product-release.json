@@ -5,14 +5,14 @@
   "slug": "social",
   "owner": "03-social",
   "version": "1.0.0-testnet-preview.1",
-  "branch": "codex/final-social",
+  "branch": "codex/integrate-finance-suite",
   "sourceCommit": "aa8524960d6efd9881598fb65832c6237e5af056",
   "phase": "PUBLIC_TESTNET_PREVIEW",
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": true,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": true,
     "downloadHosted": true,
@@ -30,11 +30,24 @@
     "Android API 24 Testnet Preview cold-launched in 1.328 seconds and opened the exact central Wallet review",
     "official test-signed APK hosted at www.ynxweb4.com with SHA-256 ea596dafd4cf63be22aac29a4681d14f43baf40439ec9d725a5206ba899ddcba and 103546656 bytes"
   ],
+  "centralIntegration": {
+    "acceptedSourceCommit": "d549466b659f055e7b49a1f18b25c792da570f75",
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "callback": "ynx-social://com.ynx.social",
+    "scopes": ["account:read", "profile:link"],
+    "registryApproved": true,
+    "registryEnabledInSource": true,
+    "walletAllowListAccepted": true,
+    "publicGatewayDeployed": false
+  },
   "knownGaps": [
-    "central main-branch owner acceptance for the new public deployment commits",
+    "the deployed public Wallet Gateway does not yet include ynx-social-v1, so public Social sign-in still fails closed until the accepted registry is deployed",
     "deployed coordinated erasure and jurisdiction-specific retention approval",
     "strong-biometric approval could not complete on the emulator because no strong biometric is enrolled",
     "iOS installation and signing evidence",
-    "staging workload/restore/alert evidence and independent supply-chain review"
+    "staging workload/restore/alert evidence and independent supply-chain review",
+    "Expo and Metro build tooling retain transitive image-size and xcode advisories with no compatible upstream patch; production runtime dependencies audit clean and build inputs remain repository-controlled"
   ]
 }
