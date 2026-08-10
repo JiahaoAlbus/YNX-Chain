@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "productId": "finance",
+  "verifiedAt": "2026-08-10T01:30:00Z",
+  "publicHealth": {
+    "url": "https://finance.ynxweb4.com/health",
+    "httpStatus": 200,
+    "service": "ynx-finance",
+    "version": "1.2.0",
+    "portfolio": "read-only",
+    "custody": "none",
+    "nativeSymbol": "YNXT"
+  },
+  "systemdDropIn": "apps/finance/deploy/systemd/ynx-finance-actions.conf",
+  "actions": [
+    {"sourceId": "exchange", "url": "https://exchange.ynxweb4.com/", "publicHttpStatus": 200},
+    {"sourceId": "dex", "url": "https://dex.ynxweb4.com/", "publicHttpStatus": 200},
+    {"sourceId": "quant", "url": "https://quant.ynxweb4.com/", "publicHttpStatus": 200}
+  ],
+  "boundary": {
+    "navigationOnly": true,
+    "ownerContractAccepted": false,
+    "dataAvailableFromAction": false,
+    "capabilityGranted": false,
+    "financeCanExecute": false
+  }
+}

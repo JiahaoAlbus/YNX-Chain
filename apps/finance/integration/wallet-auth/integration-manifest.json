@@ -14,9 +14,9 @@
     "signing": "wallet-only"
   },
   "centralIntegration": {
-    "registryMerged": false,
-    "gatewayDeployed": false,
+    "registryMerged": true,
+    "gatewayDeployed": true,
     "walletApprovalTestedOnInstalledBuild": false,
-    "reason": "Canonical Wallet branch currently registers Social only; this manifest is the exact merge input and must remain false until central merge plus deployed end-to-end verification."
+    "reason": "The registry and public Testnet Gateway are deployed. Central completion remains false until an installed build completes strong-biometric Wallet approval, product-device completion, callback verification and authenticated Finance API access."
   }
 }

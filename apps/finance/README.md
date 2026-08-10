@@ -6,7 +6,12 @@ YNX Finance 1.2.0 is an independent, read-only YNXT personal-finance product. It
 
 The native app builds the exact `ynx-finance-v1` request with `@ynx-chain/wallet-auth`, opens `ynxwallet://authorize`, verifies the Wallet callback, signs the central Gateway product-device challenge and accepts only the resulting opaque product session. The Go API introspects every bearer session at the Gateway. There is no address login, local HMAC assertion, browser fallback session, Wallet secret or recovery-material path.
 
-Central integration is intentionally **not complete**. The exact registry entry and deterministic vector are under `integration/wallet-auth/`, but the central registry merge, deployed persistent Gateway and installed Wallet approval test remain external gates. Until those gates pass, sign-in fails closed.
+The Finance registry entry and public Gateway are deployed. The installed Android
+flow has verified exact request parsing, permission review, action disclosure and
+the strong-biometric gate. Final approval/callback remains unverified because the
+test emulator had no enrolled strong biometric, so Finance still fails closed at
+that boundary. This is a public Testnet integration, not a production Wallet or
+store-release claim.
 
 ## Data and approval boundaries
 

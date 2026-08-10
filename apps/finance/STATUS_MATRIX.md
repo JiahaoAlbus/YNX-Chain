@@ -15,6 +15,7 @@
 | Android install and cold launch | yes | official release APK installed; cold 1,163 ms | official-site direct download; Testnet test signature only |
 | iOS build/install/cold launch | target ready | Hermes bundle passed | CI Simulator pending; no device/IPA signature |
 | Web feasibility | yes | desktop + 390 px Browser inspection | signed-out companion only; no Web Wallet client |
+| Owner-product navigation | yes | strict reviewed-HTTPS URL validation | public Exchange, DEX and Quant links configured; navigation grants no trading or read capability |
 | Public Testnet/store release | Testnet only | public health, concurrency and official APK digest verified | `deployedPublic=true`, `storeReleased=false` |
 
 Amounts are integer YNXT units returned by the current Testnet services; the product does not display invented fiat conversions, yields, custody balances, credit, cards or insurance.
