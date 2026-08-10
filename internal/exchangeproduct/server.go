@@ -54,6 +54,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/market-data/trades", s.marketTrades)
 	s.mux.HandleFunc("GET /v1/solvency", s.solvency)
 	s.mux.HandleFunc("GET /v1/solvency/liability-proof", s.liabilityProof)
+	s.mux.HandleFunc("GET /v1/liquidity/quote", s.liquidityQuote)
 	s.mux.HandleFunc("GET /v1/streams/market/snapshot", s.marketStreamSnapshot)
 	s.mux.HandleFunc("GET /v1/streams/user/snapshot", s.userStreamSnapshot)
 	s.mux.HandleFunc("GET /v1/ws/market", s.marketWebSocket)
@@ -259,6 +260,11 @@ func (s *Server) liabilityProof(w http.ResponseWriter, r *http.Request) {
 	}
 	proof, err := s.service.LiabilityProof(session.Account, asset)
 	respond(w, proof, err, http.StatusOK)
+}
+
+func (s *Server) liquidityQuote(w http.ResponseWriter, r *http.Request) {
+	quote, err := s.service.LiquidityQuote(liquidityRequestFromQuery(r.URL.Query()))
+	respond(w, quote, err, http.StatusOK)
 }
 func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "externalPrice": false, "trades": s.service.PublicTrades(1000)})

@@ -31,23 +31,29 @@ const (
 var BuildCommit = "development"
 
 type Config struct {
-	StatePath              string
-	APIKey                 string
-	WalletCallback         string
-	RequiredConfirmations  int64
-	MakerFeeBPS            int64
-	TakerFeeBPS            int64
-	WithdrawalFeeMicroYNXT int64
-	Now                    func() time.Time
-	Chain                  ChainReader
-	CustodyAddress         string
-	GatewayURL             string
-	GatewayClientID        string
-	Gateway                GatewayAuthorizer
-	IndexerURL             string
-	MaxOrderNotionalMicro  int64
-	MaxWithdrawalMicro     int64
-	DeployedPublic         bool
+	StatePath                      string
+	APIKey                         string
+	WalletCallback                 string
+	RequiredConfirmations          int64
+	MakerFeeBPS                    int64
+	TakerFeeBPS                    int64
+	WithdrawalFeeMicroYNXT         int64
+	Now                            func() time.Time
+	Chain                          ChainReader
+	CustodyAddress                 string
+	GatewayURL                     string
+	GatewayClientID                string
+	Gateway                        GatewayAuthorizer
+	IndexerURL                     string
+	MaxOrderNotionalMicro          int64
+	MaxWithdrawalMicro             int64
+	DeployedPublic                 bool
+	DEXGatewayURL                  string
+	DEXQuoteAssetID                string
+	DEXQuoteAssetAttestationDigest string
+	DEXGasMicro                    int64
+	DEXLatencyMillis               int64
+	DEXFinalitySeconds             int64
 }
 
 type GatewayAuthorizer interface {
@@ -494,4 +500,58 @@ type LiabilityProof struct {
 	Proof        []MerkleStep `json:"proof"`
 	Verified     bool         `json:"verified"`
 	SnapshotAsOf time.Time    `json:"snapshotAsOf"`
+}
+
+type LiquidityQuoteRequest struct {
+	Market      string `json:"market"`
+	Side        string `json:"side"`
+	AmountMicro int64  `json:"amountMicro"`
+}
+
+type LiquidityCostFactors struct {
+	TradingFeeMicro     int64    `json:"tradingFeeMicro"`
+	PriceImpactMicro    *int64   `json:"priceImpactMicro,omitempty"`
+	GasMicro            *int64   `json:"gasMicro,omitempty"`
+	LatencyMillis       *int64   `json:"latencyMillis,omitempty"`
+	FillProbabilityBPS  *int64   `json:"fillProbabilityBps,omitempty"`
+	FailureRiskBPS      *int64   `json:"failureRiskBps,omitempty"`
+	BridgeRiskBPS       *int64   `json:"bridgeRiskBps,omitempty"`
+	OracleConfidenceBPS *int64   `json:"oracleConfidenceBps,omitempty"`
+	FinalitySeconds     *int64   `json:"finalitySeconds,omitempty"`
+	UnavailableFactors  []string `json:"unavailableFactors"`
+}
+
+type LiquidityVenueQuote struct {
+	Venue                       string               `json:"venue"`
+	VenueType                   string               `json:"venueType"`
+	Status                      string               `json:"status"`
+	UnavailableReason           string               `json:"unavailableReason,omitempty"`
+	Market                      string               `json:"market"`
+	Side                        string               `json:"side"`
+	BaseAmountMicro             int64                `json:"baseAmountMicro"`
+	GrossQuoteMicro             int64                `json:"grossQuoteMicro"`
+	NetQuoteMicro               int64                `json:"netQuoteMicro"`
+	AllInQuoteMicro             int64                `json:"allInQuoteMicro"`
+	AveragePriceMicro           int64                `json:"averagePriceMicro"`
+	Executable                  bool                 `json:"executable"`
+	ExecutionMethod             string               `json:"executionMethod,omitempty"`
+	SourceVersion               string               `json:"sourceVersion"`
+	SourceSequence              int64                `json:"sourceSequence,omitempty"`
+	SourceBlockHeight           int64                `json:"sourceBlockHeight,omitempty"`
+	SourceAuditHash             string               `json:"sourceAuditHash,omitempty"`
+	QuoteAssetAttestationDigest string               `json:"quoteAssetAttestationDigest,omitempty"`
+	ObservedAt                  time.Time            `json:"observedAt"`
+	Cost                        LiquidityCostFactors `json:"cost"`
+}
+
+type LiquidityRouteQuote struct {
+	Version       string                `json:"version"`
+	Request       LiquidityQuoteRequest `json:"request"`
+	SelectedVenue string                `json:"selectedVenue,omitempty"`
+	Selected      *LiquidityVenueQuote  `json:"selected,omitempty"`
+	Candidates    []LiquidityVenueQuote `json:"candidates"`
+	Status        string                `json:"status"`
+	SelectionRule string                `json:"selectionRule"`
+	Disclosure    string                `json:"disclosure"`
+	ObservedAt    time.Time             `json:"observedAt"`
 }
