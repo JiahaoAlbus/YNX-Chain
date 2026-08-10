@@ -17,7 +17,7 @@
     "testedLocal": true,
     "integratedCentral": false,
     "testnetVerified": false,
-    "websitePublished": false,
+    "websitePublished": true,
     "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false,
@@ -27,7 +27,7 @@
   "componentStatus": {
     "consensusStateV13": "implemented-tested-pr-85-review-required",
     "consensusGateway": "implemented-tested-pr-85-review-required",
-    "consensusWebClient": "implemented-tested-local-public-cutover-pending",
+    "consensusWebClient": "public-pwa-fail-closed-v13-runtime-cutover-pending",
     "constantProductPools": "tested-local",
     "stableSwapPools": "tested-local",
     "strategyVault": "tested-local",
@@ -59,7 +59,7 @@
     "The source registry and Wallet client accept the exact DEX web tuple, but transaction signing remains fail-closed until the public Product Session Gateway and updated Wallet release are validated.",
     "Unaudited software; no independent smart-contract audit is complete.",
     "No verified YNX Testnet deployment, reviewed liquidity or public transaction proof exists.",
-    "No public runtime, hosted download or production-signed artifact exists.",
+    "The Web/PWA is public, but no public v13 transaction runtime, hosted download or production-signed artifact exists.",
     "The local point-in-time recovery drill does not establish operational RPO for a provisioned Testnet indexer.",
     "StableSwap requires reviewed assets and Oracle/depeg policy before deployment.",
     "FairFlow and LP protection remain local candidates with additional public-network and adversarial requirements.",
@@ -138,7 +138,7 @@
     }
   ],
   "urls": {
-    "product": null,
+    "product": "https://dex.ynxweb4.com/",
     "runtime": null,
     "download": null,
     "support": null,
@@ -151,7 +151,7 @@
     "applicationCategory": "FinanceApplication",
     "operatingSystem": "Modern web browser",
     "isAccessibleForFree": true,
-    "releaseNotes": "Unaudited Testnet preview candidate; not publicly deployed."
+    "releaseNotes": "Unaudited Testnet preview. The Web/PWA is public and fail-closed; the v13 transaction runtime is not publicly deployed."
   },
   "websiteIntegration": {
     "owner": "YNX Website",
@@ -168,5 +168,5 @@
       "status URL"
     ]
   },
-  "generatedAt": "2026-07-29T02:27:50.000Z"
+  "generatedAt": "2026-08-10T13:02:00+08:00"
 }

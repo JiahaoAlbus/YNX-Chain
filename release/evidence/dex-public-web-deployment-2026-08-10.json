@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "ynx-public-web-deployment-evidence/v1",
+  "productId": "ynx-dex",
+  "scope": "web-pwa-only",
+  "observedAt": "2026-08-10T13:02:00+08:00",
+  "source": {
+    "branch": "codex/final-dex",
+    "commit": "255c44609ee135c126b01a39156952667ee5eb8d",
+    "originCommitMatched": true
+  },
+  "artifact": {
+    "bundleSha256": "1b85fb7086d1e6a38ae43a6467e05bb5da16f18ed13813b877272e2db5da0867",
+    "bundleBytes": 556052,
+    "entrypointSha256": "15a0244301defcda141a490243aa24333a0099187ec3cf6dfa00b0702b3c8a52",
+    "javascript": {
+      "path": "/assets/index-Ba0rlSS4.js",
+      "sha256": "b57f0f7073f9b2b44e727c82e096d521a83809c1632fbc076c807d364800a184",
+      "bytes": 295159
+    },
+    "stylesheet": {
+      "path": "/assets/index-D9dgW4aD.css",
+      "sha256": "47563c070ce3a09176f1a755901756e7d007b1bc6c217f5af73f652250aaa287",
+      "bytes": 22633
+    }
+  },
+  "deployment": {
+    "url": "https://dex.ynxweb4.com/",
+    "activeRelease": "/opt/ynx/dex-255c4460",
+    "activeSymlink": "/opt/ynx/dex-current",
+    "rollbackRelease": "/opt/ynx/dex-d0f767d7",
+    "switchMethod": "atomic-symbolic-link",
+    "rootHttpStatus": 200,
+    "healthHttpStatus": 200,
+    "servedJavascript": "/assets/index-Ba0rlSS4.js",
+    "servedStylesheet": "/assets/index-D9dgW4aD.css"
+  },
+  "runtimeBoundary": {
+    "publicWebDeployed": true,
+    "publicTransactionRuntimeDeployed": false,
+    "completeProductDeployedPublic": false,
+    "observedIndexerVersionCommit": "d0f767d7",
+    "requiredConsensusVersion": 13,
+    "authorityGatewayV13DexReadsAvailable": false,
+    "clientBehavior": "fail-closed",
+    "forbiddenClaims": [
+      "public swap execution",
+      "public liquidity execution",
+      "reviewed public pools",
+      "Wallet-signed DEX transaction receipts",
+      "v13 public runtime"
+    ]
+  },
+  "secretsIncluded": false
+}

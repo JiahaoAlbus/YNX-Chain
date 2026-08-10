@@ -96,6 +96,12 @@ for (const name of ["fairFlow", "lpProtection", "stableSwap"]) {
 }
 assert.equal(release.integratedCentral, false);
 assert.equal(release.deployedPublic, false);
+assert.equal(release.publicWebDeployed, true);
+assert.equal(release.publicTransactionRuntimeDeployed, false);
+assert.deepEqual(release.publicUrls, ["https://dex.ynxweb4.com/"]);
+assert.equal(release.publicSurface.web.sourceCommit, "255c44609ee135c126b01a39156952667ee5eb8d");
+assert.equal(release.publicSurface.web.deployed, true);
+assert.equal(release.publicSurface.transactionRuntime.deployed, false);
 assert.equal(release.productionSigned, false);
 assert.equal(release.storeReleased, false);
 
@@ -209,7 +215,6 @@ assert.equal(
 for (const key of [
   "integratedCentral",
   "testnetVerified",
-  "websitePublished",
   "deployedPublic",
   "downloadHosted",
   "productionSigned",
@@ -222,7 +227,8 @@ for (const key of [
     `public metadata ${key} must remain false without evidence`,
   );
 }
-assert.equal(publicMetadata.urls.product, null);
+assert.equal(publicMetadata.status.websitePublished, true);
+assert.equal(publicMetadata.urls.product, "https://dex.ynxweb4.com/");
 assert.equal(publicMetadata.urls.runtime, null);
 assert.equal(publicMetadata.urls.download, null);
 

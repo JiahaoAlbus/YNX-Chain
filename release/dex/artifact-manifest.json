@@ -13,6 +13,8 @@
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
+    "publicWebDeployed": true,
+    "publicTransactionRuntimeDeployed": false,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
@@ -153,9 +155,9 @@
     }
   ],
   "notes": [
-    "Artifacts are local upload candidates only.",
+    "The Web/PWA shell built from source commit 255c44609ee135c126b01a39156952667ee5eb8d is publicly deployed at https://dex.ynxweb4.com/ and remains fail-closed without the v13 transaction runtime.",
     "Local implementation and test claims are backed by the handoff verification suite; they do not imply installation or deployment.",
     "Generated contract build files are hashed evidence and are not a deployment or verification result.",
-    "No artifact is hosted or production-signed."
+    "No downloadable artifact is hosted or production-signed; public Web hosting is not a download-hosting claim."
   ]
 }

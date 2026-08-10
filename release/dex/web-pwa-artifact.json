@@ -10,6 +10,8 @@
   "installedLocal": false,
   "deployedStaging": false,
   "deployedPublic": false,
+  "publicWebDeployed": true,
+  "publicTransactionRuntimeDeployed": false,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
@@ -72,5 +74,14 @@
   "verification": {
     "command": "shasum -a 256 release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
     "expectedSha256": "9f6bdf1fe226099aa316de788b9d15335d45f11faabdab4260da8af63c8a5571"
+  },
+  "publicDeployment": {
+    "url": "https://dex.ynxweb4.com/",
+    "sourceCommit": "255c44609ee135c126b01a39156952667ee5eb8d",
+    "bundleSha256": "1b85fb7086d1e6a38ae43a6467e05bb5da16f18ed13813b877272e2db5da0867",
+    "activeRelease": "/opt/ynx/dex-255c4460",
+    "rollbackRelease": "/opt/ynx/dex-d0f767d7",
+    "deployedAt": "2026-08-10T12:51:00+08:00",
+    "transactionRuntime": "not-deployed-v13"
   }
 }

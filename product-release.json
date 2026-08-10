@@ -14,28 +14,48 @@
   "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": false,
+  "publicWebDeployed": true,
+  "publicTransactionRuntimeDeployed": false,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
-  "publicUrls": [],
-  "healthUrls": [],
+  "publicUrls": ["https://dex.ynxweb4.com/"],
+  "healthUrls": ["https://dex.ynxweb4.com/health"],
   "artifactUrls": [],
   "sha256": {
-    "artifactManifest": "bf5dee702ab74f75de19f710c218ac6222aa784a11df947f961df67aef3b4143",
+    "artifactManifest": "982a6fd10521f776568a49a5755bbb01f355b69c6ce183be74dabb9e5d5ffc52",
     "webPwaBundle": "9f6bdf1fe226099aa316de788b9d15335d45f11faabdab4260da8af63c8a5571",
     "javascriptSdkPackage": "fae8db1d106e7c82ddad2c030c207551155fe3075b4ccedabead23efd17603a5"
   },
   "bytes": {
-    "artifactManifest": 6162,
+    "artifactManifest": 6455,
     "webPwaBundle": 549715,
     "javascriptSdkPackage": 21765
   },
   "signingClass": "unsigned-local-build",
   "minOS": { "web": "modern browser with ES2022 and PWA support" },
   "installEvidence": [],
+  "publicSurface": {
+    "web": {
+      "deployed": true,
+      "url": "https://dex.ynxweb4.com/",
+      "sourceCommit": "255c44609ee135c126b01a39156952667ee5eb8d",
+      "releaseDirectory": "/opt/ynx/dex-255c4460/web",
+      "activeSymlink": "/opt/ynx/dex-current",
+      "bundleSha256": "1b85fb7086d1e6a38ae43a6467e05bb5da16f18ed13813b877272e2db5da0867",
+      "deployedAt": "2026-08-10T12:51:00+08:00",
+      "evidence": "release/evidence/dex-public-web-deployment-2026-08-10.json"
+    },
+    "transactionRuntime": {
+      "deployed": false,
+      "requiredConsensusVersion": 13,
+      "observedPublicBackendCommit": "d0f767d7",
+      "reason": "The public authority Gateway does not expose the v13 DEX read or execution contract. The PWA remains fail-closed."
+    }
+  },
   "recoveredCandidate": {
     "sourceCommit": "1614ffb7fa4983a182405fe3fa118fa448f87b4b",
     "scope": "constant-product contracts, indexer, JavaScript SDK, and Web/PWA preview",
@@ -146,8 +166,8 @@
     "The exact DEX web tuple is approved in the source central registry and Wallet client, but no updated production-signed Wallet release or public Product Session gateway evidence exists.",
     "No independent third-party smart-contract audit has been completed.",
     "CPMM LP fees are embedded in reserves; there is no separate LP collect method, and compound/rebalance require caller-supplied amounts plus sequential Wallet approvals.",
-    "Staging, public deployment, hosted download, production signing, and store release are absent.",
+    "The current Web/PWA shell is publicly hosted at dex.ynxweb4.com, but the v13 transaction runtime, hosted download, production signing, and store release are absent.",
     "The Web/PWA completes signed Wallet identity authorization and deterministic swap review, but DEX action signing and broadcasting remain unavailable until the public v13 Gateway and updated Wallet release are validated."
   ],
-  "generatedAt": "2026-08-10T02:31:00.000Z"
+  "generatedAt": "2026-08-10T13:02:00+08:00"
 }

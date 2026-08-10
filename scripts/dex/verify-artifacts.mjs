@@ -22,6 +22,9 @@ for(const artifact of manifest.artifacts){
 const web=await load(path.join(release,"web-pwa-artifact.json"));
 const webData=await readFile(path.join(release,web.file));assert.equal(sha256(webData),web.sha256);
 for(const key of ["installedLocal","deployedStaging","deployedPublic","downloadHosted","productionSigned","storeReleased"])assert.equal(web[key],false,key);
+assert.equal(web.publicWebDeployed,true);assert.equal(web.publicTransactionRuntimeDeployed,false);
+assert.equal(web.publicDeployment.url,"https://dex.ynxweb4.com/");
+assert.equal(web.publicDeployment.sourceCommit,"255c44609ee135c126b01a39156952667ee5eb8d");
 
 const product=await load(path.join(root,"product-release.json"));
 const aggregate=await readFile(path.join(release,"artifact-manifest.json"));
@@ -32,6 +35,7 @@ assert.equal(product.localComponents?.consensusDexV13?.sourceCommit,product.comm
 for(const component of ["strategyVault","executionAdapter","vaultIndexer","indexerRecovery","fairFlow","lpProtection","stableSwap"]){assert.equal(product.localComponents?.[component]?.sourceCommit,product.commit);assert.equal(product.localComponents?.[component]?.testedLocal,true);assert.equal(product.localComponents?.[component]?.deployedPublic,false)}
 assert.equal(product.localComponents.indexerRecovery.restoreVerified,true);assert.equal(product.localComponents.indexerRecovery.operationalRpoVerified,false);
 for(const key of falseClaims)assert.equal(product[key],false,key);
+assert.equal(product.publicWebDeployed,true);assert.equal(product.publicTransactionRuntimeDeployed,false);
 assert.equal(product.sha256.artifactManifest,sha256(aggregate));assert.equal(product.bytes.artifactManifest,aggregate.length);
 assert.equal(product.sha256.webPwaBundle,web.sha256);assert.equal(product.bytes.webPwaBundle,web.sizeBytes);
 const sdk=manifest.artifacts.find(item=>item.type==="javascript-sdk-npm-package");assert(sdk);assert.equal(product.sha256.javascriptSdkPackage,sdk.sha256);assert.equal(product.bytes.javascriptSdkPackage,sdk.sizeBytes);

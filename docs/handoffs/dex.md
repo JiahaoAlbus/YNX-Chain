@@ -8,7 +8,7 @@
 - Chain: YNX Testnet EVM chain `6423` (`0x1917`); `mainnet=false`
 - Protocol: clean-room immutable constant-product pools, 30 bps pool fee, bounded four-hop router
 - Custody: none. The Web app prepares requests; canonical YNX Wallet must authorize and sign.
-- Explicitly absent: central registry acceptance, deployed contracts, reviewed Testnet tokens, live liquidity, staging/public hosting, hosted download, production signature, store release and independent audit.
+- Explicitly absent: public v13 transaction runtime, deployed contracts, reviewed Testnet tokens, live liquidity, hosted download, production signature, store release and independent audit. The fail-closed Web/PWA shell is publicly hosted at `https://dex.ynxweb4.com/`.
 
 YNX Exchange remains the operator/custody/order-book product. Do not merge DEX balances, routes or transaction semantics into Exchange.
 
@@ -22,7 +22,7 @@ YNX Exchange remains the operator/custody/order-book product. Do not merge DEX b
 - `internal/dex` and `cmd/ynx-dex-indexerd`: HMAC-protected schema-v5 event state, confirmed typed CPMM/Stable/Vault/FairFlow/LP Protection EVM poller, address-bound migration, shared reorg rewind/rescan and source-labelled APIs.
 - `apps/dex`: responsive Web/PWA with Swap, Pools, Pool Detail, Add/Remove Liquidity, Positions boundary, Explore/Tokens/Transactions, Analytics, Governance, Docs and Settings.
 - AI risk explanation: context selection, explicit permission, same-origin canonical-gateway enforcement, provider/model/status/cost, strict NDJSON streaming/cancel, review, local apply/reject and SHA-256 hash-chained browser audit. It cannot build, sign, submit or mutate a transaction.
-- `release/dex`: deterministic upload-ready PWA tarball and per-file/SHA-256 manifest. It is unsigned and not hosted.
+- `release/dex`: deterministic upload-ready PWA tarball and per-file/SHA-256 manifest. The downloadable tarball is unsigned and not hosted; the built Web/PWA shell is publicly served.
 
 ## Canonical Wallet/Auth candidate
 
@@ -74,8 +74,14 @@ The public RPC probe in `docs/evidence/dex/testnet/rpc-probe.json` observed chai
 
 After deployment, the owner must capture all of the following before changing any deployment flag: exact manifest and bytecode/source verification, factory/router/wrapped addresses, pool creation, labelled test liquidity, Wallet-signed direct and multi-hop swaps, add/remove LP, Explorer transaction links, Indexer/API/UI consistency, restart/reorg drill, staging health/version URLs and remote smoke results. No item is currently present.
 
+## Public Web deployment
+
+The Web/PWA built from source commit `255c44609ee135c126b01a39156952667ee5eb8d` is publicly served at `https://dex.ynxweb4.com/`. The atomic release link resolves to `/opt/ynx/dex-255c4460`, with `/opt/ynx/dex-d0f767d7` retained as the rollback release. Public probes verified the current `index-Ba0rlSS4.js` and `index-D9dgW4aD.css` assets and HTTP 200 for the product URL and health endpoint.
+
+This is a Web-surface deployment only. `/version` still reports the older `d0f767d7` EVM indexer, and the public authority Gateway returns method-not-supported for the required v13 DEX reads. Therefore the PWA intentionally remains fail-closed, `publicTransactionRuntimeDeployed=false`, `deployedPublic=false` for the complete DEX, and no swap, liquidity, Wallet-signing, reviewed-pool or transaction-receipt claim is allowed. Evidence is recorded in `release/evidence/dex-public-web-deployment-2026-08-10.json`.
+
 ## Release truth
 
-`product-release.json` is authoritative. The upload bundle may support `implementedLocal` and `testedLocal` after final clean-tree verification, but it does not support `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` or `storeReleased`. `audited=false` and `productionLiquidity=false` remain mandatory.
+`product-release.json` is authoritative. The upload bundle supports `implementedLocal`, `testedLocal` and the separately scoped `publicWebDeployed=true`. It does not support `installedLocal`, `integratedCentral`, `deployedStaging`, complete-product `deployedPublic`, `publicTransactionRuntimeDeployed`, `downloadHosted`, `productionSigned` or `storeReleased`. `audited=false` and `productionLiquidity=false` remain mandatory.
 
 The runtime dependency audit is clean for production dependencies. The development-only Hardhat graph currently includes the documented `adm-zip` high-severity crafted-ZIP denial-of-service advisory with no upstream fix; keep contract tooling out of runtime images and reassess before an owner release.
