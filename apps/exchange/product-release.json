@@ -3,8 +3,8 @@
   "productId": "ynx-exchange-pro",
   "name": "YNX Exchange Pro",
   "branch": "codex/exchange-brace-expansion-5-0-8",
-  "sourceCommit": "fe6fad3c723f36b3f7bb4ba7aa3944a1e7ff511d",
-  "commit": "fe6fad3c723f36b3f7bb4ba7aa3944a1e7ff511d",
+  "sourceCommit": "e8a70cbfbb07a5467d17251c3680dc01801c63b2",
+  "commit": "e8a70cbfbb07a5467d17251c3680dc01801c63b2",
   "version": "0.1.0-testnet",
   "stateSchemaVersion": 10,
   "surfaces": [
@@ -67,7 +67,7 @@
     "quantAggregateCapital": "restart-persistent-testedLocal",
     "margin": "isolated-collateral-transfer-and-accounting-testedLocal",
     "perpetual": "oracle-gated-CLOB-positions-funding-liquidation-waterfall-testedLocal",
-    "ultraLiquidity": "native-CLOB-plus-consensus-DEX-executable-quote-routing-testedLocal; signed-cross-venue-execution-pending",
+    "ultraLiquidity": "native-CLOB-plus-consensus-DEX-quote-routing-and-wallet-signed-native-FOK-execution-testedLocal; committed-DEX-execution-adapter-pending",
     "solvencyProof": "liability-Merkle-and-conditional-committed-custody-proof-testedLocal"
   },
   "knownLimitations": [
