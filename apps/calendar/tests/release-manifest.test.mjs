@@ -56,7 +56,7 @@ test("current source and historical preview artifacts remain separated", () => {
   assert.equal(centralRelease.releaseStates.downloadHosted, false);
 });
 
-test("integration contract freezes Calendar authority without claiming central acceptance", () => {
+test("integration contract freezes Calendar authority and records central acceptance", () => {
   assert.equal(integrationContract.owner, "36-calendar");
   assert.equal(integrationContract.productId, "com.ynx.calendar");
   assert.equal(integrationContract.sourceCommit, release.commit);
@@ -67,7 +67,7 @@ test("integration contract freezes Calendar authority without claiming central a
   );
   assert.equal(integrationContract.calendarSchemas.eventMutation.previewRequired, true);
   assert.equal(integrationContract.calendarSchemas.eventMutation.automaticReschedule, false);
-  assert.equal(integrationContract.releaseStates.integratedCentral, false);
+  assert.equal(integrationContract.releaseStates.integratedCentral, true);
   assert.equal(integrationContract.releaseStates.deployedPublic, true);
   assert.equal(integrationContract.releaseStates.productionSigned, false);
   assert.ok(testVectors.vectors.some((vector) => vector.id === "CAL-X-003" && vector.status === "local-pass"));

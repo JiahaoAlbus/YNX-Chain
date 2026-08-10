@@ -1,11 +1,12 @@
 {
   "contractVersion": "1.0.0-draft",
-  "status": "public-testnet-preview-partially-integrated",
+  "status": "public-testnet-preview-central-integrated",
   "owner": "36-calendar",
   "productId": "com.ynx.calendar",
   "productClientId": "ynx-calendar-v1",
   "bundleId": "com.ynxweb4.calendar",
   "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "centralMergeCommit": "826093efff8271edb7ae5b3e612d8d48c64b427b",
   "generatedAt": "2026-08-08T18:57:46Z",
   "authority": {
     "calendarState": "36-calendar",
@@ -190,7 +191,7 @@
     {"owner": "25-mail", "requirement": "invitation/reminder delivery envelope", "state": "pending-contract"},
     {"owner": "26-data-fabric", "requirement": "canonical event transport", "state": "pending-contract"},
     {"owner": "28-website", "requirement": "/calendar metadata and public page", "state": "published-public-catalog-entry"},
-    {"owner": "29-integration", "requirement": "contract freeze and shared Testnet", "state": "pending-acceptance"},
+    {"owner": "29-integration", "requirement": "contract freeze and shared Testnet", "state": "central-integrated-public-runtime-verified"},
     {"owner": "30-security-platform", "requirement": "artifact and public release gate", "state": "pending-acceptance"}
   ],
   "externalInputs": [
@@ -203,7 +204,7 @@
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": true,
     "downloadHosted": false,

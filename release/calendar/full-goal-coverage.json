@@ -285,15 +285,15 @@
       "requirement": "Merge and deploy the Calendar product registration and verify real central sign-in, introspection, recovery, expiry, and revocation.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["registry and verifier proposal exists", "integratedCentral remains false"],
+      "evidence": ["Calendar registry and verifier are merged at central commit 826093efff8271edb7ae5b3e612d8d48c64b427b", "the public Gateway advertises ynx-calendar-v1 and the exact approved Calendar tuple", "the public current-source Calendar runtime completed a canonical Wallet two-user lifecycle"],
       "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-      "tests": [],
-      "artifact": ["docs/handoffs/mail-calendar-central-integration.json"],
-      "publicProof": [],
-      "blockedBy": ["02-wallet-auth owner acceptance", "29-integration shared testnet"],
+      "tests": ["TestRemoteWalletVerifierUsesCentralContractAndRejectsTamper", "packages/wallet-auth: 109/109 tests"],
+      "artifact": ["docs/handoffs/mail-calendar-central-integration.json", "release/integration/calendar-contract.json"],
+      "publicProof": ["https://calendar-testnet.43.153.202.237.sslip.io/v1/health", "https://wallet-auth.ynxweb4.com/version"],
+      "blockedBy": ["public Calendar-specific recovery, expiry and revocation acceptance sequence remains to be recorded end-to-end"],
       "owner": "36-calendar",
-      "nextAction": "deliver the exact contract and negative vectors to owners 02 and 29",
-      "lastUpdated": "2026-07-27T14:39:45Z"
+      "nextAction": "record the remaining public Calendar-specific recovery, expiry and revocation sequence",
+      "lastUpdated": "2026-08-10T23:23:11Z"
     },
     {
       "id": "CAL-PERSIST-001",

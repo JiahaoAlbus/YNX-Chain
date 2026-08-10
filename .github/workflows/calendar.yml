@@ -1,0 +1,58 @@
+name: Calendar
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/integrate-finance-suite
+    paths:
+      - "apps/calendar/**"
+      - "internal/calendar/**"
+      - "release/calendar/**"
+      - "release/integration/calendar-contract.json"
+      - "packages/wallet-auth/**"
+      - ".github/workflows/calendar.yml"
+  pull_request:
+    paths:
+      - "apps/calendar/**"
+      - "internal/calendar/**"
+      - "release/calendar/**"
+      - "release/integration/calendar-contract.json"
+      - "packages/wallet-auth/**"
+      - ".github/workflows/calendar.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  calendar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/calendar/package-lock.json
+      - name: Verify Go service
+        run: |
+          go test ./internal/calendar ./apps/calendar/...
+          go test -race ./internal/calendar
+          go vet ./internal/calendar ./apps/calendar/...
+      - name: Verify Web, release evidence and builds
+        working-directory: apps/calendar
+        run: |
+          npm ci
+          npm test
+          npm run build
+          npm run build:statectl
+          npm run check:ios
+      - name: Verify canonical Wallet contract
+        working-directory: packages/wallet-auth
+        run: |
+          npm ci
+          npm test

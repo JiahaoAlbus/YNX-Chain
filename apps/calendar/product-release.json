@@ -17,7 +17,7 @@
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
-  "integratedCentral": false,
+  "integratedCentral": true,
   "deployedStaging": false,
   "deployedPublic": true,
   "downloadHosted": false,
@@ -238,6 +238,11 @@
     ]
   },
   "centralIntegration": "release/integration/calendar-contract.json",
+  "centralMerge": {
+    "branch": "codex/integrate-finance-suite",
+    "commit": "826093efff8271edb7ae5b3e612d8d48c64b427b",
+    "verifiedAt": "2026-08-10T23:23:11Z"
+  },
   "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
   "crossProductTestVectors": "release/calendar/cross-product-test-vectors.json",
   "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",

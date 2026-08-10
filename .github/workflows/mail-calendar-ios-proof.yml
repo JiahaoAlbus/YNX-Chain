@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - codex/ecosystem-mail-calendar
+      - codex/integrate-finance-suite
     paths:
       - "apps/mail/native/ios/**"
       - "apps/calendar/native/ios/**"
