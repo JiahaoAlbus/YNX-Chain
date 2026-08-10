@@ -28,7 +28,7 @@ func TestStateSchemaV8MigratesToV9AndRejectsTamper(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.state.SchemaVersion != 9 || s.state.QuantStrategyKills == nil {
+	if s.state.SchemaVersion != currentStateSchemaVersion || s.state.QuantStrategyKills == nil || s.state.RiskMarkets == nil || s.state.PerpetualOrders == nil {
 		t.Fatalf("migration state schema=%d quantStrategyKills=%v", s.state.SchemaVersion, s.state.QuantStrategyKills)
 	}
 	persistedJSON, err := os.ReadFile(path)
@@ -36,8 +36,8 @@ func TestStateSchemaV8MigratesToV9AndRejectsTamper(t *testing.T) {
 		t.Fatal(err)
 	}
 	var persisted persistentState
-	if json.Unmarshal(persistedJSON, &persisted) != nil || persisted.SchemaVersion != 9 || persisted.IntegrityHash == "" {
-		t.Fatalf("persisted v9 migration=%+v", persisted)
+	if json.Unmarshal(persistedJSON, &persisted) != nil || persisted.SchemaVersion != currentStateSchemaVersion || persisted.IntegrityHash == "" {
+		t.Fatalf("persisted current migration=%+v", persisted)
 	}
 
 	tamperedPath := filepath.Join(dir, "legacy-v8-tampered.json")
