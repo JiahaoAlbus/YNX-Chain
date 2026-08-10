@@ -3,10 +3,10 @@
   "productId": "ynx-exchange-pro",
   "name": "YNX Exchange Pro",
   "branch": "codex/exchange-brace-expansion-5-0-8",
-  "sourceCommit": "6408dc838057db7fb86bccaa93e42f566792c92c",
-  "commit": "6408dc838057db7fb86bccaa93e42f566792c92c",
+  "sourceCommit": "fe6fad3c723f36b3f7bb4ba7aa3944a1e7ff511d",
+  "commit": "fe6fad3c723f36b3f7bb4ba7aa3944a1e7ff511d",
   "version": "0.1.0-testnet",
-  "stateSchemaVersion": 9,
+  "stateSchemaVersion": 10,
   "surfaces": [
     "web-desktop",
     "web-mobile",
@@ -15,6 +15,7 @@
     "user-websocket",
     "drop-copy-websocket",
     "quant-execution-adapter"
+    ,"margin-perpetual-risk-engine"
   ],
   "implementedLocal": true,
   "testedLocal": true,
@@ -64,8 +65,8 @@
     "quantKill": "wallet-signed-persistent-nonce-domain-revocation-testedLocal",
     "quantPauseResume": "separately-wallet-signed-persistent-public-testnet",
     "quantAggregateCapital": "restart-persistent-testedLocal",
-    "margin": "notImplemented",
-    "perpetual": "notImplemented",
+    "margin": "isolated-collateral-transfer-and-accounting-testedLocal",
+    "perpetual": "oracle-gated-CLOB-positions-funding-liquidation-waterfall-testedLocal",
     "ultraLiquidity": "native-CLOB-plus-consensus-DEX-executable-quote-routing-testedLocal; signed-cross-venue-execution-pending",
     "solvencyProof": "liability-Merkle-and-conditional-committed-custody-proof-testedLocal"
   },
@@ -74,8 +75,8 @@
     "No hosted download, production signature, notarization or store release",
     "Pause and resume require separate Wallet control signatures; kill remains irreversible for the exact nonce domain",
     "Real historical schema v2-v7 byte fixtures are absent and compatibility is not claimed",
-    "Margin, perpetual, portfolio margin, signed cross-venue execution, non-CLOB/CPMM venue adapters and insurance fund are not implemented",
-    "The liability-proof and UltraLiquidity quote-router source commit is tested locally but not deployed; the public URL still serves the prior source commit",
+    "Portfolio margin, signed cross-venue execution and non-CLOB/CPMM venue adapters are not implemented",
+    "The liability-proof, UltraLiquidity and Margin/Perpetual source commit is tested locally but not deployed; the public URL still serves the prior source commit",
     "Repository-wide tests are blocked outside Exchange ownership by missing generated contract artifacts and key-permission assumptions"
   ],
   "publicRuntimeEvidence": {

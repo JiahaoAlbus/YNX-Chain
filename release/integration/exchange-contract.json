@@ -3,8 +3,8 @@
   "contractVersion": "1.0.0-testnet",
   "product": "ynx-exchange",
   "owner": "07-exchange",
-  "sourceCommit": "6408dc838057db7fb86bccaa93e42f566792c92c",
-  "stateSchemaVersion": 9,
+  "sourceCommit": "fe6fad3c723f36b3f7bb4ba7aa3944a1e7ff511d",
+  "stateSchemaVersion": 10,
   "authority": {
     "exchangeOwned": [
       "spot order state",
@@ -13,6 +13,7 @@
       "execution event sequence and hash chain",
       "quant mandate enforcement and strategy kill state"
       ,"liability Merkle commitment and account-scoped inclusion proofs"
+      ,"isolated margin, perpetual positions, funding, liquidation and insurance state"
     ],
     "externalOwners": {
       "walletIdentityAndSession": "02-wallet-auth",
@@ -70,6 +71,9 @@
     "ynx-quant-execution-adapter-v1",
     "ynx-quant-strategy-kill-v1",
     "ynx-quant-strategy-control-v1"
+    ,"ynx-exchange-margin-transfer-v1"
+    ,"ynx-exchange-perpetual-order-v1"
+    ,"ynx-exchange-perpetual-cancel-v1"
   ],
   "httpApi": {
     "health": ["GET /health", "GET /ready", "GET /metrics", "GET /version"],
@@ -82,6 +86,9 @@
       "GET /v1/ws/market",
       "GET /v1/solvency",
       "GET /v1/liquidity/quote"
+      ,"GET /v1/risk"
+      ,"GET /v1/risk/policy"
+      ,"GET /v1/perpetual/orderbook"
     ],
     "account": [
       "GET /v1/account",
@@ -90,6 +97,8 @@
       "POST /v1/deposits",
       "POST /v1/deposits/{id}/refresh",
       "POST /v1/withdrawals/review"
+      ,"GET /v1/margin/account"
+      ,"POST /v1/margin/transfer"
     ],
     "orders": [
       "POST /v1/orders",
@@ -105,6 +114,8 @@
       "POST /v1/scale",
       "POST /v1/scale/{id}/cancel",
       "PUT /v1/dead-man"
+      ,"POST /v1/perpetual/orders"
+      ,"POST /v1/perpetual/orders/{id}/cancel"
     ],
     "privateStreams": [
       "GET /v1/streams/user/snapshot",

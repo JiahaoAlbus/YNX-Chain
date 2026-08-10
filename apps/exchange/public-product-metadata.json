@@ -3,22 +3,23 @@
   "productId": "ynx-exchange",
   "name": "YNX Exchange",
   "aliases": ["YNX Exchange Pro", "YNX Exchange Mobile"],
-  "sourceCommit": "6408dc838057db7fb86bccaa93e42f566792c92c",
+  "sourceCommit": "fe6fad3c723f36b3f7bb4ba7aa3944a1e7ff511d",
   "canonicalRoute": "/products/exchange",
   "seo": {
     "title": "YNX Exchange — Deterministic Testnet Trading",
-    "metaDescription": "Explore YNX Exchange, a deterministic testnet spot venue with a native order book, advanced execution controls and a bounded Quant Execution Adapter.",
+    "metaDescription": "Explore YNX Exchange, a deterministic testnet spot and perpetual venue with wallet-authorized execution, Oracle-gated risk and transparent solvency evidence.",
     "h1": "Deterministic testnet execution, with explicit risk boundaries",
     "robotsRecommendation": "index only after Website owner publishes an accurate product page",
     "structuredDataType": "SoftwareApplication"
   },
-  "summary": "YNX Exchange is a repository-owned testnet spot venue. It provides a deterministic price-time order book, Wallet-authorized execution, persistent audit/reconciliation and a bounded Quant Execution Adapter. It is not a production custody venue and does not claim public liquidity, volume or returns.",
+  "summary": "YNX Exchange is a repository-owned testnet spot and isolated-margin perpetual venue. It provides deterministic price-time order books, Wallet-authorized execution, Oracle-gated risk, persistent audit/reconciliation and a bounded Quant Execution Adapter. It is not a production custody venue and does not claim public liquidity, volume or returns.",
   "features": [
     "Deterministic fixed-point Spot CLOB with price-time priority",
     "Limit, protected Market IOC, Post-only, IOC, FOK, amend, stop, take-profit, trailing, OCO, TWAP, iceberg and scale execution",
     "Persistent Market, User and Drop Copy event streams",
     "Merkle-committed account liabilities with Wallet-scoped inclusion proofs and fail-closed committed custody evidence",
     "UltraLiquidity quote comparison across complete Native CLOB fills and attested committed consensus-DEX CPMM pools",
+    "Isolated YUSD_TEST margin with Wallet-signed transfers, Oracle-gated perpetual CLOB, positions, zero-sum funding and liquidation waterfall",
     "Wallet-signed dead-man switch, persistent Quant pause/resume and irreversible strategy kill",
     "Quant mandates with exact subaccount, market, methods, aggregate capital, expiry and nonce domain",
     "Responsive Web Pro terminal and separate Android/iOS mobile product"
@@ -39,8 +40,8 @@
     "Testnet venue only; YUSD_TEST is internal venue credit",
     "Public Testnet runtime is live; no hosted desktop download, production signature or store release is attested",
     "Central Wallet/Gateway, custody and authoritative Indexer acceptance remain pending",
-    "Margin, perpetual, portfolio margin, signed cross-venue execution, non-CLOB/CPMM venue adapters and insurance fund are not implemented",
-    "The current liability-proof and UltraLiquidity quote-router source is locally tested but not yet deployed; the public URL serves the previous runtime commit",
+    "Portfolio margin, signed cross-venue execution and non-CLOB/CPMM venue adapters are not implemented",
+    "The current liability-proof, UltraLiquidity quote-router and Margin/Perpetual source is locally tested but not yet deployed; the public URL serves the previous runtime commit",
     "No guaranteed liquidity, price, execution, profit or return",
     "Historical schema v2-v7 compatibility lacks immutable byte fixtures"
   ],
@@ -83,7 +84,7 @@
     },
     {
       "question": "Are margin and perpetual products available?",
-      "answer": "No. Margin, perpetual, portfolio-margin, liquidation and funding engines are not implemented and are not emulated."
+      "answer": "The source contains a locally tested Testnet isolated-margin and perpetual engine with Oracle policy, funding and liquidation. It is not yet deployed at the public runtime commit, and portfolio margin is not available."
     }
   ],
   "websiteIntegration": {
