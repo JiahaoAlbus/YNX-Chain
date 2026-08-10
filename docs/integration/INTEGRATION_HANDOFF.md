@@ -4,7 +4,7 @@
 
 - Owner: `07-exchange`
 - Public runtime source commit: `3cf00aeea07b23c9a5e7aa6aad168db502dc4744`
-- Latest locally tested source commit: `08308a8c1fa74dae5b25647ff5a6936e34bd57c6` (not yet deployed)
+- Latest locally tested source commit: `6408dc838057db7fb86bccaa93e42f566792c92c` (not yet deployed)
 - Contract: `release/integration/exchange-contract.json`
 - State schema: `9`
 - Current stage: `FREEZE` in progress
@@ -57,7 +57,7 @@ Provide an approved custody address and committed Indexer transfer proof contrac
 
 ### Integration owner
 
-Execute `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, freeze any conflicting scope/event/error definitions, and bind accepted evidence to the same source commit. Two-user shared Testnet acceptance cannot be recorded while Margin/Perp and UltraLiquidity are absent or while the locally tested liability/custody proof has not been deployed and independently verified.
+Execute `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, freeze any conflicting scope/event/error definitions, and bind accepted evidence to the same source commit. Two-user shared Testnet acceptance cannot be recorded while Margin/Perp and signed UltraLiquidity execution are absent or while the locally tested liability/custody and route-quote surfaces have not been deployed and independently verified.
 
 ### Security/SRE owner
 
@@ -80,6 +80,6 @@ Consume `apps/exchange/public-product-metadata.json`, preserve every release boo
 1. Add a separately signed persistent pause/resume state machine or keep it explicitly unsupported.
 2. Add atomic heterogeneous batch execution and cancel-vs-match stress vectors.
 3. Implement native Margin/Perp/risk primitives before exposing leverage/funding methods.
-4. Build UltraLiquidity adapters and total-execution-cost routing without synthetic liquidity.
+4. Extend the tested Native CLOB/consensus CPMM quote router with Wallet-signed atomic execution and CLMM/StableSwap/RFQ/solver/batch/CoW/JIT/vault/POL/cross-chain adapters; never synthesize unavailable liquidity or quote-asset equivalence.
 5. Deploy and independently verify the tested liability Merkle proof, committed custody balance and withdrawal-capacity surface; add insurance-fund and withdrawal-broadcast evidence.
 6. Complete real historical migration fixtures, rollback/export and remote restore drill.
