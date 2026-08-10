@@ -1,6 +1,7 @@
 package exchangeproduct
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -52,12 +53,24 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/markets", s.markets)
 	s.mux.HandleFunc("GET /v1/orderbook", s.book)
 	s.mux.HandleFunc("GET /v1/market-data/trades", s.marketTrades)
+	s.mux.HandleFunc("GET /v1/solvency", s.solvency)
+	s.mux.HandleFunc("GET /v1/solvency/liability-proof", s.liabilityProof)
+	s.mux.HandleFunc("GET /v1/liquidity/quote", s.liquidityQuote)
+	s.mux.HandleFunc("POST /v1/liquidity/execute", s.liquidityExecute)
+	s.mux.HandleFunc("GET /v1/risk", s.risk)
+	s.mux.HandleFunc("GET /v1/risk/policy", s.riskPolicy)
 	s.mux.HandleFunc("GET /v1/streams/market/snapshot", s.marketStreamSnapshot)
 	s.mux.HandleFunc("GET /v1/streams/user/snapshot", s.userStreamSnapshot)
 	s.mux.HandleFunc("GET /v1/ws/market", s.marketWebSocket)
 	s.mux.HandleFunc("GET /v1/ws/user", s.userWebSocket)
 	s.mux.HandleFunc("GET /v1/ws/drop-copy", s.dropCopyWebSocket)
 	s.mux.HandleFunc("GET /v1/account", s.account)
+	s.mux.HandleFunc("POST /v1/wallet/sessions/complete", s.completeWalletSession)
+	s.mux.HandleFunc("GET /v1/margin/account", s.marginAccount)
+	s.mux.HandleFunc("POST /v1/margin/transfer", s.marginTransfer)
+	s.mux.HandleFunc("GET /v1/perpetual/orderbook", s.perpetualBook)
+	s.mux.HandleFunc("POST /v1/perpetual/orders", s.perpetualOrder)
+	s.mux.HandleFunc("POST /v1/perpetual/orders/{id}/cancel", s.cancelPerpetualOrder)
 	s.mux.HandleFunc("POST /v1/deposit-intents", s.depositIntent)
 	s.mux.HandleFunc("POST /v1/deposits", s.deposit)
 	s.mux.HandleFunc("POST /v1/deposits/{id}/refresh", s.refreshDeposit)
@@ -90,6 +103,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("POST /v1/quant-adapter/scale/{id}/cancel", s.quantCancelScale)
 	s.mux.HandleFunc("POST /v1/quant-adapter/orders/{id}/cancel", s.quantCancel)
 	s.mux.HandleFunc("POST /v1/quant-adapter/mass-cancel", s.quantMassCancel)
+	s.mux.HandleFunc("POST /v1/quant-adapter/control", s.quantControl)
 	s.mux.HandleFunc("POST /v1/quant-adapter/kill", s.quantKill)
 	s.mux.HandleFunc("POST /v1/quant-adapter/reconcile", s.quantReconcile)
 	s.mux.HandleFunc("PUT /v1/security", s.security)
@@ -97,6 +111,9 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("POST /v1/ai/drafts", s.ai)
 	s.mux.HandleFunc("POST /v1/ai/drafts/{id}/actions", s.aiAction)
 	s.mux.HandleFunc("POST /v1/admin/test-credits", s.testCredits)
+	s.mux.HandleFunc("POST /v1/admin/risk/oracle/refresh", s.refreshRiskOracle)
+	s.mux.HandleFunc("POST /v1/admin/perpetual/funding/settle", s.settlePerpetualFunding)
+	s.mux.HandleFunc("POST /v1/admin/perpetual/liquidations/run", s.runPerpetualLiquidations)
 	return s
 }
 
@@ -113,7 +130,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Request-ID", requestID)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
-	if !s.allowPeer(r.RemoteAddr, time.Now().UTC()) {
+	if !s.allowPeer(clientPeer(r), time.Now().UTC()) {
 		w.Header().Set("Retry-After", "60")
 		writeError(w, http.StatusTooManyRequests, "rate_limited", "request rate limit exceeded")
 		s.requests.Add(1)
@@ -179,6 +196,23 @@ func (s *Server) allowPeer(remoteAddr string, now time.Time) bool {
 	return window.count <= 300
 }
 
+func clientPeer(r *http.Request) string {
+	peer := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		peer = host
+	}
+	parsed := net.ParseIP(peer)
+	if parsed == nil || !parsed.IsLoopback() {
+		return peer
+	}
+	forwarded := strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0]
+	forwarded = strings.TrimSpace(forwarded)
+	if candidate := net.ParseIP(forwarded); candidate != nil {
+		return candidate.String()
+	}
+	return peer
+}
+
 type statusRecorder struct {
 	http.ResponseWriter
 	status int
@@ -216,7 +250,11 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"status": "not_ready", "stateIntegrity": false, "schemaVersion": schema, "expectedSchemaVersion": currentStateSchemaVersion})
 		return
 	}
-	writeJSON(w, 200, map[string]any{"status": "ready_local_engine", "stateIntegrity": true, "schemaVersion": schema, "integrations": s.service.Integrations(), "deployedPublic": false})
+	status := "ready_local_engine"
+	if s.service.cfg.DeployedPublic {
+		status = "ready_public_testnet"
+	}
+	writeJSON(w, 200, map[string]any{"status": status, "stateIntegrity": true, "schemaVersion": schema, "integrations": s.service.Integrations(), "deployedPublic": s.service.cfg.DeployedPublic})
 }
 func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
@@ -236,6 +274,58 @@ func (s *Server) markets(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"markets": Markets(), "source": "YNX-owned deterministic order state only"})
 }
 func (s *Server) book(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Book()) }
+
+func (s *Server) solvency(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.SolvencySnapshot())
+}
+
+func (s *Server) liabilityProof(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:read")
+	if !ok {
+		return
+	}
+	asset := strings.TrimSpace(r.URL.Query().Get("asset"))
+	if asset == "" {
+		asset = NativeAsset
+	}
+	proof, err := s.service.LiabilityProof(session.Account, asset)
+	respond(w, proof, err, http.StatusOK)
+}
+
+func (s *Server) liquidityQuote(w http.ResponseWriter, r *http.Request) {
+	quote, err := s.service.LiquidityQuote(liquidityRequestFromQuery(r.URL.Query()))
+	respond(w, quote, err, http.StatusOK)
+}
+
+func (s *Server) liquidityExecute(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:trade")
+	if !ok {
+		return
+	}
+	var q LiquidityExecutionRequest
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.service.ExecuteLiquidityRoute(session, q)
+	respond(w, v, err, http.StatusOK)
+}
+
+func (s *Server) risk(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.RiskSnapshot())
+}
+
+func (s *Server) riskPolicy(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, PerpetualPolicy())
+}
+
+func (s *Server) refreshRiskOracle(w http.ResponseWriter, r *http.Request) {
+	if !s.service.Authorized(r.Header.Get("Authorization")) {
+		respond(w, nil, ErrUnauthorized, http.StatusOK)
+		return
+	}
+	snapshot, err := s.service.RefreshRiskOracle()
+	respond(w, snapshot, err, http.StatusOK)
+}
 func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "externalPrice": false, "trades": s.service.PublicTrades(1000)})
 }
@@ -360,6 +450,52 @@ func (s *Server) account(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, 200, s.service.Snapshot(session.Account))
+}
+func (s *Server) marginAccount(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:read")
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, s.service.MarginSnapshot(session.Account))
+}
+func (s *Server) marginTransfer(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:trade")
+	if !ok {
+		return
+	}
+	var q MarginTransferRequest
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.service.TransferMarginCollateral(session, q)
+	respond(w, v, err, http.StatusOK)
+}
+func (s *Server) perpetualBook(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.PerpetualBook())
+}
+func (s *Server) perpetualOrder(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:trade")
+	if !ok {
+		return
+	}
+	var q PlacePerpetualOrderRequest
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.service.PlacePerpetualOrder(session, q)
+	respond(w, v, err, http.StatusCreated)
+}
+func (s *Server) cancelPerpetualOrder(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:trade")
+	if !ok {
+		return
+	}
+	var q CancelPerpetualOrderRequest
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.service.CancelPerpetualOrder(session, r.PathValue("id"), q)
+	respond(w, v, err, http.StatusOK)
 }
 func (s *Server) depositIntent(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.auth(w, r, "exchange:deposit")
@@ -590,7 +726,7 @@ func (s *Server) quantCapabilities(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantAccount(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:read")
+	session, ok := s.authQuant(w, r, "quant:mandate:create")
 	if !ok {
 		return
 	}
@@ -605,7 +741,7 @@ func (s *Server) quantAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantBook(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:read")
+	session, ok := s.authQuant(w, r, "quant:account")
 	if !ok {
 		return
 	}
@@ -620,7 +756,7 @@ func (s *Server) quantBook(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantSubmit(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -636,7 +772,7 @@ func (s *Server) quantSubmit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantCancel(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -653,7 +789,7 @@ func (s *Server) quantCancel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantAmend(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -669,7 +805,7 @@ func (s *Server) quantAmend(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantConditional(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -685,7 +821,7 @@ func (s *Server) quantConditional(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantCancelConditional(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -702,7 +838,7 @@ func (s *Server) quantCancelConditional(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) quantOCO(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -718,7 +854,7 @@ func (s *Server) quantOCO(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantTWAP(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -734,7 +870,7 @@ func (s *Server) quantTWAP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantCancelTWAP(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -751,7 +887,7 @@ func (s *Server) quantCancelTWAP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantIceberg(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -767,7 +903,7 @@ func (s *Server) quantIceberg(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantScale(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -783,7 +919,7 @@ func (s *Server) quantScale(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) quantCancelScale(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -807,8 +943,26 @@ func (s *Server) quantKill(w http.ResponseWriter, r *http.Request) {
 	s.quantMassCancelAction(w, r, true)
 }
 
+func (s *Server) quantControl(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
+	if !ok {
+		return
+	}
+	var q struct {
+		Mandate         QuantMandate `json:"mandate"`
+		Action          string       `json:"action"`
+		IdempotencyKey  string       `json:"idempotencyKey"`
+		WalletSignature string       `json:"walletSignature"`
+	}
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.quant.Control(session, q.Mandate, q.Action, q.IdempotencyKey, q.WalletSignature)
+	respond(w, v, err, 200)
+}
+
 func (s *Server) quantMassCancelAction(w http.ResponseWriter, r *http.Request, kill bool) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.authQuant(w, r, "quant:mandate:execute")
 	if !ok {
 		return
 	}
@@ -831,7 +985,7 @@ func (s *Server) quantMassCancelAction(w http.ResponseWriter, r *http.Request, k
 }
 
 func (s *Server) quantReconcile(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:read")
+	session, ok := s.authQuant(w, r, "quant:account")
 	if !ok {
 		return
 	}
@@ -915,13 +1069,55 @@ func (s *Server) testCredits(w http.ResponseWriter, r *http.Request) {
 	v, err := s.service.CreditTestQuote(r.Header.Get("Authorization"), q.Account, q.AmountMicro, q.IdempotencyKey)
 	respond(w, v, err, 201)
 }
+func (s *Server) settlePerpetualFunding(w http.ResponseWriter, r *http.Request) {
+	if !s.service.Authorized(r.Header.Get("Authorization")) {
+		respond(w, nil, ErrUnauthorized, http.StatusOK)
+		return
+	}
+	v, err := s.service.SettlePerpetualFunding()
+	respond(w, v, err, http.StatusOK)
+}
+func (s *Server) runPerpetualLiquidations(w http.ResponseWriter, r *http.Request) {
+	if !s.service.Authorized(r.Header.Get("Authorization")) {
+		respond(w, nil, ErrUnauthorized, http.StatusOK)
+		return
+	}
+	v, err := s.service.RunPerpetualLiquidations()
+	respond(w, v, err, http.StatusOK)
+}
 func (s *Server) auth(w http.ResponseWriter, r *http.Request, scope string) (WalletSession, bool) {
-	v, err := s.service.Authenticate(r.Header.Get("Authorization"), scope)
+	v, err := s.service.Authenticate(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
 	if err != nil {
 		respond(w, nil, err, 200)
 		return WalletSession{}, false
 	}
 	return v, true
+}
+
+func (s *Server) authQuant(w http.ResponseWriter, r *http.Request, scope string) (WalletSession, bool) {
+	v, err := s.service.AuthenticateQuant(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
+	if err != nil {
+		respond(w, nil, err, 200)
+		return WalletSession{}, false
+	}
+	return v, true
+}
+
+func (s *Server) completeWalletSession(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 256<<10)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_body", "Wallet session completion body is invalid")
+		return
+	}
+	payload, status, err := s.service.CompleteCentralSession(body)
+	if err != nil {
+		respond(w, nil, err, http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = w.Write(payload)
 }
 
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
@@ -1002,27 +1198,29 @@ type HTTPGatewayAuthorizer struct {
 	Client  *http.Client
 }
 
-func (g HTTPGatewayAuthorizer) Authorize(token, scope, clientID string) (WalletSession, error) {
-	if token == "" || scope == "" || clientID == "" {
+func (g HTTPGatewayAuthorizer) Authorize(proof, scope, clientID, bundleID string) (WalletSession, error) {
+	if proof == "" || scope == "" || clientID == "" || bundleID == "" {
 		return WalletSession{}, ErrUnauthorized
 	}
 	client := g.Client
 	if client == nil {
 		client = http.DefaultClient
 	}
-	body, _ := json.Marshal(map[string]string{"productClientId": clientID, "scope": scope})
-	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(g.BaseURL, "/")+"/v1/sessions/introspect", strings.NewReader(string(body)))
+	body, _ := json.Marshal(struct {
+		RequiredScopes []string `json:"requiredScopes"`
+	}{RequiredScopes: []string{scope}})
+	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(g.BaseURL, "/")+"/v1/wallet/sessions/introspect", bytes.NewReader(body))
 	if err != nil {
 		return WalletSession{}, ErrUnavailable
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-YNX-Product-Session-Proof", proof)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
 		return WalletSession{}, ErrUnavailable
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode == http.StatusUnauthorized {
+	if resp.StatusCode == http.StatusBadRequest || resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusConflict {
 		return WalletSession{}, ErrUnauthorized
 	}
 	if resp.StatusCode == http.StatusForbidden {
@@ -1031,21 +1229,28 @@ func (g HTTPGatewayAuthorizer) Authorize(token, scope, clientID string) (WalletS
 	if resp.StatusCode != http.StatusOK {
 		return WalletSession{}, ErrUnavailable
 	}
-	var v struct {
-		VerifierVersion  string   `json:"verifierVersion"`
-		ProductClientID  string   `json:"productClientId"`
-		BundleID         string   `json:"bundleId"`
-		Account          string   `json:"account"`
-		AccountPublicKey string   `json:"accountPublicKey"`
-		ExpiresAt        string   `json:"expiresAt"`
-		Scopes           []string `json:"scopes"`
+	var envelope struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			Active  bool `json:"active"`
+			Session struct {
+				VerifierVersion  string   `json:"verifierVersion"`
+				ProductClientID  string   `json:"productClientId"`
+				BundleID         string   `json:"bundleId"`
+				Account          string   `json:"account"`
+				AccountPublicKey string   `json:"accountPublicKey"`
+				ExpiresAt        string   `json:"expiresAt"`
+				Scopes           []string `json:"scopes"`
+			} `json:"session"`
+		} `json:"result"`
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&v); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&envelope); err != nil || !envelope.OK || !envelope.Result.Active {
 		return WalletSession{}, ErrUnavailable
 	}
+	v := envelope.Result.Session
 	account, err := nativewallet.NormalizeNativeAddress(v.Account)
 	derived, keyErr := walletAccount(v.AccountPublicKey)
-	if err != nil || keyErr != nil || derived != account || v.VerifierVersion != "wallet-auth-v1" || v.ProductClientID != clientID || v.BundleID != "com.ynxweb4.exchange" {
+	if err != nil || keyErr != nil || derived != account || v.VerifierVersion != "wallet-auth-v1" || v.ProductClientID != clientID || v.BundleID != bundleID {
 		return WalletSession{}, ErrUnauthorized
 	}
 	expires, err := time.Parse(time.RFC3339Nano, v.ExpiresAt)
@@ -1063,6 +1268,28 @@ func (g HTTPGatewayAuthorizer) Authorize(token, scope, clientID string) (WalletS
 		return WalletSession{}, ErrForbidden
 	}
 	return WalletSession{Account: account, WalletPublicKey: v.AccountPublicKey, Scopes: append([]string(nil), v.Scopes...), ExpiresAt: expires}, nil
+}
+
+func (g HTTPGatewayAuthorizer) CompleteSession(body []byte) ([]byte, int, error) {
+	client := g.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(g.BaseURL, "/")+"/v1/wallet/sessions/complete", bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, ErrUnavailable
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, 0, ErrUnavailable
+	}
+	defer resp.Body.Close()
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, 256<<10))
+	if err != nil || len(payload) == 0 || !json.Valid(payload) {
+		return nil, 0, ErrUnavailable
+	}
+	return payload, resp.StatusCode, nil
 }
 
 func walletAccount(publicKeyHex string) (string, error) {
@@ -1112,6 +1339,31 @@ func (r IndexerChainReader) Transfer(hash string) (ChainTransfer, error) {
 		return ChainTransfer{}, fmt.Errorf("chain amount cannot be represented by the venue's six-decimal ledger")
 	}
 	return ChainTransfer{Hash: tx.Hash, From: tx.From, To: tx.To, AmountMicro: tx.Amount * AmountScale, Confirmations: confirmations, Committed: tx.BlockNum > 0}, nil
+}
+
+func (r IndexerChainReader) AccountBalance(address string) (ChainBalance, error) {
+	client := r.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	base := strings.TrimRight(r.BaseURL, "/")
+	var account struct {
+		Address string `json:"address"`
+		Balance int64  `json:"balance"`
+	}
+	if err := getJSON(client, base+"/accounts/"+url.PathEscape(address), &account); err != nil {
+		return ChainBalance{}, err
+	}
+	var overview struct {
+		Height uint64 `json:"height"`
+	}
+	if err := getJSON(client, base+"/ynx/overview", &overview); err != nil {
+		return ChainBalance{}, err
+	}
+	if account.Balance < 0 || account.Balance > (1<<63-1)/AmountScale {
+		return ChainBalance{}, fmt.Errorf("chain balance cannot be represented by the venue's six-decimal ledger")
+	}
+	return ChainBalance{Address: address, Asset: NativeAsset, AmountMicro: account.Balance * AmountScale, CommittedHeight: overview.Height, Source: base + "/accounts/{custody}"}, nil
 }
 func getJSON(client *http.Client, url string, out any) error {
 	resp, err := client.Get(url)

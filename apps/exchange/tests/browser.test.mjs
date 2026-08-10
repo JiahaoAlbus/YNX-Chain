@@ -29,7 +29,8 @@ test('desktop terminal is truthful, keyboard reachable and structurally dense',a
   assert.equal(await page.getByText('TESTNET ONLY').count(),1);
   const chart=await page.locator('.chart').boundingBox(),book=await page.locator('.book').boundingBox(),order=await page.locator('.order-entry').boundingBox();
   assert.ok(chart&&book&&order&&chart.y===book.y&&book.y===order.y,'desktop panels should share the terminal row');
-  await page.keyboard.press('Tab');assert.equal(await page.locator('.skip').evaluate(el=>el===document.activeElement),true);
+  await page.keyboard.press('Tab');assert.equal(await page.locator('.skip').evaluate(el=>el===document.activeElement),true);await page.evaluate(()=>document.activeElement?.blur());
+  await page.getByRole('button',{name:'Compare executable costs'}).click();await page.getByText('No complete executable route').waitFor();assert.equal(await page.locator('.route-candidate.unavailable').count(),2);
 	assert.equal(errors.length,0,errors.join('\n'));await page.evaluate(()=>document.activeElement?.blur());await page.screenshot({path:path.join(evidence,'desktop.png'),fullPage:true});await page.close();
 });
 

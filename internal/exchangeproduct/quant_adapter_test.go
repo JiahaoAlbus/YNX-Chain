@@ -162,3 +162,68 @@ func TestQuantAdapterMandateAndForbiddenCapabilityBoundary(t *testing.T) {
 		}
 	}
 }
+
+func TestQuantStrategyPauseResumeIsSignedPersistentAndKillRemainsFinal(t *testing.T) {
+	s, chain, _ := newTestService(t)
+	owner := accountSession(t, s, alice, "quant-control-owner", "exchange:read", "exchange:trade")
+	confirmDeposit(t, s, chain, owner, "abababababababab", 10*AmountScale)
+	adapter := NewQuantExecutionAdapter(s)
+	mandate := signedQuantMandate(t, s, owner, "submit", "control", "kill", "reconcile")
+	mandate.CapitalMicro = 20 * AmountScale
+	mandate.NonceDomain = "quant:control:session-1"
+	mandate.WalletSignature = signAction(owner.private, QuantMandatePayload(mandate))
+
+	placeRequest := func(key string) PlaceOrderRequest {
+		req := PlaceOrderRequest{Market: DefaultMarket, Side: "sell", Type: "limit", PriceMicro: 2 * AmountScale, AmountMicro: AmountScale, IdempotencyKey: key}
+		req.WalletSignature = signAction(owner.private, OrderAuthorizationPayload(owner.account, req))
+		return req
+	}
+	if order, err := adapter.Submit(owner.session, mandate, placeRequest("quant-control-order-1")); err != nil || order.Status != "open" {
+		t.Fatalf("initial order=%+v err=%v", order, err)
+	}
+	pauseKey := "quant-control-pause-1"
+	badSignature := signAction(owner.private, MassCancelAuthorizationPayload(owner.account, DefaultMarket, pauseKey))
+	if _, err := adapter.Control(owner.session, mandate, "pause", pauseKey, badSignature); err != ErrUnauthorized {
+		t.Fatalf("mass-cancel signature accepted for pause: %v", err)
+	}
+	pauseSignature := signAction(owner.private, QuantControlAuthorizationPayload(owner.account, DefaultMarket, mandate.NonceDomain, "pause", pauseKey))
+	paused, err := adapter.Control(owner.session, mandate, "pause", pauseKey, pauseSignature)
+	if err != nil || paused.Status != "paused" || paused.Cancelled.Count != 1 {
+		t.Fatalf("pause=%+v err=%v", paused, err)
+	}
+	if replay, err := adapter.Control(owner.session, mandate, "pause", pauseKey, pauseSignature); err != nil || replay.Status != "paused" || replay.Cancelled.Count != 1 {
+		t.Fatalf("pause replay=%+v err=%v", replay, err)
+	}
+	if _, err := adapter.Submit(owner.session, mandate, placeRequest("quant-control-blocked-1")); err != ErrForbidden {
+		t.Fatalf("paused strategy submitted: %v", err)
+	}
+	restarted, err := New(s.cfg)
+	if err != nil {
+		t.Fatalf("restart paused state: %v", err)
+	}
+	restartedAdapter := NewQuantExecutionAdapter(restarted)
+	if state, err := restartedAdapter.Reconcile(owner.session, mandate); err != nil || state.StrategyStatus != "paused" || state.ExposureMicro != 0 {
+		t.Fatalf("paused reconciliation=%+v err=%v", state, err)
+	}
+	resumeKey := "quant-control-resume-1"
+	resumeSignature := signAction(owner.private, QuantControlAuthorizationPayload(owner.account, DefaultMarket, mandate.NonceDomain, "resume", resumeKey))
+	if resumed, err := restartedAdapter.Control(owner.session, mandate, "resume", resumeKey, resumeSignature); err != nil || resumed.Status != "active" {
+		t.Fatalf("resume=%+v err=%v", resumed, err)
+	}
+	if replay, err := restartedAdapter.Control(owner.session, mandate, "resume", resumeKey, resumeSignature); err != nil || replay.Status != "active" {
+		t.Fatalf("resume replay=%+v err=%v", replay, err)
+	}
+	if order, err := restartedAdapter.Submit(owner.session, mandate, placeRequest("quant-control-order-2")); err != nil || order.Status != "open" {
+		t.Fatalf("post-resume order=%+v err=%v", order, err)
+	}
+	killKey := "quant-control-kill-1"
+	killSignature := signAction(owner.private, QuantKillAuthorizationPayload(owner.account, DefaultMarket, mandate.NonceDomain, killKey))
+	if _, err := restartedAdapter.Kill(owner.session, mandate, killKey, killSignature); err != nil {
+		t.Fatalf("kill after resume: %v", err)
+	}
+	finalResumeKey := "quant-control-resume-2"
+	finalResumeSignature := signAction(owner.private, QuantControlAuthorizationPayload(owner.account, DefaultMarket, mandate.NonceDomain, "resume", finalResumeKey))
+	if _, err := restartedAdapter.Control(owner.session, mandate, "resume", finalResumeKey, finalResumeSignature); err != ErrConflict {
+		t.Fatalf("killed strategy resumed: %v", err)
+	}
+}

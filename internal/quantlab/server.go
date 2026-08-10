@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"strings"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/exchangeproduct"
 )
 
 type Server struct {
@@ -27,6 +29,8 @@ func NewServer(s *Service) *Server {
 	v.mux.HandleFunc("POST /v1/risk/kill", v.kill)
 	v.mux.HandleFunc("POST /v1/testnet/mandates", v.mandate)
 	v.mux.HandleFunc("POST /v1/testnet/orders", v.testnet)
+	v.mux.HandleFunc("POST /v1/testnet/signing-payloads/mandate", v.mandatePayload)
+	v.mux.HandleFunc("POST /v1/testnet/signing-payloads/order", v.orderPayload)
 	return v
 }
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -120,12 +124,21 @@ func (s *Server) mandate(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.RegisterMandate(q)
+	v, e := s.service.RegisterMandate(q, exchangeSession(r))
 	respond(w, v, e, 201)
 }
-func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
+func (s *Server) mandatePayload(w http.ResponseWriter, r *http.Request) {
+	var q Mandate
+	if !decode(w, r, &q) {
+		return
+	}
+	payload := exchangeproduct.QuantMandatePayload(exchangeMandate(q))
+	write(w, 200, map[string]string{"domain": exchangeproduct.QuantAdapterVersion, "payload": string(payload), "digest": hashBytes(payload)})
+}
+func (s *Server) orderPayload(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		MandateDigest  string `json:"mandateDigest"`
+		Account        string `json:"account"`
+		Market         string `json:"market"`
 		Side           string `json:"side"`
 		Price          int64  `json:"price"`
 		Amount         int64  `json:"amount"`
@@ -134,8 +147,27 @@ func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.SubmitTestnet(q.MandateDigest, q.Side, q.Price, q.Amount, q.IdempotencyKey)
+	req := exchangeproduct.PlaceOrderRequest{Market: q.Market, Side: q.Side, Type: "limit", TimeInForce: "gtc", PriceMicro: q.Price, AmountMicro: q.Amount, IdempotencyKey: q.IdempotencyKey}
+	payload := exchangeproduct.OrderAuthorizationPayload(strings.TrimSpace(q.Account), req)
+	write(w, 200, map[string]string{"domain": "ynx-exchange-order-v1", "payload": string(payload), "digest": hashBytes(payload)})
+}
+func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		MandateDigest   string `json:"mandateDigest"`
+		Side            string `json:"side"`
+		Price           int64  `json:"price"`
+		Amount          int64  `json:"amount"`
+		IdempotencyKey  string `json:"idempotencyKey"`
+		WalletSignature string `json:"walletSignature"`
+	}
+	if !decode(w, r, &q) {
+		return
+	}
+	v, e := s.service.SubmitTestnet(q.MandateDigest, q.Side, q.Price, q.Amount, q.IdempotencyKey, q.WalletSignature, exchangeSession(r))
 	respond(w, v, e, 201)
+}
+func exchangeSession(r *http.Request) string {
+	return strings.TrimSpace(r.Header.Get("X-YNX-Exchange-Session"))
 }
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 8<<20)

@@ -208,10 +208,42 @@
             <strong data-i18n="failClosed">Fail closed</strong>
             <p data-i18n="mandateBoundary">
               Requires a canonical Wallet-signed mandate binding strategy hash,
-              market, notional, position, daily loss and expiry. No central
-              registration is present, so testnet execution is unavailable.
+              market, capital, position, daily loss and expiry. Each order also
+              requires its own Wallet signature and user-scoped Exchange session.
               Real-money auto-trading is structurally disabled.
             </p>
+          </div>
+          <div class="split testnet-workspace">
+            <form id="mandate-form">
+              <h3>1 · Register Wallet mandate</h3>
+              <p class="lead">Nothing is signed by this server. Preview the exact payload, sign it in a compatible YNX Wallet, then register it through your own short-lived Exchange session.</p>
+              <div class="fields">
+                <label>YNX account<input id="mandate-account" autocomplete="off" required /></label>
+                <label>Strategy hash<input id="mandate-strategy" minlength="64" maxlength="64" required /></label>
+                <label>Capital (micro)<input id="mandate-capital" type="number" value="2000000" min="1" required /></label>
+                <label>Max position (micro)<input id="mandate-position" type="number" value="2000000" min="1" required /></label>
+                <label>Max daily loss (micro)<input id="mandate-loss" type="number" value="500000" min="1" required /></label>
+                <label>Expires in minutes<input id="mandate-expiry" type="number" value="60" min="1" max="1440" required /></label>
+                <label class="wide">Exchange session token<input id="exchange-session" type="password" autocomplete="off" required /></label>
+                <label class="wide">Wallet mandate signature<input id="mandate-signature" type="password" autocomplete="off" required /></label>
+              </div>
+              <div class="actions"><button id="preview-mandate" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Register mandate</button></div>
+              <pre id="mandate-payload" class="payload" hidden></pre>
+            </form>
+            <form id="testnet-order-form">
+              <h3>2 · Submit independently signed order</h3>
+              <p class="lead">The order signature is separate from the mandate. Price and amount use six-decimal micro units; the Exchange enforces mandate capital and idempotency.</p>
+              <div class="fields">
+                <label>Mandate digest<input id="order-mandate" minlength="64" maxlength="64" required /></label>
+                <label>Side<select id="order-side"><option>buy</option><option>sell</option></select></label>
+                <label>Limit price (micro)<input id="order-price" type="number" value="1000000" min="1" required /></label>
+                <label>Amount (micro)<input id="order-amount" type="number" value="1000000" min="1" required /></label>
+                <label class="wide">Idempotency key<input id="order-key" minlength="8" maxlength="128" required /></label>
+                <label class="wide">Wallet order signature<input id="order-signature" type="password" autocomplete="off" required /></label>
+              </div>
+              <div class="actions"><button id="preview-order" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Submit to YNX Testnet</button></div>
+              <pre id="order-payload" class="payload" hidden></pre>
+            </form>
           </div>
         </section>
         <section id="risk" class="view">

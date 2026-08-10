@@ -50,8 +50,10 @@ func signAction(key *secp256k1.PrivateKey, payload []byte) string {
 }
 
 type fakeChain struct {
-	mu        sync.Mutex
-	transfers map[string]ChainTransfer
+	mu         sync.Mutex
+	transfers  map[string]ChainTransfer
+	balance    ChainBalance
+	balanceErr error
 }
 
 func (f *fakeChain) Transfer(hash string) (ChainTransfer, error) {
@@ -69,6 +71,19 @@ func (f *fakeChain) set(hash string, v ChainTransfer) {
 	f.transfers[hash] = v
 }
 
+func (f *fakeChain) AccountBalance(address string) (ChainBalance, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.balanceErr != nil {
+		return ChainBalance{}, f.balanceErr
+	}
+	balance := f.balance
+	if balance.Address == "" {
+		balance = ChainBalance{Address: address, Asset: NativeAsset, AmountMicro: 1_000_000 * AmountScale, CommittedHeight: 777, Source: "fake-chain/accounts/{custody}"}
+	}
+	return balance, nil
+}
+
 type testAccount struct {
 	session WalletSession
 	private *secp256k1.PrivateKey
@@ -76,10 +91,16 @@ type testAccount struct {
 	account string
 }
 
-type fixtureGateway struct{ session WalletSession }
+type fixtureGateway struct {
+	session  WalletSession
+	clientID string
+}
 
-func (f fixtureGateway) Authorize(token, scope, clientID string) (WalletSession, error) {
-	if token != "central-ws-token" || clientID != "ynx-exchange-v1" {
+func (f fixtureGateway) Authorize(token, scope, clientID, bundleID string) (WalletSession, error) {
+	if token != "central-ws-token" || (f.clientID != "" && clientID != f.clientID) || (clientID != "ynx-exchange-v1" && clientID != "ynx-quant-v1") {
+		return WalletSession{}, ErrUnauthorized
+	}
+	if (clientID == "ynx-exchange-v1" && bundleID != "com.ynxweb4.exchange") || (clientID == "ynx-quant-v1" && bundleID != "com.ynxweb4.quant") {
 		return WalletSession{}, ErrUnauthorized
 	}
 	for _, candidate := range f.session.Scopes {
@@ -1031,8 +1052,9 @@ func TestMarketWebSocketSnapshotLiveSequenceAndUserQueryTokenRejection(t *testin
 	}
 	s.cfg.Gateway = fixtureGateway{session: a.session}
 	s.cfg.GatewayClientID = "ynx-exchange-v1"
+	s.cfg.GatewayBundleID = "com.ynxweb4.exchange"
 	userURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/v1/ws/user"
-	header := http.Header{"Authorization": []string{"Bearer central-ws-token"}}
+	header := http.Header{"X-YNX-Product-Session-Proof": []string{"central-ws-token"}}
 	user, response, err := websocket.DefaultDialer.Dial(userURL, header)
 	if err != nil {
 		t.Fatalf("user websocket response=%v err=%v", response, err)
@@ -1350,6 +1372,18 @@ func TestDepositIntentLedgerAuditChainAndRiskControls(t *testing.T) {
 	if status.Gateway != "unavailable" || status.WalletRegistry != "pending_registration" || status.CrossChain != "unavailable" {
 		t.Fatalf("integration truth=%+v", status)
 	}
+	s.cfg.GatewayURL = "https://wallet-auth.test.invalid"
+	s.cfg.GatewayClientID = ProductID
+	status = s.Integrations()
+	if status.Gateway != "configured_not_attested" || status.WalletRegistry != "pending_registration" {
+		t.Fatalf("unattested integration truth=%+v", status)
+	}
+	s.cfg.WalletSessionAttested = true
+	s.cfg.QuantGatewayClientID = "ynx-quant-v1"
+	status = s.Integrations()
+	if status.Gateway != "canonical_product_session_proof" || status.WalletRegistry != "approved_enabled" || status.QuantRegistry != "approved_enabled" {
+		t.Fatalf("attested integration truth=%+v", status)
+	}
 }
 func placeNoTest(s *Service, a testAccount, side string, price, amount int64, key string) (Order, error) {
 	req := PlaceOrderRequest{Market: DefaultMarket, Side: side, Type: "limit", PriceMicro: price, AmountMicro: amount, IdempotencyKey: key}
@@ -1471,6 +1505,20 @@ func TestHTTPStrictParsingScopeAndSmoke(t *testing.T) {
 		t.Fatalf("readiness=%+v", readiness)
 	}
 	resp.Body.Close()
+	s.cfg.DeployedPublic = true
+	resp, err = http.Get(server.URL + "/ready")
+	if err != nil || resp.StatusCode != 200 {
+		t.Fatalf("public ready err=%v status=%v", err, resp.StatusCode)
+	}
+	readiness = struct {
+		Status         string `json:"status"`
+		StateIntegrity bool   `json:"stateIntegrity"`
+		DeployedPublic bool   `json:"deployedPublic"`
+	}{}
+	if json.NewDecoder(resp.Body).Decode(&readiness) != nil || readiness.Status != "ready_public_testnet" || !readiness.StateIntegrity || !readiness.DeployedPublic {
+		t.Fatalf("public readiness=%+v", readiness)
+	}
+	resp.Body.Close()
 	resp, err = http.Get(server.URL + "/metrics")
 	if err != nil || resp.StatusCode != 200 {
 		t.Fatalf("metrics err=%v status=%v", err, resp.StatusCode)
@@ -1589,31 +1637,31 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var gotPath, gotAuth string
+	var gotPath, gotProof string
 	allowTrade := false
 	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
-		gotAuth = r.Header.Get("Authorization")
+		gotProof = r.Header.Get("X-YNX-Product-Session-Proof")
 		scopes := []string{"exchange:read"}
 		if allowTrade {
 			scopes = append(scopes, "exchange:trade")
 		}
-		writeJSON(w, 200, map[string]any{"verifierVersion": "wallet-auth-v1", "productClientId": "ynx-exchange-v1", "bundleId": "com.ynxweb4.exchange", "account": account, "accountPublicKey": publicKey, "scopes": scopes, "expiresAt": expires})
+		writeJSON(w, 200, map[string]any{"ok": true, "result": map[string]any{"active": true, "session": map[string]any{"verifierVersion": "wallet-auth-v1", "productClientId": "ynx-exchange-v1", "bundleId": "com.ynxweb4.exchange", "account": account, "accountPublicKey": publicKey, "scopes": scopes, "expiresAt": expires}}})
 	}))
 	defer gateway.Close()
 	authorizer := HTTPGatewayAuthorizer{BaseURL: gateway.URL, Client: gateway.Client()}
-	session, err := authorizer.Authorize("central-token", "exchange:read", "ynx-exchange-v1")
+	session, err := authorizer.Authorize("central-token", "exchange:read", "ynx-exchange-v1", "com.ynxweb4.exchange")
 	if err != nil || session.Account != account {
 		t.Fatalf("account=%s public=%s session=%+v err=%v", account, publicKey, session, err)
 	}
-	if gotPath != "/v1/sessions/introspect" || gotAuth != "Bearer central-token" {
-		t.Fatalf("gateway request path=%s auth=%s", gotPath, gotAuth)
+	if gotPath != "/v1/wallet/sessions/introspect" || gotProof != "central-token" {
+		t.Fatalf("gateway request path=%s proof=%s", gotPath, gotProof)
 	}
-	if _, err := authorizer.Authorize("central-token", "exchange:trade", "ynx-exchange-v1"); err != ErrForbidden {
+	if _, err := authorizer.Authorize("central-token", "exchange:trade", "ynx-exchange-v1", "com.ynxweb4.exchange"); err != ErrForbidden {
 		t.Fatalf("scope err=%v", err)
 	}
 	allowTrade = true
-	centralSession, err := authorizer.Authorize("central-token", "exchange:trade", "ynx-exchange-v1")
+	centralSession, err := authorizer.Authorize("central-token", "exchange:trade", "ynx-exchange-v1", "com.ynxweb4.exchange")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1626,6 +1674,24 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	order, err := s.PlaceOrder(centralSession, req)
 	if err != nil || order.Status != "open" || !order.WalletAuthorized {
 		t.Fatalf("central Wallet action order=%+v err=%v", order, err)
+	}
+}
+
+func TestClientPeerUsesOnlyFirstValidForwardedIPFromLoopbackProxy(t *testing.T) {
+	request := httptest.NewRequest(http.MethodGet, "/health", nil)
+	request.RemoteAddr = "127.0.0.1:43100"
+	request.Header.Set("X-Forwarded-For", "203.0.113.9, 127.0.0.1")
+	if peer := clientPeer(request); peer != "203.0.113.9" {
+		t.Fatalf("peer=%q", peer)
+	}
+	request.Header.Set("X-Forwarded-For", "invalid\nvalue")
+	if peer := clientPeer(request); peer != "127.0.0.1" {
+		t.Fatalf("invalid forwarded peer=%q", peer)
+	}
+	request.RemoteAddr = "198.51.100.4:43100"
+	request.Header.Set("X-Forwarded-For", "203.0.113.9")
+	if peer := clientPeer(request); peer != "198.51.100.4" {
+		t.Fatalf("untrusted forwarded peer=%q", peer)
 	}
 }
 
@@ -1681,6 +1747,83 @@ func TestPublicMarketTapeContainsOnlyActualMatches(t *testing.T) {
 	if len(got) != 1 || got[0].Buyer != bob || got[0].Seller != alice || got[0].PriceMicro != AmountScale {
 		t.Fatalf("tape=%+v", got)
 	}
+}
+
+func TestSolvencyCommitsLiabilitiesProvesAccountAndSurvivesRestart(t *testing.T) {
+	s, chain, path := newTestService(t)
+	a := accountSession(t, s, alice, "solvency-alice", "exchange:read", "exchange:deposit")
+	b := accountSession(t, s, bob, "solvency-bob", "exchange:read", "exchange:deposit")
+	confirmDeposit(t, s, chain, a, "feed000000000001", 3*AmountScale)
+	confirmDeposit(t, s, chain, b, "feed000000000002", 2*AmountScale)
+	if _, err := s.CreditTestQuote(adminKey, alice, 7*AmountScale, "solvency-quote"); err != nil {
+		t.Fatal(err)
+	}
+	chain.balance = ChainBalance{Address: bob, Asset: NativeAsset, AmountMicro: 6 * AmountScale, CommittedHeight: 901, Source: "fake-chain/accounts/{custody}"}
+
+	snapshot := s.SolvencySnapshot()
+	if snapshot.Status != "native_assets_verified_testnet" || snapshot.LiabilityLeafCount != 3 || snapshot.CommittedHeight != 901 || len(snapshot.LiabilityMerkleRoot) != 64 {
+		t.Fatalf("snapshot=%+v", snapshot)
+	}
+	var native, quote SolvencyAsset
+	for _, item := range snapshot.Assets {
+		if item.Asset == NativeAsset {
+			native = item
+		}
+		if item.Asset == QuoteAsset {
+			quote = item
+		}
+	}
+	if native.LiabilitiesMicro != 5*AmountScale || native.AssetsMicro == nil || *native.AssetsMicro != 6*AmountScale || native.ReserveRatioBPS == nil || *native.ReserveRatioBPS != 12_000 || native.WithdrawalCapacityMicro == nil || *native.WithdrawalCapacityMicro != 6*AmountScale {
+		t.Fatalf("native=%+v", native)
+	}
+	if quote.LiabilitiesMicro != 7*AmountScale || quote.AssetsMicro != nil || quote.AssetProofStatus != "unavailable" {
+		t.Fatalf("quote=%+v", quote)
+	}
+	proof, err := s.LiabilityProof(alice, NativeAsset)
+	if err != nil || !proof.Verified || proof.MerkleRoot != snapshot.LiabilityMerkleRoot || proof.Balance.AvailableMicro != 3*AmountScale {
+		t.Fatalf("proof=%+v err=%v", proof, err)
+	}
+
+	restarted, err := New(s.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restartedProof, err := restarted.LiabilityProof(alice, NativeAsset)
+	if err != nil || !restartedProof.Verified || restartedProof.MerkleRoot != proof.MerkleRoot || restarted.cfg.StatePath != path {
+		t.Fatalf("restarted proof=%+v err=%v", restartedProof, err)
+	}
+}
+
+func TestSolvencyFailsClosedWithoutCustodyAssetEvidenceAndHTTPProofNeedsWallet(t *testing.T) {
+	s, chain, _ := newTestService(t)
+	a := accountSession(t, s, alice, "solvency-http", "exchange:read", "exchange:deposit")
+	confirmDeposit(t, s, chain, a, "feed000000000003", AmountScale)
+	chain.balanceErr = ErrUnavailable
+	snapshot := s.SolvencySnapshot()
+	if snapshot.Status != "liabilities_committed_assets_unavailable" || snapshot.Assets[1].AssetsMicro != nil {
+		t.Fatalf("fail-closed snapshot=%+v", snapshot)
+	}
+	server := httptest.NewServer(NewServer(s))
+	defer server.Close()
+	resp, err := http.Get(server.URL + "/v1/solvency/liability-proof?asset=YNXT")
+	if err != nil || resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated proof err=%v status=%v", err, resp.StatusCode)
+	}
+	resp.Body.Close()
+	s.cfg.Gateway = fixtureGateway{session: a.session}
+	s.cfg.GatewayClientID = "ynx-exchange-v1"
+	s.cfg.GatewayBundleID = "com.ynxweb4.exchange"
+	req, _ := http.NewRequest(http.MethodGet, server.URL+"/v1/solvency/liability-proof?asset=YNXT", nil)
+	req.Header.Set("X-YNX-Product-Session-Proof", "central-ws-token")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("authenticated proof err=%v status=%v", err, resp.StatusCode)
+	}
+	var proof LiabilityProof
+	if err := json.NewDecoder(resp.Body).Decode(&proof); err != nil || !proof.Verified || proof.Account != alice {
+		t.Fatalf("http proof=%+v err=%v", proof, err)
+	}
+	resp.Body.Close()
 }
 
 func FuzzOrderAuthorizationPayloadIsCanonicalAndBound(f *testing.F) {

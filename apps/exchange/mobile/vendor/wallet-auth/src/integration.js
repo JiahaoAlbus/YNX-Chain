@@ -1,6 +1,6 @@
 import { digestHex, exactFields, WalletAuthError } from "./canonical.js";
 import { requestDigest, parseAuthorizationRequest, parseAuthorizationResponse, PRODUCT_DEVICE_ALGORITHM, YNX_NATIVE_CHAIN_ID } from "./protocol.js";
-import { verifyAuthorization } from "./crypto.js";
+import { verifyAuthorization, walletIdentityFromPublicKey } from "./crypto.js";
 import { verifyGatewayCompletion } from "./session.js";
 
 const REGISTRY_V1_FIELDS = ["schemaVersion", "productClientId", "requestingProduct", "bundleId", "callback", "scopes", "maxScopes"];
@@ -9,7 +9,7 @@ const VERIFY_FIELDS = ["registryEntry", "authorizationRequest", "walletApproval"
 const SESSION_FIELDS = [
   "verifierVersion", "sessionBinding", "chainId", "requestingProduct", "productClientId", "bundleId",
   "callback", "productDeviceAlgorithm", "productDeviceKey", "deviceBinding", "account", "scopes", "nonce",
-  "purpose", "requestDigest", "approvalDigest", "issuedAt", "expiresAt",
+  "accountPublicKey", "purpose", "requestDigest", "approvalDigest", "issuedAt", "expiresAt",
 ];
 
 export const CENTRAL_REGISTRY_SCHEMA_VERSION = 2;
@@ -81,6 +81,7 @@ export function verifyCentralWalletSession(input, at = new Date()) {
     requestDigest: approval.requestDigest,
     approvalDigest: centralApprovalDigest(approval),
     account: completion.account,
+    accountPublicKey: approval.accountPublicKey,
     scopes: completion.scopes,
     nonce: request.nonce,
     purpose: request.purpose,
@@ -122,13 +123,14 @@ export function parseCentralWalletSession(input) {
     requestDigest:requiredPattern(input.requestDigest,"requestDigest",/^[0-9a-f]{64}$/),
     approvalDigest:requiredPattern(input.approvalDigest,"approvalDigest",/^[0-9a-f]{64}$/),
     account:requiredPattern(input.account,"account",/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),
+    accountPublicKey:requiredPattern(input.accountPublicKey,"accountPublicKey",/^(02|03)[0-9a-f]{64}$/),
     scopes:stringList(input.scopes,"scopes",1,8,(value)=>requiredPattern(value,"scope",/^[a-z][a-z0-9._:-]{1,63}$/)),
     nonce:requiredPattern(input.nonce,"nonce",/^[A-Za-z0-9_-]{32,64}$/),
     purpose:requiredPattern(input.purpose,"purpose",/^.{1,180}$/u),
     issuedAt:strictTime(input.issuedAt,"issuedAt"),expiresAt:strictTime(input.expiresAt,"expiresAt"),
   };
   if(session.expiresAt<=session.issuedAt)throw new WalletAuthError("INVALID_SESSION","Wallet product session lifetime is invalid");
-  if(session.chainId!==YNX_NATIVE_CHAIN_ID||session.deviceBinding!==centralDeviceBinding(session,session.account))throw new WalletAuthError("INVALID_SESSION","Wallet product session security binding is invalid");
+  if(session.chainId!==YNX_NATIVE_CHAIN_ID||session.deviceBinding!==centralDeviceBinding(session,session.account)||walletIdentityFromPublicKey(session.accountPublicKey)!==session.account)throw new WalletAuthError("INVALID_SESSION","Wallet product session security binding is invalid");
   return Object.freeze({...session,scopes:Object.freeze([...session.scopes])});
 }
 

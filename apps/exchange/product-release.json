@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "productId": "ynx-exchange-pro",
   "name": "YNX Exchange Pro",
-  "branch": "codex/final-exchange",
-  "sourceCommit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
-  "commit": "42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d",
+  "branch": "codex/exchange-brace-expansion-5-0-8",
+  "sourceCommit": "00972cf25d583d975b9c9dd9c1df1ddba8491df9",
+  "commit": "00972cf25d583d975b9c9dd9c1df1ddba8491df9",
   "version": "0.1.0-testnet",
-  "stateSchemaVersion": 9,
+  "stateSchemaVersion": 10,
   "surfaces": [
     "web-desktop",
     "web-mobile",
@@ -15,18 +15,19 @@
     "user-websocket",
     "drop-copy-websocket",
     "quant-execution-adapter"
+    ,"margin-perpetual-risk-engine"
   ],
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
-  "integratedCentral": false,
+  "integratedCentral": true,
   "deployedStaging": false,
-  "deployedPublic": false,
+  "deployedPublic": true,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
-  "publicUrls": [],
-  "healthUrls": [],
+  "publicUrls": ["https://exchange.ynxweb4.com/"],
+  "healthUrls": ["https://exchange.ynxweb4.com/api/health", "https://exchange.ynxweb4.com/api/ready", "https://exchange.ynxweb4.com/api/version"],
   "artifactUrls": [],
   "localArtifact": {
     "platform": "darwin-arm64",
@@ -52,30 +53,48 @@
     "npm --prefix apps/exchange run validate:release"
   ],
   "centralIntegration": {
-    "registryState": "pending-review-disabled",
-    "gatewaySession": "required-fail-closed",
-    "protectedActions": "canonical-action-verification-required",
+    "registryState": "approved-enabled",
+    "gatewaySession": "canonical-one-time-product-session-proof-attested",
+    "protectedActions": "exact-wallet-signed-order-action-attested",
     "legacyLocalAuthRoutes": "removed",
-    "accepted": false
+    "accepted": true
   },
   "capabilityTruth": {
     "spotCLOB": "testedLocal",
     "advancedSpotOrders": "testedLocal-except-heterogeneous-batch",
     "quantKill": "wallet-signed-persistent-nonce-domain-revocation-testedLocal",
+    "quantPauseResume": "separately-wallet-signed-persistent-public-testnet",
     "quantAggregateCapital": "restart-persistent-testedLocal",
-    "margin": "notImplemented",
-    "perpetual": "notImplemented",
-    "ultraLiquidity": "notImplemented",
-    "solvencyProof": "notImplemented"
+    "margin": "isolated-collateral-transfer-and-accounting-testedLocal",
+    "perpetual": "oracle-gated-CLOB-positions-funding-liquidation-waterfall-testedLocal",
+    "ultraLiquidity": "native-CLOB-plus-consensus-DEX-quote-routing-and-wallet-signed-native-FOK-execution-testedLocal; committed-DEX-execution-adapter-pending",
+    "solvencyProof": "liability-Merkle-and-conditional-committed-custody-proof-testedLocal"
   },
   "knownLimitations": [
-    "Central Wallet registry, Gateway action verification, custody, Indexer and approved AI provider remain external",
-    "No hosted stateful staging or public runtime is attested",
+    "Production custody, withdrawal broadcasting, cross-chain execution and an approved AI provider remain unavailable",
     "No hosted download, production signature, notarization or store release",
-    "Strategy pause/resume is unavailable; kill requires a new signed nonce domain to resume",
+    "Pause and resume require separate Wallet control signatures; kill remains irreversible for the exact nonce domain",
     "Real historical schema v2-v7 byte fixtures are absent and compatibility is not claimed",
-    "Margin, perpetual, portfolio margin, UltraLiquidity and solvency proof are not implemented",
+    "Portfolio margin, signed cross-venue execution and non-CLOB/CPMM venue adapters are not implemented",
+    "Committed DEX execution remains fail-closed; UltraLiquidity currently executes only the native CLOB route",
     "Repository-wide tests are blocked outside Exchange ownership by missing generated contract artifacts and key-permission assumptions"
   ],
-  "generatedAt": "2026-07-27T15:28:52Z"
+  "publicRuntimeEvidence": {
+    "sourceCommit": "00972cf25d583d975b9c9dd9c1df1ddba8491df9",
+    "binarySha256": "a61990c4058c2f5d0458fd131dd0f4c2c34eecd7d64dfd1a82a0f4741260b243",
+    "stateSchemaVersion": 10,
+    "stateIntegrity": true,
+    "restartStateHashStable": true,
+    "publicReadyStatus": "ready_public_testnet",
+    "walletSourceCommit": "f1fd7b37d214b15eee7c80028841487281798a96",
+    "walletRegistry": "approved_enabled",
+    "walletProofProtocol": "canonical_product_session_proof",
+    "productionE2EOrderId": "order_000000000466",
+    "productionE2EReplayStatus": 401,
+    "multiRegionConcurrentRequests": 600,
+    "multiRegionHTTP200": 600,
+    "evidence": "evidence/capacity/exchange-wallet-public-2026-08-10.txt",
+    "verifiedAt": "2026-08-10T06:26:37Z"
+  },
+  "generatedAt": "2026-08-10T06:26:37Z"
 }

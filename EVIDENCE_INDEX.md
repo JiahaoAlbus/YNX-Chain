@@ -53,6 +53,6 @@ Every runtime or artifact proof must bind to its exact source commit. Discovery 
 - Central Wallet/Gateway acceptance against the frozen tuple and negative vectors.
 - Approved custody address, authoritative Indexer evidence and withdrawal broadcaster proof.
 - Shared two-user Testnet receipts, restart/reconciliation and Explorer/Finance/Monitor evidence.
-- Native Margin/Perp, portfolio risk, UltraLiquidity and solvency evidence.
+- Native Margin/Perp, portfolio risk and UltraLiquidity evidence; public deployment and independent verification of the locally tested liability/custody proof; insurance-fund and withdrawal-broadcast evidence.
 - Hosted stateful staging/public health and version responses.
 - Immutable artifact URLs, production signing, provenance, reproducibility and independent security/legal/accessibility acceptance.

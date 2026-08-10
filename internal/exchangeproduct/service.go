@@ -170,8 +170,17 @@ func New(cfg Config) (*Service, error) {
 	}
 	cfg.GatewayURL = strings.TrimRight(strings.TrimSpace(cfg.GatewayURL), "/")
 	cfg.GatewayClientID = strings.TrimSpace(cfg.GatewayClientID)
+	cfg.GatewayBundleID = strings.TrimSpace(cfg.GatewayBundleID)
+	cfg.QuantGatewayClientID = strings.TrimSpace(cfg.QuantGatewayClientID)
+	cfg.QuantGatewayBundleID = strings.TrimSpace(cfg.QuantGatewayBundleID)
 	cfg.IndexerURL = strings.TrimRight(strings.TrimSpace(cfg.IndexerURL), "/")
-	if cfg.StatePath == "" || len(cfg.APIKey) < 16 || cfg.WalletCallback == "" || cfg.RequiredConfirmations < 1 || cfg.MakerFeeBPS < 0 || cfg.TakerFeeBPS < cfg.MakerFeeBPS || cfg.TakerFeeBPS > 1000 || cfg.WithdrawalFeeMicroYNXT < 0 {
+	cfg.DEXGatewayURL = strings.TrimRight(strings.TrimSpace(cfg.DEXGatewayURL), "/")
+	cfg.DEXQuoteAssetID = strings.TrimSpace(cfg.DEXQuoteAssetID)
+	cfg.DEXQuoteAssetAttestationDigest = strings.ToLower(strings.TrimSpace(cfg.DEXQuoteAssetAttestationDigest))
+	cfg.OracleURL = strings.TrimRight(strings.TrimSpace(cfg.OracleURL), "/")
+	dexConfigured := cfg.DEXGatewayURL != "" || cfg.DEXQuoteAssetID != "" || cfg.DEXQuoteAssetAttestationDigest != ""
+	attestationBytes, attestationErr := hex.DecodeString(cfg.DEXQuoteAssetAttestationDigest)
+	if cfg.StatePath == "" || len(cfg.APIKey) < 16 || cfg.WalletCallback == "" || cfg.RequiredConfirmations < 1 || cfg.MakerFeeBPS < 0 || cfg.TakerFeeBPS < cfg.MakerFeeBPS || cfg.TakerFeeBPS > 1000 || cfg.WithdrawalFeeMicroYNXT < 0 || cfg.DEXGasMicro < 0 || cfg.DEXLatencyMillis < 0 || cfg.DEXFinalitySeconds < 0 || (dexConfigured && (cfg.DEXGatewayURL == "" || cfg.DEXQuoteAssetID == "" || attestationErr != nil || len(attestationBytes) != 32)) {
 		return nil, fmt.Errorf("%w: exchange configuration", ErrInvalid)
 	}
 	if cfg.CustodyAddress != "" {
@@ -209,10 +218,18 @@ func New(cfg Config) (*Service, error) {
 }
 
 func (s *Service) Integrations() IntegrationStatus {
-	status := IntegrationStatus{Gateway: "unavailable", GatewayReason: "Central Gateway route and Exchange scope registration are not configured", WalletRegistry: "pending_registration", Custody: "unavailable", Indexer: "unavailable", CrossChain: "unavailable"}
+	status := IntegrationStatus{Gateway: "unavailable", GatewayReason: "Central Gateway route and Exchange scope registration are not configured", WalletRegistry: "pending_registration", QuantRegistry: "pending_registration", Custody: "unavailable", Indexer: "unavailable", CrossChain: "unavailable"}
 	if s.cfg.GatewayURL != "" && s.cfg.GatewayClientID != "" {
 		status.Gateway = "configured_not_attested"
 		status.GatewayReason = "Configuration is not evidence of central route acceptance"
+		if s.cfg.WalletSessionAttested {
+			status.Gateway = "canonical_product_session_proof"
+			status.GatewayReason = "Canonical Product Session proof path passed the Wallet-to-Exchange release attestation"
+			status.WalletRegistry = "approved_enabled"
+			if s.cfg.QuantGatewayClientID != "" {
+				status.QuantRegistry = "approved_enabled"
+			}
+		}
 	}
 	if s.state.CustodyAddress != "" {
 		status.Custody = "review_only"
@@ -229,7 +246,10 @@ func (s *Service) Authorized(value string) bool {
 }
 
 func Markets() []Market {
-	return []Market{{Symbol: DefaultMarket, BaseAsset: NativeAsset, QuoteAsset: QuoteAsset, Venue: "YNX-owned testnet venue", Engine: "deterministic persistent price-time matching", ExternalPrice: false, PublicVolume: false, PriceScale: AmountScale, AmountScale: AmountScale, Status: "testnet_only"}}
+	return []Market{
+		{Symbol: DefaultMarket, BaseAsset: NativeAsset, QuoteAsset: QuoteAsset, Venue: "YNX-owned testnet venue", Engine: "deterministic persistent price-time matching", ExternalPrice: false, PublicVolume: false, PriceScale: AmountScale, AmountScale: AmountScale, Status: "testnet_only"},
+		{Symbol: DefaultPerpetualMarket, BaseAsset: NativeAsset, QuoteAsset: QuoteAsset, Venue: "YNX perpetual testnet venue", Engine: "persistent price-time CLOB with margin, funding and liquidation risk engine", ExternalPrice: true, PublicVolume: false, PriceScale: AmountScale, AmountScale: AmountScale, Status: "oracle_required_testnet"},
+	}
 }
 
 func (s *Service) Networks() []AssetNetwork {
@@ -321,12 +341,30 @@ func (s *Service) CompleteSession(req CompleteSessionRequest) (WalletSession, st
 	return session, token, nil
 }
 
-func (s *Service) Authenticate(token, scope string) (WalletSession, error) {
-	raw := strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
-	if raw == "" || s.cfg.Gateway == nil || s.cfg.GatewayClientID == "" {
+func (s *Service) Authenticate(proof, scope string) (WalletSession, error) {
+	return s.AuthenticateClient(proof, scope, s.cfg.GatewayClientID, s.cfg.GatewayBundleID)
+}
+
+func (s *Service) AuthenticateQuant(proof, scope string) (WalletSession, error) {
+	return s.AuthenticateClient(proof, scope, s.cfg.QuantGatewayClientID, s.cfg.QuantGatewayBundleID)
+}
+
+func (s *Service) AuthenticateClient(proof, scope, clientID, bundleID string) (WalletSession, error) {
+	raw := strings.TrimSpace(proof)
+	clientID = strings.TrimSpace(clientID)
+	bundleID = strings.TrimSpace(bundleID)
+	if raw == "" || s.cfg.Gateway == nil || clientID == "" || bundleID == "" || (clientID != s.cfg.GatewayClientID && clientID != s.cfg.QuantGatewayClientID) {
 		return WalletSession{}, ErrUnauthorized
 	}
-	return s.cfg.Gateway.Authorize(raw, scope, s.cfg.GatewayClientID)
+	return s.cfg.Gateway.Authorize(raw, scope, clientID, bundleID)
+}
+
+func (s *Service) CompleteCentralSession(body []byte) ([]byte, int, error) {
+	completer, ok := s.cfg.Gateway.(GatewaySessionCompleter)
+	if !ok || len(body) < 2 || len(body) > 256<<10 {
+		return nil, 0, ErrUnavailable
+	}
+	return completer.CompleteSession(body)
 }
 
 func OrderAuthorizationPayload(account string, req PlaceOrderRequest) []byte {
@@ -2436,29 +2474,31 @@ func bookPriority(left, right Order, bid bool) bool {
 }
 
 type AccountSnapshot struct {
-	Balances          []Balance          `json:"balances"`
-	Ledger            []LedgerEntry      `json:"ledger"`
-	DepositIntents    []DepositIntent    `json:"depositIntents"`
-	Orders            []Order            `json:"orders"`
-	ConditionalOrders []ConditionalOrder `json:"conditionalOrders"`
-	OCOGroups         []OCOGroup         `json:"ocoGroups"`
-	TWAPOrders        []TWAPOrder        `json:"twapOrders"`
-	ScaleOrders       []ScaleOrder       `json:"scaleOrders"`
-	Trades            []Trade            `json:"trades"`
-	Fees              []FeeRecord        `json:"fees"`
-	Deposits          []Deposit          `json:"deposits"`
-	Withdrawals       []Withdrawal       `json:"withdrawals"`
-	Security          SecuritySettings   `json:"security"`
-	Support           []SupportCase      `json:"support"`
-	AI                []AIRecord         `json:"ai"`
-	Audit             []AuditEvent       `json:"audit"`
-	DeadMan           DeadManSwitch      `json:"deadMan"`
+	Balances          []Balance             `json:"balances"`
+	Ledger            []LedgerEntry         `json:"ledger"`
+	DepositIntents    []DepositIntent       `json:"depositIntents"`
+	Orders            []Order               `json:"orders"`
+	ConditionalOrders []ConditionalOrder    `json:"conditionalOrders"`
+	OCOGroups         []OCOGroup            `json:"ocoGroups"`
+	TWAPOrders        []TWAPOrder           `json:"twapOrders"`
+	ScaleOrders       []ScaleOrder          `json:"scaleOrders"`
+	Trades            []Trade               `json:"trades"`
+	Fees              []FeeRecord           `json:"fees"`
+	Deposits          []Deposit             `json:"deposits"`
+	Withdrawals       []Withdrawal          `json:"withdrawals"`
+	Security          SecuritySettings      `json:"security"`
+	Support           []SupportCase         `json:"support"`
+	AI                []AIRecord            `json:"ai"`
+	Audit             []AuditEvent          `json:"audit"`
+	DeadMan           DeadManSwitch         `json:"deadMan"`
+	Margin            MarginAccountSnapshot `json:"margin"`
 }
 
 func (s *Service) Snapshot(account string) AccountSnapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	r := AccountSnapshot{Balances: []Balance{s.balanceLocked(account, NativeAsset), s.balanceLocked(account, QuoteAsset)}, Ledger: []LedgerEntry{}, DepositIntents: []DepositIntent{}, Orders: []Order{}, ConditionalOrders: []ConditionalOrder{}, OCOGroups: []OCOGroup{}, TWAPOrders: []TWAPOrder{}, ScaleOrders: []ScaleOrder{}, Trades: []Trade{}, Fees: []FeeRecord{}, Deposits: []Deposit{}, Withdrawals: []Withdrawal{}, Security: s.securityLocked(account), Support: []SupportCase{}, AI: []AIRecord{}, Audit: []AuditEvent{}, DeadMan: s.state.DeadMan[account]}
+	r.Margin = s.marginSnapshotLocked(account)
 	for _, v := range s.state.Ledger {
 		if v.Account == account {
 			r.Ledger = append(r.Ledger, v)
@@ -2530,6 +2570,239 @@ func (s *Service) Snapshot(account string) AccountSnapshot {
 		}
 	}
 	return r
+}
+
+type liabilityLeaf struct {
+	balance Balance
+	hash    []byte
+}
+
+func liabilityLeafHash(balance Balance) []byte {
+	payload := fmt.Sprintf("ynx-exchange-liability-v1\n%s\n%s\n%d\n%d", balance.Account, balance.Asset, balance.AvailableMicro, balance.ReservedMicro)
+	sum := sha256.Sum256([]byte(payload))
+	return sum[:]
+}
+
+func liabilityNodeHash(left, right []byte) []byte {
+	payload := make([]byte, 0, len("ynx-exchange-liability-node-v1\n")+len(left)+len(right))
+	payload = append(payload, []byte("ynx-exchange-liability-node-v1\n")...)
+	payload = append(payload, left...)
+	payload = append(payload, right...)
+	sum := sha256.Sum256(payload)
+	return sum[:]
+}
+
+func liabilityLeaves(balances map[string]Balance) []liabilityLeaf {
+	leaves := make([]liabilityLeaf, 0, len(balances))
+	for _, balance := range balances {
+		if balance.AvailableMicro < 0 || balance.ReservedMicro < 0 || balance.AvailableMicro+balance.ReservedMicro <= 0 {
+			continue
+		}
+		leaves = append(leaves, liabilityLeaf{balance: balance, hash: liabilityLeafHash(balance)})
+	}
+	sort.Slice(leaves, func(i, j int) bool {
+		if leaves[i].balance.Account == leaves[j].balance.Account {
+			return leaves[i].balance.Asset < leaves[j].balance.Asset
+		}
+		return leaves[i].balance.Account < leaves[j].balance.Account
+	})
+	return leaves
+}
+
+func liabilityMerkleRoot(leaves []liabilityLeaf) []byte {
+	if len(leaves) == 0 {
+		sum := sha256.Sum256([]byte("ynx-exchange-liability-empty-v1"))
+		return sum[:]
+	}
+	level := make([][]byte, len(leaves))
+	for i := range leaves {
+		level[i] = append([]byte(nil), leaves[i].hash...)
+	}
+	for len(level) > 1 {
+		next := make([][]byte, 0, (len(level)+1)/2)
+		for i := 0; i < len(level); i += 2 {
+			right := level[i]
+			if i+1 < len(level) {
+				right = level[i+1]
+			}
+			next = append(next, liabilityNodeHash(level[i], right))
+		}
+		level = next
+	}
+	return level[0]
+}
+
+func liabilityMerkleProof(leaves []liabilityLeaf, index int) []MerkleStep {
+	proof := []MerkleStep{}
+	level := make([][]byte, len(leaves))
+	for i := range leaves {
+		level[i] = append([]byte(nil), leaves[i].hash...)
+	}
+	position := index
+	for len(level) > 1 {
+		sibling := position ^ 1
+		if sibling >= len(level) {
+			sibling = position
+		}
+		direction := "right"
+		if sibling < position {
+			direction = "left"
+		}
+		proof = append(proof, MerkleStep{Hash: hex.EncodeToString(level[sibling]), Position: direction})
+		next := make([][]byte, 0, (len(level)+1)/2)
+		for i := 0; i < len(level); i += 2 {
+			right := level[i]
+			if i+1 < len(level) {
+				right = level[i+1]
+			}
+			next = append(next, liabilityNodeHash(level[i], right))
+		}
+		position /= 2
+		level = next
+	}
+	return proof
+}
+
+func verifyLiabilityProof(leaf []byte, proof []MerkleStep, expected []byte) bool {
+	current := append([]byte(nil), leaf...)
+	for _, step := range proof {
+		sibling, err := hex.DecodeString(step.Hash)
+		if err != nil || len(sibling) != sha256.Size {
+			return false
+		}
+		if step.Position == "left" {
+			current = liabilityNodeHash(sibling, current)
+		} else if step.Position == "right" {
+			current = liabilityNodeHash(current, sibling)
+		} else {
+			return false
+		}
+	}
+	return subtle.ConstantTimeCompare(current, expected) == 1
+}
+
+// SolvencySnapshot commits every positive venue liability and only reports
+// native custody assets when the configured chain reader can prove them from a
+// committed account query. Internal YUSD_TEST credits are never represented as
+// external reserve assets.
+func (s *Service) SolvencySnapshot() SolvencySnapshot {
+	s.mu.Lock()
+	balances := make(map[string]Balance, len(s.state.Balances))
+	for key, balance := range s.state.Balances {
+		balances[key] = balance
+	}
+	stateHash := s.state.IntegrityHash
+	custodyAddress := s.state.CustodyAddress
+	insuranceBalance := s.state.InsuranceFund.BalanceMicro
+	withdrawals := make([]Withdrawal, 0, len(s.state.Withdrawals))
+	for _, withdrawal := range s.state.Withdrawals {
+		withdrawals = append(withdrawals, withdrawal)
+	}
+	s.mu.Unlock()
+
+	leaves := liabilityLeaves(balances)
+	totals := map[string]*SolvencyAsset{}
+	for _, asset := range []string{NativeAsset, QuoteAsset} {
+		totals[asset] = &SolvencyAsset{Asset: asset, AssetProofStatus: "unavailable"}
+	}
+	for _, leaf := range leaves {
+		item, ok := totals[leaf.balance.Asset]
+		if !ok {
+			item = &SolvencyAsset{Asset: leaf.balance.Asset, AssetProofStatus: "unavailable"}
+			totals[leaf.balance.Asset] = item
+		}
+		item.AvailableLiabilitiesMicro += leaf.balance.AvailableMicro
+		item.ReservedLiabilitiesMicro += leaf.balance.ReservedMicro
+		item.LiabilitiesMicro += leaf.balance.AvailableMicro + leaf.balance.ReservedMicro
+	}
+
+	native := totals[NativeAsset]
+	var encumbered int64
+	for _, withdrawal := range withdrawals {
+		if withdrawal.Asset == NativeAsset && withdrawal.Status == "reviewed_pending_operator_broadcast" {
+			encumbered += withdrawal.AmountMicro
+		}
+	}
+	status := "liabilities_committed_assets_unavailable"
+	var committedHeight uint64
+	if custodyAddress == "" {
+		native.UnavailableReason = "No approved custody address is configured"
+	} else if reader, ok := s.cfg.Chain.(ChainBalanceReader); ok {
+		if chainBalance, err := reader.AccountBalance(custodyAddress); err == nil && chainBalance.Asset == NativeAsset && chainBalance.AmountMicro >= 0 {
+			assets := chainBalance.AmountMicro
+			native.AssetsMicro = &assets
+			native.EncumberedAssetsMicro = &encumbered
+			capacity := assets - encumbered
+			if capacity < 0 {
+				capacity = 0
+			}
+			native.WithdrawalCapacityMicro = &capacity
+			if native.LiabilitiesMicro > 0 {
+				ratio := assets * 10_000 / native.LiabilitiesMicro
+				native.ReserveRatioBPS = &ratio
+			}
+			native.AssetProofStatus = "committed_testnet_account_balance"
+			native.AssetProofSource = chainBalance.Source
+			committedHeight = chainBalance.CommittedHeight
+			status = "native_assets_verified_testnet"
+			if assets < native.LiabilitiesMicro {
+				status = "reserve_shortfall"
+			}
+		} else {
+			native.UnavailableReason = "Committed custody balance query failed"
+		}
+	} else {
+		native.UnavailableReason = "Configured chain reader does not support committed account balances"
+	}
+	quote := totals[QuoteAsset]
+	quote.UnavailableReason = "YUSD_TEST is a non-withdrawable venue test credit and is not represented as an external reserve asset"
+
+	assets := make([]SolvencyAsset, 0, len(totals))
+	for _, item := range totals {
+		assets = append(assets, *item)
+	}
+	sort.Slice(assets, func(i, j int) bool { return assets[i].Asset < assets[j].Asset })
+	insuranceStatus := "unfunded_testnet_internal_ledger"
+	if insuranceBalance > 0 {
+		insuranceStatus = "funded_testnet_internal_ledger"
+	}
+	return SolvencySnapshot{
+		Version:             "ynx-exchange-solvency-v1",
+		AsOf:                s.cfg.Now().UTC(),
+		StateSchemaVersion:  currentStateSchemaVersion,
+		StateIntegrityHash:  stateHash,
+		LiabilityMerkleRoot: hex.EncodeToString(liabilityMerkleRoot(leaves)),
+		LiabilityLeafCount:  len(leaves),
+		CustodyAddress:      custodyAddress,
+		CommittedHeight:     committedHeight,
+		Assets:              assets,
+		InsuranceFundStatus: insuranceStatus,
+		Status:              status,
+		Disclosure:          "Testnet evidence only. The Merkle root commits venue liabilities; custody assets are included only from a committed chain account query. This is not a Mainnet audit or production assurance.",
+	}
+}
+
+func (s *Service) LiabilityProof(account, asset string) (LiabilityProof, error) {
+	normalized, err := nativewallet.NormalizeNativeAddress(account)
+	if err != nil || (asset != NativeAsset && asset != QuoteAsset) {
+		return LiabilityProof{}, ErrInvalid
+	}
+	s.mu.Lock()
+	balances := make(map[string]Balance, len(s.state.Balances))
+	for key, balance := range s.state.Balances {
+		balances[key] = balance
+	}
+	asOf := s.cfg.Now().UTC()
+	s.mu.Unlock()
+	leaves := liabilityLeaves(balances)
+	root := liabilityMerkleRoot(leaves)
+	for index, leaf := range leaves {
+		if leaf.balance.Account == normalized && leaf.balance.Asset == asset {
+			proof := liabilityMerkleProof(leaves, index)
+			return LiabilityProof{Version: "ynx-exchange-liability-v1", Account: normalized, Balance: leaf.balance, LeafHash: hex.EncodeToString(leaf.hash), LeafIndex: index, LeafCount: len(leaves), MerkleRoot: hex.EncodeToString(root), Proof: proof, Verified: verifyLiabilityProof(leaf.hash, proof, root), SnapshotAsOf: asOf}, nil
+		}
+	}
+	return LiabilityProof{}, ErrNotFound
 }
 
 func (s *Service) UpdateSecurity(session WalletSession, settings SecuritySettings) (SecuritySettings, error) {

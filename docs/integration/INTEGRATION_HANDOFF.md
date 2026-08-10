@@ -3,13 +3,14 @@
 ## Release truth
 
 - Owner: `07-exchange`
-- Runtime source commit: `42f2f48e1ecc3816337d4c6f83ab4cf230f4a01d`
+- Public runtime source commit: `3cf00aeea07b23c9a5e7aa6aad168db502dc4744`
+- Latest locally tested source commit: `6408dc838057db7fb86bccaa93e42f566792c92c` (not yet deployed)
 - Contract: `release/integration/exchange-contract.json`
 - State schema: `9`
 - Current stage: `FREEZE` in progress
 - Central integration: not accepted
 - Shared Testnet: not verified
-- Public runtime/download: not deployed or hosted
+- Public runtime: `https://exchange.ynxweb4.com/` deployed and restart-verified; desktop download remains unhosted
 
 The runtime commit is pushed to `codex/final-exchange` and was verified equal to its upstream at the time of this handoff. This document does not turn local evidence into central, public, signed or store status.
 
@@ -25,7 +26,7 @@ Exchange owns deterministic Spot order state, available/reserved subaccount acco
 - Action authorization: domain-separated Wallet signatures plus idempotency keys; protected HTTP calls also require the matching Gateway scope.
 - Quant kill: `ynx-quant-strategy-kill-v1`; persistent nonce-domain revocation plus atomic subaccount-market mass cancel. A mass-cancel signature is not interchangeable.
 - Quant aggregate capital: sum of open execution notional for the exact subaccount and nonce domain; persisted across restart.
-- Quant pause/resume: unavailable and fail closed. Resumption after kill requires a newly signed mandate with a new nonce domain.
+- Quant pause/resume: separate Wallet-signed control domain; pause atomically cancels execution and blocks new exposure across restart, resume is separately signed, and kill remains irreversible for the exact nonce domain.
 - Health/version: `/health`, `/ready`, `/metrics`, `/version`.
 - Streams: persisted Market/User/Drop Copy sequence with public/private redaction boundaries.
 
@@ -56,7 +57,7 @@ Provide an approved custody address and committed Indexer transfer proof contrac
 
 ### Integration owner
 
-Execute `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, freeze any conflicting scope/event/error definitions, and bind accepted evidence to the same source commit. Two-user shared Testnet acceptance cannot be recorded while Margin/Perp, UltraLiquidity and solvency are absent.
+Execute `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, freeze any conflicting scope/event/error definitions, and bind accepted evidence to the same source commit. Two-user shared Testnet acceptance cannot be recorded while Margin/Perp and signed UltraLiquidity execution are absent or while the locally tested liability/custody and route-quote surfaces have not been deployed and independently verified.
 
 ### Security/SRE owner
 
@@ -79,6 +80,6 @@ Consume `apps/exchange/public-product-metadata.json`, preserve every release boo
 1. Add a separately signed persistent pause/resume state machine or keep it explicitly unsupported.
 2. Add atomic heterogeneous batch execution and cancel-vs-match stress vectors.
 3. Implement native Margin/Perp/risk primitives before exposing leverage/funding methods.
-4. Build UltraLiquidity adapters and total-execution-cost routing without synthetic liquidity.
-5. Add solvency/liability proof and withdrawal-capacity evidence.
+4. Extend the tested Native CLOB/consensus CPMM quote router with Wallet-signed atomic execution and CLMM/StableSwap/RFQ/solver/batch/CoW/JIT/vault/POL/cross-chain adapters; never synthesize unavailable liquidity or quote-asset equivalence.
+5. Deploy and independently verify the tested liability Merkle proof, committed custody balance and withdrawal-capacity surface; add insurance-fund and withdrawal-broadcast evidence.
 6. Complete real historical migration fixtures, rollback/export and remote restore drill.

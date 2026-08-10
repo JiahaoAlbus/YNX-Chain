@@ -1,5 +1,14 @@
 # YNX Exchange 0.1.0-testnet
 
+Public Testnet checkpoint (2026-08-10):
+
+- Replaced the nonexistent legacy bearer introspection route with canonical one-time P-256 Product Session proofs, preserved the Wallet-approved secp256k1 account public key in central sessions, and added real Web/native Wallet completion, second-open restoration, install fallback and exact Wallet-reviewed Web order placement.
+- Added the domain-separated `ynx-quant-strategy-control-v1` contract. Pause atomically cancels open execution, persists across restart and blocks new exposure; resume requires a distinct Wallet signature; a killed nonce domain cannot be resumed.
+- Added byte-stable schema-v1 integrity verification so the historical public venue state migrates to schema 9 without discarding or rewriting unverified data.
+- Published source `00972cf25d583d975b9c9dd9c1df1ddba8491df9` at `https://exchange.ynxweb4.com/`; public health and readiness report schema 10 integrity, `ready_public_testnet`, `canonical_product_session_proof` and `approved_enabled`.
+- Production end-to-end evidence completed a Wallet-bound signed order as `order_000000000466`, rejected proof replay with HTTP 401, retained the exact Wallet and Exchange state hashes after restart, and returned HTTP 200 for 600/600 concurrent health requests from Singapore, Silicon Valley and Seoul.
+- Public deployment still does not imply production custody, external liquidity, Mainnet, production signing or store release.
+
 Final-worktree additions:
 
 - Recovered the most complete local Exchange commit and previously untracked product truth records into `codex/final-exchange`.

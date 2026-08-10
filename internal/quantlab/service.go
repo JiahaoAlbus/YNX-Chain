@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/exchangeproduct"
 )
 
 var (
@@ -37,9 +39,9 @@ type Config struct {
 	MarketData      MarketData
 }
 
-type MandateVerifier interface{ VerifyMandate(Mandate) error }
+type MandateVerifier interface{ VerifyMandate(Mandate, string) error }
 type TestnetBroker interface {
-	SubmitTestnet(TestnetOrder) (string, error)
+	SubmitTestnet(Mandate, TestnetOrder, string) (string, error)
 }
 type Bar struct {
 	Time   time.Time `json:"time"`
@@ -99,23 +101,27 @@ type RiskLimits struct {
 type Mandate struct {
 	Account, StrategyHash, Market          string
 	MaxNotional, MaxPosition, MaxDailyLoss int64
+	Methods                                []string `json:",omitempty"`
+	CapitalMicro, Leverage                 int64    `json:",omitempty"`
+	NonceDomain                            string   `json:",omitempty"`
 	ExpiresAt                              time.Time
 	WalletSignature, Digest                string
 	TestnetOnly                            bool
 }
 
 type TestnetOrder struct {
-	ID             string    `json:"id"`
-	MandateDigest  string    `json:"mandateDigest"`
-	StrategyHash   string    `json:"strategyHash"`
-	Market         string    `json:"market"`
-	Side           string    `json:"side"`
-	Price          int64     `json:"price"`
-	Amount         int64     `json:"amount"`
-	IdempotencyKey string    `json:"idempotencyKey"`
-	BrokerProof    string    `json:"brokerProof"`
-	Status         string    `json:"status"`
-	CreatedAt      time.Time `json:"createdAt"`
+	ID              string    `json:"id"`
+	MandateDigest   string    `json:"mandateDigest"`
+	StrategyHash    string    `json:"strategyHash"`
+	Market          string    `json:"market"`
+	Side            string    `json:"side"`
+	Price           int64     `json:"price"`
+	Amount          int64     `json:"amount"`
+	IdempotencyKey  string    `json:"idempotencyKey"`
+	WalletSignature string    `json:"walletSignature,omitempty"`
+	BrokerProof     string    `json:"brokerProof"`
+	Status          string    `json:"status"`
+	CreatedAt       time.Time `json:"createdAt"`
 }
 type PaperOrder struct {
 	ID, StrategyHash, Side, Status, Source string
@@ -148,9 +154,10 @@ type state struct {
 	Integrity     string                  `json:"integrity"`
 }
 type Service struct {
-	mu    sync.Mutex
-	cfg   Config
-	state state
+	mu            sync.Mutex
+	executionGate sync.RWMutex
+	cfg           Config
+	state         state
 }
 
 func New(cfg Config) (*Service, error) {
@@ -180,24 +187,23 @@ func New(cfg Config) (*Service, error) {
 	return &Service{cfg: cfg, state: s}, nil
 }
 
-func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
+func (s *Service) RegisterMandate(m Mandate, exchangeSessionToken string) (Mandate, error) {
 	now := s.cfg.Now()
 	m.Account = strings.TrimSpace(m.Account)
 	m.StrategyHash = strings.ToLower(strings.TrimSpace(m.StrategyHash))
 	m.Market = strings.TrimSpace(m.Market)
-	if !m.TestnetOnly || len(m.StrategyHash) != 64 || m.Market != "YNXT-YUSD_TEST" || m.MaxNotional <= 0 || m.MaxPosition <= 0 || m.MaxDailyLoss <= 0 || !m.ExpiresAt.After(now) || m.ExpiresAt.After(now.Add(24*time.Hour)) || strings.TrimSpace(m.WalletSignature) == "" {
+	m.NonceDomain = strings.TrimSpace(m.NonceDomain)
+	if !m.TestnetOnly || len(m.StrategyHash) != 64 || m.Market != exchangeproduct.DefaultMarket || m.MaxNotional <= 0 || m.MaxPosition <= 0 || m.MaxDailyLoss <= 0 || m.CapitalMicro <= 0 || m.CapitalMicro > m.MaxNotional || m.Leverage != 1 || m.NonceDomain != "quant:"+m.StrategyHash || !hasMandateMethods(m.Methods, "read", "submit") || !m.ExpiresAt.After(now) || m.ExpiresAt.After(now.Add(24*time.Hour)) || strings.TrimSpace(m.WalletSignature) == "" {
 		return Mandate{}, ErrInvalid
 	}
-	m.Digest = hash(struct {
-		Account, StrategyHash, Market          string
-		MaxNotional, MaxPosition, MaxDailyLoss int64
-		ExpiresAt                              time.Time
-		TestnetOnly                            bool
-	}{m.Account, m.StrategyHash, m.Market, m.MaxNotional, m.MaxPosition, m.MaxDailyLoss, m.ExpiresAt, m.TestnetOnly})
+	m.Digest = hashBytes(exchangeproduct.QuantMandatePayload(exchangeMandate(m)))
 	if s.cfg.MandateVerifier == nil {
 		return Mandate{}, ErrUnavailable
 	}
-	if err := s.cfg.MandateVerifier.VerifyMandate(m); err != nil {
+	if err := s.cfg.MandateVerifier.VerifyMandate(m, exchangeSessionToken); err != nil {
+		if errors.Is(err, ErrUnavailable) {
+			return Mandate{}, ErrUnavailable
+		}
 		return Mandate{}, ErrForbidden
 	}
 	s.mu.Lock()
@@ -210,23 +216,29 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 	return m, s.save()
 }
 
-func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64, key string) (TestnetOrder, error) {
-	if (side != "buy" && side != "sell") || price <= 0 || amount <= 0 || len(key) < 8 || len(key) > 128 {
+func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64, key, walletSignature, exchangeSessionToken string) (TestnetOrder, error) {
+	if (side != "buy" && side != "sell") || price <= 0 || amount <= 0 || len(key) < 8 || len(key) > 128 || strings.TrimSpace(walletSignature) == "" {
 		return TestnetOrder{}, ErrInvalid
 	}
 	if s.cfg.TestnetBroker == nil {
 		return TestnetOrder{}, ErrUnavailable
 	}
+	// Submissions may execute concurrently, while reconciliation/kill takes the
+	// exclusive gate so no order can cross the local risk transition.
+	s.executionGate.RLock()
+	defer s.executionGate.RUnlock()
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.state.Paper.KillSwitch {
+		s.mu.Unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	m, ok := s.state.Mandates[mandateDigest]
 	if !ok || !s.cfg.Now().Before(m.ExpiresAt) {
+		s.mu.Unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
-	if price*amount/1_000_000 > m.MaxNotional || amount > m.MaxPosition {
+	if safeNotional(price, amount) > m.MaxNotional || safeNotional(price, amount) > m.CapitalMicro || amount > m.MaxPosition {
+		s.mu.Unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	d := hash(struct {
@@ -235,18 +247,25 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	}{mandateDigest, side, price, amount})
 	if prior, ok := s.state.Idempotency[key]; ok {
 		if prior != d {
+			s.mu.Unlock()
 			return TestnetOrder{}, ErrConflict
 		}
 		for _, o := range s.state.TestnetOrders {
 			if o.IdempotencyKey == key {
+				s.mu.Unlock()
 				return o, nil
 			}
 		}
 	}
 	s.state.Sequence++
-	o := TestnetOrder{ID: fmt.Sprintf("testnet-%06d", s.state.Sequence), MandateDigest: mandateDigest, StrategyHash: m.StrategyHash, Market: m.Market, Side: side, Price: price, Amount: amount, IdempotencyKey: key, Status: "submitting", CreatedAt: s.cfg.Now()}
-	proof, err := s.cfg.TestnetBroker.SubmitTestnet(o)
+	o := TestnetOrder{ID: fmt.Sprintf("testnet-%06d", s.state.Sequence), MandateDigest: mandateDigest, StrategyHash: m.StrategyHash, Market: m.Market, Side: side, Price: price, Amount: amount, IdempotencyKey: key, WalletSignature: strings.TrimSpace(walletSignature), Status: "submitting", CreatedAt: s.cfg.Now()}
+	s.mu.Unlock()
+
+	proof, err := s.cfg.TestnetBroker.SubmitTestnet(m, o, exchangeSessionToken)
 	if err != nil {
+		if errors.Is(err, ErrForbidden) || errors.Is(err, ErrConflict) {
+			return TestnetOrder{}, err
+		}
 		return TestnetOrder{}, ErrUnavailable
 	}
 	o.BrokerProof = strings.TrimSpace(proof)
@@ -254,10 +273,54 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		return TestnetOrder{}, ErrUnavailable
 	}
 	o.Status = "submitted_testnet"
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if prior, ok := s.state.Idempotency[key]; ok {
+		if prior != d {
+			return TestnetOrder{}, ErrConflict
+		}
+		for _, existing := range s.state.TestnetOrders {
+			if existing.IdempotencyKey == key {
+				return existing, nil
+			}
+		}
+	}
 	s.state.TestnetOrders[o.ID] = o
 	s.state.Idempotency[key] = d
 	s.audit("testnet_order_submitted", o.ID, hash(o))
 	return o, s.save()
+}
+
+func exchangeMandate(m Mandate) exchangeproduct.QuantMandate {
+	return exchangeproduct.QuantMandate{Subaccount: m.Account, Market: m.Market, Methods: append([]string(nil), m.Methods...), CapitalMicro: m.CapitalMicro, Leverage: m.Leverage, ExpiresAt: m.ExpiresAt, NonceDomain: m.NonceDomain, WalletSignature: m.WalletSignature}
+}
+
+func hasMandateMethods(methods []string, required ...string) bool {
+	seen := make(map[string]bool, len(methods))
+	for _, method := range methods {
+		method = strings.ToLower(strings.TrimSpace(method))
+		if method == "" || seen[method] {
+			return false
+		}
+		seen[method] = true
+	}
+	for _, method := range required {
+		if !seen[method] {
+			return false
+		}
+	}
+	return true
+}
+
+func safeNotional(price, amount int64) int64 {
+	if price <= 0 || amount <= 0 {
+		return 0
+	}
+	const maxInt64 = int64(^uint64(0) >> 1)
+	if price > maxInt64/amount {
+		return maxInt64
+	}
+	return price * amount / 1_000_000
 }
 
 func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
@@ -523,6 +586,8 @@ func (s *Service) ApplyPaperSignalFromMarket(strategyHash, side string, amount i
 }
 
 func (s *Service) Reconcile(authoritativeCash, authoritativePosition int64) (PaperState, error) {
+	s.executionGate.Lock()
+	defer s.executionGate.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delta := abs(authoritativeCash-s.state.Paper.Cash) + abs(authoritativePosition-s.state.Paper.Position)
@@ -537,6 +602,8 @@ func (s *Service) Kill(reason string) (PaperState, error) {
 	if len(strings.TrimSpace(reason)) < 3 {
 		return PaperState{}, ErrInvalid
 	}
+	s.executionGate.Lock()
+	defer s.executionGate.Unlock()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.state.Paper.KillSwitch = true
@@ -578,6 +645,10 @@ func verifyIntegrity(s state) bool {
 }
 func hash(v any) string {
 	b, _ := json.Marshal(v)
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:])
+}
+func hashBytes(b []byte) string {
 	h := sha256.Sum256(b)
 	return hex.EncodeToString(h[:])
 }

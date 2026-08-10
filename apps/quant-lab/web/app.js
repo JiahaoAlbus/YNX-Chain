@@ -1,6 +1,7 @@
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
 let snapshot = { paper: {}, strategies: {}, experiments: {}, audit: [] };
+let pendingMandate = null;
 const supportedLocales = QuantI18n.locales;
 let locale = localStorage.getItem("ynx.quant.locale") || navigator.languages.find((value) => supportedLocales.includes(value)) || navigator.language.split("-")[0];
 if (!supportedLocales.includes(locale)) locale = "en";
@@ -19,6 +20,7 @@ const api = async (path, opt = {}) => {
     headers: {
       "content-type": "application/json",
       "x-ynx-preview-mode": "local-paper",
+      ...(opt.headers || {}),
     },
   });
   const b = await r.json();
@@ -66,6 +68,9 @@ function render() {
           `<li><time>${localDate(a.CreatedAt)}</time><strong>${safe(a.Action)} · ${safe(a.ObjectID)}</strong><code>${safe(a.Hash.slice(0, 16))}…</code></li>`,
       )
       .join("") || "<li>No audited actions yet.</li>";
+  if (!$("#mandate-strategy").value && strategies.length) {
+    $("#mandate-strategy").value = strategies[0].StrategyHash || "";
+  }
 }
 function safe(v) {
   const e = document.createElement("span");
@@ -136,6 +141,71 @@ $("#paper-order").onsubmit = async (e) => {
   } catch (e) {
     toast(e.message);
   }
+};
+function mandateDraft() {
+  const strategyHash = $("#mandate-strategy").value.trim().toLowerCase();
+  const capital = +$("#mandate-capital").value;
+  return {
+    Account: $("#mandate-account").value.trim(),
+    StrategyHash: strategyHash,
+    Market: "YNXT-YUSD_TEST",
+    MaxNotional: capital,
+    MaxPosition: +$("#mandate-position").value,
+    MaxDailyLoss: +$("#mandate-loss").value,
+    Methods: ["read", "submit", "reconcile"],
+    CapitalMicro: capital,
+    Leverage: 1,
+    NonceDomain: "quant:" + strategyHash,
+    ExpiresAt: new Date(Date.now() + +$("#mandate-expiry").value * 60000).toISOString(),
+    TestnetOnly: true,
+  };
+}
+$$('#mandate-form input:not(#mandate-signature):not(#exchange-session)').forEach((input) => {
+  input.addEventListener("input", () => {
+    pendingMandate = null;
+    $("#mandate-payload").hidden = true;
+  });
+});
+$("#preview-mandate").onclick = async () => {
+  try {
+    pendingMandate = mandateDraft();
+    const result = await api("/v1/testnet/signing-payloads/mandate", {method:"POST", body:JSON.stringify(pendingMandate)});
+    $("#mandate-payload").textContent = `${result.payload}\n\nSHA-256 ${result.digest}`;
+    $("#mandate-payload").hidden = false;
+  } catch (e) { toast(e.message); }
+};
+$("#mandate-form").onsubmit = async (e) => {
+  e.preventDefault();
+  if (!pendingMandate) return toast("Preview the exact mandate payload before signing");
+  try {
+    const result = await api("/v1/testnet/mandates", {method:"POST", headers:{"x-ynx-exchange-session":$("#exchange-session").value.trim()}, body:JSON.stringify({...pendingMandate, WalletSignature:$("#mandate-signature").value.trim()})});
+    $("#order-mandate").value = result.Digest;
+    toast("Wallet mandate verified by Exchange and registered");
+    await refresh();
+  } catch (e) { toast(e.message); }
+};
+function orderDraft() {
+  return {
+    Account: $("#mandate-account").value.trim(), Market:"YNXT-YUSD_TEST",
+    Side:$("#order-side").value, Price:+$("#order-price").value,
+    Amount:+$("#order-amount").value, IdempotencyKey:$("#order-key").value.trim(),
+  };
+}
+$("#preview-order").onclick = async () => {
+  try {
+    const result = await api("/v1/testnet/signing-payloads/order", {method:"POST", body:JSON.stringify(orderDraft())});
+    $("#order-payload").textContent = `${result.payload}\n\nSHA-256 ${result.digest}`;
+    $("#order-payload").hidden = false;
+  } catch (e) { toast(e.message); }
+};
+$("#testnet-order-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const draft = orderDraft();
+  try {
+    await api("/v1/testnet/orders", {method:"POST", headers:{"x-ynx-exchange-session":$("#exchange-session").value.trim()}, body:JSON.stringify({MandateDigest:$("#order-mandate").value.trim(), Side:draft.Side, Price:draft.Price, Amount:draft.Amount, IdempotencyKey:draft.IdempotencyKey, WalletSignature:$("#order-signature").value.trim()})});
+    toast("Wallet-authorized order submitted to YNX Testnet");
+    await refresh();
+  } catch (e) { toast(e.message); }
 };
 $("#reconcile").onclick = async () => {
   try {

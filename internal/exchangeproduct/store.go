@@ -1,6 +1,7 @@
 package exchangeproduct
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -16,36 +17,45 @@ type idempotencyRecord struct {
 	ObjectID string `json:"objectId"`
 }
 
-const currentStateSchemaVersion = 9
+const currentStateSchemaVersion = 10
 
 type persistentState struct {
-	SchemaVersion      int                          `json:"schemaVersion"`
-	Sequence           int64                        `json:"sequence"`
-	EventSequence      int64                        `json:"eventSequence"`
-	CustodyAddress     string                       `json:"custodyAddress"`
-	Challenges         map[string]WalletChallenge   `json:"challenges"`
-	Sessions           map[string]WalletSession     `json:"sessions"`
-	Balances           map[string]Balance           `json:"balances"`
-	Ledger             []LedgerEntry                `json:"ledger"`
-	DepositIntents     map[string]DepositIntent     `json:"depositIntents"`
-	Deposits           map[string]Deposit           `json:"deposits"`
-	Withdrawals        map[string]Withdrawal        `json:"withdrawals"`
-	Orders             map[string]Order             `json:"orders"`
-	ConditionalOrders  map[string]ConditionalOrder  `json:"conditionalOrders"`
-	OCOGroups          map[string]OCOGroup          `json:"ocoGroups"`
-	TWAPOrders         map[string]TWAPOrder         `json:"twapOrders"`
-	ScaleOrders        map[string]ScaleOrder        `json:"scaleOrders"`
-	DeadMan            map[string]DeadManSwitch     `json:"deadMan"`
-	QuantStrategyKills map[string]QuantStrategyKill `json:"quantStrategyKills"`
-	ExecutionEvents    []ExecutionEvent             `json:"executionEvents"`
-	Trades             []Trade                      `json:"trades"`
-	Fees               []FeeRecord                  `json:"fees"`
-	Security           map[string]SecuritySettings  `json:"security"`
-	Support            map[string]SupportCase       `json:"support"`
-	AI                 map[string]AIRecord          `json:"ai"`
-	Idempotency        map[string]idempotencyRecord `json:"idempotency"`
-	Audit              []AuditEvent                 `json:"audit"`
-	IntegrityHash      string                       `json:"integrityHash"`
+	SchemaVersion      int                           `json:"schemaVersion"`
+	Sequence           int64                         `json:"sequence"`
+	EventSequence      int64                         `json:"eventSequence"`
+	CustodyAddress     string                        `json:"custodyAddress"`
+	Challenges         map[string]WalletChallenge    `json:"challenges"`
+	Sessions           map[string]WalletSession      `json:"sessions"`
+	Balances           map[string]Balance            `json:"balances"`
+	Ledger             []LedgerEntry                 `json:"ledger"`
+	DepositIntents     map[string]DepositIntent      `json:"depositIntents"`
+	Deposits           map[string]Deposit            `json:"deposits"`
+	Withdrawals        map[string]Withdrawal         `json:"withdrawals"`
+	Orders             map[string]Order              `json:"orders"`
+	ConditionalOrders  map[string]ConditionalOrder   `json:"conditionalOrders"`
+	OCOGroups          map[string]OCOGroup           `json:"ocoGroups"`
+	TWAPOrders         map[string]TWAPOrder          `json:"twapOrders"`
+	ScaleOrders        map[string]ScaleOrder         `json:"scaleOrders"`
+	DeadMan            map[string]DeadManSwitch      `json:"deadMan"`
+	QuantStrategyKills map[string]QuantStrategyKill  `json:"quantStrategyKills"`
+	RiskOracle         map[string]RiskOracleSnapshot `json:"riskOracle"`
+	RiskMarkets        map[string]RiskMarketState    `json:"riskMarkets"`
+	MarginAccounts     map[string]MarginAccount      `json:"marginAccounts"`
+	PerpetualPositions map[string]PerpetualPosition  `json:"perpetualPositions"`
+	PerpetualOrders    map[string]PerpetualOrder     `json:"perpetualOrders"`
+	PerpetualTrades    []PerpetualTrade              `json:"perpetualTrades"`
+	FundingSettlements []FundingSettlement           `json:"fundingSettlements"`
+	Liquidations       []LiquidationEvent            `json:"liquidations"`
+	InsuranceFund      InsuranceFund                 `json:"insuranceFund"`
+	ExecutionEvents    []ExecutionEvent              `json:"executionEvents"`
+	Trades             []Trade                       `json:"trades"`
+	Fees               []FeeRecord                   `json:"fees"`
+	Security           map[string]SecuritySettings   `json:"security"`
+	Support            map[string]SupportCase        `json:"support"`
+	AI                 map[string]AIRecord           `json:"ai"`
+	Idempotency        map[string]idempotencyRecord  `json:"idempotency"`
+	Audit              []AuditEvent                  `json:"audit"`
+	IntegrityHash      string                        `json:"integrityHash"`
 }
 
 // legacyPersistentStateV1 preserves the exact JSON field set and field order
@@ -105,8 +115,40 @@ type legacyPersistentStateV8 struct {
 	IntegrityHash     string                       `json:"integrityHash"`
 }
 
+// legacyPersistentStateV9 preserves the exact schema emitted before the
+// Margin/Perpetual risk domain was added. It is verified before migration.
+type legacyPersistentStateV9 struct {
+	SchemaVersion      int                          `json:"schemaVersion"`
+	Sequence           int64                        `json:"sequence"`
+	EventSequence      int64                        `json:"eventSequence"`
+	CustodyAddress     string                       `json:"custodyAddress"`
+	Challenges         map[string]WalletChallenge   `json:"challenges"`
+	Sessions           map[string]WalletSession     `json:"sessions"`
+	Balances           map[string]Balance           `json:"balances"`
+	Ledger             []LedgerEntry                `json:"ledger"`
+	DepositIntents     map[string]DepositIntent     `json:"depositIntents"`
+	Deposits           map[string]Deposit           `json:"deposits"`
+	Withdrawals        map[string]Withdrawal        `json:"withdrawals"`
+	Orders             map[string]Order             `json:"orders"`
+	ConditionalOrders  map[string]ConditionalOrder  `json:"conditionalOrders"`
+	OCOGroups          map[string]OCOGroup          `json:"ocoGroups"`
+	TWAPOrders         map[string]TWAPOrder         `json:"twapOrders"`
+	ScaleOrders        map[string]ScaleOrder        `json:"scaleOrders"`
+	DeadMan            map[string]DeadManSwitch     `json:"deadMan"`
+	QuantStrategyKills map[string]QuantStrategyKill `json:"quantStrategyKills"`
+	ExecutionEvents    []ExecutionEvent             `json:"executionEvents"`
+	Trades             []Trade                      `json:"trades"`
+	Fees               []FeeRecord                  `json:"fees"`
+	Security           map[string]SecuritySettings  `json:"security"`
+	Support            map[string]SupportCase       `json:"support"`
+	AI                 map[string]AIRecord          `json:"ai"`
+	Idempotency        map[string]idempotencyRecord `json:"idempotency"`
+	Audit              []AuditEvent                 `json:"audit"`
+	IntegrityHash      string                       `json:"integrityHash"`
+}
+
 func newState() persistentState {
-	return persistentState{SchemaVersion: currentStateSchemaVersion, CustodyAddress: "", Challenges: map[string]WalletChallenge{}, Sessions: map[string]WalletSession{}, Balances: map[string]Balance{}, Ledger: []LedgerEntry{}, DepositIntents: map[string]DepositIntent{}, Deposits: map[string]Deposit{}, Withdrawals: map[string]Withdrawal{}, Orders: map[string]Order{}, ConditionalOrders: map[string]ConditionalOrder{}, OCOGroups: map[string]OCOGroup{}, TWAPOrders: map[string]TWAPOrder{}, ScaleOrders: map[string]ScaleOrder{}, DeadMan: map[string]DeadManSwitch{}, QuantStrategyKills: map[string]QuantStrategyKill{}, ExecutionEvents: []ExecutionEvent{}, Trades: []Trade{}, Fees: []FeeRecord{}, Security: map[string]SecuritySettings{}, Support: map[string]SupportCase{}, AI: map[string]AIRecord{}, Idempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{}}
+	return persistentState{SchemaVersion: currentStateSchemaVersion, CustodyAddress: "", Challenges: map[string]WalletChallenge{}, Sessions: map[string]WalletSession{}, Balances: map[string]Balance{}, Ledger: []LedgerEntry{}, DepositIntents: map[string]DepositIntent{}, Deposits: map[string]Deposit{}, Withdrawals: map[string]Withdrawal{}, Orders: map[string]Order{}, ConditionalOrders: map[string]ConditionalOrder{}, OCOGroups: map[string]OCOGroup{}, TWAPOrders: map[string]TWAPOrder{}, ScaleOrders: map[string]ScaleOrder{}, DeadMan: map[string]DeadManSwitch{}, QuantStrategyKills: map[string]QuantStrategyKill{}, RiskOracle: map[string]RiskOracleSnapshot{}, RiskMarkets: map[string]RiskMarketState{}, MarginAccounts: map[string]MarginAccount{}, PerpetualPositions: map[string]PerpetualPosition{}, PerpetualOrders: map[string]PerpetualOrder{}, PerpetualTrades: []PerpetualTrade{}, FundingSettlements: []FundingSettlement{}, Liquidations: []LiquidationEvent{}, InsuranceFund: InsuranceFund{Asset: QuoteAsset, Status: "unfunded"}, ExecutionEvents: []ExecutionEvent{}, Trades: []Trade{}, Fees: []FeeRecord{}, Security: map[string]SecuritySettings{}, Support: map[string]SupportCase{}, AI: map[string]AIRecord{}, Idempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{}}
 }
 
 func normalizeState(s *persistentState) {
@@ -151,6 +193,33 @@ func normalizeState(s *persistentState) {
 	}
 	if s.QuantStrategyKills == nil {
 		s.QuantStrategyKills = map[string]QuantStrategyKill{}
+	}
+	if s.RiskOracle == nil {
+		s.RiskOracle = map[string]RiskOracleSnapshot{}
+	}
+	if s.RiskMarkets == nil {
+		s.RiskMarkets = map[string]RiskMarketState{}
+	}
+	if s.MarginAccounts == nil {
+		s.MarginAccounts = map[string]MarginAccount{}
+	}
+	if s.PerpetualPositions == nil {
+		s.PerpetualPositions = map[string]PerpetualPosition{}
+	}
+	if s.PerpetualOrders == nil {
+		s.PerpetualOrders = map[string]PerpetualOrder{}
+	}
+	if s.PerpetualTrades == nil {
+		s.PerpetualTrades = []PerpetualTrade{}
+	}
+	if s.FundingSettlements == nil {
+		s.FundingSettlements = []FundingSettlement{}
+	}
+	if s.Liquidations == nil {
+		s.Liquidations = []LiquidationEvent{}
+	}
+	if s.InsuranceFund.Asset == "" {
+		s.InsuranceFund = InsuranceFund{Asset: QuoteAsset, Status: "unfunded"}
 	}
 	if s.ExecutionEvents == nil {
 		s.ExecutionEvents = []ExecutionEvent{}
@@ -268,6 +337,33 @@ func legacyStateIntegrityV1(s legacyPersistentStateV1) (string, error) {
 	return hex.EncodeToString(h[:]), nil
 }
 
+// legacyRawIntegrity verifies the exact serialized shape emitted by a previous
+// schema implementation. Historical nested record types can gain fields over
+// time, so re-marshalling them through current Go structs is not a byte-stable
+// compatibility check. The original writer always stored the top-level
+// integrityHash last; compacting the original JSON after blanking only that
+// final field recreates the exact byte sequence that was hashed.
+func legacyRawIntegrity(raw []byte, stored string) (string, error) {
+	if len(stored) != 64 {
+		return "", errors.New("legacy integrity hash invalid")
+	}
+	marker := []byte(`"integrityHash": "` + stored + `"`)
+	index := bytes.LastIndex(raw, marker)
+	if index < 0 {
+		return "", errors.New("legacy integrity field unavailable")
+	}
+	rewritten := make([]byte, 0, len(raw)-len(stored))
+	rewritten = append(rewritten, raw[:index]...)
+	rewritten = append(rewritten, []byte(`"integrityHash": ""`)...)
+	rewritten = append(rewritten, raw[index+len(marker):]...)
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, rewritten); err != nil {
+		return "", errors.New("legacy state JSON invalid")
+	}
+	h := sha256.Sum256(compact.Bytes())
+	return hex.EncodeToString(h[:]), nil
+}
+
 func legacyStateV8(s persistentState) legacyPersistentStateV8 {
 	return legacyPersistentStateV8{
 		SchemaVersion:     s.SchemaVersion,
@@ -309,6 +405,48 @@ func legacyStateIntegrityV8(s legacyPersistentStateV8) (string, error) {
 	return hex.EncodeToString(h[:]), nil
 }
 
+func legacyStateV9(s persistentState) legacyPersistentStateV9 {
+	return legacyPersistentStateV9{
+		SchemaVersion:      s.SchemaVersion,
+		Sequence:           s.Sequence,
+		EventSequence:      s.EventSequence,
+		CustodyAddress:     s.CustodyAddress,
+		Challenges:         s.Challenges,
+		Sessions:           s.Sessions,
+		Balances:           s.Balances,
+		Ledger:             s.Ledger,
+		DepositIntents:     s.DepositIntents,
+		Deposits:           s.Deposits,
+		Withdrawals:        s.Withdrawals,
+		Orders:             s.Orders,
+		ConditionalOrders:  s.ConditionalOrders,
+		OCOGroups:          s.OCOGroups,
+		TWAPOrders:         s.TWAPOrders,
+		ScaleOrders:        s.ScaleOrders,
+		DeadMan:            s.DeadMan,
+		QuantStrategyKills: s.QuantStrategyKills,
+		ExecutionEvents:    s.ExecutionEvents,
+		Trades:             s.Trades,
+		Fees:               s.Fees,
+		Security:           s.Security,
+		Support:            s.Support,
+		AI:                 s.AI,
+		Idempotency:        s.Idempotency,
+		Audit:              s.Audit,
+		IntegrityHash:      s.IntegrityHash,
+	}
+}
+
+func legacyStateIntegrityV9(s legacyPersistentStateV9) (string, error) {
+	s.IntegrityHash = ""
+	b, err := json.Marshal(s)
+	if err != nil {
+		return "", err
+	}
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:]), nil
+}
+
 func loadState(path string) (persistentState, bool, error) {
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -337,6 +475,9 @@ func loadState(path string) (persistentState, bool, error) {
 			}
 			legacyExpected, legacyErr := legacyStateIntegrityV1(legacy)
 			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
+				legacyExpected, legacyErr = legacyRawIntegrity(b, legacy.IntegrityHash)
+			}
+			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
 				return persistentState{}, false, errors.New("exchange state integrity verification failed")
 			}
 		case 8:
@@ -345,6 +486,18 @@ func loadState(path string) (persistentState, bool, error) {
 				return persistentState{}, false, errors.New("exchange state integrity verification failed")
 			}
 			legacyExpected, legacyErr := legacyStateIntegrityV8(legacy)
+			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
+				return persistentState{}, false, errors.New("exchange state integrity verification failed")
+			}
+		case 9:
+			var legacy legacyPersistentStateV9
+			if err := json.Unmarshal(b, &legacy); err != nil {
+				return persistentState{}, false, errors.New("exchange state integrity verification failed")
+			}
+			legacyExpected, legacyErr := legacyStateIntegrityV9(legacy)
+			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
+				legacyExpected, legacyErr = legacyRawIntegrity(b, legacy.IntegrityHash)
+			}
 			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
 				return persistentState{}, false, errors.New("exchange state integrity verification failed")
 			}
