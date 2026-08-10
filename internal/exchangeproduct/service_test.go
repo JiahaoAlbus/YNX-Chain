@@ -50,8 +50,10 @@ func signAction(key *secp256k1.PrivateKey, payload []byte) string {
 }
 
 type fakeChain struct {
-	mu        sync.Mutex
-	transfers map[string]ChainTransfer
+	mu         sync.Mutex
+	transfers  map[string]ChainTransfer
+	balance    ChainBalance
+	balanceErr error
 }
 
 func (f *fakeChain) Transfer(hash string) (ChainTransfer, error) {
@@ -67,6 +69,19 @@ func (f *fakeChain) set(hash string, v ChainTransfer) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.transfers[hash] = v
+}
+
+func (f *fakeChain) AccountBalance(address string) (ChainBalance, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.balanceErr != nil {
+		return ChainBalance{}, f.balanceErr
+	}
+	balance := f.balance
+	if balance.Address == "" {
+		balance = ChainBalance{Address: address, Asset: NativeAsset, AmountMicro: 1_000_000 * AmountScale, CommittedHeight: 777, Source: "fake-chain/accounts/{custody}"}
+	}
+	return balance, nil
 }
 
 type testAccount struct {
@@ -1695,6 +1710,82 @@ func TestPublicMarketTapeContainsOnlyActualMatches(t *testing.T) {
 	if len(got) != 1 || got[0].Buyer != bob || got[0].Seller != alice || got[0].PriceMicro != AmountScale {
 		t.Fatalf("tape=%+v", got)
 	}
+}
+
+func TestSolvencyCommitsLiabilitiesProvesAccountAndSurvivesRestart(t *testing.T) {
+	s, chain, path := newTestService(t)
+	a := accountSession(t, s, alice, "solvency-alice", "exchange:read", "exchange:deposit")
+	b := accountSession(t, s, bob, "solvency-bob", "exchange:read", "exchange:deposit")
+	confirmDeposit(t, s, chain, a, "feed000000000001", 3*AmountScale)
+	confirmDeposit(t, s, chain, b, "feed000000000002", 2*AmountScale)
+	if _, err := s.CreditTestQuote(adminKey, alice, 7*AmountScale, "solvency-quote"); err != nil {
+		t.Fatal(err)
+	}
+	chain.balance = ChainBalance{Address: bob, Asset: NativeAsset, AmountMicro: 6 * AmountScale, CommittedHeight: 901, Source: "fake-chain/accounts/{custody}"}
+
+	snapshot := s.SolvencySnapshot()
+	if snapshot.Status != "native_assets_verified_testnet" || snapshot.LiabilityLeafCount != 3 || snapshot.CommittedHeight != 901 || len(snapshot.LiabilityMerkleRoot) != 64 {
+		t.Fatalf("snapshot=%+v", snapshot)
+	}
+	var native, quote SolvencyAsset
+	for _, item := range snapshot.Assets {
+		if item.Asset == NativeAsset {
+			native = item
+		}
+		if item.Asset == QuoteAsset {
+			quote = item
+		}
+	}
+	if native.LiabilitiesMicro != 5*AmountScale || native.AssetsMicro == nil || *native.AssetsMicro != 6*AmountScale || native.ReserveRatioBPS == nil || *native.ReserveRatioBPS != 12_000 || native.WithdrawalCapacityMicro == nil || *native.WithdrawalCapacityMicro != 6*AmountScale {
+		t.Fatalf("native=%+v", native)
+	}
+	if quote.LiabilitiesMicro != 7*AmountScale || quote.AssetsMicro != nil || quote.AssetProofStatus != "unavailable" {
+		t.Fatalf("quote=%+v", quote)
+	}
+	proof, err := s.LiabilityProof(alice, NativeAsset)
+	if err != nil || !proof.Verified || proof.MerkleRoot != snapshot.LiabilityMerkleRoot || proof.Balance.AvailableMicro != 3*AmountScale {
+		t.Fatalf("proof=%+v err=%v", proof, err)
+	}
+
+	restarted, err := New(s.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restartedProof, err := restarted.LiabilityProof(alice, NativeAsset)
+	if err != nil || !restartedProof.Verified || restartedProof.MerkleRoot != proof.MerkleRoot || restarted.cfg.StatePath != path {
+		t.Fatalf("restarted proof=%+v err=%v", restartedProof, err)
+	}
+}
+
+func TestSolvencyFailsClosedWithoutCustodyAssetEvidenceAndHTTPProofNeedsWallet(t *testing.T) {
+	s, chain, _ := newTestService(t)
+	a := accountSession(t, s, alice, "solvency-http", "exchange:read", "exchange:deposit")
+	confirmDeposit(t, s, chain, a, "feed000000000003", AmountScale)
+	chain.balanceErr = ErrUnavailable
+	snapshot := s.SolvencySnapshot()
+	if snapshot.Status != "liabilities_committed_assets_unavailable" || snapshot.Assets[1].AssetsMicro != nil {
+		t.Fatalf("fail-closed snapshot=%+v", snapshot)
+	}
+	server := httptest.NewServer(NewServer(s))
+	defer server.Close()
+	resp, err := http.Get(server.URL + "/v1/solvency/liability-proof?asset=YNXT")
+	if err != nil || resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated proof err=%v status=%v", err, resp.StatusCode)
+	}
+	resp.Body.Close()
+	s.cfg.Gateway = fixtureGateway{session: a.session}
+	s.cfg.GatewayClientID = "ynx-exchange-v1"
+	req, _ := http.NewRequest(http.MethodGet, server.URL+"/v1/solvency/liability-proof?asset=YNXT", nil)
+	req.Header.Set("Authorization", "Bearer central-ws-token")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("authenticated proof err=%v status=%v", err, resp.StatusCode)
+	}
+	var proof LiabilityProof
+	if err := json.NewDecoder(resp.Body).Decode(&proof); err != nil || !proof.Verified || proof.Account != alice {
+		t.Fatalf("http proof=%+v err=%v", proof, err)
+	}
+	resp.Body.Close()
 }
 
 func FuzzOrderAuthorizationPayloadIsCanonicalAndBound(f *testing.F) {

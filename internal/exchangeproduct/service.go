@@ -2532,6 +2532,234 @@ func (s *Service) Snapshot(account string) AccountSnapshot {
 	return r
 }
 
+type liabilityLeaf struct {
+	balance Balance
+	hash    []byte
+}
+
+func liabilityLeafHash(balance Balance) []byte {
+	payload := fmt.Sprintf("ynx-exchange-liability-v1\n%s\n%s\n%d\n%d", balance.Account, balance.Asset, balance.AvailableMicro, balance.ReservedMicro)
+	sum := sha256.Sum256([]byte(payload))
+	return sum[:]
+}
+
+func liabilityNodeHash(left, right []byte) []byte {
+	payload := make([]byte, 0, len("ynx-exchange-liability-node-v1\n")+len(left)+len(right))
+	payload = append(payload, []byte("ynx-exchange-liability-node-v1\n")...)
+	payload = append(payload, left...)
+	payload = append(payload, right...)
+	sum := sha256.Sum256(payload)
+	return sum[:]
+}
+
+func liabilityLeaves(balances map[string]Balance) []liabilityLeaf {
+	leaves := make([]liabilityLeaf, 0, len(balances))
+	for _, balance := range balances {
+		if balance.AvailableMicro < 0 || balance.ReservedMicro < 0 || balance.AvailableMicro+balance.ReservedMicro <= 0 {
+			continue
+		}
+		leaves = append(leaves, liabilityLeaf{balance: balance, hash: liabilityLeafHash(balance)})
+	}
+	sort.Slice(leaves, func(i, j int) bool {
+		if leaves[i].balance.Account == leaves[j].balance.Account {
+			return leaves[i].balance.Asset < leaves[j].balance.Asset
+		}
+		return leaves[i].balance.Account < leaves[j].balance.Account
+	})
+	return leaves
+}
+
+func liabilityMerkleRoot(leaves []liabilityLeaf) []byte {
+	if len(leaves) == 0 {
+		sum := sha256.Sum256([]byte("ynx-exchange-liability-empty-v1"))
+		return sum[:]
+	}
+	level := make([][]byte, len(leaves))
+	for i := range leaves {
+		level[i] = append([]byte(nil), leaves[i].hash...)
+	}
+	for len(level) > 1 {
+		next := make([][]byte, 0, (len(level)+1)/2)
+		for i := 0; i < len(level); i += 2 {
+			right := level[i]
+			if i+1 < len(level) {
+				right = level[i+1]
+			}
+			next = append(next, liabilityNodeHash(level[i], right))
+		}
+		level = next
+	}
+	return level[0]
+}
+
+func liabilityMerkleProof(leaves []liabilityLeaf, index int) []MerkleStep {
+	proof := []MerkleStep{}
+	level := make([][]byte, len(leaves))
+	for i := range leaves {
+		level[i] = append([]byte(nil), leaves[i].hash...)
+	}
+	position := index
+	for len(level) > 1 {
+		sibling := position ^ 1
+		if sibling >= len(level) {
+			sibling = position
+		}
+		direction := "right"
+		if sibling < position {
+			direction = "left"
+		}
+		proof = append(proof, MerkleStep{Hash: hex.EncodeToString(level[sibling]), Position: direction})
+		next := make([][]byte, 0, (len(level)+1)/2)
+		for i := 0; i < len(level); i += 2 {
+			right := level[i]
+			if i+1 < len(level) {
+				right = level[i+1]
+			}
+			next = append(next, liabilityNodeHash(level[i], right))
+		}
+		position /= 2
+		level = next
+	}
+	return proof
+}
+
+func verifyLiabilityProof(leaf []byte, proof []MerkleStep, expected []byte) bool {
+	current := append([]byte(nil), leaf...)
+	for _, step := range proof {
+		sibling, err := hex.DecodeString(step.Hash)
+		if err != nil || len(sibling) != sha256.Size {
+			return false
+		}
+		if step.Position == "left" {
+			current = liabilityNodeHash(sibling, current)
+		} else if step.Position == "right" {
+			current = liabilityNodeHash(current, sibling)
+		} else {
+			return false
+		}
+	}
+	return subtle.ConstantTimeCompare(current, expected) == 1
+}
+
+// SolvencySnapshot commits every positive venue liability and only reports
+// native custody assets when the configured chain reader can prove them from a
+// committed account query. Internal YUSD_TEST credits are never represented as
+// external reserve assets.
+func (s *Service) SolvencySnapshot() SolvencySnapshot {
+	s.mu.Lock()
+	balances := make(map[string]Balance, len(s.state.Balances))
+	for key, balance := range s.state.Balances {
+		balances[key] = balance
+	}
+	stateHash := s.state.IntegrityHash
+	custodyAddress := s.state.CustodyAddress
+	withdrawals := make([]Withdrawal, 0, len(s.state.Withdrawals))
+	for _, withdrawal := range s.state.Withdrawals {
+		withdrawals = append(withdrawals, withdrawal)
+	}
+	s.mu.Unlock()
+
+	leaves := liabilityLeaves(balances)
+	totals := map[string]*SolvencyAsset{}
+	for _, asset := range []string{NativeAsset, QuoteAsset} {
+		totals[asset] = &SolvencyAsset{Asset: asset, AssetProofStatus: "unavailable"}
+	}
+	for _, leaf := range leaves {
+		item, ok := totals[leaf.balance.Asset]
+		if !ok {
+			item = &SolvencyAsset{Asset: leaf.balance.Asset, AssetProofStatus: "unavailable"}
+			totals[leaf.balance.Asset] = item
+		}
+		item.AvailableLiabilitiesMicro += leaf.balance.AvailableMicro
+		item.ReservedLiabilitiesMicro += leaf.balance.ReservedMicro
+		item.LiabilitiesMicro += leaf.balance.AvailableMicro + leaf.balance.ReservedMicro
+	}
+
+	native := totals[NativeAsset]
+	var encumbered int64
+	for _, withdrawal := range withdrawals {
+		if withdrawal.Asset == NativeAsset && withdrawal.Status == "reviewed_pending_operator_broadcast" {
+			encumbered += withdrawal.AmountMicro
+		}
+	}
+	status := "liabilities_committed_assets_unavailable"
+	var committedHeight uint64
+	if custodyAddress == "" {
+		native.UnavailableReason = "No approved custody address is configured"
+	} else if reader, ok := s.cfg.Chain.(ChainBalanceReader); ok {
+		if chainBalance, err := reader.AccountBalance(custodyAddress); err == nil && chainBalance.Asset == NativeAsset && chainBalance.AmountMicro >= 0 {
+			assets := chainBalance.AmountMicro
+			native.AssetsMicro = &assets
+			native.EncumberedAssetsMicro = &encumbered
+			capacity := assets - encumbered
+			if capacity < 0 {
+				capacity = 0
+			}
+			native.WithdrawalCapacityMicro = &capacity
+			if native.LiabilitiesMicro > 0 {
+				ratio := assets * 10_000 / native.LiabilitiesMicro
+				native.ReserveRatioBPS = &ratio
+			}
+			native.AssetProofStatus = "committed_testnet_account_balance"
+			native.AssetProofSource = chainBalance.Source
+			committedHeight = chainBalance.CommittedHeight
+			status = "native_assets_verified_testnet"
+			if assets < native.LiabilitiesMicro {
+				status = "reserve_shortfall"
+			}
+		} else {
+			native.UnavailableReason = "Committed custody balance query failed"
+		}
+	} else {
+		native.UnavailableReason = "Configured chain reader does not support committed account balances"
+	}
+	quote := totals[QuoteAsset]
+	quote.UnavailableReason = "YUSD_TEST is a non-withdrawable venue test credit and is not represented as an external reserve asset"
+
+	assets := make([]SolvencyAsset, 0, len(totals))
+	for _, item := range totals {
+		assets = append(assets, *item)
+	}
+	sort.Slice(assets, func(i, j int) bool { return assets[i].Asset < assets[j].Asset })
+	return SolvencySnapshot{
+		Version:             "ynx-exchange-solvency-v1",
+		AsOf:                s.cfg.Now().UTC(),
+		StateSchemaVersion:  currentStateSchemaVersion,
+		StateIntegrityHash:  stateHash,
+		LiabilityMerkleRoot: hex.EncodeToString(liabilityMerkleRoot(leaves)),
+		LiabilityLeafCount:  len(leaves),
+		CustodyAddress:      custodyAddress,
+		CommittedHeight:     committedHeight,
+		Assets:              assets,
+		InsuranceFundStatus: "not_implemented",
+		Status:              status,
+		Disclosure:          "Testnet evidence only. The Merkle root commits venue liabilities; custody assets are included only from a committed chain account query. This is not a Mainnet audit or production assurance.",
+	}
+}
+
+func (s *Service) LiabilityProof(account, asset string) (LiabilityProof, error) {
+	normalized, err := nativewallet.NormalizeNativeAddress(account)
+	if err != nil || (asset != NativeAsset && asset != QuoteAsset) {
+		return LiabilityProof{}, ErrInvalid
+	}
+	s.mu.Lock()
+	balances := make(map[string]Balance, len(s.state.Balances))
+	for key, balance := range s.state.Balances {
+		balances[key] = balance
+	}
+	asOf := s.cfg.Now().UTC()
+	s.mu.Unlock()
+	leaves := liabilityLeaves(balances)
+	root := liabilityMerkleRoot(leaves)
+	for index, leaf := range leaves {
+		if leaf.balance.Account == normalized && leaf.balance.Asset == asset {
+			proof := liabilityMerkleProof(leaves, index)
+			return LiabilityProof{Version: "ynx-exchange-liability-v1", Account: normalized, Balance: leaf.balance, LeafHash: hex.EncodeToString(leaf.hash), LeafIndex: index, LeafCount: len(leaves), MerkleRoot: hex.EncodeToString(root), Proof: proof, Verified: verifyLiabilityProof(leaf.hash, proof, root), SnapshotAsOf: asOf}, nil
+		}
+	}
+	return LiabilityProof{}, ErrNotFound
+}
+
 func (s *Service) UpdateSecurity(session WalletSession, settings SecuritySettings) (SecuritySettings, error) {
 	if settings.SessionTTLMinutes < 15 || settings.SessionTTLMinutes > 480 {
 		return SecuritySettings{}, ErrInvalid

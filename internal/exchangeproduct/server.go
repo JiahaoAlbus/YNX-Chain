@@ -52,6 +52,8 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/markets", s.markets)
 	s.mux.HandleFunc("GET /v1/orderbook", s.book)
 	s.mux.HandleFunc("GET /v1/market-data/trades", s.marketTrades)
+	s.mux.HandleFunc("GET /v1/solvency", s.solvency)
+	s.mux.HandleFunc("GET /v1/solvency/liability-proof", s.liabilityProof)
 	s.mux.HandleFunc("GET /v1/streams/market/snapshot", s.marketStreamSnapshot)
 	s.mux.HandleFunc("GET /v1/streams/user/snapshot", s.userStreamSnapshot)
 	s.mux.HandleFunc("GET /v1/ws/market", s.marketWebSocket)
@@ -241,6 +243,23 @@ func (s *Server) markets(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"markets": Markets(), "source": "YNX-owned deterministic order state only"})
 }
 func (s *Server) book(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Book()) }
+
+func (s *Server) solvency(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.SolvencySnapshot())
+}
+
+func (s *Server) liabilityProof(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:read")
+	if !ok {
+		return
+	}
+	asset := strings.TrimSpace(r.URL.Query().Get("asset"))
+	if asset == "" {
+		asset = NativeAsset
+	}
+	proof, err := s.service.LiabilityProof(session.Account, asset)
+	respond(w, proof, err, http.StatusOK)
+}
 func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "externalPrice": false, "trades": s.service.PublicTrades(1000)})
 }
@@ -1135,6 +1154,31 @@ func (r IndexerChainReader) Transfer(hash string) (ChainTransfer, error) {
 		return ChainTransfer{}, fmt.Errorf("chain amount cannot be represented by the venue's six-decimal ledger")
 	}
 	return ChainTransfer{Hash: tx.Hash, From: tx.From, To: tx.To, AmountMicro: tx.Amount * AmountScale, Confirmations: confirmations, Committed: tx.BlockNum > 0}, nil
+}
+
+func (r IndexerChainReader) AccountBalance(address string) (ChainBalance, error) {
+	client := r.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	base := strings.TrimRight(r.BaseURL, "/")
+	var account struct {
+		Address string `json:"address"`
+		Balance int64  `json:"balance"`
+	}
+	if err := getJSON(client, base+"/accounts/"+url.PathEscape(address), &account); err != nil {
+		return ChainBalance{}, err
+	}
+	var overview struct {
+		Height uint64 `json:"height"`
+	}
+	if err := getJSON(client, base+"/ynx/overview", &overview); err != nil {
+		return ChainBalance{}, err
+	}
+	if account.Balance < 0 || account.Balance > (1<<63-1)/AmountScale {
+		return ChainBalance{}, fmt.Errorf("chain balance cannot be represented by the venue's six-decimal ledger")
+	}
+	return ChainBalance{Address: address, Asset: NativeAsset, AmountMicro: account.Balance * AmountScale, CommittedHeight: overview.Height, Source: base + "/accounts/{custody}"}, nil
 }
 func getJSON(client *http.Client, url string, out any) error {
 	resp, err := client.Get(url)
