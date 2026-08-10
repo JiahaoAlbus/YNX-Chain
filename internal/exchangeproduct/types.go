@@ -47,6 +47,7 @@ type Config struct {
 	IndexerURL             string
 	MaxOrderNotionalMicro  int64
 	MaxWithdrawalMicro     int64
+	DeployedPublic         bool
 }
 
 type GatewayAuthorizer interface {

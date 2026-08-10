@@ -217,7 +217,11 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"status": "not_ready", "stateIntegrity": false, "schemaVersion": schema, "expectedSchemaVersion": currentStateSchemaVersion})
 		return
 	}
-	writeJSON(w, 200, map[string]any{"status": "ready_local_engine", "stateIntegrity": true, "schemaVersion": schema, "integrations": s.service.Integrations(), "deployedPublic": false})
+	status := "ready_local_engine"
+	if s.service.cfg.DeployedPublic {
+		status = "ready_public_testnet"
+	}
+	writeJSON(w, 200, map[string]any{"status": status, "stateIntegrity": true, "schemaVersion": schema, "integrations": s.service.Integrations(), "deployedPublic": s.service.cfg.DeployedPublic})
 }
 func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
