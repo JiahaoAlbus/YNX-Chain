@@ -12,19 +12,22 @@ The configured Exchange must expose `/api/v1/market-data/trades` when the Exchan
 
 The same configured Exchange origin enables the stateless execution adapter.
 Mandate registration and order submission require the caller's own short-lived
-session in `X-YNX-Exchange-Session`; this credential is request-scoped and is
+one-time proof in `X-YNX-Quant-Product-Session-Proof`; this credential is request-scoped and is
 never persisted or shared. The Testnet workspace exposes the exact mandate and
 order signing payloads for review in YNX Wallet. A remote timeout leaves a
 durable unknown-outcome reservation and blocks duplicate submission until
 reconciliation.
 
-Writes require the UI's same-origin `X-YNX-Preview-Mode: local-paper` boundary.
-The public Testnet research preview is a shared simulated workspace: it accepts
-same-origin research and Paper mutations, never enables live funds, and does not
-yet provide canonical Wallet identity or per-user tenancy. Do not submit private
-datasets, secrets, API keys, personal data, or proprietary strategy source. A
-multi-user release must replace this boundary with Central Gateway sessions and
-tenant-scoped storage before it can claim private workspaces.
+Writes require the UI's same-origin `X-YNX-Preview-Mode: local-paper` boundary
+and a browser-generated 256-bit tenant binding. Research and Paper remain usable
+without login, but every browser/device receives a separate restart-persistent
+state file; one visitor cannot read or mutate another visitor's strategies,
+experiments, Paper state or audit chain. Bounded Testnet operations additionally
+require a canonical Wallet Quant Product Session proof plus the exact mandate
+and per-order Wallet signatures. Tenant IDs are isolation capabilities, not user
+accounts, so clearing browser storage starts a new guest workspace. Do not store
+secrets, API keys, personal data or proprietary strategy source in this public
+Testnet preview.
 
 Public research preview:
 
@@ -75,7 +78,7 @@ matched-trade ticks into simulated fills; `ShadowExecutionAdapter` observes the
 same feed and always returns zero fill with no order ID. The versioned intent
 schema is `apps/quant-lab/integration/execution-adapter.schema.json`.
 The Exchange transport is implemented with exact Wallet signatures, mandate
-limits, per-request user sessions and durable idempotency. The DEX transport is
+limits, fresh one-time Quant Product Session proofs and durable idempotency. The DEX transport is
 still absent until the public v13 Strategy Vault runtime is available.
 
 Dataset governance records are registered through `POST /v1/datasets` and
@@ -112,7 +115,7 @@ state volume. Kubernetes manifests in `apps/quant-lab/k8s` are candidates, not
 deployment evidence. Neither packaging format implies staging, public
 deployment, canonical Gateway integration, or production signing.
 
-Testnet order submission requires `MandateVerifier` and `TestnetBroker` implementations. When `YNX_QUANT_EXCHANGE_URL` is configured, the shipped server injects the stateless Exchange implementation. Without the exact URL, user session, mandate signature or independent order signature it fails closed. Live-funds and Mainnet execution remain disabled.
+Testnet order submission requires `MandateVerifier` and `TestnetBroker` implementations. When `YNX_QUANT_EXCHANGE_URL` is configured, the shipped server injects the stateless Exchange implementation. Without the exact URL, a fresh one-time Quant Product Session proof, mandate signature or independent order signature it fails closed. Live-funds and Mainnet execution remain disabled.
 
 Strategy lifecycle changes are sequential and fail closed:
 

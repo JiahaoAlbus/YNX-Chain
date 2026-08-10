@@ -14,6 +14,7 @@
         <p class="eyebrow">YNX QUANT LAB</p>
         <h1 data-i18n="tagline">Research, paper & testnet</h1>
       </div>
+      <div class="wallet-controls"><button id="connect-wallet" type="button">Connect YNX Wallet</button><a id="install-wallet" href="https://ynxweb4.com/ecosystem?product=wallet">Install YNX Wallet</a><small id="wallet-status" role="status" aria-live="polite">Wallet not connected — Research and Paper are still available</small></div>
       <div class="mode"><span></span><b data-i18n="mode">SIMULATED / TESTNET ONLY</b></div>
     </header>
     <div class="shell">
@@ -216,14 +217,14 @@
             <p data-i18n="mandateBoundary">
               Requires a canonical Wallet-signed mandate binding strategy hash,
               market, notional, position, daily loss and expiry. Every order
-              requires a separate Wallet signature and the user's short-lived
-              Exchange session. Real-money auto-trading is structurally disabled.
+              requires a separate Wallet signature and a fresh one-time Quant
+              Product Session proof. Real-money auto-trading is structurally disabled.
             </p>
           </div>
           <div class="split testnet-workspace">
             <form id="mandate-form">
               <h3>1 · Authorize a bounded strategy</h3>
-              <p class="lead">Preview the exact Exchange mandate, sign it in YNX Wallet, then register it with your own short-lived Exchange session. The session is request-scoped and is never saved.</p>
+              <p class="lead">Connect YNX Wallet, preview the exact Exchange mandate, sign it in Wallet, then register it with a fresh one-time Quant Product Session proof. The proof is never saved.</p>
               <div class="fields">
                 <label>YNX account<input id="mandate-account" autocomplete="off" required /></label>
                 <label>Strategy SHA-256<input id="mandate-strategy" minlength="64" maxlength="64" autocomplete="off" required /></label>
@@ -243,7 +244,6 @@
                 <label>Max concentration (bps)<input id="mandate-concentration" type="number" value="5000" min="1" max="10000" required /></label>
                 <label>Max cancel rate (bps)<input id="mandate-cancel-rate" type="number" value="5000" min="1" max="10000" required /></label>
                 <label>Max consecutive API failures<input id="mandate-api-failures" type="number" value="3" min="1" required /></label>
-                <label class="wide">Exchange session (not saved)<input id="exchange-session" type="password" autocomplete="off" required /></label>
                 <label class="wide">Wallet mandate signature<input id="mandate-signature" type="password" autocomplete="off" required /></label>
               </div>
               <div class="actions"><button id="preview-mandate" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Register mandate</button></div>
@@ -297,6 +297,7 @@
         <div id="toast" role="status" aria-live="polite"></div>
       </main>
     </div>
+    <script src="wallet-auth.js"></script>
     <script src="i18n.js"></script>
     <script src="app.js"></script>
   </body>

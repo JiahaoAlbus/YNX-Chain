@@ -68,17 +68,45 @@ type exchangeOrderResponse struct {
 	AuthorizationDigest string `json:"authorizationDigest"`
 }
 
-// HTTPExchangeAdapter is stateless. The caller supplies one short-lived,
-// Wallet-authenticated Exchange session for each request. It is never stored
+// HTTPExchangeAdapter is stateless. The caller supplies one fresh, one-time,
+// Wallet-authenticated Quant Product Session proof for each request. It is never stored
 // in Quant state, a mandate, an order, an audit record, or the adapter itself.
 type HTTPExchangeAdapter struct {
 	BaseURL string
 	Client  *http.Client
 }
 
-func (a HTTPExchangeAdapter) VerifyMandate(ctx context.Context, mandate Mandate, sessionToken string) error {
+func (a HTTPExchangeAdapter) CompleteWalletSession(ctx context.Context, body []byte) ([]byte, int, error) {
+	base, err := url.Parse(strings.TrimSpace(a.BaseURL))
+	if err != nil || (base.Scheme != "http" && base.Scheme != "https") || base.Host == "" || base.User != nil || base.RawQuery != "" || base.Fragment != "" || len(body) < 2 || len(body) > 256<<10 {
+		return nil, 0, ErrUnavailable
+	}
+	base.Path = strings.TrimRight(base.Path, "/") + "/v1/wallet/sessions/complete"
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, base.String(), bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, ErrUnavailable
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Accept", "application/json")
+	client := a.Client
+	if client == nil {
+		client = &http.Client{Timeout: 8 * time.Second}
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, 0, ErrUnavailable
+	}
+	defer response.Body.Close()
+	data, err := io.ReadAll(io.LimitReader(response.Body, maxExchangeResponseBytes+1))
+	if err != nil || len(data) > maxExchangeResponseBytes {
+		return nil, 0, ErrUnavailable
+	}
+	return data, response.StatusCode, nil
+}
+
+func (a HTTPExchangeAdapter) VerifyMandate(ctx context.Context, mandate Mandate, productSessionProof string) error {
 	var account exchangeAccountState
-	if err := a.post(ctx, "/v1/quant-adapter/account", sessionToken, map[string]any{"mandate": toExchangeMandate(mandate)}, &account); err != nil {
+	if err := a.post(ctx, "/v1/quant-adapter/account", productSessionProof, map[string]any{"mandate": toExchangeMandate(mandate)}, &account); err != nil {
 		return err
 	}
 	if account.Source.Version != ExchangeQuantAdapterVersion || account.Source.Status != "available" || strings.TrimSpace(account.Source.Source) == "" {
@@ -87,7 +115,7 @@ func (a HTTPExchangeAdapter) VerifyMandate(ctx context.Context, mandate Mandate,
 	return nil
 }
 
-func (a HTTPExchangeAdapter) SubmitTestnet(ctx context.Context, mandate Mandate, order TestnetOrder, sessionToken string) (string, error) {
+func (a HTTPExchangeAdapter) SubmitTestnet(ctx context.Context, mandate Mandate, order TestnetOrder, productSessionProof string) (string, error) {
 	request := exchangeOrderRequest{
 		Market: order.Market, Side: order.Side, Type: "limit", TimeInForce: "gtc",
 		PriceMicro: order.Price, AmountMicro: order.Amount, IdempotencyKey: order.IdempotencyKey,
@@ -97,7 +125,7 @@ func (a HTTPExchangeAdapter) SubmitTestnet(ctx context.Context, mandate Mandate,
 		return "", ErrForbidden
 	}
 	var submitted exchangeOrderResponse
-	if err := a.post(ctx, "/v1/quant-adapter/orders", sessionToken, map[string]any{"mandate": toExchangeMandate(mandate), "order": request}, &submitted); err != nil {
+	if err := a.post(ctx, "/v1/quant-adapter/orders", productSessionProof, map[string]any{"mandate": toExchangeMandate(mandate), "order": request}, &submitted); err != nil {
 		return "", err
 	}
 	if submitted.ID == "" || submitted.Account != mandate.Account || submitted.Market != order.Market || submitted.Side != order.Side ||
@@ -113,9 +141,9 @@ func (a HTTPExchangeAdapter) SubmitTestnet(ctx context.Context, mandate Mandate,
 	}{"ynx-exchange", submitted.ID, submitted.AuthorizationDigest, submitted.Status}), nil
 }
 
-func (a HTTPExchangeAdapter) post(ctx context.Context, path, sessionToken string, body, result any) error {
+func (a HTTPExchangeAdapter) post(ctx context.Context, path, productSessionProof string, body, result any) error {
 	base, err := url.Parse(strings.TrimSpace(a.BaseURL))
-	if err != nil || (base.Scheme != "http" && base.Scheme != "https") || base.Host == "" || base.User != nil || base.RawQuery != "" || base.Fragment != "" || strings.TrimSpace(sessionToken) == "" {
+	if err != nil || (base.Scheme != "http" && base.Scheme != "https") || base.Host == "" || base.User != nil || base.RawQuery != "" || base.Fragment != "" || strings.TrimSpace(productSessionProof) == "" {
 		return ErrUnavailable
 	}
 	base.Path = strings.TrimRight(base.Path, "/") + path
@@ -127,7 +155,7 @@ func (a HTTPExchangeAdapter) post(ctx context.Context, path, sessionToken string
 	if err != nil {
 		return ErrUnavailable
 	}
-	request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(sessionToken))
+	request.Header.Set("X-YNX-Product-Session-Proof", strings.TrimSpace(productSessionProof))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "application/json")
 	client := a.Client
@@ -185,3 +213,4 @@ func ExchangeOrderSigningPayload(account string, order TestnetOrder) []byte {
 
 var _ MandateVerifier = HTTPExchangeAdapter{}
 var _ TestnetBroker = HTTPExchangeAdapter{}
+var _ WalletSessionCompleter = HTTPExchangeAdapter{}
