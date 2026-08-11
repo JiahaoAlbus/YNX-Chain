@@ -175,7 +175,13 @@ func requestClient(r *http.Request) string {
 	}
 	ip := net.ParseIP(host)
 	if ip != nil && ip.IsLoopback() {
-		if forwarded := strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0]); net.ParseIP(forwarded) != nil {
+		// Caddy is the only process allowed to reach this loopback listener. It
+		// appends the direct client address to X-Forwarded-For, so the rightmost
+		// value is authoritative. Taking the first value would let a public
+		// caller prepend an arbitrary address and evade the per-client limiter.
+		chain := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
+		forwarded := strings.TrimSpace(chain[len(chain)-1])
+		if net.ParseIP(forwarded) != nil {
 			return forwarded
 		}
 	}

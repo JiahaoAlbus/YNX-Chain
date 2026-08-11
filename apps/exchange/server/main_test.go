@@ -51,3 +51,17 @@ func TestRequestClientIgnoresUntrustedForwardedHeader(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestRequestClientUsesRightmostAddressFromTrustedProxy(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "127.0.0.1:4321"
+	req.Header.Set("X-Forwarded-For", "203.0.113.10, 198.51.100.9")
+	if got := requestClient(req); got != "198.51.100.9" {
+		t.Fatalf("trusted proxy must use its appended direct client address, got %q", got)
+	}
+
+	req.Header.Set("X-Forwarded-For", "203.0.113.10, not-an-address")
+	if got := requestClient(req); got != "127.0.0.1" {
+		t.Fatalf("malformed authoritative hop must fail closed to the proxy address, got %q", got)
+	}
+}
