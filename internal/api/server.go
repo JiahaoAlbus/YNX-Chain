@@ -309,7 +309,7 @@ func (s *Server) replicationResponse() (replicationResponseCache, error) {
 	mac := hmac.New(sha256.New, []byte(s.replicationKey))
 	_, _ = mac.Write(payload)
 	var compressed bytes.Buffer
-	gzipWriter, err := gzip.NewWriterLevel(&compressed, gzip.BestSpeed)
+	gzipWriter, err := gzip.NewWriterLevel(&compressed, gzip.DefaultCompression)
 	if err != nil {
 		return replicationResponseCache{}, err
 	}

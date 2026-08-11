@@ -7,7 +7,7 @@ go test ./internal/api -run 'TestReplicationSnapshot(Authentication|Gzip)' -coun
 go test ./cmd/ynx-chaind -run 'TestFetchReplicationSnapshot' -count=1
 grep -Fq 'gzip.NewWriterLevel' internal/api/server.go
 grep -Fq 'YNX_REPLICATION_REQUEST_TIMEOUT' cmd/ynx-chaind/replication.go
-grep -Fq 'YNX_REPLICATION_REQUEST_TIMEOUT=2m' scripts/deploy/deploy-testnet.sh
+grep -Fq 'YNX_REPLICATION_REQUEST_TIMEOUT=4m' scripts/deploy/deploy-testnet.sh
 grep -Fq 'YNX_PEER_SYNC_REQUEST_TIMEOUT' cmd/ynx-chaind/peer_sync.go
 grep -Fq 'YNX_PEER_SYNC_REQUEST_TIMEOUT=10s' scripts/deploy/deploy-testnet.sh
 
