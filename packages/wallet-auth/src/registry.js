@@ -17,7 +17,7 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
 ]);
 
 export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
-export const CENTRAL_REGISTRY_PRODUCT_COUNT = 32;
+export const CENTRAL_REGISTRY_PRODUCT_COUNT = 33;
 export const CENTRAL_PRODUCT_SCHEMA_VERSION = 3;
 
 export function parseCentralRegistryDocument(input) {
@@ -44,11 +44,12 @@ export function migrateCentralRegistryDocumentV1(input) {
     throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet registry v1 product set is not the accepted migration source");
   }
   const migratedProducts = [
-    ...input.products.filter(product => product.productId !== "browser" && product.productId !== "cloud" && product.productId !== "docs" && product.productId !== "music" && product.productId !== "search").map(product => structuredClone(product)),
+    ...input.products.filter(product => product.productId !== "browser" && product.productId !== "cloud" && product.productId !== "docs" && product.productId !== "music" && product.productId !== "search" && product.productId !== "video").map(product => structuredClone(product)),
     ...canonicalBrowserRegistrations(),
     ...canonicalCloudRegistrations(),
     ...canonicalDocsRegistrations(),
     ...canonicalMusicRegistrations(),
+    ...canonicalVideoRegistrations(),
     canonicalQuantRegistration(),
     canonicalSearchRegistration(),
   ]
@@ -58,6 +59,28 @@ export function migrateCentralRegistryDocumentV1(input) {
     chainId: YNX_NATIVE_CHAIN_ID,
     products: migratedProducts,
   });
+}
+
+function canonicalVideoRegistrations() {
+  return [
+    ["video-mobile", "YNX Video for Mobile", "ynx-video-mobile-v1", "com.ynxweb4.video", "ynxvideo://wallet-auth/callback"],
+    ["video-web", "YNX Video for Web", "ynx-video-web-v1", "com.ynxweb4.video.web", "https://web4.ynxweb4.com/video/wallet-auth/callback"],
+  ].map(([productId, displayName, productClientId, bundleId, callback]) => ({
+    schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    productId,
+    displayName,
+    reviewState: "pending-review",
+    enabled: false,
+    productClientId,
+    requestingProduct: "ynx-video",
+    bundleId,
+    callbacks: [callback],
+    scopes: ["video.comment", "video.history", "video.read", "video.report", "video.subscribe"],
+    maxScopes: 5,
+    productDeviceAlgorithms: ["p256-sha256"],
+    sessionDurationSeconds: 300,
+    revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
+  }));
 }
 
 export function parseCentralProductRegistration(input) {

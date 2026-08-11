@@ -128,11 +128,60 @@ func TestPublicDiscoveryDoesNotRequireWalletButPrivateRoutesDo(t *testing.T) {
 	if w := request(http.MethodGet, "/v1/videos", ""); w.Code != http.StatusOK || !strings.Contains(w.Body.String(), video.ID) {
 		t.Fatalf("public discovery failed: %d %s", w.Code, w.Body.String())
 	}
+	if w := request(http.MethodGet, "/v1/videos?q=does-not-match", ""); w.Code != http.StatusOK || strings.Contains(w.Body.String(), video.ID) {
+		t.Fatalf("public search ignored its query: %d %s", w.Code, w.Body.String())
+	}
 	if w := request(http.MethodGet, "/v1/videos/"+video.ID, ""); w.Code != http.StatusOK {
 		t.Fatalf("public watch metadata failed: %d %s", w.Code, w.Body.String())
 	}
 	if w := request(http.MethodGet, "/v1/history", ""); w.Code != http.StatusUnauthorized {
 		t.Fatalf("private history did not fail closed: %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestWalletSessionCompletionUsesCanonicalGatewayWithoutOperatorCredential(t *testing.T) {
+	received := false
+	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received = r.URL.Path == "/v1/wallet/sessions/complete" && r.Header.Get("Authorization") == "" && r.Header.Get("Content-Type") == "application/json"
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if _, ok := body["authorizationRequest"]; !ok {
+			t.Fatal("authorization request missing")
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{"requestingProduct": "ynx-video", "sessionBinding": strings.Repeat("a", 64)}})
+	}))
+	defer gateway.Close()
+	s, _ := fixture(t, nil)
+	server := NewServer(s, CentralProductSessionAuth{GatewayURL: gateway.URL, Client: gateway.Client()})
+	body := `{"authorizationRequest":{},"walletApproval":{},"gatewayCompletion":{}}`
+	request := httptest.NewRequest(http.MethodPost, "/v1/auth/wallet-v1/session", strings.NewReader(body))
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !received || !strings.Contains(response.Body.String(), `"requestingProduct":"ynx-video"`) {
+		t.Fatalf("canonical completion proxy failed: %d %t %s", response.Code, received, response.Body.String())
+	}
+}
+
+func TestCommentRepliesStayBoundToPublishedVideo(t *testing.T) {
+	s, channel := fixture(t, nil)
+	video := upload(t, s, channel, "Reply thread")
+	if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
+		t.Fatal(err)
+	}
+	parent, err := s.AddComment(testEditorAccount, video.ID, "parent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	reply, err := s.AddCommentReply(testAnalystAccount, video.ID, parent.ID, "reply")
+	if err != nil || reply.ParentID != parent.ID {
+		t.Fatalf("reply binding missing: %+v %v", reply, err)
+	}
+	if _, err = s.AddCommentReply(testAnalystAccount, video.ID, "cmt_missing", "orphan"); err == nil {
+		t.Fatal("orphan reply accepted")
+	}
+	comments, err := s.Comments("", video.ID)
+	if err != nil || len(comments) != 2 || comments[1].ParentID != parent.ID {
+		t.Fatalf("public threaded comments incomplete: %+v %v", comments, err)
 	}
 }
 

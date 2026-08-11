@@ -71,7 +71,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	if origin == "http://127.0.0.1:4173" || origin == "http://127.0.0.1:4174" {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Vary", "Origin")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Idempotency-Key, X-YNX-App-Session, X-YNX-Product-Session-Proof")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Idempotency-Key, X-YNX-Product-Session-Proof")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 	}
 	if r.Method == "OPTIONS" {
@@ -91,11 +91,15 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		if len(failures) > 0 {
 			status = http.StatusServiceUnavailable
 		}
-		write(w, status, map[string]any{"ok": len(failures) == 0, "service": "ynx-video", "dependencies": failures, "truth": "no synthetic metrics", "build": s.build})
+		write(w, status, map[string]any{"ok": len(failures) == 0, "service": "ynx-video", "dependencies": failures, "truth": "no synthetic metrics", "centralContractIntegrated": true, "centralDeploymentVerified": false, "build": s.build})
 		return
 	}
 	if r.Method == http.MethodGet && r.URL.Path == "/version" {
 		write(w, http.StatusOK, map[string]any{"service": "ynx-video", "build": s.build})
+		return
+	}
+	if r.Method == http.MethodPost && r.URL.Path == "/v1/auth/wallet-v1/session" {
+		s.walletSession(w, r)
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, "/media/") {
@@ -115,7 +119,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/v1/"), "/")
 	parts := strings.Split(path, "/")
-	if r.Method == http.MethodGet && s.publicRead(w, path, parts) {
+	if r.Method == http.MethodGet && s.publicRead(w, r, path, parts) {
 		return
 	}
 	actor, err := s.auth.Account(r)
@@ -272,11 +276,14 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		respond(w, map[string]bool{"ok": true}, s.service.RecordWatch(actor, parts[1], in.Seconds, in.Completed))
 	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "comments" && r.Method == "POST":
-		var in struct{ Body string }
+		var in struct {
+			Body     string `json:"body"`
+			ParentID string `json:"parent_id"`
+		}
 		if decode(r, &in, w) {
 			return
 		}
-		out, err := s.service.AddComment(actor, parts[1], in.Body)
+		out, err := s.service.AddCommentReply(actor, parts[1], in.ParentID, in.Body)
 		respond(w, out, err)
 	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "reports" && r.Method == "POST":
 		var in struct{ Reason, Details string }
@@ -447,6 +454,44 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) walletSession(w http.ResponseWriter, r *http.Request) {
+	auth, ok := s.auth.(CentralProductSessionAuth)
+	if !ok {
+		problem(w, http.StatusServiceUnavailable, errors.New("canonical Wallet Gateway session completion unavailable"))
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
+	raw, err := io.ReadAll(r.Body)
+	if err != nil || len(bytes.TrimSpace(raw)) == 0 {
+		problem(w, http.StatusBadRequest, errors.New("canonical Wallet completion body required"))
+		return
+	}
+	request, err := http.NewRequestWithContext(r.Context(), http.MethodPost, strings.TrimRight(auth.GatewayURL, "/")+"/v1/wallet/sessions/complete", bytes.NewReader(raw))
+	if err != nil {
+		problem(w, http.StatusBadGateway, errors.New("canonical Wallet Gateway unavailable"))
+		return
+	}
+	request.Header.Set("Content-Type", "application/json")
+	client := auth.Client
+	if client == nil {
+		client = &http.Client{Timeout: 5 * time.Second}
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		problem(w, http.StatusBadGateway, errors.New("canonical Wallet Gateway unavailable"))
+		return
+	}
+	defer response.Body.Close()
+	result, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	if err != nil {
+		problem(w, http.StatusBadGateway, errors.New("canonical Wallet Gateway returned an invalid response"))
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, _ = w.Write(result)
+}
+
 type captureResponseWriter struct {
 	http.ResponseWriter
 	status, limit int
@@ -539,10 +584,10 @@ func (s *Server) completeIdempotency(actor, key string, response *captureRespons
 	})
 }
 
-func (s *Server) publicRead(w http.ResponseWriter, path string, parts []string) bool {
+func (s *Server) publicRead(w http.ResponseWriter, r *http.Request, path string, parts []string) bool {
 	switch {
 	case path == "videos":
-		out, err := s.service.Search("", "")
+		out, err := s.service.Search("", r.URL.Query().Get("q"))
 		respond(w, out, err)
 	case len(parts) == 2 && parts[0] == "videos":
 		out, err := s.service.Video("", parts[1])

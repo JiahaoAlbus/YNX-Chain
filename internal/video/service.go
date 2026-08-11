@@ -1520,6 +1520,9 @@ func (s *Service) RecordWatch(actor, videoID string, seconds int64, completed bo
 	})
 }
 func (s *Service) AddComment(actor, videoID, body string) (*Comment, error) {
+	return s.AddCommentReply(actor, videoID, "", body)
+}
+func (s *Service) AddCommentReply(actor, videoID, parentID, body string) (*Comment, error) {
 	if actor == "" {
 		return nil, ErrUnauthorized
 	}
@@ -1533,8 +1536,14 @@ func (s *Service) AddComment(actor, videoID, body string) (*Comment, error) {
 		if !audienceAvailable(*st, v, s.cfg.Now().UTC()) {
 			return ErrNotFound
 		}
+		if parentID != "" {
+			parent := st.Comments[parentID]
+			if parent == nil || parent.VideoID != videoID || parent.State != "visible" {
+				return errors.New("reply parent is unavailable")
+			}
+		}
 		now := s.cfg.Now().UTC()
-		c = &Comment{ID: id("cmt"), VideoID: videoID, Author: actor, Body: body, State: "visible", CreatedAt: now}
+		c = &Comment{ID: id("cmt"), VideoID: videoID, Author: actor, Body: body, State: "visible", ParentID: parentID, CreatedAt: now}
 		st.Comments[c.ID] = c
 		s.audit(st, actor, "comment.create", "comment", c.ID, "")
 		return nil

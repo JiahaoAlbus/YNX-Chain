@@ -56,7 +56,9 @@ dialog video{width:100%;aspect-ratio:16/9;background:#080b10;border-radius:10px}
 .danger{background:var(--surface);color:var(--danger);border-color:var(--danger)}
 .comments{margin-top:24px;border-top:1px solid var(--line);padding-top:16px}
 #comments article{padding:10px 0;border-bottom:1px solid var(--line)}
+#comments article.reply{margin-inline-start:28px;padding-inline-start:12px;border-inline-start:2px solid var(--line)}
 #comments article p{margin-bottom:0}
+.comment-reply{padding:5px 9px;font-size:.78rem}
 textarea{display:block;width:100%;min-height:90px;margin:8px 0;border:1px solid #b8c0cc;border-radius:9px;padding:10px;background:var(--surface);color:inherit}
 @media(prefers-color-scheme:dark){:root{--surface:#17191e;--surface-2:#101217;--line:#30343c;--muted:#aab1bc}
 body{color:#f4f5f7}

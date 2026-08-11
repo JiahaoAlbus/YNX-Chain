@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "service": "video",
   "sourceMainCommit": "11e64797c64cd64d1c6e53f0295c17997bde6f97",
-  "requiredWalletVerifier": "wallet-auth-v1",
+  "requiredWalletVerifier": "canonical Product Session v1",
   "requiredRegistry": "internal/video/integration/registry-v2.json",
   "upstream": {
     "urlEnv": "YNX_APP_GATEWAY_VIDEO_URL",
@@ -10,8 +10,8 @@
     "keyHeader": "X-YNX-Video-Key",
     "transport": "exact loopback HTTP origin"
   },
-  "browserSessionHeader": "X-YNX-App-Session",
-  "browserDeviceHeader": "X-YNX-Device-ID",
+  "productSessionProofHeader": "X-YNX-Product-Session-Proof",
+  "sessionCompletionRoute": "POST /video/v1/auth/wallet-v1/session",
   "publicRoutes": [
     "GET /video/health",
     "GET /video/version",
@@ -27,32 +27,12 @@
     "GET",
     "POST"
   ],
-  "upstreamAttestation": {
-    "domain": "YNX_VIDEO_GATEWAY_REQUEST_V2",
-    "requiredClaims": [
-      "account",
-      "bundleId",
-      "callback",
-      "chainId",
-      "expiresAt",
-      "issuedAt",
-      "productClientId",
-      "productDeviceAlgorithm",
-      "productDeviceKey",
-      "requestDigest",
-      "requestingProduct",
-      "scopes",
-      "sessionBinding"
-    ],
-    "requestBindings": [
-      "bodySha256",
-      "method",
-      "nonce",
-      "requestTime",
-      "requestUri"
-    ],
-    "noncePersistence": "consume atomically before the product mutation; replay and changed replay fail closed"
+  "centralProductSessions": {
+    "completion": "exact request, Wallet approval and P-256 device challenge are forwarded without an operator bearer credential",
+    "introspection": "every protected request supplies a fresh sender-constrained proof; the Video service derives the required scope",
+    "products": ["ynx-video-mobile-v1", "ynx-video-web-v1", "ynx-creator-studio-web-v1"],
+    "replay": "canonical Wallet Gateway consumes every HTTP proof once"
   },
-  "status": "integration-request-only",
-  "truthBoundary": "This manifest does not modify or deploy central App Gateway. integratedCentral remains false until the total controller applies and tests it."
+  "status": "integrated-central-source",
+  "truthBoundary": "The canonical registry, Wallet review list and Video verifier are integrated and locally tested. This is not evidence that the updated Gateway or Video release is deployed publicly."
 }

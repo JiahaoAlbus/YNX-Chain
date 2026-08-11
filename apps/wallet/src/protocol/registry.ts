@@ -153,6 +153,18 @@ const REVIEWED_ENTRIES = [
     scopes: ["account:read", "profile:link"], maxScopes: 2,
     productDeviceAlgorithms: ["p256-sha256"],
   },
+  {
+    schemaVersion: 2, productClientId: "ynx-video-mobile-v1", requestingProduct: "ynx-video",
+    bundleId: "com.ynxweb4.video", callbacks: ["ynxvideo://wallet-auth/callback"],
+    scopes: ["video.comment", "video.history", "video.read", "video.report", "video.subscribe"], maxScopes: 5,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
+    schemaVersion: 2, productClientId: "ynx-video-web-v1", requestingProduct: "ynx-video",
+    bundleId: "com.ynxweb4.video.web", callbacks: ["https://web4.ynxweb4.com/video/wallet-auth/callback"],
+    scopes: ["video.comment", "video.history", "video.read", "video.report", "video.subscribe"], maxScopes: 5,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
 ] as const;
 
 export const PRODUCT_REGISTRY:Readonly<Record<string,ProductBinding>>=Object.freeze(Object.assign({},...REVIEWED_ENTRIES.map((entry)=>registryParserBinding(parseCentralRegistryEntry(entry)))));
@@ -208,5 +220,9 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "shop:profile:write": "Manage only this account's Shop profile, addresses and privacy choices.",
   "shop:seller:operate": "Operate only this account's authorized Seller Console store records. Product-session approval cannot receive customer funds or sign payouts.",
   "video.creator": "Manage this account's channels, uploads, rights evidence and reviewed publication workflow.",
+  "video.comment": "Create comments only as this account on published YNX Video records; it cannot edit another viewer's content.",
+  "video.history": "Read and update this account's private watch history and playlists without exposing them to other viewers.",
   "video.read": "Read this account's Creator Studio records and authoritative persisted analytics.",
+  "video.report": "Submit an evidence-bound Video report for human review; it cannot automatically remove content or penalize an account.",
+  "video.subscribe": "Manage this account's Video channel subscriptions and no other account's subscription state.",
 });

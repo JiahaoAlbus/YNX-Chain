@@ -336,7 +336,7 @@ export declare const PRODUCT_DEVICE_ALGORITHM: "p256-sha256";
 export declare const CENTRAL_REGISTRY_SCHEMA_VERSION: 2;
 export declare const CENTRAL_VERIFIER_VERSION: "wallet-auth-v1";
 export declare const CENTRAL_REGISTRY_DOCUMENT_VERSION: 2;
-export declare const CENTRAL_REGISTRY_PRODUCT_COUNT: 31;
+export declare const CENTRAL_REGISTRY_PRODUCT_COUNT: 33;
 export declare const CENTRAL_PRODUCT_SCHEMA_VERSION: 3;
 export declare const CENTRAL_WALLET_SESSION_INVENTORY_SCHEMA_VERSION: 1;
 export declare const NATIVE_TRANSACTION_DOMAIN: "YNX_NATIVE_TX_V1";

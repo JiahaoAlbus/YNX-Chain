@@ -18,7 +18,7 @@
     "protocol": "wallet-auth-v1",
     "registrySchemaVersion": 2,
     "registrations": "internal/video/integration/registry-v2.json",
-    "attestationDomain": "YNX_VIDEO_GATEWAY_REQUEST_V2",
+    "attestationDomain": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1",
     "network": "ynx_6423-1",
     "deviceAlgorithm": "p256-sha256",
     "failClosed": true
@@ -29,7 +29,7 @@
     "version": "GET /video/version",
     "apiPrefix": "/video/v1",
     "mediaPrefix": "/video/media/",
-    "requestHeaders": ["X-YNX-App-Session", "X-YNX-Device-ID"],
+    "requestHeaders": ["X-YNX-Product-Session-Proof"],
     "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
   },
   "mediaIntegrity": {
@@ -49,8 +49,8 @@
     "payIntent": ["awaiting_wallet_confirmation"]
   },
   "security": {
-    "replayProtection": "persistent nonce consumption before mutation",
-    "requestBinding": ["method", "requestUri", "bodySha256", "requestTime", "nonce"],
+    "replayProtection": "canonical Gateway consumes every sender-constrained Product Session proof once",
+    "requestBinding": ["sessionBinding", "productClientId", "bundleId", "productDeviceKey", "method", "introspectionPath", "requiredScopesDigest", "nonce", "issuedAt", "expiresAt"],
     "rightsRequiredForPublication": true,
     "rawPublicBucket": false,
     "aiAutonomousPublishOrRemoval": false
@@ -69,8 +69,8 @@
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
-    "integratedCentral": false,
+    "installedLocal": false,
+    "integratedCentral": true,
     "testnetVerified": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -79,12 +79,12 @@
     "storeReleased": false
   },
   "dependencies": [
-    {"owner":"YNX 02","contract":"Wallet registrations and Product Session acceptance","status":"pending"},
+    {"owner":"YNX 02","contract":"Wallet registrations and Product Session acceptance","status":"accepted-source-local-tests"},
     {"owner":"YNX 04","contract":"Pay intent and paid-settlement receipt","status":"pending"},
     {"owner":"YNX 15","contract":"Delegated per-user Trust appeal","status":"pending"},
     {"owner":"YNX 26","contract":"Canonical events and billing ledger ingestion","status":"pending"},
     {"owner":"YNX 29","contract":"Shared-testnet integration freeze","status":"pending"},
     {"owner":"YNX 30","contract":"Artifact, deployment and security gate","status":"pending"}
   ],
-  "truthBoundary": "This file freezes the product-owned contract and local verification only. It is not evidence of central acceptance, shared-testnet execution, public deployment, production signing or store release."
+  "truthBoundary": "The canonical Wallet registry, Wallet-reviewed bindings and Video Product Session verifier are integrated in source and locally tested. This is not evidence of shared-testnet execution, current-source public deployment, production signing or store release."
 }

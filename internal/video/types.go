@@ -206,6 +206,7 @@ type Playlist struct {
 }
 type Comment struct {
 	ID, VideoID, Author, Body, State string
+	ParentID                         string `json:"parent_id,omitempty"`
 	CreatedAt                        time.Time
 }
 type WatchEvent struct {

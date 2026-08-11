@@ -21,6 +21,12 @@ type CentralProductSessionAuth struct {
 	Moderators map[string]bool
 }
 
+type centralSessionBinding struct {
+	RequestingProduct string
+	ProductClientID   string
+	BundleID          string
+}
+
 func (a CentralProductSessionAuth) IsModerator(account string) bool { return a.Moderators[account] }
 
 func (a CentralProductSessionAuth) Account(r *http.Request) (string, error) {
@@ -28,7 +34,7 @@ func (a CentralProductSessionAuth) Account(r *http.Request) (string, error) {
 	if proof == "" || len(proof) > 16<<10 {
 		return "", fmt.Errorf("%w: canonical Product Session proof required", ErrUnauthorized)
 	}
-	scope := creatorStudioScope(r.Method, r.URL.Path)
+	scope := videoProductScope(r.Method, r.URL.Path)
 	body, _ := json.Marshal(map[string][]string{"requiredScopes": {scope}})
 	request, err := http.NewRequestWithContext(r.Context(), http.MethodPost, strings.TrimRight(a.GatewayURL, "/")+"/v1/wallet/sessions/introspect", bytes.NewReader(body))
 	if err != nil {
@@ -67,8 +73,8 @@ func (a CentralProductSessionAuth) Account(r *http.Request) (string, error) {
 		return "", ErrUnauthorized
 	}
 	session := envelope.Result.Session
-	if session.RequestingProduct != "ynx-creator-studio" || session.ProductClientID != "ynx-creator-studio-web-v1" || session.BundleID != "com.ynxweb4.creator-studio.web" || !contains(session.Scopes, scope) {
-		return "", fmt.Errorf("%w: Creator Studio Product Session binding mismatch", ErrUnauthorized)
+	if !validVideoSessionBinding(centralSessionBinding{session.RequestingProduct, session.ProductClientID, session.BundleID}, scope) || !contains(session.Scopes, scope) {
+		return "", fmt.Errorf("%w: Video Product Session binding mismatch", ErrUnauthorized)
 	}
 	if expires, parseErr := time.Parse(time.RFC3339Nano, session.ExpiresAt); parseErr != nil || !expires.After(time.Now().UTC()) {
 		return "", ErrUnauthorized
@@ -80,7 +86,20 @@ func (a CentralProductSessionAuth) Account(r *http.Request) (string, error) {
 	return account, nil
 }
 
-func creatorStudioScope(method, path string) string {
+func validVideoSessionBinding(session centralSessionBinding, scope string) bool {
+	switch session.ProductClientID {
+	case "ynx-video-web-v1":
+		return session.RequestingProduct == "ynx-video" && session.BundleID == "com.ynxweb4.video.web" && strings.HasPrefix(scope, "video.") && scope != "video.creator"
+	case "ynx-video-mobile-v1":
+		return session.RequestingProduct == "ynx-video" && session.BundleID == "com.ynxweb4.video" && strings.HasPrefix(scope, "video.") && scope != "video.creator"
+	case "ynx-creator-studio-web-v1":
+		return session.RequestingProduct == "ynx-creator-studio" && session.BundleID == "com.ynxweb4.creator-studio.web" && (scope == "video.creator" || scope == "video.read" || scope == "ai.video.propose" || scope == "pay.payout.intent")
+	default:
+		return false
+	}
+}
+
+func videoProductScope(method, path string) string {
 	if strings.Contains(path, "/ai/") {
 		return "ai.video.propose"
 	}
@@ -88,7 +107,22 @@ func creatorStudioScope(method, path string) string {
 		return "pay.payout.intent"
 	}
 	if method == http.MethodGet || method == http.MethodHead {
+		if strings.Contains(path, "/history") || strings.Contains(path, "/playlists") {
+			return "video.history"
+		}
 		return "video.read"
+	}
+	if strings.Contains(path, "/comments") {
+		return "video.comment"
+	}
+	if strings.Contains(path, "/reports") {
+		return "video.report"
+	}
+	if strings.Contains(path, "subscription") {
+		return "video.subscribe"
+	}
+	if strings.Contains(path, "/watch") || strings.Contains(path, "/playlists") {
+		return "video.history"
 	}
 	return "video.creator"
 }

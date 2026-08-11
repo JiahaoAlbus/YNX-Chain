@@ -68,7 +68,6 @@ public final class MainActivity extends Activity {
     private LinearLayout content;
     private TextView status;
     private ProgressBar progress;
-    private String gatewaySession;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -166,7 +165,7 @@ public final class MainActivity extends Activity {
         String base = prefs.getString("gateway", "http://10.0.2.2:8423");
         HttpURLConnection connection = (HttpURLConnection) new URL(base + path).openConnection();
         connection.setConnectTimeout(8000); connection.setReadTimeout(12000); connection.setRequestMethod(method); connection.setRequestProperty("Accept", "application/json");
-        if (gatewaySession != null) connection.setRequestProperty("X-YNX-App-Session", gatewaySession);
+        String scope=requiredScope(path,method);if(scope!=null){String raw=SecureStore.get(this);if(raw.isEmpty())throw new SecurityException(t("walletPending"));connection.setRequestProperty("X-YNX-Product-Session-Proof",CentralContracts.productSessionProof(new JSONObject(raw),scope,System.currentTimeMillis()));}
         if (!"GET".equals(method) && !"HEAD".equals(method)) connection.setRequestProperty("Idempotency-Key", UUID.randomUUID().toString());
         if(payload!=null){byte[] body=payload.toString().getBytes(StandardCharsets.UTF_8);connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");connection.setFixedLengthStreamingMode(body.length);try(OutputStream output=connection.getOutputStream()){output.write(body);}}
         int code = connection.getResponseCode();
@@ -240,33 +239,18 @@ public final class MainActivity extends Activity {
 
     private void startWallet() {
         try {
-            Instant issued = Instant.now().truncatedTo(ChronoUnit.MILLIS), expires = issued.plus(5, ChronoUnit.MINUTES);
-            String nonce = randomBase64(24), deviceKey = productDeviceKey();
-            String[] scopes = {"video.comment","video.history","video.read","video.report","video.subscribe"};
-            String json = "{" +
-                "\"bundleId\":\"com.ynxweb4.video\"," +
-                "\"callback\":\"ynxvideo://wallet-auth/callback\"," +
-                "\"chainId\":\"ynx_6423-1\"," +
-                "\"expiresAt\":" + JSONObject.quote(expires.toString()) + "," +
-                "\"issuedAt\":" + JSONObject.quote(issued.toString()) + "," +
-                "\"nonce\":" + JSONObject.quote(nonce) + "," +
-                "\"productClientId\":\"ynx-video-mobile-v1\"," +
-                "\"productDeviceAlgorithm\":\"p256-sha256\"," +
-                "\"productDeviceKey\":" + JSONObject.quote(deviceKey) + "," +
-                "\"purpose\":" + JSONObject.quote(t("privacy")) + "," +
-                "\"requestingProduct\":\"ynx-video\"," +
-                "\"scopes\":[\"video.comment\",\"video.history\",\"video.read\",\"video.report\",\"video.subscribe\"]," +
-                "\"version\":\"1\"}";
-            String request = Base64.encodeToString(json.getBytes(StandardCharsets.UTF_8), Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("ynxwallet://authorize?request=" + Uri.encode(request))));
+            CentralContracts.AuthorizationLaunch launch=CentralContracts.walletAuthorization(System.currentTimeMillis());prefs.edit().putString("pending_wallet_request",launch.request.toString()).putLong("pending_wallet_expiry",System.currentTimeMillis()+300000).apply();startActivity(new Intent(Intent.ACTION_VIEW,launch.uri));
         } catch (Exception error) { showState(t("unavailable") + ": " + error.getMessage(), true); }
     }
 
     private void handleIntent(Intent intent) {
         Uri data = intent == null ? null : intent.getData(); if (data == null) return;
-        if ("wallet-auth".equals(data.getHost())) { String session = data.getQueryParameter("gateway_session"); gatewaySession = session == null || session.length() < 24 ? null : session; showState(t("walletPending"), gatewaySession == null); if (gatewaySession != null) loadVideos(""); }
+        if ("wallet-auth".equals(data.getHost())) {String encoded=data.getQueryParameter("response"),pending=prefs.getString("pending_wallet_request","");long expiry=prefs.getLong("pending_wallet_expiry",0);prefs.edit().remove("pending_wallet_request").remove("pending_wallet_expiry").apply();if(encoded==null||pending.isEmpty()||System.currentTimeMillis()>=expiry){showState(t("walletPending"),true);return;}worker.execute(()->{try{JSONObject request=new JSONObject(pending),approval=CentralContracts.walletApproval(encoded,request),body=new JSONObject().put("authorizationRequest",request).put("walletApproval",approval).put("gatewayCompletion",CentralContracts.gatewayCompletion(approval,System.currentTimeMillis())),session=walletSession(body);SecureStore.put(this,session.toString());runOnUiThread(()->{showState(t("signIn"),false);loadVideos("");});}catch(Exception error){SecureStore.clear(this);runOnUiThread(()->showState(t("walletPending")+": "+error.getMessage(),true));}});}
         if ("watch".equals(data.getHost())) loadVideos(data.getQueryParameter("video"));
     }
+
+    private JSONObject walletSession(JSONObject body)throws Exception{String base=prefs.getString("gateway","http://10.0.2.2:8423");HttpURLConnection connection=(HttpURLConnection)new URL(base+"/v1/auth/wallet-v1/session").openConnection();connection.setConnectTimeout(8000);connection.setReadTimeout(12000);connection.setRequestMethod("POST");connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");byte[] bytes=body.toString().getBytes(StandardCharsets.UTF_8);connection.getOutputStream().write(bytes);int code=connection.getResponseCode();String raw=new String((code<400?connection.getInputStream():connection.getErrorStream()).readAllBytes(),StandardCharsets.UTF_8);if(code<200||code>=300)throw new IllegalStateException("Wallet Gateway HTTP "+code);JSONObject envelope=new JSONObject(raw);return envelope.has("result")?envelope.getJSONObject("result"):envelope;}
+    private String requiredScope(String path,String method){String clean=path.split("\\?",2)[0];if("GET".equals(method)&&(clean.equals("/v1/videos")||clean.matches("/v1/videos/[^/]+")||clean.matches("/v1/videos/[^/]+/comments")||clean.matches("/v1/channels/[^/]+")))return null;if(path.contains("/comments"))return"video.comment";if(path.contains("/reports"))return"video.report";if(path.contains("subscription"))return"video.subscribe";if(path.contains("history")||path.contains("playlists")||path.contains("/watch"))return"video.history";return"video.read";}
 
     private String productDeviceKey() throws Exception {
         final String alias = "ynx.video.wallet.product-device.v1";

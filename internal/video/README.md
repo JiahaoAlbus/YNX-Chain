@@ -14,7 +14,7 @@ Production startup requires environment-only secrets:
 ```sh
 YNX_VIDEO_DATA=/var/lib/ynx-video \
 YNX_VIDEO_INTEGRITY_KEY='<at-least-32-byte-secret>' \
-YNX_VIDEO_GATEWAY_ATTESTATION_KEY='<at-least-32-byte-secret>' \
+YNX_WALLET_GATEWAY_URL='https://wallet-auth.ynxweb4.com' \
 YNX_VIDEO_SCANNER=clamscan \
 YNX_VIDEO_FFMPEG=ffmpeg \
 YNX_VIDEO_MODERATORS='ynx1...' \
@@ -31,14 +31,15 @@ hard failure; the smoke never substitutes a mock scanner or synthetic revenue.
 ## Wallet and Gateway boundary
 
 The daemon does not accept a source-controlled or operator-created
-`token=account` map. The central Gateway must first verify the exact
-`packages/wallet-auth` v1 approval and product-device challenge. It then
-attests each upstream request with `wallet-auth-v1`, `p256-sha256`, exact
-client/bundle/sorted scopes/account/session expiry, a body hash, request time,
-and a nonce under `YNX_VIDEO_GATEWAY_ATTESTATION_KEY`. The daemon verifies all
-bindings and persists nonce consumption, so body/header substitution,
-cross-product reuse, stale requests, exact replay, and changed replay fail after
-restart.
+`token=account` map. The central Gateway verifies the exact
+`packages/wallet-auth` v1 approval and product-device challenge. Web, Android
+and iOS retain the non-exportable P-256 device key and short-lived Product
+Session across a normal product restart. Every protected request creates a
+fresh `YNX_PRODUCT_SESSION_HTTP_PROOF_V1`; the service derives the required
+scope, calls canonical introspection, and checks the exact product, client,
+bundle, account and expiry. Cross-product reuse, stale requests and replay fail
+closed. Guests can discover, search, watch and read comments on published
+content without a Wallet.
 
 Registered product contracts:
 
@@ -51,8 +52,10 @@ The public Testnet viewer and Creator Studio use the same-origin API route
 `https://web4.ynxweb4.com/video/wallet-auth/callback` and
 `https://web4.ynxweb4.com/video/studio/wallet-auth/callback` respectively.
 
-Central registry publication remains integration-controller work; this service
-fails closed until the Gateway supplies a valid attestation.
+Both Video registrations and Creator Studio are approved and enabled in the
+central source registry and reviewed by Wallet tests. The service still fails
+closed until a valid canonical Product Session proof is introspected. Public
+deployment of this current source remains a separate release gate.
 
 ## External services
 
