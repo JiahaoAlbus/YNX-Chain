@@ -53,6 +53,7 @@ Configuration:
 - `YNX_QUANT_HTTP_ADDR` — listener, default `127.0.0.1:6444`.
 - `YNX_QUANT_STATE_PATH` — integrity-protected persistent state.
 - `YNX_QUANT_EXCHANGE_URL` — Exchange API base for actual matched trades.
+- `YNX_QUANT_FINANCE_READ_KEY` — distinct high-entropy owner-read key shared only with Finance. When configured, the HMAC- and replay-protected `GET /v1/integrations/finance/account` route returns only the requesting Wallet account's sanitized strategies, mandates, research PnL attribution, bounded Testnet execution receipts and risk state. The key and Wallet signatures never enter the payload.
 
 Independent binaries:
 

@@ -30,6 +30,8 @@ func main() {
 	if err := upstreams.ConfigureReadSourceIntegrations(finance.ReadSourceIntegrationConfig{
 		ExchangeURL: os.Getenv("YNX_FINANCE_EXCHANGE_READ_URL"),
 		ExchangeKey: os.Getenv("YNX_FINANCE_EXCHANGE_READ_KEY"),
+		QuantURL:    os.Getenv("YNX_FINANCE_QUANT_READ_URL"),
+		QuantKey:    os.Getenv("YNX_FINANCE_QUANT_READ_KEY"),
 	}); err != nil {
 		log.Fatal(err)
 	}

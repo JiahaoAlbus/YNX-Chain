@@ -23,7 +23,7 @@ func main() {
 		testnetBroker = adapter
 		sessionCompleter = adapter
 	}
-	s, e := quantlab.NewTenantServer(quantlab.Config{StatePath: state, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker, SessionCompleter: sessionCompleter}, "all")
+	s, e := quantlab.NewTenantServer(quantlab.Config{StatePath: state, FinanceReadKey: os.Getenv("YNX_QUANT_FINANCE_READ_KEY"), MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker, SessionCompleter: sessionCompleter}, "all")
 	if e != nil {
 		log.Fatal(e)
 	}

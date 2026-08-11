@@ -31,6 +31,8 @@ type ReadSourceActionConfig struct {
 type ReadSourceIntegrationConfig struct {
 	ExchangeURL string
 	ExchangeKey string
+	QuantURL    string
+	QuantKey    string
 }
 
 type readSourceIntegration struct {
@@ -136,28 +138,51 @@ var acceptedReadSourceContracts = map[string]AcceptedReadSourceContract{
 			"exchange.risk.read",
 		},
 	},
+	"quant": {
+		Accepted:             true,
+		SourceID:             "quant",
+		Owner:                "08-quant-lab",
+		OwnerContractVersion: "quant-finance-read-v1",
+		PayloadSchema:        "ynx-quant-finance-account-v1",
+		AllowedCapabilities: []string{
+			"quant.strategies.read",
+			"quant.mandates.read",
+			"quant.executions.read",
+			"quant.pnl.read",
+			"quant.risk.read",
+			"quant.lifecycle.read",
+		},
+	},
 }
 
 func (u *Upstreams) ConfigureReadSourceIntegrations(config ReadSourceIntegrationConfig) error {
-	endpoint := strings.TrimSpace(config.ExchangeURL)
-	key := strings.TrimSpace(config.ExchangeKey)
-	if (endpoint == "") != (key == "") {
-		return errors.New("Exchange read URL and key must be configured together")
+	candidates := []struct{ id, label, endpoint, key string }{
+		{id: "exchange", label: "Exchange", endpoint: config.ExchangeURL, key: config.ExchangeKey},
+		{id: "quant", label: "Quant", endpoint: config.QuantURL, key: config.QuantKey},
 	}
-	if endpoint == "" {
+	integrations := map[string]readSourceIntegration{}
+	for _, candidate := range candidates {
+		endpoint, key := strings.TrimSpace(candidate.endpoint), strings.TrimSpace(candidate.key)
+		if (endpoint == "") != (key == "") {
+			return fmt.Errorf("%s read URL and key must be configured together", candidate.label)
+		}
+		if endpoint == "" {
+			continue
+		}
+		parsed, err := requireHTTPURL(endpoint)
+		if err != nil {
+			return fmt.Errorf("%s read URL: %w", candidate.label, err)
+		}
+		if len(key) < 32 {
+			return fmt.Errorf("%s read key must contain at least 32 characters", candidate.label)
+		}
+		integrations[candidate.id] = readSourceIntegration{URL: strings.TrimRight(parsed.String(), "/"), Key: key}
+	}
+	if len(integrations) == 0 {
 		u.readIntegrations = nil
 		return nil
 	}
-	parsed, err := requireHTTPURL(endpoint)
-	if err != nil {
-		return fmt.Errorf("Exchange read URL: %w", err)
-	}
-	if len(key) < 32 {
-		return errors.New("Exchange read key must contain at least 32 characters")
-	}
-	u.readIntegrations = map[string]readSourceIntegration{
-		"exchange": {URL: strings.TrimRight(parsed.String(), "/"), Key: key},
-	}
+	u.readIntegrations = integrations
 	return nil
 }
 
@@ -241,23 +266,31 @@ func (u *Upstreams) ReadSourcesForAccount(ctx context.Context, account string, o
 	if u == nil || u.readIntegrations == nil {
 		return result
 	}
-	integration, configured := u.readIntegrations["exchange"]
-	if !configured {
-		return result
+	for id, integration := range u.readIntegrations {
+		descriptor, ok := result[id]
+		if !ok {
+			continue
+		}
+		contract, accepted := acceptedReadSourceContracts[id]
+		if !accepted || !contract.Accepted {
+			continue
+		}
+		result[id] = u.readSourceForAccount(ctx, account, observedAt, id, integration, descriptor, contract)
 	}
-	descriptor := result["exchange"]
-	contract := acceptedReadSourceContracts["exchange"]
+	return result
+}
+
+func (u *Upstreams) readSourceForAccount(ctx context.Context, account string, observedAt time.Time, id string, integration readSourceIntegration, descriptor ReadSourceDescriptor, contract AcceptedReadSourceContract) ReadSourceDescriptor {
 	endpoint := integration.URL + "/v1/integrations/finance/account"
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err == nil {
-		err = readintegration.Sign(request, integration.Key, "finance", "exchange", account, observedAt)
+		err = readintegration.Sign(request, integration.Key, "finance", id, account, observedAt)
 	}
 	if err != nil {
 		descriptor.Status.Source = endpoint
 		descriptor.Status.SyncStatus = "credential-generation-failed"
 		descriptor.Status.Error = err.Error()
-		result["exchange"] = descriptor
-		return result
+		return descriptor
 	}
 	client := u.client
 	if client == nil {
@@ -268,8 +301,7 @@ func (u *Upstreams) ReadSourcesForAccount(ctx context.Context, account string, o
 		descriptor.Status.Source = endpoint
 		descriptor.Status.SyncStatus = "owner-endpoint-unavailable"
 		descriptor.Status.Error = err.Error()
-		result["exchange"] = descriptor
-		return result
+		return descriptor
 	}
 	defer response.Body.Close()
 	body, readErr := io.ReadAll(io.LimitReader(response.Body, maxReadSourceEnvelopeBytes+1))
@@ -283,16 +315,14 @@ func (u *Upstreams) ReadSourcesForAccount(ctx context.Context, account string, o
 		} else {
 			descriptor.Status.Error = fmt.Sprintf("owner endpoint returned HTTP %d", response.StatusCode)
 		}
-		result["exchange"] = descriptor
-		return result
+		return descriptor
 	}
 	envelope, err := ValidateReadSourceEnvelope(body, account, contract, observedAt)
 	if err != nil {
 		descriptor.Status.Source = endpoint
 		descriptor.Status.SyncStatus = "owner-evidence-rejected"
 		descriptor.Status.Error = err.Error()
-		result["exchange"] = descriptor
-		return result
+		return descriptor
 	}
 	descriptor.Status = SourceStatus{
 		Available:  true,
@@ -304,8 +334,7 @@ func (u *Upstreams) ReadSourcesForAccount(ctx context.Context, account string, o
 		SyncStatus: envelope.SyncStatus,
 	}
 	descriptor.Envelope = &envelope
-	result["exchange"] = descriptor
-	return result
+	return descriptor
 }
 
 func ValidateReadSourceEnvelope(raw []byte, expectedAccount string, contract AcceptedReadSourceContract, now time.Time) (ReadSourceEnvelope, error) {

@@ -24,7 +24,7 @@ func TestReadSourcesStayPendingWithoutOwnerContracts(t *testing.T) {
 		if !ok {
 			t.Fatalf("read-source %s is missing", id)
 		}
-		wantAccepted := id == "exchange"
+		wantAccepted := id == "exchange" || id == "quant"
 		wantStatus := "owner-contract-pending"
 		if wantAccepted {
 			wantStatus = "integration-unconfigured"
@@ -95,6 +95,32 @@ func TestExchangeReadSourceLoadsBoundAccountEvidence(t *testing.T) {
 	}
 }
 
+func TestQuantReadSourceLoadsBoundStrategyAndExecutionEvidence(t *testing.T) {
+	now := time.Date(2026, 8, 11, 9, 35, 0, 0, time.UTC)
+	secret := strings.Repeat("q", 32)
+	verifier, err := readintegration.NewVerifier(secret, "finance", "quant", func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		account, verifyErr := verifier.Verify(r, "/v1/integrations/finance/account")
+		if verifyErr != nil {
+			http.Error(w, verifyErr.Error(), http.StatusUnauthorized)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(ReadSourceEnvelope{EnvelopeVersion: ReadSourceEnvelopeVersion, SourceID: "quant", Owner: "08-quant-lab", Network: ChainID, NativeAsset: "YNXT", AuthorizedAccount: account, OwnerContractVersion: "quant-finance-read-v1", PayloadSchema: "ynx-quant-finance-account-v1", AsOf: now, AsOfKind: "quant-tenant-states-observed-at", Coverage: "authorized strategies and executions", SyncStatus: "authoritative-persisted-quant-state", ReadOnly: true, Capabilities: append([]string(nil), acceptedReadSourceContracts["quant"].AllowedCapabilities...), Payload: json.RawMessage(`{"mandates":[{"digest":"abc"}],"executions":[{"venueStatus":"filled"}]}`)})
+	}))
+	defer owner.Close()
+	upstreams := &Upstreams{client: owner.Client()}
+	if err := upstreams.ConfigureReadSourceIntegrations(ReadSourceIntegrationConfig{QuantURL: owner.URL, QuantKey: secret}); err != nil {
+		t.Fatal(err)
+	}
+	quant := upstreams.ReadSourcesForAccount(context.Background(), testAccount, now)["quant"]
+	if !quant.OwnerContractAccepted || !quant.Status.Available || quant.Envelope == nil || quant.Envelope.AuthorizedAccount != testAccount || !strings.Contains(string(quant.Envelope.Payload), `"venueStatus":"filled"`) {
+		t.Fatalf("Quant evidence was not accepted: %+v", quant)
+	}
+}
+
 func TestExchangeReadSourceConfigurationFailsClosed(t *testing.T) {
 	upstreams := &Upstreams{}
 	for _, config := range []ReadSourceIntegrationConfig{
@@ -102,6 +128,10 @@ func TestExchangeReadSourceConfigurationFailsClosed(t *testing.T) {
 		{ExchangeKey: strings.Repeat("x", 32)},
 		{ExchangeURL: "not-a-url", ExchangeKey: strings.Repeat("x", 32)},
 		{ExchangeURL: "https://exchange.example", ExchangeKey: "short"},
+		{QuantURL: "https://quant.example"},
+		{QuantKey: strings.Repeat("q", 32)},
+		{QuantURL: "not-a-url", QuantKey: strings.Repeat("q", 32)},
+		{QuantURL: "https://quant.example", QuantKey: "short"},
 	} {
 		if err := upstreams.ConfigureReadSourceIntegrations(config); err == nil {
 			t.Fatalf("invalid integration config accepted: %+v", config)

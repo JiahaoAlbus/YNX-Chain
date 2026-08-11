@@ -261,11 +261,14 @@ func (s *Server) portfolio(w http.ResponseWriter, r *http.Request, session Sessi
 func (s *Server) sources(w http.ResponseWriter, r *http.Request, session Session) {
 	sources := s.service.Upstreams.ReadSourcesForAccount(r.Context(), session.Account, s.now().UTC())
 	s.observeReadSources(sources)
-	integrationState := "owner-contracts-pending"
-	if exchange := sources["exchange"]; exchange.Status.Available {
-		integrationState = "exchange-live-other-owner-contracts-pending"
-	} else if exchange.OwnerContractAccepted {
-		integrationState = "exchange-accepted-unavailable-other-owner-contracts-pending"
+	integrationState := "exchange-and-quant-accepted-unavailable-other-owner-contracts-pending"
+	exchangeLive, quantLive := sources["exchange"].Status.Available, sources["quant"].Status.Available
+	if exchangeLive && quantLive {
+		integrationState = "exchange-and-quant-live-other-owner-contracts-pending"
+	} else if exchangeLive {
+		integrationState = "exchange-live-quant-unavailable-other-owner-contracts-pending"
+	} else if quantLive {
+		integrationState = "quant-live-exchange-unavailable-other-owner-contracts-pending"
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"consumerEnvelopeVersion": ReadSourceEnvelopeVersion,

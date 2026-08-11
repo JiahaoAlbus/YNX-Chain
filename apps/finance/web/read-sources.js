@@ -2,6 +2,8 @@
   const baseRender=render;
   const safeActionURL=(value)=>{try{const parsed=new URL(value);return parsed.protocol==='https:'&&parsed.username===''&&parsed.password===''?parsed.href:''}catch{return ''}};
   const micro=(value,asset='')=>Number.isFinite(Number(value))?`${(Number(value)/1_000_000).toLocaleString(undefined,{maximumFractionDigits:6})}${asset?` ${esc(asset)}`:''}`:'—';
+  const bps=(value)=>Number.isFinite(Number(value))?`${(Number(value)/100).toLocaleString(undefined,{maximumFractionDigits:2})}%`:'—';
+  const observedAt=(value)=>{const parsed=new Date(value);return value&&!Number.isNaN(parsed.getTime())?parsed.toLocaleString():'unknown'};
   const exchangeDetails=(source)=>{
     if(source?.id!=='exchange'||!source?.status?.available||!source?.envelope?.payload)return '';
     const payload=source.envelope.payload;
@@ -19,13 +21,32 @@
     }).join('');
     return `<div class="source-details" aria-label="Live Exchange account evidence"><div class="source-metrics">${balances.map(item=>`<div><small>${esc(item.asset||'Asset')} available</small><strong>${micro(item.availableMicro,item.asset||'')}</strong><span>${micro(item.reservedMicro,item.asset||'')} reserved</span></div>`).join('')}<div><small>Margin equity</small><strong>${micro(payload.equityMicro,'YUSD_TEST')}</strong><span>${micro(payload.freeCollateralMicro,'YUSD_TEST')} free</span></div><div><small>Persisted activity</small><strong>${openOrders.length} open · ${trades.length} fills</strong><span>${micro(feeTotal,'YUSD_TEST')} recorded fees</span></div></div><div class="source-evidence-grid"><div><h4>Recent spot fills</h4><ul>${evidenceRows(trades,'fill')||'<li class="quiet">No persisted fills for this account.</li>'}</ul></div><div><h4>Open spot orders</h4><ul>${evidenceRows(openOrders,'order')||'<li class="quiet">No open spot orders.</li>'}</ul></div><div><h4>Perpetual positions</h4><ul>${evidenceRows(positions,'position')||'<li class="quiet">No open perpetual positions.</li>'}</ul></div></div><small class="source-provenance">${esc(source.envelope.coverage||'Authorized Exchange account evidence')} · as of ${esc(source.envelope.asOf||'unknown')} · ${funding.length} funding records · ${esc(payload.productVersion||source.status.version||'version unavailable')}</small></div>`;
   };
+  const quantDetails=(source)=>{
+    if(source?.id!=='quant'||!source?.status?.available||!source?.envelope?.payload)return '';
+    const payload=source.envelope.payload;
+    const strategies=Array.isArray(payload.strategies)?payload.strategies:[];
+    const experiments=Array.isArray(payload.experiments)?payload.experiments:[];
+    const mandates=Array.isArray(payload.mandates)?payload.mandates:[];
+    const executions=Array.isArray(payload.executions)?payload.executions:[];
+    const paper=Array.isArray(payload.paper)?payload.paper:[];
+    const active=mandates.filter(item=>!item?.revoked&&Date.parse(item?.expiresAt||'')>Date.now());
+    const filled=executions.filter(item=>item?.venueStatus==='filled');
+    const latestExperiment=experiments[0];
+    const totalNetPnL=experiments.reduce((sum,item)=>sum+(Number(item?.attribution?.userNetPnl)||0),0);
+    const totalRealized=experiments.reduce((sum,item)=>sum+(Number(item?.attribution?.userRealizedPnl)||0),0);
+    const killSwitch=paper.some(item=>item?.killSwitch===true);
+    const strategyRows=strategies.slice(0,5).map(item=>`<li><span>${esc(item.name||item.id||'Strategy')} · ${esc(item.stage||'stage unavailable')}</span><strong>${esc(item.family||'family unavailable')} · ${esc(String(item.strategyHash||'').slice(0,12)||'hash unavailable')}</strong></li>`).join('');
+    const executionRows=executions.slice(0,5).map(item=>`<li><span>${esc(item.market||'Market')} · ${esc(item.side||'—')} · ${esc(item.venueStatus||'venue unknown')}</span><strong>${micro(item.amount)} @ ${micro(item.price,'YUSD_TEST')} · ${esc(item.venueOrderId||'order unavailable')}</strong></li>`).join('');
+    const riskRows=mandates.slice(0,5).map(item=>`<li><span>${esc(item.market||'Market')} · ${item.revoked?'revoked':'authorized'} · expires ${esc(observedAt(item.expiresAt))}</span><strong>notional ${micro(item.maxNotional)} · loss ${micro(item.maxDailyLoss)} · slippage ${bps(item.maxSlippageBps)} · leverage ${bps(item.maxLeverageBps)}</strong></li>`).join('');
+    return `<div class="source-details" aria-label="Live Quant account evidence"><div class="source-metrics"><div><small>Authorized strategies</small><strong>${strategies.length} strategies · ${active.length} active mandates</strong><span>${mandates.length-active.length} expired or revoked</span></div><div><small>Research PnL attribution</small><strong>${micro(totalNetPnL,'YUSD_TEST')}</strong><span>${micro(totalRealized,'YUSD_TEST')} realized · no unsupported component inferred</span></div><div><small>Bounded testnet execution</small><strong>${executions.length} submitted · ${filled.length} filled</strong><span>Venue status is distinct from workflow submission</span></div><div><small>Risk state</small><strong>${killSwitch?'KILL SWITCH ACTIVE':'Kill switch clear'}</strong><span>${latestExperiment?`${bps(latestExperiment.metrics?.maxDrawdownBps)} research max drawdown`:'No account-bound experiment'}</span></div></div><div class="source-evidence-grid"><div><h4>Strategy lifecycle</h4><ul>${strategyRows||'<li class="quiet">No account-authorized strategies.</li>'}</ul></div><div><h4>Authoritative executions</h4><ul>${executionRows||'<li class="quiet">No bounded testnet executions.</li>'}</ul></div><div><h4>Wallet-authorized risk limits</h4><ul>${riskRows||'<li class="quiet">No active or historical mandates.</li>'}</ul></div></div><small class="source-provenance">${esc(source.envelope.coverage||'Authorized Quant account evidence')} · as of ${esc(source.envelope.asOf||'unknown')} · ${experiments.length} research experiments · ${esc(payload.productVersion||source.status.version||'version unavailable')}</small></div>`;
+  };
   const renderReadSources=(sources)=>{
     const target=document.querySelector('#read-sources');
     if(!target)return;
     const values=Object.values(sources||{});
     target.innerHTML=values.length?values.map(source=>{
       const status=source.status||{},action=source.action||{},href=action.configured?safeActionURL(action.url):'';
-      return `<div class="source-card"><div class="row"><div class="row-main"><strong>${esc(source.name||source.id||'External source')}</strong><small>${esc(source.owner||'owner unavailable')} · ${esc(status.syncStatus||'owner-contract-pending')}</small><small>${esc(status.error||source.capability||'No unsupported data inferred')}</small></div><div class="row-value"><span class="evidence">${source.ownerContractAccepted&&status.available?'LIVE':'UNAVAILABLE'}</span>${href?`<small><a href="${esc(href)}" target="_blank" rel="noreferrer noopener">${esc(action.label||'Open owner product')}</a></small>`:'<small>Owner action link not configured</small>'}</div></div>${exchangeDetails(source)}</div>`;
+      return `<div class="source-card"><div class="row"><div class="row-main"><strong>${esc(source.name||source.id||'External source')}</strong><small>${esc(source.owner||'owner unavailable')} · ${esc(status.syncStatus||'owner-contract-pending')}</small><small>${esc(status.error||source.capability||'No unsupported data inferred')}</small></div><div class="row-value"><span class="evidence">${source.ownerContractAccepted&&status.available?'LIVE':'UNAVAILABLE'}</span>${href?`<small><a href="${esc(href)}" target="_blank" rel="noreferrer noopener">${esc(action.label||'Open owner product')}</a></small>`:'<small>Owner action link not configured</small>'}</div></div>${exchangeDetails(source)}${quantDetails(source)}</div>`;
     }).join(''):'<div class="empty compact">No cross-product source registry was returned. No balances or performance figures are inferred.</div>';
   };
   render=(data)=>{baseRender(data);renderReadSources(data?.portfolio?.readSources||{})};

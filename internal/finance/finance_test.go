@@ -173,7 +173,7 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 		source := readSources[id].(map[string]any)
 		status := source["status"].(map[string]any)
 		action := source["action"].(map[string]any)
-		wantAccepted := id == "exchange"
+		wantAccepted := id == "exchange" || id == "quant"
 		wantStatus := "owner-contract-pending"
 		if wantAccepted {
 			wantStatus = "integration-unconfigured"
@@ -184,7 +184,7 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	}
 	var sourceRegistry map[string]any
 	requestJSON(t, ts.URL+"/api/sources", http.MethodGet, nil, session.Token, "", 200, &sourceRegistry)
-	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "exchange-accepted-unavailable-other-owner-contracts-pending" {
+	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "exchange-and-quant-accepted-unavailable-other-owner-contracts-pending" {
 		t.Fatalf("source registry endpoint is not truthful: %#v", sourceRegistry)
 	}
 	var category Category

@@ -47,6 +47,7 @@ var BuildCommit = "development"
 type Config struct {
 	StatePath        string
 	Now              func() time.Time
+	FinanceReadKey   string
 	MandateVerifier  MandateVerifier
 	TestnetBroker    TestnetBroker
 	SessionCompleter WalletSessionCompleter

@@ -6,7 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 )
 
 const TenantHeader = "X-YNX-Tenant-ID"
@@ -18,16 +22,21 @@ var tenantIDPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // and Wallet/Exchange adapters. Tenant IDs are 256-bit unguessable device
 // bindings; Wallet and order signatures remain independently mandatory.
 type TenantServer struct {
-	mu      sync.Mutex
-	config  Config
-	role    string
-	root    string
-	base    http.Handler
-	servers map[string]http.Handler
-	maxOpen int
+	mu                 sync.Mutex
+	config             Config
+	role               string
+	root               string
+	base               http.Handler
+	servers            map[string]http.Handler
+	maxOpen            int
+	financeRead        *readintegration.Verifier
+	financeConcurrency chan struct{}
 }
 
 func NewTenantServer(config Config, role string) (*TenantServer, error) {
+	if config.Now == nil {
+		config.Now = func() time.Time { return time.Now().UTC() }
+	}
 	base, err := New(config)
 	if err != nil {
 		return nil, err
@@ -39,10 +48,21 @@ func NewTenantServer(config Config, role string) (*TenantServer, error) {
 	if err := os.Chmod(root, 0o700); err != nil {
 		return nil, err
 	}
-	return &TenantServer{config: config, role: role, root: root, base: NewRoleServer(base, role), servers: map[string]http.Handler{}, maxOpen: 1024}, nil
+	server := &TenantServer{config: config, role: role, root: root, base: NewRoleServer(base, role), servers: map[string]http.Handler{}, maxOpen: 1024, financeConcurrency: make(chan struct{}, 16)}
+	if strings.TrimSpace(config.FinanceReadKey) != "" {
+		server.financeRead, err = readintegration.NewVerifier(strings.TrimSpace(config.FinanceReadKey), "finance", "quant", config.Now)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return server, nil
 }
 
 func (s *TenantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet && r.URL.Path == FinanceReadRoute {
+		s.financeAccount(w, r)
+		return
+	}
 	if r.Method == http.MethodGet && (r.URL.Path == "/health" || r.URL.Path == "/version" || r.URL.Path == "/metrics") && r.Header.Get(TenantHeader) == "" {
 		s.base.ServeHTTP(w, r)
 		return
