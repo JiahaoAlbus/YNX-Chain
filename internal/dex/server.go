@@ -239,10 +239,13 @@ func (server *Server) nativeSnapshot(response http.ResponseWriter, _ *http.Reque
 		return
 	}
 	snapshot := server.nativeProvider.NativeSnapshot()
-	if snapshot.Source != "authoritative chain-native YNX Testnet state" || snapshot.UpdatedAt.IsZero() || time.Since(snapshot.UpdatedAt) > 2*time.Minute {
+	age := time.Since(snapshot.UpdatedAt)
+	if snapshot.Source != "authoritative chain-native YNX Testnet state" || snapshot.UpdatedAt.IsZero() || age > 15*time.Minute {
 		writeError(response, http.StatusServiceUnavailable, "authoritative native DEX snapshot is stale")
 		return
 	}
+	snapshot.Fresh = age <= 30*time.Second
+	snapshot.SnapshotAgeSeconds = int64(age / time.Second)
 	response.Header().Set("Cache-Control", "public, max-age=1, stale-while-revalidate=15")
 	writeJSON(response, http.StatusOK, snapshot)
 }

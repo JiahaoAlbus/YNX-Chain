@@ -79,11 +79,13 @@ type nativeAsset struct {
 }
 
 type NativeSnapshot struct {
-	Assets    []nativeAsset `json:"assets"`
-	Pools     []nativePool  `json:"pools"`
-	Events    []nativeEvent `json:"events"`
-	UpdatedAt time.Time     `json:"updatedAt"`
-	Source    string        `json:"source"`
+	Assets             []nativeAsset `json:"assets"`
+	Pools              []nativePool  `json:"pools"`
+	Events             []nativeEvent `json:"events"`
+	UpdatedAt          time.Time     `json:"updatedAt"`
+	Source             string        `json:"source"`
+	Fresh              bool          `json:"fresh"`
+	SnapshotAgeSeconds int64         `json:"snapshotAgeSeconds"`
 }
 
 func NewNativePoller(store *Store, cfg NativePollerConfig) (*NativePoller, error) {
@@ -101,7 +103,7 @@ func NewNativePoller(store *Store, cfg NativePollerConfig) (*NativePoller, error
 	}
 	client := cfg.Client
 	if client == nil {
-		client = &http.Client{Timeout: 5 * time.Second}
+		client = &http.Client{Timeout: 15 * time.Second}
 	}
 	return &NativePoller{store: store, base: base, client: client}, nil
 }
