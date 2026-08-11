@@ -5,8 +5,8 @@
     "id": "pay",
     "name": "YNX Pay",
     "owner": "04-pay",
-    "branch": "codex/final-pay",
-    "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1"
+    "branch": "codex/integrate-finance-suite",
+    "sourceCommit": "ef9712a5a4f9a5c15d3716aee1d9aef1a3d633fb"
   },
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -140,7 +140,7 @@
   "tests": [
     "go test ./internal/payproduct/... -count=1",
     "go test -race ./internal/payproduct/... -count=1",
-    "npm run check (apps/pay; 13 tests plus Android/iOS bundle, Split flow, Invoice v5 and Quant verification)",
+    "npm run check (apps/pay; 14 tests plus Android/iOS/Web exports, Product Session proof, Split flow, Invoice v5 and Quant verification)",
     "TestSplitPaymentCreatesSignedSharesAndBindsClaimedPayer",
     "TestSplitPaymentValidationFailsClosed",
     "TestQuantBillingUsesSignedExternalHighWaterMarkEvidence",
@@ -157,8 +157,8 @@
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
-    "integratedCentral": false,
+    "installedLocal": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,
@@ -166,7 +166,7 @@
     "storeReleased": false
   },
   "externalInputs": [
-    "accepted central Wallet/Gateway registry and deployed product routes",
+    "deployed central Wallet/Gateway and Pay product routes",
     "public Testnet deployment authority",
     "configured paymaster or stablecoin/bridge provider where applicable",
     "accepted Quant/Data Fabric Ed25519 verifier key and evidence stream",

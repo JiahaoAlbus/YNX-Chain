@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "pay",
   "name": "YNX Pay",
-  "branch": "codex/final-pay",
-  "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
-  "commit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
-  "version": "1.4.0",
+  "branch": "codex/integrate-finance-suite",
+  "sourceCommit": "ef9712a5a4f9a5c15d3716aee1d9aef1a3d633fb",
+  "commit": "ef9712a5a4f9a5c15d3716aee1d9aef1a3d633fb",
+  "version": "1.5.0",
   "releaseClass": "integration-candidate",
   "phase": "INTEGRATE",
   "goalStatus": "active",
@@ -25,7 +25,7 @@
     "storeBackupRestore": "testedLocal-offline",
     "observabilityRuntime": "testedLocal",
     "webPwa": "testedLocal-functional",
-    "securitySupplyChain": "testedLocal-unsigned-unhosted",
+    "securitySupplyChain": "testedLocal-central-product-session-unsigned-unhosted",
     "localReadCapacity": "testedLocal-loopback-only"
   },
   "contracts": {
@@ -39,8 +39,8 @@
   },
   "implementedLocal": true,
   "testedLocal": true,
-  "installedLocal": true,
-  "integratedCentral": false,
+  "installedLocal": false,
+  "integratedCentral": true,
   "deployedStaging": false,
   "deployedPublic": false,
   "downloadHosted": false,
@@ -49,8 +49,8 @@
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
-    "integratedCentral": false,
+    "installedLocal": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,
@@ -60,11 +60,17 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
-  "sha256": {},
-  "bytes": {},
+  "sha256": {
+    "androidDebugApk": "018cc4b968f3a8286a9b05bc603b5880fcbc088b51d0d430b6acd3dfd40c10d2",
+    "androidUnsignedReleaseApk": "8f3bd25b81410e585d57c22e0df0a12704b04c2e76c8f49b6a0b141ffe5e97f4"
+  },
+  "bytes": {
+    "androidDebugApk": 181632147,
+    "androidUnsignedReleaseApk": 102802441
+  },
   "ciArtifactEvidence": "release/evidence/pay-exact-source-ci-2026-07-30.json",
   "signingClass": {
-    "android": "no current source-bound artifact",
+    "android": "current source-bound debug/test certificate APK and unsigned release APK; no production signature",
     "ios": "unsigned iOS Simulator artifact retained by GitHub Actions for 30 days; not a production/device signature"
   },
   "minOS": {
@@ -83,6 +89,40 @@
     }
   ],
   "localVerification": [
+    {
+      "command": "npm test && npm run typecheck && npm run bundle-check && npm run test:web",
+      "cwd": "apps/pay",
+      "result": "pass",
+      "verifiedAt": "2026-08-11",
+      "details": "14 protocol/product tests, TypeScript, Android/iOS/Web exports and 2 Chromium keyboard/responsive/Arabic RTL checks passed for the central Product Session migration."
+    },
+    {
+      "command": "npm test",
+      "cwd": "packages/wallet-auth",
+      "result": "pass",
+      "verifiedAt": "2026-08-11",
+      "details": "109/109 central Wallet protocol tests passed with Pay approved and enabled for the exact five reviewed scopes."
+    },
+    {
+      "command": "npm test",
+      "cwd": "apps/wallet",
+      "result": "pass",
+      "verifiedAt": "2026-08-11",
+      "details": "39/39 Wallet tests passed, including the exact Pay registry tuple and human-readable scope review."
+    },
+    {
+      "command": "go test ./internal/payproduct && go test -race ./internal/payproduct && go vet ./internal/payproduct",
+      "result": "pass",
+      "verifiedAt": "2026-08-11",
+      "details": "Pay service state machine, concurrency/race and static checks passed; macOS race linking emitted only the known non-fatal LC_DYSYMTAB warning."
+    },
+    {
+      "command": "./gradlew --no-daemon -Dorg.gradle.java.home=<local-jdk17> assembleDebug assembleRelease",
+      "cwd": "apps/pay/android",
+      "result": "pass",
+      "verifiedAt": "2026-08-11",
+      "details": "Debug APK and unsigned Release APK built from the exact source. Release signing now fails closed unless all four production signing inputs are supplied; a debug key is never reused as a release claim."
+    },
     {
       "command": "go test ./internal/payproduct/... -count=1",
       "result": "pass",
@@ -144,7 +184,7 @@
       "details": "Run 30575350364 passed the exact SHA identity gate, the full test job, Xcode 26.2 unsigned YNX Pay and YNX Card Simulator builds, and Pay bundle-ID/install/cold-launch/app-container/URL-scheme-resolution checks."
     }
   ],
-  "centralIntegration": "Chain Core, Wallet/Auth, Oracle, Bridge, Data Fabric and Security/SRE dependencies have central acceptance receipts. Pay itself remains unaccepted until 29-integration merges the exact owner source and records Pay-specific central tests; draft owner validation PR 29 is not that acceptance.",
+  "centralIntegration": "The exact Pay source is integrated on the central integration branch. Pay is approved and enabled in the central Wallet registry with five reviewed scopes; Pay, Wallet and Wallet Auth tests pass together. Public Gateway/Testnet deployment and current-source install evidence remain separate release gates.",
   "historicalEvidence": {
     "androidApkSha256": "14698734aef4d1d5b4b33eedae328d3fcfd37c161a949bd2a89ff3419bc15a44",
     "androidApkBytes": 102623957,
@@ -154,7 +194,7 @@
   },
   "knownLimitations": [
     "Fresh authoritative Testnet payment, two-account Split flow, sponsorship receipt and refund proof are blocked on accepted central Gateway/Testnet deployment.",
-    "Exact-source unsigned iOS Simulator install and cold-launch evidence exists; Android install/cold-launch, production-signed iOS device evidence and store evidence remain absent.",
+    "Historical unsigned iOS Simulator install and cold-launch evidence exists for an older source. Current-source Android Debug and unsigned Release APKs build, but current-source install/cold-launch, production-signed device and store evidence remain absent.",
     "The public health endpoint is online but reports build 98a18815d4ee rather than the current Pay candidate; there is no current-source public service URL, hosted immutable artifact, production signature or store release.",
     "Quant verification is implemented locally, but no Quant/Data Fabric verifier key, staging evidence stream, or fresh Testnet service-fee payment has been accepted by the integration owner.",
     "Local fixture migration, backup, restore, rollback and corruption recovery are verified; production-volume RTO/RPO and remote backup retention remain incomplete.",
@@ -162,5 +202,5 @@
     "Web/PWA export and functional keyboard/RTL/390px checks pass; complete dark-theme, 200% large-text and manual screen-reader acceptance remain incomplete.",
     "Stablecoin and Bridge production-capable providers remain unavailable until approved owner/provider contracts exist."
   ],
-  "generatedAt": "2026-07-30T19:45:00Z"
+  "generatedAt": "2026-08-11T10:45:00+08:00"
 }
