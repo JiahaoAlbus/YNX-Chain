@@ -5,7 +5,7 @@
   "productSlug": "finance",
   "owner": "24-finance",
   "sourceBranch": "codex/integrate-finance-suite",
-  "sourceCommit": "90df7c7a5212930a9be6889452fe3c99ad6d2f2d",
+  "sourceCommit": "017a3c7583fcf5e1560142f295cc1ca7d7caf07f",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -59,7 +59,9 @@
       "YNX_FINANCE_QUANT_ACTION_URL",
       "YNX_FINANCE_ECONOMICS_ACTION_URL",
       "YNX_FINANCE_EXCHANGE_READ_URL",
-      "YNX_FINANCE_EXCHANGE_READ_KEY"
+      "YNX_FINANCE_EXCHANGE_READ_KEY",
+      "YNX_FINANCE_QUANT_READ_URL",
+      "YNX_FINANCE_QUANT_READ_KEY"
     ],
     "publicEvidence": "artifacts/finance/remote-public-probe-20260809.json"
   },
@@ -166,7 +168,7 @@
     "endpoint": "/api/sources",
     "envelopeVersion": "finance-source-read-envelope-v1",
     "schema": "release/integration/finance-source-read-envelope.schema.json",
-    "contractStatus": "exchange-owner-contract-accepted-locally; remaining owners pending",
+    "contractStatus": "exchange-and-quant-owner-contracts-accepted-locally; DEX and Economics owners pending",
     "integratedCentral": false,
     "readOnly": true,
     "maximumEnvelopeBytes": 2097152,
@@ -264,12 +266,13 @@
     "storeReleased": false,
     "publicRuntimeSourceCommit": "307273b93df29bf064cb64324109571c00a63dc2",
     "nextCandidate": {
-      "sourceCommit": "90df7c7a5212930a9be6889452fe3c99ad6d2f2d",
+      "sourceCommit": "017a3c7583fcf5e1560142f295cc1ca7d7caf07f",
       "implementedLocal": true,
       "testedLocal": true,
       "deployedStaging": false,
       "deployedPublic": false,
-      "exchangeReadIntegrationConfiguredPublic": false
+      "exchangeReadIntegrationConfiguredPublic": false,
+      "quantReadIntegrationConfiguredPublic": false
     }
   }
 }

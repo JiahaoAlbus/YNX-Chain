@@ -36,19 +36,22 @@
     "productProofReplayStatus": 401
   },
   "nextCandidate": {
-    "sourceCommit": "257baf32f52ba5e420112ea8414d333c49487648",
+    "sourceCommit": "017a3c7583fcf5e1560142f295cc1ca7d7caf07f",
     "implementedLocal": true,
     "testedLocal": true,
     "deployedPublic": false,
     "adapterVersion": "ynx-quant-execution-adapter-v2",
     "walletApproval": "Real YNX Wallet deep-link review and callback for complete mandate and exact order; manual signature fields removed",
     "signatureCoverage": "Strategy/product/device identity, market, complete capital/risk/frequency limits, expiry, nonce domain and Testnet-only flag",
+    "financeOwnerContract": "quant-finance-read-v1",
+    "financeReadEvidence": "Account-bound strategies, lifecycle, sanitized mandates, research PnL attribution, authoritative execution receipts and risk state; HMAC authenticated and replay protected",
     "verification": [
       "Go race tests: Quant, Exchange and both server packages",
       "Wallet Auth 113/113",
       "Wallet application 40/40 plus Android and iOS bundles",
       "Quant UI 4/4 and bundled browser protocol",
-      "Real in-process Quant→HTTP Exchange match: maker liquidity, Wallet-signed taker, venue status filled, persisted order ID/digest and revoked-mandate rejection"
+      "Real in-process Quant→HTTP Exchange match: maker liquidity, Wallet-signed taker, venue status filled, persisted order ID/digest and revoked-mandate rejection",
+      "Quant→Finance owner endpoint isolation, replay rejection, Web 12/12, Finance mobile 6/6, Android/iOS Hermes exports and Go race tests"
     ],
     "publicDeploymentBlocker": "The current public runtime still serves the prior build; this candidate requires an authorized reachable deployment path and post-deploy browser/Wallet validation."
   },

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "quant-finance-read-v1",
+  "payloadSchema": "ynx-quant-finance-account-v1",
+  "envelopeVersion": "finance-source-read-envelope-v1",
+  "sourceId": "quant",
+  "owner": "08-quant-lab",
+  "consumer": "24-finance",
+  "sourceCommit": "017a3c7583fcf5e1560142f295cc1ca7d7caf07f",
+  "network": "ynx_6423-1",
+  "nativeAsset": "YNXT",
+  "route": {
+    "method": "GET",
+    "path": "/v1/integrations/finance/account",
+    "queryAllowed": false,
+    "maximumResponseBytes": 2097152
+  },
+  "authentication": {
+    "scheme": "YNX_READ_INTEGRATION_V1",
+    "algorithm": "HMAC-SHA-256",
+    "secretMinimumCharacters": 32,
+    "secretEnvironments": {
+      "quant": "YNX_QUANT_FINANCE_READ_KEY",
+      "finance": "YNX_FINANCE_QUANT_READ_KEY"
+    },
+    "canonicalBindings": [
+      "consumer",
+      "owner",
+      "method",
+      "escapedPath",
+      "authorizedAccount",
+      "RFC3339Nano timestamp",
+      "128-bit random nonce"
+    ],
+    "maximumClockSkewSeconds": 30,
+    "nonceSingleUse": true,
+    "walletProductSessionForwarded": false
+  },
+  "capabilities": [
+    "quant.strategies.read",
+    "quant.mandates.read",
+    "quant.executions.read",
+    "quant.pnl.read",
+    "quant.risk.read",
+    "quant.lifecycle.read"
+  ],
+  "payload": {
+    "included": [
+      "authorized account strategy identity, family, hashes, parameters, limitations and lifecycle stage",
+      "sanitized Wallet-authorized mandate risk and capital limits, expiry and revocation state",
+      "research return, drawdown, fill-quality and reconciled PnL attribution",
+      "bounded Testnet workflow status and authoritative Exchange venue order, status and authorization digest",
+      "account-bound Paper cash, position, realized PnL, reconciliation and kill-switch state",
+      "Quant product version and build commit"
+    ],
+    "excluded": [
+      "Wallet signatures",
+      "Product Session proofs or session material",
+      "integration secret",
+      "other accounts or tenant identifiers",
+      "strategy source code or private dataset contents",
+      "unsupported PnL components represented as facts"
+    ]
+  },
+  "provenance": {
+    "asOfKind": "quant-tenant-states-observed-at",
+    "syncStatus": "authoritative-persisted-quant-state",
+    "coverage": "authorized strategies, mandates, research attribution, bounded executions, PnL and risk limits"
+  },
+  "capacity": {
+    "maximumTenantStateFilesPerRequest": 4096,
+    "maximumConcurrentOwnerReadsPerProcess": 16,
+    "overflowBehavior": "HTTP 503 fail closed"
+  },
+  "runtimeState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "financeAccepted": true,
+    "configuredStaging": false,
+    "deployedPublic": false,
+    "sharedTestnetEvidence": false
+  }
+}

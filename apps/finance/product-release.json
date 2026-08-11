@@ -31,15 +31,18 @@
     "storeReleased": false
   },
   "nextCandidate": {
-    "sourceCommit": "90df7c7a5212930a9be6889452fe3c99ad6d2f2d",
+    "sourceCommit": "017a3c7583fcf5e1560142f295cc1ca7d7caf07f",
     "branch": "codex/integrate-finance-suite",
     "implementedLocal": true,
     "testedLocal": true,
-    "webTests": "10/10 passed",
+    "webTests": "12/12 passed",
     "mobileTests": "6/6 passed; iOS and Android Hermes exports passed",
     "goRace": "read integration, Exchange, Finance and both server commands passed",
     "exchangeOwnerContract": "exchange-finance-read-v1",
     "exchangePayloadSchema": "ynx-exchange-finance-account-v1",
+    "quantOwnerContract": "quant-finance-read-v1",
+    "quantPayloadSchema": "ynx-quant-finance-account-v1",
+    "quantReadConfiguredPublic": false,
     "exchangeReadConfiguredPublic": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -115,11 +118,11 @@
     "endpoint": "/api/sources",
     "envelopeVersion": "finance-source-read-envelope-v1",
     "schema": "release/integration/finance-source-read-envelope.schema.json",
-    "contractStatus": "exchange-owner-contract-accepted-locally; remaining owners pending",
+    "contractStatus": "exchange-and-quant-owner-contracts-accepted-locally; DEX and Economics owners pending",
     "ownerContractsAccepted": {
       "exchange": true,
       "dex": false,
-      "quant": false,
+      "quant": true,
       "economics": false
     },
     "integratedCentral": false,
@@ -130,7 +133,7 @@
     "pendingSourcesAvailable": false,
     "exchangeConfiguredPublic": false,
     "exchangeDeployedPublic": false,
-    "sourceCommit": "90df7c7a5212930a9be6889452fe3c99ad6d2f2d"
+    "sourceCommit": "017a3c7583fcf5e1560142f295cc1ca7d7caf07f"
   },
   "publicOwnerProductNavigation": {
     "deployedAt": "2026-08-10T01:29:24Z",
@@ -142,7 +145,7 @@
     "ownerDataContractsAccepted": {
       "exchange": true,
       "dex": false,
-      "quant": false,
+      "quant": true,
       "economics": false
     }
   },
@@ -199,8 +202,8 @@
     "financeSecurityGate": "passed across 91 product, integration, recovery and operator-template text files",
     "repositoryPlaceholderGate": "passed with explicit grep fallback because ripgrep is absent",
     "repositorySensitiveMaterialGate": "passed with explicit grep fallback because ripgrep is absent",
-    "readSourceContractTests": "passed: Exchange HMAC binding, nonce replay rejection, account isolation, sensitive-field stripping, strict envelope provenance, capability allowlist, mutation disguise, outage handling and unsafe action URL rejection",
-    "contractTests": "passed: 10/10 Finance product/Web/Wallet and live Exchange rendering vectors",
+    "readSourceContractTests": "passed: Exchange and Quant HMAC binding, nonce replay rejection, account isolation, sensitive-field stripping, strict envelope provenance, capability allowlist, mutation disguise, outage handling and unsafe action URL rejection",
+    "contractTests": "passed: 12/12 Finance product/Web/Wallet and live Exchange/Quant rendering vectors",
     "walletAuthTests": "passed: 21/21",
     "financeGatewayTests": "passed: 2/2",
     "publicConcurrency": "passed: 10 independent Wallet accounts, 100 concurrent public requests, 100/100 success with no account-data leakage",
@@ -216,7 +219,7 @@
     "Central Finance registry and public Gateway deployment are complete. Final installed approval callback still requires a device or emulator with an enrolled strong biometric; the no-biometric emulator correctly failed closed after the exact Finance review screen.",
     "Authorized remote Pay receipt smoke is blocked on an operator-provided Pay read credential.",
     "Explorer reports indexer lag and Finance truthfully bounds activity to the latest 100 indexed records.",
-    "The Exchange owner payload contract and Finance adapter are implemented and tested locally, but the current public runtime is older and has no shared secret-managed endpoint configuration. DEX, Quant and Economics owner contracts remain pending.",
+    "The Exchange and Quant owner payload contracts and Finance adapters are implemented and tested locally, but the current public runtime is older and has no shared secret-managed endpoint configuration. DEX and Economics owner contracts remain pending.",
     "YNX_FINANCE_CURSOR_SIGNING_KEY must come from shared secret management; rotation intentionally invalidates outstanding pagination cursors.",
     "YNX_FINANCE_OPERATIONS_KEY must be separately secret-managed; metrics are process-scoped, reset on restart and are not yet persisted or integrated with central Monitor alerting.",
     "Finance backups are authenticated but not encrypted; production requires encrypted access-controlled storage, retention approval and an isolated deployed restore drill with measured RTO/RPO.",
