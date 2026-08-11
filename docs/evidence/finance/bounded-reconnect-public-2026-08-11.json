@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-11T15:45:40Z",
+  "sourceCommit": "50b95bbd715895dcc108e3a9fd9dd45cb6c10634",
+  "scope": [
+    "YNX Exchange",
+    "YNX Quant",
+    "YNX Finance"
+  ],
+  "policy": {
+    "readAttemptsMaximum": 3,
+    "readRetryDelayMilliseconds": [0, 600, 1600],
+    "perAttemptTimeoutMilliseconds": 10000,
+    "retryableHttpStatuses": [502, 503, 504],
+    "automaticMutationRetry": false,
+    "onlineEventRefreshesReadModelsOnly": true
+  },
+  "automatedVerification": {
+    "exchangeUi": "11/11 passed",
+    "exchangeBrowser": "3/3 passed; two failed GET attempts recovered on the third attempt; POST was issued exactly once",
+    "quantUi": "6/6 passed",
+    "quantBrowser": "4/4 passed; two failed GET attempts recovered on the third attempt; POST was issued exactly once",
+    "finance": "15/15 passed",
+    "financeSecurityGate": "passed across 146 text files",
+    "go": "go test ./apps/finance/... ./internal/finance/... passed",
+    "syntaxAndWhitespace": "syntax checks and git diff --check passed"
+  },
+  "deployments": {
+    "exchange": {
+      "url": "https://exchange.ynxweb4.com/api/health",
+      "binarySha256": "1f230f3d3202fc33066eb50935657db266b8ffed94d34ab31ce1da0b9ac94d80"
+    },
+    "quant": {
+      "url": "https://quant.ynxweb4.com/api/health",
+      "binarySha256": "e1c6c720138eeab90d9074d19c6142818eedac53c78f3ac9c968905723574959"
+    },
+    "finance": {
+      "url": "https://finance.ynxweb4.com/health",
+      "release": "ynx-finance-50b95bbd7158",
+      "binarySha256": "3d72989659d90a0fc75ca8822cc78fc77911c3fb70ecc4fd6eae16b820ea852d",
+      "webTreeSha256": "b8e4afc271e1d11280802428e40684fdcc1c20aa130179fea87ebb413e948a36"
+    },
+    "backupPaths": [
+      "/var/backups/ynx-financial-owner-reads/20260811T154040Z-50b95bbd7158",
+      "/var/backups/ynx-finance/20260811T154111Z-pre-ynx-finance-50b95bbd7158"
+    ]
+  },
+  "publicComputerControlVerification": {
+    "browser": "Microsoft Edge",
+    "exchange": [
+      "Public page initially displayed Connecting to YNX Testnet and a Retry control",
+      "Retry was clicked through ComputerControl",
+      "The same status changed to YNX Testnet connected"
+    ],
+    "quant": [
+      "Public page displayed YNX Testnet connected",
+      "Refresh was visible and interactive",
+      "Guest Research and Paper modes remained available"
+    ],
+    "finance": [
+      "Public signed-out page displayed Retry connection",
+      "Continue in YNX Wallet was visible",
+      "No private authenticated evidence was shown"
+    ]
+  }
+}
