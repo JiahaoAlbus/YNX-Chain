@@ -4,7 +4,7 @@ import { PRODUCT_REGISTRY, SCOPE_EXPLANATIONS } from "./registry";
 import { encodeRequestDeepLink, parseWalletDeepLink } from "@ynx-chain/wallet-auth";
 
 test("Wallet locally reviews the exact approved finance, commerce and existing bounded tuples",()=>{
-  assert.deepEqual(Object.keys(PRODUCT_REGISTRY).sort(),["ynx-browser-android","ynx-browser-ios","ynx-browser-macos","ynx-browser-windows","ynx-calendar-v1","ynx-card-v1","ynx-developer-v1","ynx-dex-web-v1","ynx-exchange-v1","ynx-finance-v1","ynx-mail-v1","ynx-merchant-console-v1","ynx-pay-v1","ynx-quant-v1","ynx-search-web","ynx-seller-v1","ynx-shop-v1","ynx-social-v1"]);
+  assert.deepEqual(Object.keys(PRODUCT_REGISTRY).sort(),["ynx-browser-android","ynx-browser-ios","ynx-browser-macos","ynx-browser-windows","ynx-calendar-v1","ynx-card-v1","ynx-cloud-mobile-v1","ynx-cloud-web-v1","ynx-developer-v1","ynx-dex-web-v1","ynx-exchange-v1","ynx-finance-v1","ynx-mail-v1","ynx-merchant-console-v1","ynx-pay-v1","ynx-quant-v1","ynx-search-web","ynx-seller-v1","ynx-shop-v1","ynx-social-v1"]);
   assert.equal(PRODUCT_REGISTRY["ynx-social-v1"]?.bundleId,"com.ynx.social");
   assert.equal(PRODUCT_REGISTRY["ynx-pay-v1"]?.callbacks[0],"ynxpay://wallet-auth/callback");
   assert.equal(PRODUCT_REGISTRY["ynx-card-v1"]?.requestingProduct,"ynx-card");
@@ -12,6 +12,9 @@ test("Wallet locally reviews the exact approved finance, commerce and existing b
   assert.deepEqual(PRODUCT_REGISTRY["ynx-quant-v1"]?.scopes,["quant:account","quant:mandate:create","quant:mandate:execute","quant:mandate:revoke"]);
   assert.deepEqual(PRODUCT_REGISTRY["ynx-developer-v1"]?.scopes,["account:read","developer:deploy"]);
   assert.deepEqual(PRODUCT_REGISTRY["ynx-search-web"]?.callbacks,["https://web4.ynxweb4.com/search/auth/callback"]);
+  assert.deepEqual(PRODUCT_REGISTRY["ynx-cloud-mobile-v1"]?.callbacks,["ynxcloud://wallet-auth/callback"]);
+  assert.deepEqual(PRODUCT_REGISTRY["ynx-cloud-web-v1"]?.callbacks,["https://web4.ynxweb4.com/cloud/auth/callback"]);
+  assert.deepEqual(PRODUCT_REGISTRY["ynx-cloud-web-v1"]?.scopes,["ai.use","audit.read","data.delete","files.read","files.write","permissions.manage"]);
   assert.equal(PRODUCT_REGISTRY["ynx-seller-v1"]?.requestingProduct,"seller-console");
   assert.deepEqual(PRODUCT_REGISTRY["ynx-seller-v1"]?.scopes,["account:read","shop:seller:operate"]);
   const request={version:"1",nonce:"developer_nonce_abcdefghijklmnop",chainId:"ynx_6423-1",requestingProduct:"developer",productClientId:"ynx-developer-v1",bundleId:"com.ynxweb4.developer.testnetpreview",productDeviceAlgorithm:"p256-sha256",productDeviceKey:"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",callback:"ynxdeveloper://wallet-auth/callback",scopes:["account:read","developer:deploy"],purpose:"Sign in to YNX Developer and review one exact Testnet deployment.",issuedAt:"2026-08-10T00:00:00.000Z",expiresAt:"2026-08-10T00:05:00.000Z"} as const;

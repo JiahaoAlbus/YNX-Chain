@@ -2,7 +2,7 @@ name: Cloud security and recovery gates
 
 on:
   push:
-    branches: [codex/final-cloud]
+    branches: [codex/integrate-finance-suite]
     paths:
       - 'apps/cloud/**'
       - 'apps/docs/**'
@@ -30,19 +30,19 @@ permissions:
 
 jobs:
   security-recovery:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version-file: go.mod
           cache: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: package-lock.json
       - name: Static security, dependency, SBOM, script, and artifact gate
@@ -85,7 +85,7 @@ jobs:
           test "$(docker inspect --format '{{.Config.User}}' ynx-cloudd-ci)" = "10001:10001"
           grep -q '"service":"ynx-cloudd"' /tmp/ynx-cloud-health.json
       - name: Scan exact Cloud image for Critical and High vulnerabilities
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ynx-cloudd:ci
           scan-type: image
@@ -99,7 +99,7 @@ jobs:
           version: v0.70.0
       - name: Preserve Cloud image vulnerability report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ynx-cloud-trivy-${{ github.sha }}
           path: trivy-ynx-cloud.json

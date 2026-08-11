@@ -50,8 +50,14 @@
       "bundleId": "com.ynxweb4.cloud",
       "callback": "ynxcloud://wallet-auth/callback"
     },
-    "reviewState": "pending-central-review",
-    "enabled": false
+    "webTuple": {
+      "productClientId": "ynx-cloud-web-v1",
+      "bundleId": "web.ynx.cloud",
+      "callback": "https://web4.ynxweb4.com/cloud/auth/callback"
+    },
+    "reviewState": "accepted-central-source",
+    "enabled": true,
+    "deploymentBoundary": "The exact central registrations are accepted in source. Public Wallet gateway deployment of this source remains separately unclaimed."
   },
   "canonicalEvents": [
     "cloud.object.created",
@@ -81,7 +87,7 @@
     "archiveRestoreRequired": 503
   },
   "dependencies": [
-    {"owner": "02-wallet-auth", "status": "pending-review"},
+    {"owner": "02-wallet-auth", "status": "accepted-central-source-public-deployment-pending"},
     {"owner": "14-ai", "status": "adapter-tested-provider-unconfigured"},
     {"owner": "15-trust-center", "status": "adapter-tested-remote-unconfigured"},
     {"owner": "16-resource-market", "status": "capacity-contract-pending"},
@@ -93,7 +99,7 @@
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,

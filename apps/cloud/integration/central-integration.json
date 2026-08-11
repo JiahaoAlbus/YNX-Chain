@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "chainId": "ynx_6423-1",
-  "ownerBranch": "codex/final-cloud",
-  "status": "pending-central-review",
+  "ownerBranch": "codex/integrate-finance-suite",
+  "status": "accepted-central-source",
   "walletVerifier": {
     "method": "POST",
     "path": "/v1/wallet-auth/sessions/verify",
@@ -14,14 +14,30 @@
   "nativeRegistrations": [
     {
       "schemaVersion": 3,
-      "productId": "cloud",
-      "displayName": "YNX Cloud",
-      "reviewState": "pending-review",
-      "enabled": false,
+      "productId": "cloud-mobile",
+      "displayName": "YNX Cloud for Mobile",
+      "reviewState": "approved",
+      "enabled": true,
       "productClientId": "ynx-cloud-mobile-v1",
       "requestingProduct": "cloud",
       "bundleId": "com.ynxweb4.cloud",
       "callbacks": ["ynxcloud://wallet-auth/callback"],
+      "scopes": ["ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"],
+      "maxScopes": 6,
+      "productDeviceAlgorithms": ["p256-sha256"],
+      "sessionDurationSeconds": 240,
+      "revocationPolicy": {"session": true, "approval": true, "device": true, "accountAllDevices": true}
+    },
+    {
+      "schemaVersion": 3,
+      "productId": "cloud-web",
+      "displayName": "YNX Cloud for Web",
+      "reviewState": "approved",
+      "enabled": true,
+      "productClientId": "ynx-cloud-web-v1",
+      "requestingProduct": "cloud",
+      "bundleId": "web.ynx.cloud",
+      "callbacks": ["https://web4.ynxweb4.com/cloud/auth/callback"],
       "scopes": ["ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"],
       "maxScopes": 6,
       "productDeviceAlgorithms": ["p256-sha256"],
@@ -47,19 +63,13 @@
   ],
   "webRegistrationsRequired": [
     {
-      "productId": "cloud",
-      "productClientId": "ynx-cloud-web-v1",
-      "bundleId": "web.ynx.cloud",
-      "callback": "https://web4.ynxweb4.com/cloud/auth/callback"
-    },
-    {
       "productId": "docs",
       "productClientId": "ynx-docs-web-v1",
       "bundleId": "web.ynx.docs",
       "callback": "https://ynxweb4.com/docs-app/auth/callback"
     }
   ],
-  "centralSchemaBlocker": "central Wallet registry schema v3 accepts one client, bundle and callback tuple per product; central owners must add reviewed multi-surface registrations before either Web client can be enabled",
+  "centralSchemaBlocker": "Cloud is resolved through separate cloud-mobile and cloud-web registrations. Docs Web remains pending a separate Docs product audit and central registration.",
   "authoritativeLocalTests": [
     "internal/cloud/service_test.go",
     "internal/cloud/server_test.go",

@@ -17,7 +17,7 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
 ]);
 
 export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
-export const CENTRAL_REGISTRY_PRODUCT_COUNT = 29;
+export const CENTRAL_REGISTRY_PRODUCT_COUNT = 30;
 export const CENTRAL_PRODUCT_SCHEMA_VERSION = 3;
 
 export function parseCentralRegistryDocument(input) {
@@ -44,8 +44,9 @@ export function migrateCentralRegistryDocumentV1(input) {
     throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet registry v1 product set is not the accepted migration source");
   }
   const migratedProducts = [
-    ...input.products.filter(product => product.productId !== "browser" && product.productId !== "search").map(product => structuredClone(product)),
+    ...input.products.filter(product => product.productId !== "browser" && product.productId !== "cloud" && product.productId !== "search").map(product => structuredClone(product)),
     ...canonicalBrowserRegistrations(),
+    ...canonicalCloudRegistrations(),
     canonicalQuantRegistration(),
     canonicalSearchRegistration(),
   ]
@@ -160,6 +161,28 @@ function canonicalSearchRegistration() {
     sessionDurationSeconds: 300,
     revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
   };
+}
+
+function canonicalCloudRegistrations() {
+  return [
+    ["cloud-mobile", "YNX Cloud for Mobile", "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback"],
+    ["cloud-web", "YNX Cloud for Web", "ynx-cloud-web-v1", "web.ynx.cloud", "https://web4.ynxweb4.com/cloud/auth/callback"],
+  ].map(([productId, displayName, productClientId, bundleId, callback]) => ({
+    schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    productId,
+    displayName,
+    reviewState: "pending-review",
+    enabled: false,
+    productClientId,
+    requestingProduct: "cloud",
+    bundleId,
+    callbacks: [callback],
+    scopes: ["ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"],
+    maxScopes: 6,
+    productDeviceAlgorithms: ["p256-sha256"],
+    sessionDurationSeconds: 240,
+    revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
+  }));
 }
 
 function canonicalBrowserRegistrations() {

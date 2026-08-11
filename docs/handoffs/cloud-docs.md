@@ -15,7 +15,8 @@ Recovered evidence proves passing local core tests, real local Web rendering, an
 
 | Product/surface | Product | Client | Bundle/package | Callback |
 | --- | --- | --- | --- | --- |
-| Cloud native | `cloud` | `ynx-cloud-mobile-v1` | `com.ynxweb4.cloud` | `ynxcloud://wallet-auth/callback` |
+| Cloud native | `cloud-mobile` | `ynx-cloud-mobile-v1` | `com.ynxweb4.cloud` | `ynxcloud://wallet-auth/callback` |
+| Cloud Web | `cloud-web` | `ynx-cloud-web-v1` | `web.ynx.cloud` | `https://web4.ynxweb4.com/cloud/auth/callback` |
 | Cloud Web | `cloud` | `ynx-cloud-web-v1` | `web.ynx.cloud` | `https://cloud.staging.ynx.network/auth/callback` |
 | Docs native | `docs` | `ynx-docs-mobile-v1` | `com.ynxweb4.docs` | `ynxdocs://wallet-auth/callback` |
 | Docs Web | `docs` | `ynx-docs-web-v1` | `web.ynx.docs` | `https://docs.staging.ynx.network/auth/callback` |
