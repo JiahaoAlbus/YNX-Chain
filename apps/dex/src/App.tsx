@@ -10,6 +10,7 @@ import {
 } from "./riskAssistant";
 import type { AuditAction, RiskContext } from "./riskAssistant";
 import { useDexData } from "./useDexData";
+import { aggregateCandles, type Candle } from "./candles";
 import type { ChainEvent, Locale, Pool, Token } from "./types";
 import { broadcastDexAction, loadAccountNonce } from "./api";
 import {
@@ -1916,6 +1917,8 @@ function AnalyticsPage({
   data: ReturnType<typeof useDexData>["data"];
   t: typeof catalogs.en;
 }) {
+  const [interval, setInterval] = useState(60);
+  const [selectedPool, setSelectedPool] = useState("");
   if (data.state === "loading")
     return (
       <PageFrame title={t.analytics}>
@@ -1932,6 +1935,12 @@ function AnalyticsPage({
         />
       </PageFrame>
     );
+  const pool =
+    data.data.pools.find((item) => item.address === selectedPool) ||
+    data.data.pools[0];
+  const candles = pool
+    ? aggregateCandles(data.data.events, pool, data.data.tokens, interval)
+    : [];
   const metrics = [
     [t.indexed, data.data.analytics.indexedEvents],
     [t.pools, data.data.analytics.pools],
@@ -1948,26 +1957,120 @@ function AnalyticsPage({
           </div>
         ))}
       </div>
-      <div className="chart-empty">
-        <div className="axis-lines" />
-        <Icon name="analytics" />
-        <strong>
-          {data.data.twap.length
-            ? "Raw Q112 TWAP observations indexed"
-            : "Historical series unavailable"}
-        </strong>
-        <p>
-          {data.data.twap.length
-            ? `${data.data.prices.length} raw reserve ratios · ${data.data.fees.length} pool fee ledgers. No fiat price or estimated volume.`
-            : "Charts appear only after two real confirmed cumulative-price observations are available."}
-        </p>
+      <div className="chart-toolbar">
+        <label>
+          Market
+          <select
+            aria-label="Chart market"
+            value={pool?.address || ""}
+            onChange={(event) => setSelectedPool(event.target.value)}
+          >
+            {data.data.pools.map((item) => (
+              <option key={item.address} value={item.address}>
+                {item.token0}/{item.token1}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="chart-intervals" role="group" aria-label="Candle interval">
+          {[
+            [60, "1m"],
+            [300, "5m"],
+            [900, "15m"],
+            [3600, "1h"],
+          ].map(([seconds, label]) => (
+            <button
+              key={seconds}
+              aria-pressed={interval === seconds}
+              onClick={() => setInterval(seconds as number)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
+      {pool && candles.length ? (
+        <CandleChart candles={candles} pair={`${pool.token0}/${pool.token1}`} />
+      ) : (
+        <div className="chart-empty">
+          <div className="axis-lines" />
+          <Icon name="analytics" />
+          <strong>Confirmed swap history unavailable</strong>
+          <p>
+            Candles appear only after real swaps are committed for this pool.
+            No synthetic prices or volume are inserted.
+          </p>
+        </div>
+      )}
       <p className="source-line">
         <Icon name="info" />
         {t.source}: {data.data.analytics.source}; confirmed cumulative-price
         deltas and raw token amounts only.
       </p>
     </PageFrame>
+  );
+}
+function CandleChart({ candles, pair }: { candles: Candle[]; pair: string }) {
+  const width = 960;
+  const height = 300;
+  const padding = { top: 22, right: 72, bottom: 38, left: 14 };
+  const plotHeight = height - padding.top - padding.bottom;
+  const values = candles.flatMap((item) => [item.high, item.low]);
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const span = maximum - minimum || Math.max(maximum * 0.02, 1);
+  const low = minimum - span * 0.08;
+  const high = maximum + span * 0.08;
+  const y = (value: number) =>
+    padding.top + ((high - value) / (high - low)) * plotHeight;
+  const step = (width - padding.left - padding.right) / candles.length;
+  const bodyWidth = Math.max(5, Math.min(18, step * 0.55));
+  const latest = candles[candles.length - 1];
+  return (
+    <figure className="candle-chart" aria-label={`${pair} confirmed swap candles`}>
+      <figcaption>
+        <div>
+          <strong>{pair}</strong>
+          <span>Token 1 per Token 0 · confirmed chain swaps</span>
+        </div>
+        <div>
+          <strong>{latest.close.toLocaleString(undefined, { maximumFractionDigits: 9 })}</strong>
+          <span>{latest.trades} trade{latest.trades === 1 ? "" : "s"} in latest candle</span>
+        </div>
+      </figcaption>
+      <svg viewBox={`0 0 ${width} ${height}`} role="img">
+        <title>{`${pair} OHLC candlestick chart from confirmed swaps`}</title>
+        {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
+          const value = high - (high - low) * ratio;
+          const lineY = padding.top + plotHeight * ratio;
+          return (
+            <g key={ratio}>
+              <line className="chart-grid" x1={padding.left} x2={width - padding.right} y1={lineY} y2={lineY} />
+              <text className="chart-label" x={width - padding.right + 8} y={lineY + 4}>
+                {value.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+              </text>
+            </g>
+          );
+        })}
+        {candles.map((item, index) => {
+          const x = padding.left + step * index + step / 2;
+          const rising = item.close >= item.open;
+          const top = y(Math.max(item.open, item.close));
+          const bodyHeight = Math.max(2, Math.abs(y(item.open) - y(item.close)));
+          return (
+            <g key={item.openedAt} className={rising ? "candle-up" : "candle-down"}>
+              <title>{`${new Date(item.openedAt).toLocaleString()} O ${item.open} H ${item.high} L ${item.low} C ${item.close} · ${item.trades} trades`}</title>
+              <line x1={x} x2={x} y1={y(item.high)} y2={y(item.low)} />
+              <rect x={x - bodyWidth / 2} y={top} width={bodyWidth} height={bodyHeight} rx="1" />
+            </g>
+          );
+        })}
+      </svg>
+      <div className="chart-foot">
+        <span>{new Date(candles[0].openedAt).toLocaleString()}</span>
+        <span>{new Date(latest.openedAt).toLocaleString()}</span>
+      </div>
+    </figure>
   );
 }
 function PageFrame({

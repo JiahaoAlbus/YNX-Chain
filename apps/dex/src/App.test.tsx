@@ -89,6 +89,60 @@ describe("YNX DEX consensus product shell", () => {
       screen.getByRole("button", { name: "Connect MetaMask" }),
     ).toBeEnabled();
   });
+  it("renders OHLC candles only from confirmed native swap events", async () => {
+    const asset = {
+      id: "ynx-usd-test",
+      symbol: "YUSDT",
+      name: "YNX USD Test",
+      decimals: 0,
+      blockHeight: 10,
+    };
+    const pool = {
+      id: "dex_ynxt_yusdt",
+      kind: "ynx-cpmm-v1",
+      asset0: "YNXT",
+      asset1: "ynx-usd-test",
+      reserve0: 50,
+      reserve1: 100000,
+      feeBps: 30,
+      totalShares: 100,
+      blockHeight: 11,
+      updatedAt: new Date().toISOString(),
+      auditHash: "a".repeat(64),
+    };
+    const events = [
+      {
+        id: "swap-1",
+        type: "dex_swap_exact_input",
+        poolId: pool.id,
+        signer: "ynx1trader",
+        asset0: "YNXT",
+        asset1: "ynx-usd-test",
+        amount0: 2,
+        amount1: 2000,
+        blockHeight: 12,
+        occurredAt: new Date().toISOString(),
+        transactionHash: "b".repeat(64),
+        auditHash: "c".repeat(64),
+      },
+    ];
+    vi.stubGlobal("fetch", nativeFetch([asset], [pool], events));
+    render(<App />);
+    const primary = screen.getByRole("complementary", {
+      name: "Primary navigation",
+    });
+    fireEvent.click(within(primary).getByRole("button", { name: "Analytics" }));
+    expect(
+      await screen.findByLabelText(
+        "YNXT/ynx-usd-test confirmed swap candles",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/confirmed chain swaps/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "1m" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
   it("persists Arabic RTL and dark appearance", async () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));

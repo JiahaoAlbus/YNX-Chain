@@ -55,6 +55,8 @@ type NativeEvent = {
   type: string;
   poolId?: string;
   signer: string;
+  asset0?: string;
+  asset1?: string;
   amount0?: number;
   amount1?: number;
   blockHeight: number;
@@ -179,6 +181,8 @@ const event = (value: NativeEvent): ChainEvent => ({
   type: value.type,
   pool: value.poolId || "",
   account: value.signer,
+  asset0: value.asset0,
+  asset1: value.asset1,
   amount0: String(
     value.amount0 === undefined
       ? 0

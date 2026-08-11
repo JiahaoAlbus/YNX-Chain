@@ -28,7 +28,7 @@ export type Token = {
   auditHash:string;
 };
 export type Position = { account:string; pool:string; netLpAmount:string; addedToken0:string; addedToken1:string; removedToken0:string; removedToken1:string };
-export type ChainEvent = { id:string; type:string; pool:string; account:string; amount0:string; amount1:string; fee0:string; fee1:string; blockNumber:number; txHash:string; timestamp:string; auditHash:string };
+export type ChainEvent = { id:string; type:string; pool:string; account:string; asset0?:string; asset1?:string; amount0:string; amount1:string; fee0:string; fee1:string; blockNumber:number; txHash:string; timestamp:string; auditHash:string };
 export type Analytics = { source:string; version:string; indexedEvents:number; pools:number; swaps:number; liquidityEvents:number; latestBlock:number };
 export type SpotPrice = { pool:string;token0:string;token1:string;price0Numerator:string;price0Denominator:string;price1Numerator:string;price1Denominator:string;updatedBlock:number };
 export type TWAP = { pool:string;token0:string;token1:string;price0AverageX112:string;price1AverageX112:string;intervalSeconds:number;fromBlock:number;toBlock:number };
