@@ -210,7 +210,7 @@ func (d *Devnet) NativeDexBalances(account string) []NativeDexBalance {
 func (d *Devnet) NativeDexEvents() []NativeDexEvent {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	return append([]NativeDexEvent(nil), d.dexEvents...)
+	return append([]NativeDexEvent{}, d.dexEvents...)
 }
 
 func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (Transaction, NativeDexMutation, bool, error) {

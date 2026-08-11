@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +11,30 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
+
+func TestAuthoritativeNativeDEXEmptyCollectionsEncodeAsArrays(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	for _, path := range []string{"/dex/assets", "/dex/pools", "/dex/events"} {
+		response, err := http.Get(server.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var body struct {
+			Items json.RawMessage `json:"items"`
+		}
+		if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+			response.Body.Close()
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != http.StatusOK || string(body.Items) != "[]" {
+			t.Fatalf("%s did not return an empty JSON array: status=%d items=%s", path, response.StatusCode, body.Items)
+		}
+	}
+}
 
 func TestAuthoritativeNativeDEXSignedLifecycleAndPersistence(t *testing.T) {
 	dataDir := t.TempDir()
