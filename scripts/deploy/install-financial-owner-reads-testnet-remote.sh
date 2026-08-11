@@ -50,6 +50,10 @@ exchange_state="$preflight_dir/exchange.json"
 quant_state="$preflight_dir/quant.json"
 if [[ -s /var/lib/ynx-exchange/state.json ]]; then cp -a /var/lib/ynx-exchange/state.json "$exchange_state"; fi
 if [[ -s /var/lib/ynx-quant/quant.json ]]; then cp -a /var/lib/ynx-quant/quant.json "$quant_state"; fi
+if [[ -d /var/lib/ynx-quant/quant.json.tenants ]]; then
+  mkdir -p "$quant_state.tenants"
+  cp -a /var/lib/ynx-quant/quant.json.tenants/. "$quant_state.tenants/"
+fi
 chown -R ynx:ynx "$preflight_dir"
 cleanup() {
   for pid in "${quant_pid:-}" "${exchange_pid:-}"; do [[ -z "$pid" ]] || { kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; }; done

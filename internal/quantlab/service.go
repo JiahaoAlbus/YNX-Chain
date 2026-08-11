@@ -314,7 +314,7 @@ func New(cfg Config) (*Service, error) {
 	b, err := os.ReadFile(cfg.StatePath)
 	if err == nil {
 		var loaded state
-		if json.Unmarshal(b, &loaded) != nil || !verifyIntegrity(loaded) {
+		if json.Unmarshal(b, &loaded) != nil || !verifyStateBytes(b, loaded) {
 			return nil, fmt.Errorf("state integrity: %w", ErrForbidden)
 		}
 		s = loaded
@@ -1198,7 +1198,7 @@ func (s *Service) reload() error {
 		return err
 	}
 	var latest state
-	if json.Unmarshal(b, &latest) != nil || !verifyIntegrity(latest) {
+	if json.Unmarshal(b, &latest) != nil || !verifyStateBytes(b, latest) {
 		return fmt.Errorf("state integrity: %w", ErrForbidden)
 	}
 	if latest.Experiments == nil {
@@ -1264,6 +1264,44 @@ func verifyIntegrity(s state) bool {
 	// historical hash once, then the next atomic save upgrades the integrity
 	// envelope with the new fields.
 	return got != "" && s.ExecutionLedger == nil && s.AdapterSequences == nil && got == legacyIntegrityHash(s)
+}
+
+// verifyStateBytes preserves checksum compatibility when a nested schema gains
+// fields after a state was written. The fallback includes every persisted raw
+// nested value and accepts only the exact known top-level state shape, so a
+// newly added or removed top-level field cannot be silently discarded.
+func verifyStateBytes(encoded []byte, decoded state) bool {
+	if verifyIntegrity(decoded) {
+		return true
+	}
+	type persistedState struct {
+		Schema           json.RawMessage `json:"schema"`
+		Sequence         json.RawMessage `json:"sequence"`
+		Experiments      json.RawMessage `json:"experiments"`
+		Strategies       json.RawMessage `json:"strategies"`
+		Datasets         json.RawMessage `json:"datasets"`
+		Paper            json.RawMessage `json:"paper"`
+		Mandates         json.RawMessage `json:"mandates"`
+		TestnetOrders    json.RawMessage `json:"testnetOrders"`
+		Idempotency      json.RawMessage `json:"idempotency"`
+		ExecutionLedger  json.RawMessage `json:"executionLedger"`
+		AdapterSequences json.RawMessage `json:"adapterSequences"`
+		Audit            json.RawMessage `json:"audit"`
+		Integrity        string          `json:"integrity"`
+	}
+	var raw persistedState
+	var top map[string]json.RawMessage
+	if json.Unmarshal(encoded, &raw) != nil || json.Unmarshal(encoded, &top) != nil || len(top) != 13 || raw.Integrity == "" {
+		return false
+	}
+	for _, key := range []string{"schema", "sequence", "experiments", "strategies", "datasets", "paper", "mandates", "testnetOrders", "idempotency", "executionLedger", "adapterSequences", "audit", "integrity"} {
+		if _, ok := top[key]; !ok {
+			return false
+		}
+	}
+	want := raw.Integrity
+	raw.Integrity = ""
+	return want == hash(raw)
 }
 
 func legacyIntegrityHash(s state) string {
