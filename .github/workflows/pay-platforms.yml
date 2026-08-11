@@ -31,6 +31,10 @@ jobs:
         with: {go-version-file: go.mod}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: {node-version: "24"}
+      - name: Install locked contract build tools
+        run: npm ci --ignore-scripts
+      - name: Generate Wallet deployment test contract artifact
+        run: npm run hardhat:build
       - run: go test ./internal/payproduct && go test -race ./internal/payproduct && go vet ./internal/payproduct
       - run: npm ci && npm test
         working-directory: packages/wallet-auth
