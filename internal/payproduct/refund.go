@@ -129,7 +129,7 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 	if err != nil {
 		return RefundRequest{}, err
 	}
-	if !identifierRE.MatchString(central.ID) || central.IntentID != invoice.IntentID || central.Amount != request.Amount || central.Currency != invoice.Asset || (central.Status != "submitted" && central.Status != "pending" && central.Status != "completed") || central.IdempotencyKey != key {
+	if central.ID != request.CentralRefundID || !identifierRE.MatchString(central.ID) || central.IntentID != invoice.IntentID || central.Amount != request.Amount || central.Currency != invoice.Asset || central.Status != "completed" || central.CompletionIdempotencyKey != refundCompletionIdempotencyKey(key, strings.ToLower(authorization.TransactionHash)) {
 		return RefundRequest{}, errors.New("central Pay refund submission was incomplete or mismatched")
 	}
 	now := s.now().UTC()
