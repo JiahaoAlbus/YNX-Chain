@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,11 +25,12 @@ type NativePollerConfig struct {
 }
 
 type NativePoller struct {
-	store  *Store
-	base   *url.URL
-	client *http.Client
-	mu     sync.RWMutex
-	tokens []Token
+	store    *Store
+	base     *url.URL
+	client   *http.Client
+	mu       sync.RWMutex
+	tokens   []Token
+	snapshot NativeSnapshot
 }
 
 type nativePool struct {
@@ -38,10 +40,12 @@ type nativePool struct {
 	Reserve0    int64     `json:"reserve0"`
 	Reserve1    int64     `json:"reserve1"`
 	FeeBps      uint16    `json:"feeBps"`
+	TotalShares int64     `json:"totalShares"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 	TxHash      string    `json:"transactionHash"`
 	BlockHeight uint64    `json:"blockHeight"`
 	BlockHash   string    `json:"blockHash"`
+	AuditHash   string    `json:"auditHash"`
 }
 
 type nativeEvent struct {
@@ -58,13 +62,28 @@ type nativeEvent struct {
 	TxHash      string    `json:"transactionHash"`
 	BlockHeight uint64    `json:"blockHeight"`
 	BlockHash   string    `json:"blockHash"`
+	AuditHash   string    `json:"auditHash"`
 }
 
 type nativeAsset struct {
-	ID       string `json:"id"`
-	Symbol   string `json:"symbol"`
-	Name     string `json:"name"`
-	Decimals uint8  `json:"decimals"`
+	ID          string `json:"id"`
+	Symbol      string `json:"symbol"`
+	Name        string `json:"name"`
+	Decimals    uint8  `json:"decimals"`
+	Issuer      string `json:"issuer"`
+	MaxSupply   int64  `json:"maxSupply"`
+	TotalSupply int64  `json:"totalSupply"`
+	TxHash      string `json:"transactionHash"`
+	BlockHeight uint64 `json:"blockHeight"`
+	AuditHash   string `json:"auditHash"`
+}
+
+type NativeSnapshot struct {
+	Assets    []nativeAsset `json:"assets"`
+	Pools     []nativePool  `json:"pools"`
+	Events    []nativeEvent `json:"events"`
+	UpdatedAt time.Time     `json:"updatedAt"`
+	Source    string        `json:"source"`
 }
 
 func NewNativePoller(store *Store, cfg NativePollerConfig) (*NativePoller, error) {
@@ -102,9 +121,6 @@ func (poller *NativePoller) PollOnce(ctx context.Context) (bool, error) {
 		}
 		tokens = append(tokens, token)
 	}
-	poller.mu.Lock()
-	poller.tokens = tokens
-	poller.mu.Unlock()
 	var poolEnvelope struct {
 		Items []nativePool `json:"items"`
 	}
@@ -118,6 +134,11 @@ func (poller *NativePoller) PollOnce(ctx context.Context) (bool, error) {
 		}
 		pools[pool.ID] = pool
 	}
+	poolItems := make([]nativePool, 0, len(pools))
+	for _, pool := range pools {
+		poolItems = append(poolItems, pool)
+	}
+	sort.Slice(poolItems, func(i, j int) bool { return poolItems[i].ID < poolItems[j].ID })
 	var eventEnvelope struct {
 		Items []nativeEvent `json:"items"`
 	}
@@ -147,6 +168,16 @@ func (poller *NativePoller) PollOnce(ctx context.Context) (bool, error) {
 		}
 		advanced = advanced || created
 	}
+	poller.mu.Lock()
+	poller.tokens = tokens
+	poller.snapshot = NativeSnapshot{
+		Assets:    append([]nativeAsset(nil), assetEnvelope.Items...),
+		Pools:     append([]nativePool(nil), poolItems...),
+		Events:    append([]nativeEvent(nil), eventEnvelope.Items...),
+		UpdatedAt: time.Now().UTC(),
+		Source:    "authoritative chain-native YNX Testnet state",
+	}
+	poller.mu.Unlock()
 	return advanced, nil
 }
 
@@ -154,6 +185,16 @@ func (poller *NativePoller) Tokens() []Token {
 	poller.mu.RLock()
 	defer poller.mu.RUnlock()
 	return append([]Token(nil), poller.tokens...)
+}
+
+func (poller *NativePoller) NativeSnapshot() NativeSnapshot {
+	poller.mu.RLock()
+	defer poller.mu.RUnlock()
+	value := poller.snapshot
+	value.Assets = append([]nativeAsset(nil), value.Assets...)
+	value.Pools = append([]nativePool(nil), value.Pools...)
+	value.Events = append([]nativeEvent(nil), value.Events...)
+	return value
 }
 
 func nativeIndexedEvent(value nativeEvent, pool nativePool, logIndex uint64) (Event, bool) {

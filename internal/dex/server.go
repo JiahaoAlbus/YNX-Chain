@@ -97,26 +97,33 @@ func (authorizer RemoteAuthorizer) Authorize(ctx context.Context, proof string, 
 }
 
 type Server struct {
-	store         *Store
-	build         buildinfo.Info
-	ingestionKey  string
-	authorizer    SessionAuthorizer
-	tokens        []Token
-	source        string
-	tokenProvider TokenProvider
-	sourceReady   bool
-	actionReady   bool
-	financeRead   *readintegration.Verifier
-	financeSlots  chan struct{}
+	store          *Store
+	build          buildinfo.Info
+	ingestionKey   string
+	authorizer     SessionAuthorizer
+	tokens         []Token
+	source         string
+	tokenProvider  TokenProvider
+	nativeProvider NativeSnapshotProvider
+	sourceReady    bool
+	actionReady    bool
+	financeRead    *readintegration.Verifier
+	financeSlots   chan struct{}
 }
 
 type TokenProvider interface{ Tokens() []Token }
+type NativeSnapshotProvider interface{ NativeSnapshot() NativeSnapshot }
 
 func NewServer(store *Store, info buildinfo.Info, ingestionKey string, authorizer SessionAuthorizer, tokens ...Token) (*Server, error) {
 	return NewServerWithSource(store, info, ingestionKey, authorizer, "indexed YNX Testnet EVM events", tokens...)
 }
 
-func (server *Server) SetTokenProvider(provider TokenProvider) { server.tokenProvider = provider }
+func (server *Server) SetTokenProvider(provider TokenProvider) {
+	server.tokenProvider = provider
+	if native, ok := provider.(NativeSnapshotProvider); ok {
+		server.nativeProvider = native
+	}
+}
 
 // SetRuntimeBoundary records whether the process has an authoritative market
 // source and whether that source also exposes canonical chain action routes.
@@ -175,6 +182,7 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /version", server.version)
 	mux.HandleFunc("GET /v1/pools", server.pools)
 	mux.HandleFunc("GET /v1/tokens", server.tokensList)
+	mux.HandleFunc("GET /v1/native-snapshot", server.nativeSnapshot)
 	mux.HandleFunc("GET /v1/swaps", server.events("swap"))
 	mux.HandleFunc("GET /v1/liquidity", server.events("liquidity-add", "liquidity-remove"))
 	mux.HandleFunc("GET /v1/transactions", server.events())
@@ -224,6 +232,19 @@ func (server *Server) tokensList(response http.ResponseWriter, _ *http.Request) 
 		source = "authoritative chain-native YNX Testnet asset registry"
 	}
 	writeJSON(response, http.StatusOK, map[string]any{"items": items, "chainId": ChainID, "mainnet": false, "source": source})
+}
+func (server *Server) nativeSnapshot(response http.ResponseWriter, _ *http.Request) {
+	if server.nativeProvider == nil {
+		writeError(response, http.StatusServiceUnavailable, "authoritative native DEX snapshot is unavailable")
+		return
+	}
+	snapshot := server.nativeProvider.NativeSnapshot()
+	if snapshot.Source != "authoritative chain-native YNX Testnet state" || snapshot.UpdatedAt.IsZero() || time.Since(snapshot.UpdatedAt) > 2*time.Minute {
+		writeError(response, http.StatusServiceUnavailable, "authoritative native DEX snapshot is stale")
+		return
+	}
+	response.Header().Set("Cache-Control", "public, max-age=1, stale-while-revalidate=15")
+	writeJSON(response, http.StatusOK, snapshot)
 }
 func (server *Server) analytics(response http.ResponseWriter, _ *http.Request) {
 	analytics := server.store.Analytics()

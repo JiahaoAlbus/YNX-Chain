@@ -55,6 +55,16 @@ func TestNativePollerIndexesAuthoritativePoolEventsAndCurrentReserves(t *testing
 	if tokens := poller.Tokens(); len(tokens) != 2 || tokens[0].Address != "YNXT" || tokens[1].Address != "ynx-usd-test" {
 		t.Fatalf("authoritative native asset registry was not retained: %+v", tokens)
 	}
+	snapshot := poller.NativeSnapshot()
+	if snapshot.Source != "authoritative chain-native YNX Testnet state" || len(snapshot.Pools) != 1 || snapshot.Pools[0].TotalShares != 141_421 || len(snapshot.Events) != 3 || snapshot.UpdatedAt.IsZero() {
+		t.Fatalf("authoritative native snapshot was not retained: %+v", snapshot)
+	}
+	server := &Server{nativeProvider: poller}
+	response := httptest.NewRecorder()
+	server.nativeSnapshot(response, httptest.NewRequest(http.MethodGet, "/v1/native-snapshot", nil))
+	if response.Code != http.StatusOK || response.Header().Get("Cache-Control") != "public, max-age=1, stale-while-revalidate=15" || !strings.Contains(response.Body.String(), `"totalShares":141421`) {
+		t.Fatalf("native snapshot API is incomplete: status=%d headers=%v body=%s", response.Code, response.Header(), response.Body.String())
+	}
 	pool := store.Pools()[0]
 	if pool.Address != "dex_ynxt_yusdt" || pool.ContractVersion != "ynx-native-dex-cpmm-v1" || pool.Reserve0 != "100000" || pool.Reserve1 != "200000" || pool.FeeBps != 30 {
 		t.Fatalf("native current reserves were not retained: %+v", pool)
