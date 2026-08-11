@@ -2,7 +2,7 @@
   "expo": {
     "name": "YNX Wallet",
     "slug": "ynx-wallet",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "scheme": "ynxwallet",
     "userInterfaceStyle": "automatic",
@@ -21,7 +21,7 @@
       "intentFilters": [{
         "action": "VIEW",
         "autoVerify": false,
-        "data": [{"scheme": "ynxwallet", "host": "authorize"}, {"scheme": "ynxwallet", "host": "action"}],
+        "data": [{"scheme": "ynxwallet", "host": "authorize"}, {"scheme": "ynxwallet", "host": "action"}, {"scheme": "ynxwallet", "host": "open"}],
         "category": ["BROWSABLE", "DEFAULT"]
       }]
     },

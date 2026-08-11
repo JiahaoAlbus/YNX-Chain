@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "packageManager": "npm@11.5.1",
   "main": "index.ts",
   "private": true,
