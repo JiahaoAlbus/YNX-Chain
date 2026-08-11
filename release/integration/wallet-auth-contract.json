@@ -5,8 +5,8 @@
   "slug": "wallet-auth",
   "productSlug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
-  "phase": "INTEGRATE",
+  "sourceCommit": "1666738a0f5a4624a4b95ebb153ef06f5e3f7e33",
+  "phase": "PUBLIC-TESTNET-GATEWAY",
   "network": {
     "nativeChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -269,7 +269,7 @@
   ],
   "dependencies": [
     {"owner": "01-chain-core", "need": "chain identity, EVM, EntryPoint, transaction and receipt authority", "status": "blocked-external"},
-    {"owner": "app-gateway", "need": "merge and deploy the canonical adapter and observability host with fail-closed persistence and exact build identity", "status": "adapter-ready"},
+    {"owner": "app-gateway", "need": "operate the canonical adapter and observability host with fail-closed persistence and exact build identity", "status": "public-testnet-deployed"},
     {"owner": "26-data-fabric", "need": "accept canonical event and billing-ledger mappings", "status": "contract-ready"},
     {"owner": "19-oracle", "need": "capital-product and stablecoin reference facts", "status": "contract-required"},
     {"owner": "12-explorer", "need": "authorization, transaction, UserOperation and evidence indexing", "status": "contract-required"},
@@ -281,9 +281,11 @@
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": {"android": true, "iosSimulator": true, "web": false},
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
+    "gatewayDeployedPublic": true,
+    "nativeApplicationDeployedPublic": false,
     "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
@@ -302,6 +304,8 @@
     "remoteDeploymentBuildIdentityGate": "missing exact source commit/release/build time rejected",
     "nodeHostSubpathExport": "CanonicalWalletGatewayNodeHost and observability constants/types exposed from @ynx-chain/wallet-auth/gateway-node-host; universal root excludes Node-only imports",
     "directTestnetMandateReceipt": false,
-    "directPublicGatewayEvidence": false
+    "directPublicGatewayEvidence": "apps/wallet/proof/wallet-gateway-public-2026-08-11.json",
+    "publicBridgeProductSessionLifecycle": "completion 200; introspection active; revoke 200; post-revoke introspection 403 REVOKED",
+    "deployedGatewayRelease": "ynx-wallet-gateway-1666738a0f5a"
   }
 }

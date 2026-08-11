@@ -21,20 +21,26 @@ Evidence is accepted only when it binds to an exact source commit, command or CI
 - Source `c4e476dc52e40ae4c895503a9ed0b756b1884f77` introduced the Node-only encrypted canonical Gateway backup/restore surface. Current verification source `a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f` additionally proves validated legacy-state normalization before backup, exact restore with consumed-proof replay rejection, and fail-closed rejection of unsupported future state schemas. Six focused backup tests and the complete 100-test package pass; `proof/gateway-backup-restore-local-2026-07-29.json` records the source-bound drill without claiming central storage, KMS, cross-region or production RTO/RPO.
 - Main compatibility merge `9a434ffa8f8d498d99f577ce97964903afea9cae` integrates the current Website documentation authority and release gates. Wallet/Auth 99/99, Wallet App 39/39 plus Android/iOS bundles, documentation/disclosure/package checks, complete deploy dry-run and `go test ./...` pass. The Wallet documentation contract is integrated into public Website content and policy routes are verified. Direct Wallet-route public verification was subsequently captured at `apps/wallet/proof/wallet-public-route-2026-07-28.json`; Wallet runtime deployment remains false.
 
+## Proven on the public Testnet boundary
+
+Source commit `1666738a0f5a4624a4b95ebb153ef06f5e3f7e33` is deployed as `ynx-wallet-gateway-1666738a0f5a`. The atomic release verified the exact archive and canonical Registry digests, migrated the existing state through a sidecar preflight, switched the system service with rollback prepared, and left both Wallet Gateway and App Gateway active. The deployed Registry contains 34 products, 27 enabled.
+
+A fresh public Bridge authorization completed through `https://rest.ynxweb4.com/v1/wallet/sessions/complete` with two approved scopes, introspected as active, revoked successfully, and then failed closed with HTTP 403 `REVOKED`. `proof/wallet-gateway-public-2026-08-11.json` binds the public endpoints, exact release/digests, state digest and truthful false native-app/EntryPoint/Bundler/Paymaster/asset-bridge claims without recording credentials or temporary keys.
+
 ## Not yet proven
 
-Central integration, staging/public product deployment, deployed Bundler/Paymaster, public sponsored receipt, Wallet→Pay/Quant/DEX live Gateway flows, installed-device passkey/Guardian flows, capital test positions, explorer proof for Smart Account, production signing and store release remain false. Local EDR contract execution, test code, screenshots from an older identity tuple, or a public chain RPC do not satisfy these states.
+The Wallet native application public release, deployed Bundler/Paymaster, public sponsored receipt, Wallet→Pay/Quant/DEX live Gateway flows, installed-device passkey/Guardian flows, capital test positions, Explorer proof for Smart Account, production signing and store release remain false. The public canonical Gateway does not raise any of those separate states. Local EDR contract execution, test code, screenshots from an older identity tuple, or a public chain RPC do not satisfy them.
 
 The public EVM endpoint returned chainId 6423 and block 442,153 after bounded retries, but returned JSON-RPC `-32601` for `eth_getCode`. This directly contradicts public EntryPoint/code-verification readiness. The required Chain Core runtime and RPC acceptance surface is recorded in `packages/wallet-auth/integration/chain-erc4337-requirements.json`; no deployment state is raised.
 
-The canonical Gateway adapter v2, HTTP kernel v1, manifest v2, state schema v2 and cross-product proof vectors are implemented and tested but have not been merged into or deployed by `ynx-app-gatewayd`; `integratedCentral` therefore remains false.
+The canonical Gateway adapter v2, HTTP kernel v1, Registry document v2 and persisted lifecycle are centrally integrated and publicly reachable through the App Gateway. Administrative health/version/metrics remain private, and central Monitor acceptance is not yet proven.
 
 ## StrategyMandate v2 and Product Session integration
 
 - Source commit `853b2e0bf923e3d3535685c38b3e2396c2ea56df` freezes StrategyMandate v2, StrategyAction v1, a restart-safe mandate store and Gateway adapter snapshot v2.
 - The current package test suite passes 94/94. It covers exact Product Session P-256 proof binding, Registry v1-to-v2 migration, canonical HTTP transport, request rollback, node-host observability and build identity, mandate activation, typed Vault/Pool/Router boundaries, Exchange subaccount-only rules, action limits, failed-operation proof atomicity, replay after restart, revoke, kill switch and emergency exit.
 - The shared vector `packages/wallet-auth/testdata/strategy-mandate-v2.json` fixes mandate digest `132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270`, action digest `ba22184ba59fb7195df56128c832f26b582e9da0600f04687f234d83b31a8e45` and nonce key `1d01253d409b8e4ca16085cbd5aa7893e15e778e4659b218629235b0c8dda479`.
-- Central Registry document v2 contains 26 exact registrations. Quant is deliberately `pending-review` and disabled. The accepted migration only consumes the exact prior 25-product set and does not enable Quant.
+- Central Registry document v2 now contains 34 exact registrations, 27 enabled. Public deployment evidence binds the exact canonical Registry digest; product-specific financial execution still requires its own acceptance proof.
 - `release/integration/wallet-auth-contract.json` and `docs/integration/*` define the adapter and acceptance boundary without claiming central ownership or deployment.
 
-No direct YNX Testnet mandate transaction, shared Gateway deployment, Explorer record, Monitor record or public endpoint evidence exists for this slice; those states remain false.
+No direct YNX Testnet mandate transaction, Explorer record or Monitor record exists for this slice. Shared Gateway deployment is proven separately, but it does not prove mandate or asset execution.

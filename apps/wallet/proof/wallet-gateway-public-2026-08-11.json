@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet Gateway",
+  "environment": "public-testnet",
+  "observedAt": "2026-08-11T04:31:00Z",
+  "deployment": {
+    "sourceCommit": "1666738a0f5a4624a4b95ebb153ef06f5e3f7e33",
+    "release": "ynx-wallet-gateway-1666738a0f5a",
+    "archiveSha256": "5a31dee2fa3c2a1c43811b323551da156435b550a9720a1b65f48552a49e7b66",
+    "registryFileSha256": "d8405f5af8680abd3059dd0398275228d9c55e0a1695b6ea68bf9310d478d652",
+    "registryCanonicalSha256": "366f12abf0ae28811466dfa0a5934baf05f957ef9e88ce2565dd5f39b39d286d",
+    "gatewayServiceActive": true,
+    "appGatewayServiceActive": true,
+    "atomicSwitch": true,
+    "rollbackPrepared": true
+  },
+  "registry": {
+    "documentVersion": 2,
+    "products": 34,
+    "enabledProducts": 27,
+    "bridgeWebEnabled": true,
+    "creatorStudioEnabled": true
+  },
+  "publicBoundary": {
+    "appHealthUrl": "https://rest.ynxweb4.com/app/health",
+    "sessionCompletionUrl": "https://rest.ynxweb4.com/v1/wallet/sessions/complete",
+    "sessionIntrospectionUrl": "https://rest.ynxweb4.com/v1/wallet/sessions/introspect",
+    "sessionRevocationUrl": "https://rest.ynxweb4.com/v1/wallet/sessions/revoke",
+    "appGatewayReportedWalletUpstreamOk": true,
+    "appGatewayReportedWalletRemoteDeployed": true,
+    "administrativeHealthVersionMetricsPublic": false
+  },
+  "bridgeProductSessionE2E": {
+    "productId": "bridge-web",
+    "productClientId": "ynx-bridge-web-v1",
+    "completionStatus": 200,
+    "grantedScopeCount": 2,
+    "introspectionStatus": 200,
+    "activeBeforeRevoke": true,
+    "revocationStatus": 200,
+    "postRevocationIntrospectionStatus": 403,
+    "postRevocationError": "REVOKED",
+    "finalStateDigest": "f6ff13484fc6f1498f2773c467b8bd4ae97ccd2ab8b592ff314c34fe3b414cb8"
+  },
+  "claims": {
+    "canonicalGatewayIntegratedCentral": true,
+    "canonicalGatewayDeployedPublic": true,
+    "registryDeployedPublic": true,
+    "bridgeWalletLoginBackendProven": true,
+    "walletNativeApplicationDeployedPublic": false,
+    "walletProductionSigned": false,
+    "walletStoreReleased": false,
+    "entryPointBundlerPaymasterDeployedPublic": false,
+    "testnetAssetBridgeExecutionProven": false
+  },
+  "secretMaterialRecorded": false
+}
