@@ -17,8 +17,9 @@ import {
 } from "../../../packages/wallet-auth/src/index.js";
 
 const PRODUCT=Object.freeze({version:"1",chainId:"ynx_6423-1",requestingProduct:"exchange",productClientId:"ynx-exchange-v1",bundleId:"com.ynxweb4.exchange",productDeviceAlgorithm:"p256-sha256",callback:"https://exchange.ynxweb4.com/wallet-auth/callback",scopes:Object.freeze(["exchange:ai","exchange:deposit","exchange:read","exchange:trade","exchange:withdrawal-review"])});
-const ACTION_CALLBACK="https://exchange.ynxweb4.com/wallet-action/callback",INSTALL_URL="https://ynxweb4.com/ecosystem?product=wallet",DB_NAME="ynx-exchange-wallet-v1",STORE="auth";
-let current=null,lastAction=null;
+const ACTION_CALLBACK="https://exchange.ynxweb4.com/wallet-action/callback",INSTALL_URL="https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",DB_NAME="ynx-exchange-wallet-v1",STORE="auth";
+const EVM_CHAIN=Object.freeze({chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://rpc.ynxweb4.com/"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com/"])});
+let current=null,lastAction=null,evmAccount=null;
 
 const ready=initialize();
 window.YNXExchangeWallet=Object.freeze({ready,connect:beginAuthorization,connected:()=>!!current,session:()=>current?.session??null,requireProof,placeSpotOrder:parameters=>beginTradingAction("exchange.order.place",parameters),cancelSpotOrder:(orderId,idempotencyKey)=>beginTradingAction("exchange.order.cancel",{orderId,idempotencyKey}),transferMargin:parameters=>beginTradingAction("exchange.margin.transfer",parameters),placePerpetualOrder:parameters=>beginTradingAction("exchange.perpetual.order.place",parameters),cancelPerpetualOrder:(orderId,idempotencyKey)=>beginTradingAction("exchange.perpetual.order.cancel",{orderId,idempotencyKey}),consumeActionResult:()=>{const value=lastAction;lastAction=null;return value}});
@@ -39,6 +40,14 @@ async function beginAuthorization(){
   const now=new Date(),authorizationRequest=Object.freeze({...PRODUCT,nonce:nonce(),productDeviceKey:device.productDeviceKey,purpose:"Connect this account to YNX Exchange Testnet for owned balances, exact Wallet-reviewed orders, margin and account controls. Exchange never receives recovery material.",issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+300_000).toISOString()});
   await write("pendingRequest",authorizationRequest);
   location.href=encodeRequestDeepLink(authorizationRequest);
+}
+
+async function connectMetaMask(){
+  const provider=window.ethereum;if(!provider?.request)throw new Error("MetaMask was not detected. Download YNX Wallet or install MetaMask, then retry.");
+  try{await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:EVM_CHAIN.chainId}]})}catch(error){if(error?.code!==4902)throw error;await provider.request({method:"wallet_addEthereumChain",params:[EVM_CHAIN]});await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:EVM_CHAIN.chainId}]})}
+  if(await provider.request({method:"eth_chainId"})!==EVM_CHAIN.chainId)throw new Error("MetaMask did not switch to YNX Testnet (chain 6423).");
+  const accounts=await provider.request({method:"eth_requestAccounts"});if(!Array.isArray(accounts)||!/^0x[0-9a-fA-F]{40}$/.test(accounts[0]||""))throw new Error("MetaMask did not return a valid EVM account.");
+  evmAccount=accounts[0].toLowerCase();render();
 }
 
 async function finishAuthorization(url){
@@ -82,7 +91,7 @@ async function finishSpotOrder(url){
 
 function actionRoute(action){const p=action.parameters;switch(action.action){case"exchange.order.place":return{path:"/api/v1/orders",body:p};case"exchange.order.cancel":return{path:`/api/v1/orders/${encodeURIComponent(p.orderId)}/cancel`,body:{idempotencyKey:p.idempotencyKey}};case"exchange.margin.transfer":return{path:"/api/v1/margin/transfer",body:p};case"exchange.perpetual.order.place":return{path:"/api/v1/perpetual/orders",body:p};case"exchange.perpetual.order.cancel":return{path:`/api/v1/perpetual/orders/${encodeURIComponent(p.orderId)}/cancel`,body:{idempotencyKey:p.idempotencyKey}};default:throw new Error("Unsupported Exchange action callback.")}}
 
-function render(){const status=document.querySelector("#wallet-state"),button=document.querySelector("#wallet-request"),connect=document.querySelector("#connect");if(button){button.disabled=false;button.textContent=current?"Reconnect YNX Wallet":"Continue in YNX Wallet";button.onclick=()=>beginAuthorization().catch(show)}if(status)status.textContent=current?`Connected ${short(current.session.account)} · expires ${new Date(current.session.expiresAt).toLocaleTimeString()}`:"Public market data remains available. Connect YNX Wallet for balances and separately reviewed actions.";if(connect&&current)connect.textContent=short(current.session.account)}
+function render(){const status=document.querySelector("#wallet-state"),button=document.querySelector("#wallet-request"),metamask=document.querySelector("#metamask-request"),connect=document.querySelector("#connect"),install=document.querySelector(".install-link");if(install)install.href=INSTALL_URL;if(button){button.disabled=false;button.textContent=current?"Reconnect YNX Wallet":"Continue in YNX Wallet";button.onclick=()=>beginAuthorization().catch(show)}if(metamask){metamask.disabled=false;metamask.textContent=evmAccount?`MetaMask ${short(evmAccount)}`:"Connect MetaMask";metamask.onclick=()=>connectMetaMask().catch(show)}if(status)status.textContent=current?`YNX Wallet ${short(current.session.account)} · expires ${new Date(current.session.expiresAt).toLocaleTimeString()}`:evmAccount?`MetaMask ${short(evmAccount)} is connected only for EVM compatibility. Exchange balances and orders still require YNX Wallet.`:"Public market data remains available. Choose YNX Wallet for balances and reviewed actions, or MetaMask for EVM compatibility.";if(connect&&current)connect.textContent=short(current.session.account)}
 async function clearSession(){current=null;await remove("session")}
 function show(error){const message=error instanceof Error?error.message:"Wallet operation failed closed.";const status=document.querySelector("#wallet-state");if(status)status.textContent=message;window.dispatchEvent(new CustomEvent("ynx-exchange-wallet-error",{detail:message}))}
 function short(account){return`${account.slice(0,10)}…${account.slice(-6)}`}
