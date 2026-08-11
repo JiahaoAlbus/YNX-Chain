@@ -5,14 +5,18 @@ import {
   createProductSessionProof,
   encodeProductSessionProofHeader,
   encodeRequestDeepLink,
+	createDexActionDeepLink,
+	evmAddressFromYNX,
   httpBodyDigest,
   parseCallbackURL,
   parseCentralWalletSession,
+	parseDexActionResponse,
   requestDigest,
   signGatewayChallenge,
   verifyAuthorization,
   type AuthorizationRequest,
   type CentralWalletSession,
+	type DexActionRequest,
 } from "@ynx-chain/wallet-auth";
 
 export const DEX_WALLET = Object.freeze({
@@ -30,6 +34,7 @@ export const WALLET_INSTALL_URL = "https://ynxweb4.com/ecosystem?product=wallet"
 const GATEWAY = (import.meta.env.VITE_WALLET_GATEWAY_URL || "/wallet-gateway").replace(/\/$/, "");
 const DB_NAME = "ynx-dex-wallet-v1";
 const STORE = "auth";
+const CHAIN_REST = (import.meta.env.VITE_CHAIN_REST_URL || "https://rest.ynxweb4.com").replace(/\/$/, "");
 
 type ProductDevice = Readonly<{productDeviceKey:string;productDeviceSecret:string}>;
 type WalletState = Readonly<{session:CentralWalletSession;device:ProductDevice}>;
@@ -92,6 +97,46 @@ export async function positionsProof(now=new Date()):Promise<string>{
   const proof=createProductSessionProof(state.session,{method:"POST",path:"/v1/wallet/sessions/introspect",bodyDigest:httpBodyDigest(body),nonce:nonce(),issuedAt:now.toISOString(),expiresAt:new Date(Math.min(now.getTime()+30_000,Date.parse(state.session.expiresAt))).toISOString()},state.device.productDeviceSecret);
   return encodeProductSessionProofHeader(proof);
 }
+
+export async function beginExactInputSwap(input:{poolId:string;assetIn:string;amountIn:number;minAmountOut:number;expectedAmount:number;reserve0:number;reserve1:number;poolBlockHeight:number;poolUpdatedAt:string;asset0:string;asset1:string;feeBps:number},now=new Date()):Promise<string>{
+  if(!current&&!(await restoreWalletSession(now)))throw new Error("Connect YNX Wallet before requesting a transaction review.");
+  const state=current!;
+  if(!state.session.scopes.includes("dex:transaction:request"))throw new Error("Wallet session does not grant DEX transaction requests.");
+  const accountWire=evmAddressFromYNX(state.session.account);
+  const [accountResponse,poolResponse]=await Promise.all([
+    fetch(`${CHAIN_REST}/accounts/${accountWire}`,{headers:{Accept:"application/json"},credentials:"omit"}),
+    fetch(`${CHAIN_REST}/dex/pools/${encodeURIComponent(input.poolId)}`,{headers:{Accept:"application/json"},credentials:"omit"}),
+  ]);
+  if(!accountResponse.ok||!poolResponse.ok)throw new Error("Authoritative account or pool state is unavailable.");
+  const accountEnvelope=await accountResponse.json() as {account?:{nonce?:number}};
+  const pool=await poolResponse.json() as {id?:string;asset0?:string;asset1?:string;reserve0?:number;reserve1?:number;feeBps?:number;blockHeight?:number;updatedAt?:string};
+  if(pool.id!==input.poolId||pool.asset0!==input.asset0||pool.asset1!==input.asset1||pool.reserve0!==input.reserve0||pool.reserve1!==input.reserve1||pool.feeBps!==input.feeBps||pool.blockHeight!==input.poolBlockHeight||pool.updatedAt!==input.poolUpdatedAt)throw new Error("Pool changed after quote. Refresh before Wallet review.");
+  const nonceValue=accountEnvelope.account?.nonce;
+  if(typeof nonceValue!=="number"||!Number.isSafeInteger(nonceValue)||nonceValue<0)throw new Error("Authoritative account nonce is invalid.");
+  const issuedAt=now.toISOString(),deadlineUnix=Math.floor(now.getTime()/1000)+300;
+  const request:DexActionRequest={version:"1",chainId:6423,productClientId:"ynx-dex-web-v1",bundleId:"com.ynxweb4.dex.web",callback:"https://dex.ynxweb4.com/wallet-action/callback",sessionBinding:state.session.sessionBinding,account:state.session.account,nonce:nonceValue+1,action:"dex_swap_exact_input",payload:{poolId:input.poolId,assetIn:input.assetIn,amountIn:input.amountIn,minAmountOut:input.minAmountOut,deadlineUnix},quote:{poolId:input.poolId,poolBlockHeight:input.poolBlockHeight,poolUpdatedAt:input.poolUpdatedAt,asset0:input.asset0,asset1:input.asset1,reserve0:input.reserve0,reserve1:input.reserve1,feeBps:input.feeBps,expectedAmount:input.expectedAmount},issuedAt,expiresAt:new Date(now.getTime()+300_000).toISOString()};
+  await write("pendingDexAction",request);
+  return createDexActionDeepLink(request,now);
+}
+
+export async function completeDexAction(url:string,now=new Date()):Promise<string>{
+  const request=await read<DexActionRequest>("pendingDexAction");
+  if(!request)throw new Error("This Wallet callback is not bound to a pending DEX action.");
+  const encoded=new URL(url).searchParams.get("response");
+  if(!encoded)throw new Error("Wallet action response is missing.");
+  let raw:unknown;
+  try{raw=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encoded.replaceAll("-","+").replaceAll("_","/").padEnd(Math.ceil(encoded.length/4)*4,"=")),character=>character.charCodeAt(0))))}catch{throw new Error("Wallet action response encoding is invalid.")}
+  const verified=parseDexActionResponse(raw,request,now);
+  const route=`/dex/pools/${encodeURIComponent(String(request.payload.poolId))}/swaps/exact-input`;
+  const response=await fetch(`${CHAIN_REST}${route}`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},credentials:"omit",body:JSON.stringify(verified.signedTransaction)});
+  if(!response.ok)throw new Error(`Authoritative DEX broadcast failed (${response.status}).`);
+  const result=await response.json() as {transaction?:{hash?:string}};
+  if(result.transaction?.hash!==verified.transactionHash)throw new Error("Authoritative DEX response hash does not match the Wallet-signed transaction.");
+  await remove("pendingDexAction");
+  return verified.transactionHash;
+}
+
+export function dexActionCallbackPending(url=location.href){const parsed=new URL(url);return parsed.pathname==="/wallet-action/callback"&&parsed.searchParams.has("response")}
 
 export async function clearWalletSession(){current=null;await remove("session")}
 export function callbackPending(url=location.href){const parsed=new URL(url);return parsed.pathname===new URL(DEX_WALLET.callback).pathname&&parsed.searchParams.has("response")}
