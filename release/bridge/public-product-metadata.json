@@ -4,7 +4,7 @@
   "product": "YNX Bridge & Interoperability",
   "slug": "bridge",
   "owner": "21-bridge",
-  "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
+  "sourceCommit": "77fb05ce3bd6069359868badffc98d5c32225335",
   "runtimeCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
   "canonicalRoute": "/bridge",
   "canonicalUrl": "https://ynxweb4.com/bridge",
@@ -16,7 +16,8 @@
     "Separate source finality, proof, destination confirmation and availability",
     "Provider outage and recovery history",
     "Read-only public status and SDK surface",
-    "Fail-closed refund, dispute and correction states"
+    "Fail-closed refund, dispute and correction states",
+    "Real YNX Wallet authorization for account-bound quotes and Wallet reviews"
   ],
   "risks": [
     "No approved Provider currently exposes a verified executable YNX asset route.",
@@ -24,7 +25,8 @@
     "Threshold-relayer attestations are not light-client or trustless consensus proofs."
   ],
   "status": {
-    "channel": "testnet-read-only-candidate",
+    "channel": "testnet-wallet-review-local-candidate",
+    "currentSourceDeployed": false,
     "publicReadOnlyStatusAvailable": true,
     "publicMutationEnabled": false,
     "externalSubmissionEnabled": false,
@@ -33,29 +35,8 @@
     "fundedTransferVerified": false,
     "testnetVerified": false
   },
-  "downloads": [
-    {
-      "name": "YNX Bridge coordinator — Linux AMD64",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-bridge-v0.3.1-testnet-candidate/ynx-bridged-40b99be92a9f-linux-amd64",
-      "bytes": 7274644,
-      "sha256": "0836bc034dfd5b8d3e6e58947ab7e42751d84bc6a2cee26df654aead55ce34b4",
-      "signingClass": "unsigned-testnet-candidate"
-    },
-    {
-      "name": "YNX Bridge coordinator — macOS ARM64",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-bridge-v0.3.1-testnet-candidate/ynx-bridged-40b99be92a9f-darwin-arm64",
-      "bytes": 6917570,
-      "sha256": "2e0756979ae693292dd2e1eb281253f866baad53e204b165817f083195e0b164",
-      "signingClass": "unsigned-testnet-candidate"
-    },
-    {
-      "name": "YNX Bridge read-only JavaScript SDK 0.3.1",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-bridge-v0.3.1-testnet-candidate/ynx-bridge-sdk-0.3.1.tgz",
-      "bytes": 7659,
-      "sha256": "dbbdd2a27a2131b43800d732791ec832a6daf0ae2fb584cddd7efff51581f47c",
-      "signingClass": "unsigned-testnet-candidate"
-    }
-  ],
+  "downloads": [],
+  "downloadStatus": "No current-source artifact is hosted on the official website. Historical GitHub candidates are not presented as current downloads.",
   "supportUrl": "https://ynxweb4.com/support",
   "privacyUrl": "https://ynxweb4.com/privacy",
   "securityUrl": "https://ynxweb4.com/security",
@@ -64,9 +45,9 @@
   "publicReadOnlyBaseUrl": "https://rest.ynxweb4.com/app/bridge",
   "websiteVerification": {
     "routeHttpStatusObserved": 200,
-    "observedAt": "2026-07-29T02:35:33Z",
+    "observedAt": "2026-08-11T03:13:20Z",
     "productSpecificMetadataVerified": false,
-    "gap": "The fetched SPA shell still uses the root canonical URL and generic site metadata."
+    "gap": "The current Wallet-connected Bridge Web candidate and product-specific metadata are not yet deployed."
   },
   "faq": [
     {

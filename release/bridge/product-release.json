@@ -4,88 +4,81 @@
   "product": "YNX Bridge & Interoperability",
   "slug": "bridge",
   "owner": "21-bridge",
-  "version": "0.3.1-testnet-read-only-and-unsigned-artifact-candidate",
-  "branch": "codex/final-bridge",
-  "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
-  "runtimeCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+  "version": "0.4.0-testnet-wallet-review-candidate",
+  "branch": "codex/integrate-finance-suite",
+  "sourceCommit": "77fb05ce3bd6069359868badffc98d5c32225335",
   "phase": "TESTNET",
   "releaseStates": {
     "recovered": true,
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
+    "installedLocal": false,
     "integratedCentral": true,
     "testnetVerified": false,
-    "deployedStaging": true,
-    "deployedPublic": true,
-    "releasePublished": true,
-    "downloadHosted": true,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "releasePublished": false,
+    "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false,
     "mainnetReleased": false
   },
   "verifiedCapabilities": [
-    "fail-closed lifecycle and destination-availability state machine",
-    "read-only public SDK and canonical App Gateway boundary",
-    "threshold-relayer attestation verification without trustless-proof claims",
-    "provider outage, recovery, restart and integrity-linked incident evidence",
-    "deterministic build, migration, restore and rollback gates",
-    "public TLS read-only status and evidence surface"
+    "public route, provider, asset, status and safety evidence without login",
+    "approved Bridge Web registration in the canonical Wallet registry",
+    "real YNX Wallet authorization callback and central Product Session completion",
+    "non-exported browser P-256 device identity persisted in IndexedDB",
+    "single-use request-bound Product Session proofs for quote and Wallet-review scopes",
+    "App Gateway-derived account, product, scope, device and expiry assertions",
+    "replay, wrong-product, wrong-scope and expired-session fail-closed tests",
+    "transfer and external submission remain disabled without an approved executable route"
   ],
-  "publicReadOnlyEvidence": {
+  "localVerification": {
+    "bridgeWebTests": "2/2",
+    "walletGatewayTests": "109/109",
+    "walletAppTests": "39/39",
+    "goPackages": ["internal/bridgegateway", "internal/appgateway"],
+    "race": true,
+    "vet": true,
+    "candidateSigningClass": "unsigned-testnet-candidate",
+    "artifacts": [
+      {"name":"ynx-bridged-linux-amd64","bytes":10378325,"sha256":"c0d815477b39da898eafc6386c5e134e424f66c5f96a3ea53e1a974614c29533"},
+      {"name":"ynx-bridged-darwin-arm64","bytes":9969922,"sha256":"3c200bb8c58f9963e874919a383980810c2c4485fd67e7f949310727bcdd9a8c"},
+      {"name":"ynx-app-gatewayd-linux-amd64","bytes":27280423,"sha256":"ee1c43e740079066f234447656a683b6a5eacf737c275e6a705ba8b775d20627"},
+      {"name":"ynx-app-gatewayd-darwin-arm64","bytes":26600594,"sha256":"d07546850b4a4b7087d151cb9b7b8981dd5b3a9052802d058bbdeb3e00acd234"},
+      {"name":"ynx-bridge-web.tar.gz","bytes":187318,"sha256":"db966d51fee45b389a5689fbf7b7c6f9b9ada2ff2b8037ddf5dfb7d2b63738f2"}
+    ]
+  },
+  "publicRuntimeObserved": {
     "origin": "https://rest.ynxweb4.com/app/bridge",
-    "statusUrl": "https://rest.ynxweb4.com/app/bridge/status",
-    "observedAt": "2026-07-29T02:35:19Z",
-    "runtimeCommit": "857371f9b194",
+    "observedAt": "2026-08-11T03:13:20Z",
+    "runtimeCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+    "matchesCurrentSource": false,
+    "readOnlyEvidenceAvailable": true,
     "mutationPubliclyEnabled": false,
     "externalSubmissionEnabled": false,
     "userAssetMovementEnabled": false,
     "ynxAssetRouteAvailable": false,
     "fundedTransferVerified": false
   },
-  "ci": {
-    "workflow": "bridge",
-    "runId": 30419513969,
-    "jobId": 90473200772,
-    "conclusion": "success",
-    "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
-    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30419513969"
-  },
-  "verificationArtifact": {
-    "id": 8711399511,
-    "name": "ynx-bridge-verification-40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
-    "bytes": 6024857,
-    "digest": "sha256:bb1185235fd22cdfae5b98efdb723b1b70f48f32aea7c4dd0d42fae6c506e54f",
-    "expiresAt": "2026-08-28T03:26:24Z",
-    "releaseArtifact": false
-  },
-  "publishedRelease": {
+  "historicalPublishedRelease": {
     "tag": "ynx-bridge-v0.3.1-testnet-candidate",
-    "releaseId": "RE_kwDOTJguhM4Vmcyk",
     "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynx-bridge-v0.3.1-testnet-candidate",
     "sourceCommit": "40b99be92a9fd7a1e83cab3da27bbe233bf2695c",
-    "signingClass": "unsigned-testnet-candidate",
-    "productionSigned": false,
-    "assetCount": 10,
-    "downloadedAndVerified": true,
-    "sdkInstalledAndImported": true,
-    "binaryColdStartVerified": true,
-    "linuxAmd64Sha256": "0836bc034dfd5b8d3e6e58947ab7e42751d84bc6a2cee26df654aead55ce34b4",
-    "darwinArm64Sha256": "2e0756979ae693292dd2e1eb281253f866baad53e204b165817f083195e0b164",
-    "sdkSha256": "dbbdd2a27a2131b43800d732791ec832a6daf0ae2fb584cddd7efff51581f47c"
+    "currentSourceRelease": false,
+    "signingClass": "unsigned-testnet-candidate"
   },
   "website": {
     "canonicalRoute": "https://ynxweb4.com/bridge",
-    "httpStatusObserved": 200,
+    "currentSourceDeployed": false,
     "productSpecificMetadataVerified": false,
-    "metadataGap": "The fetched SPA shell still publishes the root canonical URL and generic site metadata."
+    "gap": "The current Wallet-connected Bridge Web candidate and product-specific metadata are not yet deployed."
   },
   "externalInputs": [
-    "approved YNX Provider or proof route and contracts",
-    "funded Testnet assets and gas",
+    "approved executable Provider route and verified source/destination contracts",
+    "funded Testnet assets and gas for an exact end-to-end transfer",
     "production signer custody and ceremony",
     "independent Security/SRE acceptance",
-    "shared Testnet dependency acceptance",
     "governance authority for public mutation and asset movement"
   ]
 }

@@ -3,10 +3,10 @@
   "contractId": "ynx.bridge.integration.v1",
   "owner": "21-bridge",
   "product": "YNX Bridge",
-  "sourceCommit": "857371f9b19422861c0675ca6cbd89a7750744ad",
+  "sourceCommit": "77fb05ce3bd6069359868badffc98d5c32225335",
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
-  "releaseClass": "remote-testnet-coordinator-candidate",
+  "releaseClass": "central-wallet-review-testnet-candidate",
   "authority": {
     "lifecycleOwner": "21-bridge",
     "walletIdentityAndSignatureOwner": "02-wallet-auth",
@@ -36,6 +36,18 @@
     {"method":"POST","path":"/bridge/reconciliations","scope":"bridge:reconciliation:record","idempotencyRequired":true},
     {"method":"POST","path":"/bridge/safety","scope":"bridge:safety:write","idempotencyRequired":true}
   ],
+  "productSession": {
+    "productId": "bridge-web",
+    "requestingProduct": "bridge",
+    "productClientId": "ynx-bridge-web-v1",
+    "bundleId": "web.ynx.bridge",
+    "callback": "https://ynxweb4.com/bridge/wallet-auth/callback",
+    "deviceAlgorithm": "p256-sha256",
+    "proofHeader": "X-YNX-Product-Session-Proof",
+    "proofConsumedBy": "canonical Wallet Gateway",
+    "browserSuppliedAccountTrusted": false,
+    "legacyAppSessionAcceptedForBridgeWeb": false
+  },
   "walletReviewTuple": [
     "product",
     "account",
@@ -129,7 +141,7 @@
   },
   "dependencies": [
     {"owner":"01-chain-core","contract":"source and destination chain finality evidence","accepted":false},
-    {"owner":"02-wallet-auth","contract":"wallet review tuple, signed intent, product session, revoke","accepted":false},
+    {"owner":"02-wallet-auth","contract":"Bridge Web registration, Product Session proof, inventory and revoke","accepted":true,"evidence":"77fb05ce3bd6069359868badffc98d5c32225335"},
     {"owner":"04-pay","contract":"destination_available payment gate and refund state","accepted":false},
     {"owner":"07-exchange","contract":"destination_available credit gate and withdrawal lifecycle","accepted":false},
     {"owner":"09-dex","contract":"external route labeling and destination availability gate","accepted":false},
@@ -147,11 +159,11 @@
   "releaseState": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
+    "installedLocal": false,
     "integratedCentral": true,
-    "deployedStaging": true,
+    "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": true,
+    "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
   }
