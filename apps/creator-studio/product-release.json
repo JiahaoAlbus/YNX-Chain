@@ -1,41 +1,45 @@
 {
+  "schemaVersion": 1,
   "productId": "ynx-creator-studio",
-  "name": "YNX Creator Studio",
-  "branch": "codex/creator-studio-central-wallet-20260809",
-  "commit": "3353bdfada4435f2acdbe09d82d2603a7af796ac",
-  "version": "0.3.0-testnet-preview.1",
-  "surfaces": ["web"],
-  "implementedLocal": true,
-  "testedLocal": true,
-  "installedLocal": false,
-  "integratedCentral": false,
-  "deployedStaging": false,
-  "deployedPublic": true,
-  "downloadHosted": false,
-  "productionSigned": false,
-  "storeReleased": false,
-  "publicUrls": ["https://web4.ynxweb4.com/video/studio/"],
-  "healthUrls": ["https://web4.ynxweb4.com/video/api/health"],
-  "artifactUrls": [],
-  "sha256": {},
-  "bytes": {},
-  "signingClass": "not applicable; unhosted Web source",
-  "minOS": {"browser": "current evergreen browser"},
-  "installEvidence": {
-    "web": "public Testnet route plus 100/100 concurrent API health, Viewer and Creator Studio requests",
-    "boundary": "single-host public Testnet preview; the current public build still rejects Creator Studio Wallet sessions until this exact registry, callback, Gateway completion and service-introspection change is reviewed and deployed"
+  "version": "0.4.0-testnet-candidate",
+  "sourceCommit": "1366eb4737256da58a2b3d06487314f2fcfd311f",
+  "runtimeSourceCommit": "1366eb4737256da58a2b3d06487314f2fcfd311f",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": true,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
   },
-  "centralIntegration": {
-    "status": "implemented-and-locally-tested-review-required",
-    "registryCandidate": "packages/wallet-auth/central-registry.json",
-    "gatewayCompletion": "apps/creator-studio/creator-wallet-auth.js",
-    "serviceIntrospection": "internal/video/central_gateway_auth.go"
+  "stateNotes": {
+    "implementedLocal": "Creator Studio source implements a guest tour plus real YNX Wallet authorization, a non-exportable P-256 product-device key, canonical Product Session completion and a fresh sender-constrained Gateway proof for each protected Creator, AI-proposal and payout-intent request.",
+    "testedLocal": "Creator Studio syntax and browser smoke tests, Video Go tests, Video race tests, Wallet 39 tests and central Wallet/Auth 109 tests pass for this source.",
+    "installedLocal": "False: this is a Web source candidate and no independently installed desktop or mobile build is claimed.",
+    "integratedCentral": "True in source: the exact Creator Studio client, product, bundle, callback and four least-privilege scopes are approved in the 31-entry central Wallet registry, and the Video service verifies them through central Gateway introspection.",
+    "deployedStaging": "False: no staging deployment receipt binds a runtime to this source.",
+    "deployedPublic": "False for this source. A historical Creator Studio preview may remain visible at https://web4.ynxweb4.com/video/studio/, but its runtime identity does not prove deployment of this candidate and its old Wallet flow may remain unavailable.",
+    "downloadHosted": "False: Creator Studio has no verified installable current-source artifact or immutable website download URL.",
+    "productionSigned": "False: no native production signing applies or is claimed.",
+    "storeReleased": "False: no app-store release applies or is claimed."
   },
-  "knownLimitations": [
-    "The public deployment still has the old disabled registry and broken callback; private operations remain unavailable until the reviewed change is deployed",
-    "Public service is a single-host Testnet preview, not an HA production deployment",
-    "No live provider AI, Trust delegated appeal or Pay settlement",
-    "Analytics and revenue remain zero without authoritative persisted events"
+  "walletBinding": {
+    "productClientId": "ynx-creator-studio-web-v1",
+    "requestingProduct": "ynx-creator-studio",
+    "bundleId": "com.ynxweb4.creator-studio.web",
+    "callback": "https://web4.ynxweb4.com/video/studio/wallet-auth/callback",
+    "scopes": ["ai.video.propose", "pay.payout.intent", "video.creator", "video.read"],
+    "enabled": true
+  },
+  "unsupported": [
+    "public deployment of current source",
+    "high-availability production hosting",
+    "live provider AI execution",
+    "automatic Pay settlement",
+    "native production-signed applications"
   ],
-  "generatedAt": "2026-08-09T05:27:00Z"
+  "evidenceIndex": "evidence/EVIDENCE_INDEX.md"
 }
