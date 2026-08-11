@@ -135,7 +135,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Request-ID", requestID)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
-	if !s.allowPeer(r.RemoteAddr, time.Now().UTC()) {
+	if !s.allowPeer(rateLimitPeer(r), time.Now().UTC()) {
 		w.Header().Set("Retry-After", "60")
 		writeError(w, http.StatusTooManyRequests, "rate_limited", "request rate limit exceeded")
 		s.requests.Add(1)
@@ -173,6 +173,28 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		route = "unmatched"
 	}
 	slog.Info("exchange_http_request", "request_id", requestID, "error_id", w.Header().Get("X-Error-ID"), "method", r.Method, "route", route, "status", recorder.status, "duration_ms", float64(duration.Microseconds())/1000)
+}
+
+func rateLimitPeer(r *http.Request) string {
+	peer := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		peer = host
+	}
+	ip := net.ParseIP(peer)
+	if ip != nil && ip.IsLoopback() {
+		// The public API is reachable only through the loopback Caddy proxy.
+		// Caddy appends the direct client address, so only the rightmost hop is
+		// authoritative; a caller-controlled prefix must never select a bucket.
+		chain := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
+		forwarded := strings.TrimSpace(chain[len(chain)-1])
+		if parsed := net.ParseIP(forwarded); parsed != nil {
+			return parsed.String()
+		}
+	}
+	if ip != nil {
+		return ip.String()
+	}
+	return peer
 }
 
 func (s *Server) allowPeer(remoteAddr string, now time.Time) bool {

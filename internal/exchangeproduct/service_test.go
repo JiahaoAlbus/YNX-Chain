@@ -1629,6 +1629,35 @@ func TestHTTPPeerRateLimiterIsBoundedAndResets(t *testing.T) {
 	}
 }
 
+func TestHTTPPeerRateLimiterSeparatesClientsBehindTrustedCaddy(t *testing.T) {
+	s, _, _ := newTestService(t)
+	server := NewServer(s)
+	now := time.Now().UTC()
+	server.rateByPeer["198.51.100.9"] = rateWindow{started: now, count: 300}
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req.RemoteAddr = "127.0.0.1:4444"
+	req.Header.Set("X-Forwarded-For", "203.0.113.200, 198.51.100.9")
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusTooManyRequests {
+		t.Fatalf("exhausted direct client must remain limited, got %d", recorder.Code)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/health", nil)
+	req.RemoteAddr = "127.0.0.1:4444"
+	req.Header.Set("X-Forwarded-For", "203.0.113.200, 198.51.100.10")
+	recorder = httptest.NewRecorder()
+	server.ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("another direct client behind Caddy must retain its own quota, got %d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	if got := rateLimitPeer(req); got != "198.51.100.10" {
+		t.Fatalf("trusted Caddy client identity mismatch: %q", got)
+	}
+}
+
 func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	expires := time.Now().UTC().Add(time.Hour).Format(time.RFC3339Nano)
 	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 42))
