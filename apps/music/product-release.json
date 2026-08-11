@@ -1,173 +1,56 @@
 {
-  "schemaVersion": "ynx-product-release/1",
+  "schemaVersion": 1,
   "productId": "ynx-music",
-  "productName": "YNX Music",
-  "version": "0.3.0-testnet",
-  "channel": "testnet-preview",
-  "sourceCommit": "22653153c62529f782f44b0a35177b531ae7e8af",
-  "generatedAt": "2026-07-29T02:48:59Z",
-  "longTermStatus": "ACTIVE",
-  "stage": "PROTECT",
-  "releaseStates": {
+  "version": "0.4.0-testnet-candidate",
+  "sourceCommit": "c45a26ce226bfb85f779437462c087bfac29f62c",
+  "runtimeSourceCommit": "c45a26ce226bfb85f779437462c087bfac29f62c",
+  "states": {
     "implementedLocal": true,
     "testedLocal": true,
-    "migrationVerified": true,
-    "restoreVerified": true,
     "installedLocal": false,
-    "integratedCentral": false,
-    "testnetVerified": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": false,
-    "releasePublished": false,
     "downloadHosted": false,
     "productionSigned": false,
-    "storeReleased": false,
-    "websitePublished": false
+    "storeReleased": false
   },
-  "platforms": {
-    "service": {
-      "implementedLocal": true,
-      "testedLocal": true,
-      "installedLocal": true,
-      "evidence": [
-        "go test ./internal/music ./apps/music/...",
-        "go test -race ./internal/music",
-        "go vet ./internal/music ./apps/music/...",
-        "apps/music/scripts/smoke.sh",
-        "GitHub Actions run 30417406111 service job success"
-      ]
-    },
-    "web": {
-      "implementedLocal": true,
-      "testedLocal": true,
-      "installedLocal": true,
-      "deployedPublic": false,
-      "evidence": [
-        "embedded Web smoke",
-        "apps/music/evidence/screenshots/web"
-      ]
-    },
-    "android": {
-      "implementedLocal": true,
-      "testedLocal": true,
-      "installedLocal": false,
-      "debugSigningClass": "debug-test-signed",
-      "releaseSigningClass": "unsigned",
-      "minimumOS": "Android 9 / API 28",
-      "evidence": [
-        "GitHub Actions run 30417406111 Android testDebugUnitTest assembleDebug assembleRelease success",
-        "GitHub Actions artifact upload success",
-        "No physical-device install or production-signing evidence"
-      ]
-    },
-    "ios": {
-      "implementedLocal": true,
-      "testedLocal": true,
-      "installedLocal": false,
-      "installedCiSimulator": true,
-      "signingClass": "unsigned-simulator-evidence",
-      "minimumOS": "iOS 16",
-      "evidence": [
-        "GitHub Actions run 30417406111 dynamic Simulator build success",
-        "Simulator install, cold start, tampered callback rejection and restart success",
-        "No physical-device install or production-signing evidence"
-      ]
-    },
-    "macos": {
-      "implementedLocal": false,
-      "testedLocal": false,
-      "installedLocal": false,
-      "reason": "Desktop delivery path has not been frozen. The responsive Web client is not recorded as a native macOS artifact."
-    },
-    "windows": {
-      "implementedLocal": false,
-      "testedLocal": false,
-      "installedLocal": false,
-      "reason": "Desktop delivery path has not been frozen. The responsive Web client is not recorded as a native Windows artifact."
-    }
+  "stateNotes": {
+    "implementedLocal": "Service, Web, Android and iOS source implement bounded guest discovery and playback, private Wallet-bound library and history, creator onboarding, rights-evidenced draft upload and reviewed publish, playlists, offline candidates, Trust cases, review-only Pay intents and consented AI proposals.",
+    "testedLocal": "Music Go tests, race tests, vet, embedded Web smoke, Web static contract, 12-locale audit, central contract audit, Swift parser, Android debug and unsigned release builds, Wallet 39 tests and central Wallet/Auth 109 tests pass. Current-source iOS Simulator build awaits Xcode CI and is not claimed by this boolean.",
+    "installedLocal": "False for this source: Android APKs were built but not installed on a physical device or emulator, and no current-source iOS app was installed.",
+    "integratedCentral": "True in source: exact music-mobile and music-web identities are approved in the 32-entry central Wallet registry; all protected operations use current Product Session completion and fresh sender-constrained introspection proofs.",
+    "deployedStaging": "False: no staging deployment receipt binds Music, Wallet Gateway and this source commit.",
+    "deployedPublic": "False for this source. A historical /music route may remain visible, but its runtime identity does not prove deployment of this candidate.",
+    "downloadHosted": "False: no immutable current-source Music download URL with SHA-256, bytes and install evidence is published.",
+    "productionSigned": "False: Android release output is unsigned and no Apple production signing evidence exists.",
+    "storeReleased": "False: no Play Store or App Store release evidence exists."
   },
-  "persistence": {
-    "currentSchemaVersion": 2,
-    "legacySchemaVersionsAccepted": [1],
-    "futureSchemaFailClosed": true,
-    "migrationVerifiedLocal": true,
-    "backupVerifiedLocal": true,
-    "restoreVerifiedLocal": true,
-    "remoteRestoreVerified": false,
-    "rtoMeasured": false,
-    "rpoMeasured": false,
-    "evidence": [
-      "TestSchemaV1GoldenMigratesAndPersistsV2",
-      "TestSchemaMigrationFailsClosed",
-      "TestBackupRestoreRoundTrip",
-      "TestRestoreRejectsTamperedBackupAndDirtyDestination",
-      "apps/music/MIGRATION_COMPATIBILITY.md"
-    ]
+  "walletBindings": {
+    "mobile": {"productClientId":"ynx-music-v1","requestingProduct":"music","bundleId":"com.ynxweb4.music","callback":"ynxmusic://auth/callback","enabled":true},
+    "web": {"productClientId":"ynx-music-web-v1","requestingProduct":"music","bundleId":"web.ynx.music","callback":"https://web4.ynxweb4.com/music/auth/callback","enabled":true}
   },
-  "centralDependencies": {
-    "walletAuth": {
-      "owner": "YNX Wallet / Auth",
-      "implementedAdapter": true,
-      "accepted": false,
-      "deployed": false
-    },
-    "pay": {
-      "owner": "YNX Pay / Data Fabric",
-      "implementedAdapter": true,
-      "accepted": false,
-      "deployed": false,
-      "truthBoundary": "Local settlements remain requires_wallet_review and never claim paid finality."
-    },
-    "trust": {
-      "owner": "YNX Trust Center",
-      "implementedAdapter": true,
-      "accepted": false,
-      "deployed": false
-    },
-    "ai": {
-      "owner": "YNX AI",
-      "implementedAdapter": true,
-      "accepted": false,
-      "deployed": false
-    }
+  "platformEvidence": {
+    "service": {"built":true,"tested":true,"smoke":true},
+    "web": {"syntax":true,"staticContract":true,"embeddedSmoke":true,"playwrightCurrentSource":false},
+    "android": {"debugBuilt":true,"releaseBuilt":true,"unitTestSourcePresent":false,"installed":false,"signingClass":"debug for debug APK; unsigned release APK"},
+    "ios": {"swiftParsed":true,"simulatorBuiltCurrentSource":false,"installed":false,"signingClass":"none for current source"}
   },
   "catalogTruth": {
     "commercialCatalogIncluded": false,
-    "testMediaPolicy": "Only runtime-generated repository test tones or independently supplied owned, licensed or public-domain media may be used.",
+    "testMediaPolicy": "Only creator-owned, licensed, public-domain or repository-generated test media may be published.",
     "fakePlayCount": false,
     "fakeRoyalty": false,
     "guaranteedIncome": false
   },
-  "ci": {
-    "workflow": "music-platforms",
-    "runId": 30417406111,
-    "headSha": "22653153c62529f782f44b0a35177b531ae7e8af",
-    "statusAtGeneration": "completed",
-    "conclusion": "success",
-    "jobs": {
-      "service": "success",
-      "android": "success",
-      "iosSimulator": "success"
-    }
-  },
-  "artifacts": {
-    "manifest": "ARTIFACT_MANIFEST.json",
-    "workflowRunId": 30417406111,
-    "ciArtifactsUploaded": true,
-    "artifactInventoryFetched": false,
-    "artifactInventoryFetchFailure": "GitHub artifact API TLS handshake timeout on two bounded retries",
-    "hosted": false,
-    "immutableURLs": false,
-    "productionSigned": false
-  },
-  "knownBlockers": [
-    "Central owner acceptance and deployed Testnet endpoints",
-    "Current-commit Android physical-device install and cold-start evidence",
-    "Remote restore drill and measured RTO/RPO",
-    "Schema-v2 downgrade or minimum-compatible-version policy",
-    "Threat model and automated security scans",
-    "Capacity and unit-economics measurements",
-    "Licensed public catalog and rights review",
-    "Production signing, immutable hosting, public deployment and store accounts"
-  ]
+  "unsupported": [
+    "public deployment of current source",
+    "licensed commercial catalog",
+    "production CDN and signed expiring media URLs",
+    "committed Pay settlement finality",
+    "physical-device install evidence",
+    "production signing and store release",
+    "measured remote disaster recovery and public capacity evidence"
+  ],
+  "evidenceIndex": "EVIDENCE_INDEX.md"
 }

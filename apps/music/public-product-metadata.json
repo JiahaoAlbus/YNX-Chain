@@ -14,8 +14,8 @@
   "productionSigned": false,
   "storeReleased": false,
   "releaseChannel": "testnet-preview",
-  "sourceCommit": "22653153c62529f782f44b0a35177b531ae7e8af",
-  "statusLabel": "Local testnet candidate; central integration and public deployment are not verified",
+  "sourceCommit": "c45a26ce226bfb85f779437462c087bfac29f62c",
+  "statusLabel": "Central contract integrated in current source; current-source public deployment and downloads are not verified",
   "features": [
     "Wallet-bound listener and creator sessions",
     "Discover, search, private library, favorites, queue and playback progress",
@@ -35,38 +35,13 @@
     "No fake listeners, play counts, royalties, income guarantees or production signatures are claimed."
   ],
   "platforms": {
-    "web": "implemented-and-tested-locally",
-    "android": "exact-sha-ci-built-not-physical-device-install-verified",
-    "ios": "exact-sha-ci-simulator-build-install-cold-start-and-restart-verified",
+    "web": "guest-and-wallet-source-implemented-local-smoke-passed-current-public-deployment-unverified",
+    "android": "current-source-debug-and-unsigned-release-built-not-installed",
+    "ios": "current-source-swift-parser-passed-simulator-build-awaits-ci",
     "macos": "not-yet-delivered",
     "windows": "not-yet-delivered"
   },
-  "screenshots": [
-    {
-      "path": "evidence/screenshots/web/desktop-light-1440x900.png",
-      "surface": "web",
-      "viewport": "1440x900",
-      "theme": "light"
-    },
-    {
-      "path": "evidence/screenshots/web/desktop-dark-1440x900.png",
-      "surface": "web",
-      "viewport": "1440x900",
-      "theme": "dark"
-    },
-    {
-      "path": "evidence/screenshots/web/mobile-light-390x844.png",
-      "surface": "web",
-      "viewport": "390x844",
-      "theme": "light"
-    },
-    {
-      "path": "evidence/screenshots/android/arabic-rtl-1080x2400.png",
-      "surface": "android",
-      "viewport": "1080x2400",
-      "theme": "rtl"
-    }
-  ],
+  "screenshots": [],
   "downloads": [],
   "urls": {
     "runtime": null,
@@ -90,7 +65,7 @@
     },
     {
       "question": "Are Android and iOS downloads available?",
-      "answer": "Not yet. Exact-source Android and iOS Simulator CI builds pass, but artifacts are not immutably hosted, Android has no physical-device installation evidence, and neither platform is production-signed."
+      "answer": "Not yet. Current-source Android debug and unsigned release builds pass locally, while the current iOS Simulator build awaits Xcode CI. No artifact is immutably hosted or production-signed, and no current-source physical-device installation is claimed."
     },
     {
       "question": "Is YNX Music deployed publicly?",
@@ -102,7 +77,7 @@
     "applicationCategory": "MultimediaApplication",
     "operatingSystem": "Web, Android, iOS",
     "isAccessibleForFree": true,
-    "softwareVersion": "0.3.0-testnet",
+    "softwareVersion": "0.4.0-testnet-candidate",
     "offers": null,
     "aggregateRating": null
   },
