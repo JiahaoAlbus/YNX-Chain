@@ -5,13 +5,15 @@ release_dir="${1:?missing extracted release directory}"
 source_commit="${2:?missing full source commit}"
 release="${3:?missing release name}"
 build_time="${4:?missing canonical build time}"
-registry_sha="${5:?missing registry digest}"
+registry_file_sha="${5:?missing registry file digest}"
+registry_runtime_sha="${6:?missing registry runtime digest}"
 
 [[ "$(id -u)" == "0" ]] || { echo "Wallet Gateway installer must run as root" >&2; exit 1; }
 [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]] || { echo "source commit must be a full lowercase Git SHA" >&2; exit 1; }
 [[ "$release" == "ynx-wallet-gateway-${source_commit:0:12}" ]] || { echo "release does not match source commit" >&2; exit 1; }
 [[ "$build_time" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$ ]] || { echo "build time must be canonical UTC" >&2; exit 1; }
-[[ "$registry_sha" =~ ^[0-9a-f]{64}$ ]] || { echo "registry digest is invalid" >&2; exit 1; }
+[[ "$registry_file_sha" =~ ^[0-9a-f]{64}$ ]] || { echo "registry file digest is invalid" >&2; exit 1; }
+[[ "$registry_runtime_sha" =~ ^[0-9a-f]{64}$ ]] || { echo "registry runtime digest is invalid" >&2; exit 1; }
 [[ -d "$release_dir" && ! -L "$release_dir" ]] || { echo "release directory is missing or unsafe" >&2; exit 1; }
 command -v curl >/dev/null
 command -v node >/dev/null
@@ -23,7 +25,7 @@ id -u ynx >/dev/null
   cd "$release_dir"
   sha256sum -c SHA256SUMS
 )
-printf '%s  %s\n' "$registry_sha" "$release_dir/wallet-auth/central-registry.json" | sha256sum -c -
+printf '%s  %s\n' "$registry_file_sha" "$release_dir/wallet-auth/central-registry.json" | sha256sum -c -
 
 unit=/etc/systemd/system/ynx-wallet-gatewayd.service
 env_file=/etc/ynx/ynx-wallet-gatewayd.env
@@ -60,7 +62,7 @@ trap cleanup_preflight EXIT
 preflight_ok=0
 for attempt in $(seq 1 20); do
   if version_json="$(curl -fsS --max-time 3 http://127.0.0.1:17439/version)" && \
-    VERSION_JSON="$version_json" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" EXPECTED_REGISTRY="$registry_sha" node <<'NODE'
+    VERSION_JSON="$version_json" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" EXPECTED_REGISTRY="$registry_runtime_sha" node <<'NODE'
 const value=JSON.parse(process.env.VERSION_JSON);
 if(!value.ok||value.service!=="ynx-wallet-gatewayd"||value.build?.sourceCommit!==process.env.EXPECTED_COMMIT||value.build?.release!==process.env.EXPECTED_RELEASE||value.registrySha256!==process.env.EXPECTED_REGISTRY||!value.enabledProductClientIds?.includes("ynx-bridge-web-v1")||!value.enabledProductClientIds?.includes("ynx-creator-studio-web-v1"))process.exit(1);
 NODE
@@ -121,7 +123,7 @@ for attempt in $(seq 1 30); do
   if health_json="$(curl -fsS --max-time 3 http://127.0.0.1:6439/health)" && \
     version_json="$(curl -fsS --max-time 3 http://127.0.0.1:6439/version)" && \
     app_health_json="$(curl -fsS --max-time 3 http://127.0.0.1:6437/health)" && \
-    HEALTH_JSON="$health_json" VERSION_JSON="$version_json" APP_HEALTH_JSON="$app_health_json" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" EXPECTED_REGISTRY="$registry_sha" node <<'NODE'
+    HEALTH_JSON="$health_json" VERSION_JSON="$version_json" APP_HEALTH_JSON="$app_health_json" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" EXPECTED_REGISTRY="$registry_runtime_sha" node <<'NODE'
 const health=JSON.parse(process.env.HEALTH_JSON),version=JSON.parse(process.env.VERSION_JSON),app=JSON.parse(process.env.APP_HEALTH_JSON);
 if(!health.ok||health.truthfulStatus!=="remote-canonical-wallet-gateway")process.exit(1);
 if(!version.ok||version.build?.sourceCommit!==process.env.EXPECTED_COMMIT||version.build?.release!==process.env.EXPECTED_RELEASE||version.registrySha256!==process.env.EXPECTED_REGISTRY||!version.enabledProductClientIds?.includes("ynx-bridge-web-v1")||!version.enabledProductClientIds?.includes("ynx-creator-studio-web-v1"))process.exit(1);
@@ -136,4 +138,4 @@ done
 [[ "$runtime_ok" == "1" ]] || { echo "Wallet Gateway did not pass bounded runtime verification" >&2; exit 1; }
 rollback_required=0
 trap - EXIT
-printf 'walletGatewayDeploy=passed\nrelease=%s\nsourceCommit=%s\nregistrySha256=%s\nbackup=%s\n' "$release" "$source_commit" "$registry_sha" "$backup_dir"
+printf 'walletGatewayDeploy=passed\nrelease=%s\nsourceCommit=%s\nregistryFileSha256=%s\nregistryRuntimeSha256=%s\nbackup=%s\n' "$release" "$source_commit" "$registry_file_sha" "$registry_runtime_sha" "$backup_dir"
