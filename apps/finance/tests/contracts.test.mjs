@@ -30,6 +30,11 @@ test('wallet, real-source, export and AI review paths are wired',()=>{
   assert.ok(js.includes("Delete draft data"));
   assert.ok(js.includes("window.confirm"));
 });
+test('web wallet chooser offers the official Wallet release and bounded MetaMask compatibility',()=>{
+  for(const marker of ['Download YNX Wallet','Connect MetaMask','Wallet version details','id="connect-metamask"']) assert.ok(html.includes(marker),marker);
+  for(const marker of ['ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk','0x1917','wallet_switchEthereumChain','wallet_addEthereumChain','eth_chainId','eth_requestAccounts']) assert.ok(webWallet.includes(marker),marker);
+  assert.ok(webWallet.includes('only for EVM compatibility'));
+});
 test('responsive and accessibility contracts exist',()=>{
   assert.ok(html.includes('class="skip"'));
   assert.ok(html.includes('aria-live="polite"'));
