@@ -17,6 +17,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 const maxBodyBytes = 64 << 10
@@ -30,6 +32,7 @@ type ServerConfig struct {
 	WalletGatewayClient *http.Client
 	LogWriter           io.Writer
 	Now                 func() time.Time
+	Build               buildinfo.Info
 }
 
 type Server struct {
@@ -43,6 +46,7 @@ type Server struct {
 	metrics   *financeMetrics
 	logger    *log.Logger
 	now       func() time.Time
+	build     buildinfo.Info
 }
 
 func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server, error) {
@@ -69,7 +73,7 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	if now == nil {
 		now = time.Now
 	}
-	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}, cursorKey: []byte(cfg.CursorSigningKey), logger: newJSONLogger(cfg.LogWriter), now: now}
+	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}, cursorKey: []byte(cfg.CursorSigningKey), logger: newJSONLogger(cfg.LogWriter), now: now, build: buildinfo.Normalize(cfg.Build)}
 	s.metrics = newFinanceMetrics(s.now())
 	s.routes()
 	return s, nil
@@ -79,6 +83,7 @@ func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.mux
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /metrics", s.metricsEndpoint)
 	s.mux.HandleFunc("POST /api/auth/logout", s.protected("", s.logout))
 	s.mux.HandleFunc("GET /api/overview", s.protected("finance.portfolio.read", s.overview))
@@ -194,7 +199,11 @@ func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, sessio
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "truthfulStatus": "runtime-upstream-backed"})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "build": s.build, "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "truthfulStatus": "runtime-upstream-backed"})
+}
+
+func (s *Server) version(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.build)
 }
 
 type handler func(http.ResponseWriter, *http.Request, Session)
@@ -261,15 +270,17 @@ func (s *Server) portfolio(w http.ResponseWriter, r *http.Request, session Sessi
 func (s *Server) sources(w http.ResponseWriter, r *http.Request, session Session) {
 	sources := s.service.Upstreams.ReadSourcesForAccount(r.Context(), session.Account, s.now().UTC())
 	s.observeReadSources(sources)
-	integrationState := "exchange-and-quant-accepted-unavailable-other-owner-contracts-pending"
-	exchangeLive, quantLive := sources["exchange"].Status.Available, sources["quant"].Status.Available
-	if exchangeLive && quantLive {
-		integrationState = "exchange-and-quant-live-other-owner-contracts-pending"
-	} else if exchangeLive {
-		integrationState = "exchange-live-quant-unavailable-other-owner-contracts-pending"
-	} else if quantLive {
-		integrationState = "quant-live-exchange-unavailable-other-owner-contracts-pending"
+	live := make([]string, 0, 3)
+	for _, id := range []string{"exchange", "dex", "quant"} {
+		if sources[id].Status.Available {
+			live = append(live, id)
+		}
 	}
+	liveState := "none"
+	if len(live) > 0 {
+		liveState = strings.Join(live, ",")
+	}
+	integrationState := "accepted=exchange,dex,quant;live=" + liveState + ";pending=economics"
 	writeJSON(w, http.StatusOK, map[string]any{
 		"consumerEnvelopeVersion": ReadSourceEnvelopeVersion,
 		"readOnly":                true,

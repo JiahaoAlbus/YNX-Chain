@@ -72,3 +72,12 @@ test('Web companion escapes Quant strategy and venue labels',()=>{
   assert.match(target.innerHTML,/&lt;img/);
   assert.match(target.innerHTML,/&lt;svg/);
 });
+
+test('Web companion renders account-bound DEX LP, swap and pool evidence in raw asset units',()=>{
+  const {target}=run({dex:{id:'dex',name:'YNX DEX',owner:'27-dex',ownerContractAccepted:true,status:{available:true,syncStatus:'authoritative-indexed-chain-native-dex-state'},action:{configured:true,url:'https://dex.ynx.example',label:'Open DEX'},envelope:{asOf:'2026-08-11T09:00:00Z',coverage:'Authorized indexed DEX evidence',payload:{productVersion:'ynx-dex-test',positions:[{pool:'dex_ynxt_yusdt',netLpAmount:'2136',addedToken0:'50',addedToken1:'100000'}],swaps:[{pool:'dex_ynxt_yusdt',token0:'YNXT',token1:'ynx-usd-test',amount0:'-4',amount1:'10000',fee0:'0',fee1:'30',blockNumber:956755}],liquidity:[{type:'liquidity-add'}],pools:[{address:'dex_ynxt_yusdt',token0:'YNXT',token1:'ynx-usd-test',reserve0:'46',reserve1:'103170',feeBps:30}]}}}});
+  assert.match(target.innerHTML,/Live DEX account evidence/);
+  assert.match(target.innerHTML,/2136 LP/);
+  assert.match(target.innerHTML,/10000 ynx-usd-test/);
+  assert.match(target.innerHTML,/reserves 46 \/ 103170/);
+  assert.match(target.innerHTML,/no APY inferred/i);
+});

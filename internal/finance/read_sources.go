@@ -31,6 +31,8 @@ type ReadSourceActionConfig struct {
 type ReadSourceIntegrationConfig struct {
 	ExchangeURL string
 	ExchangeKey string
+	DEXURL      string
+	DEXKey      string
 	QuantURL    string
 	QuantKey    string
 }
@@ -153,11 +155,25 @@ var acceptedReadSourceContracts = map[string]AcceptedReadSourceContract{
 			"quant.lifecycle.read",
 		},
 	},
+	"dex": {
+		Accepted:             true,
+		SourceID:             "dex",
+		Owner:                "27-dex",
+		OwnerContractVersion: "dex-finance-read-v1",
+		PayloadSchema:        "ynx-dex-finance-account-v1",
+		AllowedCapabilities: []string{
+			"dex.positions.read",
+			"dex.swaps.read",
+			"dex.liquidity.read",
+			"dex.fees.read",
+		},
+	},
 }
 
 func (u *Upstreams) ConfigureReadSourceIntegrations(config ReadSourceIntegrationConfig) error {
 	candidates := []struct{ id, label, endpoint, key string }{
 		{id: "exchange", label: "Exchange", endpoint: config.ExchangeURL, key: config.ExchangeKey},
+		{id: "dex", label: "DEX", endpoint: config.DEXURL, key: config.DEXKey},
 		{id: "quant", label: "Quant", endpoint: config.QuantURL, key: config.QuantKey},
 	}
 	integrations := map[string]readSourceIntegration{}

@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 )
 
 type storePayload struct {
@@ -163,7 +165,7 @@ func (store *Store) Positions(account string) []Position {
 	type totals struct{ lp, add0, add1, remove0, remove1 *big.Int }
 	byPool := map[string]*totals{}
 	for _, event := range store.state.Events {
-		if event.Account != account || (event.Type != "liquidity-add" && event.Type != "liquidity-remove") {
+		if !sameDEXAccount(event.Account, account) || (event.Type != "liquidity-add" && event.Type != "liquidity-remove") {
 			continue
 		}
 		item := byPool[event.Pool]
@@ -190,6 +192,15 @@ func (store *Store) Positions(account string) []Position {
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].Pool < result[j].Pool })
 	return result
+}
+
+func sameDEXAccount(left, right string) bool {
+	leftNormalized, leftErr := accountaddress.Normalize(left)
+	rightNormalized, rightErr := accountaddress.Normalize(right)
+	if leftErr == nil && rightErr == nil {
+		return leftNormalized == rightNormalized
+	}
+	return left == right
 }
 
 func (store *Store) Analytics() Analytics {

@@ -56,6 +56,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if err := server.ConfigureFinanceRead(os.Getenv("YNX_DEX_FINANCE_READ_KEY")); err != nil {
+		log.Fatalf("configure Finance read integration: %v", err)
+	}
 	server.SetRuntimeBoundary(factory != "" || nativeREST != "", nativeREST != "")
 	if factory != "" {
 		startBlock, err := envUint("DEX_INDEXER_START_BLOCK", 0)

@@ -24,7 +24,7 @@ func TestReadSourcesStayPendingWithoutOwnerContracts(t *testing.T) {
 		if !ok {
 			t.Fatalf("read-source %s is missing", id)
 		}
-		wantAccepted := id == "exchange" || id == "quant"
+		wantAccepted := id == "exchange" || id == "dex" || id == "quant"
 		wantStatus := "owner-contract-pending"
 		if wantAccepted {
 			wantStatus = "integration-unconfigured"
@@ -121,6 +121,32 @@ func TestQuantReadSourceLoadsBoundStrategyAndExecutionEvidence(t *testing.T) {
 	}
 }
 
+func TestDEXReadSourceLoadsBoundPoolAndSwapEvidence(t *testing.T) {
+	now := time.Date(2026, 8, 11, 9, 37, 0, 0, time.UTC)
+	secret := strings.Repeat("d", 32)
+	verifier, err := readintegration.NewVerifier(secret, "finance", "dex", func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		account, verifyErr := verifier.Verify(r, "/v1/integrations/finance/account")
+		if verifyErr != nil {
+			http.Error(w, verifyErr.Error(), http.StatusUnauthorized)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(ReadSourceEnvelope{EnvelopeVersion: ReadSourceEnvelopeVersion, SourceID: "dex", Owner: "27-dex", Network: ChainID, NativeAsset: "YNXT", AuthorizedAccount: account, OwnerContractVersion: "dex-finance-read-v1", PayloadSchema: "ynx-dex-finance-account-v1", AsOf: now, AsOfKind: "dex-indexer-state-observed-at", Coverage: "authorized indexed DEX account evidence", SyncStatus: "authoritative-indexed-chain-native-dex-state", ReadOnly: true, Capabilities: append([]string(nil), acceptedReadSourceContracts["dex"].AllowedCapabilities...), Payload: json.RawMessage(`{"positions":[{"pool":"dex_ynxt_yusdt","netLpAmount":"2136"}],"swaps":[{"transactionHash":"0xabc"}],"liquidity":[],"pools":[]}`)})
+	}))
+	defer owner.Close()
+	upstreams := &Upstreams{client: owner.Client()}
+	if err := upstreams.ConfigureReadSourceIntegrations(ReadSourceIntegrationConfig{DEXURL: owner.URL, DEXKey: secret}); err != nil {
+		t.Fatal(err)
+	}
+	dex := upstreams.ReadSourcesForAccount(context.Background(), testAccount, now)["dex"]
+	if !dex.OwnerContractAccepted || !dex.Status.Available || dex.Envelope == nil || !strings.Contains(string(dex.Envelope.Payload), `"netLpAmount":"2136"`) {
+		t.Fatalf("DEX evidence was not accepted: %+v", dex)
+	}
+}
+
 func TestExchangeReadSourceConfigurationFailsClosed(t *testing.T) {
 	upstreams := &Upstreams{}
 	for _, config := range []ReadSourceIntegrationConfig{
@@ -132,6 +158,10 @@ func TestExchangeReadSourceConfigurationFailsClosed(t *testing.T) {
 		{QuantKey: strings.Repeat("q", 32)},
 		{QuantURL: "not-a-url", QuantKey: strings.Repeat("q", 32)},
 		{QuantURL: "https://quant.example", QuantKey: "short"},
+		{DEXURL: "https://dex.example"},
+		{DEXKey: strings.Repeat("d", 32)},
+		{DEXURL: "not-a-url", DEXKey: strings.Repeat("d", 32)},
+		{DEXURL: "https://dex.example", DEXKey: "short"},
 	} {
 		if err := upstreams.ConfigureReadSourceIntegrations(config); err == nil {
 			t.Fatalf("invalid integration config accepted: %+v", config)

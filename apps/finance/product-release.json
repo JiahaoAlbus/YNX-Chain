@@ -35,14 +35,17 @@
     "branch": "codex/integrate-finance-suite",
     "implementedLocal": true,
     "testedLocal": true,
-    "webTests": "12/12 passed",
+    "webTests": "13/13 passed",
     "mobileTests": "6/6 passed; iOS and Android Hermes exports passed",
     "goRace": "read integration, Exchange, Finance and both server commands passed",
     "exchangeOwnerContract": "exchange-finance-read-v1",
     "exchangePayloadSchema": "ynx-exchange-finance-account-v1",
+    "dexOwnerContract": "dex-finance-read-v1",
+    "dexPayloadSchema": "ynx-dex-finance-account-v1",
     "quantOwnerContract": "quant-finance-read-v1",
     "quantPayloadSchema": "ynx-quant-finance-account-v1",
     "quantReadConfiguredPublic": false,
+    "dexReadConfiguredPublic": false,
     "exchangeReadConfiguredPublic": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -118,10 +121,10 @@
     "endpoint": "/api/sources",
     "envelopeVersion": "finance-source-read-envelope-v1",
     "schema": "release/integration/finance-source-read-envelope.schema.json",
-    "contractStatus": "exchange-and-quant-owner-contracts-accepted-locally; DEX and Economics owners pending",
+    "contractStatus": "exchange-dex-and-quant-owner-contracts-accepted-locally; Economics owner pending",
     "ownerContractsAccepted": {
       "exchange": true,
-      "dex": false,
+      "dex": true,
       "quant": true,
       "economics": false
     },
@@ -144,7 +147,7 @@
     "grantsOwnerCapability": false,
     "ownerDataContractsAccepted": {
       "exchange": true,
-      "dex": false,
+      "dex": true,
       "quant": true,
       "economics": false
     }

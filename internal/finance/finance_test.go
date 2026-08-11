@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 const testAccount = "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
@@ -134,12 +136,23 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	if _, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: "too-short", OperationsKey: testOperationsKey}); err == nil || !strings.Contains(err.Error(), "cursor signing key") {
 		t.Fatalf("short cursor key was not rejected: %v", err)
 	}
-	server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey, WebDir: filepath.Join("..", "..", "apps", "finance", "web")})
+	server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey, WebDir: filepath.Join("..", "..", "apps", "finance", "web"), Build: buildinfo.Info{Commit: strings.Repeat("a", 40), Release: "ynx-finance-test", BuildTime: "2026-08-11T09:00:00.000Z"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ts := httptest.NewServer(server.Handler())
 	defer ts.Close()
+	for _, path := range []string{"/health", "/version"} {
+		response, err := http.Get(ts.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(response.Body)
+		response.Body.Close()
+		if response.StatusCode != http.StatusOK || !strings.Contains(string(body), "ynx-finance-test") || !strings.Contains(string(body), strings.Repeat("a", 40)) {
+			t.Fatalf("Finance release identity missing from %s: %d %s", path, response.StatusCode, body)
+		}
+	}
 
 	assetResponse, err := http.Get(ts.URL + "/read-sources.js")
 	if err != nil {
@@ -173,7 +186,7 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 		source := readSources[id].(map[string]any)
 		status := source["status"].(map[string]any)
 		action := source["action"].(map[string]any)
-		wantAccepted := id == "exchange" || id == "quant"
+		wantAccepted := id == "exchange" || id == "dex" || id == "quant"
 		wantStatus := "owner-contract-pending"
 		if wantAccepted {
 			wantStatus = "integration-unconfigured"
@@ -184,7 +197,7 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	}
 	var sourceRegistry map[string]any
 	requestJSON(t, ts.URL+"/api/sources", http.MethodGet, nil, session.Token, "", 200, &sourceRegistry)
-	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "exchange-and-quant-accepted-unavailable-other-owner-contracts-pending" {
+	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "accepted=exchange,dex,quant;live=none;pending=economics" {
 		t.Fatalf("source registry endpoint is not truthful: %#v", sourceRegistry)
 	}
 	var category Category

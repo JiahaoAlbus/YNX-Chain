@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "dex-finance-read-v1",
+  "payloadSchema": "ynx-dex-finance-account-v1",
+  "envelopeVersion": "finance-source-read-envelope-v1",
+  "sourceId": "dex",
+  "owner": "27-dex",
+  "consumer": "24-finance",
+  "network": "ynx_6423-1",
+  "nativeAsset": "YNXT",
+  "route": {
+    "method": "GET",
+    "path": "/v1/integrations/finance/account",
+    "queryAllowed": false,
+    "maximumResponseBytes": 2097152
+  },
+  "authentication": {
+    "scheme": "YNX_READ_INTEGRATION_V1",
+    "algorithm": "HMAC-SHA-256",
+    "secretMinimumCharacters": 32,
+    "secretEnvironments": {
+      "dex": "YNX_DEX_FINANCE_READ_KEY",
+      "finance": "YNX_FINANCE_DEX_READ_KEY"
+    },
+    "canonicalBindings": ["consumer", "owner", "method", "escapedPath", "authorizedAccount", "RFC3339Nano timestamp", "128-bit random nonce"],
+    "maximumClockSkewSeconds": 30,
+    "nonceSingleUse": true,
+    "walletProductSessionForwarded": false
+  },
+  "capabilities": ["dex.positions.read", "dex.swaps.read", "dex.liquidity.read", "dex.fees.read"],
+  "payload": {
+    "included": [
+      "authorized account indexed LP positions",
+      "authorized account swaps with raw amounts and fees",
+      "authorized account add/remove liquidity actions",
+      "current state of only the pools referenced by that account",
+      "transaction, block and timestamp evidence",
+      "DEX release identity and authoritative source label"
+    ],
+    "excluded": [
+      "Wallet keys or signatures",
+      "Product Session proofs or session material",
+      "integration secret",
+      "other accounts' actions or positions",
+      "unrealized PnL, APY, fiat value or impermanent-loss estimates",
+      "swap, vault, withdrawal, approval or emergency-exit authority"
+    ]
+  },
+  "provenance": {
+    "asOfKind": "dex-indexer-state-observed-at",
+    "syncStatus": "authoritative-indexed-chain-native-dex-state",
+    "coverage": "authorized indexed LP positions, swaps, liquidity actions, raw fees and referenced pool state"
+  },
+  "capacity": {
+    "maximumConcurrentOwnerReadsPerProcess": 64,
+    "overflowBehavior": "HTTP 503 fail closed"
+  },
+  "runtimeState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "financeAccepted": true,
+    "configuredStaging": false,
+    "deployedPublic": false,
+    "sharedTestnetEvidence": false
+  }
+}

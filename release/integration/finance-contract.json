@@ -60,6 +60,8 @@
       "YNX_FINANCE_ECONOMICS_ACTION_URL",
       "YNX_FINANCE_EXCHANGE_READ_URL",
       "YNX_FINANCE_EXCHANGE_READ_KEY",
+      "YNX_FINANCE_DEX_READ_URL",
+      "YNX_FINANCE_DEX_READ_KEY",
       "YNX_FINANCE_QUANT_READ_URL",
       "YNX_FINANCE_QUANT_READ_KEY"
     ],
@@ -168,7 +170,7 @@
     "endpoint": "/api/sources",
     "envelopeVersion": "finance-source-read-envelope-v1",
     "schema": "release/integration/finance-source-read-envelope.schema.json",
-    "contractStatus": "exchange-and-quant-owner-contracts-accepted-locally; DEX and Economics owners pending",
+    "contractStatus": "exchange, DEX and quant owner contracts accepted locally; Economics owner pending",
     "integratedCentral": false,
     "readOnly": true,
     "maximumEnvelopeBytes": 2097152,
@@ -207,6 +209,26 @@
         "testedLocal": true,
         "configuredPublic": false,
         "deployedPublic": false
+      },
+      "dex": {
+        "contract": "release/integration/dex-finance-read-contract.json",
+        "ownerContractVersion": "dex-finance-read-v1",
+        "payloadSchema": "ynx-dex-finance-account-v1",
+        "authentication": "account-bound, timestamped, nonce-single-use HMAC-SHA-256",
+        "implementedLocal": true,
+        "testedLocal": true,
+        "configuredPublic": false,
+        "deployedPublic": false
+      },
+      "quant": {
+        "contract": "release/integration/quant-finance-read-contract.json",
+        "ownerContractVersion": "quant-finance-read-v1",
+        "payloadSchema": "ynx-quant-finance-account-v1",
+        "authentication": "account-bound, timestamped, nonce-single-use HMAC-SHA-256",
+        "implementedLocal": true,
+        "testedLocal": true,
+        "configuredPublic": false,
+        "deployedPublic": false
       }
     }
   },
@@ -222,15 +244,15 @@
       "sourceId": "dex",
       "owner": "27-dex",
       "capability": "owned vault, pool, LP, swap, fees, impermanent loss and redemption evidence",
-      "ownerContractAccepted": false,
-      "status": "owner-contract-pending"
+      "ownerContractAccepted": true,
+      "status": "accepted-local-runtime-unconfigured"
     },
     {
       "sourceId": "quant",
       "owner": "08-quant-lab",
       "capability": "strategy, mandate, capital, venue, PnL, drawdown, fees, risk and exit evidence",
-      "ownerContractAccepted": false,
-      "status": "owner-contract-pending"
+      "ownerContractAccepted": true,
+      "status": "accepted-local-runtime-unconfigured"
     },
     {
       "sourceId": "economics",

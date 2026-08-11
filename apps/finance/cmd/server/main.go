@@ -7,8 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/finance"
 )
+
+var buildCommit = "unknown"
+var buildRelease = "local"
+var buildTime = "unknown"
 
 func main() {
 	store, err := finance.OpenStore(required("YNX_FINANCE_STATE_PATH"))
@@ -30,6 +35,8 @@ func main() {
 	if err := upstreams.ConfigureReadSourceIntegrations(finance.ReadSourceIntegrationConfig{
 		ExchangeURL: os.Getenv("YNX_FINANCE_EXCHANGE_READ_URL"),
 		ExchangeKey: os.Getenv("YNX_FINANCE_EXCHANGE_READ_KEY"),
+		DEXURL:      os.Getenv("YNX_FINANCE_DEX_READ_URL"),
+		DEXKey:      os.Getenv("YNX_FINANCE_DEX_READ_KEY"),
 		QuantURL:    os.Getenv("YNX_FINANCE_QUANT_READ_URL"),
 		QuantKey:    os.Getenv("YNX_FINANCE_QUANT_READ_KEY"),
 	}); err != nil {
@@ -44,7 +51,7 @@ func main() {
 	if webDir == "" {
 		webDir = "apps/finance/web"
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{AllowedOrigins: split(os.Getenv("YNX_FINANCE_ALLOWED_ORIGINS")), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: required("YNX_FINANCE_WALLET_GATEWAY_URL"), LogWriter: os.Stdout})
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{AllowedOrigins: split(os.Getenv("YNX_FINANCE_ALLOWED_ORIGINS")), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: required("YNX_FINANCE_WALLET_GATEWAY_URL"), LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
 	if err != nil {
 		log.Fatal(err)
 	}

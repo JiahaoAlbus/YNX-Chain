@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 )
 
 type SessionAuthorizer interface {
@@ -105,6 +106,8 @@ type Server struct {
 	tokenProvider TokenProvider
 	sourceReady   bool
 	actionReady   bool
+	financeRead   *readintegration.Verifier
+	financeSlots  chan struct{}
 }
 
 type TokenProvider interface{ Tokens() []Token }
@@ -149,7 +152,21 @@ func NewServerWithSource(store *Store, info buildinfo.Info, ingestionKey string,
 	sort.Slice(validated, func(i, j int) bool {
 		return strings.ToLower(validated[i].Address) < strings.ToLower(validated[j].Address)
 	})
-	return &Server{store: store, build: buildinfo.Normalize(info), ingestionKey: ingestionKey, authorizer: authorizer, tokens: validated, source: source}, nil
+	return &Server{store: store, build: buildinfo.Normalize(info), ingestionKey: ingestionKey, authorizer: authorizer, tokens: validated, source: source, financeSlots: make(chan struct{}, 64)}, nil
+}
+
+func (server *Server) ConfigureFinanceRead(secret string) error {
+	secret = strings.TrimSpace(secret)
+	if secret == "" {
+		server.financeRead = nil
+		return nil
+	}
+	verifier, err := readintegration.NewVerifier(secret, "finance", "dex", time.Now)
+	if err != nil {
+		return err
+	}
+	server.financeRead = verifier
+	return nil
 }
 
 func (server *Server) Handler() http.Handler {
@@ -167,6 +184,7 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/fees", server.fees)
 	mux.HandleFunc("GET /v1/candles", server.candles)
 	mux.HandleFunc("GET /v1/account/positions", server.positions)
+	mux.HandleFunc("GET "+FinanceReadRoute, server.financeAccount)
 	mux.HandleFunc("POST /internal/v1/events", server.ingest)
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		response.Header().Set("Content-Type", "application/json")
