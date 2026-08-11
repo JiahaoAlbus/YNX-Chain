@@ -7,7 +7,7 @@
 - Chain: YNX Testnet EVM chain `6423` (`0x1917`); `mainnet=false`
 - Protocol: clean-room immutable constant-product pools, 30 bps pool fee, bounded four-hop router
 - Custody: none. The Web app prepares requests; canonical YNX Wallet must authorize and sign.
-- Public boundary: Web/PWA, read API and same-origin canonical Wallet Gateway are deployed at `https://dex.ynxweb4.com` from release `ynx-dex-bcc1b89ca0fc`.
+- Public boundary: Web/PWA, read API and same-origin canonical Wallet Gateway are deployed at `https://dex.ynxweb4.com` from release `ynx-dex-9b3ed30a6a21`.
 - Explicitly absent: verified DEX contracts, reviewed Testnet tokens, an indexed public pool, executable swaps/liquidity, hosted download, production signature, store release and independent audit.
 
 YNX Exchange remains the operator/custody/order-book product. Do not merge DEX balances, routes or transaction semantics into Exchange.
@@ -31,7 +31,7 @@ Candidate file: `apps/dex/wallet-client.json`.
 - scopes: `account:read`, `dex:positions:read`, `dex:transaction:request`
 - required device algorithm: `p256-sha256`
 
-The adapter binds the exact client, bundle, callback, chain, scopes, nonce, digest and expiry and rejects substitutions. Positions call central introspection and fail closed when it is missing. The client is enabled in the public canonical Gateway release `ynx-wallet-gateway-476cdcc6bf35`, and DEX exposes that Gateway only through the same-origin `/wallet-gateway/*` proxy.
+The adapter binds the exact client, bundle, callback, chain, scopes, nonce, digest and expiry and rejects substitutions. Positions call central introspection and fail closed when it is missing. The client is enabled in the public canonical Gateway release `ynx-wallet-gateway-476cdcc6bf35`, and DEX exposes that Gateway only through the same-origin `/wallet-gateway/*` proxy. A fresh public lifecycle completed a Product Session, loaded private positions, rejected proof replay, revoked the session and rejected access after revocation.
 
 Registry acceptance, replay, expiry, scope escalation, callback substitution, cross-product reuse and device-binding tests are complete. A browser can start the real Wallet deep link and the Gateway accepts this exact product tuple. Asset actions remain unavailable because no authoritative public market source or pool exists; enabling the client is not evidence of a swap.
 

@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "sourceBranch": "codex/ecosystem-dex",
-  "sourceCommit": "bcc1b89ca0fcd5f654b6c301bf1d090c6249c4d7",
+  "sourceCommit": "9b3ed30a6a21392ced2600af4217ade155283498",
   "artifactSourceCommit": "5b4eb9e1511577ce73291d97fdc0b9aa376b0383",
   "recoveredSourceCommit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
   "recoveryTipCommit": "1614ffb7fa4983a182405fe3fa118fa448f87b4b",
@@ -38,9 +38,9 @@
   "minOS": { "web": "modern browser with ES2022 and PWA support" },
   "installEvidence": ["docs/evidence/dex/public-web-api-wallet-2026-08-11.json"],
   "publicDeployment": {
-    "release": "ynx-dex-bcc1b89ca0fc",
-    "sourceCommit": "bcc1b89ca0fcd5f654b6c301bf1d090c6249c4d7",
-    "binarySha256": "41cc43fe7e205b2fbf8ff8ded12ba8050de88325f6638b151dbba384fd735dac",
+    "release": "ynx-dex-9b3ed30a6a21",
+    "sourceCommit": "9b3ed30a6a21392ced2600af4217ade155283498",
+    "binarySha256": "9a7941d1bfc2e768e5351e69e366967316e8dd2d910cea45ae9a2bc502ef289c",
     "webTreeSha256": "c0cc78d2e81e811ee57c29bffd19c03e9a5cd956d4f7579ca21018d01e5c10b0",
     "web": true,
     "indexerApi": true,
@@ -68,5 +68,5 @@
     "Staging, hosted download, production signing, store release, verified contracts and production liquidity are absent.",
     "Concentrated/stable/weighted pools, Strategy Vault controls, FairFlow solving and LP protection remain outside this candidate."
   ],
-  "generatedAt": "2026-08-11T10:34:36.000Z"
+  "generatedAt": "2026-08-11T10:41:12.000Z"
 }

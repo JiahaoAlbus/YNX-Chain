@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-dex",
-  "observedAt": "2026-08-11T10:34:36.000Z",
+  "observedAt": "2026-08-11T10:41:12.000Z",
   "environment": "public YNX Testnet",
   "baseUrl": "https://dex.ynxweb4.com",
   "deployment": {
-    "release": "ynx-dex-bcc1b89ca0fc",
-    "sourceCommit": "bcc1b89ca0fcd5f654b6c301bf1d090c6249c4d7",
-    "binarySha256": "41cc43fe7e205b2fbf8ff8ded12ba8050de88325f6638b151dbba384fd735dac",
+    "release": "ynx-dex-9b3ed30a6a21",
+    "sourceCommit": "9b3ed30a6a21392ced2600af4217ade155283498",
+    "binarySha256": "9a7941d1bfc2e768e5351e69e366967316e8dd2d910cea45ae9a2bc502ef289c",
     "webTreeSha256": "c0cc78d2e81e811ee57c29bffd19c03e9a5cd956d4f7579ca21018d01e5c10b0",
-    "rollbackBackup": "/var/backups/ynx-dex/20260811T102945Z-pre-bcc1b89ca0fc",
+    "rollbackBackup": "/var/backups/ynx-dex/20260811T104037Z-pre-9b3ed30a6a21",
     "staticAndProcessReleaseAligned": true,
     "servicesActive": ["ynx-dex-indexerd", "caddy", "ynx-wallet-gatewayd"],
     "warningJournalEntries": 0
@@ -28,6 +28,17 @@
     "productClientId": "ynx-dex-web-v1",
     "enabled": true,
     "truthfulStatus": "remote-canonical-wallet-gateway"
+  },
+  "walletSessionLifecycle": {
+    "verification": "public-dex-wallet-session-lifecycle",
+    "completionHttpStatus": 200,
+    "positionsHttpStatus": 200,
+    "positionCount": 0,
+    "proofReplayHttpStatus": 403,
+    "revokeHttpStatus": 200,
+    "postRevokeHttpStatus": 403,
+    "assetMoved": false,
+    "secretMaterialRecorded": false
   },
   "browser": {
     "engine": "headless Chromium",
@@ -65,5 +76,11 @@
     "publicStateChanged": false,
     "reason": "candidate Web tree digest originally included absolute paths and differed across hosts",
     "resolution": "digest now uses paths relative to the Web root; dry-run and remote verification passed before switch"
+  },
+  "gatewayContractRepair": {
+    "priorPublicSymptom": "Product Session completion succeeded but the DEX private positions route returned HTTP 403",
+    "rootCause": "the strict Go authorizer parsed the obsolete two-field envelope and rejected canonical schemaVersion and stateDigest fields",
+    "repair": "require the canonical schema version and 64-character lowercase state digest while preserving exact-field rejection",
+    "publicLifecyclePassed": true
   }
 }
