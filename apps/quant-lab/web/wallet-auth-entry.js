@@ -7,16 +7,18 @@ import {
 
 const CALLBACK = "https://quant.ynxweb4.com/wallet-auth/callback";
 const ACTION_CALLBACK = "https://quant.ynxweb4.com/wallet-action/callback";
-const INSTALL_URL = "https://ynxweb4.com/ecosystem?product=wallet";
+const INSTALL_URL = "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk";
+const EVM_CHAIN = Object.freeze({chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://rpc.ynxweb4.com/"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com/"])});
 const PRODUCT = Object.freeze({version:"1",chainId:"ynx_6423-1",requestingProduct:"quant",productClientId:"ynx-quant-v1",bundleId:"com.ynxweb4.quant",productDeviceAlgorithm:"p256-sha256",callback:CALLBACK,scopes:Object.freeze(["quant:account","quant:mandate:create","quant:mandate:execute","quant:mandate:revoke"])});
 const DB_NAME = "ynx-quant-wallet-v1", STORE = "auth";
-let current = null;
+let current = null, evmAccount = null;
 
 window.YNXQuantWallet = Object.freeze({requireProof,connect:beginAuthorization,approveMandate,approveOrder,takeActionResult});
 window.addEventListener("DOMContentLoaded",boot,{once:true});
 
 async function boot(){
   document.querySelector("#connect-wallet")?.addEventListener("click",()=>beginAuthorization().catch(showError));
+  document.querySelector("#connect-metamask")?.addEventListener("click",()=>connectMetaMask().catch(showError));
   document.querySelector("#install-wallet")?.setAttribute("href",INSTALL_URL);
   try{
     if(location.pathname===new URL(ACTION_CALLBACK).pathname&&new URL(location.href).searchParams.has("response"))await finishAction();
@@ -24,6 +26,13 @@ async function boot(){
     else await restore();
   }catch(error){await clearSession();showError(error)}
   render();
+}
+async function connectMetaMask(){
+  const provider=window.ethereum;if(!provider?.request)throw new Error("MetaMask was not detected. Download YNX Wallet or install MetaMask, then retry.");
+  try{await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:EVM_CHAIN.chainId}]})}catch(error){if(error?.code!==4902)throw error;await provider.request({method:"wallet_addEthereumChain",params:[EVM_CHAIN]});await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:EVM_CHAIN.chainId}]})}
+  if(await provider.request({method:"eth_chainId"})!==EVM_CHAIN.chainId)throw new Error("MetaMask did not switch to YNX Testnet (chain 6423).");
+  const accounts=await provider.request({method:"eth_requestAccounts"});if(!Array.isArray(accounts)||!/^0x[0-9a-fA-F]{40}$/.test(accounts[0]||""))throw new Error("MetaMask did not return a valid EVM account.");
+  evmAccount=accounts[0].toLowerCase();render();
 }
 async function beginAuthorization(){
   const savedDevice=await read("device"),device=savedDevice??createProductDeviceIdentity();await write("device",device);
@@ -71,7 +80,7 @@ async function finishAction(){
 }
 async function takeActionResult(){const result=await read("lastActionResult");if(result)await remove("lastActionResult");return result??null}
 function render(){
-  const status=document.querySelector("#wallet-status"),button=document.querySelector("#connect-wallet");if(status)status.textContent=current?`Connected ${short(current.session.account)}`:"Wallet not connected — Research and Paper are still available";if(button)button.textContent=current?"Reconnect Wallet":"Connect YNX Wallet";const account=document.querySelector("#mandate-account");if(current&&account&&!account.value)account.value=current.session.account;
+  const status=document.querySelector("#wallet-status"),button=document.querySelector("#connect-wallet"),metamask=document.querySelector("#connect-metamask");if(status)status.textContent=current?`YNX Wallet ${short(current.session.account)} connected`:evmAccount?`MetaMask ${short(evmAccount)} connected only for EVM compatibility; Quant execution still requires YNX Wallet.`:"No wallet connected — Research and Paper remain available";if(button)button.textContent=current?"Reconnect YNX Wallet":"Connect YNX Wallet";if(metamask)metamask.textContent=evmAccount?`MetaMask ${short(evmAccount)}`:"Connect MetaMask";const account=document.querySelector("#mandate-account");if(current&&account&&!account.value)account.value=current.session.account;
 }
 async function clearSession(){current=null;await remove("session")}
 function nonce(){return encodeBase64url(crypto.getRandomValues(new Uint8Array(24)))}
