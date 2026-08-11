@@ -36,7 +36,7 @@
     "productProofReplayStatus": 401
   },
   "nextCandidate": {
-    "sourceCommit": "18a199bcf5ddbc18ead01d84c97773877b65936d",
+    "sourceCommit": "257baf326bd90ec070bbec51bece26a7207f3f3e",
     "implementedLocal": true,
     "testedLocal": true,
     "deployedPublic": false,
@@ -47,7 +47,8 @@
       "Go race tests: Quant, Exchange and both server packages",
       "Wallet Auth 113/113",
       "Wallet application 40/40 plus Android and iOS bundles",
-      "Quant UI 4/4 and bundled browser protocol"
+      "Quant UI 4/4 and bundled browser protocol",
+      "Real in-process Quant→HTTP Exchange match: maker liquidity, Wallet-signed taker, venue status filled, persisted order ID/digest and revoked-mandate rejection"
     ],
     "publicDeploymentBlocker": "The current public runtime still serves the prior build; this candidate requires an authorized reachable deployment path and post-deploy browser/Wallet validation."
   },
