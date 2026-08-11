@@ -112,10 +112,14 @@ preflight_failure_cleanup() { cleanup_preflight; cleanup_candidates; }
 trap preflight_failure_cleanup EXIT
 preflight_ok=0
 for attempt in $(seq 1 20); do
-  if health="$(curl -fsS --max-time 3 http://127.0.0.1:17440/health)" && HEALTH="$health" node -e 'const h=JSON.parse(process.env.HEALTH);if(h.service!=="ynx-pay-product"||h.liveness!=="live"||h.network!=="ynx_6423-1"||h.asset!=="YNXT")process.exit(1)'; then preflight_ok=1; break; fi
+  if health="$(curl -fsS --max-time 3 http://127.0.0.1:17440/health 2>/dev/null)" && HEALTH="$health" node -e 'const h=JSON.parse(process.env.HEALTH);if(h.service!=="ynx-pay-product"||h.liveness!=="live"||h.network!=="ynx_6423-1"||h.asset!=="YNXT")process.exit(1)'; then preflight_ok=1; break; fi
   sleep 1
 done
-[[ "$preflight_ok" == "1" ]] || { echo "Pay Product candidate preflight failed" >&2; exit 1; }
+if [[ "$preflight_ok" != "1" ]]; then
+  echo "Pay Product candidate preflight failed; bounded candidate log follows" >&2
+  tail -40 "$preflight_dir/product.log" >&2 || true
+  exit 1
+fi
 set -a
 # shellcheck disable=SC1090
 . "$new_app_env"
