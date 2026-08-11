@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "sourceBranch": "codex/ecosystem-dex",
-  "sourceCommit": "01ade4fe07dc36d002098b345a4a305a8db3a36f",
+  "sourceCommit": "370d0df7b329ac6b75745c22cba0c167f1816832",
   "recoveredSourceCommit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
   "recoveryTipCommit": "1614ffb7fa4983a182405fe3fa118fa448f87b4b",
   "integrationBranch": "codex/integrate-finance-suite",
@@ -24,14 +24,14 @@
   "healthUrls": [],
   "artifactUrls": [],
   "sha256": {
-    "artifactManifest": "156d9b8d16d729b1f75a4ef175cb29e9d096d64d9275240a2c2c89e92068250d",
-    "webPwaBundle": "be5abb43cc2675f8bc12dc8c52e367951efa4985e2754e58e6bf8dfa980c3111",
-    "javascriptSdkPackage": "321f99e8aa226b958d61cb8b924118ca64b5ff9c7f86c75ba212dc36cda93d09"
+    "artifactManifest": "942acd65191349367d0e1be453dd3ba924ba9dd7cf131e2bab73c75e7fbfaf4e",
+    "webPwaBundle": "7d4ece87658aa21e8de95e03d15182d8b177ca04d11658d82f401454dd411abf",
+    "javascriptSdkPackage": "1b124c4cfb5291a7c5d5318fb95ac38afa9ae2ac4741d4085cba88f641a56798"
   },
   "bytes": {
     "artifactManifest": 3733,
-    "webPwaBundle": 457996,
-    "javascriptSdkPackage": 5510
+    "webPwaBundle": 476479,
+    "javascriptSdkPackage": 5693
   },
   "signingClass": "unsigned-local-build",
   "minOS": { "web": "modern browser with ES2022 and PWA support" },
@@ -44,11 +44,12 @@
     "gatewayIntrospection": "required-and-fail-closed"
   },
   "knownLimitations": [
-    "No YNX Testnet protocol deployment, verified bytecode, pools, swaps, or LP proofs exist yet.",
-    "The canonical Wallet tuple and device-bound proof path are accepted and tested locally, but this registry revision is not yet deployed to the public Gateway.",
+    "The chain-native CPMM consensus and Gateway paths plus Wallet-signed swap, add-liquidity and remove-liquidity flows are implemented and locally tested; a public end-to-end deployment is not yet accepted.",
+    "The EVM Factory, Router and Quoter remain build artifacts without a verified public Testnet deployment or funded reviewed pools.",
+    "The canonical Wallet tuple and device-bound proof path are accepted and tested locally, but this exact candidate is not yet verified against the public Gateway.",
     "No independent third-party smart-contract audit has been completed.",
     "Staging, public deployment, hosted download, production signing, and store release are absent.",
-    "The Web/PWA prepares deterministic swap and LP reviews, but transaction authorization remains unavailable until the accepted registry is public and verified Testnet contract addresses exist."
+    "Concentrated/stable/weighted pools, Strategy Vault controls, FairFlow solving and LP protection remain outside this candidate."
   ],
-  "generatedAt": "2026-08-10T00:00:00.000Z"
+  "generatedAt": "2026-08-11T09:43:18.000Z"
 }

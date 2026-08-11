@@ -3,7 +3,7 @@
   "productId": "ynx-dex",
   "artifactType": "web-pwa-upload-bundle",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "01ade4fe07dc36d002098b345a4a305a8db3a36f",
+  "sourceBaseCommit": "370d0df7b329ac6b75745c22cba0c167f1816832",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
@@ -14,8 +14,8 @@
   "productionSigned": false,
   "storeReleased": false,
   "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-  "sha256": "be5abb43cc2675f8bc12dc8c52e367951efa4985e2754e58e6bf8dfa980c3111",
-  "sizeBytes": 457996,
+  "sha256": "7d4ece87658aa21e8de95e03d15182d8b177ca04d11658d82f401454dd411abf",
+  "sizeBytes": 476479,
   "contentFileCount": 9,
   "content": [
     {
@@ -24,14 +24,14 @@
       "sizeBytes": 1079
     },
     {
-      "path": "assets/index-BCpmSRBt.js",
-      "sha256": "9aa632be429e5595c172e8df6b443d540f41d168a36fde2d7d3984cade63e877",
-      "sizeBytes": 305365
+      "path": "assets/index-By7IW-kW.js",
+      "sha256": "a227f19978cff8b9844c29197f3568da8d57102871dae3cfb10139561472a0da",
+      "sizeBytes": 324605
     },
     {
-      "path": "assets/index-BCpmSRBt.js.map",
-      "sha256": "99f8bebbe097e8b25c9124758aefca4a91bc17170a4640eebdc769153459e4d1",
-      "sizeBytes": 1435456
+      "path": "assets/index-By7IW-kW.js.map",
+      "sha256": "f90f38758611d2338aaf45e96d7cf16803970c9ab215ed87311ab5880c2baa2a",
+      "sizeBytes": 1491727
     },
     {
       "path": "assets/index-CfR1lRyV.css",
@@ -50,7 +50,7 @@
     },
     {
       "path": "index.html",
-      "sha256": "bb4b7cf083c1bb3ff530b9503d797497d1e1467270c61e6556e345204553ed6f",
+      "sha256": "789f1e6b5a319ba356355076884d8343dae2ed1ab324509977785fde2a0725ef",
       "sizeBytes": 931
     },
     {
@@ -66,6 +66,6 @@
   ],
   "verification": {
     "command": "shasum -a 256 release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-    "expectedSha256": "be5abb43cc2675f8bc12dc8c52e367951efa4985e2754e58e6bf8dfa980c3111"
+    "expectedSha256": "7d4ece87658aa21e8de95e03d15182d8b177ca04d11658d82f401454dd411abf"
   }
 }
