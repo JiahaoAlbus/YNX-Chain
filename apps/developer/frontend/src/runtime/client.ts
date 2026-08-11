@@ -44,6 +44,47 @@ type StreamEvent =
     }
   | { type: "result"; value: TaskResult }
   | { type: "error"; error: string; code: string };
+
+const READ_RETRY_DELAYS_MS = [0, 700, 1_800] as const;
+const RETRYABLE_READ_STATUSES = new Set([502, 503, 504]);
+
+function wait(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function readableConnectionError(error: unknown) {
+  if (error instanceof DOMException && error.name === "TimeoutError")
+    return new Error("YNX Code connection timed out. Check the network and retry.");
+  return new Error("YNX Code could not reach its workspace service. Your local edits are still available; retry the connection.", {
+    cause: error,
+  });
+}
+
+/**
+ * Retries only idempotent reads. Build, terminal, Git, extension, AI, Wallet,
+ * deploy and workspace writes deliberately continue to execute at most once.
+ */
+export async function boundedReadFetch(path: string, init: RequestInit = {}) {
+  const method = String(init.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD")
+    throw new Error("boundedReadFetch accepts read-only requests only.");
+  let lastError: unknown;
+  for (let attempt = 0; attempt < READ_RETRY_DELAYS_MS.length; attempt += 1) {
+    if (READ_RETRY_DELAYS_MS[attempt]) await wait(READ_RETRY_DELAYS_MS[attempt]);
+    try {
+      const timeout = AbortSignal.timeout(12_000),
+        signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
+        response = await fetch(path, { ...init, method, credentials: "same-origin", signal });
+      if (!RETRYABLE_READ_STATUSES.has(response.status) || attempt === READ_RETRY_DELAYS_MS.length - 1)
+        return response;
+    } catch (error) {
+      lastError = error;
+      if (init.signal?.aborted) throw error;
+      if (attempt === READ_RETRY_DELAYS_MS.length - 1) throw readableConnectionError(error);
+    }
+  }
+  throw readableConnectionError(lastError);
+}
 export async function runActive(projectId: string, activePath: string, files: Record<string, string>, onEvent?: (event: StreamEvent) => void): Promise<TaskResult> {
   const body = JSON.stringify({
     protocolVersion: "ynx-code/v1",
@@ -93,9 +134,7 @@ export async function runActive(projectId: string, activePath: string, files: Re
   throw new Error("Workspace session could not be established.");
 }
 export async function runtimeHealth() {
-  const response = await fetch("/runtime/health", {
-    credentials: "same-origin",
-  });
+  const response = await boundedReadFetch("/runtime/health");
   if (!response.ok) throw new Error("Workspace runtime unavailable");
   return response.json();
 }
@@ -127,14 +166,16 @@ export type RuntimeProfiles = {
 };
 async function profileFetch(path: string, options: RequestInit = {}) {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(path, {
-      credentials: "same-origin",
+    const init = {
       ...options,
       headers: {
         ...(options.body ? { "content-type": "application/json" } : {}),
         ...options.headers,
       },
-    });
+    };
+    const response = options.method && options.method !== "GET"
+      ? await fetch(path, { credentials: "same-origin", ...init })
+      : await boundedReadFetch(path, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -216,14 +257,16 @@ export type ChainStatus = {
 };
 async function chainFetch(path: string, options: RequestInit = {}) {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(`/runtime/chain${path}`, {
-      credentials: "same-origin",
+    const init = {
       ...options,
       headers: {
         ...(options.body ? { "content-type": "application/json" } : {}),
         ...options.headers,
       },
-    });
+    };
+    const response = options.method && options.method !== "GET"
+      ? await fetch(`/runtime/chain${path}`, { credentials: "same-origin", ...init })
+      : await boundedReadFetch(`/runtime/chain${path}`, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -279,7 +322,7 @@ export type WalletReadiness = {
 };
 export async function loadWalletReadiness(): Promise<WalletReadiness> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch("/runtime/wallet/readiness", { credentials: "same-origin" });
+    const response = await boundedReadFetch("/runtime/wallet/readiness");
     if (response.status === 401 && attempt === 0) { await runtimeHealth(); continue; }
     const value = await response.json().catch(() => ({ error: `Wallet readiness returned HTTP ${response.status}` }));
     if (!response.ok) throw new Error(value.error || "Wallet readiness is unavailable.");
@@ -322,7 +365,7 @@ export async function broadcastDeveloperDeployment(canonicalBody: string): Promi
 }
 export async function loadWorkspace(projectId: string): Promise<WorkspaceSnapshot | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(`/runtime/workspaces/${encodeURIComponent(projectId)}`, { credentials: "same-origin" });
+    const response = await boundedReadFetch(`/runtime/workspaces/${encodeURIComponent(projectId)}`);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -423,7 +466,10 @@ export async function gitDiff(projectId: string, path: string, scope: "working" 
 }
 async function gitFetch(projectId: string, init: RequestInit = {}, query?: URLSearchParams): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(`/runtime/git/${encodeURIComponent(projectId)}${query ? `?${query}` : ""}`, { credentials: "same-origin", ...init });
+    const path = `/runtime/git/${encodeURIComponent(projectId)}${query ? `?${query}` : ""}`,
+      response = init.method && init.method !== "GET"
+        ? await fetch(path, { credentials: "same-origin", ...init })
+        : await boundedReadFetch(path, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -487,7 +533,10 @@ export async function uninstallExtension(id: string): Promise<void> {
 }
 async function extensionFetch(init: RequestInit = {}, query?: URLSearchParams): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(`/runtime/extensions${query ? `?${query}` : ""}`, { credentials: "same-origin", ...init });
+    const path = `/runtime/extensions${query ? `?${query}` : ""}`,
+      response = init.method && init.method !== "GET"
+        ? await fetch(path, { credentials: "same-origin", ...init })
+        : await boundedReadFetch(path, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -545,7 +594,9 @@ export async function agentAction(runId: string, body: Record<string, unknown>):
 }
 async function agentFetch(path: string, init: RequestInit = {}): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(path, { credentials: "same-origin", ...init });
+    const response = init.method && init.method !== "GET"
+      ? await fetch(path, { credentials: "same-origin", ...init })
+      : await boundedReadFetch(path, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -614,7 +665,9 @@ export async function redeemCollaborationInvite(token: string): Promise<Collabor
 }
 async function collaborationFetch(path: string, init: RequestInit = {}): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch(path, { credentials: "same-origin", ...init });
+    const response = init.method && init.method !== "GET"
+      ? await fetch(path, { credentials: "same-origin", ...init })
+      : await boundedReadFetch(path, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;

@@ -154,14 +154,30 @@ input {
   padding-right: 12px;
   color: var(--muted);
 }
-.runtime-state span {
+.runtime-state > .status-dot {
   width: 7px;
   height: 7px;
+  flex: 0 0 auto;
   border-radius: 50%;
   background: #d92d20;
 }
-.runtime-state span.ready {
+.runtime-state > .status-dot.ready {
   background: #12a150;
+}
+.runtime-state button {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  padding: 3px 7px;
+}
+.runtime-state button:hover:not(:disabled) {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.runtime-state button:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 .activity {
   grid-row: 2;
@@ -543,10 +559,14 @@ html[data-theme="dark"] .tree-row.file.active {
     display: none;
   }
   .runtime-state {
-    font-size: 0;
+    gap: 4px;
   }
-  .runtime-state span {
-    display: block;
+  .runtime-state .runtime-label {
+    display: none;
+  }
+  .runtime-state button {
+    font-size: 10px;
+    padding: 2px 5px;
   }
   .main {
     grid-template-rows: 35px minmax(180px, 1fr) 180px 22px;

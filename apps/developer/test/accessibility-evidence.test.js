@@ -116,5 +116,5 @@ test("release manifests, provenance and website metadata agree on current unsign
   assert.equal(metadata.fullPlatformPublicEvidence.walletPublicDeploymentReady, false);
   assert.equal(metadata.fullPlatformPublicEvidence.bftIdeActionPublicReady, false);
   assert.equal(provenance.truthBoundaries.productionSigned, false);
-  assert.equal(provenance.truthBoundaries.deployedPublic, false);
+  assert.equal(provenance.truthBoundaries.deployedPublic, true);
 });

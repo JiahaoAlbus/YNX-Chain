@@ -6,7 +6,7 @@ import { DebugPanel } from "../debug/DebugPanel";
 import { languageForPath } from "../editor/languages";
 import { ExtensionPanel } from "../extensions/ExtensionPanel";
 import { FileExplorer } from "../explorer/FileExplorer";
-import { loadWorkspace, loadExtensions, runActive, runContainerActive, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
+import { loadChainStatus, loadWorkspace, loadExtensions, runActive, runContainerActive, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
 import { loadProject, foldersFromFiles, saveProject, validPath, type ProjectState } from "../state/workspace";
 import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
@@ -76,7 +76,8 @@ export function Workbench() {
     [bottom, setBottom] = useState<"task" | "terminal" | "problems">("terminal"),
     [output, setOutput] = useState("YNX Code task output\n"),
     [running, setRunning] = useState(false),
-    [runtime, setRuntime] = useState("checking"),
+    [runtime, setRuntime] = useState("connecting"),
+    [connectionBusy, setConnectionBusy] = useState(true),
     [split, setSplit] = useState(false),
     [diff] = useState<{ path: string; base: string } | null>(null),
     [palette, setPalette] = useState(false),
@@ -98,6 +99,22 @@ export function Workbench() {
   const [selectedRuntime, setSelectedRuntime] = useState<string | undefined>(() => localStorage.getItem(`ynx-code-runtime:${project.id}`) || undefined);
   const [collaborationMounted, setCollaborationMounted] = useState(() => Boolean(localStorage.getItem(`ynx-code-room:${project.id}`)));
   const lastSynced = useRef("");
+  const reconnect = useCallback(async () => {
+    setConnectionBusy(true);
+    setRuntime("connecting");
+    try {
+      const [health, chain] = await Promise.all([runtimeHealth(), loadChainStatus()]);
+      if (!health.sandboxReady) throw new Error("Workspace sandbox is unavailable.");
+      if (chain.chainId !== 6423 || chain.catchingUp) throw new Error("YNX Testnet identity is not ready.");
+      setRuntime(`connected · block ${chain.height}`);
+      return true;
+    } catch {
+      setRuntime("offline · retry");
+      return false;
+    } finally {
+      setConnectionBusy(false);
+    }
+  }, []);
   const workspace = useMemo(
       () => ({
         name: project.name,
@@ -170,7 +187,7 @@ export function Workbench() {
       try {
         const health = await runtimeHealth();
         if (cancelled) return;
-        setRuntime(health.sandboxReady ? "sandbox ready" : "sandbox unavailable");
+        if (!health.sandboxReady) throw new Error("Workspace sandbox is unavailable.");
         const remote = await loadWorkspace(project.id);
         if (cancelled) return;
         if (remote) {
@@ -202,9 +219,11 @@ export function Workbench() {
           }));
         }
         setHydrated(true);
+        void reconnect();
       } catch {
         if (!cancelled) {
-          setRuntime("runtime offline");
+          setRuntime("offline · retry");
+          setConnectionBusy(false);
           setHydrated(true);
         }
       }
@@ -212,7 +231,12 @@ export function Workbench() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reconnect]);
+  useEffect(() => {
+    const handleOnline = () => void reconnect();
+    addEventListener("online", handleOnline);
+    return () => removeEventListener("online", handleOnline);
+  }, [reconnect]);
   useEffect(() => {
     if (!hydrated || collaborationSession || workspaceKey === lastSynced.current) return;
     const timer = setTimeout(() => {
@@ -563,9 +587,12 @@ export function Workbench() {
           <button onClick={() => setPalette(true)}>Commands</button>
           <button onClick={() => setTheme((value) => (value === "dark" ? "light" : "dark"))}>{theme === "dark" ? "Light" : "Dark"} theme</button>
         </nav>
-        <div className="runtime-state">
-          <span className={runtime === "sandbox ready" ? "ready" : ""} />
-          {runtime}
+        <div className="runtime-state" role="status" aria-live="polite">
+          <span className={`status-dot ${runtime.startsWith("connected") ? "ready" : ""}`} />
+          <span className="runtime-label">{runtime}</span>
+          <button type="button" disabled={connectionBusy} onClick={() => void reconnect()}>
+            {connectionBusy ? "Connecting" : "Reconnect"}
+          </button>
         </div>
       </header>
       <aside className="activity" aria-label="Primary activity bar">

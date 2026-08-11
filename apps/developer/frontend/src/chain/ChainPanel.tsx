@@ -94,6 +94,11 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
   useEffect(() => {
     void refresh();
   }, []);
+  useEffect(() => {
+    const handleOnline = () => void refresh();
+    addEventListener("online", handleOnline);
+    return () => removeEventListener("online", handleOnline);
+  }, []);
   useEffect(() => subscribeDeveloperWalletCallbacks((callbackURL) => {
     setBusy(true); setError(""); setWalletState("Verifying the exact Wallet callback and signing this device's short-lived challenge…");
     void createDeveloperWalletCompletion(callbackURL).then(result => completeDeveloperWalletSession(result.body)).then(async session => {
@@ -188,7 +193,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
           </span>
         </div>
         <Button variant="ghost" disabled={busy} onClick={refresh}>
-          Refresh
+          {busy ? "Connecting…" : error ? "Retry connection" : "Refresh"}
         </Button>
         <dl>
           <div>
