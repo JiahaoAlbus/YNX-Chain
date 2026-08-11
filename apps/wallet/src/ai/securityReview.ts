@@ -18,6 +18,7 @@ export type SecurityReviewProvider = {
   status(signal?:AbortSignal):Promise<ProviderState>;
   stream(input:{prompt:string;context:Readonly<Record<string,unknown>>;signal:AbortSignal;onToken:(token:string)=>void}):Promise<void>;
 };
+export type WalletAIProofBridge=(scope:"wallet:audit")=>Promise<string>;
 
 export class SecurityReviewController {
   private value: ReviewSnapshot;
@@ -60,10 +61,11 @@ export class SecurityReviewController {
 }
 
 export class GatewaySecurityReviewProvider implements SecurityReviewProvider {
-  constructor(private readonly baseURL:string, private readonly productSessionToken:string) {}
+  constructor(private readonly baseURL:string, private readonly proofBridge:WalletAIProofBridge|null) {}
   async status(signal?:AbortSignal):Promise<ProviderState> {
-    if (!this.baseURL || !this.productSessionToken) return Object.freeze({available:false,provider:null,model:null,detail:"Wallet AI Gateway product session is unavailable. No local or canned answer will be substituted."});
-    const response=await fetch(`${this.baseURL.replace(/\/$/,"")}/health`,{signal,headers:{Authorization:`Bearer ${this.productSessionToken}`}});
+    if (!this.baseURL || !this.proofBridge) return Object.freeze({available:false,provider:null,model:null,detail:"Wallet AI Gateway Product Session proof bridge is unavailable. No local or canned answer will be substituted."});
+    let proof:string;try{proof=await this.proofBridge("wallet:audit")}catch(error){return Object.freeze({available:false,provider:null,model:null,detail:error instanceof Error?error.message:"Wallet AI proof creation failed closed."})}
+    const response=await fetch(`${this.baseURL.replace(/\/$/,"")}/health`,{signal,headers:{"X-YNX-Product-Session-Proof":proof}});
     if (!response.ok) return Object.freeze({available:false,provider:null,model:null,detail:`AI Gateway health returned ${response.status}`});
     const value=await response.json() as Record<string,unknown>;
     const provider=typeof value.provider==="string"?value.provider:null, model=typeof value.model==="string"?value.model:null;
@@ -71,7 +73,9 @@ export class GatewaySecurityReviewProvider implements SecurityReviewProvider {
     return Object.freeze({available,provider,model,detail:available?"Provider-backed review is ready":"Provider is not configured"});
   }
   async stream(input:{prompt:string;context:Readonly<Record<string,unknown>>;signal:AbortSignal;onToken:(token:string)=>void}):Promise<void> {
-    const response=await fetch(`${this.baseURL.replace(/\/$/,"")}/ai/stream`,{method:"POST",signal:input.signal,headers:{Authorization:`Bearer ${this.productSessionToken}`,Accept:"text/event-stream","Content-Type":"application/json"},body:JSON.stringify({session:"wallet-security-review",prompt:input.prompt,context:input.context})});
+    if(!this.proofBridge)throw new Error("Wallet AI Gateway Product Session proof bridge is unavailable.");
+    const proof=await this.proofBridge("wallet:audit");
+    const response=await fetch(`${this.baseURL.replace(/\/$/,"")}/ai/stream`,{method:"POST",signal:input.signal,headers:{"X-YNX-Product-Session-Proof":proof,Accept:"text/event-stream","Content-Type":"application/json"},body:JSON.stringify({session:"wallet-security-review",prompt:input.prompt,context:input.context})});
     if (!response.ok) throw new Error(`AI Gateway stream returned ${response.status}`);
     const text=await response.text();
     for (const block of text.split("\n\n")) {
