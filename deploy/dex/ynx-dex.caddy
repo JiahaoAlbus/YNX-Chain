@@ -15,6 +15,13 @@ dex.ynxweb4.com, dex-testnet.43.153.202.237.sslip.io {
 	handle /accounts/* {
 		reverse_proxy {$YNX_DEX_CONSENSUS_GATEWAY:127.0.0.1:6420}
 	}
+	@native_dex_reads {
+		method GET
+		path /dex/assets /dex/pools /dex/events
+	}
+	handle @native_dex_reads {
+		reverse_proxy 127.0.0.1:6482
+	}
 	handle /dex/* {
 		reverse_proxy {$YNX_DEX_CONSENSUS_GATEWAY:127.0.0.1:6420}
 	}

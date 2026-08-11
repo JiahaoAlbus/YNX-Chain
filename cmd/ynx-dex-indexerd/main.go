@@ -77,7 +77,14 @@ func main() {
 			}
 		}()
 	}
-	httpServer := &http.Server{Addr: env("YNX_DEX_HTTP_ADDR", "127.0.0.1:6436"), Handler: newAdmission(128, 600, time.Minute).wrap(server.Handler()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	nativeCache := newNativeDEXCache(env("YNX_DEX_NATIVE_URL", "http://127.0.0.1:6420"), server.Handler())
+	warmContext, cancelWarm := context.WithTimeout(ctx, 30*time.Second)
+	if err := nativeCache.refresh(warmContext); err != nil {
+		log.Printf("YNX DEX native cache warm-up incomplete: %v", err)
+	}
+	cancelWarm()
+	go nativeCache.run(ctx, 5*time.Second)
+	httpServer := &http.Server{Addr: env("YNX_DEX_HTTP_ADDR", "127.0.0.1:6436"), Handler: newAdmission(128, 600, time.Minute).wrap(nativeCache), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
