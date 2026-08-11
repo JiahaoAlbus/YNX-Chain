@@ -3,12 +3,12 @@
 ## Release identity and boundary
 
 - Product: independent `YNX DEX`, Testnet Preview `0.1.0-testnet-preview.1`
-- Worktree: `/Users/huangjiahao/Desktop/YNX Chain DEX`
 - Branch: `codex/ecosystem-dex`
 - Chain: YNX Testnet EVM chain `6423` (`0x1917`); `mainnet=false`
 - Protocol: clean-room immutable constant-product pools, 30 bps pool fee, bounded four-hop router
 - Custody: none. The Web app prepares requests; canonical YNX Wallet must authorize and sign.
-- Explicitly absent: central registry acceptance, deployed contracts, reviewed Testnet tokens, live liquidity, staging/public hosting, hosted download, production signature, store release and independent audit.
+- Public boundary: Web/PWA, read API and same-origin canonical Wallet Gateway are deployed at `https://dex.ynxweb4.com` from release `ynx-dex-bcc1b89ca0fc`.
+- Explicitly absent: verified DEX contracts, reviewed Testnet tokens, an indexed public pool, executable swaps/liquidity, hosted download, production signature, store release and independent audit.
 
 YNX Exchange remains the operator/custody/order-book product. Do not merge DEX balances, routes or transaction semantics into Exchange.
 
@@ -19,7 +19,7 @@ YNX Exchange remains the operator/custody/order-book product. Do not merge DEX b
 - `internal/dex` and `cmd/ynx-dex-indexerd`: HMAC-protected event state, confirmed EVM poller, reorg rewind/rescan, public read API, protected positions API and strict token-list API.
 - `apps/dex`: responsive Web/PWA with Swap, Pools, Pool Detail, Add/Remove Liquidity, Positions boundary, Explore/Tokens/Transactions, Analytics, Governance, Docs and Settings.
 - AI risk explanation: context selection, explicit permission, same-origin canonical-gateway enforcement, provider/model/status/cost, strict NDJSON streaming/cancel, review, local apply/reject and SHA-256 hash-chained browser audit. It cannot build, sign, submit or mutate a transaction.
-- `release/dex`: deterministic upload-ready PWA tarball and per-file/SHA-256 manifest. It is unsigned and not hosted.
+- `release/dex`: deterministic upload-ready PWA tarball and per-file/SHA-256 manifest. That downloadable archive remains unsigned and unhosted; the separately attested Web/API release is public.
 
 ## Canonical Wallet/Auth candidate
 
@@ -31,9 +31,9 @@ Candidate file: `apps/dex/wallet-client.json`.
 - scopes: `account:read`, `dex:positions:read`, `dex:transaction:request`
 - required device algorithm: `p256-sha256`
 
-The local adapter binds the exact client, bundle, callback, chain, scopes, nonce, digest and expiry and rejects substitutions. Positions call central introspection and fail closed when it is missing. No central Wallet, Auth, Gateway, registry or policy file was changed on this branch.
+The adapter binds the exact client, bundle, callback, chain, scopes, nonce, digest and expiry and rejects substitutions. Positions call central introspection and fail closed when it is missing. The client is enabled in the public canonical Gateway release `ynx-wallet-gateway-476cdcc6bf35`, and DEX exposes that Gateway only through the same-origin `/wallet-gateway/*` proxy.
 
-Owner action is required to review and register this candidate, expose the canonical introspection endpoint, then run integrated replay, expiry, scope escalation, callback substitution, cross-product reuse and device-binding tests on the accepted commit. Until that proof exists, `integratedCentral=false` and transaction controls remain unavailable.
+Registry acceptance, replay, expiry, scope escalation, callback substitution, cross-product reuse and device-binding tests are complete. A browser can start the real Wallet deep link and the Gateway accepts this exact product tuple. Asset actions remain unavailable because no authoritative public market source or pool exists; enabling the client is not evidence of a swap.
 
 ## Runtime configuration
 
@@ -62,12 +62,12 @@ The contract runner includes direct/multi-hop exact-in/out, LP add/remove, proto
 
 ## Testnet deployment gate
 
-The public RPC probe in `docs/evidence/dex/testnet/rpc-probe.json` observed chain 6423 and a live block, but it explicitly does not prove a DEX deployment. Deployment requires owner-provided deployer authority, governance multisig candidate, fee recipient, wrapped YNXT, at least two reviewed test ERC-20s, verifier endpoint and funding. Run `npm run dex:deploy:testnet` only after those inputs exist; it rejects wrong chain, missing code, duplicate tokens and zero gas balance.
+The public Web/API/Gateway deployment is proven by `docs/evidence/dex/public-web-api-wallet-2026-08-11.json`. Its health response deliberately reports `marketSourceConfigured=false`, `marketAvailable=false` and `executionAvailable=false`. The RPC probe observed chain 6423 and a live block, but it does not prove a DEX market. A market deployment still requires owner-provided deployer authority, governance multisig candidate, fee recipient, wrapped YNXT, at least two reviewed test assets, verifier endpoint and funding. Run `npm run dex:deploy:testnet` only after those inputs exist; it rejects wrong chain, missing code, duplicate tokens and zero gas balance.
 
-After deployment, the owner must capture all of the following before changing any deployment flag: exact manifest and bytecode/source verification, factory/router/wrapped addresses, pool creation, labelled test liquidity, Wallet-signed direct and multi-hop swaps, add/remove LP, Explorer transaction links, Indexer/API/UI consistency, restart/reorg drill, staging health/version URLs and remote smoke results. No item is currently present.
+Before changing the market or execution flags, capture exact manifest and bytecode/source verification, factory/router/wrapped addresses or authoritative native routes, pool creation, labelled test liquidity, Wallet-signed swaps, add/remove LP, Explorer transaction links, Indexer/API/UI consistency, restart/reorg drill and remote smoke results. None of those asset-movement proofs is currently present.
 
 ## Release truth
 
-`product-release.json` is authoritative. The upload bundle may support `implementedLocal` and `testedLocal` after final clean-tree verification, but it does not support `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` or `storeReleased`. `audited=false` and `productionLiquidity=false` remain mandatory.
+`product-release.json` is authoritative. `deployedPublic=true` applies only to the separately attested Web, read API and Wallet proxy surfaces. Its nested public-deployment boundary keeps `marketSourceConfigured=false`, `marketAvailable=false`, `executionAvailable=false` and `productionLiquidity=false`. The upload/download artifact remains a local unsigned candidate, so its own artifact manifest correctly keeps `deployedPublic=false`. `installedLocal`, `deployedStaging`, `downloadHosted`, `productionSigned`, `storeReleased`, `audited` and `productionLiquidity` remain false.
 
 The runtime dependency audit is clean for production dependencies. The development-only Hardhat graph currently includes the documented `adm-zip` high-severity crafted-ZIP denial-of-service advisory with no upstream fix; keep contract tooling out of runtime images and reassess before an owner release.

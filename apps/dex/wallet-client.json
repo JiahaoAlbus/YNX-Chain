@@ -7,5 +7,5 @@
   "scopes": ["account:read", "dex:positions:read", "dex:transaction:request"],
   "maxScopes": 3,
   "productDeviceAlgorithms": ["p256-sha256"],
-  "integrationStatus": "accepted-in-local-central-registry-not-publicly-deployed"
+  "integrationStatus": "accepted-and-enabled-in-public-central-wallet-gateway"
 }

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "observedAt": "2026-08-11T10:34:36.000Z",
+  "environment": "public YNX Testnet",
+  "baseUrl": "https://dex.ynxweb4.com",
+  "deployment": {
+    "release": "ynx-dex-bcc1b89ca0fc",
+    "sourceCommit": "bcc1b89ca0fcd5f654b6c301bf1d090c6249c4d7",
+    "binarySha256": "41cc43fe7e205b2fbf8ff8ded12ba8050de88325f6638b151dbba384fd735dac",
+    "webTreeSha256": "c0cc78d2e81e811ee57c29bffd19c03e9a5cd956d4f7579ca21018d01e5c10b0",
+    "rollbackBackup": "/var/backups/ynx-dex/20260811T102945Z-pre-bcc1b89ca0fc",
+    "staticAndProcessReleaseAligned": true,
+    "servicesActive": ["ynx-dex-indexerd", "caddy", "ynx-wallet-gatewayd"],
+    "warningJournalEntries": 0
+  },
+  "publicChecks": [
+    {"path": "/version", "httpStatus": 200, "exactSourceCommit": true},
+    {"path": "/health", "httpStatus": 200, "truthfulRuntimeBoundary": true},
+    {"path": "/v1/tokens", "httpStatus": 200, "itemsIsArray": true, "itemCount": 0},
+    {"path": "/v1/pools", "httpStatus": 200, "itemsIsArray": true, "itemCount": 0},
+    {"path": "/wallet-gateway/health", "httpStatus": 200, "sameOriginProxy": true}
+  ],
+  "walletGateway": {
+    "release": "ynx-wallet-gateway-476cdcc6bf35",
+    "sourceCommit": "476cdcc6bf35448561d63949839a0dff8dca5f30",
+    "registryRuntimeSha256": "fedc7d033150167fbc0a8ab1c678b4c17dc6a39acd47ae0b157018b9266d1a36",
+    "productClientId": "ynx-dex-web-v1",
+    "enabled": true,
+    "truthfulStatus": "remote-canonical-wallet-gateway"
+  },
+  "browser": {
+    "engine": "headless Chromium",
+    "viewport": {"width": 412, "height": 915},
+    "title": "YNX DEX",
+    "guestModeRendered": true,
+    "emptyMarketMessageRendered": true,
+    "horizontalOverflow": false,
+    "sameOriginWalletGatewayHttpStatus": 200
+  },
+  "capacity": {
+    "requestCount": 1000,
+    "concurrency": 64,
+    "successes": 1000,
+    "failures": 0,
+    "mix": ["health", "tokens", "pools", "wallet-gateway-health"],
+    "observer": "public TLS ingress from the primary Testnet host",
+    "scope": "bounded ingress and read-path evidence; not a global million-user capacity claim"
+  },
+  "runtimeTruth": {
+    "webDeployedPublic": true,
+    "indexerApiDeployedPublic": true,
+    "walletGatewayProxyDeployedPublic": true,
+    "marketSourceConfigured": false,
+    "indexedPools": 0,
+    "marketAvailable": false,
+    "executionAvailable": false,
+    "verifiedContractsDeployed": false,
+    "publicAssetMovementVerified": false,
+    "mainnet": false,
+    "audited": false,
+    "productionLiquidity": false
+  },
+  "preSwitchRejection": {
+    "publicStateChanged": false,
+    "reason": "candidate Web tree digest originally included absolute paths and differed across hosts",
+    "resolution": "digest now uses paths relative to the Web root; dry-run and remote verification passed before switch"
+  }
+}

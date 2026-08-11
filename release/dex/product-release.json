@@ -2,7 +2,8 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "sourceBranch": "codex/ecosystem-dex",
-  "sourceCommit": "5b4eb9e1511577ce73291d97fdc0b9aa376b0383",
+  "sourceCommit": "bcc1b89ca0fcd5f654b6c301bf1d090c6249c4d7",
+  "artifactSourceCommit": "5b4eb9e1511577ce73291d97fdc0b9aa376b0383",
   "recoveredSourceCommit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
   "recoveryTipCommit": "1614ffb7fa4983a182405fe3fa118fa448f87b4b",
   "integrationBranch": "codex/integrate-finance-suite",
@@ -13,15 +14,15 @@
   "installedLocal": false,
   "integratedCentral": true,
   "deployedStaging": false,
-  "deployedPublic": false,
+  "deployedPublic": true,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
-  "publicUrls": [],
-  "healthUrls": [],
+  "publicUrls": ["https://dex.ynxweb4.com/"],
+  "healthUrls": ["https://dex.ynxweb4.com/health", "https://dex.ynxweb4.com/version", "https://dex.ynxweb4.com/wallet-gateway/health"],
   "artifactUrls": [],
   "sha256": {
     "artifactManifest": "37e1903ca279f3cff753993c28a1782017bb011231e7330454d51b5e4c53ac92",
@@ -35,21 +36,37 @@
   },
   "signingClass": "unsigned-local-build",
   "minOS": { "web": "modern browser with ES2022 and PWA support" },
-  "installEvidence": [],
+  "installEvidence": ["docs/evidence/dex/public-web-api-wallet-2026-08-11.json"],
+  "publicDeployment": {
+    "release": "ynx-dex-bcc1b89ca0fc",
+    "sourceCommit": "bcc1b89ca0fcd5f654b6c301bf1d090c6249c4d7",
+    "binarySha256": "41cc43fe7e205b2fbf8ff8ded12ba8050de88325f6638b151dbba384fd735dac",
+    "webTreeSha256": "c0cc78d2e81e811ee57c29bffd19c03e9a5cd956d4f7579ca21018d01e5c10b0",
+    "web": true,
+    "indexerApi": true,
+    "walletGatewayProxy": true,
+    "marketSourceConfigured": false,
+    "marketAvailable": false,
+    "executionAvailable": false,
+    "productionLiquidity": false
+  },
   "centralIntegration": {
     "walletClient": "ynx-dex-web-v1",
     "bundleId": "com.ynxweb4.dex.web",
-    "status": "accepted-and-tested-in-local-central-registry-not-publicly-deployed",
+    "status": "accepted-and-deployed-in-public-central-wallet-gateway",
     "registryManifest": "apps/dex/wallet-client.json",
-    "gatewayIntrospection": "required-and-fail-closed"
+    "gatewayIntrospection": "required-and-fail-closed",
+    "gatewaySourceCommit": "476cdcc6bf35448561d63949839a0dff8dca5f30",
+    "registryRuntimeSha256": "fedc7d033150167fbc0a8ab1c678b4c17dc6a39acd47ae0b157018b9266d1a36"
   },
   "knownLimitations": [
-    "The chain-native CPMM consensus and Gateway paths plus Wallet-signed swap, add-liquidity and remove-liquidity flows are implemented and locally tested; a public end-to-end deployment is not yet accepted.",
+    "The public Web, read API and same-origin canonical Wallet Gateway are deployed; no verified public market source or pool is configured, so marketAvailable and executionAvailable remain false.",
+    "The chain-native CPMM consensus paths plus Wallet-signed swap, add-liquidity and remove-liquidity flows are implemented and locally tested; a public end-to-end asset movement is not yet accepted.",
     "The EVM Factory, Router and Quoter remain build artifacts without a verified public Testnet deployment or funded reviewed pools.",
-    "The canonical Wallet tuple and device-bound proof path are accepted and tested locally, but this exact candidate is not yet verified against the public Gateway.",
+    "The canonical DEX Wallet client is enabled in the public Gateway, but a complete installed-Wallet callback and transaction lifecycle still requires an executable pool.",
     "No independent third-party smart-contract audit has been completed.",
-    "Staging, public deployment, hosted download, production signing, and store release are absent.",
+    "Staging, hosted download, production signing, store release, verified contracts and production liquidity are absent.",
     "Concentrated/stable/weighted pools, Strategy Vault controls, FairFlow solving and LP protection remain outside this candidate."
   ],
-  "generatedAt": "2026-08-11T09:43:18.000Z"
+  "generatedAt": "2026-08-11T10:34:36.000Z"
 }
