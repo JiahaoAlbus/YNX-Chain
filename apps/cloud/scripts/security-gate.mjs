@@ -22,18 +22,7 @@ async function walk(relative){
 }
 
 const runtimeFiles=[...(await walk('internal/cloud')).filter(x=>x.endsWith('.go')&&!x.endsWith('_test.go')),...(await walk('apps/cloud/web')),...(await walk('apps/cloud/mobile/src')),'apps/cloud/mobile/App.tsx',...(await walk('apps/cloud/sdk')).filter(x=>!x.endsWith('package.json'))];
-const forbidden=[
-  [/\b(?:TODO|FIXME)\b/i,'unfinished marker'],
-  [new RegExp('\\bcoming'+' soon\\b','i'),'unreleased-feature claim'],
-  [new RegExp('example'+'\\.com','i'),'sample-domain endpoint'],
-  [new RegExp('\\bf'+'ake (?:balance|user|transaction|price|revenue|apy|liquidity|provider|health)\\b','i'),'invented runtime claim'],
-  [new RegExp('\\bhard[- ]'+'coded success\\b','i'),'fixed success response'],
-  [/\bmock provider\b/i,'simulated provider'],
-  [/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,'private key'],
-  [/\bAKIA[0-9A-Z]{16}\b/,'AWS access key'],
-  [/\bgh[opusr]_[A-Za-z0-9]{30,}\b/,'GitHub token'],
-  [/localStorage[^\n]{0,80}(?:token|session)/i,'browser-persisted session']
-];
+const forbidden=[[/\b(?:TODO|FIXME)\b/i,'unfinished marker'],[/\bcoming soon\b/i,'coming-soon claim'],[/example\.com/i,'example.com endpoint'],[/\bfake (?:balance|user|transaction|price|revenue|apy|liquidity|provider|health)\b/i,'fake runtime claim'],[/\bhard[- ]coded success\b/i,'hard-coded success'],[/\bmock provider\b/i,'mock provider'],[/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,'private key'],[/\bAKIA[0-9A-Z]{16}\b/,'AWS access key'],[/\bgh[opusr]_[A-Za-z0-9]{30,}\b/,'GitHub token'],[/localStorage[^\n]{0,80}(?:token|session)/i,'browser-persisted session']];
 for(const file of runtimeFiles){
   const body=await read(file);
   for(const [pattern,label] of forbidden)if(pattern.test(body))fail(`${file}: ${label}`);
@@ -60,16 +49,14 @@ for(const item of manifest.artifacts){
 }
 const provenance=JSON.parse(await read('apps/cloud/evidence/ARTIFACT_PROVENANCE.json'));
 if(provenance.subject.sha256!==manifest.artifacts[0].sha256||provenance.subject.bytes!==manifest.artifacts[0].bytes||provenance.source.commit!==manifest.artifacts[0].verifiedAtSourceCommit)fail('provenance subject/source differs from artifact manifest');
-try{execFileSync('git',['cat-file','-e',`${provenance.source.commit}^{commit}`],{cwd:root,stdio:'pipe'})}catch{fail('provenance source commit is unavailable in repository history')}
-for(const material of provenance.materials){
-  try{
-    const body=execFileSync('git',['show',`${provenance.source.commit}:${material.uri}`],{cwd:root});
-    if(sha256(body)!==material.digest.sha256)fail(`${material.uri}: provenance material digest differs from its recorded source commit`);
-  }catch{fail(`${material.uri}: provenance material is unavailable at its recorded source commit`)}
-}
+for(const material of provenance.materials){const body=await readFile(path.join(root,material.uri));if(sha256(body)!==material.digest.sha256)fail(`${material.uri}: provenance material digest is stale`)}
+try{execFileSync('git',['merge-base','--is-ancestor',provenance.source.commit,'HEAD'],{cwd:root,stdio:'pipe'})}catch{fail('provenance source commit is not an ancestor of HEAD')}
 const sbom=JSON.parse(await read('apps/cloud/evidence/SBOM.cdx.json'));
 if(sbom.bomFormat!=='CycloneDX'||sbom.components.length<100)fail('SBOM coverage is unexpectedly small');
 const purls=new Set(sbom.components.map(x=>x.purl));
+for(const line of execFileSync('go',['list','-m','all'],{cwd:root,encoding:'utf8'}).trim().split('\n').slice(1)){
+  const [name,version]=line.split(/\s+/);if(name&&version&&!purls.has(`pkg:golang/${encodeURIComponent(name)}@${encodeURIComponent(version)}`))fail(`SBOM missing Go module ${name}@${version}`);
+}
 for(const file of ['apps/cloud/mobile/pnpm-lock.yaml','apps/docs/mobile/pnpm-lock.yaml']){
   const body=await read(file),section=body.slice(body.indexOf('\npackages:\n'),body.indexOf('\nsnapshots:\n'));
   for(const match of section.matchAll(/^  '([^']+)':$/gm)){

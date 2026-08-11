@@ -31,3 +31,4 @@ tmp/
 .ynx-smoke/
 apps/pay/playwright-report/
 apps/pay/test-results/
+.ai-bridge/recovery/*.bundle

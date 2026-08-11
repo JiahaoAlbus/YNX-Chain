@@ -33,14 +33,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
@@ -85,7 +85,7 @@ jobs:
           test "$(docker inspect --format '{{.Config.User}}' ynx-cloudd-ci)" = "10001:10001"
           grep -q '"service":"ynx-cloudd"' /tmp/ynx-cloud-health.json
       - name: Scan exact Cloud image for Critical and High vulnerabilities
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ynx-cloudd:ci
           scan-type: image
@@ -99,7 +99,7 @@ jobs:
           version: v0.70.0
       - name: Preserve Cloud image vulnerability report
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@v4
         with:
           name: ynx-cloud-trivy-${{ github.sha }}
           path: trivy-ynx-cloud.json

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "product": "cloud",
+  "capability": "client-side-encryption-candidate",
+  "sourceCommit": "e05db0b5663c151c1805c99ff3f55f433127aa92",
+  "algorithm": "AES-256-GCM",
+  "implementation": {
+    "module": "apps/cloud/sdk/index.js",
+    "types": "apps/cloud/sdk/index.d.ts",
+    "mediaType": "application/vnd.ynx.cloud-encrypted+json",
+    "keyBytes": 32,
+    "nonceBytes": 12,
+    "tagBits": 128,
+    "keyExportedToService": false,
+    "nonceSource": "Web Crypto getRandomValues; caller-supplied nonces are not accepted",
+    "authenticatedContext": ["product", "account", "contextId", "version"],
+    "ciphertextEvidence": ["SHA-256", "plaintext byte count"]
+  },
+  "tests": {
+    "command": "npm --prefix apps/cloud test",
+    "total": 12,
+    "passed": 12,
+    "failed": 0,
+    "clientEncryptionCases": [
+      "AES-256-GCM round trip",
+      "exact Cloud or Docs product and account context binding",
+      "context mismatch rejection",
+      "ciphertext tamper rejection",
+      "256-bit key generation",
+      "weak key rejection",
+      "missing account rejection",
+      "missing recovery policy rejection"
+    ]
+  },
+  "continuousIntegration": {
+    "workflow": "Cloud security and recovery gates",
+    "runId": 30417551695,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30417551695",
+    "headSha": "e05db0b5663c151c1805c99ff3f55f433127aa92",
+    "conclusion": "success",
+    "completedAt": "2026-07-29T02:43:43Z"
+  },
+  "truthBoundary": {
+    "proves": [
+      "the JavaScript SDK can encrypt opaque bytes before upload and decrypt them only with the exact 256-bit key and authenticated context",
+      "the service-facing metadata is compatible with the existing clientSide AES-256-GCM boundary",
+      "the tested SDK rejects changed context and changed ciphertext"
+    ],
+    "doesNotProve": [
+      "secure key custody, backup, escrow, rotation, recovery-package UX, or hardware-backed storage on a production client",
+      "independent cryptographic audit",
+      "provider-side encryption, KMS, public deployment, or production durability",
+      "that YNX Cloud can recover user-held keys or plaintext"
+    ]
+  }
+}

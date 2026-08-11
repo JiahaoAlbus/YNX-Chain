@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "productNumber": "20",
+  "productId": "cloud",
+  "productName": "YNX Cloud",
+  "ownerBranch": "codex/final-cloud",
+  "sourceCommit": "e05db0b5663c151c1805c99ff3f55f433127aa92",
+  "officialDomain": "ynxweb4.com",
+  "canonicalRoute": "/cloud",
+  "canonicalUrl": "https://ynxweb4.com/cloud",
+  "metadataSource": "apps/cloud/public-product-metadata.json",
+  "releaseSource": "apps/cloud/product-release.json",
+  "evidenceIndex": "apps/cloud/evidence/EVIDENCE_INDEX.md",
+  "publicState": {
+    "status": "local-testnet-preview",
+    "productStatusPageReachable": true,
+    "runtimeDeployedPublic": false,
+    "runtimeDeployedStaging": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "websiteAudit": {
+    "evidence": "apps/cloud/evidence/PUBLIC_ROUTE_AUDIT_20260729.json",
+    "deployedSourceCommit": "7b3c5f427c17",
+    "stale": true,
+    "requiredCorrection": "Replace stale Cloud source/status text with the current source-bound local-candidate metadata without claiming a public runtime or hosted installer."
+  },
+  "contentRequirements": {
+    "title": "YNX Cloud — User-controlled Testnet storage",
+    "h1": "Storage you can inspect, revoke, and leave",
+    "mustState": [
+      "local Testnet preview",
+      "user-held AES-256-GCM client-encryption candidate",
+      "no public Cloud runtime deployment",
+      "no production durability or production signing claim",
+      "provider and central Wallet integration pending"
+    ],
+    "mustNotState": [
+      "production object storage",
+      "publicly deployed Cloud runtime",
+      "immutable hosted installer",
+      "production key recovery by YNX",
+      "mainnet release"
+    ]
+  },
+  "acceptance": {
+    "owner29IntegrationRequired": true,
+    "owner28WebsiteRequired": true,
+    "handoffCreatedIsDeployment": false,
+    "upgradeCondition": "Only upgrade public runtime or download states after exact remote runtime, immutable artifact, checksum, source commit and deployment evidence are verified."
+  }
+}

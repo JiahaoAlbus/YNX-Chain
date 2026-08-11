@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "productId": "cloud",
   "version": "1.0.0-testnet-preview",
-  "sourceCommit": "fd90fa646079f6f57af0ca965091fc443b941857",
-  "runtimeSourceCommit": "fd90fa646079f6f57af0ca965091fc443b941857",
+  "sourceCommit": "42636a3eae32ef04646ffb49d30a70310df2fbe6",
+  "runtimeSourceCommit": "42636a3eae32ef04646ffb49d30a70310df2fbe6",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": true,
+    "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": true,
     "downloadHosted": false,
@@ -17,15 +17,25 @@
   },
   "stateNotes": {
     "implementedLocal": "Bounded Cloud control plane, product-isolated metadata and bytes, owner-and-product scoped content-addressed deduplication, schema-v7 versioned hot/cold/archive lifecycle with Account/Product binding, durable restart-safe transition worker, provider-result evidence, retry, dedup copy-on-write, archive restore-required reads and unresolved-transition deletion barriers, Web/PWA, Android/iOS source, provider adapters, multipart/direct uploads, enforced artifact retention, product-data erasure, 12-locale clients, user-exit mode, persistent telemetry/readiness/traces, zero-charge usage and exact storage-time metering, capacity candidate, JavaScript SDK, a user-held Web Crypto AES-256-GCM client-encryption envelope bound to exact product/account/context/version, least-privilege Docker/Server delivery candidate, and deterministic security/supply-chain gates exist. This does not claim secure production key custody/recovery UX, independent cryptographic audit, production durability, provider-side lifecycle/scope enforcement, CDN/replication, provider backup/replica sanitization, hosted monitoring, external penetration testing, production signing, or public release.",
-    "testedLocal": "Cloud JavaScript and SDK suite (15/15), Docs static/client checks, canonical auth/API/backup/restore smoke, Go Cloud Race suite and Go vet pass locally. Cloud and Docs unsigned iOS Simulator Release builds passed in central CI. Public Cloud and Docs UI/health routes each passed 100/100 requests at concurrency 20; unauthenticated private routes remain 401 and invalid session challenges remain 400.",
-    "installedLocal": "False for the current sourceCommit: the Android Testnet Preview APK recorded in evidence/ARTIFACT_MANIFEST.json was installed and cold-launched with adb, but that artifact is independently pinned to source commit db9bc224df52e05018264fc284fb23f18033424a and has not been rebuilt from fd90fa646079f6f57af0ca965091fc443b941857. iOS Simulator packages passed CI, but local/device installation is not claimed.",
-    "integratedCentral": "True: Cloud/Docs source, canonical Wallet registrations, dependency inventory, recovery/security gates and iOS Simulator workflow were accepted into central main at cfcaa6accad6a66f86df0c96564dcddac69e86d6.",
+    "testedLocal": "Cloud JavaScript and SDK suite (15/15), static/accessibility/product-boundary checks, canonical auth/API/backup/restore smoke, Go Cloud Race suite and Go vet pass locally. Public UI and liveness each passed 100/100 requests at concurrency 20; unauthenticated private objects return 401 and an invalid session challenge returns 400.",
+    "installedLocal": "False for the current sourceCommit: the Android Testnet Preview APK recorded in evidence/ARTIFACT_MANIFEST.json was installed and cold-launched with adb, but that artifact is independently pinned to source commit db9bc224df52e05018264fc284fb23f18033424a and has not been rebuilt from 42636a3eae32ef04646ffb49d30a70310df2fbe6. iOS local installation is also not claimed.",
+    "integratedCentral": "False: central Wallet registrations remain disabled and pending review.",
     "deployedStaging": "False: no staging endpoint or remote provider smoke evidence exists.",
-    "deployedPublic": "True: the single-host Cloud preview is live at https://web4.ynxweb4.com/cloud/ and Docs at https://web4.ynxweb4.com/docs-app/, with separate same-origin API routes and liveness. Central Wallet verification remains unavailable, so private workflows fail closed rather than creating local sessions.",
+    "deployedPublic": "True: the single-host Testnet preview is live at https://web4.ynxweb4.com/cloud/ with liveness at https://web4.ynxweb4.com/cloud/api/health. Central Wallet verification remains unavailable, so private workflows fail closed rather than creating local sessions.",
     "downloadHosted": "False: the APK is local and the CI vulnerability report is an expiring workflow artifact, not an immutable hosted product download or container image.",
     "productionSigned": "False: the Android APK uses a debug certificate and no production image or application signing evidence exists.",
     "storeReleased": "False: no app-store release evidence exists."
   },
-  "artifacts": ["evidence/ARTIFACT_MANIFEST.json"],
-  "evidenceIndex": "evidence/EVIDENCE_INDEX.md"
+  "artifacts": [
+    "evidence/ARTIFACT_MANIFEST.json",
+    "evidence/CLIENT_ENCRYPTION_e05db0b.json",
+    "evidence/CONTAINER_SCAN_e05db0b.json",
+    "evidence/ci-e05db0b/trivy-ynx-cloud.json",
+    "evidence/PUBLIC_ROUTE_AUDIT_20260729.json",
+    "integration/website-handoff.json"
+  ],
+  "evidenceIndex": "evidence/EVIDENCE_INDEX.md",
+  "runtimeEvidence": "evidence/LIFECYCLE_d11c382.json",
+  "clientEncryptionEvidence": "evidence/CLIENT_ENCRYPTION_e05db0b.json",
+  "containerScanEvidence": "evidence/CONTAINER_SCAN_e05db0b.json"
 }
