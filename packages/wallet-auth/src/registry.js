@@ -44,9 +44,10 @@ export function migrateCentralRegistryDocumentV1(input) {
     throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet registry v1 product set is not the accepted migration source");
   }
   const migratedProducts = [
-    ...input.products.filter(product => product.productId !== "browser").map(product => structuredClone(product)),
+    ...input.products.filter(product => product.productId !== "browser" && product.productId !== "search").map(product => structuredClone(product)),
     ...canonicalBrowserRegistrations(),
     canonicalQuantRegistration(),
+    canonicalSearchRegistration(),
   ]
     .sort((left, right) => left.productId.localeCompare(right.productId));
   return parseCentralRegistryDocument({
@@ -138,6 +139,25 @@ function canonicalQuantRegistration() {
     maxScopes: 4,
     productDeviceAlgorithms: ["p256-sha256"],
     sessionDurationSeconds: 180,
+    revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
+  };
+}
+
+function canonicalSearchRegistration() {
+  return {
+    schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    productId: "search",
+    displayName: "YNX Search",
+    reviewState: "pending-review",
+    enabled: false,
+    productClientId: "ynx-search-web",
+    requestingProduct: "search",
+    bundleId: "com.ynxweb4.search.web",
+    callbacks: ["https://web4.ynxweb4.com/search/auth/callback"],
+    scopes: ["account:read", "search:cases"],
+    maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+    sessionDurationSeconds: 300,
     revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
   };
 }

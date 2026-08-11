@@ -44,7 +44,7 @@
     "productClientId": "ynx-search-web",
     "requestingProduct": "search",
     "bundleId": "com.ynxweb4.search.web",
-    "callbacks": ["https://search-staging.43.153.202.237.sslip.io/auth/callback"],
+    "callbacks": ["https://web4.ynxweb4.com/search/auth/callback"],
     "scopes": ["account:read", "search:cases"],
     "maxScopes": 2,
     "productDeviceAlgorithms": ["p256-sha256"]

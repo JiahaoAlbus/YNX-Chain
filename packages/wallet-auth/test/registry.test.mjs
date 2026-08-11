@@ -9,7 +9,7 @@ test("central registry contains 29 unique, least-privilege products with platfor
   const registry = parseCentralRegistryDocument(source);
   assert.equal(registry.products.length, 29);
   const approved = registry.products.filter((product) => product.enabled);
-  assert.deepEqual(approved.map((product) => product.productId), ["browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "developer", "dex", "exchange", "finance", "mail", "merchant-console", "quant", "seller-console", "shop", "social"]);
+  assert.deepEqual(approved.map((product) => product.productId), ["browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "developer", "dex", "exchange", "finance", "mail", "merchant-console", "quant", "search", "seller-console", "shop", "social"]);
   assert.equal(approved.every((product) => product.reviewState === "approved"), true);
   assert.equal(registry.products.filter((product) => !product.enabled).every((product) => product.reviewState === "pending-review"), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
@@ -66,6 +66,11 @@ test("central registry contains 29 unique, least-privilege products with platfor
   assert.deepEqual(seller.callbacks, ["ynxseller://wallet-auth/callback"]);
   assert.deepEqual(seller.scopes, ["account:read", "shop:seller:operate"]);
   assert.equal(seller.sessionDurationSeconds, 180);
+  const search = centralRegistrationByProduct(registry, "search");
+  assert.equal(search.productClientId, "ynx-search-web");
+  assert.equal(search.bundleId, "com.ynxweb4.search.web");
+  assert.deepEqual(search.callbacks, ["https://web4.ynxweb4.com/search/auth/callback"]);
+  assert.deepEqual(search.scopes, ["account:read", "search:cases"]);
 });
 
 test("registry v1 migrates deterministically by adding disabled least-privilege Quant", () => {
@@ -77,6 +82,7 @@ test("registry v1 migrates deterministically by adding disabled least-privilege 
   const migrated = migrateCentralRegistryDocumentV1(legacy);
   assert.deepEqual(migrated.products.map(product => product.productId), parseCentralRegistryDocument(source).products.map(product => product.productId));
   assert.equal(centralRegistrationByProduct(migrated, "quant", { requireEnabled: false }).enabled, false);
+  assert.equal(centralRegistrationByProduct(migrated, "search", { requireEnabled: false }).enabled, false);
   const tampered = structuredClone(legacy);
   tampered.products[0].productId = "unknown-replacement";
   assert.throws(() => migrateCentralRegistryDocumentV1(tampered), code("INVALID_REGISTRY"));

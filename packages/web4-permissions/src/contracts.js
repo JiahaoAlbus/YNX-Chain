@@ -9,7 +9,7 @@ export const PRODUCT_BINDINGS = Object.freeze({
   "ynx-browser-ios": Object.freeze({ requestingProduct:"browser", bundleId:"com.ynxweb4.browser.ios", callbacks:["ynxbrowser://com.ynxweb4.browser.ios/auth/callback"], scopes:["account:read","browser:wallet-request"] }),
   "ynx-browser-macos": Object.freeze({ requestingProduct:"browser", bundleId:"com.ynxweb4.browser.macos", callbacks:["ynxbrowser://com.ynxweb4.browser.macos/auth/callback"], scopes:["account:read","browser:wallet-request"] }),
   "ynx-browser-windows": Object.freeze({ requestingProduct:"browser", bundleId:"com.ynxweb4.browser.windows", callbacks:["ynxbrowser://com.ynxweb4.browser.windows/auth/callback"], scopes:["account:read","browser:wallet-request"] }),
-  "ynx-search-web": Object.freeze({ requestingProduct:"search", bundleId:"com.ynxweb4.search.web", callbacks:["https://search.ynx.invalid/auth/callback"], scopes:["account:read","search:cases"] })
+  "ynx-search-web": Object.freeze({ requestingProduct:"search", bundleId:"com.ynxweb4.search.web", callbacks:["https://web4.ynxweb4.com/search/auth/callback"], scopes:["account:read","search:cases"] })
 });
 
 export function validateWalletAuthorizationV1(input,{now=Date.now(),registry=PRODUCT_BINDINGS}={}){

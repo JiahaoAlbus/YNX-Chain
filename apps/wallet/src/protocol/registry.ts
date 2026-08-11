@@ -94,6 +94,12 @@ const REVIEWED_ENTRIES = [
     productDeviceAlgorithms: ["p256-sha256"],
   },
   {
+    schemaVersion: 2, productClientId: "ynx-search-web", requestingProduct: "search",
+    bundleId: "com.ynxweb4.search.web", callbacks: ["https://web4.ynxweb4.com/search/auth/callback"],
+    scopes: ["account:read", "search:cases"], maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
     schemaVersion: 2, productClientId: "ynx-shop-v1", requestingProduct: "shop",
     bundleId: "com.ynxweb4.shop", callbacks: ["ynxshop://wallet-auth/callback"],
     scopes: ["account:read", "shop:orders:write", "shop:profile:write"], maxScopes: 3,
@@ -139,6 +145,7 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "quant:mandate:create": "Create a bounded Testnet Quant mandate for later review; it does not execute an order.",
   "quant:mandate:execute": "Request execution of an already bounded mandate; execution remains unavailable until its owner transport is accepted.",
   "quant:mandate:revoke": "Revoke this account's Quant mandate and prevent later use.",
+  "search:cases": "Associate a public Search correction, removal or appeal case with this account. It cannot change index policy, publish private data or move funds.",
   "shop:orders:write": "Create and update this account's Testnet Shop orders; payment still requires a separate Wallet signature.",
   "shop:profile:write": "Manage only this account's Shop profile, addresses and privacy choices.",
   "shop:seller:operate": "Operate only this account's authorized Seller Console store records. Product-session approval cannot receive customer funds or sign payouts.",
