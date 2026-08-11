@@ -3,7 +3,7 @@
   "productNumber": 20,
   "productId": "cloud",
   "owner": "20-cloud",
-  "sourceCommit": "76f5c92cee7f5105f9e84059d0ae8fed75337e2c",
+  "sourceCommit": "f8f1abb2d5cd6051b45c1946541f3772474f6087",
   "runtimeSourceCommit": "d11c382da10ab0629c7d322c83c9ddef24925328",
   "network": {
     "cosmosChainId": "ynx_6423-1",

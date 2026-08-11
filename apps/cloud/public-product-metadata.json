@@ -7,13 +7,13 @@
   "title": "YNX Cloud — User-controlled Testnet storage",
   "metaDescription": "Store, version, tier, share, revoke, recover, and export authorized files and product artifacts with verifiable checksums.",
   "h1": "Storage you can inspect, revoke, and leave",
-  "status": "public-testnet-preview",
+  "status": "central-source-accepted",
   "features": ["Files and folders", "Version restore", "Versioned hot/cold/archive lifecycle", "Expiring access", "Artifact retention and legal hold", "Checksum verification", "Backup and recovery", "Portable service-exit mode", "Dedicated-scope product-data erasure receipts", "Selected-file AI boundary", "Product-isolated usage metering", "JavaScript and TypeScript SDK", "User-held AES-256-GCM client-encryption candidate"],
-  "risks": ["Single-host preview without production durability", "No production key-custody or recovery UX proof", "No independent cryptographic audit", "No provider lifecycle, CDN or replication proof", "No immutable hosted image or reproducible production provenance", "No production signing", "Provider and central Wallet integration pending"],
+  "risks": ["Current source is not publicly deployed; the reachable route is historical", "Single-host preview without production durability", "No production key-custody or recovery UX proof", "No independent cryptographic audit", "No provider lifecycle, CDN or replication proof", "No immutable hosted image or reproducible production provenance", "No production signing", "Public Wallet Gateway deployment of the accepted central source is pending"],
   "supportUrl": null,
   "privacyUrl": null,
   "securityUrl": null,
-  "statusUrl": "https://web4.ynxweb4.com/cloud/api/health",
+  "statusUrl": null,
   "downloadUrl": null,
   "structuredDataSuggestion": "SoftwareApplication"
 }

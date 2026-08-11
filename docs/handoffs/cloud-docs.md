@@ -2,8 +2,8 @@
 
 ## Scope and truthful release boundary
 
-- Delivery worktree: designated Cloud final worktree
-- Branch: `codex/final-cloud`
+- Delivery worktree: central finance integration worktree
+- Branch: `codex/integrate-finance-suite`
 - Minimum preserved baseline: `7b3c5f427c1751b8d5f43833e281811dd81f76bb`
 - Owned implementation: `apps/cloud/**`, `apps/docs/**`, `internal/cloud/**`, this handoff, and the scoped iOS CI workflow.
 
@@ -17,7 +17,6 @@ Recovered evidence proves passing local core tests, real local Web rendering, an
 | --- | --- | --- | --- | --- |
 | Cloud native | `cloud-mobile` | `ynx-cloud-mobile-v1` | `com.ynxweb4.cloud` | `ynxcloud://wallet-auth/callback` |
 | Cloud Web | `cloud-web` | `ynx-cloud-web-v1` | `web.ynx.cloud` | `https://web4.ynxweb4.com/cloud/auth/callback` |
-| Cloud Web | `cloud` | `ynx-cloud-web-v1` | `web.ynx.cloud` | `https://cloud.staging.ynx.network/auth/callback` |
 | Docs native | `docs` | `ynx-docs-mobile-v1` | `com.ynxweb4.docs` | `ynxdocs://wallet-auth/callback` |
 | Docs Web | `docs` | `ynx-docs-web-v1` | `web.ynx.docs` | `https://docs.staging.ynx.network/auth/callback` |
 
@@ -33,7 +32,7 @@ Gateway completion signs `YNX_PRODUCT_SESSION_CHALLENGE_V1\n<canonical challenge
 
 Production calls authenticated `POST /v1/wallet-auth/sessions/verify`. The loopback-only `-dev-wallet` verifier exists for canonical tests and cannot bind a non-loopback listener. Exact native registry entries, the required Docs scope patch, Web multi-surface blocker, and failure vectors are in `apps/cloud/integration/`.
 
-Central Wallet registry v3 currently permits one client/bundle/callback tuple per product and keeps Cloud/Docs disabled. It also has a stale Docs scope set. Therefore `integratedCentral` is false until central owners review the supplied patch, add reviewed Web registrations, enable the entries, deploy the verifier, and run real Wallet↔product staging flows.
+Central Wallet registry v3 keeps one exact client/bundle/callback tuple per registration. Cloud now uses separate `cloud-mobile` and `cloud-web` registrations; both are approved and enabled in central source and reviewed by Wallet tests. Docs remains pending its own product audit. Public deployment of the updated Wallet Gateway and a real remote Wallet↔Cloud flow are still required and are not inferred from source acceptance.
 
 ## Cloud behavior
 
@@ -78,11 +77,11 @@ Exact commands, images, hashes, and paths are indexed in each `apps/*/evidence/E
 
 ## Release blockers and next central actions
 
-1. Merge/review `apps/cloud/integration/central-registry-json-patch.json`, adopt multi-surface Wallet registrations, enable Cloud/Docs, deploy the central verifier, then run real Wallet↔Cloud/Docs tests. Until then `integratedCentral=false`.
-2. Provide two HTTPS Web staging hosts plus an authenticated API/object staging service, exact commit/version health, remote smoke, TLS, rollback, and durable secrets. Until then `deployedStaging=false`.
+1. Cloud mobile/Web central registrations are accepted in source. Deploy that exact Wallet Gateway source with Cloud, then run a real remote Wallet↔Cloud authorization and revocation flow. Docs still needs its separate audit, the scoped patch in `apps/cloud/integration/central-registry-json-patch.json`, and a Web registration; this Cloud acceptance does not upgrade Docs.
+2. Deploy the current Cloud source to an HTTPS Testnet host with authenticated API/object storage, exact commit/version health, remote smoke, TLS, rollback, and durable secrets. The reachable historical preview is not current-source deployment evidence. Until then `deployedStaging=false` and `deployedPublic=false` for the current release.
 3. Provision production object storage/KMS/AV/backup SLOs before any production-cloud claim.
 4. Run `.github/workflows/cloud-docs-ios-simulator.yml` or use a full-Xcode host for Simulator build/install/cold launch/deep link and artifact hash. Local `xcodebuild`/`simctl` are unavailable because the selected developer directory is Command Line Tools. Product-wide `installedLocal` remains false even though Android is installed.
 5. Upload the committed Testnet Preview APKs to an immutable GitHub Release/object store and record URLs only after upload verification. Until then `downloadHosted=false`.
 6. Owner-controlled production certificates and store accounts are external; `productionSigned=false` and `storeReleased=false`.
 
-No merge/PR is created by this branch. Main control should cherry-pick/merge only after central protocol and deployment review.
+The central integration branch contains the reviewed source changes. Remote service and Gateway deployment remain separate release gates.

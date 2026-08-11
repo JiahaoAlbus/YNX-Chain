@@ -3,8 +3,8 @@
   "productNumber": "20",
   "productId": "cloud",
   "productName": "YNX Cloud",
-  "ownerBranch": "codex/final-cloud",
-  "sourceCommit": "e05db0b5663c151c1805c99ff3f55f433127aa92",
+  "ownerBranch": "codex/integrate-finance-suite",
+  "sourceCommit": "f8f1abb2d5cd6051b45c1946541f3772474f6087",
   "officialDomain": "ynxweb4.com",
   "canonicalRoute": "/cloud",
   "canonicalUrl": "https://ynxweb4.com/cloud",
@@ -12,7 +12,7 @@
   "releaseSource": "apps/cloud/product-release.json",
   "evidenceIndex": "apps/cloud/evidence/EVIDENCE_INDEX.md",
   "publicState": {
-    "status": "local-testnet-preview",
+    "status": "central-source-accepted-public-current-source-pending",
     "productStatusPageReachable": true,
     "runtimeDeployedPublic": false,
     "runtimeDeployedStaging": false,
@@ -24,17 +24,17 @@
     "evidence": "apps/cloud/evidence/PUBLIC_ROUTE_AUDIT_20260729.json",
     "deployedSourceCommit": "7b3c5f427c17",
     "stale": true,
-    "requiredCorrection": "Replace stale Cloud source/status text with the current source-bound local-candidate metadata without claiming a public runtime or hosted installer."
+    "requiredCorrection": "Publish the current source only after the Cloud service and central Wallet Gateway are deployed together; keep the reachable historical preview clearly separated until then."
   },
   "contentRequirements": {
     "title": "YNX Cloud — User-controlled Testnet storage",
     "h1": "Storage you can inspect, revoke, and leave",
     "mustState": [
-      "local Testnet preview",
+      "current-source Testnet candidate",
       "user-held AES-256-GCM client-encryption candidate",
-      "no public Cloud runtime deployment",
+      "the reachable public preview is historical and not the current source",
       "no production durability or production signing claim",
-      "provider and central Wallet integration pending"
+      "central Wallet source integration accepted; public Gateway deployment pending"
     ],
     "mustNotState": [
       "production object storage",
