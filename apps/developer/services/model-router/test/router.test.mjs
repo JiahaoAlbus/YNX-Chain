@@ -69,3 +69,43 @@ test("queue is bounded and invalid providers and credentials fail closed", async
   release();
   await Promise.all([first, second]);
 });
+
+test("client cancellation removes queued work and releases running capacity", async () => {
+  let releaseFirst;
+  const firstGate = new Promise((resolve) => { releaseFirst = resolve; });
+  let calls = 0;
+  const router = createModelRouter({
+    hostedBaseURL: "http://127.0.0.1:18111/ai-build",
+    maxConcurrent: 1,
+    maxQueued: 2,
+    fetchImpl: async (_url, init) => {
+      calls += 1;
+      if (calls === 1) {
+        await firstGate;
+        return new Response('data: {"text":"first"}\n\n', { status: 200 });
+      }
+      return new Promise((_resolve, reject) => {
+        init.signal.addEventListener("abort", () => reject(init.signal.reason), { once: true });
+      });
+    },
+  });
+
+  const first = router.generate({ provider: "ynx-hosted", prompt: "first prompt" });
+  const queuedController = new AbortController();
+  const queued = router.generate({ provider: "ynx-hosted", prompt: "queued prompt", signal: queuedController.signal });
+  assert.equal(router.catalog().queued, 1);
+  queuedController.abort();
+  await assert.rejects(queued, (error) => error.code === "model_request_cancelled" && error.status === 499);
+  assert.equal(router.catalog().queued, 0);
+
+  releaseFirst();
+  await first;
+  const runningController = new AbortController();
+  const running = router.generate({ provider: "ynx-hosted", prompt: "running prompt", signal: runningController.signal });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(router.catalog().active, 1);
+  runningController.abort();
+  await assert.rejects(running, (error) => error.code === "model_request_cancelled" && error.status === 499);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(router.catalog().active, 0);
+});

@@ -594,9 +594,16 @@ export async function agentAction(runId: string, body: Record<string, unknown>):
 }
 async function agentFetch(path: string, init: RequestInit = {}): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = init.method && init.method !== "GET"
-      ? await fetch(path, { credentials: "same-origin", ...init })
-      : await boundedReadFetch(path, init);
+    let response: Response;
+    try {
+      response = init.method && init.method !== "GET"
+        ? await fetch(path, { credentials: "same-origin", ...init })
+        : await boundedReadFetch(path, init);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError")
+        throw new Error("AI request was cancelled.");
+      throw new Error("AI service connection was interrupted. Your request was not automatically retried; retry it manually.");
+    }
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;

@@ -99,12 +99,24 @@ export function createModelRouter({
 
   function generate(request) {
     const input = validateRequest(request);
+    if (input.signal?.aborted)
+      return Promise.reject(abortedFault());
     if (active >= maxConcurrent && queue.length >= maxQueued)
       return Promise.reject(
         fault("AI capacity is full. Retry shortly.", "model_queue_full", 503),
       );
     return new Promise((resolve, reject) => {
-      queue.push({ input, resolve, reject });
+      const task = { input, resolve, reject, onAbort: null };
+      if (input.signal) {
+        task.onAbort = () => {
+          const index = queue.indexOf(task);
+          if (index < 0) return;
+          queue.splice(index, 1);
+          reject(abortedFault());
+        };
+        input.signal.addEventListener("abort", task.onAbort, { once: true });
+      }
+      queue.push(task);
       pump();
     });
   }
@@ -112,6 +124,12 @@ export function createModelRouter({
   function pump() {
     while (active < maxConcurrent && queue.length) {
       const task = queue.shift();
+      if (task.onAbort)
+        task.input.signal.removeEventListener("abort", task.onAbort);
+      if (task.input.signal?.aborted) {
+        task.reject(abortedFault());
+        continue;
+      }
       active += 1;
       run(task.input)
         .then(task.resolve, task.reject)
@@ -140,22 +158,27 @@ export function createModelRouter({
   }
 
   async function hosted(input) {
-    const response = await fetchImpl(`${stripSlash(hostedBaseURL)}/ai/stream`, {
-      method: "POST",
-      headers: {
-        accept: "text/event-stream",
-        "content-type": "application/json",
-        "x-ynx-ai-provider": "ynx-local",
-      },
-      body: JSON.stringify({
-        prompt: `${input.system}\n\n${input.prompt}`,
-        outputLanguage: input.outputLanguage,
-        attachments: [],
-        maxOutputTokens: input.maxOutputTokens,
-        responseFormat: input.responseFormat,
-      }),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
+    let response;
+    try {
+      response = await fetchImpl(`${stripSlash(hostedBaseURL)}/ai/stream`, {
+        method: "POST",
+        headers: {
+          accept: "text/event-stream",
+          "content-type": "application/json",
+          "x-ynx-ai-provider": "ynx-local",
+        },
+        body: JSON.stringify({
+          prompt: `${input.system}\n\n${input.prompt}`,
+          outputLanguage: input.outputLanguage,
+          attachments: [],
+          maxOutputTokens: input.maxOutputTokens,
+          responseFormat: input.responseFormat,
+        }),
+        signal: combinedSignal(input.signal, timeoutMs),
+      });
+    } catch (error) {
+      throw modelConnectionFault(error, input.signal, "YNX hosted model");
+    }
     if (!response.ok)
       throw upstreamFault(response.status, "YNX hosted model");
     const raw = await response.text();
@@ -179,10 +202,10 @@ export function createModelRouter({
         method: "POST",
         headers: request.headers,
         body: JSON.stringify(request.body),
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: combinedSignal(input.signal, timeoutMs),
       });
-    } catch {
-      throw fault("Model provider connection failed.", "provider_unavailable", 502);
+    } catch (error) {
+      throw modelConnectionFault(error, input.signal, "Model provider");
     }
     const value = await response.json().catch(() => ({}));
     if (!response.ok) throw upstreamFault(response.status, spec.label);
@@ -234,7 +257,29 @@ function validateRequest(value) {
       : "en",
     maxOutputTokens: Math.max(128, Math.min(Number(value.maxOutputTokens || 2048), 8192)),
     responseFormat: value.responseFormat === "json" ? "json" : undefined,
+    signal: isAbortSignal(value.signal) ? value.signal : undefined,
   };
+}
+
+function isAbortSignal(value) {
+  return value && typeof value === "object" && typeof value.aborted === "boolean" &&
+    typeof value.addEventListener === "function";
+}
+
+function combinedSignal(signal, timeoutMs) {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
+}
+
+function modelConnectionFault(error, signal, label) {
+  if (signal?.aborted) return abortedFault();
+  if (error?.name === "TimeoutError" || error?.name === "AbortError")
+    return fault(`${label} timed out. Try again or choose a request-only provider.`, "model_timeout", 504);
+  return fault(`${label} connection failed.`, "provider_unavailable", 502);
+}
+
+function abortedFault() {
+  return fault("AI request was cancelled after the client disconnected.", "model_request_cancelled", 499);
 }
 
 function providerRequest(provider, spec, input) {

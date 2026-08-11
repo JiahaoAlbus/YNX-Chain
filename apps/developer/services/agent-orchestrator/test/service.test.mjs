@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { createServer } from "node:http";
+import { createServer, request as httpRequest } from "node:http";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -39,4 +39,23 @@ test("agent refuses write without approval, stale revision, and cross-owner read
   const root=await mkdtemp(join(tmpdir(),"ynx-agent-boundary-")), store=createWorkspaceStore({filename:join(root,"workspaces.sqlite")}); store.put("a","p",{expectedRevision:0,idempotencyKey:"initial-project",payload:{name:"P",files:{"a.ts":"x"},folders:[],open:["a.ts"],active:"a.ts"}});
   const answers=[JSON.stringify({summary:"Plan",steps:[{title:"Edit",acceptance:"Done"}],contextPaths:["a.ts"]}),JSON.stringify({summary:"Patch",edits:[{path:"a.ts",expectedDigest:createHash("sha256").update("x").digest("hex"),replacements:[{find:"x",replace:"y"}]}]}),JSON.stringify({approved:true,summary:"Approved",findings:[]})], agent=createAgentOrchestrator({filename:join(root,"agent.sqlite"),ownerForRequest:req=>req.headers["x-owner"]||null,workspaceStore:store,modelRouter:{generate:async()=>({provider:"ynx-hosted",model:"qwen",text:answers.shift()})}}), server=createServer(async(req,res)=>{if(await agent.handler(req,res))return;res.writeHead(404).end()}); await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));t.after(async()=>{await new Promise(resolve=>server.close(resolve));agent.close();store.close()});
   const base=`http://127.0.0.1:${server.address().port}`, post=(path,body,owner="a")=>fetch(`${base}${path}`,{method:"POST",headers:{"x-owner":owner,"content-type":"application/json"},body:JSON.stringify({protocolVersion:"ynx-code-agent/v1",...body})});let value=await (await post("/runtime/agent/runs",{projectId:"p",intent:"Make a safe change"})).json(),id=value.run.runId;await post(`/runtime/agent/runs/${id}`,{action:"approve-plan"});await post(`/runtime/agent/runs/${id}`,{action:"approve-context",paths:["a.ts"]});await post(`/runtime/agent/runs/${id}`,{action:"generate-proposal"});let denied=await post(`/runtime/agent/runs/${id}`,{action:"apply"});assert.equal(denied.status,403);let hidden=await fetch(`${base}/runtime/agent/runs/${id}`,{headers:{"x-owner":"b"}});assert.equal(hidden.status,404);
+});
+
+test("agent disconnect cancels the in-flight Planner model request", async (t)=>{
+  const root=await mkdtemp(join(tmpdir(),"ynx-agent-abort-")),store=createWorkspaceStore({filename:join(root,"workspaces.sqlite")});
+  store.put("owner","project",{expectedRevision:0,idempotencyKey:"initial-project-workspace",payload:{name:"P",files:{"main.cpp":"int main(){}\n"},folders:[],open:["main.cpp"],active:"main.cpp"}});
+  let modelSignal,modelStarted;
+  const started=new Promise(resolve=>{modelStarted=resolve});
+  const agent=createAgentOrchestrator({filename:join(root,"agent.sqlite"),ownerForRequest:req=>req.headers["x-owner"]||null,workspaceStore:store,modelRouter:{generate:input=>{modelSignal=input.signal;modelStarted();return new Promise((_resolve,reject)=>input.signal.addEventListener("abort",()=>reject(Object.assign(new Error("cancelled"),{code:"model_request_cancelled",status:499})),{once:true}))}}});
+  const server=createServer(async(req,res)=>{if(await agent.handler(req,res))return;res.writeHead(404).end()});
+  await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
+  t.after(async()=>{await new Promise(resolve=>server.close(resolve));agent.close();store.close()});
+  const payload=JSON.stringify({protocolVersion:"ynx-code-agent/v1",projectId:"project",intent:"Create a reviewed plan"});
+  const client=httpRequest({host:"127.0.0.1",port:server.address().port,path:"/runtime/agent/runs",method:"POST",headers:{"x-owner":"owner","content-type":"application/json","content-length":Buffer.byteLength(payload)}});
+  client.on("error",()=>{});client.end(payload);
+  await started;
+  assert.equal(modelSignal.aborted,false);
+  client.destroy();
+  for(let attempt=0;attempt<20&&!modelSignal.aborted;attempt++)await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(modelSignal.aborted,true);
 });

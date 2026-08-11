@@ -182,13 +182,15 @@ function validatedAIPrompt(body) {
 
 async function scheduleLocalAI(request, response, body) {
   if (activeLocalAI >= MAX_ACTIVE_LOCAL_AI && localAIQueue.length >= MAX_QUEUED_LOCAL_AI) { json(response, 503, { error: "Local AI queue is full. Retry shortly." }, { "retry-after": "5" }); return; }
-  const controller = new AbortController(); const abort = () => controller.abort(); request.once("aborted", abort); response.once("close", abort);
-  await new Promise((resolve) => { localAIQueue.push({ request, response, body, controller, resolve }); pumpLocalAIQueue(); });
+  const controller = new AbortController(); const abort = () => controller.abort(); request.once("aborted", abort); response.once("close", () => { if (!response.writableEnded) abort(); });
+  await new Promise((resolve) => { const task={ request, response, body, controller, resolve, abortQueued:null }; task.abortQueued=()=>{const index=localAIQueue.indexOf(task);if(index<0)return;localAIQueue.splice(index,1);resolve();};controller.signal.addEventListener("abort",task.abortQueued,{once:true});if(controller.signal.aborted){resolve();return;}localAIQueue.push(task);pumpLocalAIQueue(); });
 }
 
 function pumpLocalAIQueue() {
   while (activeLocalAI < MAX_ACTIVE_LOCAL_AI && localAIQueue.length) {
     const task = localAIQueue.shift(); activeLocalAI += 1;
+    task.controller.signal.removeEventListener("abort",task.abortQueued);
+    if(task.controller.signal.aborted){activeLocalAI-=1;task.resolve();continue;}
     runLocalAI(task.response, task.body, task.controller.signal).catch((error) => { if (task.controller.signal.aborted) return; if (!task.response.headersSent) json(task.response, error.status || 502, { error: error.message || "Local model failed." }); else task.response.end(); }).finally(() => { activeLocalAI -= 1; task.resolve(); pumpLocalAIQueue(); });
   }
 }
