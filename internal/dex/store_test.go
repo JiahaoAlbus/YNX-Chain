@@ -126,6 +126,27 @@ func TestStorePricesFeesAndTWAPUseOnlyRawIndexedAmounts(t *testing.T) {
 	}
 }
 
+func TestCandlesAggregateOnlyConfirmedSwapOHLCAndRawVolumes(t *testing.T) {
+	store, _ := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
+	base := time.Now().UTC().Add(-10 * time.Minute).Truncate(time.Minute)
+	first, second, third := fixture(11, "swap"), fixture(12, "swap"), fixture(13, "swap")
+	first.Timestamp, first.Amount0, first.Amount1 = base.Add(5*time.Second), "100", "200"
+	second.Timestamp, second.Amount0, second.Amount1 = base.Add(30*time.Second), "100", "300"
+	third.Timestamp, third.Amount0, third.Amount1 = base.Add(65*time.Second), "200", "300"
+	for _, event := range []Event{first, second, third} {
+		if _, err := store.Append(event); err != nil {
+			t.Fatal(err)
+		}
+	}
+	candles := store.Candles(first.Pool, 60, 10)
+	if len(candles) != 2 || candles[0].Open != "2" || candles[0].High != "3" || candles[0].Low != "2" || candles[0].Close != "3" || candles[0].Volume0 != "200" || candles[0].Volume1 != "500" || candles[0].Trades != 2 || candles[1].Close != "1.5" {
+		t.Fatalf("confirmed swap candles are incorrect: %+v", candles)
+	}
+	if limited := store.Candles(first.Pool, 60, 1); len(limited) != 1 || limited[0].OpenedAt != candles[1].OpenedAt {
+		t.Fatalf("candle limit did not keep the newest interval: %+v", limited)
+	}
+}
+
 type allowSession struct{}
 
 func (allowSession) Authorize(_ context.Context, proof string, scopes []string) (string, error) {
@@ -195,6 +216,18 @@ func TestServerStrictSchemaAuthAndTruthfulSources(t *testing.T) {
 		if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), source) {
 			t.Fatalf("%s %d %s", path, response.Code, response.Body.String())
 		}
+	}
+	request = httptest.NewRequest(http.MethodGet, "/v1/candles?pool=0x0000000000000000000000000000000000000011&interval=60&limit=200", nil)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), "confirmed swap events") {
+		t.Fatalf("candles %d %s", response.Code, response.Body.String())
+	}
+	request = httptest.NewRequest(http.MethodGet, "/v1/candles?pool=bad&interval=7", nil)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("invalid candles query was accepted: %d", response.Code)
 	}
 }
 

@@ -6,5 +6,6 @@ export type Analytics = { source:string; indexedEvents:number; pools:number; swa
 export type SpotPrice = { pool:string;token0:string;token1:string;price0Numerator:string;price0Denominator:string;price1Numerator:string;price1Denominator:string;updatedBlock:number };
 export type TWAP = { pool:string;token0:string;token1:string;price0AverageX112:string;price1AverageX112:string;intervalSeconds:number;fromBlock:number;toBlock:number };
 export type FeeSummary = { pool:string;token0:string;token1:string;swapFee0:string;swapFee1:string;claimedFee0:string;claimedFee1:string };
+export type Candle = { pool:string;token0:string;token1:string;intervalSeconds:number;openedAt:string;open:string;high:string;low:string;close:string;volume0:string;volume1:string;trades:number };
 export type Loadable<T> = { state:"loading" } | { state:"ready"; data:T; stale:boolean } | { state:"error"; message:string };
 export type Locale = "en"|"zh-CN"|"zh-TW"|"ja"|"ko"|"es"|"fr"|"de"|"pt"|"ru"|"ar"|"id";

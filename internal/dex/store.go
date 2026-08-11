@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -281,6 +282,72 @@ func (store *Store) Fees() []FeeSummary {
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].Pool < result[j].Pool })
 	return result
+}
+
+func (store *Store) Candles(pool string, interval uint64, limit int) []Candle {
+	if interval == 0 || limit <= 0 {
+		return []Candle{}
+	}
+	type aggregate struct {
+		pool, token0, token1   string
+		bucket                 int64
+		open, high, low, close *big.Rat
+		volume0, volume1       *big.Int
+		trades                 uint64
+	}
+	byBucket := map[int64]*aggregate{}
+	for _, event := range store.Events() {
+		if event.Type != "swap" || (pool != "" && event.Pool != pool) {
+			continue
+		}
+		amount0, ok0 := new(big.Int).SetString(event.Amount0, 10)
+		amount1, ok1 := new(big.Int).SetString(event.Amount1, 10)
+		if !ok0 || !ok1 || amount0.Sign() == 0 || amount1.Sign() == 0 {
+			continue
+		}
+		amount0.Abs(amount0)
+		amount1.Abs(amount1)
+		price := new(big.Rat).SetFrac(new(big.Int).Set(amount1), new(big.Int).Set(amount0))
+		bucket := event.Timestamp.Unix() / int64(interval) * int64(interval)
+		item := byBucket[bucket]
+		if item == nil {
+			item = &aggregate{pool: event.Pool, token0: event.Token0, token1: event.Token1, bucket: bucket, open: new(big.Rat).Set(price), high: new(big.Rat).Set(price), low: new(big.Rat).Set(price), close: new(big.Rat).Set(price), volume0: new(big.Int), volume1: new(big.Int)}
+			byBucket[bucket] = item
+		}
+		if price.Cmp(item.high) > 0 {
+			item.high.Set(price)
+		}
+		if price.Cmp(item.low) < 0 {
+			item.low.Set(price)
+		}
+		item.close.Set(price)
+		item.volume0.Add(item.volume0, amount0)
+		item.volume1.Add(item.volume1, amount1)
+		item.trades++
+	}
+	buckets := make([]int64, 0, len(byBucket))
+	for bucket := range byBucket {
+		buckets = append(buckets, bucket)
+	}
+	sort.Slice(buckets, func(i, j int) bool { return buckets[i] < buckets[j] })
+	if len(buckets) > limit {
+		buckets = buckets[len(buckets)-limit:]
+	}
+	result := make([]Candle, 0, len(buckets))
+	for _, bucket := range buckets {
+		item := byBucket[bucket]
+		result = append(result, Candle{Pool: item.pool, Token0: item.token0, Token1: item.token1, IntervalSec: interval, OpenedAt: time.Unix(bucket, 0).UTC().Format(time.RFC3339), Open: decimalRat(item.open), High: decimalRat(item.high), Low: decimalRat(item.low), Close: decimalRat(item.close), Volume0: item.volume0.String(), Volume1: item.volume1.String(), Trades: item.trades})
+	}
+	return result
+}
+
+func decimalRat(value *big.Rat) string {
+	formatted := value.FloatString(18)
+	formatted = strings.TrimRight(strings.TrimRight(formatted, "0"), ".")
+	if formatted == "" {
+		return "0"
+	}
+	return formatted
 }
 
 func (store *Store) persist(payload storePayload) error {

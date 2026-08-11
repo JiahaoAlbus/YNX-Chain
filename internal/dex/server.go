@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -151,6 +152,7 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/prices", server.prices)
 	mux.HandleFunc("GET /v1/twap", server.twap)
 	mux.HandleFunc("GET /v1/fees", server.fees)
+	mux.HandleFunc("GET /v1/candles", server.candles)
 	mux.HandleFunc("GET /v1/account/positions", server.positions)
 	mux.HandleFunc("POST /internal/v1/events", server.ingest)
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
@@ -192,6 +194,37 @@ func (server *Server) twap(response http.ResponseWriter, _ *http.Request) {
 }
 func (server *Server) fees(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.Fees(), "source": "indexed raw token fee amounts"})
+}
+func (server *Server) candles(response http.ResponseWriter, request *http.Request) {
+	pool := strings.TrimSpace(request.URL.Query().Get("pool"))
+	if !addressPattern.MatchString(pool) && !nativePoolPattern.MatchString(pool) {
+		writeError(response, http.StatusBadRequest, "valid pool is required")
+		return
+	}
+	interval, err := strconv.ParseUint(request.URL.Query().Get("interval"), 10, 64)
+	if err != nil || !allowedCandleInterval(interval) {
+		writeError(response, http.StatusBadRequest, "interval must be 60, 300, 900, 3600, 14400, or 86400 seconds")
+		return
+	}
+	limit := 200
+	if raw := request.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > 500 {
+			writeError(response, http.StatusBadRequest, "limit must be 1..500")
+			return
+		}
+		limit = parsed
+	}
+	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.Candles(pool, interval, limit), "pool": pool, "intervalSeconds": interval, "source": "OHLC and raw volumes aggregated only from confirmed swap events"})
+}
+
+func allowedCandleInterval(value uint64) bool {
+	switch value {
+	case 60, 300, 900, 3600, 14400, 86400:
+		return true
+	default:
+		return false
+	}
 }
 
 func (server *Server) events(types ...string) http.HandlerFunc {

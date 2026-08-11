@@ -178,6 +178,21 @@ type FeeSummary struct {
 	ClaimedFee1 string `json:"claimedFee1"`
 }
 
+type Candle struct {
+	Pool        string `json:"pool"`
+	Token0      string `json:"token0"`
+	Token1      string `json:"token1"`
+	IntervalSec uint64 `json:"intervalSeconds"`
+	OpenedAt    string `json:"openedAt"`
+	Open        string `json:"open"`
+	High        string `json:"high"`
+	Low         string `json:"low"`
+	Close       string `json:"close"`
+	Volume0     string `json:"volume0"`
+	Volume1     string `json:"volume1"`
+	Trades      uint64 `json:"trades"`
+}
+
 func (token Token) Validate() error {
 	if token.ChainID != ChainID {
 		return errors.New("invalid token chain or address")

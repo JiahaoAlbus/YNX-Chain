@@ -1,4 +1,4 @@
-import type { Analytics, ChainEvent, FeeSummary, Pool, Position, SpotPrice, Token, TWAP } from "./types";
+import type { Analytics, Candle, ChainEvent, FeeSummary, Pool, Position, SpotPrice, Token, TWAP } from "./types";
 const BASE = (import.meta.env.VITE_DEX_API_URL || "").replace(/\/$/, "");
 
 async function request<T>(path:string, signal?:AbortSignal, headers:Record<string,string>={}):Promise<T> {
@@ -14,5 +14,6 @@ export const dexApi = {
   prices:(signal?:AbortSignal)=>request<{items:SpotPrice[];source:string}>("/v1/prices",signal),
   twap:(signal?:AbortSignal)=>request<{items:TWAP[];source:string}>("/v1/twap",signal),
   fees:(signal?:AbortSignal)=>request<{items:FeeSummary[];source:string}>("/v1/fees",signal),
+	candles:(pool:string,interval=60,signal?:AbortSignal)=>request<{items:Candle[];source:string}>(`/v1/candles?pool=${encodeURIComponent(pool)}&interval=${interval}&limit=200`,signal),
   positions:(productSessionProof:string,signal?:AbortSignal)=>request<{items:Position[];account:string}>("/v1/account/positions",signal,{"X-YNX-Product-Session-Proof":productSessionProof}),
 };
