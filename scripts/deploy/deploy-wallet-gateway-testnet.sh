@@ -21,7 +21,7 @@ fi
 source_commit="$(git rev-parse HEAD)"
 short_commit="${source_commit:0:12}"
 release="ynx-wallet-gateway-$short_commit"
-build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+build_time="$(node -e 'process.stdout.write(new Date().toISOString())')"
 work="$(mktemp -d "${TMPDIR:-/tmp}/ynx-wallet-gateway-testnet.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 release_root="$work/$release"

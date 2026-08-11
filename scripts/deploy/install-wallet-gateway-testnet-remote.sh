@@ -10,7 +10,7 @@ registry_sha="${5:?missing registry digest}"
 [[ "$(id -u)" == "0" ]] || { echo "Wallet Gateway installer must run as root" >&2; exit 1; }
 [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]] || { echo "source commit must be a full lowercase Git SHA" >&2; exit 1; }
 [[ "$release" == "ynx-wallet-gateway-${source_commit:0:12}" ]] || { echo "release does not match source commit" >&2; exit 1; }
-[[ "$build_time" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || { echo "build time must be canonical UTC" >&2; exit 1; }
+[[ "$build_time" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$ ]] || { echo "build time must be canonical UTC" >&2; exit 1; }
 [[ "$registry_sha" =~ ^[0-9a-f]{64}$ ]] || { echo "registry digest is invalid" >&2; exit 1; }
 [[ -d "$release_dir" && ! -L "$release_dir" ]] || { echo "release directory is missing or unsafe" >&2; exit 1; }
 command -v curl >/dev/null
