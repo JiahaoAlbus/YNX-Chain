@@ -74,4 +74,6 @@ nav button{color:#c6cad1}
 nav button.active{background:#1e2b4d;color:#9fbcff}
 .thumb{background:#23262d}
 .skeleton{background:linear-gradient(100deg,#24272e 20%,#30343c 45%,#24272e 70%);background-size:200% 100%}
+.outline,.wallet-option.outline{color:#b7caff;border-color:#567ee8;background:#17191e}
+.wallet-details{color:#b7caff}
 }

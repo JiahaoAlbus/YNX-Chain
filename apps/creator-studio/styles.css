@@ -66,4 +66,6 @@ nav button{color:#c7cbd2}
 nav button.active{background:#1e2b4d;color:#a9c2ff}
 .state{background:#202b43;color:#b8cbff}
 input,textarea,select{border-color:#555c68}
+.wallet-actions .secondary{color:#b7caff;border-color:#567ee8;background:#17191e}
+.wallet-actions a{color:#b7caff}
 }
