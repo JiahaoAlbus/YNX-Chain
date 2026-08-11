@@ -2,6 +2,8 @@ package dex
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -138,6 +140,13 @@ func (poller *NativePoller) PollOnce(ctx context.Context) (bool, error) {
 		}
 		advanced = advanced || created
 	}
+	for _, pool := range poolEnvelope.Items {
+		created, err := poller.store.Append(nativePoolSyncEvent(pool))
+		if err != nil {
+			return false, fmt.Errorf("append native DEX pool sync %s: %w", pool.ID, err)
+		}
+		advanced = advanced || created
+	}
 	return advanced, nil
 }
 
@@ -181,10 +190,39 @@ func nativeIndexedEvent(value nativeEvent, pool nativePool, logIndex uint64) (Ev
 		Amount0: strconv.FormatInt(amount0, 10), Amount1: strconv.FormatInt(amount1, 10), LPAmount: strconv.FormatInt(value.Shares, 10),
 		Fee0: strconv.FormatInt(fee0, 10), Fee1: strconv.FormatInt(fee1, 10), FeeBps: pool.FeeBps, Timestamp: value.OccurredAt,
 	}
-	if value.TxHash == pool.TxHash && value.BlockHeight == pool.BlockHeight {
-		event.Reserve0, event.Reserve1 = strconv.FormatInt(pool.Reserve0, 10), strconv.FormatInt(pool.Reserve1, 10)
+	// Historical events must not depend on the mutable current pool snapshot.
+	// Pool creation retains a canonical zero snapshot for compatibility with
+	// already persisted native events. Current reserves use a separate sync.
+	if typeName == "pool-created" {
+		event.Reserve0, event.Reserve1 = "0", "0"
 	}
 	return event, true
+}
+
+func nativePoolSyncEvent(pool nativePool) Event {
+	digest := sha256.Sum256([]byte(pool.ID))
+	return Event{
+		ID:              "native-sync:" + pool.ID + ":" + strings.TrimPrefix(pool.TxHash, "0x"),
+		ChainID:         ChainID,
+		ContractVersion: "ynx-native-dex-cpmm-v1",
+		BlockNumber:     pool.BlockHeight,
+		BlockHash:       pool.BlockHash,
+		TxHash:          pool.TxHash,
+		LogIndex:        (uint64(1) << 63) | (binary.BigEndian.Uint64(digest[:8]) >> 1),
+		Type:            "sync",
+		Pool:            pool.ID,
+		Token0:          pool.Asset0,
+		Token1:          pool.Asset1,
+		Amount0:         "0",
+		Amount1:         "0",
+		LPAmount:        "0",
+		Fee0:            "0",
+		Fee1:            "0",
+		FeeBps:          pool.FeeBps,
+		Reserve0:        strconv.FormatInt(pool.Reserve0, 10),
+		Reserve1:        strconv.FormatInt(pool.Reserve1, 10),
+		Timestamp:       pool.UpdatedAt,
+	}
 }
 
 func (poller *NativePoller) get(ctx context.Context, path string, output any) error {
