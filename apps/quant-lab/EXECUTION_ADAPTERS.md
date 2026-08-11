@@ -67,7 +67,7 @@ read, submit, reconcile and kill. Every order has an independent
 
 Remote broker calls run outside the persistent state lock. Quant first commits
 an idempotent `reserved_outcome_unknown` record, then calls Exchange, and only
-marks the order `submitted_testnet` after a fully bound authoritative response.
+marks the local workflow `submitted_testnet` only after a fully bound authoritative response and preserves the Exchange order ID, venue status (`open`, `partially_filled`, or `filled`) and authorization digest separately.
 Concurrent users therefore do not serialize behind a slow venue request, while
 same-key retries cannot create a duplicate order.
 

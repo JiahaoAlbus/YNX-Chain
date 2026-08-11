@@ -136,30 +136,31 @@ func (a HTTPExchangeAdapter) VerifyMandate(ctx context.Context, mandate Mandate,
 	return nil
 }
 
-func (a HTTPExchangeAdapter) SubmitTestnet(ctx context.Context, mandate Mandate, order TestnetOrder, productSessionProof string) (string, error) {
+func (a HTTPExchangeAdapter) SubmitTestnet(ctx context.Context, mandate Mandate, order TestnetOrder, productSessionProof string) (TestnetExecutionReceipt, error) {
 	request := exchangeOrderRequest{
 		Market: order.Market, Side: order.Side, Type: "limit", TimeInForce: "gtc",
 		PriceMicro: order.Price, AmountMicro: order.Amount, IdempotencyKey: order.IdempotencyKey,
 		WalletSignature: strings.TrimSpace(order.WalletSignature),
 	}
 	if request.WalletSignature == "" {
-		return "", ErrForbidden
+		return TestnetExecutionReceipt{}, ErrForbidden
 	}
 	var submitted exchangeOrderResponse
 	if err := a.post(ctx, "/v1/quant-adapter/orders", productSessionProof, map[string]any{"mandate": toExchangeMandate(mandate), "order": request}, &submitted); err != nil {
-		return "", err
+		return TestnetExecutionReceipt{}, err
 	}
 	if submitted.ID == "" || submitted.Account != mandate.Account || submitted.Market != order.Market || submitted.Side != order.Side ||
 		submitted.PriceMicro != order.Price || submitted.AmountMicro != order.Amount || submitted.QuantNonceDomain != mandate.NonceDomain ||
 		!submitted.WalletAuthorized || len(submitted.AuthorizationDigest) != sha256.Size*2 || (submitted.Status != "open" && submitted.Status != "filled" && submitted.Status != "partially_filled") {
-		return "", ErrUnavailable
+		return TestnetExecutionReceipt{}, ErrUnavailable
 	}
 	if _, err := hex.DecodeString(submitted.AuthorizationDigest); err != nil {
-		return "", ErrUnavailable
+		return TestnetExecutionReceipt{}, ErrUnavailable
 	}
-	return hash(struct {
+	proof := hash(struct {
 		Source, OrderID, AuthorizationDigest, Status string
-	}{"ynx-exchange", submitted.ID, submitted.AuthorizationDigest, submitted.Status}), nil
+	}{"ynx-exchange", submitted.ID, submitted.AuthorizationDigest, submitted.Status})
+	return TestnetExecutionReceipt{BrokerProof: proof, VenueOrderID: submitted.ID, VenueStatus: submitted.Status, AuthorizationDigest: submitted.AuthorizationDigest}, nil
 }
 
 func (a HTTPExchangeAdapter) post(ctx context.Context, path, productSessionProof string, body, result any) error {

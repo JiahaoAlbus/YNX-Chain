@@ -57,7 +57,14 @@ type MandateVerifier interface {
 	VerifyMandate(context.Context, Mandate, string) error
 }
 type TestnetBroker interface {
-	SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (string, error)
+	SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (TestnetExecutionReceipt, error)
+}
+
+type TestnetExecutionReceipt struct {
+	BrokerProof         string `json:"brokerProof"`
+	VenueOrderID        string `json:"venueOrderId"`
+	VenueStatus         string `json:"venueStatus"`
+	AuthorizationDigest string `json:"authorizationDigest"`
 }
 type WalletSessionCompleter interface {
 	CompleteWalletSession(context.Context, []byte) ([]byte, int, error)
@@ -216,18 +223,21 @@ type TestnetRiskObservation struct {
 }
 
 type TestnetOrder struct {
-	ID              string    `json:"id"`
-	MandateDigest   string    `json:"mandateDigest"`
-	StrategyHash    string    `json:"strategyHash"`
-	Market          string    `json:"market"`
-	Side            string    `json:"side"`
-	Price           int64     `json:"price"`
-	Amount          int64     `json:"amount"`
-	IdempotencyKey  string    `json:"idempotencyKey"`
-	WalletSignature string    `json:"walletSignature,omitempty"`
-	BrokerProof     string    `json:"brokerProof"`
-	Status          string    `json:"status"`
-	CreatedAt       time.Time `json:"createdAt"`
+	ID                  string    `json:"id"`
+	MandateDigest       string    `json:"mandateDigest"`
+	StrategyHash        string    `json:"strategyHash"`
+	Market              string    `json:"market"`
+	Side                string    `json:"side"`
+	Price               int64     `json:"price"`
+	Amount              int64     `json:"amount"`
+	IdempotencyKey      string    `json:"idempotencyKey"`
+	WalletSignature     string    `json:"walletSignature,omitempty"`
+	BrokerProof         string    `json:"brokerProof"`
+	VenueOrderID        string    `json:"venueOrderId"`
+	VenueStatus         string    `json:"venueStatus"`
+	AuthorizationDigest string    `json:"authorizationDigest"`
+	Status              string    `json:"status"`
+	CreatedAt           time.Time `json:"createdAt"`
 }
 type PaperOrder struct {
 	ID, StrategyHash, Side, Status, Source string
@@ -571,12 +581,18 @@ func (s *Service) SubmitTestnetWithSession(ctx context.Context, mandateDigest, s
 	}
 	unlock()
 
-	proof, err := s.cfg.TestnetBroker.SubmitTestnet(ctx, m, o, exchangeSession)
+	receipt, err := s.cfg.TestnetBroker.SubmitTestnet(ctx, m, o, exchangeSession)
 	if err != nil {
 		return TestnetOrder{}, ErrUnavailable
 	}
-	o.BrokerProof = strings.TrimSpace(proof)
-	if o.BrokerProof == "" {
+	o.BrokerProof = strings.TrimSpace(receipt.BrokerProof)
+	o.VenueOrderID = strings.TrimSpace(receipt.VenueOrderID)
+	o.VenueStatus = strings.TrimSpace(receipt.VenueStatus)
+	o.AuthorizationDigest = strings.TrimSpace(receipt.AuthorizationDigest)
+	if o.BrokerProof == "" || o.VenueOrderID == "" || (o.VenueStatus != "open" && o.VenueStatus != "partially_filled" && o.VenueStatus != "filled") || len(o.AuthorizationDigest) != sha256.Size*2 {
+		return TestnetOrder{}, ErrUnavailable
+	}
+	if _, err := hex.DecodeString(o.AuthorizationDigest); err != nil {
 		return TestnetOrder{}, ErrUnavailable
 	}
 	s.mu.Lock()

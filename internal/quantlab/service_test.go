@@ -23,8 +23,8 @@ func (allowMandate) VerifyMandate(_ context.Context, m Mandate, _ string) error 
 
 type testBroker struct{}
 
-func (testBroker) SubmitTestnet(_ context.Context, _ Mandate, o TestnetOrder, _ string) (string, error) {
-	return "committed-ynx-testnet-proof", nil
+func (testBroker) SubmitTestnet(_ context.Context, _ Mandate, o TestnetOrder, _ string) (TestnetExecutionReceipt, error) {
+	return TestnetExecutionReceipt{BrokerProof: "committed-ynx-testnet-proof", VenueOrderID: "exchange-order-1", VenueStatus: "open", AuthorizationDigest: strings.Repeat("a", 64)}, nil
 }
 
 func validMandate(now time.Time, strategyHash string) Mandate {
@@ -157,7 +157,7 @@ func TestBoundedWalletMandateReplayExpiryLimitAndBrokerProof(t *testing.T) {
 		t.Fatalf("replay=%v", e)
 	}
 	o, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1", validRisk(now))
-	if e != nil || o.Status != "submitted_testnet" || o.BrokerProof == "" {
+	if e != nil || o.Status != "submitted_testnet" || o.BrokerProof == "" || o.VenueOrderID != "exchange-order-1" || o.VenueStatus != "open" || len(o.AuthorizationDigest) != 64 {
 		t.Fatalf("%+v %v", o, e)
 	}
 	again, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1", validRisk(now))

@@ -98,7 +98,7 @@ and the macOS archive was re-verified from a fresh extraction.
 ## Missing remote evidence
 
 CI run URL, Wallet mandate revoke receipt, an authoritative Exchange fill (the
-current public flow proves only `submitted_testnet`), DEX vault actions,
+current public flow proves only the older `submitted_testnet` build; the local candidate now preserves authoritative Exchange order ID/status/digest and has an isolated real-fill integration test), DEX vault actions,
 Explorer/Finance/Monitor/Trust correlation, registry manifest digest, container
 signing/external vulnerability scan and immutable container/SDK hosting,
 production desktop signing/notarization, Windows host launch, sustained public

@@ -68,9 +68,9 @@ func TestHTTPExchangeAdapterUsesExactMandateAndIndependentOrderSignature(t *test
 	if err := adapter.VerifyMandate(context.Background(), mandate, "one-time-product-session-proof"); err != nil {
 		t.Fatal(err)
 	}
-	proof, err := adapter.SubmitTestnet(context.Background(), mandate, order, "one-time-product-session-proof")
-	if err != nil || len(proof) != 64 || calls.Load() != 2 {
-		t.Fatalf("proof=%q calls=%d err=%v", proof, calls.Load(), err)
+	receipt, err := adapter.SubmitTestnet(context.Background(), mandate, order, "one-time-product-session-proof")
+	if err != nil || len(receipt.BrokerProof) != 64 || receipt.VenueOrderID != "exchange-order-001" || receipt.VenueStatus != "open" || calls.Load() != 2 {
+		t.Fatalf("receipt=%+v calls=%d err=%v", receipt, calls.Load(), err)
 	}
 }
 
@@ -114,14 +114,14 @@ type concurrentBroker struct {
 	release chan struct{}
 }
 
-func (b *concurrentBroker) SubmitTestnet(ctx context.Context, _ Mandate, order TestnetOrder, session string) (string, error) {
+func (b *concurrentBroker) SubmitTestnet(ctx context.Context, _ Mandate, order TestnetOrder, session string) (TestnetExecutionReceipt, error) {
 	b.calls.Add(1)
 	b.entered <- session + ":" + order.IdempotencyKey
 	select {
 	case <-b.release:
-		return "broker-proof-" + order.IdempotencyKey, nil
+		return TestnetExecutionReceipt{BrokerProof: "broker-proof-" + order.IdempotencyKey, VenueOrderID: "venue-" + order.IdempotencyKey, VenueStatus: "open", AuthorizationDigest: strings.Repeat("c", 64)}, nil
 	case <-ctx.Done():
-		return "", ctx.Err()
+		return TestnetExecutionReceipt{}, ctx.Err()
 	}
 }
 
@@ -197,11 +197,11 @@ type blockingBroker struct {
 	once    sync.Once
 }
 
-func (b *blockingBroker) SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (string, error) {
+func (b *blockingBroker) SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (TestnetExecutionReceipt, error) {
 	b.calls.Add(1)
 	b.once.Do(func() { close(b.entered) })
 	<-b.release
-	return "terminal-proof", nil
+	return TestnetExecutionReceipt{BrokerProof: "terminal-proof", VenueOrderID: "terminal-order", VenueStatus: "open", AuthorizationDigest: strings.Repeat("d", 64)}, nil
 }
 
 func TestUnknownOutcomeReservationPreventsDuplicateVenueSubmission(t *testing.T) {

@@ -49,7 +49,7 @@ async function refresh() {
   $("#market-status").className = market.status === "ready" ? "ready" : "warning";
   $("#market-bars").textContent = market.bars || 0;
   $("#run-backtest").disabled = publicMode && market.status !== "ready";
-  if (!publicMode) snapshot = await api("/v1/snapshot");
+  snapshot = await api("/v1/snapshot");
   render();
 }
 function render() {
@@ -83,6 +83,8 @@ function render() {
           `<li><time>${localDate(a.CreatedAt)}</time><strong>${safe(a.Action)} · ${safe(a.ObjectID)}</strong><code>${safe(a.Hash.slice(0, 16))}…</code></li>`,
       )
       .join("") || "<li>No audited actions yet.</li>";
+  const executions=Object.values(snapshot.testnetOrders||{}).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  $("#testnet-execution-rows").innerHTML=executions.length?executions.map((order)=>`<tr><td><code>${safe(order.venueOrderId||"Pending")}</code></td><td>${safe(order.market)}</td><td>${safe(String(order.side||"").toUpperCase())}</td><td>${safe(order.price)}</td><td>${safe(order.amount)}</td><td><strong class="${order.venueStatus==="filled"?"ready":order.venueStatus?"warning":""}">${safe(order.venueStatus||"Outcome pending")}</strong><small>${safe(order.status)}</small></td><td><code>${safe((order.authorizationDigest||"").slice(0,12))}…</code></td></tr>`).join(""):`<tr><td colspan="7">No Wallet-authorized Testnet execution yet.</td></tr>`;
   if (!$("#mandate-strategy").value && strategies.length) {
     $("#mandate-strategy").value = strategies[0].StrategyHash || "";
   }
@@ -316,7 +318,7 @@ $("#kill").onclick = async () => {
   }
 };
 applyLocale();
-window.YNXQuantWallet.takeActionResult().then((result)=>{if(!result)return;if(result.kind==="mandate"&&result.value?.Digest)$("#order-mandate").value=result.value.Digest;toast(result.kind==="mandate"?"Wallet mandate verified by Exchange and registered":"Wallet-authorized order submitted to YNX Testnet");return refresh()}).catch((e)=>toast(e.message));
+window.YNXQuantWallet.takeActionResult().then((result)=>{if(!result)return;if(result.kind==="mandate"&&result.value?.Digest)$("#order-mandate").value=result.value.Digest;const venue=result.value?.venueStatus||result.value?.VenueStatus;toast(result.kind==="mandate"?"Wallet mandate verified by Exchange and registered":venue?`Exchange order ${venue}; authoritative receipt saved`:"Wallet-authorized order submitted to YNX Testnet");return refresh()}).catch((e)=>toast(e.message));
 if (publicMode) {
   ["paper-order", "reconcile", "kill"].forEach((id) => { const control = document.getElementById(id); if (control) control.disabled = true; });
 }
