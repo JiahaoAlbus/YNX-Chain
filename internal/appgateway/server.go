@@ -24,6 +24,8 @@ type Server struct {
 	build   buildinfo.Info
 }
 
+const appGatewayUpstreamTimeout = 30 * time.Second
+
 type upstreamHealth struct {
 	OK             bool           `json:"ok"`
 	Service        string         `json:"service"`
@@ -53,7 +55,7 @@ func NewServer(gateway *Gateway) *Server {
 }
 
 func NewServerWithBuild(gateway *Gateway, build buildinfo.Info) *Server {
-	return &Server{gateway: gateway, client: &http.Client{Timeout: 8 * time.Second}, build: buildinfo.Normalize(build)}
+	return &Server{gateway: gateway, client: &http.Client{Timeout: appGatewayUpstreamTimeout}, build: buildinfo.Normalize(build)}
 }
 
 func (s *Server) Handler() http.Handler {
