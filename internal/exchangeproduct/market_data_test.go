@@ -64,3 +64,61 @@ func TestMarketCandlesEndpointValidatesQueryAndSeparatesVenues(t *testing.T) {
 		t.Fatalf("expected invalid interval to fail, got %d", invalid.StatusCode)
 	}
 }
+
+func TestMarketTradesEndpointBoundsAndSeparatesVenueTapes(t *testing.T) {
+	service, err := New(Config{StatePath: t.TempDir() + "/state.json", APIKey: "test-admin-key-123456", WalletCallback: "ynxexchange://wallet/callback"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := time.Date(2026, 8, 11, 10, 0, 0, 0, time.UTC)
+	for index := 0; index < 4; index++ {
+		service.state.Trades = append(service.state.Trades, Trade{ID: "spot-" + string(rune('a'+index)), Market: DefaultMarket, PriceMicro: int64(index+1) * AmountScale, AmountMicro: AmountScale, CreatedAt: base.Add(time.Duration(index) * time.Second)})
+	}
+	service.state.PerpetualTrades = append(service.state.PerpetualTrades, PerpetualTrade{ID: "perp-a", Market: DefaultPerpetualMarket, PriceMicro: 9 * AmountScale, AmountMicro: 2 * AmountScale, CreatedAt: base})
+	server := httptest.NewServer(NewServer(service))
+	defer server.Close()
+
+	response, err := http.Get(server.URL + "/v1/market-data/trades?market=" + DefaultMarket + "&limit=2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var spot struct {
+		Market string  `json:"market"`
+		Limit  int     `json:"limit"`
+		Trades []Trade `json:"trades"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&spot); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK || spot.Market != DefaultMarket || spot.Limit != 2 || len(spot.Trades) != 2 || spot.Trades[0].ID != "spot-c" || spot.Trades[1].ID != "spot-d" {
+		t.Fatalf("unexpected bounded spot tape: status=%d body=%#v", response.StatusCode, spot)
+	}
+
+	perpetualResponse, err := http.Get(server.URL + "/v1/market-data/trades?market=" + DefaultPerpetualMarket + "&limit=5")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer perpetualResponse.Body.Close()
+	var perpetual struct {
+		Market string           `json:"market"`
+		Trades []PerpetualTrade `json:"trades"`
+	}
+	if err := json.NewDecoder(perpetualResponse.Body).Decode(&perpetual); err != nil {
+		t.Fatal(err)
+	}
+	if perpetualResponse.StatusCode != http.StatusOK || perpetual.Market != DefaultPerpetualMarket || len(perpetual.Trades) != 1 || perpetual.Trades[0].ID != "perp-a" {
+		t.Fatalf("unexpected perpetual tape: status=%d body=%#v", perpetualResponse.StatusCode, perpetual)
+	}
+
+	for _, query := range []string{"?market=BTC-USD", "?limit=0", "?limit=1001", "?limit=not-a-number"} {
+		invalid, err := http.Get(server.URL + "/v1/market-data/trades" + query)
+		if err != nil {
+			t.Fatal(err)
+		}
+		invalid.Body.Close()
+		if invalid.StatusCode != http.StatusBadRequest {
+			t.Fatalf("expected query %q to fail, got %d", query, invalid.StatusCode)
+		}
+	}
+}

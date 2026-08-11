@@ -283,6 +283,28 @@ func (s *Service) PublicTrades(limit int) []Trade {
 	return items
 }
 
+// PublicPerpetualTrades returns only persisted perpetual matching-engine fills.
+// It deliberately applies the same bounded newest-window semantics as the spot
+// tape so a public client cannot turn an unbounded history scan into a hot path.
+func (s *Service) PublicPerpetualTrades(limit int) []PerpetualTrade {
+	if limit < 1 || limit > 1000 {
+		limit = 1000
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	items := append([]PerpetualTrade(nil), s.state.PerpetualTrades...)
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].CreatedAt.Equal(items[j].CreatedAt) {
+			return items[i].ID < items[j].ID
+		}
+		return items[i].CreatedAt.Before(items[j].CreatedAt)
+	})
+	if len(items) > limit {
+		items = items[len(items)-limit:]
+	}
+	return items
+}
+
 func WalletChallengePayload(c WalletChallenge) []byte {
 	return []byte(strings.Join([]string{"ynx-sign-in-v1", c.ID, c.Nonce, c.Account, c.DeviceID, c.ClientID, c.Callback, strings.Join(c.Scopes, ","), c.ChainID, c.Purpose, c.IssuedAt.Format(time.RFC3339), c.ExpiresAt.Format(time.RFC3339)}, "\n"))
 }

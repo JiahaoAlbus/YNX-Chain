@@ -315,7 +315,30 @@ func (s *Server) refreshRiskOracle(w http.ResponseWriter, r *http.Request) {
 	respond(w, snapshot, err, http.StatusOK)
 }
 func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "externalPrice": false, "trades": s.service.PublicTrades(1000)})
+	market := strings.TrimSpace(r.URL.Query().Get("market"))
+	if market == "" {
+		market = DefaultMarket
+	}
+	if market != DefaultMarket && market != DefaultPerpetualMarket {
+		writeError(w, http.StatusBadRequest, "invalid_market", "market is not supported")
+		return
+	}
+	limit := 100
+	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value < 1 || value > 1000 {
+			writeError(w, http.StatusBadRequest, "invalid_limit", "limit must be between 1 and 1000")
+			return
+		}
+		limit = value
+	}
+	var trades any
+	if market == DefaultPerpetualMarket {
+		trades = s.service.PublicPerpetualTrades(limit)
+	} else {
+		trades = s.service.PublicTrades(limit)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"market": market, "source": "persisted deterministic matching-engine fills only", "externalPrice": market == DefaultPerpetualMarket, "limit": limit, "trades": trades})
 }
 func (s *Server) marketCandles(w http.ResponseWriter, r *http.Request) {
 	market := strings.TrimSpace(r.URL.Query().Get("market"))
