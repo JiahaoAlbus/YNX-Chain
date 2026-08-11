@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -200,6 +201,18 @@ func (u *Upstreams) ConfigureReadSourceIntegrations(config ReadSourceIntegration
 	}
 	u.readIntegrations = integrations
 	return nil
+}
+
+func (u *Upstreams) ConfiguredReadSources() []string {
+	if u == nil || len(u.readIntegrations) == 0 {
+		return []string{}
+	}
+	result := make([]string, 0, len(u.readIntegrations))
+	for id := range u.readIntegrations {
+		result = append(result, id)
+	}
+	sort.Strings(result)
+	return result
 }
 
 func (u *Upstreams) ConfigureReadSourceActions(config ReadSourceActionConfig) error {

@@ -199,7 +199,7 @@ func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, sessio
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "build": s.build, "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "truthfulStatus": "runtime-upstream-backed"})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "build": s.build, "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "configuredReadSources": s.service.Upstreams.ConfiguredReadSources(), "truthfulStatus": "runtime-upstream-backed"})
 }
 
 func (s *Server) version(w http.ResponseWriter, _ *http.Request) {

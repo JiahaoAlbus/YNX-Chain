@@ -264,3 +264,21 @@ func TestAcceptedContractCannotDeclareMutationCapability(t *testing.T) {
 		t.Fatalf("mutation-bearing accepted contract was not rejected: %v", err)
 	}
 }
+
+func TestConfiguredReadSourcesAreDeterministicAndContainNoCredential(t *testing.T) {
+	upstreams := &Upstreams{}
+	if err := upstreams.ConfigureReadSourceIntegrations(ReadSourceIntegrationConfig{
+		QuantURL: "http://127.0.0.1:18444", QuantKey: strings.Repeat("q", 32),
+		ExchangeURL: "http://127.0.0.1:18446", ExchangeKey: strings.Repeat("e", 32),
+		DEXURL: "http://127.0.0.1:6482", DEXKey: strings.Repeat("d", 32),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	configured := upstreams.ConfiguredReadSources()
+	if strings.Join(configured, ",") != "dex,exchange,quant" {
+		t.Fatalf("configured sources are not deterministic: %v", configured)
+	}
+	if strings.Contains(strings.Join(configured, ","), strings.Repeat("q", 8)) {
+		t.Fatal("configured source status leaked a credential")
+	}
+}
