@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-11T16:25:25Z",
+  "featureCommit": "17ee9ae5bf50677a3316b0838884dd135de80599",
+  "deploymentArchiveSha256": "2e39861e4d1b67b3db418fede3e3804979dfcabd62439baf6bd85c159634a022",
+  "publicUrl": "https://developer.ynxweb4.com/?verify=17ee9ae5",
+  "deployment": {
+    "codeCandidate": "/opt/ynx-developer/candidates/17ee9ae5",
+    "publicCandidateSymlink": "/opt/ynx-developer/candidates/current",
+    "hostedAiSymlink": "/opt/ynx-developer/current",
+    "gatewayService": "ynx-code-candidate.service",
+    "hostedAiService": "ynx-developer-web.service",
+    "gatewayHealthVersion": "0.2.0-testnet-preview-17ee9ae5-candidate",
+    "hostedModel": "qwen3:4b",
+    "hostedAiCapacity": {
+      "activeAtCutover": 0,
+      "queuedAtCutover": 0,
+      "maxConcurrent": 2,
+      "maxQueued": 32
+    }
+  },
+  "serverVerification": {
+    "freshInstallPackages": 222,
+    "freshInstallVulnerabilities": 0,
+    "productionBuild": "passed",
+    "linuxServiceTests": "passed",
+    "runtimeLanguages": [
+      "C++",
+      "JavaScript",
+      "TypeScript",
+      "Python",
+      "Go",
+      "Rust",
+      "Solidity"
+    ],
+    "languageServers": [
+      "C++",
+      "TypeScript",
+      "Python",
+      "Go",
+      "Rust",
+      "Solidity"
+    ],
+    "debugAdapter": "LLDB passed on the Linux candidate",
+    "multiTenantGate": "12 concurrent tenant tasks passed with tenant isolation",
+    "integratedGate": "7 runtimes, 6 LSPs, 12 concurrent tenants, Chain height 960400, hosted AI Planner and fail-closed Wallet readiness passed"
+  },
+  "computerControlVerification": {
+    "browser": "Microsoft Edge",
+    "publicChainStatus": "connected",
+    "publicChainHeight": 960461,
+    "publicChainId": 6423,
+    "hostedModelStatus": "YNX hosted qwen3:4b ready",
+    "plannerIntent": "Plan a minimal reviewed change that adds a JSON configuration file for this C++ verification project.",
+    "plannerStatus": "plan_review",
+    "plannerSummary": "Plan a minimal JSON configuration file for the C++ verification project",
+    "plannerSteps": [
+      "Create a bounded src/config.json structure",
+      "Add JSON configuration validation"
+    ],
+    "writeApprovalClicked": false
+  },
+  "reconnectAndCancellation": {
+    "safeReadRetry": "GET and HEAD only; bounded transient retry",
+    "mutationRetry": "disabled",
+    "manualReconnect": "present and previously verified through ComputerControl",
+    "clientDisconnect": "cancels queued and running model work and releases capacity",
+    "transportFailureMessage": "manual retry is required; AI POST actions are never automatically replayed"
+  },
+  "remainingBoundaries": {
+    "walletPublicDeploymentReady": false,
+    "ideActionPublicReady": false,
+    "macosPackageRebuiltForThisCommit": false,
+    "windowsPackageRebuiltForThisCommit": false,
+    "fullVsCodeParityClaimed": false
+  }
+}
