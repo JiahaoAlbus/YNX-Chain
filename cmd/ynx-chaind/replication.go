@@ -53,17 +53,18 @@ func startReplicationPolling(ctx context.Context, devnet *chain.Devnet, sourceUR
 			log.Printf("authoritative replication applied source=%s height=%d hash=%s", sourceURL, result.Height, result.BlockHash)
 		}
 	}
-	ticker := time.NewTicker(interval)
 	go func() {
-		defer ticker.Stop()
 		defer devnet.StopReplicationRuntime()
-		poll()
 		for {
+			poll()
+			timer := time.NewTimer(interval)
 			select {
 			case <-ctx.Done():
+				if !timer.Stop() {
+					<-timer.C
+				}
 				return
-			case <-ticker.C:
-				poll()
+			case <-timer.C:
 			}
 		}
 	}()

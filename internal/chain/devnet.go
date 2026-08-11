@@ -901,9 +901,10 @@ func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (Validato
 		LatestHeight: input.TargetHeight,
 		Evidence:     input.Evidence,
 	}, now)
-	err := d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return sync, err
+	// Peer polling is high-frequency operational evidence. It is checkpointed
+	// by normal block or replication persistence; rewriting the full append-only
+	// chain snapshot for every peer observation would starve concurrent reads.
+	return sync, nil
 }
 
 func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {

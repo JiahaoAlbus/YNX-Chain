@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -55,34 +57,87 @@ func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritative
 		return ReplicationApplyResult{}, err
 	}
 
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
 	current := d.blocks[len(d.blocks)-1]
 	incoming := snapshot.Blocks[len(snapshot.Blocks)-1]
 	result := ReplicationApplyResult{Height: incoming.Height, BlockHash: incoming.Hash, SnapshotAt: snapshot.SavedAt}
 	if current.Height == incoming.Height && current.Hash == incoming.Hash {
+		d.mu.RUnlock()
 		return result, nil
 	}
 	if !allowAuthoritativeRebase && incoming.Height < current.Height {
+		d.mu.RUnlock()
 		return ReplicationApplyResult{}, fmt.Errorf("replication snapshot height %d is behind local height %d", incoming.Height, current.Height)
 	}
+	currentHeight, currentHash := current.Height, current.Hash
+	localPeers := cloneValidatorPeers(d.validatorPeers)
+	localPeerSyncs := cloneValidatorPeerSyncs(d.validatorPeerSyncs)
+	d.mu.RUnlock()
 
-	localPeers := d.validatorPeers
-	localPeerSyncs := d.validatorPeerSyncs
-	rollback := d.snapshotLocked()
-	d.applySnapshotLocked(snapshot)
-	// Peer observations are node-local operational evidence, not replicated chain state.
-	d.validatorPeers = localPeers
-	d.validatorPeerSyncs = localPeerSyncs
-	if err := d.persistSnapshotLocked(); err != nil {
-		d.applySnapshotLocked(rollback)
-		if rollbackErr := d.persistSnapshotLocked(); rollbackErr != nil {
-			return ReplicationApplyResult{}, fmt.Errorf("persist replication snapshot: %v; persist rollback snapshot: %w", err, rollbackErr)
-		}
+	// Persist the fully validated authoritative snapshot before taking the
+	// in-memory write lock. A public follower can take seconds to fsync a large
+	// append-only history; keeping that disk I/O outside the lock preserves
+	// concurrent status, account and DEX reads during replication.
+	durable := snapshot
+	durable.Peers = localPeers
+	durable.PeerSyncs = localPeerSyncs
+	sealed, err := sealDevnetSnapshot(durable)
+	if err != nil {
+		return ReplicationApplyResult{}, fmt.Errorf("seal replication snapshot: %w", err)
+	}
+	if err := d.persistPreparedSnapshot(sealed); err != nil {
 		return ReplicationApplyResult{}, fmt.Errorf("persist replication snapshot: %w", err)
 	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	current = d.blocks[len(d.blocks)-1]
+	if current.Height != currentHeight || current.Hash != currentHash {
+		return ReplicationApplyResult{}, fmt.Errorf("local chain advanced while persisting replication snapshot")
+	}
+	// Peer observations are node-local operational evidence, not replicated
+	// chain state. Preserve the newest observations gathered while the snapshot
+	// was being written, not the producer's observations.
+	localPeers = d.validatorPeers
+	localPeerSyncs = d.validatorPeerSyncs
+	d.applySnapshotLocked(snapshot)
+	d.validatorPeers = localPeers
+	d.validatorPeerSyncs = localPeerSyncs
 	result.Applied = true
 	return result, nil
+}
+
+func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
+	path := d.snapshotPath()
+	if path == "" {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create devnet data dir: %w", err)
+	}
+	if err := writeDurableSnapshotJSON(path, snapshot); err != nil {
+		return err
+	}
+	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte("2\n")); err != nil {
+		return fmt.Errorf("persist devnet snapshot integrity marker: %w", err)
+	}
+	return nil
+}
+
+func cloneValidatorPeers(source map[string]ValidatorPeer) map[string]ValidatorPeer {
+	result := make(map[string]ValidatorPeer, len(source))
+	for key, value := range source {
+		result[key] = value
+	}
+	return result
+}
+
+func cloneValidatorPeerSyncs(source map[string]ValidatorPeerSync) map[string]ValidatorPeerSync {
+	result := make(map[string]ValidatorPeerSync, len(source))
+	for key, value := range source {
+		result[key] = value
+	}
+	return result
 }
 
 func validateReplicationSnapshot(snapshot devnetSnapshot, cfg NetworkConfig) error {
