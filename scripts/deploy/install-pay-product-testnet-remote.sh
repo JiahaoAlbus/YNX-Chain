@@ -47,7 +47,7 @@ fi
 
 new_product_env="/etc/ynx/.ynx-pay-productd.env.$release"
 {
-  printf 'YNX_PAY_PRODUCT_ADDR=127.0.0.1:6440\n'
+  printf 'YNX_PAY_PRODUCT_ADDR=127.0.0.1:6484\n'
   printf 'YNX_PAY_PRODUCT_STORE=%s\n' "$state_file"
   printf 'YNX_PAY_PRODUCT_PUBLIC_URL=https://rest.ynxweb4.com/app/pay-product\n'
   printf 'YNX_PAY_PRODUCT_CENTRAL_URL=http://127.0.0.1:6430\n'
@@ -62,7 +62,7 @@ chmod 0600 "$new_product_env"
 new_app_env="/etc/ynx/.ynx-app-gatewayd.env.$release"
 awk '!/^YNX_APP_GATEWAY_PAY_PRODUCT_URL=/ && !/^YNX_APP_GATEWAY_PAY_PRODUCT_ASSERTION_KEY=/' "$app_env" >"$new_app_env"
 {
-  printf 'YNX_APP_GATEWAY_PAY_PRODUCT_URL=http://127.0.0.1:6440\n'
+  printf 'YNX_APP_GATEWAY_PAY_PRODUCT_URL=http://127.0.0.1:6484\n'
   printf 'YNX_APP_GATEWAY_PAY_PRODUCT_ASSERTION_KEY=%q\n' "$assertion_key"
 } >>"$new_app_env"
 chmod 0600 "$new_app_env"
@@ -107,7 +107,9 @@ set +a
 runuser -u ynx -- env YNX_PAY_PRODUCT_ADDR=127.0.0.1:17440 YNX_PAY_PRODUCT_STORE="$preflight_dir/state.json" "$release_dir/bin/ynx-pay-productd" >"$preflight_dir/product.log" 2>&1 &
 preflight_pid=$!
 cleanup_preflight() { kill "$preflight_pid" 2>/dev/null || true; wait "$preflight_pid" 2>/dev/null || true; rm -rf "$preflight_dir"; }
-trap cleanup_preflight EXIT
+cleanup_candidates() { rm -f "$new_product_env" "$new_app_env" "$new_product_unit" "$new_app_unit"; }
+preflight_failure_cleanup() { cleanup_preflight; cleanup_candidates; }
+trap preflight_failure_cleanup EXIT
 preflight_ok=0
 for attempt in $(seq 1 20); do
   if health="$(curl -fsS --max-time 3 http://127.0.0.1:17440/health)" && HEALTH="$health" node -e 'const h=JSON.parse(process.env.HEALTH);if(h.service!=="ynx-pay-product"||h.liveness!=="live"||h.network!=="ynx_6423-1"||h.asset!=="YNXT")process.exit(1)'; then preflight_ok=1; break; fi
@@ -160,7 +162,7 @@ systemctl restart ynx-app-gatewayd
 
 runtime_ok=0
 for attempt in $(seq 1 30); do
-  if product_health="$(curl -fsS --max-time 3 http://127.0.0.1:6440/health)" && app_health="$(curl -fsS --max-time 3 http://127.0.0.1:6437/app/health)" && route_health="$(curl -fsS --max-time 3 -H 'Origin: https://ynxweb4.com' http://127.0.0.1:6437/app/pay-product/health)" && PRODUCT="$product_health" APP="$app_health" ROUTE="$route_health" node -e 'const p=JSON.parse(process.env.PRODUCT),a=JSON.parse(process.env.APP),r=JSON.parse(process.env.ROUTE);if(p.service!=="ynx-pay-product"||r.service!=="ynx-pay-product"||!a.ok||!a.upstreams?.["pay-product"]?.ok)process.exit(1)'; then runtime_ok=1; break; fi
+  if product_health="$(curl -fsS --max-time 3 http://127.0.0.1:6484/health)" && app_health="$(curl -fsS --max-time 3 http://127.0.0.1:6437/app/health)" && route_health="$(curl -fsS --max-time 3 -H 'Origin: https://ynxweb4.com' http://127.0.0.1:6437/app/pay-product/health)" && PRODUCT="$product_health" APP="$app_health" ROUTE="$route_health" node -e 'const p=JSON.parse(process.env.PRODUCT),a=JSON.parse(process.env.APP),r=JSON.parse(process.env.ROUTE);if(p.service!=="ynx-pay-product"||r.service!=="ynx-pay-product"||!a.ok||!a.upstreams?.["pay-product"]?.ok)process.exit(1)'; then runtime_ok=1; break; fi
   sleep 1
 done
 [[ "$runtime_ok" == "1" ]] || { echo "Pay Product public route failed bounded runtime verification" >&2; exit 1; }
