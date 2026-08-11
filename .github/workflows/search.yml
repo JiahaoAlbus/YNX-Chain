@@ -1,0 +1,62 @@
+name: Search
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/integrate-finance-suite
+    paths:
+      - "apps/search/**"
+      - "release/search/**"
+      - "release/public/search/**"
+      - "release/integration/search-contract.json"
+      - "packages/web4-permissions/**"
+      - "packages/wallet-auth/central-registry.json"
+      - "packages/wallet-auth/src/registry.js"
+      - "packages/wallet-auth/test/registry.test.mjs"
+      - ".github/workflows/search.yml"
+  pull_request:
+    paths:
+      - "apps/search/**"
+      - "release/search/**"
+      - "release/public/search/**"
+      - "release/integration/search-contract.json"
+      - "packages/web4-permissions/**"
+      - "packages/wallet-auth/central-registry.json"
+      - "packages/wallet-auth/src/registry.js"
+      - "packages/wallet-auth/test/registry.test.mjs"
+      - ".github/workflows/search.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  search:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            apps/search/package-lock.json
+            packages/web4-permissions/package-lock.json
+            packages/wallet-auth/package-lock.json
+      - name: Verify Search product
+        working-directory: apps/search
+        run: |
+          npm ci
+          npm run check
+          npm audit --omit=dev --audit-level=high
+      - name: Verify shared Browser and Search permissions
+        working-directory: packages/web4-permissions
+        run: |
+          npm ci
+          npm test
+      - name: Verify canonical Search Wallet registration
+        working-directory: packages/wallet-auth
+        run: |
+          npm ci
+          node --test test/registry.test.mjs
