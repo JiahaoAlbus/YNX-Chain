@@ -90,6 +90,10 @@ type Devnet struct {
 	resourceActionRefs   map[string]string
 	resourceSponsorAudit []ResourceSponsorAuditEvent
 	contracts            map[string]ContractArtifact
+	dexAssets            map[string]NativeDexAsset
+	dexBalances          map[string]map[string]int64
+	dexPools             map[string]NativeDexPool
+	dexEvents            []NativeDexEvent
 	dataDir              string
 	lastPersistenceError string
 }
@@ -282,6 +286,10 @@ type devnetSnapshot struct {
 	SponsorLog       []ResourceSponsorAuditEvent           `json:"resourceSponsorAudit,omitempty"`
 	SponsorIntegrity string                                `json:"resourceSponsorIntegrity,omitempty"`
 	Contracts        map[string]ContractArtifact           `json:"contracts"`
+	DexAssets        map[string]NativeDexAsset             `json:"dexAssets,omitempty"`
+	DexBalances      map[string]map[string]int64           `json:"dexBalances,omitempty"`
+	DexPools         map[string]NativeDexPool              `json:"dexPools,omitempty"`
+	DexEvents        []NativeDexEvent                      `json:"dexEvents,omitempty"`
 }
 
 func DefaultNetworkConfig(slug string) NetworkConfig {
@@ -436,6 +444,10 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 		resourceSponsorIdem:  map[string]ResourceSponsorIdempotency{},
 		resourceActionRefs:   map[string]string{},
 		contracts:            map[string]ContractArtifact{},
+		dexAssets:            map[string]NativeDexAsset{},
+		dexBalances:          map[string]map[string]int64{},
+		dexPools:             map[string]NativeDexPool{},
+		dexEvents:            []NativeDexEvent{},
 		validators:           normalized,
 	}
 	d.applyConfiguredPeersLocked(normalizedPeers)
@@ -2738,6 +2750,7 @@ func (d *Devnet) ProduceBlock() Block {
 		block.Transactions[i].BlockHash = block.Hash
 		block.Transactions[i].BlockNum = block.Height
 		block.Transactions[i].Logs = d.evmLogsForTransactionLocked(block.Transactions[i], uint64(i), logIndex)
+		d.finalizeNativeDexRecordLocked(block.Transactions[i].Hash, block.Height, block.Hash)
 		logIndex += uint64(len(block.Transactions[i].Logs))
 	}
 	d.blocks = append(d.blocks, block)
@@ -3410,6 +3423,18 @@ func (d *Devnet) ensureStateDefaults() {
 	}
 	if d.contracts == nil {
 		d.contracts = map[string]ContractArtifact{}
+	}
+	if d.dexAssets == nil {
+		d.dexAssets = map[string]NativeDexAsset{}
+	}
+	if d.dexBalances == nil {
+		d.dexBalances = map[string]map[string]int64{}
+	}
+	if d.dexPools == nil {
+		d.dexPools = map[string]NativeDexPool{}
+	}
+	if d.dexEvents == nil {
+		d.dexEvents = []NativeDexEvent{}
 	}
 	if len(d.validators) == 0 {
 		d.validators = DefaultValidators()

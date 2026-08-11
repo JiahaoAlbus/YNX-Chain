@@ -130,6 +130,20 @@ func (s *Server) routes() {
 	s.resourceRoute("GET /resource-market/sponsorships", s.handleResourceSponsorships)
 	s.resourceRoute("GET /resource-market/sponsorships/{id}", s.handleResourceSponsorshipLookup)
 	s.resourceRoute("GET /resource-market/sponsor-audit", s.handleResourceSponsorAudit)
+	s.mux.HandleFunc("POST /dex/assets", s.handleNativeDexMutation)
+	s.mux.HandleFunc("GET /dex/assets", s.handleNativeDexAssets)
+	s.mux.HandleFunc("GET /dex/assets/{id}", s.handleNativeDexAsset)
+	s.mux.HandleFunc("POST /dex/assets/{id}/mint", s.handleNativeDexMutation)
+	s.mux.HandleFunc("POST /dex/assets/{id}/transfer", s.handleNativeDexMutation)
+	s.mux.HandleFunc("GET /dex/balances/{address}", s.handleNativeDexBalances)
+	s.mux.HandleFunc("POST /dex/pools", s.handleNativeDexMutation)
+	s.mux.HandleFunc("GET /dex/pools", s.handleNativeDexPools)
+	s.mux.HandleFunc("GET /dex/pools/{id}", s.handleNativeDexPool)
+	s.mux.HandleFunc("POST /dex/pools/{id}/liquidity/add", s.handleNativeDexMutation)
+	s.mux.HandleFunc("POST /dex/pools/{id}/liquidity/remove", s.handleNativeDexMutation)
+	s.mux.HandleFunc("POST /dex/pools/{id}/swaps/exact-input", s.handleNativeDexMutation)
+	s.mux.HandleFunc("POST /dex/pools/{id}/swaps/exact-output", s.handleNativeDexMutation)
+	s.mux.HandleFunc("GET /dex/events", s.handleNativeDexEvents)
 	s.aiRoute("GET /ai/stream", s.handleAIStream)
 	s.aiRoute("POST /ai/permissions", s.handleAIPermission)
 	s.aiRoute("GET /ai/permissions", s.handleAIPermissions)
@@ -1004,6 +1018,144 @@ func (s *Server) handleResourceSponsorshipLookup(w http.ResponseWriter, r *http.
 
 func (s *Server) handleResourceSponsorAudit(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"events": s.devnet.ResourceSponsorAudit()})
+}
+
+func (s *Server) handleNativeDexMutation(w http.ResponseWriter, r *http.Request) {
+	if mediaType := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])); mediaType != "application/json" {
+		writeError(w, http.StatusUnsupportedMediaType, "Content-Type application/json is required")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, consensus.MaxSignedActionSize)
+	payload, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeError(w, http.StatusRequestEntityTooLarge, "signed DEX action exceeds maximum size")
+		return
+	}
+	action, err := consensus.DecodeSignedApplicationAction(payload)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := action.Verify(s.devnet.Config().ChainID); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+	expected := map[string]string{
+		"POST /dex/assets":                        consensus.ActionDexAssetCreate,
+		"POST /dex/assets/{id}/mint":              consensus.ActionDexAssetMint,
+		"POST /dex/assets/{id}/transfer":          consensus.ActionDexAssetTransfer,
+		"POST /dex/pools":                         consensus.ActionDexPoolCreate,
+		"POST /dex/pools/{id}/liquidity/add":      consensus.ActionDexLiquidityAdd,
+		"POST /dex/pools/{id}/liquidity/remove":   consensus.ActionDexLiquidityRemove,
+		"POST /dex/pools/{id}/swaps/exact-input":  consensus.ActionDexSwapExactInput,
+		"POST /dex/pools/{id}/swaps/exact-output": consensus.ActionDexSwapExactOutput,
+	}[r.Pattern]
+	if expected == "" || action.Action != expected {
+		writeError(w, http.StatusBadRequest, "signed DEX action does not match the requested route")
+		return
+	}
+	if err := bindNativeDexPath(r.PathValue("id"), action.Action, action.Payload); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	tx, mutation, replayed, err := s.devnet.SubmitNativeDexAction(chain.NativeDexSignedActionInput{
+		Hash: consensus.ApplicationActionHash(payload), Signer: action.Signer, Action: action.Action,
+		Nonce: action.Nonce, Fee: action.Fee, Payload: action.Payload,
+	})
+	if err != nil {
+		writeError(w, signedTransactionHTTPStatus(err), err.Error())
+		return
+	}
+	status := http.StatusOK
+	if !replayed && (action.Action == consensus.ActionDexAssetCreate || action.Action == consensus.ActionDexPoolCreate) {
+		status = http.StatusCreated
+	}
+	writeJSON(w, status, map[string]any{"transaction": tx, "result": mutation, "replayed": replayed, "source": "authoritative chain-native YNX Testnet state", "mainnet": false})
+}
+
+func bindNativeDexPath(pathID, action string, payload json.RawMessage) error {
+	pathID = strings.TrimSpace(pathID)
+	if pathID == "" {
+		return nil
+	}
+	var bodyID string
+	switch action {
+	case consensus.ActionDexAssetMint:
+		var value chain.NativeDexAssetAmountPayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.AssetID
+	case consensus.ActionDexAssetTransfer:
+		var value chain.NativeDexAssetTransferPayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.AssetID
+	case consensus.ActionDexLiquidityAdd:
+		var value chain.NativeDexLiquidityPayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.PoolID
+	case consensus.ActionDexLiquidityRemove:
+		var value chain.NativeDexLiquidityRemovePayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.PoolID
+	case consensus.ActionDexSwapExactInput:
+		var value chain.NativeDexSwapExactInputPayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.PoolID
+	case consensus.ActionDexSwapExactOutput:
+		var value chain.NativeDexSwapExactOutputPayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.PoolID
+	}
+	if !strings.EqualFold(strings.TrimSpace(bodyID), pathID) {
+		return errors.New("DEX route identifier and signed payload identifier must match")
+	}
+	return nil
+}
+
+func (s *Server) handleNativeDexAssets(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"items": s.devnet.NativeDexAssets(), "nativeAsset": chain.NativeDexAssetID, "source": "authoritative chain-native YNX Testnet state"})
+}
+func (s *Server) handleNativeDexAsset(w http.ResponseWriter, r *http.Request) {
+	value, ok := s.devnet.NativeDexAsset(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "DEX asset not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
+func (s *Server) handleNativeDexBalances(w http.ResponseWriter, r *http.Request) {
+	address, err := normalizeAccountInput(r.PathValue("address"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	account, _ := s.devnet.Account(address)
+	writeJSON(w, http.StatusOK, map[string]any{"account": address, "nativeYNXT": account.Balance, "items": s.devnet.NativeDexBalances(address), "source": "authoritative chain-native YNX Testnet state"})
+}
+func (s *Server) handleNativeDexPools(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"items": s.devnet.NativeDexPools(), "source": "authoritative chain-native YNX Testnet state"})
+}
+func (s *Server) handleNativeDexPool(w http.ResponseWriter, r *http.Request) {
+	value, ok := s.devnet.NativeDexPool(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "DEX pool not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
+func (s *Server) handleNativeDexEvents(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"items": s.devnet.NativeDexEvents(), "source": "authoritative chain-native YNX Testnet state"})
 }
 
 func bindResourcePoolPath(w http.ResponseWriter, pathID string, inputID *string) bool {
