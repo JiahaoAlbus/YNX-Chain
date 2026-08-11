@@ -1,5 +1,8 @@
 dex.ynxweb4.com, dex-testnet.43.153.202.237.sslip.io {
 	encode zstd gzip
+	handle_path /wallet-gateway/* {
+		reverse_proxy 127.0.0.1:6439
+	}
 	handle /health {
 		reverse_proxy 127.0.0.1:6482
 	}
@@ -10,10 +13,10 @@ dex.ynxweb4.com, dex-testnet.43.153.202.237.sslip.io {
 		reverse_proxy 127.0.0.1:18445
 	}
 	handle /accounts/* {
-		reverse_proxy {$YNX_DEX_CONSENSUS_GATEWAY:127.0.0.1:27626}
+		reverse_proxy {$YNX_DEX_CONSENSUS_GATEWAY:127.0.0.1:6420}
 	}
 	handle /dex/* {
-		reverse_proxy {$YNX_DEX_CONSENSUS_GATEWAY:127.0.0.1:27626}
+		reverse_proxy {$YNX_DEX_CONSENSUS_GATEWAY:127.0.0.1:6420}
 	}
 	handle /v1/* {
 		reverse_proxy 127.0.0.1:6482
@@ -24,7 +27,8 @@ dex.ynxweb4.com, dex-testnet.43.153.202.237.sslip.io {
 		file_server
 	}
 	header {
-		Content-Security-Policy "default-src 'self'; connect-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy "default-src 'self'; connect-src 'self' https://rest.ynxweb4.com; img-src 'self' data:; script-src 'self'; style-src 'self'; base-uri 'none'; frame-ancestors 'none'"
 		Referrer-Policy no-referrer
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		X-Content-Type-Options nosniff

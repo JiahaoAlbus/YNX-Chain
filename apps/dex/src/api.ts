@@ -19,13 +19,9 @@ const BASE = (
   ""
 ).replace(/\/$/, "");
 const EXPECTED_VERSION = "abci-state-v13";
+const AUTHORITATIVE_SOURCE = "authoritative chain-native YNX Testnet state";
+const AUTHORITATIVE_VERSION = "native-dex-schema-v1";
 
-type Envelope = {
-  source: string;
-  version: string;
-  failure: boolean;
-  error?: string;
-};
 type NativeAsset = {
   id: string;
   symbol: string;
@@ -36,6 +32,7 @@ type NativeAsset = {
   totalSupply?: number;
   blockHeight?: number;
   txHash?: string;
+  transactionHash?: string;
   auditHash?: string;
 };
 type NativePool = {
@@ -49,7 +46,8 @@ type NativePool = {
   totalShares: number;
   blockHeight: number;
   updatedAt: string;
-  txHash: string;
+  txHash?: string;
+  transactionHash?: string;
   auditHash: string;
 };
 type NativeEvent = {
@@ -61,29 +59,48 @@ type NativeEvent = {
   amount1?: number;
   blockHeight: number;
   occurredAt: string;
-  txHash: string;
+  txHash?: string;
+  transactionHash?: string;
   auditHash: string;
 };
 
-async function request<T extends Envelope>(
+type Collection<T> = { source: string; version: string; items: T[] };
+
+const record = (value: unknown): Record<string, unknown> | null =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+async function requestCollection<T>(
   path: string,
+  field: "assets" | "pools" | "events",
   signal?: AbortSignal,
-): Promise<T> {
+): Promise<Collection<T>> {
   const response = await fetch(`${BASE}${path}`, {
     signal,
     headers: { Accept: "application/json" },
     credentials: "omit",
   });
-  const body = (await response.json().catch(() => null)) as T | null;
-  if (!response.ok || !body || body.failure)
+  const body = record(await response.json().catch(() => null));
+  if (!response.ok || !body || body.failure === true)
     throw new Error(
-      body?.error || `DEX consensus gateway returned ${response.status}.`,
+      (typeof body?.error === "string" && body.error) ||
+        `DEX state gateway returned ${response.status}.`,
     );
-  if (body.source !== "ynx-consensus-abci" || body.version !== EXPECTED_VERSION)
-    throw new Error(
-      "DEX gateway is not serving committed consensus state v13.",
-    );
-  return body;
+  if (
+    body.source === "ynx-consensus-abci" &&
+    body.version === EXPECTED_VERSION &&
+    body.failure === false &&
+    Array.isArray(body[field])
+  )
+    return { source: body.source, version: body.version, items: body[field] as T[] };
+  if (body.source === AUTHORITATIVE_SOURCE && Array.isArray(body.items))
+    return {
+      source: body.source,
+      version: AUTHORITATIVE_VERSION,
+      items: body.items as T[],
+    };
+  throw new Error("DEX gateway returned an unsupported or non-authoritative state envelope.");
 }
 
 const ynxt: Token = {
@@ -137,7 +154,7 @@ const token = (asset: NativeAsset): Token => ({
     asset.blockHeight === undefined
       ? 0
       : safeInteger(asset.blockHeight, "Asset block height"),
-  txHash: asset.txHash || "",
+  txHash: asset.txHash || asset.transactionHash || "",
   auditHash: asset.auditHash || "",
 });
 const pool = (value: NativePool): Pool => ({
@@ -146,12 +163,15 @@ const pool = (value: NativePool): Pool => ({
   token1: value.asset1,
   reserve0: String(safeInteger(value.reserve0, "Pool reserve 0")),
   reserve1: String(safeInteger(value.reserve1, "Pool reserve 1")),
-  contractVersion: "ynx-consensus-cpmm-v13",
+  contractVersion:
+    value.kind === "ynx-cpmm-v1"
+      ? "ynx-cpmm-v1"
+      : "ynx-consensus-cpmm-v13",
   feeBps: safeInteger(value.feeBps, "Pool fee", 1, 1000),
   totalShares: String(safeInteger(value.totalShares, "Pool total shares")),
   updatedBlock: safeInteger(value.blockHeight, "Pool block height", 1),
   updatedAt: value.updatedAt,
-  txHash: value.txHash,
+  txHash: value.txHash || value.transactionHash || "",
   auditHash: value.auditHash,
 });
 const event = (value: NativeEvent): ChainEvent => ({
@@ -172,20 +192,20 @@ const event = (value: NativeEvent): ChainEvent => ({
   fee0: "0",
   fee1: "0",
   blockNumber: safeInteger(value.blockHeight, "DEX event block height", 1),
-  txHash: value.txHash,
+  txHash: value.txHash || value.transactionHash || "",
   timestamp: value.occurredAt,
   auditHash: value.auditHash,
 });
 
 export async function loadDexSnapshot(signal?: AbortSignal) {
   const [assetEnvelope, poolEnvelope, eventEnvelope] = await Promise.all([
-    request<Envelope & { assets: NativeAsset[] }>("/dex/assets", signal),
-    request<Envelope & { pools: NativePool[] }>("/dex/pools", signal),
-    request<Envelope & { events: NativeEvent[] }>("/dex/events", signal),
+    requestCollection<NativeAsset>("/dex/assets", "assets", signal),
+    requestCollection<NativePool>("/dex/pools", "pools", signal),
+    requestCollection<NativeEvent>("/dex/events", "events", signal),
   ]);
-  const tokens = [ynxt, ...assetEnvelope.assets.map(token)];
-  const pools = poolEnvelope.pools.map(pool);
-  const events = eventEnvelope.events
+  const tokens = [ynxt, ...assetEnvelope.items.map(token)];
+  const pools = poolEnvelope.items.map(pool);
+  const events = eventEnvelope.items
     .map(event)
     .sort((a, b) => b.blockNumber - a.blockNumber);
   const latestBlock = Math.max(
@@ -283,27 +303,36 @@ export async function broadcastDexAction(
         credentials: "omit",
       },
     ),
-    body = (await result.json().catch(() => null)) as
-      (Envelope & { event?: NativeEvent; pool?: NativePool }) | null;
-  if (
-    !result.ok ||
-    !body ||
-    body.failure ||
-    body.source !== "ynx-consensus-abci" ||
-    body.version !== EXPECTED_VERSION ||
-    !body.event ||
-    !body.pool
-  )
+    body = record(await result.json().catch(() => null));
+  if (!result.ok || !body || body.failure === true)
     throw new Error(
-      body?.error || `DEX transaction failed closed (${result.status}).`,
+      (typeof body?.error === "string" && body.error) ||
+        `DEX transaction failed closed (${result.status}).`,
     );
-  if (body.event.txHash !== response.transactionHash || body.pool.id !== poolId)
+  const wrapper =
+      body.source === "ynx-consensus-abci" &&
+      body.version === EXPECTED_VERSION &&
+      body.failure === false,
+    raw = body.source === AUTHORITATIVE_SOURCE && body.mainnet === false,
+    mutation = raw ? record(body.result) : body,
+    eventValue = record(mutation?.event) as NativeEvent | null,
+    poolValue = record(mutation?.pool) as NativePool | null,
+    committedHash = eventValue?.txHash || eventValue?.transactionHash,
+    transaction = raw ? record(body.transaction) : null;
+  if (
+    (!wrapper && !raw) ||
+    !eventValue ||
+    !poolValue ||
+    (raw && transaction?.hash !== response.transactionHash)
+  )
+    throw new Error("DEX transaction response lacks authoritative committed evidence.");
+  if (committedHash !== response.transactionHash || poolValue.id !== poolId)
     throw new Error(
       "Committed DEX evidence does not match the Wallet-signed transaction.",
     );
   return Object.freeze({
-    event: event(body.event),
-    pool: pool(body.pool),
+    event: event(eventValue),
+    pool: pool(poolValue),
     transactionHash: response.transactionHash,
   });
 }
@@ -315,11 +344,12 @@ export const dexApi = {
     _sessionBinding: string,
     signal?: AbortSignal,
   ) => {
-    const response = await request<Envelope & { pools: NativePool[] }>(
+    const response = await requestCollection<NativePool>(
       "/dex/pools",
+      "pools",
       signal,
     );
-    const items: Position[] = response.pools.flatMap((item) => []);
+    const items: Position[] = response.items.flatMap((item) => []);
     void account;
     return { items };
   },

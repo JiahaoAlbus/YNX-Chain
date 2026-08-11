@@ -43,11 +43,13 @@ const pages: Page[] = [
   "governance",
   "docs",
 ];
-const CPMM_VERSION = "ynx-consensus-cpmm-v13";
+const CPMM_VERSION = "ynx-cpmm-v1";
 const short = (value: string) =>
   value ? `${value.slice(0, 6)}…${value.slice(-4)}` : "—";
 const poolProtocol = (version: string) =>
-  version === CPMM_VERSION ? "Consensus constant product" : "Unsupported pool";
+  version === CPMM_VERSION || version === "ynx-consensus-cpmm-v13"
+    ? "Chain-native constant product"
+    : "Unsupported pool";
 const poolMatches = (pool: Pool, tokenIn: string, tokenOut: string) => {
   const first = pool.token0.toLowerCase();
   const second = pool.token1.toLowerCase();

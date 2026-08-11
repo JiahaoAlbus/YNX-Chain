@@ -4,7 +4,7 @@ export type Pool = {
   token1:string;
   reserve0:string;
   reserve1:string;
-  contractVersion:"ynx-consensus-cpmm-v13";
+  contractVersion:"ynx-cpmm-v1"|"ynx-consensus-cpmm-v13";
   feeBps:number;
   totalShares:string;
   updatedBlock:number;

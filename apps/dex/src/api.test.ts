@@ -38,10 +38,71 @@ const ACTION = {
   transactionHash: HASH,
   signedTransaction: { payload: { poolId: POOL.id } },
 } as unknown as DexActionResponse;
+const RAW_POOL = {
+  ...POOL,
+  kind: "ynx-cpmm-v1",
+  transactionHash: POOL.txHash,
+  txHash: undefined,
+};
+const RAW_EVENT = {
+  ...EVENT,
+  transactionHash: EVENT.txHash,
+  txHash: undefined,
+};
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("DEX committed gateway boundary", () => {
+  it("loads the currently deployed authoritative native DEX schema", async () => {
+    const responses = [
+      {
+        source: "authoritative chain-native YNX Testnet state",
+        nativeAsset: "YNXT",
+        items: [
+          {
+            id: "yusd-test",
+            symbol: "YUSD",
+            name: "YNX USD Test",
+            decimals: 6,
+            blockHeight: 18,
+            transactionHash: HASH,
+            auditHash: "d".repeat(64),
+          },
+        ],
+      },
+      {
+        source: "authoritative chain-native YNX Testnet state",
+        items: [RAW_POOL],
+      },
+      {
+        source: "authoritative chain-native YNX Testnet state",
+        items: [RAW_EVENT],
+      },
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          new Response(JSON.stringify(responses.shift()), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+      ),
+    );
+    const snapshot = await loadDexSnapshot();
+    expect(snapshot.analytics).toMatchObject({
+      source: "authoritative chain-native YNX Testnet state",
+      version: "native-dex-schema-v1",
+      pools: 1,
+    });
+    expect(snapshot.pools[0]).toMatchObject({
+      contractVersion: "ynx-cpmm-v1",
+      txHash: HASH,
+    });
+    expect(snapshot.events[0].txHash).toBe(HASH);
+  });
+
   it("accepts only the exact authoritative account nonce", async () => {
     const account = walletIdentity("01".padStart(64, "0")).account,
       address = evmAddressFromYNX(account),
@@ -104,6 +165,33 @@ describe("DEX committed gateway boundary", () => {
       ),
     );
     await expect(broadcastDexAction(ACTION)).rejects.toThrow(/does not match/);
+  });
+
+  it("accepts only matching authoritative native mutation evidence", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          source: "authoritative chain-native YNX Testnet state",
+          mainnet: false,
+          replayed: false,
+          transaction: { hash: HASH },
+          result: { event: RAW_EVENT, pool: RAW_POOL },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(broadcastDexAction(ACTION)).resolves.toMatchObject({
+      transactionHash: HASH,
+      pool: { contractVersion: "ynx-cpmm-v1" },
+    });
+    fetchMock.mockResolvedValueOnce(
+      new Response("<!doctype html><title>DEX</title>", {
+        status: 200,
+        headers: { "Content-Type": "text/html" },
+      }),
+    );
+    await expect(broadcastDexAction(ACTION)).rejects.toThrow(/failed closed/);
   });
 
   it("fails closed before rendering consensus integers that lose precision", async () => {
