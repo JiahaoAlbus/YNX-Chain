@@ -35,5 +35,21 @@
     "canonicalWalletExchangeE2E": true,
     "productProofReplayStatus": 401
   },
+  "nextCandidate": {
+    "sourceCommit": "18a199bcf5ddbc18ead01d84c97773877b65936d",
+    "implementedLocal": true,
+    "testedLocal": true,
+    "deployedPublic": false,
+    "adapterVersion": "ynx-quant-execution-adapter-v2",
+    "walletApproval": "Real YNX Wallet deep-link review and callback for complete mandate and exact order; manual signature fields removed",
+    "signatureCoverage": "Strategy/product/device identity, market, complete capital/risk/frequency limits, expiry, nonce domain and Testnet-only flag",
+    "verification": [
+      "Go race tests: Quant, Exchange and both server packages",
+      "Wallet Auth 113/113",
+      "Wallet application 40/40 plus Android and iOS bundles",
+      "Quant UI 4/4 and bundled browser protocol"
+    ],
+    "publicDeploymentBlocker": "The current public runtime still serves the prior build; this candidate requires an authorized reachable deployment path and post-deploy browser/Wallet validation."
+  },
   "knownBlockingEvidence": ["real DEX Testnet execution, vault and emergency-exit receipts", "authenticated cross-device workspace recovery and database replica failover", "registry manifest digest, image signing, and external container vulnerability scan", "updated desktop packages equivalent to the current web runtime", "Windows host launch and installation", "production desktop signing and notarization"]
 }

@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0-testnet",
   "product": "ynx-exchange",
   "owner": "07-exchange",
-  "sourceCommit": "90df7c7a5212930a9be6889452fe3c99ad6d2f2d",
+  "sourceCommit": "18a199bcf5ddbc18ead01d84c97773877b65936d",
   "stateSchemaVersion": 10,
   "authority": {
     "exchangeOwned": [
@@ -68,7 +68,7 @@
     "ynx-exchange-scale-cancel-v1",
     "ynx-exchange-dead-man-v1",
     "ynx-exchange-withdrawal-review-v1",
-    "ynx-quant-execution-adapter-v1",
+    "ynx-quant-execution-adapter-v2",
     "ynx-quant-strategy-kill-v1",
     "ynx-quant-strategy-control-v1"
     ,"ynx-exchange-margin-transfer-v1"
