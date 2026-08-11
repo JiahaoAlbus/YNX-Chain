@@ -21,7 +21,7 @@ id -u ynx >/dev/null
   sha256sum -c SHA256SUMS
 )
 printf '%s  %s\n' "$binary_sha" "$release_dir/ynx-dex-indexerd" | sha256sum -c -
-actual_web_sha="$(find "$release_dir/web" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
+actual_web_sha="$(cd "$release_dir/web" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
 [[ "$actual_web_sha" == "$web_sha" ]] || { echo "DEX web tree digest mismatch" >&2; exit 1; }
 
 unit=/etc/systemd/system/ynx-dex-indexerd.service

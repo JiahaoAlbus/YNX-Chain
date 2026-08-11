@@ -37,7 +37,7 @@ find "$release_root" -type f -exec chmod 0644 {} +
 chmod 0755 "$release_root/ynx-dex-indexerd"
 if command -v xattr >/dev/null 2>&1; then xattr -cr "$release_root"; fi
 binary_sha="$(sha256sum "$release_root/ynx-dex-indexerd" | awk '{print $1}')"
-web_sha="$(find "$release_root/web" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
+web_sha="$(cd "$release_root/web" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}')"
 (
   cd "$release_root"
   find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
