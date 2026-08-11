@@ -47,7 +47,6 @@ func NewServerWithBuild(service *Service, _ string, web fs.FS, build buildinfo.I
 func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
-	s.mux.HandleFunc("POST /api/auth/wallet-v1/challenge", s.walletChallenge)
 	s.mux.HandleFunc("POST /api/auth/wallet-v1/session", s.walletSession)
 	s.mux.HandleFunc("GET /api/me", s.api("music.profile", s.me))
 	s.mux.HandleFunc("PUT /api/profile", s.api("music.profile", s.profile))
@@ -71,7 +70,18 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/ai/status", s.api("music.library", s.aiStatus))
 	s.mux.HandleFunc("GET /api/ai/proposals/{id}/stream", s.api("music.library", s.aiStream))
 	s.mux.HandleFunc("POST /api/ai/proposals/{id}/review", s.api("music.library", s.aiReview))
+	s.mux.HandleFunc("GET /auth/callback", s.webIndex)
 	s.mux.Handle("GET /", http.FileServer(http.FS(s.web)))
+}
+func (s *Server) webIndex(w http.ResponseWriter, _ *http.Request) {
+	data, err := fs.ReadFile(s.web, "index.html")
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Music Web application unavailable"})
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write(data)
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	err := s.service.VerifyIntegrity()
@@ -79,7 +89,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		status = http.StatusServiceUnavailable
 	}
-	writeJSON(w, status, map[string]any{"ok": err == nil, "service": "ynx-musicd", "productId": "ynx-music", "persistence": "atomic-json-sha256", "mediaEngine": "native platform players and HTMLMediaElement with HTTP range support", "walletAuth": "canonical-central-wallet-auth-v1", "centralIntegrated": false, "licensedPublicCatalog": false, "productionStreaming": false, "build": s.build})
+	writeJSON(w, status, map[string]any{"ok": err == nil, "service": "ynx-musicd", "productId": "ynx-music", "persistence": "atomic-json-sha256", "mediaEngine": "native platform players and HTMLMediaElement with HTTP range support", "walletAuth": "canonical-central-product-session-proof-v1", "centralContractIntegrated": true, "centralDeploymentVerified": false, "licensedPublicCatalog": false, "productionStreaming": false, "build": s.build})
 }
 
 func (s *Server) allow(remote string) bool {
@@ -93,27 +103,6 @@ func (s *Server) allow(remote string) bool {
 	rate.Count++
 	s.rates[remote] = rate
 	return rate.Count <= 120
-}
-
-func (s *Server) walletChallenge(w http.ResponseWriter, r *http.Request) {
-	if !s.allow(r.RemoteAddr) {
-		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "music auth rate limit exceeded"})
-		return
-	}
-	var input walletChallengeRequest
-	if !decode(w, r, &input, 128<<10) {
-		return
-	}
-	if len(input.AuthorizationRequest) == 0 || len(input.WalletApproval) == 0 {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical authorizationRequest and walletApproval are required"})
-		return
-	}
-	var output walletChallengeResponse
-	if err := s.service.centralJSON(r.Context(), s.service.cfg.WalletChallengeURL, s.service.cfg.WalletGatewayKey, input, &output); err != nil {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "YNX Wallet Gateway challenge unavailable", "central": true})
-		return
-	}
-	writeJSON(w, http.StatusCreated, output)
 }
 
 func (s *Server) walletSession(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +127,7 @@ func (s *Server) walletSession(w http.ResponseWriter, r *http.Request) {
 	}
 	s.service.mu.Unlock()
 	var session walletSession
-	if err := s.service.centralJSON(r.Context(), s.service.cfg.WalletSessionURL, s.service.cfg.WalletGatewayKey, q, &session); err != nil {
+	if err := s.service.walletGatewayJSON(r.Context(), strings.TrimRight(s.service.cfg.WalletGatewayURL, "/")+"/v1/wallet/sessions/complete", "", q, &session); err != nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "YNX Wallet Gateway unavailable", "central": true})
 		return
 	}
@@ -167,15 +156,16 @@ func (s *Server) api(requiredScope string, next apiHandler) http.HandlerFunc {
 			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "music API rate limit exceeded"})
 			return
 		}
-		sessionBinding := strings.TrimSpace(r.Header.Get("X-YNX-App-Session"))
-		deviceKey := strings.TrimSpace(r.Header.Get("X-YNX-Product-Device-Key"))
-		if !digestPattern.MatchString(sessionBinding) || !deviceKeyPattern.MatchString(deviceKey) {
+		proof := strings.TrimSpace(r.Header.Get("X-YNX-Product-Session-Proof"))
+		if proof == "" || len(proof) > 16<<10 {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "canonical Sign in with YNX Wallet session required"})
 			return
 		}
-		input := walletIntrospectionRequest{SessionBinding: sessionBinding, ProductClientID: musicProductClient, BundleID: musicBundleID, ProductDeviceKey: deviceKey, RequiredScopes: []string{requiredScope}}
+		input := struct {
+			RequiredScopes []string `json:"requiredScopes"`
+		}{RequiredScopes: []string{requiredScope}}
 		var output walletIntrospectionResponse
-		if s.service.centralJSON(r.Context(), s.service.cfg.WalletVerifyURL, s.service.cfg.WalletGatewayKey, input, &output) != nil || !output.Active || output.Session.SessionBinding != sessionBinding || !output.Session.valid(requiredScope) {
+		if s.service.walletGatewayJSON(r.Context(), strings.TrimRight(s.service.cfg.WalletGatewayURL, "/")+"/v1/wallet/sessions/introspect", proof, input, &output) != nil || !output.Active || !output.Session.valid(requiredScope) {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Wallet product session expired, revoked, tampered or lacks scope"})
 			return
 		}

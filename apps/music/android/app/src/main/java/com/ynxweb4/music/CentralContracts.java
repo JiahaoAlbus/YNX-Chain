@@ -10,6 +10,7 @@ import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.Signature;
 import java.security.SecureRandom;
+import java.security.MessageDigest;
 import java.security.spec.ECGenParameterSpec;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -71,6 +72,31 @@ public final class CentralContracts {
         return new JSONObject().put("challenge",challenge).put("deviceSignature",proof);
     }
 
+    public static JSONObject gatewayChallenge(JSONObject approval, long nowMillis) throws Exception {
+        Instant now=Instant.ofEpochMilli(nowMillis),approvalExpiry=Instant.parse(approval.getString("expiresAt"));
+        Instant expiry=now.plusSeconds(120).isBefore(approvalExpiry)?now.plusSeconds(120):approvalExpiry;
+        if(!expiry.isAfter(now))throw new SecurityException("Wallet approval expired");
+        DateTimeFormatter millis=new DateTimeFormatterBuilder().appendInstant(3).toFormatter();
+        return new JSONObject().put("version","1").put("challenge",nonce()).put("requestDigest",approval.getString("requestDigest"))
+            .put("productClientId",CLIENT).put("bundleId",BUNDLE).put("productDeviceAlgorithm","p256-sha256")
+            .put("productDeviceKey",devicePublicKey()).put("account",approval.getString("account")).put("scopes",approval.getJSONArray("grantedScopes"))
+            .put("issuedAt",millis.format(now)).put("expiresAt",millis.format(expiry));
+    }
+
+    public static String productSessionProof(JSONObject session,String requiredScope,long nowMillis)throws Exception{
+        if(!"music".equals(session.getString("requestingProduct"))||!CLIENT.equals(session.getString("productClientId"))||!BUNDLE.equals(session.getString("bundleId"))||!devicePublicKey().equals(session.getString("productDeviceKey")))throw new SecurityException("Product Session binding mismatch");
+        JSONArray scopes=session.getJSONArray("scopes");boolean granted=false;for(int i=0;i<scopes.length();i++)if(requiredScope.equals(scopes.getString(i)))granted=true;if(!granted)throw new SecurityException("Product Session scope missing");
+        Instant now=Instant.ofEpochMilli(nowMillis),sessionExpiry=Instant.parse(session.getString("expiresAt")),expiry=now.plusSeconds(30).isBefore(sessionExpiry)?now.plusSeconds(30):sessionExpiry;
+        if(!expiry.isAfter(now))throw new SecurityException("Product Session expired");
+        String body=canonical(new JSONObject().put("requiredScopes",new JSONArray().put(requiredScope)));
+        String digest=hex(MessageDigest.getInstance("SHA-256").digest(body.getBytes(StandardCharsets.UTF_8)));
+        DateTimeFormatter millis=new DateTimeFormatterBuilder().appendInstant(3).toFormatter();
+        JSONObject unsigned=new JSONObject().put("version","1").put("sessionBinding",session.getString("sessionBinding")).put("productClientId",CLIENT).put("bundleId",BUNDLE).put("productDeviceKey",devicePublicKey()).put("method","POST").put("path","/v1/wallet/sessions/introspect").put("bodyDigest",digest).put("nonce",nonce()).put("issuedAt",millis.format(now)).put("expiresAt",millis.format(expiry));
+        Signature signer=Signature.getInstance("SHA256withECDSA");KeyStore ks=KeyStore.getInstance("AndroidKeyStore");ks.load(null);signer.initSign((java.security.PrivateKey)ks.getKey("ynx_music_device_v1",null));signer.update(("YNX_PRODUCT_SESSION_HTTP_PROOF_V1\n"+canonical(unsigned)).getBytes(StandardCharsets.UTF_8));
+        JSONObject proof=new JSONObject(unsigned.toString()).put("signature",Base64.encodeToString(signer.sign(),Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING));
+        return Base64.encodeToString(canonical(proof).getBytes(StandardCharsets.UTF_8),Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING);
+    }
+
     public static String productDeviceKey() throws Exception { return devicePublicKey(); }
 
     private static String canonical(Object value) throws Exception {
@@ -111,4 +137,5 @@ public final class CentralContracts {
         return Base64.encodeToString(out, Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
     }
     private static byte[] fixed(byte[] in) { byte[] out = new byte[32]; System.arraycopy(in, Math.max(0, in.length - 32), out, Math.max(0, 32 - in.length), Math.min(32, in.length)); return out; }
+    private static String hex(byte[] in){StringBuilder out=new StringBuilder();for(byte value:in)out.append(String.format("%02x",value&255));return out.toString();}
 }

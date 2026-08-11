@@ -10,15 +10,12 @@ go run ./apps/music/cmd/ynx-musicd \
   -data /absolute/private/path/ynx-music
 ```
 
-The embedded Web is an operator/staging surface and intentionally stores no Wallet session. Android and iOS are the user products. Both use platform playback, private atomic state, offline WAV verification, queue/position recovery and the canonical device-bound Sign in with YNX Wallet flow.
+The embedded Web, Android and iOS surfaces are user products. Guests can discover, search and Range-stream only published non-explicit Testnet media. Web stores the short-lived Product Session and non-exportable device key in origin-scoped IndexedDB; Android uses Android Keystore plus encrypted storage; iOS uses CryptoKit plus ThisDeviceOnly Keychain. Private library, history and creator actions use a fresh sender-constrained proof for every request.
 
 ## Server-only integrations
 
 ```text
-YNX_MUSIC_WALLET_CHALLENGE_URL
-YNX_MUSIC_WALLET_SESSION_URL
-YNX_MUSIC_WALLET_VERIFY_URL
-YNX_MUSIC_WALLET_GATEWAY_KEY
+YNX_WALLET_GATEWAY_URL (defaults to https://wallet-auth.ynxweb4.com)
 YNX_MUSIC_AI_GATEWAY_URL / YNX_MUSIC_AI_GATEWAY_KEY
 YNX_MUSIC_PAY_GATEWAY_URL / YNX_MUSIC_PAY_GATEWAY_KEY
 YNX_MUSIC_TRUST_GATEWAY_URL / YNX_MUSIC_TRUST_GATEWAY_KEY

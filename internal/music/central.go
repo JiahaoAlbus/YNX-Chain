@@ -18,6 +18,8 @@ import (
 const (
 	musicProductClient = "ynx-music-v1"
 	musicBundleID      = "com.ynxweb4.music"
+	musicWebClient     = "ynx-music-web-v1"
+	musicWebBundle     = "web.ynx.music"
 )
 
 var (
@@ -43,6 +45,7 @@ type walletCompletionRequest struct {
 type walletSession struct {
 	VerifierVersion        string   `json:"verifierVersion"`
 	SessionBinding         string   `json:"sessionBinding"`
+	RequestingProduct      string   `json:"requestingProduct"`
 	ProductClientID        string   `json:"productClientId"`
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
@@ -51,6 +54,15 @@ type walletSession struct {
 	RequestDigest          string   `json:"requestDigest"`
 	IssuedAt               string   `json:"issuedAt"`
 	ExpiresAt              string   `json:"expiresAt"`
+}
+
+type walletGatewayEnvelope struct {
+	OK     bool            `json:"ok"`
+	Result json.RawMessage `json:"result"`
+	Error  *struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
 }
 
 type walletIntrospectionRequest struct {
@@ -106,6 +118,54 @@ func (s *Service) centralJSON(ctx context.Context, endpoint, key string, input, 
 	return nil
 }
 
+// walletGatewayJSON is the canonical browser/native Product Session boundary.
+// It never sends an operator bearer credential; completion is approval-bound,
+// and every protected request supplies its own sender-constrained proof.
+func (s *Service) walletGatewayJSON(ctx context.Context, endpoint, proof string, input, output any) error {
+	if strings.TrimSpace(endpoint) == "" {
+		return errors.New("canonical Wallet Gateway is not configured")
+	}
+	raw, err := json.Marshal(input)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if proof != "" {
+		req.Header.Set("X-YNX-Product-Session-Proof", proof)
+	}
+	resp, err := s.cfg.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return err
+	}
+	var envelope walletGatewayEnvelope
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&envelope); err != nil {
+		return fmt.Errorf("invalid canonical Wallet Gateway response: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return errors.New("invalid canonical Wallet Gateway response: multiple JSON values")
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 || !envelope.OK || len(envelope.Result) == 0 {
+		return fmt.Errorf("canonical Wallet Gateway rejected request with HTTP %d", resp.StatusCode)
+	}
+	resultDecoder := json.NewDecoder(bytes.NewReader(envelope.Result))
+	resultDecoder.DisallowUnknownFields()
+	if err := resultDecoder.Decode(output); err != nil {
+		return fmt.Errorf("invalid canonical Wallet Gateway result: %w", err)
+	}
+	return nil
+}
+
 func walletCompletionReplayKey(input walletCompletionRequest) string {
 	raw, _ := json.Marshal(input)
 	sum := sha256.Sum256(raw)
@@ -113,7 +173,8 @@ func walletCompletionReplayKey(input walletCompletionRequest) string {
 }
 
 func (s walletSession) valid(requiredScope string) bool {
-	if s.VerifierVersion != "wallet-auth-v1" || s.ProductClientID != musicProductClient || s.BundleID != musicBundleID || s.ProductDeviceAlgorithm != "p256-sha256" || !digestPattern.MatchString(s.SessionBinding) || !digestPattern.MatchString(s.RequestDigest) {
+	validPlatform := (s.ProductClientID == musicProductClient && s.BundleID == musicBundleID) || (s.ProductClientID == musicWebClient && s.BundleID == musicWebBundle)
+	if s.VerifierVersion != "wallet-auth-v1" || s.RequestingProduct != "music" || !validPlatform || s.ProductDeviceAlgorithm != "p256-sha256" || !digestPattern.MatchString(s.SessionBinding) || !digestPattern.MatchString(s.RequestDigest) {
 		return false
 	}
 	issued, issuedErr := time.Parse("2006-01-02T15:04:05.000Z", s.IssuedAt)

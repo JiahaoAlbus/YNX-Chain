@@ -1,35 +1,22 @@
-# YNX Music central integration patch
+# YNX Music central integration
 
-Status: `implemented-local`; `integrated-central: false`.
+Status in current source: `integratedCentral: true`; current-source public deployment: `false`.
 
-The committed Wallet Auth v2 registry entry is [`wallet-registry-v2.json`](wallet-registry-v2.json). The central owner must merge this exact object into the canonical registry and expose the three server-to-server operations below. Music does not embed a verifier, mint its own session, or fall back to legacy bearer credentials.
+Music uses two exact platform identities:
 
-## Exact operations
+- Mobile: `ynx-music-v1` / `com.ynxweb4.music` / `ynxmusic://auth/callback`.
+- Web: `ynx-music-web-v1` / `web.ynx.music` / `https://web4.ynxweb4.com/music/auth/callback`.
 
-All calls are `POST` JSON, authenticated by the operator-provisioned server credential, and carry `X-YNX-Product-Client: ynx-music-v1`. Unknown fields and non-2xx responses are rejected.
+Both request the sorted scopes `music.creator`, `music.library`, `music.playback`, and `music.profile`. The reviewed registrations are present in the canonical central registry and Wallet review UI. The local v2 manifests remain in this directory as product-owned integration evidence.
 
-1. Challenge endpoint (`YNX_MUSIC_WALLET_CHALLENGE_URL`)
+## Current protocol
 
-   Request: `{ "authorizationRequest": <13-field Wallet request>, "walletApproval": <exact Wallet approval> }`.
+1. The product creates an exact Wallet authorization request with a non-exportable P-256 device key.
+2. Wallet returns an approval bound to the exact product, client, bundle, callback, scopes, nonce and request digest.
+3. The product creates and signs `YNX_PRODUCT_SESSION_CHALLENGE_V1`, then submits the exact request, approval and completion to `POST /v1/wallet/sessions/complete` through the Music service.
+4. Every protected Music operation creates a fresh `YNX_PRODUCT_SESSION_HTTP_PROOF_V1` bound to `POST /v1/wallet/sessions/introspect` and canonical body `{\"requiredScopes\":[scope]}`.
+5. Music derives the required scope from its route, forwards the proof to the central Gateway, and accepts only an active, unexpired Mobile or Web tuple with that scope.
 
-   Response: `{ "challenge": <exact 11-field Gateway challenge> }`.
+The old product challenge endpoint, server bearer credential, `X-YNX-App-Session`, and `X-YNX-Product-Device-Key` request headers are not accepted. Replay, wrong device, wrong product, cross-platform bundle substitution, scope widening, expiry and revocation fail closed.
 
-2. Session endpoint (`YNX_MUSIC_WALLET_SESSION_URL`)
-
-   Request: `{ "authorizationRequest": <request>, "walletApproval": <approval>, "gatewayCompletion": { "challenge": <challenge>, "deviceSignature": <base64url P-256 DER signature> } }`.
-
-   Response is the exact committed Wallet Auth `wallet-auth-v1` session: `verifierVersion`, `sessionBinding`, `productClientId`, `bundleId`, `productDeviceAlgorithm`, `requestDigest`, `account`, `scopes`, `issuedAt`, `expiresAt`.
-
-3. Introspection endpoint (`YNX_MUSIC_WALLET_VERIFY_URL`)
-
-   Request: `{ "sessionBinding", "productClientId", "bundleId", "productDeviceKey", "requiredScopes": [<one scope>] }`.
-
-   Response: `{ "active": true|false, "session": <exact wallet-auth-v1 session> }`. The central implementation must recover the original completion, assert non-revocation and expiry, and bind the supplied compressed P-256 key to that completion before returning `active: true`.
-
-The product signs `"YNX_PRODUCT_SESSION_CHALLENGE_V1\n" + canonicalJSON(challenge)` using the device-bound P-256 key. Android stores the key in Android Keystore; iOS stores it in Keychain. The callback accepts exactly one query item named `response`. Exact completion replay is rejected by Music as a second line of defense.
-
-## Merge verification
-
-- Parse the registry entry with committed `parseCentralRegistryEntry`.
-- Run the canonical Wallet Auth vectors for wrong product, callback, device key, scope, expiry, revocation, tampered approval, tampered challenge and replay.
-- Deploy all three endpoints, inject only server-side credentials, and set `centralIntegrated` to true only after a production/staging health check proves the deployed registry and verifier version.
+Published non-explicit Testnet media is a separate guest read boundary. Guest access cannot read private drafts, library, playback history, profile, creator records, AI context, Pay intents or Trust cases.

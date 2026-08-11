@@ -11,13 +11,13 @@ import (
 )
 
 type authFixture struct {
-	account, sessionBinding, deviceKey string
+	account, sessionBinding, proof string
 }
 
 func canonicalSession(f authFixture) walletSession {
 	return walletSession{
 		VerifierVersion: "wallet-auth-v1", SessionBinding: f.sessionBinding,
-		ProductClientID: musicProductClient, BundleID: musicBundleID,
+		RequestingProduct: "music", ProductClientID: musicProductClient, BundleID: musicBundleID,
 		ProductDeviceAlgorithm: "p256-sha256", RequestDigest: strings.Repeat("b", 64),
 		Account: f.account, Scopes: []string{"music.creator", "music.library", "music.playback", "music.profile"},
 		IssuedAt: "2026-07-18T00:00:00.000Z", ExpiresAt: "2030-07-18T00:00:00.000Z",
@@ -27,36 +27,31 @@ func canonicalSession(f authFixture) walletSession {
 func centralAuth(t *testing.T, service *Service, fixture authFixture) *httptest.Server {
 	t.Helper()
 	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer central-test-key" || r.Header.Get("X-YNX-Product-Client") != musicProductClient {
-			t.Errorf("canonical central headers missing: %v", r.Header)
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "headers"})
-			return
-		}
 		switch r.URL.Path {
-		case "/challenge":
-			writeJSON(w, http.StatusCreated, walletChallengeResponse{Challenge: json.RawMessage(`{"version":"1"}`)})
-		case "/session":
-			writeJSON(w, http.StatusOK, canonicalSession(fixture))
-		case "/introspect":
-			var input walletIntrospectionRequest
+		case "/v1/wallet/sessions/complete":
+			writeJSON(w, http.StatusOK, map[string]any{"ok": true, "result": canonicalSession(fixture)})
+		case "/v1/wallet/sessions/introspect":
+			if r.Header.Get("X-YNX-Product-Session-Proof") != fixture.proof {
+				writeJSON(w, http.StatusForbidden, map[string]any{"ok": false, "error": map[string]string{"code": "INVALID_DEVICE_PROOF", "message": "proof rejected"}})
+				return
+			}
+			var input struct {
+				RequiredScopes []string `json:"requiredScopes"`
+			}
 			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 				t.Error(err)
 			}
-			active := input.SessionBinding == fixture.sessionBinding && input.ProductClientID == musicProductClient && input.BundleID == musicBundleID && input.ProductDeviceKey == fixture.deviceKey && len(input.RequiredScopes) == 1
-			writeJSON(w, http.StatusOK, walletIntrospectionResponse{Active: active, Session: canonicalSession(fixture)})
+			writeJSON(w, http.StatusOK, map[string]any{"ok": true, "result": walletIntrospectionResponse{Active: len(input.RequiredScopes) == 1, Session: canonicalSession(fixture)}})
 		default:
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "route"})
 		}
 	}))
-	service.cfg.WalletChallengeURL = central.URL + "/challenge"
-	service.cfg.WalletSessionURL = central.URL + "/session"
-	service.cfg.WalletVerifyURL = central.URL + "/introspect"
-	service.cfg.WalletGatewayKey = "central-test-key"
+	service.cfg.WalletGatewayURL = central.URL
 	return central
 }
 
 func testFixture(t *testing.T) authFixture {
-	return authFixture{account: testAccount(t, 31), sessionBinding: strings.Repeat("a", 64), deviceKey: strings.Repeat("A", 44)}
+	return authFixture{account: testAccount(t, 31), sessionBinding: strings.Repeat("a", 64), proof: "canonical-test-product-session-proof"}
 }
 
 func protected(t *testing.T, h http.Handler, method, target string, body any, f authFixture) *httptest.ResponseRecorder {
@@ -70,8 +65,7 @@ func protectedWithKey(t *testing.T, h http.Handler, method, target string, body 
 		raw, _ = json.Marshal(body)
 	}
 	r := httptest.NewRequest(method, target, bytes.NewReader(raw))
-	r.Header.Set("X-YNX-App-Session", f.sessionBinding)
-	r.Header.Set("X-YNX-Product-Device-Key", f.deviceKey)
+	r.Header.Set("X-YNX-Product-Session-Proof", f.proof)
 	if body != nil {
 		r.Header.Set("Content-Type", "application/json")
 	}
@@ -154,23 +148,21 @@ func TestGuestCanDiscoverAndRangeStreamOnlyPublishedNonExplicitTracks(t *testing
 	}
 }
 
-func TestWalletCentralChallengeCompletionUnavailableReplayAndExactJSON(t *testing.T) {
+func TestWalletCentralCompletionUnavailableReplayAndExactJSON(t *testing.T) {
 	service := testService(t)
 	handler := NewServer(service, "https://music.ynx.test", nil).Handler()
-	request := map[string]any{"authorizationRequest": map[string]string{"version": "1"}, "walletApproval": map[string]string{"version": "1"}}
-	raw, _ := json.Marshal(request)
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/auth/wallet-v1/challenge", bytes.NewReader(raw)))
-	if w.Code != http.StatusServiceUnavailable {
-		t.Fatalf("unconfigured challenge status=%d body=%s", w.Code, w.Body.String())
+	removedChallenge := httptest.NewRecorder()
+	handler.ServeHTTP(removedChallenge, httptest.NewRequest(http.MethodPost, "/api/auth/wallet-v1/challenge", nil))
+	if removedChallenge.Code != http.StatusNotFound && removedChallenge.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("obsolete challenge route remains exposed: %d", removedChallenge.Code)
 	}
 
 	fixture := testFixture(t)
 	central := centralAuth(t, service, fixture)
 	defer central.Close()
 	completion := map[string]any{"authorizationRequest": map[string]string{"version": "1"}, "walletApproval": map[string]string{"version": "1"}, "gatewayCompletion": map[string]any{"challenge": map[string]string{"version": "1"}, "deviceSignature": "proof"}}
-	raw, _ = json.Marshal(completion)
-	w = httptest.NewRecorder()
+	raw, _ := json.Marshal(completion)
+	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/auth/wallet-v1/session", bytes.NewReader(raw)))
 	if w.Code != http.StatusOK {
 		t.Fatalf("central completion status=%d body=%s", w.Code, w.Body.String())
@@ -262,8 +254,6 @@ func TestAuthorizedRangePlaybackAndAIGatewayReview(t *testing.T) {
 	svc.cfg.AIGatewayURL, svc.cfg.AIGatewayKey = ai.URL, "server-side-key"
 	server := NewServer(svc, "https://music.ynx.test", nil).Handler()
 	r := httptest.NewRequest(http.MethodGet, "/api/tracks/"+track.ID+"/media", nil)
-	r.Header.Set("X-YNX-App-Session", fixture.sessionBinding)
-	r.Header.Set("X-YNX-Product-Device-Key", fixture.deviceKey)
 	r.Header.Set("Range", "bytes=0-31")
 	w := httptest.NewRecorder()
 	server.ServeHTTP(w, r)
@@ -304,8 +294,35 @@ func TestWalletSessionValidationProperties(t *testing.T) {
 	}
 }
 
+func TestWalletSessionAcceptsOnlyExactMobileOrWebPlatformTuple(t *testing.T) {
+	fixture := testFixture(t)
+	mobile := canonicalSession(fixture)
+	if !mobile.valid("music.profile") {
+		t.Fatal("exact Music mobile Product Session rejected")
+	}
+	web := canonicalSession(fixture)
+	web.ProductClientID = musicWebClient
+	web.BundleID = musicWebBundle
+	if !web.valid("music.creator") {
+		t.Fatal("exact Music Web Product Session rejected")
+	}
+	for name, mutate := range map[string]func(*walletSession){
+		"cross-platform bundle": func(session *walletSession) { session.BundleID = musicBundleID },
+		"wrong product":         func(session *walletSession) { session.RequestingProduct = "video" },
+		"wrong client":          func(session *walletSession) { session.ProductClientID = "ynx-music-admin" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			candidate := web
+			mutate(&candidate)
+			if candidate.valid("music.profile") {
+				t.Fatal("substituted Music Product Session accepted")
+			}
+		})
+	}
+}
+
 func FuzzWalletSessionFailClosed(f *testing.F) {
-	fixture := authFixture{account: "0x1111111111111111111111111111111111111111", sessionBinding: strings.Repeat("a", 64), deviceKey: strings.Repeat("A", 44)}
+	fixture := authFixture{account: "0x1111111111111111111111111111111111111111", sessionBinding: strings.Repeat("a", 64), proof: "canonical-test-product-session-proof"}
 	for _, seed := range []string{"", "a", strings.Repeat("a", 63), strings.Repeat("a", 65), strings.Repeat("z", 64), "../../session"} {
 		f.Add(seed)
 	}

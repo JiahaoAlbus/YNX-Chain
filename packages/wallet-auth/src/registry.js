@@ -17,7 +17,7 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
 ]);
 
 export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
-export const CENTRAL_REGISTRY_PRODUCT_COUNT = 31;
+export const CENTRAL_REGISTRY_PRODUCT_COUNT = 32;
 export const CENTRAL_PRODUCT_SCHEMA_VERSION = 3;
 
 export function parseCentralRegistryDocument(input) {
@@ -44,10 +44,11 @@ export function migrateCentralRegistryDocumentV1(input) {
     throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet registry v1 product set is not the accepted migration source");
   }
   const migratedProducts = [
-    ...input.products.filter(product => product.productId !== "browser" && product.productId !== "cloud" && product.productId !== "docs" && product.productId !== "search").map(product => structuredClone(product)),
+    ...input.products.filter(product => product.productId !== "browser" && product.productId !== "cloud" && product.productId !== "docs" && product.productId !== "music" && product.productId !== "search").map(product => structuredClone(product)),
     ...canonicalBrowserRegistrations(),
     ...canonicalCloudRegistrations(),
     ...canonicalDocsRegistrations(),
+    ...canonicalMusicRegistrations(),
     canonicalQuantRegistration(),
     canonicalSearchRegistration(),
   ]
@@ -162,6 +163,28 @@ function canonicalSearchRegistration() {
     sessionDurationSeconds: 300,
     revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
   };
+}
+
+function canonicalMusicRegistrations() {
+  return [
+    ["music-mobile", "YNX Music for Mobile", "ynx-music-v1", "com.ynxweb4.music", "ynxmusic://auth/callback"],
+    ["music-web", "YNX Music for Web", "ynx-music-web-v1", "web.ynx.music", "https://web4.ynxweb4.com/music/auth/callback"],
+  ].map(([productId, displayName, productClientId, bundleId, callback]) => ({
+    schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    productId,
+    displayName,
+    reviewState: "pending-review",
+    enabled: false,
+    productClientId,
+    requestingProduct: "music",
+    bundleId,
+    callbacks: [callback],
+    scopes: ["music.creator", "music.library", "music.playback", "music.profile"],
+    maxScopes: 4,
+    productDeviceAlgorithms: ["p256-sha256"],
+    sessionDurationSeconds: 300,
+    revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
+  }));
 }
 
 function canonicalCloudRegistrations() {

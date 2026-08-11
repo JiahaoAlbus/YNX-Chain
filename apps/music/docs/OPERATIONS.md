@@ -8,7 +8,7 @@
 - State: `/var/lib/ynx-music`; binary: `/opt/ynx/music/ynx-musicd`
 - Caddy path handler and hardened unit: `../deploy/`
 
-The staging Web surface is read-only without a canonical native product session. `centralIntegrated` remains false until the Wallet registry entry and all three central operations are merged and deployed. Empty central variables intentionally make protected operations unavailable.
+The Web surface permits bounded guest discovery and playback of published non-explicit Testnet media. Private operations require one of the two reviewed Music Product Sessions and a fresh sender-constrained proof. The central contract is integrated in source; current-source staging/public deployment remains false until a deployment receipt binds the runtime, Gateway registry and build commit together.
 
 ## Deploy and verify
 
@@ -20,7 +20,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
   -o ynx-musicd ./apps/music/cmd/ynx-musicd
 ```
 
-Upload to a temporary path, verify SHA-256, atomically rename, install the unit, validate Caddy, then restart. Never put central keys on a command line or in the repository. After restart, require `health.ok=true`, exact build commit/release, `centralIntegrated=false`, `licensedPublicCatalog=false`, and `productionStreaming=false`.
+Upload to a temporary path, verify SHA-256, atomically rename, install the unit, validate Caddy, then restart. Never put central keys on a command line or in the repository. After restart, require `health.ok=true`, exact build commit/release, `centralContractIntegrated=true`, `centralDeploymentVerified=false` until the external E2E receipt is captured, `licensedPublicCatalog=false`, and `productionStreaming=false`.
 
 ## Backup, recovery and rollback
 

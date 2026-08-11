@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 2,
+  "productClientId": "ynx-music-web-v1",
+  "requestingProduct": "music",
+  "bundleId": "web.ynx.music",
+  "callbacks": [
+    "https://web4.ynxweb4.com/music/auth/callback"
+  ],
+  "scopes": [
+    "music.creator",
+    "music.library",
+    "music.playback",
+    "music.profile"
+  ],
+  "maxScopes": 4,
+  "productDeviceAlgorithms": [
+    "p256-sha256"
+  ]
+}
