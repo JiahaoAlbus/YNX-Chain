@@ -30,7 +30,32 @@ export const DEX_WALLET = Object.freeze({
   scopes: Object.freeze(["account:read", "dex:positions:read", "dex:transaction:request"]),
 });
 
-export const WALLET_INSTALL_URL = "https://ynxweb4.com/ecosystem?product=wallet";
+export const WALLET_INSTALL_URL = "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk";
+export const WALLET_PRODUCT_URL = "https://www.ynxweb4.com/dapp/wallet";
+export const YNX_EVM_CHAIN = Object.freeze({
+  chainId:"0x1917",
+  chainName:"YNX Testnet",
+  nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),
+  rpcUrls:Object.freeze(["https://rpc.ynxweb4.com/"]),
+  blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com/"]),
+});
+
+type Eip1193Provider={request(input:{method:string;params?:readonly unknown[]|Record<string,unknown>}):Promise<unknown>};
+
+export async function connectMetaMask(provider:Eip1193Provider|undefined=(globalThis as typeof globalThis&{ethereum?:Eip1193Provider}).ethereum):Promise<string>{
+  if(!provider)throw new Error("MetaMask was not detected. Install YNX Wallet from the official download or install MetaMask, then retry.");
+  try{await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:YNX_EVM_CHAIN.chainId}]})}
+  catch(error){
+    if((error as {code?:number})?.code!==4902)throw error;
+    await provider.request({method:"wallet_addEthereumChain",params:[YNX_EVM_CHAIN]});
+    await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:YNX_EVM_CHAIN.chainId}]});
+  }
+  const chain=await provider.request({method:"eth_chainId"});
+  if(chain!==YNX_EVM_CHAIN.chainId)throw new Error("MetaMask did not switch to YNX Testnet (chain 6423).");
+  const accounts=await provider.request({method:"eth_requestAccounts"});
+  if(!Array.isArray(accounts)||typeof accounts[0]!=="string"||!/^0x[0-9a-fA-F]{40}$/.test(accounts[0]))throw new Error("MetaMask did not return a valid EVM account.");
+  return accounts[0].toLowerCase();
+}
 const GATEWAY = (import.meta.env.VITE_WALLET_GATEWAY_URL || "/wallet-gateway").replace(/\/$/, "");
 const DB_NAME = "ynx-dex-wallet-v1";
 const STORE = "auth";
