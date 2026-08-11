@@ -3,6 +3,7 @@ package payproduct
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -93,14 +94,25 @@ func (c *HTTPPayAPI) CreateRefund(ctx context.Context, intent string, amount int
 	return out, err
 }
 func (c *HTTPPayAPI) CreateAuthorizedRefund(ctx context.Context, input AuthorizedRefundSubmission) (chain.RefundRecord, error) {
-	var out chain.RefundRecord
-	err := c.do(ctx, http.MethodPost, "/pay/refunds", input, &out)
-	return out, err
+	var created chain.RefundRecord
+	if err := c.do(ctx, http.MethodPost, "/pay/refunds", input, &created); err != nil {
+		return chain.RefundRecord{}, err
+	}
+	completionDigest := sha256.Sum256([]byte("YNX_PAY_REFUND_COMPLETION_V1\n" + input.IdempotencyKey + "\n" + input.TransactionHash))
+	var completed chain.RefundRecord
+	err := c.do(ctx, http.MethodPost, "/pay/refunds/"+url.PathEscape(created.ID)+"/complete", map[string]any{"transactionHash": input.TransactionHash, "idempotencyKey": fmt.Sprintf("refund-complete-%x", completionDigest[:16])}, &completed)
+	return completed, err
 }
-func (c *HTTPPayAPI) RefundEvidence(ctx context.Context, id string) (AuthoritativeRefundEvidence, error) {
-	var out AuthoritativeRefundEvidence
-	err := c.do(ctx, http.MethodGet, "/pay/refunds/"+url.PathEscape(id)+"/evidence", nil, &out)
-	return out, err
+func (c *HTTPPayAPI) RefundEvidence(ctx context.Context, id string, expected AuthorizedRefundSubmission) (AuthoritativeRefundEvidence, error) {
+	var record chain.RefundRecord
+	if err := c.do(ctx, http.MethodGet, "/pay/refunds/"+url.PathEscape(id), nil, &record); err != nil {
+		return AuthoritativeRefundEvidence{}, err
+	}
+	if record.ID != id || record.Status != "completed" || record.IntentID != expected.IntentID || record.InvoiceID != expected.InvoiceID || record.Merchant != expected.MerchantID || record.PayoutAddress != expected.MerchantAccount || record.Payer != expected.Payer || record.Amount != expected.Amount || record.Currency != expected.Asset || strings.ToLower(record.TransactionHash) != strings.ToLower(expected.TransactionHash) || record.BlockNumber == 0 || record.CompletedAt == nil || record.CompletedAt.IsZero() || len(record.AuditHash) != 64 {
+		return AuthoritativeRefundEvidence{}, errors.New("central Pay refund completion is incomplete or mismatched")
+	}
+	now := time.Now().UTC()
+	return AuthoritativeRefundEvidence{ID: record.ID, RequestID: expected.RequestID, InvoiceID: record.InvoiceID, IntentID: record.IntentID, ChainID: ChainID, MerchantID: record.Merchant, MerchantAccount: record.PayoutAddress, Payer: record.Payer, Amount: record.Amount, Asset: record.Currency, TransactionHash: strings.ToLower(record.TransactionHash), BlockNumber: record.BlockNumber, Finality: "committed", Status: "refunded", ReceiptID: record.ID, AuditHash: record.AuditHash, CommittedAt: *record.CompletedAt, Source: "authoritative-central-pay-api", SourceAsOf: now, SourceVersion: 1, Confidence: "authoritative"}, nil
 }
 func (c *HTTPPayAPI) do(ctx context.Context, method, path string, body any, out any) error {
 	var raw []byte

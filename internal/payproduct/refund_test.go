@@ -30,7 +30,7 @@ func (f *fakeAuthorizedRefundPay) CreateAuthorizedRefund(_ context.Context, inpu
 	f.createCalls++
 	return f.created, nil
 }
-func (f *fakeAuthorizedRefundPay) RefundEvidence(context.Context, string) (AuthoritativeRefundEvidence, error) {
+func (f *fakeAuthorizedRefundPay) RefundEvidence(context.Context, string, AuthorizedRefundSubmission) (AuthoritativeRefundEvidence, error) {
 	return f.evidence, f.evidenceErr
 }
 
@@ -69,7 +69,7 @@ func TestRefundRequiresMerchantWalletAndAuthoritativeCommittedEvidence(t *testin
 	merchantKey := secp256k1.PrivKeyFromBytes(bytes32(5))
 	actor := MerchantPrincipal{Merchant: merchant, Account: merchant.PayoutAddress, Role: "finance", Session: "merchant-session-01"}
 	authorization := signedRefundAuthorization(now, request, invoice, actor, merchantKey, "0x"+strings.Repeat("c", 64))
-	pay.created = chain.RefundRecord{ID: "central-refund-012345", IntentID: invoice.IntentID, Amount: request.Amount, Currency: invoice.Asset, Status: "submitted", CreatedAt: now, IdempotencyKey: "refund-submit-01"}
+	pay.created = chain.RefundRecord{ID: "central-refund-012345", IntentID: invoice.IntentID, Amount: request.Amount, Currency: invoice.Asset, Status: "completed", CreatedAt: now, IdempotencyKey: "refund-submit-01"}
 	tampered := authorization
 	tampered.Amount++
 	if _, err := service.SubmitRefundAuthorization(context.Background(), actor, request.ID, tampered, "refund-submit-01"); err == nil {

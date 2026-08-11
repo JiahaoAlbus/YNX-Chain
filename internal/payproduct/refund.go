@@ -68,7 +68,7 @@ type AuthoritativeRefundEvidence struct {
 
 type AuthorizedRefundAPI interface {
 	CreateAuthorizedRefund(context.Context, AuthorizedRefundSubmission) (chain.RefundRecord, error)
-	RefundEvidence(context.Context, string) (AuthoritativeRefundEvidence, error)
+	RefundEvidence(context.Context, string, AuthorizedRefundSubmission) (AuthoritativeRefundEvidence, error)
 }
 
 func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantPrincipal, requestID string, authorization RefundAuthorization, key string) (RefundRequest, error) {
@@ -128,7 +128,7 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 	if err != nil {
 		return RefundRequest{}, err
 	}
-	if !identifierRE.MatchString(central.ID) || central.IntentID != invoice.IntentID || central.Amount != request.Amount || central.Currency != invoice.Asset || (central.Status != "submitted" && central.Status != "pending") || central.IdempotencyKey != key {
+	if !identifierRE.MatchString(central.ID) || central.IntentID != invoice.IntentID || central.Amount != request.Amount || central.Currency != invoice.Asset || (central.Status != "submitted" && central.Status != "pending" && central.Status != "completed") || central.IdempotencyKey != key {
 		return RefundRequest{}, errors.New("central Pay refund submission was incomplete or mismatched")
 	}
 	now := s.now().UTC()
@@ -180,7 +180,8 @@ func (s *Service) RefreshRefund(ctx context.Context, actor MerchantPrincipal, re
 	if request.Status != "submitted" || request.CentralRefundID == "" {
 		return RefundRequest{}, errors.New("refund has not been submitted with merchant Wallet authorization")
 	}
-	evidence, err := api.RefundEvidence(ctx, request.CentralRefundID)
+	expected := AuthorizedRefundSubmission{RequestID: request.ID, InvoiceID: invoice.CentralID, IntentID: invoice.IntentID, MerchantID: actor.Merchant.CentralMerchantID, MerchantAccount: request.ApprovedBy, Payer: request.Payer, Amount: request.Amount, Asset: invoice.Asset, Reason: request.Reason, TransactionHash: request.RefundTransactionHash, AuthorizationDigest: request.AuthorizationDigest, IdempotencyKey: request.CentralRefundID}
+	evidence, err := api.RefundEvidence(ctx, request.CentralRefundID, expected)
 	if err != nil {
 		return RefundRequest{}, err
 	}
