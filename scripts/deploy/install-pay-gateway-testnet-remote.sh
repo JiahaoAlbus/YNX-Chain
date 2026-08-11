@@ -12,13 +12,14 @@ test -s /etc/ynx/ynx-payd.env
 test -x /usr/local/bin/ynx-payd
 
 backup="/var/backups/ynx-chain/pay-gateway-predeploy-$release"
-install -d -m 0700 "$backup"
+install -d -m 0750 -o root -g ynx "$backup"
+install -d -m 0700 -o ynx -g ynx "$backup/preflight"
 cp -a /usr/local/bin/ynx-payd "$backup/ynx-payd"
 cp -a /etc/ynx/ynx-payd.env "$backup/ynx-payd.env"
 cp -a /etc/systemd/system/ynx-payd.service "$backup/ynx-payd.service"
 install -m 0755 "$candidate" "$backup/candidate"
 
-bash -c 'set -a; . /etc/ynx/ynx-payd.env; set +a; exec runuser -u ynx -- "$1" --http 127.0.0.1:17430 --audit-log "$2/preflight-audit.jsonl"' _ "$backup/candidate" "$backup" >"$backup/preflight.log" 2>&1 &
+bash -c 'set -a; . /etc/ynx/ynx-payd.env; set +a; exec runuser -u ynx -- "$1" --http 127.0.0.1:17430 --audit-log "$2/preflight/audit.jsonl"' _ "$backup/candidate" "$backup" >"$backup/preflight.log" 2>&1 &
 preflight=$!
 cleanup() { kill "$preflight" 2>/dev/null || true; wait "$preflight" 2>/dev/null || true; }
 trap cleanup EXIT
