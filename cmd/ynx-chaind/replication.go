@@ -26,9 +26,9 @@ func startReplicationPolling(ctx context.Context, devnet *chain.Devnet, sourceUR
 		interval = 2 * time.Second
 	}
 	if client == nil {
-		timeout := envDurationOrDefault("YNX_REPLICATION_REQUEST_TIMEOUT", 45*time.Second)
+		timeout := envDurationOrDefault("YNX_REPLICATION_REQUEST_TIMEOUT", 2*time.Minute)
 		if timeout < 5*time.Second || timeout > 5*time.Minute {
-			timeout = 45 * time.Second
+			timeout = 2 * time.Minute
 		}
 		client = &http.Client{Timeout: timeout}
 	}
