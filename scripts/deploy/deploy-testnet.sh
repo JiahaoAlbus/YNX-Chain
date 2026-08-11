@@ -306,6 +306,7 @@ YNX_BLOCK_INTERVAL=2s
 YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
 YNX_BLOCK_PRODUCTION_PAUSE_FILE=/var/lib/ynx-chain/block-production-pause.json
 YNX_REPLICATION_REQUEST_TIMEOUT=45s
+YNX_PEER_SYNC_REQUEST_TIMEOUT=10s
 EOF
 printf 'YNX_LOCAL_VALIDATOR_ADDRESS=%q\n' "$YNX_LOCAL_VALIDATOR_ADDRESS" >> "$work/config/ynx-chaind.env"
 printf 'YNX_PEER_RPC_URLS=%q\n' "$YNX_PEER_RPC_URLS" >> "$work/config/ynx-chaind.env"

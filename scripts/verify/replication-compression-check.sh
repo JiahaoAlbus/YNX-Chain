@@ -8,5 +8,7 @@ go test ./cmd/ynx-chaind -run 'TestFetchReplicationSnapshot' -count=1
 grep -Fq 'gzip.NewWriterLevel' internal/api/server.go
 grep -Fq 'YNX_REPLICATION_REQUEST_TIMEOUT' cmd/ynx-chaind/replication.go
 grep -Fq 'YNX_REPLICATION_REQUEST_TIMEOUT=45s' scripts/deploy/deploy-testnet.sh
+grep -Fq 'YNX_PEER_SYNC_REQUEST_TIMEOUT' cmd/ynx-chaind/peer_sync.go
+grep -Fq 'YNX_PEER_SYNC_REQUEST_TIMEOUT=10s' scripts/deploy/deploy-testnet.sh
 
 echo "replication-compression-check passed: authenticated snapshots support gzip with an uncompressed-payload HMAC, followers verify after transparent decompression, decompressed size remains bounded, and request timeout is constrained"

@@ -81,7 +81,11 @@ func startPeerSyncPolling(ctx context.Context, devnet *chain.Devnet, source stri
 		interval = 5 * time.Second
 	}
 	if client == nil {
-		client = &http.Client{Timeout: 3 * time.Second}
+		timeout := envDurationOrDefault("YNX_PEER_SYNC_REQUEST_TIMEOUT", 10*time.Second)
+		if timeout < time.Second || timeout > time.Minute {
+			timeout = 10 * time.Second
+		}
+		client = &http.Client{Timeout: timeout}
 	}
 	poll := func() {
 		sourceHeight := devnet.LatestHeight()
