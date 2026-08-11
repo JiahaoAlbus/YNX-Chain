@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-08-11T15:30:33Z",
+  "chain": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": "0x1917",
+    "nativeSymbol": "YNXT"
+  },
+  "walletRelease": {
+    "version": "1.0.1-testnet-preview",
+    "officialDirectDownload": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    "releaseDetails": "https://www.ynxweb4.com/dapp/wallet"
+  },
+  "policy": {
+    "ynxWallet": "required for proof-bound private product sessions and separately reviewed financial actions",
+    "metaMask": "EVM compatibility only; it is never accepted as a YNX Product Session",
+    "guest": "public Exchange market data, Quant Research/Paper and Finance product information remain available without login",
+    "automaticMutationRetry": false
+  },
+  "publicSurfaces": [
+    {
+      "product": "exchange",
+      "url": "https://exchange.ynxweb4.com/",
+      "runtimeSourceCommit": "1190dff147f87e85a5f73d0842daa37f43289d5b",
+      "binarySha256": "b27f80aec7e2e05b4d400c35c91f192b0d816dbbcf1a6f400c6951d955f92870",
+      "htmlSha256": "de6041ab95f1960a0ebb3d3273b98a216023efa2c4d29174fafa4170ed39b3a8",
+      "walletBundleSha256": "8a6a898d27d100b05fe535bf1d864bacda30150cf6d5ee1c81c16cc6910b4f99",
+      "computerControl": {
+        "app": "Microsoft Edge",
+        "dialogOpened": true,
+        "visibleChecks": ["Choose a wallet", "Continue in YNX Wallet", "Download YNX Wallet", "Connect MetaMask", "Version, signature and installation details", "0x1917"]
+      }
+    },
+    {
+      "product": "quant",
+      "url": "https://quant.ynxweb4.com/",
+      "runtimeSourceCommit": "1190dff147f87e85a5f73d0842daa37f43289d5b",
+      "binarySha256": "258522825a3b39eb9ba8ce3395f80f027b40e44f2c3bb7daa3f48d7c7e368c73",
+      "htmlSha256": "da3581a0dc3d9714127eb676c78c6f77f372a95302ff396b000f377b989f975b",
+      "walletBundleSha256": "e3c4e0197f2da880bd1a792ef717b98899647b1086e48c990d88817b2158bfe1",
+      "computerControl": {
+        "app": "Microsoft Edge",
+        "visibleChecks": ["Connect YNX Wallet", "Download YNX Wallet", "Connect MetaMask", "Wallet version details", "Research", "Paper", "No wallet connected — Research and Paper remain available"]
+      }
+    },
+    {
+      "product": "finance",
+      "url": "https://finance.ynxweb4.com/",
+      "runtimeSourceCommit": "f6bc54b48e44cfcc959c3225f425eb7ceba43710",
+      "release": "ynx-finance-f6bc54b48e44",
+      "binarySha256": "9a35caed3714173ddee2af55a3afd2613b73d3d94398d698eb77cb614d2dd08e",
+      "webTreeSha256": "114f7a3bfa822376cb59716b9d9c9b184a530415abbc372ddb10007e9e7f4611",
+      "htmlSha256": "dfe9fe719434853f2dc30a35bfbf977281a7a0fc867f7b70f36aa13e96003ac1",
+      "walletBundleSha256": "be5c90e938e5d5b6e181199f2e1e3949b8f343c4e1af4d8aceab27b1ed41bf6d",
+      "rollbackBackup": "/var/backups/ynx-finance/20260811T152328Z-pre-ynx-finance-f6bc54b48e44",
+      "computerControl": {
+        "app": "Microsoft Edge",
+        "visibleChecks": ["Continue in YNX Wallet", "Download YNX Wallet", "Connect MetaMask", "Wallet version details", "Public product information remains available"]
+      }
+    }
+  ],
+  "testEvidence": {
+    "exchange": {"unit": "10/10", "browser": "2/2"},
+    "quant": {"unit": "5/5", "browser": "3/3"},
+    "finance": {"node": "14/14", "securityGate": "passed across 146 text files", "go": "passed ./apps/finance/... ./internal/finance/..."}
+  }
+}
