@@ -26,6 +26,10 @@ type ConsensusMigrationState struct {
 	LastBlockHash    string               `json:"lastBlockHash"`
 	Accounts         []ConsensusAccount   `json:"accounts"`
 	Validators       []ConsensusValidator `json:"validators"`
+	DexAssets        []NativeDexAsset     `json:"dexAssets,omitempty"`
+	DexBalances      []NativeDexBalance   `json:"dexBalances,omitempty"`
+	DexPools         []NativeDexPool      `json:"dexPools,omitempty"`
+	DexEvents        []NativeDexEvent     `json:"dexEvents,omitempty"`
 	ResourcePolicy   ResourceMarketPolicy `json:"resourcePolicy"`
 	LiquidSupplyYNXT int64                `json:"liquidSupplyYnxt"`
 	StakedSupplyYNXT int64                `json:"stakedSupplyYnxt"`
@@ -100,6 +104,36 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 	}
 	sort.Slice(validators, func(i, j int) bool { return validators[i].Address < validators[j].Address })
 
+	dexAssets := make([]NativeDexAsset, 0, len(d.dexAssets))
+	for _, asset := range d.dexAssets {
+		dexAssets = append(dexAssets, asset)
+	}
+	sort.Slice(dexAssets, func(i, j int) bool { return dexAssets[i].ID < dexAssets[j].ID })
+	dexBalances := make([]NativeDexBalance, 0)
+	for assetID, balances := range d.dexBalances {
+		for account, amount := range balances {
+			dexBalances = append(dexBalances, NativeDexBalance{AssetID: assetID, Account: account, Amount: amount})
+		}
+	}
+	sort.Slice(dexBalances, func(i, j int) bool {
+		if dexBalances[i].AssetID == dexBalances[j].AssetID {
+			return dexBalances[i].Account < dexBalances[j].Account
+		}
+		return dexBalances[i].AssetID < dexBalances[j].AssetID
+	})
+	dexPools := make([]NativeDexPool, 0, len(d.dexPools))
+	for _, pool := range d.dexPools {
+		dexPools = append(dexPools, cloneNativeDexPool(pool))
+		if pool.Asset0 == NativeDexAssetID {
+			liquidSupply += pool.Reserve0
+		}
+		if pool.Asset1 == NativeDexAssetID {
+			liquidSupply += pool.Reserve1
+		}
+	}
+	sort.Slice(dexPools, func(i, j int) bool { return dexPools[i].ID < dexPools[j].ID })
+	dexEvents := append([]NativeDexEvent(nil), d.dexEvents...)
+
 	latest := d.blocks[len(d.blocks)-1]
 	state := ConsensusMigrationState{
 		Version:          ConsensusMigrationVersion,
@@ -109,6 +143,10 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 		LastBlockHash:    latest.Hash,
 		Accounts:         accounts,
 		Validators:       validators,
+		DexAssets:        dexAssets,
+		DexBalances:      dexBalances,
+		DexPools:         dexPools,
+		DexEvents:        dexEvents,
 		ResourcePolicy:   d.resourcePolicy,
 		LiquidSupplyYNXT: liquidSupply,
 		StakedSupplyYNXT: stakedSupply,
@@ -175,8 +213,8 @@ func (s ConsensusMigrationState) Validate() error {
 		liquidSupply += account.Balance
 		stakedSupply += account.Staked
 	}
-	if liquidSupply != s.LiquidSupplyYNXT || stakedSupply != s.StakedSupplyYNXT {
-		return fmt.Errorf("consensus migration YNXT supply totals do not match accounts")
+	if stakedSupply != s.StakedSupplyYNXT {
+		return fmt.Errorf("consensus migration staked YNXT supply does not match accounts")
 	}
 
 	previousAddress = ""
@@ -207,6 +245,13 @@ func (s ConsensusMigrationState) Validate() error {
 	}
 	if err := s.ResourcePolicy.Validate(); err != nil {
 		return fmt.Errorf("consensus migration resource policy: %w", err)
+	}
+	dexNativeEscrow, err := validateNativeDexMigrationState(s.DexAssets, s.DexBalances, s.DexPools, s.DexEvents)
+	if err != nil {
+		return fmt.Errorf("consensus migration DEX state: %w", err)
+	}
+	if liquidSupply > math.MaxInt64-dexNativeEscrow || liquidSupply+dexNativeEscrow != s.LiquidSupplyYNXT {
+		return errors.New("consensus migration liquid YNXT supply does not reconcile with DEX native reserves")
 	}
 	expectedHash, err := s.calculateHash()
 	if err != nil {

@@ -130,6 +130,7 @@ type committedStateHashDocument struct {
 }
 
 func initialCommittedState(migration chain.ConsensusMigrationState) CommittedState {
+	dexAssets, dexBalances, dexPools, dexEvents := dexStateFromMigration(migration)
 	return CommittedState{
 		Version:                    CommittedStateVersion,
 		ChainID:                    migration.Network.ChainID,
@@ -173,10 +174,10 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		IDEIdempotency:             []BFTIDEIdempotency{},
 		GovernanceExecutions:       []BFTGovernanceExecution{},
 		GovernanceExecutionAudit:   []BFTGovernanceExecutionAudit{},
-		DexAssets:                  []BFTDexAsset{},
-		DexBalances:                []BFTDexBalance{},
-		DexPools:                   []BFTDexPool{},
-		DexEvents:                  []BFTDexEvent{},
+		DexAssets:                  dexAssets,
+		DexBalances:                dexBalances,
+		DexPools:                   dexPools,
+		DexEvents:                  dexEvents,
 		AppHash:                    migration.StateHash,
 	}
 }
@@ -258,7 +259,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if s.Height < int64(migration.Height) {
 		return fmt.Errorf("committed height %d precedes migrated height %d", s.Height, migration.Height)
 	}
-	if !s.Initialized && (s.Height != int64(migration.Height) || !accountsEqual(s.Accounts, migration.Accounts) || s.hasApplicationRecords() || !strings.EqualFold(s.AppHash, migration.StateHash)) {
+	if !s.Initialized && (s.Height != int64(migration.Height) || !accountsEqual(s.Accounts, migration.Accounts) || s.hasNonMigrationApplicationRecords() || !committedDexMatchesMigration(s, migration) || !strings.EqualFold(s.AppHash, migration.StateHash)) {
 		return errors.New("uninitialized committed state must exactly match the migration anchor")
 	}
 	if len(s.Accounts) == 0 {
@@ -351,7 +352,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 		return errors.New("committed state changed total liquid plus staked YNXT supply")
 	}
 	expected := migration.StateHash
-	if !accountsEqual(s.Accounts, migration.Accounts) || s.hasApplicationRecords() {
+	if s.Initialized && (!accountsEqual(s.Accounts, migration.Accounts) || s.hasApplicationRecords()) {
 		var err error
 		expected, err = s.calculateHash()
 		if err != nil {
@@ -426,6 +427,12 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 
 func (s CommittedState) hasApplicationRecords() bool {
 	return len(s.FeeEvents)+len(s.NativeTransfers)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PaySettlements)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit)+len(s.DexAssets)+len(s.DexBalances)+len(s.DexPools)+len(s.DexEvents) != 0
+}
+
+func (s CommittedState) hasNonMigrationApplicationRecords() bool {
+	copy := s
+	copy.DexAssets, copy.DexBalances, copy.DexPools, copy.DexEvents = nil, nil, nil, nil
+	return copy.hasApplicationRecords()
 }
 
 func validateFeeEvents(events []BFTFeeEvent) error {

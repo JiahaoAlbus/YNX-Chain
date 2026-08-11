@@ -93,6 +93,66 @@ func TestDEXAssetPoolSwapAndLiquidityLifecycleCommitsRealState(t *testing.T) {
 	}
 }
 
+func TestNativeDEXMigrationPreservesBalancesPoolsLotsAndEvents(t *testing.T) {
+	issuerKey := deterministicPrivateKey(224)
+	issuer := mustNativeAddress(t, issuerKey)
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := devnet.Faucet(issuer, 1_000_000); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	deadline := time.Now().Add(time.Hour).Unix()
+	actions := []struct {
+		name    string
+		payload any
+	}{
+		{ActionDexAssetCreate, DexAssetCreatePayload{AssetID: "ynx-usd-test", Symbol: "YUSDT", Name: "YNX USD Test Asset", Decimals: 6, MaxSupply: 10_000_000, InitialSupply: 2_000_000}},
+		{ActionDexPoolCreate, DexPoolCreatePayload{PoolID: "dex_ynxt_yusdt", Asset0: DexNativeAssetID, Asset1: "ynx-usd-test", FeeBps: 30}},
+		{ActionDexLiquidityAdd, DexLiquidityPayload{PoolID: "dex_ynxt_yusdt", Amount0: 100_000, Amount1: 200_000, MinShares: 141_000, DeadlineUnix: deadline}},
+	}
+	for index, action := range actions {
+		tx, err := NewSignedApplicationAction(issuerKey, 6423, action.name, action.payload, uint64(index+1))
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, err := EncodeSignedApplicationAction(tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, _, err := devnet.SubmitNativeDexAction(chain.NativeDexSignedActionInput{Hash: ApplicationActionHash(raw), Signer: tx.Signer, Action: tx.Action, Nonce: tx.Nonce, Fee: tx.Fee, Payload: tx.Payload}); err != nil {
+			t.Fatalf("submit native DEX action %s: %v", action.name, err)
+		}
+	}
+	devnet.ProduceBlock()
+	migration, err := devnet.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(migration.DexAssets) != 1 || len(migration.DexBalances) != 1 || len(migration.DexPools) != 1 || len(migration.DexEvents) != 3 {
+		t.Fatalf("migration omitted native DEX state: %+v", migration)
+	}
+	if migration.DexPools[0].Reserve0 != 100_000 || migration.LiquidSupplyYNXT <= 1_000_000 {
+		t.Fatalf("migration did not account for native DEX escrow: %+v", migration.DexPools[0])
+	}
+	if err := migration.Validate(); err != nil {
+		t.Fatalf("native DEX migration failed validation: %v", err)
+	}
+	app, err := NewPersistentApplication(migration, filepath.Join(t.TempDir(), "migrated-state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !committedDexMatchesMigration(app.committed, migration) {
+		expectedAssets, expectedBalances, expectedPools, expectedEvents := dexStateFromMigration(migration)
+		t.Fatalf("initial BFT state did not preserve native DEX migration records\nassets=%#v expected=%#v\nbalances=%#v expected=%#v\npools=%#v expected=%#v\nevents=%#v expected=%#v", app.committed.DexAssets, expectedAssets, app.committed.DexBalances, expectedBalances, app.committed.DexPools, expectedPools, app.committed.DexEvents, expectedEvents)
+	}
+	if err := app.committed.Validate(migration); err != nil {
+		t.Fatalf("migrated native DEX committed state is invalid: %v", err)
+	}
+	if app.committed.DexPools[0].AuditHash != dexPoolAuditHash(app.committed.DexPools[0]) || len(app.committed.DexPools[0].NativeLots0) == 0 {
+		t.Fatalf("migrated pool lost audit binding or provenance: %+v", app.committed.DexPools[0])
+	}
+}
+
 func TestCommittedStateMigratesVersion8WithoutInventingDEXRecords(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	owner := mustNativeAddress(t, deterministicPrivateKey(223))
