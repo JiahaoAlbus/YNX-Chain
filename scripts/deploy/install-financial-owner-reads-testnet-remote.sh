@@ -44,12 +44,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-export YNX_EXCHANGE_HTTP_ADDR=127.0.0.1:17446 YNX_EXCHANGE_STATE_PATH="$exchange_state"
+export YNX_EXCHANGE_HTTP_ADDR=127.0.0.1:17446 YNX_EXCHANGE_STATE_PATH="$exchange_state" YNX_EXCHANGE_DEPLOYED_PUBLIC=true
 runuser -u ynx --preserve-environment -- bash -c 'cd "$1" && exec "$2"' _ "$release_root/exchange" "$release_root/exchange/bin/ynx-exchanged" >"$exchange_log" 2>&1 &
 exchange_pid=$!
 exchange_ok=0
 for _ in $(seq 1 30); do
-  if health="$(curl -fsS --max-time 2 http://127.0.0.1:17446/api/health 2>/dev/null)" && ready="$(curl -fsS --max-time 2 http://127.0.0.1:17446/api/ready 2>/dev/null)" && HEALTH="$health" READY="$ready" COMMIT="$source_commit" node -e 'const h=JSON.parse(process.env.HEALTH),r=JSON.parse(process.env.READY);if(h.commit!==process.env.COMMIT||h.productId!=="ynx-exchange"||r.status!=="ready_public_testnet")process.exit(1)' 2>/dev/null; then exchange_ok=1; break; fi
+  if health="$(curl -fsS --max-time 2 http://127.0.0.1:17446/api/health 2>/dev/null)" && ready="$(curl -fsS --max-time 2 http://127.0.0.1:17446/api/ready 2>/dev/null)" && HEALTH="$health" READY="$ready" COMMIT="$source_commit" node -e 'const h=JSON.parse(process.env.HEALTH),r=JSON.parse(process.env.READY);if(h.commit!==process.env.COMMIT||h.productId!=="ynx-exchange"||r.status!=="ready_public_testnet"||r.deployedPublic!==true||r.stateIntegrity!==true)process.exit(1)' 2>/dev/null; then exchange_ok=1; break; fi
   sleep 1
 done
 [[ "$exchange_ok" == 1 ]] || { tail -80 "$exchange_log" >&2; exit 1; }
