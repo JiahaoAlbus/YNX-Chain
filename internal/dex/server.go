@@ -98,11 +98,19 @@ type Server struct {
 	ingestionKey string
 	authorizer   SessionAuthorizer
 	tokens       []Token
+	source       string
 }
 
 func NewServer(store *Store, info buildinfo.Info, ingestionKey string, authorizer SessionAuthorizer, tokens ...Token) (*Server, error) {
+	return NewServerWithSource(store, info, ingestionKey, authorizer, "indexed YNX Testnet EVM events", tokens...)
+}
+
+func NewServerWithSource(store *Store, info buildinfo.Info, ingestionKey string, authorizer SessionAuthorizer, source string, tokens ...Token) (*Server, error) {
 	if store == nil || len(ingestionKey) < 32 {
 		return nil, errors.New("store and 32-byte ingestion key are required")
+	}
+	if strings.TrimSpace(source) == "" {
+		return nil, errors.New("DEX data source is required")
 	}
 	if authorizer == nil {
 		authorizer = UnavailableAuthorizer{}
@@ -122,7 +130,7 @@ func NewServer(store *Store, info buildinfo.Info, ingestionKey string, authorize
 	sort.Slice(validated, func(i, j int) bool {
 		return strings.ToLower(validated[i].Address) < strings.ToLower(validated[j].Address)
 	})
-	return &Server{store: store, build: buildinfo.Normalize(info), ingestionKey: ingestionKey, authorizer: authorizer, tokens: validated}, nil
+	return &Server{store: store, build: buildinfo.Normalize(info), ingestionKey: ingestionKey, authorizer: authorizer, tokens: validated, source: source}, nil
 }
 
 func (server *Server) Handler() http.Handler {
@@ -149,19 +157,21 @@ func (server *Server) Handler() http.Handler {
 }
 
 func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
-	writeJSON(response, http.StatusOK, map[string]any{"status": "ok", "productId": "ynx-dex", "chainId": ChainID, "source": "indexed YNX Testnet EVM events", "latestBlock": server.store.Analytics().LatestBlock})
+	writeJSON(response, http.StatusOK, map[string]any{"status": "ok", "productId": "ynx-dex", "chainId": ChainID, "source": server.source, "latestBlock": server.store.Analytics().LatestBlock})
 }
 func (server *Server) version(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, server.build)
 }
 func (server *Server) pools(response http.ResponseWriter, _ *http.Request) {
-	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.Pools(), "source": "indexed YNX Testnet EVM events"})
+	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.Pools(), "source": server.source})
 }
 func (server *Server) tokensList(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]any{"items": server.tokens, "chainId": ChainID, "mainnet": false, "source": "owner-reviewed Testnet token list"})
 }
 func (server *Server) analytics(response http.ResponseWriter, _ *http.Request) {
-	writeJSON(response, http.StatusOK, server.store.Analytics())
+	analytics := server.store.Analytics()
+	analytics.Source = server.source
+	writeJSON(response, http.StatusOK, analytics)
 }
 func (server *Server) prices(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.SpotPrices(), "source": "raw indexed reserve ratios; not fiat prices"})
@@ -191,7 +201,7 @@ func (server *Server) events(types ...string) http.HandlerFunc {
 				result = append(result, all[i])
 			}
 		}
-		writeJSON(response, http.StatusOK, map[string]any{"items": result, "source": "indexed YNX Testnet EVM events"})
+		writeJSON(response, http.StatusOK, map[string]any{"items": result, "source": server.source})
 	}
 }
 

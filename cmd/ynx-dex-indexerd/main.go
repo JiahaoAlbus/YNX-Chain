@@ -40,11 +40,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	server, err := dex.NewServer(store, buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}, os.Getenv("YNX_DEX_INDEXER_INGESTION_KEY"), authorizer, tokens...)
+	factory := strings.TrimSpace(os.Getenv("DEX_FACTORY_ADDRESS"))
+	nativeREST := strings.TrimSpace(os.Getenv("YNX_DEX_NATIVE_REST_URL"))
+	if factory != "" && nativeREST != "" {
+		log.Fatal("DEX_FACTORY_ADDRESS and YNX_DEX_NATIVE_REST_URL are mutually exclusive authoritative sources")
+	}
+	source := "indexed YNX Testnet EVM events"
+	if nativeREST != "" {
+		source = dex.NativeSource
+	}
+	server, err := dex.NewServerWithSource(store, buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}, os.Getenv("YNX_DEX_INDEXER_INGESTION_KEY"), authorizer, source, tokens...)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if factory := strings.TrimSpace(os.Getenv("DEX_FACTORY_ADDRESS")); factory != "" {
+	if factory != "" {
 		startBlock, err := envUint("DEX_INDEXER_START_BLOCK", 0)
 		if err != nil || startBlock == 0 {
 			log.Fatal("DEX_INDEXER_START_BLOCK must be positive when DEX_FACTORY_ADDRESS is set")
@@ -66,6 +75,29 @@ func main() {
 					log.Printf("YNX DEX confirmed EVM poll failed: %v", err)
 				} else if advanced {
 					log.Printf("YNX DEX confirmed EVM cursor advanced")
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+				}
+			}
+		}()
+	}
+	if nativeREST != "" {
+		poller, err := dex.NewNativePoller(store, dex.NativePollerConfig{RESTURL: nativeREST})
+		if err != nil {
+			log.Fatal(err)
+		}
+		go func() {
+			ticker := time.NewTicker(5 * time.Second)
+			defer ticker.Stop()
+			for {
+				advanced, err := poller.PollOnce(ctx)
+				if err != nil {
+					log.Printf("YNX DEX authoritative native poll failed: %v", err)
+				} else if advanced {
+					log.Printf("YNX DEX authoritative native index advanced")
 				}
 				select {
 				case <-ctx.Done():

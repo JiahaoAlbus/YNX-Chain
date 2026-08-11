@@ -11,11 +11,14 @@ const ChainID = uint64(6423)
 const MinimumTWAPInterval = uint64(60)
 
 var (
-	addressPattern        = regexp.MustCompile(`^0x[0-9a-fA-F]{40}$`)
-	hashPattern           = regexp.MustCompile(`^0x[0-9a-fA-F]{64}$`)
-	amountPattern         = regexp.MustCompile(`^-?[0-9]{1,78}$`)
-	nativePattern         = regexp.MustCompile(`^ynx1[0-9a-z]{20,80}$`)
-	sessionBindingPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{64}$`)
+	addressPattern         = regexp.MustCompile(`^0x[0-9a-fA-F]{40}$`)
+	hashPattern            = regexp.MustCompile(`^0x[0-9a-fA-F]{64}$`)
+	nativeBlockHashPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	nativePoolPattern      = regexp.MustCompile(`^dex_[a-z0-9][a-z0-9_-]{2,59}$`)
+	nativeAssetPattern     = regexp.MustCompile(`^(YNXT|[a-z][a-z0-9-]{2,31})$`)
+	amountPattern          = regexp.MustCompile(`^-?[0-9]{1,78}$`)
+	nativePattern          = regexp.MustCompile(`^ynx1[0-9a-z]{20,80}$`)
+	sessionBindingPattern  = regexp.MustCompile(`^[A-Za-z0-9_-]{64}$`)
 )
 
 type Event struct {
@@ -47,19 +50,29 @@ func (event Event) Validate() error {
 	if len(event.ID) < 16 || len(event.ID) > 128 || strings.TrimSpace(event.ID) != event.ID {
 		return errors.New("invalid event id")
 	}
-	if event.ChainID != ChainID || event.ContractVersion != "ynx-dex-cpmm-v1" {
+	if event.ChainID != ChainID || (event.ContractVersion != "ynx-dex-cpmm-v1" && event.ContractVersion != "ynx-native-dex-cpmm-v1") {
 		return errors.New("wrong chain or contract version")
 	}
-	if event.BlockNumber == 0 || !hashPattern.MatchString(event.BlockHash) || !hashPattern.MatchString(event.TxHash) {
+	if event.BlockNumber == 0 || !hashPattern.MatchString(event.TxHash) {
 		return errors.New("invalid block or transaction identity")
+	}
+	if event.ContractVersion == "ynx-dex-cpmm-v1" && !hashPattern.MatchString(event.BlockHash) {
+		return errors.New("invalid EVM block identity")
+	}
+	if event.ContractVersion == "ynx-native-dex-cpmm-v1" && !nativeBlockHashPattern.MatchString(event.BlockHash) {
+		return errors.New("invalid native block identity")
 	}
 	switch event.Type {
 	case "pool-created", "sync", "swap", "liquidity-add", "liquidity-remove", "protocol-fee-claimed":
 	default:
 		return errors.New("unsupported event type")
 	}
-	if !addressPattern.MatchString(event.Pool) || !addressPattern.MatchString(event.Token0) || !addressPattern.MatchString(event.Token1) || strings.ToLower(event.Token0) >= strings.ToLower(event.Token1) {
-		return errors.New("invalid pool or token identity")
+	if event.ContractVersion == "ynx-dex-cpmm-v1" {
+		if !addressPattern.MatchString(event.Pool) || !addressPattern.MatchString(event.Token0) || !addressPattern.MatchString(event.Token1) || strings.ToLower(event.Token0) >= strings.ToLower(event.Token1) {
+			return errors.New("invalid EVM pool or token identity")
+		}
+	} else if !nativePoolPattern.MatchString(event.Pool) || !nativeAssetPattern.MatchString(event.Token0) || !nativeAssetPattern.MatchString(event.Token1) || event.Token0 >= event.Token1 {
+		return errors.New("invalid native pool or asset identity")
 	}
 	if event.Account != "" && !nativePattern.MatchString(event.Account) && !addressPattern.MatchString(event.Account) {
 		return errors.New("invalid account")
