@@ -102,8 +102,8 @@ func (f *fakePay) Settlement(_ context.Context, id string) (chain.PaySettlement,
 	}
 	return f.settlement, nil
 }
-func (f *fakePay) CreateRefund(context.Context, string, int64, string, string) (chain.RefundRecord, error) {
-	return chain.RefundRecord{}, nil
+func (f *fakePay) CreateRefund(_ context.Context, intent string, amount int64, reason, key string) (chain.RefundRecord, error) {
+	return chain.RefundRecord{ID: "central-refund-012345", IntentID: intent, Amount: amount, Currency: NativeAsset, Reason: reason, Status: "recorded", IdempotencyKey: key, CreatedAt: f.currentTime()}, nil
 }
 
 func TestAuthoritativePaymentPersistenceIdempotencyAndTamper(t *testing.T) {

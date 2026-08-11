@@ -94,14 +94,12 @@ func (c *HTTPPayAPI) CreateRefund(ctx context.Context, intent string, amount int
 	return out, err
 }
 func (c *HTTPPayAPI) CreateAuthorizedRefund(ctx context.Context, input AuthorizedRefundSubmission) (chain.RefundRecord, error) {
-	var created chain.RefundRecord
-	createBody := map[string]any{"intentId": input.IntentID, "amount": input.Amount, "reason": input.Reason, "idempotencyKey": input.IdempotencyKey}
-	if err := c.do(ctx, http.MethodPost, "/pay/refunds", createBody, &created); err != nil {
-		return chain.RefundRecord{}, err
+	if input.CentralRefundID == "" {
+		return chain.RefundRecord{}, errors.New("central refund authority must be created before the merchant transaction")
 	}
 	completionDigest := sha256.Sum256([]byte("YNX_PAY_REFUND_COMPLETION_V1\n" + input.IdempotencyKey + "\n" + input.TransactionHash))
 	var completed chain.RefundRecord
-	err := c.do(ctx, http.MethodPost, "/pay/refunds/"+url.PathEscape(created.ID)+"/complete", map[string]any{"transactionHash": input.TransactionHash, "idempotencyKey": fmt.Sprintf("refund-complete-%x", completionDigest[:16])}, &completed)
+	err := c.do(ctx, http.MethodPost, "/pay/refunds/"+url.PathEscape(input.CentralRefundID)+"/complete", map[string]any{"transactionHash": input.TransactionHash, "idempotencyKey": fmt.Sprintf("refund-complete-%x", completionDigest[:16])}, &completed)
 	return completed, err
 }
 func (c *HTTPPayAPI) RefundEvidence(ctx context.Context, id string, expected AuthorizedRefundSubmission) (AuthoritativeRefundEvidence, error) {

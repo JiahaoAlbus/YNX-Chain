@@ -14,9 +14,9 @@ import (
 
 func TestHTTPPayAPICompletesAndAdaptsAuthoritativeRefund(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Millisecond)
-	input := AuthorizedRefundSubmission{RequestID: "rfr_0123456789abcdefabcd", InvoiceID: "central-invoice-012345", IntentID: "central-intent-012345", MerchantID: "central-merchant-012345", MerchantAccount: "ynx1merchant", Payer: "ynx1payer", Amount: 2, Asset: NativeAsset, Reason: "approved return", TransactionHash: "0x" + strings.Repeat("a", 64), AuthorizationDigest: strings.Repeat("b", 64), IdempotencyKey: "refund-submit-012345"}
+	input := AuthorizedRefundSubmission{CentralRefundID: "central-refund-012345", RequestID: "rfr_0123456789abcdefabcd", InvoiceID: "central-invoice-012345", IntentID: "central-intent-012345", MerchantID: "central-merchant-012345", MerchantAccount: "ynx1merchant", Payer: "ynx1payer", Amount: 2, Asset: NativeAsset, Reason: "approved return", TransactionHash: "0x" + strings.Repeat("a", 64), AuthorizationDigest: strings.Repeat("b", 64), IdempotencyKey: "refund-submit-012345"}
 	completed := chain.RefundRecord{ID: "central-refund-012345", IntentID: input.IntentID, InvoiceID: input.InvoiceID, Merchant: input.MerchantID, PayoutAddress: input.MerchantAccount, Payer: input.Payer, Amount: input.Amount, Currency: input.Asset, Reason: input.Reason, Status: "completed", TransactionHash: input.TransactionHash, BlockNumber: 99, CreatedAt: now, CompletedAt: &now, IdempotencyKey: input.IdempotencyKey, CompletionIdempotencyKey: "server-bound", AuditHash: strings.Repeat("c", 64)}
-	var createSeen, completeSeen, lookupSeen bool
+	var completeSeen, lookupSeen bool
 	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer central-key" {
 			t.Fatalf("central authorization missing")
@@ -24,13 +24,7 @@ func TestHTTPPayAPICompletesAndAdaptsAuthoritativeRefund(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/pay/refunds":
-			createSeen = true
-			var body map[string]any
-			_ = json.NewDecoder(r.Body).Decode(&body)
-			if len(body) != 4 || body["intentId"] != input.IntentID || body["amount"] != float64(input.Amount) || body["reason"] != input.Reason || body["idempotencyKey"] != input.IdempotencyKey {
-				t.Fatalf("central refund create body is not the strict public contract: %+v", body)
-			}
-			_ = json.NewEncoder(w).Encode(chain.RefundRecord{ID: completed.ID, IntentID: input.IntentID, Amount: input.Amount, Currency: input.Asset, Status: "recorded", IdempotencyKey: input.IdempotencyKey})
+			t.Fatal("merchant completion attempted to create refund authority after the transaction")
 		case r.Method == http.MethodPost && r.URL.Path == "/pay/refunds/"+completed.ID+"/complete":
 			completeSeen = true
 			var body map[string]any
@@ -49,7 +43,7 @@ func TestHTTPPayAPICompletesAndAdaptsAuthoritativeRefund(t *testing.T) {
 	defer central.Close()
 	client := &HTTPPayAPI{BaseURL: central.URL, APIKey: "central-key", Client: central.Client()}
 	record, err := client.CreateAuthorizedRefund(context.Background(), input)
-	if err != nil || record.Status != "completed" || !createSeen || !completeSeen {
+	if err != nil || record.Status != "completed" || !completeSeen {
 		t.Fatalf("refund protocol did not create and complete: %+v %v", record, err)
 	}
 	evidence, err := client.RefundEvidence(context.Background(), record.ID, input)

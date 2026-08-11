@@ -356,8 +356,16 @@ func (s *Service) CreateRefundRequest(session WalletSession, invoiceID string, a
 	if err != nil || replay {
 		return existing, err
 	}
+	centralKey := "refund-request-" + id
+	central, err := s.pay.CreateRefund(context.Background(), invoice.IntentID, amount, strings.TrimSpace(reason), centralKey)
+	if err != nil {
+		return RefundRequest{}, err
+	}
+	if !identifierRE.MatchString(central.ID) || central.IntentID != invoice.IntentID || central.Amount != amount || central.Currency != invoice.Asset || (central.Status != "recorded" && central.Status != "pending") || central.IdempotencyKey != centralKey {
+		return RefundRequest{}, errors.New("central Pay refund authority was incomplete or mismatched")
+	}
 	now := s.now()
-	request := RefundRequest{ID: id, InvoiceID: invoiceID, MerchantID: invoice.MerchantID, Payer: session.Account, Amount: amount, Reason: strings.TrimSpace(reason), Status: "requested", CreatedAt: now, UpdatedAt: now}
+	request := RefundRequest{ID: id, InvoiceID: invoiceID, MerchantID: invoice.MerchantID, Payer: session.Account, Amount: amount, Reason: strings.TrimSpace(reason), Status: "requested", CentralRefundID: central.ID, CreatedAt: now, UpdatedAt: now}
 	err = s.idempotentUpdate("refund-request", session.Account, key, requestHash, id, func(data *Snapshot) error {
 		data.Refunds[id] = request
 		appendAudit(data, invoice.MerchantID, "wallet:"+session.Account, "refund.request", id, "committed", "human merchant action required", now)
