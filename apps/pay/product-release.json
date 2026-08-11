@@ -61,8 +61,8 @@
   },
   "backendDeployment": {
     "deployedPublic": true,
-    "release": "ynx-pay-product-9ab6be2562bd",
-    "sourceCommit": "9ab6be2562bd782e4310b3fcf988a200920ac782",
+    "release": "ynx-pay-product-c5a7fdd74345",
+    "sourceCommit": "c5a7fdd7434515e63c83bbad0bddb5a3f10874ed",
     "baseUrl": "https://rest.ynxweb4.com/app/pay-product",
     "healthUrl": "https://rest.ynxweb4.com/app/pay-product/health",
     "remoteDeployed": true,

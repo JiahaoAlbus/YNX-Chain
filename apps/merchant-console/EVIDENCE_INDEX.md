@@ -28,4 +28,4 @@
 
 ## Truthful release state
 
-See `product-release.json`. No public URL, public Testnet transaction, hosted download, central integration or production signature is claimed.
+See `product-release.json` and `evidence/public-gateway-2026-08-11.json`. The exact-source backend Gateway is public and a real owner session/state read passed through canonical Wallet authorization; the operator route remained 404. No public Merchant Web client, hosted client artifact, fresh settlement transaction, production signature or store release is claimed.

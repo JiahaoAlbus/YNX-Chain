@@ -2,7 +2,7 @@
   "productId": "pay-merchant",
   "name": "YNX Merchant Console",
   "branch": "codex/integrate-finance-suite",
-  "commit": "f80a724742a70e5ddccca67eabad7ec5ba04b72d",
+  "commit": "c5a7fdd7434515e63c83bbad0bddb5a3f10874ed",
   "version": "1.0.0-testnet-candidate.1",
   "surfaces": ["web"],
   "implementedLocal": true,
@@ -15,11 +15,11 @@
   "productionSigned": false,
   "storeReleased": false,
   "publicUrls": [],
-  "healthUrls": [],
+  "healthUrls": ["https://rest.ynxweb4.com/app/pay-product/health"],
   "artifactUrls": [],
   "sha256": {
     "dist/index.html": "87a3162cb3f16e77e1e57e2c4657dd0f66cac318c97ce340b641c4aaa58c5d87",
-    "dist/app.js": "5a233f8c1428abe9f47e84916494cb268423bd65105ecd03164de2cefe904ef3",
+    "dist/app.js": "c6b5df86553705fec72048022e6276d373c385da7aa79e5bf7d9df575288e25a",
     "dist/styles.css": "61aa804580352a32c848f9294f1e200367ea95980255359bf59a4c165dc6e881",
     "dist/a11y.css": "5ce379ece02d4e12a6dae5d0576dc50d21ab2633d1d4f4de97ae2d36c8c83faf",
     "dist/brand.css": "ca19bb3df20ee6da0d0c7be40393ac6b4641777fe2cd49fedf1f1d127519b4bb",
@@ -32,7 +32,7 @@
   },
   "bytes": {
     "dist/index.html": 854,
-    "dist/app.js": 127374,
+    "dist/app.js": 129859,
     "dist/styles.css": 5918,
     "dist/a11y.css": 328,
     "dist/brand.css": 277,
@@ -46,18 +46,27 @@
   "signingClass": {"web": "unsigned static Testnet candidate"},
   "minOS": {"web": "current evergreen browsers"},
   "installEvidence": [],
-  "centralIntegration": "Exact pay-merchant Wallet tuple is approved in the central registry and Wallet allow-list; public Gateway proxy and product hosting remain undeployed.",
+  "backendGateway": {
+    "deployedPublic": true,
+    "baseUrl": "https://rest.ynxweb4.com/app/pay-merchant",
+    "sourceCommit": "c5a7fdd7434515e63c83bbad0bddb5a3f10874ed",
+    "release": "ynx-pay-product-c5a7fdd74345",
+    "evidence": "apps/merchant-console/evidence/public-gateway-2026-08-11.json",
+    "webClientDeployedPublic": false
+  },
+  "centralIntegration": "Exact pay-merchant Wallet tuple is approved in the central registry and Wallet allow-list. The current-source public Gateway now exchanges a one-use canonical Product Session for a short-lived merchant session and exposes only the reviewed merchant API allowlist. The Merchant Web client itself is not yet publicly hosted.",
   "testEvidence": [
     "Go payproduct suite including lifecycle, operations, provider, refund, recovery, SSRF, capacity and fuzz seeds",
     "Merchant Console 12/12 Node tests and deterministic build",
-    "Wallet Auth registry and Node host integration tests"
+    "Wallet Auth registry and Node host integration tests",
+    "Public canonical Wallet completion, owner merchant-session exchange, authenticated state read and operator-route 404 evidence in apps/merchant-console/evidence/public-gateway-2026-08-11.json"
   ],
   "knownLimitations": [
-    "No staging or public URL and no current browser screenshot matrix.",
-    "No public Gateway /app/pay-merchant proxy or remotely accepted provider credentials.",
+    "No public Merchant Web client URL and no current browser screenshot matrix; the backend Gateway route alone is not a released Web product.",
+    "The public Gateway and owner-session/state-read flow are verified, but remotely accepted third-party provider credentials remain unavailable.",
     "Authenticated business views retain partial English copy; full 12-language operational-view acceptance remains incomplete.",
     "Capacity evidence is local and does not prove public multi-region or million-user scale.",
     "No production audit, hosted artifact, signed release or shared-Testnet settlement receipt is claimed."
   ],
-  "generatedAt": "2026-08-11T00:00:00+08:00"
+  "generatedAt": "2026-08-11T13:35:00+08:00"
 }

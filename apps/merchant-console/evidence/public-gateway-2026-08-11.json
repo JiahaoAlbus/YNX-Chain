@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "product": "pay-merchant",
+  "evidenceClass": "public-backend-session-and-api",
+  "verifiedAt": "2026-08-11T13:35:00+08:00",
+  "sourceCommit": "c5a7fdd7434515e63c83bbad0bddb5a3f10874ed",
+  "release": "ynx-pay-product-c5a7fdd74345",
+  "publicBaseUrl": "https://rest.ynxweb4.com/app/pay-merchant",
+  "canonicalWallet": {
+    "productClientId": "ynx-merchant-console-v1",
+    "bundleId": "com.ynxweb4.merchant-console",
+    "completionHttpStatus": 200,
+    "merchantSessionExchangeHttpStatus": 201,
+    "role": "owner"
+  },
+  "merchant": {
+    "id": "mrc_f7677cceafee43be4381",
+    "account": "ynx1w3574pszxkkpztsr7u423r2hdnt9r0gjjszt3z",
+    "stateReadHttpStatus": 200
+  },
+  "allowlist": {
+    "operatorRouteHttpStatus": 404,
+    "bootstrapRoutePublic": false,
+    "operatorRoutesPublic": false,
+    "browserProofForwardedToPayProduct": false
+  },
+  "releaseBoundary": {
+    "backendGatewayDeployedPublic": true,
+    "merchantWebClientDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "verificationScript": "scripts/verify/pay-merchant-public-session.mjs",
+  "assetMoved": false,
+  "secretMaterialRecorded": false
+}

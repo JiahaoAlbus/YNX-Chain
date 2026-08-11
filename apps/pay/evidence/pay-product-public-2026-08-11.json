@@ -3,8 +3,9 @@
   "product": "pay",
   "evidenceClass": "public-backend-deployment",
   "verifiedAt": "2026-08-11T12:56:00+08:00",
-  "sourceCommit": "9ab6be2562bd782e4310b3fcf988a200920ac782",
-  "release": "ynx-pay-product-9ab6be2562bd",
+  "sourceCommit": "c5a7fdd7434515e63c83bbad0bddb5a3f10874ed",
+  "release": "ynx-pay-product-c5a7fdd74345",
+  "archiveSha256": "a84d2b64b7c85b3fb0038eac165ba1a317086e28d93dc77d94ebebeeaaef22b2",
   "public": {
     "baseUrl": "https://rest.ynxweb4.com/app/pay-product",
     "healthUrl": "https://rest.ynxweb4.com/app/pay-product/health",
@@ -31,6 +32,7 @@
     "sessionRevocationHttpStatus": 200,
     "postRevocationIntrospectionHttpStatus": 403,
     "postRevocationError": "REVOKED",
+    "merchantConsoleUpstreamHealthy": true,
     "walletBoundary": "one-use-canonical-product-session-proof",
     "browserProofForwardedUpstream": false,
     "serverAssertion": "YNX_PRODUCT_GATEWAY_ASSERTION_V1"
@@ -51,5 +53,6 @@
     "storeReleased": false
   },
   "verificationScript": "scripts/verify/pay-product-public-session.mjs",
+  "merchantVerificationEvidence": "apps/merchant-console/evidence/public-gateway-2026-08-11.json",
   "secretMaterialRecorded": false
 }

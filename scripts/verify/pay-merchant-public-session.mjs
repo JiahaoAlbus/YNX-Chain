@@ -53,7 +53,7 @@ const introspectionBody = canonicalJSON({ requiredScopes: ["merchant:session:cre
 const issuedAt = new Date();
 const productProof = encodeGatewayProofHeader(createProductSessionProof(productSession, {
   method: "POST", path: "/v1/wallet/sessions/introspect", bodyDigest: httpBodyDigest(introspectionBody), nonce: nonce(),
-  issuedAt: issuedAt.toISOString(), expiresAt: new Date(Math.min(issuedAt.getTime() + 30_000, Date.parse(productSession.expiresAt))).toISOString(),
+  issuedAt: issuedAt.toISOString(), expiresAt: new Date(Math.min(issuedAt.getTime() + 60_000, Date.parse(productSession.expiresAt))).toISOString(),
 }, device.productDeviceSecret));
 const exchange = await request(publicBaseURL, "POST", "/app/pay-merchant/v1/merchant/sessions", canonicalJSON({ merchantId: merchantID }), { "X-YNX-Product-Session-Proof": productProof });
 assert(exchange.status === 201 && exchange.payload?.role === "owner" && exchange.payload?.merchant?.id === merchantID && /^mcs_[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(exchange.payload?.token), `public Merchant session exchange failed (${exchange.status}: ${JSON.stringify(exchange.payload)})`);

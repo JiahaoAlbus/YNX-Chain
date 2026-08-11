@@ -16,10 +16,20 @@ const publicFlags = ["deployedStaging", "deployedPublic", "downloadHosted", "pro
 for (const field of publicFlags) {
   if (manifest[field] !== false) throw new Error(`${field} must remain false until independent public evidence exists`);
 }
-for (const field of ["publicUrls", "healthUrls", "artifactUrls", "installEvidence"]) {
+for (const field of ["publicUrls", "artifactUrls", "installEvidence"]) {
   if (!Array.isArray(manifest[field]) || manifest[field].length !== 0) {
     throw new Error(`${field} must remain empty for the local-only candidate`);
   }
+}
+if (manifest.backendGateway?.deployedPublic !== true || manifest.backendGateway?.webClientDeployedPublic !== false || manifest.backendGateway?.sourceCommit !== manifest.commit) {
+  throw new Error("Merchant backend Gateway truth boundary is invalid");
+}
+if (manifest.healthUrls?.join("\n") !== "https://rest.ynxweb4.com/app/pay-product/health") {
+  throw new Error("Merchant backend health evidence URL is invalid");
+}
+const gatewayEvidence = JSON.parse(await readFile(resolve(appRoot, "evidence/public-gateway-2026-08-11.json"), "utf8"));
+if (gatewayEvidence.sourceCommit !== manifest.commit || gatewayEvidence.releaseBoundary?.backendGatewayDeployedPublic !== true || gatewayEvidence.releaseBoundary?.merchantWebClientDeployedPublic !== false || gatewayEvidence.allowlist?.operatorRouteHttpStatus !== 404 || gatewayEvidence.secretMaterialRecorded !== false) {
+  throw new Error("Merchant public Gateway evidence is incomplete or overclaims the Web client");
 }
 
 const hashes = manifest.sha256 ?? {};
@@ -39,4 +49,4 @@ for (const relativePath of files) {
   if (info.size !== bytes[relativePath]) throw new Error(`byte count mismatch: ${relativePath}`);
 }
 
-console.log(`verified ${files.length} Merchant release artifacts; public-release claims remain fail-closed`);
+console.log(`verified ${files.length} Merchant release artifacts and the public backend Gateway boundary; Merchant Web release claims remain fail-closed`);

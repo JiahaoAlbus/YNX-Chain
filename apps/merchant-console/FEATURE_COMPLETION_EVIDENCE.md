@@ -6,7 +6,7 @@ This ledger is intentionally fail-closed: `implemented` means current source con
 
 | Capability | Implemented | Tested | Direct evidence | Remaining gate |
 |---|---:|---:|---|---|
-| Canonical Wallet sign-in | yes | yes | `src/auth.js`; `npm test` Wallet callback, product, scope and device proof tests | Central registry and Gateway deployment |
+| Canonical Wallet sign-in | yes | yes | `src/auth.js`; 12/12 frontend tests; public completion, one-use merchant-session exchange and owner state read in `evidence/public-gateway-2026-08-11.json` | Public Merchant Web hosting and final browser walkthrough |
 | Owner/Finance/Developer/Support/Viewer RBAC | yes | yes | `console_auth.go`; role matrix, fuzz, fault and soak tests | Staging Wallet role walkthrough |
 | Role change session invalidation | yes | yes | `TestMerchantRoleMatrixAndMembershipChangeInvalidatesSession` | Remote session revocation evidence |
 | Signed invoices and authoritative settlement | yes | yes | `service.go`; settlement mismatch, provider fault, fuzz and soak tests | Funded public Testnet transaction hash |
@@ -19,6 +19,7 @@ This ledger is intentionally fail-closed: `implemented` means current source con
 | Capital tools and transparent fee waterfall | partial | yes | Evidence-only `capital-v1` API/UI; 14 disclosed capabilities; unknown reserves/costs/net remain unavailable | Implement authorized providers and complete authoritative fee records |
 | Snapshot v1 to v2 migration | yes | yes | `TestSnapshotV1MigratesProvidersAndFutureVersionFails` | Add full CLI backup/restore/rollback drill |
 | Backup/restore drill | partial | no | Integrity-protected atomic local store exists | Add operator command, destructive-restore guard and drill log |
-| Public/staging deployment | no | no | No current URL, health response or hosted hash | Operator inputs and deployment |
+| Public backend Gateway | yes | yes | exact-source public Wallet completion, `/app/pay-merchant` owner-session exchange/state read and operator-route 404 | Preserve allowlist and add load/telemetry evidence |
+| Public Merchant Web client | no | no | Backend route is public but no canonical hosted client URL or hosted hash exists | Build, host and browser-verify the current client |
 
 The product is not release-complete while any remaining gate above is open.
