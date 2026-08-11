@@ -142,10 +142,17 @@ const dispute = await payProductRequest("pay:case:create", `/v1/invoices/${invoi
 assert(refund.status === "requested" && dispute.status === "open", "refund/dispute states are not human-review boundaries");
 
 let state = await merchantRequest("GET", "/v1/merchant/state");
-const delivery = Object.values(state.deliveries || {})[0];
-assert(delivery?.id && delivery.payloadHash?.length === 64 && delivery.signature?.length === 64, "webhook delivery lacks signed replay-safe evidence");
-const retried = await merchantRequest("POST", `/v1/merchant/webhooks/${delivery.id}/retry`, {});
-assert(retried.attempt >= 1 && ["delivered", "retrying"].includes(retried.status), "webhook delivery retry did not persist an attempt");
+const queuedDelivery = Object.values(state.deliveries || {})[0];
+assert(queuedDelivery?.id && queuedDelivery.payloadHash?.length === 64 && queuedDelivery.signature?.length === 64, "webhook delivery lacks signed replay-safe evidence");
+const delivery = await eventually(async () => {
+  const snapshot = await merchantRequest("GET", "/v1/merchant/state");
+  const current = snapshot.deliveries?.[queuedDelivery.id];
+  return current?.attempt >= 1 ? current : null;
+}, "webhook delivery did not execute an authoritative attempt", 60, 500);
+const retried = delivery.status === "dead_letter"
+  ? await merchantRequest("POST", `/v1/merchant/webhooks/${delivery.id}/retry`, { reason: "Operator acceptance retry after authoritative Testnet settlement", idempotencyKey: `webhook-retry-${runID}` })
+  : delivery;
+assert(retried.attempt >= 1 && ["delivered", "retrying"].includes(retried.status), "webhook delivery did not persist an authoritative attempt");
 
 const aiRun = await merchantRequest("POST", "/v1/merchant/ai/runs", { workflow: "anomaly_review", contextIds: [invoice.id, dispute.id, delivery.id], permission: "allow-once", outputLanguage: "ar" });
 const reviewable = await eventually(async () => {
