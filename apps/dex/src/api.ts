@@ -218,7 +218,7 @@ export async function loadDexSnapshot(signal?: AbortSignal) {
         `Authoritative DEX snapshot is unavailable (${response.status}).`,
     );
   const updatedAt = Date.parse(body.updatedAt);
-  if (!Number.isFinite(updatedAt) || Date.now() - updatedAt > 2 * 60_000)
+  if (!Number.isFinite(updatedAt) || Date.now() - updatedAt > 15 * 60_000)
     throw new Error("Authoritative DEX snapshot is stale.");
   const tokens = [ynxt, ...(body.assets as NativeAsset[]).map(token)];
   const pools = (body.pools as NativePool[]).map((value) => ({

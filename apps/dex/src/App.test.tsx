@@ -63,7 +63,7 @@ describe("YNX DEX consensus product shell", () => {
     fireEvent.click(within(primary).getByRole("button", { name: "Pools" }));
     await waitFor(() =>
       expect(
-        screen.getByText("No committed consensus pools yet"),
+        screen.getByText("No authoritative Testnet pools yet"),
       ).toBeInTheDocument(),
     );
   });

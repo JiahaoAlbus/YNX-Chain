@@ -99,7 +99,7 @@ const quoteNativeExactInput = (
       BigInt(pool.reserve1) > 0n,
   );
   if (!candidates.length)
-    throw new Error("No executable consensus pool route.");
+    throw new Error("No executable chain-native pool route.");
   let best: NativeQuote | null = null;
   for (const pool of candidates) {
     const forwards = pool.token0.toLowerCase() === tokenIn;
@@ -139,7 +139,7 @@ const quoteNativeExactOutput = (
       BigInt(pool.reserve1) > 0n,
   );
   if (!candidates.length)
-    throw new Error("No executable consensus pool route.");
+    throw new Error("No executable chain-native pool route.");
   let best: NativeQuote | null = null;
   for (const pool of candidates) {
     const forwards = pool.token0.toLowerCase() === tokenIn;
@@ -897,7 +897,7 @@ function SwapPage({
                     : highImpact
                       ? t.highImpact
                       : quoteState.quote
-                        ? "Direct consensus pool route"
+                        ? "Direct chain-native pool route"
                         : t.noRoute}
                 </strong>
                 <span>
@@ -906,7 +906,7 @@ function SwapPage({
                     : highImpact
                       ? "Price impact is 5% or higher. Review size and route."
                       : quoteState.quote
-                        ? "Deterministic quote from committed consensus reserves."
+                        ? "Deterministic quote from authoritative chain-native reserves."
                         : quoteState.error || t.routeHint}
                 </span>
               </div>
@@ -961,7 +961,7 @@ function SwapPage({
         <div className="risk-note">
           <Icon name="security" />
           <p>
-            Quote math mirrors the committed v13 constant-product pool. Wallet
+            Quote math mirrors the chain-native constant-product pool. Wallet
             must independently rebuild and sign the exact action.
           </p>
         </div>
@@ -991,11 +991,11 @@ function SwapPage({
             </div>
             <dl>
               <div>
-                <dt>Input consensus asset</dt>
+                <dt>Input chain-native asset</dt>
                 <dd>{from}</dd>
               </div>
               <div>
-                <dt>Output consensus asset</dt>
+                <dt>Output chain-native asset</dt>
                 <dd>{to}</dd>
               </div>
               <div>
@@ -1037,7 +1037,7 @@ function SwapPage({
               </div>
               <div>
                 <dt>{t.network}</dt>
-                <dd>Chain 6423 · abci-state-v13</dd>
+                <dd>Chain 6423 · native-dex-schema-v1</dd>
               </div>
             </dl>
             <div className="review-warning">
@@ -1061,7 +1061,7 @@ function SwapPage({
             </button>
             <p className="review-blocker">
               Wallet returns a signed transaction only. DEX broadcasts unchanged
-              bytes and reports committed v13 pool/event evidence; any mismatch
+              bytes and reports matching pool and chain-event evidence; any mismatch
               fails closed.
             </p>
           </div>
@@ -1753,7 +1753,7 @@ function PoolsPage({
               </p>
             )}
             <p className="review-blocker">
-              Each signature authorizes one exact v13 action only; DEX must
+              Each signature authorizes one exact chain-native action only; DEX must
               return matching committed pool and event evidence.
             </p>
           </div>
