@@ -7,6 +7,7 @@ const html=await readFile(new URL('web/index.html',base),'utf8');
 const js=await readFile(new URL('web/app.js',base),'utf8');
 const css=await readFile(new URL('web/styles.css',base),'utf8');
 const wallet=await readFile(new URL('mobile/src/wallet.ts',base),'utf8');
+const webWallet=await readFile(new URL('web/wallet-auth-entry.js',base),'utf8');
 
 test('product states its non-bank and non-custodial boundary',()=>{
   for(const phrase of ['No custody','bank account','No fiat conversion inferred','Finance cannot freeze assets']) assert.ok(html.includes(phrase),phrase);
@@ -19,7 +20,10 @@ test('wallet, real-source, export and AI review paths are wired',()=>{
   assert.ok(wallet.includes('createProductSessionProof'));
   for(const path of ['/api/overview','/api/statements','/api/export?format=json','/api/ai/jobs']) assert.ok(js.includes(path),path);
   assert.equal(js.includes('/api/auth/session'),false,'legacy local auth must be absent');
-  assert.ok(js.includes("sessionStorage"));
+  assert.ok(webWallet.includes('createProductSessionProof'));
+  assert.ok(webWallet.includes('/v1/wallet/sessions/revoke'));
+  assert.ok(webWallet.includes('https://finance.ynxweb4.com/wallet-auth/callback'));
+  assert.equal(js.includes('Bearer '),false,'legacy browser bearer session must be absent');
   assert.ok(js.includes("crypto.randomUUID()"));
   assert.ok(js.includes("No receipt placeholders are shown"));
   assert.ok(js.includes("data-ai=apply"));

@@ -1,69 +1,21 @@
-import {randomBytes} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
-import {
-  OneTimeNonceStore,
-  assertCentralWalletSessionActive,
-  createGatewayChallenge,
-  parseCentralRegistryEntry,
-  requestDigest,
-  verifyAuthorization,
-  verifyCentralWalletSession,
-  parseAuthorizationRequest,
-  registryParserBinding,
-} from '@ynx-chain/wallet-auth';
+const ROUTES=new Set(['/v1/wallet/sessions/complete','/v1/wallet/sessions/revoke']);
 
-const token=()=>randomBytes(32).toString('base64url');
-
-export class FinanceWalletGateway {
-  constructor({registry,internalKey,now=()=>new Date()}) {
-    this.registry=parseCentralRegistryEntry(registry);
-    this.internalKey=internalKey;
-    this.now=now;
-    this.pending=new Map();
-    this.sessions=new Map();
-    this.nonces=new OneTimeNonceStore();
-    this.revokedSessionBindings=[];
-    this.revokedApprovalDigests=[];
-    this.revokedDeviceBindings=[];
-    this.accountLogoutRecords=[];
+export class FinanceWalletGatewayProxy{
+  constructor({baseURL,fetchImpl=fetch}){
+    const parsed=new URL(baseURL);
+    const loopback=parsed.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(parsed.hostname);
+    if((parsed.protocol!=='https:'&&!loopback)||parsed.username||parsed.password||parsed.pathname!=='/'||parsed.search||parsed.hash)throw new Error('YNX_WALLET_GATEWAY_URL must be an HTTPS origin or loopback HTTP development origin');
+    this.baseURL=parsed.origin;this.fetch=fetchImpl;
   }
-
-  begin(input) {
-    const at=this.now();
-    const authorizationRequest=parseAuthorizationRequest(input.authorizationRequest,{now:at,registry:registryParserBinding(this.registry)});
-    const walletApproval=verifyAuthorization(input.walletApproval,{...authorizationRequest,requestDigest:requestDigest(authorizationRequest),now:at});
-    const challenge=createGatewayChallenge(walletApproval,{challenge:token(),expiresAt:new Date(Math.min(Date.parse(walletApproval.expiresAt),at.getTime()+90_000)).toISOString()},at);
-    this.pending.set(walletApproval.requestDigest,{authorizationRequest,walletApproval,challenge});
-    return challenge;
+  async forward(path,body,proof=''){
+    if(!ROUTES.has(path))throw new Error('Finance Gateway route is not allowed');
+    if(typeof body!=='string'||Buffer.byteLength(body)<2||Buffer.byteLength(body)>64*1024)throw new Error('Finance Gateway body is outside policy');
+    if(path.endsWith('/revoke')&&(typeof proof!=='string'||proof.length<1||proof.length>8192))throw new Error('Canonical Product Session proof is required');
+    const headers={'content-type':'application/json','accept':'application/json'};
+    if(proof)headers['x-ynx-product-session-proof']=proof;
+    const response=await this.fetch(this.baseURL+path,{method:'POST',headers,body,redirect:'error'});
+    const result=await response.text();
+    if(Buffer.byteLength(result)>64*1024)throw new Error('Canonical Wallet Gateway response is outside policy');
+    return{status:response.status,body:result,contentType:response.headers.get('content-type')||'application/json; charset=utf-8'};
   }
-
-  complete(input) {
-    const digest=input?.walletApproval?.requestDigest;
-    const pending=this.pending.get(digest);
-    if(!pending) throw new Error('unknown or consumed Wallet approval');
-    if(JSON.stringify(input.authorizationRequest)!==JSON.stringify(pending.authorizationRequest)||JSON.stringify(input.walletApproval)!==JSON.stringify(pending.walletApproval)||JSON.stringify(input.gatewayCompletion?.challenge)!==JSON.stringify(pending.challenge)) throw new Error('Wallet completion binding mismatch');
-    const at=this.now();
-    const session=verifyCentralWalletSession({registryEntry:this.registry,authorizationRequest:pending.authorizationRequest,walletApproval:pending.walletApproval,gatewayCompletion:input.gatewayCompletion},at);
-    this.nonces.consume(pending.authorizationRequest,at);
-    this.pending.delete(digest);
-    const accessToken=token();
-    this.sessions.set(accessToken,session);
-    return {token:accessToken,tokenType:'Bearer',expiresAt:session.expiresAt,account:session.account,scopes:session.scopes,sessionBinding:session.sessionBinding};
-  }
-
-  introspect(accessToken) {
-    const value=this.sessions.get(accessToken);
-    if(!value) throw new Error('central session is missing');
-    return assertCentralWalletSessionActive(value,{revokedSessionBindings:this.revokedSessionBindings,revokedApprovalDigests:this.revokedApprovalDigests,revokedDeviceBindings:this.revokedDeviceBindings,accountLogoutRecords:this.accountLogoutRecords},this.now());
-  }
-
-  revoke(accessToken) {
-    const value=this.sessions.get(accessToken);
-    if(value&&!this.revokedSessionBindings.includes(value.sessionBinding))this.revokedSessionBindings.push(value.sessionBinding);
-    this.sessions.delete(accessToken);
-  }
-}
-
-export async function loadFinanceRegistry(path) {
-  return parseCentralRegistryEntry(JSON.parse(await readFile(path,'utf8')));
 }

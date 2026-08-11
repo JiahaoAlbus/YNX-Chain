@@ -6,7 +6,7 @@ Reviewed 2026-07-29 for the 1.2.0 Testnet candidate.
 
 - Native request, callback parsing, approval verification, request digest and P-256 product-device proof delegate to the shared canonical Wallet package.
 - The edge Gateway verifies exact registry bindings, scopes, expiry and nonce once, issues an opaque scoped token, provides internal-key-protected introspection/revoke routes and rejects tamper/replay.
-- The Go API accepts no address identity or locally signed assertion. Every request introspects the bearer session and verifies verifier, session/request bindings, client, bundle, account, scopes and expiry.
+- The Go API accepts no address identity, Bearer token or locally signed assertion. Every request introspects a one-time P-256 Product Session proof and verifies its device, HTTP method/path/body digest, client, bundle, account, scope, nonce and expiry bindings.
 - Public Testnet Gateway replay/revocation state is in memory. A production
   Gateway must use shared persistent storage; `integratedCentral` also remains
   false until the installed strong-biometric approval/callback flow passes.
@@ -38,4 +38,4 @@ Reviewed 2026-07-29 for the 1.2.0 Testnet candidate.
 
 ## Verdict
 
-Acceptable as a centrally integrated public Testnet preview with an official-site Android download and a signed-out Web companion. It is not acceptable to call production signed or store released: final enrolled-biometric callback evidence, authorized Pay receipt smoke, production Gateway persistence/operations, iOS evidence, production signing and store review remain open in `product-release.json`.
+The Web and native clients are implemented as centrally registered Testnet Product Session clients, but the new Web callback and proof path are not publicly deployed yet. It is not acceptable to call this production signed or store released: public redeployment, final enrolled-biometric callback evidence, authorized Pay receipt smoke, central Gateway persistence/operations, iOS evidence, production signing and store review remain open in `product-release.json`.

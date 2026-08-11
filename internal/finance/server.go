@@ -1,6 +1,7 @@
 package finance
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -20,12 +22,14 @@ import (
 const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
-	AllowedOrigins   []string
-	WebDir           string
-	CursorSigningKey string
-	OperationsKey    string
-	LogWriter        io.Writer
-	Now              func() time.Time
+	AllowedOrigins      []string
+	WebDir              string
+	CursorSigningKey    string
+	OperationsKey       string
+	WalletGatewayURL    string
+	WalletGatewayClient *http.Client
+	LogWriter           io.Writer
+	Now                 func() time.Time
 }
 
 type Server struct {
@@ -53,6 +57,13 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	}
 	if len(cfg.OperationsKey) < 32 {
 		return nil, errors.New("finance operations key must contain at least 32 characters")
+	}
+	if cfg.WalletGatewayURL != "" {
+		parsed, err := url.Parse(strings.TrimRight(cfg.WalletGatewayURL, "/"))
+		loopbackHTTP := parsed.Scheme == "http" && (parsed.Hostname() == "127.0.0.1" || parsed.Hostname() == "localhost" || parsed.Hostname() == "::1")
+		if err != nil || (parsed.Scheme != "https" && !loopbackHTTP) || parsed.Host == "" || parsed.User != nil || (parsed.Path != "" && parsed.Path != "/") || parsed.RawQuery != "" || parsed.Fragment != "" {
+			return nil, errors.New("finance Wallet Gateway URL must be an HTTPS origin or loopback HTTP development origin")
+		}
 	}
 	now := cfg.Now
 	if now == nil {
@@ -101,6 +112,64 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /styles.css", s.web)
 	s.mux.HandleFunc("GET /manifest.webmanifest", s.web)
 	s.mux.HandleFunc("GET /ynx-logo.png", s.web)
+	s.mux.HandleFunc("GET /wallet-auth/callback", s.web)
+	s.mux.HandleFunc("GET /wallet-auth.js", s.web)
+	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/complete", s.walletSessionComplete)
+	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/revoke", s.walletSessionRevoke)
+}
+
+func (s *Server) walletSessionComplete(w http.ResponseWriter, r *http.Request) {
+	s.proxyWalletGateway(w, r, "/v1/wallet/sessions/complete", false)
+}
+
+func (s *Server) walletSessionRevoke(w http.ResponseWriter, r *http.Request) {
+	s.proxyWalletGateway(w, r, "/v1/wallet/sessions/revoke", true)
+}
+
+func (s *Server) proxyWalletGateway(w http.ResponseWriter, r *http.Request, path string, requireProof bool) {
+	if s.cfg.WalletGatewayURL == "" {
+		writeError(w, http.StatusServiceUnavailable, "wallet_gateway_unavailable", "Canonical Wallet Gateway is unavailable")
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxBodyBytes+1))
+	if err != nil || len(body) == 0 || len(body) > maxBodyBytes {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Wallet completion body is invalid")
+		return
+	}
+	target := strings.TrimRight(s.cfg.WalletGatewayURL, "/") + path
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, target, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "wallet_gateway_unavailable", "Canonical Wallet Gateway request failed")
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	if requireProof {
+		proof := strings.TrimSpace(r.Header.Get("X-YNX-Product-Session-Proof"))
+		if proof == "" || len(proof) > 8192 {
+			writeError(w, http.StatusUnauthorized, "session_rejected", "Canonical Product Session proof is required")
+			return
+		}
+		req.Header.Set("X-YNX-Product-Session-Proof", proof)
+	}
+	client := s.cfg.WalletGatewayClient
+	if client == nil {
+		client = &http.Client{Timeout: 8 * time.Second}
+	}
+	response, err := client.Do(req)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "wallet_gateway_unavailable", "Canonical Wallet Gateway did not respond")
+		return
+	}
+	defer response.Body.Close()
+	result, err := io.ReadAll(io.LimitReader(response.Body, maxBodyBytes+1))
+	if err != nil || len(result) > maxBodyBytes {
+		writeError(w, http.StatusBadGateway, "wallet_gateway_invalid", "Canonical Wallet Gateway response is invalid")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(response.StatusCode)
+	_, _ = w.Write(result)
 }
 func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, session Session) {
 	var input struct {
@@ -589,7 +658,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/app.js": "app.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png"}[r.URL.Path]
+	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/wallet-auth.js": "wallet-auth.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)
 		return

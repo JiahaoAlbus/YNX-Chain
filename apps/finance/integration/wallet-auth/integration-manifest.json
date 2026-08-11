@@ -5,8 +5,9 @@
   "testVector": "test-vector.json",
   "canonicalPackage": "@ynx-chain/wallet-auth@1.0.0",
   "canonicalVerifier": "verifyCentralWalletSession",
-  "requestRoute": "/wallet-auth/sessions",
-  "completionRoute": "/wallet-auth/sessions/complete",
+  "requestRoute": "ynxwallet://authorize",
+  "completionRoute": "/wallet-gateway/v1/wallet/sessions/complete",
+  "revocationRoute": "/wallet-gateway/v1/wallet/sessions/revoke",
   "productAPI": {
     "requiredScopes": ["finance.portfolio.read"],
     "optionalScopes": ["finance.ai.draft", "finance.pay.read", "finance.profile.write"],

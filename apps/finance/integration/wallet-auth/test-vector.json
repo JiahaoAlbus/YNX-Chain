@@ -4,7 +4,7 @@
     "productClientId": "ynx-finance-v1",
     "requestingProduct": "finance",
     "bundleId": "com.ynxweb4.finance",
-    "callbacks": ["ynxfinance://wallet-auth/callback"],
+    "callbacks": ["https://finance.ynxweb4.com/wallet-auth/callback", "ynxfinance://wallet-auth/callback"],
     "scopes": ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
     "maxScopes": 4,
     "productDeviceAlgorithms": ["p256-sha256"]

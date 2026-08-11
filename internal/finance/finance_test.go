@@ -42,6 +42,64 @@ func TestCentralSessionFailsClosedOnProductTamper(t *testing.T) {
 	}
 }
 
+func TestWebWalletGatewayProxyAllowsOnlyBoundedCompletionAndRevocation(t *testing.T) {
+	var paths []string
+	var revokeProof string
+	gateway := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.Path)
+		if r.URL.Path == "/v1/wallet/sessions/revoke" {
+			revokeProof = r.Header.Get("X-YNX-Product-Session-Proof")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true,"result":{"accepted":true}}`))
+	}))
+	defer gateway.Close()
+	explorer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"ok": false})
+	}))
+	defer explorer.Close()
+	store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	upstreams, err := NewUpstreams(explorer.URL, "", "", "https://support.example/disputes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth, _ := testAuthenticator(t, "gateway-proxy-auth-proof")
+	service := &Service{Store: store, Upstreams: upstreams, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"}}
+	server, err := NewServer(service, auth, ServerConfig{CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey, WalletGatewayURL: gateway.URL, WalletGatewayClient: gateway.Client()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ts := httptest.NewServer(server.Handler())
+	defer ts.Close()
+
+	completion, _ := http.NewRequest(http.MethodPost, ts.URL+"/wallet-gateway/v1/wallet/sessions/complete", strings.NewReader(`{"request":"bounded"}`))
+	completion.Header.Set("Content-Type", "application/json")
+	response, err := http.DefaultClient.Do(completion)
+	if err != nil || response.StatusCode != http.StatusOK {
+		t.Fatalf("completion proxy: status=%v err=%v", response.StatusCode, err)
+	}
+	response.Body.Close()
+	revoke, _ := http.NewRequest(http.MethodPost, ts.URL+"/wallet-gateway/v1/wallet/sessions/revoke", strings.NewReader(`{}`))
+	revoke.Header.Set("Content-Type", "application/json")
+	revoke.Header.Set("X-YNX-Product-Session-Proof", "path-bound-revocation-proof")
+	response, err = http.DefaultClient.Do(revoke)
+	if err != nil || response.StatusCode != http.StatusOK {
+		t.Fatalf("revocation proxy: status=%v err=%v", response.StatusCode, err)
+	}
+	response.Body.Close()
+	if strings.Join(paths, ",") != "/v1/wallet/sessions/complete,/v1/wallet/sessions/revoke" || revokeProof != "path-bound-revocation-proof" {
+		t.Fatalf("unexpected gateway forwarding: paths=%v proof=%q", paths, revokeProof)
+	}
+	missing, _ := http.Post(ts.URL+"/wallet-gateway/v1/wallet/sessions/revoke", "application/json", strings.NewReader(`{}`))
+	if missing.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("proofless revocation returned %d", missing.StatusCode)
+	}
+	missing.Body.Close()
+}
+
 func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	txTime := time.Date(2026, 7, 18, 12, 0, 0, 0, time.UTC)
 	explorer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

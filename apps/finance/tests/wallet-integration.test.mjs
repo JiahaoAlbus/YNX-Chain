@@ -13,7 +13,7 @@ test('Finance registry is the exact central Wallet Auth v2 shape',()=>{
   assert.deepEqual(Object.keys(registry).sort(),['bundleId','callbacks','maxScopes','productClientId','productDeviceAlgorithms','requestingProduct','schemaVersion','scopes'].sort());
   assert.equal(registry.schemaVersion,2);
   assert.equal(registry.productClientId,'ynx-finance-v1');
-  assert.deepEqual(registry.callbacks,['ynxfinance://wallet-auth/callback']);
+  assert.deepEqual(registry.callbacks,['https://finance.ynxweb4.com/wallet-auth/callback','ynxfinance://wallet-auth/callback']);
   assert.deepEqual(registry.scopes,[...registry.scopes].sort());
   assert.deepEqual(registry.productDeviceAlgorithms,['p256-sha256']);
   assert.deepEqual(vector.registryEntry,registry);

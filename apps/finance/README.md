@@ -4,7 +4,7 @@ YNX Finance 1.2.0 is an independent, read-only YNXT personal-finance product. It
 
 ## Canonical Wallet boundary
 
-The native app builds the exact `ynx-finance-v1` request with `@ynx-chain/wallet-auth`, opens `ynxwallet://authorize`, verifies the Wallet callback, signs the central Gateway product-device challenge and accepts only the resulting opaque product session. The Go API introspects every bearer session at the Gateway. There is no address login, local HMAC assertion, browser fallback session, Wallet secret or recovery-material path.
+The native and Web clients build the exact `ynx-finance-v1` request with `@ynx-chain/wallet-auth`, open `ynxwallet://authorize`, verify the Wallet callback, sign the central Gateway product-device challenge and accept only the resulting device-bound Product Session. Every private API request carries a one-time, method/path/body/scope-bound P-256 proof that the Go API introspects at the central Gateway. There is no Bearer session, address login, local assertion, browser fallback identity, Wallet secret or recovery-material path.
 
 The Finance registry entry and public Gateway are deployed. The installed Android
 flow has verified exact request parsing, permission review, action disclosure and
@@ -26,7 +26,7 @@ store-release claim.
 
 ## Run
 
-Use `infra/secrets-template/finance.env.template` as the variable inventory, then inject all secret values through an operator-managed secret environment. Start the Go API and the canonical edge Gateway separately:
+Use `infra/secrets-template/finance.env.template` as the variable inventory, then inject all secret values through an operator-managed secret environment. The Go API serves Finance and its bounded central Wallet completion/revocation proxy. The optional Node edge proxy is stateless and exposes only those same two central routes:
 
 ```bash
 go run ./apps/finance/cmd/server
@@ -35,7 +35,7 @@ npm ci --prefix apps/finance/gateway
 npm start --prefix apps/finance/gateway
 ```
 
-The default API is `127.0.0.1:6436`; the edge Gateway is `127.0.0.1:8787`. `YNX_FINANCE_CURSOR_SIGNING_KEY` and `YNX_FINANCE_OPERATIONS_KEY` are mandatory, distinct secrets with at least 32 high-entropy characters supplied through the operator secret manager; neither may reuse a Wallet, Pay, AI, backup, provider or signing credential. The operations key protects the process-scoped, financial-data-free `GET /metrics` endpoint. `YNX_FINANCE_EXCHANGE_ACTION_URL`, `YNX_FINANCE_DEX_ACTION_URL`, `YNX_FINANCE_QUANT_ACTION_URL` and `YNX_FINANCE_ECONOMICS_ACTION_URL` are optional reviewed HTTPS navigation routes; they do not configure data adapters or make a source available. Production needs TLS ingress, persistent Gateway replay/revocation storage, secret rotation procedures, a backed-up Finance state volume, a Pay read key and centrally reviewed support/privacy/dispute URLs.
+The default API is `127.0.0.1:6436`; the optional stateless edge proxy is `127.0.0.1:8787` and requires `YNX_WALLET_GATEWAY_URL`. `YNX_FINANCE_CURSOR_SIGNING_KEY` and `YNX_FINANCE_OPERATIONS_KEY` are mandatory, distinct secrets with at least 32 high-entropy characters supplied through the operator secret manager; neither may reuse a Wallet, Pay, AI, backup, provider or signing credential. The operations key protects the process-scoped, financial-data-free `GET /metrics` endpoint. `YNX_FINANCE_EXCHANGE_ACTION_URL`, `YNX_FINANCE_DEX_ACTION_URL`, `YNX_FINANCE_QUANT_ACTION_URL` and `YNX_FINANCE_ECONOMICS_ACTION_URL` are optional reviewed HTTPS navigation routes; they do not configure data adapters or make a source available. Production needs TLS ingress, central Gateway durable replay/revocation storage, secret rotation procedures, a backed-up Finance state volume, a Pay read key and centrally reviewed support/privacy/dispute URLs.
 
 ## Backup and recovery
 

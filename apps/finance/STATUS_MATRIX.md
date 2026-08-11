@@ -3,7 +3,7 @@
 | Capability | Implemented | Local verification | Central/public status |
 |---|---:|---|---|
 | Canonical Wallet request/callback/device proof | yes | shared package 21/21; gateway 2/2; installed Android request review | central registry and public Gateway live; final callback awaits an enrolled strong-biometric test device |
-| Scoped, revocable Finance bearer session | yes | exact introspection/revoke tests; public 10-account/100-request isolation run | public Testnet Gateway live; production shared persistence is not claimed |
+| Scoped, revocable Product Session proof | yes | method/path/body/device/scope-bound introspection and revoke tests | central registry update includes native and Web callbacks; public redeployment pending |
 | Real YNXT balance and owned activity | yes | Go source tests; remote Explorer health and public tx smoke | live source reachable; index lag 20,696 blocks at smoke time |
 | Authorized Pay receipts and dispute URL | yes | filter/failure tests; remote Pay health | receipt request correctly 401 without operator key |
 | Categories, private notes and classifications | yes | Go persistence/ownership tests | public Testnet service; Wallet-account isolated |
@@ -14,7 +14,7 @@
 | 12 locales, Arabic RTL, amount/date/legal semantics | yes | 6 native tests including locale/RTL contracts | professional legal translation review remains a release gate |
 | Android install and cold launch | yes | official release APK installed; cold 1,163 ms | official-site direct download; Testnet test signature only |
 | iOS build/install/cold launch | target ready | Hermes bundle passed | CI Simulator pending; no device/IPA signature |
-| Web feasibility | yes | desktop + 390 px Browser inspection | signed-out companion only; no Web Wallet client |
+| Web Wallet client | yes | bundled P-256 device flow, exact callback, proof and revoke tests | public redeployment pending; no fallback identity |
 | Owner-product navigation | yes | strict reviewed-HTTPS URL validation | public Exchange, DEX and Quant links configured; navigation grants no trading or read capability |
 | Public Testnet/store release | Testnet only | public health, concurrency and official APK digest verified | `deployedPublic=true`, `storeReleased=false` |
 

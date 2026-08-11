@@ -1,31 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {FinanceWalletGateway} from '../src/gateway.mjs';
-import {signGatewayChallenge} from '@ynx-chain/wallet-auth';
+import {FinanceWalletGatewayProxy} from '../src/gateway.mjs';
 
-const vector=JSON.parse(readFileSync(new URL('../../integration/wallet-auth/test-vector.json',import.meta.url),'utf8'));
-
-test('canonical Finance Wallet approval creates a scoped revocable session',()=>{
-  const times=['2026-07-18T08:01:30.000Z','2026-07-18T08:02:00.000Z','2026-07-18T08:02:10.000Z'];let index=0;
-  const gateway=new FinanceWalletGateway({registry:vector.registryEntry,internalKey:'i'.repeat(32),now:()=>new Date(times[Math.min(index++,times.length-1)])});
-  const challenge=gateway.begin({authorizationRequest:vector.request,walletApproval:vector.approval});
-  assert.equal(challenge.requestDigest,vector.requestDigest);
-  const completed=gateway.complete({authorizationRequest:vector.request,walletApproval:vector.approval,gatewayCompletion:signGatewayChallenge(challenge,'QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI')});
-  const session=gateway.introspect(completed.token);
-  assert.equal(session.verifierVersion,'wallet-auth-v1');
-  assert.equal(session.productClientId,'ynx-finance-v1');
-  assert.deepEqual(session.scopes,vector.registryEntry.scopes);
-  gateway.revoke(completed.token);
-  assert.throws(()=>gateway.introspect(completed.token),/missing/);
+test('forwards only exact central completion and proof-bound revocation routes',async()=>{
+ const calls=[];const proxy=new FinanceWalletGatewayProxy({baseURL:'https://wallet-auth.ynxweb4.com',fetchImpl:async(url,init)=>{calls.push({url,init});return new Response('{"ok":true}',{status:200,headers:{'content-type':'application/json'}})}});
+ let result=await proxy.forward('/v1/wallet/sessions/complete','{"authorizationRequest":{}}');assert.equal(result.status,200);
+ result=await proxy.forward('/v1/wallet/sessions/revoke','{}','bounded-proof');assert.equal(result.status,200);
+ assert.deepEqual(calls.map(v=>v.url),['https://wallet-auth.ynxweb4.com/v1/wallet/sessions/complete','https://wallet-auth.ynxweb4.com/v1/wallet/sessions/revoke']);
+ assert.equal(calls[1].init.headers['x-ynx-product-session-proof'],'bounded-proof');
+ assert.equal(calls.some(v=>Object.keys(v.init.headers).some(key=>key.toLowerCase()==='authorization')),false);
 });
 
-test('tamper and replay fail closed',()=>{
-  const at=()=>new Date('2026-07-18T08:01:30.000Z');
-  const gateway=new FinanceWalletGateway({registry:vector.registryEntry,internalKey:'i'.repeat(32),now:at});
-  assert.throws(()=>gateway.begin({authorizationRequest:{...vector.request,bundleId:'evil.product'},walletApproval:vector.approval}));
-  const challenge=gateway.begin({authorizationRequest:vector.request,walletApproval:vector.approval});
-  const completion={authorizationRequest:vector.request,walletApproval:vector.approval,gatewayCompletion:signGatewayChallenge(challenge,'QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI')};
-  gateway.complete(completion);
-  assert.throws(()=>gateway.complete(completion),/consumed/);
+test('rejects route widening, insecure origins, missing proof and oversized bodies',async()=>{
+ assert.throws(()=>new FinanceWalletGatewayProxy({baseURL:'http://wallet-auth.ynxweb4.com'}),/HTTPS origin/);
+ const proxy=new FinanceWalletGatewayProxy({baseURL:'https://wallet-auth.ynxweb4.com',fetchImpl:async()=>{throw new Error('must not call')}});
+ await assert.rejects(proxy.forward('/v1/wallet/sessions/introspect','{}'),/not allowed/);
+ await assert.rejects(proxy.forward('/v1/wallet/sessions/revoke','{}'),/proof is required/);
+ await assert.rejects(proxy.forward('/v1/wallet/sessions/complete','x'.repeat(70*1024)),/outside policy/);
 });

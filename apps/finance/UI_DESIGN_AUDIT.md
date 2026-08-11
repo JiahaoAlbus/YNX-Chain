@@ -1,6 +1,6 @@
 # UI design audit
 
-The 1.2.0 native app and signed-out Web companion were inspected in the current run at 2026-07-18 dimensions: Android emulator portrait, desktop Web 1440×900 and mobile Web 390×844.
+The 1.2.0 native app and responsive Web Finance workspace were inspected at Android portrait, desktop Web 1440×900 and mobile Web 390×844 dimensions. The Web surface now exposes canonical Wallet authorization and no fallback browser identity; a new public visual inspection is required after redeployment.
 
 ## Findings and remediation
 

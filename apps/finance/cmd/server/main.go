@@ -36,7 +36,7 @@ func main() {
 	if webDir == "" {
 		webDir = "apps/finance/web"
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{AllowedOrigins: split(os.Getenv("YNX_FINANCE_ALLOWED_ORIGINS")), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), LogWriter: os.Stdout})
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{AllowedOrigins: split(os.Getenv("YNX_FINANCE_ALLOWED_ORIGINS")), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: required("YNX_FINANCE_WALLET_GATEWAY_URL"), LogWriter: os.Stdout})
 	if err != nil {
 		log.Fatal(err)
 	}
