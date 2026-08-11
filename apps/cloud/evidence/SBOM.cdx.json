@@ -23,8 +23,8 @@
     {
       "type": "library",
       "name": "cel.dev/expr",
-      "version": "v0.19.0",
-      "purl": "pkg:golang/cel.dev%2Fexpr@v0.19.0",
+      "version": "v0.25.1",
+      "purl": "pkg:golang/cel.dev%2Fexpr@v0.25.1",
       "properties": [
         {
           "name": "ynx:source",
@@ -59,8 +59,8 @@
     {
       "type": "library",
       "name": "cloud.google.com/go/compute/metadata",
-      "version": "v0.5.2",
-      "purl": "pkg:golang/cloud.google.com%2Fgo%2Fcompute%2Fmetadata@v0.5.2",
+      "version": "v0.9.0",
+      "purl": "pkg:golang/cloud.google.com%2Fgo%2Fcompute%2Fmetadata@v0.9.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -193,6 +193,18 @@
       "name": "github.com/andybalholm/brotli",
       "version": "v1.0.5",
       "purl": "pkg:golang/github.com%2Fandybalholm%2Fbrotli@v1.0.5",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "go.mod/go.sum"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "github.com/antithesishq/antithesis-sdk-go",
+      "version": "v0.6.0-default-no-op",
+      "purl": "pkg:golang/github.com%2Fantithesishq%2Fantithesis-sdk-go@v0.6.0-default-no-op",
       "properties": [
         {
           "name": "ynx:source",
@@ -359,8 +371,8 @@
     {
       "type": "library",
       "name": "github.com/census-instrumentation/opencensus-proto",
-      "version": "v0.4.1",
-      "purl": "pkg:golang/github.com%2Fcensus-instrumentation%2Fopencensus-proto@v0.4.1",
+      "version": "v0.2.1",
+      "purl": "pkg:golang/github.com%2Fcensus-instrumentation%2Fopencensus-proto@v0.2.1",
       "properties": [
         {
           "name": "ynx:source",
@@ -455,8 +467,8 @@
     {
       "type": "library",
       "name": "github.com/cncf/xds/go",
-      "version": "v0.0.0-20240905190251-b4127c9b8d78",
-      "purl": "pkg:golang/github.com%2Fcncf%2Fxds%2Fgo@v0.0.0-20240905190251-b4127c9b8d78",
+      "version": "v0.0.0-20260202195803-dba9d589def2",
+      "purl": "pkg:golang/github.com%2Fcncf%2Fxds%2Fgo@v0.0.0-20260202195803-dba9d589def2",
       "properties": [
         {
           "name": "ynx:source",
@@ -839,8 +851,32 @@
     {
       "type": "library",
       "name": "github.com/envoyproxy/go-control-plane",
-      "version": "v0.13.1",
-      "purl": "pkg:golang/github.com%2Fenvoyproxy%2Fgo-control-plane@v0.13.1",
+      "version": "v0.14.0",
+      "purl": "pkg:golang/github.com%2Fenvoyproxy%2Fgo-control-plane@v0.14.0",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "go.mod/go.sum"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "github.com/envoyproxy/go-control-plane/envoy",
+      "version": "v1.37.0",
+      "purl": "pkg:golang/github.com%2Fenvoyproxy%2Fgo-control-plane%2Fenvoy@v1.37.0",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "go.mod/go.sum"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "github.com/envoyproxy/go-control-plane/ratelimit",
+      "version": "v0.1.0",
+      "purl": "pkg:golang/github.com%2Fenvoyproxy%2Fgo-control-plane%2Fratelimit@v0.1.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -851,8 +887,8 @@
     {
       "type": "library",
       "name": "github.com/envoyproxy/protoc-gen-validate",
-      "version": "v1.1.0",
-      "purl": "pkg:golang/github.com%2Fenvoyproxy%2Fprotoc-gen-validate@v1.1.0",
+      "version": "v1.3.3",
+      "purl": "pkg:golang/github.com%2Fenvoyproxy%2Fprotoc-gen-validate@v1.3.3",
       "properties": [
         {
           "name": "ynx:source",
@@ -1054,6 +1090,18 @@
     },
     {
       "type": "library",
+      "name": "github.com/go-jose/go-jose/v4",
+      "version": "v4.1.4",
+      "purl": "pkg:golang/github.com%2Fgo-jose%2Fgo-jose%2Fv4@v4.1.4",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "go.mod/go.sum"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "github.com/go-kit/kit",
       "version": "v0.13.0",
       "purl": "pkg:golang/github.com%2Fgo-kit%2Fkit@v0.13.0",
@@ -1091,8 +1139,8 @@
     {
       "type": "library",
       "name": "github.com/go-logr/logr",
-      "version": "v1.4.2",
-      "purl": "pkg:golang/github.com%2Fgo-logr%2Flogr@v1.4.2",
+      "version": "v1.4.3",
+      "purl": "pkg:golang/github.com%2Fgo-logr%2Flogr@v1.4.3",
       "properties": [
         {
           "name": "ynx:source",
@@ -1247,8 +1295,8 @@
     {
       "type": "library",
       "name": "github.com/golang/glog",
-      "version": "v1.2.3",
-      "purl": "pkg:golang/github.com%2Fgolang%2Fglog@v1.2.3",
+      "version": "v1.2.5",
+      "purl": "pkg:golang/github.com%2Fgolang%2Fglog@v1.2.5",
       "properties": [
         {
           "name": "ynx:source",
@@ -1331,8 +1379,32 @@
     {
       "type": "library",
       "name": "github.com/google/go-cmp",
-      "version": "v0.6.0",
-      "purl": "pkg:golang/github.com%2Fgoogle%2Fgo-cmp@v0.6.0",
+      "version": "v0.7.0",
+      "purl": "pkg:golang/github.com%2Fgoogle%2Fgo-cmp@v0.7.0",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "go.mod/go.sum"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "github.com/google/go-tpm-tools",
+      "version": "v0.3.13-0.20230620182252-4639ecce2aba",
+      "purl": "pkg:golang/github.com%2Fgoogle%2Fgo-tpm-tools@v0.3.13-0.20230620182252-4639ecce2aba",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "go.mod/go.sum"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "github.com/google/go-tpm",
+      "version": "v0.9.8",
+      "purl": "pkg:golang/github.com%2Fgoogle%2Fgo-tpm@v0.9.8",
       "properties": [
         {
           "name": "ynx:source",
@@ -1427,8 +1499,8 @@
     {
       "type": "library",
       "name": "github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp",
-      "version": "v1.25.0",
-      "purl": "pkg:golang/github.com%2FGoogleCloudPlatform%2Fopentelemetry-operations-go%2Fdetectors%2Fgcp@v1.25.0",
+      "version": "v1.32.0",
+      "purl": "pkg:golang/github.com%2FGoogleCloudPlatform%2Fopentelemetry-operations-go%2Fdetectors%2Fgcp@v1.32.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -1919,8 +1991,8 @@
     {
       "type": "library",
       "name": "github.com/klauspost/compress",
-      "version": "v1.17.11",
-      "purl": "pkg:golang/github.com%2Fklauspost%2Fcompress@v1.17.11",
+      "version": "v1.18.5",
+      "purl": "pkg:golang/github.com%2Fklauspost%2Fcompress@v1.18.5",
       "properties": [
         {
           "name": "ynx:source",
@@ -2267,8 +2339,8 @@
     {
       "type": "library",
       "name": "github.com/nats-io/jwt/v2",
-      "version": "v2.2.1-0.20220330180145-442af02fd36a",
-      "purl": "pkg:golang/github.com%2Fnats-io%2Fjwt%2Fv2@v2.2.1-0.20220330180145-442af02fd36a",
+      "version": "v2.8.1",
+      "purl": "pkg:golang/github.com%2Fnats-io%2Fjwt%2Fv2@v2.8.1",
       "properties": [
         {
           "name": "ynx:source",
@@ -2279,8 +2351,8 @@
     {
       "type": "library",
       "name": "github.com/nats-io/nats-server/v2",
-      "version": "v2.8.4",
-      "purl": "pkg:golang/github.com%2Fnats-io%2Fnats-server%2Fv2@v2.8.4",
+      "version": "v2.12.7",
+      "purl": "pkg:golang/github.com%2Fnats-io%2Fnats-server%2Fv2@v2.12.7",
       "properties": [
         {
           "name": "ynx:source",
@@ -2291,8 +2363,8 @@
     {
       "type": "library",
       "name": "github.com/nats-io/nats.go",
-      "version": "v1.34.0",
-      "purl": "pkg:golang/github.com%2Fnats-io%2Fnats.go@v1.34.0",
+      "version": "v1.52.0",
+      "purl": "pkg:golang/github.com%2Fnats-io%2Fnats.go@v1.52.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -2303,8 +2375,8 @@
     {
       "type": "library",
       "name": "github.com/nats-io/nkeys",
-      "version": "v0.4.7",
-      "purl": "pkg:golang/github.com%2Fnats-io%2Fnkeys@v0.4.7",
+      "version": "v0.4.15",
+      "purl": "pkg:golang/github.com%2Fnats-io%2Fnkeys@v0.4.15",
       "properties": [
         {
           "name": "ynx:source",
@@ -2926,6 +2998,18 @@
     },
     {
       "type": "library",
+      "name": "github.com/spiffe/go-spiffe/v2",
+      "version": "v2.6.0",
+      "purl": "pkg:golang/github.com%2Fspiffe%2Fgo-spiffe%2Fv2@v2.6.0",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "go.mod/go.sum"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "github.com/streadway/handy",
       "version": "v0.0.0-20200128134331-0f66f006fb2e",
       "purl": "pkg:golang/github.com%2Fstreadway%2Fhandy@v0.0.0-20200128134331-0f66f006fb2e",
@@ -3250,9 +3334,21 @@
     },
     {
       "type": "library",
+      "name": "go.opentelemetry.io/auto/sdk",
+      "version": "v1.2.1",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fauto%2Fsdk@v1.2.1",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "go.mod/go.sum"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "go.opentelemetry.io/contrib/detectors/gcp",
-      "version": "v1.32.0",
-      "purl": "pkg:golang/go.opentelemetry.io%2Fcontrib%2Fdetectors%2Fgcp@v1.32.0",
+      "version": "v1.43.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fcontrib%2Fdetectors%2Fgcp@v1.43.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3287,8 +3383,8 @@
     {
       "type": "library",
       "name": "go.opentelemetry.io/otel",
-      "version": "v1.32.0",
-      "purl": "pkg:golang/go.opentelemetry.io%2Fotel@v1.32.0",
+      "version": "v1.43.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fotel@v1.43.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3299,8 +3395,8 @@
     {
       "type": "library",
       "name": "go.opentelemetry.io/otel/metric",
-      "version": "v1.32.0",
-      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Fmetric@v1.32.0",
+      "version": "v1.43.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Fmetric@v1.43.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3311,8 +3407,8 @@
     {
       "type": "library",
       "name": "go.opentelemetry.io/otel/sdk",
-      "version": "v1.32.0",
-      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Fsdk@v1.32.0",
+      "version": "v1.43.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Fsdk@v1.43.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3323,8 +3419,8 @@
     {
       "type": "library",
       "name": "go.opentelemetry.io/otel/sdk/metric",
-      "version": "v1.32.0",
-      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Fsdk%2Fmetric@v1.32.0",
+      "version": "v1.43.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Fsdk%2Fmetric@v1.43.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3335,8 +3431,8 @@
     {
       "type": "library",
       "name": "go.opentelemetry.io/otel/trace",
-      "version": "v1.32.0",
-      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Ftrace@v1.32.0",
+      "version": "v1.43.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Ftrace@v1.43.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3383,8 +3479,8 @@
     {
       "type": "library",
       "name": "golang.org/x/crypto",
-      "version": "v0.33.0",
-      "purl": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.33.0",
+      "version": "v0.50.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.50.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3419,8 +3515,8 @@
     {
       "type": "library",
       "name": "golang.org/x/mod",
-      "version": "v0.19.0",
-      "purl": "pkg:golang/golang.org%2Fx%2Fmod@v0.19.0",
+      "version": "v0.34.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fmod@v0.34.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3431,8 +3527,8 @@
     {
       "type": "library",
       "name": "golang.org/x/net",
-      "version": "v0.35.0",
-      "purl": "pkg:golang/golang.org%2Fx%2Fnet@v0.35.0",
+      "version": "v0.53.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fnet@v0.53.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3443,8 +3539,8 @@
     {
       "type": "library",
       "name": "golang.org/x/oauth2",
-      "version": "v0.24.0",
-      "purl": "pkg:golang/golang.org%2Fx%2Foauth2@v0.24.0",
+      "version": "v0.36.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Foauth2@v0.36.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3467,8 +3563,8 @@
     {
       "type": "library",
       "name": "golang.org/x/sync",
-      "version": "v0.11.0",
-      "purl": "pkg:golang/golang.org%2Fx%2Fsync@v0.11.0",
+      "version": "v0.20.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fsync@v0.20.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3479,8 +3575,8 @@
     {
       "type": "library",
       "name": "golang.org/x/sys",
-      "version": "v0.30.0",
-      "purl": "pkg:golang/golang.org%2Fx%2Fsys@v0.30.0",
+      "version": "v0.43.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fsys@v0.43.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3491,8 +3587,8 @@
     {
       "type": "library",
       "name": "golang.org/x/term",
-      "version": "v0.29.0",
-      "purl": "pkg:golang/golang.org%2Fx%2Fterm@v0.29.0",
+      "version": "v0.42.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fterm@v0.42.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3503,8 +3599,8 @@
     {
       "type": "library",
       "name": "golang.org/x/text",
-      "version": "v0.22.0",
-      "purl": "pkg:golang/golang.org%2Fx%2Ftext@v0.22.0",
+      "version": "v0.36.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Ftext@v0.36.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3515,8 +3611,8 @@
     {
       "type": "library",
       "name": "golang.org/x/time",
-      "version": "v0.5.0",
-      "purl": "pkg:golang/golang.org%2Fx%2Ftime@v0.5.0",
+      "version": "v0.15.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Ftime@v0.15.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3527,8 +3623,8 @@
     {
       "type": "library",
       "name": "golang.org/x/tools",
-      "version": "v0.23.0",
-      "purl": "pkg:golang/golang.org%2Fx%2Ftools@v0.23.0",
+      "version": "v0.43.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Ftools@v0.43.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3551,8 +3647,8 @@
     {
       "type": "library",
       "name": "gonum.org/v1/gonum",
-      "version": "v0.15.1",
-      "purl": "pkg:golang/gonum.org%2Fv1%2Fgonum@v0.15.1",
+      "version": "v0.17.0",
+      "purl": "pkg:golang/gonum.org%2Fv1%2Fgonum@v0.17.0",
       "properties": [
         {
           "name": "ynx:source",
@@ -3599,8 +3695,8 @@
     {
       "type": "library",
       "name": "google.golang.org/genproto/googleapis/api",
-      "version": "v0.0.0-20241202173237-19429a94021a",
-      "purl": "pkg:golang/google.golang.org%2Fgenproto%2Fgoogleapis%2Fapi@v0.0.0-20241202173237-19429a94021a",
+      "version": "v0.0.0-20260414002931-afd174a4e478",
+      "purl": "pkg:golang/google.golang.org%2Fgenproto%2Fgoogleapis%2Fapi@v0.0.0-20260414002931-afd174a4e478",
       "properties": [
         {
           "name": "ynx:source",
@@ -3611,8 +3707,8 @@
     {
       "type": "library",
       "name": "google.golang.org/genproto/googleapis/rpc",
-      "version": "v0.0.0-20241202173237-19429a94021a",
-      "purl": "pkg:golang/google.golang.org%2Fgenproto%2Fgoogleapis%2Frpc@v0.0.0-20241202173237-19429a94021a",
+      "version": "v0.0.0-20260414002931-afd174a4e478",
+      "purl": "pkg:golang/google.golang.org%2Fgenproto%2Fgoogleapis%2Frpc@v0.0.0-20260414002931-afd174a4e478",
       "properties": [
         {
           "name": "ynx:source",
@@ -3623,8 +3719,8 @@
     {
       "type": "library",
       "name": "google.golang.org/grpc",
-      "version": "v1.70.0",
-      "purl": "pkg:golang/google.golang.org%2Fgrpc@v1.70.0",
+      "version": "v1.82.1",
+      "purl": "pkg:golang/google.golang.org%2Fgrpc@v1.82.1",
       "properties": [
         {
           "name": "ynx:source",
@@ -3635,8 +3731,8 @@
     {
       "type": "library",
       "name": "google.golang.org/protobuf",
-      "version": "v1.36.5",
-      "purl": "pkg:golang/google.golang.org%2Fprotobuf@v1.36.5",
+      "version": "v1.36.11",
+      "purl": "pkg:golang/google.golang.org%2Fprotobuf@v1.36.11",
       "properties": [
         {
           "name": "ynx:source",
@@ -5607,6 +5703,22 @@
     {
       "type": "library",
       "name": "@expo/cli",
+      "version": "57.0.11",
+      "purl": "pkg:npm/%40expo%2Fcli@57.0.11",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-ENXCwRyL8Q9qbabUmm0L6w9kXTmdGotW7eDEEWmUDXLPux+nEzNDqw0MzWQ5K3ZsXS51QmUJZg5yETB+6SnNRg=="
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/cli",
       "version": "57.0.6",
       "purl": "pkg:npm/%40expo%2Fcli@57.0.6",
       "properties": [
@@ -5617,10 +5729,6 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-14wEb2e8lctlxGARbinUEr+9EmrTR2jIgcaPBBkZXDFMRJmdoY0ic18JuFJPi+7CuQ4XWiGK6obN4VK2PXosLA=="
-        },
-        {
-          "name": "ynx:source",
-          "value": "apps/docs/mobile/pnpm-lock.yaml"
         }
       ]
     },
@@ -5666,6 +5774,22 @@
     },
     {
       "type": "library",
+      "name": "@expo/config-plugins",
+      "version": "57.0.6",
+      "purl": "pkg:npm/%40expo%2Fconfig-plugins@57.0.6",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-7CmKrS5Rnu8aSZyNlxH2qzA7Ls1HEa4EQvEVOAkHDKPr1e4Cg/nz7I7dUl09QDTVjMvkKYDH4Th0DuAsgqASaw=="
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "@expo/config-types",
       "version": "57.0.1",
       "purl": "pkg:npm/%40expo%2Fconfig-types@57.0.1",
@@ -5686,6 +5810,22 @@
     },
     {
       "type": "library",
+      "name": "@expo/config-types",
+      "version": "57.0.2",
+      "purl": "pkg:npm/%40expo%2Fconfig-types@57.0.2",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-ewW08OonrcRIsRKIlFvvcmmafE5zemb1ocu3HkNwtVPyRtj2w42pZCAkMIROYpcVBaPnc3mDT9UZDzwXWC3i6g=="
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "@expo/config",
       "version": "57.0.3",
       "purl": "pkg:npm/%40expo%2Fconfig@57.0.3",
@@ -5697,10 +5837,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-IshqjjpGtT7wj86pxgsfMD1/abNMfu1wZ07ubyYO29l+PWa0eAh2TcpyLcyBaqo01IonF6646xWwrCPcdlUl3Q=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/config",
+      "version": "57.0.6",
+      "purl": "pkg:npm/%40expo%2Fconfig@57.0.6",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-VpMJpB/De/fb9bBFVVBiK6Ntg9lt0kAleLH9hcZz85CYRUQ3jVFVA8rNC5f8y4cp2+FiiPNFp62+kEOFI6pDiw=="
         }
       ]
     },
@@ -5737,10 +5889,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-i8ITQmf/wB0JNQ2gASFOKvqo1zRWCl/VfPlFRXdz6UkHen4s31NmMy0zmumS+pMpwn0+gA6oU4FF4zRDRG488Q=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/devtools",
+      "version": "57.0.1",
+      "purl": "pkg:npm/%40expo%2Fdevtools@57.0.1",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-GyUf+wFNkbttaX0jR7MZa9bm77U0IrLg6d2AjpxdyoXw/w4abHoXG0oFufwLMgP9zLTd5+Ct4X/ffNUTnlzZgg=="
         }
       ]
     },
@@ -5757,10 +5921,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-zBZw52KnaHf9zGVp1eJk8kNfc+5ArGf+KvTL3SeMsr03K6tPJtLbgycVLjrAiLMfhzqGVjPD2G+rbNwpbLUxcg=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/dom-webview",
+      "version": "57.0.1",
+      "purl": "pkg:npm/%40expo%2Fdom-webview@57.0.1",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-lAKsME4SAq+8sf56oN0DX5TBYyruupoRxbWbD2xf9RnKY8y6x8eb9LCE5pxSN0qyWdqnp+0wmyWzDkKboThKAw=="
         }
       ]
     },
@@ -5777,10 +5953,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-3c9Mg9x0HmGPEsVrGAGyEDJsNUOZ55cZvZ47/HLmXh7MHV9Zv7My73wThklKrObaBBoMfE4YqpKjYKDRzojpjQ=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/env",
+      "version": "2.4.2",
+      "purl": "pkg:npm/%40expo%2Fenv@2.4.2",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-28pqaEqwnmLduZ00Pq9HkSzE5wbj1MTwp5/n8nm8rD8MCjR9eUnVOwmNksPI3Be2ReAPO/DbPn1puy0mvoocsQ=="
         }
       ]
     },
@@ -5797,10 +5985,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-2tRq8kiIZTVZcI5uggh86HefQ7s++Zk5WkFFomNp4aUqyN5ownHHvj1jPEP9jWXaXjPDmWuf5SUZTGD5G6AKkg=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/expo-modules-macros-plugin",
+      "version": "0.6.1",
+      "purl": "pkg:npm/%40expo%2Fexpo-modules-macros-plugin@0.6.1",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-cpsLZE4rqkc1Y3eZTkxB98jrqY1YXgetmtxFt8q89jBRmk3quRuk1BZo+VcnCSObZardjg99r1k5xijEMONFGA=="
         }
       ]
     },
@@ -5817,10 +6017,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-WDV2hS87C61TsX55w4A0cPnbnN8bqdVHp2MpZsJTvB4Tv4TITgSxWYhRj/xv0pwcZvKHn05MBg6AfHPNj9o5Sw=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/fingerprint",
+      "version": "0.20.6",
+      "purl": "pkg:npm/%40expo%2Ffingerprint@0.20.6",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-cmC/6BOPRbdKr77Mgjwszb8aM0hY2RKBpMRCmjSdn9zIcn2FGor/ic4fHVr46cQFa1G6RDGg1GyAjRw3US4CCQ=="
         }
       ]
     },
@@ -5837,10 +6049,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-0JueH4vdgAZQmhlSYFvTQzt4b4NO5cnByDuApw7bMUIjhwLRnT46Ki3ritMrzJMQaO2lLK2flInZbsZbOuy8nw=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/image-utils",
+      "version": "0.11.4",
+      "purl": "pkg:npm/%40expo%2Fimage-utils@0.11.4",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-pn/4770DIEOcYZr484uazuwg20FX/qaDkeMRF6J+oxejynDmEmO8wLsCudaNShFE0BhyKGQTYrs2rsRhqrqESw=="
         }
       ]
     },
@@ -5857,10 +6081,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-wc5wH4ND647Ne/6A/ESuelcqOQUEvK8MYjjvbp5wcl59dECk7juh0cFOJjAWkpc4pLTcvqXBSRcUDpGWm5XNWg=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/inline-modules",
+      "version": "0.1.4",
+      "purl": "pkg:npm/%40expo%2Finline-modules@0.1.4",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-8bPSCm//dv8raYfrQ4x79rCX52vMw0QzmnYYl4eSOAvEbGvDPPRGGdbrhZZ7oihU+hI1sZNS5kYEgqODgFwfsw=="
         }
       ]
     },
@@ -5886,6 +6122,22 @@
     },
     {
       "type": "library",
+      "name": "@expo/json-file",
+      "version": "11.0.1",
+      "purl": "pkg:npm/%40expo%2Fjson-file@11.0.1",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-zxHWj4MKKMAL29ZQSY/Fssx4Thluk40JmuGNaeS078wy/NhlFhnVi+rHHunulE3xJAJ0CM73m8VK2+GkF9eRwQ=="
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "@expo/local-build-cache-provider",
       "version": "57.0.2",
       "purl": "pkg:npm/%40expo%2Flocal-build-cache-provider@57.0.2",
@@ -5897,10 +6149,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-/8/FoYrEBJZPG4wR8kO6REI4VRCPAStD+7wS/Ds6XXddxhmyMP3pvUJz/c3icyAoqpbqeZZkR6E1ptT5Gi5iXg=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/local-build-cache-provider",
+      "version": "57.0.5",
+      "purl": "pkg:npm/%40expo%2Flocal-build-cache-provider@57.0.5",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-OwiNC0Uxu67TOH7TEQ94GLa4oNzNfbbItKGdy3QMfX+hCSZv2VvjcjRo5vttMHfXCnXa9KZIu3GBS9pvtDHWhA=="
         }
       ]
     },
@@ -5917,10 +6181,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-tt9x76IEE8hp2FWTLPfEArrTyD7GCoUe3TpohESy+SPZ/OqkUnSXz40xnUuE0XbE132z8c5CRCfXQLM9DTEknQ=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/log-box",
+      "version": "57.0.2",
+      "purl": "pkg:npm/%40expo%2Flog-box@57.0.2",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-ZsFyfIR7YCbQAdVLzuTUmMHofZC7ZS9ywYCJNPlLc78x59cI8GwXFEIVbRjjC0uJERpNtXx/tsNNnkhexXlzMw=="
         }
       ]
     },
@@ -5937,10 +6213,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-k7qcjTe1xDrUW15Ue86WAsJSL0ubiSluBXVNRFoe9snAWhMzBGzdZfl9XiDf4TNUV43T0L1ch+n4GmDqamvfEg=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/metro-config",
+      "version": "57.0.7",
+      "purl": "pkg:npm/%40expo%2Fmetro-config@57.0.7",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-bVfEkg4zF1cA62OqAdYXmFOooJ6TB/I+REi7Se6Ct+PbSC+89TwSqWXnYx34L08eIs4z+1ilgbATakTZpgefmQ=="
         }
       ]
     },
@@ -5957,10 +6245,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-/sxwKQmwpYFYjFT6VYFpgldTwSv53OCx4/UCpLCv9iqQLVQ30hFEJsxGA9Jif8n9pacigK4P5/0ZJ2zMHm6arA=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/metro-file-map",
+      "version": "57.0.1",
+      "purl": "pkg:npm/%40expo%2Fmetro-file-map@57.0.1",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-8JXfVstZN7QnP4NianZZnlTVboOWR0sG8trUDNajOjnbGlPln29vponXM84tY+3tAHapz5/TxE53L0ixUwqPtA=="
         }
       ]
     },
@@ -5997,10 +6297,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-wKIXL8UtbuX4KwavPasIW3CUcgTbYfjzLcgUhjyKUAYDEqMaf6gmU1bqz3ffBPTokmX+G8/vFG1ZuI9etQWukA=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/osascript",
+      "version": "2.7.1",
+      "purl": "pkg:npm/%40expo%2Fosascript@2.7.1",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-Zn03EX6In7ts2lPUW2ESUSkEhEWQN1qqsiXjadtZMJOuZRkMiAg1ZQHuvz9DjByDWNJ2pBwAGyrts9lj9k389g=="
         }
       ]
     },
@@ -6017,10 +6329,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-s3W3eZafJDEyVL7W/jxj2Nz3eONKxSCU604S5xj8ijrVaRz83x0DnZznLf/UXQEI1w+FyibH68nHeQyk767b1A=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/package-manager",
+      "version": "1.13.1",
+      "purl": "pkg:npm/%40expo%2Fpackage-manager@1.13.1",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-y/K+CaYYpZpNGZhSX4HyLT/vyIunFjNfyoxNysPBCefeLKI/VCx6f9LNPzrxayr3rCYO5bl9O8H+HRQK265Nkg=="
         }
       ]
     },
@@ -6046,6 +6370,38 @@
     },
     {
       "type": "library",
+      "name": "@expo/plist",
+      "version": "0.8.1",
+      "purl": "pkg:npm/%40expo%2Fplist@0.8.1",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-3gTReGIUm0oRaMClsAJYxBnVPCl6fVpsl8HS+DTVxDhW4GyVyxg9E/Znm3BvcHtUJ51RJJI14pC1wvrNilCRHw=="
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/prebuild-config",
+      "version": "57.0.10",
+      "purl": "pkg:npm/%40expo%2Fprebuild-config@57.0.10",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-myrS5NolFAQWD8g7QuqkettnkyJx3GRl603N6rlmqAMxmO5EU7sZu4EX2EsIKkva8QtpX84B0E17PsM9xXMsTQ=="
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "@expo/prebuild-config",
       "version": "57.0.5",
       "purl": "pkg:npm/%40expo%2Fprebuild-config@57.0.5",
@@ -6057,10 +6413,6 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-KnKx6Iu4jppbNVtt9yTrN10OVoPZlOYYyLZuarY70u6fgUO9lYKDa06Hxv+PmIwcnygfj2CSBBl5ewBqS2bxtw=="
-        },
-        {
-          "name": "ynx:source",
-          "value": "apps/docs/mobile/pnpm-lock.yaml"
         }
       ]
     },
@@ -6086,6 +6438,22 @@
     },
     {
       "type": "library",
+      "name": "@expo/require-utils",
+      "version": "57.0.4",
+      "purl": "pkg:npm/%40expo%2Frequire-utils@57.0.4",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-e7xbg/9BTQcsZE/oErafZXtI7kh5IgfasLJ97J5sFSzX2cA74pDvdlhW1KHVSaDkQyQv6h1LSLhsY7dEeOk7hw=="
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "@expo/router-server",
       "version": "57.0.2",
       "purl": "pkg:npm/%40expo%2Frouter-server@57.0.2",
@@ -6097,10 +6465,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-hu9qhnq2PKuwMXIoRMAa2+HUeqSut9HwiQf3a62tfGTIxPN3rKUZ10TozEEB+Pd/7WIa238sXMS5v1YhTuC9gA=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/router-server",
+      "version": "57.0.4",
+      "purl": "pkg:npm/%40expo%2Frouter-server@57.0.4",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-ucqCP0hK8nZb9+S8QJYdQxNCkfRClzkKdg2RpWYDKDYgRIHyoRyxEDRgDgvbhH+q78yfY83abU8OTx8MMOrf1g=="
         }
       ]
     },
@@ -6117,10 +6497,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-IVdaqtP3+iHFRE/y22mKijQtZanLcB18q1zi2kfN6RINTCryyzM7qHGsWHc5LBJbOuj1G4avCOECs97hOJm0GQ=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@expo/schema-utils",
+      "version": "57.0.2",
+      "purl": "pkg:npm/%40expo%2Fschema-utils@57.0.2",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-fMu/jyN0l1Wzv7XkeWR4IYCx1M8ryui3FdBNGrWwbRgJ7EhxXxK8E2jxP2W3pbgUwUY0V3hG8+GyfCZwny+Lxw=="
         }
       ]
     },
@@ -6477,10 +6869,22 @@
         {
           "name": "pnpm:integrity",
           "value": "sha512-qdsABWNW7uTll90l4Vh03gjeyu3WVDi2CyiiyvYGMRDcoYbjbQi6df3BMAm9lQI2yslZ1T14LlDDAsgTwNxplA=="
-        },
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@react-native/babel-plugin-codegen",
+      "version": "0.86.2",
+      "purl": "pkg:npm/%40react-native%2Fbabel-plugin-codegen@0.86.2",
+      "properties": [
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-NNDZqOlNbH5SzgPks1jFDYH3234Rpa5e/nhZymxhIiBH3NcE3uD+rGj/HWXhH7nHF2ToGK6XbUpqy7nmJPeh+g=="
         }
       ]
     },
@@ -6501,6 +6905,22 @@
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@react-native/codegen",
+      "version": "0.86.2",
+      "purl": "pkg:npm/%40react-native%2Fcodegen@0.86.2",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-xKkudsahUJ1n//55g4fXk5BStVqqmZlz8HQveL45ZxcfDnwvhuYe2GymksQANFsSN+slvrarjrfq8kIxJzbceA=="
         }
       ]
     },
@@ -6546,6 +6966,22 @@
     },
     {
       "type": "library",
+      "name": "@react-native/debugger-frontend",
+      "version": "0.86.2",
+      "purl": "pkg:npm/%40react-native%2Fdebugger-frontend@0.86.2",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-KGS1aV5F6cIqpnoIUhLBXyVzy1oAj8jBFGau6vX4Vy0HXRJN7p+68RU7x6NuyraHvQcR14ccMGT5TkFuNjQ4gA=="
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "@react-native/debugger-shell",
       "version": "0.86.0",
       "purl": "pkg:npm/%40react-native%2Fdebugger-shell@0.86.0",
@@ -6566,6 +7002,22 @@
     },
     {
       "type": "library",
+      "name": "@react-native/debugger-shell",
+      "version": "0.86.2",
+      "purl": "pkg:npm/%40react-native%2Fdebugger-shell@0.86.2",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-/TaVJ2+gGajZPJGrFaObUQmHmlaxAlfmOPZicl6pNKDUjzSgFMpcLkdTOExvb+USYTVdGX1XwxXyvjQdUO2bvg=="
+        }
+      ]
+    },
+    {
+      "type": "library",
       "name": "@react-native/dev-middleware",
       "version": "0.86.0",
       "purl": "pkg:npm/%40react-native%2Fdev-middleware@0.86.0",
@@ -6581,6 +7033,22 @@
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@react-native/dev-middleware",
+      "version": "0.86.2",
+      "purl": "pkg:npm/%40react-native%2Fdev-middleware@0.86.2",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-B7L0vKvg+IcEElT7Vpqh1xj5yJAqWUegjbP+bQRaorJMAYnv11GkliTnZV2AdTDfZQJWgOEx8i8LGkHkUg7bnA=="
         }
       ]
     },
@@ -6641,6 +7109,22 @@
         {
           "name": "ynx:source",
           "value": "apps/docs/mobile/pnpm-lock.yaml"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "@react-native/normalize-colors",
+      "version": "0.86.2",
+      "purl": "pkg:npm/%40react-native%2Fnormalize-colors@0.86.2",
+      "properties": [
+        {
+          "name": "ynx:source",
+          "value": "apps/docs/mobile/pnpm-lock.yaml"
+        },
+        {
+          "name": "pnpm:integrity",
+          "value": "sha512-EzPFc9Y6lzYOWeso2almwXI7f8+qReHxWvT+algsOczb2UhWXIWXDoSvkdwoSfiwwmGt/ijJgKJoeHlzPkLwRg=="
         }
       ]
     },

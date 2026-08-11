@@ -23,13 +23,13 @@
     {
       "uri": "go.mod",
       "digest": {
-        "sha256": "922a635f2ceb0f60a7e4c4ad2cf8c0bbe55b7ea609a02c1e6678e8f656e96fb8"
+        "sha256": "8c770c1b14e46e0bf0868845b4a20abc38ede9ea059c7c1584d071f5f663f21f"
       }
     },
     {
       "uri": "go.sum",
       "digest": {
-        "sha256": "8084743bd7e108d78d54edee6396f89a0f561da044d5eafe4b561e48e5370793"
+        "sha256": "3e73e9bdc6172c440ba1a8c2f11fa5641327dfe680756ef0386d68a9e9309785"
       }
     },
     {
@@ -41,7 +41,7 @@
     {
       "uri": "apps/docs/mobile/pnpm-lock.yaml",
       "digest": {
-        "sha256": "78af095e76c9f424bad62774727b173c0c3a6b2411024f3ac311ca9645ca3c92"
+        "sha256": "a8221a5328e1313c22878306f2f14cd9692895a6c626935392f8ab9a0e0d9755"
       }
     }
   ]
