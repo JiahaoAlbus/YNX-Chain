@@ -293,12 +293,18 @@ func TestRemoteAuthorizerRequiresExactCentralBindingResponse(t *testing.T) {
 			"purpose": "Read exact DEX positions", "requestDigest": strings.Repeat("f", 64), "approvalDigest": strings.Repeat("b", 64),
 			"issuedAt": time.Now().Add(-time.Minute).UTC(), "expiresAt": time.Now().Add(time.Minute).UTC(),
 		}
-		value := map[string]any{"ok": true, "result": map[string]any{"active": true, "session": session}}
+		value := map[string]any{"ok": true, "schemaVersion": 1, "stateDigest": strings.Repeat("c", 64), "result": map[string]any{"active": true, "session": session}}
 		if mode.Load().(string) == "substitute" {
 			session["bundleId"] = "com.ynxweb4.exchange.web"
 		}
 		if mode.Load().(string) == "unknown" {
 			value["extra"] = true
+		}
+		if mode.Load().(string) == "schema" {
+			value["schemaVersion"] = 2
+		}
+		if mode.Load().(string) == "digest" {
+			value["stateDigest"] = "invalid"
 		}
 		writeJSON(response, http.StatusOK, value)
 	}))
@@ -307,7 +313,7 @@ func TestRemoteAuthorizerRequiresExactCentralBindingResponse(t *testing.T) {
 	if authorizedAccount, err := authorizer.Authorize(context.Background(), proof, scopes); err != nil || authorizedAccount != account {
 		t.Fatalf("valid binding rejected: %v", err)
 	}
-	for _, next := range []string{"substitute", "unknown"} {
+	for _, next := range []string{"substitute", "unknown", "schema", "digest"} {
 		mode.Store(next)
 		if _, err := authorizer.Authorize(context.Background(), proof, scopes); err == nil {
 			t.Fatalf("%s response accepted", next)

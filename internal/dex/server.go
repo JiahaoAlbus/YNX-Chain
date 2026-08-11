@@ -61,8 +61,10 @@ func (authorizer RemoteAuthorizer) Authorize(ctx context.Context, proof string, 
 		return "", err
 	}
 	var result struct {
-		OK     bool `json:"ok"`
-		Result struct {
+		OK            bool   `json:"ok"`
+		SchemaVersion int    `json:"schemaVersion"`
+		StateDigest   string `json:"stateDigest"`
+		Result        struct {
 			Active  bool `json:"active"`
 			Session struct {
 				VerifierVersion        string    `json:"verifierVersion"`
@@ -87,7 +89,7 @@ func (authorizer RemoteAuthorizer) Authorize(ctx context.Context, proof string, 
 			} `json:"session"`
 		} `json:"result"`
 	}
-	if err := decodeExact(data, &result); err != nil || !result.OK || !result.Result.Active || result.Result.Session.VerifierVersion != "wallet-auth-v1" || result.Result.Session.ChainID != "ynx_6423-1" || result.Result.Session.RequestingProduct != "dex" || !nativePattern.MatchString(result.Result.Session.Account) || result.Result.Session.ProductClientID != "ynx-dex-web-v1" || result.Result.Session.BundleID != "com.ynxweb4.dex.web" || result.Result.Session.Callback != "https://dex.ynxweb4.com/wallet-auth/callback" || result.Result.Session.ProductDeviceAlgorithm != "p256-sha256" || !containsStrings(result.Result.Session.Scopes, scopes) || !result.Result.Session.ExpiresAt.After(time.Now()) {
+	if err := decodeExact(data, &result); err != nil || !result.OK || result.SchemaVersion != 1 || !nativeBlockHashPattern.MatchString(result.StateDigest) || !result.Result.Active || result.Result.Session.VerifierVersion != "wallet-auth-v1" || result.Result.Session.ChainID != "ynx_6423-1" || result.Result.Session.RequestingProduct != "dex" || !nativePattern.MatchString(result.Result.Session.Account) || result.Result.Session.ProductClientID != "ynx-dex-web-v1" || result.Result.Session.BundleID != "com.ynxweb4.dex.web" || result.Result.Session.Callback != "https://dex.ynxweb4.com/wallet-auth/callback" || result.Result.Session.ProductDeviceAlgorithm != "p256-sha256" || !containsStrings(result.Result.Session.Scopes, scopes) || !result.Result.Session.ExpiresAt.After(time.Now()) {
 		return "", errors.New("central Wallet session binding mismatch")
 	}
 	return result.Result.Session.Account, nil
