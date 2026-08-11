@@ -140,6 +140,54 @@ func TestReplicationSnapshotGzipKeepsUncompressedSignature(t *testing.T) {
 	}
 }
 
+func TestReplicationSnapshotResponseIsReusedAcrossConcurrentFollowers(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	devnet.ProduceBlock()
+	server := httptest.NewServer(NewServerWithConfig(devnet, ServerConfig{ReplicationKey: "replication-test-key"}))
+	defer server.Close()
+
+	const followers = 12
+	type result struct {
+		payload []byte
+		digest  string
+		err     error
+	}
+	results := make(chan result, followers)
+	for range followers {
+		go func() {
+			req, err := http.NewRequest(http.MethodGet, server.URL+"/internal/replication/snapshot", nil)
+			if err != nil {
+				results <- result{err: err}
+				return
+			}
+			req.Header.Set("X-YNX-Replication-Key", "replication-test-key")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				results <- result{err: err}
+				return
+			}
+			defer resp.Body.Close()
+			payload, err := io.ReadAll(resp.Body)
+			results <- result{payload: payload, digest: resp.Header.Get("X-YNX-Replication-SHA256"), err: err}
+		}()
+	}
+	var expectedPayload []byte
+	var expectedDigest string
+	for range followers {
+		got := <-results
+		if got.err != nil {
+			t.Fatal(got.err)
+		}
+		if expectedPayload == nil {
+			expectedPayload, expectedDigest = got.payload, got.digest
+			continue
+		}
+		if !bytes.Equal(got.payload, expectedPayload) || got.digest != expectedDigest {
+			t.Fatal("concurrent followers did not receive one immutable authenticated snapshot")
+		}
+	}
+}
+
 func TestDevnetAPIFlow(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
 	server := httptest.NewServer(NewServer(devnet))

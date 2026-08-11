@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -30,6 +31,17 @@ type Server struct {
 	resourceGatewayUpstreamKey string
 	replicationKey             string
 	readOnlyReplica            bool
+	replicationCacheMu         sync.Mutex
+	replicationCache           replicationResponseCache
+}
+
+const replicationResponseCacheTTL = 5 * time.Second
+
+type replicationResponseCache struct {
+	createdAt time.Time
+	payload   []byte
+	gzip      []byte
+	digest    string
 }
 
 func NewServer(devnet *chain.Devnet) http.Handler {
@@ -266,29 +278,55 @@ func (s *Server) handleReplicationSnapshot(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusUnauthorized, "replication snapshot requires node authentication")
 		return
 	}
-	payload, err := s.devnet.ReplicationSnapshotJSON()
+	cached, err := s.replicationResponse()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "replication snapshot unavailable")
 		return
 	}
-	mac := hmac.New(sha256.New, []byte(s.replicationKey))
-	_, _ = mac.Write(payload)
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-YNX-Replication-SHA256", hex.EncodeToString(mac.Sum(nil)))
+	w.Header().Set("X-YNX-Replication-SHA256", cached.digest)
 	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Set("Vary", "Accept-Encoding")
 		w.WriteHeader(http.StatusOK)
-		compressed, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
-		if err != nil {
-			return
-		}
-		_, _ = compressed.Write(payload)
-		_ = compressed.Close()
+		_, _ = w.Write(cached.gzip)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(payload)
+	_, _ = w.Write(cached.payload)
+}
+
+func (s *Server) replicationResponse() (replicationResponseCache, error) {
+	s.replicationCacheMu.Lock()
+	defer s.replicationCacheMu.Unlock()
+	if len(s.replicationCache.payload) > 0 && time.Since(s.replicationCache.createdAt) < replicationResponseCacheTTL {
+		return s.replicationCache, nil
+	}
+	payload, err := s.devnet.ReplicationSnapshotJSON()
+	if err != nil {
+		return replicationResponseCache{}, err
+	}
+	mac := hmac.New(sha256.New, []byte(s.replicationKey))
+	_, _ = mac.Write(payload)
+	var compressed bytes.Buffer
+	gzipWriter, err := gzip.NewWriterLevel(&compressed, gzip.BestSpeed)
+	if err != nil {
+		return replicationResponseCache{}, err
+	}
+	if _, err := gzipWriter.Write(payload); err != nil {
+		_ = gzipWriter.Close()
+		return replicationResponseCache{}, err
+	}
+	if err := gzipWriter.Close(); err != nil {
+		return replicationResponseCache{}, err
+	}
+	s.replicationCache = replicationResponseCache{
+		createdAt: time.Now(),
+		payload:   payload,
+		gzip:      compressed.Bytes(),
+		digest:    hex.EncodeToString(mac.Sum(nil)),
+	}
+	return s.replicationCache, nil
 }
 func (s *Server) handleLatestBlock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.LatestBlock())
