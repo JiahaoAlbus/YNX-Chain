@@ -556,6 +556,8 @@ func (state *observabilityState) health(service *Service, w http.ResponseWriter)
 		"paidEvidence":         "authoritative-central-pay-api",
 		"uptimeSeconds":        int64(time.Since(state.startedAt).Seconds()),
 		"build":                state.build,
+		"remoteDeployed":       service.remoteDeployed,
+		"truthfulStatus":       map[bool]string{true: "remote-canonical-pay-product", false: "local-pay-product-not-remotely-deployed"}[service.remoteDeployed],
 	})
 }
 

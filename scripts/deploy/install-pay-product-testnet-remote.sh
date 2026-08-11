@@ -50,6 +50,7 @@ new_product_env="/etc/ynx/.ynx-pay-productd.env.$release"
   printf 'YNX_PAY_PRODUCT_ADDR=127.0.0.1:6484\n'
   printf 'YNX_PAY_PRODUCT_STORE=%s\n' "$state_file"
   printf 'YNX_PAY_PRODUCT_PUBLIC_URL=https://rest.ynxweb4.com/app/pay-product\n'
+	printf 'YNX_PAY_PRODUCT_REMOTE_DEPLOYED=true\n'
   printf 'YNX_PAY_PRODUCT_CENTRAL_URL=http://127.0.0.1:6430\n'
   printf 'YNX_PAY_PRODUCT_INTEGRITY_KEY=%q\n' "$integrity_key"
   printf 'YNX_PAY_PRODUCT_GATEWAY_ASSERTION_KEY=%q\n' "$assertion_key"
@@ -112,7 +113,7 @@ preflight_failure_cleanup() { cleanup_preflight; cleanup_candidates; }
 trap preflight_failure_cleanup EXIT
 preflight_ok=0
 for attempt in $(seq 1 20); do
-  if health="$(curl -fsS --max-time 3 http://127.0.0.1:17440/health 2>/dev/null)" && HEALTH="$health" node -e 'const h=JSON.parse(process.env.HEALTH);if(h.ok!==true||h.service!=="ynx-pay-product"||h.status!=="live"||h.network!=="ynx_6423-1"||h.asset!=="YNXT")process.exit(1)'; then preflight_ok=1; break; fi
+  if health="$(curl -fsS --max-time 3 http://127.0.0.1:17440/health 2>/dev/null)" && HEALTH="$health" node -e 'const h=JSON.parse(process.env.HEALTH);if(h.ok!==true||h.service!=="ynx-pay-product"||h.status!=="live"||h.network!=="ynx_6423-1"||h.asset!=="YNXT"||h.remoteDeployed!==true||h.truthfulStatus!=="remote-canonical-pay-product")process.exit(1)'; then preflight_ok=1; break; fi
   sleep 1
 done
 if [[ "$preflight_ok" != "1" ]]; then

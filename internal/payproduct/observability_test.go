@@ -41,6 +41,22 @@ func TestObservedHandlerLivenessReadinessAndVersion(t *testing.T) {
 	if liveness["ok"] != true || liveness["status"] != "live" {
 		t.Fatalf("unexpected liveness: %+v", liveness)
 	}
+	if liveness["remoteDeployed"] != false || liveness["truthfulStatus"] != "local-pay-product-not-remotely-deployed" {
+		t.Fatalf("local deployment classification is not truthful: %+v", liveness)
+	}
+	service.remoteDeployed = true
+	response, err = http.Get(server.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var remoteLiveness map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&remoteLiveness); err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	if remoteLiveness["remoteDeployed"] != true || remoteLiveness["truthfulStatus"] != "remote-canonical-pay-product" {
+		t.Fatalf("remote deployment classification is not truthful: %+v", remoteLiveness)
+	}
 
 	response, err = http.Get(server.URL + "/ready")
 	if err != nil {

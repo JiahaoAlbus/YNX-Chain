@@ -51,6 +51,7 @@ type Config struct {
 	QuantEvidenceKeys      map[string]ed25519.PublicKey
 	QuantEvidenceMaxAge    time.Duration
 	HTTPClient             *http.Client
+	RemoteDeployed         bool
 	Now                    func() time.Time
 }
 type Service struct {
@@ -72,6 +73,7 @@ type Service struct {
 	gatewayKey             []byte
 	client                 *http.Client
 	webhookResolver        WebhookResolver
+	remoteDeployed         bool
 	now                    func() time.Time
 	mutation               sync.Mutex
 	aiMu                   sync.Mutex
@@ -125,7 +127,7 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, stableApproval: cfg.StableApproval, quantEvidenceKeys: quantEvidenceKeys, quantEvidenceMaxAge: quantEvidenceMaxAge, bootstrap: cfg.BootstrapKey, dataOperatorCredential: dataOperatorCredential, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, webhookResolver: resolver, now: now, aiCancels: map[string]context.CancelFunc{}}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, stableApproval: cfg.StableApproval, quantEvidenceKeys: quantEvidenceKeys, quantEvidenceMaxAge: quantEvidenceMaxAge, bootstrap: cfg.BootstrapKey, dataOperatorCredential: dataOperatorCredential, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, webhookResolver: resolver, remoteDeployed: cfg.RemoteDeployed, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
 		recoveredAt := now().UTC()
 		for id, run := range data.AIRuns {
