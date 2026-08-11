@@ -14,31 +14,26 @@ import (
 func TestDocsHTTPProductBoundaryThreadsAndExportEvidence(t *testing.T) {
 	now := time.Date(2026, 7, 27, 14, 0, 0, 0, time.UTC)
 	service := testService(t, func(c *Config) { c.Now = func() time.Time { return now } })
-	folder, err := service.Create(context.Background(), owner, CreateObjectRequest{Kind: KindFolder, Name: "Docs space"})
+	folder, err := service.Create(context.Background(), owner, CreateObjectRequest{Product: "docs", Kind: KindFolder, Name: "Docs space"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	doc, err := service.Create(context.Background(), owner, CreateObjectRequest{ParentID: folder.ID, Kind: KindDoc, Name: "Boundary", MIME: "text/plain", Content: []byte("Hello boundary")})
+	doc, err := service.Create(context.Background(), owner, CreateObjectRequest{Product: "docs", ParentID: folder.ID, Kind: KindDoc, Name: "Boundary", MIME: "text/plain", Content: []byte("Hello boundary")})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	makeSession := func(product, nonce string, scopes []string) string {
 		t.Helper()
-		assertion := WalletAssertion{Product: product, Account: owner, ChainID: ChainID, Scopes: scopes, Nonce: nonce, ExpiresAt: now.Add(4 * time.Minute).Format(time.RFC3339), DevicePublicKey: "device-" + product, Signature: "signature-" + product}
-		if product == "docs" {
-			assertion.ClientID, assertion.BundleID, assertion.Callback = "com.ynx.docs.web", "com.ynx.docs.web", "/docs/auth/callback"
-		} else {
-			assertion.ClientID, assertion.BundleID, assertion.Callback = "com.ynx.cloud.web", "com.ynx.cloud.web", "/cloud/auth/callback"
-		}
-		token, _, err := service.CreateSession(context.Background(), assertion)
+		envelope := testWalletEnvelope(t, service, product, nonce, scopes)
+		token, _, err := service.CreateSession(context.Background(), envelope)
 		if err != nil {
 			t.Fatal(err)
 		}
 		return token
 	}
-	cloudToken := makeSession("cloud", "cloud-boundary", []string{"files.read", "files.write", "permissions.manage", "audit.read", "ai.use"})
-	docsToken := makeSession("docs", "docs-boundary", []string{"files.read", "files.write", "permissions.manage", "docs.read", "docs.edit", "docs.comment", "audit.read", "ai.use"})
+	cloudToken := makeSession("cloud", "cloud-boundary", []string{"ai.use", "audit.read", "files.read", "files.write", "permissions.manage"})
+	docsToken := makeSession("docs", "docs-boundary", []string{"ai.use", "audit.read", "comments.write", "documents.read", "documents.write", "sharing.manage"})
 	handler := NewServer(service).Handler()
 
 	do := func(method, path, token string, body any) *httptest.ResponseRecorder {
@@ -84,11 +79,11 @@ func TestDocsHTTPProductBoundaryThreadsAndExportEvidence(t *testing.T) {
 	if response.Code != http.StatusOK {
 		t.Fatalf("cloud list: %d %s", response.Code, response.Body.String())
 	}
-	var cloudObjects []Object
-	if err := json.NewDecoder(response.Body).Decode(&cloudObjects); err != nil {
+	var cloudPage ObjectPage
+	if err := json.NewDecoder(response.Body).Decode(&cloudPage); err != nil {
 		t.Fatal(err)
 	}
-	for _, object := range cloudObjects {
+	for _, object := range cloudPage.Items {
 		if object.Kind == KindDoc || object.ID == doc.ID {
 			t.Fatalf("cloud list leaked Docs object: %#v", object)
 		}
@@ -113,6 +108,43 @@ func TestDocsHTTPProductBoundaryThreadsAndExportEvidence(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), "Hello boundary") || !strings.Contains(response.Header().Get("Content-Disposition"), "attachment") {
 		t.Fatalf("export body or disposition: %s %#v", response.Body.String(), response.Header())
+	}
+
+	response = do(http.MethodPost, "/api/v1/objects/"+doc.ID+"/grants", docsToken, map[string]any{"principal": viewer, "role": "viewer"})
+	if response.Code != http.StatusCreated {
+		t.Fatalf("docs grant: %d %s", response.Code, response.Body.String())
+	}
+	var grant Grant
+	if err := json.NewDecoder(response.Body).Decode(&grant); err != nil || grant.Principal != viewer || grant.Role != "viewer" {
+		t.Fatalf("grant response: %#v %v", grant, err)
+	}
+	response = do(http.MethodDelete, "/api/v1/objects/"+doc.ID+"/grants/"+grant.ID, docsToken, nil)
+	if response.Code != http.StatusOK {
+		t.Fatalf("docs grant revoke: %d %s", response.Code, response.Body.String())
+	}
+
+	response = do(http.MethodPost, "/api/v1/objects/"+doc.ID+"/links", docsToken, map[string]any{"role": "viewer", "expiresAt": now.Add(7 * 24 * time.Hour)})
+	if response.Code != http.StatusCreated {
+		t.Fatalf("docs share link: %d %s", response.Code, response.Body.String())
+	}
+	var linkEnvelope struct {
+		Link  ShareLink `json:"link"`
+		Token string    `json:"token"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&linkEnvelope); err != nil || linkEnvelope.Token == "" || linkEnvelope.Link.ObjectID != doc.ID {
+		t.Fatalf("link response: %#v %v", linkEnvelope, err)
+	}
+	response = do(http.MethodGet, "/api/v1/shares/"+linkEnvelope.Token+"/content", "", nil)
+	if response.Code != http.StatusOK || response.Body.String() != "Hello boundary" {
+		t.Fatalf("docs share resolution: %d %s", response.Code, response.Body.String())
+	}
+	response = do(http.MethodDelete, "/api/v1/objects/"+doc.ID+"/links/"+linkEnvelope.Link.ID, docsToken, nil)
+	if response.Code != http.StatusOK {
+		t.Fatalf("docs link revoke: %d %s", response.Code, response.Body.String())
+	}
+	response = do(http.MethodGet, "/api/v1/shares/"+linkEnvelope.Token, "", nil)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("revoked link still resolves: %d %s", response.Code, response.Body.String())
 	}
 
 	response = do(http.MethodPost, "/api/v1/objects/"+doc.ID+"/comments", docsToken, map[string]any{"version": 1, "body": "Review greeting", "anchor": map[string]any{"start": 0, "end": 5, "quote": "Hello"}})

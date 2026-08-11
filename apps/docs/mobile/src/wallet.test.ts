@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
 import {approvalFromURL,authorizationRequest,binding,requestURL} from "./wallet";
 
 const decode=(value:string)=>JSON.parse(Buffer.from(value,"base64url").toString("utf8"));
@@ -13,4 +14,12 @@ test("Docs canonical Wallet intent is isolated and substitution-safe",()=>{
   assert.equal(approvalFromURL(callback(approval),request).account,approval.account);
   assert.throws(()=>approvalFromURL(callback({...approval,callback:"attacker://wallet-auth/callback"}),request),/callback mismatch/);
   assert.throws(()=>approvalFromURL(callback({...approval,grantedScopes:["account:read"]}),request),/proof or scopes invalid/);
+});
+
+test("Docs mobile keeps Product Sessions memory-only and recovers expired sessions",()=>{
+  const app=readFileSync(new URL("../App.tsx",import.meta.url),"utf8");
+  assert.doesNotMatch(app,/docs\.session/);
+  assert.match(app,/e\.status===401/);
+  assert.match(app,/Sign in with YNX Wallet again/);
+  assert.deepEqual(binding.scopes,["ai.use","audit.read","comments.write","data.delete","documents.read","documents.write","sharing.manage"]);
 });

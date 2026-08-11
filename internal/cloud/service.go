@@ -298,7 +298,7 @@ func normalizeObjectProduct(product string, kind ObjectKind) (string, error) {
 	if product == "cloud" && (kind == KindFile || kind == KindFolder) {
 		return product, nil
 	}
-	if product == "docs" && kind == KindDoc {
+	if product == "docs" && (kind == KindDoc || kind == KindFolder) {
 		return product, nil
 	}
 	return "", ErrInvalid
@@ -2310,74 +2310,11 @@ func (s *Service) Audit(actor, product string) ([]AuditEvent, error) {
 			out = append(out, e)
 			continue
 		}
-		if contexts, ok := event.Details["contexts"].([]string); ok {
-			for _, contextID := range contexts {
-				ids = append(ids, strings.SplitN(contextID, "@", 2)[0])
+		if e.ObjectID != "" {
+			if o, ok := s.state.Objects[e.ObjectID]; ok && rank(s.role(actor, o)) >= 3 {
+				out = append(out, e)
 			}
 		}
-		if contexts, ok := event.Details["contexts"].([]any); ok {
-			for _, contextID := range contexts {
-				ids = append(ids, strings.SplitN(fmt.Sprint(contextID), "@", 2)[0])
-			}
-		}
-		if jobID, ok := event.Details["jobId"].(string); ok {
-			if job, exists := s.state.AIJobs[jobID]; exists {
-				ids = append(ids, job.ObjectIDs...)
-			}
-		}
-		for _, id := range ids {
-			root, ok := s.state.Objects[id]
-			if !ok {
-				continue
-			}
-			queue := []Object{root}
-			for cursor := 0; cursor < len(queue); cursor++ {
-				current := queue[cursor]
-				if current.Kind == KindDoc && current.TrashedAt == nil {
-					return true
-				}
-				if current.Kind != KindFolder {
-					continue
-				}
-				for _, candidate := range s.state.Objects {
-					if candidate.ParentID == current.ID && candidate.TrashedAt == nil {
-						queue = append(queue, candidate)
-					}
-				}
-			}
-		}
-		return false
-	}
-
-	out := []AuditEvent{}
-	for i := len(s.state.Audit) - 1; i >= 0 && len(out) < 200; i-- {
-		event := s.state.Audit[i]
-		visible := event.Actor == actor
-		if !visible && event.ObjectID != "" {
-			if object, ok := s.state.Objects[event.ObjectID]; ok && rank(s.role(actor, object)) >= 3 {
-				visible = true
-			}
-		}
-		if !visible {
-			continue
-		}
-		if product != "" {
-			if eventProduct, ok := event.Details["product"].(string); ok && eventProduct != "" {
-				if eventProduct != product {
-					continue
-				}
-				out = append(out, event)
-				continue
-			}
-			documentEvent := touchesDocument(event)
-			if product == "docs" && !documentEvent {
-				continue
-			}
-			if product != "docs" && documentEvent {
-				continue
-			}
-		}
-		out = append(out, event)
 	}
 	return out, nil
 }
@@ -2656,7 +2593,7 @@ func walletProductBinding(request WalletAuthorizationRequest) (string, error) {
 		{"cloud", "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
 		{"docs", "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
 		{"cloud", "ynx-cloud-web-v1", "web.ynx.cloud", "https://web4.ynxweb4.com/cloud/auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
-		{"docs", "ynx-docs-web-v1", "web.ynx.docs", "https://docs.staging.ynx.network/auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
+		{"docs", "ynx-docs-web-v1", "web.ynx.docs", "https://web4.ynxweb4.com/docs-app/auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
 	}
 	for _, b := range bindings {
 		if request.RequestingProduct != b.product || request.ProductClientID != b.client || request.BundleID != b.bundle || request.Callback != b.callback || len(request.Scopes) == 0 || len(request.Scopes) > len(b.scopes) {

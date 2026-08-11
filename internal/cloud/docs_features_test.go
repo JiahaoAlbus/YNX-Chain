@@ -166,7 +166,7 @@ func TestCloudStateV1MigratesCommentThreadsToV2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if service.state.SchemaVersion != currentSchemaVersion {
+	if service.state.SchemaVersion != CurrentStateSchemaVersion {
 		t.Fatalf("schema version = %d", service.state.SchemaVersion)
 	}
 	comments := service.state.Comments["obj_legacy"]
@@ -178,7 +178,7 @@ func TestCloudStateV1MigratesCommentThreadsToV2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reloaded.SchemaVersion != currentSchemaVersion || reloaded.Comments["obj_legacy"][0].ThreadID != "comment_legacy" {
+	if reloaded.SchemaVersion != CurrentStateSchemaVersion || reloaded.Comments["obj_legacy"][0].ThreadID != "comment_legacy" {
 		t.Fatalf("migration was not persisted: %#v", reloaded.Comments["obj_legacy"])
 	}
 }

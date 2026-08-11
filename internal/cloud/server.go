@@ -228,6 +228,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/direct-uploads/{upload}/complete", s.auth(s.completeDirectUpload))
 	mux.HandleFunc("DELETE /api/v1/direct-uploads/{upload}", s.auth(s.cancelDirectUpload))
 	mux.HandleFunc("GET /api/v1/objects/{id}", s.auth(s.get))
+	mux.HandleFunc("PATCH /api/v1/objects/{id}", s.auth(s.updateObject))
+	mux.HandleFunc("POST /api/v1/objects/{id}/duplicate", s.auth(s.duplicateObject))
 	mux.HandleFunc("DELETE /api/v1/objects/{id}", s.auth(s.deleteObject))
 	mux.HandleFunc("GET /api/v1/objects/{id}/content", s.auth(s.content))
 	mux.HandleFunc("GET /api/v1/objects/{id}/export", s.auth(s.exportDocument))
@@ -363,6 +365,38 @@ func requireProductScope(w http.ResponseWriter, s Session, cloudScope, docsScope
 		return requireScope(w, s, docsScope)
 	}
 	return requireScope(w, s, cloudScope)
+}
+
+func requireProduct(w http.ResponseWriter, session Session, product string) bool {
+	if session.Product == product {
+		return true
+	}
+	writeError(w, http.StatusForbidden, "session product does not allow this action")
+	return false
+}
+
+func (s *Server) authorizeObject(w http.ResponseWriter, session Session, id, cloudScope, docsScope string, includeDescendants bool) (Object, bool) {
+	obj, err := s.service.Get(session.Account, id)
+	if err != nil {
+		writeServiceError(w, err)
+		return Object{}, false
+	}
+	containsDocs := obj.Kind == KindDoc
+	if includeDescendants && obj.Kind == KindFolder {
+		containsDocs, err = s.service.ContainsDocument(session.Account, id)
+		if err != nil {
+			writeServiceError(w, err)
+			return Object{}, false
+		}
+	}
+	if containsDocs && session.Product != "docs" {
+		writeError(w, http.StatusForbidden, "document action requires a Docs product session")
+		return Object{}, false
+	}
+	if !requireProductScope(w, session, cloudScope, docsScope) {
+		return Object{}, false
+	}
+	return obj, true
 }
 
 func (s *Server) session(w http.ResponseWriter, r *http.Request) {
@@ -565,10 +599,15 @@ func (s *Server) get(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
+	obj, err := s.service.Get(a.Account, r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
 	writeJSON(w, 200, obj)
 }
 func (s *Server) updateObject(w http.ResponseWriter, r *http.Request, a Session) {
-	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.write", "docs.edit", true); !ok {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.write", "documents.write", true); !ok {
 		return
 	}
 	var req UpdateObjectRequest
@@ -577,6 +616,21 @@ func (s *Server) updateObject(w http.ResponseWriter, r *http.Request, a Session)
 	}
 	obj, err := s.service.UpdateObject(a.Account, r.PathValue("id"), req)
 	writeResult(w, obj, err)
+}
+func (s *Server) duplicateObject(w http.ResponseWriter, r *http.Request, a Session) {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.write", "documents.write", true); !ok {
+		return
+	}
+	var req DuplicateObjectRequest
+	if !decode(w, r, &req, 4096) {
+		return
+	}
+	obj, err := s.service.DuplicateObject(a.Account, r.PathValue("id"), req)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, obj)
 }
 func (s *Server) deleteObject(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.write", "documents.write") {
@@ -625,7 +679,7 @@ func (s *Server) content(w http.ResponseWriter, r *http.Request, a Session) {
 	}
 }
 func (s *Server) exportDocument(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.read") {
+	if !requireProduct(w, a, "docs") || !requireScope(w, a, "documents.read") {
 		return
 	}
 	version, _ := strconv.Atoi(r.URL.Query().Get("version"))
@@ -890,7 +944,7 @@ func (s *Server) addComment(w http.ResponseWriter, r *http.Request, a Session) {
 	writeJSON(w, 201, v)
 }
 func (s *Server) resolveComment(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.comment") {
+	if !requireProduct(w, a, "docs") || !requireScope(w, a, "comments.write") {
 		return
 	}
 	var req struct {

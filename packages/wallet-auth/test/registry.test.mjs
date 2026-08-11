@@ -5,11 +5,11 @@ import { centralRegistrationByProduct, migrateCentralRegistryDocumentV1, parseCe
 
 const source = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
 
-test("central registry contains 30 unique, least-privilege products with platform-bound Browser and Cloud registrations", () => {
+test("central registry contains 31 unique, least-privilege products with platform-bound Browser, Cloud and Docs registrations", () => {
   const registry = parseCentralRegistryDocument(source);
-  assert.equal(registry.products.length, 30);
+  assert.equal(registry.products.length, 31);
   const approved = registry.products.filter((product) => product.enabled);
-  assert.deepEqual(approved.map((product) => product.productId), ["browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "cloud-mobile", "cloud-web", "developer", "dex", "exchange", "finance", "mail", "merchant-console", "quant", "search", "seller-console", "shop", "social"]);
+  assert.deepEqual(approved.map((product) => product.productId), ["browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "cloud-mobile", "cloud-web", "developer", "dex", "docs-mobile", "docs-web", "exchange", "finance", "mail", "merchant-console", "quant", "search", "seller-console", "shop", "social"]);
   assert.equal(approved.every((product) => product.reviewState === "approved"), true);
   assert.equal(registry.products.filter((product) => !product.enabled).every((product) => product.reviewState === "pending-review"), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
@@ -26,6 +26,17 @@ test("central registry contains 30 unique, least-privilege products with platfor
     assert.equal(browser.bundleId, bundleId);
     assert.deepEqual(browser.callbacks, [callback]);
     assert.deepEqual(browser.scopes, ["account:read", "browser:wallet-request"]);
+  }
+  for (const [productId, clientId, bundleId, callback] of [
+    ["docs-mobile", "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback"],
+    ["docs-web", "ynx-docs-web-v1", "web.ynx.docs", "https://web4.ynxweb4.com/docs-app/auth/callback"],
+  ]) {
+    const docs = centralRegistrationByProduct(registry, productId);
+    assert.equal(docs.productClientId, clientId);
+    assert.equal(docs.requestingProduct, "docs");
+    assert.equal(docs.bundleId, bundleId);
+    assert.deepEqual(docs.callbacks, [callback]);
+    assert.deepEqual(docs.scopes, ["ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"]);
   }
   for (const [productId, clientId, bundleId, callback] of [
     ["cloud-mobile", "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback"],
@@ -87,9 +98,10 @@ test("central registry contains 30 unique, least-privilege products with platfor
 test("registry v1 migrates deterministically with disabled platform-specific Browser and Cloud registrations", () => {
   const legacy = structuredClone(source);
   legacy.registryVersion = 1;
-  legacy.products = legacy.products.filter(product => product.productId !== "quant" && !product.productId.startsWith("browser-") && !product.productId.startsWith("cloud-"));
+  legacy.products = legacy.products.filter(product => product.productId !== "quant" && !product.productId.startsWith("browser-") && !product.productId.startsWith("cloud-") && !product.productId.startsWith("docs-"));
   legacy.products.push({schemaVersion:3,productId:"cloud",displayName:"YNX Cloud",reviewState:"pending-review",enabled:false,productClientId:"ynx-cloud-mobile-v1",requestingProduct:"cloud",bundleId:"com.ynxweb4.cloud",callbacks:["ynxcloud://wallet-auth/callback"],scopes:["ai.use","audit.read","files.read","files.write","permissions.manage"],maxScopes:5,productDeviceAlgorithms:["p256-sha256"],sessionDurationSeconds:240,revocationPolicy:{session:true,approval:true,device:true,accountAllDevices:true}});
   legacy.products.push({schemaVersion:3,productId:"browser",displayName:"YNX Browser",reviewState:"pending-review",enabled:false,productClientId:"ynx-browser-v1",requestingProduct:"browser",bundleId:"com.ynxweb4.browser",callbacks:["ynxbrowser://wallet-auth/callback"],scopes:["browser:account","browser:sync"],maxScopes:2,productDeviceAlgorithms:["p256-sha256"],sessionDurationSeconds:240,revocationPolicy:{session:true,approval:true,device:true,accountAllDevices:true}});
+  legacy.products.push({schemaVersion:3,productId:"docs",displayName:"YNX Docs",reviewState:"pending-review",enabled:false,productClientId:"ynx-docs-mobile-v1",requestingProduct:"docs",bundleId:"com.ynxweb4.docs",callbacks:["ynxdocs://wallet-auth/callback"],scopes:["comments.write","documents.read","documents.write","sharing.manage"],maxScopes:4,productDeviceAlgorithms:["p256-sha256"],sessionDurationSeconds:240,revocationPolicy:{session:true,approval:true,device:true,accountAllDevices:true}});
   legacy.products.sort((left, right) => left.productId.localeCompare(right.productId));
   const migrated = migrateCentralRegistryDocumentV1(legacy);
   assert.deepEqual(migrated.products.map(product => product.productId), parseCentralRegistryDocument(source).products.map(product => product.productId));
@@ -97,6 +109,8 @@ test("registry v1 migrates deterministically with disabled platform-specific Bro
   assert.equal(centralRegistrationByProduct(migrated, "search", { requireEnabled: false }).enabled, false);
   assert.equal(centralRegistrationByProduct(migrated, "cloud-mobile", { requireEnabled: false }).enabled, false);
   assert.equal(centralRegistrationByProduct(migrated, "cloud-web", { requireEnabled: false }).enabled, false);
+  assert.equal(centralRegistrationByProduct(migrated, "docs-mobile", { requireEnabled: false }).enabled, false);
+  assert.equal(centralRegistrationByProduct(migrated, "docs-web", { requireEnabled: false }).enabled, false);
   const tampered = structuredClone(legacy);
   tampered.products[0].productId = "unknown-replacement";
   assert.throws(() => migrateCentralRegistryDocumentV1(tampered), code("INVALID_REGISTRY"));

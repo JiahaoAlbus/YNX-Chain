@@ -1,6 +1,6 @@
 import {p256} from "@noble/curves/nist.js";
 
-export const binding={requestingProduct:"docs",productClientId:"ynx-docs-mobile-v1",bundleId:"com.ynxweb4.docs",callback:"ynxdocs://wallet-auth/callback",scopes:["ai.use","audit.read","comments.write","documents.read","documents.write","sharing.manage"]} as const;
+export const binding={requestingProduct:"docs",productClientId:"ynx-docs-mobile-v1",bundleId:"com.ynxweb4.docs",callback:"ynxdocs://wallet-auth/callback",scopes:["ai.use","audit.read","comments.write","data.delete","documents.read","documents.write","sharing.manage"]} as const;
 const encoder=new TextEncoder();
 const b64url=(bytes:Uint8Array)=>{let value="";for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value).replaceAll("+","-").replaceAll("/","_").replaceAll("=","")};
 const decode=(value:string)=>Uint8Array.from(atob(value.replaceAll("-","+").replaceAll("_","/")+"===".slice((value.length+3)%4)),x=>x.charCodeAt(0));

@@ -168,10 +168,6 @@ func RollbackStateToV1(source, destination string) error {
 	if err != nil || want != state.IntegrityHash {
 		return errors.New("rollback source integrity verification failed")
 	}
-	migrated := state.SchemaVersion != currentSchemaVersion
-	if state.SchemaVersion == 1 {
-		migrateV1ToV2(&state)
-	}
 	normalize(&state)
 	return writeLegacyState(destination, 1, state)
 }
@@ -360,18 +356,6 @@ func verifyStoredState(raw []byte, state persistentState) bool {
 	return hex.EncodeToString(sum[:]) == state.IntegrityHash
 }
 
-func migrateV1ToV2(s *persistentState) {
-	for objectID, comments := range s.Comments {
-		for i := range comments {
-			if comments[i].ThreadID == "" {
-				comments[i].ThreadID = comments[i].ID
-			}
-		}
-		s.Comments[objectID] = comments
-	}
-	s.SchemaVersion = currentSchemaVersion
-}
-
 func cloneState(state persistentState) (persistentState, error) {
 	encoded, err := json.Marshal(state)
 	if err != nil {
@@ -403,6 +387,14 @@ func normalize(s *persistentState) {
 	}
 	if s.Comments == nil {
 		s.Comments = map[string][]Comment{}
+	}
+	for objectID, comments := range s.Comments {
+		for index := range comments {
+			if comments[index].ThreadID == "" {
+				comments[index].ThreadID = comments[index].ID
+			}
+		}
+		s.Comments[objectID] = comments
 	}
 	if s.Presence == nil {
 		s.Presence = map[string]Presence{}

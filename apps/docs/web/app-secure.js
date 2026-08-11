@@ -1,12 +1,20 @@
 const $ = (query) => document.querySelector(query);
-const storageKey = ['ynx', 'docs', 'session'].join('.');
-const headerName = ['Author', 'ization'].join('');
-const authScheme = ['Bear', 'er'].join('');
+const apiBase = location.pathname.startsWith('/docs-app/') ? '/docs-app/api/v1' : '/api/v1';
+const binding = {
+  version: '1',
+  chainId: 'ynx_6423-1',
+  requestingProduct: 'docs',
+  productClientId: 'ynx-docs-web-v1',
+  bundleId: 'web.ynx.docs',
+  productDeviceAlgorithm: 'p256-sha256',
+  callback: 'https://web4.ynxweb4.com/docs-app/auth/callback',
+};
 
 const state = {
-  credential: window.sessionStorage.getItem(storageKey) || '',
+  credential: '',
   objects: [],
   folders: [],
+  view: 'folder',
   parentId: '',
   currentFolder: null,
   current: null,
@@ -22,21 +30,79 @@ const state = {
 };
 
 const scopes = [
-  'files.read',
-  'files.write',
-  'permissions.manage',
-  'docs.read',
-  'docs.edit',
-  'docs.comment',
-  'audit.read',
   'ai.use',
+  'audit.read',
+  'comments.write',
+  'data.delete',
+  'documents.read',
+  'documents.write',
+  'sharing.manage',
 ];
+
+const canonical = (value) => Array.isArray(value)
+  ? `[${value.map(canonical).join(',')}]`
+  : value !== null && typeof value === 'object'
+    ? `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
+    : JSON.stringify(value);
+
+const b64url = (bytes) => {
+  let value = '';
+  for (const byte of new Uint8Array(bytes)) value += String.fromCharCode(byte);
+  return btoa(value).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+};
+
+function deviceDB() {
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open('ynx-docs-device', 1);
+    open.onupgradeneeded = () => open.result.createObjectStore('keys');
+    open.onsuccess = () => resolve(open.result);
+    open.onerror = () => reject(open.error);
+  });
+}
+
+async function deviceKey() {
+  const db = await deviceDB();
+  let pair = await new Promise((resolve, reject) => {
+    const read = db.transaction('keys').objectStore('keys').get('p256');
+    read.onsuccess = () => resolve(read.result);
+    read.onerror = () => reject(read.error);
+  });
+  if (!pair) {
+    pair = await crypto.subtle.generateKey({name: 'ECDSA', namedCurve: 'P-256'}, false, ['sign', 'verify']);
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('keys', 'readwrite');
+      tx.objectStore('keys').put(pair, 'p256');
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  db.close();
+  const raw = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey));
+  const x = raw.slice(1, 33);
+  const y = raw.slice(33);
+  return {pair, compressed: b64url(Uint8Array.of(y[31] % 2 ? 3 : 2, ...x))};
+}
+
+const derInteger = (bytes) => {
+  let value = bytes;
+  while (value.length > 1 && value[0] === 0) value = value.slice(1);
+  if (value[0] & 128) value = Uint8Array.of(0, ...value);
+  return Uint8Array.of(2, value.length, ...value);
+};
+
+function derSignature(raw) {
+  const bytes = new Uint8Array(raw);
+  const r = derInteger(bytes.slice(0, 32));
+  const s = derInteger(bytes.slice(32));
+  const body = Uint8Array.of(...r, ...s);
+  return Uint8Array.of(48, body.length, ...body);
+}
 
 async function request(path, options = {}) {
   const headers = {...(options.headers || {})};
-  if (state.credential) headers[headerName] = `${authScheme} ${state.credential}`;
+  if (state.credential) headers.Authorization = `Bearer ${state.credential}`;
   if (options.body) headers['Content-Type'] = 'application/json';
-  const response = await fetch(`/api/v1${path}`, {...options, headers});
+  const response = await fetch(`${apiBase}${path}`, {...options, headers});
   if (response.status === 204) return null;
   const type = response.headers.get('content-type') || '';
   const body = type.includes('json') ? await response.json() : await response.blob();
@@ -62,7 +128,7 @@ function setStatus(text, error = false) {
 }
 
 function enableDocumentActions(enabled) {
-  for (const id of ['export', 'duplicate', 'move', 'trash', 'history', 'comments', 'ai']) {
+  for (const id of ['export', 'duplicate', 'move', 'share', 'trash', 'history', 'comments', 'ai']) {
     $(`#${id}`).disabled = !enabled;
   }
   $('#export-format').disabled = !enabled;
@@ -95,23 +161,39 @@ function showSignIn() {
 async function connectWallet() {
   const output = $('#auth-state');
   try {
-    if (!window.ynxWallet?.requestSession) {
-      throw new Error('YNX Wallet bridge is unavailable. Docs does not accept recovery keys or substitute login credentials.');
+    if (!window.ynxWallet?.authorize) {
+      throw new Error('Canonical YNX Wallet bridge is unavailable. Install or open YNX Wallet; Docs will not create a local or legacy session.');
     }
-    const assertion = await window.ynxWallet.requestSession({
-      version: 1,
-      product: 'docs',
-      clientId: 'com.ynx.docs.web',
-      bundleId: 'com.ynx.docs.web',
-      callback: '/docs/auth/callback',
-      chainId: 'ynx_6423-1',
+    const {pair, compressed} = await deviceKey();
+    const now = new Date();
+    const authorizationRequest = {
+      ...binding,
+      nonce: b64url(crypto.getRandomValues(new Uint8Array(32))),
+      productDeviceKey: compressed,
       scopes,
-      purpose: 'Edit only explicitly authorized YNX Docs',
-      expiresInSeconds: 300,
+      purpose: 'Edit only explicitly authorized YNX documents in this browser.',
+      issuedAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + 300000).toISOString(),
+    };
+    const walletApproval = await window.ynxWallet.authorize({
+      request: authorizationRequest,
+      canonicalRequest: canonical(authorizationRequest),
     });
-    const result = await request('/session', {method: 'POST', body: JSON.stringify(assertion)});
-    state.credential = result[['to', 'ken'].join('')];
-    window.sessionStorage.setItem(storageKey, state.credential);
+    const challenge = await request('/session/challenge', {
+      method: 'POST',
+      body: JSON.stringify({authorizationRequest, walletApproval}),
+    });
+    const signBytes = new TextEncoder().encode(`YNX_PRODUCT_SESSION_CHALLENGE_V1\n${canonical(challenge)}`);
+    const rawSignature = await crypto.subtle.sign({name: 'ECDSA', hash: 'SHA-256'}, pair.privateKey, signBytes);
+    const result = await request('/session', {
+      method: 'POST',
+      body: JSON.stringify({
+        authorizationRequest,
+        walletApproval,
+        gatewayCompletion: {challenge, deviceSignature: b64url(derSignature(rawSignature))},
+      }),
+    });
+    state.credential = result.token;
     $('#auth-dialog').close();
     $('#wallet').textContent = 'Wallet connected';
     await loadObjects();
@@ -125,12 +207,13 @@ async function loadObjects() {
   try {
     const query = encodeURIComponent($('#search').value.trim());
     const parentId = encodeURIComponent(state.parentId);
+    const view = state.view === 'trash' ? '&view=trash' : '';
     const [visible, recent] = await Promise.all([
-      request(`/objects?parentId=${parentId}&q=${query}`),
+      request(`/objects?parentId=${parentId}&q=${query}${view}`),
       request('/objects?view=recent'),
     ]);
-    state.objects = visible.filter((object) => object.kind === 'doc' || object.kind === 'folder');
-    state.folders = recent.filter((object) => object.kind === 'folder' && !object.trashedAt);
+    state.objects = visible.items.filter((object) => object.kind === 'doc' || object.kind === 'folder');
+    state.folders = recent.items.filter((object) => object.kind === 'folder' && !object.trashedAt);
     state.currentFolder = state.parentId ? state.folders.find((folder) => folder.id === state.parentId) || null : null;
     renderNavigation();
     renderObjects();
@@ -138,7 +221,6 @@ async function loadObjects() {
   } catch (error) {
     if (error.status === 401) {
       state.credential = '';
-      window.sessionStorage.removeItem(storageKey);
       $('#wallet').textContent = 'Sign in with YNX Wallet';
     }
     setStatus(error.message, true);
@@ -146,8 +228,11 @@ async function loadObjects() {
 }
 
 function renderNavigation() {
-  $('#folder-name').textContent = state.currentFolder?.name || 'All documents';
-  $('#folder-up').disabled = !state.parentId;
+  $('#folder-name').textContent = state.view === 'trash' ? 'Trash' : state.currentFolder?.name || 'All documents';
+  $('#folder-up').disabled = state.view === 'trash' || !state.parentId;
+  $('#new-doc').disabled = state.view === 'trash';
+  $('#new-folder').disabled = state.view === 'trash';
+  $('#show-trash').setAttribute('aria-pressed', String(state.view === 'trash'));
 }
 
 function renderObjects() {
@@ -168,14 +253,39 @@ function renderObjects() {
       ? `Updated ${new Date(object.updatedAt).toLocaleDateString()}`
       : `v${object.version} · ${new Date(object.updatedAt).toLocaleDateString()}`;
     button.append(name, meta);
-    button.onclick = () => object.kind === 'folder' ? enterFolder(object) : openDocument(object);
+    if (state.view === 'trash') {
+      button.onclick = () => restoreObject(object);
+      meta.textContent = `Trashed ${new Date(object.trashedAt).toLocaleString()} · select to restore`;
+    } else {
+      button.onclick = () => object.kind === 'folder' ? enterFolder(object) : openDocument(object);
+    }
     root.append(button);
   }
   if (!objects.length) {
     const empty = document.createElement('p');
     empty.className = 'empty-state';
-    empty.textContent = $('#search').value ? 'No matching documents or folders.' : 'This folder is empty.';
+    empty.textContent = $('#search').value ? 'No matching documents or folders.' : state.view === 'trash' ? 'Trash is empty.' : 'This folder is empty.';
     root.append(empty);
+  }
+}
+
+async function toggleTrashView() {
+  if (state.dirty && !confirm('This document has unsaved local edits. Open Trash without saving?')) return;
+  clearDocument();
+  state.view = state.view === 'trash' ? 'folder' : 'trash';
+  state.parentId = '';
+  $('#search').value = '';
+  await loadObjects();
+}
+
+async function restoreObject(object) {
+  if (!confirm(`Restore “${object.name}” to its previous location?`)) return;
+  try {
+    await request(`/objects/${object.id}/restore`, {method: 'POST'});
+    await loadObjects();
+    setStatus(`Restored ${object.name}`);
+  } catch (error) {
+    setStatus(error.message, true);
   }
 }
 
@@ -363,6 +473,124 @@ async function trashDocument() {
   } catch (error) {
     setStatus(error.message, true);
   }
+}
+
+async function showSharePanel() {
+  if (!state.current) return;
+  const root = openPanel('EXPLICIT ACCESS', 'Share and permissions');
+  root.append(notice('Share access is attached to this exact document. Revoke a person or link at any time; moving or renaming the document does not widen access.'));
+
+  const principalLabel = document.createElement('label');
+  principalLabel.textContent = 'YNX account';
+  const principal = document.createElement('input');
+  principal.id = 'share-principal';
+  principal.placeholder = 'ynx1…';
+  principalLabel.append(principal);
+  const roleLabel = document.createElement('label');
+  roleLabel.textContent = 'Role';
+  const role = document.createElement('select');
+  role.id = 'share-role';
+  for (const value of ['viewer', 'editor']) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value === 'viewer' ? 'Can view' : 'Can edit';
+    role.append(option);
+  }
+  roleLabel.append(role);
+  const grant = document.createElement('button');
+  grant.className = 'primary wide';
+  grant.textContent = 'Grant account access';
+  grant.onclick = grantAccountAccess;
+  const link = document.createElement('button');
+  link.className = 'wide';
+  link.textContent = 'Create 7-day view link';
+  link.onclick = createShareLink;
+  const output = document.createElement('div');
+  output.id = 'share-output';
+  const access = document.createElement('div');
+  access.id = 'share-access';
+  root.append(principalLabel, roleLabel, grant, link, output, access);
+  await loadSharing();
+}
+
+async function grantAccountAccess() {
+  const principal = $('#share-principal').value.trim();
+  if (!principal) return setStatus('Enter a YNX account to share with', true);
+  try {
+    await request(`/objects/${state.current.id}/grants`, {
+      method: 'POST',
+      body: JSON.stringify({principal, role: $('#share-role').value}),
+    });
+    $('#share-principal').value = '';
+    await loadSharing();
+  } catch (error) {
+    setStatus(error.message, true);
+  }
+}
+
+async function createShareLink() {
+  try {
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const result = await request(`/objects/${state.current.id}/links`, {
+      method: 'POST',
+      body: JSON.stringify({role: 'viewer', expiresAt}),
+    });
+    const url = `${location.origin}${apiBase}/shares/${encodeURIComponent(result.token)}/content`;
+    const output = $('#share-output');
+    output.replaceChildren(notice(`New link expires ${new Date(result.link.expiresAt).toLocaleString()}`));
+    const field = document.createElement('input');
+    field.readOnly = true;
+    field.value = url;
+    const copy = document.createElement('button');
+    copy.textContent = 'Copy link';
+    copy.onclick = async () => { await navigator.clipboard.writeText(url); copy.textContent = 'Copied'; };
+    output.append(field, copy);
+    await loadSharing();
+  } catch (error) {
+    setStatus(error.message, true);
+  }
+}
+
+async function loadSharing() {
+  const root = $('#share-access');
+  if (!root || !state.current) return;
+  root.replaceChildren(notice('Loading current access…'));
+  try {
+    const [grants, links] = await Promise.all([
+      request(`/objects/${state.current.id}/grants`),
+      request(`/objects/${state.current.id}/links`),
+    ]);
+    root.replaceChildren();
+    const activeGrants = grants.filter((grant) => !grant.revokedAt);
+    const activeLinks = links.filter((link) => !link.revokedAt && new Date(link.expiresAt) > new Date());
+    for (const item of activeGrants) root.append(sharingRow(`${item.principal} · ${item.role}`, () => revokeGrant(item.id)));
+    for (const item of activeLinks) root.append(sharingRow(`View link · expires ${new Date(item.expiresAt).toLocaleString()}`, () => revokeLink(item.id)));
+    if (!activeGrants.length && !activeLinks.length) root.append(notice('Only the owner currently has access.'));
+  } catch (error) {
+    root.replaceChildren(notice(error.message));
+  }
+}
+
+function sharingRow(label, revoke) {
+  const row = document.createElement('div');
+  row.className = 'permission-row';
+  const text = document.createElement('span');
+  text.textContent = label;
+  const button = document.createElement('button');
+  button.textContent = 'Revoke';
+  button.onclick = revoke;
+  row.append(text, button);
+  return row;
+}
+
+async function revokeGrant(id) {
+  await request(`/objects/${state.current.id}/grants/${id}`, {method: 'DELETE'});
+  await loadSharing();
+}
+
+async function revokeLink(id) {
+  await request(`/objects/${state.current.id}/links/${id}`, {method: 'DELETE'});
+  await loadSharing();
 }
 
 function editDocument() {
@@ -799,9 +1027,8 @@ async function exportDocument() {
   if (!state.current) return;
   const format = $('#export-format').value;
   try {
-    const headers = {};
-    headers[headerName] = `${authScheme} ${state.credential}`;
-    const response = await fetch(`/api/v1/objects/${encodeURIComponent(state.current.id)}/export?format=${encodeURIComponent(format)}&version=${state.baseVersion}`, {headers});
+    const headers = {Authorization: `Bearer ${state.credential}`};
+    const response = await fetch(`${apiBase}/objects/${encodeURIComponent(state.current.id)}/export?format=${encodeURIComponent(format)}&version=${state.baseVersion}`, {headers});
     if (!response.ok) {
       const type = response.headers.get('content-type') || '';
       const body = type.includes('json') ? await response.json() : {error: `Export failed ${response.status}`};
@@ -830,6 +1057,7 @@ $('#wallet').onclick = showSignIn;
 $('#auth-start').onclick = connectWallet;
 $('#new-doc').onclick = createDocument;
 $('#new-folder').onclick = createFolder;
+$('#show-trash').onclick = toggleTrashView;
 $('#folder-up').onclick = openParentFolder;
 $('#search').oninput = () => {
   clearTimeout(state.searchTimer);
@@ -846,6 +1074,7 @@ $('#ai').onclick = showAI;
 $('#export').onclick = exportDocument;
 $('#duplicate').onclick = duplicateDocument;
 $('#move').onclick = showMovePanel;
+$('#share').onclick = showSharePanel;
 $('#trash').onclick = trashDocument;
 $('#panel-close').onclick = () => { $('#panel').hidden = true; };
 $('#keep-local').onclick = keepLocalCopy;

@@ -17,7 +17,7 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
 ]);
 
 export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
-export const CENTRAL_REGISTRY_PRODUCT_COUNT = 30;
+export const CENTRAL_REGISTRY_PRODUCT_COUNT = 31;
 export const CENTRAL_PRODUCT_SCHEMA_VERSION = 3;
 
 export function parseCentralRegistryDocument(input) {
@@ -44,9 +44,10 @@ export function migrateCentralRegistryDocumentV1(input) {
     throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet registry v1 product set is not the accepted migration source");
   }
   const migratedProducts = [
-    ...input.products.filter(product => product.productId !== "browser" && product.productId !== "cloud" && product.productId !== "search").map(product => structuredClone(product)),
+    ...input.products.filter(product => product.productId !== "browser" && product.productId !== "cloud" && product.productId !== "docs" && product.productId !== "search").map(product => structuredClone(product)),
     ...canonicalBrowserRegistrations(),
     ...canonicalCloudRegistrations(),
+    ...canonicalDocsRegistrations(),
     canonicalQuantRegistration(),
     canonicalSearchRegistration(),
   ]
@@ -179,6 +180,28 @@ function canonicalCloudRegistrations() {
     callbacks: [callback],
     scopes: ["ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"],
     maxScopes: 6,
+    productDeviceAlgorithms: ["p256-sha256"],
+    sessionDurationSeconds: 240,
+    revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
+  }));
+}
+
+function canonicalDocsRegistrations() {
+  return [
+    ["docs-mobile", "YNX Docs for Mobile", "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback"],
+    ["docs-web", "YNX Docs for Web", "ynx-docs-web-v1", "web.ynx.docs", "https://web4.ynxweb4.com/docs-app/auth/callback"],
+  ].map(([productId, displayName, productClientId, bundleId, callback]) => ({
+    schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    productId,
+    displayName,
+    reviewState: "pending-review",
+    enabled: false,
+    productClientId,
+    requestingProduct: "docs",
+    bundleId,
+    callbacks: [callback],
+    scopes: ["ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"],
+    maxScopes: 7,
     productDeviceAlgorithms: ["p256-sha256"],
     sessionDurationSeconds: 240,
     revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },

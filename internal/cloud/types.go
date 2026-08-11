@@ -436,6 +436,27 @@ type SaveDocumentRequest struct {
 	Content     []byte `json:"content"`
 }
 
+type UpdateObjectRequest struct {
+	Name     *string `json:"name,omitempty"`
+	ParentID *string `json:"parentId,omitempty"`
+}
+
+type DuplicateObjectRequest struct {
+	ParentID string `json:"parentId"`
+	Name     string `json:"name,omitempty"`
+}
+
+type DocumentExport struct {
+	ObjectID   string `json:"objectId"`
+	Version    int    `json:"version"`
+	Format     string `json:"format"`
+	MIME       string `json:"mime"`
+	Filename   string `json:"filename"`
+	SourceHash string `json:"sourceHash"`
+	SHA256     string `json:"sha256"`
+	Body       []byte `json:"-"`
+}
+
 type ExportFile struct {
 	ObjectID string `json:"objectId"`
 	Version  int    `json:"version"`
