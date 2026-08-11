@@ -1,9 +1,9 @@
 {
   "productId": "ynx-video",
   "name": "YNX Video",
-  "branch": "codex/final-video",
-  "sourceCommit": "f3a20484a6b3842fdc32bb4ccee160058e0106bf",
-  "version": "0.2.0-testnet-preview.1",
+  "branch": "codex/integrate-finance-suite",
+  "sourceCommit": "96b817b7e2db3f18a4f4b16719e584014dc51905",
+  "version": "0.3.0-testnet-preview.1",
   "surfaces": ["web", "android", "ios-source"],
   "implementedLocal": true,
   "testedLocal": true,
@@ -11,17 +11,33 @@
   "migrationVerified": true,
   "restoreVerified": true,
   "restoreVerificationScope": "current-source CLI against a minimal initialized local schema-v2 store; not production or populated media-object recovery",
-  "integratedCentral": false,
-  "testnetVerified": true,
+  "integratedCentral": true,
+  "testnetVerified": false,
   "deployedStaging": false,
-  "deployedPublic": true,
-  "releasePublished": true,
+  "deployedPublic": false,
+  "releasePublished": false,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
-  "publicUrls": ["https://web4.ynxweb4.com/video/"],
-  "healthUrls": ["https://web4.ynxweb4.com/video/api/health"],
+  "publicUrls": [],
+  "healthUrls": [],
   "artifactUrls": [],
+  "localArtifacts": {
+    "currentForSourceCommit": true,
+    "distributionReady": false,
+    "androidDebugApk": {
+      "path": "apps/video/android/app/build/outputs/apk/debug/app-debug.apk",
+      "bytes": 38149,
+      "sha256": "d241548c07e2cf86f4a1da91f8228b00632c11952146a6d52d2ac72c3090d8f2",
+      "signingClass": "Android debug/test key"
+    },
+    "androidUnsignedReleaseApk": {
+      "path": "apps/video/android/app/build/outputs/apk/release/app-release-unsigned.apk",
+      "bytes": 29193,
+      "sha256": "9909ee9b1b7a66257f0b5ed7dae5107923ae8b9917006b31d8fb546e6eb5395f",
+      "signingClass": "unsigned; not installable distribution evidence"
+    }
+  },
   "sourceIntegrity": {
     "stateSchemaVersion": 2,
     "mediaVariantIntegrity": true,
@@ -36,28 +52,23 @@
       "ownedTestMedia": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39",
       "iosSimulatorZip": "265a045cfa0b80af0a240388e95b49f4adfb75b1ff0ffd23de6c7aed09fc2baf"
     },
-    "bytes": {
-      "androidDebugApk": 32401,
-      "ownedTestMedia": 12525,
-      "iosSimulatorZip": 240734
-    },
-    "signingClass": "Android debug/test key; iOS ad-hoc/linker-signed Simulator build",
-    "installEvidence": {
-      "android": "docs/handoffs/video-evidence/android-final/",
-      "ios": "GitHub Actions run 29658077678 and docs/handoffs/video-evidence/ios-feasibility.txt",
-      "boundary": "Historical Android API 36 emulator and iOS Simulator evidence only; no current-source install, physical device or production signing"
-    }
+    "boundary": "Historical Android/iOS install evidence only; it does not verify the current Product Session source."
   },
   "minOS": {"androidApi": 26, "ios": "17.0"},
   "localVerification": {
-    "verificationCommit": "f3a20484a6b3842fdc32bb4ccee160058e0106bf",
-    "verifiedAt": "2026-08-04T01:32:00Z",
+    "verificationCommit": "96b817b7e2db3f18a4f4b16719e584014dc51905",
+    "verifiedAt": "2026-08-11T02:00:21Z",
     "commands": [
       "go test ./internal/video/...",
       "go test -race ./internal/video/...",
       "go vet ./internal/video/...",
       "npm --prefix apps/video run check",
-      "npm --prefix apps/video run smoke"
+      "npm --prefix apps/video run smoke",
+      "npm --prefix packages/wallet-auth test (109/109)",
+      "npm --prefix apps/wallet test -- --runInBand (39/39)",
+      "npm --prefix apps/wallet run typecheck",
+      "ANDROID_HOME=/Users/huangjiahao/Library/Android/sdk gradle --no-daemon -p apps/video/android :app:assembleDebug :app:assembleRelease",
+      "swiftc -parse apps/video/ios/YNXVideo/YNXVideoApp.swift apps/video/ios/YNXVideo/ContentView.swift"
     ],
     "result": "passed"
   },
@@ -71,18 +82,20 @@
     "productionBoundary": false
   },
   "centralIntegration": {
-    "status": "integration-request-only",
+    "status": "accepted-source-local-tests",
+    "products": ["video-mobile", "video-web", "creator-studio"],
     "contract": "release/integration/video-contract.json",
-    "registryCandidate": "internal/video/integration/registry-v2.json",
-    "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
+    "registry": "packages/wallet-auth/central-registry.json",
+    "walletReview": "apps/wallet/src/protocol/registry.ts",
+    "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json",
+    "deployed": false
   },
   "knownLimitations": [
-    "No current-source Android or iOS artifact/install evidence",
-    "Central Wallet/Gateway registration remains pending, so authenticated viewer and creator actions fail closed",
-    "Public service is a single-host Testnet preview, not a production worker fleet or HA streaming deployment",
-    "No production durable object store or worker fleet evidence",
-    "No production signing, physical-device, TestFlight, Play or store release",
-    "No live provider AI, Trust delegated appeal, Pay settlement or revenue"
+    "No current-source Android install, iOS build/install, physical-device or production signing evidence",
+    "Canonical Wallet/Gateway integration is source-accepted and locally tested but not deployed or remotely exercised for this source commit",
+    "The historical public /video route is not evidence that this current source is public",
+    "No production durable object store, worker fleet, HA streaming or multi-region load evidence",
+    "No live provider AI, delegated Trust appeal, Pay payout confirmation or revenue activation"
   ],
-  "generatedAt": "2026-08-04T01:32:00Z"
+  "generatedAt": "2026-08-11T02:00:21Z"
 }
