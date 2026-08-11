@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCallbackURL, createGatewayChallenge, encodeRequestDeepLink, parseWalletDeepLink, registryParserBinding, signAuthorization, verifyGatewayCompletion } from "@ynx-chain/wallet-auth";
+import { createCallbackURL, createGatewayChallenge, encodeRequestDeepLink, parseWalletDeepLink, registryParserBinding, signAuthorization, verifyCentralWalletSession } from "@ynx-chain/wallet-auth";
 import { beginWalletSignIn, finishWalletSignIn, MERCHANT_REGISTRY } from "../src/auth.js";
 
 const records=new Map();
@@ -16,12 +16,20 @@ test("canonical Wallet approval and product-device proof create only a short mer
   const approval=signAuthorization(request,{accountSecret:"0".repeat(63)+"1",issuedAt:now.toISOString()});
   const challenge=createGatewayChallenge(approval,{challenge:"gateway_merchant_challenge_1234567890",expiresAt:new Date(now.getTime()+120_000).toISOString()},now);
   const calls=[];
-  globalThis.fetch=async(url,init)=>{calls.push({url,body:JSON.parse(init.body)});if(url.endsWith("/challenges"))return new Response(JSON.stringify(challenge),{status:200,headers:{"Content-Type":"application/json"}});return new Response(JSON.stringify({token:"mcs_test.token",role:"viewer",account:approval.account,merchant:{id:"mrc_truth123"}}),{status:201,headers:{"Content-Type":"application/json"}})};
+  const verifiedSession=verifyCentralWalletSession({registryEntry:MERCHANT_REGISTRY,authorizationRequest:request,walletApproval:approval,gatewayCompletion:(await import("@ynx-chain/wallet-auth")).signGatewayChallenge(challenge,JSON.parse(records.get("ynx-merchant-wallet-auth-v1")).deviceSecret)},now);
+  const productSession={...verifiedSession,requestingProduct:request.requestingProduct,productDeviceKey:request.productDeviceKey};
+  assert.equal(productSession.requestingProduct,MERCHANT_REGISTRY.requestingProduct);
+  assert.equal(productSession.productClientId,MERCHANT_REGISTRY.productClientId);
+  assert.equal(productSession.bundleId,MERCHANT_REGISTRY.bundleId);
+  assert.equal(productSession.productDeviceKey,request.productDeviceKey);
+  assert.deepEqual(productSession.scopes,[...MERCHANT_REGISTRY.scopes]);
+  globalThis.fetch=async(url,init)=>{calls.push({url,body:JSON.parse(init.body),headers:init.headers});if(url.endsWith("/v1/wallet/sessions/complete"))return new Response(JSON.stringify({ok:true,result:productSession}),{status:200,headers:{"Content-Type":"application/json"}});return new Response(JSON.stringify({token:"mcs_test.token",role:"viewer",account:approval.account,merchant:{id:"mrc_truth123"}}),{status:201,headers:{"Content-Type":"application/json"}})};
   const result=await finishWalletSignIn(createCallbackURL(approval),"https://gateway.example",now);
   assert.equal(result.role,"viewer");
   assert.equal(calls.length,2);
   assert.equal(calls[1].body.merchantId,"mrc_truth123");
-  assert.equal(verifyGatewayCompletion(calls[1].body.completion,approval,now).account,approval.account);
+  assert.equal(calls[0].body.walletApproval.account,approval.account);
+  assert.match(calls[1].headers["X-YNX-Product-Session-Proof"],/^[A-Za-z0-9_-]+$/);
   assert.equal(records.size,0,"device secret and request are consumed");
 });
 

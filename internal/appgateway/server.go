@@ -224,6 +224,10 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		s.payProduct(w, r)
 		return
 	}
+	if strings.HasPrefix(r.URL.EscapedPath(), "/app/pay-merchant/") {
+		s.payMerchant(w, r)
+		return
+	}
 	service, upstreamPath, ok := resolveAppPath(r.URL.EscapedPath())
 	if !ok {
 		writeError(w, http.StatusNotFound, "app route not found")
@@ -444,9 +448,116 @@ func payProductRoute(method, escapedPath string) (string, string, bool, bool) {
 	return "", "", false, false
 }
 
+var payMerchantScopes = []string{"account:read", "merchant:session:create"}
+
+func (s *Server) payMerchant(w http.ResponseWriter, r *http.Request) {
+	if s.gateway.payProductURL == nil || len(s.gateway.payProductAssertionKey) < 32 {
+		writeError(w, http.StatusServiceUnavailable, "YNX Merchant service is unavailable")
+		return
+	}
+	upstreamPath, sessionExchange, ok := payMerchantRoute(r.Method, r.URL.EscapedPath())
+	if !ok {
+		writeError(w, http.StatusNotFound, "Merchant route not found")
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, s.gateway.cfg.MaxBodyBytes+1))
+	if err != nil || int64(len(body)) > s.gateway.cfg.MaxBodyBytes {
+		writeError(w, http.StatusRequestEntityTooLarge, "Merchant request exceeds gateway policy")
+		return
+	}
+	upstreamURL := *s.gateway.payProductURL
+	upstreamURL.Path, upstreamURL.RawPath, upstreamURL.RawQuery = upstreamPath, "", r.URL.RawQuery
+	request, err := http.NewRequestWithContext(r.Context(), r.Method, upstreamURL.String(), bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "unable to construct Merchant request")
+		return
+	}
+	for _, header := range []string{"Accept", "Content-Type"} {
+		if value := strings.TrimSpace(r.Header.Get(header)); value != "" {
+			request.Header.Set(header, value)
+		}
+	}
+	if sessionExchange {
+		session, authErr := s.authenticateProductSession(r, "merchant:session:create", "pay-merchant", "ynx-merchant-console-v1", "com.ynxweb4.merchant-console", payMerchantScopes)
+		if authErr != nil {
+			writeError(w, http.StatusUnauthorized, "active YNX Merchant Product Session proof required")
+			return
+		}
+		if err := s.signProductAssertion(request, body, session, "pay-merchant", "ynx-merchant-console-v1", "com.ynxweb4.merchant-console", "https://pay.ynxweb4.com/merchant/wallet-auth/callback"); err != nil {
+			writeError(w, http.StatusServiceUnavailable, "unable to create bounded Merchant Gateway assertion")
+			return
+		}
+	} else {
+		authorization := strings.TrimSpace(r.Header.Get("Authorization"))
+		if len(authorization) < 24 || len(authorization) > 512 || !strings.HasPrefix(authorization, "Bearer mcs_") {
+			writeError(w, http.StatusUnauthorized, "active short-lived Merchant session required")
+			return
+		}
+		request.Header.Set("Authorization", authorization)
+	}
+	response, err := s.client.Do(request)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "YNX Merchant service unavailable")
+		return
+	}
+	defer response.Body.Close()
+	responseBody, err := io.ReadAll(io.LimitReader(response.Body, s.gateway.cfg.MaxResponseBytes+1))
+	if err != nil || int64(len(responseBody)) > s.gateway.cfg.MaxResponseBytes {
+		writeError(w, http.StatusBadGateway, "Merchant response exceeds gateway policy")
+		return
+	}
+	if contentType := response.Header.Get("Content-Type"); contentType != "" {
+		w.Header().Set("Content-Type", contentType)
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(response.StatusCode)
+	_, _ = w.Write(responseBody)
+}
+
+func payMerchantRoute(method, escapedPath string) (string, bool, bool) {
+	if !strings.HasPrefix(escapedPath, "/app/pay-merchant/") {
+		return "", false, false
+	}
+	path := "/" + strings.TrimPrefix(escapedPath, "/app/pay-merchant/")
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if method == http.MethodPost && path == "/v1/merchant/sessions" {
+		return path, true, true
+	}
+	if method == http.MethodGet {
+		switch path {
+		case "/v1/merchant/state", "/v1/merchant/providers/catalog", "/v1/merchant/operations", "/v1/merchant/analytics", "/v1/merchant/reconciliation.csv", "/v1/merchant/data-rights", "/v1/merchant/data-export", "/v1/merchant/capital":
+			return path, false, true
+		}
+	}
+	if method == http.MethodPut && (path == "/v1/merchant/providers" || path == "/v1/merchant/webhook") {
+		return path, false, true
+	}
+	if method != http.MethodPost {
+		return "", false, false
+	}
+	switch path {
+	case "/v1/merchant/members", "/v1/merchant/catalog", "/v1/merchant/invoices", "/v1/merchant/split-payments", "/v1/merchant/quant-bills", "/v1/merchant/recurring-drafts", "/v1/merchant/webhook/rotate", "/v1/merchant/webhooks/bulk-retry/preview", "/v1/merchant/webhooks/bulk-retry", "/v1/merchant/data-deletion-requests", "/v1/merchant/ai/runs":
+		return path, false, true
+	}
+	switch {
+	case len(parts) == 5 && parts[0] == "v1" && parts[1] == "merchant" && parts[2] == "providers" && validSegment(parts[3]) && (parts[4] == "test" || parts[4] == "disable"):
+	case len(parts) == 5 && parts[0] == "v1" && parts[1] == "merchant" && parts[2] == "webhooks" && validSegment(parts[3]) && parts[4] == "retry":
+	case len(parts) == 5 && parts[0] == "v1" && parts[1] == "merchant" && parts[2] == "refunds" && validSegment(parts[3]) && (parts[4] == "submit" || parts[4] == "refresh"):
+	case len(parts) == 5 && parts[0] == "v1" && parts[1] == "merchant" && parts[2] == "data-deletion-requests" && validSegment(parts[3]) && parts[4] == "cancel":
+	case len(parts) == 6 && parts[0] == "v1" && parts[1] == "merchant" && parts[2] == "ai" && parts[3] == "runs" && validSegment(parts[4]) && parts[5] == "review":
+	default:
+		return "", false, false
+	}
+	return path, false, true
+}
+
 func (s *Server) authenticatePayProductSession(r *http.Request, scope string) (payProductSession, error) {
+	return s.authenticateProductSession(r, scope, "pay", "ynx-pay-v1", "com.ynxweb4.pay", payProductScopes)
+}
+
+func (s *Server) authenticateProductSession(r *http.Request, scope, expectedProduct, expectedClient, expectedBundle string, expectedScopes []string) (payProductSession, error) {
 	proof := strings.TrimSpace(r.Header.Get("X-YNX-Product-Session-Proof"))
-	if proof == "" || len(proof) > 16<<10 || !containsText(payProductScopes, scope) {
+	if proof == "" || len(proof) > 16<<10 || !containsText(expectedScopes, scope) {
 		return payProductSession{}, errors.New("invalid Pay Product Session proof")
 	}
 	body, err := json.Marshal(map[string][]string{"requiredScopes": {scope}})
@@ -493,7 +604,7 @@ func (s *Server) authenticatePayProductSession(r *http.Request, scope string) (p
 		return payProductSession{}, errors.New("canonical Wallet Gateway returned an invalid Pay session")
 	}
 	session := envelope.Result.Session
-	if session.RequestingProduct != "pay" || session.ProductClientID != "ynx-pay-v1" || session.BundleID != "com.ynxweb4.pay" || !containsText(session.Scopes, scope) || !sameTextSet(session.Scopes, payProductScopes) {
+	if session.RequestingProduct != expectedProduct || session.ProductClientID != expectedClient || session.BundleID != expectedBundle || !containsText(session.Scopes, scope) || !sameTextSet(session.Scopes, expectedScopes) {
 		return payProductSession{}, errors.New("Pay Product Session binding mismatch")
 	}
 	issuedAt, issuedErr := time.Parse(time.RFC3339Nano, session.IssuedAt)
@@ -511,6 +622,10 @@ func (s *Server) authenticatePayProductSession(r *http.Request, scope string) (p
 }
 
 func (s *Server) signPayProductAssertion(request *http.Request, body []byte, session payProductSession) error {
+	return s.signProductAssertion(request, body, session, "pay", "ynx-pay-v1", "com.ynxweb4.pay", "ynxpay://wallet-auth/callback")
+}
+
+func (s *Server) signProductAssertion(request *http.Request, body []byte, session payProductSession, product, clientID, bundleID, callback string) error {
 	now := s.gateway.cfg.Now().UTC()
 	expiresAt := now.Add(3 * time.Minute)
 	if session.ExpiresAt.Before(expiresAt) {
@@ -528,8 +643,8 @@ func (s *Server) signPayProductAssertion(request *http.Request, body []byte, ses
 	sort.Strings(scopes)
 	headers := map[string]string{
 		"X-YNX-Account": session.Account, "X-YNX-Session-ID": session.SessionID, "X-YNX-Device-ID": session.DeviceID,
-		"X-YNX-Product": "pay", "X-YNX-Client": "ynx-pay-v1", "X-YNX-Bundle": "com.ynxweb4.pay",
-		"X-YNX-Callback": "ynxpay://wallet-auth/callback", "X-YNX-Chain": "ynx_6423-1", "X-YNX-Scopes": strings.Join(scopes, " "),
+		"X-YNX-Product": product, "X-YNX-Client": clientID, "X-YNX-Bundle": bundleID,
+		"X-YNX-Callback": callback, "X-YNX-Chain": "ynx_6423-1", "X-YNX-Scopes": strings.Join(scopes, " "),
 		"X-YNX-Session-Binding": session.SessionBinding, "X-YNX-Request-Digest": session.RequestDigest,
 		"X-YNX-Issued-At": now.Format(time.RFC3339Nano), "X-YNX-Expires-At": expiresAt.Format(time.RFC3339Nano), "X-YNX-Nonce": nonce,
 	}
@@ -537,7 +652,7 @@ func (s *Server) signPayProductAssertion(request *http.Request, body []byte, ses
 		request.Header.Set(key, value)
 	}
 	bodyHash := sha256.Sum256(body)
-	material := strings.Join([]string{"YNX_PRODUCT_GATEWAY_ASSERTION_V1", request.Method, request.URL.EscapedPath(), hex.EncodeToString(bodyHash[:]), session.Account, session.SessionID, session.DeviceID, "pay", "ynx-pay-v1", "com.ynxweb4.pay", "ynxpay://wallet-auth/callback", "ynx_6423-1", strings.Join(scopes, " "), session.SessionBinding, session.RequestDigest, headers["X-YNX-Issued-At"], headers["X-YNX-Expires-At"], nonce}, "\n")
+	material := strings.Join([]string{"YNX_PRODUCT_GATEWAY_ASSERTION_V1", request.Method, request.URL.EscapedPath(), hex.EncodeToString(bodyHash[:]), session.Account, session.SessionID, session.DeviceID, product, clientID, bundleID, callback, "ynx_6423-1", strings.Join(scopes, " "), session.SessionBinding, session.RequestDigest, headers["X-YNX-Issued-At"], headers["X-YNX-Expires-At"], nonce}, "\n")
 	mac := hmac.New(sha256.New, s.gateway.payProductAssertionKey)
 	_, _ = mac.Write([]byte(material))
 	request.Header.Set("X-YNX-Gateway-Signature", hex.EncodeToString(mac.Sum(nil)))
@@ -704,7 +819,7 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request, binding string)
 
 func (s *Server) preflight(w http.ResponseWriter, r *http.Request) {
 	method := strings.ToUpper(strings.TrimSpace(r.Header.Get("Access-Control-Request-Method")))
-	if method != http.MethodGet && method != http.MethodPost {
+	if method != http.MethodGet && method != http.MethodPost && method != http.MethodPut {
 		writeError(w, http.StatusForbidden, "preflight method is not allowed")
 		return
 	}
@@ -716,6 +831,11 @@ func (s *Server) preflight(w http.ResponseWriter, r *http.Request) {
 	} else if strings.HasPrefix(r.URL.EscapedPath(), "/app/pay-product/") {
 		if _, _, _, ok := payProductRoute(method, r.URL.EscapedPath()); !ok {
 			writeError(w, http.StatusNotFound, "Pay product route not found")
+			return
+		}
+	} else if strings.HasPrefix(r.URL.EscapedPath(), "/app/pay-merchant/") {
+		if _, _, ok := payMerchantRoute(method, r.URL.EscapedPath()); !ok {
+			writeError(w, http.StatusNotFound, "Merchant route not found")
 			return
 		}
 	} else {
@@ -730,8 +850,12 @@ func (s *Server) preflight(w http.ResponseWriter, r *http.Request) {
 		if header == "" {
 			continue
 		}
+		if header == "Authorization" && !strings.HasPrefix(r.URL.EscapedPath(), "/app/pay-merchant/") {
+			writeError(w, http.StatusForbidden, "preflight header Authorization is not allowed for this route")
+			return
+		}
 		switch header {
-		case "Accept", "Content-Type", "X-Ynx-App-Session", "X-Ynx-Device-Id", "X-Ynx-Timestamp", "X-Ynx-Device-Signature", "X-Ynx-Product-Session-Proof":
+		case "Accept", "Authorization", "Content-Type", "X-Ynx-App-Session", "X-Ynx-Device-Id", "X-Ynx-Timestamp", "X-Ynx-Device-Signature", "X-Ynx-Product-Session-Proof":
 		default:
 			writeError(w, http.StatusForbidden, fmt.Sprintf("preflight header %s is not allowed", header))
 			return
@@ -771,7 +895,7 @@ func bindPayPayer(body []byte, account string) ([]byte, error) {
 func setCORS(w http.ResponseWriter, origin string) {
 	w.Header().Set("Access-Control-Allow-Origin", origin)
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, X-YNX-App-Session, X-YNX-Device-ID, X-YNX-Timestamp, X-YNX-Device-Signature, X-YNX-Product-Session-Proof")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-YNX-App-Session, X-YNX-Device-ID, X-YNX-Timestamp, X-YNX-Device-Signature, X-YNX-Product-Session-Proof")
 	w.Header().Set("Access-Control-Max-Age", "600")
 	w.Header().Add("Vary", "Origin")
 }
