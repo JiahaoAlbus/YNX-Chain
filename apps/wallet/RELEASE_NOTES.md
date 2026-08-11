@@ -1,4 +1,14 @@
-# YNX Wallet 1.0.0 Testnet Preview
+# YNX Wallet 1.0.1 Testnet Preview
+
+## 1.0.1 Android update
+
+- Adds the product-independent `ynxwallet://open` launcher used by official Connect YNX Wallet entry points. It only accepts the exact launcher URI and does not authorize, sign or submit a transaction.
+- Establishes a persistent Testnet release signing identity so later preview APKs can use Android in-place updates from 1.0.1 onward.
+- Verified on a fresh Android 16/API 36 AVD: first cold launch, `ynxwallet://open`, a second cold launch, warm single-task delivery and zero fatal app crashes.
+- Important migration notice: the previously hosted 1.0.0 preview was signed by a different ephemeral test certificate. Android cannot update it in place. Back up recovery material, uninstall 1.0.0, then install 1.0.1.
+- This remains a Testnet preview. It is not production-signed and is not a Play Store or App Store release.
+
+## 1.0.0 baseline
 
 ## Included
 

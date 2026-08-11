@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet",
+  "versionName": "1.0.1",
+  "versionCode": 2,
+  "sourceCommit": "4a34fd3ec7fd7cda7b5e5f541e0b8944077da8d8",
+  "target": {
+    "avd": "YNX_WALLET_101_QA",
+    "abi": "arm64-v8a",
+    "apiLevel": 36,
+    "freshInstall": true
+  },
+  "artifact": {
+    "path": "android/app/build/outputs/apk/release/app-release.apk",
+    "bytes": 78392878,
+    "sha256": "fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",
+    "signingClass": "persistent-testnet-release-key",
+    "apkSignatureSchemeV2": true,
+    "certificateDn": "CN=YNX Wallet Testnet Preview, O=YNX Chain, C=US",
+    "certificateSha256": "67c841ab31a4eb34f21e458827eb213b24dc22d3f1d224686ed601ed7eb8f489"
+  },
+  "checks": {
+    "freshColdLaunch": {
+      "passed": true,
+      "observedUi": [
+        "YNX Wallet",
+        "YNX TESTNET · ynx_6423-1",
+        "WELCOME · SELF-CUSTODY STARTS HERE",
+        "Create a new wallet",
+        "Import an existing wallet",
+        "Recover with your Recovery Kit"
+      ]
+    },
+    "productIndependentDeepLink": {
+      "uri": "ynxwallet://open",
+      "passed": true,
+      "resolver": "com.ynxweb4.wallet/.MainActivity",
+      "result": "cold launch completed and MainActivity became topResumedActivity"
+    },
+    "secondColdLaunch": {
+      "passed": true,
+      "result": "force-stop followed by explicit MainActivity cold launch completed; process remained alive and MainActivity became topResumedActivity"
+    },
+    "warmDeepLinkDelivery": {
+      "passed": true,
+      "result": "ynxwallet://open delivered to the existing singleTask MainActivity"
+    },
+    "crashLog": {
+      "passed": true,
+      "fatalExceptionCount": 0,
+      "androidRuntimeCrashCount": 0
+    },
+    "screenshot": {
+      "captured": false,
+      "reason": "Android FLAG_SECURE intentionally prevented Wallet screen capture; accessibility UI hierarchy was inspected for the fresh launch instead"
+    }
+  },
+  "migration": {
+    "inPlaceUpgradeFromOfficial1_0_0": false,
+    "reason": "The previously hosted 1.0.0 preview used a different ephemeral test certificate. Android correctly rejects an in-place update with INSTALL_FAILED_UPDATE_INCOMPATIBLE.",
+    "requiredUserAction": "Back up recovery material, uninstall the 1.0.0 Testnet Preview, then install 1.0.1.",
+    "futurePreviewUpdates": "1.0.1 establishes the persistent Testnet release signing line used for subsequent compatible preview updates."
+  },
+  "limitations": [
+    "This is a Testnet preview signed with a persistent Testnet release key, not a production/store signing identity.",
+    "No iOS device or store release is claimed by this evidence."
+  ],
+  "verifiedAt": "2026-08-11T22:45:00+08:00"
+}
