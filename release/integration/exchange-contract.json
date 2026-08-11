@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0-testnet",
   "product": "ynx-exchange",
   "owner": "07-exchange",
-  "sourceCommit": "257baf326bd90ec070bbec51bece26a7207f3f3e",
+  "sourceCommit": "257baf32f52ba5e420112ea8414d333c49487648",
   "stateSchemaVersion": 10,
   "authority": {
     "exchangeOwned": [
