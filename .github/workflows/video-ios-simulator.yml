@@ -7,7 +7,7 @@ on:
       - "apps/video/ios/**"
       - ".github/workflows/video-ios-simulator.yml"
   push:
-    branches: ["codex/ecosystem-video"]
+    branches: ["codex/ecosystem-video", "codex/integrate-finance-suite"]
     paths:
       - "apps/video/ios/**"
       - ".github/workflows/video-ios-simulator.yml"
@@ -51,7 +51,7 @@ jobs:
           xcrun simctl launch "$DEVICE_ID" com.ynxweb4.video | tee "$RUNNER_TEMP/cold-launch.txt"
           END_NS="$(/usr/bin/python3 -c 'import time; print(time.time_ns())')"
           echo "coldLaunchMilliseconds=$(( (END_NS-START_NS)/1000000 ))" >> "$RUNNER_TEMP/cold-launch.txt"
-          xcrun simctl openurl "$DEVICE_ID" 'ynxvideo://watch?id=owned-ci-media'
+          xcrun simctl openurl "$DEVICE_ID" 'ynxvideo://watch?video=owned-ci-media'
           sleep 2
           xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/deep-link.png"
           xcrun simctl terminate "$DEVICE_ID" com.ynxweb4.video
