@@ -231,6 +231,20 @@ func TestServerStrictSchemaAuthAndTruthfulSources(t *testing.T) {
 	}
 }
 
+func TestServerEmptyTokenRegistryIsStableJSONArray(t *testing.T) {
+	store, _ := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
+	server, err := NewServer(store, buildinfo.Info{Commit: "abc123", Release: "test"}, strings.Repeat("k", 32), allowSession{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodGet, "/v1/tokens", nil)
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"items":[]`) {
+		t.Fatalf("empty token registry must be a stable JSON array: %d %s", response.Code, response.Body.String())
+	}
+}
+
 func TestServerRejectsUnreviewedAndDuplicateTokenMetadata(t *testing.T) {
 	store, _ := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
 	valid := Token{ChainID: ChainID, Address: "0x00000000000000000000000000000000000000ab", Symbol: "ONE", Name: "Test Token One", Decimals: 18, Standard: "ERC-20", ReviewStatus: "owner-reviewed-testnet"}

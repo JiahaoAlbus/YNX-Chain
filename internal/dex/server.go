@@ -173,7 +173,8 @@ func (server *Server) pools(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.Pools(), "source": server.source})
 }
 func (server *Server) tokensList(response http.ResponseWriter, _ *http.Request) {
-	items := append([]Token(nil), server.tokens...)
+	items := make([]Token, 0, len(server.tokens))
+	items = append(items, server.tokens...)
 	source := "owner-reviewed Testnet token list"
 	if server.tokenProvider != nil {
 		items = server.tokenProvider.Tokens()
