@@ -78,8 +78,9 @@
     "certificateSha256": "67c841ab31a4eb34f21e458827eb213b24dc22d3f1d224686ed601ed7eb8f489",
     "installedLocal": true,
     "testedLocal": true,
-    "publicUrl": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-bb751ce3-test-signed.apk",
-    "immutableBlobUrl": "https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com/downloads/ynx-wallet-1.0.1-testnet-preview-bb751ce3-test-signed-qzqLf6yXzQQWhURWSYy9Xxb42rIi9U.apk",
+    "publicUrl": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    "immutableBlobUrl": "https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed-7mY7bsrspttg7FGR7qj7q8wUBKhUxW.apk",
+    "fullDownloadVerified": true,
     "evidence": "proof/wallet-android-1.0.1-installed-2026-08-11.json"
   },
   "sha256": {
