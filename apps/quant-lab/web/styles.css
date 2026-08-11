@@ -195,6 +195,7 @@ main {
   display: block;
   color: var(--muted);
 }
+.toolbar > div:last-child { display: flex; align-items: center; gap: 12px; }
 button {
   border: 1px solid var(--line);
   background: var(--surface);

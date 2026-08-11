@@ -1,11 +1,26 @@
 const state={connected:false,overview:null,aiJob:null,aiTimer:null};
+const READ_RETRY_DELAYS=[0,600,1600];
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const fmt=(v)=>new Intl.NumberFormat().format(Number(v||0));
 const short=(v)=>v?`${v.slice(0,8)}…${v.slice(-6)}`:'—';
 const date=(v)=>v?new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'Date unavailable';
 
-async function api(path,options={}){const headers={'Content-Type':'application/json',...(options.headers||{})};headers['X-YNX-Product-Session-Proof']=await window.YNXFinanceWallet.requireProof(scope(path));const response=await fetch(path,{...options,headers});if(response.status===204)return null;const type=response.headers.get('content-type')||'';const body=type.includes('json')?await response.json():await response.text();if(!response.ok){const error=new Error(body.error||`Request failed (${response.status})`);error.code=body.code;error.status=response.status;throw error}return body}
+const wait=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
+function sourceStatus(message,className='neutral'){$('#source-pill').textContent=message;$('#source-pill').className=`pill ${className}`}
+async function api(path,options={}){
+  const method=String(options.method||'GET').toUpperCase(),readOnly=method==='GET',attempts=readOnly?READ_RETRY_DELAYS.length:1;
+  for(let attempt=0;attempt<attempts;attempt++){
+    if(attempt){sourceStatus(`Reconnecting ${attempt}/${attempts-1}`,'warning');await wait(READ_RETRY_DELAYS[attempt])}
+    try{
+      const headers={'Content-Type':'application/json',...(options.headers||{})};try{headers['X-YNX-Product-Session-Proof']=await window.YNXFinanceWallet.requireProof(scope(path))}catch(error){error.nonRetryable=true;throw error}
+      const response=await fetch(path,{...options,method,headers,signal:AbortSignal.timeout(10_000)});if(response.status===204){sourceStatus('YNX Testnet connected','live');return null}const type=response.headers.get('content-type')||'',body=type.includes('json')?await response.json():await response.text();
+      if(!response.ok){const error=new Error(body.error||`Request failed (${response.status})`);error.code=body.code;error.status=response.status;if(!readOnly||![502,503,504].includes(response.status)||attempt===attempts-1)throw error;continue}
+      sourceStatus('YNX Testnet connected','live');return body
+    }catch(error){if(!readOnly||error?.status||error?.nonRetryable||attempt===attempts-1){if(!error?.nonRetryable&&(!error?.status||[502,503,504].includes(error.status)))sourceStatus('Connection unavailable','warning');throw error}}
+  }
+  throw new Error('Read connection retry exhausted.')
+}
 function scope(path){if(path.startsWith('/api/ai/'))return'finance.ai.draft';if(['/api/categories','/api/budgets','/api/reminders','/api/notes','/api/privacy','/api/account'].some(v=>path.startsWith(v))||path.includes('/category'))return'finance.profile.write';return'finance.portfolio.read'}
 function notify(message,error=false){const box=$('#notice');box.textContent=message;box.classList.toggle('error',error);box.classList.remove('hidden');clearTimeout(box.timer);box.timer=setTimeout(()=>box.classList.add('hidden'),6500)}
 
@@ -42,6 +57,6 @@ const deleteAIButton=document.createElement('button');deleteAIButton.dataset.ai=
 $('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListener('click',async e=>{const decision=e.target.dataset.ai;if(!decision||!state.aiJob)return;try{if(decision==='cancel'){await api(`/api/ai/jobs/${state.aiJob.id}/cancel`,{method:'POST'});state.aiJob.status='cancelled'}else if(decision==='delete'){if(!window.confirm('Delete this AI draft, streamed text and result? The minimal deletion audit event will remain.'))return;await api(`/api/ai/jobs/${state.aiJob.id}`,{method:'DELETE'});state.aiJob=null;$('#ai-status').textContent='Draft data deleted. A minimal deletion audit event remains.';$('#ai-actions').classList.add('hidden');return}else state.aiJob=await api(`/api/ai/jobs/${state.aiJob.id}/decision`,{method:'POST',body:JSON.stringify({decision})});renderAIJob();if(decision==='apply')await load()}catch(error){notify(error.message,true)}});
 
 function route(){const id=(location.hash||'#overview').slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.connected&&heading)$('#page-title').textContent=heading.textContent;else if(!state.connected)$('#page-title').textContent='Your money, with its evidence attached.'}
-window.addEventListener('hashchange',route);$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);
+window.addEventListener('hashchange',route);window.addEventListener('online',()=>load());$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',load);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);
 route();consumeCallback().then(load);

@@ -41,3 +41,11 @@ test('mobile terminal is responsive without horizontal overflow',async()=>{
   await page.getByRole('button',{name:'Assets'}).click();await page.getByRole('heading',{name:'Deposit & withdrawal'}).waitFor();
 	assert.ok(await page.getByText('Cross-chain · unavailable').count()>=1);await page.evaluate(()=>{scrollTo(0,0);document.activeElement?.blur()});await page.screenshot({path:path.join(evidence,'mobile.png')});await page.close();
 });
+
+test('read requests recover after two transport failures while POST is sent once',async()=>{
+  const page=await browser.newPage({viewport:{width:1100,height:760}});let reads=0,posts=0;
+  await page.route('**/api/v1/orderbook',async route=>{const method=route.request().method();if(method==='GET'&&++reads<3)return route.abort('failed');if(method==='POST'){posts++;return route.abort('failed')}return route.continue()});
+  await page.goto(base);for(let i=0;i<40&&reads<3;i++)await page.waitForTimeout(250);assert.equal(reads,3);await page.getByText('YNX Testnet connected').waitFor({timeout:15000});
+  await page.evaluate(async()=>{try{await api('/v1/orderbook',{method:'POST'})}catch{}});assert.equal(posts,1);
+  await page.close();
+});

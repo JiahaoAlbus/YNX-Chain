@@ -1,8 +1,24 @@
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
 const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],spotCandles:[],perpCandles:[],config:null,solvency:null,risk:null,perpBook:null,activity:'trades'};
+const READ_RETRY_DELAYS=[0,600,1600];
 const micro=(v)=>Math.round(Number(v)*1e6);const display=(v,d=6)=>Number(v/1e6).toLocaleString(undefined,{maximumFractionDigits:d,minimumFractionDigits:Math.min(2,d)});
 function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3500)}
-async function api(path,options={},scope=''){const headers={'content-type':'application/json',...(options.headers||{})};if(scope){const wallet=window.YNXExchangeWallet;if(!wallet)throw new Error('YNX Wallet integration is unavailable.');headers['X-YNX-Product-Session-Proof']=await wallet.requireProof(scope)}const response=await fetch(`/api${path}`,{...options,headers});let body={};try{body=await response.json()}catch{}if(!response.ok)throw new Error(body.error||`Request failed (${response.status})`);return body}
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+function setNetworkStatus(message,stateName='live'){const label=$('#network-status'),root=label?.closest('.truth');if(label)label.textContent=message;if(root)root.dataset.network=stateName}
+async function api(path,options={},scope=''){
+  const method=String(options.method||'GET').toUpperCase(),readOnly=method==='GET',attempts=readOnly?READ_RETRY_DELAYS.length:1;
+  for(let attempt=0;attempt<attempts;attempt++){
+    if(attempt){setNetworkStatus(`Reconnecting ${attempt}/${attempts-1}…`,'retrying');await wait(READ_RETRY_DELAYS[attempt])}
+    try{
+      const headers={'content-type':'application/json',...(options.headers||{})};
+      if(scope){const wallet=window.YNXExchangeWallet;if(!wallet)throw Object.assign(new Error('YNX Wallet integration is unavailable.'),{nonRetryable:true});try{headers['X-YNX-Product-Session-Proof']=await wallet.requireProof(scope)}catch(error){error.nonRetryable=true;throw error}}
+      const response=await fetch(`/api${path}`,{...options,method,headers,signal:AbortSignal.timeout(10_000)});let body={};try{body=await response.json()}catch{}
+      if(!response.ok){const error=new Error(body.error||`Request failed (${response.status})`);error.status=response.status;if(!readOnly||![502,503,504].includes(response.status)||attempt===attempts-1)throw error;continue}
+      setNetworkStatus('YNX Testnet connected','live');return body
+    }catch(error){if(!readOnly||error?.status||error?.nonRetryable||attempt===attempts-1){if(!error?.nonRetryable&&(!error?.status||[502,503,504].includes(error.status)))setNetworkStatus('Connection unavailable · Retry','offline');throw error}}
+  }
+  throw new Error('Read connection retry exhausted.')
+}
 function idempotency(prefix){return `${prefix}-${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0]}`}
 function requireCentralSession(){if(window.YNXExchangeWallet?.connected())return true;$('#wallet-dialog').showModal();return false}
 
@@ -15,12 +31,14 @@ function bind(){
   $('#order-form').addEventListener('submit',reviewOrder);$('#deposit-form').addEventListener('submit',observeDeposit);$('#withdraw-form').addEventListener('submit',reviewWithdrawal);
   $('#route-form').addEventListener('submit',quoteLiquidity);
   $('#refresh').addEventListener('click',refreshAll);$('#security-form').addEventListener('submit',saveSecurity);$('#support-form').addEventListener('submit',openSupport);
+  $('#network-retry').addEventListener('click',()=>refreshAll().catch(e=>toast(e.message)));
   $('#ai-submit').addEventListener('click',requestAI);$('#draft-order').addEventListener('click',()=>{showView('controls');$('#ai-kind').value='order_draft';$('#ai-prompt').focus()});
   $('#load-liability-proof').addEventListener('click',loadLiabilityProof);
   $('#perp-order-form').addEventListener('submit',reviewPerpetualOrder);$('#margin-deposit').addEventListener('click',reviewMarginTransfer);$('#margin-withdraw').addEventListener('click',reviewMarginTransfer);
   $('#spot-interval').addEventListener('change',refreshBook);$('#perp-interval').addEventListener('change',refreshPerpetual);
   $$('.tabs button').forEach(b=>b.addEventListener('click',()=>{state.activity=b.dataset.activity;$$('.tabs button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));renderActivity()}));
 }
+window.addEventListener('online',()=>refreshAll().catch(e=>toast(e.message)));
 function showView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.topbar nav button').forEach(b=>b.classList.toggle('nav-active',b.dataset.view===id));location.hash=id;document.title=`YNX Exchange — ${id[0].toUpperCase()+id.slice(1)}`}
 function setSide(side){state.side=side;$('#buy-tab').setAttribute('aria-selected',side==='buy');$('#sell-tab').setAttribute('aria-selected',side==='sell');estimate()}
 function estimate(){const p=micro($('#price').value||0),a=micro($('#amount').value||0);if(p<=0||a<=0){$('#reservation').textContent='—';return}if(state.side==='buy'){const q=Math.floor(a*p/1e6);$('#reservation').textContent=`${display(q+Math.ceil(q*.002))} YUSD_TEST max`}else{$('#reservation').textContent=`${display(a)} YNXT`}}

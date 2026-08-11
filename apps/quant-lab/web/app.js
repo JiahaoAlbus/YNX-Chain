@@ -4,6 +4,7 @@ let snapshot = { paper: {}, strategies: {}, experiments: {}, audit: [] };
 const publicMode = !["127.0.0.1", "localhost", "::1"].includes(location.hostname);
 let publicStatus = null;
 let pendingMandate = null;
+const READ_RETRY_DELAYS = [0, 600, 1600];
 const tenantKey = "ynx.quant.tenant.v1";
 let tenantId = localStorage.getItem(tenantKey);
 if (!/^[0-9a-f]{64}$/.test(tenantId || "")) {
@@ -22,19 +23,25 @@ function applyLocale() {
   $$('[data-i18n]').forEach((element) => { element.textContent = t(element.dataset.i18n); });
   const active = $('nav button.active'); if (active) $('#view-title').textContent = active.textContent;
 }
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const connectionStatus = (message, className = "ready") => { const element = $("#network-status"); if (element) { element.textContent = message; element.className = className; } };
 const api = async (path, opt = {}) => {
-  const r = await fetch("/api" + path, {
-    ...opt,
-    headers: {
-      "content-type": "application/json",
-      "x-ynx-preview-mode": "local-paper",
-      "x-ynx-tenant-id": tenantId,
-      ...(opt.headers || {}),
-    },
-  });
-  const b = await r.json();
-  if (!r.ok) throw new Error(b.error || `HTTP ${r.status}`);
-  return b;
+  const method = String(opt.method || "GET").toUpperCase(), readOnly = method === "GET", attempts = readOnly ? READ_RETRY_DELAYS.length : 1;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    if (attempt) { connectionStatus(`Reconnecting ${attempt}/${attempts - 1}…`, "warning"); await wait(READ_RETRY_DELAYS[attempt]); }
+    try {
+      const r = await fetch("/api" + path, {
+        ...opt, method, signal: AbortSignal.timeout(10_000),
+        headers: {"content-type":"application/json","x-ynx-preview-mode":"local-paper","x-ynx-tenant-id":tenantId,...(opt.headers || {})},
+      });
+      const b = await r.json();
+      if (!r.ok) { const error = new Error(b.error || `HTTP ${r.status}`); error.status = r.status; if (!readOnly || ![502,503,504].includes(r.status) || attempt === attempts - 1) throw error; continue; }
+      connectionStatus("YNX Testnet connected"); return b;
+    } catch (error) {
+      if (!readOnly || error?.status || attempt === attempts - 1) { if (!error?.status || [502,503,504].includes(error.status)) connectionStatus("Connection unavailable · press Refresh", "danger"); throw error; }
+    }
+  }
+  throw new Error("Read connection retry exhausted.");
 };
 const toast = (m) => {
   const e = $("#toast");
@@ -105,6 +112,7 @@ $$("nav button").forEach(
     }),
 );
 $("#refresh").onclick = () => refresh().catch((e) => toast(e.message));
+window.addEventListener("online", () => refresh().catch((e) => toast(e.message)));
 $("#locale").onchange = (e) => {
   locale = e.target.value;
   localStorage.setItem("ynx.quant.locale", locale);
