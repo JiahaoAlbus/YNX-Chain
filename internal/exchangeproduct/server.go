@@ -1229,6 +1229,7 @@ func (g HTTPGatewayAuthorizer) Authorize(proof, scope, clientID, bundleID string
 				ProductClientID  string   `json:"productClientId"`
 				BundleID         string   `json:"bundleId"`
 				Account          string   `json:"account"`
+				AccountPublicKey string   `json:"accountPublicKey"`
 				ProductDeviceKey string   `json:"productDeviceKey"`
 				SessionBinding   string   `json:"sessionBinding"`
 				ExpiresAt        string   `json:"expiresAt"`
@@ -1241,7 +1242,10 @@ func (g HTTPGatewayAuthorizer) Authorize(proof, scope, clientID, bundleID string
 	}
 	v := envelope.Result.Session
 	account, err := nativewallet.NormalizeNativeAddress(v.Account)
-	if err != nil || v.VerifierVersion != "wallet-auth-v1" || v.ProductClientID != clientID || v.BundleID != bundleID || len(v.ProductDeviceKey) != 44 || len(v.SessionBinding) != 64 {
+	if err != nil || v.VerifierVersion != "wallet-auth-v1" || v.ProductClientID != clientID || v.BundleID != bundleID || len(v.AccountPublicKey) != 66 || len(v.ProductDeviceKey) != 44 || len(v.SessionBinding) != 64 {
+		return WalletSession{}, ErrUnauthorized
+	}
+	if derived, deriveErr := walletAccount(v.AccountPublicKey); deriveErr != nil || derived != account {
 		return WalletSession{}, ErrUnauthorized
 	}
 	expires, err := time.Parse(time.RFC3339Nano, v.ExpiresAt)
@@ -1258,7 +1262,7 @@ func (g HTTPGatewayAuthorizer) Authorize(proof, scope, clientID, bundleID string
 	if !found {
 		return WalletSession{}, ErrForbidden
 	}
-	return WalletSession{Account: account, ProductDeviceKey: v.ProductDeviceKey, SessionBinding: v.SessionBinding, Scopes: append([]string(nil), v.Scopes...), ExpiresAt: expires}, nil
+	return WalletSession{Account: account, WalletPublicKey: strings.ToLower(v.AccountPublicKey), ProductDeviceKey: v.ProductDeviceKey, SessionBinding: v.SessionBinding, Scopes: append([]string(nil), v.Scopes...), ExpiresAt: expires}, nil
 }
 
 func walletAccount(publicKeyHex string) (string, error) {

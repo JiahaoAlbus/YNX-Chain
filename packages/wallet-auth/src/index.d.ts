@@ -391,7 +391,12 @@ export type ExchangeOrderParameters = Readonly<{
   amountMicro: number;
   idempotencyKey: string;
 }>;
-export type ExchangeOrderActionRequest = Readonly<{
+export type ExchangeCancelParameters = Readonly<{ orderId: string; idempotencyKey: string }>;
+export type ExchangeMarginTransferParameters = Readonly<{ direction: "deposit" | "withdraw"; amountMicro: number; idempotencyKey: string }>;
+export type ExchangePerpetualOrderParameters = Readonly<{ market: "YNXT-YUSD_TEST-PERP"; side: "buy" | "sell"; type: "limit"; timeInForce: "gtc" | "ioc" | "fok"; priceMicro: number; amountMicro: number; leverage: number; reduceOnly: boolean; idempotencyKey: string }>;
+export type ExchangeActionParameters = ExchangeOrderParameters | ExchangeCancelParameters | ExchangeMarginTransferParameters | ExchangePerpetualOrderParameters;
+export type ExchangeActionName = "exchange.order.place" | "exchange.order.cancel" | "exchange.margin.transfer" | "exchange.perpetual.order.place" | "exchange.perpetual.order.cancel";
+type ExchangeActionBase = Readonly<{
   version: "1";
   chainId: "ynx_6423-1";
   productClientId: "ynx-exchange-v1";
@@ -401,12 +406,17 @@ export type ExchangeOrderActionRequest = Readonly<{
     | "ynxexchange://wallet-auth/callback";
   sessionBinding: string;
   account: string;
-  action: "exchange.order.place";
-  parameters: ExchangeOrderParameters;
   nonce: string;
   issuedAt: string;
   expiresAt: string;
 }>;
+export type ExchangeOrderActionRequest = ExchangeActionBase & Readonly<
+  | { action: "exchange.order.place"; parameters: ExchangeOrderParameters }
+  | { action: "exchange.order.cancel"; parameters: ExchangeCancelParameters }
+  | { action: "exchange.margin.transfer"; parameters: ExchangeMarginTransferParameters }
+  | { action: "exchange.perpetual.order.place"; parameters: ExchangePerpetualOrderParameters }
+  | { action: "exchange.perpetual.order.cancel"; parameters: ExchangeCancelParameters }
+>;
 export type ExchangeOrderActionResponse = Readonly<
   ExchangeOrderActionRequest & {
     requestDigest: string;
@@ -424,6 +434,11 @@ export declare function exchangeOrderActionRequestDigest(
 export declare function exchangeOrderAuthorizationPayload(
   account: string,
   parameters: ExchangeOrderParameters,
+): string;
+export declare function exchangeActionAuthorizationPayload(
+  account: string,
+  action: ExchangeActionName,
+  parameters: ExchangeActionParameters,
 ): string;
 export declare function signExchangeOrderAction(
   request: ExchangeOrderActionRequest,

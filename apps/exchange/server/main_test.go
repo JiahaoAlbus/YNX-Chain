@@ -7,6 +7,23 @@ import (
 	"time"
 )
 
+func TestWalletGatewayProxyAllowsOnlyCanonicalSessionCompletion(t *testing.T) {
+	if got := httptest.NewRecorder(); func() bool {
+		handler := walletGatewayProxy("")
+		handler.ServeHTTP(got, httptest.NewRequest(http.MethodPost, "/wallet-gateway/v1/wallet/sessions/complete", nil))
+		return got.Code == http.StatusServiceUnavailable
+	}() == false {
+		t.Fatal("unconfigured Gateway proxy must fail closed")
+	}
+
+	recorder := httptest.NewRecorder()
+	handler := walletGatewayProxy("https://wallet-auth.example.invalid")
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/wallet-gateway/health", nil))
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("unexpected disallowed proxy result: status=%d", recorder.Code)
+	}
+}
+
 func TestAdmissionRateLimitAndTrustedForwardedClient(t *testing.T) {
 	gate := newAdmission(2, 2, time.Minute)
 	handler := gate.wrap(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))

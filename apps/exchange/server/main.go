@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -71,12 +73,40 @@ func main() {
 	api := exchangeproduct.NewServer(service)
 	mux := http.NewServeMux()
 	mux.Handle("/api/", http.StripPrefix("/api", api))
+	mux.Handle("/wallet-gateway/", walletGatewayProxy(gatewayURL))
 	mux.Handle("/", spa(http.Dir("apps/exchange/web")))
 	server := &http.Server{Addr: addr, Handler: securityHeaders(newAdmission(128, 600, time.Minute).wrap(mux)), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	slog.Info("exchange_listening", "address", addr, "product_id", exchangeproduct.ProductID, "version", exchangeproduct.Version, "commit", exchangeproduct.BuildCommit)
 	if err := server.ListenAndServe(); err != nil {
 		fatal("exchange_server_stopped", "error", err)
 	}
+}
+
+func walletGatewayProxy(rawURL string) http.Handler {
+	target, err := url.Parse(strings.TrimRight(strings.TrimSpace(rawURL), "/"))
+	if err != nil || target.Scheme != "https" || target.Host == "" || target.User != nil || (target.Path != "" && target.Path != "/") || target.RawPath != "" || target.RawQuery != "" || target.Fragment != "" {
+		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"ok":false,"error":{"message":"Canonical Wallet Gateway is unavailable."}}`))
+		})
+	}
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, _ error) {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte(`{"ok":false,"error":{"message":"Canonical Wallet Gateway did not respond."}}`))
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/wallet-gateway/v1/wallet/sessions/complete" {
+			http.NotFound(w, r)
+			return
+		}
+		r.URL.Path = "/v1/wallet/sessions/complete"
+		r.URL.RawPath = ""
+		r.Host = target.Host
+		proxy.ServeHTTP(w, r)
+	})
 }
 
 func fatal(message string, args ...any) {

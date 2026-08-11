@@ -1646,7 +1646,7 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 		if allowTrade {
 			scopes = append(scopes, "exchange:trade")
 		}
-		writeJSON(w, 200, map[string]any{"ok": true, "result": map[string]any{"active": true, "session": map[string]any{"verifierVersion": "wallet-auth-v1", "productClientId": "ynx-exchange-v1", "bundleId": "com.ynxweb4.exchange", "account": account, "productDeviceKey": "A1234567890123456789012345678901234567890123", "sessionBinding": strings.Repeat("a", 64), "scopes": scopes, "expiresAt": expires}}})
+		writeJSON(w, 200, map[string]any{"ok": true, "result": map[string]any{"active": true, "session": map[string]any{"verifierVersion": "wallet-auth-v1", "productClientId": "ynx-exchange-v1", "bundleId": "com.ynxweb4.exchange", "account": account, "accountPublicKey": publicKey, "productDeviceKey": "A1234567890123456789012345678901234567890123", "sessionBinding": strings.Repeat("a", 64), "scopes": scopes, "expiresAt": expires}}})
 	}))
 	defer gateway.Close()
 	authorizer := HTTPGatewayAuthorizer{BaseURL: gateway.URL, Client: gateway.Client()}
@@ -1665,7 +1665,9 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	centralSession.WalletPublicKey = publicKey
+	if centralSession.WalletPublicKey != publicKey {
+		t.Fatalf("gateway did not preserve the account public key: %+v", centralSession)
+	}
 	s, _, _ := newTestService(t)
 	if _, err := s.CreditTestQuote(adminKey, account, 10*AmountScale, "central-action-credit"); err != nil {
 		t.Fatal(err)

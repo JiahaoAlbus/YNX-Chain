@@ -4,6 +4,7 @@
   "version": "0.1.0-testnet",
   "description": "YNX-owned deterministic testnet exchange terminal",
   "scripts": {
+    "build:wallet": "esbuild web/wallet-auth-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=web/wallet-auth.js",
     "test": "node --test tests/ui.test.mjs",
     "test:browser": "node --test tests/browser.test.mjs",
     "smoke": "bash smoke.sh",
@@ -13,6 +14,7 @@
     "node": ">=20"
   },
   "devDependencies": {
-	"playwright": "1.58.2"
+    "esbuild": "^0.25.9",
+    "playwright": "1.58.2"
   }
 }

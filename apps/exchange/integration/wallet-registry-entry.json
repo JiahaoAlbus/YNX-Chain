@@ -8,6 +8,7 @@
   "requestingProduct": "exchange",
   "bundleId": "com.ynxweb4.exchange",
   "callbacks": [
+    "https://exchange.ynxweb4.com/wallet-auth/callback",
     "ynxexchange://wallet-auth/callback"
   ],
   "scopes": [
