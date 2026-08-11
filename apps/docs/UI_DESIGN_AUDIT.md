@@ -45,6 +45,6 @@ Audit date: 2026-07-18. The review used the running Web app at 1440×900 and 390
 
 ## Remaining limitations
 
-- The public single-host Testnet preview is live at `https://web4.ynxweb4.com/docs-app/`; it is not evidence of production durability or high availability.
-- Cloud and Docs unsigned iOS Simulator Release builds passed on the macOS CI workflow. Device installation, production signing, and App Store release remain unclaimed.
+- A historical single-host Testnet preview is visible at `https://web4.ynxweb4.com/docs-app/`, but it is not bound to the current source and is not evidence of current deployment, production durability or high availability.
+- Cloud and Docs unsigned iOS Simulator Release builds passed on the macOS 26 / Swift 6.2 CI workflow. Device installation, production signing, and App Store release remain unclaimed.
 - Bounded presence intentionally does not provide character-level real-time coediting, cursors, or CRDT merging.

@@ -1,8 +1,12 @@
-# YNX Docs 1.0.0 Testnet Preview
+# YNX Docs 1.0.0 Testnet Candidate
 
-- Canonical, device-bound Sign in with YNX Wallet with isolated product/client/bundle/callback/session boundaries.
-- Create/open/edit, version-aware autosave, immutable history/restore, version-bound comments and mentions, export, local draft, retry, bounded presence, audit, explicit permanent delete, and stale-base side-by-side conflict recovery.
-- Presence is an expiring heartbeat and is explicitly not presented as Google Docs-style real-time collaboration.
-- AI rewrite, summary, translate, outline, and comment modes require exact current-version context and explicit consent, expose provider/model/status/cost, support cancel, and require apply/reject review.
-- Focused writing canvas, list rail, inspectors, light/dark, responsive mobile/desktop, twelve locales, Arabic RTL, keyboard/focus, screen-reader labels, reduced motion, and high contrast.
-- Android Testnet Preview is debug-certificate signed and emulator installed. It is not production signed or store released. iOS is CI-ready but not locally built because this host has Command Line Tools rather than full Xcode.
+- Exact Web and Mobile YNX Wallet identities are independently approved in the central registry. Web uses a P-256 sender-constrained challenge; native sessions are memory-only and an expired session returns to real Wallet sign-in on the next launch.
+- Documents and folders support create, navigation, rename, duplicate and ownership-preserving move.
+- Version-aware autosave, immutable history/restore, device-local offline drafts and side-by-side stale-base conflict recovery do not silently overwrite newer server content.
+- Selected-text/version comment threads support mention, reply, resolve and reopen. Presence is bounded activity awareness and is not presented as character-level real-time collaboration.
+- Account viewer/editor grants and seven-day viewer links can be listed and revoked. Trash is recoverable; permanent erasure remains a separate audited control.
+- Server export supports exact-version plain text, Markdown, escaped HTML and JSON evidence with hash/version headers. PDF is not implemented or claimed.
+- Selected-version AI exposes provider/model/status/resource estimate, explicit consent, cancel, citations and apply/reject review; it never silently changes content or signs an action.
+- Web and native source cover twelve locales and Arabic RTL. Native Android/iOS bundles pass; unsigned iOS Simulator Release passes on macOS 26 / Swift 6.2 CI.
+
+The retained APK and public preview are historical. Neither is evidence that this current candidate is publicly deployed, current-source packaged, production signed or store released.

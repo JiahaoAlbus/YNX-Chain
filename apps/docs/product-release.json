@@ -1,31 +1,43 @@
 {
   "schemaVersion": 1,
   "productId": "docs",
-  "version": "1.0.0-testnet-preview",
-  "sourceCommit": "fd90fa646079f6f57af0ca965091fc443b941857",
-  "runtimeSourceCommit": "fd90fa646079f6f57af0ca965091fc443b941857",
+  "version": "1.0.0-testnet-candidate",
+  "sourceCommit": "57a736a3e917d7cc62cbd5487d90b469e0323a28",
+  "runtimeSourceCommit": "57a736a3e917d7cc62cbd5487d90b469e0323a28",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
     "integratedCentral": true,
     "deployedStaging": false,
-    "deployedPublic": true,
+    "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
   },
   "stateNotes": {
-    "implementedLocal": "Versioned documents, autosave, offline draft recovery, explicit conflict handling, version-bound comments, bounded presence, export, reviewed AI revisions, 12 locales, Web/PWA and Android/iOS source are implemented on the product-isolated Cloud/Docs service.",
-    "testedLocal": "Docs client/static checks, shared Cloud race/vet/API/recovery gates, central security gates and the unsigned iOS Simulator Release build pass. The public UI and health routes returned 100/100 expected responses at concurrency 20; private objects returned 100/100 HTTP 401 without a Wallet session.",
-    "installedLocal": "False for this source commit. A historical debug-signed Android Testnet Preview was installed and is independently source-bound; iOS Simulator CI success is not device installation.",
-    "integratedCentral": "True: the shared Cloud/Docs service, canonical Docs Wallet registration and native clients were accepted into central main at cfcaa6accad6a66f86df0c96564dcddac69e86d6.",
-    "deployedStaging": "False: the product moved directly to a bounded public Testnet preview; no staging claim is made.",
-    "deployedPublic": "True: https://web4.ynxweb4.com/docs-app/ and same-origin API/liveness routes are public. Central Wallet verification is unavailable, so private workflows fail closed.",
-    "downloadHosted": "False: no immutable Docs application download is hosted.",
-    "productionSigned": "False: no production application signing evidence exists.",
+    "implementedLocal": "Web and native source implement exact Docs folders and documents, rename, duplicate, move, versioned autosave, offline draft recovery, explicit conflict handling, history restore, anchored comment threads, presence, Trash restore, account grants, expiring view links, revoke, four verified export formats, reviewed selected-version AI and 12 locales with RTL.",
+    "testedLocal": "Docs Web syntax/static/client checks, Docs native typecheck/tests/i18n and Android+iOS Expo bundles, Cloud/Docs Go and race tests, Wallet 39 tests and central Wallet/Auth 109 tests pass for this source.",
+    "installedLocal": "False for this source. The retained APK is a historical debug-signed Testnet Preview and is not evidence for the current source.",
+    "integratedCentral": "True in source: Docs service routes are product-isolated in the shared Cloud control plane and exact docs-mobile/docs-web identities are approved in the 31-entry central Wallet registry.",
+    "deployedStaging": "False: no deployment receipt binds a staging runtime to this source.",
+    "deployedPublic": "False for this source. A historical Docs preview remains visible at https://web4.ynxweb4.com/docs-app/, but its runtime identity does not prove deployment of this candidate.",
+    "downloadHosted": "False for the current source. The historical APK is retained locally and has no verified immutable website download URL.",
+    "productionSigned": "False: no production Android or Apple signing evidence exists.",
     "storeReleased": "False: no app-store release evidence exists."
   },
-  "artifacts": ["evidence/ARTIFACT_MANIFEST.json"],
+  "walletBindings": {
+    "mobile": {"productClientId":"ynx-docs-mobile-v1","bundleId":"com.ynxweb4.docs","callback":"ynxdocs://wallet-auth/callback","enabled":true},
+    "web": {"productClientId":"ynx-docs-web-v1","bundleId":"web.ynx.docs","callback":"https://web4.ynxweb4.com/docs-app/auth/callback","enabled":true}
+  },
+  "exports": ["text", "markdown", "html", "json"],
+  "unsupported": ["PDF export", "character-level CRDT coediting", "production signing", "public deployment of current source"],
+  "historicalArtifact": {
+    "path": "release/YNX-Docs-1.0.0-testnet-preview.apk",
+    "sha256": "5c0935ab908c4bf9488f954cfece51d748018211f5332ff51b1a29f28a5e5699",
+    "bytes": 69674639,
+    "signingClass": "Android debug certificate; historical Testnet Preview only",
+    "currentSourceArtifact": false
+  },
   "evidenceIndex": "evidence/EVIDENCE_INDEX.md"
 }
