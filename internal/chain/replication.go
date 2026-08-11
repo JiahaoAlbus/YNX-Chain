@@ -70,22 +70,15 @@ func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritative
 		return ReplicationApplyResult{}, fmt.Errorf("replication snapshot height %d is behind local height %d", incoming.Height, current.Height)
 	}
 	currentHeight, currentHash := current.Height, current.Hash
-	localPeers := cloneValidatorPeers(d.validatorPeers)
-	localPeerSyncs := cloneValidatorPeerSyncs(d.validatorPeerSyncs)
 	d.mu.RUnlock()
 
 	// Persist the fully validated authoritative snapshot before taking the
 	// in-memory write lock. A public follower can take seconds to fsync a large
 	// append-only history; keeping that disk I/O outside the lock preserves
-	// concurrent status, account and DEX reads during replication.
-	durable := snapshot
-	durable.Peers = localPeers
-	durable.PeerSyncs = localPeerSyncs
-	sealed, err := sealDevnetSnapshot(durable)
-	if err != nil {
-		return ReplicationApplyResult{}, fmt.Errorf("seal replication snapshot: %w", err)
-	}
-	if err := d.persistPreparedSnapshot(sealed); err != nil {
+	// concurrent status, account and DEX reads during replication. The producer
+	// snapshot has already passed its signed state-integrity validation, so
+	// re-sealing the entire history here would only duplicate hundreds of MiB.
+	if err := d.persistPreparedSnapshot(snapshot); err != nil {
 		return ReplicationApplyResult{}, fmt.Errorf("persist replication snapshot: %w", err)
 	}
 
@@ -98,8 +91,8 @@ func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritative
 	// Peer observations are node-local operational evidence, not replicated
 	// chain state. Preserve the newest observations gathered while the snapshot
 	// was being written, not the producer's observations.
-	localPeers = d.validatorPeers
-	localPeerSyncs = d.validatorPeerSyncs
+	localPeers := d.validatorPeers
+	localPeerSyncs := d.validatorPeerSyncs
 	d.applySnapshotLocked(snapshot)
 	d.validatorPeers = localPeers
 	d.validatorPeerSyncs = localPeerSyncs
@@ -122,22 +115,6 @@ func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
 		return fmt.Errorf("persist devnet snapshot integrity marker: %w", err)
 	}
 	return nil
-}
-
-func cloneValidatorPeers(source map[string]ValidatorPeer) map[string]ValidatorPeer {
-	result := make(map[string]ValidatorPeer, len(source))
-	for key, value := range source {
-		result[key] = value
-	}
-	return result
-}
-
-func cloneValidatorPeerSyncs(source map[string]ValidatorPeerSync) map[string]ValidatorPeerSync {
-	result := make(map[string]ValidatorPeerSync, len(source))
-	for key, value := range source {
-		result[key] = value
-	}
-	return result
 }
 
 func validateReplicationSnapshot(snapshot devnetSnapshot, cfg NetworkConfig) error {
