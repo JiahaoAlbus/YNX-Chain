@@ -5,7 +5,7 @@ import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 import { createGatewayChallenge } from "@ynx-chain/wallet-auth";
-import { authorizationDeepLink, canonicalJSON, createAuthorizationRequest, createGatewayCompletion, deviceSecret, parsePaymentResultCallback, paymentIntent, paymentIntentDigest, requestDigest, verifyAuthorization } from "./walletAuth";
+import { authorizationDeepLink, canonicalJSON, createAuthorizationRequest, createGatewayCompletion, deviceSecret, parsePaymentResultCallback, paymentIntent, paymentIntentDigest, productSessionProof, requestDigest, verifyAuthorization } from "./walletAuth";
 
 const now=new Date("2026-07-16T01:00:00.000Z"),accountSecret=new Uint8Array(32).fill(0);accountSecret[31]=1;
 const deviceBytes=new Uint8Array(32).fill(0x42),device=deviceSecret(deviceBytes),account="ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",accountPublicKey=bytesToHex(secp256k1.getPublicKey(accountSecret,true));
@@ -30,4 +30,14 @@ test("signed payment result is bound to exact quote, account and transaction",()
   const response=Buffer.from(canonicalJSON({...base,walletSignature})).toString("base64url");
   assert.equal(parsePaymentResultCallback(`ynxpay://payment-result?response=${response}`,intent,account,new Date(now.getTime()+60_000)).transactionHash,base.transactionHash);
   assert.throws(()=>parsePaymentResultCallback(`ynxpay://payment-result?response=${Buffer.from(canonicalJSON({...base,transactionHash:"0x"+"e".repeat(64),walletSignature})).toString("base64url")}`,intent,account,new Date(now.getTime()+60_000)),/signature/);
+});
+
+test("Pay signs a one-use central Product Session introspection proof",async()=>{
+  const productDeviceKey=Buffer.from(p256.getPublicKey(deviceBytes,true)).toString("base64url"),expiresAt=new Date(now.getTime()+180_000).toISOString();
+  const header=await productSessionProof({sessionBinding:"a".repeat(64),productClientId:"ynx-pay-v1",bundleId:"com.ynxweb4.pay",productDeviceKey,scopes:["pay:case:create"],expiresAt,deviceSecret:device},"pay:case:create",now);
+  const proof=JSON.parse(Buffer.from(header,"base64url").toString("utf8"));
+  assert.equal(proof.method,"POST");assert.equal(proof.path,"/v1/wallet/sessions/introspect");assert.match(proof.nonce,/^[A-Za-z0-9_-]{32}$/);assert.equal(proof.expiresAt,new Date(now.getTime()+30_000).toISOString());
+  const {signature,...unsigned}=proof;
+  assert.ok(p256.verify(Buffer.from(signature,"base64url"),utf8ToBytes(`YNX_PRODUCT_SESSION_HTTP_PROOF_V1\n${canonicalJSON(unsigned)}`),p256.getPublicKey(deviceBytes,true),{format:"der",lowS:false}));
+  await assert.rejects(()=>productSessionProof({...unsigned,scopes:["pay:case:create"],deviceSecret:device},"pay:route:select",now),/required scope/);
 });

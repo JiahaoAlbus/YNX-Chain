@@ -8,7 +8,7 @@ import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_SECRET, request } from "./fixtures.
 
 const PRODUCTS=[
   {productClientId:"ynx-card-v1",requestingProduct:"ynx-card",bundleId:"com.ynxweb4.card",callback:"ynxcard://wallet-auth/callback",scopes:["account:read","card:application:write","card:controls:write","card:dispute:write"],nonce:"card_nonce_abcdefghijklmnopqrstuvwxyz12",challenge:"card_gateway_challenge_abcdefghijklm"},
-  {productClientId:"ynx-pay-v1",requestingProduct:"pay",bundleId:"com.ynxweb4.pay",callback:"ynxpay://wallet-auth/callback",scopes:["account:read","pay:case:create","pay:settlement:submit"],nonce:"pay_nonce_abcdefghijklmnopqrstuvwxyz123",challenge:"pay_gateway_challenge_abcdefghijklmn"},
+  {productClientId:"ynx-pay-v1",requestingProduct:"pay",bundleId:"com.ynxweb4.pay",callback:"ynxpay://wallet-auth/callback",scopes:["account:read","pay:case:create","pay:route:select","pay:settlement:submit","pay:sponsorship:request"],nonce:"pay_nonce_abcdefghijklmnopqrstuvwxyz123",challenge:"pay_gateway_challenge_abcdefghijklmn"},
 ];
 
 for(const product of PRODUCTS)test(`${product.requestingProduct} completes exact Wallet approval and product-device session`,()=>{

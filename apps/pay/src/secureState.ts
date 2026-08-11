@@ -7,7 +7,7 @@ export type PendingAuthorization=Readonly<{request:AuthorizationRequest;deviceSe
 export type PendingPayment=Readonly<{intent:SignedPaymentIntent;result?:WalletPaymentResult;updatedAt:string}>;
 export type PendingSplitClaim=Readonly<{splitId:string;shareId:string;idempotencyKey:string;expiresAt:string;createdAt:string}>;
 
-export async function loadSession():Promise<WalletSession|null>{return load<WalletSession>("session",value=>typeof value.token==="string"&&typeof value.sessionBinding==="string"&&Date.parse(value.expiresAt)>Date.now())}
+export async function loadSession():Promise<WalletSession|null>{return load<WalletSession>("session",value=>value.verifierVersion==="wallet-auth-v1"&&value.productClientId==="ynx-pay-v1"&&value.bundleId==="com.ynxweb4.pay"&&typeof value.deviceSecret==="string"&&typeof value.sessionBinding==="string"&&Date.parse(value.expiresAt)>Date.now())}
 export async function saveSession(value:WalletSession|null){return save("session",value)}
 export async function loadPendingAuthorization():Promise<PendingAuthorization|null>{return load<PendingAuthorization>("authorization",value=>typeof value.deviceSecret==="string"&&value.request?.productClientId==="ynx-pay-v1"&&Date.parse(value.request.expiresAt)>Date.now())}
 export async function savePendingAuthorization(value:PendingAuthorization|null){return save("authorization",value)}

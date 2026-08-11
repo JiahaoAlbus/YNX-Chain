@@ -9,7 +9,7 @@ test("central registry contains 33 unique, least-privilege products with platfor
   const registry = parseCentralRegistryDocument(source);
   assert.equal(registry.products.length, 33);
   const approved = registry.products.filter((product) => product.enabled);
-  assert.deepEqual(approved.map((product) => product.productId), ["browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "cloud-mobile", "cloud-web", "creator-studio", "developer", "dex", "docs-mobile", "docs-web", "exchange", "finance", "mail", "merchant-console", "music-mobile", "music-web", "quant", "search", "seller-console", "shop", "social", "video-mobile", "video-web"]);
+  assert.deepEqual(approved.map((product) => product.productId), ["browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "cloud-mobile", "cloud-web", "creator-studio", "developer", "dex", "docs-mobile", "docs-web", "exchange", "finance", "mail", "merchant-console", "music-mobile", "music-web", "pay", "quant", "search", "seller-console", "shop", "social", "video-mobile", "video-web"]);
   assert.equal(approved.every((product) => product.reviewState === "approved"), true);
   assert.equal(registry.products.filter((product) => !product.enabled).every((product) => product.reviewState === "pending-review"), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
@@ -110,6 +110,11 @@ test("central registry contains 33 unique, least-privilege products with platfor
   assert.deepEqual(merchant.callbacks, ["https://pay.ynxweb4.com/merchant/wallet-auth/callback"]);
   assert.deepEqual(merchant.scopes, ["account:read", "merchant:session:create"]);
   assert.equal(merchant.sessionDurationSeconds, 300);
+  const pay = centralRegistrationByProduct(registry, "pay");
+  assert.equal(pay.productClientId, "ynx-pay-v1");
+  assert.deepEqual(pay.callbacks, ["ynxpay://wallet-auth/callback"]);
+  assert.deepEqual(pay.scopes, ["account:read", "pay:case:create", "pay:route:select", "pay:settlement:submit", "pay:sponsorship:request"]);
+  assert.equal(pay.sessionDurationSeconds, 180);
   const seller = centralRegistrationByProduct(registry, "seller-console");
   assert.equal(seller.requestingProduct, "seller-console");
   assert.equal(seller.productClientId, "ynx-seller-v1");

@@ -120,7 +120,7 @@ const REVIEWED_ENTRIES = [
   {
     schemaVersion: 2, productClientId: "ynx-pay-v1", requestingProduct: "pay",
     bundleId: "com.ynxweb4.pay", callbacks: ["ynxpay://wallet-auth/callback"],
-    scopes: ["account:read", "pay:case:create", "pay:settlement:submit"], maxScopes: 3,
+    scopes: ["account:read", "pay:case:create", "pay:route:select", "pay:settlement:submit", "pay:sponsorship:request"], maxScopes: 5,
     productDeviceAlgorithms: ["p256-sha256"],
   },
   {
@@ -208,7 +208,9 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "music.playback": "Record this account's consented playback position and eligible Testnet usage evidence; it cannot invent streams or revenue.",
   "music.profile": "Read and update this account's Music profile, privacy settings and evidence-bound rights cases.",
   "pay:case:create": "Create a Pay support case for this account without authorizing a transfer.",
+  "pay:route:select": "Request and select a bounded Pay routing or bridge option; this does not move funds.",
   "pay:settlement:submit": "Submit a settlement request for separate Pay review; Wallet approval is not a payment signature.",
+  "pay:sponsorship:request": "Request a bounded gas sponsorship quote; final payment still requires separate Wallet review.",
   "pay.payout.intent": "Create a payout intent from audited Creator Studio revenue; a separate Wallet confirmation is still required.",
   "profile:link": "Allow this exact Social device to link the public account to its profile.",
   "quant:account": "Share this account's public address with Quant for account-bound research controls.",

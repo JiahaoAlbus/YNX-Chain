@@ -7,6 +7,7 @@ test("Wallet locally reviews the exact approved finance, commerce and existing b
   assert.deepEqual(Object.keys(PRODUCT_REGISTRY).sort(),["ynx-browser-android","ynx-browser-ios","ynx-browser-macos","ynx-browser-windows","ynx-calendar-v1","ynx-card-v1","ynx-cloud-mobile-v1","ynx-cloud-web-v1","ynx-creator-studio-web-v1","ynx-developer-v1","ynx-dex-web-v1","ynx-docs-mobile-v1","ynx-docs-web-v1","ynx-exchange-v1","ynx-finance-v1","ynx-mail-v1","ynx-merchant-console-v1","ynx-music-v1","ynx-music-web-v1","ynx-pay-v1","ynx-quant-v1","ynx-search-web","ynx-seller-v1","ynx-shop-v1","ynx-social-v1","ynx-video-mobile-v1","ynx-video-web-v1"]);
   assert.equal(PRODUCT_REGISTRY["ynx-social-v1"]?.bundleId,"com.ynx.social");
   assert.equal(PRODUCT_REGISTRY["ynx-pay-v1"]?.callbacks[0],"ynxpay://wallet-auth/callback");
+  assert.deepEqual(PRODUCT_REGISTRY["ynx-pay-v1"]?.scopes,["account:read","pay:case:create","pay:route:select","pay:settlement:submit","pay:sponsorship:request"]);
   assert.equal(PRODUCT_REGISTRY["ynx-card-v1"]?.requestingProduct,"ynx-card");
   assert.equal(PRODUCT_REGISTRY["ynx-finance-v1"]?.callbacks[0],"ynxfinance://wallet-auth/callback");
   assert.deepEqual(PRODUCT_REGISTRY["ynx-quant-v1"]?.scopes,["quant:account","quant:mandate:create","quant:mandate:execute","quant:mandate:revoke"]);

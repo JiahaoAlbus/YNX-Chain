@@ -2,9 +2,10 @@ import { p256 } from "@noble/curves/nist.js";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
-import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
+import { bytesToHex, hexToBytes, randomBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import {
   canonicalJSON as canonical,
+  createGatewayChallenge,
   encodeRequestDeepLink,
   parseAuthorizationRequest,
   parseCallbackURL,
@@ -40,6 +41,16 @@ export function requestDigest(request:AuthorizationRequest):string{return canoni
 export function parseApprovalCallback(url:string,request:AuthorizationRequest,now=new Date()):AuthorizationResponse{return verifyAuthorization(parseCallbackURL(url,CALLBACK),request,now)}
 export function verifyAuthorization(value:unknown,request:AuthorizationRequest,now=new Date()):AuthorizationResponse{return canonicalVerifyAuthorization(value,{...request,requestDigest:canonicalRequestDigest(request),now})}
 export function createGatewayCompletion(challenge:GatewayChallenge,secretText:string):GatewayCompletion{return signGatewayChallenge(challenge,secretText)}
+export function createGatewayCompletionForApproval(approval:AuthorizationResponse,secretText:string,random:Uint8Array,now=new Date()):GatewayCompletion{const expiresAt=new Date(Math.min(Date.parse(approval.expiresAt),now.getTime()+120_000)).toISOString();return signGatewayChallenge(createGatewayChallenge(approval,{challenge:encodeBase64url(random.slice(0,24)),expiresAt},now),secretText)}
+
+export async function productSessionProof(session:Readonly<{sessionBinding:string;productClientId:string;bundleId:string;productDeviceKey:string;scopes:readonly string[];expiresAt:string;deviceSecret:string}>,scope:string,now=new Date()):Promise<string>{
+  if(!SCOPES.includes(scope)||!session.scopes.includes(scope)||Date.parse(session.expiresAt)<=now.getTime())throw new WalletProtocolError("SESSION_REQUIRED","An active YNX Pay Product Session with the required scope is required");
+  const secret=decodeBase64url(session.deviceSecret,"product device secret");
+  if(encodeBase64url(p256.getPublicKey(secret,true))!==session.productDeviceKey)throw new WalletProtocolError("DEVICE_MISMATCH","Persisted Product Session device binding is invalid");
+  const body=canonical({requiredScopes:[scope]}),unsigned={version:"1",sessionBinding:session.sessionBinding,productClientId:session.productClientId,bundleId:session.bundleId,productDeviceKey:session.productDeviceKey,method:"POST",path:"/v1/wallet/sessions/introspect",bodyDigest:bytesToHex(sha256(utf8ToBytes(body))),nonce:encodeBase64url(randomBytes(24)),issuedAt:now.toISOString(),expiresAt:new Date(Math.min(Date.parse(session.expiresAt),now.getTime()+30_000)).toISOString()};
+  const signature=encodeBase64url(p256.sign(utf8ToBytes(`YNX_PRODUCT_SESSION_HTTP_PROOF_V1\n${canonical(unsigned)}`),secret,{format:"der"}));
+  return encodeBase64url(utf8ToBytes(canonical({...unsigned,signature})));
+}
 
 export function paymentIntent(input:Omit<SignedPaymentIntent,"version"|"intentType"|"chainId"|"productClientId"|"bundleId"|"callback">):SignedPaymentIntent{
   const intent=Object.freeze({version:"1",intentType:"pay.ynxt.transfer",chainId:CHAIN_ID,productClientId:PRODUCT_CLIENT_ID,bundleId:BUNDLE_ID,callback:PAYMENT_CALLBACK,...input}) as SignedPaymentIntent;
