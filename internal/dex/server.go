@@ -93,17 +93,22 @@ func (authorizer RemoteAuthorizer) Authorize(ctx context.Context, proof string, 
 }
 
 type Server struct {
-	store        *Store
-	build        buildinfo.Info
-	ingestionKey string
-	authorizer   SessionAuthorizer
-	tokens       []Token
-	source       string
+	store         *Store
+	build         buildinfo.Info
+	ingestionKey  string
+	authorizer    SessionAuthorizer
+	tokens        []Token
+	source        string
+	tokenProvider TokenProvider
 }
+
+type TokenProvider interface{ Tokens() []Token }
 
 func NewServer(store *Store, info buildinfo.Info, ingestionKey string, authorizer SessionAuthorizer, tokens ...Token) (*Server, error) {
 	return NewServerWithSource(store, info, ingestionKey, authorizer, "indexed YNX Testnet EVM events", tokens...)
 }
+
+func (server *Server) SetTokenProvider(provider TokenProvider) { server.tokenProvider = provider }
 
 func NewServerWithSource(store *Store, info buildinfo.Info, ingestionKey string, authorizer SessionAuthorizer, source string, tokens ...Token) (*Server, error) {
 	if store == nil || len(ingestionKey) < 32 {
@@ -166,7 +171,13 @@ func (server *Server) pools(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.Pools(), "source": server.source})
 }
 func (server *Server) tokensList(response http.ResponseWriter, _ *http.Request) {
-	writeJSON(response, http.StatusOK, map[string]any{"items": server.tokens, "chainId": ChainID, "mainnet": false, "source": "owner-reviewed Testnet token list"})
+	items := append([]Token(nil), server.tokens...)
+	source := "owner-reviewed Testnet token list"
+	if server.tokenProvider != nil {
+		items = server.tokenProvider.Tokens()
+		source = "authoritative chain-native YNX Testnet asset registry"
+	}
+	writeJSON(response, http.StatusOK, map[string]any{"items": items, "chainId": ChainID, "mainnet": false, "source": source})
 }
 func (server *Server) analytics(response http.ResponseWriter, _ *http.Request) {
 	analytics := server.store.Analytics()

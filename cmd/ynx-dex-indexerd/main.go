@@ -89,6 +89,10 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		if _, err := poller.PollOnce(ctx); err != nil {
+			log.Fatalf("initial authoritative native DEX poll failed: %v", err)
+		}
+		server.SetTokenProvider(poller)
 		go func() {
 			ticker := time.NewTicker(5 * time.Second)
 			defer ticker.Stop()

@@ -27,6 +27,16 @@ test("exact-output routing minimizes required input", () => {
   assert.equal(quote.amountOut, 10_000n);
 });
 
+test("authoritative chain-native asset and pool identifiers quote deterministically", () => {
+  const ynxt={address:"YNXT",chainId:6423,decimals:0,name:"YNX Testnet",symbol:"YNXT",verified:true};
+  const yusdt={address:"ynx-usd-test",chainId:6423,decimals:6,name:"YNX USD Test Asset",symbol:"YUSDT",verified:true};
+  const nativePool={address:"dex_ynxt_yusdt",feeBps:30,reserve0:"100000",reserve1:"200000",token0:ynxt,token1:yusdt,updatedAt:now.toISOString()};
+  const quote=quoteExactInput({amountIn:1000n,tokenIn:"YNXT",tokenOut:"ynx-usd-test",pools:[nativePool],now});
+  assert.deepEqual(quote.path,["ynxt","ynx-usd-test"]);
+  assert(quote.amountOut>0n);
+  assert.equal(quote.steps[0].pool,"dex_ynxt_yusdt");
+});
+
 test("slippage and transaction builder preserve fail-closed bounds", () => {
   assert.equal(minimumOutput(10_000n, 50), 9_950n);
   assert.equal(maximumInput(10_000n, 50), 10_050n);

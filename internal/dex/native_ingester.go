@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -24,6 +25,8 @@ type NativePoller struct {
 	store  *Store
 	base   *url.URL
 	client *http.Client
+	mu     sync.RWMutex
+	tokens []Token
 }
 
 type nativePool struct {
@@ -55,9 +58,21 @@ type nativeEvent struct {
 	BlockHash   string    `json:"blockHash"`
 }
 
+type nativeAsset struct {
+	ID       string `json:"id"`
+	Symbol   string `json:"symbol"`
+	Name     string `json:"name"`
+	Decimals uint8  `json:"decimals"`
+}
+
 func NewNativePoller(store *Store, cfg NativePollerConfig) (*NativePoller, error) {
 	if store == nil || strings.TrimSpace(cfg.RESTURL) == "" {
 		return nil, errors.New("store and native DEX REST URL are required")
+	}
+	for _, event := range store.Events() {
+		if event.ContractVersion != "ynx-native-dex-cpmm-v1" {
+			return nil, errors.New("native DEX poller refuses a state store containing another authority source")
+		}
 	}
 	base, err := url.Parse(strings.TrimRight(strings.TrimSpace(cfg.RESTURL), "/"))
 	if err != nil || (base.Scheme != "http" && base.Scheme != "https") || base.Host == "" || base.User != nil || base.RawQuery != "" || base.Fragment != "" {
@@ -71,6 +86,23 @@ func NewNativePoller(store *Store, cfg NativePollerConfig) (*NativePoller, error
 }
 
 func (poller *NativePoller) PollOnce(ctx context.Context) (bool, error) {
+	var assetEnvelope struct {
+		Items []nativeAsset `json:"items"`
+	}
+	if err := poller.get(ctx, "/dex/assets", &assetEnvelope); err != nil {
+		return false, err
+	}
+	tokens := []Token{{ChainID: ChainID, Address: "YNXT", Symbol: "YNXT", Name: "YNX Testnet", Decimals: 0, Standard: "YNX-NATIVE", ReviewStatus: "authoritative-chain-native-testnet"}}
+	for _, asset := range assetEnvelope.Items {
+		token := Token{ChainID: ChainID, Address: asset.ID, Symbol: asset.Symbol, Name: asset.Name, Decimals: asset.Decimals, Standard: "YNX-NATIVE", ReviewStatus: "authoritative-chain-native-testnet"}
+		if err := token.Validate(); err != nil {
+			return false, fmt.Errorf("native DEX asset %q: %w", asset.ID, err)
+		}
+		tokens = append(tokens, token)
+	}
+	poller.mu.Lock()
+	poller.tokens = tokens
+	poller.mu.Unlock()
 	var poolEnvelope struct {
 		Items []nativePool `json:"items"`
 	}
@@ -107,6 +139,12 @@ func (poller *NativePoller) PollOnce(ctx context.Context) (bool, error) {
 		advanced = advanced || created
 	}
 	return advanced, nil
+}
+
+func (poller *NativePoller) Tokens() []Token {
+	poller.mu.RLock()
+	defer poller.mu.RUnlock()
+	return append([]Token(nil), poller.tokens...)
 }
 
 func nativeIndexedEvent(value nativeEvent, pool nativePool, logIndex uint64) (Event, bool) {

@@ -1,4 +1,6 @@
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const NATIVE_ASSET = /^(YNXT|[a-z][a-z0-9-]{2,31})$/;
+const NATIVE_POOL = /^dex_[a-z0-9][a-z0-9_-]{2,59}$/;
 const NATIVE_ACCOUNT = /^ynx1[0-9a-z]{20,80}$/;
 const INTEGER = /^-?[0-9]{1,78}$/;
 const MAX_HOPS = 4;
@@ -10,46 +12,46 @@ export class DexSdkError extends Error {
 
 export function parseToken(value) {
   exactObject(value, ["address", "chainId", "decimals", "name", "symbol", "verified"]);
-  if (!ADDRESS.test(value.address) || value.chainId !== 6423 || !Number.isInteger(value.decimals) || value.decimals < 0 || value.decimals > 36) fail("INVALID_TOKEN", "invalid token identity");
+  if ((!ADDRESS.test(value.address) && !NATIVE_ASSET.test(value.address)) || value.chainId !== 6423 || !Number.isInteger(value.decimals) || value.decimals < 0 || value.decimals > 36) fail("INVALID_TOKEN", "invalid token identity");
   if (!bounded(value.name, 1, 80) || !bounded(value.symbol, 1, 16) || typeof value.verified !== "boolean") fail("INVALID_TOKEN", "invalid token metadata");
-  return Object.freeze({ ...value, address: value.address.toLowerCase() });
+  return Object.freeze({ ...value, address: normalizeIdentifier(value.address) });
 }
 
 export function parsePool(value) {
   exactObject(value, ["address", "feeBps", "reserve0", "reserve1", "token0", "token1", "updatedAt"]);
-  if (!ADDRESS.test(value.address) || !Number.isInteger(value.feeBps) || value.feeBps < 0 || value.feeBps > 100) fail("INVALID_POOL", "invalid pool identity or fee");
+  if ((!ADDRESS.test(value.address) && !NATIVE_POOL.test(value.address)) || !Number.isInteger(value.feeBps) || value.feeBps < 0 || value.feeBps > 100) fail("INVALID_POOL", "invalid pool identity or fee");
   const token0 = parseToken(value.token0);
   const token1 = parseToken(value.token1);
-  if (token0.address >= token1.address) fail("INVALID_POOL", "pool tokens must be canonical and distinct");
+  if (token0.address === token1.address) fail("INVALID_POOL", "pool tokens must be distinct");
   const reserve0 = positiveBigInt(value.reserve0, true);
   const reserve1 = positiveBigInt(value.reserve1, true);
   const updatedAt = new Date(value.updatedAt);
   if (!Number.isFinite(updatedAt.valueOf())) fail("INVALID_POOL", "invalid pool timestamp");
-  return Object.freeze({ ...value, address: value.address.toLowerCase(), token0, token1, reserve0, reserve1, updatedAt: updatedAt.toISOString() });
+  return Object.freeze({ ...value, address: normalizeIdentifier(value.address), token0, token1, reserve0, reserve1, updatedAt: updatedAt.toISOString() });
 }
 
 export function parsePosition(value) {
   exactObject(value, ["account", "addedToken0", "addedToken1", "netLpAmount", "pool", "removedToken0", "removedToken1"]);
-  if ((!NATIVE_ACCOUNT.test(value.account) && !ADDRESS.test(value.account)) || !ADDRESS.test(value.pool)) fail("INVALID_POSITION", "invalid position identity");
+  if ((!NATIVE_ACCOUNT.test(value.account) && !ADDRESS.test(value.account)) || (!ADDRESS.test(value.pool) && !NATIVE_POOL.test(value.pool))) fail("INVALID_POSITION", "invalid position identity");
   for (const field of ["netLpAmount", "addedToken0", "addedToken1", "removedToken0", "removedToken1"]) if (!INTEGER.test(value[field])) fail("INVALID_POSITION", "invalid position amount");
   return Object.freeze({ ...value, account: value.account.toLowerCase(), pool: value.pool.toLowerCase() });
 }
 
 export function parseSpotPrice(value) {
   exactObject(value, ["pool", "price0Denominator", "price0Numerator", "price1Denominator", "price1Numerator", "token0", "token1", "updatedBlock"]);
-  if (![value.pool,value.token0,value.token1].every(item=>ADDRESS.test(item)) || !Number.isSafeInteger(value.updatedBlock) || value.updatedBlock<1) fail("INVALID_PRICE", "invalid price identity");
+  if (!validMarketIdentity(value.pool,value.token0,value.token1) || !Number.isSafeInteger(value.updatedBlock) || value.updatedBlock<1) fail("INVALID_PRICE", "invalid price identity");
   for (const field of ["price0Denominator","price0Numerator","price1Denominator","price1Numerator"]) positiveBigInt(value[field]);
   return Object.freeze({ ...value, pool:value.pool.toLowerCase(),token0:value.token0.toLowerCase(),token1:value.token1.toLowerCase() });
 }
 
 export function parseTWAP(value) {
   exactObject(value,["fromBlock","intervalSeconds","pool","price0AverageX112","price1AverageX112","toBlock","token0","token1"]);
-  if (![value.pool,value.token0,value.token1].every(item=>ADDRESS.test(item)) || !Number.isSafeInteger(value.fromBlock) || !Number.isSafeInteger(value.toBlock) || value.fromBlock<1 || value.toBlock<=value.fromBlock || !Number.isSafeInteger(value.intervalSeconds) || value.intervalSeconds<1) fail("INVALID_TWAP","invalid TWAP identity or interval");
+  if (!validMarketIdentity(value.pool,value.token0,value.token1) || !Number.isSafeInteger(value.fromBlock) || !Number.isSafeInteger(value.toBlock) || value.fromBlock<1 || value.toBlock<=value.fromBlock || !Number.isSafeInteger(value.intervalSeconds) || value.intervalSeconds<1) fail("INVALID_TWAP","invalid TWAP identity or interval");
   positiveBigInt(value.price0AverageX112,true);positiveBigInt(value.price1AverageX112,true);return Object.freeze({...value,pool:value.pool.toLowerCase(),token0:value.token0.toLowerCase(),token1:value.token1.toLowerCase()});
 }
 
 export function parseFeeSummary(value) {
-  exactObject(value,["claimedFee0","claimedFee1","pool","swapFee0","swapFee1","token0","token1"]);if(![value.pool,value.token0,value.token1].every(item=>ADDRESS.test(item)))fail("INVALID_FEES","invalid fee identity");for(const field of ["claimedFee0","claimedFee1","swapFee0","swapFee1"])positiveBigInt(value[field],true);return Object.freeze({...value,pool:value.pool.toLowerCase(),token0:value.token0.toLowerCase(),token1:value.token1.toLowerCase()});
+  exactObject(value,["claimedFee0","claimedFee1","pool","swapFee0","swapFee1","token0","token1"]);if(!validMarketIdentity(value.pool,value.token0,value.token1))fail("INVALID_FEES","invalid fee identity");for(const field of ["claimedFee0","claimedFee1","swapFee0","swapFee1"])positiveBigInt(value[field],true);return Object.freeze({...value,pool:normalizeIdentifier(value.pool),token0:normalizeIdentifier(value.token0),token1:normalizeIdentifier(value.token1)});
 }
 
 export function amountOut(amountIn, reserveIn, reserveOut, feeBps = 30) {
@@ -188,10 +190,10 @@ function quoteRouteExactOutput(output, route, tokenOut, now) {
 }
 
 function enumerateRoutes(tokenIn, tokenOut, rawPools, maxHops) {
-  if (!ADDRESS.test(tokenIn) || !ADDRESS.test(tokenOut) || tokenIn.toLowerCase() === tokenOut.toLowerCase()) fail("INVALID_ROUTE", "invalid route endpoints");
+  if ((!ADDRESS.test(tokenIn) && !NATIVE_ASSET.test(tokenIn)) || (!ADDRESS.test(tokenOut) && !NATIVE_ASSET.test(tokenOut)) || normalizeIdentifier(tokenIn) === normalizeIdentifier(tokenOut)) fail("INVALID_ROUTE", "invalid route endpoints");
   if (!Number.isInteger(maxHops) || maxHops < 1 || maxHops > MAX_HOPS) fail("INVALID_ROUTE", "max hops must be 1..4");
   const pools = rawPools.map(parsePool).filter((pool) => pool.reserve0 > 0n && pool.reserve1 > 0n);
-  const target = tokenOut.toLowerCase();
+  const target = normalizeIdentifier(tokenOut);
   const routes = [];
   const walk = (current, route, seenTokens) => {
     if (route.length >= maxHops) return;
@@ -207,11 +209,14 @@ function enumerateRoutes(tokenIn, tokenOut, rawPools, maxHops) {
       else walk(next, candidate, new Set([...seenTokens, next]));
     }
   };
-  walk(tokenIn.toLowerCase(), [], new Set([tokenIn.toLowerCase()]));
+  const start = normalizeIdentifier(tokenIn);
+  walk(start, [], new Set([start]));
   return routes;
 }
 
 function routeKey(quote) { return quote.steps.map((step) => step.pool).join(":"); }
+function normalizeIdentifier(value) { return value.toLowerCase(); }
+function validMarketIdentity(pool, token0, token1) { return (ADDRESS.test(pool) || NATIVE_POOL.test(pool)) && (ADDRESS.test(token0) || NATIVE_ASSET.test(token0)) && (ADDRESS.test(token1) || NATIVE_ASSET.test(token1)); }
 function validateFee(value) { if (!Number.isInteger(value) || value < 0 || value > 100) fail("INVALID_FEE", "fee must be 0..100 bps"); }
 function validateSlippage(value) { if (!Number.isInteger(value) || value < 1 || value > 5_000) fail("INVALID_SLIPPAGE", "slippage must be 1..5000 bps"); }
 function validateTxCommon(router, recipient, deadline, chainId) {

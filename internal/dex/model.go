@@ -179,7 +179,7 @@ type FeeSummary struct {
 }
 
 func (token Token) Validate() error {
-	if token.ChainID != ChainID || !addressPattern.MatchString(token.Address) {
+	if token.ChainID != ChainID {
 		return errors.New("invalid token chain or address")
 	}
 	if len(token.Symbol) < 1 || len(token.Symbol) > 16 || strings.TrimSpace(token.Symbol) != token.Symbol {
@@ -188,8 +188,13 @@ func (token Token) Validate() error {
 	if len(token.Name) < 1 || len(token.Name) > 64 || strings.TrimSpace(token.Name) != token.Name {
 		return errors.New("invalid token name")
 	}
-	if token.Decimals > 36 || token.Standard != "ERC-20" || token.ReviewStatus != "owner-reviewed-testnet" {
-		return errors.New("token is not approved Testnet ERC-20 metadata")
+	if token.Decimals > 36 {
+		return errors.New("invalid token decimals")
+	}
+	evm := addressPattern.MatchString(token.Address) && token.Standard == "ERC-20" && token.ReviewStatus == "owner-reviewed-testnet"
+	native := nativeAssetPattern.MatchString(token.Address) && token.Standard == "YNX-NATIVE" && token.ReviewStatus == "authoritative-chain-native-testnet"
+	if !evm && !native {
+		return errors.New("token is not approved Testnet metadata")
 	}
 	return nil
 }
