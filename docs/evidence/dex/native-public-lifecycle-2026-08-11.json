@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "network": "YNX Testnet",
+  "chainId": 6423,
+  "mainnet": false,
+  "recordedAt": "2026-08-11T12:15:43.934849597Z",
+  "deployment": {
+    "release": "ynx-dex-b72e19389311",
+    "sourceCommit": "b72e193893117bb46e3d299ea85ea04be809183c",
+    "binarySha256": "4583ad0f63e3651c61e20bdb44befc8aec926253129618165bb74c681e960bb8",
+    "webTreeSha256": "c0cc78d2e81e811ee57c29bffd19c03e9a5cd956d4f7579ca21018d01e5c10b0",
+    "publicUrl": "https://dex.ynxweb4.com"
+  },
+  "issuer": "0x3ae45f0c106390bb4651a92546f65a913cd3545b",
+  "trader": "0x7380b0b24db98f441d5694275f5f22ebc33c1f1d",
+  "assetId": "ynx-usd-test",
+  "poolId": "dex_ynxt_yusdt",
+  "actions": [
+    {
+      "action": "dex_asset_create",
+      "route": "/dex/assets",
+      "transactionHash": "0xc8310891384e40322f4f688e01fd76b33aa0519a7bbbd73a11653096f725f67f",
+      "blockHeight": 956749,
+      "blockHash": "15084c1accf3d9839b8b3bf8a9f977bb8b17a9690a7a929591a6f8c3344f233d",
+      "auditHash": "287c6b53f86387be9a3a7f9f403d7c786957ad22763901cd26743a5454c7edee"
+    },
+    {
+      "action": "dex_asset_transfer",
+      "route": "/dex/assets/ynx-usd-test/transfer",
+      "transactionHash": "0xf4dce44884195012c8288c745b59c49beaaf46e230ab66eac2ef2930a68515a3",
+      "blockHeight": 956751,
+      "blockHash": "ac285d7ede76ca572029da61289515f1bbd21293c574af0d7eafb9617b30bb22",
+      "auditHash": "6a776ca16fc248d633e8132d8afd031c51d479e5671cad0a9819cc1420447b7f"
+    },
+    {
+      "action": "dex_pool_create",
+      "route": "/dex/pools",
+      "transactionHash": "0x20e6a851a77a9dfacfe11943738f0a9eaea82f1c9f59818934f0e9ce99072c0f",
+      "blockHeight": 956752,
+      "blockHash": "92bf51b640a87f780e9a83ce2cb20faf5990760164c86b64c3c5c4909828f660",
+      "auditHash": "244bdf7c27cd459d4bd65903d68267e91ba3589356ba0f47cd998f29c17a9ed2"
+    },
+    {
+      "action": "dex_liquidity_add",
+      "route": "/dex/pools/dex_ynxt_yusdt/liquidity/add",
+      "transactionHash": "0x741a0e35da712ef9c99da4cfeed5ad7b3daa3c423e8d6c801bba30fbf4f94a02",
+      "blockHeight": 956753,
+      "blockHash": "3e7d27aa01ab78a4fe63bf0c638fb465f3a0fe9352a972be359ce49e736ef505",
+      "auditHash": "d4bfbd7b506b077fef9f0de513b6d04293f353e63ad97c480b329a003222f22b"
+    },
+    {
+      "action": "dex_swap_exact_input",
+      "route": "/dex/pools/dex_ynxt_yusdt/swaps/exact-input",
+      "transactionHash": "0xf6ad054c6ec5843308e9711c5f3ca8cf653efbe1cc86c8a7a101a7fde95029b0",
+      "blockHeight": 956755,
+      "blockHash": "c4b002a41befdf7ef3e058071a9e3c3ead8556dc8eec9f2b7381a42fc590649e",
+      "auditHash": "6486b5eac68953ee29ba6308852ff8babe6f1316ab6280d23931e42c670b4f5e"
+    },
+    {
+      "action": "dex_swap_exact_output",
+      "route": "/dex/pools/dex_ynxt_yusdt/swaps/exact-output",
+      "transactionHash": "0x65ed102d73dd20f1c5b03d8e4b06095ac6e96a645b246cba50dca70727c2fe30",
+      "blockHeight": 956757,
+      "blockHash": "0e140aa1156b3fd97f4c6f7455604cbe234fecac9aaf752b67bf869d2dbae151",
+      "auditHash": "163696da1ad0ae3a27041a759810643de246579763c03f00e4cd892ae324844c"
+    },
+    {
+      "action": "dex_liquidity_remove",
+      "route": "/dex/pools/dex_ynxt_yusdt/liquidity/remove",
+      "transactionHash": "0xc0f88013990ecfda1c8b3e46e25aee6959466b77719dcfa33117833a0629593a",
+      "blockHeight": 956758,
+      "blockHash": "0c720f0d7a9358589101cf804c4efe26b17b2aec83b2d5692741121f8ffca1b0",
+      "auditHash": "8c46b1cf60fda39364ae8e32bfead513237125e7fccf084f04b779a3fe5a4236"
+    }
+  ],
+  "pool": {
+    "schemaVersion": 1,
+    "id": "dex_ynxt_yusdt",
+    "kind": "ynx-cpmm-v1",
+    "asset0": "YNXT",
+    "asset1": "ynx-usd-test",
+    "reserve0": 46,
+    "reserve1": 103170,
+    "feeBps": 30,
+    "totalShares": 2136,
+    "shares": {
+      "0x3ae45f0c106390bb4651a92546f65a913cd3545b": 2136
+    },
+    "nativeLots0": {
+      "6d8e6dd11fcb76f27d72b968dadc8beb52b4c526f37b5d8bdd21c6229d7886c5": 46
+    },
+    "createdAt": "2026-08-11T12:00:29.274099223Z",
+    "updatedAt": "2026-08-11T12:01:11.662228766Z",
+    "transactionHash": "0xc0f88013990ecfda1c8b3e46e25aee6959466b77719dcfa33117833a0629593a",
+    "blockHeight": 956758,
+    "blockHash": "0c720f0d7a9358589101cf804c4efe26b17b2aec83b2d5692741121f8ffca1b0",
+    "auditHash": "7e8f99fdb9278ddaf40c8e9500444069360593dc30f37fd58ebd0ec2d1fc3e94"
+  },
+  "eventCount": 7,
+  "node": {
+    "height": 956963,
+    "latestBlockHash": "c566bc0480d994ce416e776183ba346f6cb16320346b4617652335249fe58781",
+    "buildCommit": "a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8",
+    "persistence": true
+  },
+  "indexer": {
+    "marketSourceConfigured": true,
+    "marketAvailable": true,
+    "executionAvailable": true,
+    "indexedPools": 1,
+    "indexedTransactions": 6,
+    "swapCount": 2,
+    "candleCount": 2,
+    "source": "indexed authoritative chain-native YNX Testnet DEX state",
+    "buildCommit": "b72e193893117bb46e3d299ea85ea04be809183c",
+    "release": "ynx-dex-b72e19389311"
+  },
+  "secretsStored": false,
+  "observationMode": "authoritative-post-commit"
+}

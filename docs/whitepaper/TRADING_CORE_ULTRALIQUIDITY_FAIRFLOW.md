@@ -1,14 +1,18 @@
 # Trading Core, UltraLiquidity, and FairFlow
 
-Version: 0.1.0-candidate  
-Effective date: not effective  
-Last reviewed: 2026-07-22  
-Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`  
-Product release: research and interface specification; no deployed trading venue
+Version: 0.2.0-testnet
+
+Effective date: Testnet policy only
+
+Last reviewed: 2026-08-11
+
+Source commit: `b72e193893117bb46e3d299ea85ea04be809183c`
+
+Product release: one thin-liquidity chain-native Testnet pool; no production venue
 
 ## Direct answer
 
-YNX does not currently evidence a live exchange, DEX, shared-liquidity network, or production matching engine. “UltraLiquidity” and “FairFlow” name candidate design goals: truthful venue aggregation and auditable order handling. They are not claims of deep liquidity, best execution, fairness, zero slippage, or guaranteed fills.
+YNX now evidences a bounded chain-native DEX on public Testnet with one deliberately thin YNXT/YUSDT test pool, two committed test swaps and indexed candle data. It does not evidence a production exchange, BTC market, derivatives venue, shared-liquidity network or production matching engine. “UltraLiquidity” and “FairFlow” remain design goals for truthful venue aggregation and auditable order handling; they are not claims of deep liquidity, best execution, fairness, zero slippage or guaranteed fills.
 
 ## Asset boundary
 
@@ -49,8 +53,9 @@ Risks include market loss, slippage, partial fills, stale data, venue insolvency
 
 ## Evidence and activation gate
 
-Activation requires reviewed custody/mandate contracts, provider approvals, deterministic test vectors, replay/tamper/wrong-scope tests, real sandbox or testnet fills, reconciliation, load/failure tests, security review, legal classification, fee approval, support/dispute handling, and public release evidence. Until then, release state remains false.
+The bounded native Testnet gate now has real testnet fills, deterministic replay tests, public release identity and bounded load evidence. Production activation still requires reviewed custody/mandate contracts, provider approvals, reconciliation, failure testing, independent security review, legal classification, fee approval, support/dispute handling and production release evidence. Mainnet and production-liquidity states remain false.
 
 ## Change log
 
 - 0.1.0-candidate: established truthful non-live boundary and candidate lifecycle.
+- 0.2.0-testnet: recorded the bounded chain-native Testnet market while retaining the production activation boundary.

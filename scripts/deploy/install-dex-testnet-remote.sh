@@ -7,12 +7,14 @@ release="${3:?missing release name}"
 build_time="${4:?missing canonical build time}"
 binary_sha="${5:?missing binary digest}"
 web_sha="${6:?missing web tree digest}"
+native_rest_url="${7:-http://127.0.0.1:6420}"
 
 [[ "$(id -u)" == "0" ]] || { echo "DEX installer must run as root" >&2; exit 1; }
 [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]] || { echo "source commit must be a full lowercase Git SHA" >&2; exit 1; }
 [[ "$release" == "ynx-dex-${source_commit:0:12}" ]] || { echo "release does not match source commit" >&2; exit 1; }
 [[ "$build_time" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$ ]] || { echo "build time must be canonical UTC" >&2; exit 1; }
 [[ "$binary_sha" =~ ^[0-9a-f]{64}$ && "$web_sha" =~ ^[0-9a-f]{64}$ ]] || { echo "release digest is invalid" >&2; exit 1; }
+[[ "$native_rest_url" == "http://127.0.0.1:6420" ]] || { echo "native DEX source must be the local authoritative Testnet REST origin" >&2; exit 1; }
 [[ -d "$release_dir" && ! -L "$release_dir" ]] || { echo "release directory is missing or unsafe" >&2; exit 1; }
 for command in caddy curl node runuser sha256sum systemctl; do command -v "$command" >/dev/null; done
 id -u ynx >/dev/null
@@ -43,10 +45,11 @@ set -a
 set +a
 : "${YNX_DEX_STATE_HMAC_SECRET:?existing DEX state key missing}"
 : "${YNX_DEX_INDEXER_INGESTION_KEY:?existing DEX ingestion key missing}"
-[[ -z "${DEX_FACTORY_ADDRESS:-}" && -z "${YNX_DEX_NATIVE_REST_URL:-}" ]] || {
-  echo "this bounded deployment expects the current public DEX to have no authoritative market source" >&2
+[[ -z "${DEX_FACTORY_ADDRESS:-}" ]] || {
+  echo "chain-native deployment refuses a competing EVM factory source" >&2
   exit 1
 }
+[[ -z "${YNX_DEX_NATIVE_REST_URL:-}" || "$YNX_DEX_NATIVE_REST_URL" == "$native_rest_url" ]] || { echo "existing native DEX source conflicts with the requested source" >&2; exit 1; }
 
 umask 077
 preflight_state="$state_dir/.preflight-$release.json"
@@ -64,6 +67,7 @@ runuser -u ynx -- env -i PATH=/usr/bin:/bin \
   YNX_DEX_STATE_HMAC_SECRET="$YNX_DEX_STATE_HMAC_SECRET" \
   YNX_DEX_INDEXER_INGESTION_KEY="$YNX_DEX_INDEXER_INGESTION_KEY" \
   YNX_DEX_WALLET_INTROSPECTION_URL=http://127.0.0.1:6439/v1/wallet/sessions/introspect \
+  YNX_DEX_NATIVE_REST_URL="$native_rest_url" \
   "$release_dir/ynx-dex-indexerd" >"$preflight_log" 2>&1 &
 preflight_pid=$!
 cleanup_preflight() {
@@ -80,8 +84,8 @@ for attempt in $(seq 1 20); do
     VERSION_JSON="$version_json" HEALTH_JSON="$health_json" TOKENS_JSON="$tokens_json" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" node <<'NODE'
 const version=JSON.parse(process.env.VERSION_JSON),health=JSON.parse(process.env.HEALTH_JSON),tokens=JSON.parse(process.env.TOKENS_JSON);
 if(version.commit!==process.env.EXPECTED_COMMIT||version.release!==process.env.EXPECTED_RELEASE)process.exit(1);
-if(health.status!=="ok"||health.productId!=="ynx-dex"||health.chainId!==6423||health.marketSourceConfigured!==false||health.marketAvailable!==false||health.executionAvailable!==false||health.indexedPools!==0)process.exit(1);
-if(tokens.chainId!==6423||tokens.mainnet!==false||!Array.isArray(tokens.items)||tokens.items.length!==0)process.exit(1);
+if(health.status!=="ok"||health.productId!=="ynx-dex"||health.chainId!==6423||health.marketSourceConfigured!==true||health.marketAvailable!==(health.indexedPools>0)||health.executionAvailable!==health.marketAvailable)process.exit(1);
+if(tokens.chainId!==6423||tokens.mainnet!==false||!Array.isArray(tokens.items)||tokens.items.length<1||tokens.items[0]?.address!=="YNXT")process.exit(1);
 NODE
   then
     preflight_ok=1
@@ -106,10 +110,11 @@ if [[ -s "$state_file" ]]; then
 fi
 
 new_env="/etc/ynx/.dex.env.$release"
-awk '!/^YNX_DEX_TOKEN_LIST_PATH=/ && !/^YNX_DEX_WALLET_INTROSPECTION_URL=/' "$env_file" >"$new_env"
+awk '!/^YNX_DEX_TOKEN_LIST_PATH=/ && !/^YNX_DEX_WALLET_INTROSPECTION_URL=/ && !/^YNX_DEX_NATIVE_REST_URL=/ && !/^DEX_FACTORY_ADDRESS=/' "$env_file" >"$new_env"
 cat >>"$new_env" <<EOF
 YNX_DEX_TOKEN_LIST_PATH=$release_dir/token-lists/dex-testnet.json
 YNX_DEX_WALLET_INTROSPECTION_URL=http://127.0.0.1:6439/v1/wallet/sessions/introspect
+YNX_DEX_NATIVE_REST_URL=$native_rest_url
 EOF
 chmod 0600 "$new_env"
 
@@ -186,8 +191,8 @@ for attempt in $(seq 1 30); do
     VERSION_JSON="$version_json" HEALTH_JSON="$health_json" TOKENS_JSON="$tokens_json" GATEWAY_JSON="$gateway_json" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" node <<'NODE'
 const version=JSON.parse(process.env.VERSION_JSON),health=JSON.parse(process.env.HEALTH_JSON),tokens=JSON.parse(process.env.TOKENS_JSON),gateway=JSON.parse(process.env.GATEWAY_JSON);
 if(version.commit!==process.env.EXPECTED_COMMIT||version.release!==process.env.EXPECTED_RELEASE)process.exit(1);
-if(health.status!=="ok"||health.marketSourceConfigured!==false||health.marketAvailable!==false||health.executionAvailable!==false||health.indexedPools!==0)process.exit(1);
-if(!Array.isArray(tokens.items)||tokens.items.length!==0)process.exit(1);
+if(health.status!=="ok"||health.marketSourceConfigured!==true||health.marketAvailable!==(health.indexedPools>0)||health.executionAvailable!==health.marketAvailable)process.exit(1);
+if(!Array.isArray(tokens.items)||tokens.items.length<1||tokens.items[0]?.address!=="YNXT")process.exit(1);
 if(!gateway.ok||gateway.service!=="ynx-wallet-gatewayd"||gateway.truthfulStatus!=="remote-canonical-wallet-gateway")process.exit(1);
 NODE
   then
@@ -201,5 +206,7 @@ done
 
 rollback_required=0
 trap - EXIT
-printf 'dexDeploy=passed\nrelease=%s\nsourceCommit=%s\nbinarySha256=%s\nwebTreeSha256=%s\nbackup=%s\nmarketAvailable=false\nexecutionAvailable=false\n' \
-  "$release" "$source_commit" "$binary_sha" "$web_sha" "$backup_dir"
+runtime_market="$(HEALTH_JSON="$health_json" node -e 'process.stdout.write(String(JSON.parse(process.env.HEALTH_JSON).marketAvailable))')"
+runtime_execution="$(HEALTH_JSON="$health_json" node -e 'process.stdout.write(String(JSON.parse(process.env.HEALTH_JSON).executionAvailable))')"
+printf 'dexDeploy=passed\nrelease=%s\nsourceCommit=%s\nbinarySha256=%s\nwebTreeSha256=%s\nbackup=%s\nmarketSourceConfigured=true\nmarketAvailable=%s\nexecutionAvailable=%s\n' \
+  "$release" "$source_commit" "$binary_sha" "$web_sha" "$backup_dir" "$runtime_market" "$runtime_execution"

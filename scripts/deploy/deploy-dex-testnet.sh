@@ -9,10 +9,12 @@ PRIMARY_NODE_HOST="${PRIMARY_NODE_HOST:-43.153.202.237}"
 PRIMARY_NODE_USER="${PRIMARY_NODE_USER:-ubuntu}"
 PRIMARY_NODE_SSH_KEY="${PRIMARY_NODE_SSH_KEY:-/Users/huangjiahao/Downloads/Huang.pem}"
 YNX_DEX_TESTNET_DRY_RUN="${YNX_DEX_TESTNET_DRY_RUN:-0}"
+YNX_DEX_NATIVE_REST_URL="${YNX_DEX_NATIVE_REST_URL:-http://127.0.0.1:6420}"
 case "$YNX_DEX_TESTNET_DRY_RUN" in
   0 | 1) ;;
   *) echo "YNX_DEX_TESTNET_DRY_RUN must be 0 or 1" >&2; exit 1 ;;
 esac
+[[ "$YNX_DEX_NATIVE_REST_URL" == "http://127.0.0.1:6420" ]] || { echo "YNX_DEX_NATIVE_REST_URL must be the primary node loopback REST origin" >&2; exit 1; }
 [[ -r "$PRIMARY_NODE_SSH_KEY" ]] || { echo "Primary Testnet SSH key is not readable" >&2; exit 1; }
 ynx_require_clean_worktree
 
@@ -70,6 +72,6 @@ else
   sudo tar -xzf '$remote_tarball' -C /opt/ynx/releases/dex
   sudo chown -R root:root '$remote_release_dir'
 fi
-sudo bash '$remote_release_dir/install-dex-testnet-remote.sh' '$remote_release_dir' '$source_commit' '$release' '$build_time' '$binary_sha' '$web_sha'
+sudo bash '$remote_release_dir/install-dex-testnet-remote.sh' '$remote_release_dir' '$source_commit' '$release' '$build_time' '$binary_sha' '$web_sha' '$YNX_DEX_NATIVE_REST_URL'
 rm -f '$remote_tarball'"
 ynx_transport_ssh "dex-primary" "$PRIMARY_NODE_SSH_KEY" "$remote" "$remote_command"

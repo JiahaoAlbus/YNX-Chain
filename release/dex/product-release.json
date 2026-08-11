@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "sourceBranch": "codex/ecosystem-dex",
-  "sourceCommit": "9b3ed30a6a21392ced2600af4217ade155283498",
+  "sourceCommit": "b72e193893117bb46e3d299ea85ea04be809183c",
   "artifactSourceCommit": "5b4eb9e1511577ce73291d97fdc0b9aa376b0383",
   "recoveredSourceCommit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
   "recoveryTipCommit": "1614ffb7fa4983a182405fe3fa118fa448f87b4b",
@@ -36,18 +36,25 @@
   },
   "signingClass": "unsigned-local-build",
   "minOS": { "web": "modern browser with ES2022 and PWA support" },
-  "installEvidence": ["docs/evidence/dex/public-web-api-wallet-2026-08-11.json"],
+  "installEvidence": [
+    "docs/evidence/dex/native-public-lifecycle-2026-08-11.json",
+    "docs/evidence/dex/native-market-capacity-2026-08-11.json",
+    "docs/evidence/dex/chain-native-four-node-rollout-2026-08-11.json",
+    "docs/evidence/dex/public-web-api-wallet-2026-08-11.json"
+  ],
   "publicDeployment": {
-    "release": "ynx-dex-9b3ed30a6a21",
-    "sourceCommit": "9b3ed30a6a21392ced2600af4217ade155283498",
-    "binarySha256": "9a7941d1bfc2e768e5351e69e366967316e8dd2d910cea45ae9a2bc502ef289c",
+    "release": "ynx-dex-b72e19389311",
+    "sourceCommit": "b72e193893117bb46e3d299ea85ea04be809183c",
+    "binarySha256": "4583ad0f63e3651c61e20bdb44befc8aec926253129618165bb74c681e960bb8",
     "webTreeSha256": "c0cc78d2e81e811ee57c29bffd19c03e9a5cd956d4f7579ca21018d01e5c10b0",
     "web": true,
     "indexerApi": true,
     "walletGatewayProxy": true,
-    "marketSourceConfigured": false,
-    "marketAvailable": false,
-    "executionAvailable": false,
+    "marketSourceConfigured": true,
+    "marketAvailable": true,
+    "executionAvailable": true,
+    "publicAssetMovementVerified": true,
+    "testnetLiquidity": true,
     "productionLiquidity": false
   },
   "centralIntegration": {
@@ -60,13 +67,13 @@
     "registryRuntimeSha256": "fedc7d033150167fbc0a8ab1c678b4c17dc6a39acd47ae0b157018b9266d1a36"
   },
   "knownLimitations": [
-    "The public Web, read API and same-origin canonical Wallet Gateway are deployed; no verified public market source or pool is configured, so marketAvailable and executionAvailable remain false.",
-    "The chain-native CPMM consensus paths plus Wallet-signed swap, add-liquidity and remove-liquidity flows are implemented and locally tested; a public end-to-end asset movement is not yet accepted.",
+    "The public Web, read API and same-origin canonical Wallet Gateway now use an authoritative chain-native Testnet market source with one labelled YNXT/YUSDT test pool; this is Testnet liquidity and is not production liquidity.",
+    "Public chain-native create-asset, transfer, create-pool, add-liquidity, exact-input swap, exact-output swap and remove-liquidity actions are committed, four-node replicated and indexed with candles.",
     "The EVM Factory, Router and Quoter remain build artifacts without a verified public Testnet deployment or funded reviewed pools.",
-    "The canonical DEX Wallet client is enabled in the public Gateway, but a complete installed-Wallet callback and transaction lifecycle still requires an executable pool.",
+    "The canonical DEX Wallet client is enabled and its public session lifecycle is verified; the recorded market lifecycle used ephemeral in-memory Testnet signing keys rather than claiming an installed-Wallet transaction callback.",
     "No independent third-party smart-contract audit has been completed.",
     "Staging, hosted download, production signing, store release, verified contracts and production liquidity are absent.",
     "Concentrated/stable/weighted pools, Strategy Vault controls, FairFlow solving and LP protection remain outside this candidate."
   ],
-  "generatedAt": "2026-08-11T10:41:12.000Z"
+  "generatedAt": "2026-08-11T12:22:20.000Z"
 }

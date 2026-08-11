@@ -29,6 +29,9 @@ type actionEvidence struct {
 	Action          string `json:"action"`
 	Route           string `json:"route"`
 	TransactionHash string `json:"transactionHash"`
+	BlockHeight     uint64 `json:"blockHeight"`
+	BlockHash       string `json:"blockHash"`
+	AuditHash       string `json:"auditHash"`
 	HTTPStatus      int    `json:"httpStatus,omitempty"`
 }
 
@@ -48,6 +51,8 @@ type indexerEvidence struct {
 	SwapCount              int    `json:"swapCount"`
 	CandleCount            int    `json:"candleCount"`
 	Source                 string `json:"source"`
+	BuildCommit            string `json:"buildCommit"`
+	Release                string `json:"release"`
 }
 
 type evidence struct {
@@ -182,6 +187,14 @@ func run(restOrigin, indexerOrigin, output string) error {
 				return false, nil
 			}
 		}
+		for index, event := range events.Items {
+			if index >= len(result.Actions) || result.Actions[index].TransactionHash != event.TxHash || result.Actions[index].Action != event.Type {
+				return false, nil
+			}
+			result.Actions[index].BlockHeight = event.BlockHeight
+			result.Actions[index].BlockHash = event.BlockHash
+			result.Actions[index].AuditHash = event.AuditHash
+		}
 		result.EventCount = len(events.Items)
 		return true, nil
 	}); err != nil {
@@ -290,7 +303,7 @@ func observe(restOrigin, indexerOrigin, output string) error {
 		if event.Type != expected[index].action || event.TxHash == "" || event.BlockHeight == 0 || event.BlockHash == "" || event.AuditHash == "" {
 			return fmt.Errorf("canonical lifecycle event %d is incomplete: %+v", index, event)
 		}
-		result.Actions = append(result.Actions, actionEvidence{Action: event.Type, Route: expected[index].route, TransactionHash: event.TxHash})
+		result.Actions = append(result.Actions, actionEvidence{Action: event.Type, Route: expected[index].route, TransactionHash: event.TxHash, BlockHeight: event.BlockHeight, BlockHash: event.BlockHash, AuditHash: event.AuditHash})
 	}
 	result.Issuer, result.Trader, result.EventCount = envelope.Items[0].Signer, envelope.Items[4].Signer, len(envelope.Items)
 	if result.Issuer == "" || result.Trader == "" || result.Issuer == result.Trader {
@@ -335,7 +348,14 @@ func observe(restOrigin, indexerOrigin, output string) error {
 		if !health.MarketSourceConfigured || !health.MarketAvailable || !health.ExecutionAvailable || health.IndexedPools != 1 || len(transactions.Items) != 6 || len(swaps.Items) != 2 || len(candles.Items) == 0 {
 			return false, nil
 		}
-		result.Indexer = indexerEvidence{MarketSourceConfigured: true, MarketAvailable: true, ExecutionAvailable: true, IndexedPools: 1, IndexedTransactions: len(transactions.Items), SwapCount: len(swaps.Items), CandleCount: len(candles.Items), Source: health.Source}
+		var version struct {
+			Commit  string `json:"commit"`
+			Release string `json:"release"`
+		}
+		if indexer.get("/version", &version) != nil || version.Commit == "" || version.Release == "" {
+			return false, nil
+		}
+		result.Indexer = indexerEvidence{MarketSourceConfigured: true, MarketAvailable: true, ExecutionAvailable: true, IndexedPools: 1, IndexedTransactions: len(transactions.Items), SwapCount: len(swaps.Items), CandleCount: len(candles.Items), Source: health.Source, BuildCommit: version.Commit, Release: version.Release}
 		return true, nil
 	}); err != nil {
 		return fmt.Errorf("wait for complete market index: %w", err)

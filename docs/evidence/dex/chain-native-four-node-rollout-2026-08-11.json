@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "network": "YNX Testnet",
+  "chainId": 6423,
+  "recordedAt": "2026-08-11T12:22:20Z",
+  "sourceCommit": "a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8",
+  "release": "ynx-chain-dex-a986a30c",
+  "binarySha256": "d8ea000f9c873248820402a4e8594aa840e1d99e631d66bcc7ed0be36070e166",
+  "replicationRequestTimeout": "4m",
+  "poolAuditHash": "7e8f99fdb9278ddaf40c8e9500444069360593dc30f37fd58ebd0ec2d1fc3e94",
+  "state": {
+    "assets": 1,
+    "pools": 1,
+    "events": 7,
+    "assetId": "ynx-usd-test",
+    "poolId": "dex_ynxt_yusdt"
+  },
+  "nodes": [
+    {
+      "role": "primary",
+      "height": 957056,
+      "latestBlockHash": "ed776339e44218ce9c93255b35172d320f9279ca8ce901631935ebdb0a22837f",
+      "persistence": true,
+      "persistenceError": "",
+      "replicationStatus": "not_configured",
+      "replicationSuccesses": 0,
+      "replicationFailures": 0,
+      "memoryCurrentBytes": 2917011456,
+      "memoryPeakBytes": 5484679168
+    },
+    {
+      "role": "singapore",
+      "height": 957048,
+      "latestBlockHash": "855473663523c09ff3a3026f0e78a85e96134e4c8e5235c44952bc1b504dae51",
+      "persistence": true,
+      "persistenceError": "",
+      "replicationStatus": "syncing",
+      "replicationSuccesses": 74,
+      "replicationFailures": 0,
+      "lastCompletedSnapshotHashMatchedSource": true,
+      "memoryCurrentBytes": 2063425536,
+      "memoryPeakBytes": 3957116928
+    },
+    {
+      "role": "silicon-valley",
+      "height": 957025,
+      "latestBlockHash": "507f3905b1a13742006b7accfb27df6ec81542ad5d5885ec9a3515d83cc95683",
+      "persistence": true,
+      "persistenceError": "",
+      "replicationStatus": "syncing",
+      "replicationSuccesses": 16,
+      "replicationFailures": 0,
+      "lastCompletedSnapshotHashMatchedSource": true,
+      "memoryCurrentBytes": 1517846528,
+      "memoryPeakBytes": 1802735616
+    },
+    {
+      "role": "seoul",
+      "height": 956951,
+      "latestBlockHash": "256f8f583ba8be8ff4b50a65ebf9b90dc57cb1ca4783a23fbb6f6855b9370aa7",
+      "persistence": true,
+      "persistenceError": "",
+      "replicationStatus": "syncing",
+      "replicationSuccesses": 8,
+      "replicationFailures": 0,
+      "lastCompletedSnapshotHashMatchedSource": true,
+      "memoryCurrentBytes": 1259986944
+    }
+  ],
+  "capacity": {
+    "loopback": {
+      "measuredAt": "2026-08-11T12:22:02Z",
+      "scope": "primary loopback while block production and three replication clients remained active",
+      "requests": 1000,
+      "concurrency": 64,
+      "successes": 1000,
+      "failures": 0,
+      "latencyMs": {
+        "p50": 0.502,
+        "p95": 2.814,
+        "p99": 4.382,
+        "max": 9.807
+      }
+    },
+    "publicTLS": {
+      "measuredAt": "2026-08-11T12:21:41Z",
+      "vantage": "independent Silicon Valley Testnet validator host via public DNS and TLS",
+      "requests": 1000,
+      "concurrency": 64,
+      "successes": 1000,
+      "failures": 0,
+      "latencyMs": {
+        "p50": 3807.309,
+        "p95": 6625.851,
+        "p99": 7725.63,
+        "max": 12008.66
+      }
+    }
+  },
+  "claimBoundary": "Each follower is an asynchronously replicated read node. Hash equality refers to its last completed authoritative snapshot, not simultaneous four-node height equality."
+}

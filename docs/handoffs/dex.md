@@ -4,11 +4,12 @@
 
 - Product: independent `YNX DEX`, Testnet Preview `0.1.0-testnet-preview.1`
 - Branch: `codex/ecosystem-dex`
-- Chain: YNX Testnet EVM chain `6423` (`0x1917`); `mainnet=false`
-- Protocol: clean-room immutable constant-product pools, 30 bps pool fee, bounded four-hop router
+- Chain: YNX Testnet chain `6423` (`0x1917` for EVM compatibility); `mainnet=false`
+- Protocol: authoritative chain-native constant-product pool, 30 bps pool fee, signed action envelopes and indexed market history; the clean-room EVM contracts remain build artifacts
 - Custody: none. The Web app prepares requests; canonical YNX Wallet must authorize and sign.
-- Public boundary: Web/PWA, read API and same-origin canonical Wallet Gateway are deployed at `https://dex.ynxweb4.com` from release `ynx-dex-9b3ed30a6a21`.
-- Explicitly absent: verified DEX contracts, reviewed Testnet tokens, an indexed public pool, executable swaps/liquidity, hosted download, production signature, store release and independent audit.
+- Public boundary: Web/PWA, read API and same-origin canonical Wallet Gateway are deployed at `https://dex.ynxweb4.com`; the active market/indexer release is `ynx-dex-b72e19389311`.
+- Public Testnet market: labelled `YNXT/YUSDT` pool `dex_ynxt_yusdt`, add/remove liquidity, exact-input/output swaps, transaction history and candles are active and four-node replicated.
+- Explicitly absent: mainnet or production liquidity, verified public EVM DEX contracts, hosted download, production signature, store release and independent audit.
 
 YNX Exchange remains the operator/custody/order-book product. Do not merge DEX balances, routes or transaction semantics into Exchange.
 
@@ -33,11 +34,11 @@ Candidate file: `apps/dex/wallet-client.json`.
 
 The adapter binds the exact client, bundle, callback, chain, scopes, nonce, digest and expiry and rejects substitutions. Positions call central introspection and fail closed when it is missing. The client is enabled in the public canonical Gateway release `ynx-wallet-gateway-476cdcc6bf35`, and DEX exposes that Gateway only through the same-origin `/wallet-gateway/*` proxy. A fresh public lifecycle completed a Product Session, loaded private positions, rejected proof replay, revoked the session and rejected access after revocation.
 
-Registry acceptance, replay, expiry, scope escalation, callback substitution, cross-product reuse and device-binding tests are complete. A browser can start the real Wallet deep link and the Gateway accepts this exact product tuple. Asset actions remain unavailable because no authoritative public market source or pool exists; enabling the client is not evidence of a swap.
+Registry acceptance, replay, expiry, scope escalation, callback substitution, cross-product reuse and device-binding tests are complete. A browser can start the real Wallet deep link and the Gateway accepts this exact product tuple. The public market is executable. The earlier Wallet session proof remains valid evidence for login, positions, replay rejection and revocation; the recorded market lifecycle used ephemeral in-memory Testnet signing keys and does not claim that an installed-Wallet transaction callback was exercised.
 
 ## Runtime configuration
 
-Copy `.env.dex.example` outside the repository. Generate independent secrets for state HMAC and trusted ingestion. The EVM poller additionally requires a verified `DEX_FACTORY_ADDRESS`, exact `DEX_INDEXER_START_BLOCK`, positive confirmations and a private cursor path. The token file defaults to `token-lists/dex-testnet.json`, which is intentionally empty until owner-reviewed test tokens exist.
+Copy `.env.dex.example` outside the repository. Generate independent secrets for state HMAC and trusted ingestion. The active Testnet deployment sets `YNX_DEX_NATIVE_REST_URL=http://127.0.0.1:6420`; the installer refuses a competing `DEX_FACTORY_ADDRESS`. Tokens, pools and events are read from the authoritative chain-native registry. EVM mode remains mutually exclusive and requires a verified factory, exact start block, positive confirmations and a private cursor path.
 
 The poller checks chain 6423, scans only confirmed bounded ranges, discovers pools from `PoolCreated`, correlates LP `Transfer` with Mint/Burn, decodes Swap/Sync/fees, persists an HMAC cursor and rewinds/rescans when the previously confirmed block hash changes. Never lower confirmations or edit signed state to bypass a conflict.
 
@@ -62,12 +63,16 @@ The contract runner includes direct/multi-hop exact-in/out, LP add/remove, proto
 
 ## Testnet deployment gate
 
-The public Web/API/Gateway deployment is proven by `docs/evidence/dex/public-web-api-wallet-2026-08-11.json`. Its health response deliberately reports `marketSourceConfigured=false`, `marketAvailable=false` and `executionAvailable=false`. The RPC probe observed chain 6423 and a live block, but it does not prove a DEX market. A market deployment still requires owner-provided deployer authority, governance multisig candidate, fee recipient, wrapped YNXT, at least two reviewed test assets, verifier endpoint and funding. Run `npm run dex:deploy:testnet` only after those inputs exist; it rejects wrong chain, missing code, duplicate tokens and zero gas balance.
+The initial Web/API/Gateway release remains recorded in `docs/evidence/dex/public-web-api-wallet-2026-08-11.json`. The current market is proven separately by:
 
-Before changing the market or execution flags, capture exact manifest and bytecode/source verification, factory/router/wrapped addresses or authoritative native routes, pool creation, labelled test liquidity, Wallet-signed swaps, add/remove LP, Explorer transaction links, Indexer/API/UI consistency, restart/reorg drill and remote smoke results. None of those asset-movement proofs is currently present.
+- `docs/evidence/dex/native-public-lifecycle-2026-08-11.json`: seven committed chain actions, one labelled asset and pool, LP add/remove, two swap modes, index history and candles.
+- `docs/evidence/dex/chain-native-four-node-rollout-2026-08-11.json`: identical binary digest on four nodes, durable state, follower snapshot hash checks and matching pool audit hash.
+- `docs/evidence/dex/native-market-capacity-2026-08-11.json`: loopback and independent-region public TLS probes, each 1000/1000 at concurrency 64.
+
+This evidence enables the Testnet market flags only. It does not enable mainnet, production liquidity, audited-contract or installed-Wallet transaction-callback claims.
 
 ## Release truth
 
-`product-release.json` is authoritative. `deployedPublic=true` applies only to the separately attested Web, read API and Wallet proxy surfaces. Its nested public-deployment boundary keeps `marketSourceConfigured=false`, `marketAvailable=false`, `executionAvailable=false` and `productionLiquidity=false`. The upload/download artifact remains a local unsigned candidate, so its own artifact manifest correctly keeps `deployedPublic=false`. `installedLocal`, `deployedStaging`, `downloadHosted`, `productionSigned`, `storeReleased`, `audited` and `productionLiquidity` remain false.
+`product-release.json` is authoritative. `deployedPublic=true`, `marketSourceConfigured=true`, `marketAvailable=true`, `executionAvailable=true`, `publicAssetMovementVerified=true` and `testnetLiquidity=true` now refer to the evidence above. `productionLiquidity` remains false. The upload/download artifact remains a local unsigned candidate, so its artifact manifest correctly keeps `deployedPublic=false`. `installedLocal`, `deployedStaging`, `downloadHosted`, `productionSigned`, `storeReleased` and `audited` remain false.
 
 The runtime dependency audit is clean for production dependencies. The development-only Hardhat graph currently includes the documented `adm-zip` high-severity crafted-ZIP denial-of-service advisory with no upstream fix; keep contract tooling out of runtime images and reassess before an owner release.

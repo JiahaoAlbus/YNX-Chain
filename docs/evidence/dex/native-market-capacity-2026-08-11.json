@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "recordedAt": "2026-08-11T12:19:44Z",
+  "marketEvidence": "docs/evidence/dex/native-public-lifecycle-2026-08-11.json",
+  "loopback": {
+    "measuredAt": "2026-08-11T12:17:15.894Z",
+    "endpoint": "http://127.0.0.1:6482",
+    "vantage": "primary node loopback with response-schema validation",
+    "requests": 1000,
+    "concurrency": 64,
+    "completed": 1000,
+    "successes": 1000,
+    "failures": 0,
+    "elapsedMs": 450.304,
+    "throughputPerSecond": 2220.72,
+    "latencyMs": {
+      "p50": 22.241,
+      "p95": 60.126,
+      "p99": 90.922,
+      "max": 96.288
+    }
+  },
+  "publicTLS": {
+    "measuredAt": "2026-08-11T12:19:44Z",
+    "endpoint": "https://dex.ynxweb4.com",
+    "vantage": "independent Singapore Testnet validator host via public DNS and TLS",
+    "requests": 1000,
+    "concurrency": 64,
+    "completed": 1000,
+    "successes": 1000,
+    "failures": 0,
+    "httpCodes": {
+      "200": 1000
+    },
+    "latencyMs": {
+      "p50": 559.441,
+      "p95": 1444.043,
+      "p99": 5116.782,
+      "max": 9644.697
+    },
+    "validationBoundary": "HTTP status and TLS reachability were measured at this vantage; response semantics are proven separately by the lifecycle observer and loopback load probe."
+  },
+  "excludedDiagnostic": {
+    "vantage": "local desktop through a synthetic 198.18.1.223 system proxy",
+    "reason": "75 of 1000 connections failed inside the proxy path; this was not treated as service-capacity evidence."
+  }
+}
