@@ -134,6 +134,10 @@ export async function beginExactInputSwap(input:PoolSnapshotInput&{assetIn:strin
   return beginPoolAction(input,"dex_swap_exact_input",{assetIn:input.assetIn,amountIn:input.amountIn,minAmountOut:input.minAmountOut},input.expectedAmount,now);
 }
 
+export async function beginExactOutputSwap(input:PoolSnapshotInput&{assetOut:string;amountOut:number;maxAmountIn:number;expectedAmount:number},now=new Date()):Promise<string>{
+  return beginPoolAction(input,"dex_swap_exact_output",{assetOut:input.assetOut,amountOut:input.amountOut,maxAmountIn:input.maxAmountIn},input.expectedAmount,now);
+}
+
 export async function beginLiquidityAdd(input:PoolSnapshotInput&{amount0:number;amount1:number},now=new Date()):Promise<string>{
   const context=await authoritativeActionContext(input,now),{pool}=context;
   const expected=liquidityShares(BigInt(input.amount0),BigInt(input.amount1),pool);
