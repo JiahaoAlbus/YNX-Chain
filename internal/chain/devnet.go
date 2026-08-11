@@ -2739,7 +2739,6 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 
 func (d *Devnet) ProduceBlock() Block {
 	d.mu.Lock()
-	defer d.mu.Unlock()
 	parent := d.blocks[len(d.blocks)-1]
 	txs := append([]Transaction(nil), d.pending...)
 	d.pending = nil
@@ -2756,7 +2755,15 @@ func (d *Devnet) ProduceBlock() Block {
 	}
 	d.blocks = append(d.blocks, block)
 	d.markValidatorProducedBlockLocked(validator, block.Height, block.Time)
-	d.recordPersistenceErrorLocked(d.persistSnapshotLocked())
+	d.mu.Unlock()
+
+	// The block is committed in memory before the durable full-state checkpoint.
+	// Persist under a read lock so account, Explorer and DEX reads remain
+	// available while the large append-only history is encoded and fsynced.
+	persistErr := d.persistSnapshot()
+	d.mu.Lock()
+	d.recordPersistenceErrorLocked(persistErr)
+	d.mu.Unlock()
 	return block
 }
 

@@ -213,7 +213,7 @@ func (d *Devnet) NativeDexEvents() []NativeDexEvent {
 	return append([]NativeDexEvent{}, d.dexEvents...)
 }
 
-func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (Transaction, NativeDexMutation, bool, error) {
+func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (resultTx Transaction, resultMutation NativeDexMutation, replayed bool, err error) {
 	if !transactionHashPattern.MatchString(input.Hash) || input.Hash != strings.ToLower(input.Hash) {
 		return Transaction{}, NativeDexMutation{}, false, errors.New("DEX action hash must be canonical lowercase 32-byte hex")
 	}
@@ -221,7 +221,20 @@ func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (Transa
 		return Transaction{}, NativeDexMutation{}, false, errors.New("DEX action requires a canonical signer, positive nonce, and 1 YNXT fee")
 	}
 	d.mu.Lock()
-	defer d.mu.Unlock()
+	shouldPersist := false
+	defer func() {
+		d.mu.Unlock()
+		if !shouldPersist {
+			return
+		}
+		persistErr := d.persistSnapshot()
+		d.mu.Lock()
+		d.recordPersistenceErrorLocked(persistErr)
+		d.mu.Unlock()
+		if err == nil {
+			err = persistErr
+		}
+	}()
 	if existing, ok := d.transactionLocked(input.Hash); ok {
 		for _, event := range d.dexEvents {
 			if event.TxHash == input.Hash {
@@ -272,9 +285,8 @@ func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (Transa
 	}
 	tx := Transaction{Hash: input.Hash, Type: input.Action, From: input.Signer, To: to, Fee: input.Fee, Nonce: input.Nonce, Timestamp: now, LotFlows: flows, Memo: "signed chain-native DEX action"}
 	d.pending = append(d.pending, tx)
-	err = d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return tx, mutation, false, err
+	shouldPersist = true
+	return tx, mutation, false, nil
 }
 
 func (d *Devnet) applyNativeDexActionLocked(input NativeDexSignedActionInput, event NativeDexEvent, now time.Time) (NativeDexMutation, error) {
