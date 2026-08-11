@@ -27,7 +27,7 @@ test('desktop terminal is truthful, keyboard reachable and structurally dense',a
   await page.getByRole('heading',{name:'YNXT / YUSD_TEST'}).waitFor();
   await page.getByText('No public market depth').waitFor();
   assert.equal(await page.getByText('TESTNET ONLY').count(),1);
-  const chart=await page.locator('.chart').boundingBox(),book=await page.locator('.book').boundingBox(),order=await page.locator('.order-entry').boundingBox();
+  const chart=await page.locator('#market .chart').boundingBox(),book=await page.locator('.book').boundingBox(),order=await page.locator('.order-entry').boundingBox();
   assert.ok(chart&&book&&order&&chart.y===book.y&&book.y===order.y,'desktop panels should share the terminal row');
   await page.keyboard.press('Tab');assert.equal(await page.locator('.skip').evaluate(el=>el===document.activeElement),true);await page.evaluate(()=>document.activeElement?.blur());
   await page.getByRole('button',{name:'Compare executable costs'}).click();await page.getByText('No complete executable route').waitFor();assert.equal(await page.locator('.route-candidate.unavailable').count(),2);
@@ -37,7 +37,7 @@ test('desktop terminal is truthful, keyboard reachable and structurally dense',a
 test('mobile terminal is responsive without horizontal overflow',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true});await page.goto(base,{waitUntil:'networkidle'});
   const metrics=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:document.documentElement.clientWidth}));assert.ok(metrics.scroll<=metrics.width,JSON.stringify(metrics));
-  const chart=await page.locator('.chart').boundingBox(),book=await page.locator('.book').boundingBox();assert.ok(chart&&book&&book.y>chart.y+chart.height-2,'mobile panels should stack');
+  const chart=await page.locator('#market .chart').boundingBox(),book=await page.locator('.book').boundingBox();assert.ok(chart&&book&&book.y>chart.y+chart.height-2,'mobile panels should stack');
   await page.getByRole('button',{name:'Assets'}).click();await page.getByRole('heading',{name:'Deposit & withdrawal'}).waitFor();
 	assert.ok(await page.getByText('Cross-chain · unavailable').count()>=1);await page.evaluate(()=>{scrollTo(0,0);document.activeElement?.blur()});await page.screenshot({path:path.join(evidence,'mobile.png')});await page.close();
 });

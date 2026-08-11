@@ -52,6 +52,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/markets", s.markets)
 	s.mux.HandleFunc("GET /v1/orderbook", s.book)
 	s.mux.HandleFunc("GET /v1/market-data/trades", s.marketTrades)
+	s.mux.HandleFunc("GET /v1/market-data/candles", s.marketCandles)
 	s.mux.HandleFunc("GET /v1/solvency", s.solvency)
 	s.mux.HandleFunc("GET /v1/solvency/liability-proof", s.liabilityProof)
 	s.mux.HandleFunc("GET /v1/liquidity/quote", s.liquidityQuote)
@@ -309,6 +310,35 @@ func (s *Server) refreshRiskOracle(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "externalPrice": false, "trades": s.service.PublicTrades(1000)})
+}
+func (s *Server) marketCandles(w http.ResponseWriter, r *http.Request) {
+	market := strings.TrimSpace(r.URL.Query().Get("market"))
+	if market == "" {
+		market = DefaultMarket
+	}
+	if market != DefaultMarket && market != DefaultPerpetualMarket {
+		writeError(w, http.StatusBadRequest, "invalid_market", "market is not supported")
+		return
+	}
+	interval := int64(300)
+	if raw := strings.TrimSpace(r.URL.Query().Get("interval")); raw != "" {
+		value, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil || !candleIntervals[value] {
+			writeError(w, http.StatusBadRequest, "invalid_interval", "interval must be one of 60, 300, 900, 3600, 14400 or 86400 seconds")
+			return
+		}
+		interval = value
+	}
+	limit := 200
+	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value < 1 || value > 500 {
+			writeError(w, http.StatusBadRequest, "invalid_limit", "limit must be between 1 and 500")
+			return
+		}
+		limit = value
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"market": market, "intervalSeconds": interval, "source": "persisted deterministic matching-engine fills only; empty intervals omitted", "externalPrice": false, "candles": s.service.Candles(market, interval, limit)})
 }
 func (s *Server) marketStreamSnapshot(w http.ResponseWriter, r *http.Request) {
 	v, err := s.service.StreamSnapshot("market", "")
