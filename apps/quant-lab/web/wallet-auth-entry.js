@@ -1,23 +1,26 @@
 import {
   canonicalJSON, createGatewayChallenge, createProductDeviceIdentity, createProductSessionProof,
-  encodeBase64url, encodeProductSessionProofHeader, encodeRequestDeepLink, httpBodyDigest,
+  encodeBase64url, encodeProductSessionProofHeader, encodeQuantActionDeepLink, encodeRequestDeepLink, httpBodyDigest,
   parseCallbackURL, parseCentralWalletSession, requestDigest, signGatewayChallenge, verifyAuthorization,
+  verifyQuantActionResponse,
 } from "../vendor/wallet-auth/src/index.js";
 
 const CALLBACK = "https://quant.ynxweb4.com/wallet-auth/callback";
+const ACTION_CALLBACK = "https://quant.ynxweb4.com/wallet-action/callback";
 const INSTALL_URL = "https://ynxweb4.com/ecosystem?product=wallet";
 const PRODUCT = Object.freeze({version:"1",chainId:"ynx_6423-1",requestingProduct:"quant",productClientId:"ynx-quant-v1",bundleId:"com.ynxweb4.quant",productDeviceAlgorithm:"p256-sha256",callback:CALLBACK,scopes:Object.freeze(["quant:account","quant:mandate:create","quant:mandate:execute","quant:mandate:revoke"])});
 const DB_NAME = "ynx-quant-wallet-v1", STORE = "auth";
 let current = null;
 
-window.YNXQuantWallet = Object.freeze({requireProof,connect:beginAuthorization});
+window.YNXQuantWallet = Object.freeze({requireProof,connect:beginAuthorization,approveMandate,approveOrder,takeActionResult});
 window.addEventListener("DOMContentLoaded",boot,{once:true});
 
 async function boot(){
   document.querySelector("#connect-wallet")?.addEventListener("click",()=>beginAuthorization().catch(showError));
   document.querySelector("#install-wallet")?.setAttribute("href",INSTALL_URL);
   try{
-    if(location.pathname===new URL(CALLBACK).pathname&&new URL(location.href).searchParams.has("response"))await finishAuthorization();
+    if(location.pathname===new URL(ACTION_CALLBACK).pathname&&new URL(location.href).searchParams.has("response"))await finishAction();
+    else if(location.pathname===new URL(CALLBACK).pathname&&new URL(location.href).searchParams.has("response"))await finishAuthorization();
     else await restore();
   }catch(error){await clearSession();showError(error)}
   render();
@@ -50,6 +53,23 @@ async function requireProof(scope){
   const introspectionBody=canonicalJSON({requiredScopes:[scope]}),proof=createProductSessionProof(current.session,{method:"POST",path:"/v1/wallet/sessions/introspect",bodyDigest:httpBodyDigest(introspectionBody),nonce:nonce(),issuedAt:issuedAt.toISOString(),expiresAt:new Date(Math.min(issuedAt.getTime()+30_000,Date.parse(current.session.expiresAt))).toISOString()},current.device.productDeviceSecret);
   return encodeProductSessionProofHeader(proof);
 }
+async function approveMandate(draft){return beginAction("quant.mandate.activate",draft,{draft})}
+async function approveOrder(draft,body){return beginAction("quant.order.place",draft,{body})}
+async function beginAction(action,parameters,pending){
+  if(!current)await restore();if(!current)throw new Error("Connect YNX Wallet before requesting an execution approval.");
+  const issuedAt=new Date(),request={version:"1",chainId:PRODUCT.chainId,productClientId:PRODUCT.productClientId,bundleId:PRODUCT.bundleId,callback:ACTION_CALLBACK,sessionBinding:current.session.sessionBinding,account:current.session.account,action,parameters,nonce:nonce(),issuedAt:issuedAt.toISOString(),expiresAt:new Date(Math.min(issuedAt.getTime()+300_000,Date.parse(current.session.expiresAt))).toISOString()};
+  await write("pendingAction",{request,...pending});location.href=encodeQuantActionDeepLink(request);
+}
+async function finishAction(){
+  const pending=await read("pendingAction");if(!pending?.request)throw new Error("This Wallet callback is not bound to a pending Quant action on this device.");
+  const response=parseCallbackURL(location.href,ACTION_CALLBACK),verified=verifyQuantActionResponse(response,pending.request,new Date()),mandate=verified.action==="quant.mandate.activate",proof=await requireProof(mandate?"quant:mandate:create":"quant:mandate:execute"),tenant=localStorage.getItem("ynx.quant.tenant.v1");
+  if(!/^[0-9a-f]{64}$/.test(tenant??""))throw new Error("The Quant browser tenant binding is unavailable.");
+  const path=mandate?"/api/v1/testnet/mandates":"/api/v1/testnet/orders",body=mandate?{...pending.draft,WalletSignature:verified.walletSignature}:{...pending.body,WalletSignature:verified.walletSignature};
+  const result=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json","X-YNX-Preview-Mode":"local-paper","X-YNX-Tenant-ID":tenant,"X-YNX-Quant-Product-Session-Proof":proof},body:canonicalJSON(body)}),value=await result.json().catch(()=>null);
+  if(!result.ok||!value)throw new Error(`Wallet-approved Quant action failed closed (${result.status}).`);
+  await Promise.all([write("lastActionResult",{kind:mandate?"mandate":"order",value}),remove("pendingAction")]);history.replaceState({},{},"/");
+}
+async function takeActionResult(){const result=await read("lastActionResult");if(result)await remove("lastActionResult");return result??null}
 function render(){
   const status=document.querySelector("#wallet-status"),button=document.querySelector("#connect-wallet");if(status)status.textContent=current?`Connected ${short(current.session.account)}`:"Wallet not connected — Research and Paper are still available";if(button)button.textContent=current?"Reconnect Wallet":"Connect YNX Wallet";const account=document.querySelector("#mandate-account");if(current&&account&&!account.value)account.value=current.session.account;
 }

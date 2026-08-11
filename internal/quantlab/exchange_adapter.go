@@ -12,24 +12,45 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
 
 const (
-	ExchangeQuantAdapterVersion = "ynx-quant-execution-adapter-v1"
+	ExchangeQuantAdapterVersion = "ynx-quant-execution-adapter-v2"
 	maxExchangeResponseBytes    = 2 << 20
 )
 
 type exchangeQuantMandate struct {
-	Subaccount      string    `json:"subaccount"`
-	Market          string    `json:"market"`
-	Methods         []string  `json:"methods"`
-	CapitalMicro    int64     `json:"capitalMicro"`
-	Leverage        int64     `json:"leverage"`
-	ExpiresAt       time.Time `json:"expiresAt"`
-	NonceDomain     string    `json:"nonceDomain"`
-	WalletSignature string    `json:"walletSignature"`
+	Subaccount          string    `json:"subaccount"`
+	StrategyHash        string    `json:"strategyHash"`
+	Market              string    `json:"market"`
+	ProductID           string    `json:"productId"`
+	BundleID            string    `json:"bundleId"`
+	DeviceID            string    `json:"deviceId"`
+	Scope               string    `json:"scope"`
+	Methods             []string  `json:"methods"`
+	Nonce               uint64    `json:"nonce"`
+	MaxNotional         int64     `json:"maxNotional"`
+	CapitalMicro        int64     `json:"capitalMicro"`
+	MaxDailyLoss        int64     `json:"maxDailyLoss"`
+	MaxSlippageBPS      int64     `json:"maxSlippageBps"`
+	MaxGas              int64     `json:"maxGas"`
+	MaxFrequency        int       `json:"maxOrdersPerMinute"`
+	MaxLeverageBPS      int64     `json:"maxLeverageBps"`
+	MaxDrawdown         int64     `json:"maxDrawdown"`
+	MinLiquidity        int64     `json:"minLiquidity"`
+	MaxVaR              int64     `json:"maxVar"`
+	MaxES               int64     `json:"maxExpectedShortfall"`
+	MaxDepegBPS         int64     `json:"maxDepegBps"`
+	MaxConcentrationBPS int64     `json:"maxConcentrationBps"`
+	MaxCancelRateBPS    int64     `json:"maxCancelRateBps"`
+	MaxAPIFailures      int       `json:"maxConsecutiveApiFailures"`
+	ExpiresAt           time.Time `json:"expiresAt"`
+	NonceDomain         string    `json:"nonceDomain"`
+	TestnetOnly         bool      `json:"testnetOnly"`
+	WalletSignature     string    `json:"walletSignature"`
 }
 
 type exchangeSource struct {
@@ -193,10 +214,16 @@ func (a HTTPExchangeAdapter) post(ctx context.Context, path, productSessionProof
 
 func toExchangeMandate(mandate Mandate) exchangeQuantMandate {
 	return exchangeQuantMandate{
-		Subaccount: mandate.Account, Market: mandate.Market,
-		Methods:      []string{"read", "submit", "reconcile", "kill"},
-		CapitalMicro: mandate.MaxPosition, Leverage: 1, ExpiresAt: mandate.ExpiresAt,
-		NonceDomain: mandate.NonceDomain, WalletSignature: mandate.WalletSignature,
+		Subaccount: mandate.Account, StrategyHash: mandate.StrategyHash, Market: mandate.Market,
+		ProductID: mandate.ProductID, BundleID: mandate.BundleID, DeviceID: mandate.DeviceID, Scope: mandate.Scope,
+		Methods: []string{"read", "submit", "reconcile", "kill"}, Nonce: mandate.Nonce,
+		MaxNotional: mandate.MaxNotional, CapitalMicro: mandate.MaxPosition, MaxDailyLoss: mandate.MaxDailyLoss,
+		MaxSlippageBPS: mandate.MaxSlippageBPS, MaxGas: mandate.MaxGas, MaxFrequency: mandate.MaxOrdersPerMinute,
+		MaxLeverageBPS: mandate.MaxLeverageBPS, MaxDrawdown: mandate.MaxDrawdown, MinLiquidity: mandate.MinLiquidity,
+		MaxVaR: mandate.MaxVaR, MaxES: mandate.MaxExpectedShortfall, MaxDepegBPS: mandate.MaxDepegBPS,
+		MaxConcentrationBPS: mandate.MaxConcentrationBPS, MaxCancelRateBPS: mandate.MaxCancelRateBPS,
+		MaxAPIFailures: mandate.MaxConsecutiveAPIFailures, ExpiresAt: mandate.ExpiresAt,
+		NonceDomain: mandate.NonceDomain, TestnetOnly: mandate.TestnetOnly, WalletSignature: mandate.WalletSignature,
 	}
 }
 
@@ -204,7 +231,16 @@ func ExchangeMandateSigningPayload(mandate Mandate) []byte {
 	m := toExchangeMandate(mandate)
 	methods := append([]string(nil), m.Methods...)
 	sort.Strings(methods)
-	return []byte(fmt.Sprintf("%s\n%s\n%s\n%s\n%d\n%d\n%s\n%s", ExchangeQuantAdapterVersion, m.Subaccount, m.Market, strings.Join(methods, ","), m.CapitalMicro, m.Leverage, m.ExpiresAt.UTC().Format(time.RFC3339), m.NonceDomain))
+	return []byte(strings.Join([]string{
+		ExchangeQuantAdapterVersion, m.Subaccount, m.StrategyHash, m.Market, m.ProductID, m.BundleID, m.DeviceID, m.Scope,
+		strings.Join(methods, ","), strconv.FormatUint(m.Nonce, 10), strconv.FormatInt(m.MaxNotional, 10),
+		strconv.FormatInt(m.CapitalMicro, 10), strconv.FormatInt(m.MaxDailyLoss, 10), strconv.FormatInt(m.MaxSlippageBPS, 10),
+		strconv.FormatInt(m.MaxGas, 10), strconv.Itoa(m.MaxFrequency), strconv.FormatInt(m.MaxLeverageBPS, 10),
+		strconv.FormatInt(m.MaxDrawdown, 10), strconv.FormatInt(m.MinLiquidity, 10), strconv.FormatInt(m.MaxVaR, 10),
+		strconv.FormatInt(m.MaxES, 10), strconv.FormatInt(m.MaxDepegBPS, 10), strconv.FormatInt(m.MaxConcentrationBPS, 10),
+		strconv.FormatInt(m.MaxCancelRateBPS, 10), strconv.Itoa(m.MaxAPIFailures), m.ExpiresAt.UTC().Format(time.RFC3339),
+		m.NonceDomain, strconv.FormatBool(m.TestnetOnly),
+	}, "\n"))
 }
 
 func ExchangeOrderSigningPayload(account string, order TestnetOrder) []byte {

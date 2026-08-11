@@ -20,3 +20,4 @@ export * from "./gateway-http.js";
 export * from "./bundler.js";
 export * from "./exchange-action.js";
 export * from "./developer-deployment.js";
+export * from "../../../../../packages/wallet-auth/src/quant-action.js";

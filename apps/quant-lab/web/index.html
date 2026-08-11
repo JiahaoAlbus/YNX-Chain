@@ -268,9 +268,8 @@
                 <label>Max concentration (bps)<input id="mandate-concentration" type="number" value="5000" min="1" max="10000" required /></label>
                 <label>Max cancel rate (bps)<input id="mandate-cancel-rate" type="number" value="5000" min="1" max="10000" required /></label>
                 <label>Max consecutive API failures<input id="mandate-api-failures" type="number" value="3" min="1" required /></label>
-                <label class="wide">Wallet mandate signature<input id="mandate-signature" type="password" autocomplete="off" required /></label>
               </div>
-              <div class="actions"><button id="preview-mandate" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Register mandate</button></div>
+              <div class="actions"><button id="preview-mandate" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Review and sign in YNX Wallet</button></div>
               <pre id="mandate-payload" class="payload" hidden></pre>
             </form>
             <form id="testnet-order-form">
@@ -297,9 +296,8 @@
                 <label>VaR<input id="risk-var" type="number" value="100000" min="0" required /></label>
                 <label>Expected shortfall<input id="risk-es" type="number" value="150000" min="0" required /></label>
                 <label class="wide">Idempotency key<input id="order-key" minlength="8" maxlength="128" autocomplete="off" required /></label>
-                <label class="wide">Wallet order signature<input id="order-signature" type="password" autocomplete="off" required /></label>
               </div>
-              <div class="actions"><button id="preview-order" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Submit to YNX Testnet</button></div>
+              <div class="actions"><button id="preview-order" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Review order in YNX Wallet</button></div>
               <pre id="order-payload" class="payload" hidden></pre>
             </form>
           </div>

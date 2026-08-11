@@ -209,7 +209,7 @@ function mandateDraft() {
     TestnetOnly: true,
   };
 }
-$$('#mandate-form input:not(#mandate-signature)').forEach((input) => {
+$$('#mandate-form input').forEach((input) => {
   input.addEventListener("input", () => {
     pendingMandate = null;
     $("#mandate-payload").hidden = true;
@@ -229,15 +229,7 @@ $("#mandate-form").onsubmit = async (e) => {
   e.preventDefault();
   if (!pendingMandate) return toast("Preview the exact mandate payload before signing");
   try {
-    const productProof = await window.YNXQuantWallet.requireProof("quant:mandate:create");
-    const result = await api("/v1/testnet/mandates", {
-      method: "POST",
-      headers: { "x-ynx-quant-product-session-proof": productProof },
-      body: JSON.stringify({ ...pendingMandate, WalletSignature: $("#mandate-signature").value.trim() }),
-    });
-    $("#order-mandate").value = result.Digest;
-    toast("Wallet mandate verified by Exchange and registered");
-    await refresh();
+    await window.YNXQuantWallet.approveMandate(pendingMandate);
   } catch (e) {
     toast(e.message);
   }
@@ -265,17 +257,12 @@ $("#testnet-order-form").onsubmit = async (e) => {
   e.preventDefault();
   const draft = orderDraft();
   try {
-    const productProof = await window.YNXQuantWallet.requireProof("quant:mandate:execute");
-    await api("/v1/testnet/orders", {
-      method: "POST",
-      headers: { "x-ynx-quant-product-session-proof": productProof },
-      body: JSON.stringify({
+    await window.YNXQuantWallet.approveOrder(draft, {
         MandateDigest: $("#order-mandate").value.trim(),
         Side: draft.Side,
         Price: draft.Price,
         Amount: draft.Amount,
         IdempotencyKey: draft.IdempotencyKey,
-        WalletSignature: $("#order-signature").value.trim(),
         Risk: {
           referencePrice: +$("#risk-reference").value,
           estimatedGas: +$("#risk-gas").value,
@@ -295,11 +282,7 @@ $("#testnet-order-form").onsubmit = async (e) => {
           oracleAsOf: new Date().toISOString(),
           venueHealthy: true,
         },
-      }),
     });
-    toast("Wallet-authorized order submitted to YNX Testnet");
-    $("#order-signature").value = "";
-    await refresh();
   } catch (e) {
     toast(e.message);
   }
@@ -333,6 +316,7 @@ $("#kill").onclick = async () => {
   }
 };
 applyLocale();
+window.YNXQuantWallet.takeActionResult().then((result)=>{if(!result)return;if(result.kind==="mandate"&&result.value?.Digest)$("#order-mandate").value=result.value.Digest;toast(result.kind==="mandate"?"Wallet mandate verified by Exchange and registered":"Wallet-authorized order submitted to YNX Testnet");return refresh()}).catch((e)=>toast(e.message));
 if (publicMode) {
   ["paper-order", "reconcile", "kill"].forEach((id) => { const control = document.getElementById(id); if (control) control.disabled = true; });
 }

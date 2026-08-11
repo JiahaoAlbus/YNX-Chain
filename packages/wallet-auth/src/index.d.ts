@@ -456,6 +456,17 @@ export declare function parseExchangeOrderActionDeepLink(
   url: string,
   at?: Date,
 ): ExchangeOrderActionRequest;
+export type QuantMandateActionParameters = Readonly<Record<string, string | number | boolean> & { Account:string; StrategyHash:string; Market:"YNXT-YUSD_TEST"; ExpiresAt:string; TestnetOnly:true }>;
+export type QuantOrderActionParameters = Readonly<{Account:string;Market:"YNXT-YUSD_TEST";Side:"buy"|"sell";Price:number;Amount:number;IdempotencyKey:string}>;
+export type QuantActionRequest = Readonly<{version:"1";chainId:"ynx_6423-1";productClientId:"ynx-quant-v1";bundleId:"com.ynxweb4.quant";callback:"https://quant.ynxweb4.com/wallet-action/callback";sessionBinding:string;account:string;action:"quant.mandate.activate"|"quant.order.place";parameters:QuantMandateActionParameters|QuantOrderActionParameters;nonce:string;issuedAt:string;expiresAt:string}>;
+export type QuantActionResponse = QuantActionRequest & Readonly<{requestDigest:string;accountPublicKey:string;walletSignature:string}>;
+export declare function parseQuantActionRequest(input:string|unknown,at?:Date):QuantActionRequest;
+export declare function quantActionRequestDigest(input:QuantActionRequest):string;
+export declare function quantActionAuthorizationPayload(action:QuantActionRequest["action"],parameters:QuantActionRequest["parameters"]):string;
+export declare function signQuantAction(request:QuantActionRequest,input:{accountSecret:string;account:string;issuedAt:string}):QuantActionResponse;
+export declare function verifyQuantActionResponse(input:unknown,expected:QuantActionRequest,at?:Date):QuantActionResponse;
+export declare function encodeQuantActionDeepLink(request:QuantActionRequest):string;
+export declare function parseQuantActionDeepLink(url:string,at?:Date):QuantActionRequest;
 export declare class OneTimeNonceStore {
   constructor(records?: readonly [string, string][]);
   consume(request: AuthorizationRequest, at?: Date): void;

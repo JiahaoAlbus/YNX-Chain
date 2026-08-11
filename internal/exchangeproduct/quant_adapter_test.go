@@ -1,13 +1,23 @@
 package exchangeproduct
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
 
 func signedQuantMandate(t *testing.T, s *Service, account testAccount, methods ...string) QuantMandate {
 	t.Helper()
-	m := QuantMandate{Subaccount: account.account, Market: DefaultMarket, Methods: methods, CapitalMicro: 100 * AmountScale, Leverage: 1, ExpiresAt: s.cfg.Now().Add(time.Hour), NonceDomain: "quant:strategy-a:session-1"}
+	m := QuantMandate{
+		Subaccount: account.account, StrategyHash: strings.Repeat("a", 64), Market: DefaultMarket,
+		ProductID: "ynx-quant-lab", BundleID: "com.ynxweb4.quant.web", DeviceID: "quant-test-device", Scope: "quant:testnet-execute",
+		Methods: methods, Nonce: 1, MaxNotional: 10 * AmountScale, CapitalMicro: 100 * AmountScale,
+		MaxDailyLoss: AmountScale, MaxSlippageBPS: 50, MaxGas: 10_000, MaxFrequency: 10,
+		MaxLeverageBPS: 20_000, MaxDrawdown: AmountScale, MinLiquidity: 2 * AmountScale,
+		MaxVaR: AmountScale, MaxES: 2 * AmountScale, MaxDepegBPS: 100, MaxConcentrationBPS: 5_000,
+		MaxCancelRateBPS: 5_000, MaxAPIFailures: 3, ExpiresAt: s.cfg.Now().Add(time.Hour),
+		NonceDomain: "quant:strategy-a:session-1", TestnetOnly: true,
+	}
 	m.WalletSignature = signAction(account.private, QuantMandatePayload(m))
 	return m
 }

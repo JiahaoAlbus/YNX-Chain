@@ -4,7 +4,7 @@ The Exchange exposes one bounded adapter over the authoritative Exchange service
 
 ## Mandate
 
-`ynx-quant-execution-adapter-v1` binds:
+`ynx-quant-execution-adapter-v2` binds the full strategy, product/device identity, capital, risk, frequency, expiry and Testnet-only envelope:
 
 - exact Exchange subaccount;
 - exact market;

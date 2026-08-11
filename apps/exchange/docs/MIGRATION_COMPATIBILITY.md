@@ -45,7 +45,7 @@ The migration does not intentionally discard orders, balances, ledger entries, s
 - TWAP creation/cancel use `ynx-exchange-twap-v1` and `ynx-exchange-twap-cancel-v1`.
 - Iceberg creation uses `ynx-exchange-iceberg-v1`; active/hidden remainder uses the order-cancel signature.
 - Scale creation/cancel use `ynx-exchange-scale-v1` and `ynx-exchange-scale-cancel-v1`.
-- Quant mandates use `ynx-quant-execution-adapter-v1`.
+- Quant mandates use `ynx-quant-execution-adapter-v2`; v2 binds the complete strategy, identity, capital and risk envelope rather than a subset.
 - Persistent strategy kill uses the distinct `ynx-quant-strategy-kill-v1` payload. A mass-cancel signature is deliberately incompatible.
 
 New JSON response fields are additive. Strict request decoding continues to reject unknown request fields. Old clients can continue submitting signed v1 GTC limit orders.

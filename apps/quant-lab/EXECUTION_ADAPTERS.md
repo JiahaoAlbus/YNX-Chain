@@ -60,7 +60,7 @@ against `/v1/quant-adapter/account` and `/v1/quant-adapter/orders`. Each call
 requires a fresh one-time proof from the user's canonical Wallet-authenticated
 Quant Product Session. The proof is supplied by the HTTP request, never stored
 in adapter configuration, Quant state, orders, mandates or audit events. The mandate uses the exact
-`ynx-quant-execution-adapter-v1` signing payload, binds the strategy in the
+`ynx-quant-execution-adapter-v2` signing payload binds every displayed strategy, identity, capital, risk and execution limit in the
 `quant:<strategyHash>` nonce domain, fixes spot leverage to 1x, and grants only
 read, submit, reconcile and kill. Every order has an independent
 `ynx-exchange-order-v1` Wallet signature.

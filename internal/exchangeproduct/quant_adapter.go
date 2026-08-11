@@ -3,11 +3,12 @@ package exchangeproduct
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
 
-const QuantAdapterVersion = "ynx-quant-execution-adapter-v1"
+const QuantAdapterVersion = "ynx-quant-execution-adapter-v2"
 
 type QuantCapability struct {
 	Name    string `json:"name"`
@@ -16,14 +17,34 @@ type QuantCapability struct {
 }
 
 type QuantMandate struct {
-	Subaccount      string    `json:"subaccount"`
-	Market          string    `json:"market"`
-	Methods         []string  `json:"methods"`
-	CapitalMicro    int64     `json:"capitalMicro"`
-	Leverage        int64     `json:"leverage"`
-	ExpiresAt       time.Time `json:"expiresAt"`
-	NonceDomain     string    `json:"nonceDomain"`
-	WalletSignature string    `json:"walletSignature"`
+	Subaccount          string    `json:"subaccount"`
+	StrategyHash        string    `json:"strategyHash"`
+	Market              string    `json:"market"`
+	ProductID           string    `json:"productId"`
+	BundleID            string    `json:"bundleId"`
+	DeviceID            string    `json:"deviceId"`
+	Scope               string    `json:"scope"`
+	Methods             []string  `json:"methods"`
+	Nonce               uint64    `json:"nonce"`
+	MaxNotional         int64     `json:"maxNotional"`
+	CapitalMicro        int64     `json:"capitalMicro"`
+	MaxDailyLoss        int64     `json:"maxDailyLoss"`
+	MaxSlippageBPS      int64     `json:"maxSlippageBps"`
+	MaxGas              int64     `json:"maxGas"`
+	MaxFrequency        int       `json:"maxOrdersPerMinute"`
+	MaxLeverageBPS      int64     `json:"maxLeverageBps"`
+	MaxDrawdown         int64     `json:"maxDrawdown"`
+	MinLiquidity        int64     `json:"minLiquidity"`
+	MaxVaR              int64     `json:"maxVar"`
+	MaxES               int64     `json:"maxExpectedShortfall"`
+	MaxDepegBPS         int64     `json:"maxDepegBps"`
+	MaxConcentrationBPS int64     `json:"maxConcentrationBps"`
+	MaxCancelRateBPS    int64     `json:"maxCancelRateBps"`
+	MaxAPIFailures      int       `json:"maxConsecutiveApiFailures"`
+	ExpiresAt           time.Time `json:"expiresAt"`
+	NonceDomain         string    `json:"nonceDomain"`
+	TestnetOnly         bool      `json:"testnetOnly"`
+	WalletSignature     string    `json:"walletSignature"`
 }
 
 type QuantSource struct {
@@ -121,7 +142,16 @@ func QuantMandatePayload(m QuantMandate) []byte {
 		methods[i] = strings.ToLower(strings.TrimSpace(methods[i]))
 	}
 	sort.Strings(methods)
-	return []byte(fmt.Sprintf("%s\n%s\n%s\n%s\n%d\n%d\n%s\n%s", QuantAdapterVersion, m.Subaccount, m.Market, strings.Join(methods, ","), m.CapitalMicro, m.Leverage, m.ExpiresAt.UTC().Format(time.RFC3339), m.NonceDomain))
+	return []byte(strings.Join([]string{
+		QuantAdapterVersion, m.Subaccount, m.StrategyHash, m.Market, m.ProductID, m.BundleID, m.DeviceID, m.Scope,
+		strings.Join(methods, ","), strconv.FormatUint(m.Nonce, 10), strconv.FormatInt(m.MaxNotional, 10),
+		strconv.FormatInt(m.CapitalMicro, 10), strconv.FormatInt(m.MaxDailyLoss, 10), strconv.FormatInt(m.MaxSlippageBPS, 10),
+		strconv.FormatInt(m.MaxGas, 10), strconv.Itoa(m.MaxFrequency), strconv.FormatInt(m.MaxLeverageBPS, 10),
+		strconv.FormatInt(m.MaxDrawdown, 10), strconv.FormatInt(m.MinLiquidity, 10), strconv.FormatInt(m.MaxVaR, 10),
+		strconv.FormatInt(m.MaxES, 10), strconv.FormatInt(m.MaxDepegBPS, 10), strconv.FormatInt(m.MaxConcentrationBPS, 10),
+		strconv.FormatInt(m.MaxCancelRateBPS, 10), strconv.Itoa(m.MaxAPIFailures), m.ExpiresAt.UTC().Format(time.RFC3339),
+		m.NonceDomain, strconv.FormatBool(m.TestnetOnly),
+	}, "\n"))
 }
 
 func QuantKillAuthorizationPayload(account, market, nonceDomain, key string) []byte {
@@ -239,7 +269,7 @@ func (a *QuantExecutionAdapter) validate(session WalletSession, mandate QuantMan
 	mandate.Subaccount = strings.TrimSpace(mandate.Subaccount)
 	mandate.Market = strings.ToUpper(strings.TrimSpace(mandate.Market))
 	mandate.NonceDomain = strings.TrimSpace(mandate.NonceDomain)
-	if mandate.Subaccount != session.Account || mandate.Market != DefaultMarket || mandate.CapitalMicro <= 0 || mandate.Leverage != 1 || !a.service.cfg.Now().Before(mandate.ExpiresAt) || mandate.ExpiresAt.After(a.service.cfg.Now().Add(24*time.Hour)) || !strings.HasPrefix(mandate.NonceDomain, "quant:") || len(mandate.NonceDomain) > 128 {
+	if mandate.Subaccount != session.Account || len(mandate.StrategyHash) != 64 || mandate.Market != DefaultMarket || mandate.ProductID != "ynx-quant-lab" || mandate.BundleID == "" || mandate.DeviceID == "" || mandate.Scope != "quant:testnet-execute" || mandate.Nonce == 0 || mandate.MaxNotional <= 0 || mandate.CapitalMicro <= 0 || mandate.MaxNotional > mandate.CapitalMicro || mandate.MaxDailyLoss <= 0 || mandate.MaxDailyLoss > mandate.CapitalMicro || mandate.MaxSlippageBPS <= 0 || mandate.MaxGas <= 0 || mandate.MaxFrequency <= 0 || mandate.MaxLeverageBPS < 10_000 || mandate.MaxDrawdown <= 0 || mandate.MinLiquidity <= 0 || mandate.MaxVaR <= 0 || mandate.MaxES <= 0 || mandate.MaxDepegBPS <= 0 || mandate.MaxConcentrationBPS <= 0 || mandate.MaxCancelRateBPS <= 0 || mandate.MaxAPIFailures <= 0 || !mandate.TestnetOnly || !a.service.cfg.Now().Before(mandate.ExpiresAt) || mandate.ExpiresAt.After(a.service.cfg.Now().Add(24*time.Hour)) || !strings.HasPrefix(mandate.NonceDomain, "quant:") || len(mandate.NonceDomain) > 128 {
 		return ErrForbidden
 	}
 	allowed := false
