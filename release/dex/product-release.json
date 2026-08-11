@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "sourceBranch": "codex/ecosystem-dex",
-  "sourceCommit": "370d0df7b329ac6b75745c22cba0c167f1816832",
+  "sourceCommit": "5b4eb9e1511577ce73291d97fdc0b9aa376b0383",
   "recoveredSourceCommit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
   "recoveryTipCommit": "1614ffb7fa4983a182405fe3fa118fa448f87b4b",
   "integrationBranch": "codex/integrate-finance-suite",
@@ -24,13 +24,13 @@
   "healthUrls": [],
   "artifactUrls": [],
   "sha256": {
-    "artifactManifest": "942acd65191349367d0e1be453dd3ba924ba9dd7cf131e2bab73c75e7fbfaf4e",
-    "webPwaBundle": "7d4ece87658aa21e8de95e03d15182d8b177ca04d11658d82f401454dd411abf",
+    "artifactManifest": "37e1903ca279f3cff753993c28a1782017bb011231e7330454d51b5e4c53ac92",
+    "webPwaBundle": "63f5bee2ff0cb3558dc51dd6ae88c07767599ff095e9ca0dcfb83f40a9da3af4",
     "javascriptSdkPackage": "1b124c4cfb5291a7c5d5318fb95ac38afa9ae2ac4741d4085cba88f641a56798"
   },
   "bytes": {
     "artifactManifest": 3733,
-    "webPwaBundle": 476479,
+    "webPwaBundle": 478915,
     "javascriptSdkPackage": 5693
   },
   "signingClass": "unsigned-local-build",

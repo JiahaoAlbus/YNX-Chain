@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "ynx-dex",
   "owner": "YNX DEX",
-  "sourceCommit": "370d0df7b329ac6b75745c22cba0c167f1816832",
+  "sourceCommit": "5b4eb9e1511577ce73291d97fdc0b9aa376b0383",
   "integrationBranch": "codex/integrate-finance-suite",
   "network": {"nativeChainId":"ynx_6423-1","evmChainId":6423,"nativeAsset":"YNXT","mainnet":false},
   "api": {
