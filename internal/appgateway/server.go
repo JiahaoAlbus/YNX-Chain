@@ -2,6 +2,8 @@ package appgateway
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +13,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/nativewallet"
 )
 
 type Server struct {
@@ -249,9 +252,14 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnauthorized, "browser origin or native client binding is required")
 			return
 		}
-		session, err := s.gateway.AuthenticateSession(binding, r.Header.Get("X-YNX-App-Session"), r.Header.Get("X-YNX-Device-ID"))
+		var session AppSession
+		if service == "bridge" && binding != nativeWalletBinding {
+			session, err = s.authenticateBridgeProductSession(r, bridgeScope(r.Method, upstreamPath))
+		} else {
+			session, err = s.gateway.AuthenticateSession(binding, r.Header.Get("X-YNX-App-Session"), r.Header.Get("X-YNX-Device-ID"))
+		}
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, "account-bound app session required")
+			writeError(w, http.StatusUnauthorized, "account-bound Product Session proof required")
 			return
 		}
 		authenticatedSession = session
@@ -313,6 +321,92 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(response.StatusCode)
 	_, _ = w.Write(responseBody)
+}
+
+// authenticateBridgeProductSession consumes one exact, sender-constrained
+// Bridge Product Session proof at the canonical Wallet Gateway. The browser
+// never supplies account, product, device, scope or expiry assertions to the
+// Bridge service: those values are derived only from this response.
+func (s *Server) authenticateBridgeProductSession(r *http.Request, scope string) (AppSession, error) {
+	proof := strings.TrimSpace(r.Header.Get("X-YNX-Product-Session-Proof"))
+	if proof == "" || len(proof) > 16<<10 || (scope != "bridge:quote:read" && scope != "bridge:review:create") {
+		return AppSession{}, errors.New("invalid Bridge Product Session proof")
+	}
+	body, err := json.Marshal(map[string][]string{"requiredScopes": {scope}})
+	if err != nil {
+		return AppSession{}, err
+	}
+	upstreamURL := *s.gateway.walletURL
+	upstreamURL.Path, upstreamURL.RawPath, upstreamURL.RawQuery = "/v1/wallet/sessions/introspect", "", ""
+	request, err := http.NewRequestWithContext(r.Context(), http.MethodPost, upstreamURL.String(), bytes.NewReader(body))
+	if err != nil {
+		return AppSession{}, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("X-YNX-Product-Session-Proof", proof)
+	response, err := s.client.Do(request)
+	if err != nil {
+		return AppSession{}, err
+	}
+	defer response.Body.Close()
+	raw, err := io.ReadAll(io.LimitReader(response.Body, 64<<10))
+	if err != nil || response.StatusCode != http.StatusOK {
+		return AppSession{}, errors.New("canonical Wallet Gateway rejected Bridge proof")
+	}
+	var envelope struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			Active  bool `json:"active"`
+			Session struct {
+				RequestingProduct string   `json:"requestingProduct"`
+				ProductClientID   string   `json:"productClientId"`
+				BundleID          string   `json:"bundleId"`
+				Account           string   `json:"account"`
+				ProductDeviceKey  string   `json:"productDeviceKey"`
+				SessionBinding    string   `json:"sessionBinding"`
+				Scopes            []string `json:"scopes"`
+				IssuedAt          string   `json:"issuedAt"`
+				ExpiresAt         string   `json:"expiresAt"`
+			} `json:"session"`
+		} `json:"result"`
+	}
+	if json.Unmarshal(raw, &envelope) != nil || !envelope.OK || !envelope.Result.Active {
+		return AppSession{}, errors.New("canonical Wallet Gateway returned an invalid Bridge session")
+	}
+	session := envelope.Result.Session
+	if session.RequestingProduct != "bridge" || session.ProductClientID != "ynx-bridge-web-v1" || session.BundleID != "web.ynx.bridge" || !containsText(session.Scopes, scope) {
+		return AppSession{}, errors.New("Bridge Product Session binding mismatch")
+	}
+	issuedAt, issuedErr := time.Parse(time.RFC3339Nano, session.IssuedAt)
+	expiresAt, expiresErr := time.Parse(time.RFC3339Nano, session.ExpiresAt)
+	now := s.gateway.cfg.Now().UTC()
+	if issuedErr != nil || expiresErr != nil || issuedAt.After(now.Add(time.Minute)) || !expiresAt.After(now) || !digestPattern(session.SessionBinding) || len(session.ProductDeviceKey) != 44 {
+		return AppSession{}, errors.New("Bridge Product Session is invalid or expired")
+	}
+	account, accountErr := nativewallet.NormalizeNativeAddress(session.Account)
+	if accountErr != nil {
+		return AppSession{}, errors.New("Bridge Product Session account is invalid")
+	}
+	deviceDigest := sha256.Sum256([]byte(session.ProductDeviceKey))
+	return AppSession{ID: session.SessionBinding, Account: account, CanonicalAddress: account, DeviceID: hex.EncodeToString(deviceDigest[:]), Origin: "https://ynxweb4.com", IssuedAt: issuedAt, ExpiresAt: expiresAt, Status: "active"}, nil
+}
+
+func digestPattern(value string) bool {
+	if len(value) != 64 {
+		return false
+	}
+	_, err := hex.DecodeString(value)
+	return err == nil && strings.ToLower(value) == value
+}
+
+func containsText(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }
 
 func appUpstreamPath(service, path string) string {
@@ -401,7 +495,7 @@ func (s *Server) preflight(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		switch header {
-		case "Accept", "Content-Type", "X-Ynx-App-Session", "X-Ynx-Device-Id", "X-Ynx-Timestamp", "X-Ynx-Device-Signature":
+		case "Accept", "Content-Type", "X-Ynx-App-Session", "X-Ynx-Device-Id", "X-Ynx-Timestamp", "X-Ynx-Device-Signature", "X-Ynx-Product-Session-Proof":
 		default:
 			writeError(w, http.StatusForbidden, fmt.Sprintf("preflight header %s is not allowed", header))
 			return
@@ -441,7 +535,7 @@ func bindPayPayer(body []byte, account string) ([]byte, error) {
 func setCORS(w http.ResponseWriter, origin string) {
 	w.Header().Set("Access-Control-Allow-Origin", origin)
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, X-YNX-App-Session, X-YNX-Device-ID, X-YNX-Timestamp, X-YNX-Device-Signature")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, X-YNX-App-Session, X-YNX-Device-ID, X-YNX-Timestamp, X-YNX-Device-Signature, X-YNX-Product-Session-Proof")
 	w.Header().Set("Access-Control-Max-Age", "600")
 	w.Header().Add("Vary", "Origin")
 }

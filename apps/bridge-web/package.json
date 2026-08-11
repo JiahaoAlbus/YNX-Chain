@@ -1,0 +1,1 @@
+{"name":"@ynx-chain/bridge-web","version":"1.0.0-testnet-candidate","private":true,"type":"module","scripts":{"test":"node --test test/*.test.mjs","check":"node --check app.js && node --check wallet-auth-entry.js && node --check wallet-auth.js && npm test"}}

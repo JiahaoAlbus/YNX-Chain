@@ -264,6 +264,94 @@ func TestNativeWalletSessionForwardsBoundBridgeReviewContextOnly(t *testing.T) {
 	}
 }
 
+func TestBridgeWebRequiresSingleUseCanonicalProductSessionProof(t *testing.T) {
+	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
+	_, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
+	bridge, bridgeServer := startUpstream(t, "bridge", "X-YNX-Bridge-Gateway-Key", testBridgeKey)
+	now := time.Date(2026, 8, 11, 8, 0, 0, 0, time.UTC)
+	fixture := newOwnershipFixture(t, 0x93, 0x94, "bridge-web-device")
+	consumed := map[string]bool{}
+	walletServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/health" {
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "service": "ynx-wallet-gateway", "remoteDeployed": false, "truthfulStatus": "local-test"})
+			return
+		}
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/wallet/sessions/introspect" {
+			http.NotFound(w, r)
+			return
+		}
+		proof := r.Header.Get("X-YNX-Product-Session-Proof")
+		var body struct {
+			RequiredScopes []string `json:"requiredScopes"`
+		}
+		if json.NewDecoder(r.Body).Decode(&body) != nil || len(body.RequiredScopes) != 1 || consumed[proof] {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		wantedScope := body.RequiredScopes[0]
+		if (proof == "quote-once" && wantedScope != "bridge:quote:read") || (proof == "review-once" && wantedScope != "bridge:review:create") || proof == "" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		consumed[proof] = true
+		clientID, bundleID, requestingProduct := "ynx-bridge-web-v1", "web.ynx.bridge", "bridge"
+		expiresAt := now.Add(3 * time.Minute)
+		if proof == "wrong-product" {
+			clientID = "ynx-shop-v1"
+		}
+		if proof == "expired" {
+			expiresAt = now.Add(-time.Minute)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "result": map[string]any{"active": true, "session": map[string]any{
+			"requestingProduct": requestingProduct, "productClientId": clientID, "bundleId": bundleID,
+			"account": fixture.account, "productDeviceKey": strings.Repeat("A", 44), "sessionBinding": strings.Repeat("a", 64),
+			"scopes": []string{wantedScope}, "issuedAt": now.Add(-time.Minute).Format(time.RFC3339Nano), "expiresAt": expiresAt.Format(time.RFC3339Nano),
+		}}})
+	}))
+	t.Cleanup(walletServer.Close)
+	cfg := testConfig(t, chatServer.URL, squareServer.URL, 100)
+	cfg.BridgeURL, cfg.WalletURL, cfg.Now = bridgeServer.URL, walletServer.URL, func() time.Time { return now }
+	gateway, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(gateway).Handler())
+	defer server.Close()
+	request := func(path, proof string) *httptest.ResponseRecorder {
+		req := mustRequest(t, http.MethodPost, server.URL+path, []byte(`{}`), testOrigin)
+		req.Header.Set("X-YNX-Product-Session-Proof", proof)
+		response, requestErr := http.DefaultClient.Do(req)
+		if requestErr != nil {
+			t.Fatal(requestErr)
+		}
+		defer response.Body.Close()
+		recorder := httptest.NewRecorder()
+		recorder.Code, recorder.HeaderMap = response.StatusCode, response.Header.Clone()
+		_, _ = recorder.Body.ReadFrom(response.Body)
+		return recorder
+	}
+	if got := request("/app/bridge/quotes", "quote-once"); got.Code != http.StatusCreated {
+		t.Fatalf("canonical Bridge quote status=%d body=%s", got.Code, got.Body.String())
+	}
+	if got := request("/app/bridge/quotes", "quote-once"); got.Code != http.StatusUnauthorized {
+		t.Fatalf("replayed proof status=%d", got.Code)
+	}
+	if got := request("/app/bridge/quotes", "wrong-product"); got.Code != http.StatusUnauthorized {
+		t.Fatalf("wrong product status=%d", got.Code)
+	}
+	if got := request("/app/bridge/quotes", "expired"); got.Code != http.StatusUnauthorized {
+		t.Fatalf("expired session status=%d", got.Code)
+	}
+	if got := request("/app/bridge/wallet-reviews", "review-once"); got.Code != http.StatusCreated {
+		t.Fatalf("canonical Bridge review status=%d body=%s", got.Code, got.Body.String())
+	}
+	requests := bridge.snapshot()
+	deviceDigest := sha256.Sum256([]byte(strings.Repeat("A", 44)))
+	if len(requests) != 2 || requests[0].Account != fixture.account || requests[0].SessionID != strings.Repeat("a", 64) || requests[0].SessionDevice != hex.EncodeToString(deviceDigest[:]) || requests[0].Product != "ynx-web" || requests[0].Scope != "bridge:quote:read" || requests[1].Scope != "bridge:review:create" {
+		t.Fatalf("Bridge canonical session forwarding is invalid: %+v", requests)
+	}
+}
+
 func TestOwnershipStateTamperFailsClosed(t *testing.T) {
 	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
 	_, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)

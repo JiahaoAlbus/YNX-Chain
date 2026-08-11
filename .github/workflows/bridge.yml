@@ -1,0 +1,73 @@
+name: YNX Bridge product
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/final-bridge, codex/integrate-finance-suite]
+    paths:
+      - "apps/bridge-web/**"
+      - "apps/wallet/src/protocol/**"
+      - "internal/appgateway/**"
+      - "internal/bridgegateway/**"
+      - "packages/wallet-auth/**"
+      - "release/bridge/**"
+      - "release/integration/ynx-bridge-contract.json"
+      - ".github/workflows/bridge.yml"
+  pull_request:
+    paths:
+      - "apps/bridge-web/**"
+      - "apps/wallet/src/protocol/**"
+      - "internal/appgateway/**"
+      - "internal/bridgegateway/**"
+      - "packages/wallet-auth/**"
+      - "release/bridge/**"
+      - "release/integration/ynx-bridge-contract.json"
+      - ".github/workflows/bridge.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  product-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with: {go-version-file: go.mod}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: {node-version: "24"}
+      - run: go test ./internal/bridgegateway ./internal/appgateway
+      - run: go test -race ./internal/bridgegateway ./internal/appgateway
+      - run: go vet ./internal/bridgegateway ./internal/appgateway
+      - run: npm ci && npm test
+        working-directory: packages/wallet-auth
+      - run: npm ci && npm run typecheck && npm test
+        working-directory: apps/wallet
+      - run: npm run check
+        working-directory: apps/bridge-web
+
+  reproducible-candidates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with: {go-version-file: go.mod}
+      - name: Build unsigned Testnet coordinator and gateway candidates
+        run: |
+          set -euo pipefail
+          mkdir -p dist/bridge
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=true -o dist/bridge/ynx-bridged-linux-amd64 ./cmd/ynx-bridged
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=true -o dist/bridge/ynx-app-gatewayd-linux-amd64 ./cmd/ynx-app-gatewayd
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -buildvcs=true -o dist/bridge/ynx-bridged-darwin-arm64 ./cmd/ynx-bridged
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -buildvcs=true -o dist/bridge/ynx-app-gatewayd-darwin-arm64 ./cmd/ynx-app-gatewayd
+          tar -czf dist/bridge/ynx-bridge-web.tar.gz -C apps/bridge-web index.html app.js styles.css wallet-auth.js ynx-logo.png
+          sha256sum dist/bridge/* | tee dist/bridge/SHA256SUMS
+          stat -c '%n bytes=%s' dist/bridge/* | tee dist/bridge/BYTES
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ynx-bridge-unsigned-testnet-candidates-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: dist/bridge/

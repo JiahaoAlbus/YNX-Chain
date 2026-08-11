@@ -11,7 +11,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/" aria-label="YNX Bridge home"><img src="/ynx-logo.png" alt="YNX" width="58" height="38"><span><small>TESTNET</small>YNX Bridge</span></a>
-    <nav aria-label="Bridge navigation"><a href="#routes">Routes</a><a href="#providers">Providers</a><a href="https://explorer.ynxweb4.com" rel="noreferrer">Explorer</a><button id="refresh" type="button">Refresh</button></nav>
+    <nav aria-label="Bridge navigation"><a href="#routes">Routes</a><a href="#providers">Providers</a><a href="https://explorer.ynxweb4.com" rel="noreferrer">Explorer</a><a id="install-wallet" href="https://ynxweb4.com/ecosystem?product=wallet">Get Wallet</a><button id="connect-wallet" type="button">Connect YNX Wallet</button><button id="refresh" type="button">Refresh</button></nav>
   </header>
 
   <main>
@@ -25,17 +25,21 @@
         <p class="eyebrow">CROSS-CHAIN TRANSFER</p>
         <h1>Review the route before you sign</h1>
         <p class="intro">Quotes, fees, provider state, contracts, and execution availability are read from the running coordinator. No route is presented as usable unless every required dependency is verified.</p>
+        <div class="wallet-state"><span id="wallet-status">Wallet not connected — live route evidence remains available</span></div>
         <div class="field-grid">
-          <label>From<select id="source-chain" disabled><option>Ethereum Sepolia</option></select></label>
+          <label>From<select id="source-chain"><option>Loading routes…</option></select></label>
           <button class="swap" type="button" disabled aria-label="Reverse route">⇄</button>
-          <label>To<select id="destination-chain" disabled><option>Base Sepolia</option></select></label>
+          <label>To<select id="destination-chain" disabled><option>Loading routes…</option></select></label>
         </div>
-        <label>Amount<div class="amount"><input type="text" inputmode="decimal" value="100" aria-label="Transfer amount" disabled><span>USDC</span></div></label>
+        <label>Amount in the asset's smallest unit<div class="amount"><input id="amount" type="text" inputmode="numeric" value="1000000" aria-label="Transfer amount"><span id="asset-symbol">USDC</span></div></label>
+        <div class="address-grid"><label>Source account<input id="sender" type="text" autocomplete="off" placeholder="Source-chain account"></label><label>Destination account<input id="recipient" type="text" autocomplete="off" placeholder="Destination-chain account"></label></div>
         <div class="quote-row"><span>Provider quote</span><strong id="quote-state">Unavailable</strong></div>
         <div class="quote-row"><span>Estimated time</span><strong id="estimate">—</strong></div>
         <div class="quote-row"><span>External submission</span><strong id="submission">Disabled</strong></div>
-        <button class="primary" type="button" disabled>Transfer unavailable</button>
-        <p class="safety">The button remains disabled because the coordinator has no verified executable route or destination contract. This preview never fabricates a transaction.</p>
+        <button id="request-quote" class="primary" type="button" disabled>Connect Wallet to request a quote</button>
+        <button id="review-quote" class="secondary-action" type="button" disabled>Create Wallet review</button>
+        <button id="submit-transfer" class="primary unavailable" type="button" disabled>Transfer unavailable</button>
+        <p id="quote-detail" class="safety">The transfer button remains disabled because the coordinator has no verified executable route or destination contract. This product can still return an account-bound, signed-in quote and a Wallet review without fabricating execution.</p>
       </div>
 
       <aside class="evidence-panel">
@@ -58,6 +62,7 @@
     <section id="routes" class="data-section"><div class="section-heading"><div><p class="eyebrow">ROUTE REGISTRY</p><h2>Configured candidates</h2></div><p>Live coordinator data—not a marketing list.</p></div><div id="route-list" class="cards"><p class="loading">Loading routes…</p></div></section>
     <section id="providers" class="data-section"><div class="section-heading"><div><p class="eyebrow">PROVIDER REGISTRY</p><h2>Connectivity and review state</h2></div></div><div id="provider-list" class="cards"><p class="loading">Loading providers…</p></div></section>
   </main>
+  <script src="/wallet-auth.js" defer></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

@@ -22,19 +22,20 @@ const (
 )
 
 type observedRequest struct {
-	Method     string
-	URI        string
-	ServiceKey string
-	Injected   string
-	DeviceID   string
-	Cookie     string
-	Auth       string
-	Body       string
-	SessionID  string
-	Account    string
-	Product    string
-	Scope      string
-	ExpiresAt  string
+	Method        string
+	URI           string
+	ServiceKey    string
+	Injected      string
+	DeviceID      string
+	Cookie        string
+	Auth          string
+	Body          string
+	SessionID     string
+	Account       string
+	Product       string
+	Scope         string
+	ExpiresAt     string
+	SessionDevice string
 }
 
 type upstreamRecorder struct {
@@ -57,7 +58,7 @@ func (u *upstreamRecorder) handler(w http.ResponseWriter, r *http.Request) {
 	}
 	body, _ := io.ReadAll(r.Body)
 	u.mu.Lock()
-	u.requests = append(u.requests, observedRequest{Method: r.Method, URI: r.URL.RequestURI(), ServiceKey: r.Header.Get(u.keyName), Injected: r.Header.Get("X-YNX-App-Gateway"), DeviceID: r.Header.Get("X-YNX-Device-ID"), Cookie: r.Header.Get("Cookie"), Auth: r.Header.Get("Authorization"), Body: string(body), SessionID: r.Header.Get("X-YNX-App-Session-ID"), Account: r.Header.Get("X-YNX-App-Session-Account"), Product: r.Header.Get("X-YNX-App-Product"), Scope: r.Header.Get("X-YNX-App-Scope"), ExpiresAt: r.Header.Get("X-YNX-App-Session-Expires-At")})
+	u.requests = append(u.requests, observedRequest{Method: r.Method, URI: r.URL.RequestURI(), ServiceKey: r.Header.Get(u.keyName), Injected: r.Header.Get("X-YNX-App-Gateway"), DeviceID: r.Header.Get("X-YNX-Device-ID"), Cookie: r.Header.Get("Cookie"), Auth: r.Header.Get("Authorization"), Body: string(body), SessionID: r.Header.Get("X-YNX-App-Session-ID"), Account: r.Header.Get("X-YNX-App-Session-Account"), Product: r.Header.Get("X-YNX-App-Product"), Scope: r.Header.Get("X-YNX-App-Scope"), ExpiresAt: r.Header.Get("X-YNX-App-Session-Expires-At"), SessionDevice: r.Header.Get("X-YNX-App-Session-Device")})
 	u.mu.Unlock()
 	if u.large {
 		_, _ = io.WriteString(w, strings.Repeat("x", 2048))

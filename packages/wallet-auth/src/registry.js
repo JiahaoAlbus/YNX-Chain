@@ -17,7 +17,7 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
 ]);
 
 export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
-export const CENTRAL_REGISTRY_PRODUCT_COUNT = 33;
+export const CENTRAL_REGISTRY_PRODUCT_COUNT = 34;
 export const CENTRAL_PRODUCT_SCHEMA_VERSION = 3;
 
 export function parseCentralRegistryDocument(input) {
@@ -50,6 +50,7 @@ export function migrateCentralRegistryDocumentV1(input) {
     ...canonicalDocsRegistrations(),
     ...canonicalMusicRegistrations(),
     ...canonicalVideoRegistrations(),
+    canonicalBridgeRegistration(),
     canonicalQuantRegistration(),
     canonicalSearchRegistration(),
   ]
@@ -59,6 +60,25 @@ export function migrateCentralRegistryDocumentV1(input) {
     chainId: YNX_NATIVE_CHAIN_ID,
     products: migratedProducts,
   });
+}
+
+function canonicalBridgeRegistration() {
+  return {
+    schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    productId: "bridge-web",
+    displayName: "YNX Bridge for Web",
+    reviewState: "pending-review",
+    enabled: false,
+    productClientId: "ynx-bridge-web-v1",
+    requestingProduct: "bridge",
+    bundleId: "web.ynx.bridge",
+    callbacks: ["https://ynxweb4.com/bridge/wallet-auth/callback"],
+    scopes: ["bridge:quote:read", "bridge:review:create"],
+    maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+    sessionDurationSeconds: 180,
+    revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
+  };
 }
 
 function canonicalVideoRegistrations() {

@@ -28,6 +28,12 @@ const REVIEWED_ENTRIES = [
     productDeviceAlgorithms: ["p256-sha256"],
   },
   {
+    schemaVersion: 2, productClientId: "ynx-bridge-web-v1", requestingProduct: "bridge",
+    bundleId: "web.ynx.bridge", callbacks: ["https://ynxweb4.com/bridge/wallet-auth/callback"],
+    scopes: ["bridge:quote:read", "bridge:review:create"], maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
     schemaVersion: 2, productClientId: "ynx-calendar-v1", requestingProduct: "calendar",
     bundleId: "com.ynxweb4.calendar", callbacks: ["ynxcalendar://wallet-auth/callback"],
     scopes: ["calendar:account", "calendar:recover"], maxScopes: 2,
@@ -173,6 +179,8 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "ai.video.propose": "Create reviewable Creator Studio AI proposals; AI cannot publish, claim rights, moderate accounts or move YNXT.",
   "account:read": "Share this account's public ynx1 address. No secret or recovery material leaves Wallet.",
   "browser:wallet-request": "Review one exact Browser-originated Wallet request. Browser cannot sign, move funds, widen scopes or create a Wallet session by itself.",
+  "bridge:quote:read": "Request a fresh, account-bound Bridge route quote. A quote cannot sign, submit or move an asset.",
+  "bridge:review:create": "Create an exact Wallet review of a fresh Bridge quote. The review cannot submit externally or replace the final transfer signature.",
   "calendar:account": "Connect this account to Calendar events, invitations and settings without sharing keys or recovery material.",
   "calendar:recover": "Review recovery of this account's Calendar access on a new device; it does not reveal Wallet recovery material.",
   "card:application:write": "Create or update only this account's sandbox Card application.",
