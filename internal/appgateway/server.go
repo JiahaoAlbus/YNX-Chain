@@ -483,7 +483,7 @@ func (s *Server) payMerchant(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnauthorized, "active YNX Merchant Product Session proof required")
 			return
 		}
-		if err := s.signProductAssertion(request, body, session, "pay-merchant", "ynx-merchant-console-v1", "com.ynxweb4.merchant-console", "https://pay.ynxweb4.com/merchant/wallet-auth/callback"); err != nil {
+		if err := s.signProductAssertion(request, body, session, "pay-merchant", "ynx-merchant-console-v1", "com.ynxweb4.merchant-console", "https://pay.ynxweb4.com/merchant/wallet-auth/callback", false); err != nil {
 			writeError(w, http.StatusServiceUnavailable, "unable to create bounded Merchant Gateway assertion")
 			return
 		}
@@ -622,10 +622,10 @@ func (s *Server) authenticateProductSession(r *http.Request, scope, expectedProd
 }
 
 func (s *Server) signPayProductAssertion(request *http.Request, body []byte, session payProductSession) error {
-	return s.signProductAssertion(request, body, session, "pay", "ynx-pay-v1", "com.ynxweb4.pay", "ynxpay://wallet-auth/callback")
+	return s.signProductAssertion(request, body, session, "pay", "ynx-pay-v1", "com.ynxweb4.pay", "ynxpay://wallet-auth/callback", true)
 }
 
-func (s *Server) signProductAssertion(request *http.Request, body []byte, session payProductSession, product, clientID, bundleID, callback string) error {
+func (s *Server) signProductAssertion(request *http.Request, body []byte, session payProductSession, product, clientID, bundleID, callback string, bindSessionDigest bool) error {
 	now := s.gateway.cfg.Now().UTC()
 	expiresAt := now.Add(3 * time.Minute)
 	if session.ExpiresAt.Before(expiresAt) {
@@ -652,7 +652,12 @@ func (s *Server) signProductAssertion(request *http.Request, body []byte, sessio
 		request.Header.Set(key, value)
 	}
 	bodyHash := sha256.Sum256(body)
-	material := strings.Join([]string{"YNX_PRODUCT_GATEWAY_ASSERTION_V1", request.Method, request.URL.EscapedPath(), hex.EncodeToString(bodyHash[:]), session.Account, session.SessionID, session.DeviceID, product, clientID, bundleID, callback, "ynx_6423-1", strings.Join(scopes, " "), session.SessionBinding, session.RequestDigest, headers["X-YNX-Issued-At"], headers["X-YNX-Expires-At"], nonce}, "\n")
+	fields := []string{"YNX_PRODUCT_GATEWAY_ASSERTION_V1", request.Method, request.URL.EscapedPath(), hex.EncodeToString(bodyHash[:]), session.Account, session.SessionID, session.DeviceID, product, clientID, bundleID, callback, "ynx_6423-1", strings.Join(scopes, " ")}
+	if bindSessionDigest {
+		fields = append(fields, session.SessionBinding)
+	}
+	fields = append(fields, session.RequestDigest, headers["X-YNX-Issued-At"], headers["X-YNX-Expires-At"], nonce)
+	material := strings.Join(fields, "\n")
 	mac := hmac.New(sha256.New, s.gateway.payProductAssertionKey)
 	_, _ = mac.Write([]byte(material))
 	request.Header.Set("X-YNX-Gateway-Signature", hex.EncodeToString(mac.Sum(nil)))

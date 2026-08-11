@@ -141,7 +141,7 @@ func TestPayMerchantProxyExchangesCanonicalProofAndBoundsBearerRoutes(t *testing
 		body, _ := io.ReadAll(r.Body)
 		switch r.URL.Path {
 		case "/v1/merchant/sessions":
-			if !validProductAssertion(r, body, assertionKey, "pay-merchant", "ynx-merchant-console-v1", "com.ynxweb4.merchant-console", "https://pay.ynxweb4.com/merchant/wallet-auth/callback", payMerchantScopes) || r.Header.Get("X-YNX-Product-Session-Proof") != "" {
+			if !validProductAssertion(r, body, assertionKey, "pay-merchant", "ynx-merchant-console-v1", "com.ynxweb4.merchant-console", "https://pay.ynxweb4.com/merchant/wallet-auth/callback", payMerchantScopes, false) || r.Header.Get("X-YNX-Product-Session-Proof") != "" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -202,17 +202,20 @@ func TestPayMerchantProxyExchangesCanonicalProofAndBoundsBearerRoutes(t *testing
 }
 
 func validPayAssertion(r *http.Request, body, key []byte) bool {
-	return validProductAssertion(r, body, key, "pay", "ynx-pay-v1", "com.ynxweb4.pay", "ynxpay://wallet-auth/callback", payProductScopes)
+	return validProductAssertion(r, body, key, "pay", "ynx-pay-v1", "com.ynxweb4.pay", "ynxpay://wallet-auth/callback", payProductScopes, true)
 }
 
-func validProductAssertion(r *http.Request, body, key []byte, product, clientID, bundleID, callback string, scopes []string) bool {
+func validProductAssertion(r *http.Request, body, key []byte, product, clientID, bundleID, callback string, scopes []string, bindSessionDigest bool) bool {
 	bodyHash := sha256.Sum256(body)
 	fields := []string{
 		"YNX_PRODUCT_GATEWAY_ASSERTION_V1", r.Method, r.URL.EscapedPath(), hex.EncodeToString(bodyHash[:]),
 		r.Header.Get("X-YNX-Account"), r.Header.Get("X-YNX-Session-ID"), r.Header.Get("X-YNX-Device-ID"),
 		r.Header.Get("X-YNX-Product"), r.Header.Get("X-YNX-Client"), r.Header.Get("X-YNX-Bundle"), r.Header.Get("X-YNX-Callback"), r.Header.Get("X-YNX-Chain"), r.Header.Get("X-YNX-Scopes"),
-		r.Header.Get("X-YNX-Session-Binding"), r.Header.Get("X-YNX-Request-Digest"), r.Header.Get("X-YNX-Issued-At"), r.Header.Get("X-YNX-Expires-At"), r.Header.Get("X-YNX-Nonce"),
 	}
+	if bindSessionDigest {
+		fields = append(fields, r.Header.Get("X-YNX-Session-Binding"))
+	}
+	fields = append(fields, r.Header.Get("X-YNX-Request-Digest"), r.Header.Get("X-YNX-Issued-At"), r.Header.Get("X-YNX-Expires-At"), r.Header.Get("X-YNX-Nonce"))
 	mac := hmac.New(sha256.New, key)
 	_, _ = mac.Write([]byte(strings.Join(fields, "\n")))
 	return r.Header.Get("X-YNX-Account") != "" && r.Header.Get("X-YNX-Product") == product && r.Header.Get("X-YNX-Client") == clientID && r.Header.Get("X-YNX-Bundle") == bundleID && r.Header.Get("X-YNX-Callback") == callback && r.Header.Get("X-YNX-Scopes") == strings.Join(scopes, " ") && hmac.Equal([]byte(r.Header.Get("X-YNX-Gateway-Signature")), []byte(hex.EncodeToString(mac.Sum(nil))))
