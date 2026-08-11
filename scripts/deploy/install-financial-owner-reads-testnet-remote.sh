@@ -34,7 +34,7 @@ verify_owner_read() {
   OWNER="$1" PORT="$2" KEY="$3" COMMIT="$source_commit" node <<'NODE'
 const http=require('http'),crypto=require('crypto');
 const owner=process.env.OWNER,path='/v1/integrations/finance/account';
-const account='0x1111111111111111111111111111111111111111';
+const account='ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80';
 const timestamp=new Date().toISOString(),nonce=crypto.randomBytes(16).toString('hex');
 const canonical=['YNX_READ_INTEGRATION_V1','finance',owner,'GET',path,account,timestamp,nonce].join('\n');
 const signature=crypto.createHmac('sha256',process.env.KEY).update(canonical).digest('hex');
