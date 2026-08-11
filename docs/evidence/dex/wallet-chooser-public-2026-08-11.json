@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "observedAt": "2026-08-11T15:05:30.000Z",
+  "baseUrl": "https://dex.ynxweb4.com",
+  "deployment": {
+    "release": "ynx-dex-2e76d7f3dd5a",
+    "sourceCommit": "2e76d7f3dd5a543cc6fa31dfc14eb3d8d5b69b07",
+    "binarySha256": "59bdd18f6e5e392a1a30776fdaa06d251ca61f5d1414e878f176123801fc3d83",
+    "webTreeSha256": "9a9b4226475216ce6afb2283a849c9ebc1457abdca22b5d95817b998c826e0b5",
+    "rollbackBackup": "/var/backups/ynx-dex/20260811T150433Z-pre-2e76d7f3dd5a"
+  },
+  "publicChecks": {
+    "versionHttpStatus": 200,
+    "healthHttpStatus": 200,
+    "chainId": 6423,
+    "marketSourceConfigured": true,
+    "marketAvailable": true,
+    "executionAvailable": true,
+    "latestBlock": 956758,
+    "deployedBundleContains": [
+      "Download YNX Wallet",
+      "Connect MetaMask",
+      "wallet_addEthereumChain",
+      "0x1917",
+      "ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk"
+    ]
+  },
+  "connectionBoundary": {
+    "ynxWallet": "canonical proof-bound Product Session and separate exact transaction review",
+    "ynxWalletDownload": "official first-party direct APK URL",
+    "metaMask": "EVM compatibility account only; add or switch to 0x1917, recheck chain, then request accounts",
+    "guestMode": "public pools, quotes, transactions and analytics remain usable without login",
+    "automaticTransactionRetry": false
+  },
+  "verification": {
+    "unitAndComponentTests": 16,
+    "productionBuild": true,
+    "remoteAtomicDeployment": true,
+    "fullApkDownloadBytes": 78392878,
+    "fullApkDownloadSha256": "fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",
+    "computerControlUiVerified": false,
+    "computerControlNote": "Deferred because the user took control of the active Chrome window during the automated UI pass; no further input was injected."
+  },
+  "mainnet": false,
+  "productionLiquidity": false
+}

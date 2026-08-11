@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "sourceBranch": "codex/ecosystem-dex",
-  "sourceCommit": "b72e193893117bb46e3d299ea85ea04be809183c",
+  "sourceCommit": "2e76d7f3dd5a543cc6fa31dfc14eb3d8d5b69b07",
   "artifactSourceCommit": "5b4eb9e1511577ce73291d97fdc0b9aa376b0383",
   "recoveredSourceCommit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
   "recoveryTipCommit": "1614ffb7fa4983a182405fe3fa118fa448f87b4b",
@@ -41,12 +41,13 @@
     "docs/evidence/dex/native-market-capacity-2026-08-11.json",
     "docs/evidence/dex/chain-native-four-node-rollout-2026-08-11.json",
     "docs/evidence/dex/public-web-api-wallet-2026-08-11.json"
+    ,"docs/evidence/dex/wallet-chooser-public-2026-08-11.json"
   ],
   "publicDeployment": {
-    "release": "ynx-dex-b72e19389311",
-    "sourceCommit": "b72e193893117bb46e3d299ea85ea04be809183c",
-    "binarySha256": "4583ad0f63e3651c61e20bdb44befc8aec926253129618165bb74c681e960bb8",
-    "webTreeSha256": "c0cc78d2e81e811ee57c29bffd19c03e9a5cd956d4f7579ca21018d01e5c10b0",
+    "release": "ynx-dex-2e76d7f3dd5a",
+    "sourceCommit": "2e76d7f3dd5a543cc6fa31dfc14eb3d8d5b69b07",
+    "binarySha256": "59bdd18f6e5e392a1a30776fdaa06d251ca61f5d1414e878f176123801fc3d83",
+    "webTreeSha256": "9a9b4226475216ce6afb2283a849c9ebc1457abdca22b5d95817b998c826e0b5",
     "web": true,
     "indexerApi": true,
     "walletGatewayProxy": true,
@@ -55,7 +56,22 @@
     "executionAvailable": true,
     "publicAssetMovementVerified": true,
     "testnetLiquidity": true,
-    "productionLiquidity": false
+    "productionLiquidity": false,
+    "walletChooser": {
+      "ynxWalletDeepLink": true,
+      "officialDirectDownload": true,
+      "metaMaskEvmCompatibility": true,
+      "metaMaskChainId": "0x1917",
+      "guestMode": true,
+      "evidence": "docs/evidence/dex/wallet-chooser-public-2026-08-11.json"
+    }
+  },
+  "nativeLifecycleEvidence": {
+    "release": "ynx-dex-b72e19389311",
+    "sourceCommit": "b72e193893117bb46e3d299ea85ea04be809183c",
+    "binarySha256": "4583ad0f63e3651c61e20bdb44befc8aec926253129618165bb74c681e960bb8",
+    "webTreeSha256": "c0cc78d2e81e811ee57c29bffd19c03e9a5cd956d4f7579ca21018d01e5c10b0",
+    "evidence": "docs/evidence/dex/native-public-lifecycle-2026-08-11.json"
   },
   "centralIntegration": {
     "walletClient": "ynx-dex-web-v1",
@@ -75,5 +91,5 @@
     "Staging, hosted download, production signing, store release, verified contracts and production liquidity are absent.",
     "Concentrated/stable/weighted pools, Strategy Vault controls, FairFlow solving and LP protection remain outside this candidate."
   ],
-  "generatedAt": "2026-08-11T12:22:20.000Z"
+  "generatedAt": "2026-08-11T15:05:30.000Z"
 }

@@ -3,11 +3,11 @@
   "productId":"ynx-dex",
   "name":"YNX DEX",
   "version":"0.1.0-testnet-preview.1",
-  "status":"local-integrated-candidate-not-public",
+  "status":"public-testnet-preview",
   "summary":"Non-custodial YNX Testnet DEX candidate with public indexed market data, deterministic local routing and exact Wallet-reviewed actions.",
-  "publicUrls":[],
+  "publicUrls":["https://dex.ynxweb4.com/"],
   "downloadUrls":[],
-  "facts":{"implementedLocal":true,"testedLocal":true,"installedLocal":false,"integratedCentral":true,"deployedStaging":false,"deployedPublic":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false,"mainnet":false,"audited":false,"productionLiquidity":false},
+  "facts":{"implementedLocal":true,"testedLocal":true,"installedLocal":false,"integratedCentral":true,"deployedStaging":false,"deployedPublic":true,"downloadHosted":false,"productionSigned":false,"storeReleased":false,"mainnet":false,"audited":false,"productionLiquidity":false},
   "userBoundary":"Public market data can be tried without login. Account positions need a live central Wallet session. No transaction can execute without a separate exact Wallet review.",
-  "disclosure":"No public contract deployment, funded pool, successful swap, LP return, APY, TVL, production audit or hosted release is claimed."
+  "disclosure":"The public chain-native Testnet market has one labelled test-liquidity pool and verified indexed lifecycle evidence. It is not production liquidity. EVM contracts, production audit, APY/TVL claims, production signing and store release remain absent."
 }
